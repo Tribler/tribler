@@ -18,6 +18,7 @@ from Tribler.Core.BitTornado.BT1.convert import tobinary,toint
 
 from Tribler.Core.Overlay.permid import ChallengeResponse
 from Tribler.Core.Utilities.utilities import show_permid_short
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB,safe_dict,bin2str
 
 DEBUG = False
 
@@ -67,6 +68,7 @@ class SecureOverlay:
         self.olproto_ver_current = OLPROTO_VER_CURRENT
         self.usermsghandler = None
         self.userconnhandler = None
+        self.dns = safe_dict()
 
     #
     # Interface for upper layer
@@ -457,20 +459,22 @@ class SecureOverlay:
     #
     # Interface for OverlayThreadingBridge
     #
-    def get_dns_from_peerdb(self,permid):
+    def get_dns_from_peerdb(self,permid,use_cache=True):
         # Called by any thread, except NetworkThread
         
         if currentThread().getName().startswith("NetworkThread"):
             print >>sys.stderr,"secover: get_dns_from_peerdb: called by NetworkThread!"
             print_stack()
         
-        dns = None
-        peer = self.peer_db.getPeer(permid)
-        if peer:
-            ip = self.to_real_ip(peer['ip'])
-            dns = (ip, int(peer['port']))
-        return dns
+        dns = self.dns.get(permid, None)
 
+        if not dns:
+            values = ('ip', 'port')
+            peer = self.peer_db.getOne(values, permid=bin2str(permid))
+            if peer:
+                ip = self.to_real_ip(peer[0])
+                dns = (ip, int(peer[1]))
+        return dns
     
     def add_peer_to_db(self,permid,dns,selversion):
         """ add a connected peer to database """
@@ -482,10 +486,9 @@ class SecureOverlay:
         if DEBUG:
             print >>sys.stderr,"secover: add_peer_to_peerdb: called by",currentThread().getName()
         
-        ip = dns[0]
-        port = dns[1]
+        self.dns[permid] = dns    # cache it to avoid querying db later
         now = int(time())
-        peer_data = {'permid':permid, 'ip':ip, 'port':port, 'oversion':selversion, 'last_seen':now, 'last_connected':now}
+        peer_data = {'permid':permid, 'ip':dns[0], 'port':dns[1], 'oversion':selversion, 'last_seen':now, 'last_connected':now}
         self.peer_db.addPeer(permid, peer_data, update_dns=True)
         self.peer_db.updateTimes(permid, 'connected_times', 1)
         

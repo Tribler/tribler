@@ -1,6 +1,6 @@
 import sys
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler,MyPreferenceDBHandler
-from Tribler.Core.Utilities.utilities import show_permid
+from Tribler.Core.Utilities.utilities import show_permid, bin2str
 from random import randint
 from time import time
 
@@ -12,30 +12,35 @@ class SimpleTorrentCollecting:
         a buddycast message
     """
     
-    def __init__(self, metadata_handler):
+    def __init__(self, metadata_handler, data_handler):
         self.torrent_db = TorrentDBHandler.getInstance()
         self.mypref_db = MyPreferenceDBHandler.getInstance()
         self.metadata_handler = metadata_handler
+        self.data_handler = data_handler
 #        self.cooccurrence = {}
         
 #    def updateAllCooccurrence(self):
 #        self.cooccurrence = self.mypref_db.getAllTorrentCoccurrence()
         
-    def getInfohashRelevance(self, infohash):
-        return self.mypref_db.getInfohashRelevance(infohash)
+#    def getInfohashRelevance(self, infohash):
+#        return self.torrent_db.getOne('relevance', infohash=bin2str(infohash))
         
     def updatePreferences(self, permid, preferences, selversion=-1):
         # called by overlay thread
-        torrent = self.selecteTorrentToCollect(preferences)
-        #print >> sys.stderr, '================= updatePreferences', `torrent`
+        #TODO
+        torrent = self.selectTorrentToCollect(preferences)
         if torrent and self.metadata_handler:
             self.metadata_handler.send_metadata_request(permid, torrent, selversion)
         return torrent
     
+    def addConnection(self, permid, selversion):
+        #TODO: read preference and send a requtest
+        pass
+    
     def closeConnection(self, permid):
         pass
     
-    def selecteTorrentToCollect(self, preferences, random=False):
+    def selectTorrentToCollect(self, preferences, random=False):
         preferences = list(preferences)
         candidates = []
         for torrent in preferences:
@@ -48,7 +53,11 @@ class SimpleTorrentCollecting:
         if not random:
             relevances = []
             for infohash in candidates:
-                rel = self.getInfohashRelevance(infohash)
+                #TODO
+                rel = self.torrent_db.getOne('relevance', infohash=bin2str(infohash))
+                if rel is None:
+                    rel = 0
+                #rel = self.getInfohashRelevance(infohash)
                 relevances.append(rel)
             idx = relevances.index(max(relevances))
             return candidates[idx]

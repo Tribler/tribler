@@ -3,7 +3,7 @@
 
 import socket
 from time import time, strftime, gmtime
-from base64 import encodestring
+from base64 import encodestring, decodestring
 from sha import sha
 import sys
 import os
@@ -17,6 +17,13 @@ DEBUG = True
 
 permid_len = 112
 infohash_len = 20
+
+def bin2str(bin):
+    # Full BASE64-encoded 
+    return encodestring(bin).replace("\n","")
+    
+def str2bin(str):
+    return decodestring(str)
 
 def validName(name):
     if not isinstance(name, str) and len(name) == 0:

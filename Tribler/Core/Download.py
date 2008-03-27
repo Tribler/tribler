@@ -117,6 +117,7 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
             # ARNOCOMMENT: WE NEED PERMID+IP FOR COOP DL. How to access DB? Can't
             # do it on main thread, can't do it on network thread.
             
+            # JIECOMMENT: WHAT IS peer_list?
             peerreclist = self.session.lm.peer_db.getPeers(self, peer_list, ['permid','ip','port'])
             
             if self.sd is not None:

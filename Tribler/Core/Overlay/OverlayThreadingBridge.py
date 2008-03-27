@@ -80,6 +80,7 @@ class OverlayThreadingBridge:
 
     def handleConnection(self,exc,permid,selversion,locally_initiated,hisdns):
         """ Called by NetworkThread """
+        # called by SecureOverlay.got_auth_connection() or cleanup_admin_and_callbacks()
         if DEBUG:
             print >>sys.stderr,"olbridge: handleConnection",exc,show_permid_short(permid),selversion,locally_initiated,hisdns,currentThread().getName()
         
@@ -93,7 +94,7 @@ class OverlayThreadingBridge:
                 if hisdns:
                     self.secover.add_peer_to_db(permid,hisdns,selversion)
                     
-                if self.olappsconnhandler is not None:
+                if self.olappsconnhandler is not None:    # self.olappsconnhandler = OverlayApps.handleConnection 
                     self.olappsconnhandler(exc,permid,selversion,locally_initiated)
             except:
                 print_exc()
@@ -103,7 +104,6 @@ class OverlayThreadingBridge:
                 
         self.tqueue.add_task(olbridge_handle_conn_func,0)
         
-
     def handleMessage(self,permid,selversion,message):
         """ Called by NetworkThread """
         
@@ -195,14 +195,17 @@ class OverlayThreadingBridge:
         """ Called by OverlayThread """
         self.tqueue.add_task(task,t)
         
-    def periodic_commit(self):
-        period = 5*60    # commit every 5 min
-        try:
-            db = SQLiteCacheDB.getInstance()
-            db.commit()
-        except:
-            period = period*2
-        self.add_task(self.periodic_commit, period)
-        
+#===============================================================================
+#    # Jie: according to Arno's suggestion, commit on demand instead of periodically
+#    def periodic_commit(self):
+#        period = 5*60    # commit every 5 min
+#        try:
+#            db = SQLiteCacheDB.getInstance()
+#            db.commit()
+#        except:
+#            period = period*2
+#        self.add_task(self.periodic_commit, period)
+#        
+#===============================================================================
         
         

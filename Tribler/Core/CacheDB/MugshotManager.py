@@ -38,9 +38,14 @@ class MugshotManager:
         
 
     def register(self,config):
-        self.usericonpath = os.path.join(config['state_dir'],config['peer_icon_path'])
-        if not os.path.isdir(self.usericonpath):
-            os.mkdir(self.usericonpath)
+        try:
+            self.usericonpath = os.path.join(config['state_dir'],config['peer_icon_path'])
+            if not os.path.isdir(self.usericonpath):
+                os.mkdir(self.usericonpath)
+        except:
+            self.usericonpath = config['peer_icon_path']
+            if not os.path.isdir(self.usericonpath):
+                os.mkdir(self.usericonpath)
 	
     def load_data(self,permid,name=None):
 

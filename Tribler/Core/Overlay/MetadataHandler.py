@@ -9,7 +9,7 @@ from sets import Set
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
-from Tribler.Core.Utilities.utilities import isValidInfohash, show_permid_short, sort_dictlist
+from Tribler.Core.Utilities.utilities import isValidInfohash, show_permid_short, sort_dictlist, bin2str
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTH
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Category.Category import Category
@@ -175,7 +175,7 @@ class MetadataHandler:
             return False
 
         # TODO:
-        res = self.torrent_db.getTorrent(infohash, ('torrent_file_name', 'status_id'))
+        res = self.torrent_db.getOne(('torrent_file_name', 'status_id'), infohash=bin2str(infohash))
         if not res:
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: not in database"

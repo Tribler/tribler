@@ -165,7 +165,7 @@ class TriblerLaunchMany(Thread):
             # separate thread instead of the NetworkThread as before.
             self.overlay_bridge = OverlayThreadingBridge.getInstance()
             self.overlay_bridge.register_bridge(self.secure_overlay,self.overlay_apps)
-            self.overlay_bridge.add_task(self.overlay_bridge.periodic_commit, 5)
+            #self.overlay_bridge.add_task(self.overlay_bridge.periodic_commit, 5)
             
             self.overlay_apps.register(self.overlay_bridge,self.session,self,config,policy)
             # It's important we don't start listening to the network until

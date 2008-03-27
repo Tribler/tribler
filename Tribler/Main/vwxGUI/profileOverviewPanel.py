@@ -216,7 +216,7 @@ class ProfileOverviewPanel(wx.Panel):
         #<<<get the number of downloads for this user
         if self.mypref is None:
             self.mypref = MyPreferenceDBHandler.getInstance()
-        count = len(self.mypref.getMyPrefList())
+        count = len(self.mypref.getMyPrefListInfohash())
         index_q = self.indexValue(count,100, max_index_bar) #from 0 to 5
         if count != self.quality_value:
             self.data['downloaded_files'] = count

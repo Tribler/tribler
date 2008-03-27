@@ -112,13 +112,6 @@ class MyDBHandler(BasicDBHandler):
             self._db.update(self.table_name, where, value=value)
         
 
-
-
-
-
-        
-
-
 class FriendDBHandler(BasicDBHandler):
     
     __single = None    # used for multithreaded singletons pattern
@@ -143,12 +136,6 @@ class FriendDBHandler(BasicDBHandler):
         FriendDBHandler.__single = self
         BasicDBHandler.__init__(self, 'Peer')
         
-#    def getFriendList(self, refresh=False):
-#        return self.getList(refresh)
-#        
-#    def addExternalFriend(self, peer):
-#        self.addExternalPeer(peer, 1)
-
     def setFriend(self, permid, friend=True, commit=True):
         
         self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), friend=friend)
@@ -205,7 +192,7 @@ class PeerDBHandler(BasicDBHandler):
         return self.size()
 
     def getPeerID(self, permid):
-        return self._db.getPeerID()
+        return self._db.getPeerID(permid)
 
     def getPeer(self, permid, keys=None):
         if keys is not None:
@@ -233,10 +220,22 @@ class PeerDBHandler(BasicDBHandler):
             sim = 0
         return sim
         
-    def getPeerList(self):    # get the list of all peers' permid
-        permid_strs = self.getAll('permid')
-        return [str2bin(permid_str[0]) for permid_str in permid_strs]
+    def getPeerList(self, peerids=None):    # get the list of all peers' permid
+        if peerids is None:
+            permid_strs = self.getAll('permid')
+            return [str2bin(permid_str[0]) for permid_str in permid_strs]
+        else:
+            if not peerids:
+                return []
+            if len(peerids) == 1:
+                s = '(' + str(peerids[0]) + ')'    # tuple([1]) = (1,), syntax error for sql
+            else:
+                s = str(tuple(peerids))
+            sql = 'select permid from Peer where peer_id in ' + s
+            permid_strs = self._db.fetchall(sql)
+            return [str2bin(permid_str[0]) for permid_str in permid_strs]
         
+
     def getPeers(self, peer_list, keys):    # get a list of dictionaries given peer list
         value_names = ",".join(keys)
         sql = 'select %s from Peer where permid=?;'%value_names
@@ -351,7 +350,12 @@ class PeerDBHandler(BasicDBHandler):
             sql_update_peer = "UPDATE Peer SET %s=? WHERE peer_id=?"%key
             self._db.execute(sql_update_peer, (value, peer_id))
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
-        
+
+    def updatePeerSims(self, sim_list):
+        sql_update_sims = 'UPDATE Peer SET similarity=? WHERE peer_id=?'
+        self._db.executemany(sql_update_sims, sim_list)
+        # TODO: how to notify the update of a group of peers?
+
     def getPermIDByIP(self,ip):
         permid = self.getOne('permid', ip=ip)
         if permid is not None:
@@ -502,7 +506,7 @@ class SuperPeerDBHandler(BasicDBHandler):
             try:
                 ip = socket.gethostbyname(superpeer_info[0])
                 superpeer = {'ip':ip, 'port':superpeer_info[1], 
-                          'permid':superpeer_info[2]}
+                          'permid':superpeer_info[2], 'superpeer':1}
                 if len(superpeer_info) > 3:
                     superpeer['name'] = superpeer_info[3]
                 superpeers_info.append(superpeer)
@@ -524,6 +528,11 @@ class SuperPeerDBHandler(BasicDBHandler):
         res_list = self._db.getAll(self.table_name, 'permid')
         return [str2bin(a[0]) for a in res_list]
         
+    def addExternalSuperPeer(self, peer):
+        _peer = deepcopy(peer)
+        permid = _peer.pop('permid')
+        _peer['superpeer'] = 1
+        self._db.insertPeer(permid, **_peer)
     
         
 class PreferenceDBHandler(BasicDBHandler):
@@ -555,20 +564,24 @@ class PreferenceDBHandler(BasicDBHandler):
         res = self._db.fetchall(sql_get_peer_prefs_id, (peer_id,))
         return [t[0] for t in res]
     
-    def getPrefList(self, permid, num=None):
-        # get a peer's preference list
+    def _getTorrentOwnersID(self, torrent_id):
+        sql_get_torrent_owners_id = "SELECT peer_id FROM Preference WHERE torrent_id==?"
+        res = self._db.fetchall(sql_get_torrent_owners_id, (torrent_id,))
+        return [t[0] for t in res]
+    
+    def getPrefList(self, permid, return_infohash=False):
+        # get a peer's preference list of infohash or torrent_id according to return_infohash
         peer_id = self._db.getPeerID(permid)
         if peer_id is None:
             return []
         
         torrent_ids = self._getPeerPrefsID(peer_id)
-        prefs = []
-        for torrent_id in torrent_ids:
-            infohash = self._db.getInfohash(torrent_id)
-            if infohash:
-                prefs.append(infohash)
+        if not return_infohash or not torrent_ids:
+            return torrent_ids
         
-        return prefs
+        sql_get_infohash = "select infohash from Torrent where torrent_id in " + tuple(torrent_ids)
+        res = self._db.fetchall(sql_get_infohash)
+        return [t[0] for t in res]
     
     def _deletePeer(self, permid=None, peer_id=None):   # delete a peer from pref_db
         # should only be called by PeerDBHandler
@@ -619,6 +632,14 @@ class PreferenceDBHandler(BasicDBHandler):
             except sqlite.IntegrityError, msg:    # duplicated
                 pass
 
+    def getRecentPeersPrefs(self, key, num=None):
+        # get the recently seen peers' preference. used by buddycast
+        sql = "select peer_id,torrent_id from Preference where peer_id in (select peer_id from Peer order by %s desc)"%key
+        if num is not None:
+             sql = sql[:-1] + " limit %d)"%num
+        res = self._db.fetchall(sql)
+        return res
+        
         
 class TorrentDBHandler(BasicDBHandler):
     
@@ -1039,13 +1060,12 @@ class TorrentDBHandler(BasicDBHandler):
         # TODO: replace keys like source -> source_id and status-> status_id ??
         
         if keys is None:
-            keys = ('category_id', 'status_id', 'name', 'creation_date', 'num_files',
+            keys = ('torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
                     'num_leechers', 'num_seeders',   'length', 
                     'secret', 'insert_time', 'source_id', 'torrent_file_name',
                     'relevance', 'infohash', 'torrent_id')
         else:
             keys = list(keys)   
-            keys.append('torrent_id')
         res = self._db.getOne('CollectedTorrent', keys, infohash=bin2str(infohash))
         if not res:
             return None
@@ -1062,13 +1082,14 @@ class TorrentDBHandler(BasicDBHandler):
         torrent['infohash'] = infohash
         
         if include_mypref:
-            stats = self.mypref_db.getMyPrefStats(torrent['torrent_id'])
+            tid = torrent['torrent_id']
+            stats = self.mypref_db.getMyPrefStats(tid)
             del torrent['torrent_id']
             if stats:
                 torrent['myDownloadHistory'] = True
-                torrent['creation_time'] = stats[0]
-                torrent['progress'] = stats[1]
-                torrent['destination_path'] = stats[2]
+                torrent['creation_time'] = stats[tid][0]
+                torrent['progress'] = stats[tid][1]
+                torrent['destination_path'] = stats[tid][2]
         return torrent
 
     def getAllTorrents(self):

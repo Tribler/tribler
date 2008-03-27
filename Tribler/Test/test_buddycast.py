@@ -5,264 +5,217 @@
 # no longer there, this code needs to be updated.
 
 import os
+import sys
 import unittest
 import tempfile
-from sets import Set
 from traceback import print_exc
+import thread, threading
+from random import sample, randint
+from time import time, sleep
+from shutil import copy as copyFile
+from binascii import unhexlify
+from sets import Set as set
 
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
-from Tribler.Core.BuddyCast.buddycast import *
-from Tribler.Core.CacheDB.cachedb import *
-from Tribler.Core.Utilities.utilities import print_prefxchg_msg
-import Tribler.Core.CacheDB.superpeer
-from Tribler.Core.simpledefs import tribler_init
+if os.path.exists('test_buddycast.py'):
+    BASE_DIR = os.path.join('..', '..')
+elif os.path.exists('LICENSE.txt'):
+    BASE_DIR = '..'
+elif os.path.exists('clean.bat'):
+    BASE_DIR = '.'
 
-import hotshot, hotshot.stats
-import math
-from random import random, shuffle
+sys.path.insert(1, os.path.abspath(BASE_DIR))
+    
+    
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, sqlite, bin2str, str2bin
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
+from Tribler.Core.BuddyCast.buddycast import DataHandler
 
-testdata_file = 'test/testdata.txt'
-myid =  147
+DB_FILE_NAME = 'tribler.sdb'
+DB_DIR_NAME = None
+FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'Tribler/Test/extend_db_dir/'))
+TRIBLER_DB_PATH = os.path.join(FILES_DIR, 'tribler.sdb')
+TRIBLER_DB_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_tribler.sdb')
 
-class TestBuddyCast(unittest.TestCase):
-    """ 
-    Testing buddycast includes two steps:
-        1. Test buddycast algorithm
-        2. Test buddycast communication functionalities
-    Here we can only test step 1.
-    """
+LIB = 0
+AUTOCOMMIT = 0
+BUSYTIMEOUT = 5000
+
+def init():
+    if not os.path.isfile(TRIBLER_DB_PATH_BACKUP):
+        print >> sys.stderr, "Please download bak_tribler.sdb from http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb and save it as", os.path.abspath(TRIBLER_DB_PATH_BACKUP)
+        sys.exit(1)
+    if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
+        copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
+        #print "refresh sqlite db", TRIBLER_DB_PATH
+
+SQLiteCacheDB.DEBUG = False
+
+class Session:
+    def __init__(self):
+        self.sessconfig = {}
+    
+    def get_permid(self):
+        fake_permid_x = 'fake_permid_x'+'0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
+        return fake_permid_x
+    
+
+class FakeLaunchmany:
+    
+    def __init__(self, db):
+        self.peer_db = PeerDBHandler.getInstance()
+        self.superpeer_db = SuperPeerDBHandler.getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
+        self.mypref_db = MyPreferenceDBHandler.getInstance()
+        self.pref_db = PreferenceDBHandler.getInstance()
+        self.friend_db =  FriendDBHandler.getInstance()
+        self.listen_port = 6881
+        self.session = Session()
+
+    def get_ext_ip(self):
+        return '127.0.0.1'
+
+class FakeOverlayBridge:
+    def add_task(self, foo, sec=0):
+        foo()
+
+class TestBuddyCastDataHandler(unittest.TestCase):
     
     def setUp(self):
-        self.tmpdirpath = db_dir = os.path.join(tempfile.gettempdir(), 'testdb')
-        db_dir = ''
-        tribler_init(unicode(self.tmpdirpath))
-        self.buddycast = BuddyCastFactory.getInstance(db_dir=db_dir)
-        self.buddycast.register(None, None, 0, None, False)
-        #self.buddycast.data_handler.clear()
-        
-        testdata = open(testdata_file, 'r')
-        self.prefxchg_msgs = testdata.readlines()
-        testdata.close()
-        self.np = len(self.prefxchg_msgs)
-        self.myid = myid
-        msg = self.prefxchg_msgs[self.myid-1].strip()
-        self.mydata = bdecode(msg)
-        self.prefs = self.mydata['preferences']
-        self.buddycast.data_handler.ip = self.mydata['ip']
-        self.buddycast.data_handler.port = self.mydata['port']
-        self.buddycast.data_handler.permid = self.mydata['permid']
-        self.buddycast.data_handler.name = self.mydata['name']
-        for p in self.prefs:
-            self.buddycast.addMyPref(p)
+        db_path = TRIBLER_DB_PATH
+        db = SQLiteCacheDB.getInstance()
+        db.initDB(db_path, lib=LIB, autocommit=AUTOCOMMIT, busytimeout=BUSYTIMEOUT)
+        launchmany = FakeLaunchmany(db)
+        self.datahandler = DataHandler(launchmany)
                 
-        self.my_db = MyDB.getInstance(db_dir=db_dir)
-        self.peer_db = PeerDB.getInstance(db_dir=db_dir)
-        self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
-        self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
-        self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
-        self.owner_db = OwnerDB.getInstance(db_dir=db_dir)    
-        #Tribler.CacheDB.superpeer.init()
-        #print self.my_db._data
-        
-#        for pref in self.prefs:
-#            self.mypref_db.updateItem(pref)
-        
     def tearDown(self):
-        #self.buddycast.data_handler.clear()
-        self.buddycast.data_handler.sync()
-        
-    def full_load(self):
-        for i in xrange(self.np):
-            if i == self.myid:
-                continue
-            msg = self.prefxchg_msgs[i].strip()
-            self.buddycast.gotBuddyCastMsg(msg)
-            if i%10 == 0:
-                print i, self.peer_db._size(), self.torrent_db._size(), self.pref_db._size()
-        
-    def preload(self):
-        for i in xrange(136,156):    #self.np
-            if i == self.myid:
-                continue
-            msg = self.prefxchg_msgs[i].strip()
-            self.buddycast.gotBuddyCastMsg(msg)
-        if self.myid == 147:
-            assert self.peer_db._size() == 308 , self.peer_db._size()
-            assert self.torrent_db._size() == 919
-            assert self.pref_db._size() == 159
-            assert self.torrent_db._size() == 919
-            assert self.owner_db._size() == 915
-        
-    def preload2(self, begin=136, num=10):
-        end = begin + num
-        for i in xrange(begin,end):    #self.np
-            if i == self.myid:
-                continue
-            msg = self.prefxchg_msgs[i].strip()
-            self.buddycast.gotBuddyCastMsg(msg)
-        #print self.peer_db._size(), self.torrent_db._size(), self.pref_db._size()
-        
-    def xxtest_updateDB(self):
-        msg = self.prefxchg_msgs[0].strip()
-        self.buddycast.gotBuddyCastMsg(msg)
-        assert self.peer_db._size() == 21, self.peer_db._data.keys()
-        assert self.torrent_db._size() == 132, self.torrent_db._size()
-        assert self.pref_db._size() == 11, self.pref_db._size()
-        assert self.owner_db._size() == 132, self.owner_db._size()
-        assert self.mypref_db._size() == 50, self.mypref_db._size()
-
-    def xxtest_createWorker2(self):
-        worker = self.buddycast.createWorker(None)
-        assert worker == None
-
-    def xxtest_createWorker(self):
-        #self.preload()
-        msg = self.prefxchg_msgs[0].strip()
-        self.buddycast.gotBuddyCastMsg(msg)
-        msg = self.prefxchg_msgs[1].strip()
-        self.buddycast.gotBuddyCastMsg(msg)
-        for i in xrange(50):
-            begin = time()
-            print i,
-            worker = self.buddycast.createWorker(None)
-            if worker is not None:
-                worker.work()
-                buddycast_data = worker.getBuddyCastMsgData()
-                try:
-                    validBuddyCastData(buddycast_data)
-                    msg = bencode(buddycast_data)
-                except:
-                    print_exc()
-                    #print_dict(buddycast_data)
-                    print >> sys.stderr, "bad buddycast data"
-            end = time()
-            #print end - begin, worker.target, len(self.buddycast.data_handler.send_block_list.keys())
-        
-#        print "**", worker.target, worker.target in self.pref_db._data, self.peer_db.getItem(worker.target)
-#        print "**", worker.tbs
-#        print "**", worker.rps
+        SQLiteCacheDB.getInstance().close()
+        self.datahandler.peers = None
+        del self.datahandler
             
-        #print_prefxchg_msg(buddycast_data)
-        #print_dict(buddycast_data)
-        #print len(msg), hash(msg)
-        #worker.work()
+    def loadData(self, npeers = 2500):
+        self.datahandler.updateMyPreferences()
+        self.datahandler.loadAllPeers(npeers)
+        self.datahandler.loadAllPrefs(npeers)
+                    
+    def test_updateMyPreferences(self):
+        self.datahandler.updateMyPreferences()
+        assert self.datahandler.myprefs == [126, 400, 562, 1074, 1279, 1772, 1812, 2271, 2457, 2484, 3359, 3950]
         
-    def xxtest_recommendateItems(self):
-        self.preload()
-        rec_list = self.buddycast.recommendateItems(20)
-        #print self.mypref_db._keys()
-        print rec_list
-        
-    def xxtest_addMyPref(self):
-        self.preload()
-        items = self.owner_db._items()
-#        for item in items:
-#            if len(item[1]) > 7 and not self.mypref_db._has_key(item[0]):
-#                print item[0], len(item[1]), item[1]
-        new_item = '1651'
-#        for p, v in self.peer_db._items():
-#            print p, v['similarity']
-        assert self.peer_db.getItem('peer_145')['similarity'] == 100
-        assert self.peer_db.getItem('peer_83')['similarity'] == 0
-        assert self.peer_db.getItem('peer_509')['similarity'] == 134
-        owners = self.owner_db.getItem(new_item)
-#        for o in owners:
-#            print o, self.peer_db.getItem(o)
-#        print p, self.peer_db.getItem('peer_509')
-        self.buddycast.addMyPref(new_item)
-        assert self.peer_db.getItem('peer_145')['similarity'] == 118
-        assert self.peer_db.getItem('peer_83')['similarity'] == 44
-        assert self.peer_db.getItem('peer_509')['similarity'] == 132
-#        print
-#        for o in owners:
-#            print o, self.peer_db.getItem(o)
-#        print p, self.peer_db.getItem('peer_509')
-    
-#    def test_selectBuddyCastCandidate(self):
-#        pass
+        self.datahandler.updateMyPreferences(10)
+        assert self.datahandler.myprefs == [126, 400, 562, 1074, 1279, 1772, 1812, 2271, 2457, 3359]
             
+        assert len(self.datahandler.owners[3359]) == 21
+        assert len(self.datahandler.owners[2484]) == 0
+        assert len(self.datahandler.owners[400]) == 8
+            
+    def test_updateAllPeers_Prefs(self):
+        self.datahandler.loadAllPeers()
+        for p in self.datahandler.peers:
+            assert len(self.datahandler.peers[p][2]) == 0
+        assert len(self.datahandler.peers) == 3995
         
-    def xxtest_sortlist(self):
-        bc = BuddyCastCore(None)
-        a = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9']
-        b = range(10)
-        shuffle(b)
-        print a
-        print b
-        ret = bc._sortList(a,b)
-        print ret
+        npeers = 2500
+        self.datahandler.peers = None
+        self.datahandler.loadAllPeers(npeers)
+        for p in self.datahandler.peers:
+            assert len(self.datahandler.peers[p][2]) == 0
+        assert len(self.datahandler.peers) == npeers
         
-    def xxtest_JobQueue(self):
-        q = JobQueue(max_size=5)
-        q.addTarget('worker1')
-        assert q._queue == ['worker1']
-        q.addTarget(['worker2', 'worker3'])
-        assert q._queue == ['worker1', 'worker2', 'worker3']
-        q.addTarget(['worker44', 'worker55', 'worker66'], 0)
-        assert q._queue == ['worker1', 'worker2', 'worker3', 'worker44', 'worker55']
-        q.addTarget(['worker4', 'worker5', 'worker6'], 1)
-        assert q._queue == ['worker4', 'worker5', 'worker6', 'worker1', 'worker2']
-        assert q.getTarget() == 'worker4'
-        assert q._queue == ['worker5', 'worker6', 'worker1', 'worker2']
-        
+        # Statistics: loadAllPeers takes 0.015 sec on test db
+        #                                0.5 sec on Johan's db
+        #                                0.03 second on loading 2500 peers from Johan's db
 
-    def test_getBuddyCastDataPref(self):
-        """ result:
-            time  #peer, #taste buddies
-            0.016 182 96
-            0.015 309 160
-            0.047 426 230
-            0.046 533 295
-            0.062 604 350
-            0.062 666 390
-            0.062 719 418
-            0.078 767 460
-            0.078 807 495
-            0.094 837 524
-            0.094 870 558
-            0.092 888 576
-            0.094 905 592
-            0.094 921 618
-            0.094 935 635
-            0.109 946 655
-            0.110 965 675
-            0.110 970 694
-            0.108 977 717
-            0.125 981 738
-        """
-        for i in range(5):
-            self.preload2(136+i*10, 10)
-            begin = time()
-            target, tbs, rps = self.buddycast.buddycast_core.getBuddyCastData(None, 10, 10)
-            print time() - begin, self.peer_db._size(), self.pref_db._size()
-        print self.buddycast.recommendateItems(20)
-        
-    def xxtest_profile(self):
-        def foo(n = 10000):
-            def bar(n):
-                for i in range(n):
-                    math.pow(i,2)
-            def baz(n):
-                for i in range(n):
-                    math.sqrt(i)
-            bar(n)
-            baz(n)
-        
-        self.preload2(136, 30)
-        print "profile starts"
-        prof = hotshot.Profile("test.prof")
-        prof.runcall(self.buddycast.buddycast_core.getBuddyCastData)
-        prof.close()
-        stats = hotshot.stats.load("test.prof")
-        stats.strip_dirs()
-        stats.sort_stats('cumulative', 'time', 'calls')
-        stats.print_stats(100)
-        
+    def test_updateAllPrefs(self):
+        self.loadData(2500)
+        n = 0
+        for p in self.datahandler.peers:
+            assert len(self.datahandler.peers[p]) == 3
+            n += len(self.datahandler.peers[p][2])
+        assert n == self.datahandler.nprefs
 
+        self.datahandler.peers = None
+        self.loadData(None)
+        n = 0
+        for p in self.datahandler.peers:
+            assert len(self.datahandler.peers[p]) == 3
+            n += len(self.datahandler.peers[p][2])
+        assert n == self.datahandler.nprefs
+            
+#        Statistics: 2500 peers preferences covers 91% of all preferences
+#        self.datahandler.peers = None
+#        for i in range(100, 4000, 100):
+#            self.datahandler.loadAllPrefs(i)
+#            print i, self.datahandler.nprefs, '%.2d%%'%(100*self.datahandler.nprefs/60634)
+
+    """        Statistics of memory usage (KB)
+                    Full Test DB     Full Johan's DB     2000 peers from Johan's DB
+            Init:    11,520            12,912            12,912
+        LoadPeers:   12,656            23,324            12,532
+        LoadPrefs:   17,792            50,820            18,380
+    """
+        
+    def test_updateAllSim(self):
+        init()
+        self.loadData(2500)
+        pid = 3582
+        oldsim = self.datahandler.peer_db.getOne('similarity', peer_id=pid)
+        assert abs(oldsim-21.941432788)<1e-4, oldsim
+        n_updates = self.datahandler.updateAllSim()    # 0.296 second for Johan's db, 0. 188 second for test db
+        assert n_updates == 2166
+        sim = self.datahandler.peer_db.getOne('similarity', peer_id=pid)
+        assert abs(sim-17.9844112279)<1e-4, sim
+        
+    def test_adddelMyPref(self):
+        self.datahandler.overlay_bridge = FakeOverlayBridge()
+        self.loadData()
+        pid = 3582
+        self.datahandler.updateAllSim()
+        oldsim = self.datahandler.peer_db.getOne('similarity', peer_id=pid)
+        tids = sample(range(4000),10)
+        for tid in tids:
+            infohash = self.datahandler.torrent_db.getInfohash(tid)
+            
+            self.datahandler.addMyPref(infohash)
+            torrents = self.datahandler.pref_db._getTorrentOwnersID(tid)
+            assert self.datahandler.owners[tid] == set(torrents), (self.datahandler.owners[tid], set(torrents))
+            assert tid in self.datahandler.myprefs
+            sim = self.datahandler.peer_db.getOne('similarity', peer_id=pid)
+            assert abs(sim-oldsim)>1e-4, (sim, oldsim)
+            
+            self.datahandler.delMyPref(infohash)
+            assert tid not in self.datahandler.owners.keys()
+            assert tid not in self.datahandler.myprefs
+            sim = self.datahandler.peer_db.getOne('similarity', peer_id=pid)
+            assert abs(sim-oldsim)<1e-4, (sim, oldsim)
+            
+            oldsim = sim
+            
+    def test_get_dns_from_peerdb(self):
+        permid_str_id_1 = 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr'
+        permid = str2bin(permid_str_id_1)
+        self.loadData(2500)
+        assert self.datahandler.get_dns_from_peerdb(permid) == ('68.108.115.221', 6881)
+        
+    def test_numbers(self):
+        self.loadData(2500)
+        npeers = self.datahandler.get_npeers()
+        ntorrents = self.datahandler.get_ntorrents()
+        nmyprefs = self.datahandler.get_nmyprefs()
+        assert npeers == 2500
+        assert ntorrents == 4483
+        assert nmyprefs == 12
+        
+        
 def test_suite():
+    init()
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestBuddyCast))
-    
+    suite.addTest(unittest.makeSuite(TestBuddyCastDataHandler))
     return suite
 
+def main():
+    unittest.main(defaultTest='test_suite')
+
+if __name__ == '__main__':
+    main()
+    
     

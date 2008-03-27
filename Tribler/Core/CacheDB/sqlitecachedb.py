@@ -237,7 +237,7 @@ class SQLiteCacheDB:
             elif lib==1:
                 con = apsw.Connection(dbfile_path)
         if lib==1:
-            con.setbusytimeout(busytimeout)
+            con.setbusytimeout(int(busytimeout))
             
         #con.text_factory = sqlite.OptimizedUnicode    # return str if it isn't unicode
         cur = con.cursor()
@@ -698,19 +698,16 @@ class SQLiteCacheDB:
         """ Insert a peer. permid is the binary permid.
         If the peer is already in db and update is True, update the peer.
         """
-        peer_existed = False
         peer_id = self.getPeerID(permid)
+        peer_existed = False
         if peer_id != None:
             peer_existed = True
-        if peer_existed:
             if update:
                 where='peer_id=%d'%peer_id
                 self.update('Peer', where, **argv)
-                
                 #print >>sys.stderr,"sqldb: insertPeer: existing, updatePeer",`permid`
         else:
-            #print >>sys.stderr,"sqldb: insertPeer, new",`permid`
-            
+            #print >>sys.stderr,"********* sqldb: insertPeer, new",`permid`, argv
             self.insert('Peer', permid=bin2str(permid), **argv)
         return peer_existed
                 
@@ -724,11 +721,8 @@ class SQLiteCacheDB:
                 self.delete('Peer', peer_id=peer_id)
             else:
                 self.delete('Peer', peer_id=peer_id, friend=0, superpeer=0)
-            if not self.hasPeer(permid):
-                deleted = True
-            if deleted:
-                if permid in self.permid_id:
-                    self.permid_id.pop(permid)
+            if not self.hasPeer(permid, check_db=True) and permid in self.permid_id:
+                self.permid_id.pop(permid)
 
         return deleted
                 
@@ -745,14 +739,17 @@ class SQLiteCacheDB:
         
         return peer_id
     
-    def hasPeer(self, permid):
-        permid_str = bin2str(permid)
-        sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
-        peer_id = self.fetchone(sql_get_peer_id, (permid_str,))
-        if peer_id is None:
-            return False
+    def hasPeer(self, permid, check_db=False):
+        if not check_db:
+            return bool(self.getPeerID(permid))
         else:
-            return True
+            permid_str = bin2str(permid)
+            sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
+            peer_id = self.fetchone(sql_get_peer_id, (permid_str,))
+            if peer_id is None:
+                return False
+            else:
+                return True
     
     def insertInfohash(self, infohash, check_dup=False):
         """ Insert an infohash. infohash is binary """

@@ -19,6 +19,7 @@ from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandl
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 from threading import currentThread
+from Tribler.Category.Category import Category
 
 DEBUG = False
 
@@ -66,6 +67,8 @@ class OverlayApps:
         # to know the download helper handler.
         # Part 1:
         self.metadata_handler = MetadataHandler.getInstance()
+
+        Category.getInstance(session.get_install_dir(), session.get_state_dir())
 
         if config['download_help']:
             # Create handler for messages to dlhelp coordinator
