@@ -190,6 +190,7 @@ class ABCFrame(wx.Frame):
         #self.abc_sb = self.window.abc_sb
         
         
+        self.oldframe = None
         #self.oldframe = ABCOldFrame(-1, self.params, self.utility)
         #self.oldframe.Refresh()
         #self.oldframe.Layout()

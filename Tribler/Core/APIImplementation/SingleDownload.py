@@ -64,8 +64,8 @@ class SingleDownload:
                             )
         
             file = self.dow.saveAs(self.save_as)
-            if DEBUG:
-                print >>sys.stderr,"SingleDownload: dow.saveAs returned",file
+            #if DEBUG:
+            #    print >>sys.stderr,"SingleDownload: dow.saveAs returned",file
             
             # Set local filename in vodfileindex
             if vodfileindex is not None:
@@ -75,8 +75,8 @@ class SingleDownload:
                 vodfileindex['outpath'] = self.dow.get_dest(index)
             self.dow.set_videoinfo(vodfileindex)
 
-            if DEBUG:
-                print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex
+            #if DEBUG:
+            #    print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex
             
             if pstate is None:
                 resumedata = None

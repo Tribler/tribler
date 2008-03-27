@@ -7,8 +7,7 @@ from Tribler.Core.API import *
 #from Tribler.Main.Dialogs.GUIServer import GUIServer
 from Tribler.Main.Dialogs.aboutme import *
 from Tribler.Main.Dialogs.TorrentMaker import TorrentMaker    
-#from Tribler.Main.Dialogs.abcoption import ABCOptionDialog
-#from Tribler.Main.TorrentMaker.btmaketorrentgui import TorrentMaker
+from Tribler.Main.Dialogs.abcoption import ABCOptionDialog
     
 class MainMenuBar(wx.MenuBar):
     
@@ -123,9 +122,9 @@ class MainMenuBar(wx.MenuBar):
 
 
     def OnMenuPreferences(self,event=None):
-        #dialog = ABCOptionDialog(self.utility.frame,openname=openname)
-        #dialog.ShowModal()
-        #dialog.Destroy()
+        dialog = ABCOptionDialog(self.utility.frame)
+        dialog.ShowModal()
+        dialog.Destroy()
         pass
 
     def OnMenuCreateTorrent(self,event=None):

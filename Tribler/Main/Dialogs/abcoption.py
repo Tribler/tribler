@@ -11,14 +11,15 @@ from cStringIO import StringIO
 
 from wx.lib import masked, colourselect
 
-from ABC.GUI.menu import MenuDialog
-from ABC.GUI.toolbar import ToolBarDialog
+from Tribler.Main.Dialogs.abcmenu import MenuDialog
 from Tribler.Main.Utility.configreader import ConfigReader
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Video.VideoPlayer import *
-from Tribler.Core.Utilities import show_permid
+from Tribler.Core.Utilities.utilities import show_permid
+
+# LAYERVIOLATION
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 
 
@@ -137,7 +138,7 @@ class NetworkPanel(ABCOptionPanel):
         self.notsameip.SetValue(Read('notsameip', "boolean"))
         self.scrape.SetValue(Read('scrape', "boolean"))
         
-        itrackerurl = self.utility.get_itracker_url(self.utility)
+        itrackerurl = self.utility.session.get_internal_tracker_url()
 
         self.itrack.SetValue(itrackerurl)
 
@@ -304,148 +305,6 @@ class QueuePanel(ABCOptionPanel):
         self.utility.queue.UpdateRunningTorrentCounters()
 
 
-################################################################
-#
-# Class: DisplayPanel
-#
-# Contains settings for how ABC looks
-#
-################################################################
-class DisplayPanel(ABCOptionPanel):
-    def __init__(self, parent, dialog):
-        ABCOptionPanel.__init__(self, parent, dialog)
-        sizer = self.sizer
-        
-        listfont_box = wx.BoxSizer(wx.HORIZONTAL)
-               
-        listfont_box.Add(wx.StaticText(self, -1, self.utility.lang.get('listfont')), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
-        
-        self.fontexample = wx.TextCtrl(self, -1, self.utility.lang.get('sampletext'))
-        listfont_box.Add(self.fontexample, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
-        
-        fontbutton = browsebtn = wx.Button(self, -1, self.utility.lang.get('choosefont'), style = wx.BU_EXACTFIT)
-        listfont_box.Add(fontbutton, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
-        self.Bind(wx.EVT_BUTTON, self.onFontButton, fontbutton)
-        
-        sizer.Add(listfont_box, 0, wx.EXPAND|wx.ALIGN_LEFT|wx.ALL, 5)
-        
-        # Striped list options
-        stripedlist_box = wx.BoxSizer(wx.HORIZONTAL)
-        
-        self.stripedlist = wx.CheckBox(self, -1, self.utility.lang.get('stripedlist'))
-        stripedlist_box.Add(self.stripedlist, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
-        
-        self.stripedlist_button = colourselect.ColourSelect(self, -1, "", size = (60, 20))
-        
-        stripedlist_box.Add(self.stripedlist_button, 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(stripedlist_box, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-
-        self.savecolumnwidth = wx.CheckBox(self, -1, self.utility.lang.get('savecolumnwidth'))        
-        sizer.Add(self.savecolumnwidth, 0, wx.ALL, 5)
-        
-        self.showearthpanel = wx.CheckBox(self, -1, self.utility.lang.get('showearthpanel'))        
-        sizer.Add(self.showearthpanel, 0, wx.ALL, 5)
-        
-        self.contextmenu = wx.Button(self, -1, self.utility.lang.get('customizecontextmenu') + "...")
-        sizer.Add(self.contextmenu, 0, wx.ALL, 5)
-        self.Bind(wx.EVT_BUTTON, self.onContextMenuDialog, self.contextmenu)
-
-        self.toolbar = wx.Button(self, -1, self.utility.lang.get('customizetoolbar') + "...")
-        sizer.Add(self.toolbar, 0, wx.ALL, 5)
-        self.Bind(wx.EVT_BUTTON, self.onToolbarDialog, self.toolbar)
-        
-#        self.showmenuicons = wx.CheckBox(self, -1, self.utility.lang.get('showmenuicons'))
-#        sizer.Add(self.showmenuicons, 0, wx.ALL, 5)
-        
-        self.initTasks()
-        
-    def onContextMenuDialog(self, event = None):
-        dialog = MenuDialog(self, 'menu_listrightclick')
-        dialog.ShowModal()
-        dialog.Destroy()
-
-
-    def onToolbarDialog(self, event = None):
-        dialog = ToolBarDialog(self.utility.frame.GetToolBar())
-        dialog.ShowModal()
-        dialog.Destroy()
-
-        
-    def loadValues(self, Read = None):
-        if Read is None:
-            Read = self.utility.config.Read
-        
-        self.stripedlist.SetValue(Read('stripedlist', "boolean"))
-        
-        self.stripedlist_button.SetValue(Read('color_stripe', "color"))
-        
-        self.savecolumnwidth.SetValue(Read('savecolumnwidth', "boolean"))
-        self.showearthpanel.SetValue(Read('showearthpanel', "boolean"))
-#        self.showmenuicons.SetValue(Read('showmenuicons', "boolean"))
-        
-        # Get font information                          
-        self.fontexample.SetFont(self.utility.getFontFromInfo(Read('listfont', "bencode-fontinfo")))
-
-               
-    def apply(self):
-        self.utility.config.Write('savecolumnwidth', self.savecolumnwidth.GetValue(), "boolean")
-        self.utility.config.Write('showearthpanel', self.showearthpanel.GetValue(), "boolean")
-#        self.utility.config.Write('showmenuicons', self.showmenuicons.GetValue(), "boolean")
-         
-        overallchanged = False
-        changed = self.utility.config.Write('stripedlist', self.stripedlist.GetValue(), "boolean")
-        if changed:
-            overallchanged = True
-            
-        # Set stripe color
-        changed = self.utility.config.Write('color_stripe', self.stripedlist_button.GetColour(), "color")
-        if changed:
-            overallchanged = True
-            
-        if overallchanged:
-            for ABCTorrentTemp in self.utility.torrents["all"]:
-                ABCTorrentTemp.updateColor()
-        
-        # Set list font
-        newfont = self.fontexample.GetFont()
-        newfontinfo = self.utility.getInfoFromFont(newfont)
-
-        fontchanged = self.utility.config.Write('listfont', newfontinfo, "bencode-fontinfo")
-
-        if fontchanged:
-            for managedlist in self.utility.lists:
-                try:
-                    if self.utility.lists[managedlist]:
-                        managedlist.loadFont()
-                except:
-                    pass
-                
-    def onFontButton(self, event = None):
-        fontdata = wx.FontData()
-        fontdata.EnableEffects(False)
-        fontdata.SetInitialFont(self.fontexample.GetFont())
-
-        dlg = wx.FontDialog(self, fontdata)
-        if dlg.ShowModal() == wx.ID_OK:
-            data = dlg.GetFontData()
-                        
-            newfont = data.GetChosenFont()
-            newfontinfo = self.utility.getInfoFromFont(newfont)
-            
-            oldfontinfo = self.utility.config.Read('listfont', "bencode-fontinfo")
-                           
-            changed = False
-            for attr in oldfontinfo:
-                if oldfontinfo[attr] != newfontinfo[attr]:
-                    changed = True
-                    break
-            
-            if changed:
-                # (TODO: May need to adjust if a large font was used)
-                self.fontexample.SetFont(newfont)
-                self.Layout()
-                self.Refresh()
-
 
 ################################################################
 #
@@ -555,7 +414,7 @@ class MiscPanel(ABCOptionPanel):
             self.utility.regchecker.updateRegistry(self.associate.GetValue())         
 
     def getLanguages(self):
-        langpath = os.path.join(self.utility.getPath(), "Lang")
+        langpath = os.path.join(self.utility.getPath(),"Tribler","Lang")
         
         dirlist = os.listdir(langpath)
         dirlist2 = []
@@ -1489,11 +1348,10 @@ class TriblerPanel(ABCOptionPanel):
 
         sizer.Add(myinfosection, 0, wx.EXPAND|wx.ALL, 5)
 
-        self.debug = wx.Button(self, -1, 'Open debug window')
-        sizer.Add(self.debug, 0, wx.ALL, 5)
-
-        self.Bind(wx.EVT_BUTTON, self.OnDebug, self.debug)
-
+        if self.utility.frame.oldframe is not None:
+            self.debug = wx.Button(self, -1, 'Open debug window')
+            sizer.Add(self.debug, 0, wx.ALL, 5)
+            self.Bind(wx.EVT_BUTTON, self.OnDebug, self.debug)
         
         self.initTasks()
         
@@ -1898,7 +1756,6 @@ class ABCOptionDialog(wx.Dialog):
         self.miscPanel = MiscPanel(self.splitter, self)
         self.triblerPanel = TriblerPanel(self.splitter, self)
         self.videoPanel = VideoPanel(self.splitter, self)
-        #self.displayPanel = DisplayPanel(self.splitter, self)
         #self.colorPanel = ColorPanel(self.splitter, self)
         self.diskPanel = DiskPanel(self.splitter, self)
         
