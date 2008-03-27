@@ -490,7 +490,6 @@ class ThumbnailViewer(wx.Panel):
     def setBitmap(self, bmp):
         # Recalculate image placement
         w, h = self.GetSize()
-        
         img = bmp.ConvertToImage()
         bmp = getResizedBitmapFromImage(img, (w,h))
         

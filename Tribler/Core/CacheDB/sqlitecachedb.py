@@ -712,6 +712,7 @@ class SQLiteCacheDB:
             #print >>sys.stderr,"sqldb: insertPeer, new",`permid`
             
             self.insert('Peer', permid=bin2str(permid), **argv)
+        return peer_existed
                 
     def deletePeer(self, permid=None, peer_id=None, force=True):
         if peer_id is None:

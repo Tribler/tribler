@@ -562,6 +562,7 @@ class ThumbnailViewer(wx.Panel):
                 
                 if DEBUG:
                     print "fip: Scheduling read of thumbnail for",torrent_filename
+                
                 self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
         
                 # ARNO: TODO: The FileItemPanels that use this ThumbnailViewer now get deleted, and thus
@@ -655,15 +656,16 @@ class ThumbnailViewer(wx.Panel):
         
         #print >>sys.stderr,"fip: meta_gui_cb: old torrent",`torrent['name']`,"new torrent",`self.torrent['name']`
         #print >>sys.stderr,"fip: meta_gui_cb: old torrent",`torrent['infohash']`,"new torrent",`self.torrent['infohash']`
-        
-        if torrent['infohash'] == self.torrent['infohash']:
-            bmp = metadata.get('ThumbnailBitmap')
-            if bmp:
-                if self.parent.listItem:
-                    bmp = getResizedBitmapFromImage(img, libraryModeThumbSize)
-                self.setBitmap(bmp)
-                self.Refresh()
-
+        try:
+            if torrent['infohash'] == self.torrent['infohash']:
+                bmp = metadata.get('ThumbnailBitmap')
+                if bmp:
+                    if self.parent.listItem:
+                        bmp = getResizedBitmapFromImage(img, libraryModeThumbSize)
+                    self.setBitmap(bmp)
+                    self.Refresh()
+        except wx.PyDeadObjectError:
+            pass
              
     
             

@@ -131,9 +131,9 @@ class TriblerLaunchMany(Thread):
             self.bartercast_db  = BarterCastDBHandler.getInstance(self.session)
             
             
-            self.mm = MugshotManager.getInstance()
-            self.mm.register(config)
-            self.peer_db.setMugshotManager(self.mm)
+            #self.mm = MugshotManager.getInstance()
+            #self.mm.register(config)
+            #self.peer_db.setMugshotManager(self.mm)
         else:
             config['overlay'] = 0    # turn overlay off
             config['torrent_checking'] = 0

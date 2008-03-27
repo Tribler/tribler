@@ -196,6 +196,7 @@ class IconsManager:
 
 def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
     try:
+        assert data
         mi = StringIO.StringIO(data)
         # St*pid wx says "No handler for image/bmp defined" while this
         # is the image handler that is guaranteed to always be there,

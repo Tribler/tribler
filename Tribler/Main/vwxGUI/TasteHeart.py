@@ -42,6 +42,8 @@ class TasteHeart(wx.Panel):
     def _PostInit(self):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
+        if not len(BITMAPS):
+            set_tasteheart_bitmaps(self.guiUtility.utility.getPath())
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         self.searchBitmaps()
@@ -236,6 +238,7 @@ def getHeartBitmap(rank):
         return None
                 
 def set_tasteheart_bitmaps(syspath):
+    global BITMAPS
     imagedir = os.path.join(syspath, 'Tribler', 'Main', 'vwxGUI', 'images')
     for i in xrange(NUM_HEARTS):
         filename = os.path.join(imagedir, 'heart%d.png' % (i+1))
@@ -243,4 +246,4 @@ def set_tasteheart_bitmaps(syspath):
             BITMAPS.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
         else:
             print >>sys.stderr,'TasteHeart: Could not find image: %s' % filename
-    print 'Adding %d BITMAPS in %s' % (len(BITMAPS), currentThread().getName())
+    # print 'Adding %d BITMAPS in %s' % (len(BITMAPS), currentThread().getName())

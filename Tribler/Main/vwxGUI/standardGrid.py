@@ -230,7 +230,7 @@ class standardGrid(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.onResize)
         
         self.addComponents()
-        self.calculateRows()
+        #self.calculateRows()
         if self.viewmode == 'list':
             self.toggleColumnHeaders(True)
         self.Show()
@@ -472,6 +472,7 @@ class standardGrid(wx.Panel):
         
         
     def updateCols(self, oldCols, newCols):
+        
         self.items = newCols * self.currentRows
         if newCols > oldCols:
             numNew = newCols - oldCols
@@ -493,6 +494,7 @@ class standardGrid(wx.Panel):
         
     
     def updatePanel(self, oldRows, newRows):
+        print >> sys.stderr, 'Grid: updating from %d to %d rows' % (oldRows, newRows)
         # put torrent items in grid 
         if newRows > oldRows:
             for i in range(oldRows, newRows):
@@ -513,7 +515,7 @@ class standardGrid(wx.Panel):
                 # Destroy old panels
                 for col in range(self.cols-1, -1, -1): #destroy panels right to left
                     panel = self.panels[row][col]
-                    panel.Destroy()
+                    wx.CallAfter(panel.Destroy)
                     del self.panels[row][col]
                     
                 assert self.panels[row] == [], 'We deleted all panels, still the row is %s' % self.panels[row]

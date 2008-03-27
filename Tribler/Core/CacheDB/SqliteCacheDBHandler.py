@@ -20,7 +20,7 @@ import base64
 
 from Tribler.Core.simpledefs import *
 from bencode import bencode, bdecode
-from Tribler.Core.CacheDB.Notifier import Notifier
+from Notifier import Notifier
 from Tribler.Category.Category import Category
 
 SHOW_ERROR = True
@@ -149,10 +149,11 @@ class FriendDBHandler(BasicDBHandler):
 #    def addExternalFriend(self, peer):
 #        self.addExternalPeer(peer, 1)
 
-    def setFriend(self, permid, friend=True):
+    def setFriend(self, permid, friend=True, commit=True):
         
         self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), friend=friend)
-        self.commit()
+        if commit:
+            self.commit()
         #self.rankList_dirty = True # Friend status doesnt change rank
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
@@ -169,6 +170,8 @@ class FriendDBHandler(BasicDBHandler):
     def deleteFriend(self,permid):
         self.setFriend(permid, False)
         
+NETW_MIME_TYPE = 'image/jpeg'
+
 class PeerDBHandler(BasicDBHandler):
     
     __single = None    # used for multithreaded singletons pattern
@@ -195,7 +198,8 @@ class PeerDBHandler(BasicDBHandler):
         self.rankList = None 
         self.rankList_dirty = False
         self.pref_db = PreferenceDBHandler.getInstance()
-        self.mm = None
+        #self.mm = None
+        
 
     def __len__(self):
         return self.size()
@@ -251,7 +255,7 @@ class PeerDBHandler(BasicDBHandler):
         
         return peers
     
-    def addPeer(self, permid, value, update_dns=True, update_lastseen=True):
+    def addPeer(self, permid, value, update_dns=True, update_lastseen=True, commit = True):
         # add or update a peer
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
         
@@ -276,7 +280,7 @@ class PeerDBHandler(BasicDBHandler):
             if value.has_key('port'):
                 _port = value.pop('port')
             
-        self._db.insertPeer(permid, **value)
+        peer_existed = self._db.insertPeer(permid, **value)
         
         if _permid is not None:
             value['permid'] = permid
@@ -287,9 +291,14 @@ class PeerDBHandler(BasicDBHandler):
         if _port is not None:
             value['port'] = _port
         
-        self.commit()
+        if commit:
+            self.commit()
         self.rankList_dirty = True
-        self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
+        
+        if peer_existed:
+            self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
+        else:
+            self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
             
     def hasPeer(self, permid):
         return self._db.hasPeer(permid)
@@ -306,13 +315,14 @@ class PeerDBHandler(BasicDBHandler):
             ret.append({'permid':str2bin(p[0])})
         return ret
     
-    def updatePeer(self, permid, **argv):
+    def updatePeer(self, permid, commit=True, **argv):
         self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), **argv)
-        self.commit()
+        if commit:
+            self.commit()
         self.rankList_dirty = True
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
-    def deletePeer(self, permid=None, peer_id=None, force=False):
+    def deletePeer(self, permid=None, peer_id=None, force=False, commit = True):
         # don't delete friend of superpeers, except that force is True
         # TODO: add transaction
         #self._db._begin()    # begin a transaction
@@ -323,7 +333,8 @@ class PeerDBHandler(BasicDBHandler):
         deleted = self._db.deletePeer(permid=permid, peer_id=peer_id, force=force)
         if deleted:
             self.pref_db._deletePeer(peer_id=peer_id)
-        self._db._commit()
+        if commit:
+            self.commit()
         self.rankList_dirty = True
         self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
             
@@ -414,19 +425,26 @@ class PeerDBHandler(BasicDBHandler):
         except:
             return -1
         
-    def setMugshotManager(self,mm):
-        self.mm = mm
+    #def setMugshotManager(self,mm):
+    #    self.mm = mm
 
     def updatePeerIcon(self, permid, icontype, icondata, updateFlag = True):
-         if self.mm is not None:
-             self.mm.save_data(permid, icontype, icondata)
+         # save thumb in db
+         self.updatePeer(permid, thumbnail=bin2str(icondata))
+         #if self.mm is not None:
+         #    self.mm.save_data(permid, icontype, icondata)
     
 
     def getPeerIcon(self, permid):
-        if self.mm is not None:
-            return self.mm.load_data(permid)
+        item = self.getOne('thumbnail', permid=bin2str(permid))
+        if item:
+            return NETW_MIME_TYPE, str2bin(item)
         else:
-            return None
+            return None, None
+        #if self.mm is not None:
+        #    return self.mm.load_data(permid)
+        #3else:
+        #    return None
 
 class SuperPeerDBHandler(BasicDBHandler):
     
@@ -747,13 +765,13 @@ class TorrentDBHandler(BasicDBHandler):
         #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
         return infohash, torrent
         
-    def addTorrent(self, infohash, db_data={}, new_metadata=False):
+    def addTorrent(self, infohash, db_data={}, new_metadata=False, commit=True):
         if self.hasTorrent(infohash):    # already added
             return
         
         #print >>sys.stderr,"sqldbhand: addTorrent",currentThread().getName()
         #data = self._prepareData(db_data)
-        self._addTorrentToDB(infohash, db_data)
+        self._addTorrentToDB(infohash, db_data, commit)
         
         self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
         
@@ -831,7 +849,7 @@ class TorrentDBHandler(BasicDBHandler):
             self.src_table[src] = src_int
         return src_int
 
-    def _addTorrentToDB(self, infohash, data):
+    def _addTorrentToDB(self, infohash, data, commit=True):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
             infohash_str = bin2str(infohash)
@@ -873,8 +891,8 @@ class TorrentDBHandler(BasicDBHandler):
                             comment = data['comment'])
             
         self._addTorrentTracker(torrent_id, data)
-        
-        self.commit()    
+        if commit:
+            self.commit()    
         self.rankList_dirty = True
         return torrent_id
     
@@ -914,7 +932,7 @@ class TorrentDBHandler(BasicDBHandler):
             tier_num += 1
         self._db.executemany(sql_insert_torrent_tracker, values)
         
-    def updateTorrent(self, infohash, **kw):    # watch the schema of database
+    def updateTorrent(self, infohash, commit=True, **kw):    # watch the schema of database
         if 'category' in kw:
             cat_id = self._getCategoryID(kw.pop('category'))
             kw['category_id'] = cat_id
@@ -939,7 +957,8 @@ class TorrentDBHandler(BasicDBHandler):
             where = "infohash='%s'"%infohash_str
             self._db.update(self.table_name, where, **kw)
             
-        self.commit()
+        if commit:
+            self.commit()
         self.rankList_dirty = True
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
@@ -961,7 +980,7 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.update('TorrentTracker', where, **update)
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
-    def deleteTorrent(self, infohash, delete_file=False):
+    def deleteTorrent(self, infohash, delete_file=False, commit = True):
         if not self.hasTorrent(infohash):
             return False
         
@@ -975,7 +994,9 @@ class TorrentDBHandler(BasicDBHandler):
         
         if deleted:
             self._deleteTorrent(infohash)
-        
+        if commit:
+            self.commit()
+            
         self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, infohash)
         return deleted
 
@@ -1013,27 +1034,42 @@ class TorrentDBHandler(BasicDBHandler):
     def getTorrentDir(self):
         return MyDBHandler.getInstance().get('torrent_dir')
     
-    def getTorrent(self, infohash, keys=None):
-        if keys is not None:
-            res = self._db.getOne(self.table_name, keys, infohash=bin2str(infohash))
-            return res
+    
+    def getTorrent(self, infohash, keys=None, include_mypref=True):
+        # TODO: replace keys like source -> source_id and status-> status_id ??
+        
+        if keys is None:
+            keys = ('category_id', 'status_id', 'name', 'creation_date', 'num_files',
+                    'num_leechers', 'num_seeders',   'length', 
+                    'secret', 'insert_time', 'source_id', 'torrent_file_name',
+                    'relevance', 'infohash', 'torrent_id')
         else:
-            # return a dictionary
-            # make it compatible for calls to old bsddb interface
-            # Jie TODO: ugly codes. should focus on single task. move these codes to modules
-            value_name = ('category_id', 'status_id', 'name', 'creation_date', 'num_files',
-                      'num_leechers', 'num_seeders',   'length', 
-                      'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                      'relevance', 'infohash')
-            item = self._db.getOne('CollectedTorrent', value_name, where= "infohash='%s'" % bin2str(infohash))
-            if not item:
-                return None
-            torrent = dict(zip(value_name, item))
+            keys = list(keys)   
+            keys.append('torrent_id')
+        res = self._db.getOne('CollectedTorrent', keys, infohash=bin2str(infohash))
+        if not res:
+            return None
+        torrent = dict(zip(keys, res))
+        if 'source_id' in torrent:
             torrent['source'] = self.id2src[torrent['source_id']]
+            del torrent['source_id']
+        if 'category_id' in torrent:
             torrent['category'] = [self.id2category[torrent['category_id']]]
+            del torrent['category_id']
+        if 'status_id' in torrent:
             torrent['status'] = self.id2status[torrent['status_id']]
-            torrent['infohash'] = str2bin(torrent['infohash'])
-            return torrent
+            del torrent['status_id']
+        torrent['infohash'] = infohash
+        
+        if include_mypref:
+            stats = self.mypref_db.getMyPrefStats(torrent['torrent_id'])
+            del torrent['torrent_id']
+            if stats:
+                torrent['myDownloadHistory'] = True
+                torrent['creation_time'] = stats[0]
+                torrent['progress'] = stats[1]
+                torrent['destination_path'] = stats[2]
+        return torrent
 
     def getAllTorrents(self):
         sql = 'select infohash from CollectedTorrent'
@@ -1235,10 +1271,14 @@ class MyPreferenceDBHandler(BasicDBHandler):
         res = self._db.execute(sql)
         return [str2bin(p[0]) for p in res]
     
-    def getMyPrefStats(self):
+    def getMyPrefStats(self, torrent_id=None):
         # get the full {torrent_id:(create_time,progress,destdir)}
         value_name = ('torrent_id','creation_time','progress','destination_path')
-        res = self.getAll(value_name)
+        if torrent_id is not None:
+            where = 'torrent_id=%s' % torrent_id
+        else:
+            where = None
+        res = self.getAll(value_name, where)
         mypref_stats = {}
         for pref in res:
             torrent_id,creation_time,progress,destination_path = pref
@@ -1285,7 +1325,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             return False
             
-    def addMyPreference(self, infohash, data):
+    def addMyPreference(self, infohash, data, commit=True):
         # keys in data: destination_path, progress, creation_time, torrent_id
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None or self.hasMyPreference(infohash):
@@ -1296,7 +1336,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
         d['creation_time'] = data.get('creation_time', int(time()))
         d['torrent_id'] = torrent_id
         self._db.insert(self.table_name, **d)
-        self.commit()
+        if commit:
+            self.commit()
         if self.recent_preflist is None:
             self.getRecentLivePrefList()
         self.recent_preflist.insert(0, infohash)
