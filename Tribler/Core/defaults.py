@@ -59,6 +59,7 @@ sessdefaults['superpeer_file'] = None
 sessdefaults['buddycast_collecting_solution'] = BCCOLPOLICY_SIMPLE
 sessdefaults['peer_icon_path'] = None
 sessdefaults['stop_collecting_threshold'] = 200
+sessdefaults['family_filter'] = True
 
 trackerdefaults = {}
 trackerdefaults['tracker_dfile'] = None

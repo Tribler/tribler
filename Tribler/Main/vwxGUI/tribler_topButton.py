@@ -50,9 +50,9 @@ class tribler_topButton(wx.Panel):
         #if self.bitmaps[0] and self.GetSize()==(0,0):
         if self.bitmaps[0]:
             self.SetSize(self.bitmaps[0].GetSize())
-#        print self.Name
-#        print 'size'
-#        print self.Size
+#        print >> sys.stderr, self.Name
+#        print >> sys.stderr, 'size'
+#        print >> sys.stderr, self.Size
         
         
         self.initDone = True
@@ -294,7 +294,7 @@ class SwitchButton(tribler_topButton):
             self.imagedir = os.path.join(abcpath, 'images')
             
         if not os.path.isdir(self.imagedir):
-            print 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
+            print >> sys.stderr, 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
             return
         
         # find a file with same name as this panel
@@ -310,15 +310,18 @@ class SwitchButton(tribler_topButton):
                 self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
                 i+=1
             elif DEBUG:
-                print 'Could not find image: %s' % img
+                print >> sys.stderr, 'Could not find image: %s' % img
                 
 
         if self.toggled:
             self.bitmaps = self.allBitmaps[2:]
         else:
             self.bitmaps = self.allBitmaps[:2]
+        #print >> sys.stderr, 'Switchbutton (%s) bitmaps: %s' % (self.Name, self.allBitmaps)
                 
-    def setToggled(self, b, tooltip = { "enabled": "", "disabled": ""}):
+    def setToggled(self, b = None, tooltip = { "enabled": "", "disabled": ""}):
+        if b is None:
+            b = not self.toggled
         self.toggled = b
 
         if not self.initDone:
@@ -333,7 +336,7 @@ class SwitchButton(tribler_topButton):
             if self.enabled:
                 self.SetToolTipString(tooltip["disabled"])
             
-        #print 'Bitmaps is now: %s' % self.bitmaps
+        #print >> sys.stderr, 'Bitmaps is now: %s' % self.bitmaps
         #should Refresh?
         self.Refresh()
         

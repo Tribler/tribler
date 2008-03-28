@@ -12,6 +12,7 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, PeerDBHandler
 from Tribler.Core.simpledefs import *
 from Tribler.Main.vwxGUI.GridState import GridState
+from Tribler.Category.Category import Category
 from Tribler.Core.Utilities.utilities import *
 from traceback import print_exc,print_stack
 
@@ -106,6 +107,14 @@ class GridManager(object):
             self.session.remove_observer(self.item_network_callback)
             self.session.add_observer(self.item_network_callback,ntfy_mappings[newstate.db])
         
+            # library add NTFY_TORRENTS and NTFY_DOWNLOADS? or NTFY_MYPREFERENCES
+            if newstate.db == 'libraryMode':
+                self.session.set_download_states_callback(self.download_state_network_callback)
+
+        
+    def download_state_network_callback(self, *args):
+        wx.CallAfter(self.download_state_gui_callback, *args)
+        
     def item_network_callback(self, *args):
         wx.CallAfter(self.itemChanged, *args)
         
@@ -133,6 +142,14 @@ class GridManager(object):
         if self._objectOnPage(subject, objectID):
             self.refresh()
     
+    def download_state_gui_callback(self, dslist):
+        """
+        Called by GUIThread
+        """
+        if not self.state.db != 'libraryMode':
+            return 0.0, False # Do not call me again!
+        print >> sys.stderr, 'DSList: %s' % dslist
+        
     def _objectOnPage(self, subject, objectID):
         if subject == NTFY_PEERS:
             id_name = 'permid'
@@ -151,7 +168,7 @@ class GridManager(object):
         elif subject in (NTFY_TORRENTS):
             id_name = 'infohash'
             torrent = db_handler.getTorrent(objectID)
-            ok = torrent is not None and torrent['status'] == 'good'
+            ok = torrent is not None and torrent['status'] == 'good' and Category.getInstance().hasActiveCategory(torrent)
             if not ok:
                 print >> sys.stderr, 'Gridmanager: Torrent is not relevant: %s' % torrent
             return ok

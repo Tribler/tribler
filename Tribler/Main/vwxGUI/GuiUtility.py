@@ -17,7 +17,7 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 #from Tribler.vwxGUI.filesFilter import filesFilter
 from Tribler.Main.vwxGUI.GridState import GridState
-
+from Tribler.Category.Category import Category
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Utility.constants import *
 
@@ -148,6 +148,28 @@ class GUIUtility:
             self.standardOverview.clearSearch()
                         
             wx.CallAfter(self.standardOverview.toggleSearchDetailsPanel, False)
+        elif name == 'familyFilterOn' or name == 'familyFilterOff':
+            print 'tb >ON  %s' % self.familyButtonOn.isToggled()
+            print 'tb >OFF %s' % self.familyButtonOff.isToggled()
+            if self.familyButtonOn.isToggled() and name == 'familyFilterOn':
+#            if ff_enabled and name == 'familyFilterOn':
+                print 'nothing'
+                
+            elif self.familyButtonOff.isToggled() and name == 'familyFilterOff':
+#            elif ff_enabled == False and name == 'familyFilterOff':
+                print 'nothing'
+            else:                    
+                catobj = Category.getInstance()
+                ff_enabled = not catobj.family_filter_enabled()
+                print 'Setting family filter to: %s' % ff_enabled
+                catobj.set_family_filter(ff_enabled)
+                self.familyButtonOn.setToggled()
+                self.familyButtonOff.setToggled()
+#                obj.setToggled(ff_enabled)
+                for filtername in ['filesFilter', 'libraryFilter']:
+                    filterCombo = xrc.XRCCTRL(self.frame, filtername)
+                    if filterCombo:
+                        filterCombo.refresh()
         elif DEBUG:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
@@ -219,7 +241,7 @@ class GUIUtility:
     def standardLibraryOverview(self):       
         self.standardOverview.setMode('libraryMode')
         gridState = self.standardOverview.getFilter().getState()
-        if not gridState:
+        if not gridState or not gridState.isValid():
             gridState = GridState('libraryMode', 'all', 'name')
         self.standardOverview.filterChanged(gridState)
         
@@ -250,6 +272,15 @@ class GUIUtility:
         filesButton.setSelected(True)
         self.selectedMainButton = filesButton
         
+        # Init family filter
+
+        self.familyButtonOn = xrc.XRCCTRL(self.frame, 'familyFilterOn')
+        self.familyButtonOff = xrc.XRCCTRL(self.frame, 'familyFilterOff')
+        catobj = Category.getInstance()
+        if catobj.family_filter_enabled():
+            self.familyButtonOn.setToggled(True)
+        else:    
+            self.familyButtonOff.setToggled(True)
      
     def getOverviewElement(self):
         """should get the last selected item for the current standard overview, or

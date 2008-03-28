@@ -1043,7 +1043,8 @@ class BuddyCastCore:
         
         # Every peer >= 6 in message attachs nfiles and oversion for remote search from version 6
         for i in range(len(peers)):
-            print >> sys.stderr, '------ ******', peers[i].keys(), peers[i]
+            if debug:
+                print >> sys.stderr, '------ ******', peers[i].keys(), peers[i]
             oversion = peers[i].pop('oversion')
             nfiles = peers[i].pop('num_torrents')
             # only include remote-search-peers

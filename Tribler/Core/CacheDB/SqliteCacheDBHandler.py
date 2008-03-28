@@ -697,6 +697,7 @@ class TorrentDBHandler(BasicDBHandler):
                 'insert_time', 'secret', 'relevance',
                 'source_id', 'category_id', 'status_id',
                 'num_seeders', 'num_leechers', 'comment']
+        
 
     def getTorrentID(self, infohash):
         return self._db.getTorrentID(infohash)
@@ -776,7 +777,7 @@ class TorrentDBHandler(BasicDBHandler):
         torrent["insert_time"] = long(time())
 
         category = Category.getInstance()
-        torrent['category'] = self._getCategoryID(category.calculateCategory(info, torrent['name']))
+        torrent['category'] = self._getCategoryID(category.calculateCategory(metainfo, torrent['name']))
         torrent['thumbnail'] = 0 # TODO: check if thumbnail is there
         torrent['secret'] = 0 # TODO: check if torrent is secret
         torrent['relevance'] = 0.0
@@ -1101,6 +1102,9 @@ class TorrentDBHandler(BasicDBHandler):
         table = 'CollectedTorrent'
         value = 'count(*)'
         where = 'status_id=%d ' % self.status_table['good']
+        # add familyfilter
+        where += Category.getInstance().get_family_filter_sql(self._getCategoryID)
+        
         if category_name != 'all':
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
         if library:
@@ -1110,7 +1114,7 @@ class TorrentDBHandler(BasicDBHandler):
     def getTorrents(self, category_name = 'all', range = None, library = False, sort = None, reverse = False):
         
         """
-        get Torrents of some category and with alive status.
+        get Torrents of some category and with alive status (opt. not in family filter)
         
         @return Returns a list of dicts with keys: 
             torrent_id, infohash, name, category, status, creation_date, num_files, num_leechers, num_seeders,
@@ -1127,6 +1131,8 @@ class TorrentDBHandler(BasicDBHandler):
                       'relevance', 'infohash']
         
         where = 'status_id=%d ' % self.status_table['good']
+        # add familyfilter
+        where += Category.getInstance().get_family_filter_sql(self._getCategoryID)
         if category_name != 'all':
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
         if library:

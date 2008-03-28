@@ -5,7 +5,20 @@
     <pos>1,1</pos>
     <size>1024,768</size>
     <bg>#d4d0c8</bg>
-    <object class="wxMenuBar" name="mainmenubar"/>
+    <object class="wxMenuBar" name="fdfs">
+      <object class="wxMenu" name="menu443">
+        <label>File</label>
+        <object class="wxMenuItem" name="Item444">
+          <label>Exit</label>
+        </object>
+      </object>
+      <object class="wxMenu" name="menu445">
+        <label>Options</label>
+        <object class="wxMenuItem" name="Item446">
+          <label>Options</label>
+        </object>
+      </object>
+    </object>
     <object class="wxScrolledWindow" name="level0">
       <style>wxVSCROLL|wxHSCROLL|wxCLIP_CHILDREN</style>
       <pos>0,0</pos>
@@ -27,7 +40,7 @@
                 <bitmap>images/topbg1.png</bitmap>
                 <pos>0,0</pos>
                 <size>449,89</size>
-                <bg>#000000</bg>
+                <bg>#808080</bg>
                 <object class="wxBoxSizer">
                   <orient>wxHORIZONTAL</orient>
                   <object class="sizeritem">
@@ -130,7 +143,53 @@
                 <bitmap>images/topbg2.png</bitmap>
                 <pos>449,0</pos>
                 <size>128,89</size>
-                <bg>#     0</bg>
+                <bg>#808080</bg>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>105,28</size>
+                    <flag>wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>1</option>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                    <border>7</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="filesC">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>family filter:</label>
+                      <pos>132,7</pos>
+                      <size>88,18</size>
+                      <bg>#666666</bg>
+                      <fg>#ffffff</fg>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                    <border>7</border>
+                    <option>0</option>
+                    <object class="wxPanel" name="familyFilterOn" subclass="vwxGUI.tribler_topButton.SwitchButton">
+                      <pos>220,7</pos>
+                      <size>29,22</size>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                    <border>7</border>
+                    <option>0</option>
+                    <object class="wxPanel" name="familyFilterOff" subclass="vwxGUI.tribler_topButton.SwitchButton">
+                      <pos>249,7</pos>
+                      <size>29,22</size>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>10,18</size>
+                    <flag>wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                  </object>
+                </object>
               </object>
             </object>
             <object class="sizeritem">

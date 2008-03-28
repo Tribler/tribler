@@ -37,6 +37,7 @@ class standardFilter(wx.Panel):
         self.SetBackgroundColour(wx.Colour(153,153,153))   
         self.parent = None
         self.detailPanel = None
+        self.Show(False)
         self.addComponents()
         self.Show()
         self.initReady = True
@@ -46,7 +47,6 @@ class standardFilter(wx.Panel):
         
         
     def addComponents(self):
-        self.Show(False)
         
         #self.SetBackgroundColour(wx.BLUE)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -99,7 +99,7 @@ class standardFilter(wx.Panel):
             
     def filterChanged(self, dict_state):
         try:
-            self.state = GridState(self.guiUtility.standardOverview.mode,
+            self.state = GridState(self.mode,
                               dict_state.get('category'),
                               None)
             self.guiUtility.standardOverview.filterChanged(self.state)
@@ -124,9 +124,11 @@ class standardFilter(wx.Panel):
             self.mouseAction()
         return self.state
 
+    
 
 class filesFilter(standardFilter):
     def __init__(self):
+        self.mode = 'filesMode'
         nametuples = [('all', 'All')]
         nametuples += Category.getInstance().getCategoryNames()
         nametuples.append(('other', 'Other'))
@@ -135,6 +137,16 @@ class filesFilter(standardFilter):
         filterData = [['category', nametuples]]
                      
         standardFilter.__init__(self, filterData = filterData)
+        
+    def refresh(self):
+        nametuples = [('all', 'All')]
+        nametuples += Category.getInstance().getCategoryNames()
+        nametuples.append(('other', 'Other'))
+        self.filterData = [['category', nametuples]]
+        #self._PostInit()
+        self.addComponents()
+        self.Show()
+        self.filterChanged(self.filterState)
         
 #class personsFilter(standardFilter):
 #    def __init__(self):
@@ -149,16 +161,20 @@ class filesFilter(standardFilter):
 #                  ]
 #        standardFilter.__init__(self, filterData = filterData)
 #        
-class libraryFilter(standardFilter):
+class libraryFilter(filesFilter):
     def __init__(self):
+        filesFilter.__init__(self)
+        self.mode = 'libraryMode'
 
-        nametuples = Category.getInstance().getCategoryNames()
-        nametuples = [('all', 'All')] + nametuples
-        nametuples += [('other', 'Other')]
-        #nametuples += [('search', 'Search Results')]
-        filterData = [['category', nametuples]]
-                       
-        standardFilter.__init__(self, filterData = filterData)
+#    def __init__(self):
+#
+#        nametuples = Category.getInstance().getCategoryNames()
+#        nametuples = [('all', 'All')] + nametuples
+#        nametuples += [('other', 'Other')]
+#        #nametuples += [('search', 'Search Results')]
+#        filterData = [['category', nametuples]]
+#                       
+#        standardFilter.__init__(self, filterData = filterData)
 
 #class friendsFilter(standardFilter):
 #    def __init__(self):

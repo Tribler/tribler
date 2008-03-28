@@ -827,8 +827,8 @@ class ABCApp(wx.App):
 
             # Make sure self.utility.frame is set
             self.startAPI()
-            
-            Category.getInstance(self.utility.session.get_install_dir(), self.utility.session.get_state_dir())
+            cat = Category.getInstance()
+            cat.init_from_main(self.utility)
             
             #self.frame.Refresh()
             #self.frame.Layout()
