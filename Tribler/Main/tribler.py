@@ -135,6 +135,7 @@ class ABCFrame(wx.Frame):
         self.utility = self.guiUtility.utility
         self.params = self.guiUtility.params
         self.utility.frame = self
+        self.torrentfeed = None
         
         title = self.utility.lang.get('title') + \
                 " " + \

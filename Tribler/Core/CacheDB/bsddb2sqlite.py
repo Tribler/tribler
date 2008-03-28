@@ -9,12 +9,18 @@ from bencode import bdecode
 LIB=0
 # 0:  pysqlite, 1: APSW
 if LIB == 0:
+try:
+    import sqlite
+except:
     try:
-        import sqlite
-    except:
         from pysqlite2 import dbapi2 as sqlite
+    except:
+        from sqlite3 import dbapi2 as sqlite
 elif LIB == 1:    
-    import apsw
+    try:
+        import apsw
+    except:
+        pass
 
 print "SQLite Wrapper:", {0:'PySQLite', 1:'APSW'}[LIB]
 

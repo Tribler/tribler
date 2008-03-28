@@ -1008,7 +1008,7 @@ def completedir(srcpath, params, userabortflag, progressCallback, torrentfilenam
         ext = TRIBLER_TORRENT_EXT
     else:
         ext = '.torrent'
-    srcfiles = listdir(srcpath)
+    srcfiles = os.listdir(srcpath)
     srcfiles.sort()
 
     # Filter out any .torrent files
@@ -1019,7 +1019,7 @@ def completedir(srcpath, params, userabortflag, progressCallback, torrentfilenam
             goodfiles.append(goodfile)
         
     for goodfile in goodfiles:
-        basename = split(goodfile)[-1]
+        basename = os.path.split(goodfile)[-1]
         # Ignore cores, CVS and dotfiles
         if basename not in FILESTOIGNORE and basename[0] != '.':
             make_meta_file(goodfile, params,userabortflag,progressCallback,torrentfilenameCallback)

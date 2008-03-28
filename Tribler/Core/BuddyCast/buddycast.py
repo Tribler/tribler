@@ -181,8 +181,8 @@ from threading import Event, currentThread
 
 from bartercast import BarterCastCore
 
-DEBUG = True   # for errors
-debug = True   # for status
+DEBUG = False   # for errors
+debug = False   # for status
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
 REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in this version
 
