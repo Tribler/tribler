@@ -894,25 +894,26 @@ class TorrentDBHandler(BasicDBHandler):
                 self._db.insert('Torrent', infohash = infohash_str)
             torrent_id = self._db.getTorrentID(infohash)
         else:
-            where = 'torrent_id = %d'%torrent_id
-            self._db.update('Torrent', where = where,
-                            name = data['name'],
-                            torrent_file_name = data['torrent_file_name'],
-                            length = data['length'], 
-                            creation_date = data['creation_date'], 
-                            num_files = data['num_files'], 
-                            thumbnail = data['thumbnail'],
-                            insert_time = data['insert_time'], 
-                            secret = data['secret'], 
-                            relevance = data['relevance'],
-                            source_id = data['source'], 
-                            category_id = data['category'], 
-                            status_id = data['status'],
-                            num_seeders = data['num_seeders'], 
-                            num_leechers = data['num_leechers'], 
-                            comment = data['comment'])
+            if data:
+                where = 'torrent_id = %d'%torrent_id
+                self._db.update('Torrent', where = where,
+                                name = data['name'],
+                                torrent_file_name = data['torrent_file_name'],
+                                length = data['length'], 
+                                creation_date = data['creation_date'], 
+                                num_files = data['num_files'], 
+                                thumbnail = data['thumbnail'],
+                                insert_time = data['insert_time'], 
+                                secret = data['secret'], 
+                                relevance = data['relevance'],
+                                source_id = data['source'], 
+                                category_id = data['category'], 
+                                status_id = data['status'],
+                                num_seeders = data['num_seeders'], 
+                                num_leechers = data['num_leechers'], 
+                                comment = data['comment'])
             
-        self._addTorrentTracker(torrent_id, data)
+                self._addTorrentTracker(torrent_id, data)
         if commit:
             self.commit()    
         self.rankList_dirty = True

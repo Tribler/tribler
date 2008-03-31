@@ -9,13 +9,13 @@ from bencode import bdecode
 LIB=0
 # 0:  pysqlite, 1: APSW
 if LIB == 0:
-try:
-    import sqlite
-except:
     try:
-        from pysqlite2 import dbapi2 as sqlite
+        import sqlite
     except:
-        from sqlite3 import dbapi2 as sqlite
+        try:
+            from pysqlite2 import dbapi2 as sqlite
+        except:
+            from sqlite3 import dbapi2 as sqlite
 elif LIB == 1:    
     try:
         import apsw
