@@ -82,7 +82,7 @@ class CommonRequestPolicy(AbstractRequestPolicy):
 		if peer is None:
 			return 0
 		else:
-			return peer['nqueries']
+			return peer['num_queries']
     
 	
 class AllowFriendsRequestPolicy(CommonRequestPolicy):
