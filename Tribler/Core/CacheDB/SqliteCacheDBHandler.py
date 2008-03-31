@@ -794,7 +794,7 @@ class TorrentDBHandler(BasicDBHandler):
         if self.hasTorrent(infohash):    # already added
             return
         
-        print >>sys.stderr,"***********sqldbhand: addTorrent"*10,currentThread().getName()
+        #print >>sys.stderr,"***********sqldbhand: addTorrent"*10,currentThread().getName()
         self._addTorrentToDB(infohash, db_data, commit)
         
         self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
