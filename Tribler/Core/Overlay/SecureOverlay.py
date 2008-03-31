@@ -471,7 +471,7 @@ class SecureOverlay:
         if not dns:
             values = ('ip', 'port')
             peer = self.peer_db.getOne(values, permid=bin2str(permid))
-            if peer:
+            if peer and peer[0] and peer[1]:
                 ip = self.to_real_ip(peer[0])
                 dns = (ip, int(peer[1]))
         return dns

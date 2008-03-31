@@ -227,10 +227,11 @@ class PeerDBHandler(BasicDBHandler):
         else:
             if not peerids:
                 return []
-            if len(peerids) == 1:
-                s = '(' + str(peerids[0]) + ')'    # tuple([1]) = (1,), syntax error for sql
-            else:
-                s = str(tuple(peerids))
+            s = str(peerids).replace('[','(').replace(']',')')
+#            if len(peerids) == 1:
+#                s = '(' + str(peerids[0]) + ')'    # tuple([1]) = (1,), syntax error for sql
+#            else:
+#                s = str(tuple(peerids))
             sql = 'select permid from Peer where peer_id in ' + s
             permid_strs = self._db.fetchall(sql)
             return [str2bin(permid_str[0]) for permid_str in permid_strs]
@@ -354,6 +355,7 @@ class PeerDBHandler(BasicDBHandler):
     def updatePeerSims(self, sim_list):
         sql_update_sims = 'UPDATE Peer SET similarity=? WHERE peer_id=?'
         self._db.executemany(sql_update_sims, sim_list)
+        self.commit()
         # TODO: how to notify the update of a group of peers?
 
     def getPermIDByIP(self,ip):
@@ -559,11 +561,6 @@ class PreferenceDBHandler(BasicDBHandler):
         PreferenceDBHandler.__single = self
         BasicDBHandler.__init__(self, 'Preference')
             
-    def _getPeerPrefsID(self, peer_id):
-        sql_get_peer_prefs_id = "SELECT torrent_id FROM Preference WHERE peer_id==?"
-        res = self._db.fetchall(sql_get_peer_prefs_id, (peer_id,))
-        return [t[0] for t in res]
-    
     def _getTorrentOwnersID(self, torrent_id):
         sql_get_torrent_owners_id = "SELECT peer_id FROM Preference WHERE torrent_id==?"
         res = self._db.fetchall(sql_get_torrent_owners_id, (torrent_id,))
@@ -575,12 +572,12 @@ class PreferenceDBHandler(BasicDBHandler):
         if peer_id is None:
             return []
         
-        torrent_ids = self._getPeerPrefsID(peer_id)
-        if not return_infohash or not torrent_ids:
-            return torrent_ids
-        
-        sql_get_infohash = "select infohash from Torrent where torrent_id in " + tuple(torrent_ids)
-        res = self._db.fetchall(sql_get_infohash)
+        if not return_infohash:
+            sql_get_peer_prefs_id = "SELECT torrent_id FROM Preference WHERE peer_id==?"
+            res = self._db.fetchall(sql_get_peer_prefs_id, (peer_id,))
+        else:
+            sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id IN (SELECT torrent_id FROM Preference WHERE peer_id==?)"
+            res = self._db.fetchall(sql_get_infohash, (peer_id,))
         return [t[0] for t in res]
     
     def _deletePeer(self, permid=None, peer_id=None):   # delete a peer from pref_db
@@ -875,7 +872,8 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
             infohash_str = bin2str(infohash)
-            self._db.insert('Torrent', 
+            if data:
+                self._db.insert('Torrent', 
                             infohash = infohash_str,
                             name = data['name'],
                             torrent_file_name = data['torrent_file_name'],
@@ -892,6 +890,8 @@ class TorrentDBHandler(BasicDBHandler):
                             num_seeders = data['num_seeders'], 
                             num_leechers = data['num_leechers'], 
                             comment = data['comment'])
+            else:
+                self._db.insert('Torrent', infohash = infohash_str)
             torrent_id = self._db.getTorrentID(infohash)
         else:
             where = 'torrent_id = %d'%torrent_id
@@ -1214,6 +1214,12 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevance(self, infohash, relevance):
         self.updateTorrent(infohash, relevance=relevance)
 
+    def updateTorrentRelevances(self, tid_rel_pairs):
+        if len(tid_rel_pairs) > 0:
+            sql_update_sims = 'UPDATE Torrent SET relevance=? WHERE torrent_id=?'
+            self._db.executemany(sql_update_sims, tid_rel_pairs)
+            self.commit()
+        
     def searchNames(self,kws):
         """ Get all good torrents that have the specified keywords in their name. 
         Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
@@ -1252,7 +1258,31 @@ class TorrentDBHandler(BasicDBHandler):
         del torrent['category_id']
         return torrent
 
-    
+    def selectTorrentToCollect(self, permid, cand=None):
+        " select a torrent to collect from a given candidate list"
+        
+        if cand is None:
+            sql = """
+                select infohash 
+                from Torrent,Peer,Preference 
+                where Torrent.torrent_id==Preference.torrent_id 
+                      and Peer.peer_id==Preference.peer_id 
+                      and Peer.permid==?
+                      and torrent_file_name is NULL 
+                order by relevance desc 
+            """
+            permid_str = bin2str(permid)
+            res = self._db.fetchone(sql, (permid_str,))
+        else:
+            cand_str = [bin2str(infohash) for infohash in cand]
+            s = repr(cand_str).replace('[','(').replace(']',')')
+            sql = 'select infohash from Torrent where torrent_file_name is NULL and infohash in ' + s
+            sql += ' order by relevance desc'
+            res = self._db.fetchone(sql)
+        if res is None:
+            return None
+        return str2bin(res)
+        
         
 class MyPreferenceDBHandler(BasicDBHandler):
     

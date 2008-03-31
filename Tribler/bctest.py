@@ -10,7 +10,7 @@ def states_callback(dslist):
         d = ds.get_download()
         print >>sys.stderr,"bctest 1: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD),currentThread().getName()
 
-    return (1.0,False)
+    return (10.0,False)
 
 if __name__ == "__main__":
 

@@ -518,8 +518,11 @@ class SQLiteCacheDB:
             
     # -------- Write Operations --------
     def insert(self, table_name, **argv):
-        questions = '?,'*len(argv)
-        sql = 'INSERT INTO %s %s VALUES (%s);'%(table_name, tuple(argv.keys()), questions[:-1])
+        if len(argv) == 1:
+            sql = 'INSERT INTO %s (%s) VALUES (?);'%(table_name, argv.keys()[0])
+        else:
+            questions = '?,'*len(argv)
+            sql = 'INSERT INTO %s %s VALUES (%s);'%(table_name, tuple(argv.keys()), questions[:-1])
         self.execute(sql, argv.values())
     
     def insertMany(self, table_name, values, keys=None):
