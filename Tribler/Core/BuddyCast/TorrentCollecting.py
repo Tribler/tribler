@@ -30,9 +30,9 @@ class SimpleTorrentCollecting:
     def trigger(self, permid, selversion, collect_candidate=None):
         infohash = self.torrent_db.selectTorrentToCollect(permid, collect_candidate)
         #infohash = self.selectTorrentToCollect(permid, torrents2down)
-        print >> sys.stderr, '************* trigger', `infohash`, `collect_candidate`
-        if collect_candidate and infohash:
-            assert infohash in collect_candidate, (infohash,collect_candidate)
+        #print >> sys.stderr, '************* trigger', `infohash`, `collect_candidate`
+        #if collect_candidate and infohash:
+        #    assert infohash in collect_candidate, (infohash,collect_candidate)
         if infohash and self.metadata_handler:
             self.metadata_handler.send_metadata_request(permid, infohash, selversion)
         

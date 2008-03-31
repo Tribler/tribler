@@ -55,8 +55,7 @@ class CommonRequestPolicy(AbstractRequestPolicy):
 		@param permid The permid of the sending peer. 
 		@return Whether or not the specified permid is a friend.
 		"""
-		friends = self.session.lm.friend_db.getFriends()
-		friend_permids = [peer['permid'] for peer in friends]
+		friend_permids = self.session.lm.friend_db.getFriends()
 		return permid in friend_permids
 
 	def benign_random_peer(self,permid):

@@ -1003,7 +1003,7 @@ class BuddyCastCore:
             rp_list.remove(target_permid)
         
         peers = []
-        print >> sys.stderr, '********', len(rp_list), len(self.connected_connectable_peers)
+        print >> sys.stderr, '******** rplist nconn', len(rp_list), len(self.connected_connectable_peers)
         #print >> sys.stderr, rp_list, self.connected_connectable_peers
         for permid in rp_list:    
             # keys = ('ip', 'port', 'oversion', 'num_torrents')
@@ -1561,15 +1561,16 @@ class BuddyCastCore:
                     sim = self.data_handler.peers[p][PEER_SIM_POS]
                     if sim > 0:
                         sims.append(sim)
-                minsim = min(sims)
-                maxsim = max(sims)
-                nsimpeers = len(sims)
-                totalsim = sum(sims)
-                if nsimpeers > 0:
-                    meansim = totalsim/nsimpeers
-                else:
-                    meansim = 0
-                print >> sys.stderr, "bc: * sim peer: %d %.3f %.3f %.3f %.3f\n" % (nsimpeers, totalsim, meansim, minsim, maxsim)
+                if sims:
+                    minsim = min(sims)
+                    maxsim = max(sims)
+                    nsimpeers = len(sims)
+                    totalsim = sum(sims)
+                    if nsimpeers > 0:
+                        meansim = totalsim/nsimpeers
+                    else:
+                        meansim = 0
+                    print >> sys.stderr, "bc: * sim peer: %d %.3f %.3f %.3f %.3f\n" % (nsimpeers, totalsim, meansim, minsim, maxsim)
 
             elif step == 3:
                 print >> sys.stderr, "check blocked peers: Round", self.round
@@ -1803,7 +1804,7 @@ class DataHandler:
                 self.peers[pid][PEER_PREF_POS] = array('l', [])
             self.peers[pid][PEER_PREF_POS].append(tid)
 
-        print >> sys.stderr, '**************** loadAllPeers', len(self.peers)
+        #print >> sys.stderr, '**************** loadAllPeers', len(self.peers)
 
         BuddyCastFactory.getInstance().data_ready_evt.set()
 
@@ -1814,9 +1815,9 @@ class DataHandler:
         start = time()
         self._updateAllPeerSim()    # 0.503/2.352 second (calculate, commit)
         end = time()
-        print >> sys.stderr, "****** _updateAllPeerSim", end-start
+        #print >> sys.stderr, "****** _updateAllPeerSim", end-start
         self._updateAllItemRel()    # 0.235/5.421 second (calculate, commit)
-        print >> sys.stderr, "****** _updateAllItemRel", time()-end
+        #print >> sys.stderr, "****** _updateAllItemRel", time()-end
         
     def _updateAllPeerSim(self):
         # update similarity to all peers to keep consistent
@@ -1838,9 +1839,9 @@ class DataHandler:
             sim = self.peers[peer_id][PEER_SIM_POS]
             if oldsim != sim:
                 updates.append((sim,peer_id))
-        self.peer_db.updatePeerSims(updates)
         self.old_peer_num = len(self.peers)
-
+        self.overlay_bridge.add_task(lambda:self.peer_db.updatePeerSims(updates), 5)
+        
     def _updateAllItemRel(self):
         # update all item's relevance
         # Relevance of I = Sum(Sim(Users who have I)) + Poplarity(I)
@@ -1864,8 +1865,8 @@ class DataHandler:
             tids[tid] = tids[tid][0]/tids[tid][1] + tids[tid][1]
             
         #print >> sys.stderr, '**************--- update all item rel', len(tids), len(self.peers), nsimpeers, tids.items()[:10]  # 37307 2500
-        self.torrent_db.updateTorrentRelevances(zip(tids.values(),tids.keys()))
-        
+        updates = zip(tids.values(),tids.keys())
+        self.overlay_bridge.add_task(lambda:self.torrent_db.updateTorrentRelevances(updates), 5)
 #        if 0:
 #            totalsim = sum([p[PEER_SIM_POS] for p in self.peers.values()])
 #            npeers = len(self.peers)
@@ -2049,7 +2050,7 @@ class DataHandler:
 
     def addInfohashes(self, infohash_list):
         for infohash in infohash_list:
-            self.torrent_db.addTorrent(infohash)    # it the infohash already exists, it will skip it
+            self.torrent_db.addInfohash(infohash)    # it the infohash already exists, it will skip it
                 
     def addPeerPreferences(self, peer_permid, prefs):
         """ add a peer's preferences to both cache and db """
@@ -2196,7 +2197,7 @@ class DataHandler:
     def get_ntorrents(self):
         if self.num_torrents_ui is None:
             _now = now()
-            if _now - self.last_check_ntorrents > 3*60:
+            if _now - self.last_check_ntorrents > 5*60:
                 self.ntorrents = self.torrent_db.getNumberTorrents()
                 self.last_check_ntorrents = _now
             return self.ntorrents
@@ -2219,7 +2220,7 @@ class DataHandler:
 #    def setNumPeersFromUI(self, num):
 #        self.num_peers_ui = num
 #        
-#    def setNumTorrentsFromUI(self, num):
+#    def setNumTorrentsFromUI(self, num):    # not thread safe
 #        self.num_torrents_ui = num
     
     

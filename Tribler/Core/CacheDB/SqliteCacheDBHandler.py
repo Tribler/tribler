@@ -145,7 +145,9 @@ class FriendDBHandler(BasicDBHandler):
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
     def getFriends(self):
-        raise Exception('Use PeerDBHandler getGUIPeers(category = "friend")!')
+        res = self._db.getAll('Friend', 'permid')
+        return [str2bin(p) for p in res]
+        #raise Exception('Use PeerDBHandler getGUIPeers(category = "friend")!')
 
     def isFriend(self, permid):
         res = self.getOne('friend', permid=bin2str(permid))
@@ -694,7 +696,7 @@ class TorrentDBHandler(BasicDBHandler):
                 'insert_time', 'secret', 'relevance',
                 'source_id', 'category_id', 'status_id',
                 'num_seeders', 'num_leechers', 'comment']
-        
+        self.existed_torrents = Set()
 
     def getTorrentID(self, infohash):
         return self._db.getTorrentID(infohash)
@@ -703,21 +705,18 @@ class TorrentDBHandler(BasicDBHandler):
         return self._db.getInfohash(torrent_id)
 
     def hasTorrent(self, infohash):
+        if infohash in self.existed_torrents:    #TODO: not thread safe
+            return True
         infohash_str = bin2str(infohash)
         existed = self._db.getOne('CollectedTorrent', 'torrent_id', infohash=infohash_str)
         if existed is None:
             return False
         else:
+            self.existed_torrents.add(infohash)
             return True
     
     def addExternalTorrent(self, filename, source='BC', extra_info={}, metadata=None):
         infohash, torrent = self.readTorrentData(filename, source, extra_info, metadata)
-
-        # DEBUG
-        #torrent["seeder"] = 1
-        #torrent["leecher"] = 1
-        #torrent["status"] = 'good'
-        
         self.addTorrent(infohash, torrent) # commit in here
         return torrent
         
@@ -775,21 +774,27 @@ class TorrentDBHandler(BasicDBHandler):
 
         category = Category.getInstance()
         torrent['category'] = self._getCategoryID(category.calculateCategory(metainfo, torrent['name']))
-        torrent['thumbnail'] = 0 # TODO: check if thumbnail is there
         torrent['secret'] = 0 # TODO: check if torrent is secret
         torrent['relevance'] = 0.0
-        
+        thumbnail = 0
+        if 'azureus_properties' in metainfo and 'Content' in metainfo['azureus_properties']:
+            if metainfo['azureus_properties']['Content'].get('Thumbnail',''):
+                thumbnail = 1
+        torrent['thumbnail'] = thumbnail
         
         #if (torrent['category'] != []):
         #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
         return infohash, torrent
         
+    def addInfohash(self, infohash):
+        if self._db.getTorrentID(infohash) is None:
+            self._db.insert('Torrent', infohash=bin2str(infohash))
+
     def addTorrent(self, infohash, db_data={}, new_metadata=False, commit=True):
         if self.hasTorrent(infohash):    # already added
             return
         
-        #print >>sys.stderr,"sqldbhand: addTorrent",currentThread().getName()
-        #data = self._prepareData(db_data)
+        print >>sys.stderr,"***********sqldbhand: addTorrent"*10,currentThread().getName()
         self._addTorrentToDB(infohash, db_data, commit)
         
         self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
@@ -872,9 +877,27 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
             infohash_str = bin2str(infohash)
-            if data:
-                self._db.insert('Torrent', 
-                            infohash = infohash_str,
+            self._db.insert('Torrent', 
+                        infohash = infohash_str,
+                        name = data['name'],
+                        torrent_file_name = data['torrent_file_name'],
+                        length = data['length'], 
+                        creation_date = data['creation_date'], 
+                        num_files = data['num_files'], 
+                        thumbnail = data['thumbnail'],
+                        insert_time = data['insert_time'], 
+                        secret = data['secret'], 
+                        relevance = data['relevance'],
+                        source_id = data['source'], 
+                        category_id = data['category'], 
+                        status_id = data['status'],
+                        num_seeders = data['num_seeders'], 
+                        num_leechers = data['num_leechers'], 
+                        comment = data['comment'])
+            torrent_id = self._db.getTorrentID(infohash)
+        else:
+            where = 'torrent_id = %d'%torrent_id
+            self._db.update('Torrent', where = where,
                             name = data['name'],
                             torrent_file_name = data['torrent_file_name'],
                             length = data['length'], 
@@ -890,30 +913,8 @@ class TorrentDBHandler(BasicDBHandler):
                             num_seeders = data['num_seeders'], 
                             num_leechers = data['num_leechers'], 
                             comment = data['comment'])
-            else:
-                self._db.insert('Torrent', infohash = infohash_str)
-            torrent_id = self._db.getTorrentID(infohash)
-        else:
-            if data:
-                where = 'torrent_id = %d'%torrent_id
-                self._db.update('Torrent', where = where,
-                                name = data['name'],
-                                torrent_file_name = data['torrent_file_name'],
-                                length = data['length'], 
-                                creation_date = data['creation_date'], 
-                                num_files = data['num_files'], 
-                                thumbnail = data['thumbnail'],
-                                insert_time = data['insert_time'], 
-                                secret = data['secret'], 
-                                relevance = data['relevance'],
-                                source_id = data['source'], 
-                                category_id = data['category'], 
-                                status_id = data['status'],
-                                num_seeders = data['num_seeders'], 
-                                num_leechers = data['num_leechers'], 
-                                comment = data['comment'])
-            
-                self._addTorrentTracker(torrent_id, data)
+        
+            self._addTorrentTracker(torrent_id, data)
         if commit:
             self.commit()    
         self.rankList_dirty = True
@@ -1266,9 +1267,9 @@ class TorrentDBHandler(BasicDBHandler):
             sql = """
                 select infohash 
                 from Torrent,Peer,Preference 
-                where Torrent.torrent_id==Preference.torrent_id 
+                where Peer.permid==?
                       and Peer.peer_id==Preference.peer_id 
-                      and Peer.permid==?
+                      and Torrent.torrent_id==Preference.torrent_id 
                       and torrent_file_name is NULL 
                 order by relevance desc 
             """

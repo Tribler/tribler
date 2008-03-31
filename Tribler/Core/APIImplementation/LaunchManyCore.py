@@ -119,7 +119,7 @@ class TriblerLaunchMany(Thread):
                 
             if DEBUG:
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
-            cachedb.init(config['state_dir'],config['install_dir'],self.rawserver_fatalerrorfunc)
+            cachedb.init(config, self.rawserver_fatalerrorfunc)
 
             self.peer_db        = PeerDBHandler.getInstance()
             self.torrent_db     = TorrentDBHandler.getInstance()

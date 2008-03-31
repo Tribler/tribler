@@ -19,11 +19,11 @@ if __name__ == "__main__":
     sscfg.set_install_dir('.')
     sscfg.set_overlay(1)
     sscfg.set_superpeer_file('superpeer2.txt')
-    sscfg.set_listen_port(7002)
+    sscfg.set_listen_port(7012)
 
     s = Session(sscfg)
     s.set_download_states_callback(states_callback,getpeerlist=False)
-    tdef = TorrentDef.load('bla.torrent')
+    tdef = TorrentDef.load('session2.torrent')
     d = s.start_download(tdef)
    
     time.sleep(3600*24*7)

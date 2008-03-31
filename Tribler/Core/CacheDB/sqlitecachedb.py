@@ -33,16 +33,22 @@ BSDDB_DIR_NAME = 'bsddb'
 CURRENT_DB_VERSION = 1
 DEFAULT_LIB = 0    # SQLITE
 NULL = None
+icon_dir = None
 
-def init(config_dir, install_dir, db_exception_handler = None):
+def init(config, db_exception_handler = None):
     """ create sqlite database """
     global CREATE_SQL_FILE
+    config_dir = config['state_dir']
+    install_dir = config['install_dir']
     CREATE_SQL_FILE = os.path.join(install_dir,CREATE_SQL_FILE_POSTFIX)
     SQLiteCacheDB.exception_handler = db_exception_handler
     sqlite = SQLiteCacheDB.getInstance()
     sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
     bsddb_path = os.path.join(config_dir, BSDDB_DIR_NAME)
+    global icon_dir
+    icon_dir = os.path.abspath(config['peer_icon_path'])
     sqlite.initDB(sqlite_db_path, bsddb_path, lib=DEFAULT_LIB)
+    
         
 def done(config_dir):
     SQLiteCacheDB.getInstance().close()
@@ -202,6 +208,7 @@ class SQLiteCacheDB:
         if cur is None and create:
             SQLiteCacheDB.initDB()    # create a new db obj for this thread
             cur = curs.get(thread_name)
+        
         return cur
        
     def openDB(dbfile_path, lib, autocommit=0, busytimeout=5000.0):
@@ -484,7 +491,7 @@ class SQLiteCacheDB:
         #print >> sys.stderr, 'sdb: execute', sql, args
         if SQLiteCacheDB.DEBUG:
             thread_name = threading.currentThread().getName()
-            print >> self.file, 'sqldb: execute', thread_name, cur, sql, args
+            print >> self.file, 'sqldb: execute', cur, 'sql::', sql, '|', args, '|', thread_name, '::sql'
             if not thread_name.startswith('OverlayThread'):
                 st = extract_stack()
                 for line in st:
@@ -503,7 +510,7 @@ class SQLiteCacheDB:
         cur = SQLiteCacheDB.getCursor()
         if SQLiteCacheDB.DEBUG:
             thread_name = threading.currentThread().getName()
-            print >> self.file, 'sdb: executemany', thread_name, cur, sql, args
+            print >> self.file, 'sqldb: executemany', cur, 'sql::', sql, '|', args, '|', thread_name, '::sql'
             if not thread_name.startswith('OverlayThread'):
                 st = extract_stack()
                 for line in st:
@@ -827,7 +834,8 @@ def convert_db(bsddb_dir, dbfile_path, sql_filename):
     print >>sys.stderr, "sqldb: start converting db"
     from bsddb2sqlite import Bsddb2Sqlite
     bsddb2sqlite = Bsddb2Sqlite(bsddb_dir, dbfile_path, sql_filename)
-    return bsddb2sqlite.run()   
+    global icon_dir
+    return bsddb2sqlite.run(icon_dir=icon_dir)   
 
 if __name__ == '__main__':
     configure_dir = sys.argv[1]

@@ -3,6 +3,8 @@ import os
 from bsdcachedb import MyDB, PeerDB, TorrentDB, PreferenceDB, MyPreferenceDB, BarterCastDB
 from copy import deepcopy
 from time import time
+from sets import Set
+from sha import sha
 from base64 import encodestring, decodestring
 from bencode import bdecode
 
@@ -26,9 +28,9 @@ print "SQLite Wrapper:", {0:'PySQLite', 1:'APSW'}[LIB]
 
 def bin2str(bin):
     # Full BASE64-encoded 
-    if bin.replace('+','').replace('/','').replace('=','').isalnum():
-        return bin    # it is already BASE64-encoded
-    else:
+#    if bin.replace('+','').replace('/','').replace('=','').isalnum():
+#        return bin    # it is already BASE64-encoded
+#    else:
         return encodestring(bin).replace("\n","")
     
 def str2bin(str):
@@ -50,6 +52,8 @@ class Bsddb2Sqlite:
         self.infohash_id = {}
         self.permid_id = {}
         self.src_table = {'':0, 'BC':1}
+        self.icons = Set()
+        self.icon_dir = None
 
     def __del__(self):
         try:
@@ -144,16 +148,20 @@ class Bsddb2Sqlite:
             'oversion':0,   # overlay version
             'buddycast_times':0,
             'last_buddycast_time':0,
+            'thumbnail':None,
             'npeers':0,
             'ntorrents':0,
             'nprefs':0,
             'nqueries':0,
             'last_connected':0,
             'friend':0,
-            'thumbnail':None,
             'superpeer':0,
             }   
             data.update(db_data)
+            iconfilename = sha(permid).hexdigest()
+            if iconfilename in self.icons:
+                icon_str = self.readIcon(iconfilename)
+                data['thumbnail'] = icon_str
             self._addPeerToDB(permid, data)
             npeers += 1
             self.permid_id[permid] = npeers
@@ -163,6 +171,21 @@ class Bsddb2Sqlite:
         #print "npeers", npeers, nconnpeers
             
         self._commit()
+        
+    def readIcon(self, iconfilename):
+        # read a peer icon file and return the encoded string
+        icon_path = os.path.join(self.icon_dir, iconfilename + '.jpg')
+        data = None
+        try:
+            try:
+                f = open(icon_path, 'rb')
+                data = f.read()
+                data = encodestring(data).replace("\n","")
+            except:
+                data = None
+        finally:
+            f.close()
+        return data
         
     def _addPeerToDB(self, permid, data=None, bin=True):
         sql_insert_peer = """
@@ -531,9 +554,20 @@ class Bsddb2Sqlite:
         self.cur.executemany(insert_bc_sql, values)
         self._commit()
         #print "converted bartercast db", len(values)
+
+    def scan_PeerIcons(self, icon_dir):
+        print >>sys.stderr, "scan_PeerIcons", icon_dir
+        if not icon_dir or not os.path.isdir(icon_dir):
+            return
+        self.icon_dir = icon_dir
+        for file_name in os.listdir(icon_dir):
+            if file_name.endswith('.jpg') and len(file_name)==44:
+                self.icons.add(file_name[:-4])
     
-    def run(self, peer_limit=0, torrent_limit=0, torrent_dir=None):
+    def run(self, peer_limit=0, torrent_limit=0, torrent_dir=None, icon_dir=None):
         if self.create_sqlite(self.sqlite_dbfile_path, self.sql_filename):
+            self.scan_PeerIcons(icon_dir)
+            
             MyDB.getInstance(None, self.bsddb_dir)
             self.convert_PeerDB(peer_limit)
             self.convert_MyDB(torrent_dir)

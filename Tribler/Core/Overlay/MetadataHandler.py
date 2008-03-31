@@ -57,6 +57,7 @@ class MetadataHandler:
             self.min_free_space = 200*(2**20)    # at least 1 MB left on disk
         self.config_dir = os.path.abspath(self.config['state_dir'])
         self.torrent_dir = os.path.abspath(self.config['torrent_collecting_dir'])
+        assert os.path.isdir(self.torrent_dir)
         self.free_space = self.get_free_space()
         print "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
         self.max_num_torrents = self.init_max_num_torrents = int(self.config['max_torrents'])
@@ -184,6 +185,8 @@ class MetadataHandler:
         if status_id == self.torrent_db._getStatusID('dead'):
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: Torrent was dead"
+            return True
+        if not torrent_file_name:
             return True
         torrent_path = os.path.join(self.torrent_dir, torrent_file_name)
         if not os.path.isfile(torrent_path):

@@ -18,7 +18,7 @@ if __name__ == "__main__":
     sscfg.set_state_dir('Session1')
     sscfg.set_overlay(1)
     sscfg.set_superpeer_file('superpeer1.txt')
-    sscfg.set_listen_port(7001)
+    sscfg.set_listen_port(7011)
 
     s = Session(sscfg)
     s.set_download_states_callback(states_callback,getpeerlist=False)

@@ -30,6 +30,7 @@ class Category:
             raise RuntimeError, "Category is singleton"
         filename = os.path.join(install_dir,'Tribler', 'Category', category_file)
         Category.__single = self
+        self.utility = None
         #self.torrent_db = TorrentDBHandler.getInstance()
         try:
             self.category_info = getCategoryInfo(filename)
