@@ -609,20 +609,23 @@ class PreferenceDBHandler(BasicDBHandler):
         except sqlite.IntegrityError, msg:    # duplicated
             pass
 
-    def addPreferences(self, peer_permid, prefs):
+    def addPreferences(self, peer_permid, prefs, is_torrent_id=False):
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
         peer_id = self._db.getPeerID(peer_permid)
         if peer_id is None:
             print >> sys.stderr, 'PreferenceDBHandler: add preference of a peer which is not existed in Peer table', `permid`
             return
         
-        torrent_id_prefs = []
-        for infohash in prefs:
-            torrent_id = self._db.getTorrentID(infohash)
-            if not torrent_id:
-                self._db.insertInfohash(infohash)
+        if not is_torrent_id:
+            torrent_id_prefs = []
+            for infohash in prefs:
                 torrent_id = self._db.getTorrentID(infohash)
-            torrent_id_prefs.append((peer_id, torrent_id))
+                if not torrent_id:
+                    self._db.insertInfohash(infohash)
+                    torrent_id = self._db.getTorrentID(infohash)
+                torrent_id_prefs.append((peer_id, torrent_id))
+        else:
+            torrent_id_prefs = [(peer_id, tid) for tid in prefs]
             
         sql_insert_peer_torrent = "INSERT INTO Preference (peer_id, torrent_id) VALUES (?,?)"        
         if len(prefs) > 0:

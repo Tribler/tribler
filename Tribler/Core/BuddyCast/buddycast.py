@@ -168,7 +168,7 @@ import socket
 from Tribler.Core.simpledefs import BCCOLPOLICY_SIMPLE
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE
-from Tribler.Core.Utilities.utilities import show_permid_short, show_permid,validPermid,validIP,validPort,validInfohash
+from Tribler.Core.Utilities.utilities import show_permid_short, show_permid,validPermid,validIP,validPort,validInfohash,readableBuddyCastMsg
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
@@ -183,6 +183,8 @@ from bartercast import BarterCastCore
 
 DEBUG = False   # for errors
 debug = False   # for status
+LOCAL_TEST = False
+
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
 REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in this version
 
@@ -282,13 +284,33 @@ class BuddyCastFactory:
                 
                 self.data_handler.register_buddycast_core(self.buddycast_core)
                 
-                self.start_time = now()
-                self.startup()
+                if not LOCAL_TEST:
+                    self.start_time = now()
+                    self.startup()
+                else:
+                    self.local_test()
             
             if debug:
                 print >> sys.stderr, "bc: Register BuddyCast", currentThread().getName()
             self.overlay_bridge.add_task(_register, 0)
-    
+
+    def local_test(self):
+        self.data_handler.postInit()
+        from log_parser import get_buddycast_data
+        start_time = time()
+        print >> sys.stderr, "buddycast: ******************* start local test"
+        n = 0
+        for permid, selversion, msg in get_buddycast_data('superpeer120070902sp7001.log'):
+            #print >> sys.stderr, permid, selversion
+            message = bencode(msg)
+            self.gotBuddyCastMessage(message, permid, selversion)
+            n += 1
+            if n % 10 == 0:
+                print >> sys.stderr, n, (time()-start_time)/n
+        finish_time = time()
+        print >> sys.stderr, "buddycast: ******************* finish local test", (finish_time-start_time)/n
+        # average 0.385 second for 8K incoming messages
+            
     def startup(self):
         if self.registered:
             # Arno, 2007-02-28: BC is now started self.buddycast_interval after client
@@ -349,6 +371,9 @@ class BuddyCastFactory:
 #        self.data_handler.sync()
         
     def handleMessage(self, permid, selversion, message):
+        if LOCAL_TEST:
+            return
+        
         def _handleMessage():
             if not self.registered or not self.running:
                 if DEBUG:
@@ -391,6 +416,9 @@ class BuddyCastFactory:
             return False
     
     def handleConnection(self,exc,permid,selversion,locally_initiated):
+        if LOCAL_TEST:
+            return
+        
         if DEBUG:
             print >> sys.stderr, "bc: handleConnection",exc,show_permid_short(permid),selversion,locally_initiated,currentThread().getName()
                 
@@ -725,7 +753,8 @@ class BuddyCastCore:
             if overlay_protocol_version >= OLPROTO_VER_THIRD:
                 # From this version, support KEEP_ALIVE message in secure overlay
                 keepalive_msg = ''
-                self.overlay_bridge.send(peer_permid, KEEP_ALIVE+keepalive_msg, 
+                if not LOCAL_TEST:
+                    self.overlay_bridge.send(peer_permid, KEEP_ALIVE+keepalive_msg, 
                                          self.keepaliveSendCallback)
             if debug:
                 print "*** Send keep alive to peer", self.get_peer_info(peer_permid),  \
@@ -869,7 +898,8 @@ class BuddyCastCore:
         else:
             self.print_debug_info('Passive', 6, target_permid)
             
-        self.overlay_bridge.send(target_permid, BUDDYCAST+buddycast_msg, self.buddycastSendCallback)
+        if not LOCAL_TEST:
+            self.overlay_bridge.send(target_permid, BUDDYCAST+buddycast_msg, self.buddycastSendCallback)
         self.blockPeer(target_permid, self.send_block_list, self.short_block_interval)        
         
         if debug:
@@ -1133,10 +1163,11 @@ class BuddyCastCore:
            
             # update sender's ip and port in buddycast
             dns = self.dnsindb(sender_permid)
-            sender_ip = dns[0]
-            sender_port = dns[1]
-            buddycast_data.update({'ip':sender_ip})
-            buddycast_data.update({'port':sender_port})
+            if dns != None:
+                sender_ip = dns[0]
+                sender_port = dns[1]
+                buddycast_data.update({'ip':sender_ip})
+                buddycast_data.update({'port':sender_port})
             
             if self.log:
                 if active:
@@ -1190,6 +1221,8 @@ class BuddyCastCore:
         buf = dunno2unicode('"'+buddycast_data['name']+'"')
         self.launchmany.set_activity(NTFY_ACT_RECOMMEND, buf)
         self.data_handler.increaseBuddyCastTimes(sender_permid)
+        
+        self.data_handler.commit()
         
         if DEBUG:
             print >> sys.stderr, '*****************************************************************************************************'
@@ -1304,7 +1337,7 @@ class BuddyCastCore:
         self.removeFromConnList(peer_permid)    
         
         if not self.isConnected(peer_permid):
-            print >> sys.stderr, "bc: cannot add a unconnected peer to conn list", "Round", self.round
+            #print >> sys.stderr, "bc: cannot add a unconnected peer to conn list", "Round", self.round
             return
         
         _now = now()
@@ -1421,11 +1454,11 @@ class BuddyCastCore:
     def replyBuddyCast(self, target_permid, selversion):
         """ Reply a buddycast message """
         
-        print >> sys.stderr, '*************** replay buddycast message', show_permid_short(target_permid)
+        #print >> sys.stderr, '*************** replay buddycast message', show_permid_short(target_permid)
         
         if not self.isConnected(target_permid):
-            print >> sys.stderr, 'buddycast: lost connection while replying buddycast', \
-                "Round", self.round
+            #print >> sys.stderr, 'buddycast: lost connection while replying buddycast', \
+            #    "Round", self.round
             return
         
         self.createAndSendBuddyCastMessage(target_permid, selversion, active=False)
@@ -1741,13 +1774,12 @@ class DataHandler:
         self.num_torrents_ui = None
         
             
-    def close(self):
-        for db in self.dbs:
-            db.close()
-    
     def __del__(self):
         #self.close()
         pass
+    
+    def commit(self):
+        self.peer_db.commit()
 
     def register_buddycast_core(self, buddycast_core):
         self.buddycast_core = buddycast_core
@@ -1780,7 +1812,6 @@ class DataHandler:
         # get most recent preferences, and sort by torrent id
         res = self.mypref_db.getAll('torrent_id', order_by='creation_time desc', limit=num_pref)
         self.myprefs = [p[0] for p in res]
-        self.myprefs.sort()
         
         for torrent_id in self.myprefs:
             self.updateOwners(torrent_id)
@@ -1795,13 +1826,12 @@ class DataHandler:
             
         """
         peer_values = self.peer_db.getAll(['peer_id','similarity','last_seen'], order_by='last_connected desc', limit=num_peers)
-        user_item_pairs = self.pref_db.getRecentPeersPrefs('last_connected',num_peers)
+        self.peers = dict(zip([p[0] for p in peer_values], [[p[1],p[2],array('l', [])] for p in peer_values])) 
 
-        self.peers = dict(zip([p[0] for p in peer_values], [[p[1],p[2],None] for p in peer_values])) 
+        user_item_pairs = self.pref_db.getRecentPeersPrefs('last_connected',num_peers)
         self.nprefs = len(user_item_pairs)
+
         for pid,tid in user_item_pairs:
-            if self.peers[pid][PEER_PREF_POS] == None:
-                self.peers[pid][PEER_PREF_POS] = array('l', [])
             self.peers[pid][PEER_PREF_POS].append(tid)
 
         #print >> sys.stderr, '**************** loadAllPeers', len(self.peers)
@@ -1827,20 +1857,21 @@ class DataHandler:
         starttime = time()
         self.nprefs = 0    # total nprefs must be updated before compute similarity
         for peer_id in self.peers:
-            if self.peers[peer_id][PEER_PREF_POS] != None:
-                self.nprefs += len(self.peers[peer_id][PEER_PREF_POS])
+            self.nprefs += len(self.peers[peer_id][PEER_PREF_POS])
             
         updates = []
         for peer_id in self.peers:
             oldsim = self.peers[peer_id][PEER_SIM_POS]
-            if self.peers[peer_id][PEER_PREF_POS] == None:
+            if not self.peers[peer_id][PEER_PREF_POS]:
                 continue
             self.updateSimilarity(peer_id, False)
             sim = self.peers[peer_id][PEER_SIM_POS]
             if oldsim != sim:
                 updates.append((sim,peer_id))
-        self.old_peer_num = len(self.peers)
-        self.overlay_bridge.add_task(lambda:self.peer_db.updatePeerSims(updates), 5)
+        
+        if updates:
+            self.old_peer_num = len(self.peers)
+            self.overlay_bridge.add_task(lambda:self.peer_db.updatePeerSims(updates), 5)
         
     def _updateAllItemRel(self):
         # update all item's relevance
@@ -1851,7 +1882,7 @@ class DataHandler:
         tids = {}
         nsimpeers = 0
         for peer_id in self.peers:
-            if self.peers[peer_id][PEER_PREF_POS] != None:
+            if self.peers[peer_id][PEER_PREF_POS]:
                 sim = self.peers[peer_id][PEER_SIM_POS]
                 if sim > 0:
                     nsimpeers += 1
@@ -1865,16 +1896,9 @@ class DataHandler:
             tids[tid] = tids[tid][0]/tids[tid][1] + tids[tid][1]
             
         #print >> sys.stderr, '**************--- update all item rel', len(tids), len(self.peers), nsimpeers, tids.items()[:10]  # 37307 2500
-        updates = zip(tids.values(),tids.keys())
-        self.overlay_bridge.add_task(lambda:self.torrent_db.updateTorrentRelevances(updates), 5)
-#        if 0:
-#            totalsim = sum([p[PEER_SIM_POS] for p in self.peers.values()])
-#            npeers = len(self.peers)
-#            if npeers > 0:
-#                meansim = totalsim/npeers
-#            else:
-#                meansim = 0
-#            print "bc: updated All P2P sim", meansim, npeers, time()-starttime, ctime(now())
+        if tids:
+            updates = zip(tids.values(),tids.keys())
+            self.overlay_bridge.add_task(lambda:self.torrent_db.updateTorrentRelevances(updates), 5)
 
     def addMyPref(self, infohash):
         infohash_str=bin2str(infohash)
@@ -1929,16 +1953,13 @@ class DataHandler:
     def getPeers(self, peer_list, keys):
         return self.peer_db.getPeers(peer_list, keys)
         
-    def updatePeerPref(self, peer_permid):
-        peerprefs = self.pref_db.getPrefList(peer_permid)    # [torrent_id]
-        peerprefs.sort()
-        peerprefs = array('l', peerprefs)
+    def updatePeerPref(self, peer_permid, prefs2add):
         peer_id = self.peer_db.getPeerID(peer_permid)
-        self.peers[peer_id][PEER_PREF_POS] = peerprefs
+        prefs2add = array('l', prefs2add)
+        self.peers[peer_id][PEER_PREF_POS] += prefs2add
             
-        overlap = Set(self.owners).intersection(Set(peerprefs))
+        overlap = Set(self.owners).intersection(Set(self.peers[peer_id][PEER_PREF_POS]))
         if len(overlap) > 0:
-            peer_id = self.peer_db.getPeerID(peer_permid)
             for torrent_id in overlap:
                 self.owners[torrent_id].add(peer_id)
     
@@ -1954,7 +1975,6 @@ class DataHandler:
 #            return mypreflist
         
     def getPeerSim(self, peer_permid, read_db=False, raw=False):
-        assert type(peer_permid)==type('abc'), peer_permid   #for test, remove later
         if read_db:
             sim = self.peer_db.getPeerSim(peer_permid)
         else:            
@@ -1973,7 +1993,6 @@ class DataHandler:
             return sim
         
     def getPeerLastSeen(self, peer_permid):
-        assert type(peer_permid)==type('abc'), peer_permid   #for test, remove later
         peer_id = self.peer_db.getPeerID(peer_permid)
         if peer_id not in self.peers:
             return 0
@@ -1984,20 +2003,12 @@ class DataHandler:
         """ Get a number of peer's preference list. Get all if num==0.
             If live==True, dead torrents won't include
         """
-        assert type(peer_permid)==type('abc'), peer_permid   #for test, remove later
         peer_id = self.peer_db.getPeerID(peer_permid)
-        value = self.peers.get(peer_id, self.default_peer)
-        return value[PEER_PREF_POS]
+        if peer_id not in self.peers:
+            return None
+        else:
+            return self.peers[peer_id][PEER_PREF_POS]
     
-    def _addPeer(self, peer_permid, last_seen):
-        """ add a peer to cache """
-        # Secure Overlay should have added this peer to database.
-        
-        peer_id = self.peer_db.getPeerID(peer_permid)
-        if peer_id != None and peer_id not in self.peers:
-            sim = self.peer_db.getPeerSim(peer_permid)
-            self.peers[peer_id] = [last_seen, sim, None]    # last_seen, similarity, pref
-        
     def addPeer(self, peer_permid, last_seen, peer_data=None):  
         """ add a peer from buddycast message to both cache and db """
         
@@ -2005,7 +2016,17 @@ class DataHandler:
             if peer_data is not None:
                 self._addPeerToDB(peer_permid, last_seen, peer_data)
             self._addPeer(peer_permid, last_seen)    
-            
+
+    def _addPeer(self, peer_permid, last_seen):
+        """ add a peer to cache """
+        # Secure Overlay should have added this peer to database.
+        
+        peer_id = self.peer_db.getPeerID(peer_permid)
+        if peer_id != None and peer_id not in self.peers:
+            sim = self.peer_db.getPeerSim(peer_permid)
+            peerprefs = self.pref_db.getPrefList(peer_permid)    # [torrent_id]
+            self.peers[peer_id] = [last_seen, sim, array('l', peerprefs)]    # last_seen, similarity, pref
+                    
     def _addPeerToDB(self, peer_permid, last_seen, peer_data):
         
         new_peer_data = {}
@@ -2017,7 +2038,7 @@ class DataHandler:
             if peer_data.has_key('name'):
                 new_peer_data['name'] = dunno2unicode(peer_data['name'])    # store in db as unicode
 
-            self.peer_db.addPeer(peer_permid, new_peer_data, update_dns=True)
+            self.peer_db.addPeer(peer_permid, new_peer_data, update_dns=True, commit=False)
             
         except KeyError:
             print_exc()
@@ -2027,27 +2048,6 @@ class DataHandler:
         except:
             print_exc()
             
-#===============================================================================
-#    def removePeers(self, num):
-#        tmplist = []
-#        for peer in self.peers:
-#            if self.buddycast_core.peerInUse(peer):
-#                continue
-#            sim = self.getPeerSim(peer)
-#            last_seen = self.getPeerLastSeen(peer)
-#            nprefs = len(self.getPeerPrefList(peer))
-#            comp = sim + nprefs + last_seen/self.time_sim_weight
-#            value = [comp, peer]
-#            tmplist.append(value)
-#        tmplist.sort()
-#        for _,peer in tmplist[:num]:
-#            if self.peers.has_key(peer):
-#                self.peers.pop(peer)
-#                if peer not in self.myfriends:
-#                    #self.peer_db.hidePeer(peer)
-#                    pass
-#===============================================================================
-
     def addInfohashes(self, infohash_list):
         for infohash in infohash_list:
             self.torrent_db.addInfohash(infohash)    # it the infohash already exists, it will skip it
@@ -2063,10 +2063,10 @@ class DataHandler:
         for infohash in prefs:
             torrent_id = self.torrent_db.getTorrentID(infohash)
             if cur_prefs is None or torrent_id not in cur_prefs:
-                prefs2add.append(infohash)
+                prefs2add.append(torrent_id)
         if len(prefs2add) > 0:
-            self.pref_db.addPreferences(peer_permid, prefs2add)
-            self.updatePeerPref(peer_permid)
+            self.pref_db.addPreferences(peer_permid, prefs2add, is_torrent_id=True)
+            self.updatePeerPref(peer_permid, prefs2add)
             self.nprefs += len(prefs2add)
             peer_id = self.peer_db.getPeerID(peer_permid)
             self.updateSimilarity(peer_id)
@@ -2087,85 +2087,15 @@ class DataHandler:
         self.peers[peer_id][PEER_SIM_POS] = sim
         if update_db:
             self.peer_db.updatePeerSims([(sim,peer_id)])
-        #sim2 = self.simpleP2PSimilarity(peer_id)
-        #if sim2 >= 0:
-        #    print "sim:", self.peers[peer_id][0], peer_id, sim, sim2
-        
-#===============================================================================
-#    def simpleP2PSimilarity(self, peer_id):
-#        """ calculate the similarity
-#            PeerSim = int(1000*len(pref1&pref2)/(len(pref1)*len(pref2))**0.5)
-#        """
-#        
-#        pref1 = self.myprefs
-#        pref2 = self.getPeerPrefList(permid)
-#        co = len(set(pref1).intersection(set(pref2)))
-#        #if co > 0:
-#        #    print peer_id, co
-#        sim = P2PSimSorted(pref1, pref2)
-#        return sim
-#===============================================================================
-    
+
     def LMP2PSimilarity(self, peer_id):
         peer_pref = self.peers[peer_id][PEER_PREF_POS]
         sim = P2PSimLM(peer_id, self.myprefs, peer_pref, self.owners, self.nprefs, mu=1.0)
         return sim
     
-#===============================================================================
-#    def updateAllI2ISim(self, ret=False):
-#        # A temporary user to item similarity
-#        # TODO: incrementally update
-#        starttime = time()
-#        torrent_sim = {}    # [sim, pop]
-#        npref = 0
-#        for peer in self.peers:
-#            preflist = self.getPeerPrefList(peer, cache=True)
-#            peer_sim = self.getPeerSim(peer)
-#            for torrent in preflist:
-#                if torrent not in torrent_sim:
-#                    torrent_sim[torrent] = 0
-#                torrent_sim[torrent] += peer_sim + 1
-#                npref += 1
-#        self.nprefs = npref
-#        self.update_i2i_threshold = max(100, self.nprefs*0.01)
-#        
-#        maxsim = 0
-#        minsim = 10**9
-#        totalsim = 0
-#        ngoodtorrents = 0
-#        for infohash in self.torrent_db.getAllTorrents():
-#            torrent = hash(infohash)
-#            if torrent in torrent_sim:
-#                sim = torrent_sim[torrent]
-#                self.torrent_db.updateTorrentRelevance(infohash, sim, updateFlag=False)
-#                if debug:
-#                    maxsim = max(maxsim, sim)
-#                    minsim = min(minsim, sim)
-#                    totalsim += sim
-#                    if sim > 0:
-#                        ngoodtorrents += 1
-#        
-#        self.total_pref_changed = 0
-#        
-#        if debug:
-#            npeer = len(self.peers)
-#            if npeer > 0:
-#                meansim = 1.0*totalsim/npeer
-#            else:
-#                meansim = 0
-#            print "bc: updated All I2I sim", len(torrent_sim), npref, npeer, \
-#                "sim:", maxsim, meansim, minsim, ngoodtorrents, "time:", time()-starttime, ctime(now())
-#            
-#        if ret:
-#            return torrent_sim    # for test suit
-#        else:
-#            del torrent_sim
-#===============================================================================
-        
-
     def increaseBuddyCastTimes(self, peer_permid):
         self.peer_db.updateTimes(peer_permid, 'buddycast_times', 1)
-        self.peer_db.updatePeer(peer_permid, last_buddycast=now())
+        self.peer_db.updatePeer(peer_permid, commit=False, last_buddycast=now())
 
     def getPeer(self, permid, keys=None):
         return self.peer_db.getPeer(permid, keys)

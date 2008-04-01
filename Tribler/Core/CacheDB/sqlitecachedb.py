@@ -741,9 +741,8 @@ class SQLiteCacheDB:
         if permid in self.permid_id:
             return self.permid_id[permid]
         
-        permid_str = bin2str(permid)
         sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
-        peer_id = self.fetchone(sql_get_peer_id, (permid_str,))
+        peer_id = self.fetchone(sql_get_peer_id, (bin2str(permid),))
         if peer_id != None:
             self.permid_id[permid] = peer_id
         
@@ -790,11 +789,8 @@ class SQLiteCacheDB:
         if infohash in self.infohash_id:
             return self.infohash_id[infohash]
         
-        infohash_str = bin2str(infohash)
-            
         sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE infohash==?"
-        args = (infohash_str,)
-        tid = self.fetchone(sql_get_torrent_id, args)
+        tid = self.fetchone(sql_get_torrent_id, (bin2str(infohash),))
         if tid != None:
             self.infohash_id[infohash] = tid
         return tid
