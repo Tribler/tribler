@@ -367,6 +367,13 @@ class PeerDBHandler(BasicDBHandler):
         else:
             return None
         
+    def getPermid(self, peer_id):
+        permid = self.getOne('permid', peer_id=peer_id)
+        if permid is not None:
+            return str2bin(permid)
+        else:
+            return None
+        
     def getNumberPeers(self, category_name = 'all'):
         table = 'Peer'
         value = 'count(*)'
