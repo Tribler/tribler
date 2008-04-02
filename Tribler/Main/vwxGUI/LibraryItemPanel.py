@@ -11,6 +11,7 @@ from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Core.Utilities.unicode import *
+from Tribler.Core.simpledefs import *
 from tribler_topButton import *
 from copy import deepcopy
 from bgPanel import *
@@ -289,9 +290,9 @@ class LibraryItemPanel(wx.Panel):
             
 
         
-        if torrent.get('abctorrent2'):    # Jie: temporary disable it by set it as 'abctorrent2'
+        if torrent.get('ds'):    # Jie: temporary disable it by set it as 'abctorrent2'
             #print '%s is an active torrent' % torrent['name']
-            abctorrent = torrent['abctorrent']
+            ds = torrent['ds']
             #abctorrent.setLibraryPanel(self)
             
             # Check if torrent just finished for resort
@@ -304,23 +305,28 @@ class LibraryItemPanel(wx.Panel):
 #            self.upSpeed.Show()
             self.speedUp2.Show()
             
-            dls = abctorrent.getColumnText(COL_DLSPEED)
-            self.speedDown2.SetLabel(dls) 
-#            self.speedDown2.SetLabel(self.utility.lang.get('down')+': '+dls) 
-            uls = abctorrent.getColumnText(COL_ULSPEED)
-            self.speedUp2.SetLabel(uls)
-#            self.speedUp2.SetLabel(self.utility.lang.get('up')+': '+uls)
-            #progresstxt = abctorrent.getColumnText(COL_PROGRESS)
-            #progress = round(float(progresstxt[:-1]),0)
-
-            self.percentage.SetLabel(progresstxt)
-            #eta = ''+abctorrent.getColumnText(COL_ETA)
-            if eta == '' or eta.find('unknown') != -1 or progress == 100.0:
+            dls = ds.get_current_speed(DOWNLOAD)
+            uls = ds.get_current_speed(UPLOAD)
+            self.speedDown2.SetLabel(self.utility.speed_format(dls)) 
+            self.speedUp2.SetLabel(self.utility.speed_format(uls))
+            
+            finished = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
+            print >> sys.stderr, '%s %s %s' % (`ds.get_download().get_def().get_name()`, ds.get_progress(), dlstatus_strings[ds.get_status()])
+            progress = (ds.get_progress() or 0.0) * 100.0
+            
+            self.percentage.SetLabel('%.1f%%' % progress)
+            eta = self.utility.eta_value(ds.get_eta())
+            if eta == '' or eta.find('unknown') != -1 or finished:
                 eta = ''
             self.eta.SetLabel(eta)
             self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
             
-            #self.statusField.SetLabel(abctorrent.getColumnText(COL_BTSTATUS))
+            if finished and ds.get_status() == DLSTATUS_STOPPED:
+                status = self.utility.lang.get('completed')
+            else:
+                status = dlstatus_strings[ds.get_status()]
+                
+            self.statusField.SetLabel(self.utility.lang.get(status))
             self.statusField.SetToolTipString(self.statusField.GetLabel())
             
             #status = abctorrent.status.getStatus()
@@ -356,40 +362,37 @@ class LibraryItemPanel(wx.Panel):
             showPlayButton = False
             #statustxt = abctorrent.status.getStatusText()
 
-            active = True # fixme: abctorrent.status.isActive(pause = False)
-            
-            if abctorrent.caller_data is not None:
-                active = False
+            active = ds.get_status() in (DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING)
             
             initstates = [self.utility.lang.get('checkingdata'), 
                            self.utility.lang.get('allocatingspace'), 
                            self.utility.lang.get('movingdata'),
                            self.utility.lang.get('waiting')]
             
-            if not (statustxt in initstates):
-                showBoost = active and (progress < 100.0)
-                if showBoost and abctorrent.is_vodable():
+            if not ds.get_status() in (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,\
+                                        DLSTATUS_HASHCHECKING):
+                showBoost = active and (not finished)
+                if showBoost and ds.is_vod():
                     showPlayFast = True
                 
-                if abctorrent.get_on_demand_download():
+                if ds.is_vod():
                     self.vodMode = True
-                    progressinf = abctorrent.get_progressinf()
-                    havedigest = abctorrent.status.getHaveDigest()
-                    havedigest2 = progressinf.get_bufferinfo()
-                    self.playable = havedigest2.get_playable()
+                    #progressinf = abctorrent.get_progressinf()
+                    #havedigest2 = progressinf.get_bufferinfo()
+                    self.playable = ds.get_vod_playable()
                     switchable = False
                     showPlayButton = True
                 else:
-                    havedigest = abctorrent.status.getHaveDigest()
-                    isVideo = abctorrent.is_vodable()
-                    self.playable = (progress == 100.0) and isVideo
+                    isVideo = bool(ds.get_download().get_def().get_video_files())
+                    self.playable = finished and isVideo
                     if not self.playable:
                         switchable = True
+                havedigest = ds.get_pieces_complete()
                     
-            if havedigest is not None:
-                self.pb.set_blocks(havedigest.get_blocks())
+            if havedigest:
+                self.pb.set_blocks(havedigest)
                 self.pb.Refresh()
-            elif progress == 100.0:
+            elif finished:
                 self.pb.reset(colour=2) # Show as complete
                 self.pb.Refresh()
             elif progress > 0:
@@ -409,7 +412,7 @@ class LibraryItemPanel(wx.Panel):
             self.boost.setEnabled(showBoost)
             self.boost.setToggled(self.is_boosted(), tooltip = {"disabled" : self.utility.lang.get('boostDisabled'), "enabled" : self.utility.lang.get('boostEnabled')})
             
-            self.pause.setToggled(not active)
+            self.pause.setToggled(ds.get_status() == DLSTATUS_STOPPED)
                         
                 
         elif torrent: # inactive torrent
@@ -535,37 +538,37 @@ class LibraryItemPanel(wx.Panel):
         except:
             pass
             
-        if self.data.get('abctorrent2'):    # Jie: temporary disable it. It should set back to abctorrent.
+        if self.data.get('ds'):
                 
-            abctorrent = self.data.get('abctorrent')
-            if name == 'deleteLibraryitem':
-                removeFiles = False
-                self.utility.actionhandler.procREMOVE([abctorrent], removefiles = removeFiles)
-                            
-            elif name == 'pause':
+            ds = self.data.get('ds')
+#            if name == 'deleteLibraryitem':
+#                removeFiles = False
+#                ds.get_download().stop() # ??
+#                            
+            if name == 'pause':
                 # ARNOCOMMENT: need to get/store/cache current status of Download somehow
-                if abctorrent.status.value in [STATUS_PAUSE, STATUS_STOP, STATUS_QUEUE ]:
-                    abctorrent.restart()
+                if ds.get_status() == DLSTATUS_STOPPED:
+                    ds.get_download().restart()
                     obj.setToggled(False)
                 else:
-                    abctorrent.stop()
+                    ds.get_download().stop()
                     obj.setToggled(True)
                     
             elif name == 'playFast':
                 if not self.vodMode:
                     self.vodMode = True
-                    self.switch_to_vod(abctorrent)
+                    self.switch_to_vod(ds)
                 else:
-                    self.switch_to_standard_dlmode(abctorrent)
+                    self.switch_to_standard_dlmode(ds)
                     self.vodMode = False
                 self.playFast.setToggled(self.vodMode)
                 
             elif name == 'boost':
-                self.show_boost(abctorrent)
+                self.show_boost(ds)
                     
             elif name == 'libraryPlay':
                 if self.playable:
-                    self.play(abctorrent)
+                    self.play(ds)
         else: # no abctorrent
             if name == 'pause':
                  #playbutton
@@ -659,12 +662,12 @@ class LibraryItemPanel(wx.Panel):
         else:
             return None
         
-    def switch_to_vod(self,ABCTorrentTemp):
+    def switch_to_vod(self,ds):
         videoplayer = VideoPlayer.getInstance()
-        videoplayer.play(ABCTorrentTemp)
+        videoplayer.play(ds.get_download())
       
-    def show_boost(self, ABCTorrentTemp):
-        if ABCTorrentTemp is not None:
+    def show_boost(self, ds):
+        if ds is not None:
             #print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is",ABCTorrentTemp.files.dest
             engine = ABCTorrentTemp.connection.engine
             raise RuntimeException("arno: core: engine class no longer exists")
@@ -687,22 +690,8 @@ class LibraryItemPanel(wx.Panel):
     def is_boosted(self): 
         if self.data is None: 
             return False 
-                  
-        ABCTorrentTemp = self.data.get('abctorrent') 
-        if ABCTorrentTemp is None: 
-            return False 
-                  
-        engine = ABCTorrentTemp.connection.engine 
-        if engine is None: 
-            return False 
-                  
-        coordinator = engine.getDownloadhelpCoordinator() 
-        if coordinator is None: 
-            return False 
-                  
-        helpingFriends = coordinator.get_asked_helpers_copy() 
-                  
-        return len(helpingFriends) > 0
+        ds = self.data.get('ds') 
+        return ds and len(ds.get_coopdl_helpers()) > 0
              
     def abcTorrentShutdown(self, infohash):
         """

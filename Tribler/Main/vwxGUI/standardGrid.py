@@ -47,20 +47,26 @@ class GridManager(object):
         self.page = 0
         self.grid = grid
         self.data = []
+        self.callbacks_disabled = False
+        self.download_states_callback_set = False
+        self.dslist = []
         
     def set_state(self, state, reset_page = False):
-        self.setObserver(state, self.state)
         self.state = state
         if reset_page:
-            page = 0
-        self.refresh()
+            self.page = 0
+        self.refresh(update_observer = True)
         
-    def refresh(self):
+    def refresh(self, update_observer = False):
         """
         Refresh the data of the grid
         """
         if not self.grid.initReady:
             wx.CallAfter(self.refresh)
+            
+        if update_observer:
+            self.setObserver()
+            
         self.data, self.total_items = self._getData(self.state)
         # print >> sys.stderr, 'Data length: %d/%d' % (len(self.data), self.total_items)
         self.grid.setData(self.data)
@@ -84,7 +90,8 @@ class GridManager(object):
                                                        range = range,
                                                        library = (state.db == 'libraryMode'),
                                                        reverse = state.reverse)
-            
+            if state.db == 'libraryMode':
+                data = self.addDownloadStates(data)
         elif state.db in ('personsMode', 'friendsMode'):
             if state.db == 'friendsMode':
                 state.category = 'friend'
@@ -102,21 +109,40 @@ class GridManager(object):
     def _last_page(self):
         return self.total_items == 0 or (0 < len(self.data) < self.grid.items)
     
-    def setObserver(self, newstate, oldstate):
-        if oldstate is None or newstate.db != oldstate.db:
-            self.session.remove_observer(self.item_network_callback)
-            self.session.add_observer(self.item_network_callback,ntfy_mappings[newstate.db])
+    def setObserver(self):
+        self.session.remove_observer(self.item_network_callback)
+        self.session.add_observer(self.item_network_callback,ntfy_mappings[self.state.db])
         
-            # library add NTFY_TORRENTS and NTFY_DOWNLOADS? or NTFY_MYPREFERENCES
-            if newstate.db == 'libraryMode':
+        # library add NTFY_TORRENTS and NTFY_DOWNLOADS? or NTFY_MYPREFERENCES
+        if self.state.db == 'libraryMode':
+            if not self.download_states_callback_set:
                 self.session.set_download_states_callback(self.download_state_network_callback)
-
+                self.download_states_callback_set = True
         
+    def reactivate(self):
+        # After a grid has been hidden by the standardOverview, network/db callbacks
+        # are not handled anymore. This function is called if a resize event is caught
+        # if callbacks were disabled, they are enabled again
+        if self.callbacks_disabled:
+            self.callbacks_disabled = False
+            self.refresh()
+            
     def download_state_network_callback(self, *args):
-        wx.CallAfter(self.download_state_gui_callback, *args)
+        if self.grid.isShowByOverview():
+            wx.CallAfter(self.download_state_gui_callback, *args)
+            return 1.0, False # Do not call me again!
+        else:
+            self.callbacks_disabled = True
+            self.download_states_callback_set = False
+            return 0.0, False
         
     def item_network_callback(self, *args):
-        wx.CallAfter(self.itemChanged, *args)
+        # only handle network callbacks when grid is shown
+        if not self.grid.isShowByOverview():
+            self.callbacks_disabled = True
+            self.session.remove_observer(self.item_network_callback) #unsubscribe this function
+        else:
+            wx.CallAfter(self.itemChanged, *args)
         
     def itemChanged(self,subject,changeType,objectID,*args):
         print >> sys.stderr, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, `objectID`, args)
@@ -127,7 +153,7 @@ class GridManager(object):
         elif changeType == NTFY_DELETE:
             self.itemDeleted(subject, objectID, args)
         else:
-            raise Exception()
+            raise Exception('Unknown notify.changeType')
     
     def itemAdded(self,subject, objectID, args):
         #if self._last_page(): # This doesn't work as the pager is not updated if page becomes full
@@ -146,9 +172,11 @@ class GridManager(object):
         """
         Called by GUIThread
         """
-        if not self.state.db != 'libraryMode':
-            return 0.0, False # Do not call me again!
-        print >> sys.stderr, 'DSList: %s' % dslist
+        self.dslist = dslist
+        for infohash in [ds.get_download().get_def().get_infohash() for ds in dslist]:
+            if self._objectOnPage(NTFY_TORRENTS, infohash):
+                self.refresh()
+                break
         
     def _objectOnPage(self, subject, objectID):
         if subject == NTFY_PEERS:
@@ -164,7 +192,7 @@ class GridManager(object):
         db_handler = self.session.open_dbhandler(subject)
         if subject == NTFY_PEERS:
             peer = db_handler.getPeer(objectID)
-            return peer['buddycast_times']>0 or peer['friend']
+            return peer and (peer['buddycast_times']>0 or peer['friend'])
         elif subject in (NTFY_TORRENTS):
             id_name = 'infohash'
             torrent = db_handler.getTorrent(objectID)
@@ -178,7 +206,15 @@ class GridManager(object):
         
         return objectID in [a[id_name] for a in self.data]
     
-        
+    def addDownloadStates(self, liblist):
+        # Add downloadstate data to list of torrent dicts
+        for ds in self.dslist:
+            infohash = ds.get_download().get_def().get_infohash()
+            for torrent in liblist:
+                if torrent['infohash'] == infohash:
+                    torrent['ds'] = ds
+                    break
+        return liblist
             
         
 class standardGrid(wx.Panel):
@@ -273,6 +309,11 @@ class standardGrid(wx.Panel):
         #self.Update()
         #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
 
+    
+    #def Show(self, s):
+    #    print >> sys.stderr, '%s is show(%s)' % (self, s)
+        #wx.Panel.Show(self, s)
+        
     def onViewModeChange(self, event=None, mode = None):
         if not self.initReady:
             wx.CallAfter(self.onViewModeChange, event, mode)
@@ -453,8 +494,9 @@ class standardGrid(wx.Panel):
             self.setDataOfPanel(i, None)
             
     def onResize(self, event=None):        
-        #print "event: %s" % event       
+        # print >>sys.stderr, "event: %s" % event
         self.calculateRows(event)
+        self.gridManager.reactivate()
         if event:
             event.Skip()
         
@@ -705,6 +747,13 @@ class standardGrid(wx.Panel):
 #            self.dod.unregister(self.updateDod)
 #            self.dod.stop()
             
+    def isShowByOverview(self):
+        name = self.__class__.__name__
+        mode = self.guiUtility.standardOverview.mode
+        index = name.find('Grid')
+        isshown = name[:index] == mode[:index]
+        return isshown
+    
 class filesGrid(standardGrid):
     def __init__(self):
 #        columns = 5

@@ -563,7 +563,10 @@ class ThumbnailViewer(wx.Panel):
                 if DEBUG:
                     print "fip: Scheduling read of thumbnail for",torrent_filename
                 
-                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
+                try:
+                    self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
+                except wx.PyDeadObjectError:
+                    pass
         
                 # ARNO: TODO: The FileItemPanels that use this ThumbnailViewer now get deleted, and thus
                 # also the ThumbnailViewer objects. Or at least the C++ part of them. As a result we

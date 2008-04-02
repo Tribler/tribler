@@ -123,6 +123,7 @@ class DownloaderFeedback:
             s['frac'] = 1.0
             s['wanted'] = 0
             s['time'] = 0
+            s['vod'] = False
             s['vod_prebuf_frac'] = 1.0
             s['vod_playable'] = True
             s['vod_playable_after'] = 0.0
@@ -148,12 +149,12 @@ class DownloaderFeedback:
             s['vod_prebuf_frac'] = self.voddownload.get_prebuffering_progress()
             s['vod_playable'] = self.voddownload.is_playable()
             s['vod_playable_after'] = self.voddownload.get_playable_after()
-#            s['vod_duration'] = self.voddownload.get_duration()
+            s['vod'] = True
         else:
             s['vod_prebuf_frac'] = 0.0
             s['vod_playable'] = False
             s['vod_playable_after'] = float(2 ** 31)
-#            s['vod_duration'] = None
+            s['vod'] = False
         return s        
 
 

@@ -712,15 +712,8 @@ class GUIUtility:
     def onDeleteTorrentFromLibrary(self, event = None):
         item = self.standardDetails.getData()
         
-        if not item.get('abctorrent'):
-            # Apparently abctorrent is not yet put in the torrentmanager.
-            # -> find abctorrent from utility list
-            self.addAbcTorrent(item)
-            
-        abctorrent = item.get('abctorrent')    
-        
-        if abctorrent:
-            self.utility.session.remove_download(abctorrent,removeContent = False)
+        if item.get('ds'):
+            self.utility.session.remove_download(item['ds'].get_download(),removeContent = False)
             
         self.standardOverview.removeTorrentFromLibrary(item)
     

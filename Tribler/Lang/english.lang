@@ -1357,5 +1357,12 @@ C_helping		= "Whether friend is boosting your downloads (no sorting)"
 totalUp         = "Up: %s"
 totalDown       = "Down: %s"
 
-
+# Core download status
+DLSTATUS_ALLOCATING_DISKSPACE = "initializing"
+DLSTATUS_WAITING4HASHCHECK = "initializing"
+DLSTATUS_HASHCHECKING = "hashchecking"
+DLSTATUS_DOWNLOADING = "downloading"
+DLSTATUS_SEEDING = "completed/sharing"
+DLSTATUS_STOPPED = "stopped"
+DLSTATUS_STOPPED_ON_ERROR = "stopped/error"
 

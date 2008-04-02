@@ -148,6 +148,16 @@ class DownloadState(Serializable):
         else:
             return self.stats['down']/1024.0
 
+    def get_eta(self):
+        """
+        Returns the estimated time to finish of download.
+        @return The time in ?, as ?.
+        """
+        if self.stats is None:
+            return 0.0
+        else:
+            return self.stats['time']
+        
     def get_num_peers(self):
         """ 
         Returns the download's number of active connections. This is used
@@ -197,6 +207,15 @@ class DownloadState(Serializable):
             return 0.0
         else:
             return self.stats['vod_prebuf_frac']
+    
+    def is_vod(self):
+        """ Returns if this download is currently in vod mode 
+        
+        @return A Boolean"""
+        if self.stats is None:
+            return False
+        else:
+            return self.stats['vod']
     
     def get_vod_playable(self):
         """ Returns whether or not the Download started in Video-On-Demand
