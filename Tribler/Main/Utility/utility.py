@@ -31,8 +31,6 @@ from Tribler.Main.Utility.configreader import ConfigReader
 from Tribler.Main.Utility.compat import convertINI, moveOldConfigFiles
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler
-from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH  
   
 ################################################################
@@ -63,8 +61,6 @@ class Utility:
         
         # Make torrent directory (if needed)
         self.MakeTorrentDir()
-        
-        self.setupWebConfig()
         
         self.setupTorrentMakerConfig()
         
@@ -138,47 +134,30 @@ class Utility:
                          
     def setupConfig(self):        
         defaults = {
+            # MiscPanel
+            'language_file': 'english.lang',
+            'confirmonclose': '1',
             'defrentorwithdest': '1', 
-            'maxport': '50000', 
-            'maxupload': '5', 
+            'associate' : '1',
+            # DiskPanel
+            'removetorrent': '0',
+            'diskfullthreshold': '1',
+            # RateLimitPanel
+            #'maxupload': '5', 
             'maxuploadrate': '0', 
             'maxdownloadrate': '0', 
             'maxseeduploadrate': '0', 
-            'maxmeasureduploadrate': '0',
-            'numsimdownload': '5', 
+            # SeedingOptionsPanel
             'uploadoption': '0', 
             'uploadtimeh': '0', 
             'uploadtimem': '30', 
             'uploadratio': '100', 
-            'removetorrent': '0', 
-            'trigwhenfinishseed': '1', 
-            'confirmonclose': '1', 
-            'kickban': '1', 
-            'notsameip': '1', 
-            'ipv6': '0', 
-            'ipv6_binds_v4': '1', 
-            'min_peers': '20', 
-            'max_initiate': '40', 
-            'alloc_type': 'normal', 
-            'alloc_rate': '2', 
-            'max_files_open': '50', 
-            'max_connections': '0', 
-            'lock_files': '0', 
-            'lock_while_reading': '0', 
-            'double_check': '0', 
-            'triple_check': '0', 
-            'timeouttracker': '15', 
-            'timeoutdownload': '30', 
-            'timeoutupload': '1', 
-            'scrape': '0', 
-            'defaultpriority': '2', 
-            'failbehavior': '0', 
-            'language_file': 'english.lang', 
-            'urm': '0', 
-            'urmupthreshold': '10', 
-            'urmdelay': '60', 
-            'stripedlist': '0', 
-#            'mode': '1',
+            #AdvancedNetworkPanel
+            #AdvancedDiskPanel
+            #TriblerPanel
+            'torrentcollectsleep':'15', # for RSS Subscriptions
+
+            # GUI
             'window_width': '1024', 
             'window_height': '768', 
             'detailwindow_width': '800', 
@@ -186,105 +165,7 @@ class Utility:
             'prefwindow_width': '640', 
             'prefwindow_height': '420', 
             'prefwindow_split': '150', 
-            'column4_rank': '0', # Title
-            'column4_width': '150', 
-            'column5_rank': '1', # Progress
-            'column5_width': '60', 
-            'column6_rank': '2', # BT Status
-            'column6_width': '100', 
-            'column7_rank': '8', # Priority
-            'column7_width': '50', 
-            'column8_rank': '5', # ETA
-            'column8_width': '85', 
-            'column9_rank': '6', # Size
-            'column9_width': '75', 
-            'column10_rank': '3', # DL Speed
-            'column10_width': '65', 
-            'column11_rank': '4', # UL Speed
-            'column11_width': '60', 
-            'column12_rank': '7', # %U/D Size
-            'column12_width': '60', 
-            'column13_rank': '9', # Error Message
-            'column13_width': '150', 
-            'column14_rank': '-1', # #Connected Seed
-            'column14_width': '60', 
-            'column15_rank': '-1', # #Connected Peer
-            'column15_width': '60', 
-            'column16_rank': '-1', # #Seeing Copies
-            'column16_width': '60', 
-            'column17_rank': '-1', # Peer Avg Progress
-            'column17_width': '60', 
-            'column18_rank': '-1', # Download Size
-            'column18_width': '75', 
-            'column19_rank': '-1', # Upload Size
-            'column19_width': '75', 
-            'column20_rank': '-1', # Total Speed
-            'column20_width': '80', 
-            'column21_rank': '-1', # Torrent Name
-            'column21_width': '150', 
-            'column22_rank': '-1', # Destination
-            'column22_width': '150', 
-            'column23_rank': '-1', # Seeding Time
-            'column23_width': '85', 
-            'column24_rank': '-1', # Connections
-            'column24_width': '60', 
-            'column25_rank': '-1', # Seeding Option
-            'column25_width': '80', 
-            'fastresume': '1', 
-            'randomport': '1', 
-            'savecolumnwidth': '1', 
-#            'forcenewdir': '1', 
-            'buffer_write' : '4', 
-            'buffer_read' : '1', 
-            'auto_flush' : '0', 
-            'associate' : '1', 
-            'movecompleted': '0', 
-            'spew0_rank': '0', # Optimistic Unchoke
-            'spew0_width': '24', 
-            'spew1_rank': '1', # IP
-            'spew1_width': '132', 
-            'spew2_rank': '2', # Local / Remote
-            'spew2_width': '24', 
-            'spew3_rank': '3', # Upload Rate
-            'spew3_width': '72', 
-            'spew4_rank': '4', # Interested
-            'spew4_width': '24', 
-            'spew5_rank': '5', # Choking
-            'spew5_width': '24', 
-            'spew6_rank': '6', # Download Rate
-            'spew6_width': '72', 
-            'spew7_rank': '7', # Interesting
-            'spew7_width': '24', 
-            'spew8_rank': '8', # Choked
-            'spew8_width': '24', 
-            'spew9_rank': '9', # Snubbed
-            'spew9_width': '24', 
-            'spew10_rank': '10', # Downloaded
-            'spew10_width': '84', 
-            'spew11_rank': '11', # Uploaded
-            'spew11_width': '84', 
-            'spew12_rank': '12', # Peer Progress
-            'spew12_width': '72', 
-            'spew13_rank': '-1', # Peer Download Speed
-            'spew13_width': '72', 
-            'spew14_rank': '13', # Peer PermID
-            'spew14_width': '72', 
-            'spew_sortedcolumn': '1', # sort order
-            'spew_reversesort': '0',
-            'fileinfo0_rank': '0', # Filename
-            'fileinfo0_width': '300', 
-            'fileinfo1_rank': '1', # Size
-            'fileinfo1_width': '100', 
-            'fileinfo2_rank': '2', # Progress
-            'fileinfo2_width': '60', 
-            'fileinfo3_rank': '3', # MD5 Hash
-            'fileinfo3_width': '200', 
-            'fileinfo4_rank': '-1', # CRC32 Hash
-            'fileinfo4_width': '200', 
-            'fileinfo5_rank': '-1', # SHA1 Hash
-            'fileinfo5_width': '200', 
-            'fileinfo6_rank': '-1', # ED2K Hash
-            'fileinfo6_width': '200', 
+             
             # Tribler File List
             'torrent0_rank': '-1',
             'torrent8_rank': '-1',
@@ -299,90 +180,15 @@ class Utility:
             'buddy_sortedcolumn': '4',
             'buddy_reversesort': '1',
             'buddy_num': '500',
-
-            'color_startup': '000000000', 
-            'color_disconnected': '100100100', 
-            'color_noconnections': '200000000', 
-            'color_noincoming': '150150000', 
-            'color_nocomplete': '000000150', 
-            'color_good': '000150000', 
-            'color_stripe': '245245245', 
-            'listfont': '', 
-            'diskfullthreshold': '1', 
+             
             'stopcollectingthreshold': '200',
             'updatepeers_interval': '5',
             'update_preference_interval': '36000',     # 
-#            'showmenuicons': '1',
-            'icons_toolbarbottom': [
-#                                    ACTION_MOVEUP, 
-#                                    ACTION_MOVEDOWN, 
-#                                    ACTION_MOVETOP, 
-#                                    ACTION_MOVEBOTTOM, 
-#                                    -1, 
-#                                    ACTION_CLEARCOMPLETED, 
-#                                    -1, 
-#                                    ACTION_PAUSEALL, 
-#                                    ACTION_STOPALL, 
-#                                    ACTION_UNSTOPALL, 
-#                                    -1
-                                    ], 
-            'icons_toolbartop': [ACTION_ADDTORRENT, 
-                                 ACTION_DETAILS,
-                                 #ACTION_ADDTORRENTNONDEFAULT, 
-                                 #ACTION_ADDTORRENTURL, 
-                                 -1, 
-                                 ACTION_PLAY,
-                                 -1,
-                                 ACTION_BUDDIES,
-                                 #ACTION_FILES, # Tribler: Removed recommended files icon because these content is shown in main window now
-                                 ACTION_MYINFO,
-                                 -1,
-                                 ACTION_RESUME, 
-                                 ACTION_PAUSE, 
-                                 ACTION_STOP, 
-                                 #ACTION_QUEUE, 
-                                 ACTION_REMOVE, 
-                                 #ACTION_SCRAPE, 
-                                 -1,
-                                 ACTION_BUDDIES,
-                                 ACTION_FILES, # Tribler: Removed recommended files icon because these content is shown in main window now
-                                 ACTION_MYINFO
-                                 ], 
-            'menu_listrightclick': [ACTION_ADDTORRENT, 
-                                    ACTION_DETAILS,
-                                    ACTION_ADDTORRENTURL, 
-                                    -1, 
-                                    ACTION_PLAY,
-                                    ACTION_RESUME, 
-                                    ACTION_STOP, 
-                                    ACTION_PAUSE, 
-                                    ACTION_QUEUE, 
-                                    ACTION_HASHCHECK, 
-                                    -1, 
-                                    ACTION_REMOVE, 
-                                    ACTION_REMOVEFILE, 
-                                    ACTION_EXPORTMENU, 
-                                    ACTION_CLEARMESSAGE, 
-                                    -1, 
-                                    ACTION_LOCALUPLOAD, 
-                                    ACTION_CHANGEPRIO, 
-                                    -1, 
-                                    ACTION_OPENFILEDEST, 
-                                    ACTION_OPENDEST, 
-                                    ACTION_CHANGEDEST, 
-                                    -1, 
-                                    ACTION_SCRAPE, 
-                                    ACTION_DETAILS],
-             'enablerecommender': '1',
              'startrecommender': '1',
-             'enabledlhelp': '1',  
-             'enabledlcollecting': '1',
              'enableweb2search':'1',
              'maxntorrents': 5000,
              'maxnpeers': 2000,
              'torrentcollectingrate': 5,
-             'minport': '6881',
-             'myname': '',
              'rec_relevance_threshold': '0',
              'torrent1_width': 200,
              'mypref0_width': 200,
@@ -390,19 +196,11 @@ class Utility:
              'showearthpanel': '0',
              'videoplaybackmode':'0',
              'askeduploadbw':'0',
-             'torrentcollectsleep':'15',
+             
              'torrentassociationwarned':'0',
-             'internaltrackerurl': '',
-             'lure_ended':'0'
-#            'skipcheck': '0'
         }
 
         if sys.platform == 'win32':
-            profiledir = os.path.expandvars('${USERPROFILE}')
-            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
-            defaults['setdefaultfolder']= '1'
-            defaults['defaultfolder'] = tempdir 
-            defaults['defaultmovedir'] = tempdir
             defaults['mintray'] = '2'
             # Don't use double quotes here, those are lost when this string is stored in the
             # abc.conf file in INI-file format. The code that starts the player will add quotes
@@ -414,10 +212,6 @@ class Utility:
             defaults['videoanalyserpath'] = self.getPath()+'\\ffmpeg.exe'
         elif sys.platform == 'darwin':
             profiledir = os.path.expandvars('${HOME}')
-            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
-            defaults['setdefaultfolder']= '1' 
-            defaults['defaultfolder'] = tempdir
-            defaults['defaultmovedir']= tempdir
             defaults['mintray'] = '0'  # tray doesn't make sense on Mac
             vlcpath = find_prog_in_PATH("vlc")
             if vlcpath is None:
@@ -430,9 +224,6 @@ class Utility:
             else:
                 defaults['videoanalyserpath'] = ffmpegpath
         else:
-            defaults['setdefaultfolder']= '1' 
-            defaults['defaultfolder'] = '/tmp'
-            defaults['defaultmovedir']= '/tmp' 
             defaults['mintray'] = '0'  # Still crashes on Linux sometimes 
             vlcpath = find_prog_in_PATH("vlc")
             if vlcpath is None:
@@ -445,48 +236,12 @@ class Utility:
             else:
                 defaults['videoanalyserpath'] = ffmpegpath
 
-
         configfilepath = os.path.join(self.getConfigPath(), "abc.conf")
         self.config = ConfigReader(configfilepath, "ABC", defaults)
-        #print self.config.items("ABC")
-#        self.config = ConfigReader(configfilepath, "ABC")
-#        self.config.defaults = defaults
-        # Arno: 2007-05-16, Make sure the port is in the abc.conf
-        minport = self.config.Read('minport','int')
-        self.config.Write('minport', minport)
-
-        # Arno: reenable ut_pex, people may have turned it off at our request
-        # as an attempt to solve a stalling downloads problem.
-        ut_pex_max = self.config.Read('ut_pex_max_addrs_from_peer','int')
-        if ut_pex_max == -1:
-            ut_pex_max = 16
-        self.config.Write('ut_pex_max_addrs_from_peer', ut_pex_max)
 
         
-    def setupWebConfig(self):
-        defaults = {
-            'webID': 'yourkeyword', 
-            'webIP': '127.0.0.1', 
-            'webport': '56667', 
-            'webautostart': '0', 
-            'allow_query': '1', 
-            'allow_delete': '1', 
-            'allow_clearcompleted': '1', 
-            'allow_add': '1', 
-            'allow_setparam': '0', 
-            'allow_getparam': '0', 
-            'allow_queue': '1', 
-            'allow_pause': '1', 
-            'allow_stop': '1', 
-            'allow_resume': '1', 
-            'allow_setprio': '1', 
-        }
-
-        webconfigfilepath = os.path.join(self.getConfigPath(), "webservice.conf")
-        self.webconfig = ConfigReader(webconfigfilepath, "ABC/Webservice", defaults)
-
     def setupTorrentMakerConfig(self):
-        # To keep fileformat compatible
+        # Arno, 2008-03-27: To keep fileformat compatible
         defaults = {
             'piece_size': '0', # An index into TorrentMaker.FileInfoPanel.piece_choices
             'comment': TorrentDefDefaults['comment'], 

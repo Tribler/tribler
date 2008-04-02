@@ -13,6 +13,7 @@ from tempfile import mkstemp
 from traceback import print_exc
 
 from Tribler.Core.API import *
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 FILESTOIGNORE = ['core', 'CVS']
 
@@ -920,7 +921,8 @@ class CompleteDir:
                         destdir = absorig
                         
                     tdef = TorrentDef.load(torrentfilename)
-                    dscfg = DownloadStartupConfig()
+                    defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+                    dscfg = defaultDLConfig.copy()
                     dscfg.set_dest_dir(destdir)
                     self.utility.session.start_download(tdef,dscfg)
                     

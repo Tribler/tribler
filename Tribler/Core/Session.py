@@ -320,10 +320,17 @@ class Session(SessionRuntimeConfig):
         """ Returns the announce URL for the internal tracker. 
         @return URL """
         # Called by any thread
-        ip = self.lm.get_ext_ip() #already thread safe
-        port = self.get_listen_port() # already thread safe
-        url = 'http://'+ip+':'+str(port)+'/announce/'
-        return url
+        self.sesslock.acquire()
+        try:
+            url = self.sessconfig['tracker_url'] # user defined override, e.g. specific hostname
+            if url is None:
+                ip = self.lm.get_ext_ip()
+                port = self.get_listen_port()
+                url = 'http://'+ip+':'+str(port)+'/announce/'
+            return url
+        finally:
+            self.sesslock.release()
+
 
     def get_internal_tracker_dir(self):
         """ Returns the directory containing the torrents tracked by the internal 
@@ -462,7 +469,7 @@ class Session(SessionRuntimeConfig):
         
     def close_dbhandler(self,dbhandler):
         """ Closes the given database connection """
-        raise NotYetImplementedException()
+        dbhandler.close()
     
 
     #

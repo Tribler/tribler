@@ -7,6 +7,8 @@ from traceback import print_exc
 from Tribler.Core.exceptions import *
 
 from Tribler.Core.SessionConfig import SessionConfigInterface
+from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
+
 
 class SessionRuntimeConfig(SessionConfigInterface):
     """
@@ -73,13 +75,13 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_bind_to_address(self,value):
+    def set_bind_to_addresses(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
-    def get_bind_to_address(self):
+    def get_bind_to_addresses(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_bind(self)
+            return SessionConfigInterface.get_bind_to_addresses(self)
         finally:
             self.sesslock.release()
 
@@ -89,7 +91,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
     def get_upnp_mode(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_upnp_nat_access(self)
+            return SessionConfigInterface.get_upnp_mode(self)
         finally:
             self.sesslock.release()
 
@@ -215,28 +217,43 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_max_torrents(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_max_torrents(self):
+    def set_torrent_collecting_max_torrents(self,value):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_max_torrents(self)
+            SessionConfigInterface.set_torrent_collecting_max_torrents(self,value)
+            
+            mh = MetadataHandler.getInstance()
+            mh.set_overflow(value)
+            mh.delayed_check_overflow(2)
         finally:
             self.sesslock.release()
 
-    def set_max_peers(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_max_peers(self):
+    def get_torrent_collecting_max_torrents(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_max_peers(self)
+            return SessionConfigInterface.get_torrent_collecting_max_torrents(self)
+        finally:
+            self.sesslock.release()
+
+    def set_buddycast_max_peers(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_buddycast_max_peers(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_buddycast_max_peers(self)
         finally:
             self.sesslock.release()
 
     def set_torrent_collecting_rate(self,value):
-        raise OperationNotPossibleAtRuntimeException()
+        self.sesslock.acquire()
+        try:
+            SessionConfigInterface.set_torrent_collecting_rate(self,value)
+        
+            mh = MetadataHandler.getInstance()
+            mh.set_rate(value)
+        finally:
+            self.sesslock.release()
 
     def get_torrent_collecting_rate(self):
         self.sesslock.acquire()
@@ -316,7 +333,16 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
     def set_stop_collecting_threshold(self,value):
-        raise OperationNotPossibleAtRuntimeException()
+        self.sesslock.acquire()
+        try:
+            SessionConfigInterface.set_stop_collecting_threshold(self,value)
+
+            mh = MetadataHandler.getInstance()
+            mh.set_min_free_space(value)
+            mh.delayed_check_free_space(2)
+        finally:
+            self.sesslock.release()
+
 
     def get_stop_collecting_threshold(self):
         self.sesslock.acquire()

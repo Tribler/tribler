@@ -77,7 +77,7 @@ class OverlayApps:
 
             # Create handler for messages to dlhelp helper
             self.help_handler = HelperMessageHandler()
-            self.help_handler.register(session,self.metadata_handler,config['download_help_dir'])
+            self.help_handler.register(session,self.metadata_handler,config['download_help_dir'],config['coopdlconfig'])
             self.register_msg_handler(HelpCoordinatorMessages, self.help_handler.handleMessage)
 
         # Part 2:
@@ -92,9 +92,10 @@ class OverlayApps:
             self.buddycast = BuddyCastFactory.getInstance(superpeer=config['superpeer'], log=config['overlay_log'])
             # Using buddycast to handle torrent collecting since they are dependent
             self.buddycast.register(overlay_bridge, launchmany, 
-                                    launchmany.rawserver_fatalerrorfunc, True,
-                                    self.metadata_handler, config['buddycast_collecting_solution'], 
-                                    config['start_recommender'], config['max_peers'])
+                                    launchmany.rawserver_fatalerrorfunc,
+                                    self.metadata_handler, 
+                                    config['buddycast_collecting_solution'],
+                                    config['start_recommender'],config['buddycast_max_peers'])
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
             self.register_connection_handler(self.buddycast.handleConnection)
 
@@ -121,7 +122,11 @@ class OverlayApps:
         self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         self.rtorrent_handler.register(overlay_bridge,self.metadata_handler,session)
         self.metadata_handler.register2(self.rtorrent_handler)
-            
+
+        if config['buddycast']:
+            # Arno: to prevent concurrency between mainthread and overlay
+            # thread where BuddyCast schedules tasks
+            self.buddycast.register2()
             
         
     def register_msg_handler(self, ids, handler):

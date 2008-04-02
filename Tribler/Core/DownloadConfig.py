@@ -649,6 +649,32 @@ class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
         """ Normal constructor for DownloadStartupConfig (copy constructor 
         used internally) """
         DownloadConfigInterface.__init__(self,dlconfig)
+    #
+    # Class method
+    #
+    def load(filename):
+        """
+        Load a saved DownloadStartupConfig from disk.
+        
+        @param filename  An absolute Unicode filename
+        @return DownloadStartupConfig object
+        """
+        # Class method, no locking required
+        f = open(filename,"rb")
+        dlconfig = pickle.load(f)
+        dscfg = DownloadStartupConfig(dlconfig)
+        f.close()
+        return dscfg
+    load = staticmethod(load)
+
+    def save(self,filename):
+        """ Save the DownloadStartupConfig to disk.
+        @param filename  An absolute Unicode filename
+        """
+        # Called by any thread
+        f = open(filename,"wb")
+        pickle.dump(self.dlconfig,f)
+        f.close()
 
     #
     # Copyable interface

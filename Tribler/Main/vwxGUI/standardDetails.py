@@ -5,28 +5,26 @@ import math
 from traceback import print_exc, print_stack
 import cStringIO
 import urlparse
-
 from wx.lib.stattext import GenStaticText as StaticText
+
 from font import *
-#from Tribler.Core.API import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
-#from Tribler.vwxGUI.LibraryItemPanel import rightMouseButton
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
-from Tribler.Core.Utilities.unicode import bin2unicode
-#from Tribler.vwxGUI.tribler_topButton import tribler_topButton
-from Tribler.Main.Utility.constants import COL_PROGRESS
-from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Main.Utility.constants import COL_PROGRESS
+from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from Tribler.Video.VideoPlayer import VideoPlayer
+
+from Tribler.Core.API import *
+from Tribler.Core.Utilities.utilities import *
+from Tribler.Core.Utilities.unicode import bin2unicode
+
 # LAYERVIOLATION
 from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
-from Tribler.Core.simpledefs import *
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
@@ -1467,7 +1465,8 @@ class standardDetails(wx.Panel):
             
             # Api download
             tdef = TorrentDef.load(torrent_filename)
-            dcfg = DownloadStartupConfig()
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            dcfg = defaultDLConfig.copy()
             if dest:
                 dcfg.set_dest_dir(dest) # set destination dir
             

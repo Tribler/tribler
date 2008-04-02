@@ -60,7 +60,7 @@ class MetadataHandler:
         assert os.path.isdir(self.torrent_dir)
         self.free_space = self.get_free_space()
         print "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
-        self.max_num_torrents = self.init_max_num_torrents = int(self.config['max_torrents'])
+        self.max_num_torrents = self.init_max_num_torrents = int(self.config['torrent_collecting_max_torrents'])
         self.upload_rate = 1024 * int(self.config['torrent_collecting_rate'])   # 5KB/s
         self.num_collected_torrents = 0
         self.recently_collected_torrents = []

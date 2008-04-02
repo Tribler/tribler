@@ -38,6 +38,7 @@ urllib.URLopener.open_https = original_open_https
 #import locale
 import signal
 import commands
+import pickle
 
 try:
     import wxversion
@@ -78,13 +79,12 @@ from Tribler.Web2.util.update import Web2Updater
 import Tribler.Category.Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Utilities.Instance2Instance import *
-
+from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 
 I2I_LISTENPORT = 57891
-
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -324,12 +324,12 @@ class ABCFrame(wx.Frame):
         try:
             if tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
+            dscfg = globals.defaultDLConfig.copy()
             if destdir is not None:
-                dscfg = DownloadStartupConfig()
                 dscfg.set_dest_dir(destdir)
-                self.utility.session.start_download(tdef,dscfg)
-            else:
-                self.utility.session.start_download(tdef)
+        
+            self.utility.session.start_download(tdef,dscfg)
+
         except Exception,e:
             self.onWarning(e)
 
@@ -890,6 +890,7 @@ class ABCApp(wx.App):
         
         # Start Tribler Session
         state_dir = Session.get_default_state_dir()
+        
         cfgfilename = Session.get_default_config_filename(state_dir)
         if DEBUG:
             print >>sys.stderr,"main: Session config",cfgfilename
@@ -914,9 +915,21 @@ class ABCApp(wx.App):
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
 
+        # Load the default DownloadStartupConfig
+        dlcfgfilename = get_default_dscfg_filename(s)
+        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+        try:
+            defaultDLConfig = DownloadStartupConfig.load(dlcfgfilename)
+        except:
+            print_exc()
+            defaultdestdir = os.path.join(s.get_state_dir(),'downloads')
+            defaultDLConfig.set_dest_dir(defaultdestdir)
+
+        s.set_coopdlconfig(defaultDLConfig)
+        
         # Load all other downloads
         s.load_checkpoint()
-
+        
 
     def sesscb_ntfy_dbstats(self,subject,changeType,objectID,*args):
         """ Called by SessionCallback thread """

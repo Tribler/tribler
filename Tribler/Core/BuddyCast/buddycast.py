@@ -262,37 +262,55 @@ class BuddyCastFactory:
     getInstance = staticmethod(getInstance)
     
     def register(self, overlay_bridge, launchmany, errorfunc, 
-                 start, metadata_handler, torrent_collecting_solution, running,
+                 metadata_handler, torrent_collecting_solution, running,
                  max_peers=2500):
         if self.registered:
             return
         self.overlay_bridge = overlay_bridge
         self.launchmany = launchmany
+        self.metadata_handler = metadata_handler
+        self.torrent_collecting_solution = torrent_collecting_solution
         self.errorfunc = errorfunc
+        
+        # BuddyCast is always started, but only active when this var is set.
         self.running = bool(running)
         
         self.registered = True
-        if start:
-            def _register():
-                self.data_handler = DataHandler(launchmany, overlay_bridge, db_dir=self.db_dir) #, max_num_peers=max_peers) only cache 2500 peers
-                
-                self.bartercast_core = None #BarterCastCore(self.data_handler, overlay_bridge, self.log)
-                    
-                self.buddycast_core = BuddyCastCore(overlay_bridge, launchmany, 
-                       self.data_handler, self.buddycast_interval, self.superpeer,
-                       metadata_handler, torrent_collecting_solution, self.bartercast_core, self.log)
-                
-                self.data_handler.register_buddycast_core(self.buddycast_core)
-                
-                if not LOCAL_TEST:
-                    self.start_time = now()
-                    self.startup()
-                else:
-                    self.local_test()
-            
+
+    def register2(self):
+        # Arno: only start using overlay thread when normal init is finished to
+        # prevent concurrencty on singletons
+        if self.registered:
             if debug:
                 print >> sys.stderr, "bc: Register BuddyCast", currentThread().getName()
-            self.overlay_bridge.add_task(_register, 0)
+            self.overlay_bridge.add_task(self.olthread_register, 0)
+
+    def olthread_register(self):
+        self.data_handler = DataHandler(self.launchmany, self.overlay_bridge, db_dir=self.db_dir) #, max_num_peers=max_peers) only cache 2500 peers
+        
+        self.bartercast_core = None #BarterCastCore(self.data_handler, overlay_bridge, self.log)
+            
+        self.buddycast_core = BuddyCastCore(self.overlay_bridge, self.launchmany, 
+               self.data_handler, self.buddycast_interval, self.superpeer,
+               self.metadata_handler, self.torrent_collecting_solution, self.bartercast_core, self.log)
+        
+        self.data_handler.register_buddycast_core(self.buddycast_core)
+        
+        if not LOCAL_TEST:
+            self.start_time = now()
+            # Arno, 2007-02-28: BC is now started self.buddycast_interval after client
+            # startup. This is assumed to give enough time for UPnP to open the firewall
+            # if any. So when you change this time, make sure it allows for UPnP to
+            # do its thing, or add explicit coordination between UPnP and BC.
+            # See BitTornado/launchmany.py
+            self.overlay_bridge.add_task(self.data_handler.postInit, 0)    # avoid flash crowd
+            self.overlay_bridge.add_task(self.doBuddyCast, 2)
+            self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers, 5)
+            #self.overlay_bridge.add_task(self.data_handler.updateAllSim, 5*60)
+            
+            print >> sys.stderr, "BuddyCast starts up", currentThread().getName()
+        else:
+            self.local_test()
 
     def local_test(self):
         self.data_handler.postInit()
@@ -310,20 +328,7 @@ class BuddyCastFactory:
         finish_time = time()
         print >> sys.stderr, "buddycast: ******************* finish local test", (finish_time-start_time)/n
         # average 0.385 second for 8K incoming messages
-            
-    def startup(self):
-        if self.registered:
-            # Arno, 2007-02-28: BC is now started self.buddycast_interval after client
-            # startup. This is assumed to give enough time for UPnP to open the firewall
-            # if any. So when you change this time, make sure it allows for UPnP to
-            # do its thing, or add explicit coordination between UPnP and BC.
-            # See BitTornado/launchmany.py
-            self.overlay_bridge.add_task(self.data_handler.postInit, 0)    # avoid flash crowd
-            self.overlay_bridge.add_task(self.doBuddyCast, 2)
-            self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers, 5)
-            #self.overlay_bridge.add_task(self.data_handler.updateAllSim, 5*60)
-            
-            print >> sys.stderr, "BuddyCast starts up", currentThread().getName()
+
             
     def doBuddyCast(self):
         if not self.running:
@@ -1014,7 +1019,8 @@ class BuddyCastCore:
             rp_list.remove(target_permid)
         
         peers = []
-        print >> sys.stderr, '******** rplist nconn', len(rp_list), len(self.connected_connectable_peers)
+        if DEBUG:
+            print >> sys.stderr, 'bc: ******** rplist nconn', len(rp_list), len(self.connected_connectable_peers)
         #print >> sys.stderr, rp_list, self.connected_connectable_peers
         for permid in rp_list:    
             # keys = ('ip', 'port', 'oversion', 'num_torrents')

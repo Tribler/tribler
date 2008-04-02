@@ -1,6 +1,11 @@
 # ARNOCOMMENT: Rewrite this such that it uses SessionConfig and cleanup of
 # unused abc.conf params. See also Tribler/Utility/utility.py and others.
 
+# TODO: 
+# - Add ratelimiter to tribler Session. Wait on Jelle checkin
+# - Adhere to SeedingOptions. Wait on Jelle checkin
+# - Make Core adhere to diskfullthreshold
+
 import sys
 import wx
 import os
@@ -9,19 +14,19 @@ from random import shuffle
 from traceback import print_exc
 from cStringIO import StringIO
 
-from wx.lib import masked, colourselect
+from wx.lib import colourselect
 
 from Tribler.Main.Dialogs.abcmenu import MenuDialog
 from Tribler.Main.Utility.configreader import ConfigReader
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
+from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Video.VideoPlayer import *
+
+from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
-
-# LAYERVIOLATION
-from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
-
+from Tribler.Core.osutils import getfreespace
 
 DEBUG = False
 
@@ -48,6 +53,8 @@ class ABCOptionPanel(wx.Panel):
         self.outersizer = wx.BoxSizer(wx.VERTICAL)
         
         self.sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         
     # Things to do after the subclass has finished its init stage
     def initTasks(self):
@@ -102,9 +109,6 @@ class NetworkPanel(ABCOptionPanel):
         self.kickban = wx.CheckBox(self, -1, self.utility.lang.get('kickban'))
         sizer.Add(self.kickban, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
-        self.notsameip = wx.CheckBox(self, -1, self.utility.lang.get('security'))
-        sizer.Add(self.notsameip, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-    
         # Do or don't get scrape data
         ###################################################################
         self.scrape = wx.CheckBox(self, -1, self.utility.lang.get('scrape'))
@@ -129,32 +133,211 @@ class NetworkPanel(ABCOptionPanel):
         self.initTasks()
         
     def loadValues(self, Read = None):
-        if Read is None:
-            Read = self.utility.config.Read
         
         self.minport.SetValue(self.utility.session.get_listen_port())
-        
-        self.kickban.SetValue(Read('kickban', "boolean"))
-        self.notsameip.SetValue(Read('notsameip', "boolean"))
-        self.scrape.SetValue(Read('scrape', "boolean"))
-        
         itrackerurl = self.utility.session.get_internal_tracker_url()
-
         self.itrack.SetValue(itrackerurl)
 
+        #self.scrape.SetValue(Read('scrape', "boolean")) # TODO: cannot find it being used
+        
+        self.kickban.SetValue(self.defaultDLConfig.get_auto_kick())
         
     def apply(self):
         minport = int(self.minport.GetValue())
         if minport > 65535:
             minport = 65535
 
-        minchanged = self.utility.config.Write('minport', minport)
+        itrackerurl = self.itrack.GetValue()
 
-        self.utility.config.Write('kickban', self.kickban.GetValue(), "boolean")
-        self.utility.config.Write('notsameip', self.notsameip.GetValue(), "boolean")
-        self.utility.config.Write('scrape', self.scrape.GetValue(), "boolean")       
-        self.utility.config.Write('internaltrackerurl', self.itrack.GetValue())
+        # Save SessionStartupConfig
+        state_dir = self.utility.session.get_state_dir()
+        cfgfilename = Session.get_default_config_filename(state_dir)
+        scfg = SessionStartupConfig.load(cfgfilename)
+        
+        for target in [scfg,self.utility.session]:
+            try:
+                target.set_listen_port(minport)
+                target.set_internal_tracker_url(itrackerurl)
+            except:
+                print_exc()
 
+        scfg.save(cfgfilename)
+
+        #self.utility.config.Write('scrape', self.scrape.GetValue(), "boolean")
+
+        kickban = self.kickban.GetValue()
+
+        # Save DownloadStartupConfig
+        self.defaultDLConfig.set_min_peers(minpeers)
+        self.defaultDLConfig.set_auto_kick(kickban)
+        
+        dlcfgfilename = get_default_dscfg_filename(self.utility.session)
+        self.defaultDLConfig.save(dlcfgfilename)
+
+
+################################################################
+#
+# Class: AdvancedNetworkPanel
+#
+# Contains advanced network settings
+# (defaults should be fine for most users)
+#
+################################################################
+class AdvancedNetworkPanel(ABCOptionPanel):
+    def __init__(self, parent, dialog):
+        ABCOptionPanel.__init__(self, parent, dialog)
+        sizer = self.sizer
+
+        warningtext = wx.StaticText(self, -1, self.utility.lang.get('changeownrisk'))
+        sizer.Add(warningtext, 0, wx.ALIGN_CENTER|wx.ALL, 5)
+       
+        #self.ipv6bindsv4_data=wx.Choice(self, -1,
+        #                 choices = ['separate sockets', 'single socket'])
+        #self.ipv6bindsv4_data.SetSelection(int(self.advancedConfig['ipv6_binds_v4']))
+        
+        datasizer = wx.FlexGridSizer(cols = 2, vgap = 5, hgap = 10)
+
+        # Local IP
+        self.ip_data = wx.TextCtrl(self, -1)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('localip')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.ip_data)
+
+        # IP to Bind to
+        self.bind_data = wx.TextCtrl(self, -1)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('iptobindto')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.bind_data)
+
+        # Minimum Peers
+        self.minpeers_data = wx.SpinCtrl(self, size = wx.Size(60, -1))
+        self.minpeers_data.SetRange(10, 100)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('minnumberofpeer')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.minpeers_data)
+
+        # Maximum Connections
+        self.maxconnections_data=wx.SpinCtrl(self, size = wx.Size(60, -1))
+        self.maxconnections_data.SetRange(0, 1000)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('maxpeerconnection')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.maxconnections_data)
+        
+        # UPnP Settings
+        if (sys.platform == 'win32'):
+            self.upnp_choices = [ self.utility.lang.get('upnp_0'), 
+                             self.utility.lang.get('upnp_1'), 
+                             self.utility.lang.get('upnp_2'),
+                             self.utility.lang.get('upnp_3')]
+        else:
+            self.upnp_choices = [ self.utility.lang.get('upnp_0'), 
+                             self.utility.lang.get('upnp_3')]
+        self.upnp_data = wx.ComboBox(self, -1, "", wx.Point(-1, -1), wx.Size(-1, -1), self.upnp_choices, wx.CB_DROPDOWN|wx.CB_READONLY)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('upnp')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.upnp_data)
+
+
+        # ut_pex maximum Peers
+        self.ut_pex_maxaddrs_data = wx.SpinCtrl(self, size = wx.Size(60, -1))
+        self.ut_pex_maxaddrs_data.SetRange(0, 1024)
+        t1 = wx.StaticText(self, -1, self.utility.lang.get('ut_pex_maxaddrs1'))
+        t2 = wx.StaticText(self, -1, self.utility.lang.get('ut_pex_maxaddrs2'))
+        tsizer = wx.BoxSizer(wx.VERTICAL)
+        tsizer.Add(t1, 1, wx.ALIGN_LEFT)
+        tsizer.Add(t2, 1, wx.ALIGN_LEFT)
+        datasizer.Add(tsizer, 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.ut_pex_maxaddrs_data)
+        sizer.Add(datasizer, 0, wx.ALL, 5)
+        
+        # Set tooltips
+        self.ip_data.SetToolTipString(self.utility.lang.get('iphint'))
+        self.bind_data.SetToolTipString(self.utility.lang.get('bindhint'))
+        self.minpeers_data.SetToolTipString(self.utility.lang.get('minpeershint'))
+        self.ut_pex_maxaddrs_data.SetToolTipString(self.utility.lang.get('ut_pex_maxaddrs_hint'))
+        self.maxconnections_data.SetToolTipString(self.utility.lang.get('maxconnectionhint'))
+               
+        self.initTasks()
+
+    def loadValues(self, Read = None):
+        if Read is None:
+            Read = self.utility.config.Read
+        session = self.utility.session
+        
+        addrlist = session.get_bind_to_addresses()
+        addrstr = ','.join(addrlist)
+        
+        self.ip_data.SetValue(session.get_ip_for_tracker())
+        self.bind_data.SetValue(addrstr)
+        
+        self.minpeers_data.SetValue(self.defaultDLConfig.get_min_peers())
+        self.maxconnections_data.SetValue(self.defaultDLConfig.get_max_conns())
+        
+        upnp_val = session.get_upnp_mode()
+        selected = self.upnp_val2selected(upnp_val)
+        self.upnp_data.SetStringSelection(self.upnp_choices[selected])
+
+        self.ut_pex_maxaddrs_data.SetValue(self.defaultDLConfig.get_ut_pex_max_addrs_from_peer())
+
+        
+    def upnp_val2selected(self,upnp_val):
+        if (sys.platform == 'win32'):
+            selected = upnp_val
+        else:
+            if upnp_val <= 2:
+                selected = 0
+            else:
+                selected = 1
+        return selected
+
+    def selected2upnp_val(self,selected):
+        if (sys.platform == 'win32'):
+            upnp_val = selected
+        else:
+            if selected == 1:
+                upnp_val = UPNPMODE_UNIVERSAL_DIRECT
+            else:
+                upnp_val = UPNPMODE_DISABLED
+        return upnp_val
+        
+
+    def apply(self):
+        
+        ip4track = self.ip_data.GetValue()
+        ip2bind2 = self.bind_data.GetValue()
+        ip2bind2list = ip2bind2.split(",")
+
+        selected = self.upnp_choices.index(self.upnp_data.GetValue())
+        upnp_val = self.selected2upnp_val(selected)
+
+        minpeers = int(self.minpeers_data.GetValue())
+        maxconnections = int(self.maxconnections_data.GetValue())
+        if maxconnections == 0:
+            maxinitiate = 2 * minpeers
+        else:
+            maxinitiate = min(2 * minpeers, maxconnections)
+        utmaxaddrs = int(self.ut_pex_maxaddrs_data.GetValue())
+
+
+        # Save SessConfig
+        state_dir = self.utility.session.get_state_dir()
+        cfgfilename = Session.get_default_config_filename(state_dir)
+        scfg = SessionStartupConfig.load(cfgfilename)
+        
+        for target in [scfg,self.utility.session]:
+            try:
+                target.set_ip_for_tracker(ip2track)
+                target.set_bind_to_addresses(ip2bind2list)
+                target.set_upnp_mode(upnp_val)
+            except:
+                print_exc()
+
+        scfg.save(cfgfilename)
+
+        # Save DownloadStartupConfig
+        self.defaultDLConfig.set_min_peers(minpeers)
+        self.defaultDLConfig.set_max_conns(maxconnections)
+        self.defaultDLConfig.set_max_conns_to_initiate(maxinitiate)
+        self.defaultDLConfig.set_ut_pex_max_addrs_from_peer(utmaxaddrs)
+        
+        dlcfgfilename = get_default_dscfg_filename(self.utility.session)
+        self.defaultDLConfig.save(dlcfgfilename)
+            
 
 ################################################################
 #
@@ -164,146 +347,9 @@ class NetworkPanel(ABCOptionPanel):
 # at once and when to start them
 #
 ################################################################
-class QueuePanel(ABCOptionPanel):
-    def __init__(self, parent, dialog):
-        ABCOptionPanel.__init__(self, parent, dialog)
-        sizer = self.sizer
 
-        #
-        # Number of simultaneous active torrents
-        #
-        activesection_title = wx.StaticBox(self, -1, self.utility.lang.get('activetorrents'))
-        activesection = wx.StaticBoxSizer(activesection_title, wx.VERTICAL)
-
-        self.numsimtext = wx.SpinCtrl(self, size = wx.Size(60, -1))
-        self.numsimtext.SetRange(0, 1000)
-
-        numsim = wx.BoxSizer(wx.HORIZONTAL)
-        numsim.Add(wx.StaticText(self, -1, self.utility.lang.get('maxnumsimul')), 0, wx.ALIGN_CENTER_VERTICAL)
-        numsim.Add(self.numsimtext, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
-        
-        activesection.Add(numsim, 0, wx.ALL, 5)
-
-        self.trig_finish_values = [ self.utility.lang.get('after_downloading') , self.utility.lang.get('after_seeding') ]
-        self.trig_finish_seed  = wx.ComboBox(self, -1, "", wx.Point(-1, -1), wx.Size(-1, -1), self.trig_finish_values, wx.CB_DROPDOWN|wx.CB_READONLY)
-
-        trigger_box = wx.BoxSizer(wx.HORIZONTAL)
-        trigger_box.Add(wx.StaticText(self, -1, self.utility.lang.get('trignexttorrent')), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
-        trigger_box.Add(self.trig_finish_seed, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        activesection.Add(trigger_box, 0, wx.ALL, 5)
-        
-        sizer.Add(activesection, 0, wx.EXPAND|wx.ALL, 5)
-
-        #
-        # Autostart torrents
-        #
-        autostartsection_title = wx.StaticBox(self, -1, self.utility.lang.get('autostart'))
-        autostartsection = wx.StaticBoxSizer(autostartsection_title, wx.VERTICAL)
-
-        self.autostart = wx.CheckBox(self, -1, self.utility.lang.get('autostart_threshold'))
-
-        self.autostartthreshold = self.utility.makeNumCtrl(self, 0, integerWidth = 4)        
-        autostart_line1box = wx.BoxSizer(wx.HORIZONTAL)
-        autostart_line1box.Add(self.autostart, 0, wx.ALIGN_CENTER_VERTICAL)
-        autostart_line1box.Add(self.autostartthreshold, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
-        autostart_line1box.Add(wx.StaticText(self, -1, self.utility.lang.get('KB') + "/" + self.utility.lang.get('l_second')), 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
-        
-        self.autostartdelay = self.utility.makeNumCtrl(self, 0, integerWidth = 4, min = 1)
-        autostart_line2box = wx.BoxSizer(wx.HORIZONTAL)
-        autostart_line2box.Add(wx.StaticText(self, -1, self.utility.lang.get('autostart_delay')), 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 20)
-        autostart_line2box.Add(self.autostartdelay, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
-        autostart_line2box.Add(wx.StaticText(self, -1, self.utility.lang.get('l_second')), 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
-        
-        autostartsection.Add(autostart_line1box, 0, wx.ALL, 3)
-        autostartsection.Add(autostart_line2box, 0, wx.ALL, 3)
-
-        sizer.Add(autostartsection, 0, wx.EXPAND|wx.ALL, 5)
-
-        #
-        # Default priority for new torrents
-        #
-        self.priorities = [ self.utility.lang.get('highest'), 
-                            self.utility.lang.get('high'), 
-                            self.utility.lang.get('normal'), 
-                            self.utility.lang.get('low'), 
-                            self.utility.lang.get('lowest') ]
-        
-        self.defaultpriority = wx.ComboBox(self, -1, "", wx.Point(-1, -1), wx.Size(-1, -1), self.priorities, wx.CB_DROPDOWN|wx.CB_READONLY)
-
-        prio_box = wx.BoxSizer(wx.HORIZONTAL)
-        prio_box.Add(wx.StaticText(self, -1, self.utility.lang.get('defaultpriority')), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
-        prio_box.Add(self.defaultpriority, 0, wx.ALIGN_CENTER_VERTICAL)       
-        sizer.Add(prio_box, 0, wx.ALL, 5)
-
-        self.failbehaviors = [ self.utility.lang.get('stop'), self.utility.lang.get('queue') ]
-        self.failbehavior = wx.ComboBox(self, -1, "", wx.Point(-1, -1), wx.Size(-1, -1), self.failbehaviors, wx.CB_DROPDOWN|wx.CB_READONLY)
-
-        fail_box = wx.BoxSizer(wx.HORIZONTAL)
-        fail_box.Add(wx.StaticText(self, -1, self.utility.lang.get('failbehavior1')), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
-        fail_box.Add(self.failbehavior, 0, wx.ALIGN_CENTER_VERTICAL)
-        fail_box.Add(wx.StaticText(self, -1, self.utility.lang.get('failbehavior2')), 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
-        sizer.Add(fail_box, 0, wx.ALL, 5)
-
-        self.fastresume = wx.CheckBox(self, -1, self.utility.lang.get('fastresume'))
-        self.fastresume.SetToolTipString(self.utility.lang.get('fastresume_hint'))
-        sizer.Add(self.fastresume, 0, wx.ALL, 5)
-
-#        self.skipcheck = wx.CheckBox(self, -1, self.utility.lang.get('skipcheck'))
-#        self.skipcheck.SetToolTipString(self.utility.lang.get('skipcheck_hint'))
-#        sizer.Add(self.skipcheck, 0, wx.ALL, 5)
-
-        self.initTasks()
-        
-    def loadValues(self, Read = None):
-        if Read is None:
-            Read = self.utility.config.Read
-
-        if Read('trigwhenfinishseed', "boolean"):
-            trig_default_value = self.utility.lang.get('after_seeding')
-        else:
-            trig_default_value = self.utility.lang.get('after_downloading')
-        self.trig_finish_seed.SetStringSelection(trig_default_value)
-
-        currentprio = Read('defaultpriority', "int")
-        if currentprio >= len(self.priorities):
-            currentprio = len(self.priorities) - 1
-        defaultprio = self.priorities[currentprio]
-        self.defaultpriority.SetStringSelection(defaultprio)
-
-        defaultfail = self.failbehaviors[Read('failbehavior', "int")]
-        self.failbehavior.SetStringSelection(defaultfail)
-
-        self.numsimtext.SetValue(Read('numsimdownload', "int"))
-        
-        self.fastresume.SetValue(Read('fastresume', "boolean"))
-        
-#        self.skipcheck.SetValue(Read('skipcheck', "boolean"))
-        
-        self.autostart.SetValue(Read('urm', "boolean"))
-        self.autostartthreshold.SetValue(Read('urmupthreshold', "int"))
-        self.autostartdelay.SetValue(Read('urmdelay', "int"))
-        
-    def apply(self):            
-        self.utility.config.Write('fastresume', self.fastresume.GetValue(), "boolean")
-#        self.utility.config.Write('skipcheck', self.skipcheck.GetValue(), "boolean")
-
-        selected = self.priorities.index(self.defaultpriority.GetValue())
-        self.utility.config.Write('defaultpriority', selected)
-
-        self.utility.config.Write('failbehavior', self.failbehaviors.index(self.failbehavior.GetValue()))
-
-        self.utility.config.Write('numsimdownload', self.numsimtext.GetValue())
-
-        trigwhenfinished = (self.trig_finish_seed.GetValue() == self.utility.lang.get('after_seeding'))
-        self.utility.config.Write('trigwhenfinishseed', trigwhenfinished, "boolean")
-        
-        self.utility.config.Write('urm', self.autostart.GetValue(), "boolean")
-        self.utility.config.Write('urmupthreshold', self.autostartthreshold.GetValue())        
-        self.utility.config.Write('urmdelay', self.autostartdelay.GetValue())
-
-        self.utility.queue.UpdateRunningTorrentCounters()
-
+# Arno, 2008-03-27: Currently disabled. Need to write queueing support on top 
+# of core
 
 
 ################################################################
@@ -455,38 +501,15 @@ class DiskPanel(ABCOptionPanel):
         self.torrentbackup = wx.CheckBox(self, -1, self.utility.lang.get('removebackuptorrent'))
         sizer.Add(self.torrentbackup, 0, wx.ALIGN_LEFT|wx.ALL, 5)
            
-        self.defaultdir = wx.CheckBox(self, -1, self.utility.lang.get('setdefaultfolder'))
-
         self.dir = wx.TextCtrl(self, -1, "")
         browsebtn = wx.Button(self, -1, "...", style = wx.BU_EXACTFIT)
         self.Bind(wx.EVT_BUTTON, self.onBrowseDir, browsebtn)
 
         dirbox = wx.BoxSizer(wx.HORIZONTAL)
-        dirbox.Add(self.defaultdir, 0, wx.ALIGN_CENTER_VERTICAL)
         dirbox.Add(self.dir, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         dirbox.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sizer.Add(dirbox, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-
-        """
-        self.movecompleted = wx.CheckBox(self, -1, self.utility.lang.get('movecompleted'))
-
-        self.movedir = wx.TextCtrl(self, -1, "")
-        movebrowsebtn = wx.Button(self, -1, "...", style = wx.BU_EXACTFIT)
-        self.Bind(wx.EVT_BUTTON, self.onBrowseMoveDir, movebrowsebtn)
-
-        movedirbox = wx.BoxSizer(wx.HORIZONTAL)
-        movedirbox.Add(self.movecompleted, 0, wx.ALIGN_CENTER_VERTICAL)
-        movedirbox.Add(self.movedir, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        movedirbox.Add(movebrowsebtn, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        sizer.Add(movedirbox, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-        """
-       
-#        self.forcenewdir = wx.CheckBox(self, -1, self.utility.lang.get('forcenewdir'))
-#        self.forcenewdir.SetToolTipString(self.utility.lang.get('forcenewdir_hint'))
-#        
-#        sizer.Add(self.forcenewdir, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
         diskfullbox = wx.BoxSizer(wx.HORIZONTAL)
         self.diskfullcheckbox = wx.CheckBox(self, -1, self.utility.lang.get('diskfullthreshold'))
@@ -503,48 +526,31 @@ class DiskPanel(ABCOptionPanel):
         if Read is None:
             Read = self.utility.config.Read
 
-        self.dir.SetValue(Read('defaultfolder'))
+        self.dir.SetValue(self.defaultDLConfig.get_dest_dir())
         self.torrentbackup.SetValue(Read('removetorrent', "boolean"))
-        self.defaultdir.SetValue(Read('setdefaultfolder', "boolean"))
-        """
-        self.movecompleted.SetValue(Read('movecompleted', "boolean"))
-        self.movedir.SetValue(Read('defaultmovedir'))
-        """
         
-        diskfullthreshold = Read('diskfullthreshold', "int")
+        diskfullthreshold = Read('diskfullthreshold', "int") # TODO: make sure Core uses this
         if diskfullthreshold > 0:
             self.diskfullcheckbox.SetValue(True)
             self.diskfullthreshold.SetValue(diskfullthreshold)
-#        self.forcenewdir.SetValue(Read('forcenewdir', "boolean"))
         
     def apply(self):
         self.utility.config.Write('removetorrent', self.torrentbackup.GetValue(), "boolean")
 
-        self.utility.config.Write('setdefaultfolder', self.defaultdir.GetValue(), "boolean")
-        self.utility.config.Write('defaultfolder', self.dir.GetValue())
-
-        """
-        self.utility.config.Write('movecompleted', self.movecompleted.GetValue(), "boolean")
-        self.utility.config.Write('defaultmovedir', self.movedir.GetValue())
-        """
-        
         if self.diskfullcheckbox.GetValue():
             diskfullthreshold = self.diskfullthreshold.GetValue()
         else:
             diskfullthreshold = 0
         self.utility.config.Write('diskfullthreshold', diskfullthreshold)
-                
-#        self.utility.config.Write('forcenewdir', self.forcenewdir.GetValue(), "boolean")
 
-    """
-    def onBrowseMoveDir(self, event = None):
-        dlg = wx.DirDialog(self.utility.frame, 
-                           self.utility.lang.get('choosemovedir'), 
-                           style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.movedir.SetValue(dlg.GetPath())
-        dlg.Destroy()
-    """
+        # Save DownloadStartupConfig
+        defaultdestdir = self.dir.GetValue()
+        self.defaultDLConfig.set_dest_dir(defaultdestdir)
+        
+        dlcfgfilename = get_default_dscfg_filename(self.utility.session)
+        self.defaultDLConfig.save(dlcfgfilename)
+        
+
         
     def onBrowseDir(self, event = None):
         dlg = wx.DirDialog(self.utility.frame, 
@@ -557,66 +563,184 @@ class DiskPanel(ABCOptionPanel):
 
 ################################################################
 #
+# Class: AdvancedDiskPanel
+#
+# Contains advanced settings controlling how data is written to
+# and read from disk.
+# (defaults should be fine for most users)
+#
+################################################################
+class AdvancedDiskPanel(ABCOptionPanel):
+    def __init__(self, parent, dialog):
+        ABCOptionPanel.__init__(self, parent, dialog)
+        sizer = self.sizer
+
+        warningtext = wx.StaticText(self, -1, self.utility.lang.get('changeownrisk'))
+        sizer.Add(warningtext, 0, wx.ALIGN_CENTER|wx.ALL, 5)
+       
+        datasizer = wx.FlexGridSizer(cols = 2, vgap = 5, hgap = 10)
+
+        # Allocation Type
+        
+        alloc_choices = [self.utility.lang.get('alloc_normal'), 
+                         self.utility.lang.get('alloc_background'), 
+                         self.utility.lang.get('alloc_prealloc'), 
+                         self.utility.lang.get('alloc_sparse')]
+        self.alloc_strings = {DISKALLOC_NORMAL: 0, DISKALLOC_BACKGROUND: 1, DISKALLOC_PREALLOCATE: 2, DISKALLOC_SPARSE: 3}
+        self.alloctype_data=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), alloc_choices)
+
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('diskalloctype')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.alloctype_data)
+
+        # Allocation Rate
+        self.allocrate_data = wx.SpinCtrl(self, size = wx.Size(60, -1))
+        self.allocrate_data.SetRange(1, 100)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('allocrate')), 1, wx.ALIGN_CENTER_VERTICAL)
+        
+        allocrate_box = wx.BoxSizer(wx.HORIZONTAL)
+        allocrate_box.Add(self.allocrate_data)
+        allocrate_box.Add(wx.StaticText(self, -1, " " + self.utility.lang.get('mb') + "/" + self.utility.lang.get("l_second")), 1, wx.ALIGN_CENTER_VERTICAL)
+        
+        datasizer.Add(allocrate_box)
+
+        # Locking Method
+        locking_choices = [self.utility.lang.get('lock_never'), 
+                           self.utility.lang.get('lock_writing'), 
+                           self.utility.lang.get('lock_always')]
+        self.locking_data=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), locking_choices)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('filelocking')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.locking_data)
+
+        # Doublecheck Method
+        doublecheck_choices = [self.utility.lang.get('check_none'), 
+                               self.utility.lang.get('check_double'), 
+                               self.utility.lang.get('check_triple')]
+        self.doublecheck_data=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), doublecheck_choices)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('extradatachecking')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.doublecheck_data)
+
+        # Maximum Files Open
+        self.maxfilesopen_data=wx.SpinCtrl(self, size = wx.Size(60, -1))
+        self.maxfilesopen_data.SetRange(0,200)
+
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('maxfileopen')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.maxfilesopen_data)        
+      
+        # Flush data        
+        self.flush_data_enable = wx.CheckBox(self, -1, self.utility.lang.get('flush_data'))
+
+        self.flush_data = wx.SpinCtrl(self, size = wx.Size(60, -1))
+        self.flush_data.SetRange(0, 999)
+        
+        datasizer.Add(self.flush_data_enable, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        flush_box = wx.BoxSizer(wx.HORIZONTAL)
+        flush_box.Add(self.flush_data, 0, wx.ALIGN_CENTER_VERTICAL)
+        flush_box.Add(wx.StaticText(self, -1, self.utility.lang.get('minute_long')), 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
+
+        datasizer.Add(flush_box)
+
+        sizer.Add(datasizer, 0, wx.ALL, 5)
+
+        # Disk buffering
+        buffer_title = wx.StaticBox(self, -1, self.utility.lang.get('bufferdisk'))
+        buffer = wx.StaticBoxSizer(buffer_title, wx.VERTICAL)
+
+        self.buffer_read_enable = wx.CheckBox(self, -1, self.utility.lang.get('buffer_read'))
+                   
+        buffer.Add(self.buffer_read_enable, 0, wx.ALL, 5)
+        sizer.Add(buffer, 0, wx.EXPAND|wx.ALL, 5)
+
+        self.alloctype_data.SetToolTipString(self.utility.lang.get('alloctypehint'))
+        self.allocrate_data.SetToolTipString(self.utility.lang.get('allocratehint'))
+        self.locking_data.SetToolTipString(self.utility.lang.get('lockinghint'))
+        self.doublecheck_data.SetToolTipString(self.utility.lang.get('doublecheckhint'))
+        self.maxfilesopen_data.SetToolTipString(self.utility.lang.get('maxfileopenhint'))
+        
+        self.initTasks()
+
+    def loadValues(self, Read = None):
+        if Read is None:
+            Read = self.utility.config.Read
+        
+        alloctype = self.defaultDLConfig.get_alloc_type()
+        alloc_selection = self.alloc_strings[alloctype] 
+        self.alloctype_data.SetSelection(alloc_selection)
+        
+        self.allocrate_data.SetValue(self.defaultDLConfig.get_alloc_rate())
+        
+        lockfiles = self.defaultDLConfig.get_lock_files()
+        lockread = self.defaultDLConfig.get_lock_while_reading()
+        if lockfiles:
+            if lockread:
+                self.locking_data.SetSelection(2)
+            else:
+                self.locking_data.SetSelection(1)
+        else:
+            self.locking_data.SetSelection(0)
+        
+        doublecheck = self.defaultDLConfig.get_double_check_writes()
+        triplecheck = self.defaultDLConfig.get_triple_check_writes()
+        if doublecheck:
+            if triplecheck:
+                self.doublecheck_data.SetSelection(2)
+            else:
+                self.doublecheck_data.SetSelection(1)
+        else:
+            self.doublecheck_data.SetSelection(0)
+        
+        self.maxfilesopen_data.SetValue(self.defaultDLConfig.get_max_files_open())
+        self.buffer_read_enable.SetValue(self.defaultDLConfig.get_buffer_reads())
+
+
+        flushval = self.defaultDLConfig.get_auto_flush()
+        self.flush_data.SetValue(flushval)
+        self.flush_data_enable.SetValue(flushval > 0)
+
+    def apply(self):
+        alloc_strings = self.alloc_strings.keys()
+        
+        alloctype = alloc_strings[self.alloctype_data.GetSelection()]
+        allocrate = int(self.allocrate_data.GetValue())
+
+        maxopen = int(self.maxfilesopen_data.GetValue())
+        lockfiles = self.locking_data.GetSelection() >= 1
+        lockread  = self.locking_data.GetSelection() > 1
+        doublecheck = self.doublecheck_data.GetSelection() >= 1
+        triplecheck = self.doublecheck_data.GetSelection() > 1
+        bufferread = self.buffer_read_enable.GetValue()
+        
+        if not self.flush_data_enable.GetValue():
+            flushval = 0
+        else:
+            flushval = self.flush_data.GetValue()
+
+        # Save DownloadStartupConfig
+        self.defaultDLConfig.set_alloc_type(alloctype)
+        self.defaultDLConfig.set_alloc_rate(allocrate)
+        self.defaultDLConfig.set_lock_files(lockfiles)
+        self.defaultDLConfig.set_lock_while_reading(lockread)
+        self.defaultDLConfig.set_double_check_writes(doublecheck)
+        self.defaultDLConfig.set_triple_check_writes(triplecheck)
+        self.defaultDLConfig.set_max_files_open(maxopen)
+        self.defaultDLConfig.set_buffer_reads(bufferread)
+        self.defaultDLConfig.set_auto_flush(flushval)
+        
+        dlcfgfilename = get_default_dscfg_filename(self.utility.session)
+        self.defaultDLConfig.save(dlcfgfilename)
+            
+
+
+
+################################################################
+#
 # Class: SchedulerRulePanel
 #
 # Contains settings related to timeouts
 #
 ################################################################
-class SchedulerRulePanel(ABCOptionPanel):
-    def __init__(self, parent, dialog):
-        ABCOptionPanel.__init__(self, parent, dialog)
-        sizer = self.sizer
-        
-        # GUI dialog for Global upload setting
-        ########################################
-        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('setrule')), 0, wx.ALL, 5)
-        
-        # Timeout for contacting tracker
-        tracker_val  = ['oo', '5', '10', '15', '30', '45', '60', '120', '180'] #minute
-        self.cb_tracker  = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
-                                       wx.Size(65, -1), tracker_val, wx.CB_DROPDOWN|wx.CB_READONLY)
-        tracker_box = wx.BoxSizer(wx.HORIZONTAL)
-        tracker_box.Add(wx.StaticText(self, -1, self.utility.lang.get('timeout_tracker')), 0, wx.ALIGN_CENTER_VERTICAL)
-        tracker_box.Add(self.cb_tracker, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        tracker_box.Add(wx.StaticText(self, -1, self.utility.lang.get('minute_long')), 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(tracker_box, 0, wx.ALL, 5)
 
-        # Timeout for downloading
-        download_val = ['oo', '10', '20', '30', '60', '90', '120', '150', '180', '210', '240'] #minute
-        self.cb_download = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
-                                       wx.Size(65, -1), download_val, wx.CB_DROPDOWN|wx.CB_READONLY)
-        download_box = wx.BoxSizer(wx.HORIZONTAL)
-        download_box.Add(wx.StaticText(self, -1, self.utility.lang.get('timeout_download')), 0, wx.ALIGN_CENTER_VERTICAL)
-        download_box.Add(self.cb_download, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        download_box.Add(wx.StaticText(self, -1, self.utility.lang.get('minute_long')), 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(download_box, 0, wx.ALL, 5)
-
-        # Timeout for seeding
-        upload_val   = ['oo', '0.5', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] #hour
-        self.cb_upload   = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
-                                       wx.Size(65, -1), upload_val, wx.CB_DROPDOWN|wx.CB_READONLY)
-        upload_box = wx.BoxSizer(wx.HORIZONTAL)
-        upload_box.Add(wx.StaticText(self, -1, self.utility.lang.get('timeout_upload')), 0, wx.ALIGN_CENTER_VERTICAL)
-        upload_box.Add(self.cb_upload, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        upload_box.Add(wx.StaticText(self, -1, self.utility.lang.get('hour_long')), 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(upload_box, 0, wx.ALL, 5)
-
-        self.initTasks()
-    
-    def loadValues(self, Read = None):
-        if Read is None:
-            Read = self.utility.config.Read
-            
-        self.cb_tracker.SetStringSelection(Read('timeouttracker'))
-        self.cb_download.SetStringSelection(Read('timeoutdownload'))
-        self.cb_upload.SetStringSelection(Read('timeoutupload'))
-        
-    def apply(self):
-        # Set values for timeouts
-        self.utility.config.Write('timeouttracker', self.cb_tracker.GetValue())
-        self.utility.config.Write('timeoutdownload', self.cb_download.GetValue())
-        self.utility.config.Write('timeoutupload', self.cb_upload.GetValue())
-
+# Arno, 2008-02-27: Currently disabled, as there is no queuing
 
 ################################################################
 #
@@ -640,6 +764,8 @@ class RateLimitPanel(ABCOptionPanel):
         uploadsection_title = wx.StaticBox(self, -1, self.utility.lang.get('uploadsetting'))
         uploadsection = wx.StaticBoxSizer(uploadsection_title, wx.VERTICAL)
         
+        """
+        # Arno, 2008-03-27: Currently disabled, no queuing
         self.maxupload = wx.SpinCtrl(self, size = wx.Size(60, -1))
         self.maxupload.SetRange(2, 100)
         
@@ -648,6 +774,7 @@ class RateLimitPanel(ABCOptionPanel):
         maxuploadsbox.Add(self.maxupload, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
         
         uploadsection.Add(maxuploadsbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        """
 
         maxoverall_down_label = wx.BoxSizer(wx.VERTICAL)
         maxoverall_down_label.Add(wx.StaticText(self, -1, self.utility.lang.get('maxoveralluploadrate')), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -698,21 +825,16 @@ class RateLimitPanel(ABCOptionPanel):
 
         sizer.Add(downloadsection, 0, wx.EXPAND|wx.ALL, 5)
         
-        # Prioritize Local
-        self.prioritizelocal = wx.CheckBox(self, -1, self.utility.lang.get('prioritizelocal'))
-        sizer.Add(self.prioritizelocal, 0, wx.ALL, 5)
-    
         self.initTasks()
 
     def loadValues(self, Read = None):
         if Read is None:
             Read = self.utility.config.Read
         
-        self.maxupload.SetValue(Read('maxupload', "int"))
+        #self.maxupload.SetValue(Read('maxupload', "int"))
         self.uploadrate.SetValue(Read('maxuploadrate', "int"))
         self.downloadrate.SetValue(Read('maxdownloadrate', "int"))
         self.seeduploadrate.SetValue(Read('maxseeduploadrate', "int"))
-        self.prioritizelocal.SetValue(Read('prioritizelocal', "boolean"))
         
     def apply(self):
         # Check max upload rate input must be integer
@@ -731,11 +853,9 @@ class RateLimitPanel(ABCOptionPanel):
             dlg.Destroy()
             return False
 
-        self.utility.config.Write('prioritizelocal', self.prioritizelocal.GetValue(), "boolean")
-
         # Set new value to parameters
         ##############################
-        self.utility.config.Write('maxupload', self.maxupload.GetValue())
+        ##self.utility.config.Write('maxupload', self.maxupload.GetValue())
         self.utility.config.Write('maxuploadrate', upload_rate)
         self.utility.config.Write('maxseeduploadrate', seedupload_rate)
         
@@ -829,420 +949,9 @@ class SeedingOptionsPanel(ABCOptionPanel):
         self.utility.config.Write('uploadratio', self.cbratio.GetValue())
 
 
-################################################################
-#
-# Class: ColorPanel
-#
-# Contains settings for what the colors for different torrent
-# statuses should be.
-#
-################################################################
-class ColorPanel(ABCOptionPanel):
-    def __init__(self, parent, dialog):
-        ABCOptionPanel.__init__(self, parent, dialog)
-        sizer = self.sizer
-        
-        self.colors = ['color_startup', 
-                       'color_disconnected', 
-                       'color_noconnections', 
-                       'color_noincoming', 
-                       'color_nocomplete', 
-                       'color_good' ]
-        color_boxes = {}
-        color_text = {}
-        self.color_buttons = {}
-        
-        # Striped list options
-        for color in self.colors:
-            color_boxes[color] = wx.BoxSizer(wx.HORIZONTAL)
 
-            self.color_buttons[color] = colourselect.ColourSelect(self, -1, "", size = (60, 20))       
-            color_boxes[color].Add(self.color_buttons[color], 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
-        
-            color_text[color] = wx.StaticText(self, -1, self.utility.lang.get(color))
-            color_boxes[color].Add(color_text[color], 0, wx.ALIGN_CENTER_VERTICAL)
-               
-            sizer.Add(color_boxes[color], 0, wx.ALIGN_LEFT|wx.ALL, 5)
-
-        self.initTasks()
-
-    def loadValues(self, Read = None):
-        if Read is None:
-            Read = self.utility.config.Read
-        
-        for color in self.colors:
-            self.color_buttons[color].SetValue(Read(color, "color"))
-        
-    def apply(self):
-        overallchange = False
-        
-        for color in self.colors:
-            color_value = self.color_buttons[color].GetColour()
-            changed = self.utility.config.Write(color, color_value, "color")
-            if changed:
-                overallchange = True
-
-        if overallchange:
-            for ABCTorrentTemp in self.utility.torrents["all"]:
-                ABCTorrentTemp.updateColor()
-
-
-################################################################
-#
-# Class: AdvancedNetworkPanel
-#
-# Contains advanced network settings
-# (defaults should be fine for most users)
-#
-################################################################
-class AdvancedNetworkPanel(ABCOptionPanel):
-    def __init__(self, parent, dialog):
-        ABCOptionPanel.__init__(self, parent, dialog)
-        sizer = self.sizer
-
-        warningtext = wx.StaticText(self, -1, self.utility.lang.get('changeownrisk'))
-        sizer.Add(warningtext, 0, wx.ALIGN_CENTER|wx.ALL, 5)
-       
-        #self.ipv6bindsv4_data=wx.Choice(self, -1,
-        #                 choices = ['separate sockets', 'single socket'])
-        #self.ipv6bindsv4_data.SetSelection(int(self.advancedConfig['ipv6_binds_v4']))
-        
-        datasizer = wx.FlexGridSizer(cols = 2, vgap = 5, hgap = 10)
-
-        # Local IP
-        self.ip_data = wx.TextCtrl(self, -1)
-        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('localip')), 1, wx.ALIGN_CENTER_VERTICAL)
-        datasizer.Add(self.ip_data)
-
-        # IP to Bind to
-        self.bind_data = wx.TextCtrl(self, -1)
-        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('iptobindto')), 1, wx.ALIGN_CENTER_VERTICAL)
-        datasizer.Add(self.bind_data)
-
-        # Minimum Peers
-        self.minpeers_data = wx.SpinCtrl(self, size = wx.Size(60, -1))
-        self.minpeers_data.SetRange(10, 100)
-        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('minnumberofpeer')), 1, wx.ALIGN_CENTER_VERTICAL)
-        datasizer.Add(self.minpeers_data)
-
-        # Maximum Connections
-        self.maxconnections_choices = [self.utility.lang.get('nolimit'), '20', '30', '40', '60', '100', '200']
-        self.maxconnections_data=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), self.maxconnections_choices)
-        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('maxpeerconnection')), 1, wx.ALIGN_CENTER_VERTICAL)
-        datasizer.Add(self.maxconnections_data)
-        
-        # UPnP Settings
-        if (sys.platform == 'win32'):
-            self.upnp_choices = [ self.utility.lang.get('upnp_0'), 
-                             self.utility.lang.get('upnp_1'), 
-                             self.utility.lang.get('upnp_2'),
-                             self.utility.lang.get('upnp_3')]
-        else:
-            self.upnp_choices = [ self.utility.lang.get('upnp_0'), 
-                             self.utility.lang.get('upnp_3')]
-        self.upnp_data = wx.ComboBox(self, -1, "", wx.Point(-1, -1), wx.Size(-1, -1), self.upnp_choices, wx.CB_DROPDOWN|wx.CB_READONLY)
-        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('upnp')), 1, wx.ALIGN_CENTER_VERTICAL)
-        datasizer.Add(self.upnp_data)
-
-
-        # ut_pex maximum Peers
-        self.ut_pex_maxaddrs_data = wx.SpinCtrl(self, size = wx.Size(60, -1))
-        self.ut_pex_maxaddrs_data.SetRange(0, 1024)
-        t1 = wx.StaticText(self, -1, self.utility.lang.get('ut_pex_maxaddrs1'))
-        t2 = wx.StaticText(self, -1, self.utility.lang.get('ut_pex_maxaddrs2'))
-        tsizer = wx.BoxSizer(wx.VERTICAL)
-        tsizer.Add(t1, 1, wx.ALIGN_LEFT)
-        tsizer.Add(t2, 1, wx.ALIGN_LEFT)
-        datasizer.Add(tsizer, 1, wx.ALIGN_CENTER_VERTICAL)
-        datasizer.Add(self.ut_pex_maxaddrs_data)
-        sizer.Add(datasizer, 0, wx.ALL, 5)
-        
-        # Set tooltips
-        self.ip_data.SetToolTipString(self.utility.lang.get('iphint'))
-        self.bind_data.SetToolTipString(self.utility.lang.get('bindhint'))
-        self.minpeers_data.SetToolTipString(self.utility.lang.get('minpeershint'))
-        self.ut_pex_maxaddrs_data.SetToolTipString(self.utility.lang.get('ut_pex_maxaddrs_hint'))
-        self.maxconnections_data.SetToolTipString(self.utility.lang.get('maxconnectionhint'))
-               
-        self.initTasks()
-
-    def loadValues(self, Read = None):
-        if Read is None:
-            Read = self.utility.config.Read
-        
-        self.ip_data.SetValue(Read('ip'))
-        self.bind_data.SetValue(Read('bind'))
-        
-        self.minpeers_data.SetValue(Read('min_peers', "int"))
-        
-        setval = Read('max_connections', "int")
-        if setval == 0:
-            setval = self.utility.lang.get('nolimit')
-        else:
-            setval = str(setval)
-        if not setval in self.maxconnections_choices:
-            setval = self.maxconnections_choices[0]
-        self.maxconnections_data.SetStringSelection(setval)
-        
-        upnp_val = self.utility.config.Read('upnp_nat_access', "int")
-        selected = self.upnp_val2selected(upnp_val)
-        self.upnp_data.SetStringSelection(self.upnp_choices[selected])
-
-        self.ut_pex_maxaddrs_data.SetValue(Read('ut_pex_max_addrs_from_peer', "int"))
-
-#        #self.ipv6bindsv4_data.SetSelection()
-        
-    def upnp_val2selected(self,upnp_val):
-        if (sys.platform == 'win32'):
-            selected = upnp_val
-        else:
-            if upnp_val <= 2:
-                selected = 0
-            else:
-                selected = 1
-        return selected
-
-    def selected2upnp_val(self,selected):
-        if (sys.platform == 'win32'):
-            upnp_val = selected
-        else:
-            if selected == 1:
-                upnp_val = 3
-            else:
-                upnp_val = 0
-        return upnp_val
         
 
-    def apply(self):
-        #if self.ipv6.GetValue():
-        #    self.utility.config.Write('ipv6') = "1"
-        #else:
-        #    self.utility.config.Write('ipv6') = "0"
-        self.utility.config.Write('ipv6', "0")
-        
-                # Advanced Options
-        self.utility.config.Write('ip', self.ip_data.GetValue())
-        self.utility.config.Write('bind', self.bind_data.GetValue())
-        
-        minpeers = self.minpeers_data.GetValue()
-        self.utility.config.Write('min_peers', minpeers)
-
-        try:
-            maxconnections = int(self.maxconnections_data.GetStringSelection())
-            maxinitiate = min(2 * minpeers, maxconnections)
-        except:       # if it ain't a number, it must be "no limit"
-            maxconnections = 0
-            maxinitiate = 2 * minpeers
-
-        self.utility.config.Write('max_initiate', maxinitiate)
-        self.utility.config.Write('max_connections', maxconnections)
-
-        selected = self.upnp_choices.index(self.upnp_data.GetValue())
-        upnp_val = self.selected2upnp_val(selected)
-        self.utility.config.Write('upnp_nat_access',upnp_val)
-
-        self.utility.config.Write('ipv6_binds_v4', "1")
-
-        mx = self.ut_pex_maxaddrs_data.GetValue()
-        self.utility.config.Write('ut_pex_max_addrs_from_peer', mx)
-        
-
-################################################################
-#
-# Class: AdvancedDiskPanel
-#
-# Contains advanced settings controlling how data is written to
-# and read from disk.
-# (defaults should be fine for most users)
-#
-################################################################
-class AdvancedDiskPanel(ABCOptionPanel):
-    def __init__(self, parent, dialog):
-        ABCOptionPanel.__init__(self, parent, dialog)
-        sizer = self.sizer
-
-        warningtext = wx.StaticText(self, -1, self.utility.lang.get('changeownrisk'))
-        sizer.Add(warningtext, 0, wx.ALIGN_CENTER|wx.ALL, 5)
-       
-        datasizer = wx.FlexGridSizer(cols = 2, vgap = 5, hgap = 10)
-
-        # Allocation Type
-        
-        alloc_choices = [self.utility.lang.get('alloc_normal'), 
-                         self.utility.lang.get('alloc_background'), 
-                         self.utility.lang.get('alloc_prealloc'), 
-                         self.utility.lang.get('alloc_sparse')]
-        self.alloc_strings = {"normal": 0, "background": 1, "pre-allocate": 2, "sparse": 3}
-        self.alloctype_data=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), alloc_choices)
-
-        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('diskalloctype')), 1, wx.ALIGN_CENTER_VERTICAL)
-        datasizer.Add(self.alloctype_data)
-
-        # Allocation Rate
-        self.allocrate_data = wx.SpinCtrl(self, size = wx.Size(60, -1))
-        self.allocrate_data.SetRange(1, 100)
-        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('allocrate')), 1, wx.ALIGN_CENTER_VERTICAL)
-        
-        allocrate_box = wx.BoxSizer(wx.HORIZONTAL)
-        allocrate_box.Add(self.allocrate_data)
-        allocrate_box.Add(wx.StaticText(self, -1, " " + self.utility.lang.get('mb') + "/" + self.utility.lang.get("l_second")), 1, wx.ALIGN_CENTER_VERTICAL)
-        
-        datasizer.Add(allocrate_box)
-
-        # Locking Method
-        locking_choices = [self.utility.lang.get('lock_never'), 
-                           self.utility.lang.get('lock_writing'), 
-                           self.utility.lang.get('lock_always')]
-        self.locking_data=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), locking_choices)
-        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('filelocking')), 1, wx.ALIGN_CENTER_VERTICAL)
-        datasizer.Add(self.locking_data)
-
-        # Doublecheck Method
-        doublecheck_choices = [self.utility.lang.get('check_none'), 
-                               self.utility.lang.get('check_double'), 
-                               self.utility.lang.get('check_triple')]
-        self.doublecheck_data=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), doublecheck_choices)
-        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('extradatachecking')), 1, wx.ALIGN_CENTER_VERTICAL)
-        datasizer.Add(self.doublecheck_data)
-
-        # Maximum Files Open
-        self.maxfilesopen_choices = ['50', '100', '200', self.utility.lang.get('nolimit')]
-        self.maxfilesopen_data=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), self.maxfilesopen_choices)
-
-        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('maxfileopen')), 1, wx.ALIGN_CENTER_VERTICAL)
-        datasizer.Add(self.maxfilesopen_data)        
-      
-        # Flush data        
-        self.flush_data_enable = wx.CheckBox(self, -1, self.utility.lang.get('flush_data'))
-
-        self.flush_data = wx.SpinCtrl(self, size = wx.Size(60, -1))
-        self.flush_data.SetRange(0, 999)
-        
-        datasizer.Add(self.flush_data_enable, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        flush_box = wx.BoxSizer(wx.HORIZONTAL)
-        flush_box.Add(self.flush_data, 0, wx.ALIGN_CENTER_VERTICAL)
-        flush_box.Add(wx.StaticText(self, -1, self.utility.lang.get('minute_long')), 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
-
-        datasizer.Add(flush_box)
-
-        sizer.Add(datasizer, 0, wx.ALL, 5)
-
-        # Disk buffering
-        buffer_title = wx.StaticBox(self, -1, self.utility.lang.get('bufferdisk'))
-        buffer = wx.StaticBoxSizer(buffer_title, wx.VERTICAL)
-
-        self.buffer_read_enable = wx.CheckBox(self, -1, self.utility.lang.get('buffer_read'))
-                   
-        self.buffer_write = wx.SpinCtrl(self, size = wx.Size(60, -1))
-        self.buffer_write.SetRange(0, 999)
-        
-        self.buffer_write_enable = wx.CheckBox(self, -1, self.utility.lang.get('buffer_write'))
-
-        buffer_write_box = wx.BoxSizer(wx.HORIZONTAL)
-        buffer_write_box.Add(self.buffer_write_enable, 0, wx.ALIGN_CENTER_VERTICAL)
-        buffer_write_box.Add(self.buffer_write, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
-        buffer_write_box.Add(wx.StaticText(self, -1, self.utility.lang.get('mb')), 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
-       
-        buffer.Add(self.buffer_read_enable, 0, wx.ALL, 5)
-        buffer.Add(buffer_write_box, 0, wx.ALL, 5)
-
-        sizer.Add(buffer, 0, wx.EXPAND|wx.ALL, 5)
-
-        self.alloctype_data.SetToolTipString(self.utility.lang.get('alloctypehint'))
-        self.allocrate_data.SetToolTipString(self.utility.lang.get('allocratehint'))
-        self.locking_data.SetToolTipString(self.utility.lang.get('lockinghint'))
-        self.doublecheck_data.SetToolTipString(self.utility.lang.get('doublecheckhint'))
-        self.maxfilesopen_data.SetToolTipString(self.utility.lang.get('maxfileopenhint'))
-        
-        self.initTasks()
-
-    def loadValues(self, Read = None):
-        if Read is None:
-            Read = self.utility.config.Read
-        
-        try:
-            alloc_selection = self.alloc_strings[Read('alloc_type')]
-        except:
-            alloc_selection = 0
-        self.alloctype_data.SetSelection(alloc_selection)
-        
-        self.allocrate_data.SetValue(Read('alloc_rate', "int"))
-        
-        if Read('lock_files', "int"):
-            if Read('lock_while_reading', "int"):
-                self.locking_data.SetSelection(2)
-            else:
-                self.locking_data.SetSelection(1)
-        else:
-            self.locking_data.SetSelection(0)
-        
-        if Read('double_check', "int"):
-            if Read('triple_check', "int"):
-                self.doublecheck_data.SetSelection(2)
-            else:
-                self.doublecheck_data.SetSelection(1)
-        else:
-            self.doublecheck_data.SetSelection(0)
-        
-        setval = Read('max_files_open', "int")
-        if setval == 0:
-            setval = self.utility.lang.get('nolimit')
-        else:
-            setval = str(setval)
-        if not setval in self.maxfilesopen_choices:
-            setval = self.maxfilesopen_choices[0]
-        self.maxfilesopen_data.SetStringSelection(setval)
-        
-        self.buffer_read_enable.SetValue(Read('buffer_read', "boolean"))
-        
-        try:
-            flushval = Read('auto_flush', "int")
-        except:
-            flushval = 0
-        self.flush_data.SetValue(flushval)
-        self.flush_data_enable.SetValue(flushval > 0)
-        
-        try:
-            writeval = Read('buffer_write', "int")
-        except:
-            writeval = 0
-        self.buffer_write.SetValue(writeval)
-        self.buffer_write_enable.SetValue(writeval > 0)
-                            
-    def apply(self):
-        truth = { True: "1", False: "0" }
-        
-        alloc_strings = ["normal", "background", "pre-allocate", "sparse"]
-        
-        self.utility.config.Write('alloc_type', alloc_strings[self.alloctype_data.GetSelection()])
-        self.utility.config.Write('alloc_rate', int(self.allocrate_data.GetValue()))
-
-        try:
-            maxopen = int(self.maxfilesopen_data.GetStringSelection())
-        except:       # if it ain't a number, it must be "no limit"
-            maxopen = 0
-        self.utility.config.Write('max_files_open', maxopen)
-
-        self.utility.config.Write('lock_files', self.locking_data.GetSelection() >= 1, "boolean")
-        self.utility.config.Write('lock_while_reading', self.locking_data.GetSelection() > 1, "boolean")
-
-        self.utility.config.Write('double_check', self.doublecheck_data.GetSelection() >= 1, "boolean")
-        self.utility.config.Write('triple_check', self.doublecheck_data.GetSelection() > 1, "boolean")
-        
-        self.utility.config.Write('buffer_read', self.buffer_read_enable.GetValue(), "boolean")
-        
-        if not self.buffer_write_enable.GetValue():
-            writeval = 0
-        else:
-            writeval = self.buffer_write.GetValue()
-        self.utility.config.Write('buffer_write', writeval)
-        
-        if not self.flush_data_enable.GetValue():
-            flushval = 0
-        else:
-            flushval = self.flush_data.GetValue()
-        self.utility.config.Write('auto_flush', flushval)
 
 
 
@@ -1273,15 +982,6 @@ class TriblerPanel(ABCOptionPanel):
 
         sizer.Add(funcsection, 0, wx.EXPAND|wx.ALL, 5)
 
-
-        """
-        name_box = wx.BoxSizer(wx.HORIZONTAL)
-        self.myname = wx.TextCtrl(self, -1, "")
-        name_box.Add(wx.StaticText(self, -1, self.utility.lang.get('myname')), 0, wx.ALIGN_CENTER_VERTICAL)
-        name_box.Add(self.myname, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        sizer.Add(name_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        """
-
         tcsection_title = wx.StaticBox(self, -1, self.utility.lang.get('torrentcollectsetting'))
         tcsection = wx.StaticBoxSizer(tcsection_title, wx.VERTICAL)
 
@@ -1310,8 +1010,8 @@ class TriblerPanel(ABCOptionPanel):
         tc_threshold_box.Add(self.tc_threshold, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')), 0, wx.ALIGN_CENTER_VERTICAL)
         tc_threshold_box.Add(wx.StaticText(self, -1, ' ('+self.utility.lang.get('current_free_space')+' '), 0, wx.ALIGN_CENTER_VERTICAL)
-        mh = MetadataHandler.getInstance()
-        current_free_space = mh.get_free_space()/(2**20)
+        
+        current_free_space = getfreespace(self.utility.session.get_state_dir())/(2**20)
         tc_threshold_box.Add(wx.StaticText(self, -1, str(current_free_space)), 0, wx.ALIGN_CENTER_VERTICAL)
         tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')+')'), 0, wx.ALIGN_CENTER_VERTICAL)
         tcsection.Add(tc_threshold_box, 0, wx.EXPAND|wx.ALL, 5)
@@ -1354,110 +1054,66 @@ class TriblerPanel(ABCOptionPanel):
             self.Bind(wx.EVT_BUTTON, self.OnDebug, self.debug)
         
         self.initTasks()
+
         
     def loadValues(self, Read = None):
         """ Loading values from configure file """
         
-        if Read is None:
-            Read = self.utility.config.Read
+        buddycast = self.utility.session.get_buddycast()
+        coopdl = self.utility.session.get_download_help()
+        torrcoll = self.utility.session.get_torrent_collecting()
+        maxcolltorrents = self.utility.session.get_torrent_collecting_max_torrents()
+        maxbcpeers = self.utility.session.get_buddycast_max_peers()
+        stopcollthres = self.utility.session.get_stop_collecting_threshold()
+        collrate = self.utility.session.get_torrent_collecting_rate()
         
-        self.rec_enable.SetValue(Read('enablerecommender', "boolean"))
-        self.dlhelp_enable.SetValue(Read('enabledlhelp', "boolean"))
-        self.collect_enable.SetValue(Read('enabledlcollecting', "boolean"))
-        self.timectrl.SetValue(Read('torrentcollectsleep', 'int'))
+        self.rec_enable.SetValue(buddycast)
+        self.dlhelp_enable.SetValue(coopdl)
+        self.collect_enable.SetValue(torrcoll)
+        self.ntorrents.SetValue(maxcolltorrents)
+        self.npeers.SetValue(maxbcpeers)
+        self.tc_threshold.SetValue(stopcollthres)
+        self.tc_rate.SetValue(collrate)
+
+        # For subscriptions
+        self.timectrl.SetValue(self.utility.config.Read('torrentcollectsleep', 'int'))
         
-        value = str(Read('maxntorrents', "string"))
-        try:    # check if the input is correct
-            int_value = int(value)
-            if int_value < 0:
-                raise
-            self.ntorrents.SetValue(str(int_value))
-        except:
-            print_exc()
-        
-        value = str(Read('maxnpeers', "string"))
-        try:    # check if the input is correct
-            int_value = int(value)
-            if int_value < 0:
-                raise
-            self.npeers.SetValue(str(int_value))
-        except:
-            print_exc()
-            
-        value = str(Read('stopcollectingthreshold', "string"))
-        try:    # check if the input is correct
-            int_value = int(value)
-            if int_value < 0:
-                raise
-            self.tc_threshold.SetValue(str(int_value))
-        except:
-            print_exc()
-            
-        value = str(Read('torrentcollectingrate', "string"))
-        try:    # check if the input is correct
-            int_value = int(value)
-            if int_value < 0:
-                raise
-            self.tc_rate.SetValue(str(int_value))
-        except:
-            print_exc()
+
 
     def apply(self):       
         """ do sth. when user click apply of OK button """
         
-        self.utility.config.Write('enablerecommender', self.rec_enable.GetValue(), "boolean")
-        self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
-        self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")
-        
-        try:    # check if the input is correct for maxntorrents
-            maxntorrents = self.ntorrents.GetValue()
-            int_value = int(maxntorrents)
-            if int_value < 0:
-                raise
-            self.utility.config.Write('maxntorrents', maxntorrents, "string")
-            mh = MetadataHandler.getInstance()
-            mh.set_overflow(int_value)
-            mh.delayed_check_overflow(2)
-        except:
-            print_exc()
-            
-        try:    # check if the input is correct for maxnpeers
-            maxnpeers = self.npeers.GetValue()
-            int_value = int(maxnpeers)
-            if int_value < 0:
-                raise
-            self.utility.config.Write('maxnpeers', maxnpeers, "string")
-        except:
-            print_exc()
-        
-        try:    # check if the input is correct
-            tc_threshold_value = self.tc_threshold.GetValue()
-            int_value = int(tc_threshold_value)
-            if int_value <= 0:
-                raise
-            self.utility.config.Write('stopcollectingthreshold', tc_threshold_value, "string")
-            mh = MetadataHandler.getInstance()
-            mh.set_min_free_space(int_value)
-            mh.delayed_check_free_space(2)
-        except:
-            print_exc()            
-            
-        try:    # check if the input is correct
-            tc_rate_value = self.tc_rate.GetValue()
-            int_value = int(tc_rate_value)
-            if int_value < 0:
-                raise
-            self.utility.config.Write('torrentcollectingrate', tc_rate_value, "string")
-            mh = MetadataHandler.getInstance()
-            mh.set_rate(int_value)
-        except:
-            print_exc()
-        
-        t = int(self.timectrl.GetValue())
-        if t  > 3600:
-            t = 3600
+        buddycast = self.rec_enable.GetValue()
+        coopdl = self.dlhelp_enable.GetValue()
+        torrcoll = self.collect_enable.GetValue()
+        maxcolltorrents = int(self.ntorrents.GetValue())
+        maxbcpeers = int(self.npeers.GetValue())
+        stopcollthres = int(self.tc_threshold.GetValue())
+        collrate = int(self.tc_rate.GetValue())
 
-        tchanged = self.utility.config.Write('torrentcollectsleep', t)
+
+        # Save SessConfig
+        state_dir = self.utility.session.get_state_dir()
+        cfgfilename = Session.get_default_config_filename(state_dir)
+        scfg = SessionStartupConfig.load(cfgfilename)
+        
+        for target in [scfg,self.utility.session]:
+            try:
+                target.set_buddycast(buddycast)
+                target.set_download_help(coopdl)
+                target.set_torrent_collecting(torrcoll)
+                target.set_torrent_collecting_max_torrents(maxcolltorrents)
+                target.set_buddycast_max_peers(maxbcpeers)
+                target.set_stop_collecting_threshold(stopcollthres)
+                target.set_torrent_collecting_rate(collrate)
+            except:
+                print_exc()
+
+        scfg.save(cfgfilename)
+
+        # For subscriptions
+        t = int(self.timectrl.GetValue())
+        self.utility.config.Write('torrentcollectsleep', t)
 
 
     def OnMyInfoWizard(self, event = None):
@@ -1470,6 +1126,7 @@ class TriblerPanel(ABCOptionPanel):
     def OnDebug(self,event):
         self.utility.frame.oldframe.Show()
 
+# HERE
 
 ################################################################
 #
@@ -1652,8 +1309,8 @@ class ABCTree(wx.TreeCtrl):
 
         self.treeMap = {self.ratelimits : self.dialog.rateLimitPanel, 
                         self.seedingoptions : self.dialog.seedingOptionsPanel, 
-                        self.queuesetting : self.dialog.queuePanel, 
-                        self.timeout : self.dialog.schedulerRulePanel, 
+                        #self.queuesetting : self.dialog.queuePanel, 
+                        #self.timeout : self.dialog.schedulerRulePanel, 
                         self.network : self.dialog.networkPanel, 
                         self.misc : self.dialog.miscPanel,
                         self.tribler : self.dialog.triblerPanel,
@@ -1749,14 +1406,13 @@ class ABCOptionDialog(wx.Dialog):
 
         self.rateLimitPanel = RateLimitPanel(self.splitter, self)
         self.seedingOptionsPanel = SeedingOptionsPanel(self.splitter, self)
-        self.queuePanel = QueuePanel(self.splitter, self)
+        #self.queuePanel = QueuePanel(self.splitter, self)
 
-        self.schedulerRulePanel = SchedulerRulePanel(self.splitter, self)
+        #self.schedulerRulePanel = SchedulerRulePanel(self.splitter, self)
         self.networkPanel = NetworkPanel(self.splitter, self)
         self.miscPanel = MiscPanel(self.splitter, self)
         self.triblerPanel = TriblerPanel(self.splitter, self)
         self.videoPanel = VideoPanel(self.splitter, self)
-        #self.colorPanel = ColorPanel(self.splitter, self)
         self.diskPanel = DiskPanel(self.splitter, self)
         
         self.advancedNetworkPanel = AdvancedNetworkPanel(self.splitter, self)
@@ -1848,8 +1504,6 @@ class ABCOptionDialog(wx.Dialog):
             
         # write current changes to disk
         self.utility.config.Flush()
-        
-        self.utility.queue.changeABCParams()    #overwrite flag
                 
         return True
 

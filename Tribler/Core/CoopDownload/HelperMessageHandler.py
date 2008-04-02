@@ -24,9 +24,11 @@ class HelperMessageHandler:
     def __init__(self):
         self.metadata_queue = {}
 
-    def register(self,session,metadata_handler,helpdir):
+    def register(self,session,metadata_handler,helpdir,dlconfig):
         self.session = session
         self.helpdir = helpdir
+        # The default DownloadStartupConfig dict as set in the Session
+        self.dlconfig = dlconfig
         self.torrent_db = TorrentDBHandler.getInstance()
         self.metadata_handler = metadata_handler
 
@@ -81,7 +83,10 @@ class HelperMessageHandler:
             print >> sys.stderr,"helpmsg: torrent: ",torrentfilename
 
         tdef = TorrentDef.load(torrentfilename)
-        dscfg = DownloadStartupConfig()
+        if self.dlconfig is None:
+            dscfg = DownloadStartupConfig()
+        else:
+            dscfg = DownloadStartupConfig(self.dlconfig)
         dscfg.set_coopdl_coordinator_permid(permid)
         dscfg.set_dest_dir(self.helpdir)
 

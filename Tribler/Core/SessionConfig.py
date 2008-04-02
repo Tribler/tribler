@@ -121,12 +121,12 @@ class SessionConfigInterface:
         @return String """
         return self.sessconfig['ip']
 
-    def set_bind_to_address(self,value):
+    def set_bind_to_addresses(self,value):
         """ Set the list of IP addresses/hostnames to bind to locally.
         @param value A list of IP addresses as strings. """
         self.sessconfig['bind'] = value
 
-    def get_bind_to_address(self):
+    def get_bind_to_addresses(self):
         """ Returns the list of IP addresses bound to.
         @return list """
         return self.sessconfig['bind']
@@ -269,6 +269,16 @@ class SessionConfigInterface:
         @return BCOLPOLICY_* """
         return self.sessconfig['buddycast_collecting_solution']
 
+    def set_buddycast_max_peers(self,value):
+        """ Set max number of peers to use for Buddycast recommendations """
+        self.sessconfig['buddycast_max_peers'] = value
+
+    def get_buddycast_max_peers(self):
+        """ Return the max number of peers to use for Buddycast recommendations.
+        @return A number of peers.
+        """
+        return self.sessconfig['buddycast_max_peers']
+
     #
     # Download helper / cooperative download
     #
@@ -309,16 +319,16 @@ class SessionConfigInterface:
         @return Boolean. """
         return self.sessconfig['torrent_collecting']
 
-    def set_max_torrents(self,value):
+    def set_torrent_collecting_max_torrents(self,value):
         """ Set the maximum number of torrents to collect from other peers.
         @param value A number of torrents.
         """
-        self.sessconfig['max_torrents'] = value
+        self.sessconfig['torrent_collecting_max_torrents'] = value
 
-    def get_max_torrents(self):
+    def get_torrent_collecting_max_torrents(self):
         """ Returns the maximum number of torrents to collect.
         @return A number of torrents. """
-        return self.sessconfig['max_torrents']
+        return self.sessconfig['torrent_collecting_max_torrents']
 
     def set_torrent_collecting_dir(self,value):
         """ Where to place collected torrents? (default is state_dir + 'colltorrents')
@@ -491,6 +501,19 @@ class SessionConfigInterface:
         """ Returns whether the internal tracker is enabled.
         @return Boolean. """
         return self.sessconfig['internaltracker']
+
+    def set_internal_tracker_url(self,value):
+        """ Set the internal tracker URL (default = determined dynamically
+        from Session's IP+port)
+        @param value URL.
+        """
+        self.sessconfig['tracker_url'] = value
+
+    def get_internal_tracker_url(self):
+        """ Returns the URL of the tracker as set by set_internal_tracker_url().
+        Overridden at runtime by Session class.
+        @return URL. """
+        return self.sessconfig['tracker_url']
 
     #
     # Internal tracker access control settings
@@ -994,6 +1017,24 @@ class SessionConfigInterface:
         @return An absolute path name. """
         return self.sessconfig['overlay_log']
 
+    def set_coopdlconfig(self,dscfg):
+        """ Sets the DownloadStartupConfig with which to start Downloads
+        when you are asked to help in a cooperative download.
+        """
+        c = dscfg.copy()
+        self.sessconfig['coopdlconfig'] = c.dlconfig # copy internal dict
+        
+    def get_coopdlconfig(self):
+        """ Return the DownloadStartupConfig that is used when helping others
+        in a cooperative download.
+        @return DownloadStartupConfig
+        """
+        dlconfig = self.sessconfig['coopdlconfig']
+        if dlconfig is None:
+            return None
+        else:
+            return DownloadStartupConfig(dlconfig)
+        
 
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  
