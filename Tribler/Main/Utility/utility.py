@@ -137,7 +137,6 @@ class Utility:
             # MiscPanel
             'language_file': 'english.lang',
             'confirmonclose': '1',
-            'defrentorwithdest': '1', 
             'associate' : '1',
             # DiskPanel
             'removetorrent': '0',
@@ -156,48 +155,19 @@ class Utility:
             #AdvancedDiskPanel
             #TriblerPanel
             'torrentcollectsleep':'15', # for RSS Subscriptions
-
+            # VideoPanel
+            'videoplaybackmode':'0',
+            # Misc
+            'enableweb2search':'1',
+            'torrentassociationwarned':'0',
             # GUI
             'window_width': '1024', 
             'window_height': '768', 
             'detailwindow_width': '800', 
             'detailwindow_height': '500', 
-            'prefwindow_width': '640', 
-            'prefwindow_height': '420', 
+            'prefwindow_width': '720', 
+            'prefwindow_height': '480', 
             'prefwindow_split': '150', 
-             
-            # Tribler File List
-            'torrent0_rank': '-1',
-            'torrent8_rank': '-1',
-            'torrent9_rank': '-1',
-            'torrent_num': '-1',
-            'torrent_sortedcolumn': '2',
-            'torrent_reversesort': '1',
-            # My Preference List
-            'mypref_sortedcolumn': '2',
-            'mypref_reversesort': '1',
-            # Peer List
-            'buddy_sortedcolumn': '4',
-            'buddy_reversesort': '1',
-            'buddy_num': '500',
-             
-            'stopcollectingthreshold': '200',
-            'updatepeers_interval': '5',
-            'update_preference_interval': '36000',     # 
-             'startrecommender': '1',
-             'enableweb2search':'1',
-             'maxntorrents': 5000,
-             'maxnpeers': 2000,
-             'torrentcollectingrate': 5,
-             'rec_relevance_threshold': '0',
-             'torrent1_width': 200,
-             'mypref0_width': 200,
-             'mypref1_width': 200,
-             'showearthpanel': '0',
-             'videoplaybackmode':'0',
-             'askeduploadbw':'0',
-             
-             'torrentassociationwarned':'0',
         }
 
         if sys.platform == 'win32':

@@ -5,6 +5,7 @@
 # - Add ratelimiter to tribler Session. Wait on Jelle checkin
 # - Adhere to SeedingOptions. Wait on Jelle checkin
 # - Make Core adhere to diskfullthreshold
+# - Remove old config params from Tribler.Main.Utility class
 
 import sys
 import wx
@@ -157,9 +158,13 @@ class NetworkPanel(ABCOptionPanel):
         for target in [scfg,self.utility.session]:
             try:
                 target.set_listen_port(minport)
+            except:
+                print_exc()
+            try:
                 target.set_internal_tracker_url(itrackerurl)
             except:
                 print_exc()
+
 
         scfg.save(cfgfilename)
 
@@ -168,7 +173,6 @@ class NetworkPanel(ABCOptionPanel):
         kickban = self.kickban.GetValue()
 
         # Save DownloadStartupConfig
-        self.defaultDLConfig.set_min_peers(minpeers)
         self.defaultDLConfig.set_auto_kick(kickban)
         
         dlcfgfilename = get_default_dscfg_filename(self.utility.session)
@@ -321,8 +325,14 @@ class AdvancedNetworkPanel(ABCOptionPanel):
         
         for target in [scfg,self.utility.session]:
             try:
-                target.set_ip_for_tracker(ip2track)
+                target.set_ip_for_tracker(ip4track)
+            except:
+                print_exc()
+            try:
                 target.set_bind_to_addresses(ip2bind2list)
+            except:
+                print_exc()
+            try:
                 target.set_upnp_mode(upnp_val)
             except:
                 print_exc()
@@ -391,12 +401,6 @@ class MiscPanel(ABCOptionPanel):
             self.associate = wx.CheckBox(self, -1, self.utility.lang.get('associate'))
             sizer.Add(self.associate, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
-        #rename torrent with dest
-        self.rtwd = wx.CheckBox(self, -1, self.utility.lang.get('rtwd'))
-        self.rtwd.SetValue(self.utility.config.Read('defrentorwithdest', "boolean"))
-        sizer.Add(self.rtwd, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-
-        
         # Languages option
         if self.utility.languages == {}:
             self.getLanguages()
@@ -427,7 +431,6 @@ class MiscPanel(ABCOptionPanel):
         
         self.confirmonclose.SetValue(Read('confirmonclose', "boolean"))
         
-        self.rtwd.SetValue(Read('defrentorwithdest', "boolean"))
         if (sys.platform == 'win32'):
             self.associate.SetValue(Read('associate', "boolean"))        
         
@@ -442,7 +445,8 @@ class MiscPanel(ABCOptionPanel):
               
     def apply(self):       
         self.utility.config.Write('mintray', self.mintray.GetSelection())
-        self.utility.frame.tbicon.updateIcon(False)
+        if self.utility.frame.tbicon is not None:
+            self.utility.frame.tbicon.updateIcon(False)
         
         # FIXME: quick hack to prevent Unicode problem, will still give problems
         # when French, i.e. "fran\,cais" is selected.
@@ -453,11 +457,8 @@ class MiscPanel(ABCOptionPanel):
         
         self.utility.config.Write('confirmonclose', self.confirmonclose.GetValue(), "boolean")
         
-        self.utility.config.Write('defrentorwithdest', self.rtwd.GetValue(), "boolean")          
-        
         if (sys.platform == 'win32'):
             self.utility.config.Write('associate', self.associate.GetValue(), "boolean")
-            self.utility.regchecker.updateRegistry(self.associate.GetValue())         
 
     def getLanguages(self):
         langpath = os.path.join(self.utility.getPath(),"Tribler","Lang")
@@ -500,16 +501,18 @@ class DiskPanel(ABCOptionPanel):
                       
         self.torrentbackup = wx.CheckBox(self, -1, self.utility.lang.get('removebackuptorrent'))
         sizer.Add(self.torrentbackup, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-           
+
+        self.defaultdir = wx.StaticText(self, -1, self.utility.lang.get('setdefaultfolder'))
         self.dir = wx.TextCtrl(self, -1, "")
         browsebtn = wx.Button(self, -1, "...", style = wx.BU_EXACTFIT)
         self.Bind(wx.EVT_BUTTON, self.onBrowseDir, browsebtn)
 
         dirbox = wx.BoxSizer(wx.HORIZONTAL)
-        dirbox.Add(self.dir, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        dirbox.Add(self.defaultdir, 0, wx.ALIGN_CENTER_VERTICAL)
+        dirbox.Add(self.dir, 1, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
         dirbox.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        sizer.Add(dirbox, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+        sizer.Add(dirbox, 0, wx.ALIGN_LEFT|wx.ALL|wx.EXPAND, 5)
 
         diskfullbox = wx.BoxSizer(wx.HORIZONTAL)
         self.diskfullcheckbox = wx.CheckBox(self, -1, self.utility.lang.get('diskfullthreshold'))
@@ -586,7 +589,11 @@ class AdvancedDiskPanel(ABCOptionPanel):
                          self.utility.lang.get('alloc_background'), 
                          self.utility.lang.get('alloc_prealloc'), 
                          self.utility.lang.get('alloc_sparse')]
-        self.alloc_strings = {DISKALLOC_NORMAL: 0, DISKALLOC_BACKGROUND: 1, DISKALLOC_PREALLOCATE: 2, DISKALLOC_SPARSE: 3}
+        self.alloc_types = [DISKALLOC_NORMAL, DISKALLOC_BACKGROUND, DISKALLOC_PREALLOCATE, DISKALLOC_SPARSE]
+        self.alloc_type2int = {}
+        for i in range(len(self.alloc_types)):
+            t = self.alloc_types[i]
+            self.alloc_type2int[t]=i
         self.alloctype_data=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), alloc_choices)
 
         datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('diskalloctype')), 1, wx.ALIGN_CENTER_VERTICAL)
@@ -664,7 +671,7 @@ class AdvancedDiskPanel(ABCOptionPanel):
             Read = self.utility.config.Read
         
         alloctype = self.defaultDLConfig.get_alloc_type()
-        alloc_selection = self.alloc_strings[alloctype] 
+        alloc_selection = self.alloc_type2int[alloctype] 
         self.alloctype_data.SetSelection(alloc_selection)
         
         self.allocrate_data.SetValue(self.defaultDLConfig.get_alloc_rate())
@@ -698,11 +705,8 @@ class AdvancedDiskPanel(ABCOptionPanel):
         self.flush_data_enable.SetValue(flushval > 0)
 
     def apply(self):
-        alloc_strings = self.alloc_strings.keys()
-        
-        alloctype = alloc_strings[self.alloctype_data.GetSelection()]
+        alloctype = self.alloc_types[self.alloctype_data.GetSelection()]
         allocrate = int(self.allocrate_data.GetValue())
-
         maxopen = int(self.maxfilesopen_data.GetValue())
         lockfiles = self.locking_data.GetSelection() >= 1
         lockread  = self.locking_data.GetSelection() > 1
@@ -1011,7 +1015,7 @@ class TriblerPanel(ABCOptionPanel):
         tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')), 0, wx.ALIGN_CENTER_VERTICAL)
         tc_threshold_box.Add(wx.StaticText(self, -1, ' ('+self.utility.lang.get('current_free_space')+' '), 0, wx.ALIGN_CENTER_VERTICAL)
         
-        current_free_space = getfreespace(self.utility.session.get_state_dir())/(2**20)
+        current_free_space = getfreespace(self.utility.session.get_download_help_dir())/(2**20)
         tc_threshold_box.Add(wx.StaticText(self, -1, str(current_free_space)), 0, wx.ALIGN_CENTER_VERTICAL)
         tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')+')'), 0, wx.ALIGN_CENTER_VERTICAL)
         tcsection.Add(tc_threshold_box, 0, wx.EXPAND|wx.ALL, 5)
@@ -1100,11 +1104,29 @@ class TriblerPanel(ABCOptionPanel):
         for target in [scfg,self.utility.session]:
             try:
                 target.set_buddycast(buddycast)
+            except:
+                print_exc()
+            try:
                 target.set_download_help(coopdl)
+            except:
+                print_exc()
+            try:
                 target.set_torrent_collecting(torrcoll)
+            except:
+                print_exc()
+            try:
                 target.set_torrent_collecting_max_torrents(maxcolltorrents)
+            except:
+                print_exc()
+            try:
                 target.set_buddycast_max_peers(maxbcpeers)
+            except:
+                print_exc()
+            try:
                 target.set_stop_collecting_threshold(stopcollthres)
+            except:
+                print_exc()
+            try:
                 target.set_torrent_collecting_rate(collrate)
             except:
                 print_exc()
@@ -1294,8 +1316,8 @@ class ABCTree(wx.TreeCtrl):
 	self.video = self.AppendItem(self.root, self.utility.lang.get('videosetting'))
         self.ratelimits = self.AppendItem(self.root, self.utility.lang.get('ratelimits'))
         self.seedingoptions = self.AppendItem(self.root, self.utility.lang.get('seedoptions'))
-        self.queuesetting = self.AppendItem(self.root, self.utility.lang.get('queuesetting'))
-        self.timeout = self.AppendItem(self.root, self.utility.lang.get('timeout'))
+        #self.queuesetting = self.AppendItem(self.root, self.utility.lang.get('queuesetting'))
+        #self.timeout = self.AppendItem(self.root, self.utility.lang.get('timeout'))
         self.disk = self.AppendItem(self.root, self.utility.lang.get('disksettings'))
         self.advanceddisk = self.AppendItem(self.disk, self.utility.lang.get('advanced'))
         self.network = self.AppendItem(self.root, self.utility.lang.get('networksetting'))

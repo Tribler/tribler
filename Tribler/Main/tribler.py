@@ -8,6 +8,8 @@
 #               you can run from source code by using
 #               >python abc.py
 #               need Python, WxPython in order to run from source code.
+#
+# see LICENSE.txt for license information
 #########################################################################
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -19,6 +21,7 @@
 #
 # This must be done in the first python file that is started.
 #
+
 
 import os,sys
 
@@ -64,19 +67,18 @@ from Tribler.Main.Utility.constants import * #IGNORE:W0611
 import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 import Tribler.Main.vwxGUI.updateXRC as updateXRC
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
-from Tribler.Main.Dialogs.BandwidthSelector import BandwidthSelector
-from Tribler.Main.notification import init as notification_init
 from Tribler.Main.vwxGUI.font import *
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Main.Dialogs.systray import ABCTaskBarIcon 
+from Tribler.Main.notification import init as notification_init
 from Tribler.Category.Category import Category
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Web2.util.update import Web2Updater
-import Tribler.Category.Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
@@ -122,6 +124,7 @@ class ABCFrame(wx.Frame):
         else:
             wx.Frame.__init__(self, args[0], args[1], args[2], args[3])
             self._PostInit()
+        self.wxapp = None
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
@@ -246,7 +249,7 @@ class ABCFrame(wx.Frame):
         try:
             self.tbicon = ABCTaskBarIcon(self)
         except:
-            pass
+            print_exc()
         self.Bind(wx.EVT_ICONIZE, self.onIconify)
         self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
         self.Bind(wx.EVT_SIZE, self.onSize)
@@ -559,25 +562,12 @@ class ABCFrame(wx.Frame):
         
         self.guiUtility.guiOpen.clear()
         
-        # Close the Torrent Maker
-        #self.utility.actions[ACTION_MAKETORRENT].closeWin()
-
-        if False:
-            try:
-                self.utility.webserver.stop()
-            except:
-                data = StringIO()
-                print_exc(file = data)
-                sys.stderr.write(data.getvalue())
-                pass
-
         try:
             # Restore the window before saving size and position
             # (Otherwise we'll get the size of the taskbar button and a negative position)
             self.onTaskBarActivate()
             self.saveWindowSettings()
         except:
-            #print_exc(file=sys.stderr)
             print_exc()
 
         try:
@@ -590,8 +580,6 @@ class ABCFrame(wx.Frame):
         except:
             pass
 
-        #self.oldframe.Destroy()
-
         try:
             if self.tbicon is not None:
                 self.tbicon.RemoveIcon()
@@ -603,25 +591,6 @@ class ABCFrame(wx.Frame):
             sys.stderr.write(data.getvalue())
             pass
 
-        # Arno: at the moment, Tribler gets a segmentation fault when the
-        # tray icon is always enabled. This SEGV occurs in the wx mainloop
-        # which is entered as soon as we leave this method. Hence I placed
-        # tribler_done() here, so the database are closed properly
-        # before the crash.
-        #
-        # Arno, 2007-02-28: Preferably this should be moved to the main 
-        # run() method below, that waits a while to allow threads to finish.
-        # Ideally, the database should still be open while they finish up.
-        # Because of the crash problem with the icontray this is the safer
-        # place.
-        #
-        # Arno, 2007-08-10: When a torrentfile is passed on the command line,
-        # the client will crash just after this point due to unknown reasons
-        # (it even does it when we don't look at the cmd line args at all!)
-        # Hence, for safety, I close the DB here already. 
-        #if sys.platform == 'linux2':
-        #
-        
         #tribler_done(self.utility.getConfigPath())            
         
         if DEBUG:    
@@ -713,6 +682,13 @@ class ABCFrame(wx.Frame):
         """ Called by VideoServer when using an external player """
         pass
 
+    def set_wxapp(self,wxapp):
+        self.wxapp = wxapp
+        
+    def quit(self):
+        if self.wxapp is not None:
+            self.wxapp.ExitMainLoop()
+        
 
 ##############################################################
 #
@@ -744,7 +720,7 @@ class ABCApp(wx.App):
             #s = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT
             self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1)
             
-            # Arno: Do heavy startup on GUI thread after splash screen has been
+            # Arno: TODO: Do heavy startup on GUI thread after splash screen has been
             # painted.
             wx.CallAfter(self.PostInit)
             return True
@@ -771,7 +747,6 @@ class ABCApp(wx.App):
             self.guiserver = GUITaskQueue.getInstance()
             self.guiserver.register()
     
-            print 'Doing tribler.postinit'
             # H4x0r a bit
             set_tasteheart_bitmaps(self.utility.getPath())
             set_perfBar_bitmaps(self.utility.getPath())
@@ -824,6 +799,7 @@ class ABCApp(wx.App):
                 numfileslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
 
             self.menubar = MainMenuBar(self.frame,self.utility)
+            self.frame.set_wxapp(self)
 
             # Make sure self.utility.frame is set
             self.startAPI()
@@ -838,19 +814,6 @@ class ABCApp(wx.App):
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
             
-            
-            #asked = self.utility.config.Read('askeduploadbw', 'boolean')
-            asked = True
-            if not asked:
-                dlg = BandwidthSelector(self.frame,self.utility)
-                result = dlg.ShowModal()
-                if result == wx.ID_OK:
-                    ulbw = dlg.getUploadBandwidth()
-                    self.utility.config.Write('maxuploadrate',ulbw)
-                    self.utility.config.Write('maxseeduploadrate',ulbw)
-                    self.utility.config.Write('askeduploadbw','1')
-                dlg.Destroy()
-
             # Arno, 2007-05-03: wxWidgets 2.8.3.0 and earlier have the MIME-type for .bmp 
             # files set to 'image/x-bmp' whereas 'image/bmp' is the official one.
             try:
@@ -900,6 +863,18 @@ class ABCApp(wx.App):
             print_exc()
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
+            # Set default Session params here
+            torrcolldir = os.path.join(get_default_dest_dir(),STATEDIR_TORRENTCOLL_DIR)
+            self.sconfig.set_torrent_collecting_dir(torrcolldir)
+            
+            # rename old collected torrent directory
+            try:
+                old_collected_torrent_dir = os.path.join(state_dir, 'torrent2')
+                if not os.path.exists(torrcolldir) and os.path.isdir(old_collected_torrent_dir):
+                    os.rename(old_collected_torrent_dir, torrcolldir)
+                    print >>sys.stderr,"main: Moved dir with old collected torrents to", torrcolldir
+            except:
+                print_exc()
         
         s = Session(self.sconfig)
         #s.set_download_states_callback(self.sesscb_states_callback)
@@ -917,17 +892,20 @@ class ABCApp(wx.App):
 
         # Load the default DownloadStartupConfig
         dlcfgfilename = get_default_dscfg_filename(s)
-        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         try:
-            defaultDLConfig = DownloadStartupConfig.load(dlcfgfilename)
+            defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             print_exc()
-            defaultdestdir = os.path.join(s.get_state_dir(),'downloads')
+            defaultdestdir = os.path.join(get_default_dest_dir())
             defaultDLConfig.set_dest_dir(defaultdestdir)
+
+        print >>sys.stderr,"main: Read dlconfig",defaultDLConfig.dlconfig
 
         s.set_coopdlconfig(defaultDLConfig)
         
         # Load all other downloads
+        # TODO: reset all saved DownloadConfig to new default?
         s.load_checkpoint()
         
 
@@ -977,6 +955,7 @@ class ABCApp(wx.App):
         self.utility.queue.addtorrents.AddTorrentFromFile(filename)
 
     def OnExit(self):
+        print >>sys.stderr,"main: ONEXIT"
         
         self.torrentfeed.shutdown()
 
@@ -1090,7 +1069,7 @@ def run(params = None):
         app.MainLoop()
 
     print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
-    sleep(4)
+    sleep(1)
 
     # This is the right place to close the database, unfortunately Linux has
     # a problem, see ABCFrame.OnCloseWindow
