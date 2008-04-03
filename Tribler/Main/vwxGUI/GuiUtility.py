@@ -381,26 +381,15 @@ class GUIUtility:
             check = SingleManualChecking(torrent,self.utility.session)
             check.start()
             
-    def refreshTorrentStats(self):
-        "Called from launchmanycore by network thread to refresh statistics of downloading torrents"
+    def refreshTorrentStats(self,dslist):
+        """ Called from ABCApp by MainThread to refresh statistics of downloading torrents"""
         try:
             if self.guiOpen.isSet():
-                self.standardOverview.refreshTorrentStats_network_callback()
-                self.standardDetails.refreshTorrentStats_network_callback()
+                self.standardDetails.refreshTorrentStats(dslist)
         except:
-            print >>sys.stderr,'GUIUtil: Error refreshing stats'
             print_exc()
 
 
-    def refreshTorrentTotalStats(self,*args,**kwargs):
-        "Called from ABCScheduler by network thread to refresh statistics of downloading torrents"
-        try:
-            if self.guiOpen.isSet():
-                self.standardDetails.refreshTorrentTotalStats_network_callback(*args,**kwargs)
-        except:
-            print >>sys.stderr,'GUIUtil: Error refreshing total stats'
-            print_exc()
-   
    
     def emailFriend(self, event):
         ip = self.utility.config.Read('bind')

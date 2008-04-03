@@ -1537,21 +1537,31 @@ class standardDetails(wx.Panel):
                self.friend_db.toggleFriend(peer_data['permid'])
 
 
-    def refreshTorrentStats_network_callback(self):
-        """ Called by network thread """
-        wx.CallAfter(self.refreshTorrentStats)
-        
-    def refreshTorrentStats(self):
+    def refreshTorrentStats(self,dslist):
         """ Called by GUI thread """
-        active = self.utility.torrents["active"]
+        nactive = 0
         
         tl = []
-        for ABCTorrentTemp in active:
-            progresstxt = ABCTorrentTemp.getColumnText(COL_PROGRESS)[:-1]
-            progress = float(progresstxt)
-            if progress < 100.0:
-                tl.append([progress,ABCTorrentTemp])
+        totaldlspeed = 0.0
+        totalulspeed = 0.0
+        for ds in dslist:
+            d = ds.get_download()
+            progress = ds.get_progress()
             
+            if progress < 1.0:
+                tl.append([progress,d])
+            
+            totaldlspeed += ds.get_current_speed(DOWNLOAD)
+            totalulspeed += ds.get_current_speed(UPLOAD)
+            
+            status = ds.get_status()
+            if status != DLSTATUS_STOPPED and status != DLSTATUS_STOPPED_ON_ERROR:
+                nactive += 1
+
+            print >>sys.stderr,"standardDetails: stats:",`d.get_def().get_name()`,progress,status
+            
+
+
         # Reverse sort on percentage done, get top 4 
         tl.sort(revtcmp)
         ml = min(len(tl),4)
@@ -1559,10 +1569,9 @@ class standardDetails(wx.Panel):
         
         for i in range(4):
             if i < ml:
-                elem = newtl[i]
-                progresstxt = str(elem[0])+'%'
-                ABCTorrentTemp = elem[1]
-                file = ABCTorrentTemp.info['name']
+                (progress,d) = newtl[i]
+                progresstxt = progress2txt(progress)
+                file = d.get_def().get_name_as_unicode()
             else:
                 progresstxt = ''
                 file = ''
@@ -1574,26 +1583,21 @@ class standardDetails(wx.Panel):
             tlabel.SetLabel(file[:45])
             plabel.SetLabel(progresstxt[:45])
         statdlpanel = self.data['status']['panel']
+        
+        self.refreshTorrentTotalStats(nactive,totaldlspeed,totalulspeed)
+        
         statdlpanel.Refresh()
 
 
-
-    def refreshTorrentTotalStats_network_callback(self,*args,**kwargs):
-        """ Called by network thread """
-        refresh_torrent_stats_lambda = lambda:self.refreshTorrentTotalStats(args,kwargs)
-        wx.CallAfter(refresh_torrent_stats_lambda)
-        
-    def refreshTorrentTotalStats(self,totaldlspeed='',totalulspeed=''):
+    def refreshTorrentTotalStats(self,nactive,totaldlspeed,totalulspeed):
         """ Called by GUI thread """
-        active = self.utility.torrents["active"]
-        
         leftlabel = self.data['status']['st28c']
         rightlabel = self.data['status']['downSpeed']
         rightlabel2 = self.data['status']['upSpeed']
         
-        lefttext = self.utility.lang.get('downloading')+' ('+str(len(active))+')'
-        righttxt = totaldlspeed
-        righttxt2 =totalulspeed
+        lefttext = self.utility.lang.get('downloading')+' ('+str(nactive)+')'
+        righttxt = str(int(totaldlspeed))+' KB/s'
+        righttxt2 = str(int(totalulspeed))+' KB/s'
         leftlabel.SetLabel(lefttext)
         rightlabel.SetLabel(righttxt)
         rightlabel2.SetLabel(righttxt2)
@@ -1758,3 +1762,10 @@ def getShortTrackerFormat(n):
         short = n[:27]
     return ' '+short
 
+
+def progress2txt(progress):
+    # Truncate the progress value rather than round down
+    # (will show 99.9% for incomplete torrents rather than 100.0%)
+    progress = int(progress * 10)/10.0
+    
+    return ('%.1f' % progress) + "%"

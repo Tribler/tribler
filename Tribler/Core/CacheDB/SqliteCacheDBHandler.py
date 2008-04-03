@@ -779,6 +779,8 @@ class TorrentDBHandler(BasicDBHandler):
             torrent["last_check_time"] = 0
         torrent["status"] = self._getStatusID(extra_info.get('status', "unknown"))
         
+        print >>sys.stderr,"TorrentDBHandler: readTorrentData: ADDING TORRENT WITH STATUS",torrent["status"]
+        
         torrent["source"] = self._getSourceID(source)
         torrent["insert_time"] = long(time())
 
@@ -1167,6 +1169,9 @@ class TorrentDBHandler(BasicDBHandler):
         if library:
             mypref_stats = self.mypref_db.getMyPrefStats()
         
+        print >>sys.stderr,"TorrentDBHandler: GET TORRENTS ###################",len(res_list)
+        
+        
         torrent_list = []
         for item in res_list:
             value_name[0] = 'torrent_id'
@@ -1188,6 +1193,9 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['download_started'] = data[0]
                 torrent['progress'] = data[1]
                 torrent['destdir'] = data[2]
+                
+            print >>sys.stderr,"TorrentDBHandler: GET TORRENTS",`torrent`
+                
             torrent_list.append(torrent)
         del res_list
         if library:

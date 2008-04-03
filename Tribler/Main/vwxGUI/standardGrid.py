@@ -7,12 +7,12 @@ from Tribler.Main.vwxGUI.FriendsItemPanel import FriendsItemPanel
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
 from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
+from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, PeerDBHandler
 from Tribler.Core.simpledefs import *
-from Tribler.Main.vwxGUI.GridState import GridState
-from Tribler.Category.Category import Category
+from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
 from Tribler.Core.Utilities.utilities import *
 from traceback import print_exc,print_stack
 
@@ -116,7 +116,6 @@ class GridManager(object):
         # library add NTFY_TORRENTS and NTFY_DOWNLOADS? or NTFY_MYPREFERENCES
         if self.state.db == 'libraryMode':
             if not self.download_states_callback_set:
-                self.session.set_download_states_callback(self.download_state_network_callback)
                 self.download_states_callback_set = True
         
     def reactivate(self):
@@ -128,13 +127,13 @@ class GridManager(object):
             self.refresh()
             
     def download_state_network_callback(self, *args):
-        if self.grid.isShowByOverview():
-            wx.CallAfter(self.download_state_gui_callback, *args)
-            return 1.0, False # Do not call me again!
-        else:
-            self.callbacks_disabled = True
-            self.download_states_callback_set = False
-            return 0.0, False
+        """ Called by SessionThread from ABCApp """
+        if self.download_states_callback_set:
+            if self.grid.isShowByOverview():
+                wx.CallAfter(self.download_state_gui_callback, *args)
+            else:
+                self.callbacks_disabled = True
+                self.download_states_callback_set = False
         
     def item_network_callback(self, *args):
         # only handle network callbacks when grid is shown

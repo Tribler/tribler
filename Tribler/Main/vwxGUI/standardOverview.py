@@ -216,15 +216,6 @@ class standardOverview(wx.Panel):
                 print >>sys.stderr,'standardOverview: Error, could not return firstItem, data=%s' % data
             return None
         
-    def refreshTorrentStats_network_callback(self):
-        """ Called by network thread """
-        wx.CallAfter(self.refreshTorrentStats)
-        
-    def refreshTorrentStats(self):
-        if self.mode == 'libraryMode':
-            grid = self.data[self.mode].get('grid')
-            grid.refreshData()
-    
     def filterChanged(self, filterState):
         if DEBUG:
             print >>sys.stderr,"standardOverview: filterChanged",filterState,self.mode#,self.data[self.mode]

@@ -327,7 +327,8 @@ class ABCFrame(wx.Frame):
         try:
             if tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
-            dscfg = globals.defaultDLConfig.copy()
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            dscfg = defaultDLConfig.copy()
             if destdir is not None:
                 dscfg.set_dest_dir(destdir)
         
@@ -709,6 +710,10 @@ class ABCApp(wx.App):
         try:
             self.utility = Utility(self.installdir)
             self.utility.app = self
+
+            self.postinitstarted = False
+            self.Bind(wx.EVT_IDLE, self.OnIdle)
+            
             # Set locale to determine localisation
             #locale.setlocale(locale.LC_ALL, '')
 
@@ -720,9 +725,9 @@ class ABCApp(wx.App):
             #s = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT
             self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1)
             
-            # Arno: TODO: Do heavy startup on GUI thread after splash screen has been
+            # Arno: Do heavy startup on GUI thread after splash screen has been
             # painted.
-            wx.CallAfter(self.PostInit)
+            self.splash.Show()
             return True
             
         except Exception,e:
@@ -731,10 +736,17 @@ class ABCApp(wx.App):
             self.onError()
             return False
 
+    def OnIdle(self,event=None):
+        if not self.postinitstarted:
+            self.postinitstarted = True
+            wx.CallAfter(self.PostInit)
+            # On Linux I sometimes have to move the mouse into the splash for
+            # the rest of Tribler to start. H4x0r
+            if event is not None:
+                event.RequestMore(True)
+
     def PostInit(self):
         try:
-            wx.Yield() # Let splashscreen be painted
-            
             # Initialise fonts
             font.init()
 
@@ -877,10 +889,9 @@ class ABCApp(wx.App):
                 print_exc()
         
         s = Session(self.sconfig)
-        #s.set_download_states_callback(self.sesscb_states_callback)
-
         self.utility.session = s
 
+        s.set_download_states_callback(self.sesscb_states_callback)
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
         
@@ -907,7 +918,51 @@ class ABCApp(wx.App):
         # Load all other downloads
         # TODO: reset all saved DownloadConfig to new default?
         s.load_checkpoint()
-        
+
+        # Create global rate limiter
+        self.ratelimiter = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
+        self.rateadjustcount = 0 
+        maxup = self.utility.config.Read('maxuploadrate', "int")
+        maxdown = self.utility.config.Read('maxdownloadrate', "int")
+        maxupseed = self.utility.config.Read('maxseeduploadrate', "int")
+        self.ratelimiter.set_global_max_speed(UPLOAD,maxup)
+        self.ratelimiter.set_global_max_speed(DOWNLOAD,maxdown)
+        self.ratelimiter.set_global_max_seedupload_speed(maxupseed)
+        self.utility.ratelimiter = self.ratelimiter
+ 
+
+    def sesscb_states_callback(self,dslist):
+        print >>sys.stderr,"main: Stats:"
+        try:
+            # Pass DownloadStates to libaryView
+            try:
+                # Jelle: libraryMode only exists after user clicked button
+                modedata = self.guiUtility.standardOverview.data['libraryMode']
+                gm = modedata['grid'].gridManager
+                gm.download_state_network_callback(dslist)
+            except KeyError:
+                pass
+            except:
+                print_exc()
+            
+            # Adjust speeds once every 4 seconds
+            adjustspeeds = False
+            if self.rateadjustcount % 4 == 0:
+                adjustspeeds = True
+            self.rateadjustcount += 1
+    
+            if adjustspeeds:
+                self.ratelimiter.add_downloadstatelist(dslist)
+                self.ratelimiter.adjust_speeds()
+                
+            # Update stats in lower right overview box
+            wx.CallAfter(self.guiUtility.refreshTorrentStats,dslist)
+                
+        except:
+            print_exc()
+            
+        return(1.0,False)
+
 
     def sesscb_ntfy_dbstats(self,subject,changeType,objectID,*args):
         """ Called by SessionCallback thread """

@@ -37,11 +37,15 @@ class DownloadState(Serializable):
         @param logmsgs A list of messages from the BT engine which may be of 
         interest to the user. E.g. connection to tracker failed.
         """
+        
+        #print >>sys.stderr,"DownloadState.__init__",`download.get_def().get_name()`,"status",status,"error",error,"progress",progress,"stats",`stats`
+        
         self.download = download
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
         self.coopdl_helpers = coopdl_helpers
         if stats is None:
+            # No info available yet from download engine
             self.error = error # readonly access
             self.progress = progress
             if self.error is not None:

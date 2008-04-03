@@ -240,7 +240,11 @@ class TriblerLaunchMany(Thread):
                     save_path = os.path.join(torrent_dir, save_name)
                     if not os.path.exists(save_path):
                         tdef.save(save_path)
-                    self.torrent_db.addExternalTorrent(save_path, '')
+                        
+                    # hack, make sure these torrents are always good so they show up
+                    # in TorrentDBHandler.getTorrents()
+                    extra_info = {'status':'good'}
+                    self.torrent_db.addExternalTorrent(save_path, source='',extra_info=extra_info)
                     dest_path = d.get_dest_dir()    
                     # TODO: if user renamed the dest_path for single-file-torrent
                     data = {'destination_path':dest_path}
