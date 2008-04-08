@@ -17,6 +17,10 @@
 #
 # 2007-05-08: vuze appears to have added a ;jsessionid to the <enclosure> tag. I now strip that for
 # the URLHistory, but use it in requests. So don't be alarmed by the ;jsessionid in the debug messages.
+#
+# 2008-04-04: vuze appears to have changed format altogether: It no longer
+# adheres to RSS. <item> is called <entry> and <enclosure> is called <content>
+#
 
 import os
 import sys
@@ -289,24 +293,25 @@ class TorrentFeedReader:
                     item in feed_dom.getElementsByTagName("item")]
                    if link.endswith(".torrent") and not self.urls_already_seen.contains(link)]
 
-        #for item in feed_dom.getElementsByTagName("item"):
-        #    print >>sys.stderr,"RSS DEBUG: content",item.getElementsByTagName("content")[0].childNodes[0].data
 
-        # vuze feeds contain "enclosure" tags that contain the link to the torrent file as an attribute
-        # optimize for that
-        for item in feed_dom.getElementsByTagName("item"):
+        # vuze feeds contain <entry> tags instead of <item> tags which includes
+        # a <content> tags that contain the link to the torrent file as an 
+        # attribute. Support them especially
+        for item in feed_dom.getElementsByTagName("entry"):
             title = item.getElementsByTagName("title")[0].childNodes[0].data
-            #print "ENCLOSURE",item.getElementsByTagName("enclosure")
-            k = item.getElementsByTagName("enclosure").length
+            #print "ENCLOSURE",item.getElementsByTagName("content")
+            k = item.getElementsByTagName("content").length
             #print "ENCLOSURE LEN",k
             for i in range(k):
-                child = item.getElementsByTagName("enclosure").item(i)
-                #print "ENCLOSURE CHILD",child
-                if child.hasAttribute("url"):
+                child = item.getElementsByTagName("content").item(i)
+                #print "ENCLOSURE CHILD",`child`
+                if child.hasAttribute("src"):
+                    link = child.getAttribute("src")
                     #print "ENCLOSURE CHILD getattrib",link
-                    link = child.getAttribute("url")
                     if not self.urls_already_seen.contains(link):
                         entries.append((title,link))
+                #else:
+                #    print "ENCLOSURE CHILD NO src"
 
 
         if DEBUG:
