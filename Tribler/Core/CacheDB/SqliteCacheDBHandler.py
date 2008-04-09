@@ -260,7 +260,7 @@ class PeerDBHandler(BasicDBHandler):
     def addPeer(self, permid, value, update_dns=True, update_lastseen=True, commit = True):
         # add or update a peer
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
-        
+        # Jie: deepcopy(value)?
         #print >>sys.stderr,"sqldbhand: addPeer",`permid`,`value`
         
         _permid = _last_seen = _ip = _port = None
@@ -1469,7 +1469,230 @@ class BarterCastDBHandler(BasicDBHandler):
     getInstance = staticmethod(getInstance)
 
     def __init__(self):
+        BarterCastDBHandler.__single = self
         BasicDBHandler.__init__(self, 'BarterCast')
-        raise NotImplementedError
+        self.peer_db = PeerDBHandler.getInstance()
+        self.my_permid = ""
+
         
+        
+    def getName(self, permid):
+
+        if permid == 'testpermid_1':
+            return "Test_1"
+        elif permid == 'testpermid_2':
+            return "Test_2"
+        elif permid == 'non-tribler':
+            return "Non-tribler"
+
+        
+        name = self.peer_db.getPeer(permid, 'name')
+        
+        if name == None or name == '':
+            return 'peer %s' % show_permid_shorter(permid) 
+        else:
+            return name
+
+    def getPeerID(self, permid):
+        
+        # by convention '-1' is the id of non-tribler peers
+        if permid == "non-tribler":
+            return -1
+        else:
+            return self.peer_db.getPeerID(permid)
+
+    def getItem(self, (permid_1, permid_2), default=False):
+
+        peer_id1 = self.getPeerID(permid_1)
+        peer_id2 = self.getPeerID(permid_2)
+        
+        where = "peer_id_from=%d and peer_id_to=%d" % (peer_id1, peer_id2)
+        item = self.getOne(('downloaded', 'uploaded', 'last_seen'), where=where)
+        
+        if item is None:
+            return None
+        
+        if len(item) != 3:
+            return None
+            
+        itemdict = {}
+        itemdict['downloaded'] = item[0]
+        itemdict['uploaded'] = item[1]
+        itemdict['last_seen'] = item[2]
+        itemdict['peer_id_from'] = peer_id1
+        itemdict['peer_id_to'] = peer_id2
+
+        return itemdict
+
+
+
+
+    def getItemList(self):    # get the list of all peers' permid
+        
+        keys = self.getAll(('peer_id_from','peer_id_to'))
+        return keys
+
+    # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
+    def getTopNPeers(self, n, local_only = False):
+        
+        n = max(1, n)
+        itemlist = self.getItemList()
+
+        if local_only:
+            # get only items of my local dealings
+            itemlist = filter(lambda (permid_from, permid_to): permid_to == self.my_permid or permid_from == self.my_permid, itemlist)
+
+        total_up = {}
+        total_down = {}
+
+        processed = []
+
+        for (permid_1, permid_2) in itemlist:
+            
+            if not (permid_2, permid_1) in processed:
+
+                item = self.getItem((permid_1, permid_2))
+
+                up = item['uploaded'] *1024 # make into bytes
+                down = item['downloaded'] *1024
+
+                if DEBUG:
+                    print "BarterCast DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_1), self.getName(permid_2), up, down)
+
+                # process permid_1
+                total_up[permid_1] = total_up.get(permid_1, 0) + up
+                total_down[permid_1] = total_down.get(permid_1, 0) + down
+
+                # process permid_2
+                total_up[permid_2] = total_up.get(permid_2, 0) + down
+                total_down[permid_2] = total_down.get(permid_2, 0) +  up
+
+                processed.append((permid_1, permid_2))
+
+
+        # create top N peers
+        top = []
+        min = 0
+
+        for peer in total_up.keys():
+
+            up = total_up[peer]
+            down = total_down[peer]
+
+            if DEBUG:
+                print "BarterCast: total of %s: up = %d down = %d" % (self.getName(peer), up, down)
+
+            # we know rank on total upload?
+            value = up
+
+            # check if peer belongs to current top N
+            if peer != 'non-tribler' and peer != self.my_permid and (len(top) < n or value > min):
+
+                top.append((peer, up, down))
+
+                # sort based on value
+                top.sort(cmp = lambda (p1, u1, d1), (p2, u2, d2): cmp(u2, u1))
+
+                # if list contains more than N elements: remove the last (=lowest value)
+                if len(top) > n:
+                    del top[-1]
+
+                # determine new minimum of values    
+                min = top[-1][1]
+
+
+
+        result = {}
+
+        result['top'] = top
+
+        # My total up and download, including interaction with non-tribler peers
+        result['total_up'] = total_up.get(self.my_permid, 0)
+        result['total_down'] = total_down.get(self.my_permid, 0)
+
+        # My up and download with tribler peers only
+        result['tribler_up'] = result['total_up'] - total_down.get('non-tribler', 0)
+        result['tribler_down'] = result['total_down'] - total_up.get('non-tribler', 0)
+
+        return result
+
+    def addItem(self, (permid_1, permid_2), item):
+
+#        if value.has_key('last_seen'):    # get the latest last_seen
+#            old_last_seen = 0
+#            old_data = self.getPeer(permid)
+#            if old_data:
+#                old_last_seen = old_data.get('last_seen', 0)
+#            last_seen = value['last_seen']
+#            value['last_seen'] = max(last_seen, old_last_seen)
+
+        # get peer ids
+        peer_id1 = self.getPeerID(permid_1)
+        peer_id2 = self.getPeerID(permid_2)
+                
+        # check if they already exist in database; if not: add
+        if peer_id1 is None:
+            self._db.insertPeer(permid_1)
+            peer_id1 = self.getPeerID(permid_1)
+
+        if peer_id2 is None:
+            self._db.insertPeer(permid_2)
+            peer_id2 = self.getPeerID(permid_2)
+            
+        item['peer_id_from'] = peer_id1
+        item['peer_id_to'] = peer_id2    
+            
+        self._db.insert(self.table_name, **item)
+
+
+    def updateItem(self, (permid_1, permid_2), key, value):
+        
+        if DEBUG:
+            print "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+
+        itemdict = self.getItem((permid_from, permid_to))
+
+        # if item doesn't exist: add it
+        if itemdict == None:
+            self.addItem((permid_1, permid_2), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())})
+            itemdict = self.getItem((permid_from, permid_to))
+
+        # get peer ids
+        peer_id1 = itemdict['peer_id_from']
+        peer_id2 = itemdict['peer_id_to']
+
+        where = "peer_id_from=%d and peer_id_to=%d" % (peer_id1, peer_id2)
+
+        item = {'uploaded': itemdict['uploaded'], 'downloaded': itemdict['downloaded'], 'last_seen': itemdict['last_seen']}
+        self._db.update(self.table_name, where = where, **item)
+
+        
+
+    def incrementItem(self, (permid_1, permid_2), key, value):
+
+        if DEBUG:
+            print "BarterCast: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+
+        itemdict = self.getItem((permid_from, permid_to))
+
+        # if item doesn't exist: add it
+        if itemdict == None:
+            self.addItem((permid_1, permid_2), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())})
+            itemdict = self.getItem((permid_from, permid_to))
+            
+        if key in itemdict.keys():
+            old_value = itemdict[key]
+            new_value = old_value + value
+            
+            where = "peer_id_from=%d and peer_id_to=%d" % (peer_id1, peer_id2)
+
+            item = {key: new_value}
+            self._db.update(self.table_name, where = where, **item)            
+
+            return new_value
+
+        return None
+
+
+    
 

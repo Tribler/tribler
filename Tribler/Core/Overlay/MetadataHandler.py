@@ -16,9 +16,11 @@ from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.Core.osutils import getfreespace
+from Tribler.Core.CacheDBHandler import BarterCastDBHandler
 
 from threading import currentThread
 DEBUG = False
+BARTERCAST_TORRENTS = False
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -38,6 +40,7 @@ class MetadataHandler:
         self.avg_torrent_size = 25*(2**10)
         self.initialized = False
         self.registered = False
+
 
     def getInstance(*args, **kw):
         if MetadataHandler.__single is None:
@@ -266,7 +269,25 @@ class MetadataHandler:
             print >> sys.stderr,"metadata: send metadata", len(metadata_request)
         ## Optimization: we know we're currently connected
         self.overlay_bridge.send(permid,METADATA + metadata_request,self.metadata_send_callback)
+        
+        # BarterCast: add bytes of torrent to BarterCastDB
+        # Save exchanged KBs in BarterCastDB
+        if permid != None and BARTERCAST_TORRENTS:
+            
+            bartercastdb = BarterCastDBHandler.getInstance()
+            
+            torrent_kb = float(self.avg_torrent_size) / 1024
+            name = bartercastdb.getName(permid)
+            my_permid = bartercastdb.my_permid
+
+            if DEBUG:
+                print >> sys.stdout, "barter: Torrent (%d KB) sent to peer %s (PermID = %s)" % (torrent_kb, name, permid)
+
+            if torrent_kb > 0:
+                bartercastdb.incrementItem((my_permid, permid), 'uploaded', torrent_kb)
+        
         return len(metadata_request)
+        
 
     def metadata_send_callback(self,exc,permid):
         if exc is not None:
@@ -609,6 +630,25 @@ class MetadataHandler:
                 print >>sys.stderr,"metadata: Was I asked to dlhelp someone",self.dlhelper
 
             self.notify_torrent_is_in(infohash,metadata)
+            
+            
+            # BarterCast: add bytes of torrent to BarterCastDB
+            # Save exchanged KBs in BarterCastDB
+            if permid != None and BARTERCAST_TORRENTS:
+                
+                bartercastdb = BarterCastDBHandler.getInstance()
+                                
+                torrent_kb = float(self.avg_torrent_size) / 1024
+                name = bartercastdb.getName(permid)
+                my_permid = bartercastdb.my_permid
+
+                if DEBUG:
+                    print >> sys.stdout, "barter: Torrent (%d KB) received from peer %s (PermID = %s)" % (torrent_kb, name, permid)
+
+                if torrent_kb > 0:
+                    bartercastdb.incrementItem((my_permid, permid), 'downloaded', torrent_kb)
+            
+            
                 
         except Exception, e:
             print_exc()
