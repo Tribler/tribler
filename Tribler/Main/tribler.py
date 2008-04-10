@@ -740,10 +740,11 @@ class ABCApp(wx.App):
         if not self.postinitstarted:
             self.postinitstarted = True
             wx.CallAfter(self.PostInit)
-            # On Linux I sometimes have to move the mouse into the splash for
-            # the rest of Tribler to start. H4x0r
+            # Arno: On Linux I sometimes have to move the mouse into the splash
+            # for the rest of Tribler to start. H4x0r
             if event is not None:
                 event.RequestMore(True)
+                event.Skip()
 
     def PostInit(self):
         try:
@@ -891,7 +892,7 @@ class ABCApp(wx.App):
         s = Session(self.sconfig)
         self.utility.session = s
 
-        s.set_download_states_callback(self.sesscb_states_callback)
+        
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
         
@@ -930,8 +931,17 @@ class ABCApp(wx.App):
         self.ratelimiter.set_global_max_seedupload_speed(maxupseed)
         self.utility.ratelimiter = self.ratelimiter
  
+        # Only allow updates to come in after we defined ratelimiter
+        s.set_download_states_callback(self.sesscb_states_callback)
+ 
 
     def sesscb_states_callback(self,dslist):
+        """ Called by SessionThread """
+        wx.CallAfter(self.gui_states_callback,dslist)
+        return(1.0,False)
+        
+    def gui_states_callback(self,dslist):
+        """ Called by MainThread  """
         print >>sys.stderr,"main: Stats:"
         try:
             # Pass DownloadStates to libaryView
@@ -956,12 +966,10 @@ class ABCApp(wx.App):
                 self.ratelimiter.adjust_speeds()
                 
             # Update stats in lower right overview box
-            wx.CallAfter(self.guiUtility.refreshTorrentStats,dslist)
+            self.guiUtility.refreshTorrentStats(dslist)
                 
         except:
             print_exc()
-            
-        return(1.0,False)
 
 
     def sesscb_ntfy_dbstats(self,subject,changeType,objectID,*args):

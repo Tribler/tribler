@@ -16,7 +16,7 @@ from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.Core.osutils import getfreespace
-from Tribler.Core.CacheDBHandler import BarterCastDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 
 from threading import currentThread
 DEBUG = False
@@ -88,7 +88,7 @@ class MetadataHandler:
         elif t == METADATA:     # the other peer sends me a torrent
             if DEBUG:
                 print >> sys.stderr,"metadata: Got METADATA",len(message),show_permid_short(permid),selversion
-            return self.got_metadata(message, selversion)
+            return self.got_metadata(permid, message, selversion)
         else:
             if DEBUG:
                 print >> sys.stderr,"metadata: UNKNOWN OVERLAY MESSAGE", ord(t)
@@ -577,7 +577,7 @@ class MetadataHandler:
             print >> sys.stderr, "problem metadata:", repr(metadata)
             return False
         
-    def got_metadata(self, message, selversion):    
+    def got_metadata(self, permid, message, selversion):    
         """ receive torrent file from others """
         
         # Arno, 2007-06-20: Disabled the following code. What's this? Somebody sends 
