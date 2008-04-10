@@ -290,7 +290,7 @@ class LibraryItemPanel(wx.Panel):
             
 
         
-        if torrent.get('ds'):    # Jie: temporary disable it by set it as 'abctorrent2'
+        if torrent.get('ds'):
             #print '%s is an active torrent' % torrent['name']
             ds = torrent['ds']
             #abctorrent.setLibraryPanel(self)
@@ -305,8 +305,8 @@ class LibraryItemPanel(wx.Panel):
 #            self.upSpeed.Show()
             self.speedUp2.Show()
             
-            dls = ds.get_current_speed(DOWNLOAD)
-            uls = ds.get_current_speed(UPLOAD)
+            dls = ds.get_current_speed(DOWNLOAD)*1024 # speed_format needs byte/s
+            uls = ds.get_current_speed(UPLOAD)*1024
             self.speedDown2.SetLabel(self.utility.speed_format(dls)) 
             self.speedUp2.SetLabel(self.utility.speed_format(uls))
             
@@ -315,7 +315,7 @@ class LibraryItemPanel(wx.Panel):
             progress = (ds.get_progress() or 0.0) * 100.0
             
             self.percentage.SetLabel('%.1f%%' % progress)
-            eta = self.utility.eta_value(ds.get_eta())
+            eta = self.utility.eta_value(ds.get_eta(), truncate=2)
             if eta == '' or eta.find('unknown') != -1 or finished:
                 eta = ''
             self.eta.SetLabel(eta)
