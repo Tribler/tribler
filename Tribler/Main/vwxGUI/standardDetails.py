@@ -1766,6 +1766,6 @@ def getShortTrackerFormat(n):
 def progress2txt(progress):
     # Truncate the progress value rather than round down
     # (will show 99.9% for incomplete torrents rather than 100.0%)
-    progress = int(progress * 10)/10.0
+    progress = int(progress * 1000)/10.0
     
     return ('%.1f' % progress) + "%"

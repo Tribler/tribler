@@ -77,7 +77,7 @@ class OverlayApps:
 
             # Create handler for messages to dlhelp helper
             self.help_handler = HelperMessageHandler()
-            self.help_handler.register(session,self.metadata_handler,config['download_help_dir'],config['coopdlconfig'])
+            self.help_handler.register(session,self.metadata_handler,config['download_help_dir'],config.get('coopdlconfig', False))
             self.register_msg_handler(HelpCoordinatorMessages, self.help_handler.handleMessage)
 
         # Part 2:

@@ -704,7 +704,9 @@ class ABCApp(wx.App):
         self.single_instance_checker = single_instance_checker
         self.installdir = installdir
         self.error = None
+            
         wx.App.__init__(self, x)
+        
         
     def OnInit(self):
         try:
@@ -712,8 +714,13 @@ class ABCApp(wx.App):
             self.utility.app = self
 
             self.postinitstarted = False
-            self.Bind(wx.EVT_IDLE, self.OnIdle)
+            """
+            Hanging self.OnIdle to the onidle event doesnot work under linux (ubuntu). The images in xrc files
+            will not load in any but the filespanel.
+            """
+            #self.Bind(wx.EVT_IDLE, self.OnIdle)
             
+        
             # Set locale to determine localisation
             #locale.setlocale(locale.LC_ALL, '')
 
@@ -728,6 +735,8 @@ class ABCApp(wx.App):
             # Arno: Do heavy startup on GUI thread after splash screen has been
             # painted.
             self.splash.Show()
+            "Replacement for self.Bind(wx.EVT_IDLE, self.OnIdle)"
+            wx.CallAfter(self.PostInit)    
             return True
             
         except Exception,e:
@@ -745,6 +754,7 @@ class ABCApp(wx.App):
             if event is not None:
                 event.RequestMore(True)
                 event.Skip()
+
 
     def PostInit(self):
         try:
@@ -951,6 +961,45 @@ class ABCApp(wx.App):
                 gm = modedata['grid'].gridManager
                 gm.download_state_network_callback(dslist)
             except KeyError:
+                pass
+            except:
+                print_exc()
+            
+            # Adjust speeds once every 4 seconds
+            adjustspeeds = False
+            if self.rateadjustcount % 4 == 0:
+                adjustspeeds = True
+            self.rateadjustcount += 1
+    
+            if adjustspeeds:
+                self.ratelimiter.add_downloadstatelist(dslist)
+                self.ratelimiter.adjust_speeds()
+                
+            # Update stats in lower right overview box
+            self.guiUtility.refreshTorrentStats(dslist)
+                
+        except:
+            print_exc()
+
+
+    def sesscb_states_callback(self,dslist):
+        """ Called by SessionThread """
+        wx.CallAfter(self.gui_states_callback,dslist)
+        return(1.0,False)
+        
+    def gui_states_callback(self,dslist):
+        """ Called by MainThread  """
+        print >>sys.stderr,"main: Stats:"
+        try:
+            # Pass DownloadStates to libaryView
+            try:
+                # Jelle: libraryMode only exists after user clicked button
+                modedata = self.guiUtility.standardOverview.data['libraryMode']
+                gm = modedata['grid'].gridManager
+                gm.download_state_network_callback(dslist)
+            except KeyError:
+                pass
+            except AttributeError:
                 pass
             except:
                 print_exc()

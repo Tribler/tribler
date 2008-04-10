@@ -241,6 +241,7 @@ class standardGrid(wx.Panel):
         # the Create step is done by XRC.
         self.PostCreate(pre)
         self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+        
         if type(cols) == int:
             self.cols = cols
             self.columnTypes = None

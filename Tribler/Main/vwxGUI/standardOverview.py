@@ -100,6 +100,7 @@ class standardOverview(wx.Panel):
         self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)
         
         self.hSizer.Layout()
+        print >> sys.stderr, 'standardOverview: refreshMode: %s' % self.currentPanel.__class__.__name__
         wx.CallAfter(self.hSizer.Layout)
         wx.CallAfter(self.currentPanel.Layout)
         wx.CallAfter(self.currentPanel.Refresh)
