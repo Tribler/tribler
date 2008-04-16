@@ -130,7 +130,6 @@ class TriblerLaunchMany(Thread):
             self.friend_db      = FriendDBHandler.getInstance()
             self.bartercast_db  = BarterCastDBHandler.getInstance(self.session)
             
-            
             #self.mm = MugshotManager.getInstance()
             #self.mm.register(config)
             #self.peer_db.setMugshotManager(self.mm)

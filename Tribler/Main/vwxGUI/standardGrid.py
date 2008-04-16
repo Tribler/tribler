@@ -283,7 +283,7 @@ class standardGrid(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.onResize)
         
         self.addComponents()
-        #self.calculateRows()
+        self.calculateRows()
         if self.viewmode == 'list':
             self.toggleColumnHeaders(True)
         self.Show()

@@ -1164,6 +1164,10 @@ class TorrentDBHandler(BasicDBHandler):
                 order_by = ' %s %s' % (sort, desc)
         else:
             order_by = None
+            
+        #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS val",value_name,"where",where,"limit",limit,"offset",offset,"order",order_by
+        #print_stack
+            
         res_list = self._db.getAll('CollectedTorrent', value_name, where, limit=limit, offset=offset, order_by=order_by)
         
         if library:
@@ -1456,7 +1460,10 @@ class BarterCastDBHandler(BasicDBHandler):
     lock = threading.Lock()
     
     def getInstance(*args, **kw):
-        return None
+        
+        return None # Arno: why is this here?
+    
+    
         if BarterCastDBHandler.__single is None:
             BarterCastDBHandler.lock.acquire()   
             try:

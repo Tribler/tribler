@@ -6,8 +6,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
-from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
-from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
+from Tribler.Core.simpledefs import *
 from time import time
 from traceback import print_exc
 import urllib
@@ -48,8 +47,12 @@ class ProfileOverviewPanel(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         
         self.utility = self.guiUtility.utility
-        self.data_manager = self.guiUtility.standardOverview.data_manager
-        self.bartercast_db = BarterCastDBHandler.getInstance()
+        # All mainthread, no need to close
+        self.torrent_db = self.guiUtility.utility.session.open_dbhandler(NTFY_TORRENTS)
+        self.peer_db = self.guiUtility.utility.session.open_dbhandler(NTFY_PEERS)
+        self.friend_db = self.guiUtility.utility.session.open_dbhandler(NTFY_FRIENDS)
+        self.bartercast_db = self.guiUtility.utility.session.open_dbhandler(NTFY_BARTERCAST)
+        self.mypref = self.guiUtility.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
 #        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 #        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         for element in self.elementsName:
@@ -214,9 +217,8 @@ class ProfileOverviewPanel(wx.Panel):
         
         #--- Quality of tribler recommendation
         #<<<get the number of downloads for this user
-        if self.mypref is None:
-            self.mypref = MyPreferenceDBHandler.getInstance()
-        count = len(self.mypref.getMyPrefListInfohash())
+
+        count = len(self.mypref.getMyPrefList())
         index_q = self.indexValue(count,100, max_index_bar) #from 0 to 5
         if count != self.quality_value:
             self.data['downloaded_files'] = count
@@ -227,7 +229,7 @@ class ProfileOverviewPanel(wx.Panel):
                     
         #--- Discovered files
         #<<<get the number of files
-        count = int(self.guiUtility.data_manager.getNumDiscoveredFiles())
+        count = int(self.torrent_db.getNumberTorrents())
         index_f = self.indexValue(count,3000, max_index_bar) #from 0 to 5
         if count != self.discovered_files:
             self.data['discovered_files'] = count
@@ -238,7 +240,7 @@ class ProfileOverviewPanel(wx.Panel):
 
         #--- Discovered persons
         #<<<get the number of peers
-        count = int(self.guiUtility.peer_manager.getNumEncounteredPeers())
+        count = int(self.peer_db.getNumberPeers())
         index_p = self.indexValue(count,2000, max_index_bar) #from 0 to 5
         if count != self.discovered_persons:
             self.data['discovered_persons'] = count
@@ -263,7 +265,7 @@ class ProfileOverviewPanel(wx.Panel):
         if self.guiUtility.isReachable():
             index_2 = max_index_bar
         #<<<get the number of friends
-        count = self.guiUtility.peer_manager.getCountOfFriends()
+        count = len(self.friend_db.getFriends())
         index_h = self.indexValue(count,20, max_index_bar) #from 0 to 5
         bMoreFriends = False
         if self.number_friends!=count:
@@ -318,9 +320,13 @@ class ProfileOverviewPanel(wx.Panel):
             bShouldRefresh = True
         
         # --- Upload and download amounts
-        topinfo = self.bartercast_db.getTopNPeers(0, local_only = True)
-        up = self.utility.size_format(topinfo.get('total_up'))
-        down = self.utility.size_format(topinfo.get('total_down'))
+        if self.bartercast_db is None:
+            up = 'n/a'
+            down = 'n/a'
+        else:
+            topinfo = self.bartercast_db.getTopNPeers(0, local_only = True)
+            up = self.utility.size_format(topinfo.get('total_up'))
+            down = self.utility.size_format(topinfo.get('total_down'))
         old_up = self.getGuiElement('uploadedNumber').GetLabel()
         old_down = self.getGuiElement('downloadedNumber').GetLabel()
         if up != old_up:
@@ -355,10 +361,10 @@ class ProfileOverviewPanel(wx.Panel):
         guiserver.add_task(self.guiserver_checkVersion,0)
         
     def guiserver_checkVersion(self):
-        wx.CallAfter(self.setVersion,guiserver_DoCheckVersion)
+        self.guiserver_DoCheckVersion()
+        wx.CallAfter(self.setVersion)
         
-    def setVersion(self,newversion):
-        self.newversion = newversion
+    def setVersion(self):
         self.reloadData()
         
     def guiserver_DoCheckVersion(self):
@@ -368,6 +374,9 @@ class ProfileOverviewPanel(wx.Panel):
         error connecting; and url for new version
         the checking is done once each day day the client runs
         returns True if anything changed, False otherwise"""
+        
+        # TODO: make sure there is no concurrency on the self.* fields
+        
         if self.last_version_check_time!=-1 and time() - self.last_version_check_time < 86400:
             return False#check for a new version once a day
         self.last_version_check_time = time()

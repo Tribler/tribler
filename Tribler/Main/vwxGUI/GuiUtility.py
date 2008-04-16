@@ -38,8 +38,9 @@ class GUIUtility:
         self.params = params
         self.frame = None
         self.selectedMainButton = None
-        self.peer_manager = None
-        self.data_manager = None
+        # Arno: TODO remove permanently
+        #self.peer_manager = None
+        #self.data_manager = None
         self.guiOpen = Event()
         
         self.selectedColour = wx.Colour(255,200,187)       

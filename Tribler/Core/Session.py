@@ -451,7 +451,7 @@ class Session(SessionRuntimeConfig):
                 return self.lm.superpeer_db
             elif subject == NTFY_FRIENDS:
                 return self.lm.friend_db
-            elif subject == NTFY_MYPREFRENCES:
+            elif subject == NTFY_MYPREFERENCES:
                 return self.lm.mypref_db
             elif subject == NTFY_BARTERCAST:
                 return self.lm.bartercast_db
