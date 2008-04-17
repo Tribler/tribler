@@ -49,7 +49,7 @@ import Tribler.Core.CacheDB.cachedb as cachedb
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.RequestPolicy import *
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.Core.osutils import fix_filebasename
+from Tribler.Core.osutils import get_readable_torrent_name
 
 SPECIAL_VALUE=481
 
@@ -120,7 +120,8 @@ class TriblerLaunchMany(Thread):
             if DEBUG:
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
             cachedb.init(config, self.rawserver_fatalerrorfunc)
-
+            
+            self.my_db          = MyDBHandler.getInstance()
             self.peer_db        = PeerDBHandler.getInstance()
             self.torrent_db     = TorrentDBHandler.getInstance()
             self.mypref_db      = MyPreferenceDBHandler.getInstance()
@@ -129,6 +130,8 @@ class TriblerLaunchMany(Thread):
             self.superpeer_db.loadSuperPeers(config)
             self.friend_db      = FriendDBHandler.getInstance()
             self.bartercast_db  = BarterCastDBHandler.getInstance(self.session)
+            torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
+            self.my_db.put('torrent_dir', torrent_collecting_dir)
             
             #self.mm = MugshotManager.getInstance()
             #self.mm.register(config)
@@ -199,9 +202,10 @@ class TriblerLaunchMany(Thread):
         
         
         # add task for tracker checking
-        #if config['torrent_checking']:
-        #    self.torrent_checking_period = config['torrent_checking_period']
-        #    self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
+        if config['torrent_checking']:
+            self.torrent_checking_period = config['torrent_checking_period']
+            #self.torrent_checking_period = 60
+            self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
@@ -231,13 +235,12 @@ class TriblerLaunchMany(Thread):
             def add_torrent_to_db():
                 if self.torrent_db != None and self.mypref_db != None:
                     raw_filename = tdef.get_name_as_unicode()
-                    torrent_dir = self.session.sessconfig['torrent_collecting_dir']
                     infohash = tdef.get_infohash()
-                    hex_infohash = binascii.hexlify(infohash)
-                    suffix = '__' + hex_infohash + '.torrent'
-                    save_name = fix_filebasename(raw_filename, maxlen=255-len(suffix)) + suffix
+                    save_name = get_readable_torrent_name(infohash, raw_filename)
+                    #print >> sys.stderr, '******* add_torrent_to_db', save_name, self.session.sessconfig
+                    torrent_dir = self.session.sessconfig['torrent_collecting_dir']
                     save_path = os.path.join(torrent_dir, save_name)
-                    if not os.path.exists(save_path):
+                    if not os.path.exists(save_path):    # save the torrent to the common torrent dir
                         tdef.save(save_path)
                         
                     # hack, make sure these torrents are always good so they show up
@@ -647,7 +650,7 @@ class TriblerLaunchMany(Thread):
         self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         #        print "torrent_checking start"
         try:
-            t = TorrentChecking()        
+            t = TorrentChecking()
             t.start()
         except Exception, e:
             self.rawserver_nonfatalerrorfunc(e)
@@ -673,8 +676,6 @@ class TriblerLaunchMany(Thread):
         print >>sys.stderr,"tlm: h4x0r Resetting outgoing TCP connection rate limiter",incompletecounter.c,"==="
         incompletecounter.c = 0
 
-
-        
         
 def singledownload_size_cmp(x,y):
     """ Method that compares 2 SingleDownload objects based on the size of the

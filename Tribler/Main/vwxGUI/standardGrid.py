@@ -83,6 +83,7 @@ class GridManager(object):
     
     def _getData(self, state):
         range = (self.page * self.grid.items, (self.page+1)*self.grid.items)
+        print >> sys.stderr, '**************', self.page, self.grid.items
         if state.db in ('filesMode', 'libraryMode'):
             total_items = self.torrent_db_handler.getNumberTorrents(category_name = state.category, library = (state.db == 'libraryMode'))
             data = self.torrent_db_handler.getTorrents(category_name = state.category, 
@@ -398,7 +399,8 @@ class standardGrid(wx.Panel):
        
         self.refreshPanels()
         if DEBUG:
-            print >>sys.stderr,'standardGrid: <mluc>start columns:',self.cols,'rows:',self.currentRows,'items:',self.items
+            print >>sys.stderr,'standardGrid: <mluc>start columns:',\
+                self.cols,'rows:',self.currentRows,'items:',self.items
 
         self.Layout()
         

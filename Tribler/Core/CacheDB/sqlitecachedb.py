@@ -48,7 +48,7 @@ def init(config, db_exception_handler = None):
     global icon_dir
     icon_dir = os.path.abspath(config['peer_icon_path'])
     sqlite.initDB(sqlite_db_path, bsddb_path, lib=DEFAULT_LIB)
-    
+    return sqlite
         
 def done(config_dir):
     SQLiteCacheDB.getInstance().close()
@@ -233,8 +233,9 @@ class SQLiteCacheDB:
             db_dir,db_filename = os.path.split(dbfile_path)
             if not os.path.isdir(db_dir):
                 os.makedirs(db_dir)
-            
-        #print >> sys.stderr, 'sqldb: ******** connect db', lib, dbfile_path, busytimeout/1000.0
+        
+        #print >> sys.stderr, 'sqldb: connect db', lib, os.path.abspath(dbfile_path), busytimeout, threading.currentThread().getName(), len(SQLiteCacheDB.cursor_table)
+        #print_stack()
         if autocommit:
             if lib==0:
                 con = sqlite.connect(dbfile_path, isolation_level=None, timeout=(busytimeout/1000.0))
@@ -739,6 +740,7 @@ class SQLiteCacheDB:
         return deleted
                 
     def getPeerID(self, permid):
+        assert isinstance(permid, str), infohash
         # permid must be binary
         if permid in self.permid_id:
             return self.permid_id[permid]
@@ -788,6 +790,7 @@ class SQLiteCacheDB:
                 self.infohash_id.pop(infohash)
     
     def getTorrentID(self, infohash):
+        assert isinstance(infohash, str), infohash
         if infohash in self.infohash_id:
             return self.infohash_id[infohash]
         
@@ -824,6 +827,8 @@ class SQLiteCacheDB:
             self.src_table = dict(st)
         return self.src_table
 
+    def test(self):
+        print self.getAll('Category', '*')
 
 def convert_db(bsddb_dir, dbfile_path, sql_filename):
     # Jie: here I can convert the database created by the new Core version, but
@@ -837,7 +842,10 @@ def convert_db(bsddb_dir, dbfile_path, sql_filename):
 
 if __name__ == '__main__':
     configure_dir = sys.argv[1]
-    sqlite_test = SQLiteCacheDB()#, DB_DIR_NAME, DB_FILE_NAME, CREATE_SQL_FILE)
-    sqlite_test.initDB(configure_dir, lib=0)
+    config = {}
+    config['state_dir'] = configure_dir
+    config['install_dir'] = 'Tribler'
+    config['peer_icon_path'] = '.'
+    sqlite_test = init(config)
     sqlite_test.test()
 

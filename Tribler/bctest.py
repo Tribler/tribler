@@ -17,6 +17,7 @@ if __name__ == "__main__":
     sscfg = SessionStartupConfig()
     sscfg.set_state_dir('Session1')
     sscfg.set_overlay(1)
+    sscfg.set_overlay_log('test.log')
     sscfg.set_superpeer_file('superpeer1.txt')
     sscfg.set_listen_port(7011)
 

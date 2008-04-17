@@ -171,6 +171,12 @@ class Bsddb2Sqlite:
         #print "npeers", npeers, nconnpeers
             
         self._commit()
+        # delete peer icons
+        for iconfilename in self.icons:
+            icon_path = os.path.join(self.icon_dir, iconfilename + '.jpg')
+            if os.path.isfile(icon_path):
+                print >> sys.stderr, 'remove', icon_path
+                os.remove(icon_path)
         
     def readIcon(self, iconfilename):
         # read a peer icon file and return the encoded string
@@ -570,7 +576,7 @@ class Bsddb2Sqlite:
             
             MyDB.getInstance(None, self.bsddb_dir)
             self.convert_PeerDB(peer_limit)
-            self.convert_MyDB(torrent_dir)
+            #self.convert_MyDB(torrent_dir)    # should not be called
             self.convert_BartercastDB()
 
             self.convert_TorrentDB(torrent_limit)
@@ -578,11 +584,23 @@ class Bsddb2Sqlite:
             self.convert_PreferenceDB()
             
             self.sdb.close()
+            self.remove_bsddb()
+            
             return True
         else:
             if self.sdb:
                 self.sdb.close()
             return False
+        
+    def remove_bsddb(self):
+        print >> sys.stderr, self.bsddb_dir
+        for filename in os.listdir(self.bsddb_dir):
+            if filename.endswith('.bsd'):
+                db_path = os.path.abspath(os.path.join(self.bsddb_dir,filename))
+                if os.path.isfile(db_path):
+                    print >> sys.stderr, "delete", db_path
+                    os.remove(db_path)
+            
 
 if __name__ == '__main__':
     bsddb_dir = sys.argv[1]

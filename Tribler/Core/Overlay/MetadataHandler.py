@@ -15,7 +15,7 @@ from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
-from Tribler.Core.osutils import getfreespace
+from Tribler.Core.osutils import getfreespace,get_readable_torrent_name
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 
 from threading import currentThread
@@ -62,7 +62,7 @@ class MetadataHandler:
         self.torrent_dir = os.path.abspath(self.config['torrent_collecting_dir'])
         assert os.path.isdir(self.torrent_dir)
         self.free_space = self.get_free_space()
-        print "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
+        print >> sys.stderr, "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
         self.max_num_torrents = self.init_max_num_torrents = int(self.config['torrent_collecting_max_torrents'])
         self.upload_rate = 1024 * int(self.config['torrent_collecting_rate'])   # 5KB/s
         self.num_collected_torrents = 0
@@ -248,12 +248,14 @@ class MetadataHandler:
                 data = self.torrent_db.getTorrent(infohash)
                 nleechers = data.get('leecher', -1)
                 nseeders = data.get('seeder', -1)
-                last_check_time = int(time()) - data.get('last_check_time', 0)
+                last_check_ago = int(time()) - data.get('last_check_time', 0)    # relative time
+                if last_check_ago < 0:
+                    last_check_ago = 0
                 status = data.get('status', 'unknown')
                 
                 torrent.update({'leecher':nleechers,
                                 'seeder':nseeders,
-                                'last_check_time':last_check_time,
+                                'last_check_time':last_check_ago,
                                 'status':status})
 
             return self.do_send_metadata(permid, torrent, selversion)
@@ -314,7 +316,8 @@ class MetadataHandler:
     def addTorrentToDB(self, filename, torrent_hash, metadata, source='BC', extra_info={}, hack=False):
         """ Arno: no need to delegate to olbridge, this is already run by OverlayThread """
         torrent = self.torrent_db.addExternalTorrent(filename, source, extra_info)
-
+        if torrent is None:
+            return
         
         self.launchmany.set_activity(NTFY_ACT_GOT_METADATA,unicode('"'+torrent['name']+'"'))
 
@@ -431,60 +434,60 @@ class MetadataHandler:
     def limit_space(self, num_delete):
         return 
         # TODO: 
-        def get_weight(torrent):
-            # policy of removing torrent:
-            # status*1000 + retry_number*100 - relevance/10 + date - leechers - 3*seeders
-            # The bigger, the more possible to delete
-            
-            status_key = torrent.get('status', 'dead')
-            leechers = min(torrent.get('leecher', -1), 1000)
-            seeders = min(torrent.get('seeder', -1), 1000)
-            
-            status_value = {'dead':2, 'unknown':1, 'good':0}
-            status = status_value.get(status_key, 1)
-            
-            retry_number = min(torrent.get('retry_number', 0), 10)
-            
-            relevance = min(torrent.get('relevance', 0), 25000)
-            
-            info = torrent.get('info',{})
-            cdate = info.get('creation date', '0')
-            try:
-                date = int(cdate)
-            except:
-                cdate = torrent.get('inserttime',0)
-                try:
-                    date = int(cdate)
-                except:
-                    date = 0
-            age = max(int(time())-date, 24*60*60)
-            rel_date = min(age/(24*60*60), 1000)    # [1, 1000]
-            
-            weight = status*1000 + retry_number*100 + rel_date - relevance/10 - leechers - 3*seeders
-            return weight
-        
-        collected_infohashes = self.torrent_db.getCollectedTorrentHashes()
-        self.num_torrents = len(collected_infohashes)    # sync point
-
-        if DEBUG:
-            print >>sys.stderr,"metadata: limit space: num", self.num_torrents,"max", self.max_num_torrents
-
-        weighted_infohashes = []
-        for infohash in collected_infohashes:
-            torrent = self.torrent_db.getTorrent(infohash)
-            weight = get_weight(torrent)
-            weighted_infohashes.append((weight,infohash))
-        weighted_infohashes.sort()
-
-        for (weight,infohash) in weighted_infohashes[-num_delete:]:
-            deleted = self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
-            if deleted > 0:
-                self.num_torrents -= 1
-            if DEBUG:
-                print >>sys.stderr,"metadata: limit space: delete torrent, succeeded?", deleted, self.num_torrents,weight
-
-        if num_delete > 0:
-            self.free_space = self.get_free_space()
+#        def get_weight(torrent):
+#            # policy of removing torrent:
+#            # status*1000 + retry_number*100 - relevance/10 + date - leechers - 3*seeders
+#            # The bigger, the more possible to delete
+#            
+#            status_key = torrent.get('status', 'dead')
+#            leechers = min(torrent.get('leecher', -1), 1000)
+#            seeders = min(torrent.get('seeder', -1), 1000)
+#            
+#            status_value = {'dead':2, 'unknown':1, 'good':0}
+#            status = status_value.get(status_key, 1)
+#            
+#            retry_number = min(torrent.get('retry_number', 0), 10)
+#            
+#            relevance = min(torrent.get('relevance', 0), 25000)
+#            
+#            info = torrent.get('info',{})
+#            cdate = info.get('creation date', '0')
+#            try:
+#                date = int(cdate)
+#            except:
+#                cdate = torrent.get('inserttime',0)
+#                try:
+#                    date = int(cdate)
+#                except:
+#                    date = 0
+#            age = max(int(time())-date, 24*60*60)
+#            rel_date = min(age/(24*60*60), 1000)    # [1, 1000]
+#            
+#            weight = status*1000 + retry_number*100 + rel_date - relevance/10 - leechers - 3*seeders
+#            return weight
+#        
+#        collected_infohashes = self.torrent_db.getCollectedTorrentHashes()
+#        self.num_torrents = len(collected_infohashes)    # sync point
+#
+#        if DEBUG:
+#            print >>sys.stderr,"metadata: limit space: num", self.num_torrents,"max", self.max_num_torrents
+#
+#        weighted_infohashes = []
+#        for infohash in collected_infohashes:
+#            torrent = self.torrent_db.getTorrent(infohash)
+#            weight = get_weight(torrent)
+#            weighted_infohashes.append((weight,infohash))
+#        weighted_infohashes.sort()
+#
+#        for (weight,infohash) in weighted_infohashes[-num_delete:]:
+#            deleted = self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
+#            if deleted > 0:
+#                self.num_torrents -= 1
+#            if DEBUG:
+#                print >>sys.stderr,"metadata: limit space: delete torrent, succeeded?", deleted, self.num_torrents,weight
+#
+#        if num_delete > 0:
+#            self.free_space = self.get_free_space()
         
 #===============================================================================
 #    def check_free_space(self):
@@ -506,6 +509,7 @@ class MetadataHandler:
 #===============================================================================
         
     def save_torrent(self, infohash, metadata, source='BC', extra_info={}):
+        # check if disk is full before save it to disk and database
         if not self.initialized:
             return
 
@@ -518,7 +522,7 @@ class MetadataHandler:
                 self.warn_disk_full()
                 return
         
-        file_name = self.get_filename(infohash)
+        file_name = self.get_filename(infohash, metadata)
         if DEBUG:
             print >> sys.stderr,"metadata: Storing torrent", sha(infohash).hexdigest(),"in",file_name
         
@@ -537,9 +541,14 @@ class MetadataHandler:
         check = SingleManualChecking(torrent,self.launchmany.session)
         check.start()
         
-    def get_filename(self,infohash):
+    def get_filename(self,infohash, metadata, humanreadable=False):
         # Arno: Better would have been the infohash in hex.
-        file_name = sha(infohash).hexdigest()+'.torrent'
+        if humanreadable:
+            torrent = bdecode(metadata)
+            raw_name = torrent['info'].get('name','')
+            file_name = get_readable_torrent_name(infohash, raw_name)
+        else:
+            file_name = sha(infohash).hexdigest()+'.torrent'    # notice: it's sha1-hash of infohash
         #_path = os.path.join(self.torrent_dir, file_name)
         #if os.path.exists(_path):
             # assign a name for the torrent. add a timestamp if it exists.

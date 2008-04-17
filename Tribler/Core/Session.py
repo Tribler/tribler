@@ -84,6 +84,7 @@ class Session(SessionRuntimeConfig):
         collected_torrent_dir = self.sessconfig['torrent_collecting_dir']
         if not collected_torrent_dir:
             collected_torrent_dir = os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR)
+            self.sessconfig['torrent_collecting_dir'] = collected_torrent_dir
             
         if not os.path.exists(collected_torrent_dir):
             os.makedirs(collected_torrent_dir)

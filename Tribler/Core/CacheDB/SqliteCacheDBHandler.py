@@ -17,6 +17,7 @@ import os
 import socket
 import threading
 import base64
+from random import randint
 
 from Tribler.Core.simpledefs import *
 from bencode import bencode, bdecode
@@ -92,7 +93,7 @@ class MyDBHandler(BasicDBHandler):
             raise RuntimeError, "MyDBHandler is singleton"
         MyDBHandler.__single = self
         BasicDBHandler.__init__(self, 'MyInfo')
-        # keys: version, permid, ip, port, name, torrent_dir
+        # keys: version, torrent_dir
         
     def get(self, key, default_value=None):
         value = self.getOne('value', entry=key)
@@ -107,10 +108,10 @@ class MyDBHandler(BasicDBHandler):
     def put(self, key, value):
         try:
             self._db.insert(self.table_name, entry=key, value=value)
-        except:
+        except sqlite.IntegrityError:
             where = "entry=" + repr(key)
             self._db.update(self.table_name, where, value=value)
-        
+        self.commit()
 
 class FriendDBHandler(BasicDBHandler):
     
@@ -678,6 +679,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         self.status_table = self._db.getTorrentStatusTable()
         self.id2status = dict([(x,y) for (y,x) in self.status_table.items()]) 
+        self.torrent_dir = None
         # 0 - unknown
         # 1 - good
         # 2 - dead
@@ -726,22 +728,28 @@ class TorrentDBHandler(BasicDBHandler):
             return True
     
     def addExternalTorrent(self, filename, source='BC', extra_info={}, metadata=None):
-        infohash, torrent = self.readTorrentData(filename, source, extra_info, metadata)
-        self.addTorrent(infohash, torrent) # commit in here
-        return torrent
-        
-    def readTorrentData(self, filename, source='BC', extra_info={}, metadata=None):
+        infohash, torrent = self._readTorrentData(filename, source, extra_info, metadata)
+        if infohash is None:
+            return torrent
+        if not self.hasTorrent(infohash):
+            self._addTorrentToDB(infohash, torrent, commit=True)
+            self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
 
-        if metadata is None:
-            f = open(filename, 'rb')
-            metadata = f.read()
-            f.close()
-            
+        return torrent
+
+    def _readTorrentData(self, filename, source='BC', extra_info={}, metadata=None):
+        # prepare data to insert into database
         try:
+            if metadata is None:
+                f = open(filename, 'rb')
+                metadata = f.read()
+                f.close()
+            
             metainfo = bdecode(metadata)
         except Exception,msg:
-            print >> sys.stderr, `metadata`
-            raise Exception,msg
+            print >> sys.stderr, Exception,msg,`metadata`
+            return None,None
+        
         namekey = name2unicode(metainfo)  # convert info['name'] to type(unicode)
         info = metainfo['info']
         infohash = sha(bencode(info)).digest()
@@ -779,7 +787,7 @@ class TorrentDBHandler(BasicDBHandler):
             torrent["last_check_time"] = 0
         torrent["status"] = self._getStatusID(extra_info.get('status', "unknown"))
         
-        print >>sys.stderr,"TorrentDBHandler: readTorrentData: ADDING TORRENT WITH STATUS",torrent["status"]
+        #print >>sys.stderr,"TorrentDBHandler: _readTorrentData: ADDING TORRENT WITH STATUS",torrent["status"]
         
         torrent["source"] = self._getSourceID(source)
         torrent["insert_time"] = long(time())
@@ -802,70 +810,6 @@ class TorrentDBHandler(BasicDBHandler):
         if self._db.getTorrentID(infohash) is None:
             self._db.insert('Torrent', infohash=bin2str(infohash))
 
-    def addTorrent(self, infohash, db_data={}, new_metadata=False, commit=True):
-        if self.hasTorrent(infohash):    # already added
-            return
-        
-        #print >>sys.stderr,"***********sqldbhand: addTorrent"*10,currentThread().getName()
-        self._addTorrentToDB(infohash, db_data, commit)
-        
-        self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
-        
-
-#    def _prepareData(self, db_data):
-#        # prepare data to insert into torrent table
-#        data = {
-#            'torrent_file_name':None,   # name of the torrent
-#            'num_leechers': -1,
-#            'num_seeders': -1,
-#            'status': 0,    # status table: unknown, good, dead
-#            
-#            'category': 0,    # category table
-#            'source': 0,    # source table, from buddycast, rss or others
-#            'thumbnail':None,    # 1 - the torrent has a thumbnail
-#            'relevance':0,
-#            
-#            'insert_time': 0, # when the torrent file is written to the disk
-#            'secret':0, # download secretly
-#            
-#            'name':None,
-#            'length':0,
-#            'creation_date':0,
-#            'comment':None,
-#            'num_files':0,
-#            
-#            'ignore_number':0,
-#            'retry_number':0,
-#            'last_check_time':0,
-#        }
-#        
-#        if 'info' in db_data:
-#            info = db_data.pop('info')
-#            data['name'] = info.get('name', None)
-#            data['length'] = info.get('length', 0)
-#            data['num_files'] = info.get('num_files', 0)
-#            data['creation_date'] = info.get('creation date', 0)
-#            data['announce'] = info.get('announce', '')
-#            data['announce-list'] = info.get('announce-list', [])
-#            
-#            
-#        # change status
-#        status = db_data.get('status', 'unknown')
-#        status_id = self._getStatusID(status)
-#        db_data['status'] = status_id
-#        
-#        # change category
-#        category_list = db_data.get('category', [])
-#        cat_int = self._getCategoryID(category_list)
-#        db_data['category'] = cat_int
-#        
-#        # change source
-#        src = db_data.get('source', '')
-#        src_int = self._getSourceID(src)
-#        db_data['source'] = src_int
-#        data.update(db_data)
-#        return data
-    
     def _getStatusID(self, status):
         return self.status_table.get(status.lower(), 0)
 
@@ -887,7 +831,7 @@ class TorrentDBHandler(BasicDBHandler):
 
     def _addTorrentToDB(self, infohash, data, commit=True):
         torrent_id = self._db.getTorrentID(infohash)
-        if torrent_id is None:
+        if torrent_id is None:    # not in db
             infohash_str = bin2str(infohash)
             self._db.insert('Torrent', 
                         infohash = infohash_str,
@@ -907,7 +851,7 @@ class TorrentDBHandler(BasicDBHandler):
                         num_leechers = data['num_leechers'], 
                         comment = data['comment'])
             torrent_id = self._db.getTorrentID(infohash)
-        else:
+        else:    # infohash in db
             where = 'torrent_id = %d'%torrent_id
             self._db.update('Torrent', where = where,
                             name = data['name'],
@@ -926,7 +870,7 @@ class TorrentDBHandler(BasicDBHandler):
                             num_leechers = data['num_leechers'], 
                             comment = data['comment'])
         
-            self._addTorrentTracker(torrent_id, data)
+        self._addTorrentTracker(torrent_id, data)
         if commit:
             self.commit()    
         self.rankList_dirty = True
@@ -940,7 +884,9 @@ class TorrentDBHandler(BasicDBHandler):
         src_id = self._db.getOne('TorrentSource', 'source_id', name=src)
         return src_id
 
-    def _addTorrentTracker(self, torrent_id, data):
+    def _addTorrentTracker(self, torrent_id, data, add_all=False):
+        # Set add_all to True if you want to put all multi-trackers into db.
+        # In the current version (4.2) only the main tracker is used.
         announce = data['announce']
         ignore_number = data['ignore_number']
         retry_number = data['retry_number']
@@ -956,16 +902,18 @@ class TorrentDBHandler(BasicDBHandler):
         """
         
         values = [(torrent_id, announce, 1, ignore_number, retry_number, last_check_time)]
+        # each torrent only has one announce with tier number 1
         tier_num = 2
         trackers = {announce:None}
-        for tier in announce_list:
-            for tracker in tier:
-                if tracker in trackers:
-                    continue
-                value = (torrent_id, tracker, tier_num, 0, 0, 0)
-                values.append(value)
-                trackers[tracker] = None
-            tier_num += 1
+        if add_all:
+            for tier in announce_list:
+                for tracker in tier:
+                    if tracker in trackers:
+                        continue
+                    value = (torrent_id, tracker, tier_num, 0, 0, 0)
+                    values.append(value)
+                    trackers[tracker] = None
+                tier_num += 1
         self._db.executemany(sql_insert_torrent_tracker, values)
         
     def updateTorrent(self, infohash, commit=True, **kw):    # watch the schema of database
@@ -1036,11 +984,17 @@ class TorrentDBHandler(BasicDBHandler):
         self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, infohash)
         return deleted
 
-    def _deleteTorrent(self, infohash):
+    def _deleteTorrent(self, infohash, keep_infohash=True):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is not None:
             self._db.delete(self.table_name, torrent_id=torrent_id)
+            if infohash in self.existed_torrents:
+                self.existed_torrents.remove(infohash)
+            # insert the infohash to ensure integrity
+            if keep_infohash:
+                self._db.insert(self.table_name, torrent_id=torrent_id, infohash=bin2str(infohash))
             self._db.delete('TorrentTracker', torrent_id=torrent_id)
+            print '******* delete torrent', torrent_id, `infohash`, self.hasTorrent(infohash)
             
     def eraseTorrentFile(self, infohash):
         torrent_id = self._db.getTorrentID(infohash)
@@ -1068,7 +1022,9 @@ class TorrentDBHandler(BasicDBHandler):
             return self._db.fetchall(sql)
     
     def getTorrentDir(self):
-        return MyDBHandler.getInstance().get('torrent_dir')
+        if self.torrent_dir is None:
+            self.torrent_dir = MyDBHandler.getInstance().get('torrent_dir')
+        return self.torrent_dir
     
     
     def getTorrent(self, infohash, keys=None, include_mypref=True):
@@ -1126,7 +1082,6 @@ class TorrentDBHandler(BasicDBHandler):
         return self._db.getOne(table, value, where)
         
     def getTorrents(self, category_name = 'all', range = None, library = False, sort = None, reverse = False):
-        
         """
         get Torrents of some category and with alive status (opt. not in family filter)
         
@@ -1173,9 +1128,9 @@ class TorrentDBHandler(BasicDBHandler):
         if library:
             mypref_stats = self.mypref_db.getMyPrefStats()
         
-        print >>sys.stderr,"TorrentDBHandler: GET TORRENTS ###################",len(res_list)
-        
-        
+        #print_stack()
+        #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS ###################",len(res_list), range
+                
         torrent_list = []
         for item in res_list:
             value_name[0] = 'torrent_id'
@@ -1223,8 +1178,6 @@ class TorrentDBHandler(BasicDBHandler):
             return self.rankList.index(infohash)+1
         except:
             return -1
-        
-            
             
     def getCollectedTorrentHashes(self): 
         """ get infohashes of torrents on disk, used by torrent checking, 
@@ -1282,10 +1235,14 @@ class TorrentDBHandler(BasicDBHandler):
         del torrent['category_id']
         return torrent
 
-    def selectTorrentToCollect(self, permid, cand=None):
-        " select a torrent to collect from a given candidate list"
+    def selectTorrentToCollect(self, permid, candidate_list=None):
+        """ select a torrent to collect from a given candidate list
+        If candidate_list is not present or None, all torrents of 
+        this peer will be used for sampling.
+        Return: the infohashed of selected torrent
+        """
         
-        if cand is None:
+        if candidate_list is None:
             sql = """
                 select infohash 
                 from Torrent,Peer,Preference 
@@ -1298,7 +1255,7 @@ class TorrentDBHandler(BasicDBHandler):
             permid_str = bin2str(permid)
             res = self._db.fetchone(sql, (permid_str,))
         else:
-            cand_str = [bin2str(infohash) for infohash in cand]
+            cand_str = [bin2str(infohash) for infohash in candidate_list]
             s = repr(cand_str).replace('[','(').replace(']',')')
             sql = 'select infohash from Torrent where torrent_file_name is NULL and infohash in ' + s
             sql += ' order by relevance desc'
@@ -1307,7 +1264,59 @@ class TorrentDBHandler(BasicDBHandler):
             return None
         return str2bin(res)
         
+    def selectTorrentToCheck(self, policy):    # for tracker checking
+        """ select a torrent to update tracker info (number of seeders and leechers)
+        based on the torrent checking policy.
+        RETURN: a dictionary containing all useful info.
+
+        Policy 1: Random [policy='random']
+           Randomly select a torrent to collect (last_check < 5 min ago)
         
+        Policy 2: Oldest (unknown) first [policy='oldest']
+           Select the non-dead torrent which was not been checked for the longest time (last_check < 5 min ago)
+        
+        Policy 3: Popular first [policy='popular']
+           Select the non-dead most popular (3*num_seeders+num_leechers) one which has not been checked in last N seconds 
+           (The default N = 4 hours, so at most 4h/torrentchecking_interval popular peers)
+        """
+        
+        # create a view?
+        sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check 
+                 from Torrent T, TorrentTracker TT
+                 where TT.torrent_id=T.torrent_id and announce_tier=1 """
+        if policy.lower() == 'random':
+            ntorrents = self._db.size('CollectedTorrent')
+            rand_pos = randint(1, ntorrents-1)
+            last_check_threshold = int(time()) - 300
+            sql += """and last_check < %d 
+                    limit 1 offset %d """%(last_check_threshold, rand_pos)
+        elif policy.lower() == 'oldest':
+            last_check_threshold = int(time()) - 300
+            sql += """ and last_check < %d and status_id <> 2
+                     order by last_check
+                     limit 1 """%last_check_threshold
+        elif policy.lower() == 'popular':
+            last_check_threshold = int(time()) - 4*60*60
+            sql += """ and last_check < %d and status_id <> 2 
+                     order by 3*num_seeders+num_leechers desc
+                     limit 1 """%last_check_threshold
+        res = self._db.fetchone(sql)
+        #print " ".join(sql.split())
+        #print >> sys.stderr, "******** selectTorrentToCheck:", res, policy
+        if not res:
+            return None
+        torrent_file_name = res[3]
+        torrent_dir = self.getTorrentDir()
+        torrent_path = os.path.join(torrent_dir, torrent_file_name)
+        if res is not None:
+            res = {'torrent_id':res[0], 
+                   'ignored_times':res[1], 
+                   'retried_times':res[2], 
+                   'torrent_path':torrent_path,
+                   'infohash':str2bin(res[4])
+                  }
+        return res
+
 class MyPreferenceDBHandler(BasicDBHandler):
     
     __single = None    # used for multithreaded singletons pattern

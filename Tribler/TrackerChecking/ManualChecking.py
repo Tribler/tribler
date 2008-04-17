@@ -1,10 +1,12 @@
 # written by Yuan Yuan
 # see LICENSE.txt for license information
 
+import os
+import sys
+import threading
 from threading import Thread
 from traceback import print_exc
 from time import sleep, time
-import os
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
@@ -36,7 +38,6 @@ class SingleManualChecking(Thread):
         
         self.torrent = torrent
         self.session = session
-        self.torrent_db = TorrentDBHandler.getInstance()
         self.mldhtchecker = mainlineDHTChecker.getInstance()
         
 
@@ -57,7 +58,9 @@ class SingleManualChecking(Thread):
             'status': self.torrent['status'],
             #'info': self.torrent['info']
             }
+        self.torrent_db = TorrentDBHandler.getInstance()
         self.torrent_db.updateTorrent(self.torrent['infohash'], updateFlag=True, **kw)
+        self.torrent_db.close()
         self.deleteExtraTorrentInfo(self.torrent)
         
     def readExtraTorrentInfo(self, torrent):

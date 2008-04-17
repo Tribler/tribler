@@ -1790,9 +1790,16 @@ class DataHandler:
         return self.launchmany.session.get_permid()
   
     def getPeerID(self, permid):
-        if isinstance(permid, int):
+        if isinstance(permid, int) and permid > 0:
             return permid
-        return self.peer_db.getPeerID(permid)
+        else:
+            return self.peer_db.getPeerID(permid)
+    
+    def getTorrentID(self, infohash):
+        if isinstance(infohash, int) and infohash > 0:
+            return infohash
+        else:
+            return self.peer_db.getPeerID(permid)
     
     def getPeerPermid(self, peer_id):
         return self.peer_db.getPermid(peer_id)

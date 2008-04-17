@@ -7,6 +7,7 @@
 #
 import sys
 import os
+import binascii
 
 try:
     # Unix
@@ -139,3 +140,12 @@ def fix_filebasename(name, unit=False, maxlen=255):
         return '_'
     else:
         return name.strip() # Arno: remove initial or ending space
+
+
+def get_readable_torrent_name(infohash, raw_filename):
+    # return name__infohash.torrent
+    hex_infohash = binascii.hexlify(infohash)
+    suffix = '__' + hex_infohash + '.torrent'
+    save_name = ' ' + fix_filebasename(raw_filename, maxlen=254-len(suffix)) + suffix
+    # use a space ahead to distinguish from previous collected torrents
+    return save_name

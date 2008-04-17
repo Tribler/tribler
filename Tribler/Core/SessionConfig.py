@@ -331,7 +331,7 @@ class SessionConfigInterface:
         return self.sessconfig['torrent_collecting_max_torrents']
 
     def set_torrent_collecting_dir(self,value):
-        """ Where to place collected torrents? (default is state_dir + 'colltorrents')
+        """ Where to place collected torrents? (default is state_dir + 'collected_torrent_files')
         @param value An absolute path.
         """
         self.sessconfig['torrent_collecting_dir'] = value

@@ -6,162 +6,136 @@
 
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
-from threading import RLock
+from threading import RLock, Lock
 from time import time
 from random import shuffle
 from copy import copy, deepcopy
 import sys
-from traceback import print_exc
+from traceback import print_exc, print_stack
 
-DEBUG = False
+DEBUG = True
 
 class TorrentCheckingList:
-    __single = None
+    __single = None    # used for multithreaded singletons pattern
+    lock = Lock()
     
     def __init__(self):
-        if TorrentCheckingList.__single:
+        if TorrentCheckingList.__single is not None:
             raise RuntimeError, "TorrentCheckingList is singleton"
         TorrentCheckingList.__single = self
         self.done_init = False
         self.lock = RLock()
-        self.list_good = []
-        self.list_unknown = []
-        self.list_dead = []
+        self.list_good = None
+        self.list_unknown = NOne
+#        self.list_dead = []
         self.torrent_db = TorrentDBHandler.getInstance()
+        self.good_id = self.torrent_db._getStatusID("good")
+        self.unknown_id = self.torrent_db._getStatusID("unknown")
+        #self.dead_id = self.torrent_db._getStatusID("dead")
+        
         self._prepareData()            # prepare the list
         self.done_init = True
-        
+    
     def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
         if TorrentCheckingList.__single is None:
-            TorrentCheckingList(*args, **kw)       
+            TorrentCheckingList.lock.acquire()   
+            try:
+                if TorrentCheckingList.__single is None:
+                    TorrentCheckingList(*args, **kw)
+            finally:
+                TorrentCheckingList.lock.release()
         return TorrentCheckingList.__single
     getInstance = staticmethod(getInstance)
     
     def getGoodLen(self):
-        return len(self.list_good)
+        try:
+            self.lock.acquire()
+            return len(self.list_good)
+        finally:
+            self.lock.release()
     
     def getUnknownLen(self):
-        return len(self.list_unknown)
+        try:
+            self.lock.acquire()
+            return len(self.list_unknown)
+        finally:
+            self.lock.release()
     
-    def getDeadlen(self):
-        return len(self.list_dead)
+#    def getDeadlen(self):
+#        return len(self.list_dead)
     
     def getFirstGood(self):
         try:
+            self.lock.acquire()
             if (self.list_good != []):
-                infohash = self.list_good.pop(0)
-                torrent = self.torrent_db.getTorrent(infohash)
-                if not torrent:
-                    return None    # this infohash has been deleted
-                if DEBUG:
-                    print >>sys.stderr,"TorrCheckList: Get first good",`infohash`
-                    assert torrent, 'torrentCheckingList: Torrent unknown'
-                torrent['infohash'] = infohash
-                return torrent
-            return None
-        except:
-            print_exc()
-            return None
+                torrent_id = self.list_good.pop(0)
+            else:
+                return None
+        finally:
+            self.lock.release()
         
     def getFirstUnknown(self):
         try:
+            self.lock.acquire()
             if (self.list_unknown != []):
-                infohash = self.list_unknown.pop(0)
-                torrent = self.torrent_db.getTorrent(infohash)
-                if not torrent:
-                    return None    # this infohash has been deleted
-                if DEBUG:
-                    print >>sys.stderr,"TorrCheckList: Get first unknown",`infohash`,type(torrent)
-                torrent['infohash'] = infohash
-                return torrent
-            return None     
-        except:
-            print_exc()
-            return None
+                torrent_id = self.list_good.pop(0)
+            else:
+                return None
+        finally:
+            self.lock.release()
     
     def _prepareData(self):
-        
-        if DEBUG:
-            print >>sys.stderr,"TorrentChecking: prepareData"
-        
-        infohashes = self.torrent_db.getAllTorrents()
-        for infohash in infohashes:
-            torrent = self.torrent_db.getTorrent(infohash)
-            if not torrent or type(torrent) != dict:
-                continue
-            if (torrent["status"] == "good"):
-                self.list_good.append(infohash)
-            elif (torrent["status"] == "unknown"):
-                self.list_unknown.append(infohash)
-            elif (torrent["status"] == "dead"):
-                self.list_dead.append(infohash)
-            else:
-                raise Exception, "status of torrent not found"    # error
-
-        del infohashes
-        
-        shuffle(self.list_good)
-        shuffle(self.list_unknown)
-        
-        
-#        print "total len", len(self.list_good) + len(self.list_unknown) + len(self.list_dead)
-#        print "good len", len(self.list_good)
-#        print "unknown len", len(self.list_unknown)
-#        print "dead len", len(self.list_dead)
-
-    
-    def addTorrentToList(self, infohash, torrent):
-        if torrent["status"] == "good":
-            self.list_good.append(infohash)
-        elif torrent["status"] == "unknown":
-            self.list_unknown.append(infohash)
-        elif torrent["status"] == "dead":
-            self.list_dead.append(infohash)
-        else:
-            print "error"
-        
-    
-    def deleteTorrentFromList(self, infohash):
         try:
-            self.list_good.remove(infohash)
-            self.list_unknown.remove(infohash)
-            self.list_dead.remove(infohash)
-        except:
-            #if DEBUG:
-            #    print_exc()
-            pass
+            self.lock.acquire()
+            if DEBUG:
+                print >>sys.stderr,"TorrentChecking: prepareData"
+            
+            if self.list_good is None and self.list_unknown is None:                
+                self.list_good = [t[0] for t in self.torrent_db.getAll('torrent_id',status_id=self.good_id)]
+                self.list_unknown = [t[0] for t in self.torrent_db.getAll('torrent_id',status_id=self.unknown_id)]
+        #        self.list_dead = [t[0] for t in self.torrent_db.getAll('torrent_id',status_id=dead_id)]
+        
+                shuffle(self.list_good)
+                shuffle(self.list_unknown)
+        finally:
+            self.lock.release()
+    
+    def _addTorrentToList(self, torrent_id, status_id):
+        if status_id == self.good_id:
+            self.list_good.append(torrent_id)
+        elif status_id == self.unknown_id:
+            self.list_unknown.append(torrent_id)
+#        elif torrent["status"] == self.dead_id:
+#            self.list_dead.append(torrent_id)
+
+    def _deleteTorrentFromList(self, torrent_id):
+        if torrent_id in self.list_good:
+            self.list_good.remove(torrent_id)
+        if torrent_id in self.list_unknown:
+            self.list_unknown.remove(torrent_id)
         
     def updateFun(self, infohash, operate):
-        if not self.done_init:
-            return
-        torrent = self.torrent_db.getTorrent(infohash)
-        #print "*** torrentcheckinglist updateFun", operate, torrent
-        if not torrent:
-            self.deleteTorrentFromList(infohash)
-            return
-        
         try:
+            self.lock.acquire()
+            if not self.done_init:
+                return
+            torrent = self.torrent_db.getOne(('torrent_id', 'status_id'),infohash=infohash)
+            #print "*** torrentcheckinglist updateFun", operate, torrent
+            if not torrent:
+                return
+            torrent_id, status_id = torrent
+            
             if operate == "update":
-                self.deleteTorrentFromList(infohash)
-                self.addTorrentToList(infohash,torrent)
+                self._deleteTorrentFromList(torrent_id)
+                self._addTorrentToList(torrent_id,status_id)
             elif operate == "add":
-                self.addTorrentToList(infohash,torrent)
+                self._addTorrentToList(torrent_id,status_id)
             elif operate == "delete":
-                self.deleteTorrentFromList(infohash)
-        except Exception, msg:
-            print sys.stderr, Exception, msg
-            print print_exc()
-#        print "total len", len(self.list_good) + len(self.list_unknown) + len(self.list_dead)
-#        print "good len", len(self.list_good)
-#        print "unknown len", len(self.list_unknown)
-#        print "dead len", len(self.list_dead)
-        
-        
-    def acquire(self):
-        self.lock.acquire()
-        
-    def release(self):
-        self.lock.release()
+                self._deleteTorrentFromList(torrent_id)
+        finally:
+            self.lock.release()
+
 
 if __name__ == "__main__":
     print TorrentCheckingList.getInstance().data
