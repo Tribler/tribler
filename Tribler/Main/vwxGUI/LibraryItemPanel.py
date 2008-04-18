@@ -388,9 +388,10 @@ class LibraryItemPanel(wx.Panel):
                     if not self.playable:
                         switchable = True
                 havedigest = ds.get_pieces_complete()
-                    
+            
+                
             if havedigest:
-                self.pb.set_blocks(havedigest)
+                self.pb.set_pieces(havedigest)
                 self.pb.Refresh()
             elif finished:
                 self.pb.reset(colour=2) # Show as complete
@@ -595,7 +596,7 @@ class LibraryItemPanel(wx.Panel):
                 
         if name == 'deleteLibraryitem':
             # delete works for active and inactive torrents
-            self.guiUtility.standardOverview.removeTorrentFromLibrary(self.data)
+            self.guiUtility.onDeleteTorrentFromLibrary()
             
         if event.RightDown():
             self.rightMouseButton(event)

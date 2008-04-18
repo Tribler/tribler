@@ -1470,6 +1470,7 @@ class standardDetails(wx.Panel):
             if dest:
                 dcfg.set_dest_dir(dest) # set destination dir
             
+            dcfg.set_selected_files(tdef.get_video_files(None)) # select all files
             d = self.utility.session.start_download(tdef,dcfg)
             
             if d:

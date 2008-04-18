@@ -195,10 +195,11 @@ class DownloadState(Serializable):
         """ Returns a list of booleans indicating whether we have completely
         received that piece of the content. The list of pieces for which 
         we provide this info depends on which files were selected for download
-        using DownloadStartupConfig.select_files().
+        using DownloadStartupConfig.set_selected_files().
         @return A list of booleans
         """
         if self.stats is None:
+            print >> sys.stderr, 'debug: stats is none'
             return []
         else:
             return self.haveslice

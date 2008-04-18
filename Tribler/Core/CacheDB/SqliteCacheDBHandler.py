@@ -1153,7 +1153,7 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['progress'] = data[1]
                 torrent['destdir'] = data[2]
                 
-            print >>sys.stderr,"TorrentDBHandler: GET TORRENTS",`torrent`
+            #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS",`torrent`
                 
             torrent_list.append(torrent)
         del res_list
@@ -1173,7 +1173,7 @@ class TorrentDBHandler(BasicDBHandler):
             where = 'status_id=%d ' % self.status_table['good']
             res_list = self._db.getAll('Torrent', value_name, where = where, limit=rankList_size, order_by=order_by)
             self.rankList = [a[0] for a in res_list]
-            print >> sys.stderr, self.rankList
+            #print >> sys.stderr, self.rankList
         try:
             return self.rankList.index(infohash)+1
         except:
@@ -1428,20 +1428,24 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self._db.insert(self.table_name, **d)
         if commit:
             self.commit()
+        self.notifier.notify(NTFY_MYPREFERENCES, NTFY_INSERT, infohash)
         if self.recent_preflist is None:
             self.getRecentLivePrefList()
         self.recent_preflist.insert(0, infohash)
         self.getAllTorrentCoccurrence()
         return True
 
-    def deletePreference(self, infohash):
+    def deletePreference(self, infohash, commit=True):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
             return
         self._db.delete(self.table_name, **{'torrent_id':torrent_id})
-        if infohash in self.recent_preflist:
+        if self.recent_preflist is not None and infohash in self.recent_preflist:
             self.recent_preflist.remove(infohash)
-        
+        if commit:
+            self.commit()
+        self.notifier.notify(NTFY_MYPREFERENCES, NTFY_DELETE, infohash)
+            
     def updateProgress(self, infohash, progress):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:

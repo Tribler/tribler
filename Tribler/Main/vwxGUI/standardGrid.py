@@ -21,10 +21,10 @@ import web2
 
 DEBUG = False
 
-ntfy_mappings = {'filesMode':NTFY_TORRENTS,
-                 'personsMode':NTFY_PEERS,
-                 'friendsMode':NTFY_PEERS,
-                 'libraryMode':NTFY_DOWNLOADS,
+ntfy_mappings = {'filesMode':[NTFY_MYPREFERENCES, NTFY_TORRENTS],
+                 'personsMode':[NTFY_PEERS],
+                 'friendsMode':[NTFY_PEERS],
+                 'libraryMode':[NTFY_MYPREFERENCES, NTFY_TORRENTS],
                  
                  }
 
@@ -112,9 +112,9 @@ class GridManager(object):
     
     def setObserver(self):
         self.session.remove_observer(self.item_network_callback)
-        self.session.add_observer(self.item_network_callback,ntfy_mappings[self.state.db])
+        for notify_constant in ntfy_mappings[self.state.db]:
+            self.session.add_observer(self.item_network_callback, notify_constant)
         
-        # library add NTFY_TORRENTS and NTFY_DOWNLOADS? or NTFY_MYPREFERENCES
         if self.state.db == 'libraryMode':
             if not self.download_states_callback_set:
                 self.download_states_callback_set = True
@@ -200,11 +200,10 @@ class GridManager(object):
             if not ok:
                 print >> sys.stderr, 'Gridmanager: Torrent is not relevant: %s' % torrent
             return ok
+        elif subject == NTFY_MYPREFERENCES:
+            return True
         
-        elif subject in (NTFY_YOUTUBE):
-            raise Exception('Not yet implemented')
-        
-        return objectID in [a[id_name] for a in self.data]
+        raise Exception('not yet implemented')
     
     def addDownloadStates(self, liblist):
         # Add downloadstate data to list of torrent dicts

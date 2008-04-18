@@ -145,7 +145,7 @@ class ProgressBar(wx.Control):
         
         arrowsize = 6
         arrowspace = 1
-        numrect = len(self.blocks)
+        numrect = float(len(self.blocks))
 
         # create blocks
         w = max(1,maxw/numrect)
@@ -158,7 +158,7 @@ class ProgressBar(wx.Control):
         dc.BeginDrawing()
         dc.Clear()
         
-        rectangles = [(x+i*w,y,w,h) for i in xrange(0,numrect)]
+        rectangles = [(x+int(i*w),y,int(w)+1,h) for i in xrange(0,numrect)]
 
         # draw the blocks
         pens = [self.pens[c] for c in self.blocks]
@@ -168,6 +168,21 @@ class ProgressBar(wx.Control):
 
         dc.EndDrawing()
 
+    def set_pieces(self, blocks):
+        num = 50 # max number of blocks to show
+        if len(blocks) < num:
+            self.set_blocks([2*int(a) for a in blocks])
+        else:
+            sblocks = [0]*num
+            f = len(blocks)/num
+            for i in xrange(num):
+                part = blocks[int(f*i):int(f*(i+1))]
+                if True in part:
+                    sblocks[i] = 1
+                if not False in part:
+                    sblocks[i] = 2
+            self.set_blocks(sblocks)
+        
     def set_blocks(self,blocks):
         """ Called by MainThread """
         self.blocks = blocks

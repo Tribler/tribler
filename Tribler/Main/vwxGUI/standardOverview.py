@@ -2,8 +2,7 @@ import wx, os, sys, os.path
 import wx.xrc as xrc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc,print_stack
-from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
 from Tribler.Main.vwxGUI.standardGrid import GridState
@@ -51,6 +50,7 @@ class standardOverview(wx.Panel):
         self.utility = self.guiUtility.utility
         self.categorykey = None
         self.torrent_db = TorrentDBHandler.getInstance()
+        self.mypreference_db = MyPreferenceDBHandler.getInstance()
       
         self.mode = None
         self.data = {} #keeps gui elements for each mode
@@ -568,9 +568,8 @@ class standardOverview(wx.Panel):
         self.guiUtility.refreshOnResize()
         
     def removeTorrentFromLibrary(self, torrent):
-        "Remove torrent from the library. Add it to discovered files?"
         infohash = torrent['infohash']
-        self.data_manager.setBelongsToMyDowloadHistory(infohash, False)
+        self.mypreference_db.deletePreference(infohash)
         
     def gotRemoteHits(self,permid,kws,answers):
         """ Called by RemoteQueryMsgHandler """
