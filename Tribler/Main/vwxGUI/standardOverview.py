@@ -233,7 +233,7 @@ class standardOverview(wx.Panel):
         if filterState and filterState.isValid():
             if self.mode in ('filesMode', 'personsMode', 'libraryMode', 'friendsMode'):
                 #self.loadTorrentData(filterState[0], filterState[1])
-                self.data[self.mode]['grid'].gridManager.set_state(filterState)
+                self.data[filterState.db]['grid'].gridManager.set_state(filterState)
                 
             elif self.mode == 'subscriptionsMode':
                 self.loadSubscriptionData()

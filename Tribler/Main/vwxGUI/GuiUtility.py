@@ -150,16 +150,9 @@ class GUIUtility:
                         
             wx.CallAfter(self.standardOverview.toggleSearchDetailsPanel, False)
         elif name == 'familyFilterOn' or name == 'familyFilterOff':
-            print 'tb >ON  %s' % self.familyButtonOn.isToggled()
-            print 'tb >OFF %s' % self.familyButtonOff.isToggled()
-            if self.familyButtonOn.isToggled() and name == 'familyFilterOn':
-#            if ff_enabled and name == 'familyFilterOn':
-                print 'nothing'
-                
-            elif self.familyButtonOff.isToggled() and name == 'familyFilterOff':
-#            elif ff_enabled == False and name == 'familyFilterOff':
-                print 'nothing'
-            else:                    
+            if ((self.familyButtonOn.isToggled() and name == 'familyFilterOff') or
+                (self.familyButtonOff.isToggled() and name == 'familyFilterOn')):
+
                 catobj = Category.getInstance()
                 ff_enabled = not catobj.family_filter_enabled()
                 print 'Setting family filter to: %s' % ff_enabled

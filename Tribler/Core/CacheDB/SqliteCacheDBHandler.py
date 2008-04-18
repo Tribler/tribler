@@ -1071,14 +1071,17 @@ class TorrentDBHandler(BasicDBHandler):
     def getNumberTorrents(self, category_name = 'all', library = False):
         table = 'CollectedTorrent'
         value = 'count(*)'
-        where = 'status_id=%d ' % self.status_table['good']
-        # add familyfilter
-        where += Category.getInstance().get_family_filter_sql(self._getCategoryID)
+        where = '1 '
         
         if category_name != 'all':
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
         if library:
             where += ' and torrent_id in (select torrent_id from MyPreference)'
+        else:
+            where += ' and status_id=%d ' % self.status_table['good']
+            # add familyfilter
+            where += Category.getInstance().get_family_filter_sql(self._getCategoryID)
+        
         return self._db.getOne(table, value, where)
         
     def getTorrents(self, category_name = 'all', range = None, library = False, sort = None, reverse = False):
@@ -1098,14 +1101,16 @@ class TorrentDBHandler(BasicDBHandler):
                       'num_leechers', 'num_seeders', 'length', 
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
                       'relevance', 'infohash']
+        where = '1 '
         
-        where = 'status_id=%d ' % self.status_table['good']
-        # add familyfilter
-        where += Category.getInstance().get_family_filter_sql(self._getCategoryID)
         if category_name != 'all':
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
         if library:
             where += ' and torrent_id in (select torrent_id from MyPreference)'
+        else:
+            where += ' and status_id=%d ' % self.status_table['good'] # if not library, show only good files
+            # add familyfilter
+            where += Category.getInstance().get_family_filter_sql(self._getCategoryID)
         if range:
             offset= range[0]
             limit = range[1] - range[0]

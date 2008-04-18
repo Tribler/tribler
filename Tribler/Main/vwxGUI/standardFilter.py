@@ -102,6 +102,7 @@ class standardFilter(wx.Panel):
             self.state = GridState(self.mode,
                               dict_state.get('category'),
                               None)
+            print >> sys.stderr,'%s returns %s' % (self.__class__.__name__, self.state)
             self.guiUtility.standardOverview.filterChanged(self.state)
         except:
             if DEBUG:
@@ -128,7 +129,6 @@ class standardFilter(wx.Panel):
 
 class filesFilter(standardFilter):
     def __init__(self):
-        self.mode = 'filesMode'
         nametuples = [('all', 'All')]
         nametuples += Category.getInstance().getCategoryNames()
         nametuples.append(('other', 'Other'))
@@ -137,6 +137,7 @@ class filesFilter(standardFilter):
         filterData = [['category', nametuples]]
                      
         standardFilter.__init__(self, filterData = filterData)
+        self.mode = 'filesMode'
         
     def refresh(self):
         nametuples = [('all', 'All')]
@@ -148,44 +149,9 @@ class filesFilter(standardFilter):
         self.Show()
         self.filterChanged(self.filterState)
         
-#class personsFilter(standardFilter):
-#    def __init__(self):
-#        filterData = [
-#                      [('all', 'All'),
-#                       ('search', 'Search Results')
-#                       ],
-#                      [(('content_name','increase'), 'Name'),
-#                       ('similarity', 'Similar taste'),                        
-#                       ('last_connected', 'Recently connected'),                        
-#                      ]
-#                  ]
-#        standardFilter.__init__(self, filterData = filterData)
-#        
+
 class libraryFilter(filesFilter):
     def __init__(self):
         filesFilter.__init__(self)
         self.mode = 'libraryMode'
-
-#    def __init__(self):
-#
-#        nametuples = Category.getInstance().getCategoryNames()
-#        nametuples = [('all', 'All')] + nametuples
-#        nametuples += [('other', 'Other')]
-#        #nametuples += [('search', 'Search Results')]
-#        filterData = [['category', nametuples]]
-#                       
-#        standardFilter.__init__(self, filterData = filterData)
-
-#class friendsFilter(standardFilter):
-#    def __init__(self):
-#        filterData = [
-#                      [('friends', 'All'),
-#                       ('search_friends', 'Search Results')
-#                       ],
-#                      [(('content_name','increase'), 'Name'),
-#                       ('similarity', 'Similar taste'),                        
-#                       ('last_connected', 'Recently connected'),                        
-#                      ]
-#                  ]
-#        standardFilter.__init__(self, filterData = filterData)
 
