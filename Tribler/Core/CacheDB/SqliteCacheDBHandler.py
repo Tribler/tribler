@@ -204,7 +204,6 @@ class PeerDBHandler(BasicDBHandler):
         else:
             # return a dictionary
             # make it compatible for calls to old bsddb interface
-            # Jie TODO: ugly codes. should focus on single task. move these codes to modules
             value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'num_peers', 'num_torrents', 'num_prefs', 'num_queries', 
                       'connected_times', 'buddycast_times', 'last_connected', 'last_seen')
@@ -327,7 +326,7 @@ class PeerDBHandler(BasicDBHandler):
 
     def deletePeer(self, permid=None, peer_id=None, force=False, commit = True):
         # don't delete friend of superpeers, except that force is True
-        # TODO: add transaction
+        # to do: add transaction
         #self._db._begin()    # begin a transaction
         if peer_id is None:
             peer_id = self._db.getPeerID(permid)
@@ -359,7 +358,7 @@ class PeerDBHandler(BasicDBHandler):
         sql_update_sims = 'UPDATE Peer SET similarity=? WHERE peer_id=?'
         self._db.executemany(sql_update_sims, sim_list)
         self.commit()
-        # TODO: how to notify the update of a group of peers?
+        # to do: how to notify the update of a group of peers?
 
     def getPermIDByIP(self,ip):
         permid = self.getOne('permid', ip=ip)
@@ -585,10 +584,11 @@ class PreferenceDBHandler(BasicDBHandler):
         if not return_infohash:
             sql_get_peer_prefs_id = "SELECT torrent_id FROM Preference WHERE peer_id==?"
             res = self._db.fetchall(sql_get_peer_prefs_id, (peer_id,))
+            return [t[0] for t in res]
         else:
             sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id IN (SELECT torrent_id FROM Preference WHERE peer_id==?)"
             res = self._db.fetchall(sql_get_infohash, (peer_id,))
-        return [t[0] for t in res]
+            return [str2bin(t[0]) for t in res]
     
     def _deletePeer(self, permid=None, peer_id=None):   # delete a peer from pref_db
         # should only be called by PeerDBHandler
@@ -650,6 +650,31 @@ class PreferenceDBHandler(BasicDBHandler):
         res = self._db.fetchall(sql)
         return res
         
+    def getCommonFiles(self, permid):
+        peer_id = self._db.getPeerID(permid)
+        if peer_id is None:
+            return []
+        
+        sql_get_common_files = """select name from CollectedTorrent where torrent_id in (
+                                    select torrent_id from Preference where peer_id=?
+                                      and torrent_id in (select torrent_id from MyPreference)
+                                    ) and status_id <> 2
+                               """
+        res = self._db.fetchall(sql_get_common_files, (peer_id,))
+        return [t[0] for t in res]
+        
+    def getOtherFiles(self, permid):
+        peer_id = self._db.getPeerID(permid)
+        if peer_id is None:
+            return []
+        
+        sql_get_other_files = """select infohash,name from CollectedTorrent where torrent_id in (
+                                    select torrent_id from Preference where peer_id=?
+                                      and torrent_id not in (select torrent_id from MyPreference)
+                                    ) and status_id <> 2
+                              """
+        res = self._db.fetchall(sql_get_other_files, (peer_id,))
+        return [(str2bin(t[0]),t[1]) for t in res]
         
 class TorrentDBHandler(BasicDBHandler):
     
@@ -717,7 +742,7 @@ class TorrentDBHandler(BasicDBHandler):
         return self._db.getInfohash(torrent_id)
 
     def hasTorrent(self, infohash):
-        if infohash in self.existed_torrents:    #TODO: not thread safe
+        if infohash in self.existed_torrents:    #to do: not thread safe
             return True
         infohash_str = bin2str(infohash)
         existed = self._db.getOne('CollectedTorrent', 'torrent_id', infohash=infohash_str)
@@ -794,7 +819,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         category = Category.getInstance()
         torrent['category'] = self._getCategoryID(category.calculateCategory(metainfo, torrent['name']))
-        torrent['secret'] = 0 # TODO: check if torrent is secret
+        torrent['secret'] = 0 # to do: check if torrent is secret
         torrent['relevance'] = 0.0
         thumbnail = 0
         if 'azureus_properties' in metainfo and 'Content' in metainfo['azureus_properties']:
@@ -924,7 +949,7 @@ class TorrentDBHandler(BasicDBHandler):
             status_id = self._getStatusID(kw.pop('status'))
             kw['status_id'] = status_id
         if 'progress' in kw:
-            self.mypref_db.updateProgress(infohash, kw.pop('progress'))    # TODO: should be changed
+            self.mypref_db.updateProgress(infohash, kw.pop('progress'))    
         if 'seeder' in kw:
             kw['num_seeders'] = kw.pop('seeder')
         if 'leecher' in kw:
@@ -1028,7 +1053,7 @@ class TorrentDBHandler(BasicDBHandler):
     
     
     def getTorrent(self, infohash, keys=None, include_mypref=True):
-        # TODO: replace keys like source -> source_id and status-> status_id ??
+        # to do: replace keys like source -> source_id and status-> status_id ??
         
         if keys is None:
             keys = ('torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
