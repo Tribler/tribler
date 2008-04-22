@@ -154,7 +154,7 @@ class DLFilesList(tribler_List):
             item = self.GetFirstSelected()
             if item != -1 and item < len(self.infohash_List):
                 infohash = self.infohash_List[item] 
-                # to.do: fix it by replacing by db
+                # to.do: clicke to download. fix it by replacing by db
                 torrent = self.guiUtility.data_manager.getTorrent(infohash)
                 torrent['infohash'] = infohash
                 ret = self.guiUtility.standardDetails.download(torrent)

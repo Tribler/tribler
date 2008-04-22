@@ -23,8 +23,7 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Utilities.unicode import bin2unicode
 
 # LAYERVIOLATION
-from Tribler.Core.CacheDB.CacheDBHandler import PreferenceDBHandler
-from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import GUIDBHandler, BarterCastDBHandler
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
@@ -69,8 +68,8 @@ class standardDetails(wx.Panel):
         self.friend_db = self.utility.session.open_dbhandler(NTFY_FRIENDS)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.iconsManager = IconsManager.getInstance()
-        self.pref_db = PreferenceDBHandler.getInstance()
-                            
+        self.gui_db = GUIDBHandler.getInstance()
+                                    
         self.mode = None
         self.item = None
         self.bartercastdb = None
@@ -1006,42 +1005,65 @@ class standardDetails(wx.Panel):
     def fillSimTorrentsList(self, infohash):
         """fills the list of torrents from library or file view with the files that are similar to the currently selected one"""
         # Jie to.do: fill similar torrent list
-        return 
-    
-        self.data_manager.getSimilarTitles(self.item, 30)
         
         sim_torrent_list = self.getGuiObj('peopleWhoField')
         try:
-            sim_torrents = self.data_manager.getSimItems(infohash, 8)
+            sim_files = self.gui_db.getSimItems(infohash, 8)   # [(infohash, title)]
             sim_torrent_list.DeleteAllItems()
             sim_torrent_list.setInfoHashList(None)
-            alist = []
-            for torrent in sim_torrents:
-                f = self.data_manager.getTorrent(torrent)
-                if not f:
-                    continue
-                name = f.get('info',{}).get('name', 'unknown')
-                index = sim_torrent_list.InsertStringItem(sys.maxint, name)
-                alist.append(torrent)
-#                color = "black"
-#                f = self.data_manager.getTorrent(torrent)
-#                if f['status'] == 'good':
-#                    color = "blue"
-#                elif f['status'] == 'unknown':
-#                    color = "black"
-#                elif f['status'] == 'dead':
-#                    color = "red"
-#                sim_torrent_list.SetItemTextColour(index, color)
-                
-            if sim_torrent_list.GetItemCount() == 0:
+        
+            if len(sim_files) == 0:
                 index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
                 font = sim_torrent_list.GetItemFont(index)
                 font.SetStyle(wx.FONTSTYLE_ITALIC)
                 sim_torrent_list.SetItemFont(index, font)
                 sim_torrent_list.SetItemTextColour(index, "#222222")
             else:
-                sim_torrent_list.setInfoHashList(alist)
-                
+                torrent_list = []
+                for infohash, name in sim_files:
+                    sim_torrent_list.InsertStringItem(sys.maxint, name)
+                    torrent_list.append(infohash)
+                sim_torrent_list.setInfoHashList(torrent_list)
+
+#            
+#        
+#        
+#        
+#        
+#        self.data_manager.getSimilarTitles(self.item, 30)
+#        
+#        sim_torrent_list = self.getGuiObj('peopleWhoField')
+#        try:
+#            sim_torrents = self.data_manager.getSimItems(infohash, 8)
+#            sim_torrent_list.DeleteAllItems()
+#            sim_torrent_list.setInfoHashList(None)
+#            alist = []
+#            for torrent in sim_torrents:
+#                f = self.data_manager.getTorrent(torrent)
+#                if not f:
+#                    continue
+#                name = f.get('info',{}).get('name', 'unknown')
+#                index = sim_torrent_list.InsertStringItem(sys.maxint, name)
+#                alist.append(torrent)
+##                color = "black"
+##                f = self.data_manager.getTorrent(torrent)
+##                if f['status'] == 'good':
+##                    color = "blue"
+##                elif f['status'] == 'unknown':
+##                    color = "black"
+##                elif f['status'] == 'dead':
+##                    color = "red"
+##                sim_torrent_list.SetItemTextColour(index, color)
+#                
+#            if sim_torrent_list.GetItemCount() == 0:
+#                index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
+#                font = sim_torrent_list.GetItemFont(index)
+#                font.SetStyle(wx.FONTSTYLE_ITALIC)
+#                sim_torrent_list.SetItemFont(index, font)
+#                sim_torrent_list.SetItemTextColour(index, "#222222")
+#            else:
+#                sim_torrent_list.setInfoHashList(alist)
+#                
         except Exception, e:
             print_exc()
             sim_torrent_list.DeleteAllItems()
@@ -1056,6 +1078,7 @@ class standardDetails(wx.Panel):
         
     def fillSimTitlesList(self, item):
         """fills the list of torrents with similar titles"""
+        # to.do: fill sim title list
         
         sim_torrent_list = self.getGuiObj('simTitlesField')
         try:
@@ -1068,7 +1091,6 @@ class standardDetails(wx.Panel):
                 index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                 alist.append(torrent)
 #              
-                
             if sim_torrent_list.GetItemCount() == 0:
                 index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
                 font = sim_torrent_list.GetItemFont(index)
@@ -1105,7 +1127,7 @@ class standardDetails(wx.Panel):
 #                return
 #            permid = self.item['permid']
 #            #hash_list = self.guiUtility.peer_manager.getPeerHistFiles(permid)
-#            hash_list = self.pref_db.getPrefList(permid)
+#            hash_list = self.gui_db.getPrefList(permid)
 #            torrents_info = self.data_manager.getTorrents(hash_list)
 #            alist = []
 #            for f in torrents_info:
@@ -1178,11 +1200,8 @@ class standardDetails(wx.Panel):
             permid = self.item['permid']
             
             #done: fill peer's download list. 
-            common_files = self.pref_db.getCommonFiles(permid)  #[name]
-            other_files = self.pref_db.getOtherFiles(permid)    #[(infohash,name)]
-            
-            print >> sys.stderr, "***** common_files", common_files
-            print >> sys.stderr, "***** other_files", other_files
+            common_files = self.gui_db.getCommonFiles(permid)  #[name]
+            other_files = self.gui_db.getOtherFiles(permid)    #[(infohash,name)]
             
             if len(common_files) == 0:
                 index = cfList.InsertStringItem(sys.maxint, "No common files with this person.")
@@ -1213,7 +1232,7 @@ class standardDetails(wx.Panel):
 #            
 #            ============
 #            #hash_list = self.guiUtility.peer_manager.getPeerHistFiles(permid)
-#            hash_list = self.pref_db.getPrefList(permid)
+#            hash_list = self.gui_db.getPrefList(permid)
 #            torrents_info = self.data_manager.getTorrents(hash_list)
 #            alist = []
 #            for f in torrents_info:

@@ -649,32 +649,7 @@ class PreferenceDBHandler(BasicDBHandler):
              sql = sql[:-1] + " limit %d)"%num
         res = self._db.fetchall(sql)
         return res
-        
-    def getCommonFiles(self, permid):
-        peer_id = self._db.getPeerID(permid)
-        if peer_id is None:
-            return []
-        
-        sql_get_common_files = """select name from CollectedTorrent where torrent_id in (
-                                    select torrent_id from Preference where peer_id=?
-                                      and torrent_id in (select torrent_id from MyPreference)
-                                    ) and status_id <> 2
-                               """
-        res = self._db.fetchall(sql_get_common_files, (peer_id,))
-        return [t[0] for t in res]
-        
-    def getOtherFiles(self, permid):
-        peer_id = self._db.getPeerID(permid)
-        if peer_id is None:
-            return []
-        
-        sql_get_other_files = """select infohash,name from CollectedTorrent where torrent_id in (
-                                    select torrent_id from Preference where peer_id=?
-                                      and torrent_id not in (select torrent_id from MyPreference)
-                                    ) and status_id <> 2
-                              """
-        res = self._db.fetchall(sql_get_other_files, (peer_id,))
-        return [(str2bin(t[0]),t[1]) for t in res]
+
         
 class TorrentDBHandler(BasicDBHandler):
     
@@ -1744,5 +1719,78 @@ class BarterCastDBHandler(BasicDBHandler):
         return None
 
 
+class GUIDBHandler:
+    """ All the functions of this class are only (or mostly) used by GUI.
+        It is not associated with any db table, but will use any of them
+    """
     
-
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if GUIDBHandler.__single is None:
+            GUIDBHandler.lock.acquire()   
+            try:
+                if GUIDBHandler.__single is None:
+                    GUIDBHandler(*args, **kw)
+            finally:
+                GUIDBHandler.lock.release()
+        return GUIDBHandler.__single
+    
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if GUIDBHandler.__single is not None:
+            raise RuntimeError, "GUIDBHandler is singleton"
+        self._db = SQLiteCacheDB.getInstance()
+        self.notifier = Notifier.getInstance()
+        GUIDBHandler.__single = self
+        
+    def getCommonFiles(self, permid):
+        peer_id = self._db.getPeerID(permid)
+        if peer_id is None:
+            return []
+        
+        sql_get_common_files = """select name from CollectedTorrent where torrent_id in (
+                                    select torrent_id from Preference where peer_id=?
+                                      and torrent_id in (select torrent_id from MyPreference)
+                                    ) and status_id <> 2
+                               """
+        res = self._db.fetchall(sql_get_common_files, (peer_id,))
+        return [t[0] for t in res]
+        
+    def getOtherFiles(self, permid):
+        peer_id = self._db.getPeerID(permid)
+        if peer_id is None:
+            return []
+        
+        sql_get_other_files = """select infohash,name from CollectedTorrent where torrent_id in (
+                                    select torrent_id from Preference where peer_id=?
+                                      and torrent_id not in (select torrent_id from MyPreference)
+                                    ) and status_id <> 2
+                              """
+        res = self._db.fetchall(sql_get_other_files, (peer_id,))
+        return [(str2bin(t[0]),t[1]) for t in res]
+    
+    def getSimItems(self, infohash, limit):
+        torrent_id = self._db.getTorrentID(infohash)
+        if torrent_id is None:
+            return []
+        
+        sql_get_sim_files = """
+            select infohash, name 
+             from Preference as P1, Preference as P2, CollectedTorrent as T
+             where P1.peer_id=P2.peer_id and T.torrent_id=P2.torrent_id 
+             and status_id <> 2 and P2.torrent_id <> P1.torrent_id
+             and P1.torrent_id=?
+             group by P2.torrent_id
+             order by count(P2.torrent_id) desc
+             limit ?    
+        """
+         
+        res = self._db.fetchall(sql_get_sim_files, (torrent_id,limit))
+        return [(str2bin(t[0]),t[1]) for t in res]
+        
+        
+        
