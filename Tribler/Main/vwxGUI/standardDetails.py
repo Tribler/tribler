@@ -24,6 +24,7 @@ from Tribler.Core.Utilities.unicode import bin2unicode
 
 # LAYERVIOLATION
 from Tribler.Core.CacheDB.CacheDBHandler import GUIDBHandler, BarterCastDBHandler
+from Tribler.Core.CacheDB.EditDist import editDist
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
@@ -1004,7 +1005,7 @@ class standardDetails(wx.Panel):
      
     def fillSimTorrentsList(self, infohash):
         """fills the list of torrents from library or file view with the files that are similar to the currently selected one"""
-        # Jie to.do: fill similar torrent list
+        # Jie done: fill similar torrent list
         
         sim_torrent_list = self.getGuiObj('peopleWhoField')
         try:
@@ -1020,50 +1021,19 @@ class standardDetails(wx.Panel):
                 sim_torrent_list.SetItemTextColour(index, "#222222")
             else:
                 torrent_list = []
-                for infohash, name in sim_files:
-                    sim_torrent_list.InsertStringItem(sys.maxint, name)
+                for infohash, name, status_id, coocurrence in sim_files:
+                    if coocurrence <= 1:
+                        continue
+                    index = sim_torrent_list.InsertStringItem(sys.maxint, name)
+                    if status_id == 0:  # good
+                        color = "blue"
+                    elif status_id == 1:  # unknown
+                        color = "black"
+                    elif status_id == 2:  # dead
+                        color = "red"
+                    sim_torrent_list.SetItemTextColour(index, color)
                     torrent_list.append(infohash)
                 sim_torrent_list.setInfoHashList(torrent_list)
-
-#            
-#        
-#        
-#        
-#        
-#        self.data_manager.getSimilarTitles(self.item, 30)
-#        
-#        sim_torrent_list = self.getGuiObj('peopleWhoField')
-#        try:
-#            sim_torrents = self.data_manager.getSimItems(infohash, 8)
-#            sim_torrent_list.DeleteAllItems()
-#            sim_torrent_list.setInfoHashList(None)
-#            alist = []
-#            for torrent in sim_torrents:
-#                f = self.data_manager.getTorrent(torrent)
-#                if not f:
-#                    continue
-#                name = f.get('info',{}).get('name', 'unknown')
-#                index = sim_torrent_list.InsertStringItem(sys.maxint, name)
-#                alist.append(torrent)
-##                color = "black"
-##                f = self.data_manager.getTorrent(torrent)
-##                if f['status'] == 'good':
-##                    color = "blue"
-##                elif f['status'] == 'unknown':
-##                    color = "black"
-##                elif f['status'] == 'dead':
-##                    color = "red"
-##                sim_torrent_list.SetItemTextColour(index, color)
-#                
-#            if sim_torrent_list.GetItemCount() == 0:
-#                index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
-#                font = sim_torrent_list.GetItemFont(index)
-#                font.SetStyle(wx.FONTSTYLE_ITALIC)
-#                sim_torrent_list.SetItemFont(index, font)
-#                sim_torrent_list.SetItemTextColour(index, "#222222")
-#            else:
-#                sim_torrent_list.setInfoHashList(alist)
-#                
         except Exception, e:
             print_exc()
             sim_torrent_list.DeleteAllItems()
@@ -1076,30 +1046,66 @@ class standardDetails(wx.Panel):
             if DEBUG:
                 print >> sys.stderr,"standardDetails: could not resize lists in sim_torrent_list panel" 
         
+
     def fillSimTitlesList(self, item):
         """fills the list of torrents with similar titles"""
         # to.do: fill sim title list
         
         sim_torrent_list = self.getGuiObj('simTitlesField')
         try:
-            sim_torrents = self.data_manager.getSimilarTitles(item, 30)
+            name = item['name']
+            sim_files = self.gui_db.getSimilarTitles(name, 30)  # first get a subset of titles
+            
+            def cmpfunc(x, y):
+                return int(10000*(editDist(x[1], name) - editDist(y[1], name)))
+            
+            sim_files.sort(cmpfunc)
+            
             sim_torrent_list.DeleteAllItems()
             sim_torrent_list.setInfoHashList(None)
-            alist = []
-            for torrent in sim_torrents:
-                name = torrent.get('name')
-                index = sim_torrent_list.InsertStringItem(sys.maxint, name)
-                alist.append(torrent)
-#              
-            if sim_torrent_list.GetItemCount() == 0:
+            
+            if len(sim_files) == 0:
                 index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
                 font = sim_torrent_list.GetItemFont(index)
                 font.SetStyle(wx.FONTSTYLE_ITALIC)
                 sim_torrent_list.SetItemFont(index, font)
                 sim_torrent_list.SetItemTextColour(index, "#222222")
             else:
-                sim_torrent_list.setInfoHashList([a['infohash'] for a in alist])
-                
+                torrent_list = []
+                for infohash, name, status_id in sim_files:
+                    if infohash == item['infohash']:
+                        continue
+                    index = sim_torrent_list.InsertStringItem(sys.maxint, name)
+                    if status_id == 0:  # good
+                        color = "blue"
+                    elif status_id == 1:  # unknown
+                        color = "black"
+                    elif status_id == 2:  # dead
+                        color = "red"
+                    sim_torrent_list.SetItemTextColour(index, color)
+                    torrent_list.append(infohash)
+                sim_torrent_list.setInfoHashList(torrent_list)
+            
+#            
+#            
+#            
+#            
+#            
+#            alist = []
+#            for torrent in sim_torrents:
+#                name = torrent.get('name')
+#                index = sim_torrent_list.InsertStringItem(sys.maxint, name)
+#                alist.append(torrent)
+##              
+#            if sim_torrent_list.GetItemCount() == 0:
+#                index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
+#                font = sim_torrent_list.GetItemFont(index)
+#                font.SetStyle(wx.FONTSTYLE_ITALIC)
+#                sim_torrent_list.SetItemFont(index, font)
+#                sim_torrent_list.SetItemTextColour(index, "#222222")
+#            else:
+#                sim_torrent_list.setInfoHashList([a['infohash'] for a in alist])
+#                
         except Exception, e:
             print_exc()
             sim_torrent_list.DeleteAllItems()

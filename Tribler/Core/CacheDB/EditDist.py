@@ -6,7 +6,7 @@
 import string
 import math
 
-def editDist(str1,str2, maxlength=12):
+def editDist(str1,str2, maxlength=14):
     # If fast is set: only calculate titles with same #fast initial chars
     if not str1 or not str2: # protect against empty strings
         return 1.0
@@ -44,7 +44,13 @@ def editDist(str1,str2, maxlength=12):
     return 1.*d[lenStr1][lenStr2]/ maxi
     
 
-##if __name__ == '__main__':
+if __name__ == '__main__':
+    import sys
+    str1 = sys.argv[1]
+    str2 = sys.argv[2]
+    print editDist(str1, str2)
+    
+    
 ##    d,e = EditDist('mamamstein','levenstein')
 ##    print e
 ##    for i in d:

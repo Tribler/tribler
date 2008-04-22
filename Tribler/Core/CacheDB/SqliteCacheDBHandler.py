@@ -1779,18 +1779,53 @@ class GUIDBHandler:
             return []
         
         sql_get_sim_files = """
-            select infohash, name 
+            select infohash, name, status_id, count(P2.torrent_id) c 
              from Preference as P1, Preference as P2, CollectedTorrent as T
              where P1.peer_id=P2.peer_id and T.torrent_id=P2.torrent_id 
-             and status_id <> 2 and P2.torrent_id <> P1.torrent_id
+             and P2.torrent_id <> P1.torrent_id
              and P1.torrent_id=?
              group by P2.torrent_id
-             order by count(P2.torrent_id) desc
+             order by c desc
              limit ?    
         """
          
         res = self._db.fetchall(sql_get_sim_files, (torrent_id,limit))
-        return [(str2bin(t[0]),t[1]) for t in res]
+        return [(str2bin(t[0]),t[1], t[2], t[3]) for t in res]
         
+    def getSimilarTitles(self, name, limit, prefix_len=5):
+        sql_get_sim_files = """
+            select infohash, name, status_id from Torrent 
+            where name like '%s%%'  
+            order by name
+             limit ?    
+        """ % name[:prefix_len]
+         
+        res = self._db.fetchall(sql_get_sim_files, (limit,))
+        return [(str2bin(t[0]),t[1], t[2]) for t in res]
+
+    def _how_many_prefix(self):
+        """ test how long the prefix is enough to find similar titles """
+        # Jie: I found 5 is the best value.
         
+        sql = "select name from Torrent where name is not NULL order by name"
+        names = self._db.fetchall(sql)
         
+        for top in range(3, 10):
+            sta = {}
+            for line in names:
+                prefix = line[0][:top]
+                if prefix not in sta:
+                    sta[prefix] = 1
+                else:
+                    sta[prefix] += 1
+            
+            res = [(v,k) for k,v in sta.items()]
+            res.sort()
+            res.reverse()
+        
+            print >> sys.stderr, '------------', top, '-------------'
+            for k in res[:10]:
+                print >> sys.stderr, k
+                
+
+    
