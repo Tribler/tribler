@@ -1784,6 +1784,7 @@ class GUIDBHandler:
              where P1.peer_id=P2.peer_id and T.torrent_id=P2.torrent_id 
              and P2.torrent_id <> P1.torrent_id
              and P1.torrent_id=?
+             and P2.torrent_id not in (select torrent_id from MyPreference)
              group by P2.torrent_id
              order by c desc
              limit ?    
@@ -1795,7 +1796,8 @@ class GUIDBHandler:
     def getSimilarTitles(self, name, limit, prefix_len=5):
         sql_get_sim_files = """
             select infohash, name, status_id from Torrent 
-            where name like '%s%%'  
+            where name like '%s%%'
+             and torrent_id not in (select torrent_id from MyPreference)
             order by name
              limit ?    
         """ % name[:prefix_len]

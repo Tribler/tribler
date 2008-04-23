@@ -1005,7 +1005,8 @@ class standardDetails(wx.Panel):
      
     def fillSimTorrentsList(self, infohash):
         """fills the list of torrents from library or file view with the files that are similar to the currently selected one"""
-        # Jie done: fill similar torrent list
+        # jie.done: fill similar torrent list
+        # future.work: smooth the recommendation, solve the data sparse and cold start problem
         
         sim_torrent_list = self.getGuiObj('peopleWhoField')
         try:
@@ -1013,16 +1014,10 @@ class standardDetails(wx.Panel):
             sim_torrent_list.DeleteAllItems()
             sim_torrent_list.setInfoHashList(None)
         
-            if len(sim_files) == 0:
-                index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
-                font = sim_torrent_list.GetItemFont(index)
-                font.SetStyle(wx.FONTSTYLE_ITALIC)
-                sim_torrent_list.SetItemFont(index, font)
-                sim_torrent_list.SetItemTextColour(index, "#222222")
-            else:
-                torrent_list = []
+            torrent_list = []
+            if len(sim_files) > 0:
                 for infohash, name, status_id, coocurrence in sim_files:
-                    if coocurrence <= 1:
+                    if coocurrence <= 1:    # don't show too irrelevant torrents. set it to 0 if you want to show all co-occurent torrents
                         continue
                     index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                     if status_id == 0:  # good
@@ -1034,6 +1029,14 @@ class standardDetails(wx.Panel):
                     sim_torrent_list.SetItemTextColour(index, color)
                     torrent_list.append(infohash)
                 sim_torrent_list.setInfoHashList(torrent_list)
+
+            if len(torrent_list) == 0:
+                index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
+                font = sim_torrent_list.GetItemFont(index)
+                font.SetStyle(wx.FONTSTYLE_ITALIC)
+                sim_torrent_list.SetItemFont(index, font)
+                sim_torrent_list.SetItemTextColour(index, "#222222")
+                
         except Exception, e:
             print_exc()
             sim_torrent_list.DeleteAllItems()
@@ -1049,7 +1052,7 @@ class standardDetails(wx.Panel):
 
     def fillSimTitlesList(self, item):
         """fills the list of torrents with similar titles"""
-        # to.do: fill sim title list
+        # jie.done: fill sim title list
         
         sim_torrent_list = self.getGuiObj('simTitlesField')
         try:
@@ -1064,14 +1067,8 @@ class standardDetails(wx.Panel):
             sim_torrent_list.DeleteAllItems()
             sim_torrent_list.setInfoHashList(None)
             
-            if len(sim_files) == 0:
-                index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
-                font = sim_torrent_list.GetItemFont(index)
-                font.SetStyle(wx.FONTSTYLE_ITALIC)
-                sim_torrent_list.SetItemFont(index, font)
-                sim_torrent_list.SetItemTextColour(index, "#222222")
-            else:
-                torrent_list = []
+            torrent_list = []
+            if len(sim_files) > 0:
                 for infohash, name, status_id in sim_files:
                     if infohash == item['infohash']:
                         continue
@@ -1086,7 +1083,13 @@ class standardDetails(wx.Panel):
                     torrent_list.append(infohash)
                 sim_torrent_list.setInfoHashList(torrent_list)
             
-#            
+            if len(torrent_list) == 0:
+                index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
+                font = sim_torrent_list.GetItemFont(index)
+                font.SetStyle(wx.FONTSTYLE_ITALIC)
+                sim_torrent_list.SetItemFont(index, font)
+                sim_torrent_list.SetItemTextColour(index, "#222222")
+            
 #            
 #            
 #            
@@ -1205,7 +1208,7 @@ class standardDetails(wx.Panel):
                 return
             permid = self.item['permid']
             
-            #done: fill peer's download list. 
+            #jie.done: fill peer's download list. 
             common_files = self.gui_db.getCommonFiles(permid)  #[name]
             other_files = self.gui_db.getOtherFiles(permid)    #[(infohash,name)]
             
@@ -1562,7 +1565,7 @@ class standardDetails(wx.Panel):
     def download(self, torrent = None, dest = None, secret = False, force = False):
         if torrent is None:
             torrent = self.item
-
+            
         if (torrent is None or torrent.get('myDownloadHistory')) and not force:
             return
             

@@ -2,6 +2,7 @@ import wx, os, sys
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.Utilities.unicode import *
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 DEBUG = False
 
@@ -144,7 +145,7 @@ class DLFilesList(tribler_List):
         
     def setOtherList(self, olist):
         """the other list that should received the downloaded item"""
-        self.other_List = olist
+        self.other_List = olist 
 
     def setFieldsUpdateFunction(self, func):
         self.updateFunc = func
@@ -154,8 +155,9 @@ class DLFilesList(tribler_List):
             item = self.GetFirstSelected()
             if item != -1 and item < len(self.infohash_List):
                 infohash = self.infohash_List[item] 
-                # to.do: clicke to download. fix it by replacing by db
-                torrent = self.guiUtility.data_manager.getTorrent(infohash)
+                # jie.to.do: clicke to download. fix it by replacing by db
+                torrent_db = TorrentDBHandler.getInstance()
+                torrent = torrent_db.getTorrent(infohash)
                 torrent['infohash'] = infohash
                 ret = self.guiUtility.standardDetails.download(torrent)
                 if ret:
