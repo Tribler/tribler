@@ -653,6 +653,7 @@ class TriblerLaunchMany(Thread):
             t = TorrentChecking()
             t.start()
         except Exception, e:
+            print_exc()
             self.rawserver_nonfatalerrorfunc(e)
 
     def get_coopdl_role_object(self,infohash,role):

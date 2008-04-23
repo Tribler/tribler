@@ -1750,6 +1750,7 @@ class standardDetails(wx.Panel):
             if last_time and type(last_time) == int:
                 self.getGuiObj('refresh').SetToolTipString('%s: %s' % (self.utility.lang.get('last_checked'), friendly_time(last_time)))
         event.Skip()
+        
     """
     def subscrNeedsGUIUpdate(self,todayl,yesterdayl):
         update = True

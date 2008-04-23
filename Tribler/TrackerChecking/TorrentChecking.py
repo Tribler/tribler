@@ -62,6 +62,7 @@ class TorrentChecking(Thread):
         #torrent_file_name = self.torrent_db.get
         try:
             torrent_path = torrent['torrent_path']
+            print >> sys.stderr, '********************************** TorrentChecking', torrent_path
             f = open(torrent_path,'rb')
             _data = f.read()
             f.close()
@@ -80,6 +81,7 @@ class TorrentChecking(Thread):
         policy = self.selectPolicy()
         
         torrent = self.torrent_db.selectTorrentToCheck(policy)
+        print >> sys.stderr, '*************** TorrentChecking Got Torrent', torrent
         
         if not torrent:
             return
@@ -154,5 +156,5 @@ if __name__ == '__main__':
     init_db(config)
     t = TorrentChecking()
     t.start()
-    
+    t.join()
     

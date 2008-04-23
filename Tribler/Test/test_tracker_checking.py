@@ -20,3 +20,4 @@ def run():
         t.start()
         sleep(2)
 
+run()
