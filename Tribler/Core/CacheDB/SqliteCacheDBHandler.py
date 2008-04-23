@@ -944,6 +944,7 @@ class TorrentDBHandler(BasicDBHandler):
         if commit:
             self.commit()
         self.rankList_dirty = True
+        # to.do: update the torrent panel's number of seeders/leechers 
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
     def updateTracker(self, infohash, kw, tier=1, tracker=None):
@@ -1269,7 +1270,7 @@ class TorrentDBHandler(BasicDBHandler):
             return None
         return str2bin(res)
         
-    def selectTorrentToCheck(self, policy):    # for tracker checking
+    def selectTorrentToCheck(self, policy='random', infohash=None):    # for tracker checking
         """ select a torrent to update tracker info (number of seeders and leechers)
         based on the torrent checking policy.
         RETURN: a dictionary containing all useful info.
@@ -1285,27 +1286,42 @@ class TorrentDBHandler(BasicDBHandler):
            (The default N = 4 hours, so at most 4h/torrentchecking_interval popular peers)
         """
         
-        # create a view?
-        sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check 
-                 from Torrent T, TorrentTracker TT
-                 where TT.torrent_id=T.torrent_id and announce_tier=1 """
-        if policy.lower() == 'random':
-            ntorrents = self._db.size('CollectedTorrent')
-            rand_pos = randint(1, ntorrents-1)
-            last_check_threshold = int(time()) - 300
-            sql += """and last_check < %d 
-                    limit 1 offset %d """%(last_check_threshold, rand_pos)
-        elif policy.lower() == 'oldest':
-            last_check_threshold = int(time()) - 300
-            sql += """ and last_check < %d and status_id <> 2
-                     order by last_check
-                     limit 1 """%last_check_threshold
-        elif policy.lower() == 'popular':
-            last_check_threshold = int(time()) - 4*60*60
-            sql += """ and last_check < %d and status_id <> 2 
-                     order by 3*num_seeders+num_leechers desc
-                     limit 1 """%last_check_threshold
-        res = self._db.fetchone(sql)
+        if infohash is None:
+            # create a view?
+            sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check 
+                     from Torrent T, TorrentTracker TT
+                     where TT.torrent_id=T.torrent_id and announce_tier=1 """
+            if policy.lower() == 'random':
+                ntorrents = self._db.size('CollectedTorrent')
+                if ntorrents == 0:
+                    rand_pos = 0
+                else:                    
+                    rand_pos = randint(0, ntorrents-1)
+                last_check_threshold = int(time()) - 300
+                sql += """and last_check < %d 
+                        limit 1 offset %d """%(last_check_threshold, rand_pos)
+            elif policy.lower() == 'oldest':
+                last_check_threshold = int(time()) - 300
+                sql += """ and last_check < %d and status_id <> 2
+                         order by last_check
+                         limit 1 """%last_check_threshold
+            elif policy.lower() == 'popular':
+                last_check_threshold = int(time()) - 4*60*60
+                sql += """ and last_check < %d and status_id <> 2 
+                         order by 3*num_seeders+num_leechers desc
+                         limit 1 """%last_check_threshold
+            res = self._db.fetchone(sql)
+        else:
+            sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check 
+                     from Torrent T, TorrentTracker TT
+                     where TT.torrent_id=T.torrent_id and announce_tier=1
+                     and infohash=? 
+                  """
+            #values = ('torrent_id', 'ignored_times', 'retried_times', 'torrent_file_name', 'infohash', 'status_id', 'num_seeders', 'num_leechers', 'last_check')
+            #res = self._db.getOne('CollectedTorrent', values, infohash=infohash_str)
+            infohash_str = bin2str(infohash)
+            res = self._db.fetchone(sql, (infohash_str,))
+        
         #print " ".join(sql.split())
         #print >> sys.stderr, "******** selectTorrentToCheck:", res, policy
         if not res:

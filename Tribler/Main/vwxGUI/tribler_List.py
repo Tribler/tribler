@@ -155,7 +155,7 @@ class DLFilesList(tribler_List):
             item = self.GetFirstSelected()
             if item != -1 and item < len(self.infohash_List):
                 infohash = self.infohash_List[item] 
-                # jie.to.do: clicke to download. fix it by replacing by db
+                # jie.done: clicke to download. fix it by replacing by db
                 torrent_db = TorrentDBHandler.getInstance()
                 torrent = torrent_db.getTorrent(infohash)
                 torrent['infohash'] = infohash

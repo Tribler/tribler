@@ -9,7 +9,7 @@ from sets import Set
 
 from bgPanel import *
 import updateXRC
-from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.Utilities.utilities import show_permid
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog
 from peermanager import PeerDataManager
@@ -372,8 +372,9 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,'GUIUtility: refresh ' + repr(torrent.get('content_name', 'no_name'))
         if torrent:
-            check = SingleManualChecking(torrent,self.utility.session)
+            check = TorrentChecking(torrent['infohash'])
             check.start()
+            
             
     def refreshTorrentStats(self,dslist):
         """ Called from ABCApp by MainThread to refresh statistics of downloading torrents"""

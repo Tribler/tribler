@@ -25,7 +25,7 @@ import threading
 from threading import Thread
 from random import random, sample
 from time import time, asctime
-from traceback import print_exc
+from traceback import print_exc, print_stack
 
 from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
@@ -36,13 +36,14 @@ DEBUG = False
 
 class TorrentChecking(Thread):
     
-    def __init__(self):
+    def __init__(self, infohash=None):
         Thread.__init__(self)
         self.setName('TorrentChecking'+self.getName())
         if DEBUG:
             print >> sys.stderr, '********** TorrentChecking: Started torrentchecking', threading.currentThread().getName()
         self.setDaemon(True)
         
+        self.infohash = infohash
         self.retryThreshold = 10
         self.gnThreashold = 0.9
         self.mldhtchecker = mainlineDHTChecker.getInstance() 
@@ -62,7 +63,6 @@ class TorrentChecking(Thread):
         #torrent_file_name = self.torrent_db.get
         try:
             torrent_path = torrent['torrent_path']
-            print >> sys.stderr, '********************************** TorrentChecking', torrent_path
             f = open(torrent_path,'rb')
             _data = f.read()
             f.close()
@@ -78,15 +78,16 @@ class TorrentChecking(Thread):
     def _run(self):
         """ Gets one torrent from good or unknown list and checks it """
         
-        policy = self.selectPolicy()
-        
-        torrent = self.torrent_db.selectTorrentToCheck(policy)
-        print >> sys.stderr, '*************** TorrentChecking Got Torrent', torrent
+        if self.infohash is None:   # select torrent by a policy
+            policy = self.selectPolicy()
+            torrent = self.torrent_db.selectTorrentToCheck(policy=policy)
+        else:   # know which torrent to check
+            torrent = self.torrent_db.selectTorrentToCheck(infohash=self.infohash)
         
         if not torrent:
             return
 
-        if torrent['ignored_times'] > 0:
+        if self.infohash is None and torrent['ignored_times'] > 0:
             self.torrent_db.updateTorrentTracker(torrent_id, torrent['ignored_times']-1)
             return
 
@@ -120,11 +121,13 @@ class TorrentChecking(Thread):
         self.torrent_db.updateTorrent(torrent['infohash'], updateFlag=True, **kw)            
         
             
-    def tooFast(self, torrent):
-        interval_time = long(time()) - torrent["last_check_time"]
-        if interval_time < 60 * 5:
-            return True
-        return False
+#===============================================================================
+#    def tooFast(self, torrent):
+#        interval_time = long(time()) - torrent["last_check_time"]
+#        if interval_time < 60 * 5:
+#            return True
+#        return False
+#===============================================================================
     
     def updateTorrentInfo(self,torrent):
         if torrent["status"] == "good":
@@ -147,14 +150,24 @@ class TorrentChecking(Thread):
 
 
 if __name__ == '__main__':
-    from Tribler.Core.CacheDB.sqlitecachedb import init as init_db
+    from Tribler.Core.CacheDB.sqlitecachedb import init as init_db, str2bin
     configure_dir = sys.argv[1]
     config = {}
     config['state_dir'] = configure_dir
-    config['install_dir'] = 'Tribler'
+    config['install_dir'] = '.'
     config['peer_icon_path'] = '.'
     init_db(config)
     t = TorrentChecking()
+    t.start()
+    t.join()
+    
+    
+    infohash_str = 'TkFX5S4qd2DPW63La/VObgOH/Nc='
+    infohash = str2bin(infohash_str)
+    
+    del t
+    
+    t = TorrentChecking(infohash)
     t.start()
     t.join()
     

@@ -15,7 +15,7 @@ from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Utility.constants import COL_PROGRESS
-from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Video.VideoPlayer import VideoPlayer
 
 from Tribler.Core.API import *
@@ -1555,7 +1555,7 @@ class standardDetails(wx.Panel):
     def refresh(self, torrent):
         if DEBUG:
             print >>sys.stderr,'standardDetails: refresh ' + repr(torrent.get('name', 'no_name'))
-        check = SingleManualChecking(torrent,self.utility.session)
+        check = TorrentChecking(torrent['infohash'])
         check.start()
         
  

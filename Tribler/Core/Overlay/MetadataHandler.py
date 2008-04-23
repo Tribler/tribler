@@ -14,7 +14,7 @@ from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTH
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import *
-from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.osutils import getfreespace,get_readable_torrent_name
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 
@@ -538,7 +538,7 @@ class MetadataHandler:
         "Upon the reception of a new discovered torrent, directly check its tracker"
         if DEBUG:
             print >> sys.stderr, "metadata: checking tracker status of new torrent"
-        check = SingleManualChecking(torrent,self.launchmany.session)
+        check = TorrentChecking(torrent['infohash'])
         check.start()
         
     def get_filename(self,infohash, metadata, humanreadable=False):
