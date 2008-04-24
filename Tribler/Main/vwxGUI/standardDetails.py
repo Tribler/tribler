@@ -400,7 +400,7 @@ class standardDetails(wx.Panel):
             print_exc()
         
     def setData(self, item):
-        
+        self.updateCallback(item) # update callback function on changing item
         self.item = item
         if item is None:
             item = {}
@@ -1872,7 +1872,34 @@ class standardDetails(wx.Panel):
         self.getGuiObj('descriptionField0', tab = tab).Refresh()
         self.getGuiObj('downloadedNumberT', tab = tab).SetLabel(self.utility.size_format(tribler_down))
         self.getGuiObj('uploadedNumberT', tab = tab).SetLabel(self.utility.size_format(tribler_up))
+
+
+    def updateCallback(self, item):
+        "Update callback handling for this item"
+        session = self.guiUtility.utility.session
+        session.remove_observer(self.db_callback)
+        if item is None:
+            return
+        if self.mode in ['filesMode', 'libraryMode']:
+            session.add_observer(self.db_callback, NTFY_TORRENTS, [NTFY_UPDATE, NTFY_DELETE], item['infohash'])
+        elif self.mode in ['personsMode', 'friendsMode']:
+            session.add_observer(self.db_callback, NTFY_PEERS, [NTFY_UPDATE, NTFY_DELETE], item['permid'])
+        elif self.mode == 'subscriptionsMode':
+            pass
+        elif self.mode == 'profileMode':
+            pass
+        
+    def db_callback(self,subject,changeType,objectID,*args):
+        # called by threadpool thread
+        print >> sys.stderr, 'stdDetails: db_callback: %s %s %s %s' % (subject, changeType, `objectID`, args)
+        db_handler = self.guiUtility.utility.session.open_dbhandler(subject)
+        if subject == NTFY_PEERS:
+            newitem = db_handler.getPeer(objectID)
+        elif subject in (NTFY_TORRENTS):
+            newitem = db_handler.getTorrent(objectID)
             
+        wx.CallAfter(self.setData, newitem)
+        
 def revtcmp(a,b):
     if a[0] < b[0]:
         return 1
