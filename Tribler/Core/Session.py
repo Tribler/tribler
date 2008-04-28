@@ -152,8 +152,10 @@ class Session(SessionRuntimeConfig):
         # 5. download_help_dir
         if self.sessconfig['download_help_dir'] is None:
             self.sessconfig['download_help_dir'] = os.path.join(get_default_dest_dir(),DESTDIR_COOPDOWNLOAD)
-            if not os.path.isdir(self.sessconfig['download_help_dir']):
-                os.makedirs(self.sessconfig['download_help_dir'])
+        # Jelle: under linux, default_dest_dir can be /tmp. Then download_help_dir can be deleted inbetween
+        # sessions.
+        if not os.path.isdir(self.sessconfig['download_help_dir']):
+            os.makedirs(self.sessconfig['download_help_dir'])
 
         # 6. peer_icon_path
         if self.sessconfig['peer_icon_path'] is None:

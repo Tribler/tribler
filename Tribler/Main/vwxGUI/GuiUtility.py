@@ -2,10 +2,11 @@
 import wx, time, random, os
 from wx import xrc
 from traceback import print_exc,print_stack
-from threading import Event
+from threading import Event, Thread
 import urllib,urllib2
 import webbrowser
 from sets import Set
+from webbrowser import open_new
 
 from bgPanel import *
 import updateXRC
@@ -627,8 +628,8 @@ class GUIUtility:
             self.utility.makePopup(rightMouse, self.onOpenDest, 'rOpenfiledestination')
             self.utility.makePopup(rightMouse, self.onDeleteTorrentFromLibrary, 'rRemoveFromList')
             self.utility.makePopup(rightMouse, self.onDeleteTorrentFromDisk, 'rRemoveFromListAndHD') 
-            rightMouse.AppendSeparator()
-            self.utility.makePopup(rightMouse, self.onAdvancedInfoInLibrary, 'rAdvancedInfo')
+            #rightMouse.AppendSeparator()
+            #self.utility.makePopup(rightMouse, self.onAdvancedInfoInLibrary, 'rAdvancedInfo')
         elif self.standardOverview.mode == "personsMode" or self.standardOverview.mode == "friendsMode":     
             self.utility.makePopup(rightMouse, None, 'rOptions')
             if item.get('friend'):
@@ -656,24 +657,35 @@ class GUIUtility:
 # ================== actions for rightMouse button ========================================== 
     def onOpenFileDest(self, event = None):
         # open File
-        item = self.standardDetails.getData()
-        abctorrent = item.get('abctorrent')
-        
-        if abctorrent:
-            abctorrent.files.onOpenFileDest(index = abctorrent.listindex)
-        elif DEBUG:
-            print >>sys.stderr,'GUIUtil: onOpenFileDest failed: no torrent selected'
-            # TODO: TB> This state doesn't occur because torrents stay active, when tribler is 
-            #       closed within 1 hour after torrent is stopped or finished (see action.py)
-            #       This else statement is also empty for the playback button
+        self.onOpenDest(event, openFile=True)
   
-    def onOpenDest(self, event = None):
+    def onOpenDest(self, event = None, openFile=False):
         # open Destination
         item = self.standardDetails.getData()
-        abctorrent = item.get('abctorrent')
+        state = item.get('ds')
         
-        if abctorrent:
-            abctorrent.files.onOpenDest(index = abctorrent.listindex)
+        if state:
+            dest = state.get_download().get_dest_dir()
+            if openFile:
+                destfiles = state.get_download().get_dest_files()
+                if len(destfiles) == 1:
+                    dest = destfiles[0][1]
+            if sys.platform == 'darwin':
+                dest = 'file://%s' % dest
+            
+            print >> sys.stderr, dest
+            complete = True
+            # check if destination exists
+            assert dest is not None and os.access(dest, os.R_OK), 'Could not retrieve destination'
+            try:
+                t = Thread(target = open_new, args=(str(dest),))
+                t.setName( "FilesOpenNew"+t.getName() )
+                t.setDaemon(True)
+                t.start()
+            except:
+                print_exc()
+                pass
+                
         elif DEBUG:
             print >>sys.stderr,'GUIUtil: onOpenFileDest failed: no torrent selected'
             

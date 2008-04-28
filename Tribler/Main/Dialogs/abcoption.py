@@ -866,8 +866,8 @@ class RateLimitPanel(ABCOptionPanel):
         self.utility.config.Write('maxdownloadrate', download_rate)
 
         # Change at Runtime
-        self.utility.ratelimiter.set_global_max_speed(self,UPLOAD,upload_rate)
-        self.utility.ratelimiter.set_global_max_speed(self,DOWNLOAD,download_rate)
+        self.utility.ratelimiter.set_global_max_speed(UPLOAD,upload_rate)
+        self.utility.ratelimiter.set_global_max_speed(DOWNLOAD,download_rate)
         self.utility.ratelimiter.set_global_max_seedupload_speed(seedupload_rate)
 
 
