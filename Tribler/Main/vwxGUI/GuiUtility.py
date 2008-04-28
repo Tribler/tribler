@@ -12,7 +12,7 @@ from bgPanel import *
 import updateXRC
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.Utilities.utilities import show_permid
-from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog
+from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog, InviteFriendsDialog
 from peermanager import PeerDataManager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
@@ -390,8 +390,9 @@ class GUIUtility:
     def emailFriend(self, event):
         ip = self.utility.config.Read('bind')
         if ip is None or ip == '':
-            ip = my_db.getMyIP()
-        mypermid = my_db.getMyPermid()
+            ip = self.utility.session.lm.get_ext_ip()
+        mypermid = self.utility.session.get_permid()
+
         permid_txt = self.utility.lang.get('permid')+": "+show_permid(mypermid)
         ip_txt = self.utility.lang.get('ipaddress')+": "+ip
 
@@ -412,7 +413,11 @@ class GUIUtility:
         else:
             body = urllib.quote(invitation_body)
         mailToURL = 'mailto:%s?subject=%s&body=%s'%('', subject, body)
-        webbrowser.open(mailToURL)
+        try:
+            webbrowser.open(mailToURL)
+        except:
+            text = invitation_body.split("\n")
+            InviteFriendsDialog(text)
         
     def dosearch(self):
         sf = self.standardOverview.getSearchField()

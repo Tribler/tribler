@@ -12,10 +12,25 @@ import wx.lib.imagebrowser as ib
 from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Core.Utilities.utilities import show_permid
+import wx.lib.editor as editor
 #from Tribler.vwxGUI.peermanager import PeerDataManager
 
 DEBUG = False
 
+
+class InviteFriendsDialog(wx.Frame):
+    def __init__(self, text):
+        size = wx.Size(600, 250)
+        wx.Frame.__init__(self, None, -1, size=size)
+        win = wx.Panel(self, -1)
+        ed = editor.Editor(win, -1, style=wx.SUNKEN_BORDER)
+        box = wx.BoxSizer(wx.VERTICAL)
+        box.Add(ed, 1, wx.ALL|wx.GROW, 1)
+        win.SetSizer(box)
+        win.SetAutoLayout(True)
+
+        ed.SetText(text)
+        self.Show()
 
 class MakeFriendsDialog(wx.Dialog):
     def __init__(self, parent, utility, editfriend = None):
