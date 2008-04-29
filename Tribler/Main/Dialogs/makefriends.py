@@ -222,8 +222,8 @@ class MakeFriendsDialog(wx.Dialog):
                     pdb.deletePeer(self.editfriend['permid'])
                     
             #fdb.addExternalFriend(friend)
-            fdb.addFriend(permid)
             pdb.addPeer(permid,friend)
+            fdb.setFriend(permid)
             
             event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
             self.Destroy()

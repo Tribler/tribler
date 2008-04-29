@@ -1039,6 +1039,7 @@ class ABCApp(wx.App):
                 
         self.frame.numberPersons.SetLabel('%d' % npeers)
         self.frame.numberFiles.SetLabel('%d' % nfiles)
+        
 
         
     def sesscb_ntfy_activities(self,subject,changeType,objectID,msg):

@@ -143,7 +143,7 @@ class FriendDBHandler(BasicDBHandler):
         if commit:
             self.commit()
         #self.rankList_dirty = True # Friend status doesnt change rank
-        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
+        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'friend')
 
     def getFriends(self):
         res = self._db.getAll('Friend', 'permid')
@@ -1083,8 +1083,9 @@ class TorrentDBHandler(BasicDBHandler):
             # add familyfilter
             where += Category.getInstance().get_family_filter_sql(self._getCategoryID)
         
-        return self._db.getOne(table, value, where)
-        
+        number = self._db.getOne(table, value, where)
+        return number
+    
     def getTorrents(self, category_name = 'all', range = None, library = False, sort = None, reverse = False):
         """
         get Torrents of some category and with alive status (opt. not in family filter)
@@ -1772,7 +1773,7 @@ class GUIDBHandler:
                                     select torrent_id from Preference where peer_id=?
                                       and torrent_id in (select torrent_id from MyPreference)
                                     ) and status_id <> 2
-                               """
+                               """ + self.get_family_filter_sql()
         res = self._db.fetchall(sql_get_common_files, (peer_id,))
         return [t[0] for t in res]
         
@@ -1785,7 +1786,7 @@ class GUIDBHandler:
                                     select torrent_id from Preference where peer_id=?
                                       and torrent_id not in (select torrent_id from MyPreference)
                                     ) and status_id <> 2
-                              """
+                              """ + self.get_family_filter_sql()
         res = self._db.fetchall(sql_get_other_files, (peer_id,))
         return [(str2bin(t[0]),t[1]) for t in res]
     
@@ -1801,10 +1802,11 @@ class GUIDBHandler:
              and P2.torrent_id <> P1.torrent_id
              and P1.torrent_id=?
              and P2.torrent_id not in (select torrent_id from MyPreference)
+             %s
              group by P2.torrent_id
              order by c desc
              limit ?    
-        """
+        """ % self.get_family_filter_sql('T')
          
         res = self._db.fetchall(sql_get_sim_files, (torrent_id,limit))
         return [(str2bin(t[0]),t[1], t[2], t[3]) for t in res]
@@ -1814,9 +1816,10 @@ class GUIDBHandler:
             select infohash, name, status_id from Torrent 
             where name like '%s%%'
              and torrent_id not in (select torrent_id from MyPreference)
+             %s
             order by name
              limit ?    
-        """ % name[:prefix_len]
+        """ % (name[:prefix_len], self.get_family_filter_sql())
          
         res = self._db.fetchall(sql_get_sim_files, (limit,))
         return [(str2bin(t[0]),t[1], t[2]) for t in res]
@@ -1844,6 +1847,9 @@ class GUIDBHandler:
             print >> sys.stderr, '------------', top, '-------------'
             for k in res[:10]:
                 print >> sys.stderr, k
-                
+         
+    def get_family_filter_sql(self, table_name=''):
+        torrent_db_handler = TorrentDBHandler.getInstance()
+        return Category.getInstance().get_family_filter_sql(torrent_db_handler._getCategoryID, table_name=table_name)
 
     

@@ -392,6 +392,7 @@ class standardOverview(wx.Panel):
             return (progress == 100.0)
         
     def loadSubscriptionData(self):
+        print >> sys.stderr, 'load subscription data'
         torrentfeed = TorrentFeedThread.getInstance()
         urls = torrentfeed.getURLs()
         
@@ -418,6 +419,7 @@ class standardOverview(wx.Panel):
             record['status'] = urls[url]
             reclist.append(record)
         self.data[self.mode]['data'] = reclist
+        self.data[self.mode]['grid'].setData(reclist)
         
     def updateFunTorrents(self, torrent, operate):    
         if DEBUG:

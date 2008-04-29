@@ -242,9 +242,10 @@ class GUIUtility:
         
         self.standardDetails.setMode('libraryMode')
         
-    def standardSubscriptionsOverview(self, filters = ['','']):       
+    def standardSubscriptionsOverview(self):       
         self.standardOverview.setMode('subscriptionsMode')
-        self.standardOverview.filterChanged(filters)
+        gridState = GridState('subscriptionMode', 'all', 'name')
+        self.standardOverview.filterChanged(gridState)
         self.standardDetails.setMode('subscriptionsMode')
          
     def standardMessagesOverview(self):

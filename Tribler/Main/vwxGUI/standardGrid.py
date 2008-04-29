@@ -102,6 +102,7 @@ class GridManager(object):
                                                     reverse = state.reverse,
                                                     range = range)
             
+        
         else:
             raise Exception('Unknown data db in GridManager: %s' % state.db)
     
@@ -113,6 +114,7 @@ class GridManager(object):
     def setObserver(self):
         self.session.remove_observer(self.item_network_callback)
         for notify_constant in ntfy_mappings[self.state.db]:
+            print >> sys.stderr, 'For %s we added %s' % (self.state.db, notify_constant)
             self.session.add_observer(self.item_network_callback, notify_constant)
         
         if self.state.db == 'libraryMode':
@@ -124,8 +126,10 @@ class GridManager(object):
         # are not handled anymore. This function is called if a resize event is caught
         # if callbacks were disabled, they are enabled again
         if self.callbacks_disabled:
+            print >> sys.stderr, ('*' * 50 + '\n')*3
+            print >> sys.stderr, 'Reactivating grid', self.grid.__class__.__name__
             self.callbacks_disabled = False
-            self.refresh()
+            self.refresh(update_observer = True)
             
     def download_state_network_callback(self, *args):
         """ Called by SessionThread from ABCApp """
@@ -161,7 +165,14 @@ class GridManager(object):
             self.refresh()
     
     def itemUpdated(self,subject, objectID, args):
-        if self._objectOnPage(subject, objectID):
+        # Both in torrent grid and peergrid, changed items can make new items appear on the screen
+        # Peers: when first buddycast
+        # Friends: if just became new friend
+        # Torrent: when status changes to 'good'
+        # So we have to alway refresh here
+        
+        #if (self._objectOnPage(subject, objectID)
+        if True:
             self.refresh()
     
     def itemDeleted(self,subject, objectID, args):
@@ -192,7 +203,10 @@ class GridManager(object):
         db_handler = self.session.open_dbhandler(subject)
         if subject == NTFY_PEERS:
             peer = db_handler.getPeer(objectID)
-            return peer and (peer['buddycast_times']>0 or peer['friend'])
+            ok = peer and (peer['buddycast_times']>0 or peer['friend'])
+            if not ok:
+                print >> sys.stderr, 'Gridmanager: Peer is not relevant: %s' % peer
+            return ok
         elif subject in (NTFY_TORRENTS):
             id_name = 'infohash'
             torrent = db_handler.getTorrent(objectID)

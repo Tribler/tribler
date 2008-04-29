@@ -8,6 +8,7 @@ from Tribler.Main.vwxGUI.PersonsItemPanel import ThumbnailViewer
 from Tribler.Main.Utility.utility import similarPeer, copyPeer
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.Utilities.utilities import show_permid_short
+from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from font import *
 from copy import deepcopy
 import cStringIO
@@ -153,10 +154,10 @@ class FriendsItemPanel(wx.Panel):
             
     def getColumns(self):
         return [{'sort':'', 'title':'', 'width':20, 'tip':''},
-                {'sort':'content_name', 'reverse':True,'title':'name', 'weight':1,'tip':self.utility.lang.get('C_friendname') },
-                {'sort':'last_connected', 'reverse':True,'title':'status', 'width':165, 'tip':self.utility.lang.get('C_friendstatus'), 'order':'down'},
+                {'sort':'name', 'reverse':True,'title':'name', 'weight':1,'tip':self.utility.lang.get('C_friendname') },
+                {'sort':'last_connected', 'title':'status', 'width':165, 'tip':self.utility.lang.get('C_friendstatus'), 'order':'down'},
                 {'sort':'??', 'dummy':True, 'title':'boosting','weight':1, 'tip':self.utility.lang.get('C_helping')},
-                {'sort':'similarity', 'reverse':True,'pic':'heartSmall', 'width':65, 'tip':self.utility.lang.get('C_recommpersons')}
+                {'sort':'similarity','pic':'heartSmall', 'width':65, 'tip':self.utility.lang.get('C_recommpersons')}
                 ]
             
     def addLine(self, vertical=True):
@@ -181,8 +182,8 @@ class FriendsItemPanel(wx.Panel):
         if peer_data is None:
             peer_data = {}
 
-        if peer_data.get('content_name'):
-            title = peer_data['content_name'][:self.titleLength]
+        if peer_data.get('name'):
+            title = peer_data['name'][:self.titleLength]
             self.title.Enable(True)
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
@@ -217,7 +218,7 @@ class FriendsItemPanel(wx.Panel):
             self.vLine2.Hide()
             self.vLine3.Hide()
             
-        rank = peer_data.get('simTop',-1) 
+        rank = peer_data.get('simRank',-1) 
         recommField = self.taste
         if rank!=-1:
             if rank == 1:
@@ -330,7 +331,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
             else:
                 self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data,type="AsFriend"),0)
             if not bmp:
-                bmp = self.mm.get_default('friendsMode','DEFAULT_THUMB')
+                bmp = self.iconsManager.get_default('friendsMode','DEFAULT_THUMB')
 
             self.setBitmap(bmp)
             d = 1
@@ -392,7 +393,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
             else:
                 recomm = -1
             if self.mouseOver:
-                mask = self.mm.get_default('friendsMode','MASK_BITMAP_OVERLAY')
+                mask = self.iconsManager.get_default('friendsMode','MASK_BITMAP_OVERLAY')
                 y_pos = 0
                 m_height = mask.GetSize()[1]
                 y_height = self.GetSize()[1]
@@ -400,7 +401,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
                     dc.DrawBitmap(mask,0 ,y_pos, True)
                     y_pos = y_pos + m_height
             if recomm >=0 or self.data.get('friend') or self.data.get('online'):
-                mask = self.mm.get_default('personsMode','MASK_BITMAP')
+                mask = self.iconsManager.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(mask,0 ,62, True)
             if recomm >=0:
                 dc.DrawBitmap(TasteHeart.BITMAPS[recomm],5 ,64, True)
@@ -408,7 +409,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 text = repr(rank)                
                 dc.DrawText(text, 22, 66)
             if self.data.get('friend'):
-                friend = self.mm.get_default('personsMode','MASK_BITMAP')
+                friend = self.iconsManager.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(friend,60 ,65, True)            
             if self.data.get('online'):
                 #label = 'online'

@@ -192,8 +192,9 @@ class Category:
             rank = category['rank']
             if rank == -1:
                 break
-            if name == category['name']:
+            if name.lower() == category['name'].lower():
                 return True
+        #print >> sys.stderr, 'Category: %s was not in %s' % (name.lower(), [a['name'].lower()  for a in self.category_info if a['rank'] != -1])
         return False
     
     def getCategoryRank(self,cat):
@@ -350,11 +351,13 @@ class Category:
                     break
 
 
-    def get_family_filter_sql(self, _getCategoryID):
+    def get_family_filter_sql(self, _getCategoryID, table_name=''):
         if self.family_filter_enabled():
             forbiddencats = [cat['name'] for cat in self.category_info if cat['rank'] == -1]
+            if table_name:
+                table_name+='.'
             if forbiddencats:
-                return " and category_id not in (%s)" % ','.join([str(_getCategoryID([cat])) for cat in forbiddencats])
+                return " and %scategory_id not in (%s)" % (table_name, ','.join([str(_getCategoryID([cat])) for cat in forbiddencats]))
         return ''
                 
     
