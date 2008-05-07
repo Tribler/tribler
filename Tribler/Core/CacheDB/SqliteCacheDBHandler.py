@@ -1509,10 +1509,11 @@ class BarterCastDBHandler(BasicDBHandler):
     
     getInstance = staticmethod(getInstance)
 
-    def __init__(self):
+    def __init__(self, session):
         BarterCastDBHandler.__single = self
         BasicDBHandler.__init__(self, 'BarterCast')
         self.peer_db = PeerDBHandler.getInstance()
+        self.session = session
 
         # Retrieve MyPermid
         #buddycast_factory = BuddyCastFactory.getInstance()

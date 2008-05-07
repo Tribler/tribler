@@ -31,6 +31,7 @@ class InviteFriendsDialog(wx.Frame):
 
         ed.SetText(text)
         self.Show()
+        #TODO: add two buttons: copy to clipboard, close
 
 class MakeFriendsDialog(wx.Dialog):
     def __init__(self, parent, utility, editfriend = None):
