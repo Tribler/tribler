@@ -1515,7 +1515,8 @@ class BarterCastDBHandler(BasicDBHandler):
         self.session = session
 
         # Retrieve MyPermid
-        self.my_permid = session.getMyPermid()
+        #self.my_permid = session.getMyPermid()
+        self.my_permid = "" 
                 
     def getName(self, permid):
 
