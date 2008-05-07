@@ -24,7 +24,7 @@ from bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Category.Category import Category
 
-from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
+#from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 
 SHOW_ERROR = True
 
@@ -1515,9 +1515,9 @@ class BarterCastDBHandler(BasicDBHandler):
         self.peer_db = PeerDBHandler.getInstance()
 
         # Retrieve MyPermid
-        buddycast_factory = BuddyCastFactory.getInstance()
-        self.my_permid = buddycast_factory.data_handler.getMyPermid()
-        
+        #buddycast_factory = BuddyCastFactory.getInstance()
+        #self.my_permid = buddycast_factory.data_handler.getMyPermid()
+        self.my_permid = ""
                 
     def getName(self, permid):
 
