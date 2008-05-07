@@ -275,21 +275,27 @@ class MetadataHandler:
         # BarterCast: add bytes of torrent to BarterCastDB
         # Save exchanged KBs in BarterCastDB
         if permid != None and BARTERCAST_TORRENTS:
-            
-            bartercastdb = BarterCastDBHandler.getInstance()
-            
-            torrent_kb = float(self.avg_torrent_size) / 1024
-            name = bartercastdb.getName(permid)
-            my_permid = bartercastdb.my_permid
-
-            if DEBUG:
-                print >> sys.stdout, "barter: Torrent (%d KB) sent to peer %s (PermID = %s)" % (torrent_kb, name, permid)
-
-            if torrent_kb > 0:
-                bartercastdb.incrementItem((my_permid, permid), 'uploaded', torrent_kb)
+            self.overlay_bridge.add_task(lambda:self.olthread_bartercast_torrentexchange(permid, 'uploaded'), 0)
         
         return len(metadata_request)
+     
+    def olthread_bartercast_torrentexchange(self, permid, up_or_down):
         
+        if up_or_down != 'uploaded' and up_or_down != 'downloaded':
+            return
+        
+        bartercastdb = BarterCastDBHandler.getInstance()
+        
+        torrent_kb = float(self.avg_torrent_size) / 1024
+        name = bartercastdb.getName(permid)
+        my_permid = bartercastdb.my_permid
+
+        if DEBUG:
+            print >> sys.stdout, "barter: Torrent (%d KB) sent to peer %s (PermID = %s)" % (torrent_kb, name, permid)
+
+        if torrent_kb > 0:
+            bartercastdb.incrementItem((my_permid, permid), up_or_down, torrent_kb)
+                
 
     def metadata_send_callback(self,exc,permid):
         if exc is not None:
@@ -644,20 +650,8 @@ class MetadataHandler:
             # BarterCast: add bytes of torrent to BarterCastDB
             # Save exchanged KBs in BarterCastDB
             if permid != None and BARTERCAST_TORRENTS:
+                self.overlay_bridge.add_task(lambda:self.olthread_bartercast_torrentexchange(permid, 'downloaded'), 0)
                 
-                bartercastdb = BarterCastDBHandler.getInstance()
-                                
-                torrent_kb = float(self.avg_torrent_size) / 1024
-                name = bartercastdb.getName(permid)
-                my_permid = bartercastdb.my_permid
-
-                if DEBUG:
-                    print >> sys.stdout, "barter: Torrent (%d KB) received from peer %s (PermID = %s)" % (torrent_kb, name, permid)
-
-                if torrent_kb > 0:
-                    bartercastdb.incrementItem((my_permid, permid), 'downloaded', torrent_kb)
-            
-            
                 
         except Exception, e:
             print_exc()

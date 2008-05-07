@@ -560,7 +560,7 @@ class Connecter:
             down_kb = int(c.total_downloaded / 1024)
             up_kb = int(c.total_uploaded / 1024)
             
-            olthread_bartercast_conn_lost_lambda = lambda :olthread_bartercast_conn_lost(ip,port,down_kb,up_kb)
+            olthread_bartercast_conn_lost_lambda = lambda:self.olthread_bartercast_conn_lost(ip,port,down_kb,up_kb)
             self.overlay_bridge.add_task(olthread_bartercast_conn_lost_lambda,0)
         #########################
 
@@ -868,7 +868,9 @@ def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
     
     peerdb = PeerDBHandler.getInstance()
     bartercastdb = BarterCastDBHandler.getInstance()
+    
     if bartercastdb:
+    
         permid = peerdb.getPermIDByIP(ip)
         my_permid = bartercastdb.my_permid
     

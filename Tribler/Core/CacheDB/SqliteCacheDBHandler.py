@@ -1498,9 +1498,6 @@ class BarterCastDBHandler(BasicDBHandler):
     
     def getInstance(*args, **kw):
         
-        return None # Arno: why is this here?
-    
-    
         if BarterCastDBHandler.__single is None:
             BarterCastDBHandler.lock.acquire()   
             try:
@@ -1516,11 +1513,12 @@ class BarterCastDBHandler(BasicDBHandler):
         BarterCastDBHandler.__single = self
         BasicDBHandler.__init__(self, 'BarterCast')
         self.peer_db = PeerDBHandler.getInstance()
-        buddycast = BuddyCastFactory.getInstance()
-        self.my_permid = buddycast.data_handler.getMyPermid()
 
+        # Retrieve MyPermid
+        buddycast_factory = BuddyCastFactory.getInstance()
+        self.my_permid = buddycast_factory.data_handler.getMyPermid()
         
-        
+                
     def getName(self, permid):
 
         if permid == 'testpermid_1':
