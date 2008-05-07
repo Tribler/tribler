@@ -773,6 +773,9 @@ class ABCApp(wx.App):
             # H4x0r a bit
             set_tasteheart_bitmaps(self.utility.getPath())
             set_perfBar_bitmaps(self.utility.getPath())
+
+            cat = Category.getInstance(self.utility.getPath())
+            cat.init_from_main(self.utility)
             
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
@@ -826,8 +829,6 @@ class ABCApp(wx.App):
 
             # Make sure self.utility.frame is set
             self.startAPI()
-            cat = Category.getInstance()
-            cat.init_from_main(self.utility)
             
             #self.frame.Refresh()
             #self.frame.Layout()
@@ -922,7 +923,7 @@ class ABCApp(wx.App):
             defaultdestdir = os.path.join(get_default_dest_dir())
             defaultDLConfig.set_dest_dir(defaultdestdir)
 
-        print >>sys.stderr,"main: Read dlconfig",defaultDLConfig.dlconfig
+        #print >>sys.stderr,"main: Read dlconfig",defaultDLConfig.dlconfig
 
         s.set_coopdlconfig(defaultDLConfig)
         

@@ -226,7 +226,7 @@ class FilesItemPanel(wx.Panel):
             if torrent is None:
                 stat = 'None'
             else:
-                stat = `torrent['name']`
+                stat = [`torrent['name']`,torrent.keys()] # torrent['myDownloadHistory']]
             print >>sys.stderr,"fip: setData:",stat
         """
         
@@ -556,7 +556,7 @@ class ThumbnailViewer(wx.Panel):
                         
                 elif self.mode == 'filesMode':
                     bmp = torrent['metadata'].get('ThumbnailBitmap')
-            else:
+            elif 'torrent_file_name' in torrent: # Local torrents
                 torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
                 torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
                 

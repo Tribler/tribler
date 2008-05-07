@@ -26,3 +26,5 @@ class SearchManager:
         else:
             return hits[:maxhits]
 
+    def has_torrent(self,infohash):
+        return self.torrent_db.hasTorrent(infohash)

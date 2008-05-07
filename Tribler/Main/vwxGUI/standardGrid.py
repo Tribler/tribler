@@ -51,6 +51,9 @@ class GridManager(object):
         self.download_states_callback_set = False
         self.dslist = []
         
+        self.torrentsearch_manager = utility.guiUtility.torrentsearch_manager
+        self.torrentsearch_manager.set_torrent_db(self.torrent_db_handler)
+        
     def set_state(self, state, reset_page = False):
         self.state = state
         if reset_page:
@@ -85,12 +88,19 @@ class GridManager(object):
         range = (self.page * self.grid.items, (self.page+1)*self.grid.items)
         print >> sys.stderr, '**************', self.page, self.grid.items
         if state.db in ('filesMode', 'libraryMode'):
-            total_items = self.torrent_db_handler.getNumberTorrents(category_name = state.category, library = (state.db == 'libraryMode'))
-            data = self.torrent_db_handler.getTorrents(category_name = state.category, 
+            
+            # Arno: state.db should be NTFY_ according to GridState...
+            if not self.torrentsearch_manager.inSearchMode(state.db):
+            
+                total_items = self.torrent_db_handler.getNumberTorrents(category_name = state.category, library = (state.db == 'libraryMode'))
+                data = self.torrent_db_handler.getTorrents(category_name = state.category, 
                                                        sort = state.sort,
                                                        range = range,
                                                        library = (state.db == 'libraryMode'),
                                                        reverse = state.reverse)
+            else:
+                [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range)
+                
             if state.db == 'libraryMode':
                 data = self.addDownloadStates(data)
         elif state.db in ('personsMode', 'friendsMode'):

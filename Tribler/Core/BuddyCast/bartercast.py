@@ -21,10 +21,10 @@ def now():
 class BarterCastCore:
 
     ################################
-    def __init__(self, data_handler, secure_overlay, log = ''):
+    def __init__(self, data_handler, secure_overlay, log = '', dnsindb = None):
     
         self.data_handler = data_handler
-        self.dnsindb = self.data_handler.get_dns_from_peerdb
+        self.dnsindb = dnsindb
         self.log = log
         self.secure_overlay = secure_overlay
         self.bartercastdb = BarterCastDBHandler.getInstance()

@@ -18,6 +18,7 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 #from Tribler.vwxGUI.filesFilter import filesFilter
 from Tribler.Main.vwxGUI.GridState import GridState
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager
 from Tribler.Category.Category import Category
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Utility.constants import *
@@ -41,7 +42,11 @@ class GUIUtility:
         self.selectedMainButton = None
         # Arno: TODO remove permanently
         #self.peer_manager = None
-        #self.data_manager = None
+        
+        # Arno: 2008-04-16: I want to keep this for searching, as an extension
+        # of the standardGrid.GridManager
+        self.torrentsearch_manager = TorrentSearchGridManager.getInstance(self)
+        
         self.guiOpen = Event()
         
         self.selectedColour = wx.Colour(255,200,187)       
@@ -295,7 +300,7 @@ class GUIUtility:
     def deleteTorrent(self, torrent):
         if torrent.get('web2'):
             return
-        self.data_manager.deleteTorrent(torrent['infohash'],delete_file=True)
+        self.torrentsearch_manager.deleteTorrent(torrent['infohash'],delete_file=True)
     
     def deleteSubscription(self,subscrip):
         self.standardOverview.loadSubscriptionData()
@@ -442,15 +447,16 @@ class GUIUtility:
             print >>sys.stderr,"GUIUtil: searchFiles:",input
         low = input.lower()
         wantkeywords = [i for i in low.split(' ') if i]
-        self.data_manager.setSearchKeywords(wantkeywords, mode)
+        self.torrentsearch_manager.setSearchKeywords(wantkeywords, mode)
         sorting = None
         #print "******** gui uti searchFiles", wantkeywords
-        self.standardOverview.filterChanged(None)
+        gridstate = GridState(self.standardOverview.mode, 'all', 'num_seeders')
+        self.standardOverview.filterChanged(gridstate)
 
         #
         # Query the peers we are connected to
         #
-        nhits = len(self.data_manager.hits)
+        nhits = len(self.torrentsearch_manager.hits)
         if nhits < self.remote_search_threshold and mode == 'filesMode':
             q = 'SIMPLE '
             for kw in wantkeywords:
@@ -460,15 +466,23 @@ class GUIUtility:
             if num_remote_queries > 0:
                 self.utility.session.query_connected_peers(q,self.sesscb_got_remote_hits,num_remote_queries)
                  
-                self.standardOverview.setSearchFeedback('remote', False, 0)
+                self.standardOverview.setSearchFeedback('remote', False, 0, wantkeywords)
 
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
         print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",`hits`
 
         kws = query.split()
-        wx.CallAfter(self.standardOverview.gotRemoteHits,permid,kws,hits)
+        wx.CallAfter(self.torrentsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
 
+    def stopSearch(self):
+        if self.standardOverview.getMode() == 'filesMode':
+            self.torrentsearch_manager.stopSearch()
+        
+    def clearSearch(self):
+        if self.standardOverview.getMode() == 'filesMode':
+            self.torrentsearch_manager.setSearchKeywords([],'filesMode')
+        
         
     def searchPersons(self, mode, input):
         

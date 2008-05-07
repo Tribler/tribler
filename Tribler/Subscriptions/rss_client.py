@@ -225,10 +225,13 @@ class TorrentFeedThread(Thread):
         f.write(bdata)
         f.close()
 
-        self.torrent_db.addExternalTorrent(filename,source=source)
-        
+        # Arno: hack, make sure these torrents are always good so they show up
+        # in TorrentDBHandler.getTorrents()
+        extra_info = {'status':'good'}
+        self.torrent_db.addExternalTorrent(filename,source=source,extra_info=extra_info)
+
         # ARNOCOMMENT: remove later
-        self.torrent_db.commit()
+        #self.torrent_db.commit()
 
 
     def shutdown(self):

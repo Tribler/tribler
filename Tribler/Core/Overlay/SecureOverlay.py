@@ -68,6 +68,7 @@ class SecureOverlay:
         self.olproto_ver_current = OLPROTO_VER_CURRENT
         self.usermsghandler = None
         self.userconnhandler = None
+        # ARNOCOMMENT: Remove this, DB should be fast enough. Don't want caches allover
         self.dns = safe_dict()
 
     #

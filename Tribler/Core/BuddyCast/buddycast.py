@@ -182,7 +182,7 @@ from threading import Event, currentThread
 from bartercast import BarterCastCore
 
 DEBUG = False   # for errors
-debug = False   # for status
+debug = True   # for status
 LOCAL_TEST = False
 
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
@@ -245,6 +245,7 @@ class BuddyCastFactory:
         BuddyCastFactory.__single = self 
         self.db_dir = db_dir
         self.registered = False
+        self.buddycast_core = None
         self.buddycast_interval = 15    # MOST IMPORTANT PARAMETER
         self.sync_interval = int(20.3*self.buddycast_interval)
         self.superpeer = superpeer
@@ -286,9 +287,11 @@ class BuddyCastFactory:
             self.overlay_bridge.add_task(self.olthread_register, 0)
 
     def olthread_register(self):
+        print >> sys.stderr, "bc: OlThread Register", currentThread().getName()
         self.data_handler = DataHandler(self.launchmany, self.overlay_bridge, db_dir=self.db_dir) #, max_num_peers=max_peers) only cache 2500 peers
         
-        self.bartercast_core = BarterCastCore(self.data_handler, overlay_bridge, self.log)
+        # ARNOCOMMENT: get rid of this dnsindb / get_dns_from_peerdb abuse off SecureOverlay
+        self.bartercast_core = BarterCastCore(self.data_handler, self.overlay_bridge, self.log, self.launchmany.secure_overlay.get_dns_from_peerdb)
             
         self.buddycast_core = BuddyCastCore(self.overlay_bridge, self.launchmany, 
                self.data_handler, self.buddycast_interval, self.superpeer,

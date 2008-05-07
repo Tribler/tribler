@@ -1133,17 +1133,22 @@ class TorrentDBHandler(BasicDBHandler):
             
         res_list = self._db.getAll('CollectedTorrent', value_name, where, limit=limit, offset=offset, order_by=order_by)
         
-        if library:
-            mypref_stats = self.mypref_db.getMyPrefStats()
+        mypref_stats = self.mypref_db.getMyPrefStats()
         
-        #print_stack()
-        #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS ###################",len(res_list), range
-                
+        #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS ###################",len(res_list)
+
         torrent_list = []
         for item in res_list:
             value_name[0] = 'torrent_id'
             torrent = dict(zip(value_name, item))
-            torrent['source'] = self.id2src[torrent['source_id']]
+            
+            try:
+                torrent['source'] = self.id2src[torrent['source_id']]
+            except:
+                print_exc()
+                # Arno: RSS subscription and id2src issue
+                torrent['source'] = 'http://some/RSS/feed'
+            
             torrent['category'] = [self.id2category[torrent['category_id']]]
             torrent['status'] = self.id2status[torrent['status_id']]
             torrent['simRank'] = self.getRank(torrent['infohash'])
@@ -1153,7 +1158,7 @@ class TorrentDBHandler(BasicDBHandler):
             del torrent['category_id']
             del torrent['status_id']
             torrent_id = torrent['torrent_id']
-            if library and torrent_id in mypref_stats:
+            if torrent_id in mypref_stats:
                 # add extra info for torrent in mypref
                 torrent['myDownloadHistory'] = True
                 data = mypref_stats[torrent_id]  #(create_time,progress,destdir)
@@ -1165,8 +1170,7 @@ class TorrentDBHandler(BasicDBHandler):
                 
             torrent_list.append(torrent)
         del res_list
-        if library:
-            del mypref_stats
+        del mypref_stats
         # torrent_list consumes about 2MB for 4836 torrents, and this function costs about 0.15 second
         #print time()-s
         return  torrent_list
@@ -1222,11 +1226,8 @@ class TorrentDBHandler(BasicDBHandler):
         
         all = []
         for flist in res:
-            #print >>sys.stderr,"torrent_db: searchNames: Got Record",`flist`
-            infohash = str2bin(flist[0])
-            d = self._selectStar2dict(flist[1:])
-            # Extra field
-            d['infohash'] = infohash
+            print >>sys.stderr,"torrent_db: searchNames: Got Record",`flist`
+            d = self._selectStar2dict(flist)
             all.append(d)
         return all
             
@@ -1235,12 +1236,16 @@ class TorrentDBHandler(BasicDBHandler):
         Torrent table. I.e. the order of the fields when you do SELECT * from Torrent.
         NEWDBSTANDARD
         """
-        keys = ['torrent_id','name','torrent_file_name','length','creation_date','num_files','thumbnail','insert_time','secret','relevance','source_id','category_id','status_id','num_seeders','num_leechers','comment']
+        keys = ['torrent_id','infohash','name','torrent_file_name','length','creation_date','num_files','thumbnail','insert_time','secret','relevance','source_id','category_id','status_id','num_seeders','num_leechers','comment']
         torrent = dict(zip(keys,flist))
+        infohash = str2bin(flist[1])
+        torrent['infohash'] = infohash
         torrent['source'] = self.id2src[torrent['source_id']]
         del torrent['source_id']
         torrent['category'] = [self.id2category[torrent['category_id']]]
         del torrent['category_id']
+        torrent['status'] = self.id2status[torrent['status_id']]
+        del torrent['status_id']
         return torrent
 
     def selectTorrentToCollect(self, permid, candidate_list=None):

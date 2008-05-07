@@ -172,3 +172,4 @@ class DLFilesList(tribler_List):
             event.Skip()
             if self.updateFunc:
                 self.updateFunc(self.other_List, self)
+                

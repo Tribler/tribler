@@ -86,9 +86,7 @@ class SearchDetailsPanel(wx.Panel):
         
     def stopSearch(self):
         # call remoteSearch and Web2.0 search to stop
-        dod = self.guiUtility.standardOverview.getGrid().dod
-        if dod:
-            dod.stop()
+        self.guiUtility.stopSearch()
     
     def findMoreSearch(self):
         # call remoteSearch and Web2.0 search to find more

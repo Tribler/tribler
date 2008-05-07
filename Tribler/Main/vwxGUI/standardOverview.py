@@ -80,6 +80,8 @@ class standardOverview(wx.Panel):
             self.mode = mode
             self.refreshMode()
             
+    def getMode(self):
+        return self.mode
             
     def refreshMode(self):
         # load xrc
@@ -186,7 +188,7 @@ class standardOverview(wx.Panel):
     def refreshData(self):        
         if DEBUG:
             print >>sys.stderr,"standardOverview: refreshData"
-            print_stack()
+            #print_stack()
             
         grid = self.data[self.mode].get('grid')
         if grid:
@@ -218,6 +220,7 @@ class standardOverview(wx.Panel):
             return None
         
     def filterChanged(self, filterState):
+        """ filterState is GridState object """
         if DEBUG:
             print >>sys.stderr,"standardOverview: filterChanged",filterState,self.mode#,self.data[self.mode]
         
@@ -234,9 +237,6 @@ class standardOverview(wx.Panel):
             if self.mode in ('filesMode', 'personsMode', 'libraryMode', 'friendsMode'):
                 #self.loadTorrentData(filterState[0], filterState[1])
                 self.data[filterState.db]['grid'].gridManager.set_state(filterState)
-                
-            elif self.mode == 'subscriptionsMode':
-                self.loadSubscriptionData()
             else:
                 if DEBUG:
                     print >>sys.stderr,'standardOverview: Filters not yet implemented in this mode'
@@ -247,6 +247,11 @@ class standardOverview(wx.Panel):
     
           
             #self.refreshData()
+            self.data[self.mode]['filterState'] = filterState
+            
+        elif self.mode == 'subscriptionsMode':
+            self.loadSubscriptionData()
+            self.refreshData()
             self.data[self.mode]['filterState'] = filterState
         else:
             print >> sys.stderr, 'Invalid Filterstate:', filterState    
@@ -399,7 +404,7 @@ class standardOverview(wx.Panel):
         bcsub = self.utility.lang.get('buddycastsubscription')
         web2sub = self.utility.lang.get('web2subscription')
         
-        bcactive = self.utility.config.Read('startrecommender', "boolean")
+        bcactive = self.utility.session.get_start_recommender()
         bcstatus = 'inactive'
         if bcactive:
             bcstatus = 'active'
@@ -470,7 +475,11 @@ class standardOverview(wx.Panel):
         if torrentgrid_updateItem_lambda is not None:
             wx.CallAfter(torrentgrid_updateItem_lambda)
         
-    def updateFunPersons(self, peer_data, operate):    
+    def updateFunPersons(self, peer_data, operate):
+        
+        # ARNOCOMMENT: Who calls this function? If SessionCallback then we 
+        # shouldn't touch self.*
+            
         grid = None
         if peer_data == None:
             return
@@ -511,13 +520,14 @@ class standardOverview(wx.Panel):
     
     def clearSearch(self):
         self.data[self.mode]['search'].Clear()
+        gridState = GridState(self.mode, 'all', 'name', reverse=True)
         if self.mode in ['filesMode', 'libraryMode']:
-            self.guiUtility.data_manager.setSearchKeywords([], self.mode)
-            self.filterChanged(None)
+            self.guiUtility.clearSearch()
+            self.filterChanged(gridState)
         elif self.mode == 'personsMode':
-            self.filterChanged(['all', None])
+            self.filterChanged(gridState)
         elif self.mode == 'friendsMode':
-            self.filterChanged(['friends', None])
+            self.filterChanged(gridState)
         
     def getSorting(self):
         fs = self.data[self.mode].get('filterState')
@@ -573,17 +583,6 @@ class standardOverview(wx.Panel):
         infohash = torrent['infohash']
         self.mypreference_db.deletePreference(infohash)
         
-    def gotRemoteHits(self,permid,kws,answers):
-        """ Called by RemoteQueryMsgHandler """
-        if self.mode == 'filesMode':
-            if self.data_manager.gotRemoteHits(permid,kws,answers,self.mode):
-                # remote info still valid, repaint if we're showing search results
-                fs = self.data[self.mode]['filterState']
-                #print "****** fs remote hits:", fs, len(self.data_manager.hits)
-                #if fs[0] == 'search':
-                #    self.filterChanged(['search','swarmsize'])
-                #self.filterChanged([fs[0],'swarmsize'])
-                    
     def toggleLoadingDetailsPanel(self, visible):
         loadingDetails = self.data[self.mode].get('loadingDetailsPanel')
         sizer = self.data[self.mode]['grid'].GetContainingSizer()
