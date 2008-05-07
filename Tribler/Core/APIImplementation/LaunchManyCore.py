@@ -204,7 +204,7 @@ class TriblerLaunchMany(Thread):
         # add task for tracker checking
         if config['torrent_checking']:
             self.torrent_checking_period = config['torrent_checking_period']
-            #self.torrent_checking_period = 60
+            #self.torrent_checking_period = 15
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         
 
