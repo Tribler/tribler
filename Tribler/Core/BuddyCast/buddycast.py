@@ -288,7 +288,7 @@ class BuddyCastFactory:
     def olthread_register(self):
         self.data_handler = DataHandler(self.launchmany, self.overlay_bridge, db_dir=self.db_dir) #, max_num_peers=max_peers) only cache 2500 peers
         
-        self.bartercast_core = None #BarterCastCore(self.data_handler, overlay_bridge, self.log)
+        self.bartercast_core = BarterCastCore(self.data_handler, overlay_bridge, self.log)
             
         self.buddycast_core = BuddyCastCore(self.overlay_bridge, self.launchmany, 
                self.data_handler, self.buddycast_interval, self.superpeer,
