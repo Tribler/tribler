@@ -19,7 +19,6 @@ import urllib
 import utilsettings
 from Tribler.Web2.util import observer
 from Tribler.Web2.util.log import log 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 DEBUG = False
 databases = {}
@@ -372,7 +371,7 @@ class DBSearch(threading.Thread, observer.Subject):
 
 class ThreadedDBSearch(observer.Subject):
 
-    def __init__(self, nthreads=4):
+    def __init__(self, nthreads=2):
         observer.Subject.__init__(self)
 
         self.__workqueue = Queue.Queue()
@@ -391,7 +390,10 @@ class ThreadedDBSearch(observer.Subject):
             
     def start(self):
         for i in range(self.__nthreads):
-            thread.start_new_thread(self.work, ())
+            t = threading.Thread(target=self.work)
+            t.setName("Web2DBSearch"+t.getName())
+            t.setDaemon(True)
+            t.start()
 
     def work(self):
 
@@ -509,7 +511,7 @@ class ThreadedDBSearch(observer.Subject):
 class CompoundDBSearch(observer.Subject, observer.Observer):
     instance = None
     
-    def __init__(self, searches):
+    def __init__(self, searches,standardOverview=None):
         if self.instance != None:
             self.instance.quit()
         self.instance = self
@@ -521,7 +523,7 @@ class CompoundDBSearch(observer.Subject, observer.Observer):
         self.wanted = 0
         self.items = []
         self.total = 0
-        self.guiUtility = None
+        self.standardOverview = standardOverview
 
     def start(self):
 
@@ -593,9 +595,7 @@ class CompoundDBSearch(observer.Subject, observer.Observer):
         self.lock.release()
 
     def giveSearchFeedback(self, finished, num):
-        if not self.guiUtility:
-            self.guiUtility = GUIUtility.getInstance()
-        
-        self.guiUtility.standardOverview.setSearchFeedback('web2', finished, num)
+        if self.standardOverview:
+            self.standardOverview.setSearchFeedback('web2', finished, num)
         
 

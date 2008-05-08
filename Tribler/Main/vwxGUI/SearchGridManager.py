@@ -3,6 +3,7 @@
 
 import os
 import sys
+import wx
 from traceback import print_exc, print_stack
 from time import time
 
@@ -12,7 +13,8 @@ from Tribler.Core.Search.SearchManager import SearchManager
 try:
     import web2
 except ImportError:
-    print 'Could not import web2'
+    print >>sys.stderr,'SearchGridManager: Could not import web2'
+    print_exc()
     
 
 DEBUG = True
@@ -111,63 +113,41 @@ class TorrentSearchGridManager:
         
         # 3. Add remote hits that may apply. TODO: double filtering, could
         # add remote hits to self.hits before filter(torrentFilter,...)
-        self.addStoredRemoteResults(mode, categorykey)
+        ### self.addStoredRemoteResults(mode, categorykey)
         if DEBUG:
             print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after search: %d items' % len(self.hits)
         
-        #web2on = self.utility.config.Read('enableweb2search',"boolean")
-        
-        
-        # ARNOTEMP
-        web2on = False
-        
-        
-        #if DEBUG:
-        #    print >>sys.stderr,"TorrentSearchGridManager: getCategory: mode",mode,"webon",web2on,"insearch",self.inSearchMode(mode),"catekey",categorykey
-        
-        if mode == 'filesMode' and web2on and self.inSearchMode(mode) and \
-            categorykey in ['video', 'all']:
-            # if we are searching in filesmode
-            self.standardOverview.setSearchFeedback('web2', False, 0)
-            if self.dod:
-                self.dod.stop()
+        self.addStoredWeb2Results(mode,categorykey,range)
                 
-            # TODO
-                
-            self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords[mode]))
-            self.dod.addItems(self.hits)
-            
-            return [-1,self.dod] # TODO: totalitems?
-             
+#       if self.inSearchMode(mode):
+#            self.standardOverview.setSearchFeedback('torrent', True, len(self.hits))                
+        
+        if range[0] > len(self.hits):
+            return [0,None]
+        elif range[1] > len(self.hits):
+            end = len(self.hits)
         else:
-            if self.dod:
-                self.dod.stop()
-                self.dod = None
-                
-#            if self.inSearchMode(mode):
-#                self.standardOverview.setSearchFeedback('torrent', True, len(self.hits))                
-            
-            if range[0] > len(self.hits):
-                return [0,None]
-            elif range[1] > len(self.hits):
-                end = len(self.hits)
-            else:
-                end = range[1]
-            begin = range[0]
-            
-            return [len(self.hits),self.hits[begin:end]]
+            end = range[1]
+        begin = range[0]
+        
+        return [len(self.hits),self.hits[begin:end]]
                 
                 
     def setSearchKeywords(self,wantkeywords, mode):
         self.searchkeywords[mode] = wantkeywords
         if mode == 'filesMode':
             self.remoteHits = {}
+            if self.dod:
+                self.dod.clear()
          
     def stopSearch(self):
         # TODO
         if self.dod:
-            dod.stop()
-         
+            self.dod.stop()
+     
+    def getCurrentHitsLen(self):
+        return len(self.hits)
+        
     def inSearchMode(self, mode):
         return bool(self.searchkeywords[mode])
     
@@ -292,4 +272,68 @@ class TorrentSearchGridManager:
 
     def notifyView(self,value,cmd):
         print >>sys.stderr,"TorrentSearchGridManager: notfyView ###########################",cmd,`value`
+
+    #
+    # Move to Web2SearchGridManager
+    #
+    def searchWeb2(self,initialnum):
+        if self.dod:
+            self.dod.stop()
+        self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords['filesMode']),guiutil=self.guiUtility)
+        self.dod.request(initialnum)
+        self.dod.register(self.tthread_gotWeb2Hit)
         
+    def tthread_gotWeb2Hit(self,item):
+        """ Called by Web2DBSearchThread*s* """
+        print >>sys.stderr,"TorrentSearchGridManager: tthread_gotWeb2Hit",`item['content_name']`
+        wx.CallAfter(self.refreshGrid)
+        
+    def web2tonewdb(self,value):
+        newval = {}
+        newval['infohash'] = value['infohash']
+        newval['name'] = value['content_name']
+        newval['status'] = value['status']
+        newval['description'] = value['description']
+        newval['tags'] = value['tags']
+        newval['url'] = value['url']
+        newval['num_leechers'] = value['leecher']
+        newval['num_seeders'] = value['seeder']
+        newval['views'] = value['views']
+        newval['web2'] = value['web2']
+        newval['length'] = value['length']
+        if 'preview' in value: # Apparently not always present
+            newval['preview'] = value['preview']
+        return newval
+
+    def addStoredWeb2Results(self,mode,categorykey,range):
+        web2on = self.guiUtility.utility.config.Read('enableweb2search',"boolean")
+        
+        #if DEBUG:
+        #    print >>sys.stderr,"TorrentSearchGridManager: getCategory: mode",mode,"webon",web2on,"insearch",self.inSearchMode(mode),"catekey",categorykey
+        
+        if mode == 'filesMode' and web2on and self.inSearchMode(mode) and \
+            categorykey in ['video', 'all']:
+            # if we are searching in filesmode
+            #self.standardOverview.setSearchFeedback('web2', False, 0)
+            
+            if self.dod:
+                # Arno: ask for more when needed
+                diff = range[1] - self.dod.getNumRequested()
+                if diff >= 0:
+                    inc = range[1] - range[0]
+                    print >>sys.stderr,"TorrentSearchManager: web2: requestMore diff",diff
+                    self.dod.requestMore(inc)
+                    
+                data = self.dod.getDataSafe()
+                print >>sys.stderr,"TorrentSearchManager: getHitsInCat: web2: Got total",len(data)
+                numResults = 0
+                for value in data:
+                    
+                    # Translate to NEWDB/FileItemPanel format, doing this in 
+                    # web2/video/genericsearch.py breaks something
+                    newval = self.web2tonewdb(value)
+                    self.hits.append(newval)
+                    numResults += 1
+
+                self.standardOverview.setSearchFeedback('web2', False, numResults, self.searchkeywords[mode])
+

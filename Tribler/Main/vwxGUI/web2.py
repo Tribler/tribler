@@ -1,5 +1,7 @@
 import sys
 import copy, threading
+from traceback import print_stack,print_exc
+
 from Tribler import Web2
 from Tribler.Web2.util.observer import Observer
 
@@ -70,6 +72,13 @@ class DataOnDemand:
     def getData(self):
         return copy.copy(self.data)
 
+    def getDataSafe(self):
+        try:
+            self.datalock.acquire()
+            return copy.copy(self.data)
+        finally:
+            self.datalock.release()
+
     def setSort(self, sort):
         self.datalock.acquire()
         self.sort = sort
@@ -86,15 +95,20 @@ class DataOnDemand:
     def filterData(self):
         pass
 
+    def clear(self):
+        self.datalock.acquire()
+        self.data = []
+        self.datalock.release()
+
 
 class DataOnDemandWeb2(DataOnDemand, Observer):
 
-    def __init__(self, query, type='video', sort=lambda x:x):
+    def __init__(self, query, type='video', guiutil=None, sort=lambda x:x):
         #print >>sys.stderr,"DataOnDemandWeb2: query is",query
         DataOnDemand.__init__(self, sort)
         Observer.__init__(self)
         self.web2querylock = threading.RLock()
-        self.web2query = Web2.web2query(query, type)
+        self.web2query = Web2.web2query(query, type, guiutil)
         self.web2query.attach(self)
         self.web2query.start()
         self.end = False
@@ -146,4 +160,9 @@ class DataOnDemandWeb2(DataOnDemand, Observer):
         self.end = True
         self.web2querylock.release()
 
-
+    def getNumRequested(self):
+        try:
+            self.web2querylock.acquire()
+            return self.requested
+        finally:
+            self.web2querylock.release()

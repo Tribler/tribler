@@ -5,17 +5,15 @@ import util.db
 
 from video.genericsearch import GenericSearch
 from util.update import Web2Config
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 
-def web2query(query, type):
-    gui_utility = GUIUtility.getInstance()
+def web2query(query, type, gui_utility):
     web2config = Web2Config.getInstance(gui_utility.utility)
     searches = []
     for searchname in web2config.getWeb2Sites(type):
         searches.append(GenericSearch(searchname, query, web2config))
 
-    return util.db.CompoundDBSearch(searches)
+    return util.db.CompoundDBSearch(searches,gui_utility.standardOverview)
 
 
     

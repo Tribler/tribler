@@ -456,7 +456,7 @@ class GUIUtility:
         #
         # Query the peers we are connected to
         #
-        nhits = len(self.torrentsearch_manager.hits)
+        nhits = self.torrentsearch_manager.getCurrentHitsLen()
         if nhits < self.remote_search_threshold and mode == 'filesMode':
             q = 'SIMPLE '
             for kw in wantkeywords:
@@ -464,9 +464,15 @@ class GUIUtility:
                 
             num_remote_queries = min((self.remote_search_threshold - nhits)/2, self.max_remote_queries)
             if num_remote_queries > 0:
-                self.utility.session.query_connected_peers(q,self.sesscb_got_remote_hits,num_remote_queries)
+                #self.utility.session.query_connected_peers(q,self.sesscb_got_remote_hits,num_remote_queries)
                  
                 self.standardOverview.setSearchFeedback('remote', False, 0, wantkeywords)
+                
+        #
+        # Query YouTube, etc.
+        #
+        if mode == 'filesMode':
+            self.torrentsearch_manager.searchWeb2(40)
 
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 

@@ -305,13 +305,13 @@ class VideoPlayer:
 
     def play_url(self,url):
         """ Play video file from disk """
+        if DEBUG:
+            print >>sys.stderr,"videoplay: Playing file from url",url
+        
         self.determine_playbackmode()
         
         t = urlparse.urlsplit(url)
         dest = t[2]
-        if DEBUG:
-            print >>sys.stderr,"videoplay: Playing file from url",url
-
         
         # VLC will play .flv files, but doesn't like the URLs that YouTube uses,
         # so quote them

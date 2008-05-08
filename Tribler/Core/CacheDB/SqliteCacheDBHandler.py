@@ -1694,7 +1694,7 @@ class BarterCastDBHandler(BasicDBHandler):
     def updateItem(self, (permid_1, permid_2), key, value):
         
         if DEBUG:
-            print "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+            print "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_1), self.getName(permid_2), key, str(value))
 
         itemdict = self.getItem((permid_from, permid_to))
 

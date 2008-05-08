@@ -221,14 +221,12 @@ class FilesItemPanel(wx.Panel):
                  
     def setData(self, torrent):
         
-        """
         if DEBUG:
             if torrent is None:
                 stat = 'None'
             else:
-                stat = [`torrent['name']`,torrent.keys()] # torrent['myDownloadHistory']]
+                stat = torrent.keys() # torrent['myDownloadHistory']]
             print >>sys.stderr,"fip: setData:",stat
-        """
         
         self.data = torrent
         
