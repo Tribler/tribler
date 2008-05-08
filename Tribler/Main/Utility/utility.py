@@ -716,7 +716,7 @@ def copyTorrent(torrent):
         return None
     ntorrent = {}
     for key in basic_keys:
-        value = ntorrent.get(key)
+        value = torrent.get(key)
         if not value is None:
             ntorrent[key] = value
     return ntorrent

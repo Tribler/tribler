@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke, Lucan Musat
+# see LICENSE.txt for license information
+
 import os, sys, wx, math
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.filesItemPanel import FilesItemPanel
@@ -52,7 +55,7 @@ class GridManager(object):
         self.dslist = []
         
         self.torrentsearch_manager = utility.guiUtility.torrentsearch_manager
-        self.torrentsearch_manager.set_torrent_db(self.torrent_db_handler)
+        self.torrentsearch_manager.register(self.torrent_db_handler,self)
         
     def set_state(self, state, reset_page = False):
         self.state = state
@@ -86,7 +89,6 @@ class GridManager(object):
     
     def _getData(self, state):
         range = (self.page * self.grid.items, (self.page+1)*self.grid.items)
-        print >> sys.stderr, '**************', self.page, self.grid.items
         if state.db in ('filesMode', 'libraryMode'):
             
             # Arno: state.db should be NTFY_ according to GridState...
@@ -413,7 +415,7 @@ class standardGrid(wx.Panel):
             #datalength = len(dataList)
         
         if type(dataList) == list or dataList is None:
-            print 'grid.setData: list'
+            print >>sys.stderr,'grid.setData: list'
             self.data = dataList
      
         if not self.initReady:
@@ -464,7 +466,7 @@ class standardGrid(wx.Panel):
         "Refresh TorrentPanels with correct data and refresh pagerPanel"
         if self.getStandardPager():
             self.standardPager.refresh()
-                
+        
         if self.data is None:
             self.clearAllData()
         else:

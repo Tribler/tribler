@@ -24,7 +24,7 @@ from bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Category.Category import Category
 
-
+DEBUG = True
 SHOW_ERROR = True
 
 def show_permid_shorter(permid):

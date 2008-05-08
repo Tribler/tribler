@@ -234,7 +234,9 @@ class FilesItemPanel(wx.Panel):
         
         # Do not update if 'similar torrent' is set
         if similarTorrent(self.datacopy, self.data):
+            #print >>sys.stderr,"fip: Similar torrent"
             return
+        
         self.datacopy = copyTorrent(self.data)
         
         if not torrent:
@@ -556,12 +558,14 @@ class ThumbnailViewer(wx.Panel):
                         
                 elif self.mode == 'filesMode':
                     bmp = torrent['metadata'].get('ThumbnailBitmap')
-            elif 'torrent_file_name' in torrent: # Local torrents
+            elif 'torrent_file_name' in torrent and torrent['torrent_file_name'] != '':
                 torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
                 torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
                 
-                if DEBUG:
-                    print "fip: Scheduling read of thumbnail for",torrent_filename
+                if not DEBUG:
+                    print "fip: Scheduling read of thumbnail for",`torrent['name']`,"from",torrent_filename
+                
+                
                 
                 try:
                     self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
