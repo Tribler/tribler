@@ -377,7 +377,7 @@ class PersonsItemPanel(wx.Panel):
         
     def mouseAction(self, event):
         if DEBUG:
-            print "pip: set focus"
+            print >>sys.stderr,"pip: set focus"
         self.SetFocus()
         if self.data:
             self.guiUtility.selectPeer(self.data)
@@ -447,9 +447,9 @@ class ThumbnailViewer(wx.Panel):
         
         if not self.IsShown():
                 self.Show()
-        if data != self.data:
-            self.data = data
-            self.setThumbnail(data)
+        #if data != self.data:
+        self.data = data
+        self.setThumbnail(data)
 
     def setThumbnail(self, data):
         # Get the file(s)data for this torrent
@@ -463,13 +463,16 @@ class ThumbnailViewer(wx.Panel):
             bmp_default = self.iconsManager.get_default('personsMode',defThumb)
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if data.get('metadata'):
+                
+                print >>sys.stderr,"pip: Reusing Bitmap",`data['name']`
+                
                 bmp = data['metadata'].get('ThumbnailBitmap')
-                tt = data['metadata'].get('triend_time')
+                tt = data['metadata'].get('tried_time')
                 if not bmp:
                     now = time()
-                    #print "BMP IS NONE",data['name']
+                    #print >>sys.stderr,"BMP IS NONE",data['name']
                     if now > tt+(15*60.0):
-                        #print "REFRESH OF PEER IMAGE SCHEDULED"
+                        #print >>sys.stderr,"REFRESH OF PEER IMAGE SCHEDULED"
                         self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
                 else:
                     bmp_default = bmp
@@ -481,9 +484,10 @@ class ThumbnailViewer(wx.Panel):
             d = 1
             self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
             self.Refresh()
+            #wx.Yield()
             
         except:
-            print_exc(file=sys.stderr)
+            print_exc()
             return {}           
         
          
@@ -502,7 +506,7 @@ class ThumbnailViewer(wx.Panel):
         """ Called by non-GUI thread """
         
         if DEBUG:
-            print "pip: ThumbnailViewer: loadMetadata: Peer",show_permid_short(data['permid']),data['name']
+            print >>sys.stderr,"pip: ThumbnailViewer: loadMetadata: Peer",show_permid_short(data['permid']),data['name']
             
         # We can't do any wx stuff here apparently, so the only thing we can do is to
         # read the data from the file and create the wxBitmap in the GUI callback.
@@ -514,8 +518,11 @@ class ThumbnailViewer(wx.Panel):
     def metadata_thread_gui_callback(self,data,mimetype,bmpdata,type=''):
         """ Called by GUI thread """
 
+        if DEBUG:
+            print >>sys.stderr,"pip: ThumbnailViewer: GUI callback"
+
         metadata = {}
-        metadata['triend_time'] = time()+(random.random()*100)
+        metadata['tried_time'] = time()+(random.random()*100)
         if mimetype is not None:
             metadata['ThumbnailBitmap'] = data2wxBitmap(mimetype,bmpdata)
         else:
@@ -550,7 +557,7 @@ class ThumbnailViewer(wx.Panel):
                 #print >>sys.stderr,"pip: Netresult is",metadata['ThumbnailBitmap']
 
         if DEBUG:
-            print "pip: ThumbnailViewer: GUI callback"
+            print >>sys.stderr,"pip: ThumbnailViewer: Setting metadata"
         data['metadata'] = metadata
         
         # This item may be displaying another person right now, only show the icon

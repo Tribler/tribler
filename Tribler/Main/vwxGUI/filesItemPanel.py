@@ -586,7 +586,7 @@ class ThumbnailViewer(wx.Panel):
         d = 1
         self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
         self.Refresh()
-        
+        #wx.Yield()
         
         
          

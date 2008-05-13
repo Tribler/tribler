@@ -533,6 +533,9 @@ class VLCMediaCtrl(wx.Window):
         return self.media.get_media_position(vlc.AbsolutePosition, vlc.MediaTime).value/1000.0
 
     def Load(self,url):
+        if DEBUG:
+            print >>sys.stderr,"VLCMediaCtrl: Play called",`url`
+        
         self.media.exit()
         self.getVlcMediaCtrl()
         #self.Stop()

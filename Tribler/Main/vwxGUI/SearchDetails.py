@@ -61,7 +61,7 @@ class SearchDetailsPanel(wx.Panel):
                 
         if finished:  
             msg = self.guiUtility.utility.lang.get('finished_search') % (self.keywords, total)
-            self.stopMoreClicked()
+            #self.stopMoreClicked()
         else:
             msg = self.guiUtility.utility.lang.get('going_search') % (self.keywords, total)
         
@@ -88,12 +88,12 @@ class SearchDetailsPanel(wx.Panel):
         # call remoteSearch and Web2.0 search to stop
         self.guiUtility.stopSearch()
     
-    def findMoreSearch(self):
-        # call remoteSearch and Web2.0 search to find more
-        self.startSearch()
-        grid = self.guiUtility.standardOverview.getGrid()
-        if grid.dod:
-            grid.dod.requestMore(grid.items)
+#    def findMoreSearch(self):
+#        # call remoteSearch and Web2.0 search to find more
+#        self.startSearch()
+#        grid = self.guiUtility.standardOverview.getGrid()
+#        if grid.dod:
+#            grid.dod.requestMore(grid.items)
     
     def searchFinished(self):
         self.searchBusy = False

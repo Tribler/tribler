@@ -44,6 +44,7 @@ class GridManager(object):
         
         self.peer_db_handler = self.session.open_dbhandler(NTFY_PEERS)
         self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
+        self.friend_db_handler = self.session.open_dbhandler(NTFY_FRIENDS)
         
         self.state = None
         self.total_items = 0
@@ -56,6 +57,10 @@ class GridManager(object):
         
         self.torrentsearch_manager = utility.guiUtility.torrentsearch_manager
         self.torrentsearch_manager.register(self.torrent_db_handler,self)
+
+        self.peersearch_manager = utility.guiUtility.peersearch_manager
+        self.peersearch_manager.register(self.peer_db_handler,self.friend_db_handler,self)
+
         
     def set_state(self, state, reset_page = False):
         self.state = state
@@ -108,12 +113,21 @@ class GridManager(object):
         elif state.db in ('personsMode', 'friendsMode'):
             if state.db == 'friendsMode':
                 state.category = 'friend'
-            total_items = self.peer_db_handler.getNumberPeers(category_name = state.category)
-            data = self.peer_db_handler.getGUIPeers(category_name = state.category, 
-                                                    sort = state.sort,
-                                                    reverse = state.reverse,
-                                                    range = range)
-            
+                
+            if not self.peersearch_manager.inSearchMode(state.db):
+                print >>sys.stderr,"GET GUI PEERS #################################################################################"
+                total_items = self.peer_db_handler.getNumberPeers(category_name = state.category)
+                data = self.peer_db_handler.getGUIPeers(category_name = state.category, 
+                                                        sort = state.sort,
+                                                        reverse = state.reverse,
+                                                        range = range)
+            else:
+                print >>sys.stderr,"SEARCH GUI PEERS $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+                try:
+                    [total_items,data] = self.peersearch_manager.getHits(state.db,range)
+                except:
+                    print_exc()
+
         
         else:
             raise Exception('Unknown data db in GridManager: %s' % state.db)
@@ -398,15 +412,6 @@ class standardGrid(wx.Panel):
         return self.data
 
 
-#    def updateDod(self, item=None):
-#        if DEBUG or DEBUG_DOD:
-#            print >>sys.stderr,'standardGrid: WEB2.0 -> updateDod'
-#        #self.data = self.dod.getData()
-#        if item:
-#            self.data.append(item)
-#            wx.CallAfter(self.refreshData)
-        
-    
     def setData(self, dataList):
         
         #if dataList is None:
@@ -661,21 +666,6 @@ class standardGrid(wx.Panel):
             pass
         return self.detailPanel is not None
 
-#    def moreData(self):
-#
-#        if self.dod:
-#            needed = self.items * 3 # 3 -> load 2 pages in advance
-#
-#            if needed > 0:
-#                if DEBUG:
-#                    print >>sys.stderr,"standardGrid: Web2.0: fetching total of", needed,"items"
-#                self.dod.request(needed)
-    
-#    def __del__(self):
-#        if self.dod:
-#            self.dod.unregister(self.updateDod)
-#            self.dod.stop()
-#            
     def keyTypedOnGridItem(self, event):
         obj = event.GetEventObject()
         if DEBUG:
@@ -769,10 +759,6 @@ class standardGrid(wx.Panel):
             self.columnHeaderSizer.Layout()
         self.vSizer.Layout()
     
-#    def stopWeb2Search(self):
-#        if self.dod:
-#            self.dod.unregister(self.updateDod)
-#            self.dod.stop()
             
     def isShowByOverview(self):
         name = self.__class__.__name__
@@ -780,6 +766,8 @@ class standardGrid(wx.Panel):
         index = name.find('Grid')
         isshown = name[:index] == mode[:index]
         return isshown
+    
+    
     
 class filesGrid(standardGrid):
     def __init__(self):

@@ -10,8 +10,6 @@ from Tribler.Core.Utilities.utilities import sort_dictlist
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Utility.constants import *
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
-from peermanager import PeerDataManager
-import peermanager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.Utilities.unicode import *
 from threading import Thread,currentThread
@@ -255,7 +253,8 @@ class standardOverview(wx.Panel):
             self.data[self.mode]['filterState'] = filterState
         else:
             print >> sys.stderr, 'Invalid Filterstate:', filterState    
-            
+    
+    """            
     def loadTorrentData(self, cat, sort, range = None):
         # cat can be 'all', 'friends', 'search', 'search_friends', None, self.data[self.mode].get('filterState')[0]
         # sort can be 'seeder',..
@@ -365,7 +364,9 @@ class standardOverview(wx.Panel):
         self.data[self.mode]['data'] = libraryList
         if DEBUG:
             print >>sys.stderr,'standardOverview: Loaded %d library items' % len(self.data[self.mode]['data'])
-        
+    """
+
+    
     def getDownloadStartedTime(self, torrent):
         if torrent.get('download_started'):
             return torrent['download_started']
@@ -521,13 +522,8 @@ class standardOverview(wx.Panel):
     def clearSearch(self):
         self.data[self.mode]['search'].Clear()
         gridState = GridState(self.mode, 'all', 'name', reverse=True)
-        if self.mode in ['filesMode', 'libraryMode']:
-            self.guiUtility.clearSearch()
-            self.filterChanged(gridState)
-        elif self.mode == 'personsMode':
-            self.filterChanged(gridState)
-        elif self.mode == 'friendsMode':
-            self.filterChanged(gridState)
+        self.guiUtility.clearSearch()
+        self.filterChanged(gridState)
         
     def getSorting(self):
         fs = self.data[self.mode].get('filterState')
@@ -550,6 +546,7 @@ class standardOverview(wx.Panel):
         
     def setSearchFeedback(self,*args,**kwargs):
         """ May be called by web2.0 thread """
+        #print >>sys.stderr,'standardOverview: setSearchFeedback',args,kwargs
         setSearchFeedback_lambda = lambda:self._setSearchFeedback(*args,**kwargs)
         wx.CallAfter(setSearchFeedback_lambda)
         

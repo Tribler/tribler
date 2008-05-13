@@ -37,6 +37,7 @@ class TorrentSearchGridManager:
         self.dod = None
         # Jelle's word filter
         self.searchmgr = None
+        self.torrent_db = None
         # For asking for a refresh when remote results came in
         self.gridmgr = None
 
@@ -53,13 +54,15 @@ class TorrentSearchGridManager:
     getInstance = staticmethod(getInstance)
 
     def register(self,torrent_db,gridmgr):
+        self.torrent_db = torrent_db
         self.searchmgr = SearchManager(torrent_db)
         self.gridmgr = gridmgr
     
     def getHitsInCategory(self,mode,categorykey,range):
         # mode is 'filesMode', 'libraryMode'
         # categorykey can be 'all', 'Video', 'Document', ...
-        print >>sys.stderr,"TorrentSearchGridManager: getHitsInCategory:",mode,categorykey,range
+        if DEBUG:
+            print >>sys.stderr,"TorrentSearchGridManager: getHitsInCategory:",mode,categorykey,range
         
         categorykey = categorykey.lower()
         enabledcattuples = self.category.getCategoryNames()
@@ -69,7 +72,8 @@ class TorrentSearchGridManager:
         
         if not self.standardOverview:
             self.standardOverview = self.guiUtility.standardOverview
-            
+
+        # TODO: do all filtering in DB query
         def torrentFilter(torrent):
             library = (mode == 'libraryMode')
             okLibrary = not library or torrent.get('myDownloadHistory', False)
@@ -88,6 +92,7 @@ class TorrentSearchGridManager:
             
             okGood = torrent['status'] == 'good' or torrent.get('myDownloadHistory', False)
             
+            print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
             return okLibrary and okCategory and okGood
         
         # 1. Local search puts hits in self.hits
@@ -113,7 +118,7 @@ class TorrentSearchGridManager:
         
         # 3. Add remote hits that may apply. TODO: double filtering, could
         # add remote hits to self.hits before filter(torrentFilter,...)
-        ### self.addStoredRemoteResults(mode, categorykey)
+        self.addStoredRemoteResults(mode, categorykey)
         if DEBUG:
             print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after search: %d items' % len(self.hits)
         
@@ -134,11 +139,18 @@ class TorrentSearchGridManager:
                 
                 
     def setSearchKeywords(self,wantkeywords, mode):
+        
+        if len(wantkeywords) == 0:
+            print_stack()
+        
         self.searchkeywords[mode] = wantkeywords
         if mode == 'filesMode':
             self.remoteHits = {}
             if self.dod:
                 self.dod.clear()
+
+    def inSearchMode(self, mode):
+        return bool(self.searchkeywords[mode])
          
     def stopSearch(self):
         # TODO
@@ -147,19 +159,16 @@ class TorrentSearchGridManager:
      
     def getCurrentHitsLen(self):
         return len(self.hits)
-        
-    def inSearchMode(self, mode):
-        return bool(self.searchkeywords[mode])
     
     def searchLocalDatabase(self,mode):
         """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """
         if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
             if DEBUG:
-                print >>sys.stderr,"TorrentSearchGridManager: search: returning old hit list",len(self.hits)
+                print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
             return self.hits
             
         if DEBUG:
-            print >>sys.stderr,"TorrentSearchGridManager: search: Want",self.searchkeywords[mode]
+            print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: Want",self.searchkeywords[mode]
         
         if len(self.searchkeywords[mode]) == 0 or len(self.searchkeywords[mode]) == 1 and self.searchkeywords[mode][0] == '':
             return self.hits
@@ -184,7 +193,7 @@ class TorrentSearchGridManager:
             
             catResults = filter(catFilter, self.remoteHits.values())
             if DEBUG:
-                print >> sys.stderr, "Adding %d remote results (%d in category)" % (len(self.remoteHits), len(catResults))
+                print >> sys.stderr,"TorrentSearchGridManager: remote: Adding %d remote results (%d in category)" % (len(self.remoteHits), len(catResults))
             
             
             for remoteItem in catResults:
@@ -211,7 +220,7 @@ class TorrentSearchGridManager:
                 catobj = Category.getInstance()
                 for key,value in answers.iteritems():
                     
-                    if self.searchmgr.has_torrent(key):
+                    if self.torrent_db.hasTorrent(key):
                         continue # do not show results we have ourselves
                     
                     # Convert answer fields as per 
@@ -285,7 +294,8 @@ class TorrentSearchGridManager:
         
     def tthread_gotWeb2Hit(self,item):
         """ Called by Web2DBSearchThread*s* """
-        print >>sys.stderr,"TorrentSearchGridManager: tthread_gotWeb2Hit",`item['content_name']`
+        if DEBUG:
+            print >>sys.stderr,"TorrentSearchGridManager: tthread_gotWeb2Hit",`item['content_name']`
         wx.CallAfter(self.refreshGrid)
         
     def web2tonewdb(self,value):
@@ -317,15 +327,19 @@ class TorrentSearchGridManager:
             #self.standardOverview.setSearchFeedback('web2', False, 0)
             
             if self.dod:
-                # Arno: ask for more when needed
-                diff = range[1] - self.dod.getNumRequested()
-                if diff >= 0:
-                    inc = range[1] - range[0]
-                    print >>sys.stderr,"TorrentSearchManager: web2: requestMore diff",diff
-                    self.dod.requestMore(inc)
+                # Arno: ask for more when needed (=only one page left to display)
+                if DEBUG:
+                    print >>sys.stderr,"TorrentSearchManager: web2: requestMore?",range[1],self.dod.getNumRequested()
+                pagesize = range[1] - range[0]
+                diff = self.dod.getNumRequested() - range[1]
+                if diff <= pagesize:
+                    if DEBUG:
+                        print >>sys.stderr,"TorrentSearchManager: web2: requestMore diff",diff
+                    self.dod.requestMore(pagesize)
                     
                 data = self.dod.getDataSafe()
-                print >>sys.stderr,"TorrentSearchManager: getHitsInCat: web2: Got total",len(data)
+                if DEBUG:
+                    print >>sys.stderr,"TorrentSearchManager: getHitsInCat: web2: Got total",len(data)
                 numResults = 0
                 for value in data:
                     
@@ -337,3 +351,109 @@ class TorrentSearchGridManager:
 
                 self.standardOverview.setSearchFeedback('web2', False, numResults, self.searchkeywords[mode])
 
+
+class PeerSearchGridManager:
+
+    # Code to make this a singleton
+    __single = None
+   
+    def __init__(self,guiUtility):
+        if PeerSearchGridManager.__single:
+            raise RuntimeError, "PeerSearchGridManager is singleton"
+        PeerSearchGridManager.__single = self
+        
+        self.guiUtility = guiUtility
+        
+        # Contains all matches for keywords in DB, not filtered by category
+        self.hits = []
+        # Jelle's word filter
+        self.psearchmgr = None
+        self.fsearchmgr = None
+        
+        self.gridmgr = None
+
+        self.standardOverview = None
+        self.searchkeywords = {'personsMode':[], 'friendsMode':[]}
+        self.oldsearchkeywords = {'personsMode':[], 'friendsMode':[]} # previous query
+        
+        
+    def getInstance(*args, **kw):
+        if PeerSearchGridManager.__single is None:
+            PeerSearchGridManager(*args, **kw)       
+        return PeerSearchGridManager.__single
+    getInstance = staticmethod(getInstance)
+
+    def register(self,peer_db,friend_db,gridmgr):
+        self.psearchmgr = SearchManager(peer_db)
+        self.fsearchmgr = SearchManager(friend_db)
+        self.gridmgr = gridmgr
+    
+    def getHits(self,mode,range):
+        # mode is 'personsMode', 'friendsMode'
+        if DEBUG:
+            print >>sys.stderr,"PeerSearchGridManager: getHitsIn:",mode,range
+        
+        if not self.standardOverview:
+            self.standardOverview = self.guiUtility.standardOverview
+            
+        # Local search puts hits in self.hits
+        self.searchLocalDatabase(mode)
+        
+        if DEBUG:
+            print >>sys.stderr,'PeerSearchGridManager: getHitsInCat: search found: %d items' % len(self.hits)
+        
+        if DEBUG:
+            print >>sys.stderr,'PeerSearchGridManager: getHitsInCat: torrentFilter after search found: %d items' % len(self.hits)
+
+        if mode == 'personsMode':
+            searchType = 'peers'
+        elif mode == 'friendsMode':
+            searchType = 'friends'
+        self.standardOverview.setSearchFeedback(searchType, True, len(self.hits), self.searchkeywords[mode])
+            
+        if range[0] > len(self.hits):
+            return [0,None]
+        elif range[1] > len(self.hits):
+            end = len(self.hits)
+        else:
+            end = range[1]
+        begin = range[0]
+        
+        return [len(self.hits),self.hits[begin:end]]
+                
+                
+    def setSearchKeywords(self,wantkeywords, mode):
+
+        if len(wantkeywords) == 0:
+            print_stack()
+        
+        self.searchkeywords[mode] = wantkeywords
+
+    def inSearchMode(self, mode):
+        if DEBUG:
+            print >>sys.stderr,"PeerSearchGridManager: inSearchMode?",self.searchkeywords[mode]
+        
+        return bool(self.searchkeywords[mode])
+         
+    def stopSearch(self):
+        pass
+
+    def searchLocalDatabase(self,mode):
+        """ Called by getHits() to search local DB. Caches previous query result. """
+        if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
+            if DEBUG:
+                print >>sys.stderr,"PeerSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
+            return self.hits
+            
+        if DEBUG:
+            print >>sys.stderr,"PeerSearchGridManager: searchLocalDB: Want",self.searchkeywords[mode]
+        
+        if len(self.searchkeywords[mode]) == 0 or len(self.searchkeywords[mode]) == 1 and self.searchkeywords[mode][0] == '':
+            return self.hits
+        
+        if mode == 'personsMode':
+            self.hits = self.psearchmgr.search(self.searchkeywords[mode])
+        else:
+            self.hits = self.fsearchmgr.search(self.searchkeywords[mode])
+        
+        return self.hits

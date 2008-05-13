@@ -30,7 +30,7 @@ SHOW_ERROR = True
 def show_permid_shorter(permid):
     if not permid:
         return 'None'
-    s = encodestring(permid).replace("\n","")
+    s = base64.encodestring(permid).replace("\n","")
     return s[-5:]
 
 
@@ -160,6 +160,13 @@ class FriendDBHandler(BasicDBHandler):
         
     def deleteFriend(self,permid):
         self.setFriend(permid, False)
+        
+    def searchNames(self,kws):
+        return doPeerSearchNames(self,'Friend',kws)
+        
+    def getRank(self, permid):
+        # TODO
+        return -1
         
 NETW_MIME_TYPE = 'image/jpeg'
 
@@ -461,6 +468,12 @@ class PeerDBHandler(BasicDBHandler):
         #    return self.mm.load_data(permid)
         #3else:
         #    return None
+
+
+    def searchNames(self,kws):
+        return doPeerSearchNames(self,'Peer',kws)
+
+
 
 class SuperPeerDBHandler(BasicDBHandler):
     
@@ -1228,6 +1241,8 @@ class TorrentDBHandler(BasicDBHandler):
         for flist in res:
             print >>sys.stderr,"torrent_db: searchNames: Got Record",`flist`
             d = self._selectStar2dict(flist)
+            if self.mypref_db.hasMyPreference(d['infohash']):
+                d['myDownloadHistory'] = True
             all.append(d)
         return all
             
@@ -1344,6 +1359,32 @@ class TorrentDBHandler(BasicDBHandler):
                    'infohash':str2bin(res[4])
                   }
         return res
+
+
+    def getTorrentsFromSource(self,source):
+        """ Get all torrents from the specified Subscription source. 
+        Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
+        """
+        id = self._getSourceID(source)
+        sql = 'select * from Torrent where Torrent.source_id = %d' % (id) 
+        
+        #print >>sys.stderr,"torrent_db: getTorrentsFromSource: sql",sql
+        res = self._db.execute(sql)
+        #print >>sys.stderr,"torrent_db: getTorrentsFromSource: res",`res`
+        
+        all = []
+        for flist in res:
+            print >>sys.stderr,"torrent_db: getTorrentsFromSource: Got Record",`flist`
+            d = self._selectStar2dict(flist)
+            all.append(d)
+        return all
+        
+    def setSecret(self,infohash,secret):
+        kw = {'secret': secret}
+        self.updateTorrent(infohash, updateFlag=True, **kw)
+
+    
+        
 
 class MyPreferenceDBHandler(BasicDBHandler):
     
@@ -1691,10 +1732,10 @@ class BarterCastDBHandler(BasicDBHandler):
         self._db.insert(self.table_name, **item)
 
 
-    def updateItem(self, (permid_1, permid_2), key, value):
+    def updateItem(self, (permid_from, permid_to), key, value):
         
         if DEBUG:
-            print "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_1), self.getName(permid_2), key, str(value))
+            print "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
 
         itemdict = self.getItem((permid_from, permid_to))
 
@@ -1857,3 +1898,36 @@ class GUIDBHandler:
         return Category.getInstance().get_family_filter_sql(torrent_db_handler._getCategoryID, table_name=table_name)
 
     
+def doPeerSearchNames(self,dbname,kws):
+    """ Get all peers that have the specified keywords in their name. 
+    Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
+    """
+    if dbname == 'Peer':
+        sql = 'select * from Peer where (Peer.buddycast_times>0 or Peer.friend=1) and '
+    else:
+        sql = 'select * from Friend where '
+    
+    for i in range(len(kws)):
+        kw = kws[i]
+        sql += ' name like "%'+kw+'%"'
+        if (i+1) != len(kws):
+            sql += ' and'  
+    print >>sys.stderr,"peer_db: searchNames: sql",sql
+    res = self._db.execute(sql)
+    print >>sys.stderr,"peer_db: searchNames: res",`res`
+
+    # See getGUIPeers()
+    value_name = ('peer_id','permid', 'name', 'ip', 'port', 'similarity', 'friend',
+                  'num_peers', 'num_torrents', 'num_prefs', 
+                  'connected_times', 'buddycast_times', 'last_connected')
+
+    peer_list = []
+    for item in res:
+        print >>sys.stderr,"peer_db: searchNames: Got Record",`item`
+        peer = dict(zip(value_name, item))
+        del peer['peer_id']
+        peer['name'] = dunno2unicode(peer['name'])
+        peer['simRank'] = self.getRank(peer['permid'])
+        peer['permid'] = str2bin(peer['permid'])
+        peer_list.append(peer)
+    return peer_list

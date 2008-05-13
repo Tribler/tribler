@@ -39,7 +39,7 @@ from Tribler.Core.BitTornado.bencode import bdecode,bencode
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 
-DEBUG = True
+DEBUG = False
 
 
 class TorrentFeedThread(Thread):

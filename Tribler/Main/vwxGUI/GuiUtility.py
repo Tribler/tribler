@@ -13,12 +13,11 @@ import updateXRC
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.Utilities.utilities import show_permid
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog, InviteFriendsDialog
-from peermanager import PeerDataManager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 #from Tribler.vwxGUI.filesFilter import filesFilter
 from Tribler.Main.vwxGUI.GridState import GridState
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager,PeerSearchGridManager
 from Tribler.Category.Category import Category
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Utility.constants import *
@@ -40,12 +39,11 @@ class GUIUtility:
         self.params = params
         self.frame = None
         self.selectedMainButton = None
-        # Arno: TODO remove permanently
-        #self.peer_manager = None
         
         # Arno: 2008-04-16: I want to keep this for searching, as an extension
         # of the standardGrid.GridManager
         self.torrentsearch_manager = TorrentSearchGridManager.getInstance(self)
+        self.peersearch_manager = PeerSearchGridManager.getInstance(self)
         
         self.guiOpen = Event()
         
@@ -258,10 +256,6 @@ class GUIUtility:
             print >>sys.stderr,'GUIUtil: standardMessagesOverview: Not yet implemented;'
   
             
-#    def reloadPeers(self):
-#        return self.peer_manager.getFiltered Data('all') #sortData(self.categorykey)
-        
-   
     def initStandardOverview(self, standardOverview):
         "Called by standardOverview when ready with init"
         self.standardOverview = standardOverview
@@ -448,7 +442,6 @@ class GUIUtility:
         low = input.lower()
         wantkeywords = [i for i in low.split(' ') if i]
         self.torrentsearch_manager.setSearchKeywords(wantkeywords, mode)
-        sorting = None
         #print "******** gui uti searchFiles", wantkeywords
         gridstate = GridState(self.standardOverview.mode, 'all', 'num_seeders')
         self.standardOverview.filterChanged(gridstate)
@@ -464,7 +457,7 @@ class GUIUtility:
                 
             num_remote_queries = min((self.remote_search_threshold - nhits)/2, self.max_remote_queries)
             if num_remote_queries > 0:
-                #self.utility.session.query_connected_peers(q,self.sesscb_got_remote_hits,num_remote_queries)
+                self.utility.session.query_connected_peers(q,self.sesscb_got_remote_hits,num_remote_queries)
                  
                 self.standardOverview.setSearchFeedback('remote', False, 0, wantkeywords)
                 
@@ -472,7 +465,7 @@ class GUIUtility:
         # Query YouTube, etc.
         #
         if mode == 'filesMode':
-            self.torrentsearch_manager.searchWeb2(40)
+            self.torrentsearch_manager.searchWeb2(60) # 3 pages, TODO: calc from grid size
 
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
@@ -482,50 +475,29 @@ class GUIUtility:
         wx.CallAfter(self.torrentsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
 
     def stopSearch(self):
-        if self.standardOverview.getMode() == 'filesMode':
+        mode = self.standardOverview.getMode() 
+        if mode == 'filesMode' or mode == 'libraryMode':
             self.torrentsearch_manager.stopSearch()
+        if mode == 'personsMode' or mode == 'friendsMode':
+            self.peersearch_manager.stopSearch()
         
     def clearSearch(self):
-        if self.standardOverview.getMode() == 'filesMode':
-            self.torrentsearch_manager.setSearchKeywords([],'filesMode')
-        
+        mode = self.standardOverview.getMode()
+        if mode == 'filesMode'  or mode == 'libraryMode':
+            self.torrentsearch_manager.setSearchKeywords([],mode)
+        if mode == 'personsMode'  or mode == 'friendsMode':
+            self.peersearch_manager.setSearchKeywords([],mode)
         
     def searchPersons(self, mode, input):
-        
         if DEBUG:
             print >>sys.stderr,"GUIUtil: searchPersons:",input
         low = input.lower().strip()
         wantkeywords = low.split(' ')
-#        zet = Set([i for i in wantkeywords if i])
-#        wantkeywords = list(zet)
-        if mode == 'personsMode':
-            def searchFilterFunc(peer_data):
-                low = peer_data['content_name'].lower()
-                for wantkw in wantkeywords:
-                    if low.find(wantkw) != -1:
-                        return True
-                return False
-            self.peer_manager.registerFilter("search",searchFilterFunc)
-            self.standardOverview.filterChanged(['search',None],setgui=True)
-            searchType = 'peers'
-            
-        elif mode == 'friendsMode':
-            def searchFriendsFilterFunc(peer_data):
-                if not peer_data.get('friend',False):
-                    return False
-                low = peer_data['content_name'].lower()
-                for wantkw in wantkeywords:
-                    if low.find(wantkw) != -1:
-                        return True
-                return False
-            self.peer_manager.registerFilter("search_friends",searchFriendsFilterFunc)
-            self.standardOverview.filterChanged(['search_friends',None],setgui=True)
-            searchType = 'friends'
 
-        numResults =0
-        if self.standardOverview.getGrid():
-            numResults = len(self.standardOverview.getGrid().getData())
-        self.standardOverview.setSearchFeedback(searchType, True, numResults, input)
+        self.peersearch_manager.setSearchKeywords(wantkeywords, mode)
+        #print "******** gui uti searchFiles", wantkeywords
+        gridstate = GridState(self.standardOverview.mode, 'all', 'last_seen')
+        self.standardOverview.filterChanged(gridstate)
    
 
     def OnSearchKeyDown(self,event):
@@ -732,13 +704,6 @@ class GUIUtility:
             
         self.standardOverview.removeTorrentFromLibrary(item)
     
-    def addAbcTorrent(self, item):
-        from Tribler.Main.vwxGUI.torrentManager import key_abctorrent
-        
-        for torrent in self.utility.torrents['all']:
-            if torrent.torrent_hash == item['infohash']:
-                item[key_abctorrent] = torrent
-                        
     def onAdvancedInfoInLibrary(self, event = None):
         # open torrent details frame
         item = self.standardDetails.getData()

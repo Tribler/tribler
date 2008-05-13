@@ -746,7 +746,7 @@ def copyPeer(peer):
         return None
     npeer = {}
     for key in basic_keys:
-        value = npeer.get(key)
+        value = peer.get(key)
         if not value is None:
             npeer[key] = value
     return npeer

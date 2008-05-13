@@ -13,7 +13,6 @@ from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Core.Utilities.utilities import show_permid
 import wx.lib.editor as editor
-#from Tribler.vwxGUI.peermanager import PeerDataManager
 
 DEBUG = False
 

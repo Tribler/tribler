@@ -182,7 +182,7 @@ from threading import Event, currentThread
 from bartercast import BarterCastCore
 
 DEBUG = False   # for errors
-debug = True   # for status
+debug = False   # for status
 LOCAL_TEST = False
 
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
@@ -1912,6 +1912,9 @@ class DataHandler:
             self.overlay_bridge.add_task(lambda:self.torrent_db.updateTorrentRelevances(updates), 5)
 
     def addMyPref(self, infohash):
+        # ARNOCOMMENT: called by GUI thread and accesses self.myprefs. This is
+        # not good. All BC code should be run by OverlayThread or be protected.
+        
         infohash_str=bin2str(infohash)
         torrentdata = self.torrent_db.getOne(('secret', 'torrent_id'), infohash=infohash_str)
         if not torrentdata:
@@ -1932,6 +1935,7 @@ class DataHandler:
             #self.total_pref_changed += self.update_i2i_threshold
             
     def delMyPref(self, infohash):
+        # ARNOCOMMENT: CONCURRENCY PROBLEM: See addMyPref
         torrent_id = self.torrent_db.getTorrentID(infohash)
         if torrent_id in self.myprefs:
             self.myprefs.remove(torrent_id)

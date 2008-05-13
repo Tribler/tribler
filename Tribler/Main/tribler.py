@@ -758,6 +758,9 @@ class ABCApp(wx.App):
 
     def PostInit(self):
         try:
+            # On Linux: allow painting of splash screen first.
+            wx.Yield()
+            
             # Initialise fonts
             font.init()
 

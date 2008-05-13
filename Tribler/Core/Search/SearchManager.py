@@ -8,9 +8,13 @@ from Tribler.Core.Search.KeywordSearch import KeywordSearch
 DEBUG = True
 
 class SearchManager:
+    """ Arno: This is DB neutral. All it assumes is a DBHandler with
+    a searchNames() method that returns records with at least a 'name' field
+    in them.
+    """
     
-    def __init__(self,torrent_db):
-        self.torrent_db = torrent_db
+    def __init__(self,dbhandler):
+        self.dbhandler = dbhandler
         self.keywordsearch = KeywordSearch()
     
     def search(self,kws,maxhits=None):
@@ -18,13 +22,18 @@ class SearchManager:
         if DEBUG:
             print >>sys.stderr,"SearchManager: search",kws
             
-        torrentrecs = self.torrent_db.searchNames(kws)    
+        namerecs = self.dbhandler.searchNames(kws)    
+
+        if DEBUG:
+            print >>sys.stderr,"SearchManager: search: Got namerecs",len(namerecs),`namerecs`
         
-        hits = self.keywordsearch.search(torrentrecs,kws)
+        hits = self.keywordsearch.search(namerecs,kws)
+        
+        if DEBUG:
+            print >>sys.stderr,"SearchManager: search: Filtered namerecs",len(hits)
+        
         if maxhits is None:
             return hits
         else:
             return hits[:maxhits]
 
-    def has_torrent(self,infohash):
-        return self.torrent_db.hasTorrent(infohash)

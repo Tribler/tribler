@@ -131,6 +131,7 @@ class DataOnDemandWeb2(DataOnDemand, Observer):
 
     def requestMore(self, num):
         if self.end or not self.web2query:
+            print >>sys.stderr,"web2: dod: requestMore: return",self.end,"web2q",self.web2query
             return
 
         self.web2querylock.acquire()

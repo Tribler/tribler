@@ -11,7 +11,6 @@ from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Utility.constants import COL_PROGRESS
@@ -65,8 +64,9 @@ class standardDetails(wx.Panel):
         self.subscr_old_source = None
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility        
-        self.data_manager = TorrentDataManager.getInstance(self.utility)
+        self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         self.friend_db = self.utility.session.open_dbhandler(NTFY_FRIENDS)
+        self.peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.iconsManager = IconsManager.getInstance()
         self.gui_db = GUIDBHandler.getInstance()
@@ -694,7 +694,7 @@ class standardDetails(wx.Panel):
                 rssurl = 'BC'
             
             # Gather data for views
-            torrents = self.data_manager.getFromSource(rssurl)
+            torrents = self.torrent_db.getTorrentsFromSource(rssurl)
             todayl = []
             yesterdayl = []
             now = long(time())
@@ -804,7 +804,7 @@ class standardDetails(wx.Panel):
             elif self.currentPanel == self.getGuiObj('profileDetails_Persons'):
                 tab = 'profileDetails_Persons'
                 count = 0 
-                count = item.get('discovered_persons',0) #int(self.guiUtility.peer_manager.getNumEncounteredPeers())
+                count = item.get('discovered_persons',0) 
                 text = self.utility.lang.get("profileDetails_Persons_description", giveerror=False)
                 text1 = self.utility.lang.get("profileDetails_Persons_improve", giveerror=False)
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Persons').SetLabel(text % count)
@@ -1588,7 +1588,7 @@ class standardDetails(wx.Panel):
                 print >> sys.stderr, torrent, torrent.keys()
             return True
 
-        self.data_manager.setSecret(torrent['infohash'], secret)
+        self.torrent_db.setSecret(torrent['infohash'], secret)
             
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
@@ -1619,7 +1619,7 @@ class standardDetails(wx.Panel):
                 # save start download time.
                 #torrent['download_started'] = time()
                 #torrent['progress'] = 0.0
-                self.data_manager.setBelongsToMyDowloadHistory(torrent['infohash'], True)
+                self.setBelongsToMyDowloadHistory(torrent, True)
                 return True        
             else:
                 return False
@@ -1633,7 +1633,8 @@ class standardDetails(wx.Panel):
             dlg.Destroy()
             if result == wx.ID_YES:
                 infohash = torrent['infohash']
-                self.data_manager.deleteTorrent(infohash, delete_file = True)
+                self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
+                
                 return True
             else:
                 return False
@@ -1652,6 +1653,24 @@ class standardDetails(wx.Panel):
         
         wx.CallAfter(self.download,torrent)
 
+
+    def setBelongsToMyDowloadHistory(self,torrent, b):
+        """Set a certain new torrent to be in the download history or not
+        Should not be changed by updateTorrent calls"""
+        
+        # ARNOCOMMENT: Jie: cannot call BC here directly, you need to make
+        # Core API calls for this, and make sure they are thread safe
+        # (see my comments on BuddyCast.addMyPref)
+        #
+        
+        if b:
+            torrent[key_myDownloadHistory] = True
+            #self.utility.buddycast.addMyPref(infohash)    # will be called some where
+            pass
+        else:
+            if torrent.has_key(key_myDownloadHistory):
+                del torrent[key_myDownloadHistory]
+            #self.utility.buddycast.delMyPref(infohash)
 
 
     def setTorrentThumb(self, mode, torrent, thumbPanel):

@@ -1,5 +1,5 @@
 
-
+import sys
 import Queue
 
 import bsddb.dbshelve
@@ -371,7 +371,7 @@ class DBSearch(threading.Thread, observer.Subject):
 
 class ThreadedDBSearch(observer.Subject):
 
-    def __init__(self, nthreads=2):
+    def __init__(self, nthreads=4):
         observer.Subject.__init__(self)
 
         self.__workqueue = Queue.Queue()
@@ -498,6 +498,9 @@ class ThreadedDBSearch(observer.Subject):
     def getMore(self, num):
         self.__sleeplock.acquire()
         self.__wanted += num
+        
+        print >>sys.stderr,"web2: db: ThreadedDBSearch: getMore",num,"stop",self.__stop.isSet()
+        
         self.__sleeplock.notifyAll()
         self.__sleeplock.release()
 
