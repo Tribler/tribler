@@ -1225,8 +1225,10 @@ class TorrentDBHandler(BasicDBHandler):
     def searchNames(self,kws):
         """ Get all good torrents that have the specified keywords in their name. 
         Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
-        """
+        """ 
         sql = 'select * from Torrent where Torrent.status_id = 1 and' 
+        
+        mypref_stats = self.mypref_db.getMyPrefStats()
         
         for i in range(len(kws)):
             kw = kws[i]
@@ -1241,8 +1243,8 @@ class TorrentDBHandler(BasicDBHandler):
         for flist in res:
             print >>sys.stderr,"torrent_db: searchNames: Got Record",`flist`
             d = self._selectStar2dict(flist)
-            if self.mypref_db.hasMyPreference(d['infohash']):
-                d['myDownloadHistory'] = True
+            torrent_id = flist[0]
+            d['myDownloadHistory'] = torrent_id in mypref_stats
             all.append(d)
         return all
             
