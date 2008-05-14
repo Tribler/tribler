@@ -24,12 +24,6 @@
 
 
 import os,sys
-
-if sys.platform == "darwin":
-    # on Mac, we can only load VLC/OpenSSL libraries
-    # relative to the location of tribler.py
-    os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
-
 import urllib
 original_open_https = urllib.URLopener.open_https
 import M2Crypto
@@ -726,7 +720,7 @@ class ABCApp(wx.App):
 
             sys.stdout.write('Client Starting Up.\n')
             sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
-            
+
             bm = wx.Bitmap(os.path.join(self.utility.getPath(),'Tribler','Images','splash.jpg'),wx.BITMAP_TYPE_JPEG)
             #s = wx.MINIMIZE_BOX | wx.MAXIMIZE_BOX | wx.RESIZE_BORDER | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.CLIP_CHILDREN
             #s = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT
