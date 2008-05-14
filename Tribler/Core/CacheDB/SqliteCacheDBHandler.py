@@ -1595,7 +1595,7 @@ class BarterCastDBHandler(BasicDBHandler):
         peer_id1 = self.getPeerID(permid_from)
         peer_id2 = self.getPeerID(permid_to)
         
-        where = "peer_id_from=%d and peer_id_to=%d" % (peer_id1, peer_id2)
+        where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
         item = self.getOne(('downloaded', 'uploaded', 'last_seen'), where=where)
         
         if item is None:
@@ -1750,7 +1750,7 @@ class BarterCastDBHandler(BasicDBHandler):
         peer_id1 = itemdict['peer_id_from']
         peer_id2 = itemdict['peer_id_to']
 
-        where = "peer_id_from=%d and peer_id_to=%d" % (peer_id1, peer_id2)
+        where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
 
         item = {'uploaded': itemdict['uploaded'], 'downloaded': itemdict['downloaded'], 'last_seen': itemdict['last_seen']}
         self._db.update(self.table_name, where = where, **item)
@@ -1773,7 +1773,7 @@ class BarterCastDBHandler(BasicDBHandler):
             old_value = itemdict[key]
             new_value = old_value + value
             
-            where = "peer_id_from=%d and peer_id_to=%d" % (peer_id1, peer_id2)
+            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
 
             item = {key: new_value}
             self._db.update(self.table_name, where = where, **item)            
