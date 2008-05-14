@@ -229,7 +229,8 @@ class TriblerLaunchMany(Thread):
                     pass
             
             # Store in list of Downloads, always. 
-            self.downloads[d.get_def().get_infohash()] = d
+            infohash = d.get_def().get_infohash()
+            self.downloads[infohash] = d
             d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_playable_callback)
             
             def add_torrent_to_db():
@@ -251,6 +252,8 @@ class TriblerLaunchMany(Thread):
                     # TODO: if user renamed the dest_path for single-file-torrent
                     data = {'destination_path':dest_path}
                     self.mypref_db.addMyPreference(infohash, data)
+                    if self.overlay_apps.buddycast is not None:
+                        self.overlay_apps.buddycast.addMyPref(infohash)
 
             self.overlay_bridge.add_task(add_torrent_to_db, 3)
             
@@ -288,7 +291,8 @@ class TriblerLaunchMany(Thread):
         self.sesslock.acquire()
         try:
             d.stop_remove(removestate=True,removecontent=removecontent)
-            del self.downloads[d.get_def().get_infohash()]
+            infohash = d.get_def().get_infohash()
+            del self.downloads[infohash]
         finally:
             self.sesslock.release()
 
@@ -366,11 +370,12 @@ class TriblerLaunchMany(Thread):
         self.sdownloadtohashcheck = self.hashcheck_queue.pop(0)
         self.sdownloadtohashcheck.perform_hashcheck(self.hashcheck_done)
 
-    def hashcheck_done(self):
+    def hashcheck_done(self,success=True):
         """ Integrity check for first SingleDownload in queue done
         
         Called by network thread """
-        self.sdownloadtohashcheck.hashcheck_done()
+        if success:
+            self.sdownloadtohashcheck.hashcheck_done()
         if self.hashcheck_queue:
             self.dequeue_and_start_hashcheck()
         else:

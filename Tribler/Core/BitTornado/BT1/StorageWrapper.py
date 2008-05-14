@@ -82,7 +82,7 @@ class StorageWrapper:
         self.piece_size = long(piece_size)
         self.piece_length = long(piece_size)
         self.finished = finished
-        self.failed = failed
+        self.report_failure = failed
         self.statusfunc = statusfunc
         self.flag = flag
         self.check_hashes = check_hashes
@@ -152,6 +152,7 @@ class StorageWrapper:
             ['checking existing data', 0, self.init_hashcheck, self.hashcheckfunc], 
             ['moving data', 1, self.init_movedata, self.movedatafunc], 
             ['allocating disk space', 1, self.init_alloc, self.allocfunc] ]
+        self.initialize_done = None
 
         # Arno: move starting of periodic _bgalloc to init_alloc
         self.backfunc(self._bgsync, max(self.config['auto_flush']*60, 60))
@@ -247,7 +248,8 @@ class StorageWrapper:
                 self.initialize_status(fractionDone = x)
         else:
             if not self.initialize_tasks:
-                self.initialize_done()
+                self.initialize_done(success=True)
+                self.initialize_done = None
                 return
             msg, done, init, next = self.initialize_tasks.pop(0)
             if DEBUG:
@@ -1219,3 +1221,9 @@ class StorageWrapper:
                 
         return restored_partials
     
+    def failed(self,s):
+        # Arno: report failure of hash check
+        self.report_failure(s)
+        if self.initialize_done is not None:
+            self.initialize_done(success=False)
+            

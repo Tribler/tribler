@@ -1657,20 +1657,10 @@ class standardDetails(wx.Panel):
     def setBelongsToMyDowloadHistory(self,torrent, b):
         """Set a certain new torrent to be in the download history or not
         Should not be changed by updateTorrent calls"""
-        
-        # ARNOCOMMENT: Jie: cannot call BC here directly, you need to make
-        # Core API calls for this, and make sure they are thread safe
-        # (see my comments on BuddyCast.addMyPref)
-        #
-        
-        if b:
-            torrent[key_myDownloadHistory] = True
-            #self.utility.buddycast.addMyPref(infohash)    # will be called some where
-            pass
-        else:
-            if torrent.has_key(key_myDownloadHistory):
-                del torrent[key_myDownloadHistory]
-            #self.utility.buddycast.delMyPref(infohash)
+
+        # DB registration and buddycast notification is done in LaunchManyCore.add()
+        # Currently no removal function.
+        torrent[key_myDownloadHistory] = True
 
 
     def setTorrentThumb(self, mode, torrent, thumbPanel):

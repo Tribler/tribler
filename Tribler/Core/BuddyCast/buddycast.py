@@ -447,6 +447,7 @@ class BuddyCastFactory:
             self.overlay_bridge.add_task(_handleConnection, 0)
     
     def addMyPref(self, torrent):
+        """ Called by OverlayThread (as should be everything) """
         if self.registered:
             self.data_handler.addMyPref(torrent)
         
@@ -1912,9 +1913,6 @@ class DataHandler:
             self.overlay_bridge.add_task(lambda:self.torrent_db.updateTorrentRelevances(updates), 5)
 
     def addMyPref(self, infohash):
-        # ARNOCOMMENT: called by GUI thread and accesses self.myprefs. This is
-        # not good. All BC code should be run by OverlayThread or be protected.
-        
         infohash_str=bin2str(infohash)
         torrentdata = self.torrent_db.getOne(('secret', 'torrent_id'), infohash=infohash_str)
         if not torrentdata:
@@ -1931,11 +1929,11 @@ class DataHandler:
             insort(self.myprefs, torrent_id)
             self.updateOwners(torrent_id)
             self.old_peer_num = 0
-            self.overlay_bridge.add_task(self.updateAllSim, 5)
+            self.updateAllSim() # time-consuming
             #self.total_pref_changed += self.update_i2i_threshold
             
     def delMyPref(self, infohash):
-        # ARNOCOMMENT: CONCURRENCY PROBLEM: See addMyPref
+        """ Arno: unused at the moment """
         torrent_id = self.torrent_db.getTorrentID(infohash)
         if torrent_id in self.myprefs:
             self.myprefs.remove(torrent_id)

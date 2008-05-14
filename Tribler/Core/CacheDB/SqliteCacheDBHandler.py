@@ -33,7 +33,6 @@ def show_permid_shorter(permid):
     s = base64.encodestring(permid).replace("\n","")
     return s[-5:]
 
-
 class BasicDBHandler:
     def __init__(self, table_name):
         self._db = SQLiteCacheDB.getInstance()
@@ -143,7 +142,6 @@ class FriendDBHandler(BasicDBHandler):
         self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), friend=friend)
         if commit:
             self.commit()
-        #self.rankList_dirty = True # Friend status doesnt change rank
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'friend')
 
     def getFriends(self):
@@ -164,9 +162,9 @@ class FriendDBHandler(BasicDBHandler):
     def searchNames(self,kws):
         return doPeerSearchNames(self,'Friend',kws)
         
-    def getRank(self, permid):
+    def getRanks(self, permid):
         # TODO
-        return -1
+        return []
         
 NETW_MIME_TYPE = 'image/jpeg'
 
@@ -193,8 +191,6 @@ class PeerDBHandler(BasicDBHandler):
             raise RuntimeError, "PeerDBHandler is singleton"
         PeerDBHandler.__single = self
         BasicDBHandler.__init__(self, 'Peer')
-        self.rankList = None 
-        self.rankList_dirty = False
         self.pref_db = PreferenceDBHandler.getInstance()
         #self.mm = None
         
@@ -303,7 +299,6 @@ class PeerDBHandler(BasicDBHandler):
         
         if commit:
             self.commit()
-        self.rankList_dirty = True
         
         if peer_existed:
             self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
@@ -329,7 +324,6 @@ class PeerDBHandler(BasicDBHandler):
         self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), **argv)
         if commit:
             self.commit()
-        self.rankList_dirty = True
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
     def deletePeer(self, permid=None, peer_id=None, force=False, commit = True):
@@ -345,7 +339,6 @@ class PeerDBHandler(BasicDBHandler):
             self.pref_db._deletePeer(peer_id=peer_id)
         if commit:
             self.commit()
-        self.rankList_dirty = True
         self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
             
     def updateTimes(self, permid, key, change=1):
@@ -421,11 +414,13 @@ class PeerDBHandler(BasicDBHandler):
             order_by = None
             
         res_list = self.getAll(value_name, where, offset= offset, limit=limit, order_by=order_by)
+        
+        ranks = self.getRanks()
         peer_list = []
         for item in res_list:
             peer = dict(zip(value_name, item))
             peer['name'] = dunno2unicode(peer['name'])
-            peer['simRank'] = self.getRank(peer['permid'])
+            peer['simRank'] = ranksfind(ranks,peer['permid'])
             peer['permid'] = str2bin(peer['permid'])
             peer_list.append(peer)
         # peer_list consumes about 1.5M for 1400 peers, and this function costs about 0.015 second
@@ -433,20 +428,13 @@ class PeerDBHandler(BasicDBHandler):
         return  peer_list
 
             
-    def getRank(self, permid):
-        #self.rankList_dirty = True # test: always read from db
-        if not self.rankList or self.rankList_dirty:
-            self.rankList_dirty = False
-            value_name = 'permid'
-            order_by = 'similarity desc'
-            rankList_size = 20
-            where = '(buddycast_times>0 or friend=1) '
-            res_list = self._db.getAll('Peer', value_name, where=where, limit=rankList_size, order_by=order_by)
-            self.rankList = [a[0] for a in res_list]
-        try:
-            return self.rankList.index(permid)+1
-        except:
-            return -1
+    def getRanks(self):
+        value_name = 'permid'
+        order_by = 'similarity desc'
+        rankList_size = 20
+        where = '(buddycast_times>0 or friend=1) '
+        res_list = self._db.getAll('Peer', value_name, where=where, limit=rankList_size, order_by=order_by)
+        return [a[0] for a in res_list]
         
     #def setMugshotManager(self,mm):
     #    self.mm = mm
@@ -715,8 +703,6 @@ class TorrentDBHandler(BasicDBHandler):
         # 0 - ''    # local added
         # 1 - BC
         # 2,3,4... - URL of RSS feed
-        self.rankList = None
-        self.rankList_dirty = False
         self.keys = ['torrent_id', 'name', 'torrent_file_name',
                 'length', 'creation_date', 'num_files', 'thumbnail',
                 'insert_time', 'secret', 'relevance',
@@ -887,7 +873,6 @@ class TorrentDBHandler(BasicDBHandler):
         self._addTorrentTracker(torrent_id, data)
         if commit:
             self.commit()    
-        self.rankList_dirty = True
         return torrent_id
     
     def _insertNewSrc(self, src):
@@ -957,7 +942,6 @@ class TorrentDBHandler(BasicDBHandler):
             
         if commit:
             self.commit()
-        self.rankList_dirty = True
         # to.do: update the torrent panel's number of seeders/leechers 
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
@@ -1147,6 +1131,7 @@ class TorrentDBHandler(BasicDBHandler):
         res_list = self._db.getAll('CollectedTorrent', value_name, where, limit=limit, offset=offset, order_by=order_by)
         
         mypref_stats = self.mypref_db.getMyPrefStats()
+        ranks = self.getRanks()
         
         #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS ###################",len(res_list)
 
@@ -1164,7 +1149,7 @@ class TorrentDBHandler(BasicDBHandler):
             
             torrent['category'] = [self.id2category[torrent['category_id']]]
             torrent['status'] = self.id2status[torrent['status_id']]
-            torrent['simRank'] = self.getRank(torrent['infohash'])
+            torrent['simRank'] = ranksfind(ranks,torrent['infohash'])
             torrent['infohash'] = str2bin(torrent['infohash'])
             #torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers'] 
             del torrent['source_id']
@@ -1188,22 +1173,14 @@ class TorrentDBHandler(BasicDBHandler):
         #print time()-s
         return  torrent_list
         
-    def getRank(self, infohash):
-        #self.rankList_dirty = True # test: always read from db
-        if not self.rankList or self.rankList_dirty:
-            self.rankList_dirty = False
-            value_name = 'infohash'
-            order_by = 'relevance desc'
-            rankList_size = 20
-            where = 'status_id=%d ' % self.status_table['good']
-            res_list = self._db.getAll('Torrent', value_name, where = where, limit=rankList_size, order_by=order_by)
-            self.rankList = [a[0] for a in res_list]
-            #print >> sys.stderr, self.rankList
-        try:
-            return self.rankList.index(infohash)+1
-        except:
-            return -1
-            
+    def getRanks(self,):
+        value_name = 'infohash'
+        order_by = 'relevance desc'
+        rankList_size = 20
+        where = 'status_id=%d ' % self.status_table['good']
+        res_list = self._db.getAll('Torrent', value_name, where = where, limit=rankList_size, order_by=order_by)
+        return [a[0] for a in res_list]
+
     def getCollectedTorrentHashes(self): 
         """ get infohashes of torrents on disk, used by torrent checking, 
             and metadata handler
@@ -1507,6 +1484,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return True
 
     def deletePreference(self, infohash, commit=True):
+        # Arno: when deleting a preference, you may also need to do
+        # some stuff in BuddyCast: see delMyPref()
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
             return
@@ -1922,6 +1901,8 @@ def doPeerSearchNames(self,dbname,kws):
     value_name = ('peer_id','permid', 'name', 'ip', 'port', 'similarity', 'friend',
                   'num_peers', 'num_torrents', 'num_prefs', 
                   'connected_times', 'buddycast_times', 'last_connected')
+    
+    ranks = self.getRanks()
 
     peer_list = []
     for item in res:
@@ -1929,7 +1910,14 @@ def doPeerSearchNames(self,dbname,kws):
         peer = dict(zip(value_name, item))
         del peer['peer_id']
         peer['name'] = dunno2unicode(peer['name'])
-        peer['simRank'] = self.getRank(peer['permid'])
+        peer['simRank'] = ranksfind(ranks,peer['permid'])
         peer['permid'] = str2bin(peer['permid'])
         peer_list.append(peer)
     return peer_list
+
+def ranksfind(ranks,key):
+    try:
+        return ranks.index(key)
+    except:
+        return -1
+    

@@ -94,15 +94,15 @@ ALLOW_MULTIPLE = False
 #
 ################################################################
 class FileDropTarget(wx.FileDropTarget): 
-    def __init__(self, utility):
+    def __init__(self, abcframe):
         # Initialize the wsFileDropTarget Object 
         wx.FileDropTarget.__init__(self) 
         # Store the Object Reference for dropped files 
-        self.utility = utility
+        self.abcframe = abcframe
       
     def OnDropFiles(self, x, y, filenames):
         for filename in filenames:
-            self.utility.queue.addtorrents.AddTorrentFromFile(filename)
+            self.abcframe.startDownload(filename)
         return True
 
 
@@ -153,7 +153,7 @@ class ABCFrame(wx.Frame):
         
         self.doneflag = Event()
 
-        dragdroplist = FileDropTarget(self.utility)
+        dragdroplist = FileDropTarget(self)
         self.SetDropTarget(dragdroplist)
 
         self.tbicon = None
