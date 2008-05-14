@@ -1590,10 +1590,10 @@ class BarterCastDBHandler(BasicDBHandler):
         else:
             return self.peer_db.getPeerID(permid)
 
-    def getItem(self, (permid_1, permid_2), default=False):
+    def getItem(self, (permid_from, permid_to), default=False):
 
-        peer_id1 = self.getPeerID(permid_1)
-        peer_id2 = self.getPeerID(permid_2)
+        peer_id1 = self.getPeerID(permid_from)
+        peer_id2 = self.getPeerID(permid_to)
         
         where = "peer_id_from=%d and peer_id_to=%d" % (peer_id1, peer_id2)
         item = self.getOne(('downloaded', 'uploaded', 'last_seen'), where=where)
@@ -1636,27 +1636,27 @@ class BarterCastDBHandler(BasicDBHandler):
 
         processed = []
 
-        for (permid_1, permid_2) in itemlist:
+        for (permid_from, permid_to) in itemlist:
             
-            if not (permid_2, permid_1) in processed:
+            if not (permid_to, permid_from) in processed:
 
-                item = self.getItem((permid_1, permid_2))
+                item = self.getItem((permid_from, permid_to))
 
                 up = item['uploaded'] *1024 # make into bytes
                 down = item['downloaded'] *1024
 
                 if DEBUG:
-                    print "BarterCast DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_1), self.getName(permid_2), up, down)
+                    print "BarterCast DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_from), self.getName(permid_to), up, down)
 
-                # process permid_1
-                total_up[permid_1] = total_up.get(permid_1, 0) + up
-                total_down[permid_1] = total_down.get(permid_1, 0) + down
+                # process permid_from
+                total_up[permid_from] = total_up.get(permid_from, 0) + up
+                total_down[permid_from] = total_down.get(permid_from, 0) + down
 
-                # process permid_2
-                total_up[permid_2] = total_up.get(permid_2, 0) + down
-                total_down[permid_2] = total_down.get(permid_2, 0) +  up
+                # process permid_to
+                total_up[permid_to] = total_up.get(permid_to, 0) + down
+                total_down[permid_to] = total_down.get(permid_to, 0) +  up
 
-                processed.append((permid_1, permid_2))
+                processed.append((permid_from, permid_to))
 
 
         # create top N peers
@@ -1705,7 +1705,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
         return result
 
-    def addItem(self, (permid_1, permid_2), item):
+    def addItem(self, (permid_from, permid_to), item):
 
 #        if value.has_key('last_seen'):    # get the latest last_seen
 #            old_last_seen = 0
@@ -1716,17 +1716,17 @@ class BarterCastDBHandler(BasicDBHandler):
 #            value['last_seen'] = max(last_seen, old_last_seen)
 
         # get peer ids
-        peer_id1 = self.getPeerID(permid_1)
-        peer_id2 = self.getPeerID(permid_2)
+        peer_id1 = self.getPeerID(permid_from)
+        peer_id2 = self.getPeerID(permid_to)
                 
         # check if they already exist in database; if not: add
         if peer_id1 is None:
-            self._db.insertPeer(permid_1)
-            peer_id1 = self.getPeerID(permid_1)
+            self._db.insertPeer(permid_from)
+            peer_id1 = self.getPeerID(permid_from)
 
         if peer_id2 is None:
-            self._db.insertPeer(permid_2)
-            peer_id2 = self.getPeerID(permid_2)
+            self._db.insertPeer(permid_to)
+            peer_id2 = self.getPeerID(permid_to)
             
         item['peer_id_from'] = peer_id1
         item['peer_id_to'] = peer_id2    
@@ -1743,7 +1743,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
         # if item doesn't exist: add it
         if itemdict == None:
-            self.addItem((permid_1, permid_2), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())})
+            self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())})
             itemdict = self.getItem((permid_from, permid_to))
 
         # get peer ids
@@ -1757,7 +1757,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
         
 
-    def incrementItem(self, (permid_1, permid_2), key, value):
+    def incrementItem(self, (permid_from, permid_to), key, value):
 
         if DEBUG:
             print "BarterCast: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
@@ -1766,7 +1766,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
         # if item doesn't exist: add it
         if itemdict == None:
-            self.addItem((permid_1, permid_2), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())})
+            self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())})
             itemdict = self.getItem((permid_from, permid_to))
             
         if key in itemdict.keys():
