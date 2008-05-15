@@ -6,6 +6,7 @@ import os
 #import time
 import copy
 import sha
+import math
 from traceback import print_exc,print_stack
 from types import StringType,ListType,IntType
 
@@ -235,8 +236,14 @@ class TorrentDef(Serializable,Copyable):
 
         self.input['live'] = authparams 
 
+        # Make sure the duration is an integral number of pieces, for
+        # security (live source auth).
+        length = float(bitrate*secs)
+        pl = float(self.get_piece_length())
+        npieces = int(math.ceil((length + pl) / pl))
+        newlen = npieces * pl
 
-        d = {'inpath':name,'outpath':None,'playtime':None,'length':bitrate*secs}
+        d = {'inpath':name,'outpath':None,'playtime':None,'length':newlen}
         self.input['files'].append(d)
 
     #
