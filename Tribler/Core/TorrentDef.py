@@ -559,10 +559,15 @@ class TorrentDef(Serializable,Copyable):
             # Make sure the duration is an integral number of pieces, for
             # security (live source auth).
             secs = parse_playtime_to_secs(self.input['playtime'])
-            length = float(self.input['bps']*secs)
             pl = float(self.get_piece_length())
-            npieces = int(math.ceil((length + pl) / pl))
-            newlen = npieces * pl
+            length = float(self.input['bps']*secs)
+            
+            diff = length % pl
+            add = (pl - diff) % pl
+            newlen = int(length + add)
+
+                
+            print >>sys.stderr,"CHECK INFO LENGTH",secs,newlen
 
             d = self.input['files'][0]
             d['length'] = newlen

@@ -270,24 +270,23 @@ def makeinfo(input,userabortflag,userprogresscallback):
         if done > 0:
             pieces.append(sh.digest())
        
-    # 5. Create info dict
-    adddict = {}         
+    # 5. Create info dict         
     if len(subs) == 1:
-        adddict['length'] = num2num(totalsize)
-        adddict.update(fs[0]) 
+        flkey = 'length'
+        flval = num2num(totalsize)
         name = subs[0][0][0]
     else:
-        adddict['files'] = fs
+        flkey = 'files'
+        flval = fs
+
         outpath = input['files'][0]['outpath']
         l = filename2pathlist(outpath)
         name = l[0]
-
-    infodict =  { 'piece length':num2num(piece_length), 
-        'name': uniconvert(name,encoding),
-        'name.utf-8': uniconvert(name,'utf-8')}
-    infodict.update(adddict)
-
-    # Add piece info
+        
+    infodict =  { 'piece length':num2num(piece_length), flkey: flval, 
+            'name': uniconvert(name,encoding),
+            'name.utf-8': uniconvert(name,'utf-8')}
+    
     if 'live' not in input:
         
         if input['createmerkletorrent']:
@@ -300,8 +299,8 @@ def makeinfo(input,userabortflag,userprogresscallback):
         # With source auth, live is a dict
         infodict['live'] = input['live']
 
-    # Find and add playtime
     if len(subs) == 1:
+        # Find and add playtime
         for file in input['files']:
             if file['inpath'] == f:
                 if file['playtime'] is not None:
