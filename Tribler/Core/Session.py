@@ -191,15 +191,25 @@ class Session(SessionRuntimeConfig):
         """ Returns the factory default directory for storing session state
         on the current platform (Win32,Mac,Unix).
         @return An absolute path name. """
+        homedir = None
         if sys.platform == 'win32':
             homedirvar = '${APPDATA}'
-        elif sys.platform == 'darwin':
-            homedirvar = '${HOME}'
-            # JD wants $HOME/Libray/Preferences/something TODO
-            #homedirpostfix = os.path.join('Library)
         else:
-            homedirvar = '${HOME}'  
-        homedir = os.path.expandvars(homedirvar)
+            if sys.platform == 'darwin':
+                homedirvar = '${HOME}'
+                # JD wants $HOME/Libray/Preferences/something TODO
+                #homedirpostfix = os.path.join('Library)
+            else:
+                homedirvar = '${HOME}'
+            # Allow override
+            overridevar = '${APPDATA}'
+            homedir = os.path.expandvars(overridevar)
+            if homedir == overridevar:
+                # expansion failed
+                homedir = None
+              
+        if homedir is None:
+            homedir = os.path.expandvars(homedirvar)
         triblerdir = os.path.join(homedir,homedirpostfix)
         return triblerdir
     get_default_state_dir = staticmethod(get_default_state_dir)

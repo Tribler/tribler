@@ -4,9 +4,10 @@
 import time
 import traceback,sys
 from sha import sha
-from types import DictType,IntType
+from types import DictType,IntType,LongType,ListType,StringType
 from random import shuffle
-from traceback import print_exc
+from traceback import print_exc,print_stack
+from math import ceil
 
 from Tribler.Core.BitTornado.bitfield import Bitfield
 from Tribler.Core.BitTornado.clock import clock
@@ -73,7 +74,10 @@ and our overlay-swarm protocol.
 """
 EXTEND_MSG_HANDSHAKE_ID = chr(0)
 EXTEND_MSG_OVERLAYSWARM = 'Tr_OVERLAYSWARM'
-EXTEND_MSG_G2G          = 'Tr_G2G'
+EXTEND_MSG_G2G_V1       = 'Tr_G2G'
+EXTEND_MSG_G2G_V2       = 'Tr_G2G_v2'
+
+G2G_CALLBACK_INTERVAL = 4
 
 def show(s):
     text = []
@@ -100,8 +104,12 @@ class Connection:
         self.extend_hs_dict = {}        # what extended messages does this peer support
         self.initiated_overlay = False
 
+        # G2G
         self.use_g2g = False # set to true if both sides use G2G, indicated by self.connector.use_g2g
-        self.parts_sent = {}
+        self.g2g_version = None 
+        self.perc_sent = {}
+        # batch G2G_XFER information and periodically send it out.
+        self.last_perc_sent = {}
 
         config = self.connecter.config
         self.forward_speeds = [0] * 2
@@ -222,7 +230,7 @@ class Connection:
 
                     # include sending to self, because it should not be excluded from the statistics
 
-                    c.send_g2g_piece_xfer( index, begin, piece )
+                    c.queue_g2g_piece_xfer( index, begin, piece )
 
             if self.connecter.merkle_torrent:
                 bhashlist = bencode(hashlist)
@@ -302,13 +310,17 @@ class Connection:
                     if DEBUG:
                         print >>sys.stderr,"connecter: Peer supports Tr_OVERLAYSWARM, attempt connection"
                     self.connect_overlay()
-            if self.connecter.use_g2g and EXTEND_MSG_G2G in self.extend_hs_dict['m']:
+            if self.connecter.use_g2g and (EXTEND_MSG_G2G_V1 in self.extend_hs_dict['m'] or EXTEND_MSG_G2G_V2 in self.extend_hs_dict['m']):
                 # Both us and the peer want to use G2G
                 if self.connection.locally_initiated:
                     if DEBUG:
                         print >>sys.stderr,"connecter: Peer supports Tr_G2G"
 
                 self.use_g2g = True
+                if EXTEND_MSG_G2G_V2 in self.extend_hs_dict['m']:
+                    self.g2g_version = EXTEND_MSG_G2G_V2
+                else:
+                    self.g2g_version = EXTEND_MSG_G2G_V1
 
         # 'p' is peer's listen port, 'v' is peer's version, all optional
         # 'e' is used by uTorrent to show it prefers encryption (whatever that means)
@@ -376,8 +388,100 @@ class Connection:
             return True
         else:
             return False
-            
+
+    #
+    # Give-2-Get
+    #
+    def g2g_sent_piece_part( self, c, index, begin, hashlist, piece ):
+        """ Keeps a record of the fact that we sent piece index[begin:begin+chunk]. """
+
+        wegaveperc = float(len(piece))/float(self.connecter.piece_size)
+        if index in self.perc_sent:
+            self.perc_sent[index] = self.perc_sent[index] + wegaveperc 
+        else:
+            self.perc_sent[index] = wegaveperc
     
+    
+    def queue_g2g_piece_xfer(self,index,begin,piece):
+        """ Queue the fact that we sent piece index[begin:begin+chunk] for
+        tranmission to peers 
+        """
+        if self.g2g_version == EXTEND_MSG_G2G_V1:
+            self.send_g2g_piece_xfer_v1(index,begin,piece)
+            return
+        
+        perc = float(len(piece))/float(self.connecter.piece_size)
+        if index in self.last_perc_sent:
+            self.last_perc_sent[index] = self.last_perc_sent[index] + perc 
+        else:
+            self.last_perc_sent[index] = perc
+
+    def dequeue_g2g_piece_xfer(self):
+        """ Send queued information about pieces we sent to peers. Called
+        periodically.
+        """ 
+        psf = float(self.connecter.piece_size)
+        ppdict = {}
+        
+        print >>sys.stderr,"connecter: g2g dq: orig",self.last_perc_sent
+        
+        for index,perc in self.last_perc_sent.iteritems():
+            # due to rerequests due to slow pieces the sum can be above 1.0
+            capperc = min(1.0,perc) 
+            percb = chr(int((100.0 * capperc)))
+            # bencode can't deal with int keys
+            ppdict[str(index)] = percb
+        self.last_perc_sent = {}
+        
+        print >>sys.stderr,"connecter: g2g dq: dest",ppdict
+        
+        if len(ppdict) > 0:
+            self.send_g2g_piece_xfer_v2(ppdict)
+
+    def send_g2g_piece_xfer_v1(self,index,begin,piece):
+        """ Send fact that we sent piece index[begin:begin+chunk] to a peer
+        to all peers (G2G V1).
+        """
+        self._send_message(self.his_extend_msg_name_to_id(EXTEND_MSG_G2G_V1) + tobinary(index) + tobinary(begin) + tobinary(len(piece)))
+
+    def send_g2g_piece_xfer_v2(self,ppdict):
+        """ Send list of facts that we sent pieces to all peers (G2G V2). """
+        blist = bencode(ppdict)
+        self._send_message(EXTEND + self.his_extend_msg_name_to_id(EXTEND_MSG_G2G_V2) + blist)
+
+    def got_g2g_piece_xfer_v1(self,index,begin,length):
+        """ Got a G2G_PIECE_XFER message in V1 format. """
+        hegaveperc = float(length)/float(self.connecter.piece_size)
+        self.g2g_peer_forwarded_piece_part(index,hegaveperc)
+
+    def got_g2g_piece_xfer_v2(self,ppdict):
+        """ Got a G2G_PIECE_XFER message in V2 format. """
+        for indexstr,hegavepercb in ppdict.iteritems():
+            index = int(indexstr)
+            hegaveperc = float(ord(hegavepercb))/100.0
+            self.g2g_peer_forwarded_piece_part(index,hegaveperc)
+
+    def g2g_peer_forwarded_piece_part(self,index,hegaveperc):
+        """ Processes this peer forwarding piece i[begin:end] to a grandchild. """
+        # Reward for forwarding data in general
+        length = ceil(hegaveperc * float(self.connecter.piece_size))
+        self.forward_speeds[1].update_rate(length)
+
+        if index not in self.perc_sent:
+            # piece came from disk
+            return
+
+        # Extra reward if its data we sent
+        for wegaveperc in self.perc_sent[index]:
+            overlapperc = wegaveperc * hegaveperc
+            overlap = ceil(overlapperc * float(self.connecter.piece_size))
+            if overlap > 0:
+                self.forward_speeds[0].update_rate( overlap )
+
+    def g2g_score( self ):
+        return [x.get_rate() for x in self.forward_speeds]
+
+
     #
     # SecureOverlay support
     #
@@ -386,10 +490,6 @@ class Connection:
             print >>sys.stderr,"connecter: Initiating overlay connection"
         if not self.initiated_overlay:
             self.initiated_overlay = True
-            # We use the SecureOverlay directly to create a overlay connection
-            # to a Tribler peer we meet in a swarm, instead of 
-            # OverlayThreadingBridge. 
-
             so = SecureOverlay.getInstance()
             so.connect_dns(self.connection.dns,self.network_connect_dns_callback)
 
@@ -398,56 +498,17 @@ class Connection:
         if exc is not None:
             print >>sys.stderr,"connecter: peer",dns,"said he supported overlay swarm, but we can't connect to him",exc
 
-    def send_g2g_piece_xfer(self,index,begin,piece):
-        self._send_message(self.his_extend_msg_name_to_id(EXTEND_MSG_G2G) + tobinary(index) + tobinary(begin) + tobinary(len(piece)))
-
-
-    def got_g2g_piece_xfer(self,index,begin,length):
-        self.g2g_peer_forwarded_piece_part( self, index, begin, length )
-
-    def g2g_sent_piece_part( self, c, i, begin, hashlist, piece ):
-        """ Keeps a record of the fact that we sent piece i[begin:end]. """
-
-        record = (begin,begin+len(piece))
-        if i in self.parts_sent:
-            self.parts_sent[i].append( record )
-        else:
-            self.parts_sent[i] = [record]
-
-    def g2g_peer_forwarded_piece_part( self, c, i, begin, length ):
-        """ Processes this peer forwarding piece i[begin:end] to a grandchild. """
-
-        end = begin + length
-
-        # Reward for forwarding data in general
-        self.forward_speeds[1].update_rate( length )
-
-        if i not in self.parts_sent:
-            # piece came from disk
-            return
-
-        # Extra reward if its data we sent
-        for l in self.parts_sent[i]:
-            b,e = l
-
-            if begin < b < end or begin < e < end:
-                # pieces overlap -- reward child for forwarding our data
-                overlap = min( e, end ) - max( b, begin )
-
-                self.forward_speeds[0].update_rate( overlap )
-
-    def g2g_score( self ):
-        return [x.get_rate() for x in self.forward_speeds]
 
 class Connecter:
 # 2fastbt_
-    def __init__(self, make_upload, downloader, choker, numpieces,
+    def __init__(self, make_upload, downloader, choker, numpieces, piece_size,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
             coordinator = None, helper = None, mylistenport = None, use_g2g = False, infohash=None):
         self.downloader = downloader
         self.make_upload = make_upload
         self.choker = choker
         self.numpieces = numpieces
+        self.piece_size = piece_size
         self.config = config
         self.ratelimiter = ratelimiter
         self.rate_capped = False
@@ -507,9 +568,9 @@ class Connecter:
             self.sched(self.ut_pex_callback,6)
         if self.use_g2g:
             # Say in the EXTEND handshake we want to do G2G.
-            d = {EXTEND_MSG_G2G:ord(G2G_PIECE_XFER)}
+            d = {EXTEND_MSG_G2G_V2:ord(G2G_PIECE_XFER)}
             self.EXTEND_HANDSHAKE_M_DICT.update(d)
-            
+            self.sched(self.g2g_callback,G2G_CALLBACK_INTERVAL)
             
         # BarterCast
         if config['overlay']:
@@ -630,7 +691,16 @@ class Connecter:
                     traceback.print_exc()
         self.sched(self.ut_pex_callback,60)
 
-
+    def g2g_callback(self):
+        try:
+            self.sched(self.g2g_callback,G2G_CALLBACK_INTERVAL)
+            for c in self.connections.itervalues():
+                if not c.use_g2g:
+                    continue
+    
+                c.dequeue_g2g_piece_xfer()
+        except:
+            print_exc()
 
     def got_message(self, connection, message):
         # connection: Encrypter.Connection; c: Connecter.Connection
@@ -785,7 +855,8 @@ class Connecter:
                     traceback.print_exc()
                 connection.close()
                 return
-        elif t == G2G_PIECE_XFER:
+        elif t == G2G_PIECE_XFER: 
+            # EXTEND_MSG_G2G_V1 only, V2 is proper EXTEND msg 
             if len(message) <= 12:
                 if DEBUG:
                     print >>sys.stderr,"Close on bad G2G_PIECE_XFER: msg len"
@@ -800,7 +871,7 @@ class Connecter:
             index = toint(message[1:5])
             begin = toint(message[5:9])
             length = toint(message[9:13])
-            c.got_g2g_piece_xfer(index,begin,length)
+            c.got_g2g_piece_xfer_v1(index,begin,length)
         else:
             connection.close()
 
@@ -847,7 +918,33 @@ class Connecter:
                             print >>sys.stderr,"Close on bad EXTEND: payload of handshake is not a bencoded dict"
                         connection.close()
                         return
-                
+                elif ext_msg_name == EXTEND_MSG_G2G_V2 and self.use_g2g:
+                    ppdict = bdecode(message[2:])
+                    if type(ppdict) != DictType:
+                        if DEBUG:
+                            print >>sys.stderr,"Close on bad EXTEND+G2G: payload not dict"
+                        connection.close()
+                        return
+                    for k,v in ppdict.iteritems():
+                        if type(k) != StringType or type(v) != StringType:
+                            if DEBUG:
+                                print >>sys.stderr,"Close on bad EXTEND+G2G: key,value not of type int,char"
+                            connection.close()
+                            return
+                        try:
+                            int(k)
+                        except:
+                            if DEBUG:
+                                print >>sys.stderr,"Close on bad EXTEND+G2G: key not int"
+                            connection.close()
+                            return
+                        if ord(v) > 100:
+                            if DEBUG:
+                                print >>sys.stderr,"Close on bad EXTEND+G2G: value too big",ppdict,v,ord(v)
+                            connection.close()
+                            return
+                            
+                    c.got_g2g_piece_xfer_v2(ppdict)
                 else:
                     if DEBUG:
                         print >>sys.stderr,"Close on bad EXTEND: peer sent ID that maps to name we don't support"

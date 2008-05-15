@@ -10,15 +10,17 @@ import tempfile
 import urllib2
 from threading import enumerate,currentThread,RLock
 from traceback import print_exc
-from Tribler.Player.systray import PlayerTaskBarIcon
 
 if sys.platform == "darwin":
     # on Mac, we can only load VLC/OpenSSL libraries
     # relative to the location of tribler.py
     os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
+try:
+    import wxversion
+    wxversion.select('2.8')
+except:
+    pass
 import wx
-#from wx import xrc
-#import hotshot
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.unicode import bin2unicode
@@ -27,11 +29,14 @@ from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDiv
 from Tribler.Video.EmbeddedPlayer import VideoFrame,MEDIASTATE_STOPPED
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser, PLAYBACKMODE_INTERNAL
+from Tribler.Player.systray import PlayerTaskBarIcon
+from Tribler.Player.Reporter import Reporter
 from Tribler.Utilities.Instance2Instance import *
 
 from Tribler.Main.Utility.utility import Utility # TO REMOVE
 
 DEBUG = True
+ONSCREENDEBUG = False
 ALLOW_MULTIPLE = False
 RATELIMITADSL = False
 
@@ -39,11 +44,12 @@ DISKSPACE_LIMIT = 5L * 1024L * 1024L * 1024L  # 5 GB
 DEFAULT_MAX_UPLOAD_SEED_WHEN_SEEDING = 75 # KB/s
 I2I_LISTENPORT = 57894
 PLAYER_LISTENPORT = 8620
+VIDEOHTTP_LISTENPORT = 6879
 
 class PlayerFrame(VideoFrame):
 
     def __init__(self,parent):
-        VideoFrame.__init__(self,parent,'SwarmPlayer 0.0.6',parent.iconpath)
+        VideoFrame.__init__(self,parent,'SwarmPlayer 0.1.4 live',parent.iconpath)
         self.parent = parent
         
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
@@ -65,6 +71,7 @@ class PlayerFrame(VideoFrame):
         # This gets called multiple times somehow
         if self.parent.videoFrame is not None:
             self.parent.remove_current_download_if_not_complete()
+            self.parent.restart_other_downloads()
             
         self.parent.videoFrame = None
 
@@ -77,18 +84,35 @@ class PlayerApp(wx.App):
         self.installdir = installdir
         self.error = None
         self.s = None
+        self.tbicon = None
         
-        self.dlock = RLock() # TODO: Arno: we can get rid of this now stats processing is delegated to GUI thread
+        # TODO: Arno: we can get rid of dlock now stats processing is delegated to GUI thread:
+        # Verify all places where it is used e.g. in sesscb_remove_current_callback()
+        # another thread than Main uses it.  
+        self.dlock = RLock()  
         self.d = None # protected by dlock
         self.playermode = DLSTATUS_DOWNLOADING # protected by dlock
         self.r = None # protected by dlock
         self.count = 0
         self.said_start_playback = False
+        self.shuttingdown = False
+
+        self.reporter = Reporter()
         
         wx.App.__init__(self, x)
         
     def OnInit(self):
         try:
+            # If already running, and user starts a new instance without a URL 
+            # on the cmd line
+            if not ALLOW_MULTIPLE and self.single_instance_checker.IsAnotherRunning():
+                print >> sys.stderr,"main: Another instance running, no URL on CMD, asking user"
+                torrentfilename = self.select_torrent_from_disk()
+                if torrentfilename is not None:
+                    i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
+                    return False
+            
+            # Normal startup
             self.utility = Utility(self.installdir)
             self.utility.app = self
             print >>sys.stderr,self.utility.lang.get('build')
@@ -99,10 +123,10 @@ class PlayerApp(wx.App):
             self.i2is.start()
 
             self.videoplay = None 
-            self.startVideoFrame()
+            self.start_video_frame()
             
             # Start HTTP server for serving video to player widget
-            self.videoserv = VideoHTTPServer.getInstance() # create
+            self.videoserv = VideoHTTPServer.getInstance(VIDEOHTTP_LISTENPORT) # create
             self.videoserv.background_serve()
             self.videoserv.register(self.videoserver_error_callback,self.videoserver_set_status_callback)
 
@@ -139,10 +163,10 @@ class PlayerApp(wx.App):
                 print_exc()
                 self.sconfig = SessionStartupConfig()
                 self.sconfig.set_state_dir(state_dir)
-            
-            self.sconfig.set_listen_port(PLAYER_LISTENPORT)    
-            self.sconfig.set_overlay(False)
-            self.sconfig.set_megacache(False)
+                
+                self.sconfig.set_listen_port(PLAYER_LISTENPORT)    
+                self.sconfig.set_overlay(False)
+                self.sconfig.set_megacache(False)
             
             self.s = Session(self.sconfig)
             self.s.set_download_states_callback(self.sesscb_states_callback)
@@ -155,6 +179,7 @@ class PlayerApp(wx.App):
             # Load torrent
             if self.params[0] != "":
                 torrentfilename = self.params[0]
+                print "PARAMS",self.params
             else:
                 torrentfilename = self.select_torrent_from_disk()
                 if torrentfilename is None:
@@ -181,7 +206,7 @@ class PlayerApp(wx.App):
             return False
         return True
 
-    def startVideoFrame(self):
+    def start_video_frame(self):
         # Start video frame
         self.videoFrame = PlayerFrame(self)
         self.Bind(wx.EVT_CLOSE, self.videoFrame.OnCloseWindow)
@@ -194,7 +219,7 @@ class PlayerApp(wx.App):
         self.said_start_playback = False
 
     def select_torrent_from_disk(self):
-        dlg = wx.FileDialog(self.videoFrame, 
+        dlg = wx.FileDialog(None, 
                             'SwarmPlayer: Select torrent to play', 
                             '', # default dir
                             '', # default file
@@ -222,7 +247,7 @@ class PlayerApp(wx.App):
     def start_download(self,torrentfilename):
         
         tdef = TorrentDef.load(torrentfilename)
-        print >>sys.stderr,"main: infohash is",`tdef.get_infohash()`
+        print >>sys.stderr,"main: Starting download, infohash is",`tdef.get_infohash()`
         
         # Select which video to play (if multiple)
         videofiles = tdef.get_video_files()
@@ -277,7 +302,7 @@ class PlayerApp(wx.App):
 
         # Start video window if not open
         if self.videoFrame is None:
-            self.startVideoFrame()
+            self.start_video_frame()
         else:
             # Stop playing
             self.videoplay.stop_playback()
@@ -310,6 +335,7 @@ class PlayerApp(wx.App):
                 newd.set_video_start_callback(self.vod_ready_callback)
                 if tdef.is_multifile_torrent():
                     newd.set_selected_files([dlfile])
+                print >>sys.stderr,"main: Restarting existing Download",`infohash`
                 newd.restart()
 
             self.d = newd
@@ -357,8 +383,12 @@ class PlayerApp(wx.App):
                 torrentfilename = param
                 
             # Switch to GUI thread
-            start_download_lambda = lambda:self.start_download(torrentfilename)
-            wx.CallAfter(start_download_lambda)
+            wx.CallAfter(self.remote_start_download,torrentfilename)
+
+    def remote_start_download(self,torrentfilename):
+        """ Called by GUI thread """
+        self.remove_current_download_if_not_complete()
+        self.start_download(torrentfilename)
 
     def videoserver_error_callback(self,e,url):
         """ Called by HTTP serving thread """
@@ -436,6 +466,7 @@ class PlayerApp(wx.App):
         
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
+        self.shuttingdown = True
         self.remove_current_download_if_not_complete()
 
         # To let Threads in Session finish their business before we shut it down.
@@ -462,13 +493,16 @@ class PlayerApp(wx.App):
         #access control to self.videoFrame easier
         #self.gui_states_callback(dslist)
         wx.CallAfter(self.gui_states_callback,dslist)
-        return (1.0,False)
+        return (1.0,True) # get peerlist, needed for research stats
 
     def gui_states_callback(self,dslist):
         """ Called by *GUI* thread.
         CAUTION: As this method is called by the GUI thread don't to any 
         time-consuming stuff here! """
         print >>sys.stderr,"main: Stats:"
+        
+        if self.shuttingdown:
+            return
         
         # See which Download is currently playing
         self.dlock.acquire()
@@ -499,14 +533,20 @@ class PlayerApp(wx.App):
                 totalspeed[dir] += ds2.get_current_speed(dir)
             totalhelping += ds2.get_num_peers()
 
+        # Report statistics on all downloads to research server
+        try:
+            for d in dslist:
+                self.reporter.report_stat(d)
+        except:
+            print_exc()
+
         # Set systray icon tooltip. This has limited size on Win32!
         txt = 'SwarmPlayer\n\n'
         txt += 'DL: %.1f\n' % (totalspeed[DOWNLOAD])
         txt += 'UL:   %.1f\n' % (totalspeed[UPLOAD])
         txt += 'Helping: %d\n' % (totalhelping)
         #print >>sys.stderr,"main: ToolTip summary",txt
-        wx.CallAfter(self.OnSetSysTrayTooltip,txt)
-
+        self.OnSetSysTrayTooltip(txt)
         
         # No current Download        
         if ds is None:
@@ -514,30 +554,35 @@ class PlayerApp(wx.App):
         elif playermode == DLSTATUS_DOWNLOADING:
             print >>sys.stderr,"main: Stats: DL:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
 
-        # Don't display stats if there is no video frame to show them on.
-        if self.videoFrame is None:
-            return
-        else:
-            videoplayer_mediastate = self.videoFrame.get_state()
-            #print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
-
-
         # If we're done playing we can now restart any previous downloads to 
         # seed them.
         if playermode != DLSTATUS_SEEDING and ds.get_status() == DLSTATUS_SEEDING:
             self.restart_other_downloads() # GUI UPDATE
 
+        # Don't display stats if there is no video frame to show them on.
+        if self.videoFrame is None:
+            return
+        else:
+            self.display_stats_in_videoframe(ds,totalhelping,totalspeed)
 
+
+    def display_stats_in_videoframe(self,ds,totalhelping,totalspeed):
         # Display stats for currently playing Download
+        
+        videoplayer_mediastate = self.videoFrame.get_state()
+        #print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
+        
         logmsgs = ds.get_log_messages()
         logmsg = None
         if len(logmsgs) > 0:
             print >>sys.stderr,"main: Log",logmsgs[0]
-            logmsg = logmsgs[-1]
+            logmsg = logmsgs[-1][1]
             
         preprogress = ds.get_vod_prebuffering_progress()
         playable = ds.get_vod_playable()
         t = ds.get_vod_playable_after()
+        
+        #print >>sys.stderr,"main: playble",playable,"preprog",preprogress
         print >>sys.stderr,"main: ETA is",t,"secs"
         if t > float(2 ** 30):
             intime = "inf"
@@ -590,23 +635,46 @@ class PlayerApp(wx.App):
                 msg = logmsg
             else:
                 msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
+                
+            try:
+                d = ds.get_download()
+                tdef = d.get_def()
+                videofiles = d.get_selected_files()
+                if len(videofiles) == 0:
+                    videofile = None
+                else:
+                    videofile = videofiles[0]
+                if tdef.get_bitrate(videofile) is None:
+                    msg += '. This video may not play properly because its bitrate is unknown.'
+            except:
+                print_exc()
         else:
             msg = "Waiting for sufficient download speed... "+intime
             
-        if self.videoFrame is not None:
-            self.videoFrame.set_player_status(msg)
-            self.videoFrame.videopanel.updateProgressSlider(ds.get_pieces_complete())    
+        global ONSCREENDEBUG
+        if msg == '' and ONSCREENDEBUG:
+            uptxt = "up %.1f" % (totalspeed[UPLOAD])
+            downtxt = " down %.1f" % (totalspeed[DOWNLOAD])
+            peertxt = " peer %d" % (totalhelping)
+            msg = uptxt + downtxt + peertxt
+            
+        self.videoFrame.set_player_status(msg)
+        self.videoFrame.videopanel.updateProgressSlider(ds.get_pieces_complete())    
         
         # Toggle save button
         self.videoFrame.videopanel.enableSaveButton(ds.get_status() == DLSTATUS_SEEDING, self.save_video_copy)    
             
-        if False: # Only works if the current method returns (x,True)
+        if False: # Only works if the sesscb_states_callback() method returns (x,True)
             peerlist = ds.get_peerlist()
             print >>sys.stderr,"main: Connected to",len(peerlist),"peers"
             for peer in peerlist:
-                print >>sys.stderr,"main: Connected to",peer['ip'],peer['completed']
+                print >>sys.stderr,"main: Connected to",peer['ip'],peer['uprate'],peer['downrate']
 
-
+    def set_ratelimits(self):
+        uploadrate = float(self.playerconfig['total_max_upload_rate'])
+        print >>sys.stderr,"main: restart_other_downloads: Setting max upload rate to",uploadrate
+        self.r.set_global_max_speed(UPLOAD,uploadrate)
+        self.r.set_global_max_seedupload_speed(uploadrate)
 
     def ratelimit_callback(self,dslist):
         """ When the player is in seeding mode, limit the used upload to
@@ -614,6 +682,9 @@ class PlayerApp(wx.App):
         Called by *GUI* thread """
         if self.r is None:
             return
+
+        # ARNOTEST
+        return
 
         # Adjust speeds once every 4 seconds
         adjustspeeds = False
@@ -630,7 +701,7 @@ class PlayerApp(wx.App):
             self.tbicon.set_icon_tooltip(txt)
 
     
-    def vod_ready_callback(self,d,mimetype,stream,filename):
+    def vod_ready_callback(self,d,mimetype,stream,filename,length):
         """ Called by the Session when the content of the Download is ready
          
         Called by Session thread """
@@ -642,13 +713,13 @@ class PlayerApp(wx.App):
         else:
             # HACK: TODO: make to work with file-like interface
             videoserv = VideoHTTPServer.getInstance()
-            videoserv.set_movietransport(stream.mt)
+            videoserv.set_inputstream(mimetype,stream,length)
             wx.CallAfter(self.play_from_stream)
 
     def play_from_stream(self):
         """ Called by MainThread """
         print >>sys.stderr,"main: Playing from stream"
-        self.videoplay.play_url('http://127.0.0.1:6880/')
+        self.videoplay.play_url('http://127.0.0.1:'+str(VIDEOHTTP_LISTENPORT)+'/')
     
     def play_from_file(self,filename):
         """ Called by MainThread """
@@ -658,13 +729,14 @@ class PlayerApp(wx.App):
 
     def restart_other_downloads(self):
         """ Called by GUI thread """
+        if self.shuttingdown:
+            return
+        print >>sys.stderr,"main: Restarting other downloads"
         try:
             self.dlock.acquire()
             self.playermode = DLSTATUS_SEEDING
             self.r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
-            uploadrate = float(self.playerconfig['total_max_upload_rate'])
-            print >>sys.stderr,"main: restart_other_downloads: Setting max upload rate to",uploadrate
-            self.r.set_global_max_speed(UPLOAD,uploadrate)
+            self.set_ratelimits()
         finally:
             self.dlock.release()
 
@@ -698,11 +770,13 @@ class PlayerApp(wx.App):
         self.playerconfig[key] = value
         
         if key == 'total_max_upload_rate':
-            pass
+            try:
+                self.set_ratelimits()
+            except:
+                print_exc()
     
     def get_playerconfig(self,key):
         return self.playerconfig[key]
-    
     
     def clear_session_state(self):
         """ Try to fix SwarmPlayer """
@@ -735,19 +809,22 @@ class PlayerApp(wx.App):
             print_exc()
 
         self.s = None # HARD EXIT
-        self.OnExit()
+        #self.OnExit()
+        sys.exit(0) # DIE HARD 4.0
     
     def get_default_destdir(self):
         return os.path.join(self.s.get_state_dir(),'downloads')
     
     def remove_current_download_if_not_complete(self):
+        print >>sys.stderr,"main: Removing current download if not complete"
         self.dlock.acquire()
         d = self.d
+        self.d = None
         self.dlock.release()
         if d is not None:
-            d.set_state_callback(self.remove_current_callback)
+            d.set_state_callback(self.sesscb_remove_current_callback)
         
-    def remove_current_callback(self,ds):
+    def sesscb_remove_current_callback(self,ds):
         """ Called by SessionThread """
         d = ds.get_download()
         if (ds.get_status() == DLSTATUS_DOWNLOADING and ds.get_progress() >= 0.9) or ds.get_status() == DLSTATUS_SEEDING:
@@ -756,13 +833,10 @@ class PlayerApp(wx.App):
             self.dlock.acquire()
             try:
                 if self.s is not None:
+                    print >>sys.stderr,"main: Removing incomplete download"
                     self.s.remove_download(d,removecontent=True)
-                self.d = None
             finally:
                 self.dlock.release()
-        
-        # Restart others        
-        wx.CallAfter(self.restart_other_downloads)
         
         return (-1.0,False)
         
@@ -820,18 +894,19 @@ class PlayerApp(wx.App):
             else:
                 shutil.copyfile(dest_file[1], path)
     
-class DummySingleInstanceChecker:
+class LinuxSingleInstanceChecker:
     
     def __init__(self,basename):
-        pass
+        self.basename = basename
 
     def IsAnotherRunning(self):
-        "Uses pgrep to find other tribler.py processes"
+        "Uses pgrep to find other <self.basename>.py processes"
         # If no pgrep available, it will always start tribler
-        progressInfo = commands.getoutput('pgrep -fl "tribler\.py" | grep -v pgrep')
+        cmd = 'pgrep -fl "%s\.py" | grep -v pgrep' % (self.basename)
+        progressInfo = commands.getoutput(cmd)
         numProcesses = len(progressInfo.split('\n'))
-        if DEBUG:
-            print 'main: ProgressInfo: %s, num: %d' % (progressInfo, numProcesses)
+        #if DEBUG:
+        #    print 'main: ProgressInfo: %s, num: %d' % (progressInfo, numProcesses)
         return numProcesses > 1
                 
         
@@ -847,6 +922,10 @@ def run(params = None):
     if len(sys.argv) > 1:
         params = sys.argv[1:]
     
+    if 'debug' in params:
+        global ONSCREENDEBUG
+        ONSCREENDEBUG=True
+    
     # Create single instance semaphore
     # Arno: On Linux and wxPython-2.8.1.1 the SingleInstanceChecker appears
     # to mess up stderr, i.e., I get IOErrors when writing to it via print_exc()
@@ -855,26 +934,28 @@ def run(params = None):
     if sys.platform != 'linux2':
         single_instance_checker = wx.SingleInstanceChecker("swarmplayer-" + wx.GetUserId())
     else:
-        single_instance_checker = DummySingleInstanceChecker("swarmplayer-")
+        single_instance_checker = LinuxSingleInstanceChecker("swarmplayer")
 
     #print "[StartUpDebug]---------------- 1", time()-start_time
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
         if params[0] != "":
             torrentfilename = params[0]
             i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
-    else:
-        arg0 = sys.argv[0].lower()
-        if arg0.endswith('.exe'):
-            installdir = os.path.abspath(os.path.dirname(sys.argv[0]))
-        else:
-            installdir = os.getcwd()  
-
-        # Launch first abc single instance
-        app = PlayerApp(0, params, single_instance_checker, installdir)
-        app.MainLoop()
+            time.sleep(1)
+            return
         
-        print >>sys.stderr,"Sleeping seconds to let other threads finish"
-        time.sleep(2)
+    arg0 = sys.argv[0].lower()
+    if arg0.endswith('.exe'):
+        installdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+    else:
+        installdir = os.getcwd()  
+
+    # Launch first single instance
+    app = PlayerApp(0, params, single_instance_checker, installdir)
+    app.MainLoop()
+    
+    print >>sys.stderr,"Sleeping seconds to let other threads finish"
+    time.sleep(2)
 
 if __name__ == '__main__':
     run()

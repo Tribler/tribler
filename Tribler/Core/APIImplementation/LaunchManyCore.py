@@ -54,6 +54,7 @@ from Tribler.Core.osutils import get_readable_torrent_name
 SPECIAL_VALUE=481
 
 DEBUG = True
+PROFILE = False
 
 # Internal classes
 #
@@ -139,6 +140,7 @@ class TriblerLaunchMany(Thread):
         else:
             config['overlay'] = 0    # turn overlay off
             config['torrent_checking'] = 0
+            self.my_db          = None
             self.peer_db        = None
             self.torrent_db     = None
             self.mypref_db      = None
@@ -161,18 +163,22 @@ class TriblerLaunchMany(Thread):
             # Set policy for which peer requests (dl_helper, rquery) to answer and which to ignore
                         
             self.overlay_apps = OverlayApps.getInstance()
+            # Default policy, override with Session.set_overlay_request_policy()
             policy = FriendsCoopDLOtherRQueryQuotumAllowAllRequestPolicy(self.session)
             
             # For the new DB layer we need to run all overlay apps in a
             # separate thread instead of the NetworkThread as before.
             self.overlay_bridge = OverlayThreadingBridge.getInstance()
             self.overlay_bridge.register_bridge(self.secure_overlay,self.overlay_apps)
-            #self.overlay_bridge.add_task(self.overlay_bridge.periodic_commit, 5)
             
             self.overlay_apps.register(self.overlay_bridge,self.session,self,config,policy)
             # It's important we don't start listening to the network until
             # all higher protocol-handling layers are properly configured.
             self.overlay_bridge.start_listening()
+        else:
+            self.secure_overlay = None
+            self.overlay_bridge = None
+            self.overlay_apps = None
         
         self.internaltracker = None
         if config['internaltracker']:
@@ -183,26 +189,25 @@ class TriblerLaunchMany(Thread):
         self.multihandler.set_httphandler(self.httphandler)
         
         
-        # Start up mainline DHT
-        # Arno: do this in a try block, as khashmir gives a very funky
-        # error when started from a .dmg (not from cmd line) on Mac. In particular
-        # it complains that it cannot find the 'hex' encoding method when
-        # hstr.encode('hex') is called, and hstr is a string?!
-        #
-        try:
-            rsconvert = RawServerConverter(self.rawserver)
-            # '' = host, TODO: when local bind set
-            mainlineDHT.init('',self.listen_port,config['state_dir'],rawserver=rsconvert)
-
-            # Create torrent-liveliness checker based on DHT
-            c = mainlineDHTChecker.getInstance()
-            c.register(mainlineDHT.dht)
-        except:
-            print_exc()
-        
-        
         # add task for tracker checking
         if config['torrent_checking']:
+            # Start up mainline DHT
+            # Arno: do this in a try block, as khashmir gives a very funky
+            # error when started from a .dmg (not from cmd line) on Mac. In particular
+            # it complains that it cannot find the 'hex' encoding method when
+            # hstr.encode('hex') is called, and hstr is a string?!
+            #
+            try:
+                rsconvert = RawServerConverter(self.rawserver)
+                # '' = host, TODO: when local bind set
+                mainlineDHT.init('',self.listen_port,config['state_dir'],rawserver=rsconvert)
+    
+                # Create torrent-liveliness checker based on DHT
+                c = mainlineDHTChecker.getInstance()
+                c.register(mainlineDHT.dht)
+            except:
+                print_exc()
+            
             self.torrent_checking_period = config['torrent_checking_period']
             #self.torrent_checking_period = 15
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
@@ -216,12 +221,12 @@ class TriblerLaunchMany(Thread):
                 raise ValueError("TorrentDef not finalized")
             
             d = Download(self.session,tdef)
-            infohash = d.get_def().get_infohash() 
+            infohash = tdef.get_infohash() 
             
             # Check if running or saved on disk
             if infohash in self.downloads:
                 raise DuplicateDownloadException()
-            elif pstate is None: # not already resuming
+            elif pstate is None and not tdef.get_live(): # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
                     if DEBUG:
@@ -255,7 +260,8 @@ class TriblerLaunchMany(Thread):
                     if self.overlay_apps.buddycast is not None:
                         self.overlay_apps.buddycast.addMyPref(infohash)
 
-            self.overlay_bridge.add_task(add_torrent_to_db, 3)
+            if self.overlay_bridge is not None and self.torrent_db is not None:
+                self.overlay_bridge.add_task(add_torrent_to_db, 3)
             
             return d
         finally:
@@ -317,7 +323,7 @@ class TriblerLaunchMany(Thread):
             print_exc()
         # Could log this somewhere, or phase it out
 
-    def run(self):
+    def _run(self):
         """ Called only once by network thread """
         try:
             try:
@@ -555,6 +561,16 @@ class TriblerLaunchMany(Thread):
         else:
             return ip
 
+    def run(self):
+        if PROFILE:
+            fname = "profile-%s" % self.getName()
+            import cProfile
+            cProfile.runctx( "self._run()", globals(), locals(), filename=fname )
+            import pstats
+            print >>sys.stderr,"profile: data for %s" % self.getName()
+            pstats.Stats(fname,stream=sys.stderr).sort_stats("cumulative").print_stats(20)
+        else:
+            self._run()
 
     def start_upnp(self):
         """ Arno: as the UPnP discovery and calls to the firewall can be slow,
@@ -622,21 +638,8 @@ class TriblerLaunchMany(Thread):
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str)
 
         
-    def network_vod_playable_callback(self,videoinfo,complete,mimetype,stream):
+    def network_vod_playable_callback(self,videoinfo,complete,mimetype,stream,length):
         """ Called by network thread """
-        
-        if mimetype is None:
-            if sys.platform == 'win32':
-                try:
-                    file = videoinfo['inpath']
-                    (prefix,ext) = os.path.splitext(file)
-                    ext = ext.lower()
-                    (mimetype,playercmd) = win32_retrieve_video_play_command(ext,'')
-                except:
-                    print_exc()
-                    mimetype = 'video/mpeg'
-            else:
-                mimetype = 'video/mpeg'
 
         if complete:
             if DEBUG:
@@ -648,7 +651,7 @@ class TriblerLaunchMany(Thread):
             filename = None
         
         # Call Session threadpool to call user's callback        
-        videoinfo['usercallback'](mimetype,stream,filename)
+        videoinfo['usercallback'](mimetype,stream,filename,length)
 
     def run_torrent_check(self):
         """ Called by network thread """

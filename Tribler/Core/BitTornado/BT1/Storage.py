@@ -12,6 +12,7 @@ try:
 except ImportError:
     fsync = lambda x: None
 from bisect import bisect
+import sys
     
 try:
     True
@@ -21,7 +22,8 @@ except:
 
 DEBUG = False
 
-MAXREADSIZE = 32768
+#MAXREADSIZE = 32768
+MAXREADSIZE = 2 ** 16 # Arno: speed opt
 MAXLOCKSIZE = 1000000000L
 MAXLOCKRANGE = 3999999999L   # only lock first 4 gig of file
 
@@ -288,7 +290,7 @@ class Storage:
         r = PieceBuffer()
         for file, pos, end in self._intervals(pos, amount):
             if DEBUG:
-                print 'reading '+file+' from '+str(pos)+' to '+str(end)
+                print >>sys.stderr,'reading '+file+' from '+str(pos)+' to '+str(end)+' amount '+str(amount)
             try:
                 self.lock.acquire()
                 h = self._get_file_handle(file, False)

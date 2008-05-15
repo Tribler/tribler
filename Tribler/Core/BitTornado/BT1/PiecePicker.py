@@ -90,6 +90,7 @@ class PiecePicker:
 # 2fastbt_
         self.helper = helper
         self.rate_predictor = rate_predictor
+        self.live_streaming = False
 # _2fastbt
         self._init_interests()
 
@@ -171,6 +172,66 @@ class PiecePicker:
         elif self.has[piece] or self.priority[piece] == -1:
             return
         self._shift_over(piece, self.interests[numint], self.interests[numint - 1])
+
+
+    # Arno: LIVEWRAP
+    def is_valid_piece(self, piece):
+        return True
+
+    def invalidate_piece(self,piece):
+        """ A piece ceases to exist at the neighbours. Required for LIVEWRAP. """
+
+        if self.has[piece]:
+            self.has[piece] = 0
+            #print >>sys.stderr,"PiecePicker: Clearing piece",piece
+            self.numgot -= 1
+
+            # undo self._remove_from_interests(piece); ripped from set_priority
+
+            # reinsert into interests
+            p = self.priority[piece]
+            level = self.numhaves[piece] + (self.priority_step * p)
+            self.level_in_interests[piece] = level
+            while len(self.interests) < level+1:
+                self.interests.append([])
+
+            # insert at a random spot in the list at the current level
+            l2 = self.interests[level]
+            parray = self.pos_in_interests
+            newp = randrange(len(l2)+1)
+            if newp == len(l2):
+                parray[piece] = len(l2)
+                l2.append(piece)
+            else:
+                old = l2[newp]
+                parray[old] = len(l2)
+                l2.append(old)
+                l2[newp] = piece
+                parray[piece] = newp
+
+        # modelled after lost_have
+
+        #assert not self.done
+        #assert not self.seeds_connected
+
+        numint = self.numhaves[piece]
+        if numint == 0:
+            return
+
+        # set numhaves to 0
+        self.totalcount -= numint
+        self.numhaves[piece] = 0
+        self.crosscount[numint] -= 1
+        self.crosscount[0] += 1
+        numintplus = numint+0
+        self.crosscount2[numintplus] -= 1
+        self.crosscount2[0] += 1
+        numint = self.level_in_interests[piece]
+        self.level_in_interests[piece] = 0
+        self._shift_over(piece, self.interests[numint], self.interests[0])
+
+    def set_downloader(self,dl):
+        self.downloader = dl
 
     def _shift_over(self, piece, l1, l2):
         """ Moves 'piece' from interests list l1 to l2. """
@@ -256,7 +317,7 @@ class PiecePicker:
         self._remove_from_interests(piece)
 
 # 2fastbt_
-    def _next(self, haves, wantfunc, complete_first, helper_con):
+    def _next(self, haves, wantfunc, complete_first, helper_con, willrequest=True):
 # _2fastbt
         """ Determine which piece to download next from a peer.
 
@@ -324,10 +385,10 @@ class PiecePicker:
         return None
 
 # 2fastbt_
-    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces= []):
+    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces= [], willrequest = True):
 #        try:
         while True:
-            piece = self._next(haves, wantfunc, complete_first, helper_con)
+            piece = self._next(haves, wantfunc, complete_first, helper_con, willrequest = willrequest)
             if piece is None:
                 if DEBUG:
                     print >> sys.stderr,"PiecePicker: next: _next returned no pieces!",
@@ -352,7 +413,7 @@ class PiecePicker:
         if self.rate_predictor is None or not self.rate_predictor.has_capacity():
             return None
         else:
-            return self._next(haves, wantfunc, complete_first, True)
+            return self._next(haves, wantfunc, complete_first, True, willrequest=willrequest)
 #        except:
 #            if DEBUG:
 #                print_exc()

@@ -45,6 +45,7 @@ class Upload:
         else:
             if storage.do_I_have_anything():
                 connection.send_bitfield(storage.get_have_list())
+                
         self.piecedl = None
         self.piecebuf = None
         # Merkle

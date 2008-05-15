@@ -43,6 +43,10 @@ class DownloadConfigInterface:
         # Define the built-in default here
         self.dlconfig.update(dldefaults)
 
+        # Arno: Sparse as default reduces CPU usage
+        if sys.platform != 'win32':
+            self.set_alloc_type(DISKALLOC_SPARSE)
+
         self.dlconfig['saveas'] = get_default_dest_dir()
 
 
@@ -60,27 +64,50 @@ class DownloadConfigInterface:
     def set_video_start_callback(self,usercallback):
         """ Download the torrent in Video-On-Demand mode or as live stream.
         When the video is ready to play, the usercallback function will be 
-        called, with a stream as argument from which the video can be read. To 
-        fetch a specific file from a multi-file torrent, use the 
+        called, with the following list of arguments:
+        
+            Download,mimetype,stream,filename,length
+        
+        If the filename is set, the video can be read from there. If not,
+        the video can be read from the stream, which is a file-like object 
+        supporting the read(),seek(), and close() operations. The MIME type of 
+        the video is given by "mimetype", the length of the stream in bytes 
+        by "length" which may be None if the length is unknown (e.g. when live 
+        streaming).
+        
+        To fetch a specific file from a multi-file torrent, use the 
         set_selected_files() method. This method sets the mode to DLMODE_VOD 
   
         The usercallback will be called by a popup thread which can be used
         indefinitely (within reason) by the higher level code.
         
-        @param usercallback  A function that accepts a file-like object as its
-        first argument (i.e., supports read() and close())
+        @param usercallback  A function with the above signature.
         """
         self.dlconfig['mode'] = DLMODE_VOD
         self.dlconfig['vod_usercallback'] = usercallback
 
-    def set_video_source(self,videosource):
+    def set_video_source(self,videosource,authconfig=None):
         """ Provides the live video source for this torrent from an external
         source.
         
         @param videosource  A file-like object providing the live video stream
         (i.e., supports read() and close())
+        @param authconfig The key information for source authentication of
+        packets. See LiveSourceAuthConfig and TorrentDef.create_live_torrent()
         """
         self.dlconfig['video_source'] = videosource
+        if authconfig is None:
+            authconfig = LiveSourceAuthConfig(LIVE_AUTHMETHOD_NONE)
+        self.dlconfig['video_source_authconfig'] = authconfig
+
+    def set_video_ratelimit(self,ratelimit):
+        """ Sets a limit on the speed at which the video stream is to be read.
+        Useful when creating a live stream from file or any other faster-than-live
+        data stream.
+        
+        @param ratelimit    The maximum speed at which to read from the stream (bps)
+        """
+        self.dlconfig['video_ratelimit'] = ratelimit
 
     def set_mode(self,mode):
         """ Sets the mode of this download. 
@@ -93,7 +120,7 @@ class DownloadConfigInterface:
         return self.dlconfig['mode']
 
     def get_vod_callback(self):
-        """ Returns the function that was passed to set_video_start_callback()
+        """ Returns the function that was passed to set_video_start_callback().
         @return A function.
         """
         return self.dlconfig['vod_usercallback']
@@ -103,6 +130,12 @@ class DownloadConfigInterface:
         @return A file-like object.
         """
         return self.dlconfig['video_source']
+
+    def get_video_ratelimit(self):
+        """ Returns the speed at which the video stream is read (bps).
+        @return An integer.
+        """
+        return self.dlconfig['video_ratelimit']
 
     def set_selected_files(self,files):
         """ Select which files in the torrent to download. The filenames must 

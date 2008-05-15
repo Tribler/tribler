@@ -1,5 +1,5 @@
 !define PRODUCT "SwarmPlayer"
-!define VERSION "0.0.6"
+!define VERSION "0.1.4 live"
 
 !include "MUI.nsh"
 
@@ -124,7 +124,7 @@ Section "Startmenu Icons" SecStart
    CreateShortCut "$SMPROGRAMS\${PRODUCT}\${PRODUCT}.lnk" "$INSTDIR\${PRODUCT}.exe" "" "$INSTDIR\${PRODUCT}.exe" 0
 SectionEnd
 
-Section "Make Default For .tstream" SecDefaultTorrent
+Section "Make Default For .tstream" SecDefaultTStream
    WriteRegStr HKCR .tstream "" tstream
    WriteRegStr HKCR .tstream "Content Type" application/x-tribler-stream
    WriteRegStr HKCR "MIME\Database\Content Type\application/x-tribler-stream" Extension .tstream
@@ -135,7 +135,7 @@ Section "Make Default For .tstream" SecDefaultTorrent
    WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\Tribler\Images\swarmplayer.ico"
 SectionEnd
 
-Section /o "Make Default For .torrent" SecDefaultTStream
+Section /o "Make Default For .torrent" SecDefaultTorrent
    ; Delete ddeexec key if it exists
    DeleteRegKey HKCR "bittorrent\shell\open\ddeexec"
    WriteRegStr HKCR .torrent "" bittorrent

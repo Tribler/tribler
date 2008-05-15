@@ -81,6 +81,7 @@ from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 
 I2I_LISTENPORT = 57891
+VIDEOHTTP_LISTENPORT = 6878
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -675,7 +676,8 @@ class ABCFrame(wx.Frame):
 
     def set_player_status(self,s):
         """ Called by VideoServer when using an external player """
-        pass
+        if self.videoFrame is not None:
+            self.videoFrame.set_player_status(status)
 
     def set_wxapp(self,wxapp):
         self.wxapp = wxapp
@@ -781,8 +783,10 @@ class ABCApp(wx.App):
             
             self.videoplayer = VideoPlayer.getInstance()
             self.videoplayer.register(self.utility)
-            self.videoserver = VideoHTTPServer.getInstance()
-            self.videoserver.background_serve()
+            # Start HTTP server for serving video to player widget
+            self.videoserv = VideoHTTPServer.getInstance(VIDEOHTTP_LISTENPORT) # create
+            self.videoserv.background_serve()
+            self.videoserv.register(self.videoserver_error_callback,self.videoserver_set_status_callback)
 
             notification_init( self.utility )
 
@@ -1047,6 +1051,26 @@ class ABCApp(wx.App):
 
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
         wx.CallAfter(self.frame.onReachable)
+
+
+    def videoserver_error_callback(self,e,url):
+        """ Called by HTTP serving thread """
+        wx.CallAfter(self.videoserver_error_guicallback,e,url)
+        
+    def videoserver_error_guicallback(self,e,url):
+        print >>sys.stderr,"main: Video server reported error",str(e)
+        #    self.show_error(str(e))
+        pass
+
+    def videoserver_set_status_callback(self,status):
+        """ Called by HTTP serving thread """
+        wx.CallAfter(self.videoserver_set_status_guicallback,status)
+
+    def videoserver_set_status_guicallback(self,status):
+        # TODO:
+        if self.frame is not None:
+            self.frame.set_player_status(status)
+
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

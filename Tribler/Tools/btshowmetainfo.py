@@ -34,7 +34,7 @@ for metainfo_name in argv[1:]:
             print "cdn_properties:",cdnprops.keys()
             for key in cdnprops:
                 print "cdn_properties:",key,"=",cdnprops[key]
-    print `metainfo`
+    #print `metainfo`
     info = metainfo['info']
     info_hash = sha(bencode(info))
 
@@ -66,6 +66,9 @@ for metainfo_name in argv[1:]:
           % (name,file_length, piece_number, piece_length, last_piece_length)
     if info.has_key('root hash'):
         print 'root hash.....: %s' % `info['root hash']`
+    if info.has_key('live'):
+        print 'torrent type..: live',`info['live']`
+    
     print 'announce url..: %s' % metainfo['announce']
     if metainfo.has_key('announce-list'):
         list = []

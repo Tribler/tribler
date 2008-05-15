@@ -12,7 +12,7 @@ from sha import sha
 from copy import copy
 from threading import Event
 from time import time
-from traceback import print_exc
+from traceback import print_exc,print_stack
 from types import LongType
 
 from Tribler.Core.BitTornado.bencode import bencode
@@ -65,8 +65,8 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
             secs = parse_playtime_to_secs(file['playtime'])
             bitrate = file['length']/secs
             break
-        if file.get('bps') is not None:
-            bitrate = file['bps']
+        if input.get('bps') is not None:
+            bitrate = input['bps']
             break
 
     if bitrate is not None or input['thumb'] is not None:
@@ -160,7 +160,7 @@ def makeinfo(input,userabortflag,userprogresscallback):
     # 2. Calc total size
     newsubs = []
     for p, f in subs:
-        if 'live' in input and input['live']:
+        if 'live' in input:
             size = input['files'][0]['length']
         else:
             size = os.path.getsize(f)
@@ -192,103 +192,83 @@ def makeinfo(input,userabortflag,userprogresscallback):
     else:
         piece_length = input['piece length']
 
-    # 4. Read files and calc hashes
-    for p, f, size in subs:
-        pos = 0L
-
-        if 'live' in input and input['live']:
-            # a live stream -> process fake data
-            class FakeFile:
-                def __init__(self, piece_length):
-                    self.emptypiece = " " * piece_length
-
-                def read(self,len):
-                    return self.emptypiece[:len]
-
-                def close(self):
-                    pass
-
-            h = FakeFile( piece_length )
-        else:
-            # not a live stream -> process real file
+    # 4. Read files and calc hashes, if not live
+    if 'live' not in input:
+        for p, f, size in subs:
+            pos = 0L
+    
             h = open(f, 'rb')
-
-        if input['makehash_md5']:
-            print >>sys.stderr,"maketorrent: make MD5"
-            hash_md5 = md5.new()
-        if input['makehash_sha1']:
-            print >>sys.stderr,"maketorrent: make SHA1"
-            hash_sha1 = sha()
-        if input['makehash_crc32']:
-            print >>sys.stderr,"maketorrent: make CRC32"
-            hash_crc32 = zlib.crc32('')
-        
-        while pos < size:
-            a = min(size - pos, piece_length - done)
-
-            # See if the user cancelled
-            if userabortflag is not None and userabortflag.isSet():
-                return (None,None)
+    
+            if input['makehash_md5']:
+                hash_md5 = md5.new()
+            if input['makehash_sha1']:
+                hash_sha1 = sha()
+            if input['makehash_crc32']:
+                hash_crc32 = zlib.crc32('')
             
-            readpiece = h.read(a)
-
-            # See if the user cancelled
-            if userabortflag is not None and userabortflag.isSet():
-                return (None,None)
-            
-            sh.update(readpiece)
-
-            if input['makehash_md5']:                
-                # Update MD5
-                hash_md5.update(readpiece)
-
-            if input['makehash_crc32']:                
-                # Update CRC32
-                hash_crc32 = zlib.crc32(readpiece, hash_crc32)
-            
-            if input['makehash_sha1']:                
-                # Update SHA1
-                hash_sha1.update(readpiece)
-            
-            done += a
-            pos += a
-            totalhashed += a
-            
-            if done == piece_length:
-                pieces.append(sh.digest())
-                done = 0
-                sh = sha()
+            while pos < size:
+                a = min(size - pos, piece_length - done)
+    
+                # See if the user cancelled
+                if userabortflag is not None and userabortflag.isSet():
+                    return (None,None)
                 
-            if userprogresscallback is not None:
-                userprogresscallback(float(totalhashed) / float(totalsize))
-
-        newdict = {'length': num2num(size),
-                   'path': uniconvertl(p,encoding),
-                   'path.utf-8': uniconvertl(p, 'utf-8') }
-        
-        # Find and add playtime
-        for file in input['files']:
-            if file['inpath'] == f:
-                if file['playtime'] is not None:
-                    newdict['playtime'] = file['playtime']
-                break
-        
-        if input['makehash_md5']:
-            print >>sys.stderr,"maketorrent: make md5 add"
-            newdict['md5sum'] = hash_md5.hexdigest()
-        if input['makehash_crc32']:
-            print >>sys.stderr,"maketorrent: make CRC32 add"
-            newdict['crc32'] = "%08X" % hash_crc32
-        if input['makehash_sha1']:
-            print >>sys.stderr,"maketorrent: make sha1 add"
-            newdict['sha1'] = hash_sha1.digest()
-        
-        fs.append(newdict)
+                readpiece = h.read(a)
+    
+                # See if the user cancelled
+                if userabortflag is not None and userabortflag.isSet():
+                    return (None,None)
+                
+                sh.update(readpiece)
+    
+                if input['makehash_md5']:                
+                    # Update MD5
+                    hash_md5.update(readpiece)
+    
+                if input['makehash_crc32']:                
+                    # Update CRC32
+                    hash_crc32 = zlib.crc32(readpiece, hash_crc32)
+                
+                if input['makehash_sha1']:                
+                    # Update SHA1
+                    hash_sha1.update(readpiece)
+                
+                done += a
+                pos += a
+                totalhashed += a
+                
+                if done == piece_length:
+                    pieces.append(sh.digest())
+                    done = 0
+                    sh = sha()
+                    
+                if userprogresscallback is not None:
+                    userprogresscallback(float(totalhashed) / float(totalsize))
+    
+            newdict = {'length': num2num(size),
+                       'path': uniconvertl(p,encoding),
+                       'path.utf-8': uniconvertl(p, 'utf-8') }
             
-        h.close()
+            # Find and add playtime
+            for file in input['files']:
+                if file['inpath'] == f:
+                    if file['playtime'] is not None:
+                        newdict['playtime'] = file['playtime']
+                    break
             
-    if done > 0:
-        pieces.append(sh.digest())
+            if input['makehash_md5']:
+                newdict['md5sum'] = hash_md5.hexdigest()
+            if input['makehash_crc32']:
+                newdict['crc32'] = "%08X" % hash_crc32
+            if input['makehash_sha1']:
+                newdict['sha1'] = hash_sha1.digest()
+            
+            fs.append(newdict)
+                
+            h.close()
+                
+        if done > 0:
+            pieces.append(sh.digest())
        
     # 5. Create info dict
     adddict = {}         
@@ -308,15 +288,17 @@ def makeinfo(input,userabortflag,userprogresscallback):
     infodict.update(adddict)
 
     # Add piece info
-    if input['createmerkletorrent']:
-        merkletree = MerkleTree(piece_length,totalsize,None,pieces)
-        root_hash = merkletree.get_root_hash()
-        infodict.update( {'root hash': root_hash } )
+    if 'live' not in input:
+        
+        if input['createmerkletorrent']:
+            merkletree = MerkleTree(piece_length,totalsize,None,pieces)
+            root_hash = merkletree.get_root_hash()
+            infodict.update( {'root hash': root_hash } )
+        else:
+            infodict.update( {'pieces': ''.join(pieces) } )
     else:
-        infodict.update( {'pieces': ''.join(pieces) } )
-
-    if 'live' in input and input['live']:
-        infodict['live'] = 1
+        # With source auth, live is a dict
+        infodict['live'] = input['live']
 
     # Find and add playtime
     if len(subs) == 1:
@@ -398,6 +380,17 @@ def torrentfilerec2savefilename(filerec,length=None):
         
     return pathlist2savefilename(filerec[key][:length],encoding)
 
+def savefilenames2finaldest(fn1,fn2):
+    """ Returns the join of two savefilenames, possibly shortened
+    to adhere to OS specific limits.
+    """
+    j = os.path.join(fn1,fn2)
+    if sys.platform == 'win32':
+        # Windows has a maximum path length of 260
+        # http://msdn2.microsoft.com/en-us/library/aa365247.aspx
+        j = j[:259] # 260 don't work.
+    return j
+
 
 def num2num(num):
     """ Converts long to int if small enough to fit """
@@ -465,6 +458,13 @@ def get_bitrate_from_metainfo(file,metainfo):
                     playtime = parse_playtime_to_secs(x['playtime'])
                 elif 'playtime' in metainfo: # HACK: encode playtime in non-info part of existing torrent
                     playtime = parse_playtime_to_secs(metainfo['playtime'])
+                elif 'azureus_properties' in metainfo:
+                    azprop = metainfo['azureus_properties']
+                    if 'Content' in azprop:
+                        content = metainfo['azureus_properties']['Content']
+                        if 'Speed Bps' in content:
+                            bitrate = float(content['Speed Bps'])
+                            #print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in Azureus metainfo",bitrate
                     
                 if playtime is not None:
                     bitrate = x['length']/playtime
@@ -542,7 +542,10 @@ def copy_metainfo_to_input(metainfo,input):
             content = metainfo['azureus_properties']['Content']
             if 'Thumbnail' in content:
                 input['thumb'] = content['Thumbnail']
-                
+      
+    if 'live' in metainfo['info']:
+        input['live'] = metainfo['info']['live'] 
+
 
 def get_files(metainfo,exts):
     

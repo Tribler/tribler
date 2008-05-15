@@ -106,3 +106,8 @@ ITRACK_IGNORE_ANNOUNCEIP_IFNONATCHECK = 2
 # Cooperative download
 COOPDL_ROLE_COORDINATOR = 'coordinator'
 COOPDL_ROLE_HELPER = 'helper'
+
+# Methods for authentication of the source in live streaming
+LIVE_AUTHMETHOD_NONE = "None"   # None
+LIVE_AUTHMETHOD_ECDSA = "ECDSA" # Elliptic Curve DSA signatures
+

@@ -2,8 +2,7 @@
 	"The fastest way of social file sharing"
  	========================================
 
-Please visit: http://www.tribler.org/. Tribler is based on the 
-ABC BitTorrent client, please visit http://pingpong-abc.sourceforge.net/.
+Please visit: http://www.tribler.org/
 
 LICENSE
 -------
@@ -42,7 +41,7 @@ INSTALLING ON LINUX
 1. Unpack the M2Crypto library, build and install:
 
         python2.4 setup.py build
-	python2.4 setup.py install 
+	    python2.4 setup.py install 
 		
    When you've installed OpenSSL 0.9.8 in a non-standard directory, you must
    edit setup.py to point to this location. To install M2Crypto in another
@@ -54,13 +53,15 @@ INSTALLING ON LINUX
    to point to that directory. PYTHONPATH can also be used to point
    to the UNICODE version of wxPython when multiple versions are installed.
    E.g. 
-	PYTHONPATH=/arno/pkgs/python-2.4.3/lib/python2.4/site-packages/wx-2.6-gtk2-unicode/
+	PYTHONPATH=/arno/pkgs/python-2.4.3/lib/python2.4/site-packages/wx-2.8-gtk2-unicode/
 
 2. Unpack the main source code
 
 3. Tribler can now be started by running
 
-	python2.4 abc.py
+    PYTHONPATH=$PYTHONPATH:.
+    export PYTHONPATH
+	python2.4 Tribler/Main/tribler.py
 	
    from the source directory. 
    
@@ -83,7 +84,7 @@ disappeared. So the procedure is simply:
 5. Download and uncompress Tribler source codes 
 
 6. Run 
-	C:\Python24\python2.4.exe abc.py
+	C:\Python24\python2.4.exe Tribler\Main\tribler.py
    from the source code directory.
 
 ***** Only if you need to use an older Python, read on ****
@@ -156,7 +157,7 @@ Tips if you want to compile M2Crypto yourself using Microsoft Visual Studio
 6. Now run
 
         C:\Python24\python2.4 setup.py build
-	C:\Python24\python2.4 setup.py install 
+	    C:\Python24\python2.4 setup.py install 
 
    (In some cases, python won't find the __m2crypto.pyd installed. In that
    case copy it from \python25\lib\site-packages\M2Crypto\__m2crypto.pyd to 

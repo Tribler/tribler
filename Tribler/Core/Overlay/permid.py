@@ -63,6 +63,10 @@ def verify_data(plaintext,permid,blob):
     digest = sha(plaintext).digest()
     return pubkey.verify_dsa_asn1(digest,blob)
 
+def verify_data_pubkeyobj(plaintext,pubkey,blob):
+    digest = sha(plaintext).digest()
+    return pubkey.verify_dsa_asn1(digest,blob)
+
 
 # Internal functions
 

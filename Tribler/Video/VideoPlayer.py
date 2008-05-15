@@ -10,7 +10,7 @@ from traceback import print_exc,print_stack
 import urlparse
 
 from Tribler.Video.__init__ import *
-from Tribler.Video.VideoServer import VideoHTTPServer,MovieFileTransport,MovieTransportDecryptWrapper
+from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.Progress import ProgressBar,BufferInfo, ProgressInf
 from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 from utils import win32_retrieve_video_play_command,quote_program_path
@@ -77,70 +77,6 @@ class VideoPlayer:
     def set_parentwindow(self,parentwindow):
         self.parentwindow = parentwindow
 
-    def play(self,ABCTorrentTemp):
-        self.determine_playbackmode()
-        
-        if self.is_video_torrent(ABCTorrentTemp):
-            
-            enc = stat(ABCTorrentTemp)
-            videoinfo = self.select_video(ABCTorrentTemp,enc)
-            if videoinfo is None:
-                return # error already given
-
-            bitrate = videoinfo['bitrate']
-            if bitrate is None and not ABCTorrentTemp.status.completed:
-                video_analyser_path = self.utility.config.Read('videoanalyserpath')
-                if not os.access(video_analyser_path,os.F_OK):
-                    self.onError(self.utility.lang.get('videoanalysernotfound'),video_analyser_path,self.utility.lang.get('videoanalyserwhereset'))
-                    return
-
-            # The VLC MediaControl API's playlist_add_item() doesn't accept unicode filenames.
-            # So if the file to play is unicode we play it via HTTP. The alternative is to make
-            # Tribler save the data in non-unicode filenames.
-            #
-            flag = self.playbackmode == PLAYBACKMODE_INTERNAL and not self.is_ascii_filename(videoinfo['outpath'])
-            
-            if ABCTorrentTemp.status.completed:
-                if enc or flag:
-                    self.play_via_http(ABCTorrentTemp,videoinfo)
-                else:
-                    self.play_from_file(ABCTorrentTemp,videoinfo)
-            else:
-                self.play_vod_via_http(ABCTorrentTemp,videoinfo)
-        else:
-            self.onWarning(self.utility.lang.get('notvideotorrent'),ABCTorrentTemp.files.dest)
-            if DEBUG:
-                print >>sys.stderr,"videoplay: Not video torrent"
-
-
-    def is_video_torrent(self,ABCTorrentTemp):
-        filelist = find_video_on_disk(ABCTorrentTemp,stat(ABCTorrentTemp),getdest=False)
-        if filelist is None or len(filelist) == 0:
-            return False
-        else:
-            return True
-
-    def play_via_http(self,ABCTorrentTemp,videoinfo):
-        if DEBUG:
-            print >>sys.stderr,"videoplay: Playing encrypted file via HTTP"
-
-        videoserver = VideoHTTPServer.getInstance()
-        enc = stat(ABCTorrentTemp)
-        
-        # If encoded the prefix is e.g. .mpg.enc and we want the .mpg
-        dest = videoinfo['outpath']
-        (prefix,ext) = os.path.splitext(dest)
-        if enc and ext == '.enc':
-            (prefix,ext) = os.path.splitext(prefix)
-
-        videourl = self.create_url(videoserver,'/'+os.path.basename(prefix+ext))
-        [mimetype,cmd] = self.get_video_player(ext,videourl)
-        
-        movietransport = MovieFileTransport(dest,mimetype,seek(ABCTorrentTemp))
-
-        videoserver.set_movietransport(movietransport)
-        self.launch_video_player(cmd)
-        
 
     def play_from_file(self,ABCTorrentTemp,videoinfo):
         """ Play video file from disk """
@@ -156,97 +92,6 @@ class VideoPlayer:
         
         self.launch_video_player(cmd)
 
-
-    def play_vod_via_http(self,ABCTorrentTemp,videoinfo):
-        """ Called by GUI thread when clicking "Play ASAP" button """
-
-        # ARNOCOMMENT: Rewrite this using Core API. See SwarmPlayer for examples
-
-        # For multi-file torrent: when the user selects a different file, play that
-        oldvideoinfo = ABCTorrentTemp.get_videoinfo()
-        
-        # 1. (Re)Start torrent in VOD mode
-        switchfile = oldvideoinfo is not None and oldvideoinfo['index'] != videoinfo['index']
-        if not ABCTorrentTemp.get_on_demand_download() or switchfile:
-            
-            if switchfile:
-                if self.playbackmode == PLAYBACKMODE_INTERNAL:
-                    self.parentwindow.reset_videopanel()
-            
-            [proceed,othertorrents] = self.warn_user(ABCTorrentTemp,videoinfo)
-            if not proceed:
-                # User bailing out
-                return
-
-            if DEBUG:
-                print >>sys.stderr,"videoplay: Enabling VOD on torrent",ABCTorrentTemp
-
-            progressinf = ProgressInf()
-            activetorrents = self.utility.torrents["active"].keys()
-            
-            if DEBUG:
-                for t in activetorrents:
-                    print >>sys.stderr,"videoplay: other torrents: Currently active is",t.files.dest
-            
-            if othertorrents == OTHERTORRENTS_STOP or othertorrents == OTHERTORRENTS_STOP_RESTART:
-                self.utility.actionhandler.procSTOP()
-            else:
-                self.utility.actionhandler.procSTOP([ABCTorrentTemp])
-                
-            if othertorrents == OTHERTORRENTS_STOP_RESTART:
-                if ABCTorrentTemp in activetorrents:
-                    activetorrents.remove(ABCTorrentTemp)
-                ABCTorrentTemp.set_previously_active_torrents(activetorrents)
-                
-            ABCTorrentTemp.enable_on_demand_download()
-            ABCTorrentTemp.set_videoinfo(videoinfo)
-            ABCTorrentTemp.set_progressinf(progressinf)
-            # The resume procedure does not start the BT1Download class right away,
-            # it must wait for the hashchecks scheduled on the network thread to
-            # finish.    
-            #ABCTorrentTemp.set_vod_started_callback(self.vod_started)
-            self.utility.actionhandler.procRESUME([ABCTorrentTemp])
-            
-
-    def vod_start_playing(self,ABCTorrentTemp): 
-        """ Called by GUI thread when clicking "Play" button in Library view """
-        
-        if DEBUG:
-            print >>sys.stderr,"videoplay: VOD started"
-            
-        if currentThread().getName() != "MainThread":
-            print >>sys.stderr,"videoplay: vod_play called by non-MainThread!",currentThread().getName()
-            print_stack()
-            
-        progressinf = ABCTorrentTemp.get_progressinf()
-        videoinfo = ABCTorrentTemp.get_videoinfo()
-        
-        # 2. Setup video source
-        enc = stat(ABCTorrentTemp)
-        dest = videoinfo['inpath']
-        (prefix,ext) = os.path.splitext(dest)
-        if enc and ext == '.enc':
-            (prefix,ext) = os.path.splitext(prefix)
-            
-        videoserver = VideoHTTPServer.getInstance()
-        videourl = self.create_url(videoserver,'/'+os.path.basename(prefix+ext))
-        [mimetype,cmd] = self.get_video_player(ext,videourl)
-
-        movietransport = ABCTorrentTemp.get_moviestreamtransport()
-        movietransport.set_mimetype(mimetype)
-        
-        if seek(ABCTorrentTemp) is not None:
-            mtwrap = MovieTransportDecryptWrapper(movietransport,seek(ABCTorrentTemp))
-        else:
-            mtwrap = movietransport
-
-        videoserver.set_movietransport(mtwrap)
- 
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            swapin_videopanel_gui_callback_lambda = lambda:self.swapin_videopanel_gui_callback(cmd,play=True,progressinf=progressinf)
-            wx.CallAfter(swapin_videopanel_gui_callback_lambda)
-        else:
-            wx.CallAFter(self.progress4ext_gui_callback,progressinf,cmd)
  
     def swapin_videopanel_gui_callback(self,cmd,play=False,progressinf=None):
         """ Called by GUI thread """
@@ -273,35 +118,6 @@ class VideoPlayer:
             # TODO: Close separate progress window
             pass
  
-
-    def vod_failed(self,ABCTorrentTemp):
-        """ Called by network thread """
-        if DEBUG:
-            print >>sys.stderr,"videoplay: VOD failed"
-        wx.CallAfter(self.vod_stopped,ABCTorrentTemp)
-
-    def vod_download_completed(self,ABCTorrentTemp):
-        """ The video is in """
-
-        if currentThread().getName() != "MainThread":
-            print >>sys.stderr,"videoplay: vod_download_completed called by nonMainThread!",currentThread().getName()
-            print_stack()
-
-        ABCTorrentTemp.disable_on_demand_download()
-        prevactivetorrents = ABCTorrentTemp.get_previously_active_torrents()
-        if prevactivetorrents is not None:
-            if DEBUG:
-                for t in prevactivetorrents:
-                    print >>sys.stderr,"videoplay: download_completed: Reactivating",t.files.dest
-            self.utility.actionhandler.procRESUME(prevactivetorrents)
-
-
-    def vod_back_to_standard_dlmode(self,ABCTorrentTemp):
-        self.vod_download_completed(ABCTorrentTemp)
-        self.vod_stopped(ABCTorrentTemp)
-        self.utility.actionhandler.procSTOP([ABCTorrentTemp])
-        self.utility.actionhandler.procRESUME([ABCTorrentTemp])
-
 
     def play_url(self,url):
         """ Play video file from disk """
@@ -365,7 +181,7 @@ class VideoPlayer:
 
     def get_video_player(self,ext,videourl):
 
-        mimetype = 'video/mpeg'
+        mimetype = None
         video_player_path = self.utility.config.Read('videoplayerpath')
 
         if DEBUG:
@@ -374,10 +190,16 @@ class VideoPlayer:
         if sys.platform == 'win32':
             # TODO: Use Python's mailcap facility on Linux to find player
             [mimetype,playcmd] = win32_retrieve_video_play_command(ext,videourl)
-            if mimetype is None:
-                mimetype = 'video/mpeg'
             if DEBUG:
                 print >>sys.stderr,"videoplay: Win32 reg said playcmd is",playcmd
+                
+        if mimetype is None:
+            if ext == '.avi':
+                mimetype = 'video/avi'
+            elif ext == '.mpegts':
+                mimetype = 'video/mp2t'
+            else:
+                mimetype = 'video/mpeg'
 
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             print >>sys.stderr,"videoplay: using internal player"
@@ -766,7 +588,4 @@ def return_feasible_playback_modes(syspath):
     else:
         l.append(PLAYBACKMODE_EXTERNAL_DEFAULT)
     return l
-
-def is_vodable(ABCTorrentTemp):
-    return (len(find_video_on_disk(ABCTorrentTemp,stat(ABCTorrentTemp),getdest=False)) > 0)
 

@@ -16,6 +16,8 @@ from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 
+# LAYERVIOLATION
+from Tribler.Video.utils import win32_retrieve_video_play_command
 
 DEBUG = True
 
@@ -150,13 +152,17 @@ class DownloadImpl:
         kvconfig = copy.copy(self.dlconfig)
 
         # Define which file to DL in VOD mode
-        if self.dlconfig['mode'] == DLMODE_VOD:
-            vod_usercallback_wrapper = lambda mimetype,stream,filename:self.session.uch.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],mimetype,stream,filename)
-            
+        vodfileindex = {'index':-1,'inpath':None,'bitrate':0.0,'live':False,'usercallback':None,'outpath':None}
+
+        # --- streaming settings
+        live = self.get_def().get_live()
+        if self.dlconfig['mode'] == DLMODE_VOD or self.dlconfig['video_source']:
+            # video file present which is played or produced
             multi = False
             if 'files' in metainfo['info']:
                 multi = True
             
+            # Determine bitrate
             if multi and len(self.dlconfig['selected_files']) == 0:
                 # Multi-file torrent, but no file selected
                 raise VODNoFileSelectedInMultifileTorrentException() 
@@ -172,17 +178,21 @@ class DownloadImpl:
                 idx = self.get_def().get_index_of_file_in_files(file)
                 bitrate = self.get_def().get_bitrate(file)
 
-            live = self.get_def().get_live()
-            vodfileindex = {'index':idx,'inpath':file,'bitrate':bitrate,'live':live,'usercallback':vod_usercallback_wrapper}
+            # Determine MIME type
+            mimetype = self.get_mimetype(file)
+            # Arno: don't encode mimetype in lambda, allow for dynamic 
+            # determination by videoanalyser
+            vod_usercallback_wrapper = lambda mimetype,stream,filename,length:self.session.uch.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],mimetype,stream,filename,length)
+            
+            vodfileindex = {'index':idx,'inpath':file,'bitrate':bitrate,'live':live,'mimetype':mimetype,'usercallback':vod_usercallback_wrapper}
+        elif live:
+            # live torrents must be streamed or produced, but not just downloaded
+            raise LiveTorrentRequiresUsercallbackException()
         else:
-            if self.get_def().get_live():
-                # live torrents must be streamed
-                raise LiveTorrentRequiresUsercallbackException()
+            mimetype = 'application/octet-stream'
+            vodfileindex = {'index':-1,'inpath':None,'bitrate':0.0,'live':False,'mimetype':mimetype,'usercallback':None}
 
-            vodfileindex = {'index':-1,'inpath':None,'bitrate':0.0,'live':False,'usercallback':None}
 
-        vodfileindex['outpath'] = None
-        
         # Delegate creation of engine wrapper to network thread
         network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcreatedcallback,pstate,lmvodplayablecallback)
         self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,0) 
@@ -228,8 +238,9 @@ class DownloadImpl:
             if self.sd is None:
                 ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
+                
                 (status,stats,logmsgs,coopdl_helpers) = self.sd.get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,0.0,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,coopdl_helpers=coopdl_helpers)
+                ds = DownloadState(self,status,self.error,0.0,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,coopdl_helpers=coopdl_helpers,peerid=self.sd.peerid,videoinfo=self.sd.videoinfo)
                 self.progressbeforestop = ds.get_progress()
                 
             if sessioncalling:
@@ -372,7 +383,7 @@ class DownloadImpl:
                 for filename in self.dlconfig['selected_files']:
                     filerec = maketorrent.get_torrentfilerec_from_metainfo(filename,metainfo)
                     savepath = maketorrent.torrentfilerec2savefilename(filerec)
-                    diskfn = os.path.join(self.get_content_dest(),savepath)
+                    diskfn = maketorrent.savefilenames2finaldest(self.get_content_dest(),savepath)
                     f2dtuple = (filename,diskfn)
                     f2dlist.append(f2dtuple)
                 
@@ -455,4 +466,26 @@ class DownloadImpl:
         """ Returns the file (single-file torrent) or dir (multi-file torrent)
         to which the downloaded content is saved. """
         return os.path.join(self.dlconfig['saveas'],self.correctedinfoname)
+    
+    def get_mimetype(self,file):
+        (prefix,ext) = os.path.splitext(file)
+        ext = ext.lower()
+        mimetype = None
+        if sys.platform == 'win32':
+            # TODO: Use Python's mailcap facility on Linux to find player
+            try:
+                [mimetype,playcmd] = win32_retrieve_video_play_command(ext,file)
+                if DEBUG:
+                    print >>sys.stderr,"videoplay: Win32 reg said playcmd is",playcmd
+            except:
+                print_exc()
+                
+        if mimetype is None:
+            if ext == '.avi':
+                mimetype = 'video/avi'
+            elif ext == '.mpegts':
+                mimetype = 'video/mp2t'
+            else:
+                mimetype = 'video/mpeg'
+        return mimetype
     

@@ -18,11 +18,12 @@ from Tribler.Core.exceptions import *
 from Tribler.Core.BitTornado.__init__ import createPeerID
 from Tribler.Core.BitTornado.download_bt1 import BT1Download
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
+from Tribler.Core.Video.VideoStatus import VideoStatus
 
 
 SPECIAL_VALUE = 481
 
-DEBUG = True
+DEBUG = False
 
 class SingleDownload:
     """ This class is accessed solely by the network thread """
@@ -45,7 +46,7 @@ class SingleDownload:
             else:
                 self.hashcheckfrac = 0.0
     
-            peerid = createPeerID()
+            self.peerid = createPeerID()
             #print >>sys.stderr,"SingleDownload: __init__: My peer ID is",`peerid`
     
             self.dow = BT1Download(self.hashcheckprogressfunc,
@@ -57,7 +58,7 @@ class SingleDownload:
                             kvconfig,
                             metainfo, 
                             infohash,
-                            peerid,
+                            self.peerid,
                             self.dlrawserver,
                             listenport,
                             videoanalyserpath
@@ -68,12 +69,21 @@ class SingleDownload:
             #    print >>sys.stderr,"SingleDownload: dow.saveAs returned",file
             
             # Set local filename in vodfileindex
+            self.videoinfo = None
+            self.videostatus = None
+
             if vodfileindex is not None:
                 index = vodfileindex['index']
                 if index == -1:
                     index = 0
                 vodfileindex['outpath'] = self.dow.get_dest(index)
-            self.dow.set_videoinfo(vodfileindex)
+                self.videoinfo = vodfileindex
+                if 'live' in metainfo['info']:
+                    authparams = metainfo['info']['live']
+                else:
+                    authparams = None
+                self.videostatus = VideoStatus(metainfo['info']['piece length'],self.dow.files,vodfileindex,authparams)
+                self.dow.set_videoinfo(vodfileindex,self.videostatus)
 
             #if DEBUG:
             #    print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex
@@ -182,6 +192,9 @@ class SingleDownload:
             return (DLSTATUS_HASHCHECKING,stats,logmsgs,coopdl_helpers)
         else:
             return (None,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs,coopdl_helpers)
+
+    def get_infohash(self):
+        return self.infohash
 
     #
     # Persistent State

@@ -195,17 +195,46 @@ class TorrentDef(Serializable,Copyable):
                 self.input['files'].remove(d)
                 break
 
-    def create_live(self,name,bitrate,playtime="1:00:00"):
+    def create_live(self,name,bitrate,playtime="1:00:00",authconfig=None):
         """ Create a live streaming multimedia torrent with a specific bitrate.
+        
+        The authconfig is a dictionary with the key information required to
+        allow authentication of packets from the source. At the moment it
+        has one required field "authmethod" with a two allowed values:
+        <pre>
+        LIVE_AUTHMETHOD_NONE   No source authentication.
+        LIVE_AUTHMETHOD_ECDSA  A ECDSA signature of 64 bytes is put in each piece.
+        As a result, the content in each packet is get_piece_length()-64, so
+        that this into account when selecting the bitrate.
+        </pre>
+        When the authmethod field has value LIVE_AUTHMETHOD_ECDSA there must 
+        also be a "keypair" field containing an Elliptic Curve keypair 
+        (M2Crypto.EC) object.
+        
+        The authconfig info is stored in the 'info' part of the torrent file
+        when finalized, so changing the authentication info changes the
+        identity (infohash) of the torrent.
+         
         @param name The name of the stream.
         @param bitrate The desired bitrate in bytes per second.
         @param playtime The virtual playtime of the stream as a string in 
         [hh:]mm:ss format.
+        @param authconfig Parameters for the authentication of the source
         """
         secs = parse_playtime_to_secs( playtime )
-        self.input['live'] = 1
         self.input['bps'] = bitrate
         self.input['playtime'] = playtime # size of virtual content 
+
+        # For source auth
+        authparams = {}
+        if authconfig is None:
+            authparams['authmethod'] = LIVE_AUTHMETHOD_NONE
+        else: 
+            authparams['authmethod'] = authconfig.get_method()
+            authparams['pubkey'] = str(authconfig.get_pubkey())
+
+        self.input['live'] = authparams 
+
 
         d = {'inpath':name,'outpath':None,'playtime':None,'length':bitrate*secs}
         self.input['files'].append(d)
@@ -382,8 +411,12 @@ class TorrentDef(Serializable,Copyable):
         return self.input['httpseeds']
 
     def set_piece_length(self,value):
-        """ Set piece size (default = automatic)
-        @param value A number of bytes (or 0 for automatic)
+        """ Set the size of the pieces in which the content is traded. 
+        The piece size must be a multiple of the chunk size, the unit in which
+        it is transmitted, which is 16K by default (see 
+        DownloadConfig.set_download_slice_size()). The default is automatic 
+        (value 0).
+        @param value A number of bytes as per the text.
         """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
@@ -479,6 +512,26 @@ class TorrentDef(Serializable,Copyable):
         """ Returns whether this definition is for a live torrent.
         @return Boolean. """
         return 'live' in self.input and self.input['live']
+
+    def get_live_authmethod(self):
+        """ Returns the method for authenticating the source.
+        <pre>
+        LIVE_AUTHMETHOD_ECDSA
+        </pre>
+        @return String
+        """
+        return 'live' in self.input and self.input['live']['authmethod']
+
+    def get_live_pubkey(self):
+        """ Returns the public key used for authenticating packets from
+        the source.
+        @return A public key in DER.
+        """
+        if 'live' in self.input and 'pubkey' in self.input['live']:
+            return self.input['live']['pubkey']
+        else:
+            return None
+        
 
     def finalize(self,userabortflag=None,userprogresscallback=None):
         """ Create BT torrent file by reading the files added with

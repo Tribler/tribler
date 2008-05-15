@@ -136,6 +136,8 @@ def validTorrentFile(metainfo):
     
     if 'root hash' in info:
         infokeys = ['name','piece length', 'root hash']
+    elif 'live' in info:
+        infokeys = ['name','piece length', 'live']
     else:
         infokeys = ['name','piece length', 'pieces']
     for key in infokeys:
@@ -151,6 +153,13 @@ def validTorrentFile(metainfo):
         rh = info['root hash']
         if type(rh) != StringType or len(rh) != 20:
             raise ValueError('info roothash is not 20-byte string')
+    elif 'live' in info:
+        live = info['live']
+        if type(live) != DictType:
+            raise ValueError('info live is not a dict')
+        else:
+            if 'authmethod' not in live:
+                raise ValueError('info live misses key'+'authmethod')
     else:
         p = info['pieces']
         if type(p) != StringType or len(p) % 20 != 0:

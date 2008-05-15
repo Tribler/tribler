@@ -83,6 +83,12 @@ class Bitfield:
     def copy(self):
         return self.array[:self.length]
 
+    def toboollist(self):
+        bools = [False] * self.length
+        for piece in range(0,self.length):
+            bools[piece] = self.array[piece]
+        return bools
+
 
 def test_bitfield():
     try:

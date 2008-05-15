@@ -25,4 +25,11 @@ then
 fi
 
 export PYTHONPATH=lib/Library/Frameworks/Python.framework/Versions/$PYTHONVER/lib/python$PYTHONVER/site-packages
-exec $PYTHON $@
+
+# use a hardlink so the script is in the current directory, otherwise
+# python will start to chdir all over the place
+rm -f tmp.py
+ln $1 tmp.py
+shift
+$PYTHON tmp.py $@
+

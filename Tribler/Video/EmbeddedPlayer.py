@@ -224,6 +224,13 @@ class EmbeddedPlayer(wx.Panel):
         self.item = item
         if DEBUG:
             print >>sys.stderr,"embedplay: Telling player to play",item.getPath(),currentThread().getName()
+           
+        # Arno: hack: disable dragging when not playing from file.
+        if item.getPath().startswith('http:'):
+           self.slider.DisableDragging()
+        else:
+           self.slider.EnableDragging()
+             
         self.mediactrl.Load(self.item.getPath())
         self.update = True
         wx.CallAfter(self.slider.SetValue,0)
@@ -459,6 +466,12 @@ class VLCMediaCtrl(wx.Window):
         params += ["--no-drop-late-frames"] # Arno: 2007-11-19: don't seem to work as expected DEBUG
         params += ["--no-skip-frames"]
         params += ["--quiet-synchro"]
+        # VLC wiki says: "apply[ing] deinterlacing even if the original is not
+        # interlaced, is a really bad idea."
+        #params += ["--vout-filter","deinterlace"]
+        #params += ["--deinterlace-mode","linear"]
+        #params += ["--demux=ts"]
+        #params += ["--codec=mp4"]
         params += ["--key-fullscreen", "Esc"] # must come last somehow on Win32
 
         if sys.platform == 'darwin':
@@ -466,6 +479,7 @@ class VLCMediaCtrl(wx.Window):
                  # location of plugins: next to tribler.py
                  os.path.abspath(os.path.dirname(sys.argv[0]))
                  )]
+            
         self.media = vlc.MediaControl(params)
 
         self.visinit = False
@@ -542,6 +556,7 @@ class VLCMediaCtrl(wx.Window):
         #self.media.playlist_clear()
         #self.visinit = False
         #self.media = vlc.MediaControl()# ["--key-fullscreen","Esc"])
+        #print >>sys.stderr,"VLCMediaCtrl: LOADING",url
         self.media.playlist_add_item(url)
 
 

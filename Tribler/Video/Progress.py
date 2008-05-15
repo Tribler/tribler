@@ -222,6 +222,7 @@ class ProgressSlider(wx.Panel):
         self.sliderWidth = 0
         self.range = (0,1)
         self.dragging = False
+        self.allowDragging = False
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
@@ -238,6 +239,9 @@ class ProgressSlider(wx.Panel):
         self.Refresh()
     
     def OnMouse(self, event):
+        if not self.allowDragging:
+            return
+        
         pos = event.GetPosition()
         if event.ButtonDown():
             if self.onSliderButton(pos):
@@ -301,8 +305,8 @@ class ProgressSlider(wx.Panel):
             last_buffered_piece += 1
         
         self.videobuffer = last_buffered_piece/float(len(pieces_complete)) 
-        print >> sys.stderr, '%d/%d pieces continuous buffer (frac %f)' % \
-            (last_buffered_piece, len(pieces_complete), self.videobuffer)
+        #print >> sys.stderr, 'progress: %d/%d pieces continuous buffer (frac %f)' % \
+        #    (last_buffered_piece, len(pieces_complete), self.videobuffer)
         
                     
             
@@ -390,6 +394,12 @@ class ProgressSlider(wx.Panel):
 
         dc.EndDrawing()
 
+    def EnableDragging(self):
+        self.allowDragging = True
+        
+    def DisableDragging(self):
+        self.allowDragging = False
+  
   
 class VolumeSlider(wx.Panel):
     

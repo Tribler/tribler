@@ -4,6 +4,7 @@
 import os
 import sys
 
+# LAYERVIOLATION
 from Tribler.Main.Utility.regchecker import Win32RegChecker
 
 DEBUG = False

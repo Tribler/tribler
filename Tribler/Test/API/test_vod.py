@@ -24,9 +24,8 @@ def vod_ready_callback(mimetype,stream):
     stream.close()
     """
 
-    # HACK: TODO: make to work with file-like interface
     videoserv = VideoHTTPServer.getInstance()
-    videoserv.set_movietransport(stream.mt)
+    videoserv.set_inputstream('video/mpeg',stream,None)
     
 
 if __name__ == "__main__":

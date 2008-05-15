@@ -25,7 +25,7 @@ class DownloadState(Serializable):
     
     cf. libtorrent torrent_status
     """
-    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,coopdl_helpers=None):
+    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,coopdl_helpers=None,peerid=None,videoinfo=None):
         """ Internal constructor.
         @param download The Download this state belongs too.
         @param status The status of the Download (DLSTATUS_*)
@@ -35,7 +35,9 @@ class DownloadState(Serializable):
         The get_pieces_complete() returns only completeness information about 
         this range. This is used for playing a video in a multi-torrent file.
         @param logmsgs A list of messages from the BT engine which may be of 
+        @param peerid Our own peer id in the BT download swarm.
         interest to the user. E.g. connection to tracker failed.
+        @param videoinfo Dictionary with video information.
         """
         
         #print >>sys.stderr,"DownloadState.__init__",`download.get_def().get_name()`,"status",status,"error",error,"progress",progress,"stats",`stats`
@@ -44,6 +46,8 @@ class DownloadState(Serializable):
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
         self.coopdl_helpers = coopdl_helpers
+        self.peerid = peerid
+        self.videoinfo = videoinfo
         if stats is None:
             # No info available yet from download engine
             self.error = error # readonly access
@@ -111,7 +115,21 @@ class DownloadState(Serializable):
                     self.status = DLSTATUS_SEEDING
                     self.progress = 1.0
 
-    
+    def get_peerid(self):
+        """ Returns our own peer id in this swarm, or None if unknown.
+        @return String or None.
+        """
+        return self.peerid
+
+    def get_videoinfo(self):
+        """ Returns information about the video being streamed, or {} if unknown.
+        @return Dict.
+        """
+        if not self.videoinfo:
+            return {}
+        else:
+            return self.videoinfo
+
     def get_download(self):
         """ Returns the Download object of which this is the state """
         return self.download
@@ -250,6 +268,25 @@ class DownloadState(Serializable):
 #        """
 #        if self.stats is not None:
 #            return self.stats['vod_duration']
+
+    def get_vod_stats(self):
+        """ Returns a dictionary of collected VOD statistics. The keys contained are:
+        <pre>
+        'played' = number of pieces played
+        'late' = number of pieces arrived after they were due
+        'dropped' = number of pieces lost
+        'stall' = estimation of time the player stalled, waiting for pieces (seconds)
+        'pos' = playback position
+        'prebuf' = amount of prebuffering time that was needed (seconds,
+                   set when playback starts)
+        </pre>, or no keys if no VOD is in progress.
+        @return Dict.
+        """
+        if self.stats is None:
+            return {}
+        else:
+            return self.stats['vod_stats']
+
 
 
     def get_log_messages(self):

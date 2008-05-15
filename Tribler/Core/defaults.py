@@ -157,6 +157,8 @@ dldefaults['exclude_ips'] = ''
 dldefaults['mode'] = 0
 dldefaults['vod_usercallback'] = None
 dldefaults['video_source'] = None
+dldefaults['video_ratelimit'] = 0
+dldefaults['video_source_authconfig'] = None
 dldefaults['selected_files'] = []
 dldefaults['ut_pex_max_addrs_from_peer'] = 16
 

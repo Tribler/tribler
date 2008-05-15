@@ -83,6 +83,8 @@ class DownloaderFeedback:
             # The total download speed of the peer as measured from its
             # HAVE messages.
             a['speed'] = d.connection.download.peermeasure.get_rate()
+            a['g2g'] = c.use_g2g
+            a['g2g_score'] = c.g2g_score()
 
             l.append(a)                                               
 
@@ -127,6 +129,7 @@ class DownloaderFeedback:
             s['vod_prebuf_frac'] = 1.0
             s['vod_playable'] = True
             s['vod_playable_after'] = 0.0
+            s['vod_stats'] = {}
 #            if self.voddownload:
 #                s['vod_duration'] = self.voddownload.get_duration()
 #            else:
@@ -150,11 +153,15 @@ class DownloaderFeedback:
             s['vod_playable'] = self.voddownload.is_playable()
             s['vod_playable_after'] = self.voddownload.get_playable_after()
             s['vod'] = True
+            s['vod_stats'] = self.voddownload.get_stats()
+#            s['vod_duration'] = self.voddownload.get_duration()
         else:
             s['vod_prebuf_frac'] = 0.0
             s['vod_playable'] = False
             s['vod_playable_after'] = float(2 ** 31)
             s['vod'] = False
+            s['vod_stats'] = {}
+#            s['vod_duration'] = None
         return s        
 
 

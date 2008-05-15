@@ -10,6 +10,7 @@ from select import error
 from threading import Event, RLock
 from clock import clock
 import sys
+import time
 
 try:
     True
@@ -152,7 +153,12 @@ class RawServer:
                             if DEBUG:
                                 if func.func_name != "_bgalloc":
                                     print >> sys.stderr,"RawServer:f",func.func_name
+                            #st = time.time()
                             func()
+                            #et = time.time()
+                            #diff = et - st
+                            #print >>sys.stderr,func,"took %.5f" % (diff)
+                            
                         except (SystemError, MemoryError), e:
                             self.failfunc(e)
                             return
@@ -163,6 +169,7 @@ class RawServer:
                             if DEBUG:
                                 print >> sys.stderr,"rawserver: func: ERROR exception"
                                 print_exc()
+                            pass
                         except Exception,e:
                             if DEBUG:
                                 print >> sys.stderr,"rawserver: func: any exception"

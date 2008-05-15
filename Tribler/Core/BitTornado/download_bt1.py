@@ -37,9 +37,10 @@ from __init__ import createPeerID
 from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from Tribler.Core.Merkle.merkle import create_fake_hashes
 from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
-from Tribler.Core.Video.VideoOnDemand import MovieSelector,MovieOnDemandTransporter,PiecePickerVOD
-from Tribler.Core.Video.VideoSource import VideoSourceTransporter
-from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename
+from Tribler.Core.Video.PiecePickerStreaming import PiecePickerVOD
+from Tribler.Core.Video.VideoOnDemand import MovieOnDemandTransporter
+from Tribler.Core.Video.VideoSource import VideoSourceTransporter,RateLimitedVideoSourceTransporter,PiecePickerSource,ECDSAAuthenticator
+from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename,savefilenames2finaldest
 
 # 2fastbt_
 from Tribler.Core.CoopDownload.Coordinator import Coordinator
@@ -80,7 +81,7 @@ class BT1Download:
         #self.infohash = sha(bencode(self.info)).digest()
         # Merkle: Create list of fake hashes. This will be filled if we're an
         # initial seeder
-        if self.info.has_key('root hash'):
+        if self.info.has_key('root hash') or self.info.has_key('live'):
             self.pieces = create_fake_hashes(self.info)
         else:
             self.pieces = [self.info['pieces'][x:x+20]
@@ -102,6 +103,8 @@ class BT1Download:
         self.tcp_ack_fudge = config['tcp_ack_fudge']
         
         self.play_video = (config['mode'] == DLMODE_VOD)
+        self.am_video_source = bool(config['video_source'])
+        self.use_g2g = self.play_video or self.am_video_source
         self.videoinfo = None
         self.videoanalyserpath = videoanalyserpath
         self.voddownload = None
@@ -137,7 +140,10 @@ class BT1Download:
                 self.config['coopdl_role'] = ''
                 self.config['coopdl_coordinator_permid'] = ''
 
-            if self.play_video:
+            if self.am_video_source:
+                self.picker = PiecePickerSource(self.len_pieces, config['rarest_first_cutoff'], 
+                             config['rarest_first_priority_cutoff'], helper = self.helper)
+            elif self.play_video:
                 # Jan-David: Start video-on-demand service
                 self.picker = PiecePickerVOD(self.len_pieces, config['rarest_first_cutoff'], 
                              config['rarest_first_priority_cutoff'], helper = self.helper, piecesize=self.piecesize)
@@ -154,9 +160,12 @@ class BT1Download:
 
         #print >>sys.stderr,"download_bt1.BT1Download: play_video is",self.play_video
 
-    def set_videoinfo(self,videoinfo):
+    def set_videoinfo(self,videoinfo,videostatus):
         self.videoinfo = videoinfo
+        self.videostatus = videostatus
 
+        if self.play_video:
+            self.picker.set_videostatus( self.videostatus )
 
     def checkSaveLocation(self, loc):
         if self.info.has_key('length'):
@@ -222,7 +231,7 @@ class BT1Download:
             files = []
             for x in self.info['files']:
                 savepath = torrentfilerec2savefilename(x)
-                full = os.path.join(file,savepath)
+                full = savefilenames2finaldest(file,savepath)
                 # Arno: TODO: this sometimes gives too long filenames for 
                 # Windows. When fixing this take into account that 
                 # Download.get_dest_files() should still produce the same
@@ -267,6 +276,12 @@ class BT1Download:
         self.ratemeasure_datarejected(amount)
         if not self.doneflag.isSet():
             self.logerrorfunc('piece %d failed hash check, re-downloading it' % index)
+
+    def _piece_from_live_source(self,index,data):
+        if self.videostatus.live_streaming and self.voddownload is not None:
+            return self.voddownload.piece_from_live_source(index,data)
+        else:
+            return True
 
     def _failed(self, reason):
         self.failed = True
@@ -313,7 +328,7 @@ class BT1Download:
             self.pieces, self.info['piece length'], root_hash, 
             self._finished, self._failed,
             statusfunc, self.doneflag, self.config['check_hashes'],
-            self._data_flunked, self.rawserver.add_task,
+            self._data_flunked, self._piece_from_live_source, self.rawserver.add_task,
             self.config, self.unpauseflag)
             
         if self.selector_enabled:
@@ -322,6 +337,7 @@ class BT1Download:
                                              self.storage, self.storagewrapper, 
                                              self.rawserver.add_task, 
                                              self._failed)
+
             if resumedata:
                 self.fileselector.unpickle(resumedata)
                 
@@ -403,11 +419,13 @@ class BT1Download:
             self._received_data, self.config['snub_time'], self.config['auto_kick'], 
             self._kick_peer, self._ban_peer, scheduler = self.rawserver.add_task)
         self.downloader.set_download_rate(self.config['max_download_rate'])
+
+        self.picker.set_downloader(self.downloader)
 # 2fastbt_
         self.connecter = Connecter(self._make_upload, self.downloader, self.choker, 
-                            self.len_pieces, self.upmeasure, self.config, 
+                            self.len_pieces, self.piecesize, self.upmeasure, self.config, 
                             self.ratelimiter, self.info.has_key('root hash'),
-                            self.rawserver.add_task, self.coordinator, self.helper, self.port, self.play_video,self.infohash)
+                            self.rawserver.add_task, self.coordinator, self.helper, self.port, self.use_g2g,self.infohash)
 # _2fastbt
         self.encoder = Encoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 
@@ -449,20 +467,21 @@ class BT1Download:
             if self.picker.am_I_complete():
                 if DEBUG:
                     print >>sys.stderr,"BT1Download: startEngine: VOD requested, but file complete on disk",self.videoinfo
-                vodplayablefunc(self.videoinfo,True,None,None)
+                vodplayablefunc(self.videoinfo,True,None,None,self.videostatus.selected_movie["size"])
             else:
                 if DEBUG:
                     print >>sys.stderr,"BT1Download: startEngine: Going into VOD mode",self.videoinfo
-                self.picker.set_downloader(self.downloader)
-                self.movieselector = MovieSelector(self.videoinfo,self.fileselector,self.storagewrapper,self.picker)
-                self.voddownload = MovieOnDemandTransporter(self.movieselector,self.picker,self.info['piece length'], self.rawserver, self.videoanalyserpath,vodplayablefunc)
+                self.voddownload = MovieOnDemandTransporter(self,self.videostatus,self.videoinfo,self.videoanalyserpath,vodplayablefunc)
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"
 
-        if self.config['video_source']:
+        if self.am_video_source:
             if DEBUG:
                 print >>sys.stderr,"BT1Download: startEngine: Acting as VideoSource"
-            self.videosourcetransporter = VideoSourceTransporter(self.config['video_source'],self)
+            if self.config['video_ratelimit']:
+                self.videosourcetransporter = RateLimitedVideoSourceTransporter(self.config['video_ratelimit'],self.config['video_source'],self,self.config['video_source_authconfig'])
+            else:
+                self.videosourcetransporter = VideoSourceTransporter(self.config['video_source'],self,self.config['video_source_authconfig'])
             self.videosourcetransporter.start()
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Not a VideoSource"

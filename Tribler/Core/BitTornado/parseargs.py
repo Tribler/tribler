@@ -87,7 +87,10 @@ def parseargs(argv, options, minargs = None, maxargs = None, presets = {}):
                     config[longname] = long(value)
                 elif t is FloatType:
                     config[longname] = float(value)
+                elif t is BooleanType:
+                    config[longname] = bool(value)
                 else:
+                    print 'parseargs: unknown type is',t
                     assert 0
             except ValueError, e:
                 usage('wrong format of --%s - %s' % (key, str(e)))

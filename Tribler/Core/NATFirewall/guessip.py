@@ -53,7 +53,7 @@ def get_my_wan_ip_win32():
     for line in os.popen(ifcmd).readlines():
         words = line.split()
         if len(words) >= 3:
-            if words[0] == 'IP' and words[1] == 'Address.':
+            if (words[0] == 'IP' and words[1] == 'Address.') or (words[1] == 'IP' and words[2] == 'Address.'): # Autoconfiguration entry
                 try:
                     socket.getaddrinfo(words[-1],None,socket.AF_INET)
                     myip = words[-1]

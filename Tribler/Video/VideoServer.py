@@ -11,173 +11,31 @@ from SocketServer import ThreadingMixIn
 import thread
 from threading import RLock,Thread,currentThread
 from traceback import print_exc
-from __init__ import read,BLOCKSIZE
 
 DEBUG = True
-
-
-class MovieTransport:
-    
-    def __init__(self):
-        pass
-        
-    def start( self, bytepos = 0 ):
-        pass
-    
-    def size(self ):
-        pass
-
-    def read(self):
-        pass
-        
-    def stop(self):
-        pass
-
-    def done(self):
-        pass
-    
-    def get_mimetype(self):
-        pass
- 
-    def set_mimetype(self,mimetype):
-        pass
-
- 
-class MovieFileTransport(MovieTransport):
-    
-    def __init__(self,videofilename,mimetype,enckey=None):
-        self.videofilename = videofilename
-        self.mimetype = mimetype
-        self.enckey = enckey
-        self.doneflag = False
-        self.userpos = 0
-
-    def start( self, bytepos = 0 ):
-        """ Initialise to start playing at position `bytepos'. """
-        self.userpos = bytepos
-        self.file = open(self.videofilename,"rb")
-        if self.userpos != 0:
-            self.file.seek(self.userpos,0)
-        
-    def size(self ):
-        statinfo = os.stat(self.videofilename)
-        return statinfo.st_size
-
-    def read(self):
-        diff = self.userpos % BLOCKSIZE
-        if diff != 0:
-            self.file.seek(-diff,1)
-        data = self.file.read(BLOCKSIZE)
-        if len(data) != BLOCKSIZE:
-            self.doneflag = True
-            if len(data)==0:
-                return None
-        if self.enckey is not None:
-            ret = read(data,self.enckey)
-        else:
-            ret = data
-            
-        self.userpos += len(data)-diff
-        return ret[diff:]
-
-    def stop(self):
-        """ Playback is stopped. """
-        self.file.close()
-
-    def done(self):
-        return self.doneflag
-    
-    def get_mimetype(self):
-        return self.mimetype
-
-
-class MovieTransportDecryptWrapper:
-    """ Reads a MovieTransport from byte 0 to end and does decryption
-        and the start-from-offset!=0 behaviour.
-    """
-    
-    def __init__(self,mt,enckey):
-        self.mt = mt
-        self.enckey = enckey
-        self.doneflag = False
-        self.userpos = 0
-
-    def start( self, bytepos = 0 ):
-        """ Initialise to start playing at position `bytepos'. """
-        self.userpos = bytepos
-        self.mt.start(0)
-        
-    def size(self ):
-        return self.mt.size()
-
-    def read(self):
-        diff = self.userpos % BLOCKSIZE
-        data = self.mt.read(BLOCKSIZE)
-        if len(data) != BLOCKSIZE:
-            self.doneflag = True
-            if len(data)==0:
-                return None
-        if self.enckey is not None:
-            ret = read(data,self.enckey)
-        else:
-            ret = data
-            
-        self.userpos += len(data)-diff
-        return ret[diff:]
-
-    def stop(self):
-        """ Playback is stopped. """
-        self.mt.stop()
-
-    def done(self):
-        return self.mt.done()
-    
-    def get_mimetype(self):
-        return self.mt.get_mimetype()
-
-
-
-class MovieTransportFileLikeInterfaceWrapper:
-    """ Provide a file-like interface """
-    def __init__(self,mt):
-        self.mt = mt
-        self.started = False
-        self.done = False
-
-    def read(self,numbytes=None):
-        if self.done:
-            return ''
-        if not self.started:
-            self.mt.start(0)
-        data = self.mt.read(numbytes)
-        if data is None:
-            print >>sys.stderr,"MovieTransportFileLikeInterfaceWrapper: mt read returns None"
-            data = ''
-        self.done = self.mt.done()
-        return data
-        
-    def close(self):
-        self.mt.stop()
-
         
 
 class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
 #class VideoHTTPServer(BaseHTTPServer.HTTPServer):
     __single = None
     
-    def __init__(self):
+    def __init__(self,port):
         if VideoHTTPServer.__single:
             raise RuntimeError, "HTTPServer is Singleton"
         VideoHTTPServer.__single = self 
 
-        self.port = 6880
-        self.lock = RLock()        
-        self.running = False
-        self.movietransport = None
+        self.port = port
         BaseHTTPServer.HTTPServer.__init__( self, ("",self.port), SimpleServer )
         self.daemon_threads = True
         self.allow_reuse_address = True
         #self.request_queue_size = 10
+
+        self.lock = RLock()        
+        
+        self.stream = None
+        self.mimetype = None
+        self.length = None
+        
         self.errorcallback = None
         self.statuscallback = None
         
@@ -198,19 +56,16 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         self.errorcallback = errorcallback
         self.statuscallback = statuscallback
 
-    def set_movietransport(self,newmt):
-        ret = False
+    def set_inputstream(self,mimetype,stream,length):
         self.lock.acquire()
-        if not self.running:
-            self.running = True
-            ret = True
-        self.movietransport = newmt
+        self.stream = stream
+        self.mimetype = mimetype
+        self.length = length
         self.lock.release()
-        return ret
         
-    def get_movietransport(self):
+    def get_inputstream(self):
         self.lock.acquire()
-        ret = self.movietransport
+        ret = (self.mimetype,self.stream,self.length)
         self.lock.release()
         return ret
 
@@ -236,99 +91,69 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 
             #if self.server.statuscallback is not None:
             #    self.server.statuscallback("Player ready - Attempting to load file...")
-            movie = self.server.get_movietransport()
-            if movie is None:
+            (mimetype,stream,length) = self.server.get_inputstream()
+            if stream is None:
                 if DEBUG:
                     print >>sys.stderr,"videoserv: do_GET: No data to serve request"
                 return
-            
-            #return
-            
-            size  = movie.size()
-            mimetype = movie.get_mimetype()
-            if DEBUG:
-                print >>sys.stderr,"videoserv: MIME type is",mimetype
+            print >>sys.stderr,"videoserv: MIME type is",mimetype,"length",length
     
-            firstbyte, lastbyte = 0, size-1
+            # h4x0r until we merge patches from player-release-0.0 branch
+            if mimetype is None and length is None:
+                mimetype = 'video/mp2t'
+            elif mimetype is None:
+                mimetype = 'video/mpeg'
+                
+            #mimetype = 'application/x-mms-framed'
+            #mimetype = 'video/H264'
+                
+            print >>sys.stderr,"videoserv: final MIME type is",mimetype,"length",length
+    
+            firstbyte = 0
+            if length is not None:
+                lastbyte = length-1
     
             range = self.headers.getheader('range')
             if range:
                 type, seek = string.split(range,'=')
                 firstbyte, lastbyte = string.split(seek,'-')
         
-            movie.start( int(firstbyte) )
+            stream.seek( int(firstbyte) )
     
             self.send_response(200)
             self.send_header("Content-Type", mimetype)
-            self.send_header("Content-Length", size)
+            if length is not None:
+                self.send_header("Content-Length", length)
+            else:
+                self.send_header("Transfer-Encoding", "chunked")
             self.end_headers()
-            
-            
-            #f = open("/tmp/video.data","wb")
-            
-            count = 0 
-            
-            first = True
-            while not movie.done():
-                data = movie.read()
-                if not data:
-                    if DEBUG:
-                        print >>sys.stderr,"videoserv: movie.read no data" 
-                    break
-                try:
-                    """
-                    f = self.wfile.fileno()
-                    print >>sys.stderr,"videoserv: fileno",f 
-                    r, w, e = select([], [f], [])
-                    print >>sys.stderr,"videoserv: select returned",r,w,e
-                    """
-                    
-                    """
-                    Arno: 2007-01-06: Testing packetloss: Result: good.
-                    Even at 50% packet loss on the Finland 800 kbps AVI
-                    VideoLan player keeps on playing.
-                    
-                    self.count += 1
-                    if (self.count % 2) == 0:
-                        print >>sys.stderr,"videoserv: NOT WRITING" 
-                        continue
-                    count += 1
-                    if (count % 100) == 50:
-                        time.sleep(10)
-                    """
-                    
-                    ##print >>sys.stderr,"videoserv: writing",len(data) 
-                    self.wfile.write(data)
-                    
-                    #f.write(data)
-                    
-                    #sleep(1)
-                    """
-                    if first:
-                        if self.server.statuscallback is not None:
-                            self.server.statuscallback("Player ready - Attempting to play file...")
-                        first = False
-                    """
-                    
-                except IOError, e:
-                    if DEBUG:
-                        print >>sys.stderr,"videoserv: client closed connection for ", self.path
-                    print_exc(file=sys.stderr)
-                    self.error(e,self.path)
-                    break
-                except socket.error,e:
-                    print_exc(file=sys.stderr)
-                    self.error(e,self.path)
-                    break
-                except Exception,e:
-                    print_exc(file=sys.stderr)
-                    self.error(e,self.path)
-                    break
 
+            count = 0
+            while True:
+                data = stream.read()
+                if length is None:
+                    # If length unknown, use chunked encoding
+                    # http://www.ietf.org/rfc/rfc2616.txt, $3.6.1 
+                    self.wfile.write("%x\r\n" % (len(data)))
+                if len(data) > 0: 
+                    self.wfile.write(data)
+                if length is None:
+                    # If length unknown, use chunked encoding
+                    self.wfile.write("\r\n")
+
+                if len(data) == 0:
+                    if DEBUG:
+                        print >>sys.stderr,"videoserv: stream.read no data" 
+                    break
+                    
+                count += 1
+                if count % 100 == 0:
+                    print >>sys.stderr,"videoserv: writing data % 100"
+                
             if DEBUG:
                 print >>sys.stderr,"videoserv: do_GET: Done sending data"
     
-            movie.stop()
+            stream.close()
             if self.server.statuscallback is not None:
                 self.server.statuscallback("Done")
             #f.close()
@@ -336,11 +161,9 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         except Exception,e:
             if DEBUG:
                 print >>sys.stderr,"videoserv: Error occured while serving"
-            ##f = open("/tmp/videoserv.log","w")
             print_exc()
             self.error(e,self.path)
 
-            ##f.close()
 
     def error(self,e,url):
         if self.server.errorcallback is not None:

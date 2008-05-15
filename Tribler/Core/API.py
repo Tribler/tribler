@@ -17,3 +17,4 @@ from Tribler.Core.DownloadState import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.RequestPolicy import *
 from Tribler.Core.TorrentDef import *
+from Tribler.Core.LiveSourceAuthConfig import *

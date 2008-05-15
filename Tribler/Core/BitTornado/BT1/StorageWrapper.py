@@ -73,7 +73,9 @@ class StorageWrapper:
     def __init__(self, videoinfo, storage, request_size, hashes, 
             piece_size, root_hash, finished, failed, 
             statusfunc = dummy_status, flag = fakeflag(), check_hashes = True, 
-            data_flunked = lambda x: None, backfunc = None, 
+            data_flunked = lambda x: None, 
+            piece_from_live_source_func = lambda i,d: None, 
+            backfunc = None, 
             config = {}, unpauseflag = fakeflag(True)):
         self.videoinfo = videoinfo
         self.storage = storage
@@ -87,6 +89,7 @@ class StorageWrapper:
         self.flag = flag
         self.check_hashes = check_hashes
         self.data_flunked = data_flunked
+        self.piece_from_live_source_func = piece_from_live_source_func
         self.backfunc = backfunc
         self.config = config
         self.unpauseflag = unpauseflag
@@ -240,6 +243,9 @@ class StorageWrapper:
             self.backfunc(self._initialize, 1)
             return
 
+        if DEBUG:
+            print >>sys.stderr,"StorageWrapper: _initialize: next is",self.initialize_next
+
         if self.initialize_next:
             x = self.initialize_next()
             if x is None:
@@ -273,6 +279,9 @@ class StorageWrapper:
                 print >>sys.stderr,"StorageWrapper: init_hashcheck: Download finished"
             return False
 
+        if DEBUG:
+            print >>sys.stderr,"StorageWrapper: init_hashcheck: self.places",`self.places`
+
         self.check_targets = {}
         got = {}
         for p, v in self.places.items():
@@ -288,7 +297,7 @@ class StorageWrapper:
                     self.out_of_place += 1
             if got.has_key(i):
                 continue
-            if self._waspre(i):
+            if self._waspre(i) and not self.live_streaming:
                 if self.blocked[i]:
                     self.places[i] = i
                 else:
@@ -329,6 +338,8 @@ class StorageWrapper:
             if self.flag.isSet():
                 return None
             if not self.check_list:
+                return None
+            if self.live_streaming:
                 return None
 
             i = self.check_list.pop(0)
@@ -796,7 +807,7 @@ class StorageWrapper:
             if DEBUG:
                 print 'new place for '+str(index)+' at '+str(self.places[index])
         if self.flag.isSet():
-            return
+            return False
 
         if self.failed_pieces.has_key(index):
             old = self.read_raw(self.places[index], begin, len(piece))
@@ -828,15 +839,26 @@ class StorageWrapper:
         del self.dirty[index]
         if not self._flush_buffer(index):
             return True
+        
         length = self._piecelen(index)
+        # Check hash
         data = self.read_raw(self.places[index], 0, length, 
-                                 flush_first = self.triple_check)
+                                     flush_first = self.triple_check)
         if data is None:
             return True
-        hash = sha(data[:]).digest()
-        data.release()
-        if not self.live_streaming and hash != self.hashes[index]:
-
+        
+        pieceok = False
+        if self.live_streaming:
+            # LIVESOURCEAUTH
+            if self.piece_from_live_source_func(index,data[:]):
+                pieceok = True
+        else:
+            hash = sha(data[:]).digest()
+            data.release()
+            if hash == self.hashes[index]:
+                pieceok = True
+                
+        if not pieceok: 
             self.amount_obtained -= length
             self.data_flunked(length, index)
             self.inactive_requests[index] = 1  # number 1, not letter L
@@ -857,6 +879,7 @@ class StorageWrapper:
         self.have[index] = True
         self.inactive_requests[index] = None
         self.waschecked[index] = True
+        
         self.amount_left -= length
         self.stat_numdownloaded += 1
 
@@ -1226,4 +1249,14 @@ class StorageWrapper:
         self.report_failure(s)
         if self.initialize_done is not None:
             self.initialize_done(success=False)
-            
+
+    def live_invalidate(self,piece): # Arno: LIVEWRAP
+        # Assumption: not outstanding requests
+        length = self._piecelen(piece)
+        oldhave = self.have[piece]
+        self.have[piece] = False
+        #self.waschecked[piece] = False
+        self.inactive_requests[piece] = 1
+        if oldhave: 
+            self.amount_left += length
+            self.amount_obtained -= length

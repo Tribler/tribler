@@ -11,6 +11,7 @@ from traceback import print_stack
 # _2fastbt
 
 import sys
+import time
 
 try:
     True
@@ -163,26 +164,15 @@ class SingleDownload(SingleDownloadHelperInterface):
         """ Returns True if the piece is complete. """
 
         length = len(piece)
-        if DEBUG:
-            print >> sys.stderr, 'Downloader: got piece of length %d' % length
+        #if DEBUG:
+        #    print >> sys.stderr, 'Downloader: got piece of length %d' % length
         try:
             self.active_requests.remove((index, begin, length))
         except ValueError:
-# 2fastbt_
-###            if self.helper is not None and self.helper.coordinator is not None:
-###                self.downloader.storage.new_request(index)
-###            else:
-# _2fastbt
             self.downloader.discarded += length
             return False
         if self.downloader.endgamemode:
-# 2fastbt_
-###            try:
             self.downloader.all_requests.remove((index, begin, length))
-###            except ValueError, e:
-###                if self.helper is None or self.helper.coordinator is None:
-###                    raise e
-# _2fastbt
 
         self.last = clock()
         self.last2 = clock()
@@ -227,54 +217,66 @@ class SingleDownload(SingleDownloadHelperInterface):
     def _request_more(self, new_unchoke = False, slowpieces = []):
 # 2fastbt_
         if DEBUG:
-            print "Downloader: _request_more()"
+            print >>sys.stderr,"Downloader: _request_more()"
         if self.is_frozen_by_helper():
             if DEBUG:
-                print "Downloader: blocked, returning"
+                print >>sys.stderr,"Downloader: _request_more: blocked, returning"
             return
 # _2fastbt    
         if self.choked:
+            if DEBUG:
+                print >>sys.stderr,"Downloader: _request_more: choked, returning"
             return
 # 2fastbt_
         # do not download from coordinator
         if self.connection.connection.is_coordinator_con():
             if DEBUG:
-                print "Downloader: coordinator conn"
+                print >>sys.stderr,"Downloader: _request_more: coordinator conn"
             return
 # _2fastbt
         if self.downloader.endgamemode:
             self.fix_download_endgame(new_unchoke)
+            if DEBUG:
+                print >>sys.stderr,"Downloader: _request_more: endgame mode, returning"
             return
         if self.downloader.paused:
+            if DEBUG:
+                print >>sys.stderr,"Downloader: _request_more: paused, returning"
             return
         if len(self.active_requests) >= self._backlog(new_unchoke):
             if DEBUG:
-                print "Downloader: more req than unchoke (active req: %d >= backlog: %d)" % (len(self.active_requests), self._backlog(new_unchoke))
+                print >>sys.stderr,"Downloader: more req than unchoke (active req: %d >= backlog: %d)" % (len(self.active_requests), self._backlog(new_unchoke))
             # Jelle: Schedule _request more to be called in some time. Otherwise requesting and receiving packages
             # may stop, if they arrive to quickly
             if self.downloader.download_rate:
                 wait_period = self.downloader.chunksize / self.downloader.download_rate / 2.0
                 if DEBUG:
-                    print "Downloader: waiting for %f s to call _request_more again" % wait_period
+                    print >>sys.stderr,"Downloader: waiting for %f s to call _request_more again" % wait_period
                 self.downloader.scheduler(self._request_more, wait_period)
                                           
             if not (self.active_requests or self.backlog):
                 self.downloader.queued_out[self] = 1
             return
+        
+        #if DEBUG:
+        #    print >>sys.stderr,"Downloader: _request_more: len act",len(self.active_requests),"back",self.backlog
+        
         lost_interests = []
         while len(self.active_requests) < self.backlog:
-# 2fastbt_
-            if DEBUG:
-                print "Downloader: Looking for interesting piece"
+            #if DEBUG:
+            #    print >>sys.stderr,"Downloader: Looking for interesting piece"
+            #st = time.time()
             interest = self.downloader.picker.next(self.have,
                                self.downloader.storage.do_I_have_requests,
                                self,
                                self.downloader.too_many_partials(),
                                self.connection.connection.is_helper_con(),
                                slowpieces = slowpieces)
+            #et = time.time()
+            #diff = et-st
+            diff=-1
             if DEBUG:
-                print "Downloader: _request_more: next() returned",interest                               
-# _2fastbt
+                print >>sys.stderr,"Downloader: _request_more: next() returned",interest,"took %.5f" % (diff)                               
             if interest is None:
                 break
             self.example_interest = interest
@@ -308,19 +310,25 @@ class SingleDownload(SingleDownloadHelperInterface):
                 else:
                     continue
 # 2fastbt_
+                #st = time.time()
                 interest = self.downloader.picker.next(d.have,
                                    self.downloader.storage.do_I_have_requests,
                                    self,
                                    self.downloader.too_many_partials(),
-                                   self.connection.connection.is_helper_con())
+                                   self.connection.connection.is_helper_con(), willrequest=False)
+                #et = time.time()
+                #diff = et-st
+                diff=-1
                 if DEBUG:                                   
-                    print "Downloader: _request_more: next()2 returned",interest
+                    print >>sys.stderr,"Downloader: _request_more: next()2 returned",interest,"took %.5f" % (diff)
 # _2fastbt
                 if interest is None:
                     d.send_not_interested()
                 else:
                     d.example_interest = interest
-        if self.downloader.storage.is_endgame():
+                    
+        # Arno: LIVEWRAP: no endgame
+        if self.downloader.storage.is_endgame() and not self.downloader.picker.live_streaming:
             self.downloader.start_endgame()
 
 
@@ -355,12 +363,21 @@ class SingleDownload(SingleDownloadHelperInterface):
 # _2fastbt
 
     def got_have(self, index):
+        if DEBUG:
+            print >>sys.stderr,"Downloader: got_have",index
         if index == self.downloader.numpieces-1:
             self.downloader.totalmeasure.update_rate(self.downloader.storage.total_length-(self.downloader.numpieces-1)*self.downloader.storage.piece_length)
             self.peermeasure.update_rate(self.downloader.storage.total_length-(self.downloader.numpieces-1)*self.downloader.storage.piece_length)
         else:
             self.downloader.totalmeasure.update_rate(self.downloader.storage.piece_length)
             self.peermeasure.update_rate(self.downloader.storage.piece_length)
+
+        # Arno: LIVEWRAP
+        if not self.downloader.picker.is_valid_piece(index):
+            if DEBUG:
+                print >>sys.stderr,"Downloader: got_have",index,"is invalid piece"
+            return # TODO: should we request_more()? 
+        
         if self.have[index]:
             return
         self.have[index] = True
@@ -392,6 +409,20 @@ class SingleDownload(SingleDownloadHelperInterface):
                 return
 
     def got_have_bitfield(self, have):
+        
+        # Arno: LIVEWRAP: filter out valid pieces
+        # TODO: may be slow with 32K pieces.
+        
+        #print >>sys.stderr,"Downloader: got_have_bitfield: input",`have.toboollist()`
+        
+        validhave = Bitfield(self.downloader.numpieces)
+        for i in xrange(len(have)):
+            if have[i] and self.downloader.picker.is_valid_piece(i):
+                validhave[i] = True
+        have = validhave
+        
+        #print >>sys.stderr,"Downloader: got_have_bitfield: valid",`have.toboollist()`
+        
         if self.downloader.picker.am_I_complete() and have.complete():
             if self.downloader.super_seeding:
                 self.connection.send_bitfield(have.tostring()) # be nice, show you're a seed too
@@ -707,3 +738,10 @@ class Downloader:
                 d._check_interests()
                 if d.interested and not d.choked:
                     d._request_more()
+
+    def live_invalidate(self,piece): # Arno: LIVEWRAP
+        #print >>sys.stderr,"Downloader: live_invalidate",piece
+        for d in self.downloads:
+            d.have[piece] = False
+        self.storage.live_invalidate(piece)
+        

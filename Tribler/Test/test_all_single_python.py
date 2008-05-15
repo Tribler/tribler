@@ -53,6 +53,7 @@ def suite():
     import test_gui_server as test_gui_server
     import test_remote_query as test_remote_query
     import test_ut_pex as test_ut_pex
+    import test_g2g as test_g2g
     import test_bartercast as test_bartercast
 
     # Note: There are more tests, but these require a fresh Python interpreter
@@ -79,9 +80,10 @@ def suite():
         #test_extend_hs_t350,
         #test_social_overlap,
         #test_gui_server,
-        test_remote_query,
+        #test_remote_query,
         #test_ut_pex,
         #test_bartercast
+        test_g2g
         ]
 
     alltests = unittest.TestSuite()
