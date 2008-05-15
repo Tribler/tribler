@@ -222,7 +222,6 @@ class TorrentDef(Serializable,Copyable):
         [hh:]mm:ss format.
         @param authconfig Parameters for the authentication of the source
         """
-        secs = parse_playtime_to_secs( playtime )
         self.input['bps'] = bitrate
         self.input['playtime'] = playtime # size of virtual content 
 
@@ -236,14 +235,7 @@ class TorrentDef(Serializable,Copyable):
 
         self.input['live'] = authparams 
 
-        # Make sure the duration is an integral number of pieces, for
-        # security (live source auth).
-        length = float(bitrate*secs)
-        pl = float(self.get_piece_length())
-        npieces = int(math.ceil((length + pl) / pl))
-        newlen = npieces * pl
-
-        d = {'inpath':name,'outpath':None,'playtime':None,'length':newlen}
+        d = {'inpath':name,'outpath':None,'playtime':None,'length':None}
         self.input['files'].append(d)
 
     #
@@ -562,6 +554,19 @@ class TorrentDef(Serializable,Copyable):
         
         if self.metainfo_valid:
             return
+
+        if 'live' in self.input:
+            # Make sure the duration is an integral number of pieces, for
+            # security (live source auth).
+            secs = parse_playtime_to_secs(self.input['playtime'])
+            length = float(self.input['bps']*secs)
+            pl = float(self.get_piece_length())
+            npieces = int(math.ceil((length + pl) / pl))
+            newlen = npieces * pl
+
+            d = self.input['files'][0]
+            d['length'] = newlen
+
 
         # Note: reading of all files and calc of hashes is done by calling 
         # thread.
