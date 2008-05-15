@@ -141,15 +141,15 @@ class ECDSAAuthenticator(Authenticator):
                 mod = timestamp % self.get_npieces()
                 thres = self.timestamp - self.get_npieces()
                 if timestamp <= thres:
-                    print >>sys.stderr,"ECDSAAuth: failed piece",index,"old timestamp",timestamp,"<<",self.timestamp
+                    print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"old timestamp",timestamp,"<<",self.timestamp
                     return False
                 elif mod != index:
-                    print >>sys.stderr,"ECDSAAuth: failed piece",index,"expected",mod
+                    print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"expected",mod
                     return False 
                 else:
                     self.timestamp = timestamp
             else:
-                print >>sys.stderr,"ECDSAAuth: piece",index,"failed sig"
+                print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ piece",index,"failed sig"
             
             return ret
         except:
