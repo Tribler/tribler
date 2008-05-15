@@ -49,7 +49,7 @@ VIDEOHTTP_LISTENPORT = 6879
 class PlayerFrame(VideoFrame):
 
     def __init__(self,parent):
-        VideoFrame.__init__(self,parent,'SwarmPlayer 0.1.4 live',parent.iconpath)
+        VideoFrame.__init__(self,parent,'SwarmPlayer 0.2.0',parent.iconpath)
         self.parent = parent
         
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
