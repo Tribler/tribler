@@ -472,6 +472,8 @@ class VLCMediaCtrl(wx.Window):
         #params += ["--deinterlace-mode","linear"]
         #params += ["--demux=ts"]
         #params += ["--codec=mp4"]
+        #
+        params += ["--no-plugins-cache"]
         params += ["--key-fullscreen", "Esc"] # must come last somehow on Win32
 
         if sys.platform == 'darwin':
