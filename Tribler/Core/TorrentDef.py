@@ -8,7 +8,7 @@ import copy
 import sha
 import math
 from traceback import print_exc,print_stack
-from types import StringType,ListType,IntType
+from types import StringType,ListType,IntType,LongType
 
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 

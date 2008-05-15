@@ -18,7 +18,7 @@ import Tribler.Core.BitTornado.parseargs as parseargs
 argsdef = [('name', '', 'name of the stream'),
            ('source', '-', 'source to stream (url, file or "-" to indicate stdin)'),
            ('destdir', '.','dir to save torrent (and stream)'),
-           ('bitrate', (512*1024)/8, 'bitrate of the streams'),
+           ('bitrate', (512*1024)/8, 'bitrate of the streams in bytes'),
            ('piecesize', 32768, 'transport piece size'),
            ('duration', '1:00:00', 'duration of the stream in hh:mm:ss format'),
            ('nuploads', 7, 'the max number of peers to serve directly')]
