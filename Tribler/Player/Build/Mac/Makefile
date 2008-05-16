@@ -10,6 +10,7 @@
 OPENSSL_VER=0.9.8e
 PYTHON_VER=2.5
 VLC_REV=20403
+M2CRYPTO_VER=0.18.2
 PWD:=${shell pwd}
 ARCH:=${shell arch}
 
@@ -23,16 +24,16 @@ else
   FFMPEG_CONFIG=--cpu=pentium-m --enable-memalign-hack
 endif
 
-all:	clean dirs Tribler-${ARCH}.dmg ../lib
+all:	clean dirs SwarmPlayer-${ARCH}.dmg ../lib
 
 clean:
-	rm -rf build/imagecontents/ Tribler.dmg
+	rm -rf build/imagecontents/ SwarmPlayer.dmg
 
 SITEPACKAGES=build/lib/Library/Frameworks/Python.framework/Versions/${PYTHON_VER}/lib/python${PYTHON_VER}/site-packages
 PYTHON=python${PYTHON_VER}
 
 distclean:
-	rm -rf build/ Tribler.dmg
+	rm -rf build/ SwarmPlayer.dmg
 	make dirs
 
 dirs:
@@ -40,16 +41,16 @@ dirs:
 
 .PHONY: 		all clean distclean dirs
 
-# ----- Tribler
+# ----- SwarmPlayer 
 
-APPRES=build/imagecontents/Tribler.app/Contents/Resources
+APPRES=build/imagecontents/SwarmPlayer.app/Contents/Resources
 
-build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py build/lib/ffmpeg build/lib/.vlc ${SITEPACKAGES}/khashmir/
+build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ build/lib/ffmpeg build/lib/.vlc 
 	rm -rf $@
 	mkdir -p $@
 
-	cd .. && PYTHONPATH=mac/${SITEPACKAGES} ${PYTHON} -OO - < mac/setuptriblermac.py py2app
-	mv ../dist/* $@
+	cd ../../../.. && PYTHONPATH=Tribler/Player/Build/Mac/${SITEPACKAGES} ${PYTHON} -OO - < Tribler/Player/Build/Mac/setuptriblermac.py py2app
+	mv ../../../../dist/* $@
 
 	# Thin everything for this architecture. Some things ship Universal (Python, wxPython, ...) and
 	# others get a stub for the other architecture (things built by Universal Python)
@@ -67,11 +68,11 @@ build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py build/l
 
 	touch $@
 
-Tribler-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
+SwarmPlayer-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
 	rm -f $@
 
 	# create image
-	hdiutil create -srcfolder $< -format UDRW -scrub -volname Tribler $@
+	hdiutil create -srcfolder $< -format UDRW -scrub -volname SwarmPlayer $@
 
 	# open it
 	hdiutil attach -readwrite -noverify -noautoopen $@ -mountpoint build/temp/mnt
@@ -98,7 +99,7 @@ Tribler-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
 	-e "       set icon size of the icon view options of container window to 128" \
 	-e "       set arrangement of the icon view options of container window to not arranged" \
 	-e "       set background picture of the icon view options of container window to file \".background:background.png\"" \
-	-e "       set position of item \"Tribler.app\" to {150, 140}" \
+	-e "       set position of item \"SwarmPlayer.app\" to {150, 140}" \
 	-e "       set position of item \"Applications\" to {410, 140}" \
 	-e "       set the bounds of the container window to {50, 100, 600, 400}" \
 	-e "       update without registering applications" \
@@ -126,12 +127,6 @@ Tribler-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
 	/Developer/Tools/Rez -a build/temp/sla.r -o $@
 	hdiutil flatten $@
 
-# ----- Growl bindings
-
-${SITEPACKAGES}/Growl.py:
-	svn co http://src.growl.info/growl/trunk/Bindings/python build/temp/growl-bindings
-	cd build/temp/growl-bindings && ${PYTHON} setup.py install --root ${PWD}/build/lib
-
 # ----- OpenSSL and M2Crypto
 
 OPENSSL_CONFIG += shared --prefix=${PWD}/build/lib
@@ -149,7 +144,7 @@ build/temp/.openssl:		build/temp/openssl-${OPENSSL_VER}.tar.gz
 	touch $@
 
 build/temp/.m2crypto:
-	svn co http://svn.osafoundation.org/m2crypto/tags/0.18 build/temp/m2crypto
+	svn co http://svn.osafoundation.org/m2crypto/tags/$M2CRYPTO_VER build/temp/m2crypto
 	touch $@
 
 ${SITEPACKAGES}/M2Crypto/:	build/temp/.openssl build/temp/.m2crypto
@@ -233,12 +228,6 @@ build/lib/.vlc:
 	# let run from source locate libraries
 	rm -f ../lib
 	ln -s ${PWD}/build/lib ../lib
-
-# ----- Khashmir
-
-${SITEPACKAGES}/khashmir/:
-	svn co https://svn.tribler.org/khashmir/branches/khashmir-fabian-from-bt5.0.7 $@
-	touch $@
 
 # ----- FFmpeg
 

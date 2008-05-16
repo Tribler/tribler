@@ -1,7 +1,7 @@
 # ---------------
-# This script builds build/Tribler.app
+# This script builds build/SwarmPlayer.app
 #
-# Meant to be called from mac/Makefile
+# Meant to be called from Tribler/Player/Build/Mac/Makefile
 # ---------------
 
 import py2app
@@ -11,13 +11,6 @@ from setuptools import setup
 
 # modules to include into bundle
 includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml.sax", "email.iterators"]
-
-# gui panels to include
-includePanels=[
-     "standardOverview","standardDetails","standardGrid","standardPager","standardFilter",
-     "TextButton","btn_DetailsHeader","tribler_List","profileOverviewPanel"]
-
-includeModules += ["Tribler.vwxGUI.%s" % x for x in includePanels]
 
 # ----- some basic checks
 
@@ -50,14 +43,6 @@ import M2Crypto.m2
 if "ec_init" not in M2Crypto.m2.__dict__:
     print "WARNING: Could not import specialistic M2Crypto (imported %s)" % M2Crypto.__file__
 
-# ----- import Growl
-try:
-    import Growl
-
-    includeModules += ["Growl"]
-except:
-    print "WARNING: Not including Growl support."
-
 # ----- import VLC
 
 import vlc
@@ -65,7 +50,7 @@ import vlc
 vlc = vlc.MediaControl(["--plugin-path","lib/vlc"])
 
 # =================
-# build Tribler.app
+# build SwarmPlayer.app
 # =================
 
 from plistlib import Plist
@@ -99,45 +84,33 @@ def filterincludes( l, f ):
 
     return [(x,y) for (x,y) in l if f(y[0])]
 
-# ----- update .xrc files
-
-from Tribler.Main.vwxGUI.updateXRC import main as updateXRC
-
-updateXRC( [os.path.abspath(os.path.dirname(sys.argv[0]))+"/vwxGUI"] )
-
 # ----- build the app bundle
+mainfile = os.path.join('Tribler','Player','swarmplayer.py')
 
 setup(
     setup_requires=['py2app'],
-    name='Tribler',
-    app=['tribler.py'],
+    name='SwarmPlayer',
+    app=[mainfile],
     options={ 'py2app': {
         'argv_emulation': True,
         'includes': includeModules,
         'excludes': ["Tkinter","Tkconstants","tcl"],
-        'iconfile': 'mac/tribler.icns',
-        'plist': Plist.fromFile('mac/Info.plist'),
+        'iconfile': 'Tribler/Player/Build/Mac/tribler.icns',
+        'plist': Plist.fromFile('Tribler/Player/Build/Mac/Info.plist'),
         'optimize': 2*int(not __debug__),
         'resources':
-            [("Lang", ["Lang/english.lang"]),
-             "superpeer.txt",
-             "category.conf",
-             "binary-LICENSE.txt", 
-             "readme.txt",
-             "tribler.ico",
-             "torrenticon.ico",
-             "mac/TriblerDoc.icns",
-             ("lib", ["mac/build/lib/ffmpeg"],
+            [("Tribler/Lang", ["Tribler/Lang/english.lang"]),
+             "Tribler/binary-LICENSE.txt", 
+             "Tribler/readme.txt",
+             "Tribler/Images/swarmplayer.ico",
+             "Tribler/Player/Build/Mac/TriblerDoc.icns",
+             ("lib", ["Tribler/Player/Build/Mac/build/lib/ffmpeg"],
            )]
            # add images
-           + includedir( "icons" )
-           + includedir( "Tribler/vwxGUI/images" )
-
-           # add GUI elements
-           + filterincludes( includedir( "Tribler/vwxGUI" ), lambda x: x.endswith(".xrc") )
+           + includedir( "Tribler/Images" )
 
            # add VLC plugins
-           + filterincludes( includedir( "mac/build/lib/vlc", "lib/vlc" ), lambda x: x.endswith(".dylib") )
+           + filterincludes( includedir( "Tribler/Player/Build/Mac/build/lib/vlc", "lib/vlc" ), lambda x: x.endswith(".dylib") )
             ,
     } }
 )
