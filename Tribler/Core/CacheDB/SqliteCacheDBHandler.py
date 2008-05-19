@@ -1393,11 +1393,16 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.status_good = self.status_table['good']
         self.recent_preflist = None
         self.coccurrence = None
+        self.rlock = threading.RLock()
         
     def loadData(self):
-        self.recent_preflist = self.getRecentLivePrefList()
-        self.coccurrence = self.getAllTorrentCoccurrence()
-    
+        self.rlock.acquire()
+        try:
+            self.recent_preflist = self._getRecentLivePrefList()
+            self.coccurrence = self.getAllTorrentCoccurrence()
+        finally:
+            self.rlock.release()
+                
     def getMyPrefList(self, order_by=None):
         res = self.getAll('torrent_id', order_by=order_by)
         return [p[0] for p in res]
@@ -1429,7 +1434,17 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             return None
         
-    def getRecentLivePrefList(self, num=0):    # num = 0: all files
+    def getRecentLivePrefList(self, num=0):
+        if self.recent_preflist is None:
+            self.rlock.acquire()
+            try:
+                if self.recent_preflist is None:
+                    self.recent_preflist = self._getRecentLivePrefList()
+            finally:
+                self.rlock.release()
+        return self.recent_preflist
+        
+    def _getRecentLivePrefList(self, num=0):    # num = 0: all files
         # get recent and live torrents
         sql = """
         select infohash from MyPreference m, Torrent t 
@@ -1473,11 +1488,15 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if commit:
             self.commit()
         self.notifier.notify(NTFY_MYPREFERENCES, NTFY_INSERT, infohash)
-        if self.recent_preflist is None:
-            self.recent_preflist = self.getRecentLivePrefList()
-        else:
-            self.recent_preflist.insert(0, infohash)
-        self.coccurrence = self.getAllTorrentCoccurrence()
+        self.rlock.acquire()
+        try:
+            if self.recent_preflist is None:
+                self.recent_preflist = self._getRecentLivePrefList()
+            else:
+                self.recent_preflist.insert(0, infohash)
+            self.coccurrence = self.getAllTorrentCoccurrence()
+        finally:
+            self.rlock.release()
         return True
 
     def deletePreference(self, infohash, commit=True):
@@ -1487,14 +1506,17 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if torrent_id is None:
             return
         self._db.delete(self.table_name, **{'torrent_id':torrent_id})
-        if self.recent_preflist is not None and infohash in self.recent_preflist:
-            try:
-                self.recent_preflist.remove(infohash)
-            except KeyError:
-                pass
         if commit:
             self.commit()
         self.notifier.notify(NTFY_MYPREFERENCES, NTFY_DELETE, infohash)
+        self.rlock.acquire()
+        try:
+            if self.recent_preflist is not None and infohash in self.recent_preflist:
+                self.recent_preflist.remove(infohash)
+                self.coccurrence = self.getAllTorrentCoccurrence()
+        finally:
+            self.rlock.release()
+            
             
     def updateProgress(self, infohash, progress):
         torrent_id = self._db.getTorrentID(infohash)
