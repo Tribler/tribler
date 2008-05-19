@@ -1393,12 +1393,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.status_good = self.status_table['good']
         self.recent_preflist = None
         self.coccurrence = None
-        self.last_get_preflist = 0
-        self.cache_preflist_timeout = 24*60*60    # re-get my recent preflist every one day
         
     def loadData(self):
-        self.getRecentLivePrefList()
-        self.getAllTorrentCoccurrence()
+        self.recent_preflist = self.getRecentLivePrefList()
+        self.coccurrence = self.getAllTorrentCoccurrence()
     
     def getMyPrefList(self, order_by=None):
         res = self.getAll('torrent_id', order_by=order_by)
@@ -1433,25 +1431,23 @@ class MyPreferenceDBHandler(BasicDBHandler):
         
     def getRecentLivePrefList(self, num=0):    # num = 0: all files
         # get recent and live torrents
-        if self.recent_preflist is None or time()-self.last_get_preflist>self.cache_preflist_timeout:
-            sql = """
-            select infohash from MyPreference m, Torrent t 
-            where m.torrent_id == t.torrent_id 
-            and status_id == %d
-            order by creation_time desc
-            """ % self.status_good
+        sql = """
+        select infohash from MyPreference m, Torrent t 
+        where m.torrent_id == t.torrent_id 
+        and status_id == %d
+        order by creation_time desc
+        """ % self.status_good
 
-            recent_preflist = self._db.fetchall(sql)
-            if recent_preflist is None:
-                self.recent_preflist = []
-            else:
-                self.recent_preflist = [str2bin(t[0]) for t in recent_preflist]
-            self.last_get_preflist = time()
+        recent_preflist = self._db.fetchall(sql)
+        if recent_preflist is None:
+            recent_preflist = []
+        else:
+            recent_preflist = [str2bin(t[0]) for t in recent_preflist]
 
         if num != 0:
-            return self.recent_preflist[:num]
+            return recent_preflist[:num]
         else:
-            return self.recent_preflist
+            return recent_preflist
 
     def hasMyPreference(self, infohash):
         torrent_id = self._db.getTorrentID(infohash)
@@ -1478,9 +1474,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
             self.commit()
         self.notifier.notify(NTFY_MYPREFERENCES, NTFY_INSERT, infohash)
         if self.recent_preflist is None:
-            self.getRecentLivePrefList()
-        self.recent_preflist.insert(0, infohash)
-        self.getAllTorrentCoccurrence()
+            self.recent_preflist = self.getRecentLivePrefList()
+        else:
+            self.recent_preflist.insert(0, infohash)
+        self.coccurrence = self.getAllTorrentCoccurrence()
         return True
 
     def deletePreference(self, infohash, commit=True):
@@ -1491,7 +1488,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return
         self._db.delete(self.table_name, **{'torrent_id':torrent_id})
         if self.recent_preflist is not None and infohash in self.recent_preflist:
-            self.recent_preflist.remove(infohash)
+            try:
+                self.recent_preflist.remove(infohash)
+            except KeyError:
+                pass
         if commit:
             self.commit()
         self.notifier.notify(NTFY_MYPREFERENCES, NTFY_DELETE, infohash)
@@ -1514,7 +1514,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             (select torrent_id from MyPreference)
             group by torrent_id
             """
-        self.coccurrence = dict(self._db.fetchall(sql))
+        coccurrence = dict(self._db.fetchall(sql))
+        return coccurrence
 
         
 class BarterCastDBHandler(BasicDBHandler):
