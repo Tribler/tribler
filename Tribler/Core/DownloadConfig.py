@@ -111,7 +111,7 @@ class DownloadConfigInterface:
 
     def set_mode(self,mode):
         """ Sets the mode of this download. 
-        @param DLMODE_NORMAL/DLMODE_VOD """
+        @param mode DLMODE_NORMAL/DLMODE_VOD """
         self.dlconfig['mode'] = mode 
 
     def get_mode(self):

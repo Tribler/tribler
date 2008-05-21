@@ -27,7 +27,7 @@ from Tribler.Core.osutils import *
 
 class TorrentDef(Serializable,Copyable):
     """
-    Definition of a torrent, i.e. all params required for a torrent file,
+    Definition of a torrent, that is, all params required for a torrent file,
     plus optional params such as thumbnail, playtime, etc.
     
     Note: to add fields to the torrent definition which are not supported

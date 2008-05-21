@@ -1,12 +1,11 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 #
-# Tribler Core API v1.0.0rc1
-# May 15, 2008 
-#
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
+""" Tribler Core API v1.0.0rc1, May 15 2008. Import this to use the API """
+
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Base import *
 from Tribler.Core.Session import *
