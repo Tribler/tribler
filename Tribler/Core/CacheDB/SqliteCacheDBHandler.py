@@ -1597,6 +1597,14 @@ class BarterCastDBHandler(BasicDBHandler):
         peer_id1 = self.getPeerID(permid_from)
         peer_id2 = self.getPeerID(permid_to)
         
+        if peer_id1 is None:
+            self._db.insertPeer(permid_from)
+            peer_id1 = self.getPeerID(permid_from)
+        
+        if peer_id2 is None:
+            self._db.insertPeer(permid_to)
+            peer_id2 = self.getPeerID(permid_to)
+                
         if peer_id1 is not None and peer_id2 is not None:
             
             where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
