@@ -1597,24 +1597,28 @@ class BarterCastDBHandler(BasicDBHandler):
         peer_id1 = self.getPeerID(permid_from)
         peer_id2 = self.getPeerID(permid_to)
         
-        where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
-        item = self.getOne(('downloaded', 'uploaded', 'last_seen'), where=where)
-        
-        if item is None:
-            return None
-        
-        if len(item) != 3:
-            return None
+        if peer_id1 is not None and peer_id2 is not None:
             
-        itemdict = {}
-        itemdict['downloaded'] = item[0]
-        itemdict['uploaded'] = item[1]
-        itemdict['last_seen'] = item[2]
-        itemdict['peer_id_from'] = peer_id1
-        itemdict['peer_id_to'] = peer_id2
+            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
+            item = self.getOne(('downloaded', 'uploaded', 'last_seen'), where=where)
+        
+            if item is None:
+                return None
+        
+            if len(item) != 3:
+                return None
+            
+            itemdict = {}
+            itemdict['downloaded'] = item[0]
+            itemdict['uploaded'] = item[1]
+            itemdict['last_seen'] = item[2]
+            itemdict['peer_id_from'] = peer_id1
+            itemdict['peer_id_to'] = peer_id2
 
-        return itemdict
+            return itemdict
 
+        else:
+            return None
 
 
 
@@ -1643,22 +1647,24 @@ class BarterCastDBHandler(BasicDBHandler):
             if not (permid_to, permid_from) in processed:
 
                 item = self.getItem((permid_from, permid_to))
+                
+                if item is not None:
 
-                up = item['uploaded'] *1024 # make into bytes
-                down = item['downloaded'] *1024
+                    up = item['uploaded'] *1024 # make into bytes
+                    down = item['downloaded'] *1024
 
-                if DEBUG:
-                    print "BarterCast DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_from), self.getName(permid_to), up, down)
+                    if DEBUG:
+                        print "BarterCast DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_from), self.getName(permid_to), up, down)
 
-                # process permid_from
-                total_up[permid_from] = total_up.get(permid_from, 0) + up
-                total_down[permid_from] = total_down.get(permid_from, 0) + down
+                    # process permid_from
+                    total_up[permid_from] = total_up.get(permid_from, 0) + up
+                    total_down[permid_from] = total_down.get(permid_from, 0) + down
 
-                # process permid_to
-                total_up[permid_to] = total_up.get(permid_to, 0) + down
-                total_down[permid_to] = total_down.get(permid_to, 0) +  up
+                    # process permid_to
+                    total_up[permid_to] = total_up.get(permid_to, 0) + down
+                    total_down[permid_to] = total_down.get(permid_to, 0) +  up
 
-                processed.append((permid_from, permid_to))
+                    processed.append((permid_from, permid_to))
 
 
         # create top N peers
