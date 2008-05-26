@@ -28,7 +28,6 @@ class BarterCastCore:
         self.log = log
         self.secure_overlay = secure_overlay
         self.bartercastdb = BarterCastDBHandler.getInstance()
-        self.buddycast_core = None
         
         self.network_delay = 30
         self.send_block_list = {}
@@ -189,11 +188,6 @@ class BarterCastCore:
     ################################
     def replyBarterCast(self, target_permid, selversion):
         """ Reply a bartercast message """
-
-        if not self.buddycast_core.isConnected(target_permid):
-            print >> sys.stderr, 'bartercast: lost connection while replying bartercast', \
-                "Round", self.buddycast_core.round
-            return
 
         self.createAndSendBarterCastMessage(target_permid, selversion)
 
