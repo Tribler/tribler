@@ -1565,17 +1565,19 @@ class BarterCastDBHandler(BasicDBHandler):
         self.session = session
 
         # Retrieve MyPermid
-        #self.my_permid = session.getMyPermid()
-        self.my_permid = "" 
+        self.my_permid = session.get_permid()
+#        self.my_permid = "" 
+        if DEBUG:
+            print >> sys.stderr, "BARTERCAST: MyPermid is ", self.my_permid
+            
+
                 
     def getName(self, permid):
 
-        if permid == 'testpermid_1':
-            return "Test_1"
-        elif permid == 'testpermid_2':
-            return "Test_2"
-        elif permid == 'non-tribler':
-            return "Non-tribler"
+        if permid == 'non-tribler':
+            return "non-tribler"
+        elif permid == self.my_permid:
+            return "local_tribler"
 
         name = self.peer_db.getPeer(permid, 'name')
         
@@ -1649,7 +1651,7 @@ class BarterCastDBHandler(BasicDBHandler):
     def getTopNPeers(self, n, local_only = False):
         
         if DEBUG:
-            print >> sys.stderr, "BARTERCAST: Called getTopNPeers"
+            print >> sys.stderr, "BARTERCAST: Called getTopNPeers, local = ", local_only
         
         n = max(1, n)
         itemlist = self.getItemList()
@@ -1658,9 +1660,6 @@ class BarterCastDBHandler(BasicDBHandler):
         if local_only:
             # get only items of my local dealings
             itemlist = filter(lambda (permid_from, permid_to): permid_to == self.my_permid or permid_from == self.my_permid, itemlist)
-
-#        if DEBUG:
-#            print >> sys.stderr, "BARTERCAST LIST: ", itemlist
 
         total_up = {}
         total_down = {}
@@ -1679,7 +1678,15 @@ class BarterCastDBHandler(BasicDBHandler):
                     down = item['downloaded'] *1024
 
                     if DEBUG:
-                        print "BarterCast DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_from), self.getName(permid_to), up, down)
+                        print >> sys.stderr, "BARTERCAST DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_from), self.getName(permid_to), up, down)
+
+                    processed.append((permid_from, permid_to))
+
+                    # fix for multiple my_permids
+                    if permid_from == 'non-tribler':
+                        permid_to = self.my_permid
+                    if permid_to == 'non-tribler':
+                        permid_from = self.my_permid
 
                     # process permid_from
                     total_up[permid_from] = total_up.get(permid_from, 0) + up
@@ -1689,9 +1696,7 @@ class BarterCastDBHandler(BasicDBHandler):
                     total_up[permid_to] = total_up.get(permid_to, 0) + down
                     total_down[permid_to] = total_down.get(permid_to, 0) +  up
 
-                    processed.append((permid_from, permid_to))
-
-
+                    
         # create top N peers
         top = []
         min = 0
@@ -1786,12 +1791,13 @@ class BarterCastDBHandler(BasicDBHandler):
         peer_id1 = itemdict['peer_id_from']
         peer_id2 = itemdict['peer_id_to']
 
-        where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
+        if key in itemdict.keys():
+            
+            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
+            item = {key: value}
+            self._db.update(self.table_name, where = where, **item)            
 
-        item = {'uploaded': itemdict['uploaded'], 'downloaded': itemdict['downloaded'], 'last_seen': itemdict['last_seen']}
-        self._db.update(self.table_name, where = where, **item)
-
-        
+    
 
     def incrementItem(self, (permid_from, permid_to), key, value):
 

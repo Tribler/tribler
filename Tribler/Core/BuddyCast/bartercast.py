@@ -23,6 +23,9 @@ class BarterCastCore:
     ################################
     def __init__(self, data_handler, secure_overlay, log = '', dnsindb = None):
     
+        if DEBUG:
+            print >> sys.stderr, "=================Initializing bartercast core"
+    
         self.data_handler = data_handler
         self.dnsindb = dnsindb
         self.log = log
@@ -47,7 +50,7 @@ class BarterCastCore:
             return
 
         if DEBUG:
-            print >> sys.stderr, "bartercast: Sending BarterCast msg to ", self.bartercastdb.getName(target_permid)
+            print >> sys.stderr, "===========bartercast: Sending BarterCast msg to ", self.bartercastdb.getName(target_permid)
 
         # create a new bartercast message
         bartercast_data = self.createBarterCastMessage(target_permid)
