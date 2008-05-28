@@ -146,7 +146,7 @@ class FriendDBHandler(BasicDBHandler):
 
     def getFriends(self):
         res = self._db.getAll('Friend', 'permid')
-        return [str2bin(p) for p in res]
+        return [str2bin(p[0]) for p in res]
         #raise Exception('Use PeerDBHandler getGUIPeers(category = "friend")!')
 
     def isFriend(self, permid):
