@@ -304,7 +304,10 @@ class AdvancedNetworkPanel(ABCOptionPanel):
         
         ip4track = self.ip_data.GetValue()
         ip2bind2 = self.bind_data.GetValue()
-        ip2bind2list = ip2bind2.split(",")
+        if ip2bind2.strip():
+            ip2bind2list = ip2bind2.split(",")
+        else:
+            ip2bind2list = []
 
         selected = self.upnp_choices.index(self.upnp_data.GetValue())
         upnp_val = self.selected2upnp_val(selected)

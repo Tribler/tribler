@@ -896,7 +896,9 @@ class configReader:
             def saveConfigs(evt, self = self):
                 try:
                     self.advancedConfig['ip'] = self.ip_data.GetValue()
-                    self.advancedConfig['bind'] = self.bind_data.GetValue()
+                    print >> sys.stderr, 'Bind config: %s' % `self.bind_data.GetValue()`
+                    if self.bind_data.GetValue().strip():
+                        self.advancedConfig['bind'] = self.bind_data.GetValue()
                     if sys.version_info >= (2, 3) and socket.has_ipv6:
                         self.advancedConfig['ipv6_binds_v4'] = self.ipv6bindsv4_data.GetSelection()
                     self.advancedConfig['min_peers'] = self.minpeers_data.GetValue()

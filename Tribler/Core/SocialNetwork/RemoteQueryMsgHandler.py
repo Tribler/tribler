@@ -29,7 +29,7 @@ QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
 MAX_NQUERIES = 10
 
-DEBUG = True
+DEBUG = False
 
 class FakeUtility:
     

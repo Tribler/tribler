@@ -96,7 +96,7 @@ class TriblerLaunchMany(Thread):
                                    failfunc = self.rawserver_fatalerrorfunc,
                                    errorfunc = self.rawserver_nonfatalerrorfunc)
         self.rawserver.add_task(self.rawserver_keepalive,1)
-        
+
         self.listen_port = self.rawserver.find_and_bind(0, 
                     config['minport'], config['maxport'], config['bind'], 
                     reuse = True,
@@ -124,6 +124,9 @@ class TriblerLaunchMany(Thread):
             
             self.my_db          = MyDBHandler.getInstance()
             self.peer_db        = PeerDBHandler.getInstance()
+            # Register observer to update connection opened/closed to peer_db_handler
+            self.peer_db.registerConnectionUpdater(self.session)
+            
             self.torrent_db     = TorrentDBHandler.getInstance()
             self.mypref_db      = MyPreferenceDBHandler.getInstance()
             self.pref_db        = PreferenceDBHandler.getInstance()

@@ -954,7 +954,8 @@ class ABCApp(wx.App):
         
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
-        print >>sys.stderr,"main: Stats:"
+        if DEBUG:
+            print >>sys.stderr,"main: Stats:"
         try:
             # Pass DownloadStates to libaryView
             try:
@@ -991,7 +992,6 @@ class ABCApp(wx.App):
         
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
-        print >>sys.stderr,"main: Stats:"
         try:
             # Pass DownloadStates to libaryView
             try:

@@ -7,7 +7,7 @@ from Tribler.Category.Category import Category
 from Tribler.Main.vwxGUI.standardGrid import GridState
 from font import *
 
-DEBUG = True
+DEBUG = False
 
 class standardFilter(wx.Panel):
     """

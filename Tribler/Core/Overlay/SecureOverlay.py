@@ -19,6 +19,7 @@ from Tribler.Core.BitTornado.BT1.convert import tobinary,toint
 from Tribler.Core.Overlay.permid import ChallengeResponse
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB,safe_dict,bin2str
+from Tribler.Core.simpledefs import *
 
 DEBUG = False
 
@@ -508,7 +509,7 @@ class SecureOverlay:
         now = int(time())
         if authwasdone:
             self.peer_db.updatePeer(permid, last_seen=now, last_connected=now)
-
+            self.lm.session.uch.notify(NTFY_PEERS, NTFY_CONNECTION, permid, False)
     #
     # Interface for debugging
     #

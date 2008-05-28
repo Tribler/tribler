@@ -58,7 +58,8 @@ NTFY_UPDATE = 'update'         # data is updated
 NTFY_INSERT = 'insert'         # new data is inserted
 NTFY_DELETE = 'delete'         # data is deleted
 NTFY_SEARCH_RESULT = 'search_result'     # new search result
- 
+NTFY_CONNECTION = 'connection' # connection made or broken
+
 # object IDs for NTFY_ACTIVITIES subject 
 NTFY_ACT_NONE = 0
 NTFY_ACT_UPNP = 1

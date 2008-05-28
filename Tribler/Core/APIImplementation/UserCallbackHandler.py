@@ -123,7 +123,8 @@ class UserCallbackHandler:
         """
         Notify all interested observers about an event with threads from the pool
         """
-        print >>sys.stderr,"ucb: notify called:",subject,changeType,obj_id
+        if DEBUG:
+            print >>sys.stderr,"ucb: notify called:",subject,changeType,`obj_id`, args
         self.notifier.notify(subject,changeType,obj_id,*args)
         
         

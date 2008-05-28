@@ -20,6 +20,8 @@ from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 from threading import currentThread
 from Tribler.Category.Category import Category
+from Tribler.Core.simpledefs import *
+
 
 DEBUG = False
 
@@ -43,8 +45,6 @@ class OverlayApps:
         self.connection_handlers = []
         self.text_mode = None
         self.requestPolicyLock = Lock()
-        
-        
         
     def getInstance(*args, **kw):
         if OverlayApps.__single is None:
@@ -123,6 +123,9 @@ class OverlayApps:
         self.rtorrent_handler.register(overlay_bridge,self.metadata_handler,session)
         self.metadata_handler.register2(self.rtorrent_handler)
 
+        # Add notifier as connection handler
+        self.register_connection_handler(self.notifier_handles_connection)
+        
         if config['buddycast']:
             # Arno: to prevent concurrency between mainthread and overlay
             # thread where BuddyCast schedules tasks
@@ -213,3 +216,6 @@ class OverlayApps:
             self.requestPolicyLock.release()
         
     
+    def notifier_handles_connection(self, exc,permid,selversion,locally_initiated):
+        # Notify interested parties (that use the notifier/observer structure) about a connection
+        self.launchmany.session.uch.notify(NTFY_PEERS, NTFY_CONNECTION, permid, True)

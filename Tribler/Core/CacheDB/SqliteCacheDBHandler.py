@@ -192,6 +192,7 @@ class PeerDBHandler(BasicDBHandler):
         PeerDBHandler.__single = self
         BasicDBHandler.__init__(self, 'Peer')
         self.pref_db = PreferenceDBHandler.getInstance()
+        self.online_peers = set()
         #self.mm = None
         
 
@@ -384,7 +385,7 @@ class PeerDBHandler(BasicDBHandler):
         
         return self._db.getOne(table, value, where)
     
-    def getGUIPeers(self, category_name = 'all', range = None, sort = None, reverse = False):
+    def getGUIPeers(self, category_name = 'all', range = None, sort = None, reverse = False, get_online=False):
         # load peers for GUI
         #print >> sys.stderr, 'getGUIPeers(%s, %s, %s, %s)' % (category_name, range, sort, reverse)
         """
@@ -392,6 +393,8 @@ class PeerDBHandler(BasicDBHandler):
                  similarity, friend, superpeer, last_seen, last_connected, 
                  last_buddycast, connected_times, buddycast_times, num_peers, 
                  num_torrents, num_prefs, num_queries, 
+                 
+        @in: get_online: boolean: if true, give peers a key 'online' if there is a connection now
         """
         value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'num_peers', 'num_torrents', 'num_prefs', 
@@ -423,6 +426,10 @@ class PeerDBHandler(BasicDBHandler):
             peer['simRank'] = ranksfind(ranks,peer['permid'])
             peer['permid'] = str2bin(peer['permid'])
             peer_list.append(peer)
+            
+        if get_online:
+           self.checkOnline(peer_list)
+            
         # peer_list consumes about 1.5M for 1400 peers, and this function costs about 0.015 second
         
         return  peer_list
@@ -436,9 +443,33 @@ class PeerDBHandler(BasicDBHandler):
         res_list = self._db.getAll('Peer', value_name, where=where, limit=rankList_size, order_by=order_by)
         return [a[0] for a in res_list]
         
-    #def setMugshotManager(self,mm):
-    #    self.mm = mm
+    def checkOnline(self, peerlist):
+        # Add 'online' key in peers when their permid
+        # Called by any thread, accesses single online_peers-dict
+        # Peers will never be sorted by 'online' because it is not in the db.
+        # Do not sort here, because then it would be sorted with a partial select (1 page in the grid)
+        self.lock.acquire()
+        for peer in peerlist:
+            peer['online'] = (peer['permid'] in self.online_peers)
+        self.lock.release()
+        
+        
 
+    def setOnline(self,subject,changeType,permid,*args):
+        """Called by callback threads
+        with NTFY_CONNECTION, args[0] is boolean: connection opened/closed
+        """
+        self.lock.acquire()
+        if args[0]: # connection made
+            self.online_peers.add(permid)
+        else: # connection closed
+            self.online_peers.remove(permid)
+        self.lock.release()
+        #print >> sys.stderr, (('#'*50)+'\n')*5+'%d peers online' % len(self.online_peers)
+
+    def registerConnectionUpdater(self, session):
+        session.add_observer(self.setOnline, NTFY_PEERS, [NTFY_CONNECTION], None)
+    
     def updatePeerIcon(self, permid, icontype, icondata, updateFlag = True):
          # save thumb in db
          self.updatePeer(permid, thumbnail=bin2str(icondata))

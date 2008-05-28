@@ -1660,7 +1660,7 @@ class standardDetails(wx.Panel):
 
         # DB registration and buddycast notification is done in LaunchManyCore.add()
         # Currently no removal function.
-        torrent[key_myDownloadHistory] = True
+        torrent['myDownloadHistory'] = True
 
 
     def setTorrentThumb(self, mode, torrent, thumbPanel):
@@ -1708,7 +1708,8 @@ class standardDetails(wx.Panel):
             if status != DLSTATUS_STOPPED and status != DLSTATUS_STOPPED_ON_ERROR:
                 nactive += 1
 
-            print >>sys.stderr,"standardDetails: stats:",`d.get_def().get_name()`,progress,status
+            if DEBUG:
+                print >>sys.stderr,"standardDetails: stats:",`d.get_def().get_name()`,progress,status
             
 
 

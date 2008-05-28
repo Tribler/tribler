@@ -81,8 +81,8 @@ class GridManager(object):
         self.data, self.total_items = self._getData(self.state)
         # print >> sys.stderr, 'Data length: %d/%d' % (len(self.data), self.total_items)
         self.grid.setData(self.data)
-        #if DEBUG:
-        print >> sys.stderr, 'GridManager: state: %s gave %d results' % (self.state, len(self.data))
+        if DEBUG:
+            print >> sys.stderr, 'GridManager: state: %s gave %d results' % (self.state, len(self.data))
         
     def set_page(self, page):
         if page != self.page:
@@ -120,7 +120,8 @@ class GridManager(object):
                 data = self.peer_db_handler.getGUIPeers(category_name = state.category, 
                                                         sort = state.sort,
                                                         reverse = state.reverse,
-                                                        range = range)
+                                                        range = range,
+                                                        get_online = True)
             else:
                 print >>sys.stderr,"SEARCH GUI PEERS $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
                 try:
@@ -141,7 +142,8 @@ class GridManager(object):
         self.session.remove_observer(self.item_network_callback)
         for notify_constant in ntfy_mappings[self.state.db]:
             print >> sys.stderr, 'For %s we added %s' % (self.state.db, notify_constant)
-            self.session.add_observer(self.item_network_callback, notify_constant)
+            self.session.add_observer(self.item_network_callback, notify_constant,
+                                      [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CONNECTION])
         
         if self.state.db == 'libraryMode':
             if not self.download_states_callback_set:
@@ -175,10 +177,11 @@ class GridManager(object):
             wx.CallAfter(self.itemChanged, *args)
         
     def itemChanged(self,subject,changeType,objectID,*args):
+        "called by GuiThread"
         print >> sys.stderr, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, `objectID`, args)
         if changeType == NTFY_INSERT:
             self.itemAdded(subject, objectID, args)
-        elif changeType == NTFY_UPDATE:
+        elif changeType in (NTFY_UPDATE, NTFY_CONNECTION):
             self.itemUpdated(subject, objectID, args)
         elif changeType == NTFY_DELETE:
             self.itemDeleted(subject, objectID, args)
@@ -230,15 +233,15 @@ class GridManager(object):
         if subject == NTFY_PEERS:
             peer = db_handler.getPeer(objectID)
             ok = peer and (peer['buddycast_times']>0 or peer['friend'])
-            if not ok:
-                print >> sys.stderr, 'Gridmanager: Peer is not relevant: %s' % peer
+            #if not ok:
+            #    print >> sys.stderr, 'Gridmanager: Peer is not relevant: %s' % peer
             return ok
         elif subject in (NTFY_TORRENTS):
             id_name = 'infohash'
             torrent = db_handler.getTorrent(objectID)
             ok = torrent is not None and torrent['status'] == 'good' and Category.getInstance().hasActiveCategory(torrent)
-            if not ok:
-                print >> sys.stderr, 'Gridmanager: Torrent is not relevant: %s' % torrent
+            #if not ok:
+            #    print >> sys.stderr, 'Gridmanager: Torrent is not relevant: %s' % torrent
             return ok
         elif subject == NTFY_MYPREFERENCES:
             return True
@@ -254,7 +257,9 @@ class GridManager(object):
                     torrent['ds'] = ds
                     break
         return liblist
-            
+
+   
+        
         
 class standardGrid(wx.Panel):
     """
@@ -420,7 +425,8 @@ class standardGrid(wx.Panel):
             #datalength = len(dataList)
         
         if type(dataList) == list or dataList is None:
-            print >>sys.stderr,'grid.setData: list'
+            if DEBUG:
+                print >>sys.stderr,'grid.setData: list'
             self.data = dataList
      
         if not self.initReady:
@@ -585,7 +591,8 @@ class standardGrid(wx.Panel):
         
     
     def updatePanel(self, oldRows, newRows):
-        print >> sys.stderr, 'Grid: updating from %d to %d rows' % (oldRows, newRows)
+        if DEBUG:
+            print >> sys.stderr, 'Grid: updating from %d to %d rows' % (oldRows, newRows)
         # put torrent items in grid 
         if newRows > oldRows:
             for i in range(oldRows, newRows):

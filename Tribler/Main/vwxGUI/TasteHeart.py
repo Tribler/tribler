@@ -92,7 +92,7 @@ class TasteHeart(wx.Panel):
         if bitmap:
             self.SetSize(bitmap.GetSize())
             self.SetMinSize(bitmap.GetSize())
-            self.Refresh()
+        self.Refresh()
         
     def mouseAction(self, event):
         if event.Entering():
