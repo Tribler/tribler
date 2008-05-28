@@ -20,7 +20,7 @@ from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 
 from threading import currentThread
 DEBUG = False
-BARTERCAST_TORRENTS = False
+BARTERCAST_TORRENTS = True
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -291,7 +291,7 @@ class MetadataHandler:
         my_permid = bartercastdb.my_permid
 
         if DEBUG:
-            print >> sys.stdout, "barter: Torrent (%d KB) sent to peer %s (PermID = %s)" % (torrent_kb, name, permid)
+            print >> sys.stderr, "BARTERCAST: Torrent (%d KB) %s to/from peer %s" % (torrent_kb, up_or_down, name)
 
         if torrent_kb > 0:
             bartercastdb.incrementItem((my_permid, permid), up_or_down, torrent_kb)
