@@ -77,12 +77,14 @@ class BarterCastCore:
         for permid in top_peers:
             
             item = self.bartercastdb.getItem((my_permid, permid))
-            # retrieve what i have uploaded to permid
-            data_to = item['uploaded']
-            # retrieve what i have downloaded from permid
-            data_from = item['downloaded']
+            
+            if item is not None:
+                # retrieve what i have uploaded to permid
+                data_to = item['uploaded']
+                # retrieve what i have downloaded from permid
+                data_from = item['downloaded']
 
-            data[permid] = {'u': data_to, 'd': data_from}
+                data[permid] = {'u': data_to, 'd': data_from}
         
         bartercast_data = {'data': data}
         

@@ -24,7 +24,7 @@ from bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Category.Category import Category
 
-DEBUG = True
+DEBUG = False
 SHOW_ERROR = True
 
 def show_permid_shorter(permid):
@@ -1584,6 +1584,15 @@ class BarterCastDBHandler(BasicDBHandler):
         else:
             return name
 
+    def getPermid(self, peer_id):
+
+        # by convention '-1' is the id of non-tribler peers
+        if peer_id == -1:
+            return 'non-tribler'
+        else:
+            return self.peer_db.getPermid(peer_id)
+
+
     def getPeerID(self, permid):
         
         # by convention '-1' is the id of non-tribler peers
@@ -1633,17 +1642,25 @@ class BarterCastDBHandler(BasicDBHandler):
     def getItemList(self):    # get the list of all peers' permid
         
         keys = self.getAll(('peer_id_from','peer_id_to'))
+        keys = map(lambda (id_from, id_to): (self.getPermid(id_from), self.getPermid(id_to)), keys)
         return keys
 
     # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
     def getTopNPeers(self, n, local_only = False):
         
+        if DEBUG:
+            print >> sys.stderr, "BARTERCAST: Called getTopNPeers"
+        
         n = max(1, n)
         itemlist = self.getItemList()
-
+        
+        
         if local_only:
             # get only items of my local dealings
             itemlist = filter(lambda (permid_from, permid_to): permid_to == self.my_permid or permid_from == self.my_permid, itemlist)
+
+#        if DEBUG:
+#            print >> sys.stderr, "BARTERCAST LIST: ", itemlist
 
         total_up = {}
         total_down = {}
@@ -1685,7 +1702,7 @@ class BarterCastDBHandler(BasicDBHandler):
             down = total_down[peer]
 
             if DEBUG:
-                print "BarterCast: total of %s: up = %d down = %d" % (self.getName(peer), up, down)
+                print >> sys.stderr, "BarterCast: total of %s: up = %d down = %d" % (self.getName(peer), up, down)
 
             # we know rank on total upload?
             value = up
@@ -1718,6 +1735,9 @@ class BarterCastDBHandler(BasicDBHandler):
         # My up and download with tribler peers only
         result['tribler_up'] = result['total_up'] - total_down.get('non-tribler', 0)
         result['tribler_down'] = result['total_down'] - total_up.get('non-tribler', 0)
+
+        if DEBUG:
+            print >> sys.stderr, result
 
         return result
 
@@ -1753,7 +1773,7 @@ class BarterCastDBHandler(BasicDBHandler):
     def updateItem(self, (permid_from, permid_to), key, value):
         
         if DEBUG:
-            print "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+            print >> sys.stderr, "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
 
         itemdict = self.getItem((permid_from, permid_to))
 
@@ -1776,7 +1796,7 @@ class BarterCastDBHandler(BasicDBHandler):
     def incrementItem(self, (permid_from, permid_to), key, value):
 
         if DEBUG:
-            print "BarterCast: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+            print >> sys.stderr, "BarterCast: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
 
         itemdict = self.getItem((permid_from, permid_to))
 
@@ -1785,6 +1805,10 @@ class BarterCastDBHandler(BasicDBHandler):
             self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())})
             itemdict = self.getItem((permid_from, permid_to))
             
+        # get peer ids
+        peer_id1 = itemdict['peer_id_from']
+        peer_id2 = itemdict['peer_id_to']
+
         if key in itemdict.keys():
             old_value = itemdict[key]
             new_value = old_value + value

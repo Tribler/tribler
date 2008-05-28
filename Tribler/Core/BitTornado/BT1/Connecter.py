@@ -621,8 +621,15 @@ class Connecter:
             down_kb = int(c.total_downloaded / 1024)
             up_kb = int(c.total_uploaded / 1024)
             
+            if DEBUG:
+                print >> sys.stderr, "BARTERCAST: attempting database update, adding olthread"
+            
             olthread_bartercast_conn_lost_lambda = lambda:olthread_bartercast_conn_lost(ip,port,down_kb,up_kb)
             self.overlay_bridge.add_task(olthread_bartercast_conn_lost_lambda,0)
+        else:
+            if DEBUG:
+                print >> sys.stderr, "BARTERCAST: no overlay bridge found"    
+            
         #########################
 
         del self.connections[connection]
@@ -972,7 +979,7 @@ def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
         my_permid = bartercastdb.my_permid
     
         if DEBUG:
-            print >> sys.stderr, "barter: Up %d down %d peer %s:%s (PermID = %s)" % (up_kb, down_kb, ip, port, permid)
+            print >> sys.stderr, "BARTERCAST (Connecter): Up %d down %d peer %s:%s (PermID = %s)" % (up_kb, down_kb, ip, port, permid)
     
         # Save exchanged KBs in BarterCastDB
         if permid is not None:
@@ -984,7 +991,7 @@ def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
             if up_kb > 0:
                 new_value = bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb)
      
-            # For the record: save KBs exchanged with non-tribler peers
+        # For the record: save KBs exchanged with non-tribler peers
         else:
             if down_kb > 0:
                 new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'downloaded', down_kb)
@@ -992,3 +999,7 @@ def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
             if up_kb > 0:
                 new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb)
 
+
+    else:
+        if DEBUG:
+            print >> sys.stderr, "BARTERCAST: No bartercastdb instance"
