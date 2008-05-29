@@ -920,7 +920,7 @@ class ABCApp(wx.App):
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            print_exc()
+            #print_exc()
             defaultdestdir = os.path.join(get_default_dest_dir())
             defaultDLConfig.set_dest_dir(defaultdestdir)
 

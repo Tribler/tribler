@@ -72,7 +72,7 @@ class TorrentChecking(Thread):
             torrent['info'] = data
             return torrent
         except Exception, msg:
-            print_exc()
+            #print_exc()
             return torrent
             
     def _run(self):

@@ -1588,8 +1588,6 @@ class standardDetails(wx.Panel):
                 print >> sys.stderr, torrent, torrent.keys()
             return True
 
-        self.torrent_db.setSecret(torrent['infohash'], secret)
-            
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
 
@@ -1614,6 +1612,9 @@ class standardDetails(wx.Panel):
             d = self.utility.session.start_download(tdef,dcfg)
             
             if d:
+                if secret:
+                    self.torrent_db.setSecret(torrent['infohash'], secret)
+
                 if DEBUG:
                     print >>sys.stderr,'standardDetails: download started'
                 # save start download time.
@@ -1633,7 +1634,7 @@ class standardDetails(wx.Panel):
             dlg.Destroy()
             if result == wx.ID_YES:
                 infohash = torrent['infohash']
-                self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
+                self.torrent_db.deleteTorrent(infohash, delete_file=True, commit = True)
                 
                 return True
             else:
