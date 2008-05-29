@@ -434,7 +434,7 @@ class MetadataHandler:
         
         if self.num_torrents > self.max_num_torrents:
             num_delete = int(self.num_torrents - self.max_num_torrents*0.95)
-            print "** limit space::", self.num_torrents, self.max_num_torrents, num_delete
+            print >> sys.stderr, "** limit space::", self.num_torrents, self.max_num_torrents, num_delete
             self.limit_space(num_delete)
             
     def limit_space(self, num_delete):

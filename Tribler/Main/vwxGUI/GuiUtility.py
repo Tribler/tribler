@@ -216,7 +216,7 @@ class GUIUtility:
     def standardPersonsOverview(self):
         self.standardOverview.setMode('personsMode')
         if not self.standardOverview.getSorting():
-            gridState = GridState('personsMode', 'all', 'name', reverse=True)
+            gridState = GridState('personsMode', 'all', 'last_connected', reverse=False)
             self.standardOverview.filterChanged(gridState)
         self.standardDetails.setMode('personsMode')
         #self.standardOverview.clearSearch()
