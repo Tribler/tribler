@@ -1093,11 +1093,6 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['destination_path'] = stats[tid][2]
         return torrent
 
-    def getAllTorrents(self):
-        sql = 'select infohash from CollectedTorrent'
-        res = self._db.execute(sql)
-        return [str2bin(p[0]) for p in res]
-        
     def getNumberTorrents(self, category_name = 'all', library = False):
         table = 'CollectedTorrent'
         value = 'count(*)'
@@ -1212,12 +1207,19 @@ class TorrentDBHandler(BasicDBHandler):
         res_list = self._db.getAll('Torrent', value_name, where = where, limit=rankList_size, order_by=order_by)
         return [a[0] for a in res_list]
 
-    def getCollectedTorrentHashes(self): 
-        """ get infohashes of torrents on disk, used by torrent checking, 
-            and metadata handler
+    def getNumberCollectedTorrents(self): 
+        return self._db.size('CollectedTorrent')
+
+    def freeSpace(self, torrents2del):
+        print >> sys.stderr, "Free Space. Deleting torrents", torrents2del
         """
-        return self.getAllTorrents()
+        select name, (min(365,creation_date/86400) - relevance/10 - num_leechers - 3*num_seeders) as weight, 
+        torrent_file_name, 
+        status_id, creation_date, relevance, num_leechers, num_seeders
+        from CollectedTorrent T order by weight 
+        """
         
+
     def hasMetaData(self, infohash):
         return self.hasTorrent(infohash)
     
@@ -1324,7 +1326,7 @@ class TorrentDBHandler(BasicDBHandler):
                      from Torrent T, TorrentTracker TT
                      where TT.torrent_id=T.torrent_id and announce_tier=1 """
             if policy.lower() == 'random':
-                ntorrents = self._db.size('CollectedTorrent')
+                ntorrents = self.getNumberCollectedTorrents()
                 if ntorrents == 0:
                     rand_pos = 0
                 else:                    

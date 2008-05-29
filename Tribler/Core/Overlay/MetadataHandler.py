@@ -340,74 +340,6 @@ class MetadataHandler:
                 self.recently_collected_torrents.pop(0)
                 self.recently_collected_torrents.append(torrent_hash)
         
-#
-#    def addTorrentToDB(self, filename, torrent_hash, metadata, source='BC', extra_info={}, hack=False):
-#        
-#        metainfo = bdecode(metadata)
-#        namekey = metainfoname2unicode(metainfo)  # convert info['name'] to type(unicode)
-#        info = metainfo['info']
-#        
-#        torrent = {}
-#        torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(filename)
-#        
-#        torrent_info = {}
-#        torrent_info['name'] = info.get(namekey, '')
-#        
-#        catobj = Category.getInstance(self.config['install_dir'], self.config['state_dir'])
-#        torrent['category'] = catobj.calculateCategory(info, torrent_info['name'])
-#        
-#        #if DEBUG:
-#        #    print >>sys.stderr,"metadata: Category for",`torrent_info['name']`,torrent['category']
-#        
-#        for cat in torrent['category']:
-#            rank = catobj.getCategoryRank(cat)
-#            if rank == -1:
-#                if DEBUG:
-#                    print >>sys.stderr,"metadata: Got torrent",`torrent_info['name']`,"from banned category",cat,", discarded it."
-#                return
-#        
-#        length = 0
-#        nf = 0
-#        if info.has_key('length'):
-#            length = info.get('length', 0)
-#            nf = 1
-#        elif info.has_key('files'):
-#            for li in info['files']:
-#                nf += 1
-#                if li.has_key('length'):
-#                    length += li['length']
-#        torrent_info['length'] = length
-#        torrent_info['num_files'] = nf
-#        torrent_info['announce'] = metainfo.get('announce', '')
-#        torrent_info['announce-list'] = metainfo.get('announce-list', '')
-#        torrent_info['creation date'] = metainfo.get('creation date', 0)
-#        torrent['info'] = torrent_info
-#        
-#        torrent["ignore_number"] = 0
-#        torrent["retry_number"] = 0
-#        if hack:
-#            torrent["seeder"] = 1
-#            torrent["leecher"] = 1
-#            torrent["status"] = "good"
-#            torrent["last_check_time"] = 0
-#        else:
-#            torrent["seeder"] = extra_info.get('seeder', -1)
-#            torrent["leecher"] = extra_info.get('leecher', -1)
-#            other_last_check = extra_info.get('last_check_time', -1)
-#            if other_last_check >= 0:
-#                torrent["last_check_time"] = int(time()) - other_last_check
-#            else:
-#                torrent["last_check_time"] = 0
-#            torrent["status"] = extra_info.get('status', "unknown")
-#        
-#        torrent["source"] = source
-#        torrent["inserttime"] = long(time())
-#
-#        #if (torrent['category'] != []):
-#        #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
-#        
-#        self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True)#, updateFlag=True)
-#        self.torrent_db.sync()
 
     def set_overflow(self, max_num_torrent):
         self.max_num_torrents = self.init_max_num_torrents = max_num_torrent
@@ -425,8 +357,7 @@ class MetadataHandler:
         
     def check_overflow(self):    # check if there are too many torrents relative to the free disk space
         if self.num_torrents < 0:
-            collected_infohashes = self.torrent_db.getCollectedTorrentHashes()
-            self.num_torrents = len(collected_infohashes)
+            self.num_torrents = self.torrent_db.getNumberCollectedTorrents()
             #print >> sys.stderr, "**** torrent collectin self.num_torrents=", self.num_torrents
 
         if DEBUG:
@@ -438,62 +369,57 @@ class MetadataHandler:
             self.limit_space(num_delete)
             
     def limit_space(self, num_delete):
-        return 
-        # TODO: 
-#        def get_weight(torrent):
-#            # policy of removing torrent:
-#            # status*1000 + retry_number*100 - relevance/10 + date - leechers - 3*seeders
-#            # The bigger, the more possible to delete
-#            
-#            status_key = torrent.get('status', 'dead')
-#            leechers = min(torrent.get('leecher', -1), 1000)
-#            seeders = min(torrent.get('seeder', -1), 1000)
-#            
-#            status_value = {'dead':2, 'unknown':1, 'good':0}
-#            status = status_value.get(status_key, 1)
-#            
-#            retry_number = min(torrent.get('retry_number', 0), 10)
-#            
-#            relevance = min(torrent.get('relevance', 0), 25000)
-#            
-#            info = torrent.get('info',{})
-#            cdate = info.get('creation date', '0')
-#            try:
-#                date = int(cdate)
-#            except:
-#                cdate = torrent.get('inserttime',0)
-#                try:
-#                    date = int(cdate)
-#                except:
-#                    date = 0
-#            age = max(int(time())-date, 24*60*60)
-#            rel_date = min(age/(24*60*60), 1000)    # [1, 1000]
-#            
-#            weight = status*1000 + retry_number*100 + rel_date - relevance/10 - leechers - 3*seeders
-#            return weight
-#        
-#        collected_infohashes = self.torrent_db.getCollectedTorrentHashes()
-#        self.num_torrents = len(collected_infohashes)    # sync point
-#
-#        if DEBUG:
-#            print >>sys.stderr,"metadata: limit space: num", self.num_torrents,"max", self.max_num_torrents
-#
-#        weighted_infohashes = []
-#        for infohash in collected_infohashes:
-#            torrent = self.torrent_db.getTorrent(infohash)
-#            weight = get_weight(torrent)
-#            weighted_infohashes.append((weight,infohash))
-#        weighted_infohashes.sort()
-#
-#        for (weight,infohash) in weighted_infohashes[-num_delete:]:
-#            deleted = self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
-#            if deleted > 0:
-#                self.num_torrents -= 1
-#            if DEBUG:
-#                print >>sys.stderr,"metadata: limit space: delete torrent, succeeded?", deleted, self.num_torrents,weight
-#
-#        if num_delete > 0:
-#            self.free_space = self.get_free_space()
+        return self.torrent_db.freeSpace(num_delete)
+         
+        
+        def get_weight(torrent):
+            # policy of removing torrent:
+            # status*1000 + retry_number*100 - relevance/10 + date - leechers - 3*seeders
+            # The bigger, the more possible to delete
+            
+            status_key = torrent.get('status', 'dead')
+            leechers = min(torrent.get('num_leechers', -1), 1000)
+            seeders = min(torrent.get('num_seeders', -1), 1000)
+            
+            status_value = {'dead':2, 'unknown':1, 'good':0}
+            status = status_value.get(status_key, 1)
+            
+            retry_number = min(torrent.get('retry_number', 0), 10)
+            
+            relevance = min(torrent.get('relevance', 0), 25000)
+            
+            date = torrent.get('creation_date', 0)
+            age = max(int(time())-date, 24*60*60)
+            rel_date = min(age/(24*60*60), 1000)    # [1, 1000]
+            
+            weight = status*1000 + retry_number*100 + rel_date - relevance/10 - leechers - 3*seeders
+            return weight
+        
+        #self.num_torrents = self.torrent_db.getNumberCollectedTorrents()
+
+        # TODO: function in db?
+        
+
+
+        if DEBUG:
+            print >>sys.stderr,"metadata: limit space: num", self.num_torrents,"max", self.max_num_torrents
+
+        weighted_infohashes = []
+        for infohash in collected_infohashes:
+            torrent = self.torrent_db.getTorrent(infohash)
+            weight = get_weight(torrent)
+            weighted_infohashes.append((weight,infohash))
+        weighted_infohashes.sort()
+
+        for (weight,infohash) in weighted_infohashes[-num_delete:]:
+            deleted = self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
+            if deleted > 0:
+                self.num_torrents -= 1
+            if DEBUG:
+                print >>sys.stderr,"metadata: limit space: delete torrent, succeeded?", deleted, self.num_torrents,weight
+
+        if num_delete > 0:
+            self.free_space = self.get_free_space()
         
 #===============================================================================
 #    def check_free_space(self):
