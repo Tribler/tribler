@@ -501,12 +501,13 @@ class SQLiteCacheDB:
                     print >> self.file, '\t', line
             self.file.flush()
         try:
+            #print >> sys.stderr, sql, args
             if args is None:
                 return cur.execute(sql)
             else:
                 return cur.execute(sql, args)
         except sqlite.OperationalError, msg:
-            print >> sys.stderr, 'sqldb: execute: ', msg, threading.currentThread().getName()
+            print >> sys.stderr, 'sqldb: execute: ', msg, threading.currentThread().getName(), sql
             raise
 
     def executemany(self, sql, args):
@@ -740,7 +741,7 @@ class SQLiteCacheDB:
         return deleted
                 
     def getPeerID(self, permid):
-        assert isinstance(permid, str), infohash
+        assert isinstance(permid, str), permid
         # permid must be binary
         if permid in self.permid_id:
             return self.permid_id[permid]

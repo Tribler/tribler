@@ -116,7 +116,8 @@ class TorrentChecking(Thread):
             #'info': torrent['info']
             }
         
-        print >> sys.stderr, "Torrent Checking: selectTorrentToCheck:", kw
+        if DEBUG:
+            print >> sys.stderr, "Torrent Checking: selectTorrentToCheck:", kw
         
         self.torrent_db.updateTorrent(torrent['infohash'], updateFlag=True, **kw)            
         

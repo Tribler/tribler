@@ -13,7 +13,6 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, PeerDBHandler
 from Tribler.Core.simpledefs import *
 from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
 from Tribler.Core.Utilities.utilities import *
@@ -132,7 +131,7 @@ class GridManager(object):
         
         else:
             raise Exception('Unknown data db in GridManager: %s' % state.db)
-    
+
         return data, total_items
     
     def _last_page(self):

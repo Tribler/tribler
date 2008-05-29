@@ -1249,7 +1249,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         all = []
         for flist in res:
-            print >>sys.stderr,"torrent_db: searchNames: Got Record",`flist`
+            #print >>sys.stderr,"torrent_db: searchNames: Got Record",`flist`
             d = self._selectStar2dict(flist)
             torrent_id = flist[0]
             d['myDownloadHistory'] = torrent_id in mypref_stats

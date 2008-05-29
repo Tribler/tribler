@@ -201,7 +201,7 @@ class PersonsItemPanel(wx.Panel):
         if peer_data is None:
             peer_data = {}
         
-        if peer_data.get('name'):
+        if peer_data.get('permid'):
             title = peer_data['name'][:self.titleLength]
             self.title.Enable(True)
             self.title.SetLabel(title)
@@ -243,16 +243,15 @@ class PersonsItemPanel(wx.Panel):
                     self.status.SetLabel( 'unknown')
                 
                 # number of Discovered files and persons
-                n = unicode(peer_data.get('num_peers'))
-                if not n or n=='0':
+                n = peer_data.get('num_peers')
+                if n is None:
                     n = '?'
-                self.discPersons.SetLabel(n)
+                self.discPersons.SetLabel(unicode(n))
 
-                t = unicode(peer_data.get('num_torrents'))
-                if not t or t == '0':
+                t = peer_data.get('num_torrents')
+                if t is None:
                     t = '?'
-                self.discFiles.SetLabel(t)
-
+                self.discFiles.SetLabel(unicode(t))
                 
                 # -- taste issues
                 rank = peer_data.get('simRank',-1) 
@@ -289,10 +288,6 @@ class PersonsItemPanel(wx.Panel):
                     self.friendsIcon.Show()
                 else:
                     self.friendsIcon.Hide()
-    
-                        
-                
-
                 
         else:
             self.title.SetLabel('')
