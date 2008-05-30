@@ -345,7 +345,9 @@ class RemoteQueryMsgHandler:
             try:
                 if peer is not None:
                     print >>sys.stderr,"rqmh: inc_peer_nqueries: getPeer",peer
-                    nqueries = peer['nqueries']
+                    nqueries = peer['num_queries']
+                    if nqueries is None:
+                        nqueries = 0
                     self.peer_db.updatePeer(permid, num_queries=nqueries+1)
             except:
                 print_exc()

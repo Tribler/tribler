@@ -19,9 +19,9 @@ import threading
 import base64
 from random import randint
 
-from Tribler.Core.simpledefs import *
 from bencode import bencode, bdecode
 from Notifier import Notifier
+from Tribler.Core.simpledefs import *
 from Tribler.Category.Category import Category
 
 DEBUG = False
@@ -917,6 +917,10 @@ class TorrentDBHandler(BasicDBHandler):
     def _addTorrentTracker(self, torrent_id, data, add_all=False):
         # Set add_all to True if you want to put all multi-trackers into db.
         # In the current version (4.2) only the main tracker is used.
+        exist = self._db.getOne('TorrentTracker', 'tracker', torrent_id=torrent_id)
+        if exist:
+            return
+        
         announce = data['announce']
         ignore_number = data['ignore_number']
         retry_number = data['retry_number']
@@ -944,6 +948,7 @@ class TorrentDBHandler(BasicDBHandler):
                     values.append(value)
                     trackers[tracker] = None
                 tier_num += 1
+            
         self._db.executemany(sql_insert_torrent_tracker, values)
         
     def updateTorrent(self, infohash, commit=True, **kw):    # watch the schema of database
@@ -1211,14 +1216,48 @@ class TorrentDBHandler(BasicDBHandler):
         return self._db.size('CollectedTorrent')
 
     def freeSpace(self, torrents2del):
-        print >> sys.stderr, "Free Space. Deleting torrents", torrents2del
-        """
-        select name, (min(365,creation_date/86400) - relevance/10 - num_leechers - 3*num_seeders) as weight, 
-        torrent_file_name, 
-        status_id, creation_date, relevance, num_leechers, num_seeders
-        from CollectedTorrent T order by weight 
-        """
+#        if torrents2del > 100:  # only delete so many torrents each time
+#            torrents2del = 100
+        sql = """
+            select torrent_file_name, torrent_id, infohash, relevance,
+                min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
+            from CollectedTorrent
+            where  torrent_id not in (select torrent_id from MyPreference)
+            order by weight  
+            limit %d  
+        """ % (int(time()), torrents2del)
+        res_list = self._db.fetchall(sql)
+        if len(res_list) == 0: 
+            return False
         
+        # delete torrents from db
+        sql_del_torrent = "delete from Torrent where torrent_id=?"
+        sql_del_tracker = "delete from Torrent where torrent_id=?"
+        for torrent_file_name, torrent_id, infohash, relevance, weight in res_list:
+            self._db.execute(sql_del_torrent, (torrent_id,))
+            self._db.execute(sql_del_tracker, (torrent_id,))
+        
+        # but keep the infohash in db to maintain consistence with preference db
+        torrent_id_infohashes = [(torrent_id,infohash_str,relevance) for torrent_file_name, torrent_id, infohash_str, relevance, weight in res_list]
+        sql_insert =  "insert into Torrent (torrent_id, infohash, relevance) values (?,?,?)"
+        self._db.executemany(sql_insert, torrent_id_infohashes)
+        
+        self._db.commit()
+        self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, str2bin(infohash))
+        
+        torrent_dir = self.getTorrentDir()
+        deleted = 0 # deleted any file?
+        for torrent_file_name, torrent_id, infohash, relevance, weight in res_list:
+            torrent_path = os.path.join(torrent_dir, torrent_file_name)
+            try:
+                os.remove(torrent_path)
+                print >> sys.stderr, "Erase torrent:", os.path.basename(torrent_path)
+                deleted += 1
+            except Exception, msg:
+                #print >> sys.stderr, "Error in erase torrent", Exception, msg
+                pass
+        
+        return deleted
 
     def hasMetaData(self, infohash):
         return self.hasTorrent(infohash)

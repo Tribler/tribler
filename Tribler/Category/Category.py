@@ -24,7 +24,7 @@ class Category:
     __single = None
     __size_change = 1024 * 1024 
     
-    def __init__(self, install_dir):
+    def __init__(self, install_dir='.'):
         
         if Category.__single:
             raise RuntimeError, "Category is singleton"
@@ -142,7 +142,7 @@ class Category:
                 f.close()
             except IOError:                     # torrent file not found
                 # delete the info from db
-                self.torrent_db.deleteTorrent(data[i]['infohash'], updateFlag=False)
+                self.torrent_db.deleteTorrent(data[i]['infohash'])
                 continue   
             
             # decode the data

@@ -19,7 +19,7 @@ from Tribler.Core.osutils import getfreespace,get_readable_torrent_name
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 
 from threading import currentThread
-DEBUG = False
+DEBUG = True
 BARTERCAST_TORRENTS = True
 
 # Python no recursive imports?
@@ -72,6 +72,7 @@ class MetadataHandler:
         self.next_upload_time = 0
         self.initialized = True
         self.rquerytorrenthandler = None
+        self.delayed_check_overflow(5)
 
     def register2(self,rquerytorrenthandler):
         self.rquerytorrenthandler = rquerytorrenthandler
@@ -87,7 +88,7 @@ class MetadataHandler:
             return self.send_metadata(permid, message, selversion)
         elif t == METADATA:     # the other peer sends me a torrent
             if DEBUG:
-                print >> sys.stderr,"metadata: Got METADATA",len(message),show_permid_short(permid),selversion
+                print >> sys.stderr,"metadata: Got METADATA",len(message),show_permid_short(permid),selversion, currentThread().getName()
             return self.got_metadata(permid, message, selversion)
         else:
             if DEBUG:
@@ -329,7 +330,6 @@ class MetadataHandler:
 
         if self.initialized:
             self.num_torrents += 1 # for free disk limitation
-            self.check_overflow()
         
             if not extra_info:
                 self.refreshTrackerStatus(torrent)
@@ -351,9 +351,6 @@ class MetadataHandler:
         
     def delayed_check_free_space(self, delay=2):
         self.free_space = self.get_free_space()
-        #if not self.initialized:
-        #    return
-        #self.overlay_bridge.add_task(self.check_free_space, delay)
         
     def check_overflow(self):    # check if there are too many torrents relative to the free disk space
         if self.num_torrents < 0:
@@ -369,56 +366,9 @@ class MetadataHandler:
             self.limit_space(num_delete)
             
     def limit_space(self, num_delete):
-        return self.torrent_db.freeSpace(num_delete)
-         
-        
-        def get_weight(torrent):
-            # policy of removing torrent:
-            # status*1000 + retry_number*100 - relevance/10 + date - leechers - 3*seeders
-            # The bigger, the more possible to delete
-            
-            status_key = torrent.get('status', 'dead')
-            leechers = min(torrent.get('num_leechers', -1), 1000)
-            seeders = min(torrent.get('num_seeders', -1), 1000)
-            
-            status_value = {'dead':2, 'unknown':1, 'good':0}
-            status = status_value.get(status_key, 1)
-            
-            retry_number = min(torrent.get('retry_number', 0), 10)
-            
-            relevance = min(torrent.get('relevance', 0), 25000)
-            
-            date = torrent.get('creation_date', 0)
-            age = max(int(time())-date, 24*60*60)
-            rel_date = min(age/(24*60*60), 1000)    # [1, 1000]
-            
-            weight = status*1000 + retry_number*100 + rel_date - relevance/10 - leechers - 3*seeders
-            return weight
-        
-        #self.num_torrents = self.torrent_db.getNumberCollectedTorrents()
-
-        # TODO: function in db?
-        
-
-
-        if DEBUG:
-            print >>sys.stderr,"metadata: limit space: num", self.num_torrents,"max", self.max_num_torrents
-
-        weighted_infohashes = []
-        for infohash in collected_infohashes:
-            torrent = self.torrent_db.getTorrent(infohash)
-            weight = get_weight(torrent)
-            weighted_infohashes.append((weight,infohash))
-        weighted_infohashes.sort()
-
-        for (weight,infohash) in weighted_infohashes[-num_delete:]:
-            deleted = self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
-            if deleted > 0:
-                self.num_torrents -= 1
-            if DEBUG:
-                print >>sys.stderr,"metadata: limit space: delete torrent, succeeded?", deleted, self.num_torrents,weight
-
-        if num_delete > 0:
+        deleted = self.torrent_db.freeSpace(num_delete)
+        if deleted:
+            self.num_torrents = self.torrent_db.getNumberCollectedTorrents()
             self.free_space = self.get_free_space()
         
 #===============================================================================
@@ -447,6 +397,8 @@ class MetadataHandler:
 
 #        if self.free_space <= self.min_free_space or self.num_collected_torrents % 10 == 0:
 #            self.check_free_space()
+
+        self.check_overflow()
             
         if self.free_space - len(metadata) < self.min_free_space or self.num_collected_torrents % 10 == 0:
             self.free_space = self.get_free_space()
