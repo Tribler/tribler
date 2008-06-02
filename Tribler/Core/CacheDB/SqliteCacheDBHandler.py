@@ -62,7 +62,7 @@ class BasicDBHandler:
         
     def commit(self):
         self._db.commit()
-    
+        
     def getOne(self, value_name, where=None, conj='and', **kw):
         return self._db.getOne(self.table_name, value_name, where, conj, **kw)
     
@@ -1029,7 +1029,7 @@ class TorrentDBHandler(BasicDBHandler):
             if keep_infohash:
                 self._db.insert(self.table_name, torrent_id=torrent_id, infohash=bin2str(infohash))
             self._db.delete('TorrentTracker', torrent_id=torrent_id)
-            print '******* delete torrent', torrent_id, `infohash`, self.hasTorrent(infohash)
+            #print '******* delete torrent', torrent_id, `infohash`, self.hasTorrent(infohash)
             
     def eraseTorrentFile(self, infohash):
         torrent_id = self._db.getTorrentID(infohash)
@@ -1362,7 +1362,7 @@ class TorrentDBHandler(BasicDBHandler):
         if infohash is None:
             # create a view?
             sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check 
-                     from Torrent T, TorrentTracker TT
+                     from CollectedTorrent T, TorrentTracker TT
                      where TT.torrent_id=T.torrent_id and announce_tier=1 """
             if policy.lower() == 'random':
                 ntorrents = self.getNumberCollectedTorrents()
@@ -1386,7 +1386,7 @@ class TorrentDBHandler(BasicDBHandler):
             res = self._db.fetchone(sql)
         else:
             sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check 
-                     from Torrent T, TorrentTracker TT
+                     from CollectedTorrent T, TorrentTracker TT
                      where TT.torrent_id=T.torrent_id and announce_tier=1
                      and infohash=? 
                   """
@@ -1401,6 +1401,7 @@ class TorrentDBHandler(BasicDBHandler):
             return None
         torrent_file_name = res[3]
         torrent_dir = self.getTorrentDir()
+        #print >> sys.stderr, '************ path:', torrent_dir, torrent_file_name, res
         torrent_path = os.path.join(torrent_dir, torrent_file_name)
         if res is not None:
             res = {'torrent_id':res[0], 

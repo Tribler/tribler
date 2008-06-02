@@ -721,7 +721,9 @@ def get_default_dest_dir():
     """ Returns the default dir to save content to.
     <pre> 
     * For Win32/MacOS: Desktop\TriblerDownloads
-    * For UNIX: /tmp
+    * For UNIX: 
+        If Desktop exists: Desktop\TriblerDownloads
+        else: Home\TriblerDownloads
     </pre>
     """ 
     if sys.platform == 'win32':
@@ -733,5 +735,10 @@ def get_default_dest_dir():
         tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
         return tempdir
     else:
-        return '/tmp'
+        profiledir = os.path.expandvars('${HOME}')
+        if os.path.exists(os.path.join(profiledir,'Desktop')):
+            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
+        else:
+            tempdir = os.path.join(profiledir,'TriblerDownloads')
+        return tempdir
     
