@@ -24,9 +24,12 @@ class TimedTaskQueue:
         self.thread = Thread(target = self.run)
         self.thread.setDaemon(True)
         self.thread.setName( nameprefix+self.thread.getName() )
+        self.thread_started = False
         
     def register(self):
-        self.thread.start()
+        if not self.thread_started:
+            self.thread.start()
+            self.thread_started = True
         
     def add_task(self,task,t):
         """ t parameter is now usable, unlike before """

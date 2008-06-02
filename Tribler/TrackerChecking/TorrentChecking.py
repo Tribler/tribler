@@ -31,6 +31,7 @@ from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
+from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 
 DEBUG = False
 
@@ -46,7 +47,10 @@ class TorrentChecking(Thread):
         self.infohash = infohash
         self.retryThreshold = 10
         self.gnThreashold = 0.9
-        self.mldhtchecker = mainlineDHTChecker.getInstance() 
+        self.mldhtchecker = mainlineDHTChecker.getInstance()
+        self.overlay_bridge = OverlayThreadingBridge.getInstance()
+        if not self.overlay_bridge.tqueue.thread_started:
+            self.overlay_bridge.tqueue.register()   # start the thread
         
     def run(self):
         self.torrent_db = TorrentDBHandler.getInstance()

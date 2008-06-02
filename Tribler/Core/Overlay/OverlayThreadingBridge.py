@@ -16,13 +16,14 @@ from Tribler.Core.BitTornado.BT1.MessageID import getMessageName
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-
+import threading
 
 DEBUG = False
 
 class OverlayThreadingBridge:
 
     __single = None
+    lock = threading.Lock()
 
     def __init__(self):
         if OverlayThreadingBridge.__single:
@@ -38,8 +39,14 @@ class OverlayThreadingBridge:
         self.tqueue = TimedTaskQueue(nameprefix="Overlay")
 
     def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
         if OverlayThreadingBridge.__single is None:
-            OverlayThreadingBridge(*args, **kw)
+            OverlayThreadingBridge.lock.acquire()   
+            try:
+                if OverlayThreadingBridge.__single is None:
+                    OverlayThreadingBridge(*args, **kw)
+            finally:
+                OverlayThreadingBridge.lock.release()
         return OverlayThreadingBridge.__single
     getInstance = staticmethod(getInstance)
 
