@@ -1343,7 +1343,7 @@ class TorrentDBHandler(BasicDBHandler):
             return None
         return str2bin(res)
         
-    def selectTorrentToCheck(self, policy='random', infohash=None):    # for tracker checking
+    def selectTorrentToCheck(self, policy='random', infohash=None, return_value=None):    # for tracker checking
         """ select a torrent to update tracker info (number of seeders and leechers)
         based on the torrent checking policy.
         RETURN: a dictionary containing all useful info.
@@ -1390,27 +1390,22 @@ class TorrentDBHandler(BasicDBHandler):
                      where TT.torrent_id=T.torrent_id and announce_tier=1
                      and infohash=? 
                   """
-            #values = ('torrent_id', 'ignored_times', 'retried_times', 'torrent_file_name', 'infohash', 'status_id', 'num_seeders', 'num_leechers', 'last_check')
-            #res = self._db.getOne('CollectedTorrent', values, infohash=infohash_str)
             infohash_str = bin2str(infohash)
             res = self._db.fetchone(sql, (infohash_str,))
         
-        #print " ".join(sql.split())
-        #print >> sys.stderr, "******** selectTorrentToCheck:", res, policy
-        if not res:
-            return None
-        torrent_file_name = res[3]
-        torrent_dir = self.getTorrentDir()
-        #print >> sys.stderr, '************ path:', torrent_dir, torrent_file_name, res
-        torrent_path = os.path.join(torrent_dir, torrent_file_name)
-        if res is not None:
-            res = {'torrent_id':res[0], 
-                   'ignored_times':res[1], 
-                   'retried_times':res[2], 
-                   'torrent_path':torrent_path,
-                   'infohash':str2bin(res[4])
-                  }
-        return res
+        if res:
+            torrent_file_name = res[3]
+            torrent_dir = self.getTorrentDir()
+            torrent_path = os.path.join(torrent_dir, torrent_file_name)
+            if res is not None:
+                res = {'torrent_id':res[0], 
+                       'ignored_times':res[1], 
+                       'retried_times':res[2], 
+                       'torrent_path':torrent_path,
+                       'infohash':str2bin(res[4])
+                      }
+            return_value['torrent'] = res
+        return_value['event'].set()
 
 
     def getTorrentsFromSource(self,source):

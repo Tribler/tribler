@@ -205,8 +205,7 @@ class SQLiteCacheDB:
         thread_name = threading.currentThread().getName()
         curs = SQLiteCacheDB.cursor_table
         cur = curs.get(thread_name, None)    # return [cur, cur, lib] or None
-        #print >> sys.stderr, 'getCursor::', len(curs), time()
-        #print_stack()
+        #print >> sys.stderr, '-------------- getCursor::', len(curs), time(), curs.keys()
         if cur is None and create:
             SQLiteCacheDB.initDB()    # create a new db obj for this thread
             cur = curs.get(thread_name)
