@@ -25,7 +25,6 @@ class TestTimedTaskQueue(unittest.TestCase):
     
     def test_addTask(self):
         self.queue = TimedTaskQueue()
-        self.queue.register()
         self.count = 0
         self.queue.add_task(self.task3a, 3)
         self.queue.add_task(self.task0, 0)

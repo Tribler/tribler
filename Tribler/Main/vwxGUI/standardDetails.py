@@ -13,6 +13,7 @@ from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Main.Utility.constants import COL_PROGRESS
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -122,7 +123,6 @@ class standardDetails(wx.Panel):
             
         self.guiUtility.initStandardDetails(self)
         
-
 
     def addComponents(self):
         self.SetBackgroundColour(wx.Colour(102,102,102))
@@ -1003,15 +1003,25 @@ class standardDetails(wx.Panel):
         #print 'Available objects: %s' % self.data[mode].keys()
         return self.data[mode].get(obj_name)
      
+    def show_loading(self, list_obj):
+        list_obj.DeleteAllItems()
+        index = list_obj.InsertStringItem(sys.maxint, "Loading..")
+        font = list_obj.GetItemFont(index)
+        font.SetStyle(wx.FONTSTYLE_ITALIC)
+        list_obj.SetItemFont(index, font)
+        list_obj.SetItemTextColour(index, "#555555")
+     
     def fillSimTorrentsList(self, infohash):
         """fills the list of torrents from library or file view with the files that are similar to the currently selected one"""
         # jie.done: fill similar torrent list
         # future.work: smooth the recommendation, solve the data sparse and cold start problem
         
         sim_torrent_list = self.getGuiObj('peopleWhoField')
+        self.show_loading(sim_torrent_list)
+        
+        sim_torrent_list.DeleteAllItems()
         try:
             sim_files = self.gui_db.getSimItems(infohash, 8)   # [(infohash, title)]
-            sim_torrent_list.DeleteAllItems()
             sim_torrent_list.setInfoHashList(None)
         
             torrent_list = []
@@ -1039,7 +1049,6 @@ class standardDetails(wx.Panel):
                 
         except Exception, e:
             print_exc()
-            sim_torrent_list.DeleteAllItems()
             sim_torrent_list.setInfoHashList(None)
             index = sim_torrent_list.InsertStringItem(0, "Error getting similar files list")
             sim_torrent_list.SetItemTextColour(index, "dark red")
@@ -1055,6 +1064,9 @@ class standardDetails(wx.Panel):
         # jie.done: fill sim title list
         
         sim_torrent_list = self.getGuiObj('simTitlesField')
+        self.show_loading(sim_torrent_list)
+        
+        sim_torrent_list.DeleteAllItems()
         try:
             name = item['name']
             sim_files = self.gui_db.getSimilarTitles(name, 30)  # first get a subset of titles
@@ -1064,7 +1076,6 @@ class standardDetails(wx.Panel):
             
             sim_files.sort(cmpfunc)
             
-            sim_torrent_list.DeleteAllItems()
             sim_torrent_list.setInfoHashList(None)
             
             torrent_list = []
@@ -1111,7 +1122,6 @@ class standardDetails(wx.Panel):
 #                
         except Exception, e:
             print_exc()
-            sim_torrent_list.DeleteAllItems()
             sim_torrent_list.setInfoHashList(None)
             index = sim_torrent_list.InsertStringItem(0, "Error getting similar files list")
             sim_torrent_list.SetItemTextColour(index, "dark red")

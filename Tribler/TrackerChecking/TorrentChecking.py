@@ -50,8 +50,6 @@ class TorrentChecking(Thread):
         self.gnThreashold = 0.9
         self.mldhtchecker = mainlineDHTChecker.getInstance()
         self.overlay_bridge = OverlayThreadingBridge.getInstance()
-        if not self.overlay_bridge.tqueue.thread_started:
-            self.overlay_bridge.tqueue.register()   # start the thread
         
     def selectPolicy(self):
         policies = ["oldest", "random", "popular"]

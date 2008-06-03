@@ -1979,6 +1979,7 @@ class GUIDBHandler:
         return [(str2bin(t[0]),t[1], t[2], t[3]) for t in res]
         
     def getSimilarTitles(self, name, limit, prefix_len=5):
+        name = name.replace("'","`")
         sql_get_sim_files = """
             select infohash, name, status_id from Torrent 
             where name like '%s%%'

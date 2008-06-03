@@ -252,8 +252,6 @@ class ABCFrame(wx.Frame):
         #self.Bind(wx.EVT_IDLE, self.onIdle)
 
 
-        
-
         # If the user passed a torrentfile on the cmdline, load it.
         if DEBUG:
             print >>sys.stderr,"abc: wxFrame: params is",self.params
@@ -764,11 +762,6 @@ class ABCApp(wx.App):
             
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
             
-            # Singleton for executing tasks that are too long for GUI thread and
-            # network thread
-            self.guiserver = GUITaskQueue.getInstance()
-            self.guiserver.register()
-    
             # H4x0r a bit
             set_tasteheart_bitmaps(self.utility.getPath())
             set_perfBar_bitmaps(self.utility.getPath())

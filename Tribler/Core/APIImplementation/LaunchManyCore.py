@@ -106,6 +106,7 @@ class TriblerLaunchMany(Thread):
         if DEBUG:
             print >>sys.stderr,"tlm: Got listen port", self.listen_port
         
+        self.overlay_bridge = OverlayThreadingBridge.getInstance()
         self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
         #
         # Arno: disabling out startup of torrents, need to fix this
@@ -171,7 +172,6 @@ class TriblerLaunchMany(Thread):
             
             # For the new DB layer we need to run all overlay apps in a
             # separate thread instead of the NetworkThread as before.
-            self.overlay_bridge = OverlayThreadingBridge.getInstance()
             self.overlay_bridge.register_bridge(self.secure_overlay,self.overlay_apps)
             
             self.overlay_apps.register(self.overlay_bridge,self.session,self,config,policy)
@@ -180,7 +180,6 @@ class TriblerLaunchMany(Thread):
             self.overlay_bridge.start_listening()
         else:
             self.secure_overlay = None
-            self.overlay_bridge = None
             self.overlay_apps = None
         
         self.internaltracker = None
@@ -263,7 +262,7 @@ class TriblerLaunchMany(Thread):
                     if self.overlay_apps.buddycast is not None:
                         self.overlay_apps.buddycast.addMyPref(infohash)
 
-            if self.overlay_bridge is not None and self.torrent_db is not None:
+            if self.torrent_db is not None:
                 self.overlay_bridge.add_task(add_torrent_to_db, 3)
             
             return d

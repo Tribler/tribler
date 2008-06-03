@@ -49,7 +49,7 @@ class OverlayThreadingBridge:
                 OverlayThreadingBridge.lock.release()
         return OverlayThreadingBridge.__single
     getInstance = staticmethod(getInstance)
-
+    
     def register_bridge(self,secover,olapps):
         """ Called by MainThread """
         self.secover = secover
@@ -57,8 +57,6 @@ class OverlayThreadingBridge:
         
         secover.register_recv_callback(self.handleMessage)
         secover.register_conns_callback(self.handleConnection)
-        
-        self.tqueue.register()
 
     #
     # SecOverlay interface
