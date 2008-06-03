@@ -26,8 +26,11 @@ class TimedTaskQueue:
         self.thread.setName( nameprefix+self.thread.getName() )
         self.thread.start()
         
-    def add_task(self,task,t):
-        """ t parameter is now usable, unlike before """
+    def add_task(self,task,t,id=None):
+        """ t parameter is now usable, unlike before. 
+            If id is given, all the existing tasks with the same id will be removed
+            before inserting this task 
+        """
         
         if task is None:
             print_stack()
@@ -36,7 +39,9 @@ class TimedTaskQueue:
         when = time()+t
         if DEBUG:
             print >>sys.stderr,"ttqueue: ADD EVENT",t,task
-        self.queue.append((when,task))
+        if id != None:  # remove all redundant tasks
+            self.queue = filter(lambda item:item[2]!=id, self.queue)
+        self.queue.append((when,task,id))
         self.cond.notify()
         self.cond.release()
         
@@ -58,7 +63,7 @@ class TimedTaskQueue:
                         self.cond.wait(timeout)
                 # A new event was added or an event is due
                 self.queue.sort()
-                (when,task) = self.queue[0]
+                (when,task,id) = self.queue[0]
                 if DEBUG:
                     print >>sys.stderr,"ttqueue: EVENT IN QUEUE",when,task
                 now = time()

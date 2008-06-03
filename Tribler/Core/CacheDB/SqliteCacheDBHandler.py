@@ -1978,17 +1978,18 @@ class GUIDBHandler:
         res = self._db.fetchall(sql_get_sim_files, (torrent_id,limit))
         return [(str2bin(t[0]),t[1], t[2], t[3]) for t in res]
         
-    def getSimilarTitles(self, name, limit, prefix_len=5):
+    def getSimilarTitles(self, name, limit, infohash, prefix_len=5):
         name = name.replace("'","`")
         sql_get_sim_files = """
             select infohash, name, status_id from Torrent 
             where name like '%s%%'
+             and infohash <> '%s'
              and torrent_id not in (select torrent_id from MyPreference)
              %s
             order by name
              limit ?    
-        """ % (name[:prefix_len], self.get_family_filter_sql())
-         
+        """ % (name[:prefix_len], bin2str(infohash), self.get_family_filter_sql())
+        
         res = self._db.fetchall(sql_get_sim_files, (limit,))
         return [(str2bin(t[0]),t[1], t[2]) for t in res]
 

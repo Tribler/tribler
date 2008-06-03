@@ -7,6 +7,8 @@ import cStringIO
 import urlparse
 from wx.lib.stattext import GenStaticText as StaticText
 
+import threading
+
 from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
@@ -70,7 +72,7 @@ class standardDetails(wx.Panel):
         self.peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.iconsManager = IconsManager.getInstance()
-        self.gui_db = GUIDBHandler.getInstance()
+        #self.gui_db = GUIDBHandler.getInstance()
                                     
         self.mode = None
         self.item = None
@@ -535,8 +537,9 @@ class standardDetails(wx.Panel):
                         
                 
                 # Call a function to retrieve similar torrent data
-                wx.CallAfter(self.fillSimTorrentsList, item['infohash'])
-                wx.CallAfter(self.fillSimTitlesList, item)
+                wx.CallAfter(self.fillSimLists, item)
+                #wx.CallAfter(self.fillSimTorrentsList, item['infohash'])
+                #wx.CallAfter(self.fillSimTitlesList, item)
                 # Show or hide download button in detailstab
                 if self.mode == 'filesMode':
                         
@@ -645,7 +648,7 @@ class standardDetails(wx.Panel):
                     else:
                         self.getGuiObj('addAsFriend').switchBack()
                     
-                self.fillTorrentLists()
+                wx.CallAfter(self.fillTorrentLists)
             elif self.getGuiObj('advanced_detailsTab').isSelected():
                 if item.get('last_connected') is not None:
                     if item['last_connected'] < 0:
@@ -1005,23 +1008,60 @@ class standardDetails(wx.Panel):
      
     def show_loading(self, list_obj):
         list_obj.DeleteAllItems()
-        index = list_obj.InsertStringItem(sys.maxint, "Loading..")
+        index = list_obj.InsertStringItem(sys.maxint, "Searching..")
         font = list_obj.GetItemFont(index)
         font.SetStyle(wx.FONTSTYLE_ITALIC)
         list_obj.SetItemFont(index, font)
         list_obj.SetItemTextColour(index, "#555555")
      
-    def fillSimTorrentsList(self, infohash):
+    def fillSimLists(self, item):
+        # show loading..
+        self.show_loading(self.getGuiObj('peopleWhoField'))
+        self.show_loading(self.getGuiObj('simTitlesField'))
+        
+        print >> sys.stderr, "******* 1 main:", threading.currentThread().getName()
+        #print_stack()
+        
+        overlay_bridge = OverlayThreadingBridge.getInstance()
+        overlay_bridge.add_task(lambda:self.updateSimLists(item), id='fillSimLists')
+
+    def updateSimLists(self, item):
+        def cmpfunc(x, y):
+            return int(10000*(editDist(x[1], name) - editDist(y[1], name)))
+        
+        print >> sys.stderr, "******* 2 overlay:", threading.currentThread().getName()
+        
+        infohash = item['infohash']
+        name = item['name']
+        gui_db = GUIDBHandler.getInstance()
+        
+        sim_files = None
+        sim_titles = None
+        
+        try:
+            sim_files = gui_db.getSimItems(infohash, 8)
+            
+            sim_titles = gui_db.getSimilarTitles(name, 30, infohash)  # first get a subset of titles
+            sim_titles.sort(cmpfunc)
+        except:
+            print_exc()
+        
+        if sim_files != None:
+            wx.CallAfter(self.fillSimTorrentsList, sim_files)
+        if sim_titles != None:
+            wx.CallAfter(self.fillSimTitlesList, sim_titles)
+     
+    def fillSimTorrentsList(self, sim_files):
         """fills the list of torrents from library or file view with the files that are similar to the currently selected one"""
         # jie.done: fill similar torrent list
         # future.work: smooth the recommendation, solve the data sparse and cold start problem
         
-        sim_torrent_list = self.getGuiObj('peopleWhoField')
-        self.show_loading(sim_torrent_list)
+        print >> sys.stderr, "******* 3 main:", threading.currentThread().getName()
         
+        sim_torrent_list = self.getGuiObj('peopleWhoField')
         sim_torrent_list.DeleteAllItems()
         try:
-            sim_files = self.gui_db.getSimItems(infohash, 8)   # [(infohash, title)]
+            #sim_files = self.gui_db.getSimItems(infohash, 8)   # [(infohash, title)]
             sim_torrent_list.setInfoHashList(None)
         
             torrent_list = []
@@ -1059,30 +1099,28 @@ class standardDetails(wx.Panel):
                 print >> sys.stderr,"standardDetails: could not resize lists in sim_torrent_list panel" 
         
 
-    def fillSimTitlesList(self, item):
+    def fillSimTitlesList(self, sim_titles):
         """fills the list of torrents with similar titles"""
         # jie.done: fill sim title list
         
         sim_torrent_list = self.getGuiObj('simTitlesField')
-        self.show_loading(sim_torrent_list)
-        
         sim_torrent_list.DeleteAllItems()
         try:
-            name = item['name']
-            sim_files = self.gui_db.getSimilarTitles(name, 30)  # first get a subset of titles
-            
-            def cmpfunc(x, y):
-                return int(10000*(editDist(x[1], name) - editDist(y[1], name)))
-            
-            sim_files.sort(cmpfunc)
+            #name = item['name']
+            #sim_titles = self.gui_db.getSimilarTitles(name, 30)  # first get a subset of titles
+#            
+#            def cmpfunc(x, y):
+#                return int(10000*(editDist(x[1], name) - editDist(y[1], name)))
+#            
+#            sim_titles.sort(cmpfunc)
             
             sim_torrent_list.setInfoHashList(None)
             
             torrent_list = []
-            if len(sim_files) > 0:
-                for infohash, name, status_id in sim_files:
-                    if infohash == item['infohash']:
-                        continue
+            if len(sim_titles) > 0:
+                for infohash, name, status_id in sim_titles:
+                    #if infohash == item['infohash']:
+                    #    continue
                     index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                     if status_id == 0:  # good
                         color = "blue"
@@ -1131,88 +1169,19 @@ class standardDetails(wx.Panel):
             if DEBUG:
                 print >> sys.stderr,"standardDetails: could not resize lists in sim_torrent_list panel" 
         
-#===============================================================================
-#    def _fillTorrentLists(self):
-#        """fills the lists of torrents from persons detail view with common and history files for the selected person"""
-#        ofList = self.getGuiObj("alsoDownloadedField")
-# #        ofList.SetWindowStyleFlag(wx.LC_LIST)
-#        cfList = self.getGuiObj("commonFilesField")
-# #        cfList.SetWindowStyleFlag(wx.LC_LIST)
-#        try:
-#            ofList.DeleteAllItems()
-#            cfList.DeleteAllItems()
-#            ofList.setInfoHashList(None)
-#            if ( self.mode != "personsMode" and self.mode != "friendsMode" ) or self.item is None or self.item.get('permid') is None:
-#                return
-#            permid = self.item['permid']
-#            #hash_list = self.guiUtility.peer_manager.getPeerHistFiles(permid)
-#            hash_list = self.gui_db.getPrefList(permid)
-#            torrents_info = self.data_manager.getTorrents(hash_list)
-#            alist = []
-#            for f in torrents_info:
-#                the_list = None
-#                infohash = f.get('infohash')
-#                if f.get('myDownloadHistory', False):
-#                    the_list = cfList
-#                else:
-#                    the_list = ofList
-#                if f['status'] != 'dead':
-#                    index = the_list.InsertStringItem(sys.maxint, f['name'])
-#                    if the_list == ofList:
-#                        alist.append(infohash)
-# #                color = "black"
-# #                if f['status'] == 'good':
-# #                    color = "blue"
-# #                elif f['status'] == 'unknown':
-# #                    color = "black"
-# #                elif f['status'] == 'dead':
-# #                    color = "red"
-# #                the_list.SetItemTextColour(index, color)
-#                #self.ofList.SetStringItem(index, 1, f[1])
-#            self.updateNumFilesInTextFields(cfList, ofList)
-#            if cfList.GetItemCount() == 0:
-#                index = cfList.InsertStringItem(sys.maxint, "No common files with this person.")
-#                font = cfList.GetItemFont(index)
-#                font.SetStyle(wx.FONTSTYLE_ITALIC)
-#                cfList.SetItemFont(index, font)
-#                cfList.SetItemTextColour(index, "#222222")
-#                cfList.isEmpty = True    # used by DLFilesList to remove "No common files with this person."
-#            else:
-#                cfList.isEmpty = False
-#            if ofList.GetItemCount() == 0:
-#                index = ofList.InsertStringItem(sys.maxint, "No files advertised by this person.")
-#                font = ofList.GetItemFont(index)
-#                font.SetStyle(wx.FONTSTYLE_ITALIC)
-#                ofList.SetItemFont(index, font)
-#                ofList.SetItemTextColour(index, "#222222")
-#            else:
-#                ofList.setInfoHashList(alist)
-#            
-#           
-#        except:
-#            print_exc()
-#            ofList.DeleteAllItems()
-#            cfList.DeleteAllItems()
-#            ofList.setInfoHashList(None)
-#            index = ofList.InsertStringItem(sys.maxint, "Error getting files list")
-#            ofList.SetItemTextColour(index, "#222222")
-#        try:
-#            ofList.onListResize()
-#            cfList.onListResize()
-#        except:
-#            if DEBUG:
-#                print >> sys.stderr,"standardDetails: could not resize lists in person detail panel"
-#===============================================================================
-        
+
     def fillTorrentLists(self):
         """fills the lists of torrents from persons detail view with common and history files for the selected person"""
+        
         ofList = self.getGuiObj("alsoDownloadedField")
-#        ofList.SetWindowStyleFlag(wx.LC_LIST)
         cfList = self.getGuiObj("commonFilesField")
+        self.show_loading(ofList)
+        self.show_loading(cfList)
+#        ofList.SetWindowStyleFlag(wx.LC_LIST)
 #        cfList.SetWindowStyleFlag(wx.LC_LIST)
+        
         try:
-            ofList.DeleteAllItems()
-            cfList.DeleteAllItems()
+            
             ofList.setInfoHashList(None)
             if ( self.mode != "personsMode" and self.mode != "friendsMode" ) or self.item is None or self.item.get('permid') is None:
                 return
@@ -1296,8 +1265,6 @@ class standardDetails(wx.Panel):
            
         except:
             print_exc()
-            ofList.DeleteAllItems()
-            cfList.DeleteAllItems()
             ofList.setInfoHashList(None)
             index = ofList.InsertStringItem(sys.maxint, "Error getting files list")
             ofList.SetItemTextColour(index, "#222222")

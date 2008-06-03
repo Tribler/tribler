@@ -196,9 +196,9 @@ class OverlayThreadingBridge:
         """ Called by OverlayThread """
         self.secover.close(permid)
         
-    def add_task(self,task,t=0):
+    def add_task(self,task,t=0,id=None):
         """ Called by OverlayThread """
-        self.tqueue.add_task(task,t)
+        self.tqueue.add_task(task,t,id)
         
 #===============================================================================
 #    # Jie: according to Arno's suggestion, commit on demand instead of periodically
