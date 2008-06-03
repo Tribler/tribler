@@ -259,7 +259,7 @@ class TriblerLaunchMany(Thread):
                     # TODO: if user renamed the dest_path for single-file-torrent
                     data = {'destination_path':dest_path}
                     self.mypref_db.addMyPreference(infohash, data)
-                    if self.overlay_apps.buddycast is not None:
+                    if self.overlay_apps.buddycast and self.overlay_apps.buddycast.started:
                         self.overlay_apps.buddycast.addMyPref(infohash)
 
             if self.torrent_db is not None:

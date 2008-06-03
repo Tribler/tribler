@@ -252,7 +252,8 @@ class BuddyCastFactory:
         self.log = log
         self.running = False
         self.data_handler = None
-        self.data_ready_evt = Event()    # used for buddycast to notify peer view the peer list is ready
+        self.started = False    # did call do_buddycast() at least once 
+        self.data_ready_evt = Event()
         if self.superpeer:
             print "Start as SuperPeer mode"
         
@@ -306,9 +307,9 @@ class BuddyCastFactory:
             # if any. So when you change this time, make sure it allows for UPnP to
             # do its thing, or add explicit coordination between UPnP and BC.
             # See BitTornado/launchmany.py
-            self.overlay_bridge.add_task(self.data_handler.postInit, 0)    # avoid flash crowd
-            self.overlay_bridge.add_task(self.doBuddyCast, 2)
-            self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers, 5)
+            self.overlay_bridge.add_task(self.data_handler.postInit, 5)    # avoid flash crowd
+            self.overlay_bridge.add_task(self.doBuddyCast, 6)
+            self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers, 10)
             #self.overlay_bridge.add_task(self.data_handler.updateAllSim, 5*60)
             
             print >> sys.stderr, "BuddyCast starts up", currentThread().getName()
@@ -342,6 +343,8 @@ class BuddyCastFactory:
         
         buddycast_interval = self.getCurrrentInterval()
         self.overlay_bridge.add_task(self.doBuddyCast, buddycast_interval)
+        if not self.started:
+            self.started = True
         self.buddycast_core.work()
         
     def pauseBuddyCast(self):

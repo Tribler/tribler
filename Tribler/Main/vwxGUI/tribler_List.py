@@ -167,7 +167,7 @@ class DLFilesList(tribler_List):
                         # only used to move items to common item list in peer view
                         if self.other_List.isEmpty:
                             self.other_List.DeleteAllItems()
-                        self.other_List.InsertStringItem(sys.maxint, torrent['info']['name'])
+                        self.other_List.InsertStringItem(sys.maxint, torrent['name'])
                         self.other_List.isEmpty = False
             event.Skip()
             if self.updateFunc:
