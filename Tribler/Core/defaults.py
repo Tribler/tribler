@@ -42,7 +42,7 @@ sessdefaults['torrent_collecting_max_torrents'] = 5000
 sessdefaults['torrent_collecting_dir'] = None
 sessdefaults['torrent_collecting_rate'] = 5
 sessdefaults['torrent_checking'] = 1
-sessdefaults['torrent_checking_period'] = 17 # changed according to Johan's suggestion
+sessdefaults['torrent_checking_period'] = 31 #will be changed to min(max(86400/ntorrents, 15), 300) at runtime
 sessdefaults['dialback'] = True
 sessdefaults['dialback_active'] = True  # do active discovery (needed to disable for testing only) (0 = disabled)
 sessdefaults['dialback_trust_superpeers'] = True # trust superpeer replies (needed to disable for testing only) (0 = disabled)

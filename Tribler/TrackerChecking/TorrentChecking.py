@@ -29,6 +29,7 @@ from traceback import print_exc, print_stack
 
 from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
+from Tribler.Core.CacheDB.sqlitecachedb import safe_dict
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
@@ -78,7 +79,9 @@ class TorrentChecking(Thread):
             print >> sys.stderr, "Torrent Checking: RUN"
             
         event = threading.Event()
-        return_value = {'event':event, 'torrent':None}
+        return_value = safe_dict()
+        return_value['event'] = event
+        return_value['torrent'] = None
         if self.infohash is None:   # select torrent by a policy
             policy = self.selectPolicy()
             self.overlay_bridge.add_task(lambda:

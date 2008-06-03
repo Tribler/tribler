@@ -656,8 +656,19 @@ class TriblerLaunchMany(Thread):
         # Call Session threadpool to call user's callback        
         videoinfo['usercallback'](mimetype,stream,filename,length)
 
+
+    def update_torrent_checking_period(self):
+        # dynamically change the interval: update at least once per day
+        if self.overlay_apps and self.overlay_apps.metadata_handler:
+            ntorrents = self.overlay_apps.metadata_handler.num_torrents
+            if ntorrents > 0:
+                self.torrent_checking_period = min(max(86400/ntorrents, 15), 300)
+        #print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period    
+
     def run_torrent_check(self):
         """ Called by network thread """
+
+        self.update_torrent_checking_period()
         self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         #        print "torrent_checking start"
         try:
