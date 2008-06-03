@@ -669,12 +669,8 @@ class LibraryItemPanel(wx.Panel):
       
     def show_boost(self, ds):
         if ds is not None:
-            #print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is",ABCTorrentTemp.files.dest
-            engine = ABCTorrentTemp.connection.engine
-            raise RuntimeException("arno: core: engine class no longer exists")
-            if engine is not None and engine.getDownloadhelpCoordinator() is not None:
-                self.dlhelperframe = DownloadHelperFrame(self,self.utility,engine)
-                self.dlhelperframe.Show()
+            self.dlhelperframe = DownloadHelperFrame(self,self.utility,ds)
+            self.dlhelperframe.Show()
                 
     
     def play(self,ABCTorrentTemp):

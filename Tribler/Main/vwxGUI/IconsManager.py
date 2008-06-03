@@ -157,7 +157,7 @@ class IconsManager:
 
         list = []
         for peer in peerswpermid:
-            bm = self.load_wxBitmap(peer['permid'])
+            bm = self.load_wxBitmap(peer['permid'], SMALL_ICON_MAX_DIM)
             if bm is None:
                 bm = defaultThumb
             list.append(bm)
@@ -186,17 +186,18 @@ class IconsManager:
                 print_exc()
             pass
 
-    def load_wxBitmap(self,permid):
+    def load_wxBitmap(self,permid, dim = ICON_MAX_DIM):
         [mimetype,data] = self.peer_db.getPeerIcon(permid)
         if data is None:
             return None
         else:
-            return data2wxBitmap(type,data)
+            return data2wxBitmap('image/jpeg',data, dim)
 
 
 def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
     try:
         assert data
+        
         mi = StringIO.StringIO(data)
         # St*pid wx says "No handler for image/bmp defined" while this
         # is the image handler that is guaranteed to always be there,
@@ -209,6 +210,7 @@ def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
         bm = wx.BitmapFromImage(im.Scale(dim,dim),-1)
         return bm
     except:
+        print >> sys.stderr, 'data2wxBitmap called (%s, %s)' % (`type`,`dim`)
         print_exc()
         return None
         

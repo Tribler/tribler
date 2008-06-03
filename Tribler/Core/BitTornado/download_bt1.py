@@ -244,7 +244,7 @@ class BT1Download:
         self.datalength = file_length
         
         if DEBUG:
-            print >>sys.stderr,"BT1Download: saveas returning ",file,"self.files is",self.files
+            print >>sys.stderr,"BT1Download: saveas returning ",`file`,"self.files is",`self.files`
                 
         return file
 

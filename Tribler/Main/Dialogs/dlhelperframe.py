@@ -5,14 +5,15 @@ import wx
 import os
 import sys
 from traceback import print_exc
+from threading import Lock
 
-from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 #from managefriends import createImageList
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Core.Utilities.utilities import show_permid_shorter
+from Tribler.Core.simpledefs import *
 
-DEBUG = 0
+DEBUG = True
 
 ################################################################
 #
@@ -26,13 +27,13 @@ DEBUG = 0
 
 class DownloadHelperFrame(wx.Frame):
     
-    def __init__(self,parent,utility,engine):
+    def __init__(self,parent,utility,download_state):
         self.utility = utility
         wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_dlhelp_short'), 
                           size=(640,520))
         
         main_panel = wx.Panel(self)
-        self.downloadHelperPanel = self.createMainPanel(main_panel,engine)
+        self.downloadHelperPanel = self.createMainPanel(main_panel,download_state)
         bot_box = self.createBottomBoxer(main_panel)
         
         mainbox = wx.BoxSizer(wx.VERTICAL)
@@ -44,14 +45,16 @@ class DownloadHelperFrame(wx.Frame):
         iconpath = os.path.join(self.utility.session.get_tracker_favicon())
         # Giving it the whole bundle throws an exception about image 6
         self.icons = wx.IconBundle()
-        self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
+        print >> sys.stderr, iconpath
+        if iconpath:
+            self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
         self.SetIcons(self.icons)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Show()
 
-    def createMainPanel(self,main_panel,engine):
-        return DownloadHelperPanel(main_panel,self.utility,engine)
+    def createMainPanel(self,main_panel,download_state):
+        return DownloadHelperPanel(main_panel,self.utility,download_state)
 
     def createBottomBoxer(self, main_panel):
         bot_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -67,18 +70,21 @@ class DownloadHelperFrame(wx.Frame):
 
 
 class DownloadHelperPanel(wx.Panel):
-    def __init__(self, parent, utility, engine):
+    def __init__(self, parent, utility, download_state):
         wx.Panel.__init__(self, parent, -1)
 
         self.utility = utility
-        if engine is not None:
-            self.coordinator = engine.getDownloadhelpCoordinator()
+        self.download_state = download_state
+        self.lock = Lock()
 
         # If the torrent is stopped, don't allow helping
-        if engine is None or self.coordinator is None:
-            if engine is None:
+        dlstopped = self.download_state is None or self.download_state.get_status() != DLSTATUS_DOWNLOADING
+        dlhelper = self.download_state.get_download().get_coopdl_role() == COOPDL_ROLE_HELPER
+        
+        if dlstopped or dlhelper:
+            if dlstopped:
                 msg = self.utility.lang.get('dlhelpdisabledstop')
-            else:
+            elif dlhelper: 
                 msg = self.utility.lang.get('dlhelpdisabledhelper')
             mainbox = wx.BoxSizer(wx.VERTICAL)
             mainbox.Add(wx.StaticText(self, -1, msg), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
@@ -87,12 +93,15 @@ class DownloadHelperPanel(wx.Panel):
 
         # 0. Read friends from DB, and figure out who's already helping 
         # for this torrent
-        friends = FriendDBHandler.getInstance().getFriends()
-        helpingFriends = self.coordinator.get_asked_helpers_copy()
+        peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
+        friends = peer_db.getGUIPeers(category_name = 'friends',
+                                                                              sort = 'name', reverse = False
+                                                                              )
+        helpingFriends = peer_db.getPeers(self.download_state.get_coopdl_helpers(), ['permid', 'name', 'ip'])
 
         if DEBUG:
-            print >> sys.stderr,"dlhelperframe: friends is",friends
-            print >> sys.stderr,"dlhelperframe: helping friends is",helpingFriends
+            print >> sys.stderr,"dlhelperframe: friends is",[a['name'] for a in friends]
+            print >> sys.stderr,"dlhelperframe: helping friends is",[a['name'] for a in helpingFriends]
 
         # 1. Create list of images of all friends
         type = wx.LC_LIST
@@ -111,8 +120,7 @@ class DownloadHelperPanel(wx.Panel):
 
         # 2. Filter out friends already helping for left window
         self.remainingFriends = []
-        for index in range(len(friends)):
-            friend = friends[index]
+        for index, friend in enumerate(friends):
             
             if friend['name'] == '':
                 friend['name']= 'peer %s' % show_permid_shorter(friend['permid'])
@@ -120,7 +128,7 @@ class DownloadHelperPanel(wx.Panel):
             flag = 0
             for helper in helpingFriends:
                 if friend['permid'] == helper['permid']:
-                    #helper['tempiconindex'] = index
+                    helper['tempiconindex'] = index
                     flag = 1
                     break
             if flag:
@@ -172,10 +180,10 @@ class DownloadHelperPanel(wx.Panel):
         topbox.Add(helperbox, 1, wx.EXPAND)      
 
         # Keep helpers up-to-date
-        self.timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.OnTimer)
-        self.timer.Start(4000)
-
+        #self.timer = wx.Timer(self)
+        #self.Bind(wx.EVT_TIMER, self.OnTimer)
+        #self.timer.Start(4000)
+        self.init_download_state_update()
 
         howtotext1 = wx.StaticText(self, -1, self.utility.lang.get('dlhelphowto1'))
         howtotext1.Wrap(500)
@@ -225,23 +233,31 @@ class DownloadHelperPanel(wx.Panel):
         remainingFriends = self.leftListCtl.getFriends()
 
         if DEBUG:
-            print >> sys.stderr,"dlhelperframe: before exec: remaining friends is",remainingFriends
-            print >> sys.stderr,"dlhelperframe: before exec: helping friends is",helpingFriends
-        self.coordinator.stop_help(remainingFriends, force = False)
-        self.coordinator.request_help(helpingFriends, force = False)
+            print >> sys.stderr,"dlhelperframe: before exec: remaining friends is",[a['name'] for a in remainingFriends]
+            print >> sys.stderr,"dlhelperframe: before exec: helping friends is",[a['name'] for a in helpingFriends]
 
+        self.lock.acquire()
+        self.download_state.get_download().stop_coopdl_helpers([a['permid'] for a in remainingFriends])
+        self.download_state.get_download().ask_coopdl_helpers([a['permid'] for a in helpingFriends])
+        self.lock.release()
+        
     def OnActivated(self, event = None):
         pass
 
     def OnTimer(self, event = None):
         if DEBUG:
             print >> sys.stderr,"dlhelperframe: ON TIMER"
-        realhelpers = self.coordinator.get_asked_helpers_copy()
+
+        peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
+        self.lock.acquire()
+        realhelpers = peer_db.getPeers(self.download_state.get_coopdl_helpers(), ['permid', 'name', 'ip'])
+        self.lock.release()
         shownhelpers = self.rightListCtl.getFriends()
+
+
         removehelpers = []
         removeitems = []
-        for i in range(len(shownhelpers)):
-            shown = shownhelpers[i]
+        for i, shown in enumerate(shownhelpers):
             found = False
             for real in realhelpers:
                 if real['permid'] == shown['permid']:
@@ -254,6 +270,23 @@ class DownloadHelperPanel(wx.Panel):
                 removeitems.append(i)
         self.rightListCtl.removeFriends(removeitems)
         self.leftListCtl.addFriends(removehelpers)
+
+    def init_download_state_update(self):
+        dl = self.download_state.get_download()
+        dl.set_state_callback(self.download_state_update)
+
+    def download_state_update(self, ds):
+        try:
+            self.lock.acquire()
+            self.download_state = ds
+            self.lock.release()
+            wx.CallAfter(self.OnTimer)
+            if not self.IsShown(): # do not call me again
+                return -1, False
+            else:
+                return 4.0, False
+        except wx.PyDeadObjectError:
+            return -1, False
         
 
 ################################################################

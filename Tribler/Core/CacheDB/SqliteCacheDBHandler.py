@@ -400,7 +400,7 @@ class PeerDBHandler(BasicDBHandler):
                       'num_peers', 'num_torrents', 'num_prefs', 
                       'connected_times', 'buddycast_times', 'last_connected')
         where = '(buddycast_times>0 or friend=1) '
-        if category_name == 'friend':
+        if category_name in ('friend', 'friends'):
             where += 'and friend=1'
         if range:
             offset= range[0]
@@ -1814,7 +1814,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
         return result
 
-    def addItem(self, (permid_from, permid_to), item):
+    def addItem(self, (permid_from, permid_to), item, commit=True):
 
 #        if value.has_key('last_seen'):    # get the latest last_seen
 #            old_last_seen = 0
@@ -1841,9 +1841,10 @@ class BarterCastDBHandler(BasicDBHandler):
         item['peer_id_to'] = peer_id2    
             
         self._db.insert(self.table_name, **item)
+        if commit:
+            self._db.commit()
 
-
-    def updateItem(self, (permid_from, permid_to), key, value):
+    def updateItem(self, (permid_from, permid_to), key, value, commit=True):
         
         if DEBUG:
             print >> sys.stderr, "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
@@ -1852,7 +1853,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
         # if item doesn't exist: add it
         if itemdict == None:
-            self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())})
+            self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())}, commit=False)
             itemdict = self.getItem((permid_from, permid_to))
 
         # get peer ids
@@ -1865,37 +1866,42 @@ class BarterCastDBHandler(BasicDBHandler):
             item = {key: value}
             self._db.update(self.table_name, where = where, **item)            
 
+        if commit:
+            self._db.commit()
+
     
 
-    def incrementItem(self, (permid_from, permid_to), key, value):
-
-        if DEBUG:
-            print >> sys.stderr, "BarterCast: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
-
-        itemdict = self.getItem((permid_from, permid_to))
-
-        # if item doesn't exist: add it
-        if itemdict == None:
-            self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())})
+    def incrementItem(self, (permid_from, permid_to), key, value, commit=True):
+        try:
+            if DEBUG:
+                print >> sys.stderr, "BarterCast: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+    
             itemdict = self.getItem((permid_from, permid_to))
+    
+            # if item doesn't exist: add it
+            if itemdict == None:
+                self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())}, commit=False)
+                itemdict = self.getItem((permid_from, permid_to))
+                
+            # get peer ids
+            peer_id1 = itemdict['peer_id_from']
+            peer_id2 = itemdict['peer_id_to']
+    
+            if key in itemdict.keys():
+                old_value = itemdict[key]
+                new_value = old_value + value
+                
+                where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
+    
+                item = {key: new_value}
+                self._db.update(self.table_name, where = where, **item)            
+                return new_value
+    
+            return None
+        finally:
+            if commit:
+                self._db.commit()
             
-        # get peer ids
-        peer_id1 = itemdict['peer_id_from']
-        peer_id2 = itemdict['peer_id_to']
-
-        if key in itemdict.keys():
-            old_value = itemdict[key]
-            new_value = old_value + value
-            
-            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
-
-            item = {key: new_value}
-            self._db.update(self.table_name, where = where, **item)            
-
-            return new_value
-
-        return None
-
 
 class GUIDBHandler:
     """ All the functions of this class are only (or mostly) used by GUI.
