@@ -41,9 +41,9 @@ class GridManager(object):
     def __init__(self, grid, utility):
         self.session = utility.session
         
-        self.peer_db_handler = self.session.open_dbhandler(NTFY_PEERS)
-        self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
-        self.friend_db_handler = self.session.open_dbhandler(NTFY_FRIENDS)
+        self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        self.friend_db = self.session.open_dbhandler(NTFY_FRIENDS)
         
         self.state = None
         self.total_items = 0
@@ -55,11 +55,11 @@ class GridManager(object):
         self.dslist = []
         
         self.torrentsearch_manager = utility.guiUtility.torrentsearch_manager
-        self.torrentsearch_manager.register(self.torrent_db_handler,self)
+        self.torrentsearch_manager.register(self.torrent_db,self)
 
         self.peersearch_manager = utility.guiUtility.peersearch_manager
-        self.peersearch_manager.register(self.peer_db_handler,self.friend_db_handler,self)
-
+        self.peersearch_manager.register(self.peer_db,self.friend_db,self)
+        self.guiserver = GUITaskQueue.getInstance()
         
     def set_state(self, state, reset_page = False):
         self.state = state
@@ -92,14 +92,18 @@ class GridManager(object):
         return self.total_items
     
     def _getData(self, state):
+        
+        #import threading
+        #print >> sys.stderr, 'threading>>','****'*10, threading.currentThread().getName()
+        
         range = (self.page * self.grid.items, (self.page+1)*self.grid.items)
         if state.db in ('filesMode', 'libraryMode'):
             
             # Arno: state.db should be NTFY_ according to GridState...
             if not self.torrentsearch_manager.inSearchMode(state.db):
             
-                total_items = self.torrent_db_handler.getNumberTorrents(category_name = state.category, library = (state.db == 'libraryMode'))
-                data = self.torrent_db_handler.getTorrents(category_name = state.category, 
+                total_items = self.torrent_db.getNumberTorrents(category_name = state.category, library = (state.db == 'libraryMode'))
+                data = self.torrent_db.getTorrents(category_name = state.category, 
                                                        sort = state.sort,
                                                        range = range,
                                                        library = (state.db == 'libraryMode'),
@@ -115,8 +119,8 @@ class GridManager(object):
                 
             if not self.peersearch_manager.inSearchMode(state.db):
                 print >>sys.stderr,"GET GUI PEERS #################################################################################"
-                total_items = self.peer_db_handler.getNumberPeers(category_name = state.category)
-                data = self.peer_db_handler.getGUIPeers(category_name = state.category, 
+                total_items = self.peer_db.getNumberPeers(category_name = state.category)
+                data = self.peer_db.getGUIPeers(category_name = state.category, 
                                                         sort = state.sort,
                                                         reverse = state.reverse,
                                                         range = range,
@@ -169,15 +173,19 @@ class GridManager(object):
         
     def item_network_callback(self, *args):
         # only handle network callbacks when grid is shown
+        #print >> sys.stderr, '**** item_network_callback', args
         if not self.grid.isShowByOverview():
             self.callbacks_disabled = True
             self.session.remove_observer(self.item_network_callback) #unsubscribe this function
         else:
-            wx.CallAfter(self.itemChanged, *args)
+            task_id = str(args[0]) + str(args[1]) + str(int(time()/3))  # refresh every 3 seconds
+            # delay 1 second to remove redundancy
+            #print >> sys.stderr, '****'*5, 'ready to call itemChanged:', task_id, args
+            self.guiserver.add_task(lambda:wx.CallAfter(self.itemChanged, *args), 1, id=task_id)
         
     def itemChanged(self,subject,changeType,objectID,*args):
         "called by GuiThread"
-        print >> sys.stderr, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, `objectID`, args)
+        #print >> sys.stderr, '****'*10, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, `objectID`, args)
         if changeType == NTFY_INSERT:
             self.itemAdded(subject, objectID, args)
         elif changeType in (NTFY_UPDATE, NTFY_CONNECTION):
@@ -303,11 +311,9 @@ class standardGrid(wx.Panel):
                 raise Exception('unknown viewmode: %s' % self.viewmode)
                 
             
-            
-        
-        self.guiserver = GUITaskQueue.getInstance()
         self.superpeer_db = SuperPeerDBHandler.getInstance()
         self.torrentfeed = TorrentFeedThread.getInstance()
+        self.guiserver = GUITaskQueue.getInstance()
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)

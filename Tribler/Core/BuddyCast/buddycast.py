@@ -307,7 +307,7 @@ class BuddyCastFactory:
             # if any. So when you change this time, make sure it allows for UPnP to
             # do its thing, or add explicit coordination between UPnP and BC.
             # See BitTornado/launchmany.py
-            self.overlay_bridge.add_task(self.data_handler.postInit, 5)    # avoid flash crowd
+            self.overlay_bridge.add_task(self.data_handler.postInit, 2)    # avoid flash crowd
             self.overlay_bridge.add_task(self.doBuddyCast, 6)
             self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers, 10)
             #self.overlay_bridge.add_task(self.data_handler.updateAllSim, 5*60)
@@ -2101,6 +2101,8 @@ class DataHandler:
     def updateSimilarity(self, peer_id, update_db=True):
         """ update a peer's similarity """
         
+        if self.myprefs is None:
+            return
         sim = self.LMP2PSimilarity(peer_id)
         self.peers[peer_id][PEER_SIM_POS] = sim
         if update_db:
@@ -2146,7 +2148,7 @@ class DataHandler:
         if self.num_torrents_ui is None:
             _now = now()
             if _now - self.last_check_ntorrents > 5*60:
-                self.ntorrents = self.torrent_db.getNumberTorrents()
+                self.ntorrents = self.torrent_db.getNumberCollectedTorrents()
                 self.last_check_ntorrents = _now
             return self.ntorrents
         else:
