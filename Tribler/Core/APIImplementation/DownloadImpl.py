@@ -366,9 +366,18 @@ class DownloadImpl:
         finally:
             self.dllock.release()
 
-    def get_dest_files(self):
+    def get_dest_files(self, exts=None):
         """ We could get this from BT1Download.files (see BT1Download.saveAs()),
-        but that object is the domain of the network thread. """
+        but that object is the domain of the network thread.
+        You can give a list of extensions to return. If None: return all dest_files
+        """
+
+        def get_ext(filename):
+            (prefix,ext) = os.path.splitext(filename)
+            if ext != '' and ext[0] == '.':
+                ext = ext[1:]
+            return ext
+        
         self.dllock.acquire()
         try:
             f2dlist = []
@@ -376,21 +385,26 @@ class DownloadImpl:
             if 'files' not in metainfo['info']:
                 # single-file torrent
                 diskfn = self.get_content_dest()
-                f2dtuple = (None,diskfn)
-                f2dlist.append(f2dtuple)
+                f2dtuple = (None, diskfn)
+                ext = get_ext(diskfn)
+                if exts is None or ext in exts:
+                    f2dlist.append(f2dtuple)
             else:
                 # multi-file torrent
                 for filename in self.dlconfig['selected_files']:
                     filerec = maketorrent.get_torrentfilerec_from_metainfo(filename,metainfo)
                     savepath = maketorrent.torrentfilerec2savefilename(filerec)
                     diskfn = maketorrent.savefilenames2finaldest(self.get_content_dest(),savepath)
-                    f2dtuple = (filename,diskfn)
-                    f2dlist.append(f2dtuple)
+                    ext = get_ext(diskfn)
+                    if exts is None or ext in exts:
+                        f2dtuple = (filename,diskfn)
+                        f2dlist.append(f2dtuple)
                 
             return f2dlist
         finally:
             self.dllock.release()
 
+    
 
 
 

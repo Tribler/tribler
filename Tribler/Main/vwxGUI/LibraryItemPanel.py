@@ -12,6 +12,7 @@ from Tribler.Video.Progress import ProgressBar
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.simpledefs import *
+from Tribler.Core.defaults import videoextdefaults
 from tribler_topButton import *
 from copy import deepcopy
 from bgPanel import *
@@ -673,12 +674,13 @@ class LibraryItemPanel(wx.Panel):
             self.dlhelperframe.Show()
                 
     
-    def play(self,ABCTorrentTemp):
+    def play(self,ds):
+        video_files = ds.get_download().get_dest_files(videoextdefaults)
+        # Simply take the first video file. Take largest in the future? Or Ask?
+        video_file = video_files[0][1]
+        
         videoplayer = VideoPlayer.getInstance()
-        if ABCTorrentTemp.get_on_demand_download():
-            videoplayer.vod_start_playing(ABCTorrentTemp)
-        else:
-            videoplayer.play(ABCTorrentTemp)
+        videoplayer.play_url(video_file)
     
     def switch_to_standard_dlmode(self,ABCTorrentTemp): 
         videoplayer = VideoPlayer.getInstance() 

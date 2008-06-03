@@ -78,19 +78,19 @@ class VideoPlayer:
         self.parentwindow = parentwindow
 
 
-    def play_from_file(self,ABCTorrentTemp,videoinfo):
-        """ Play video file from disk """
-        dest = videoinfo['outpath']
-        if DEBUG:
-            print >>sys.stderr,"videoplay: Playing file from disk",dest
+   ##  def play_from_file(self,videoinfo):
+##         """ Play video file from disk """
+##         dest = videoinfo['outpath']
+##         if DEBUG:
+##             print >>sys.stderr,"videoplay: Playing file from disk",dest
 
-        (prefix,ext) = os.path.splitext(dest)
-        [mimetype,cmd] = self.get_video_player(ext,dest)
+##         (prefix,ext) = os.path.splitext(dest)
+##         [mimetype,cmd] = self.get_video_player(ext,dest)
         
-        if DEBUG:
-            print >>sys.stderr,"videoplay: play_from_file: cmd is",cmd
+##         if DEBUG:
+##             print >>sys.stderr,"videoplay: play_from_file: cmd is",cmd
         
-        self.launch_video_player(cmd)
+##         self.launch_video_player(cmd)
 
  
     def swapin_videopanel_gui_callback(self,cmd,play=False,progressinf=None):
