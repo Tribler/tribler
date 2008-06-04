@@ -46,19 +46,21 @@ class VideoItem:
 
 class VideoFrame(wx.Frame):
     
-    def __init__(self,parent,title,iconpath):
+    def __init__(self,parent,title,iconpath,logopath):
         self.utility = parent.utility
         if title is None:
             title = self.utility.lang.get('tb_video_short')
         
         wx.Frame.__init__(self, None, -1, title, 
                           size=(800,520)) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
+        
+        self.logopath = logopath
         self.createMainPanel()
-
 
         self.icons = wx.IconBundle()
         self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
         self.SetIcons(self.icons)
+        
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
@@ -70,7 +72,7 @@ class VideoFrame(wx.Frame):
             os.chdir(vlcinstalldir)
 
         self.showingvideo = False
-        self.videopanel = EmbeddedPlayer(self, -1, self, False, self.utility)
+        self.videopanel = EmbeddedPlayer(self, -1, self, False, self.utility, self.logopath)
         #self.videopanel.Hide()
         self.Hide()
         # Arno, 2007-04-02: There is a weird problem with stderr when using VLC on Linux
@@ -156,7 +158,7 @@ class VideoFrame(wx.Frame):
 
 class EmbeddedPlayer(wx.Panel):
 
-    def __init__(self, parent, id, closehandler, allowclose, utility):
+    def __init__(self, parent, id, closehandler, allowclose, utility, logopath):
         wx.Panel.__init__(self, parent, id)
         self.item = None
         self.status = 'Loading player...'
@@ -166,11 +168,8 @@ class EmbeddedPlayer(wx.Panel):
         #self.SetBackgroundColour(wx.WHITE)
         self.SetBackgroundColour(wx.BLACK)
 
-        logofilename = os.path.join(self.utility.getPath(),'Tribler','Images','logo4video.png')
-        #logofilename = None
-
         mainbox = wx.BoxSizer(wx.VERTICAL)
-        self.mediactrl = VLCMediaCtrl(self, -1,logofilename)
+        self.mediactrl = VLCMediaCtrl(self, -1,logopath)
 
         # TEMP ARNO: until we figure out how to show in-playback prebuffering info
         self.statuslabel = wx.StaticText(self, -1, self.status )
@@ -230,6 +229,7 @@ class EmbeddedPlayer(wx.Panel):
            self.slider.DisableDragging()
         else:
            self.slider.EnableDragging()
+        self.set_player_status('')
              
         self.mediactrl.Load(self.item.getPath())
         self.update = True

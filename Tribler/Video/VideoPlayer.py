@@ -15,11 +15,7 @@ from Tribler.Video.Progress import ProgressBar,BufferInfo, ProgressInf
 from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 from utils import win32_retrieve_video_play_command,quote_program_path
 
-# Filename extensions for video and audio files
-from Tribler.Core.defaults import videoextdefaults as EXTENSIONS # TEMP ARNO
-
 DEBUG = True
-
 
 PLAYBACKMODE_INTERNAL = 0
 PLAYBACKMODE_EXTERNAL_DEFAULT = 1
@@ -160,23 +156,6 @@ class VideoPlayer:
     def stop_playback(self):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             self.parentwindow.stop_playback()
-
-
-    def select_video(self,ABCTorrentTemp,enc=False):        
-        fileindexlist = find_video_on_disk(ABCTorrentTemp,enc)
-        if len(fileindexlist) == 0:
-            self.onWarning(self.utility.lang.get('torrentcontainsnovideo'),ABCTorrentTemp.files.dest)
-            if DEBUG:
-                print >>sys.stderr,"videoplay: Torrent contains no video"
-            return None
-        elif len(fileindexlist) == 1:
-            videoinfo = fileindexlist[0]
-            if videoinfo['outpath'] is None:
-                self.onWarning(self.utility.lang.get('videoplaycontentnotfound'),videoinfo['inpath'])
-                return None
-            return fileindexlist[0]
-        else:
-            return self.ask_user_to_select(fileindexlist)
 
 
     def get_video_player(self,ext,videourl):
@@ -476,79 +455,6 @@ class VODWarningDialog(wx.Dialog):
         else:
             return ''
             
-        
-        
-def is_movie(filename,enc=False):
-    # filter movies
-    movie_extensions = [".%s" % e for e in EXTENSIONS]
-
-    low = filename.lower()
-    for ext in movie_extensions:
-        if low.endswith( ext ) or (enc and low.endswith(ext+'.enc')):
-            return True
-    else:
-        return False
-
-
-def find_video_on_disk(ABCTorrentTemp,enc=False,getdest=True):
-    """ Returns four tuple [index,printname,bitrate,filenameasondisk] of the video files 
-    found on the local disk 
-    """
-    # TODO: let user select if multiple
-    
-    metainfo = ABCTorrentTemp.metainfo
-    info = metainfo['info']
-
-    fileindexlist = []
-    if 'name' in info:
-        if is_movie(info['name'],enc):
-            bitrate = None
-            try:
-                playtime = None
-                if info.has_key('playtime'):
-                    playtime = parse_playtime_to_secs(info['playtime'])
-                elif 'playtime' in metainfo: # HACK: encode playtime in non-info part of existing torrent
-                    playtime = parse_playtime_to_secs(metainfo['playtime'])
-                """
-                elif 'azureus_properties' in metainfo:
-                    if 'Speed Bps' in metainfo['azureus_properties']:
-                        bitrate = float(metainfo['azureus_properties']['Speed Bps'])/8.0
-                        playtime = file_length / bitrate
-                """
-                if playtime is not None:
-                    bitrate = info['length']/playtime
-            except:
-                print_exc(file=sys.stderr)
-
-            fileindexlist.append({'index':-1,'inpath':info['name'],'bitrate':bitrate,'outpath':ABCTorrentTemp.files.dest})
-
-    if 'files' in info:
-        for i in range(len(info['files'])):
-            x = info['files'][i]
-            if is_movie(x['path'][-1],enc):
-                
-                intorrentpath = ''
-                for elem in x['path']:
-                    intorrentpath = os.path.join(intorrentpath,elem)
-                bitrate = None
-                try:
-                    playtime = None
-                    if x.has_key('playtime'):
-                        playtime = parse_playtime_to_secs(x['playtime'])
-                    elif 'playtime' in metainfo: # HACK: encode playtime in non-info part of existing torrent
-                        playtime = parse_playtime_to_secs(metainfo['playtime'])
-                        
-                    if playtime is not None:
-                        bitrate = x['length']/playtime
-                except:
-                    print_exc(file=sys.stderr)
-                if getdest:
-                    dest = ABCTorrentTemp.files.getSingleFileDest(index=i)
-                else:
-                    dest = None
-                fileindexlist.append({'index':i,'inpath':intorrentpath,'bitrate':bitrate,'outpath':dest})
-    return fileindexlist
-
 
 def parse_playtime_to_secs(hhmmss):
     if DEBUG:

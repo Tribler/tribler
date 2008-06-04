@@ -7,6 +7,8 @@ import sys
 # LAYERVIOLATION
 from Tribler.Main.Utility.regchecker import Win32RegChecker
 
+videoextdefaults = ['aac','asf','avi','dv','divx','flac','flc','mkv','mpeg','mpeg4','mpg4','mp3','mp4','mpg','mkv','mov','m4v','ogg','ogm','qt','rm','swf','vob','wmv','wav']
+
 DEBUG = False
 
 def win32_retrieve_video_play_command(ext,videourl):

@@ -1,6 +1,8 @@
 # Written by Jelle Roozenburg
 # see LICENSE.txt for license information
 
+import sys
+from traceback import print_exc
 import threading
 from time import sleep
 
@@ -168,6 +170,8 @@ class ThreadPoolThread(threading.Thread):
                 cmd(*args)
             else:
                 callback(cmd(args))
+                
+            
     
     def goAway(self):
 

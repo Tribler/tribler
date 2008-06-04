@@ -263,7 +263,7 @@ class TriblerLaunchMany(Thread):
                         self.overlay_apps.buddycast.addMyPref(infohash)
 
             if self.torrent_db is not None:
-                self.overlay_bridge.add_task(add_torrent_to_db, 3)
+                self.overlay_bridge.add_task(add_torrent_to_db, 0)
             
             return d
         finally:

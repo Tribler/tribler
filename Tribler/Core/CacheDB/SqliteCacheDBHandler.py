@@ -1272,10 +1272,13 @@ class TorrentDBHandler(BasicDBHandler):
             self.commit()
         
     def searchNames(self,kws):
-        """ Get all good torrents that have the specified keywords in their name. 
-        Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
+        """ Get all torrents (good and bad) that have the specified keywords in 
+        their name.  Return a list of dictionaries. Each dict is in the 
+        NEWDBSTANDARD format.
+        @param kws A list of keyword strings
+        @return A list of dictionaries.
         """ 
-        sql = 'select * from Torrent where Torrent.status_id = 1 and' 
+        sql = 'select * from Torrent where' 
         
         mypref_stats = self.mypref_db.getMyPrefStats()
         

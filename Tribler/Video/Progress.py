@@ -158,7 +158,7 @@ class ProgressBar(wx.Control):
         dc.BeginDrawing()
         dc.Clear()
         
-        rectangles = [(x+int(i*w),y,int(w)+1,h) for i in xrange(0,numrect)]
+        rectangles = [(x+int(i*w),y,int(w)+1,h) for i in xrange(0,int(numrect))]
 
         # draw the blocks
         pens = [self.pens[c] for c in self.blocks]

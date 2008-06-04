@@ -185,5 +185,3 @@ tdefmetadefaults['thumb'] = None # JPEG data
 tdefdefaults = {}
 tdefdefaults.update(tdefdictdefaults)
 tdefdefaults.update(tdefmetadefaults)
-
-videoextdefaults = ['aac','asf','avi','dv','divx','flac','flc','mkv','mpeg','mpeg4','mpg4','mp3','mp4','mpg','mkv','mov','m4v','ogg','ogm','qt','rm','swf','vob','wmv','wav']

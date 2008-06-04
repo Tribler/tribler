@@ -34,6 +34,7 @@ from Tribler.Player.Reporter import Reporter
 from Tribler.Utilities.Instance2Instance import *
 
 from Tribler.Main.Utility.utility import Utility # TO REMOVE
+from Tribler.Video.utils import videoextdefaults
 
 DEBUG = True
 ONSCREENDEBUG = False
@@ -49,7 +50,7 @@ VIDEOHTTP_LISTENPORT = 6879
 class PlayerFrame(VideoFrame):
 
     def __init__(self,parent):
-        VideoFrame.__init__(self,parent,'SwarmPlayer 0.2.0',parent.iconpath)
+        VideoFrame.__init__(self,parent,'SwarmPlayer 0.2.0',parent.iconpath,parent.logopath)
         self.parent = parent
         
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
@@ -117,6 +118,8 @@ class PlayerApp(wx.App):
             self.utility.app = self
             print >>sys.stderr,self.utility.lang.get('build')
             self.iconpath = os.path.join(self.installdir,'Tribler','Images','swarmplayer.ico')
+            self.logopath = os.path.join(self.installdir,'Tribler','Images','logoSwarmPlayer.png')
+
             
             # Start server for instance2instance communication
             self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
@@ -250,7 +253,7 @@ class PlayerApp(wx.App):
         print >>sys.stderr,"main: Starting download, infohash is",`tdef.get_infohash()`
         
         # Select which video to play (if multiple)
-        videofiles = tdef.get_video_files()
+        videofiles = tdef.get_files(exts=videoextdefaults)
         print >>sys.stderr,"main: Found video files",videofiles
         
         if len(videofiles) == 0:

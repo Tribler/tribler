@@ -83,7 +83,7 @@ from Tribler.Core.Utilities.utilities import show_permid
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878
 
-DEBUG = False
+DEBUG = True
 ALLOW_MULTIPLE = False
 
 
@@ -267,7 +267,8 @@ class ABCFrame(wx.Frame):
             # This means vlc is available
             from Tribler.Video.EmbeddedPlayer import VideoFrame
             iconpath = os.path.join(self.utility.getPath(),'Tribler','Images','tribler.ico')
-            self.videoFrame = VideoFrame(self,'Tribler Video',iconpath)
+            logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler.png')
+            self.videoFrame = VideoFrame(self,'Tribler Video',iconpath,logopath)
 
             #self.videores = xrc.XmlResource("Tribler/vwxGUI/MyPlayer.xrc")
             #self.videoframe = self.videores.LoadFrame(None, "MyPlayer")
@@ -947,51 +948,13 @@ class ABCApp(wx.App):
         
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
-        if DEBUG:
-            print >>sys.stderr,"main: Stats:"
         try:
             # Pass DownloadStates to libaryView
             try:
                 # Jelle: libraryMode only exists after user clicked button
                 modedata = self.guiUtility.standardOverview.data['libraryMode']
                 gm = modedata['grid'].gridManager
-                gm.download_state_network_callback(dslist)
-            except KeyError:
-                pass
-            except:
-                print_exc()
-            
-            # Adjust speeds once every 4 seconds
-            adjustspeeds = False
-            if self.rateadjustcount % 4 == 0:
-                adjustspeeds = True
-            self.rateadjustcount += 1
-    
-            if adjustspeeds:
-                self.ratelimiter.add_downloadstatelist(dslist)
-                self.ratelimiter.adjust_speeds()
-                
-            # Update stats in lower right overview box
-            self.guiUtility.refreshTorrentStats(dslist)
-                
-        except:
-            print_exc()
-
-
-    def sesscb_states_callback(self,dslist):
-        """ Called by SessionThread """
-        wx.CallAfter(self.gui_states_callback,dslist)
-        return(1.0,False)
-        
-    def gui_states_callback(self,dslist):
-        """ Called by MainThread  """
-        try:
-            # Pass DownloadStates to libaryView
-            try:
-                # Jelle: libraryMode only exists after user clicked button
-                modedata = self.guiUtility.standardOverview.data['libraryMode']
-                gm = modedata['grid'].gridManager
-                gm.download_state_network_callback(dslist)
+                gm.download_state_gui_callback(dslist)
             except KeyError:
                 pass
             except AttributeError:

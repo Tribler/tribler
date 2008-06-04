@@ -1,6 +1,8 @@
 # Written by Jelle Roozenburg 
 # see LICENSE.txt for license information
 
+import sys
+from traceback import print_exc
 import threading
 import Queue
 import thread

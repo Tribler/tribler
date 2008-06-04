@@ -665,16 +665,16 @@ class TorrentDef(Serializable,Copyable):
 
         return maketorrent.get_bitrate_from_metainfo(file,self.metainfo)
 
-    def get_video_files(self,videoexts=videoextdefaults):
-        """ The list of video files in the finalized torrent def.
-        @param videoexts (Optional) list of filename extensions (without leading .)
-        that define what is a video file or not.
-        @return A list of video files.
+    def get_files(self,exts=None):
+        """ The list of files in the finalized torrent def.
+        @param exts (Optional) list of filename extensions (without leading .)
+        to search for.
+        @return A list of filenames.
         """
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
         
-        return maketorrent.get_files(self.metainfo,videoexts)
+        return maketorrent.get_files(self.metainfo,exts)
 
     def get_length(self,selectedfiles=None):
         """ Returns the total size of the content in the torrent. If the

@@ -391,7 +391,12 @@ class DownloadImpl:
                     f2dlist.append(f2dtuple)
             else:
                 # multi-file torrent
-                for filename in self.dlconfig['selected_files']:
+                if len(self.dlconfig['selected_files']) > 0:
+                    fnlist = self.dlconfig['selected_files']
+                else:
+                    fnlist = self.tdef.get_files(exts=exts)
+                    
+                for filename in fnlist:
                     filerec = maketorrent.get_torrentfilerec_from_metainfo(filename,metainfo)
                     savepath = maketorrent.torrentfilerec2savefilename(filerec)
                     diskfn = maketorrent.savefilenames2finaldest(self.get_content_dest(),savepath)

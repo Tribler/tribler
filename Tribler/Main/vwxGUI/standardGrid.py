@@ -162,14 +162,14 @@ class GridManager(object):
             self.callbacks_disabled = False
             self.refresh(update_observer = True)
             
-    def download_state_network_callback(self, *args):
-        """ Called by SessionThread from ABCApp """
-        if self.download_states_callback_set:
-            if self.grid.isShowByOverview():
-                wx.CallAfter(self.download_state_gui_callback, *args)
-            else:
-                self.callbacks_disabled = True
-                self.download_states_callback_set = False
+#    def download_state_network_callback(self, *args):
+#        """ Called by SessionThread from ABCApp """
+#        if self.download_states_callback_set:
+#            if self.grid.isShowByOverview():
+#                wx.CallAfter(self.download_state_gui_callback, *args)
+#            else:
+#                self.callbacks_disabled = True
+#                self.download_states_callback_set = False
         
     def item_network_callback(self, *args):
         # only handle network callbacks when grid is shown

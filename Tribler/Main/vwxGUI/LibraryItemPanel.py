@@ -12,7 +12,7 @@ from Tribler.Video.Progress import ProgressBar
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.simpledefs import *
-from Tribler.Core.defaults import videoextdefaults
+from Tribler.Video.utils import videoextdefaults
 from tribler_topButton import *
 from copy import deepcopy
 from bgPanel import *
@@ -384,7 +384,7 @@ class LibraryItemPanel(wx.Panel):
                     switchable = False
                     showPlayButton = True
                 else:
-                    isVideo = bool(ds.get_download().get_def().get_video_files())
+                    isVideo = bool(ds.get_download().get_def().get_files(exts=videoextdefaults))
                     self.playable = finished and isVideo
                     if not self.playable:
                         switchable = True
@@ -677,6 +677,9 @@ class LibraryItemPanel(wx.Panel):
     def play(self,ds):
         video_files = ds.get_download().get_dest_files(videoextdefaults)
         # Simply take the first video file. Take largest in the future? Or Ask?
+        
+        print >>sys.stderr,"lip: Found videos",video_files
+        
         video_file = video_files[0][1]
         
         videoplayer = VideoPlayer.getInstance()

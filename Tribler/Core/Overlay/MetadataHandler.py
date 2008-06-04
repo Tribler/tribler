@@ -292,7 +292,7 @@ class MetadataHandler:
         my_permid = bartercastdb.my_permid
 
         if DEBUG:
-            print >> sys.stderr, "BARTERCAST: Torrent (%d KB) %s to/from peer %s" % (torrent_kb, up_or_down, name)
+            print >> sys.stderr, "BARTERCAST: Torrent (%d KB) %s to/from peer %s" % (torrent_kb, up_or_down, `name`)
 
         if torrent_kb > 0:
             bartercastdb.incrementItem((my_permid, permid), up_or_down, torrent_kb)
