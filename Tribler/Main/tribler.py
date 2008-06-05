@@ -328,6 +328,15 @@ class ABCFrame(wx.Frame):
         
             self.utility.session.start_download(tdef,dscfg)
 
+        except DuplicateDownloadException:
+            # show nice warning dialog
+            dlg = wx.MessageDialog(None,
+                                   self.utility.lang.get('duplicate_download_msg'),
+                                   self.utility.lang.get('duplicate_download_title'),
+                                   wx.OK|wx.ICON_INFORMATION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+
         except Exception,e:
             self.onWarning(e)
 

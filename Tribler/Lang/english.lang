@@ -1367,3 +1367,5 @@ DLSTATUS_SEEDING = "completed/sharing"
 DLSTATUS_STOPPED = "stopped"
 DLSTATUS_STOPPED_ON_ERROR = "stopped/error"
 
+duplicate_download_msg = "You are already download this torrent in your library."
+duplicate_download_title = "Duplicate download"
