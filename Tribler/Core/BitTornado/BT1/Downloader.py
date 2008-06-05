@@ -313,7 +313,7 @@ class SingleDownload(SingleDownloadHelperInterface):
                 #st = time.time()
                 interest = self.downloader.picker.next(d.have,
                                    self.downloader.storage.do_I_have_requests,
-                                   self,
+                                   self, # Arno, 2008-05-22; self -> d? Original Pawel code
                                    self.downloader.too_many_partials(),
                                    self.connection.connection.is_helper_con(), willrequest=False)
                 #et = time.time()

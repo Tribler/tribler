@@ -329,7 +329,9 @@ class Session(SessionRuntimeConfig):
         # Called by any thread
         self.sesslock.acquire()
         try:
-            url = self.sessconfig['tracker_url'] # user defined override, e.g. specific hostname
+            url = None
+            if 'tracker_url' in self.sessconfig:
+                url = self.sessconfig['tracker_url'] # user defined override, e.g. specific hostname
             if url is None:
                 ip = self.lm.get_ext_ip()
                 port = self.get_listen_port()

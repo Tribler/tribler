@@ -135,7 +135,14 @@ class BT1Download:
             
             if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR:
                 self.coordinator = Coordinator(self.infohash, self.len_pieces)
-            if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR or self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
+            #if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR or self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
+            # Arno, 2008-05-20: removed Helper when coordinator, shouldn't need it.
+            # Reason to remove it is because it messes up PiecePicking: when a 
+            # helper, it calls _next() again after it returned None, probably
+            # to provoke a RESERVE_PIECE request to the coordinator.
+            # This change passes test_dlhelp.py
+            #
+            if self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
                 self.helper = Helper(self.infohash, self.len_pieces, self.config['coopdl_coordinator_permid'], coordinator = self.coordinator)
                 self.config['coopdl_role'] = ''
                 self.config['coopdl_coordinator_permid'] = ''

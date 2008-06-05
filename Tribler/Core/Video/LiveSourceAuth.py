@@ -147,7 +147,7 @@ class ECDSAAuthenticator(Authenticator):
                     print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"expected",mod
                     return False 
                 else:
-                    self.timestamp = timestamp
+                    self.timestamp = max(self.timestamp,timestamp)
             else:
                 print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ piece",index,"failed sig"
             

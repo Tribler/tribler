@@ -191,7 +191,8 @@ class PiecePickerStreaming(PiecePicker):
         self.outstanding = newoutstanding
 
         # Cancel all pieces that are too late
-        self.downloader.cancel_piece_download(cancelpieces,allowrerequest=False)
+        if len(cancelpieces) > 0:
+            self.downloader.cancel_piece_download(cancelpieces,allowrerequest=False)
 
         p = self.next_new(haves, wantfunc, complete_first, helper_con,willrequest=willrequest)
         if p is not None:
@@ -234,13 +235,12 @@ class PiecePickerStreaming(PiecePicker):
 
         def pick_first( f, t ): # no shuffle
             for i in vs.generate_range((f,t)):
-                if self.has[i]: # Is there a piece in the range we don't have?
+                # Is there a piece in the range the peer has?
+                # Is there a piece in the range we don't have?
+                if not haves[i] or self.has[i]: 
                     continue
 
                 if not wantfunc(i): # Is there a piece in the range we want? 
-                    continue
-
-                if not haves[i]: # Is there a piece in the range the peer has?
                     continue
 
                 if self.helper is None or helper_con or not self.helper.is_ignored(i):
@@ -248,52 +248,28 @@ class PiecePickerStreaming(PiecePicker):
 
             return None
 
-        """
-        def pick_randomlast( f, t, lastx ):
-            l = []
-
-            for i in range_dec( f, t):
-                if self.has[i]: # Is there a piece in the range we don't have?
-                    continue
-
-                if not wantfunc(i): # Is there a piece in the range we want? 
-                    continue
-
-                if not haves[i]: # Is there a piece in the range the peer has?
-                    continue
-
-                if self.helper is None or helper_con or not self.helper.is_ignored(i):
-                    return i
-
-                l.append(i)
-                if len(l) == lastx:
-                    break
-
-            if not l:
-                return None
-
-            return random.choice(l)
-        """
-
-        def do_pick_rarest_small_range(f,t):
+        def pick_rarest_loop_over_small_range(f,t,shuffle=True):
             # Arno: pick_rarest is way expensive for the midrange thing,
-            # use this instead.
+            # therefore loop over the list of pieces we want and see
+            # if it's avail, rather than looping over the list of all
+            # pieces to see if one falls in the (f,t) range.
+            #
             xr = vs.generate_range((f,t))
-            # xr is an xrange generator, need real values to shuffle
-            r = []
-            r.extend(xr)
-            random.shuffle(r)
+            r = None
+            if shuffle:
+                # xr is an xrange generator, need real values to shuffle
+                r = []
+                r.extend(xr)
+                random.shuffle(r)
+            else:
+                r = xr
             for i in r:
                 #print >>sys.stderr,"H",
-                if self.has[i]:
+                if not haves[i] or self.has[i]:
                     continue
 
                 #print >>sys.stderr,"W",
                 if not wantfunc(i):
-                    continue
-
-                #print >>sys.stderr,"Z",
-                if not haves[i]:
                     continue
 
                 if self.helper is None or helper_con or not self.helper.is_ignored(i):
@@ -303,31 +279,37 @@ class PiecePickerStreaming(PiecePicker):
 
 
         def pick_rarest_small_range(f,t):
+            #print >>sys.stderr,"choice small",f,t
+            d = vs.dist_range(f,t)
+            
             for level in xrange(len(self.interests)):
                 piecelist  = self.interests[level]
                 
-                if level+1 == len(self.interests):
-                    # Arno: Lowest level priorities
+                if len(piecelist) > d:
+                #if level+1 == len(self.interests):
+                    # Arno: Lowest level priorities / long piecelist.
                     # This avoids doing a scan that goes over the entire list 
                     # of pieces when we already have the hi and/or mid ranges.
+                    
+                    # Arno, 2008-05-21: Apparently, the big list is not always
+                    # at the lowest level, hacked distance metric to determine
+                    # whether to use slow or fast method.
+                    
                     #print >>sys.stderr,"choice QUICK"
-                    return do_pick_rarest_small_range(f,t)
-                else: 
-                    # Higher priorities
+                    return pick_rarest_loop_over_small_range(f,t)
+                    #print >>sys.stderr,"choice Q",diffstr,"l",level,"s",len(piecelist) 
+                else:
+                    # Higher priorities / short lists
                     for i in piecelist:
                         if not vs.in_range( f, t, i ):
                             continue
     
                         #print >>sys.stderr,"H",
-                        if self.has[i]:
+                        if not haves[i] or self.has[i]:
                             continue
     
                         #print >>sys.stderr,"W",
                         if not wantfunc(i):
-                            continue
-    
-                        #print >>sys.stderr,"Z",
-                        if not haves[i]:
                             continue
     
                         if self.helper is None or helper_con or not self.helper.is_ignored(i):
@@ -343,15 +325,11 @@ class PiecePickerStreaming(PiecePicker):
                         continue
 
                     #print >>sys.stderr,"H",
-                    if self.has[i]:
+                    if not haves[i] or self.has[i]:
                         continue
 
                     #print >>sys.stderr,"W",
                     if not wantfunc(i):
-                        continue
-
-                    #print >>sys.stderr,"Z",
-                    if not haves[i]:
                         continue
 
                     if self.helper is None or helper_con or not self.helper.is_ignored(i):
@@ -394,14 +372,24 @@ class PiecePickerStreaming(PiecePicker):
             type = "mid"
 
         if choice is None:
-            choice = pick_rarest( midprob_cutoff, last )
+            if vs.live_streaming:
+                # Want: loop over what peer has avail, respecting piece priorities
+                # (could ignore those for live).
+                #
+                # Attempt 1: loop over range (which is 25% of window (see 
+                # VideoStatus), ignoring priorities, no shuffle.
+                #print >>sys.stderr,"vod: choice low RANGE",midprob_cutoff,last
+                #choice = pick_rarest_loop_over_small_range(midprob_cutoff,last,shuffle=False)
+                pass
+            else:
+                choice = pick_rarest( midprob_cutoff, last )
             type = "low"
-
+            
         if choice and willrequest:
             self.stats[type] += 1
 
-            if DEBUG:
-                print >>sys.stderr,"vod: picked piece %d [type=%s] [%d,%d,%d,%d]" % (choice,type,first,highprob_cutoff,midprob_cutoff,last)
+        if DEBUG:
+            print >>sys.stderr,"vod: picked piece %s [type=%s] [%d,%d,%d,%d]" % (`choice`,type,first,highprob_cutoff,midprob_cutoff,last)
 
         return choice
 

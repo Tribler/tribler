@@ -60,7 +60,7 @@ class VideoPlayer:
             self.parentwindow.set_content_image(wximg)
 
     def determine_playbackmode(self):
-        playbackmode = self.utility.config.Read('videoplaybackmode', "int")
+        playbackmode = PLAYBACKMODE_INTERNAL # self.utility.config.Read('videoplaybackmode', "int")
         feasible = return_feasible_playback_modes(self.utility.getPath())
         if playbackmode in feasible:
             self.playbackmode = playbackmode

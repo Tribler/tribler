@@ -423,7 +423,7 @@ class Connection:
         psf = float(self.connecter.piece_size)
         ppdict = {}
         
-        print >>sys.stderr,"connecter: g2g dq: orig",self.last_perc_sent
+        #print >>sys.stderr,"connecter: g2g dq: orig",self.last_perc_sent
         
         for index,perc in self.last_perc_sent.iteritems():
             # due to rerequests due to slow pieces the sum can be above 1.0
@@ -433,7 +433,7 @@ class Connection:
             ppdict[str(index)] = percb
         self.last_perc_sent = {}
         
-        print >>sys.stderr,"connecter: g2g dq: dest",ppdict
+        #print >>sys.stderr,"connecter: g2g dq: dest",ppdict
         
         if len(ppdict) > 0:
             self.send_g2g_piece_xfer_v2(ppdict)
@@ -472,11 +472,11 @@ class Connection:
             return
 
         # Extra reward if its data we sent
-        for wegaveperc in self.perc_sent[index]:
-            overlapperc = wegaveperc * hegaveperc
-            overlap = ceil(overlapperc * float(self.connecter.piece_size))
-            if overlap > 0:
-                self.forward_speeds[0].update_rate( overlap )
+        wegaveperc = self.perc_sent[index]
+        overlapperc = wegaveperc * hegaveperc
+        overlap = ceil(overlapperc * float(self.connecter.piece_size))
+        if overlap > 0:
+            self.forward_speeds[0].update_rate( overlap )
 
     def g2g_score( self ):
         return [x.get_rate() for x in self.forward_speeds]
@@ -716,6 +716,8 @@ class Connecter:
         # EXTEND handshake will be sent just after BT handshake, 
         # before BITFIELD even
         
+        st = time.time()
+        
         if DEBUG_NORMAL_MSGS:
             print >>sys.stderr,"connecter: Got",getMessageName(t),connection.get_ip()
         
@@ -819,8 +821,16 @@ class Connecter:
                 return
             if DEBUG_NORMAL_MSGS:
                 print >>sys.stderr,"connecter: Got PIECE(",i,") from",connection.get_ip()
-            if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
-                self.got_piece(i)
+                
+            try:
+                if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
+                    self.got_piece(i)
+            except Exception,e:
+                if DEBUG:
+                    print >>sys.stderr,"Close on bad PIECE: exception",str(e)
+                    traceback.print_exc()
+                connection.close()
+                return
             
         elif t == HASHPIECE:
             # Merkle: Handle pieces with hashes
@@ -881,6 +891,11 @@ class Connecter:
             c.got_g2g_piece_xfer_v1(index,begin,length)
         else:
             connection.close()
+
+        et = time.time()
+        diff = et - st
+        if diff > 0.1:
+            print >>sys.stderr,"connecter: $$$$$$$$$$$$",getMessageName(t),"took",diff
 
 
     def got_extend_message(self,connection,c,message,ut_pex_enabled):

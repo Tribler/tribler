@@ -788,7 +788,7 @@ class StorageWrapper:
         return False
 
     ## Arno: don't think we need length here, FIXME 
-    def piece_came_in(self, index, begin, hashlist, piece, length, source = None):
+    def piece_came_in(self, index, begin, hashlist, piece, baddataguard, source = None):
         assert not self.have[index]
         # Merkle: Check that the hashes are valid using the known root_hash
         # If so, put them in the hash tree and the normal list of hashes to
@@ -874,6 +874,13 @@ class StorageWrapper:
                 if culprit is not None:
                     culprit.failed(index, bump = True)
                 del self.failed_pieces[index] # found the culprit already
+                
+            if self.live_streaming:
+                # TODO: figure out how to use the Download.BadDataGuard
+                # cf. the culprit business above.
+                print >>sys.stderr,"////////////////////////////////////////////////////////////// kicking peer"
+                raise ValueError("Arno quick fix: Unauth data unacceptable")
+                
             return False
 
         self.have[index] = True

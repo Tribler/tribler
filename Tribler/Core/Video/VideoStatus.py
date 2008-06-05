@@ -120,6 +120,13 @@ class VideoStatus:
             for x in xrange( f, t ):
                 yield x
 
+    def dist_range(self, f, t):
+        """ Returns the distance between f and t """
+        if f > t:
+            return self.last_piece-f + t-self.first_piece 
+        else:
+            return t - f
+
     def in_range( self, f, t, x ):
         if self.wraparound and f > t:
             return self.first_piece <= x < t or f <= x <= self.last_piece

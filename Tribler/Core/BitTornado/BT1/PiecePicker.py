@@ -410,6 +410,8 @@ class PiecePicker:
             if DEBUG:
                 print >> sys.stderr,"PiecePicker: next:helper: NONE SHOULD DL PIECE",piece
             return piece
+        # Arno, 2008-05-20: 2fast code: if we got capacity to DL something,
+        # ask coordinator what new pieces to dl for it.
         if self.rate_predictor is None or not self.rate_predictor.has_capacity():
             return None
         else:

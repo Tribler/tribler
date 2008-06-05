@@ -21,7 +21,9 @@ argsdef = [('name', '', 'name of the stream'),
            ('bitrate', (512*1024)/8, 'bitrate of the streams in bytes'),
            ('piecesize', 32768, 'transport piece size'),
            ('duration', '1:00:00', 'duration of the stream in hh:mm:ss format'),
-           ('nuploads', 7, 'the max number of peers to serve directly')]
+           ('nuploads', 7, 'the max number of peers to serve directly'),
+           ('port', 7764, 'the TCP+UDP listen port'),
+           ('thumb', '', 'filename of image in JPEG format, preferably 171x96')]
 
 
 def state_callback(ds):
@@ -61,7 +63,7 @@ if __name__ == "__main__":
     sscfg = SessionStartupConfig()
     statedir = tempfile.mkdtemp()
     sscfg.set_state_dir(statedir)
-    sscfg.set_listen_port(7764)
+    sscfg.set_listen_port(config['port'])
     sscfg.set_megacache(False)
     sscfg.set_overlay(False)
     sscfg.set_dialback(True)
@@ -87,6 +89,8 @@ if __name__ == "__main__":
     tdef.create_live(config['name'],config['bitrate'],config['duration'],authcfg)
     tdef.set_tracker(s.get_internal_tracker_url())
     tdef.set_piece_length(config['piecesize']) #TODO: auto based on bitrate?
+    if len(config['thumb']) > 0:
+        tdef.set_thumbnail(config['thumb'])
     tdef.finalize()
     
     torrentbasename = config['name']+'.tstream'
