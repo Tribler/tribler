@@ -178,14 +178,11 @@ class GridManager(object):
             self.callbacks_disabled = True
             self.session.remove_observer(self.item_network_callback) #unsubscribe this function
         else:
-            task_id = str(args[0]) + str(args[1]) + str(int(time()/3))  # refresh every 3 seconds
-            # delay 1 second to remove redundancy
-            #print >> sys.stderr, '****'*5, 'ready to call itemChanged:', task_id, args
-            self.guiserver.add_task(lambda:wx.CallAfter(self.itemChanged, *args), 1, id=task_id)
+            self.itemChanged(*args)
         
     def itemChanged(self,subject,changeType,objectID,*args):
         "called by GuiThread"
-        #print >> sys.stderr, '****'*10, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, `objectID`, args)
+        print >> sys.stderr, '****'*10, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, `objectID`, args)
         if changeType == NTFY_INSERT:
             self.itemAdded(subject, objectID, args)
         elif changeType in (NTFY_UPDATE, NTFY_CONNECTION):
@@ -198,7 +195,10 @@ class GridManager(object):
     def itemAdded(self,subject, objectID, args):
         #if self._last_page(): # This doesn't work as the pager is not updated if page becomes full
         if self.isRelevantItem(subject, objectID):
-            self.refresh()
+            task_id = str(subject) + str(int(time())/3)
+            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), 3, id=task_id)
+            # that's important to add the task 3 seconds later, to ensure the task will be executed at proper time  
+            #self.refresh()
     
     def itemUpdated(self,subject, objectID, args):
         # Both in torrent grid and peergrid, changed items can make new items appear on the screen
@@ -209,11 +209,15 @@ class GridManager(object):
         
         #if (self._objectOnPage(subject, objectID)
         if True:
-            self.refresh()
+            task_id = str(subject) + str(int(time())/3)
+            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), 3, id=task_id)
+            #self.refresh()
     
     def itemDeleted(self,subject, objectID, args):
         if self._objectOnPage(subject, objectID):
-            self.refresh()
+            task_id = str(subject) + str(int(time())/3)
+            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), 3, id=task_id)
+            #self.refresh()
     
     def download_state_gui_callback(self, dslist):
         """

@@ -363,6 +363,8 @@ class BuddyCastFactory:
         other: interval = 15
         """
         
+        #return 3    ### DEBUG, remove it before release!!
+        
         past = now() - self.start_time
         if past < 2*60:
             if self.data_handler.npeers == 0:
@@ -412,7 +414,7 @@ class BuddyCastFactory:
                     print >> sys.stderr, "bc: wrong message to buddycast", ord(t), "Round", self.buddycast_core.round
                 return False
             
-        self.overlay_bridge.add_task(_handleMessage, 0)
+        _handleMessage()
         
     def gotBuddyCastMessage(self, msg, permid, selversion):
         if self.registered and self.running:
@@ -592,7 +594,8 @@ class BuddyCastCore:
         
         try:
             self.round += 1
-            #print >> sys.stderr, 'bc: ************ working buddycast', currentThread().getName()
+            if DEBUG:
+                print >> sys.stderr, 'bc: ************ working buddycast', currentThread().getName()
             self.print_debug_info('Active', 2)
             if self.log:
                 nPeer, nPref, nCc, nBs, nBr, nSO, nCo, nCt, nCr, nCu = self.get_stats()
@@ -1262,20 +1265,6 @@ class BuddyCastCore:
                 continue 
             age = max(tb.get('age', 0), 0)    # From secure overlay version 3, it doesn't include 'age'
             last_seen = _now - age
-#            peer_data = None
-#            if 'oversion' in tb:
-#                oversion = tb.get('oversion')
-#            else:
-#                peer_data = self.data_handler.getPeer(peer_permid)
-#                oversion = peer_data['oversion']
-#
-#            if 'nfiles' in tb:
-#                nfiles = tb.pop('nfiles')
-#                tb['ntorrents'] = nfiles
-#            else:
-#                if peer_data:
-#                    peer_data = self.data_handler.getPeer(peer_permid)
-#                nfiles = peer_data['ntorrents']
                 
             self.data_handler.addPeer(peer_permid, last_seen, tb)    # new peer
             prefs = tb.get('preferences',[])
@@ -1816,6 +1805,7 @@ class DataHandler:
     def postInit(self):
         # build up a cache layer between app and db
         #self.updateAllCooccurrence()
+        now = time()
         self.updateMyPreferences()
         self.loadAllPeers(self.max_num_peers)
         #self.loadAllPrefs(self.max_num_peers)

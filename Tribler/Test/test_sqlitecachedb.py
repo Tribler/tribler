@@ -628,6 +628,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
             def keep_writing_data(self, period):
                 db = SQLiteCacheDB.getInstance()
                 st = time()
+                print "begin write"
                 while True:
                     db.begin()
                     values = []
@@ -635,10 +636,13 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                         value = (str(i), str(i**2))
                         values.append(value)
                     db.insertMany('person', values)
+                    print ">>write", self.getName()
                     db.commit()
+                    #sleep(0.001)
                     et = time()
                     if et-st > period:
                         break
+                print "done write"
                 db.close()
                 
             def run(self):
@@ -661,13 +665,11 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                     oldnum = len(all)
                 while True:
                     all = db.fetchall("select * from person where lastname='7'")
-                    if not all:
-                        num = len(all)
-                    else:
-                        num = len(all)
+                    print "read", self.getName()
+                    num = len(all)
                     assert num>=oldnum, (num, oldnum)
                     et = time()
-                    sleep(sleeptime)
+                    #sleep(sleeptime)
                     if et-st > period:
                         break
                 db.close()
@@ -678,7 +680,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                 self.keep_reading_data(self.period, self.sleeptime)
         
         def start_testing(nwriters,nreaders,write_period=5,read_period=3,read_sleeptime=0.21):
-            #print nwriters, 'Writers', nreaders, 'Readers'
+            print nwriters, 'Writers', nreaders, 'Readers'
             writers = []
             for i in range(nwriters):
                 w = Writer(write_period)
@@ -698,16 +700,16 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                 r.join()
             
         self.create_db(0, self.db_path)
-        start_testing(1,1)
+        #start_testing(1,1)
         #start_testing(1,10,10,3)
-        start_testing(2,5)    # got 'db is locked' error
+        start_testing(2,20)    # got 'db is locked' error
         
         
 def test_suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestSqliteCacheDB))
+    #suite.addTest(unittest.makeSuite(TestSqliteCacheDB))
     suite.addTest(unittest.makeSuite(TestThreadedSqliteCacheDB))
-    suite.addTest(unittest.makeSuite(TestSQLitePerformanceTest))
+    #suite.addTest(unittest.makeSuite(TestSQLitePerformanceTest))
     
     return suite
         

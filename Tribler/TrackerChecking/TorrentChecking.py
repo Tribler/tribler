@@ -34,7 +34,7 @@ from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 
-DEBUG = False
+DEBUG = True
 
 class TorrentChecking(Thread):
     
@@ -49,7 +49,8 @@ class TorrentChecking(Thread):
         self.retryThreshold = 10
         self.gnThreashold = 0.9
         self.mldhtchecker = mainlineDHTChecker.getInstance()
-        self.overlay_bridge = OverlayThreadingBridge.getInstance()
+        self.overlay_bridge = None
+        #self.overlay_bridge = OverlayThreadingBridge.getInstance()
         
     def selectPolicy(self):
         policies = ["oldest", "random", "popular"]
@@ -73,68 +74,84 @@ class TorrentChecking(Thread):
     def run(self):
         """ Gets one torrent from good or unknown list and checks it """
         
-        if DEBUG:
-            print >> sys.stderr, "Torrent Checking: RUN"
+        try:
+            if DEBUG:
+                print >> sys.stderr, "Torrent Checking: RUN", threading.currentThread().getName()
+                
+            event = threading.Event()
+            return_value = safe_dict()
+            return_value['event'] = event
+            return_value['torrent'] = None
+            if self.infohash is None:   # select torrent by a policy
+                policy = self.selectPolicy()
+                if self.overlay_bridge:
+                    self.overlay_bridge.add_task(lambda:
+                        TorrentDBHandler.getInstance().selectTorrentToCheck(policy=policy, return_value=return_value))
+                else:
+                    TorrentDBHandler.getInstance().selectTorrentToCheck(policy=policy, return_value=return_value)
+            else:   # know which torrent to check
+                if self.overlay_bridge:
+                    self.overlay_bridge.add_task(lambda:
+                                                 TorrentDBHandler.getInstance().selectTorrentToCheck(infohash=self.infohash, return_value=return_value))
+                else:
+                    TorrentDBHandler.getInstance().selectTorrentToCheck(infohash=self.infohash, return_value=return_value)
+            event.wait(60.0)
             
-        event = threading.Event()
-        return_value = safe_dict()
-        return_value['event'] = event
-        return_value['torrent'] = None
-        if self.infohash is None:   # select torrent by a policy
-            policy = self.selectPolicy()
-            self.overlay_bridge.add_task(lambda:
-                TorrentDBHandler.getInstance().selectTorrentToCheck(policy=policy, return_value=return_value))
-        else:   # know which torrent to check
-            self.overlay_bridge.add_task(lambda:
-                TorrentDBHandler.getInstance().selectTorrentToCheck(infohash=self.infohash, return_value=return_value))
-        event.wait(60.0)
-        
-        torrent = return_value['torrent']
-        if DEBUG:
-            print >> sys.stderr, "Torrent Checking: get value from DB:", torrent
-        
-        if not torrent:
-            return
-
-        if self.infohash is None and torrent['ignored_times'] > 0:
-            self.overlay_bridge.add_task(lambda:
-                TorrentDBHandler.getInstance().updateTorrentTracker(torrent_id, torrent['ignored_times']-1))
-            return
-
-        # may be block here because the internet IO
-        torrent = self.readTorrent(torrent)    # read the torrent 
-        if 'info' not in torrent:    #torrent has been deleted
-            self.overlay_bridge.add_task(lambda:
-                TorrentDBHandler.getInstance().deleteTorrent(torrent['infohash']))
-            return
-        
-        # TODO: tracker checking also needs to be update
-        if DEBUG:
-            print >> sys.stderr, "Tracker Checking"
-        trackerChecking(torrent)
-        
-        # Must come after tracker check, such that if tracker dead and DHT still alive, the
-        # status is still set to good
-        self.mldhtchecker.lookup(torrent['infohash'])
-        
-        self.updateTorrentInfo(torrent)            # set the ignored_times
-        
-        kw = {
-            'last_check_time': int(time()),
-            'seeder': torrent['seeder'],
-            'leecher': torrent['leecher'],
-            'status': torrent['status'],
-            'ignored_times': torrent['ignored_times'],
-            'retried_times': torrent['retried_times'],
-            #'info': torrent['info']
-            }
-        
-        if DEBUG:
-            print >> sys.stderr, "Torrent Checking: selectTorrentToCheck:", kw
-        
-        self.overlay_bridge.add_task(lambda:
-                TorrentDBHandler.getInstance().updateTorrent(torrent['infohash'], updateFlag=True, **kw))            
-        
+            torrent = return_value['torrent']
+            if DEBUG:
+                print >> sys.stderr, "Torrent Checking: get value from DB:", torrent
+            
+            if not torrent:
+                return
+    
+            if self.infohash is None and torrent['ignored_times'] > 0:
+                if self.overlay_bridge:
+                    self.overlay_bridge.add_task(lambda:
+                        TorrentDBHandler.getInstance().updateTorrentTracker(torrent_id, torrent['ignored_times']-1))
+                else:
+                    TorrentDBHandler.getInstance().updateTorrentTracker(torrent_id, torrent['ignored_times']-1)
+                return
+    
+            # may be block here because the internet IO
+            torrent = self.readTorrent(torrent)    # read the torrent 
+            if 'info' not in torrent:    #torrent has been deleted
+                if self.overlay_bridge:
+                    self.overlay_bridge.add_task(lambda:
+                        TorrentDBHandler.getInstance().deleteTorrent(torrent['infohash']))
+                return
+            
+            # TODO: tracker checking also needs to be update
+            if DEBUG:
+                print >> sys.stderr, "Tracker Checking"
+            trackerChecking(torrent)
+            
+            # Must come after tracker check, such that if tracker dead and DHT still alive, the
+            # status is still set to good
+            self.mldhtchecker.lookup(torrent['infohash'])
+            
+            self.updateTorrentInfo(torrent)            # set the ignored_times
+            
+            kw = {
+                'last_check_time': int(time()),
+                'seeder': torrent['seeder'],
+                'leecher': torrent['leecher'],
+                'status': torrent['status'],
+                'ignored_times': torrent['ignored_times'],
+                'retried_times': torrent['retried_times'],
+                #'info': torrent['info']
+                }
+            
+            if DEBUG:
+                print >> sys.stderr, "Torrent Checking: selectTorrentToCheck:", kw
+            
+            if self.overlay_bridge:
+                self.overlay_bridge.add_task(lambda:
+                    TorrentDBHandler.getInstance().updateTorrent(torrent['infohash'], updateFlag=True, **kw))
+            else:
+                TorrentDBHandler.getInstance().updateTorrent(torrent['infohash'], updateFlag=True, **kw)
+        finally:
+            if not self.overlay_bridge:
+                TorrentDBHandler.getInstance().close()
             
 #===============================================================================
 #    def tooFast(self, torrent):

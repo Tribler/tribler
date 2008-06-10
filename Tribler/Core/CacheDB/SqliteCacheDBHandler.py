@@ -1136,7 +1136,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         if category_name != 'all':
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
-        if library:
+        if library and sort in value_name:
             where += ' and torrent_id in (select torrent_id from MyPreference)'
         else:
             where += ' and status_id=%d ' % self.status_table['good'] # if not library, show only good files
@@ -1159,7 +1159,12 @@ class TorrentDBHandler(BasicDBHandler):
         #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS val",value_name,"where",where,"limit",limit,"offset",offset,"order",order_by
         #print_stack
             
-        res_list = self._db.getAll('CollectedTorrent', value_name, where, limit=limit, offset=offset, order_by=order_by)
+        if library and sort not in value_name:
+            value_name[0] = 'C.torrent_id'
+            where += ' and C.torrent_id = M.torrent_id'
+            res_list = self._db.getAll('CollectedTorrent C, MyPreference M', value_name, where, limit=limit, offset=offset, order_by=order_by)
+        else:
+            res_list = self._db.getAll('CollectedTorrent', value_name, where, limit=limit, offset=offset, order_by=order_by)
         
         mypref_stats = self.mypref_db.getMyPrefStats()
         ranks = self.getRanks()
@@ -1362,6 +1367,9 @@ class TorrentDBHandler(BasicDBHandler):
            (The default N = 4 hours, so at most 4h/torrentchecking_interval popular peers)
         """
         
+        #import threading
+        #print >> sys.stderr, "****** selectTorrentToCheck", threading.currentThread().getName()
+        
         if infohash is None:
             # create a view?
             sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check 
@@ -1432,8 +1440,6 @@ class TorrentDBHandler(BasicDBHandler):
     def setSecret(self,infohash,secret):
         kw = {'secret': secret}
         self.updateTorrent(infohash, updateFlag=True, **kw)
-
-    
         
 
 class MyPreferenceDBHandler(BasicDBHandler):

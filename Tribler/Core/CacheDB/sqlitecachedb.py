@@ -242,7 +242,9 @@ class SQLiteCacheDB:
                 con = apsw.Connection(dbfile_path)
         else:
             if lib==0:
-                con = sqlite.connect(dbfile_path, timeout=(busytimeout/1000.0))
+                timeout=(busytimeout/1000.0)
+                #print "***** timeout", timeout
+                con = sqlite.connect(dbfile_path, timeout=timeout)
             elif lib==1:
                 con = apsw.Connection(dbfile_path)
         if lib==1:
@@ -487,17 +489,25 @@ class SQLiteCacheDB:
             if self.commit_begined[thread_name]:
                 cur.execute("COMMIT")
                 self.commit_begined[thread_name] = False
+        if SQLiteCacheDB.DEBUG:
+            thread_name = threading.currentThread().getName()
+            print >> self.file, time(), 'sqldb: commit', thread_name, id(cur) 
 
     def execute(self, sql, args=None):
         cur = SQLiteCacheDB.getCursor()
         #print >> sys.stderr, 'sdb: execute', sql, args
         if SQLiteCacheDB.DEBUG:
             thread_name = threading.currentThread().getName()
-            print >> self.file, 'sqldb: execute', cur, 'sql::', `sql`, '|', `args`, '|', thread_name, '::sql'
+            if sql.strip().lower().startswith('select'):
+                op = 'read'
+            else:
+                op = 'write' 
+            print >> self.file, time(), 'sqldb: execute', thread_name, id(cur), op, 'sql::', `sql`, '|', `args`, '|', '::sql'
             if not thread_name.startswith('OverlayThread'):
                 st = extract_stack()
                 for line in st:
                     print >> self.file, '\t', line
+            print >> self.file, time(), 'sqldb: done', thread_name, id(cur) 
             self.file.flush()
         try:
             #print >> sys.stderr, sql, args
@@ -513,12 +523,17 @@ class SQLiteCacheDB:
         cur = SQLiteCacheDB.getCursor()
         if SQLiteCacheDB.DEBUG:
             thread_name = threading.currentThread().getName()
-            print >> self.file, 'sqldb: executemany', cur, 'sql::', sql, '|', args, '|', thread_name, '::sql'
+            if sql.strip().lower().startswith('select'):
+                op = 'read'
+            else:
+                op = 'write' 
+            print >> self.file, time(), 'sqldb: executemany', thread_name, id(cur), op,'sql::', sql, '|', args, '|', '::sql'
             if not thread_name.startswith('OverlayThread'):
                 st = extract_stack()
                 for line in st:
                     print >> self.file, '\t', line
             self.file.flush()
+            print >> self.file, time(), 'sqldb: done', thread_name, id(cur) 
         lib = getLib(cur)
         if lib == 0:
             cur.executemany(sql, args)
@@ -551,7 +566,7 @@ class SQLiteCacheDB:
             sql += '%s=?,'%k
         sql = sql[:-1]
         if where != None:
-            sql += 'where %s'%where
+            sql += ' where %s'%where
         self.execute(sql, argv.values())
         
     def delete(self, table_name, **argv):

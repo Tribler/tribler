@@ -211,7 +211,7 @@ class TriblerLaunchMany(Thread):
                 print_exc()
             
             self.torrent_checking_period = config['torrent_checking_period']
-            #self.torrent_checking_period = 15
+            #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         
 
@@ -662,7 +662,8 @@ class TriblerLaunchMany(Thread):
             ntorrents = self.overlay_apps.metadata_handler.num_torrents
             if ntorrents > 0:
                 self.torrent_checking_period = min(max(86400/ntorrents, 15), 300)
-        #print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period    
+        #print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period
+        #self.torrent_checking_period = 1    ### DEBUG, remove it before release!!    
 
     def run_torrent_check(self):
         """ Called by network thread """
