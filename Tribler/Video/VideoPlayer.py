@@ -9,11 +9,11 @@ from threading import currentThread,Event
 from traceback import print_exc,print_stack
 import urlparse
 
-from Tribler.Video.__init__ import *
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.Progress import ProgressBar,BufferInfo, ProgressInf
 from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
-from utils import win32_retrieve_video_play_command,quote_program_path
+from utils import win32_retrieve_video_play_command,win32_retrieve_playcmd_from_mimetype,quote_program_path,videoextdefaults
+from Tribler.Core.simpledefs import *
 
 DEBUG = True
 
@@ -96,25 +96,197 @@ class VideoPlayer:
     def progress4ext_gui_callback(self,progressinf,cmd):
         """ Called by GUI thread """
         self.launch_video_player(cmd)
- 
-    def vod_stopped(self,ABCTorrentTemp):
-        """ Called by GUI thread """
-        if DEBUG:
-            print >>sys.stderr,"videoplay: VOD stopped"
-        
-        if currentThread().getName() != "MainThread":
-            print >>sys.stderr,"videoplay: vod_stopped called by nonMainThread!",currentThread().getName()
-            print_stack()
 
-        ABCTorrentTemp.disable_on_demand_download()
+    def play(self,ds):
+        self.determine_playbackmode()
         
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.parentwindow.swapout_videopanel()
+        d = ds.get_download()
+        tdef = d.get_def()
+        videofiles = d.get_dest_files(exts=videoextdefaults)
+        
+        if len(videofiles) == 0:
+            print >>sys.stderr,"main: No video files found! Let user select"
+            # Let user choose any file
+            videofiles = d.get_dest_files(videoexts=None)
+            
+        selectedinfilename = None
+        selectedoutfilename= None
+        if len(videofiles) > 1:
+            infilenames = []
+            for infilename,diskfilename in videofiles:
+                infilenames.append(infilename)
+            selectedinfilename = self.ask_user_to_select_video(infilenames)
+            if selectedinfilename is None:
+                print >>sys.stderr,"main: User selected no video"
+                return
+            for infilename,diskfilename in videofiles:
+                if infilename == selectedinfilename:
+                    selectedoutfilename = diskfilename
         else:
-            # TODO: Close separate progress window
-            pass
- 
+            selectedinfilename = videofiles[0][0]
+            selectedoutfilename = videofiles[0][1]
 
+        complete = ds.get_status() == DLSTATUS_SEEDING
+
+        bitrate = tdef.get_bitrate(selectedinfilename)
+        if bitrate is None and not complete:
+            video_analyser_path = self.utility.config.Read('videoanalyserpath')
+            if not os.access(video_analyser_path,os.F_OK):
+                self.onError(self.utility.lang.get('videoanalysernotfound'),video_analyser_path,self.utility.lang.get('videoanalyserwhereset'))
+                return
+
+        # The VLC MediaControl API's playlist_add_item() doesn't accept unicode filenames.
+        # So if the file to play is unicode we play it via HTTP. The alternative is to make
+        # Tribler save the data in non-unicode filenames.
+        #
+        flag = self.playbackmode == PLAYBACKMODE_INTERNAL and not self.is_ascii_filename(selectedoutfilename)
+        
+        if complete:
+            if flag:
+                self.play_file_via_http(selectedoutfilename)
+            else:
+                self.play_from_file(selectedoutfilename)
+        else:
+            self.play_vod_via_http(ds,selectedinfilename)
+
+    def play_from_file(self,dest):
+        """ Play video file from disk """
+        if DEBUG:
+            print >>sys.stderr,"videoplay: Playing file from disk",dest
+
+        (prefix,ext) = os.path.splitext(dest)
+        [mimetype,cmd] = self.get_video_player(ext,dest)
+        
+        if DEBUG:
+            print >>sys.stderr,"videoplay: play_from_file: cmd is",cmd
+        
+        self.launch_video_player(cmd)
+
+    def play_file_via_http(self,dest):
+        if DEBUG:
+            print >>sys.stderr,"videoplay: Playing encrypted file via HTTP"
+
+        videoserver = VideoHTTPServer.getInstance()
+        
+        (prefix,ext) = os.path.splitext(dest)
+        videourl = self.create_url(videoserver,'/'+os.path.basename(prefix+ext))
+        [mimetype,cmd] = self.get_video_player(ext,videourl)
+
+        stream = open(dest,"rb")
+        stats = os.stat(dest)
+        length = stats.st_size
+        videoserv.set_inputstream(mimetype,stream,length)
+        
+        self.launch_video_player(cmd)
+
+
+    def play_vod_via_http(self,ds,infilename):
+        """ Called by GUI thread when clicking "Play ASAP" button """
+
+        d = ds.get_download()
+        # For multi-file torrent: when the user selects a different file, play that
+        oldselectedfile = None
+        if ds.is_vod():
+            oldselectedfiles = d.get_selected_files()
+            oldselectedfile = oldselectedfiles[0] # Should be just one
+        
+        # 1. (Re)Start torrent in VOD mode
+        switchfile = (oldselectedfile is not None and oldselectedfile != infilename) 
+        if not ds.is_vod() or switchfile:
+            
+            if switchfile:
+                if self.playbackmode == PLAYBACKMODE_INTERNAL:
+                    self.parentwindow.reset_videopanel()
+            
+            [proceed,othertorrents] = self.warn_user(ds,infilename)
+            if not proceed:
+                # User bailing out
+                return
+
+            if DEBUG:
+                print >>sys.stderr,"videoplay: Enabling VOD on torrent",`d.get_def().get_name()`
+
+            activetorrents = self.utility.session.get_downloads()
+            
+            if DEBUG:
+                for d2 in activetorrents:
+                    print >>sys.stderr,"videoplay: other torrents: Currently active is",`d2.get_def().get_name()`
+            
+            if othertorrents == OTHERTORRENTS_STOP or othertorrents == OTHERTORRENTS_STOP_RESTART:
+                for d2 in activetorrents:
+                    d2.stop()
+            else:
+                d.stop()
+                
+            if othertorrents == OTHERTORRENTS_STOP_RESTART:
+                if d in activetorrents:
+                    activetorrents.remove(d)
+                # TODO: REACTIVATE TORRENTS WHEN DONE. 
+                # ABCTorrentTemp.set_previously_active_torrents(activetorrents)
+
+            # Restart download
+            d.set_video_start_callback(self.sesscb_vod_ready_callback)
+            if d.get_def().is_multifile_torrent():
+                d.set_selected_files([infilename])
+            print >>sys.stderr,"main: Restarting existing Download",`ds.get_download().get_def().get_infohash()`
+            d.restart()
+    
+    
+    def sesscb_vod_ready_callback(self,d,mimetype,stream,filename,length):
+        """ Called by the Session when the content of the Download is ready
+         
+        Called by Session thread """
+        print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
+        wx.CallAfter(self.gui_vod_ready_callback,d,mimetype,stream,filename,length)
+        
+    def gui_vod_ready_callback(self,d,mimetype,stream,filename,length):
+    
+        if filename:
+            self.play_from_file(filename)
+        else:
+            videoserv = VideoHTTPServer.getInstance()
+            videoserv.set_inputstream(mimetype,stream,length)
+            videourl = self.create_url(videoserv,'/')
+            videofiles = d.get_selected_files()
+            [mimetype,cmd] = self.get_video_player(None,videourl,mimetype=mimetype)
+
+            self.launch_video_player(cmd)
+
+
+    def ask_user_to_select_video(self,videofiles):
+        dlg = VideoChooser(self.videoFrame,self.utility,videofiles,title='SwarmPlayer',expl='Select which file to play')
+        result = dlg.ShowModal()
+        if result == wx.ID_OK:
+            index = dlg.getChosenIndex()
+            filename = videofiles[index]
+        else:
+            filename = None
+        dlg.Destroy()
+        return filename
+
+    def is_ascii_filename(self,filename):
+        if isinstance(filename,str):
+            return True
+        try:
+            filename.encode('ascii','strict')
+            return True
+        except:
+            print_exc()
+            return False
+
+    def warn_user(self,ds,infilename):
+        dlg = VODWarningDialog(self.parentwindow,self.utility,ds,infilename)
+        result = dlg.ShowModal()
+        othertorrents = dlg.get_othertorrents()
+        dlg.Destroy()
+        return [result == wx.ID_OK,othertorrents]
+
+    def create_url(self,videoserver,upath):
+        schemeserv = 'http://127.0.0.1:'+str(videoserver.get_port())
+        asciipath = unicode2str(upath)
+        return schemeserv+urllib.quote(asciipath)
+
+ 
     def play_url(self,url):
         """ Play video file from disk """
         if DEBUG:
@@ -158,27 +330,29 @@ class VideoPlayer:
             self.parentwindow.stop_playback()
 
 
-    def get_video_player(self,ext,videourl):
+    def get_video_player(self,ext,videourl,mimetype=None):
 
-        mimetype = None
         video_player_path = self.utility.config.Read('videoplayerpath')
-
         if DEBUG:
             print >>sys.stderr,"videoplay: Default player is",video_player_path
 
-        if sys.platform == 'win32':
-            # TODO: Use Python's mailcap facility on Linux to find player
-            [mimetype,playcmd] = win32_retrieve_video_play_command(ext,videourl)
-            if DEBUG:
-                print >>sys.stderr,"videoplay: Win32 reg said playcmd is",playcmd
-                
         if mimetype is None:
-            if ext == '.avi':
-                mimetype = 'video/avi'
-            elif ext == '.mpegts':
-                mimetype = 'video/mp2t'
-            else:
-                mimetype = 'video/mpeg'
+            if sys.platform == 'win32':
+                # TODO: Use Python's mailcap facility on Linux to find player
+                [mimetype,playcmd] = win32_retrieve_video_play_command(ext,videourl)
+                if DEBUG:
+                    print >>sys.stderr,"videoplay: Win32 reg said playcmd is",playcmd
+                    
+            if mimetype is None:
+                if ext == '.avi':
+                    mimetype = 'video/avi'
+                elif ext == '.mpegts':
+                    mimetype = 'video/mp2t'
+                else:
+                    mimetype = 'video/mpeg'
+        else:
+            if sys.platform == 'win32':
+                [mimetype,playcmd] = win32_retrieve_playcmd_from_mimetype(mimetype,videourl)
 
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             print >>sys.stderr,"videoplay: using internal player"
@@ -267,53 +441,6 @@ class VideoPlayer:
         result = dlg.ShowModal()
         dlg.Destroy()
 
-    def ask_user_to_select(self,fileindexlist):
-        """ Returns an [index,filename] pair """
-        filelist = []
-        
-        for i in range(len(fileindexlist)):
-            videoinfo = fileindexlist[i]
-            if videoinfo['outpath'] is not None:
-                filelist.append(videoinfo['inpath'])
-            
-        if len(filelist) == 0:
-            self.onWarning(self.utility.lang.get('videoplaycontentnotfound'),videoinfo['inpath'])
-            return None
-            
-            
-        dlg = VideoChooser(self.parentwindow,self.utility,filelist)
-        result = dlg.ShowModal()
-        if result == wx.ID_OK:
-            index = dlg.getChosenIndex()
-        dlg.Destroy()
-        
-        if result == wx.ID_OK:
-            return fileindexlist[index] 
-        else:
-            return None
-
-
-    def warn_user(self,ABCTorrentTemp,videoinfo):
-        dlg = VODWarningDialog(self.parentwindow,self.utility,videoinfo)
-        result = dlg.ShowModal()
-        othertorrents = dlg.get_othertorrents()
-        dlg.Destroy()
-        return [result == wx.ID_OK,othertorrents]
-
-    def create_url(self,videoserver,upath):
-        schemeserv = 'http://127.0.0.1:'+str(videoserver.port)
-        asciipath = unicode2str(upath)
-        return schemeserv+urllib.quote(asciipath)
-
-    def is_ascii_filename(self,filename):
-        if isinstance(filename,str):
-            return True
-        try:
-            filename.encode('ascii','strict')
-            return True
-        except:
-            print_exc(file=sys.stderr)
-            return False
 
 class VideoChooser(wx.Dialog):
     
@@ -362,7 +489,7 @@ class VideoChooser(wx.Dialog):
 
 class VODWarningDialog(wx.Dialog):
     
-    def __init__(self, parent, utility, videoinfo):
+    def __init__(self, parent, utility, ds, infilename):
         self.parent = parent
         self.utility = utility
 
@@ -370,10 +497,6 @@ class VODWarningDialog(wx.Dialog):
         title = self.utility.lang.get('vodwarntitle')
         wx.Dialog.__init__(self,parent,-1,title,style=style)
 
-        maxuploadrate = self.utility.config.Read('maxuploadrate', 'int')
-        maxmeasureduploadrate = self.utility.queue.getMaxMeasuredUploadRate()
-        
-        bitrate = videoinfo['bitrate']
         msg = self.utility.lang.get('vodwarngeneral')
         """
         if bitrate is None:
@@ -418,11 +541,7 @@ class VODWarningDialog(wx.Dialog):
         othersbox = wx.BoxSizer(wx.VERTICAL)
         self.others_chooser=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), self.otherslist)
         
-        # Be smart: if 
-        if bitrate is None or (bitrate > maxuploadrate and maxuploadrate != 0):
-            self.others_chooser.SetSelection(OTHERTORRENTS_STOP_RESTART)
-        else:
-            self.others_chooser.SetSelection(OTHERTORRENTS_CONTINUE)
+        self.others_chooser.SetSelection(OTHERTORRENTS_STOP_RESTART)
             
         othersbox.Add(wx.StaticText(self, -1, self.utility.lang.get('vodwhataboutothertorrents')), 1, wx.ALIGN_CENTER_VERTICAL)
         othersbox.Add(self.others_chooser)

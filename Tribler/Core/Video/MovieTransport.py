@@ -4,7 +4,6 @@
 
 import os,sys,string,time
 from traceback import print_exc
-from __init__ import read,BLOCKSIZE
 
 DEBUG = True
 
@@ -81,51 +80,6 @@ class MovieFileTransport(MovieTransport):
     
     def get_mimetype(self):
         return self.mimetype
-
-
-class MovieTransportDecryptWrapper:
-    """ Reads a MovieTransport from byte 0 to end and does decryption
-        and the start-from-offset!=0 behaviour.
-    """
-    
-    def __init__(self,mt,enckey):
-        self.mt = mt
-        self.enckey = enckey
-        self.doneflag = False
-        self.userpos = 0
-
-    def start( self, bytepos = 0 ):
-        """ Initialise to start playing at position `bytepos'. """
-        self.userpos = bytepos
-        self.mt.start(bytepos)
-        
-    def size(self ):
-        return self.mt.size()
-
-    def read(self):
-        diff = self.userpos % BLOCKSIZE
-        data = self.mt.read(BLOCKSIZE)
-        if len(data) != BLOCKSIZE:
-            self.doneflag = True
-            if len(data)==0:
-                return None
-        if self.enckey is not None:
-            ret = read(data,self.enckey)
-        else:
-            ret = data
-            
-        self.userpos += len(data)-diff
-        return ret[diff:]
-
-    def stop(self):
-        """ Playback is stopped. """
-        self.mt.stop()
-
-    def done(self):
-        return self.mt.done()
-    
-    def get_mimetype(self):
-        return self.mt.get_mimetype()
 
 
 class MovieTransportStreamWrapper:

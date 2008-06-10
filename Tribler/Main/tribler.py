@@ -685,7 +685,7 @@ class ABCFrame(wx.Frame):
     def set_player_status(self,s):
         """ Called by VideoServer when using an external player """
         if self.videoFrame is not None:
-            self.videoFrame.set_player_status(status)
+            self.videoFrame.set_player_status(s)
 
     def set_wxapp(self,wxapp):
         self.wxapp = wxapp

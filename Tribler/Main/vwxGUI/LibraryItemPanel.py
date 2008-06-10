@@ -373,7 +373,7 @@ class LibraryItemPanel(wx.Panel):
             if not ds.get_status() in (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,\
                                         DLSTATUS_HASHCHECKING):
                 showBoost = active and (not finished)
-                if showBoost and ds.is_vod():
+                if showBoost and not ds.is_vod():
                     showPlayFast = True
                 
                 if ds.is_vod():
@@ -666,24 +666,16 @@ class LibraryItemPanel(wx.Panel):
         
     def switch_to_vod(self,ds):
         videoplayer = VideoPlayer.getInstance()
-        videoplayer.play(ds.get_download())
+        videoplayer.play(ds)
       
     def show_boost(self, ds):
         if ds is not None:
             self.dlhelperframe = DownloadHelperFrame(self,self.utility,ds)
             self.dlhelperframe.Show()
                 
-    
     def play(self,ds):
-        video_files = ds.get_download().get_dest_files(videoextdefaults)
-        # Simply take the first video file. Take largest in the future? Or Ask?
-        
-        print >>sys.stderr,"lip: Found videos",video_files
-        
-        video_file = video_files[0][1]
-        
         videoplayer = VideoPlayer.getInstance()
-        videoplayer.play_url(video_file)
+        videoplayer.play(ds)
     
     def switch_to_standard_dlmode(self,ABCTorrentTemp): 
         videoplayer = VideoPlayer.getInstance() 

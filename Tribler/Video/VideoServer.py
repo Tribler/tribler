@@ -69,6 +69,9 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         self.lock.release()
         return ret
 
+    def get_port(self):
+        return self.port
+
     def shutdown(self):
         if DEBUG:
             print >>sys.stderr,"videoserv: Shutting down HTTP"
