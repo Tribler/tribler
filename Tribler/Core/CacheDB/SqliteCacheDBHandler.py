@@ -378,7 +378,7 @@ class PeerDBHandler(BasicDBHandler):
         
     def getNumberPeers(self, category_name = 'all'):
         table = 'Peer'
-        value = 'count(*)'
+        value = 'count(peer_id)'
         where = '(buddycast_times>0 or friend=1)'
         if category_name == 'friend':
             where += ' and friend=1'
@@ -1111,7 +1111,7 @@ class TorrentDBHandler(BasicDBHandler):
 
     def getNumberTorrents(self, category_name = 'all', library = False):
         table = 'CollectedTorrent'
-        value = 'count(*)'
+        value = 'count(torrent_id)'
         where = '1 '
         
         if category_name != 'all':
@@ -1229,7 +1229,8 @@ class TorrentDBHandler(BasicDBHandler):
         return [a[0] for a in res_list]
 
     def getNumberCollectedTorrents(self): 
-        return self._db.size('CollectedTorrent')
+        #return self._db.size('CollectedTorrent')
+        return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
 
     def freeSpace(self, torrents2del):
 #        if torrents2del > 100:  # only delete so many torrents each time

@@ -64,7 +64,7 @@ class GridManager(object):
         self.cache_numbers = {}
         self.cache_ntorrent_interval = 5
         self.last_ntorrent_cache = 0
-        self.cache_npeer_interval = 1
+        self.cache_npeer_interval = 3
         self.last_npeer_cache = 0
         
     def set_state(self, state, reset_page = False):
@@ -106,14 +106,16 @@ class GridManager(object):
         if key not in self.cache_numbers:
             self.cache_numbers[key] = 0
         now = time()
-        if now - self.last_ntorrent_cache > self.cache_ntorrent_interval or self.cache_numbers[key] <= self.grid.items:
+        #print >> sys.stderr, '*********** get_number_torrents', key, self.cache_numbers[key], now - self.last_ntorrent_cache, self.cache_ntorrent_interval, self.grid.items
+        if now - self.last_ntorrent_cache > self.cache_ntorrent_interval:
             ntorrents = self.torrent_db.getNumberTorrents(category_name = category_name, library = library)
             self.cache_numbers[key] = ntorrents
             if ntorrents > 1000:
                 self.cache_ntorrent_interval = 120
-            elif ntorrents > 100:
+            elif ntorrents > 100 and self.cache_ntorrent_interval < 30:
                 self.cache_ntorrent_interval = 30
             self.last_ntorrent_cache = now
+            #print >> sys.stderr, '***** update get_number_torrents', ntorrents, self.cache_ntorrent_interval, time()-now
         
         return self.cache_numbers[key]
     
@@ -126,14 +128,16 @@ class GridManager(object):
         if key not in self.cache_numbers:
             self.cache_numbers[key] = 0
         now = time()
-        if now - self.last_npeer_cache > self.cache_npeer_interval or self.cache_numbers[key] <= self.grid.items:
+        #print >> sys.stderr, '*********** get_number_peers', key, self.cache_numbers[key], now - self.last_npeer_cache, self.cache_npeer_interval, self.grid.items
+        if now - self.last_npeer_cache > self.cache_npeer_interval:
             npeers = self.peer_db.getNumberPeers(category_name = category_name)
             self.cache_numbers[key] = npeers
             if npeers > 1000:
                 self.cache_npeer_interval = 30
-            elif npeers > 100:
+            elif npeers > 100 and self.cache_npeer_interval < 10:
                 self.cache_npeer_interval = 10
             self.last_npeer_cache = now
+            #print >> sys.stderr, '***** update get_number_peers', npeers, self.cache_npeer_interval, time()-now
         
         return self.cache_numbers[key]
     
