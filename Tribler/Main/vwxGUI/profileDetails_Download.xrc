@@ -15,7 +15,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="black_top_left" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
               <pos>3,3</pos>
               <size>10,21</size>
             </object>
@@ -53,7 +53,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="black_top_right" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
               <pos>275,3</pos>
               <size>10,21</size>
             </object>
@@ -184,7 +184,7 @@
                   <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxPanel" name="takeMeThere0" subclass="vwxGUI.tribler_topButton.tribler_topButton">
+                  <object class="wxPanel" name="takeMeThere0" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                     <pos>6,112</pos>
                     <size>100,16</size>
                   </object>
@@ -281,7 +281,7 @@
                   <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxPanel" name="takeMeThere1" subclass="vwxGUI.tribler_topButton.tribler_topButton">
+                  <object class="wxPanel" name="takeMeThere1" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                     <pos>6,224</pos>
                     <size>100,16</size>
                   </object>
@@ -378,7 +378,7 @@
                   <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxPanel" name="takeMeThere2" subclass="vwxGUI.tribler_topButton.tribler_topButton">
+                  <object class="wxPanel" name="takeMeThere2" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                     <pos>6,336</pos>
                     <size>100,16</size>
                   </object>
@@ -392,7 +392,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="vwxGUI.bgPanel.bgPanel">
+        <object class="wxPanel" name="white_bottom" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
           <pos>3,475</pos>
           <size>300,5</size>
         </object>

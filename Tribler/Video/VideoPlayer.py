@@ -25,7 +25,6 @@ OTHERTORRENTS_STOP_RESTART = 0
 OTHERTORRENTS_STOP = 1
 OTHERTORRENTS_CONTINUE = 2
 
-
 class VideoPlayer:
     
     __single = None
@@ -37,6 +36,9 @@ class VideoPlayer:
         self.parentwindow = None
         self.extprogress = None
         self.contentname = None
+
+        self.vod_postponed_downloads = []
+
         
     def getInstance(*args, **kw):
         if VideoPlayer.__single is None:
@@ -223,6 +225,7 @@ class VideoPlayer:
                     activetorrents.remove(d)
                 # TODO: REACTIVATE TORRENTS WHEN DONE. 
                 # ABCTorrentTemp.set_previously_active_torrents(activetorrents)
+                self.set_vod_postponed_downloads(activetorrents)
 
             # Restart download
             d.set_video_start_callback(self.sesscb_vod_ready_callback)
@@ -574,6 +577,12 @@ class VODWarningDialog(wx.Dialog):
         else:
             return ''
             
+    def set_vod_postponed_downloads(self,dlist):
+        self.vod_postponed_downloads = dlist
+        
+    def get_vod_postponed_downloads(self):
+        return self.vod_postponed_downloads
+    
 
 def parse_playtime_to_secs(hhmmss):
     if DEBUG:

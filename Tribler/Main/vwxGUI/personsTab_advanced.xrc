@@ -124,7 +124,7 @@
                 <flag>wxLEFT|wxFIXED_MINSIZE</flag>
                 <border>3</border>
                 <option>0</option>
-                <object class="wxPanel" name="addAsFriend" subclass="vwxGUI.tribler_topButton.tribler_topButton">
+                <object class="wxPanel" name="addAsFriend" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                   <pos>240,3</pos>
                   <size>55,55</size>
                 </object>

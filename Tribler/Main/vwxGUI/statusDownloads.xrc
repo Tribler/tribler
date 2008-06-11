@@ -16,7 +16,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="black_top_left" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
               <pos>0,0</pos>
               <size>10,20</size>
             </object>
@@ -50,7 +50,7 @@
                   <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>2</border>
                   <option>0</option>
-                  <object class="wxPanel" name="down_White" subclass="vwxGUI.bgPanel.bgPanel">
+                  <object class="wxPanel" name="down_White" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
                     <pos>116,2</pos>
                     <size>16,16</size>
                   </object>
@@ -72,7 +72,7 @@
                   <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>2</border>
                   <option>0</option>
-                  <object class="wxPanel" name="up_White" subclass="vwxGUI.bgPanel.bgPanel">
+                  <object class="wxPanel" name="up_White" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
                     <pos>277,3</pos>
                     <size>16,16</size>
                   </object>
@@ -97,7 +97,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="black_top_right" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
               <pos>288,0</pos>
               <size>10,20</size>
             </object>
@@ -230,7 +230,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="vwxGUI.bgPanel.bgPanel">
+        <object class="wxPanel" name="white_bottom" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
           <pos>0,148</pos>
           <size>300,5</size>
         </object>

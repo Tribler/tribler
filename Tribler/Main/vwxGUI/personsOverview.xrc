@@ -22,7 +22,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_top_left" subclass="vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="orange_top_left" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
               <pos>0,0</pos>
               <size>10,21</size>
             </object>
@@ -43,7 +43,7 @@
                   <flag>wxTOP|wxRIGHT|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxPanel" name="infoIcon" subclass="vwxGUI.bgPanel.ImagePanel">
+                  <object class="wxPanel" name="infoIcon" subclass="Tribler.Main.vwxGUI.bgPanel.ImagePanel">
                     <tooltip>Persons that were connected while you are using Tribler \n(automatic process)</tooltip>
                     <pos>0,6</pos>
                     <size>8,8</size>
@@ -126,7 +126,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_top_right" subclass="vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="orange_top_right" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
               <pos>613,0</pos>
               <size>10,21</size>
             </object>
@@ -178,7 +178,7 @@
                   <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
-                  <object class="wxPanel" name="search" subclass="vwxGUI.tribler_topButton.tribler_topButton">
+                  <object class="wxPanel" name="search" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                     <pos>159,3</pos>
                     <size>22,22</size>
                   </object>
@@ -192,7 +192,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>5</border>
         <option>1</option>
-        <object class="wxPanel" name="personsGrid" subclass="vwxGUI.standardGrid.personsGrid">
+        <object class="wxPanel" name="personsGrid" subclass="Tribler.Main.vwxGUI.standardGrid.personsGrid">
           <pos>0,61</pos>
           <size>20,20</size>
         </object>
@@ -207,7 +207,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_bottom_left" subclass="vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="orange_bottom_left" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
               <pos>0,400</pos>
               <size>10,28</size>
             </object>
@@ -216,7 +216,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>1</option>
-            <object class="wxPanel" name="orange_bottom_center" subclass="vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="orange_bottom_center" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
               <pos>10,400</pos>
               <size>20,20</size>
             </object>
@@ -225,7 +225,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="pagerBottomRight" subclass="vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="pagerBottomRight" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
               <pos>323,400</pos>
               <size>330,28</size>
               <object class="wxBoxSizer">
@@ -240,7 +240,7 @@
                   <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>5</border>
                   <option>0</option>
-                  <object class="wxPanel" name="standardPager" subclass="vwxGUI.standardPager.standardPager">
+                  <object class="wxPanel" name="standardPager" subclass="Tribler.Main.vwxGUI.standardPager.standardPager">
                     <pos>25,5</pos>
                     <size>297,23</size>
                   </object>

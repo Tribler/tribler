@@ -1,6 +1,7 @@
 # setup.py
 import time
 import sys
+import os
 
 try:
     import py2exe.mf as modulefinder
@@ -19,11 +20,6 @@ except ImportError:
 from distutils.core import setup
 import py2exe
 
-# gui panels to include
-includePanels=[
-     "standardOverview","standardDetails","standardGrid","standardPager","standardFilter",
-     "TextButton","btn_DetailsHeader","tribler_List","profileOverviewPanel"]
-
 ################################################################
 #
 # Setup script used for py2exe
@@ -35,17 +31,27 @@ includePanels=[
 #
 ################################################################
 
-target_tribler = {
-    "script": "tribler.py",
-    "icon_resources": [(1, "tribler.ico")],
+mainfile = os.path.join('Tribler','Main','tribler.py')
+progicofile = os.path.join('Tribler','Images','tribler.ico')
+
+target = {
+    "script": mainfile,
+    "icon_resources": [(1, progicofile)],
 }
+
+# gui panels to include (=those not found by py2exe from imports)
+includePanels=[
+     "standardOverview","standardDetails","standardGrid","standardPager","standardFilter",
+     "TextButton","btn_DetailsHeader","tribler_List","profileOverviewPanel"]
+
+#packages = ["Tribler.Core","encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
+packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 
 setup(
 #    (Disabling bundle_files for now -- apparently causes some issues with Win98)
 #    options = {"py2exe": {"bundle_files": 1}},
 #    zipfile = None,
-    options = {"py2exe": {"packages": ["tribler","encodings"] + ["Tribler.vwxGUI.%s" % x for x in includePanels],
-                          "optimize": 2}},
-    data_files = [("tribler", ["tribler.exe.manifest", "tribler.nsi", "tribler.ico", "torrenticon.ico", "binary-LICENSE.txt", "readme.txt"])], 
-    windows = [target_tribler],
+    options = {"py2exe": {"packages": packages,"optimize": 2}},
+    data_files = [("installdir",[])], 
+    windows = [target],
 )

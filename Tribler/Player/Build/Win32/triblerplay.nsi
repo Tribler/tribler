@@ -184,7 +184,7 @@ SectionEnd
 ;Functions Section
 
 Function .onInit
-  System::Call 'kernel32::CreateMutexA(i 0, i 0, t "Tribler") i .r1 ?e' 
+  System::Call 'kernel32::CreateMutexA(i 0, i 0, t "SwarmPlayer") i .r1 ?e' 
 
   Pop $R0 
 

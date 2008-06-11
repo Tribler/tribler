@@ -67,7 +67,8 @@ BrandingText "${PRODUCT}"
 LangString DESC_SecMain ${LANG_ENGLISH} "Install ${PRODUCT}"
 LangString DESC_SecDesk ${LANG_ENGLISH} "Create Desktop Shortcuts"
 LangString DESC_SecStart ${LANG_ENGLISH} "Create Start Menu Shortcuts"
-LangString DESC_SecDefault ${LANG_ENGLISH} "Associate .torrent files with ${PRODUCT}"
+LangString DESC_SecDefaultTorrent ${LANG_ENGLISH} "Associate .torrent files with ${PRODUCT}"
+LangString DESC_SecDefaultTStream ${LANG_ENGLISH} "Associate .tstream files with ${PRODUCT}"
 
 ;--------------------------------
 ;Installer Sections
@@ -75,9 +76,7 @@ LangString DESC_SecDefault ${LANG_ENGLISH} "Associate .torrent files with ${PROD
 Section "!Main EXE" SecMain
  SectionIn RO
  SetOutPath "$INSTDIR"
- File *.ico
  File *.txt
- File category.conf
  File tribler.exe.manifest
  File tribler.exe
  File ffmpeg.exe
@@ -89,25 +88,33 @@ Section "!Main EXE" SecMain
  File *.dll
  Delete "$INSTDIR\*.zip"
  File *.zip
- CreateDirectory "$INSTDIR\icons"
- SetOutPath "$INSTDIR\icons"
- File icons\*.*
-; CreateDirectory "$INSTDIR\icons\mugshots"
-; SetOutPath "$INSTDIR\icons\mugshots"
-; File icons\mugshots\*.*
- CreateDirectory "$INSTDIR\Lang"
- SetOutPath "$INSTDIR\Lang"
- IfFileExists user.lang userlang
- File lang\*.*
- userlang:
- File /x user.lang lang\*.*
  CreateDirectory "$INSTDIR\Tribler"
- CreateDirectory "$INSTDIR\Tribler\vwxGUI"
- CreateDirectory "$INSTDIR\Tribler\vwxGUI\images"
- SetOutPath "$INSTDIR\Tribler\vwxGUI"
- File Tribler\vwxGUI\*.*
- SetOutPath "$INSTDIR\Tribler\vwxGUI\images"
- File Tribler\vwxGUI\images\*.*
+ CreateDirectory "$INSTDIR\Tribler\Core"
+ SetOutPath "$INSTDIR\Tribler\Core"
+ File Tribler\Core\*.txt
+ CreateDirectory "$INSTDIR\Tribler\Images"
+ SetOutPath "$INSTDIR\Tribler\Images"
+ File Tribler\Images\*.*
+ CreateDirectory "$INSTDIR\Tribler\Lang"
+ SetOutPath "$INSTDIR\Tribler\Lang"
+ IfFileExists user.lang userlang
+ File Tribler\Lang\*.*
+ userlang:
+ File /x user.lang Tribler\Lang\*.*
+  ; Main client specific
+ CreateDirectory "$INSTDIR\Tribler"
+ CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI"
+ CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images"
+  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI"
+ File Tribler\Main\vwxGUI\*.*
+ SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images"
+ File Tribler\Main\vwxGUI\images\*.*
+ ; Categories
+ CreateDirectory "$INSTDIR\Tribler\Category"
+ SetOutPath "$INSTDIR\Tribler\Category"
+ File Tribler\Category\*.conf
+ File Tribler\Category\*.filter
+ ; End
  SetOutPath "$INSTDIR"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayName" "${PRODUCT} (remove only)"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString" "$INSTDIR\Uninstall.exe"
@@ -131,7 +138,7 @@ Section "Startmenu Icons" SecStart
    CreateShortCut "$SMPROGRAMS\${PRODUCT}\${PRODUCT}.lnk" "$INSTDIR\${PRODUCT}.exe" "" "$INSTDIR\${PRODUCT}.exe" 0
 SectionEnd
 
-Section "Make Default" SecDefault
+Section "Make Default For .torrent" SecDefaultTorrent
    ; Delete ddeexec key if it exists
    DeleteRegKey HKCR "bittorrent\shell\open\ddeexec"
    WriteRegStr HKCR .torrent "" bittorrent
@@ -141,17 +148,20 @@ Section "Make Default" SecDefault
    WriteRegBin HKCR bittorrent EditFlags 00000100
    WriteRegStr HKCR "bittorrent\shell" "" open
    WriteRegStr HKCR "bittorrent\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\torrenticon.ico"
-
-   WriteRegStr HKCR .tribe "" tribe
-   WriteRegStr HKCR .tribe "Content Type" application/x-tribe
-   WriteRegStr HKCR "MIME\Database\Content Type\application/x-tribe" Extension .tribe
-   WriteRegStr HKCR tribe "" "TRIBE File"
-   WriteRegBin HKCR tribe EditFlags 00000100
-   WriteRegStr HKCR "tribe\shell" "" open
-   WriteRegStr HKCR "tribe\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKCR "tribe\DefaultIcon" "" "$INSTDIR\torrenticon.ico"
+   WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\Tribler\Images\torrenticon.ico"
 SectionEnd
+
+Section "Make Default For .tstream" SecDefaultTStream
+   WriteRegStr HKCR .tstream "" tstream
+   WriteRegStr HKCR .tstream "Content Type" application/x-tribler-stream
+   WriteRegStr HKCR "MIME\Database\Content Type\application/x-tribler-stream" Extension .tstream
+   WriteRegStr HKCR tstream "" "TSTREAM File"
+   WriteRegBin HKCR tstream EditFlags 00000100
+   WriteRegStr HKCR "tstream\shell" "" open
+   WriteRegStr HKCR "tstream\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
+   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\Tribler\Images\swarmplayer.ico"
+SectionEnd
+
 
 ;--------------------------------
 ;Descriptions
@@ -161,7 +171,8 @@ SectionEnd
 !insertmacro MUI_DESCRIPTION_TEXT ${SecDesk} $(DESC_SecDesk)
 !insertmacro MUI_DESCRIPTION_TEXT ${SecStart} $(DESC_SecStart)
 ;!insertmacro MUI_DESCRIPTION_TEXT ${SecLang} $(DESC_SecLang)
-!insertmacro MUI_DESCRIPTION_TEXT ${SecDefault} $(DESC_SecDefault)
+!insertmacro MUI_DESCRIPTION_TEXT ${SecDefaultTorrent} $(DESC_SecDefaultTorrent)
+!insertmacro MUI_DESCRIPTION_TEXT ${SecDefaultTStream} $(DESC_SecDefaultTStream)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;--------------------------------

@@ -1,6 +1,7 @@
 REM @echo off
 
-set PYTHONHOME=C:\Python243wx2801too
+set PYTHONHOME=C:\Python243
+REM Arno: Add .. to make it find khashmir
 set PYTHONPATH=%PYTHONHOME%;..
 
 echo PYTHONPATH SET TO %PYTHONPATH%
@@ -67,6 +68,7 @@ copy %SystemRoot%\msvcp71.dll dist\installdir
 copy %PYTHONHOME%\msvcp60.dll dist\installdir
 REM py2exe does this: copy SSLEAY32.dll dist\installdir
 REM copy LIBEAY32.dll dist\installdir
+
 copy Tribler\binary-LICENSE.txt dist\installdir
 mkdir dist\installdir\Tribler
 mkdir dist\installdir\Tribler\Core
