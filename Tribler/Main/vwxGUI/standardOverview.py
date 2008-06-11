@@ -235,6 +235,9 @@ class standardOverview(wx.Panel):
             if self.mode in ('filesMode', 'personsMode', 'libraryMode', 'friendsMode'):
                 #self.loadTorrentData(filterState[0], filterState[1])
                 self.data[filterState.db]['grid'].gridManager.set_state(filterState)
+            elif self.mode in ('subscriptionsMode'):
+                self.loadSubscriptionData()
+                self.refreshData()
             else:
                 if DEBUG:
                     print >>sys.stderr,'standardOverview: Filters not yet implemented in this mode'
@@ -247,156 +250,11 @@ class standardOverview(wx.Panel):
             #self.refreshData()
             self.data[self.mode]['filterState'] = filterState
             
-        elif self.mode == 'subscriptionsMode':
-            self.loadSubscriptionData()
-            self.refreshData()
-            self.data[self.mode]['filterState'] = filterState
+       
         else:
             print >> sys.stderr, 'Invalid Filterstate:', filterState    
     
-    """            
-    def loadTorrentData(self, cat, sort, range = None):
-        # cat can be 'all', 'friends', 'search', 'search_friends', None, self.data[self.mode].get('filterState')[0]
-        # sort can be 'seeder',..
-        if DEBUG:
-            print >>sys.stderr,'standardOverview: loadTorrentData: Category set to %s, %s' % (str(cat), str(sort))
-        
-        if cat is not None:
-            # Unregister for old category
-            self.data_manager.unregisterAll(self.updateFunTorrents)
-            
-            # Register for new one    
-            library = self.mode == 'libraryMode'
-            self.data_manager.register(self.updateFunTorrents, cat, library)
-            self.type = sort
-            
-            torrentData = self.torrent_db.getTorrents(category_name = cat, library = library, range = range)
 
-            if DEBUG:
-                if type(torrentData)  == list:
-                    print >>sys.stderr,"standardOverview: getCategory returned",len(torrentData)
-            
-        if type(torrentData) == list:
-            if type(sort) == str:
-                torrentData = sort_dictlist(torrentData, sort, 'decrease')
-            elif type(sort) == tuple:
-                torrentData = sort_dictlist(torrentData, sort[0], sort[1])
-
-            if DEBUG:
-                print >>sys.stderr,"standardOverview: filtering",len(torrentData)
-        
-        elif torrentData.isDod():
-            keysort = ["web2"]
-            if type(sort) == str:
-                keysort.append((sort, 'decrease'))
-            elif type(sort) == tuple:
-                keysort.append(sort)
-            torrentData.setSort(lambda list: multisort_dictlist(list, keysort))
-            
-        self.data[self.mode]['data'] = torrentData
-    
-    
-    def loadPersonsData(self, cat, sort):
-        if DEBUG:
-            print >>sys.stderr,'standardOverview: <mluc>[',self.mode,'view] Category set to %s, %s' % (str(cat), str(sort))
-
-        if self.mode in [ "personsMode","friendsMode"]:
-            self.data[self.mode]['data'] = self.peer_manager.getFilteredData(cat)
-            #check the current sorting for current filter
-            self.peer_manager.setSortingMode(sort, cat)
-        else:
-            if DEBUG:
-                print >>sys.stderr,"standardOverview: loadPersonsData: <mluc> not correct standard overview mode for loading peers:",self.mode
-    
-    def loadLibraryData(self, cat, sort):
-        # Get infohashes of current downloads
-        if DEBUG:
-            print >>sys.stderr,'standardOverview: Loaded library data list'
-        activeInfohashes = {}
-        active = []
-        inactive = []
-        for abctorrent in self.utility.session.get_downloads():
-            activeInfohashes[abctorrent.get_def().get_infohash()] = abctorrent
-            if DEBUG:
-                print >>sys.stderr,"standardOverview: Load library active is",`abctorrent.get_def().get_name()`
-        
-        if sort != 'latest':
-            preSorting = sort
-        else:
-            # Sorting of torrents is redone, after loadTorrentData
-            preSorting = 'date'
-        self.loadTorrentData(cat, preSorting)
-        
-        libraryList = self.data[self.mode]['data']
-        
-        if type(libraryList) == web2.DataOnDemandWeb2:
-            raise Exception('dod!!')
-        
-        if not libraryList:
-            return
-        # Add abctorrents to library data
-        for torrent in libraryList:
-            infohash = torrent.get('infohash')
-            if infohash in activeInfohashes:
-                torrent['abctorrent'] = activeInfohashes[infohash]
-        
-        if sort == 'latest':
-            def librarySort(x, y):
-                xFin = self.isTorrentFinished(x)
-                yFin = self.isTorrentFinished(y)
-                if xFin and not yFin:
-                    return 1
-                elif not xFin and yFin:
-                    return -1
-                else:
-                    xDate = self.getDownloadStartedTime(x)
-                    yDate = self.getDownloadStartedTime(y)
-                    diff = int(yDate - xDate)
-                    assert type(diff) == int, 'Difference should be a int value'
-                    return diff
-                
-            libraryList.sort(librarySort)
-            
-        if DEBUG:
-            for t in libraryList:
-                print >>sys.stderr,"standardOverview: Loading ITEM",`t['content_name']`, `t['seeder']`, `t['leecher']`
-            #print >>sys.stderr,'standardOverview: Loading libraryList: %s' % [(self.isTorrentFinished(t), t.get('download_started',False)) for t in libraryList]
-        self.data[self.mode]['data'] = libraryList
-        if DEBUG:
-            print >>sys.stderr,'standardOverview: Loaded %d library items' % len(self.data[self.mode]['data'])
-    """
-
-    
-    def getDownloadStartedTime(self, torrent):
-        if torrent.get('download_started'):
-            return torrent['download_started']
-        else:
-            # get from mypref db
-            t = self.utility.mypref_db.getCreationTime(torrent['infohash'])
-            if t:
-                torrent['download_started'] = t
-                return t
-            else:
-                raise Exception('standardOverview: cannot get downloadStartedTime')
-                return 0
-            
-    def isTorrentFinished(self, torrent):
-        "Is this torrent ready downloading (active or inactive)"
-        abctorrent = torrent.get('abctorrent')
-        progression = torrent.get('progress')
-        if abctorrent == None:
-            if progression != None:
-                return (progression == 100.0)
-            else:
-                if DEBUG:
-                    print >>sys.stderr,'standardOverview: isTorrentFinished: Could not get progression'
-                #print 'standardOverview: Error could not get progression of torrent: %s' % torrent
-                return False
-        else:
-            state = abctorrent.network_get_state()
-            progress = state.get_progress()
-            return (progress == 100.0)
-        
     def loadSubscriptionData(self):
         print >> sys.stderr, 'load subscription data'
         torrentfeed = TorrentFeedThread.getInstance()

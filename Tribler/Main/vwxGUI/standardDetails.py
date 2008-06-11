@@ -707,9 +707,9 @@ class standardDetails(wx.Panel):
             sotoday = long(math.floor(now / (24*3600.0))*24*3600.0)
             soyester = long(sotoday - (24*3600.0))
             for torrent in torrents:
-                    if torrent['inserttime'] > sotoday:
+                    if torrent['insert_time'] > sotoday:
                         todayl.append(torrent)
-                    elif torrent['inserttime'] > soyester:
+                    elif torrent['insert_time'] > soyester:
                         yesterdayl.append(torrent)
             
             todayl.sort(reverse_torrent_insertime_cmp)
@@ -1864,9 +1864,9 @@ def revtcmp(a,b):
         return -1
 
 def reverse_torrent_insertime_cmp(a,b):
-    if a['inserttime'] < b['inserttime']:
+    if a['insert_time'] < b['insert_time']:
         return 1
-    elif a['inserttime'] == b['inserttime']:
+    elif a['insert_time'] == b['insert_time']:
         return 0
     else:
         return -1

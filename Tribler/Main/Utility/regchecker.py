@@ -14,6 +14,10 @@ if (sys.platform == 'win32'):
     HKCR = _winreg.HKEY_CLASSES_ROOT
     HKLM = _winreg.HKEY_LOCAL_MACHINE
     HKCU = _winreg.HKEY_CURRENT_USER
+else:
+    HKCR = 0
+    HKLM = 1
+    HKCU = 2
 
 DEBUG = True
 

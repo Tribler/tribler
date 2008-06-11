@@ -906,12 +906,14 @@ class TorrentDBHandler(BasicDBHandler):
             self.commit()    
         return torrent_id
     
-    def _insertNewSrc(self, src):
+    def _insertNewSrc(self, src, commit=True):
         desc = ''
         if src.startswith('http') and src.endswith('xml'):
             desc = 'RSS'
         self._db.insert('TorrentSource', name=src, description=desc)
         src_id = self._db.getOne('TorrentSource', 'source_id', name=src)
+        if commit:
+            self.commit()
         return src_id
 
     def _addTorrentTracker(self, torrent_id, data, add_all=False):
