@@ -1055,6 +1055,8 @@ class standardDetails(wx.Panel):
         # future.work: smooth the recommendation, solve the data sparse and cold start problem
         
         sim_torrent_list = self.getGuiObj('peopleWhoField')
+        if not sim_torrent_list:    # user already switched to another page
+            return
         sim_torrent_list.DeleteAllItems()
         if sim_files is None:
             self.errorLoadData('peopleWhoField')
@@ -1106,6 +1108,8 @@ class standardDetails(wx.Panel):
         # jie.done: fill sim title list
         
         sim_torrent_list = self.getGuiObj('simTitlesField')
+        if not sim_torrent_list:
+            return
         sim_torrent_list.DeleteAllItems()
         
         if sim_titles is None:
@@ -1157,7 +1161,11 @@ class standardDetails(wx.Panel):
         and history files for the selected person"""
         
         ofList = self.getGuiObj("alsoDownloadedField")
+        if not ofList:
+            return 
         cfList = self.getGuiObj("commonFilesField")
+        if not cfList:
+            return
 
         ofList.setInfoHashList(None)
         if ( self.mode != "personsMode" and self.mode != "friendsMode" ) or \

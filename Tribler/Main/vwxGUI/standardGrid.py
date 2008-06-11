@@ -61,6 +61,12 @@ class GridManager(object):
         self.peersearch_manager.register(self.peer_db,self.friend_db,self)
         self.guiserver = GUITaskQueue.getInstance()
         
+        self.cache_numbers = {}
+        self.cache_ntorrent_interval = 5
+        self.last_ntorrent_cache = 0
+        self.cache_npeer_interval = 1
+        self.last_npeer_cache = 0
+        
     def set_state(self, state, reset_page = False):
         self.state = state
         if reset_page:
@@ -91,6 +97,46 @@ class GridManager(object):
     def get_total_items(self):
         return self.total_items
     
+    def get_number_torrents(self, state):
+        # cache the numbers to avoid loading db, which is a heavy operation
+        category_name = state.category
+        library = (state.db == 'libraryMode')
+        key = (category_name, library)
+        
+        if key not in self.cache_numbers:
+            self.cache_numbers[key] = 0
+        now = time()
+        if now - self.last_ntorrent_cache > self.cache_ntorrent_interval or self.cache_numbers[key] <= self.grid.items:
+            ntorrents = self.torrent_db.getNumberTorrents(category_name = category_name, library = library)
+            self.cache_numbers[key] = ntorrents
+            if ntorrents > 1000:
+                self.cache_ntorrent_interval = 120
+            elif ntorrents > 100:
+                self.cache_ntorrent_interval = 30
+            self.last_ntorrent_cache = now
+        
+        return self.cache_numbers[key]
+    
+    def get_number_peers(self, state):
+        # cache the numbers to avoid loading db, which is a heavy operation
+        category_name = state.category
+        library = 'peer'
+        key = (category_name, library)
+        
+        if key not in self.cache_numbers:
+            self.cache_numbers[key] = 0
+        now = time()
+        if now - self.last_npeer_cache > self.cache_npeer_interval or self.cache_numbers[key] <= self.grid.items:
+            npeers = self.peer_db.getNumberPeers(category_name = category_name)
+            self.cache_numbers[key] = npeers
+            if npeers > 1000:
+                self.cache_npeer_interval = 30
+            elif npeers > 100:
+                self.cache_npeer_interval = 10
+            self.last_npeer_cache = now
+        
+        return self.cache_numbers[key]
+    
     def _getData(self, state):
         
         #import threading
@@ -102,7 +148,7 @@ class GridManager(object):
             # Arno: state.db should be NTFY_ according to GridState...
             if not self.torrentsearch_manager.inSearchMode(state.db):
             
-                total_items = self.torrent_db.getNumberTorrents(category_name = state.category, library = (state.db == 'libraryMode'))
+                total_items = self.get_number_torrents(state)   # read from cache
                 data = self.torrent_db.getTorrents(category_name = state.category, 
                                                        sort = state.sort,
                                                        range = range,
@@ -118,15 +164,15 @@ class GridManager(object):
                 state.category = 'friend'
                 
             if not self.peersearch_manager.inSearchMode(state.db):
-                print >>sys.stderr,"GET GUI PEERS #################################################################################"
-                total_items = self.peer_db.getNumberPeers(category_name = state.category)
+                #print >>sys.stderr,"GET GUI PEERS #################################################################################"
+                total_items = self.get_number_peers(state)
                 data = self.peer_db.getGUIPeers(category_name = state.category, 
                                                         sort = state.sort,
                                                         reverse = state.reverse,
                                                         range = range,
                                                         get_online = True)
             else:
-                print >>sys.stderr,"SEARCH GUI PEERS $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+                #print >>sys.stderr,"SEARCH GUI PEERS $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
                 try:
                     [total_items,data] = self.peersearch_manager.getHits(state.db,range)
                 except:
@@ -182,7 +228,7 @@ class GridManager(object):
         
     def itemChanged(self,subject,changeType,objectID,*args):
         "called by GuiThread"
-        print >> sys.stderr, '****'*10, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, `objectID`, args)
+        #print >> sys.stderr, '****'*10, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, `objectID`, args)
         if changeType == NTFY_INSERT:
             self.itemAdded(subject, objectID, args)
         elif changeType in (NTFY_UPDATE, NTFY_CONNECTION):
@@ -195,8 +241,8 @@ class GridManager(object):
     def itemAdded(self,subject, objectID, args):
         #if self._last_page(): # This doesn't work as the pager is not updated if page becomes full
         if self.isRelevantItem(subject, objectID):
-            task_id = str(subject) + str(int(time())/3)
-            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), 3, id=task_id)
+            task_id = str(subject) + str(int(time())/2)
+            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), 2, id=task_id)
             # that's important to add the task 3 seconds later, to ensure the task will be executed at proper time  
             #self.refresh()
     

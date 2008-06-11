@@ -1,7 +1,7 @@
 import sys
 import os
 from copy import deepcopy
-from time import time
+from time import time, sleep
 from base64 import encodestring, decodestring
 import math
 from random import shuffle
@@ -481,6 +481,10 @@ class SQLiteCacheDB:
         if cur is None:
             return
         lib = getLib(cur)
+        if SQLiteCacheDB.DEBUG:
+            thread_name = threading.currentThread().getName()
+            print >> self.file, time(), 'sqldb: start_commit', thread_name, id(cur) 
+        
         if lib == 0:
             con = cur.connection
             con.commit()
@@ -503,44 +507,83 @@ class SQLiteCacheDB:
             else:
                 op = 'write' 
             print >> self.file, time(), 'sqldb: execute', thread_name, id(cur), op, 'sql::', `sql`, '|', `args`, '|', '::sql'
-            if not thread_name.startswith('OverlayThread'):
-                st = extract_stack()
-                for line in st:
-                    print >> self.file, '\t', line
-            print >> self.file, time(), 'sqldb: done', thread_name, id(cur) 
+#            if not thread_name.startswith('OverlayThread'):
+#                st = extract_stack()
+#                for line in st:
+#                    print >> self.file, '\t', line
             self.file.flush()
+        
         try:
             #print >> sys.stderr, sql, args
             if args is None:
                 return cur.execute(sql)
             else:
                 return cur.execute(sql, args)
-        except sqlite.OperationalError, msg:
+        except Exception, msg:
             print >> sys.stderr, 'sqldb: execute: ', msg, threading.currentThread().getName(), sql
-            raise
+            raise Exception, msg
+        finally:
+            if SQLiteCacheDB.DEBUG:
+                thread_name = threading.currentThread().getName()
+                print >> self.file, time(), 'sqldb: done', thread_name, id(cur), len(SQLiteCacheDB.cursor_table)
+                self.file.flush() 
 
-    def executemany(self, sql, args):
+
+    def executemany(self, sql, args, commit=False):
         cur = SQLiteCacheDB.getCursor()
-        if SQLiteCacheDB.DEBUG:
-            thread_name = threading.currentThread().getName()
-            if sql.strip().lower().startswith('select'):
-                op = 'read'
-            else:
-                op = 'write' 
-            print >> self.file, time(), 'sqldb: executemany', thread_name, id(cur), op,'sql::', sql, '|', args, '|', '::sql'
-            if not thread_name.startswith('OverlayThread'):
-                st = extract_stack()
-                for line in st:
-                    print >> self.file, '\t', line
-            self.file.flush()
-            print >> self.file, time(), 'sqldb: done', thread_name, id(cur) 
-        lib = getLib(cur)
-        if lib == 0:
-            cur.executemany(sql, args)
-        else:
-            for arg in args:
-                cur.execute(sql, arg)
+#        if SQLiteCacheDB.DEBUG:
+#            thread_name = threading.currentThread().getName()
+#            if sql.strip().lower().startswith('select'):
+#                op = 'read'
+#            else:
+#                op = 'write' 
+#            print >> self.file, time(), 'sqldb: executemany', thread_name, id(cur), op, len(args), 'sql::', sql, '|', args, '|', '::sql'
+#            self.file.flush()
+#            if not thread_name.startswith('OverlayThread'):
+#                st = extract_stack()
+#                for line in st:
+#                    print >> self.file, '\t', line
             
+        lib = getLib(cur)
+        try:
+            nbatch = 1000
+            if lib == 0:
+                nargs = len(args)
+                for i in range(0, nargs, nbatch):   # split updates into small groups to avoid long write lock time 
+                    batch = args[i:i+nbatch] 
+                    
+                    if SQLiteCacheDB.DEBUG:
+                        thread_name = threading.currentThread().getName()
+                        if sql.strip().lower().startswith('select'):
+                            op = 'read'
+                        else:
+                            op = 'write' 
+                        print >> self.file, time(), 'sqldb: executemany', thread_name, id(cur), op, i, len(args), 'sql:: executemany', sql, '|', len(args), '|', '::sql'
+                        self.file.flush()
+                    
+                    
+                    cur.executemany(sql, batch)
+                    
+                    if SQLiteCacheDB.DEBUG:
+                        thread_name = threading.currentThread().getName()
+                        print >> self.file, time(), 'sqldb: done', thread_name, id(cur), len(SQLiteCacheDB.cursor_table), i, len(args)
+                        self.file.flush()
+                    
+                    if commit:
+                        self.commit()
+            else:
+                i = 0
+                for arg in args:
+                    cur.execute(sql, arg)
+                    i += 1
+                    if i%nbatch == 0 and commit:
+                        self.commit()
+        except Exception, msg:
+            print >> sys.stderr, 'sqldb: execute: ', msg, threading.currentThread().getName(), len(args), sql
+            raise Exception, msg
+        finally:            
+            pass
+        
     # -------- Write Operations --------
     def insert(self, table_name, **argv):
         if len(argv) == 1:

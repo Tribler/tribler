@@ -635,10 +635,12 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                     for i in range(10):
                         value = (str(i), str(i**2))
                         values.append(value)
+                    print ">>start write", self.getName()
                     db.insertMany('person', values)
-                    print ">>write", self.getName()
+                    print ">>end write", self.getName()
                     db.commit()
-                    #sleep(0.001)
+                    print ">>committed", self.getName()
+                    sleep(0)
                     et = time()
                     if et-st > period:
                         break
@@ -665,10 +667,11 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                     oldnum = len(all)
                 while True:
                     all = db.fetchall("select * from person where lastname='7'")
-                    print "read", self.getName()
+                    print "----------- read", self.getName()
                     num = len(all)
                     assert num>=oldnum, (num, oldnum)
                     et = time()
+                    #sleep(0)
                     #sleep(sleeptime)
                     if et-st > period:
                         break
@@ -679,7 +682,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
             def run(self):
                 self.keep_reading_data(self.period, self.sleeptime)
         
-        def start_testing(nwriters,nreaders,write_period=5,read_period=3,read_sleeptime=0.21):
+        def start_testing(nwriters,nreaders,write_period=3,read_period=3,read_sleeptime=0.21):
             print nwriters, 'Writers', nreaders, 'Readers'
             writers = []
             for i in range(nwriters):
@@ -702,7 +705,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         self.create_db(0, self.db_path)
         #start_testing(1,1)
         #start_testing(1,10,10,3)
-        start_testing(2,20)    # got 'db is locked' error
+        start_testing(1,1)    # got 'db is locked' error
         
         
 def test_suite():

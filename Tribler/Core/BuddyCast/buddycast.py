@@ -253,6 +253,7 @@ class BuddyCastFactory:
         self.running = False
         self.data_handler = None
         self.started = False    # did call do_buddycast() at least once 
+        self.max_peers = 2500
         self.data_ready_evt = Event()
         if self.superpeer:
             print "Start as SuperPeer mode"
@@ -276,6 +277,7 @@ class BuddyCastFactory:
         
         # BuddyCast is always started, but only active when this var is set.
         self.running = bool(running)
+        self.max_peers = max_peers
         
         self.registered = True
 
@@ -289,7 +291,7 @@ class BuddyCastFactory:
 
     def olthread_register(self):
         print >> sys.stderr, "bc: OlThread Register", currentThread().getName()
-        self.data_handler = DataHandler(self.launchmany, self.overlay_bridge, db_dir=self.db_dir) #, max_num_peers=max_peers) only cache 2500 peers
+        self.data_handler = DataHandler(self.launchmany, self.overlay_bridge, db_dir=self.db_dir, max_num_peers=self.max_peers) 
         
         # ARNOCOMMENT: get rid of this dnsindb / get_dns_from_peerdb abuse off SecureOverlay
         self.bartercast_core = BarterCastCore(self.data_handler, self.overlay_bridge, self.log, self.launchmany.secure_overlay.get_dns_from_peerdb)
@@ -1749,8 +1751,8 @@ class DataHandler:
         self.last_check_ntorrents = 0
         #self.total_pref_changed = 0
         # how many peers to load into cache from db
-        self.max_num_peers = max(max_num_peers, 100)    # at least 100
-        self.max_peer_in_db = self.max_num_peers
+        self.max_peer_in_db = max_num_peers
+        self.max_num_peers = min(max(max_num_peers, 100), 2500)    # at least 100, at most 2500
         self.time_sim_weight = 4*60*60  # every 4 hours equals to a point of similarity
         # after added some many (user, item) pairs, update sim of item to item
         self.update_i2i_threshold = 100

@@ -358,8 +358,8 @@ class PeerDBHandler(BasicDBHandler):
 
     def updatePeerSims(self, sim_list):
         sql_update_sims = 'UPDATE Peer SET similarity=? WHERE peer_id=?'
-        self._db.executemany(sql_update_sims, sim_list)
-        self.commit()
+        self._db.executemany(sql_update_sims, sim_list, commit=True)
+        #self.commit()
         # to do: how to notify the update of a group of peers?
 
     def getPermIDByIP(self,ip):
@@ -670,10 +670,13 @@ class PreferenceDBHandler(BasicDBHandler):
             
         sql_insert_peer_torrent = "INSERT INTO Preference (peer_id, torrent_id) VALUES (?,?)"        
         if len(prefs) > 0:
-            try:
-                self._db.executemany(sql_insert_peer_torrent, torrent_id_prefs)
-            except sqlite.IntegrityError, msg:    # duplicated
-                pass
+            for pref in torrent_id_prefs:
+                try:
+                    self._db.execute(sql_insert_peer_torrent, pref)
+                except sqlite.IntegrityError, msg:    # duplicated
+                    print_exc()
+                    print >> sys.stderr, 'dbhandler: addPreferences:', sqlite.IntegrityError, msg
+                    pass
 
     def getRecentPeersPrefs(self, key, num=None):
         # get the recently seen peers' preference. used by buddycast
@@ -966,7 +969,8 @@ class TorrentDBHandler(BasicDBHandler):
             kw['num_seeders'] = kw.pop('seeder')
         if 'leecher' in kw:
             kw['num_leechers'] = kw.pop('leecher')
-        if 'last_check_time' in kw or 'ignore_number' in kw or 'retry_number' in kw:
+        if 'last_check_time' in kw or 'ignore_number' in kw or 'retry_number' in kw \
+          or 'retried_times' in kw or 'ignored_times' in kw:
             self.updateTracker(infohash, kw)
         
         for key in kw.keys():
@@ -992,14 +996,19 @@ class TorrentDBHandler(BasicDBHandler):
             update['last_check'] = kw.pop('last_check_time')
         if 'ignore_number' in kw:
             update['ignored_times'] = kw.pop('ignore_number')
+        if 'ignored_times' in kw:
+            update['ignored_times'] = kw.pop('ignored_times')
         if 'retry_number' in kw:
             update['retried_times'] = kw.pop('retry_number')
+        if 'retried_times' in kw:
+            update['retried_times'] = kw.pop('retried_times')
+            
         if tracker is None:
             where = 'torrent_id=%d AND announce_tier=%d'%(torrent_id, tier)
         else:
             where = 'torrent_id=%d AND tracker=%s'%(torrent_id, repr(tracker))
         self._db.update('TorrentTracker', where, **update)
-        self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
+        #self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
     def deleteTorrent(self, infohash, delete_file=False, commit = True):
         if not self.hasTorrent(infohash):
@@ -1247,9 +1256,8 @@ class TorrentDBHandler(BasicDBHandler):
         # but keep the infohash in db to maintain consistence with preference db
         torrent_id_infohashes = [(torrent_id,infohash_str,relevance) for torrent_file_name, torrent_id, infohash_str, relevance, weight in res_list]
         sql_insert =  "insert into Torrent (torrent_id, infohash, relevance) values (?,?,?)"
-        self._db.executemany(sql_insert, torrent_id_infohashes)
+        self._db.executemany(sql_insert, torrent_id_infohashes, commit=True)
         
-        self._db.commit()
         self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, str2bin(infohash))
         
         torrent_dir = self.getTorrentDir()
@@ -1275,8 +1283,8 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevances(self, tid_rel_pairs):
         if len(tid_rel_pairs) > 0:
             sql_update_sims = 'UPDATE Torrent SET relevance=? WHERE torrent_id=?'
-            self._db.executemany(sql_update_sims, tid_rel_pairs)
-            self.commit()
+            self._db.executemany(sql_update_sims, tid_rel_pairs, commit=True)
+            #self.commit()
         
     def searchNames(self,kws):
         """ Get all torrents (good and bad) that have the specified keywords in 
