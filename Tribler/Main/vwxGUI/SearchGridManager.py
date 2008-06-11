@@ -10,6 +10,7 @@ from time import time
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager
 
+from math import sqrt
 try:
     import web2
 except ImportError:
@@ -61,7 +62,9 @@ class TorrentSearchGridManager:
     def getHitsInCategory(self,mode,categorykey,range):
         # mode is 'filesMode', 'libraryMode'
         # categorykey can be 'all', 'Video', 'Document', ...
+        
         if DEBUG:
+            
             print >>sys.stderr,"TorrentSearchGridManager: getHitsInCategory:",mode,categorykey,range
         
         categorykey = categorykey.lower()
@@ -118,6 +121,7 @@ class TorrentSearchGridManager:
         
         # 3. Add remote hits that may apply. TODO: double filtering, could
         # add remote hits to self.hits before filter(torrentFilter,...)
+        
         self.addStoredRemoteResults(mode, categorykey)
         if DEBUG:
             print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after search: %d items' % len(self.hits)
@@ -134,7 +138,7 @@ class TorrentSearchGridManager:
         else:
             end = range[1]
         begin = range[0]
-        
+        self.sort()
         return [len(self.hits),self.hits[begin:end]]
                 
                 
@@ -209,6 +213,7 @@ class TorrentSearchGridManager:
         
     def gotRemoteHits(self,permid,kws,answers,mode):
         """ Called by GUIUtil when hits come in. """
+        print >>sys.stderr,"rmote each time, so we can call sort here, hehe" 
         try:
             if DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers)
@@ -278,6 +283,7 @@ class TorrentSearchGridManager:
     def refreshGrid(self):
         if self.gridmgr is not None:
             self.gridmgr.refresh()
+            
 
     def notifyView(self,value,cmd):
         print >>sys.stderr,"TorrentSearchGridManager: notfyView ###########################",cmd,`value`
@@ -296,6 +302,7 @@ class TorrentSearchGridManager:
         """ Called by Web2DBSearchThread*s* """
         if DEBUG:
             print >>sys.stderr,"TorrentSearchGridManager: tthread_gotWeb2Hit",`item['content_name']`
+        print >>sys.stderr,"webondemand each time, so we can call sort here, hehe"
         wx.CallAfter(self.refreshGrid)
         
     def web2tonewdb(self,value):
@@ -307,7 +314,7 @@ class TorrentSearchGridManager:
         newval['tags'] = value['tags']
         newval['url'] = value['url']
         newval['num_leechers'] = value['leecher']
-        newval['num_seeders'] = value['seeder']
+        newval['num_seeders'] = value['views']
         newval['views'] = value['views']
         newval['web2'] = value['web2']
         newval['length'] = value['length']
@@ -350,6 +357,118 @@ class TorrentSearchGridManager:
                     numResults += 1
 
                 self.standardOverview.setSearchFeedback('web2', False, numResults, self.searchkeywords[mode])
+    
+    #Rameez: The following code will call normalization functions and then 
+    #sort and merge the combine torrent and youtube results
+    def sort(self):
+        self.normalizeResults()
+        self.statisticalNormalization()
+        #Rameez: now sort combined (i.e after the above two normalization procedures)
+        for i in range( len(self.hits)-1):
+            for j in range (i+1, len(self.hits)):
+                if self.hits[i].get('normScore') < self.hits[j].get('normScore'):
+                    temp = self.hits[i]
+                    self.hits[i]= self.hits[j]
+                    self.hits[j] = temp
+                            
+    
+    def normalizeResults(self):
+        torrent_total = 0
+        youtube_total = 0
+        
+        #Rameez: normalize torrent results
+        for i in range(len(self.hits)):
+            if not self.hits[i].has_key('views'):
+                torrent_total += self.hits[i].get('num_seeders')
+        
+        for i in range(len(self.hits)):
+            if not self.hits[i].has_key('views'):
+                self.hits[i]['normScore'] = self.hits[i].get('num_seeders')/float(torrent_total)
+
+        #Rameez: normalize youtube results
+        for i in range(len(self.hits)):
+            if self.hits[i].has_key('views') and self.hits[i].get('views') != "unknown":
+                youtube_total += int(self.hits[i].get('views'))
+        
+        for i in range(len(self.hits)):
+            if self.hits[i].has_key('views') and self.hits[i].get('views') != "unknown":
+                self.hits[i]['normScore'] = self.hits[i].get('views')/float(youtube_total)
+    
+        
+    
+    def statisticalNormalization(self):
+        count = 0
+        tot = 0
+        #Rameez: statistically normalize torrent results
+        for i in range(len(self.hits)):
+            if not self.hits[i].has_key('views'):
+                if self.hits[i].has_key('normScore'):
+                    tot += self.hits[i]['normScore']
+                    count +=1
+        
+        if count > 0:
+            mean = tot/count
+        else:
+            mean = 0
+        
+        sum = 0
+        for i in range(len(self.hits)):
+            if not self.hits[i].has_key('views'):
+                if self.hits[i].has_key('normScore'):
+                    temp = self.hits[i]['normScore'] - mean
+                    temp = temp * temp
+                    sum += temp
+        
+        if count > 1:
+            dev = sum /(count-1)
+        else:
+            dev = 0
+        
+        stdDev = sqrt(dev)
+        
+        for i in range(len(self.hits)):
+            if not self.hits[i].has_key('views'):
+                if self.hits[i].has_key('normScore'):
+                    if stdDev > 0:
+                        self.hits[i]['normScore'] = (self.hits[i]['normScore']-mean)/ stdDev
+        
+        
+        
+        uCount = 0
+        uTot = 0        
+        #Rameez: statistically normalize youtube results
+        for i in range(len(self.hits)):
+            if self.hits[i].has_key('views') and self.hits[i].get('views') != "unknown":
+                uTot += self.hits[i]['normScore'] 
+                uCount += 1
+        
+        if uCount > 0:
+            uMean = uTot/uCount
+        else:
+            uMean = 0
+        
+        uSum = 0
+        
+        
+        for i in range(len(self.hits)):
+            if self.hits[i].has_key('views') and self.hits[i].get('views') != "unknown":
+                temp = self.hits[i]['normScore'] - uMean
+                temp = temp * temp
+                uSum += temp
+        
+        
+        if uCount > 1:
+            uDev = uSum /(uCount-1)
+        else:
+            uDev = 0
+        
+        ustdDev = sqrt(uDev)
+
+        for i in range(len(self.hits)):
+            if self.hits[i].has_key('views') and self.hits[i].get('views') != "unknown":
+                if ustdDev > 0:
+                    self.hits[i]['normScore'] = (self.hits[i]['normScore'] - uMean)/ustdDev
+
 
 
 class PeerSearchGridManager:
@@ -457,3 +576,5 @@ class PeerSearchGridManager:
             self.hits = self.fsearchmgr.search(self.searchkeywords[mode])
         
         return self.hits
+    
+        

@@ -134,11 +134,11 @@ class FilesItemPanel(wx.Panel):
             # V Line
             self.vLine2 = self.addLine() 
             # Add creation date
-            self.creationDate = wx.StaticText(self,-1,"21-01-2007",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
+            self.creationDate = wx.StaticText(self,-1,"21-01-2007",wx.Point(0,0),wx.Size(100,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.creationDate.SetBackgroundColour(wx.WHITE)
             self.creationDate.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.creationDate.SetForegroundColour(self.triblerGrey) 
-            self.creationDate.SetMinSize((110,18))
+            self.creationDate.SetMinSize((100,18))
             self.hSizer.Add(self.creationDate, 0,wx.TOP|wx.BOTTOM, 2) 
             # V Line
             self.vLine3 = self.addLine() 
@@ -150,7 +150,7 @@ class FilesItemPanel(wx.Panel):
             self.seedersNumber.SetBackgroundColour(wx.WHITE)
             self.seedersNumber.SetForegroundColour(self.triblerGrey) 
             self.seedersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.seedersNumber.SetMinSize((45,18))
+            self.seedersNumber.SetMinSize((55,18))
 ##            self.leechers = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
 ##            self.leechers.setBackground(wx.WHITE)
 ##            self.leechers.SetToolTipString(self.utility.lang.get('rNumberOfLeechers'))
@@ -211,8 +211,8 @@ class FilesItemPanel(wx.Panel):
     def getColumns(self):
         return [{'sort':'name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename')},
                 {'sort':'length', 'title':'size', 'width':75, 'tip':self.utility.lang.get('C_filesize')},
-                {'sort':'creation_date', 'title':'creation date','width':110, 'tip':self.utility.lang.get('C_creationdate')},
-                {'sort':'num_seeders', 'pic':'upSmall','title':'se', 'width':47, 'tip':self.utility.lang.get('C_uploaders')},
+                {'sort':'creation_date', 'title':'creation date','width':100, 'tip':self.utility.lang.get('C_creationdate')},
+                {'sort':'num_seeders', 'pic':'upSmall','title':'se', 'width':57, 'tip':self.utility.lang.get('C_uploaders')},
                 {'sort':'num_leechers', 'pic':'downSmall','title':'le', 'width':47, 'tip':self.utility.lang.get('C_downloaders')},
                 {'sort':'relevance', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommfiles')},
                 {'sort':'source_id', 'title':'-', 'width':26, 'tip':self.utility.lang.get('C_source')}
