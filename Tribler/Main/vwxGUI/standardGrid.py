@@ -61,6 +61,8 @@ class GridManager(object):
         self.peersearch_manager.register(self.peer_db,self.friend_db,self)
         self.guiserver = GUITaskQueue.getInstance()
         
+        self.refresh_rate = 2   # how often to refresh the GUI in seconds
+        
         self.cache_numbers = {}
         self.cache_ntorrent_interval = 5
         self.last_ntorrent_cache = 0
@@ -107,7 +109,7 @@ class GridManager(object):
             self.cache_numbers[key] = 0
         now = time()
         #print >> sys.stderr, '*********** get_number_torrents', key, self.cache_numbers[key], now - self.last_ntorrent_cache, self.cache_ntorrent_interval, self.grid.items
-        if now - self.last_ntorrent_cache > self.cache_ntorrent_interval:
+        if now - self.last_ntorrent_cache > self.cache_ntorrent_interval or self.cache_numbers[key] < self.grid.items:
             ntorrents = self.torrent_db.getNumberTorrents(category_name = category_name, library = library)
             self.cache_numbers[key] = ntorrents
             if ntorrents > 1000:
@@ -129,7 +131,7 @@ class GridManager(object):
             self.cache_numbers[key] = 0
         now = time()
         #print >> sys.stderr, '*********** get_number_peers', key, self.cache_numbers[key], now - self.last_npeer_cache, self.cache_npeer_interval, self.grid.items
-        if now - self.last_npeer_cache > self.cache_npeer_interval:
+        if now - self.last_npeer_cache > self.cache_npeer_interval or self.cache_numbers[key] < self.grid.items:
             npeers = self.peer_db.getNumberPeers(category_name = category_name)
             self.cache_numbers[key] = npeers
             if npeers > 1000:
@@ -207,8 +209,8 @@ class GridManager(object):
         # are not handled anymore. This function is called if a resize event is caught
         # if callbacks were disabled, they are enabled again
         if self.callbacks_disabled:
-            print >> sys.stderr, ('*' * 50 + '\n')*3
-            print >> sys.stderr, 'Reactivating grid', self.grid.__class__.__name__
+            #print >> sys.stderr, ('*' * 50 + '\n')*3
+            #print >> sys.stderr, 'Reactivating grid', self.grid.__class__.__name__
             self.callbacks_disabled = False
             self.refresh(update_observer = True)
             
@@ -245,8 +247,8 @@ class GridManager(object):
     def itemAdded(self,subject, objectID, args):
         #if self._last_page(): # This doesn't work as the pager is not updated if page becomes full
         if self.isRelevantItem(subject, objectID):
-            task_id = str(subject) + str(int(time())/2)
-            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), 2, id=task_id)
+            task_id = str(subject) + str(int(time())/self.refresh_rate)
+            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             # that's important to add the task 3 seconds later, to ensure the task will be executed at proper time  
             #self.refresh()
     
@@ -259,14 +261,14 @@ class GridManager(object):
         
         #if (self._objectOnPage(subject, objectID)
         if True:
-            task_id = str(subject) + str(int(time())/3)
-            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), 3, id=task_id)
+            task_id = str(subject) + str(int(time())/self.refresh_rate)
+            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             #self.refresh()
     
     def itemDeleted(self,subject, objectID, args):
         if self._objectOnPage(subject, objectID):
-            task_id = str(subject) + str(int(time())/3)
-            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), 3, id=task_id)
+            task_id = str(subject) + str(int(time())/self.refresh_rate)
+            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             #self.refresh()
     
     def download_state_gui_callback(self, dslist):

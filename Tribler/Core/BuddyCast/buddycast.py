@@ -1848,9 +1848,9 @@ class DataHandler:
 #            self.peers[pid][PEER_PREF_POS].sort()    # keep in order
 
     def updateAllSim(self):
-        start = time()
+        #start = time()
         self._updateAllPeerSim()    # 0.503/2.352 second (calculate, commit)
-        end = time()
+        #end = time()
         #print >> sys.stderr, "****** _updateAllPeerSim", end-start
         self._updateAllItemRel()    # 0.235/5.421 second (calculate, commit)
         #print >> sys.stderr, "****** _updateAllItemRel", time()-end
@@ -1872,9 +1872,10 @@ class DataHandler:
                 continue
             self.updateSimilarity(peer_id, False)
             sim = self.peers[peer_id][PEER_SIM_POS]
-            if oldsim != sim:
+            if abs(sim - oldsim) > oldsim*0.05:
                 updates.append((sim,peer_id))
-        
+
+        #print >> sys.stderr, '****************** update peer sim', len(updates), len(self.peers)        
         if updates:
             self.old_peer_num = len(self.peers)
             self.overlay_bridge.add_task(lambda:self.peer_db.updatePeerSims(updates), 5)
@@ -1898,10 +1899,17 @@ class DataHandler:
                             tids[tid] = [0,0]
                         tids[tid][0] += sim
                         tids[tid][1] += 1
+        
+        old_rels = dict(self.torrent_db.getTorrentRelevances(tids))
+        #print >> sys.stderr, '********* update all item rel', len(old_rels), len(tids) #, old_rels[:10]
+        
         for tid in tids.keys():
             tids[tid] = tids[tid][0]/tids[tid][1] + tids[tid][1]
+            old_rel = old_rels.get(tid, None)
+            if old_rel != None and abs(old_rel - tids[tid]) < old_rel*0.05:
+                tids.pop(tid)   # don't update db
             
-        #print >> sys.stderr, '**************--- update all item rel', len(tids), len(self.peers), nsimpeers, tids.items()[:10]  # 37307 2500
+        #print >> sys.stderr, '**************--- update all item rel', len(tids) #, len(self.peers), nsimpeers, tids.items()[:10]  # 37307 2500
         if tids:
             updates = zip(tids.values(),tids.keys())
             self.overlay_bridge.add_task(lambda:self.torrent_db.updateTorrentRelevances(updates), 5)
@@ -1933,7 +1941,7 @@ class DataHandler:
             self.myprefs.remove(torrent_id)
             self.owners.pop(torrent_id)
             self.old_peer_num = 0
-            self.overlay_bridge.add_task(self.updateAllSim, 5)
+            self.updateAllSim()
             #self.total_pref_changed += self.update_i2i_threshold
 
     def initRemoteSearchPeers(self, num_peers=10):

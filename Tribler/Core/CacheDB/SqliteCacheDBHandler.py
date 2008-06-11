@@ -1278,6 +1278,10 @@ class TorrentDBHandler(BasicDBHandler):
     def hasMetaData(self, infohash):
         return self.hasTorrent(infohash)
     
+    def getTorrentRelevances(self, tids):
+        sql = 'SELECT torrent_id, relevance from Torrent WHERE torrent_id in ' + str(tuple(tids))
+        return self._db.fetchall(sql)
+    
     def updateTorrentRelevance(self, infohash, relevance):
         self.updateTorrent(infohash, relevance=relevance)
 
