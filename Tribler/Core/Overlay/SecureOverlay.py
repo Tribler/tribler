@@ -491,8 +491,8 @@ class SecureOverlay:
         self.dns[permid] = dns    # cache it to avoid querying db later
         now = int(time())
         peer_data = {'permid':permid, 'ip':dns[0], 'port':dns[1], 'oversion':selversion, 'last_seen':now, 'last_connected':now}
-        self.peer_db.addPeer(permid, peer_data, update_dns=True)
-        self.peer_db.updateTimes(permid, 'connected_times', 1)
+        self.peer_db.addPeer(permid, peer_data, update_dns=True, commit=False)
+        self.peer_db.updateTimes(permid, 'connected_times', 1, commit=False)
         
         # ARNOCOMMENT: remove later
         self.peer_db.commit()

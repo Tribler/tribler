@@ -327,7 +327,7 @@ class PeerDBHandler(BasicDBHandler):
             self.commit()
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
-    def deletePeer(self, permid=None, peer_id=None, force=False, commit = True):
+    def deletePeer(self, permid=None, peer_id=None, force=False, commit=True):
         # don't delete friend of superpeers, except that force is True
         # to do: add transaction
         #self._db._begin()    # begin a transaction
@@ -342,7 +342,7 @@ class PeerDBHandler(BasicDBHandler):
             self.commit()
         self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
             
-    def updateTimes(self, permid, key, change=1):
+    def updateTimes(self, permid, key, change=1, commit=True):
         permid_str = bin2str(permid)
         sql = "SELECT peer_id,%s FROM Peer WHERE permid==?"%key
         find = self._db.fetchone(sql, (permid_str,))
@@ -354,6 +354,8 @@ class PeerDBHandler(BasicDBHandler):
                 value += change
             sql_update_peer = "UPDATE Peer SET %s=? WHERE peer_id=?"%key
             self._db.execute(sql_update_peer, (value, peer_id))
+            if commit:
+                self.commit()
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
     def updatePeerSims(self, sim_list):

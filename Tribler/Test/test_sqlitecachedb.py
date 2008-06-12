@@ -515,7 +515,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         
     def create_db(self, lib=0, db_path=None):
         create_sql = "create table person(lastname, firstname);"
-        SQLiteCacheDB.initDB(db_path, None, create_sql, lib=lib, check_version=False)
+        SQLiteCacheDB.initDB(db_path, None, create_sql, lib=lib, check_version=False, busytimeout=10000)
                     
     def write_data(self):
         db = SQLiteCacheDB.getInstance()
@@ -568,7 +568,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         assert one == 654, one
         db.close()
 
-    def test_open_close_db(self):
+    def _test_open_close_db(self):
         sqlite_test = SQLiteCacheDB.getInstance()
         sqlite_test.openDB(self.db_path, 0)
         sqlite_test.close()
@@ -576,7 +576,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         sqlite_test.openDB(self.db_path, 0)
         sqlite_test.close()
 
-    def test_create_temp_db(self):
+    def _test_create_temp_db(self):
         sqlite_test = SQLiteCacheDB.getInstance()
         sql = "create table person(lastname, firstname);"
         sqlite_test.createDB(sql, self.db_path)
@@ -588,13 +588,13 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         sleep(1)
         self.read_data()
         
-    def test_basic_funcs_lib0(self):
+    def _test_basic_funcs_lib0(self):
         self.basic_funcs()
 
-    def test_basic_funcs_lib1(self):
+    def _test_basic_funcs_lib1(self):
         self.basic_funcs(1)
 
-    def test_new_thread_basic_funcs(self, lib=0):
+    def _test_new_thread_basic_funcs(self, lib=0):
         # test create/write/read db by 3 different threads
         # 3 seperate connections should be created, one per thread
         self.create_db(lib, self.db_path)
@@ -628,22 +628,27 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
             def keep_writing_data(self, period):
                 db = SQLiteCacheDB.getInstance()
                 st = time()
-                print "begin write"
-                while True:
-                    db.begin()
-                    values = []
-                    for i in range(10):
-                        value = (str(i), str(i**2))
-                        values.append(value)
-                    print ">>start write", self.getName()
-                    db.insertMany('person', values)
-                    print ">>end write", self.getName()
-                    db.commit()
-                    print ">>committed", self.getName()
-                    sleep(0)
-                    et = time()
-                    if et-st > period:
-                        break
+                print  >> sys.stderr, "begin write", self.getName(), period, time()
+                begin_time = time()
+                try:
+                    while True:
+                        db.begin()
+                        values = []
+                        for i in range(10):
+                            value = (str(i), str(i**2))
+                            values.append(value)
+                        print ">>start write", self.getName(), time()
+                        db.insertMany('person', values)
+                        print ">>end write", self.getName(), time()
+                        db.commit()
+                        print ">>committed", self.getName(), time()
+                        #sleep(0.01)
+                        et = time()
+                        if et-st > period:
+                            break
+                except Exception, msg:
+                    print_exc()
+                    print >> sys.stderr, "On Error", time(), begin_time, time()-begin_time, Exception, msg
                 print "done write"
                 db.close()
                 
@@ -665,9 +670,10 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                     oldnum = 0
                 else:
                     oldnum = len(all)
+                print "begin read", period
                 while True:
                     all = db.fetchall("select * from person where lastname='7'")
-                    print "----------- read", self.getName()
+                    #print "----------- read", self.getName()
                     num = len(all)
                     assert num>=oldnum, (num, oldnum)
                     et = time()
@@ -683,7 +689,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                 self.keep_reading_data(self.period, self.sleeptime)
         
         def start_testing(nwriters,nreaders,write_period=3,read_period=3,read_sleeptime=0.21):
-            print nwriters, 'Writers', nreaders, 'Readers'
+            print >> sys.stderr, nwriters, 'Writers', nreaders, 'Readers'
             writers = []
             for i in range(nwriters):
                 w = Writer(write_period)
@@ -705,7 +711,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         self.create_db(0, self.db_path)
         #start_testing(1,1)
         #start_testing(1,10,10,3)
-        start_testing(1,1)    # got 'db is locked' error
+        start_testing(2,0)    # always got 'db is locked' error in linux
         
         
 def test_suite():

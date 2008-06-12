@@ -186,8 +186,8 @@ class BarterCastCore:
                                                                         data_to, data_from)
 
             # update database sender->permid and permid->sender
-            self.bartercastdb.updateItem((sender_permid, permid), 'uploaded', data_to)
-            self.bartercastdb.updateItem((sender_permid, permid), 'downloaded', data_from)
+            self.bartercastdb.updateItem((sender_permid, permid), 'uploaded', data_to, commit=False)
+            self.bartercastdb.updateItem((sender_permid, permid), 'downloaded', data_from, commit=True)
             
 
     ################################

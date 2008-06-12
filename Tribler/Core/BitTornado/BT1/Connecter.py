@@ -997,23 +997,30 @@ def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
             print >> sys.stderr, "BARTERCAST (Connecter): Up %d down %d peer %s:%s (PermID = %s)" % (up_kb, down_kb, ip, port, permid)
     
         # Save exchanged KBs in BarterCastDB
+        changed = False
         if permid is not None:
             name = bartercastdb.getName(permid)
             
             if down_kb > 0:
-                new_value = bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb)
+                new_value = bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb, commit=False)
+                changed = True
      
             if up_kb > 0:
-                new_value = bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb)
+                new_value = bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb, commit=False)
+                changed = True
      
         # For the record: save KBs exchanged with non-tribler peers
         else:
             if down_kb > 0:
-                new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'downloaded', down_kb)
+                new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'downloaded', down_kb, commit=False)
+                changed = True
      
             if up_kb > 0:
-                new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb)
-
+                new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb, commit=False)
+                changed = True
+                
+        if changed:
+            bartercastdb.commit()
 
     else:
         if DEBUG:

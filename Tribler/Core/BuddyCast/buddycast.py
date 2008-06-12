@@ -369,7 +369,7 @@ class BuddyCastFactory:
         
         past = now() - self.start_time
         if past < 2*60:
-            if self.data_handler.npeers == 0:
+            if self.data_handler.get_npeers() == 0:
                 interval = 1
             else:
                 interval = 5
@@ -1743,7 +1743,7 @@ class DataHandler:
         self.myfriends = Set() # FIXME: implement friends
         self.myprefs = None    # torrent ids
         self.peers = {}    # peer_id: [similarity, last_seen, prefs(array('l',[torrent_id])] 
-        self.default_peer = [0,0, None]
+        self.default_peer = [0, 0, None]
         self.owners = {}    # torrent_ids_of_mine: Set(permid)
         self.permid = self.getMyPermid()
         self.nprefs = 0
@@ -1751,12 +1751,12 @@ class DataHandler:
         self.last_check_ntorrents = 0
         #self.total_pref_changed = 0
         # how many peers to load into cache from db
-        self.max_peer_in_db = max_num_peers
+        #self.max_peer_in_db = max_num_peers
         self.max_num_peers = min(max(max_num_peers, 100), 2500)    # at least 100, at most 2500
-        self.time_sim_weight = 4*60*60  # every 4 hours equals to a point of similarity
+        #self.time_sim_weight = 4*60*60  # every 4 hours equals to a point of similarity
         # after added some many (user, item) pairs, update sim of item to item
-        self.update_i2i_threshold = 100
-        self.npeers = self.peer_db.size() - self.superpeer_db.size()
+        #self.update_i2i_threshold = 100
+        #self.npeers = self.peer_db.size() - self.superpeer_db.size()
         self.old_peer_num = 0
         self.buddycast_core = None
         self.all_peer_list = None
@@ -2114,7 +2114,7 @@ class DataHandler:
         return sim
     
     def increaseBuddyCastTimes(self, peer_permid):
-        self.peer_db.updateTimes(peer_permid, 'buddycast_times', 1)
+        self.peer_db.updateTimes(peer_permid, 'buddycast_times', 1, commit=False)
         self.peer_db.updatePeer(peer_permid, commit=False, last_buddycast=now())
 
     def getPeer(self, permid, keys=None):
@@ -2159,7 +2159,7 @@ class DataHandler:
     
     def updatePeerLevelStats(self,permid,npeers,ntorrents,nprefs):
         d = {'num_peers':npeers,'num_torrents':ntorrents,'num_prefs':nprefs}
-        self.peer_db.updatePeer(permid, **d)
+        self.peer_db.updatePeer(permid, commit=False, **d)
         
 #    def getAllPeerList(self):
 #        return self.all_peer_list
