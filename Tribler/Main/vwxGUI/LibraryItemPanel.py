@@ -6,6 +6,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButto
 from Tribler.Main.Dialogs.dlhelperframe import DownloadHelperFrame
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.filesItemPanel import ThumbnailViewer, libraryModeThumbSize
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Video.Progress import ProgressBar
@@ -19,7 +20,7 @@ from bgPanel import *
 from font import *
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *
-
+from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 
 
 import cStringIO
@@ -86,10 +87,12 @@ class LibraryItemPanel(wx.Panel):
         self.torrentDetailsFrame = None
         self.metadatahandler = MetadataHandler.getInstance()
         self.addComponents()
-    
+            
         #self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
         
-
+        self.cache_progress = {}
+        self.gui_server = GUITaskQueue.getInstance()
+        
         self.SetMinSize((-1, 22))
         self.selected = False
         self.Show()
@@ -269,6 +272,21 @@ class LibraryItemPanel(wx.Panel):
         vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
         self.hSizer.Add(vLine, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
         
+    def updateProgress(self, infohash, progress):
+        if infohash not in self.cache_progress:
+            self.cache_progress[infohash] = 0 # progress
+        now = time()
+        if progress - self.cache_progress[infohash] > 1:
+            self.cache_progress[infohash] = progress
+            self.guiserver.add_task(lambda:self.updateProgressInDB(infohash,progress), 0)
+        
+    def updateProgressInDB(self, infohash, progress):
+        try:
+            mypref_db = MyPreferenceDBHandler.getInstance()
+            mypref_db.updateProgress(infohash, progress, commit=True)
+        except:
+            pass    # lock error
+        
     def setData(self, torrent):
         # set bitmap, rating, title
         
@@ -314,6 +332,8 @@ class LibraryItemPanel(wx.Panel):
             finished = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
             print >> sys.stderr, '%s %s %s' % (`ds.get_download().get_def().get_name()`, ds.get_progress(), dlstatus_strings[ds.get_status()])
             progress = (ds.get_progress() or 0.0) * 100.0
+            #print >> sys.stderr, '****** libraryitempanel:', torrent['torrent_id'], progress
+            self.updateProgress(torrent['infohash'], progress)
             
             self.percentage.SetLabel('%.1f%%' % progress)
             eta = self.utility.eta_value(ds.get_eta(), truncate=2)

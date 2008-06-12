@@ -61,7 +61,7 @@ class GridManager(object):
         self.peersearch_manager.register(self.peer_db,self.friend_db,self)
         self.guiserver = GUITaskQueue.getInstance()
         
-        self.refresh_rate = 2   # how often to refresh the GUI in seconds
+        self.refresh_rate = 3   # how often to refresh the GUI in seconds
         
         self.cache_numbers = {}
         self.cache_ntorrent_interval = 5
@@ -109,7 +109,7 @@ class GridManager(object):
             self.cache_numbers[key] = 0
         now = time()
         #print >> sys.stderr, '*********** get_number_torrents', key, self.cache_numbers[key], now - self.last_ntorrent_cache, self.cache_ntorrent_interval, self.grid.items
-        if now - self.last_ntorrent_cache > self.cache_ntorrent_interval or self.cache_numbers[key] < self.grid.items:
+        if now - self.last_ntorrent_cache > self.cache_ntorrent_interval:# or self.cache_numbers[key] < self.grid.items:
             ntorrents = self.torrent_db.getNumberTorrents(category_name = category_name, library = library)
             self.cache_numbers[key] = ntorrents
             if ntorrents > 1000:
@@ -131,7 +131,7 @@ class GridManager(object):
             self.cache_numbers[key] = 0
         now = time()
         #print >> sys.stderr, '*********** get_number_peers', key, self.cache_numbers[key], now - self.last_npeer_cache, self.cache_npeer_interval, self.grid.items
-        if now - self.last_npeer_cache > self.cache_npeer_interval or self.cache_numbers[key] < self.grid.items:
+        if now - self.last_npeer_cache > self.cache_npeer_interval: # or self.cache_numbers[key] < self.grid.items:
             npeers = self.peer_db.getNumberPeers(category_name = category_name)
             self.cache_numbers[key] = npeers
             if npeers > 1000:

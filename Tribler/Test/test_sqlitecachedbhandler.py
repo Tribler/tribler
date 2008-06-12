@@ -1071,8 +1071,8 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         infohash = str2bin(infohash_str_126)
         db = MyPreferenceDBHandler.getInstance()
         assert db.hasMyPreference(infohash)
-        db.updateProgress(infohash, 3.14)
         torrent_id = db._db.getTorrentID(infohash)
+        db.updateProgress(torrent_id, 3.14)
         p = db.getOne('progress', torrent_id=torrent_id)
         assert p == 3.14
 

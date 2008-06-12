@@ -1176,6 +1176,8 @@ class TorrentDBHandler(BasicDBHandler):
             value_name[0] = 'C.torrent_id'
             where += ' and C.torrent_id = M.torrent_id'
             res_list = self._db.getAll('CollectedTorrent C, MyPreference M', value_name, where, limit=limit, offset=offset, order_by=order_by)
+            #print_stack()
+            print >> sys.stderr, '*** dbhandler: getTorrents sort by progress', res_list
         else:
             res_list = self._db.getAll('CollectedTorrent', value_name, where, limit=limit, offset=offset, order_by=order_by)
         
@@ -1220,6 +1222,7 @@ class TorrentDBHandler(BasicDBHandler):
         del mypref_stats
         # torrent_list consumes about 2MB for 4836 torrents, and this function costs about 0.15 second
         #print time()-s
+        #print >> sys.stderr, '*** dbhandler: getTorrents', torrent_list
         return  torrent_list
         
     def getRanks(self,):
@@ -1450,8 +1453,11 @@ class TorrentDBHandler(BasicDBHandler):
         all = []
         for flist in res:
             print >>sys.stderr,"torrent_db: getTorrentsFromSource: Got Record",`flist`
-            d = self._selectStar2dict(flist)
-            all.append(d)
+            try:
+                d = self._selectStar2dict(flist)
+                all.append(d)
+            except: # unicode error
+                print_exc()
         return all
         
     def setSecret(self,infohash,secret):
@@ -1612,11 +1618,14 @@ class MyPreferenceDBHandler(BasicDBHandler):
             self.rlock.release()
             
             
-    def updateProgress(self, infohash, progress):
+    def updateProgress(self, infohash, progress, commit=True):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
             return
         self._db.update(self.table_name, 'torrent_id=%d'%torrent_id, progress=progress)
+        if commit:
+            self.commit()
+        #print >> sys.stderr, '********* update progress', `infohash`, progress, commit
 
     def getInfohashRelevance(self, infohash):
         torrent_id = self._db.getTorrentID(infohash)
