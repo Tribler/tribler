@@ -131,7 +131,7 @@ class SQLiteCacheDB:
     commit_begined = safe_dict()   # thread_name:Boolean
 
     lib = None
-    DEBUG = False
+    DEBUG = True
 
     def getInstance(*args, **kw):
         # Singleton pattern with double-checking to ensure that it can only create one object
@@ -547,7 +547,7 @@ class SQLiteCacheDB:
             
         lib = getLib(cur)
         try:
-            nbatch = 1000
+            nbatch = 200
             if lib == 0:
                 nargs = len(args)
                 for i in range(0, nargs, nbatch):   # split updates into small groups to avoid long write lock time 

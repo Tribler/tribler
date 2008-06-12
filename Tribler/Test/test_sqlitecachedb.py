@@ -642,7 +642,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                         print ">>end write", self.getName(), time()
                         db.commit()
                         print ">>committed", self.getName(), time()
-                        #sleep(0.01)
+                        sleep(0.01)
                         et = time()
                         if et-st > period:
                             break
@@ -673,8 +673,8 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                 print "begin read", period
                 while True:
                     all = db.fetchall("select * from person where lastname='7'")
-                    #print "----------- read", self.getName()
                     num = len(all)
+                    print "----------- read", self.getName(), num
                     assert num>=oldnum, (num, oldnum)
                     et = time()
                     #sleep(0)
@@ -711,7 +711,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         self.create_db(0, self.db_path)
         #start_testing(1,1)
         #start_testing(1,10,10,3)
-        start_testing(2,0)    # always got 'db is locked' error in linux
+        start_testing(5,5)    # always got 'db is locked' error in linux
         
         
 def test_suite():

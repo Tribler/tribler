@@ -781,7 +781,7 @@ class TestTorrentDBHandler(unittest.TestCase):
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
 
-    def test_hasTorrent(self):
+    def _test_hasTorrent(self):
         infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
         infohash = str2bin(infohash_str)
         db = TorrentDBHandler.getInstance()
@@ -790,6 +790,17 @@ class TestTorrentDBHandler(unittest.TestCase):
         fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
         assert db.hasTorrent(fake_infoahsh) == False
         assert db.hasMetaData(fake_infoahsh) == False
+        
+    def test_count(self):
+        db = TorrentDBHandler.getInstance()
+        start = time()
+        for i in range(10):
+            num = db.getNumberTorrents()
+        print "count costs:", (time()-start)/10
+        
+        sql_del_torrent = "delete from Torrent where torrent_id=?"
+        tids = tuple(range(1,100))
+        #db._db.executemany(sql_del_torrent,tids)
         
 #    def test_getTorrentStatus(self):
 #        infohash_42001 = 'N+bA9CiBX4+ATZzmt03bv99MsSA='
@@ -824,7 +835,7 @@ class TestTorrentDBHandler(unittest.TestCase):
 #        assert data['source'] in db.src_table.keys(), data['source']
 #        assert len(data['infohash']) == 20
                 
-    def test_add_update_delete_Torrent(self):
+    def _test_add_update_delete_Torrent(self):
         self._test_addTorrent()
         ### self._test_updateTorrent()
         ### self._test_deleteTorrent()
@@ -958,12 +969,12 @@ class TestTorrentDBHandler(unittest.TestCase):
         my_infohash = str2bin(my_infohash_str_126)
         assert not db.deleteTorrent(my_infohash)
         
-    def test_getCollectedTorrentHashes(self):
+    def _test_getCollectedTorrentHashes(self):
         db = TorrentDBHandler.getInstance()
         res = db.getNumberCollectedTorrents()
         ### assert res == 4848, res
         
-    def test_freeSpace(self):
+    def _test_freeSpace(self):
         db = TorrentDBHandler.getInstance()
         db.freeSpace(20)
         

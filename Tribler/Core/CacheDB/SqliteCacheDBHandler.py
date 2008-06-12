@@ -1254,17 +1254,19 @@ class TorrentDBHandler(BasicDBHandler):
         
         # delete torrents from db
         sql_del_torrent = "delete from Torrent where torrent_id=?"
-        sql_del_tracker = "delete from Torrent where torrent_id=?"
+        sql_del_tracker = "delete from TorrentTracker where torrent_id=?"
+        sql_del_pref = "delete from Preference where torrent_id=?"
         for torrent_file_name, torrent_id, infohash, relevance, weight in res_list:
             self._db.execute(sql_del_torrent, (torrent_id,))
             self._db.execute(sql_del_tracker, (torrent_id,))
+            self._db.execute(sql_del_pref, (torrent_id,))
+        
+        self._db.commit()
         
         # but keep the infohash in db to maintain consistence with preference db
-        torrent_id_infohashes = [(torrent_id,infohash_str,relevance) for torrent_file_name, torrent_id, infohash_str, relevance, weight in res_list]
-        sql_insert =  "insert into Torrent (torrent_id, infohash, relevance) values (?,?,?)"
-        self._db.executemany(sql_insert, torrent_id_infohashes, commit=True)
-        
-        self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, str2bin(infohash))
+        #torrent_id_infohashes = [(torrent_id,infohash_str,relevance) for torrent_file_name, torrent_id, infohash_str, relevance, weight in res_list]
+        #sql_insert =  "insert into Torrent (torrent_id, infohash, relevance) values (?,?,?)"
+        #self._db.executemany(sql_insert, torrent_id_infohashes, commit=True)
         
         torrent_dir = self.getTorrentDir()
         deleted = 0 # deleted any file?
@@ -1277,6 +1279,8 @@ class TorrentDBHandler(BasicDBHandler):
             except Exception, msg:
                 #print >> sys.stderr, "Error in erase torrent", Exception, msg
                 pass
+        
+        self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, str2bin(infohash)) # refresh gui
         
         return deleted
 

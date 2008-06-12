@@ -51,7 +51,7 @@ for line in f:
             #    pass
         elif flag == 'done':
             #assert prev_ts[cur_id] != 0, (cur_id, i, prev_ts[cur_id])
-            if prev_ts[cur_id] == 0:
+            if cur_id not in prev_ts or prev_ts[cur_id] == 0:
                 continue
             cost = ts - prev_ts[cur_id]
             mem.append((cost, prev_line[cur_id], ts, prev_sql[cur_id], cur_id))
@@ -76,14 +76,14 @@ mem.reverse()
 i = 0   
 for m in mem:
     if m[4] == 'MainThread':
-        print 'top execute time:', m[0], m[1], m[2]-first_ts, m[2], '||', m[3][50:130]
+        print 'top execute time:', m[0], m[1], m[2]-first_ts, m[2], '||', m[3][50:300]
         i += 1
-        if i > 20:
+        if i > 50:
             break
 
 #commits = filter(lambda x:x[5]
 
 commits.sort()
 commits.reverse()
-for m in commits[:10]:
+for m in commits[:50]:
     print 'top commit time:', m
