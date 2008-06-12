@@ -213,6 +213,9 @@ class GridManager(object):
             #print >> sys.stderr, 'Reactivating grid', self.grid.__class__.__name__
             self.callbacks_disabled = False
             self.refresh(update_observer = True)
+        else:
+            # also refresh normally on resize (otherwise new rows cannot be added
+            self.refresh()
             
 #    def download_state_network_callback(self, *args):
 #        """ Called by SessionThread from ABCApp """

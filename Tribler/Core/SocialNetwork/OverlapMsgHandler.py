@@ -109,18 +109,18 @@ class OverlapMsgHandler:
         is his IP+port and the information obtained from the network
         or from other peers (i.e. BUDDYCAST)
         """
-        
+
         persinfo = {'name':self.session.get_nickname()}
-        
-        # See if we can find icon using PermID:
-        [type,data] = self.peer_db.getPeerIcon(self.mypermid)
-        if not type is None and not data is None:
-            persinfo['icontype'] = type
-            persinfo['icondata'] = str(data)
+        # See if we can find icon
+        iconmime, icondata = self.session.get_mugshot()
+        if icondata:
+            persinfo.update({'icontype':iconmime, 'icondata':icondata})
         
         oldict = {}
         oldict['persinfo'] = persinfo
 
+        #print >> sys.stderr, 'Overlap: Sending oldict: %s' % `oldict`
+                            
         #if DEBUG:
         #    print >> sys.stderr,"socnet: overlap: active: sending hashdict"
         #    self.print_hashdict(oldict['hashnetwork'])

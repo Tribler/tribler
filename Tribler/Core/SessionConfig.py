@@ -418,7 +418,7 @@ class SessionConfigInterface:
         @return Boolean. """
         return self.sessconfig['socnet']
 
-    def set_nickname(self,value):  # TODO: put in PeerDBHandler? Add method for setting own pic
+    def set_nickname(self,value):
         """ The nickname you want to show to others.
         @param value A string.
         """
@@ -429,6 +429,21 @@ class SessionConfigInterface:
         @return String. """
         return self.sessconfig['nickname']
 
+    def set_mugshot(self,value, mime = 'image/jpeg'):
+        """ The picture of yourself you want to show to others.
+        @param value A string of binary data of your image.
+        @param mime A string of the mimetype of the data
+        """
+        self.sessconfig['mugshot'] = (mime, value)
+
+    def get_mugshot(self):
+        """ Returns binary image data and mime-type of your picture.
+        @return (String, String) value and mimetype. """
+        if self.sessconfig['mugshot'] is None:
+            return None, None
+        else:
+            return self.sessconfig['mugshot']
+    
     def set_peer_icon_path(self,value):
         """ Directory to store received peer icons (Default is statedir +
         STATEDIR_PEERICON_DIR).

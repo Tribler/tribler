@@ -5,6 +5,7 @@ import os
 import sys
 import base64
 from traceback import print_exc
+import mimetypes
 
 import wx
 import wx.lib.imagebrowser as ib
@@ -14,10 +15,11 @@ import wx.lib.imagebrowser as ib
 # it don't work. This explicit import seems to:
 from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
 
-from Tribler.Main.vwxGUI.IconsManager import IconsManager
+from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from Tribler.Core.Utilities.unicode import str2unicode
 #from common import CommonTriblerList
 from Tribler.Main.Utility.constants import *
+from Tribler.Core.SessionConfig import SessionStartupConfig
 
 SERVICETYPES = []
 
@@ -66,11 +68,23 @@ class MyInfoWizard(Wizard):
         pass
 
     def OnFinished(self,event=None):
-        (name,iconpath) = self.page1.getNameIconPath()
-        self.utility.session.set_nickname(name)
-        im = IconsManager.getInstance()
-        if iconpath:
-            im.create_from_file(mypermid,iconpath)
+        (name,icondata, iconmime) = self.page1.getNameIconData()
+
+        # write changes to the pickled config file, because on shutdown, changes are not pickled!
+        # this is done to spare the mypreferences-changes.
+
+        state_dir = self.utility.session.get_state_dir()
+        cfgfilename = self.utility.session.get_default_config_filename(state_dir)
+        scfg = SessionStartupConfig.load(cfgfilename)
+        
+        for target in [scfg,self.utility.session]:
+            try:
+                target.set_nickname(name)
+                target.set_mugshot(icondata, mime=iconmime)
+            except:
+                print_exc()
+
+        scfg.save(cfgfilename)
 
         self.parent.WizardFinished(self)
 
@@ -107,17 +121,20 @@ class NameIconWizardPage(WizardPageSimple):
 
         ## TODO: integrate this code with makefriends.py, especially checking code
         self.iconbtn = None
-        self.mypermid = self.utility.session.get_permid()
-        im = IconsManager.getInstance()
-        bm = im.load_wxBitmap(self.mypermid)
-        if bm is None:
+        self.iconmime, self.icondata = self.utility.session.get_mugshot()
+        if self.icondata:
+            bm = data2wxBitmap(self.iconmime, self.icondata)
+        else:
+            im = IconsManager.getInstance()
             bm = im.get_default('personsMode','DEFAULT_THUMB')
+
         self.iconbtn = wx.BitmapButton(self, -1, bm)
         icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         #label = wx.StaticText(self, -1, self.utility.lang.get('obligiconformat'))
         #icon_box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.OnIconButton, self.iconbtn)
         topbox.Add(icon_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+
 
         mainbox.Add(topbox, 0, wx.EXPAND)
         self.SetSizerAndFit(mainbox)
@@ -149,6 +166,10 @@ class NameIconWizardPage(WizardPageSimple):
                 else:
                     bm = wx.BitmapFromImage(im.Scale(64,64),-1)
                     self.iconbtn.SetBitmapLabel(bm)
+                    iconfile = file(self.iconpath,'rb')
+                    self.icondata = iconfile.read()
+                    self.iconmime = mimetypes.guess_type(self.iconpath)[0] or 'image/jpeg'
+                    iconfile.close()
             except:
                 self.show_inputerror(self.utility.lang.get('iconbadformat'))
         else:
@@ -162,14 +183,13 @@ class NameIconWizardPage(WizardPageSimple):
         dlg.Destroy()
 
     def IsFilledIn(self):
-        (name,iconpath) = self.getNameIconPath()
+        (name,_,_) = self.getNameIconData()
         #print "ICONPATH IS",iconpath
-        return len(name) != 0 ## and len(iconpath) != 0
+        return len(name) != 0 #and icondata is not None
 
-    def getNameIconPath(self):
+    def getNameIconData(self):
         name = self.myname.GetValue()
-        iconpath = self.iconpath
-        return (name,iconpath)
+        return (name,self.icondata, self.iconmime)
 
 
 class RWIDsWizardPage(WizardPageSimple):

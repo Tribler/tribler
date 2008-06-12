@@ -154,7 +154,7 @@ class TorrentSearchGridManager:
                 self.dod.clear()
 
     def inSearchMode(self, mode):
-        return bool(self.searchkeywords[mode])
+        return bool(self.searchkeywords.get(mode))
          
     def stopSearch(self):
         # TODO

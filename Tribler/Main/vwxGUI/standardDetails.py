@@ -11,7 +11,7 @@ import threading
 
 from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.IconsManager import IconsManager
+from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
@@ -71,6 +71,7 @@ class standardDetails(wx.Panel):
         self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         self.friend_db = self.utility.session.open_dbhandler(NTFY_FRIENDS)
         self.peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
+        self.superpeer_db = self.utility.session.open_dbhandler(NTFY_SUPERPEERS)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.iconsManager = IconsManager.getInstance()
         #self.gui_db = GUIDBHandler.getInstance()
@@ -595,11 +596,16 @@ class standardDetails(wx.Panel):
                 if item.get('metadata'):
                     bmp = item['metadata'].get('ThumbnailBitmap')
                 else:
-                    pass
-#                    guiserver = GUITaskQueue.getInstance()
-#                    guiserver.add_task(lambda:self.loadMetadata(item),0)
+                    mime, icondata = self.peer_db.getPeerIcon(item['permid'])
+                    if icondata:
+                        bmp = data2wxBitmap(mime,icondata)
+                        
                 if not bmp:
-                    bmp = self.iconsManager.get_default('personsMode','DEFAULT_THUMB')
+                    superpeers = self.superpeer_db.getSuperPeers()
+                    if item['permid'] in superpeers:
+                        bmp = self.iconsManager.get_default('personsMode','SUPERPEER_BITMAP')
+                    else:
+                        bmp = self.iconsManager.get_default('personsMode','DEFAULT_THUMB')
                 
                 thumbField = self.getGuiObj("thumbField")
                 thumbField.setBitmap(bmp)

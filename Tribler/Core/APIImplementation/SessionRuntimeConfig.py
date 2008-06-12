@@ -389,14 +389,33 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
     def set_nickname(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.set_nickname(self, value)
+        finally:
+            self.sesslock.release()
+            
     def get_nickname(self):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.get_nickname(self)
         finally:
             self.sesslock.release()
+
+    def set_mugshot(self,value, mime='image/jpeg'):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.set_mugshot(self, value, mime)
+        finally:
+            self.sesslock.release()
+
+    def get_mugshot(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_mugshot(self)
+        finally:
+            self.sesslock.release()
+
 
     def set_videoplayerpath(self,value):
         raise OperationNotPossibleAtRuntimeException()
