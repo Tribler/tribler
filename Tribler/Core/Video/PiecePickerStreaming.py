@@ -130,7 +130,7 @@ class PiecePickerStreaming(PiecePicker):
         p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con, slowpieces, willrequest)
         if DEBUGPP and self.videostatus.prebuffering:
             print >>sys.stderr,"PiecePickerStreaming: next returns",p
-        if p is None:
+        if p is None and not self.videostatus.live_streaming:
             # When the file we selected from a multi-file torrent is complete,
             # we won't request anymore pieces, so the normal way of detecting 
             # we're done is not working and we won't tell the video player 

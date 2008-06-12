@@ -514,14 +514,15 @@ class SQLiteCacheDB:
             self.file.flush()
         
         try:
-            #print >> sys.stderr, sql, args
-            if args is None:
-                return cur.execute(sql)
-            else:
-                return cur.execute(sql, args)
-        except Exception, msg:
-            print >> sys.stderr, 'sqldb: execute: ', msg, threading.currentThread().getName(), sql
-            raise Exception, msg
+            try:
+                #print >> sys.stderr, sql, args
+                if args is None:
+                    return cur.execute(sql)
+                else:
+                    return cur.execute(sql, args)
+            except Exception, msg:
+                print >> sys.stderr, 'sqldb: execute: ', msg, threading.currentThread().getName(), sql
+                raise Exception, msg
         finally:
             if SQLiteCacheDB.DEBUG:
                 thread_name = threading.currentThread().getName()
@@ -581,8 +582,6 @@ class SQLiteCacheDB:
         except Exception, msg:
             print >> sys.stderr, 'sqldb: execute: ', msg, threading.currentThread().getName(), len(args), sql
             raise Exception, msg
-        finally:            
-            pass
         
     # -------- Write Operations --------
     def insert(self, table_name, **argv):
