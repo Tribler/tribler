@@ -478,7 +478,7 @@ class TriblerLaunchMany(Thread):
             self.rawserver_nonfatalerrorfunc(e)
 
     
-    def checkpoint(self,stop=False):
+    def checkpoint(self,stop=False,checkpoint=True):
         """ Called by any thread, assume sesslock already held """
         # Even if the list of Downloads changes in the mean time this is
         # no problem. For removals, dllist will still hold a pointer to the
@@ -489,32 +489,33 @@ class TriblerLaunchMany(Thread):
         if DEBUG:
             print >>sys.stderr,"tlm: checkpointing",len(dllist)
         
-        network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop)
+        network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop,checkpoint)
         self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
 
         
-    def network_checkpoint_callback(self,dllist,stop):
+    def network_checkpoint_callback(self,dllist,stop,checkpoint):
         """ Called by network thread """
-        psdict = {}
-        for d in dllist:
-            # Tell all downloads to stop, and save their persistent state
-            # in a infohash -> pstate dict which is then passed to the user
-            # for storage.
-            #
-            if DEBUG:
-                print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
-            if stop:
-                (infohash,pstate) = d.network_stop(False,False)
-            else:
-                (infohash,pstate) = d.network_checkpoint()
-            psdict[infohash] = pstate
-
-        try:
-            for infohash,pstate in psdict.iteritems():
-                self.save_download_pstate(infohash,pstate)
-        except Exception,e:
-            self.rawserver_nonfatalerrorfunc(e)
-
+        if checkpoint:
+            psdict = {}
+            for d in dllist:
+                # Tell all downloads to stop, and save their persistent state
+                # in a infohash -> pstate dict which is then passed to the user
+                # for storage.
+                #
+                if DEBUG:
+                    print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
+                if stop:
+                    (infohash,pstate) = d.network_stop(False,False)
+                else:
+                    (infohash,pstate) = d.network_checkpoint()
+                psdict[infohash] = pstate
+    
+            try:
+                for infohash,pstate in psdict.iteritems():
+                    self.save_download_pstate(infohash,pstate)
+            except Exception,e:
+                self.rawserver_nonfatalerrorfunc(e)
+    
         if stop:
             self.shutdown()
             

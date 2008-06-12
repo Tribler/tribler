@@ -318,6 +318,10 @@ class DownloadImpl:
         Called by any thread """
         if DEBUG:
             print >>sys.stderr,"DownloadImpl: restart:",`self.tdef.get_name_as_unicode()`
+            
+            
+        print_stack()
+            
         self.dllock.acquire()
         try:
             self.session.lm.rawserver.add_task(self.network_restart,0.0)

@@ -326,7 +326,11 @@ class ABCApp(wx.App):
         
         # Load all other downloads
         # TODO: reset all saved DownloadConfig to new default?
-        s.load_checkpoint()
+        if self.params[0] != "":
+            # There is something on the cmdline, start all stopped
+            s.load_checkpoint(initialdlstatus=DLSTATUS_STOPPED)
+        else:
+            s.load_checkpoint()
 
         # Create global rate limiter
         self.ratelimiter = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
@@ -467,7 +471,9 @@ class ABCApp(wx.App):
         
         self.torrentfeed.shutdown()
 
-        self.utility.session.shutdown()
+        # Don't checkpoint, interferes with current way of saving Preferences,
+        # see Tribler/Main/Dialogs/abcoption.py
+        self.utility.session.shutdown(hacksessconfcheckpoint=False) 
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker

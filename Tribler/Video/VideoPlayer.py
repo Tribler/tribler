@@ -233,7 +233,45 @@ class VideoPlayer:
                 d.set_selected_files([infilename])
             print >>sys.stderr,"main: Restarting existing Download",`ds.get_download().get_def().get_infohash()`
             d.restart()
+
+
+    def start_and_play(self,tdef,dscfg):
+        """ Called by GUI thread when Tribler started with live or video torrent on cmdline """
+
+        if not tdef.get_live():
+            videofiles = tdef.get_files(exts=videoextdefaults)
+            if len(videofiles) > 1:
+                selectedinfilename = self.ask_user_to_select_video(videofiles)
+                if selectedinfilename is None:
+                    print >>sys.stderr,"main: User selected no video"
+                    return None
+            else:
+                selectedinfilename = videofiles[0]
     
+            dscfg.set_selected_files([selectedinfilename])
+        else:
+            selectedinfilename = tdef.get_name()
+            
+        othertorrents = OTHERTORRENTS_STOP_RESTART
+        activetorrents = self.utility.session.get_downloads()
+        
+        if DEBUG:
+            for d2 in activetorrents:
+                print >>sys.stderr,"videoplay: other torrents: Currently active is",`d2.get_def().get_name()`
+        
+        if othertorrents == OTHERTORRENTS_STOP or othertorrents == OTHERTORRENTS_STOP_RESTART:
+            for d2 in activetorrents:
+                d2.stop()
+            
+        if othertorrents == OTHERTORRENTS_STOP_RESTART:
+            self.set_vod_postponed_downloads(activetorrents)
+
+        # Restart download
+        dscfg.set_video_start_callback(self.sesscb_vod_ready_callback)
+        print >>sys.stderr,"videoplay: Starting new VOD/live Download",`tdef.get_name()`
+        
+        return self.utility.session.start_download(tdef,dscfg)
+        
     
     def sesscb_vod_ready_callback(self,d,mimetype,stream,filename,length):
         """ Called by the Session when the content of the Download is ready
@@ -257,7 +295,7 @@ class VideoPlayer:
 
 
     def ask_user_to_select_video(self,videofiles):
-        dlg = VideoChooser(self.videoFrame,self.utility,videofiles,title='SwarmPlayer',expl='Select which file to play')
+        dlg = VideoChooser(self.parentwindow,self.utility,videofiles,title='Tribler',expl='Select which file to play')
         result = dlg.ShowModal()
         if result == wx.ID_OK:
             index = dlg.getChosenIndex()
@@ -444,6 +482,13 @@ class VideoPlayer:
         result = dlg.ShowModal()
         dlg.Destroy()
 
+    def set_vod_postponed_downloads(self,dlist):
+        self.vod_postponed_downloads = dlist
+        
+    def get_vod_postponed_downloads(self):
+        return self.vod_postponed_downloads
+
+
 
 class VideoChooser(wx.Dialog):
     
@@ -577,12 +622,6 @@ class VODWarningDialog(wx.Dialog):
         else:
             return ''
             
-    def set_vod_postponed_downloads(self,dlist):
-        self.vod_postponed_downloads = dlist
-        
-    def get_vod_postponed_downloads(self):
-        return self.vod_postponed_downloads
-    
 
 def parse_playtime_to_secs(hhmmss):
     if DEBUG:

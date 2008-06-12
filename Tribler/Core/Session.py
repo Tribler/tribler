@@ -528,10 +528,12 @@ class Session(SessionRuntimeConfig):
         #Called by any thread
         self.checkpoint_shutdown(stop=False)
     
-    def shutdown(self):
-        """ Checkpoints the session and closes it, stopping the download engine. """ 
+    def shutdown(self,checkpoint=True,hacksessconfcheckpoint=True):
+        """ Checkpoints the session and closes it, stopping the download engine.
+        @param checkpoint Whether to checkpoint the Session state on shutdown.
+        """ 
         # Called by any thread
-        self.checkpoint_shutdown(stop=True)
+        self.checkpoint_shutdown(stop=True,checkpoint=checkpoint,hacksessconfcheckpoint=hacksessconfcheckpoint)
         self.uch.shutdown()
         
     def get_downloads_pstate_dir(self):
@@ -620,26 +622,28 @@ class Session(SessionRuntimeConfig):
     #
     # Internal persistence methods
     #
-    def checkpoint_shutdown(self,stop):
+    def checkpoint_shutdown(self,stop,checkpoint,hacksessconfcheckpoint):
         """ Checkpoints the Session and optionally shuts down the Session.
-        @param stop Whether to shutdown the Session as well. """
+        @param stop Whether to shutdown the Session as well.
+        @param checkpoint Whether to checkpoint at all, or just to stop. """
         # Called by any thread
         self.sesslock.acquire()
         try:
-            # Arno: Temporarily disable this. At the moment setting the
-            # config at runtime is not possible (see SessionRuntimeConfig)
+            # Arno: Make checkpoint optional on shutdown. At the moment setting 
+            # the config at runtime is not possible (see SessionRuntimeConfig)
             # so this has little use, and interferes with our way of
             # changing the startup config, which is to write a new
             # config to disk that will be read at start up.
-            #try:
-            #    self.save_pstate_sessconfig()
-            #except Exception,e:
-            #    self.lm.rawserver_nonfatalerrorfunc(e)
+            if hacksessconfcheckpoint:
+                try:
+                    self.save_pstate_sessconfig()
+                except Exception,e:
+                    self.lm.rawserver_nonfatalerrorfunc(e)
 
-            # Checkpoint all Downloads
+            # Checkpoint all Downloads and stop NetworkThread
             if DEBUG:
                 print >>sys.stderr,"Session: checkpoint_shutdown"
-            self.lm.checkpoint(stop=stop)
+            self.lm.checkpoint(stop=stop,checkpoint=checkpoint)
         finally:
             self.sesslock.release()
 

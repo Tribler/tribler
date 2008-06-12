@@ -12,7 +12,6 @@ import threading
 from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
-from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
@@ -1559,15 +1558,7 @@ class standardDetails(wx.Panel):
         if os.path.isfile(torrent_filename):
             
             # Api download
-            tdef = TorrentDef.load(torrent_filename)
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            dcfg = defaultDLConfig.copy()
-            if dest:
-                dcfg.set_dest_dir(dest) # set destination dir
-            
-            #dcfg.set_selected_files(tdef.get_video_files(None)) # select all files
-            d = self.utility.session.start_download(tdef,dcfg)
-            
+            d = self.utility.frame.startDownload(torrent_filename,dest=dest)
             if d:
                 if secret:
                     self.torrent_db.setSecret(torrent['infohash'], secret)

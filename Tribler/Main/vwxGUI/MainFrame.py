@@ -61,6 +61,8 @@ from Tribler.Web2.util.update import Web2Updater
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
+from Tribler.Video.utils import videoextdefaults
+
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
@@ -237,10 +239,6 @@ class MainFrame(wx.Frame):
         if DEBUG:
             print >>sys.stderr,"abc: wxFrame: params is",self.params
 
-        if self.params[0] != "":
-            torrentfilename = self.params[0]
-            self.startDownload(torrentfilename)
-
         # Init video player
         self.videoFrame = None
         feasible = return_feasible_playback_modes(self.utility.getPath())
@@ -297,6 +295,12 @@ class MainFrame(wx.Frame):
 
         self.checkVersion()
 
+        wx.CallAfter(self.startCMDLineTorrent)
+        
+    def startCMDLineTorrent(self):
+        if self.params[0] != "":
+            torrentfilename = self.params[0]
+            self.startDownload(torrentfilename)
 
     def startDownload(self,torrentfilename,destdir=None,tdef = None):
         try:
@@ -307,7 +311,13 @@ class MainFrame(wx.Frame):
             if destdir is not None:
                 dscfg.set_dest_dir(destdir)
         
-            self.utility.session.start_download(tdef,dscfg)
+            videofiles = tdef.get_files(exts=videoextdefaults)
+            
+            if tdef.get_live() or len(videofiles) > 0:
+                videoplayer = VideoPlayer.getInstance()
+                return videoplayer.start_and_play(tdef,dscfg)
+            else:
+                return self.utility.session.start_download(tdef,dscfg)
 
         except DuplicateDownloadException:
             # show nice warning dialog
@@ -319,6 +329,7 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
 
         except Exception,e:
+            print_exc()
             self.onWarning(e)
 
         

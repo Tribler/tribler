@@ -331,6 +331,8 @@ class LibraryItemPanel(wx.Panel):
             
             finished = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
             print >> sys.stderr, '%s %s %s' % (`ds.get_download().get_def().get_name()`, ds.get_progress(), dlstatus_strings[ds.get_status()])
+            if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+                print >> sys.stderr, "ERROR IS",ds.get_error()
             progress = (ds.get_progress() or 0.0) * 100.0
             #print >> sys.stderr, '****** libraryitempanel:', torrent['torrent_id'], progress
             self.updateProgress(torrent['infohash'], progress)
@@ -570,8 +572,11 @@ class LibraryItemPanel(wx.Panel):
             if name == 'pause':
                 # ARNOCOMMENT: need to get/store/cache current status of Download somehow
                 if ds.get_status() == DLSTATUS_STOPPED:
-                    ds.get_download().restart()
-                    obj.setToggled(False)
+                    if ds.get_download().get_def().get_live():
+                        self.switch_to_vod(ds)
+                    else:
+                        ds.get_download().restart()
+                        obj.setToggled(False)
                 else:
                     ds.get_download().stop()
                     obj.setToggled(True)

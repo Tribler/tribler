@@ -83,9 +83,10 @@ class PiecePickerStreaming(PiecePicker):
         self.transporter = transporter
 
         # update its information -- pieces read from disk
-        for i in xrange(self.videostatus.first_piece,self.videostatus.last_piece+1):
-            if self.has[i]:
-                self.transporter.complete( i, downloaded=False )
+        if not self.videostatus.live_streaming:
+            for i in xrange(self.videostatus.first_piece,self.videostatus.last_piece+1):
+                if self.has[i]:
+                    self.transporter.complete( i, downloaded=False )
 
     def set_videostatus(self,videostatus):
         """ Download in a wrap-around fashion between pieces [0,numpieces).
