@@ -37,6 +37,7 @@ class VideoPlayer:
         self.extprogress = None
         self.contentname = None
 
+        self.vod_download = None
         self.vod_postponed_downloads = []
 
         
@@ -109,7 +110,7 @@ class VideoPlayer:
         if len(videofiles) == 0:
             print >>sys.stderr,"main: No video files found! Let user select"
             # Let user choose any file
-            videofiles = d.get_dest_files(videoexts=None)
+            videofiles = d.get_dest_files(exts=None)
             
         selectedinfilename = None
         selectedoutfilename= None
@@ -232,6 +233,7 @@ class VideoPlayer:
             if d.get_def().is_multifile_torrent():
                 d.set_selected_files([infilename])
             print >>sys.stderr,"main: Restarting existing Download",`ds.get_download().get_def().get_infohash()`
+            self.set_vod_download(d)
             d.restart()
 
 
@@ -270,7 +272,9 @@ class VideoPlayer:
         dscfg.set_video_start_callback(self.sesscb_vod_ready_callback)
         print >>sys.stderr,"videoplay: Starting new VOD/live Download",`tdef.get_name()`
         
-        return self.utility.session.start_download(tdef,dscfg)
+        d = self.utility.session.start_download(tdef,dscfg)
+        self.set_vod_download(d)
+        return d
         
     
     def sesscb_vod_ready_callback(self,d,mimetype,stream,filename,length):
@@ -488,7 +492,11 @@ class VideoPlayer:
     def get_vod_postponed_downloads(self):
         return self.vod_postponed_downloads
 
-
+    def set_vod_download(self,d):
+        self.vod_download = d
+        
+    def get_vod_download(self):
+        return self.vod_download
 
 class VideoChooser(wx.Dialog):
     

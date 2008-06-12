@@ -373,9 +373,10 @@ class ABCApp(wx.App):
             currdlist = []
             for ds in dslist:
                 currdlist.append(ds.get_download())
+            vodd = self.videoplayer.get_vod_download()
             for ds in dslist:
-                if ds.is_vod() and ds.get_status() == DLSTATUS_SEEDING:
-                    # I assume there is only one of such torrents
+                d = ds.get_download()
+                if d == vodd and ds.get_status() == DLSTATUS_SEEDING:
                     restartdlist = self.videoplayer.get_vod_postponed_downloads()
                     self.videoplayer.set_vod_postponed_downloads([]) # restart only once
                     for d in restartdlist:

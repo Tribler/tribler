@@ -436,7 +436,7 @@ class LibraryItemPanel(wx.Panel):
             self.boost.setEnabled(showBoost)
             self.boost.setToggled(self.is_boosted(), tooltip = {"disabled" : self.utility.lang.get('boostDisabled'), "enabled" : self.utility.lang.get('boostEnabled')})
             
-            self.pause.setToggled(ds.get_status() == DLSTATUS_STOPPED)
+            self.pause.setToggled(ds.get_status() == DLSTATUS_STOPPED or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
                         
                 
         elif torrent: # inactive torrent
@@ -571,7 +571,7 @@ class LibraryItemPanel(wx.Panel):
 #                            
             if name == 'pause':
                 # ARNOCOMMENT: need to get/store/cache current status of Download somehow
-                if ds.get_status() == DLSTATUS_STOPPED:
+                if ds.get_status() == DLSTATUS_STOPPED or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                     if ds.get_download().get_def().get_live():
                         self.switch_to_vod(ds)
                     else:

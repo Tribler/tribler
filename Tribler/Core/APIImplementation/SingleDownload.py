@@ -95,6 +95,8 @@ class SingleDownload:
                 resumedata=pstate['engineresumedata']
             self._hashcheckfunc = self.dow.initFiles(resumedata=resumedata)
             
+            self.lmhashcheckcompletecallback = None
+            
         except Exception,e:
             self.fatalerrorfunc(e)
     
@@ -122,7 +124,8 @@ class SingleDownload:
         try:
             """ Schedules actually hashcheck on network thread """
             self._getstatsfunc = SPECIAL_VALUE # signal we're hashchecking
-            self._hashcheckfunc(complete_callback)
+            self.lmhashcheckcompletecallback = complete_callback
+            self._hashcheckfunc(self.lmhashcheckcompletecallback)
         except Exception,e:
             self.fatalerrorfunc(e)
             
@@ -216,6 +219,11 @@ class SingleDownload:
             self.dow = None
             if DEBUG:
                 print >>sys.stderr,"SingleDownload: stopped dow"
+                
+        if self._getstatsfunc == SPECIAL_VALUE:
+            # Hashchecking while being shutdown, signal LaunchMany
+            # so it can schedule a new one.
+            self.lmhashcheckcompletecallback(success=False)
         return resumedata
 
     #

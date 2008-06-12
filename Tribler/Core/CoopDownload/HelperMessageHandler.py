@@ -18,7 +18,7 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
-DEBUG = True
+DEBUG = False
 
 class HelperMessageHandler:
     def __init__(self):

@@ -1541,7 +1541,6 @@ class standardDetails(wx.Panel):
             return True
 
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
-        print_stack()
         print >> sys.stderr, 'got torrent to download', 'torrent_file_name' in torrent, torrent
         if 'torrent_file_name' not in torrent:
             filename = get_filename(torrent['infohash']) 
@@ -1558,7 +1557,7 @@ class standardDetails(wx.Panel):
         if os.path.isfile(torrent_filename):
             
             # Api download
-            d = self.utility.frame.startDownload(torrent_filename,dest=dest)
+            d = self.utility.frame.startDownload(torrent_filename,destdir=dest)
             if d:
                 if secret:
                     self.torrent_db.setSecret(torrent['infohash'], secret)

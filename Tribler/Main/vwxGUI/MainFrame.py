@@ -300,9 +300,9 @@ class MainFrame(wx.Frame):
     def startCMDLineTorrent(self):
         if self.params[0] != "":
             torrentfilename = self.params[0]
-            self.startDownload(torrentfilename)
+            self.startDownload(torrentfilename,cmdline=True)
 
-    def startDownload(self,torrentfilename,destdir=None,tdef = None):
+    def startDownload(self,torrentfilename,destdir=None,tdef = None, cmdline = False):
         try:
             if tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
@@ -313,7 +313,7 @@ class MainFrame(wx.Frame):
         
             videofiles = tdef.get_files(exts=videoextdefaults)
             
-            if tdef.get_live() or len(videofiles) > 0:
+            if tdef.get_live() or (cmdline and len(videofiles) > 0):
                 videoplayer = VideoPlayer.getInstance()
                 return videoplayer.start_and_play(tdef,dscfg)
             else:
@@ -540,7 +540,7 @@ class MainFrame(wx.Frame):
         # (might not be able to in case of shutting down windows)
         if event is not None:
             try:
-                if event.CanVeto() and self.utility.config.Read('confirmonclose', "boolean") and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
+                if isinstance(event,wx.CloseEvent) and event.CanVeto() and self.utility.config.Read('confirmonclose', "boolean") and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
                     dialog = wx.MessageDialog(None, self.utility.lang.get('confirmmsg'), self.utility.lang.get('confirm'), wx.OK|wx.CANCEL)
                     result = dialog.ShowModal()
                     dialog.Destroy()
