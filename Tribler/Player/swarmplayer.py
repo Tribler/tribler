@@ -259,7 +259,7 @@ class PlayerApp(wx.App):
         if len(videofiles) == 0:
             print >>sys.stderr,"main: No video files found! Let user select"
             # Let user choose any file
-            videofiles = tdef.get_files(videoexts=None)
+            videofiles = tdef.get_files(exts=None)
             
         if len(videofiles) > 1:
             selectedvideofile = self.ask_user_to_select_video(videofiles)
