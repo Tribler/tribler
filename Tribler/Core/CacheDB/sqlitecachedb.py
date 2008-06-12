@@ -131,7 +131,7 @@ class SQLiteCacheDB:
     commit_begined = safe_dict()   # thread_name:Boolean
 
     lib = None
-    DEBUG = True
+    DEBUG = False
 
     def getInstance(*args, **kw):
         # Singleton pattern with double-checking to ensure that it can only create one object
