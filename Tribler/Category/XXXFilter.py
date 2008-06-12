@@ -88,7 +88,7 @@ class XXXFilter:
         
         return False
 
-    audio_extensions = ['cda', 'flac', 'm3u', 'mp2', 'mp3', 'md5', 'mp4', 'vorbis', 'wav', 'wma']
+    audio_extensions = ['cda', 'flac', 'm3u', 'mp2', 'mp3', 'md5', 'vorbis', 'wav', 'wma', 'ogg']
     def isAudio(self, s):
         return s[s.rfind('.')+1:] in self.audio_extensions
     

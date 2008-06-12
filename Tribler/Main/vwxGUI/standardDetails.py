@@ -16,6 +16,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+from Tribler.Core.Overlay.MetadataHandler import get_filename
 from Tribler.Main.Utility.constants import COL_PROGRESS
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -1541,6 +1542,10 @@ class standardDetails(wx.Panel):
             return True
 
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
+        print_stack()
+        print >> sys.stderr, 'got torrent to download', 'torrent_file_name' in torrent, torrent
+        if 'torrent_file_name' not in torrent:
+            filename = get_filename(torrent['infohash']) 
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
 
         if torrent.get('name'):
@@ -1592,7 +1597,7 @@ class standardDetails(wx.Panel):
             else:
                 return False
 
-    def sesscb_got_requested_torrent(self,infohash,metadata):
+    def sesscb_got_requested_torrent(self,infohash,metadata,filename):
         """ The torrent file requested from another peer came in.
         @param infohash The infohash of the torrent file.
         @param metadata The contents of the torrent file (still bencoded)
@@ -1602,6 +1607,7 @@ class standardDetails(wx.Panel):
         
         # ARNOCOMMENT: h4x0r this
         torrent = {}
+        torrent['torrent_file_name'] = filename
         torrent['infohash'] = infohash
         
         wx.CallAfter(self.download,torrent)

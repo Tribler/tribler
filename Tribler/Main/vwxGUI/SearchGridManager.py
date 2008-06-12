@@ -144,8 +144,8 @@ class TorrentSearchGridManager:
                 
     def setSearchKeywords(self,wantkeywords, mode):
         
-        if len(wantkeywords) == 0:
-            print_stack()
+#        if len(wantkeywords) == 0:
+#            print_stack()
         
         self.searchkeywords[mode] = wantkeywords
         if mode == 'filesMode':

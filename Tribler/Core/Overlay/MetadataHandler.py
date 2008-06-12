@@ -28,6 +28,22 @@ overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00
 
 Max_Torrent_Size = 2*1024*1024    # 2MB torrent = 6GB ~ 250GB content
 
+
+def get_filename(infohash, metadata=None, humanreadable=False):
+    # Arno: Better would have been the infohash in hex.
+    if humanreadable:
+        torrent = bdecode(metadata)
+        raw_name = torrent['info'].get('name','')
+        file_name = get_readable_torrent_name(infohash, raw_name)
+    else:
+        file_name = sha(infohash).hexdigest()+'.torrent'    # notice: it's sha1-hash of infohash
+    #_path = os.path.join(self.torrent_dir, file_name)
+    #if os.path.exists(_path):
+        # assign a name for the torrent. add a timestamp if it exists.
+        #file_name = str(time()) + '_' + file_name 
+    return file_name
+    # exceptions will be handled by got_metadata()
+
 class MetadataHandler:
     
     __single = None
@@ -101,11 +117,11 @@ class MetadataHandler:
         if not isValidInfohash(infohash):
             return False
         
-        metadata = self.torrent_exists(infohash)
-        if metadata is not None:    # torrent already exists on disk
+        filename,metadata = self.torrent_exists(infohash)
+        if filename is not None:    # torrent already exists on disk
             if DEBUG:
                 print >> sys.stderr,"metadata: send_meta_req: Already on disk??!"
-            self.notify_torrent_is_in(infohash, metadata)
+            self.notify_torrent_is_in(infohash, metadata, filename)
             return True
         
         if caller == "dlhelp":
@@ -133,16 +149,16 @@ class MetadataHandler:
     def torrent_exists(self, infohash):
         # if the torrent is already on disk, put it in db
         
-        file_name = sha(infohash).hexdigest()+'.torrent'
+        file_name = get_filename(infohash)
         torrent_path = os.path.join(self.torrent_dir, file_name)
         if not os.path.exists(torrent_path):
-            return None
+            return None,None
         else:
             metadata = self.read_torrent(torrent_path)
             if not self.valid_metadata(infohash, metadata):
                 return None
             self.addTorrentToDB(torrent_path, infohash, metadata, source="BC", extra_info={})
-            return metadata
+            return file_name, metadata
 
     def get_metadata_connect_callback(self,exc,dns,permid,selversion,infohash):
         if exc is None:
@@ -406,7 +422,7 @@ class MetadataHandler:
                 self.warn_disk_full()
                 return
         
-        file_name = self.get_filename(infohash, metadata)
+        file_name = get_filename(infohash, metadata)
         if DEBUG:
             print >> sys.stderr,"metadata: Storing torrent", sha(infohash).hexdigest(),"in",file_name
         
@@ -416,6 +432,8 @@ class MetadataHandler:
             self.free_space -= len(metadata)
             self.addTorrentToDB(save_path, infohash, metadata, source=source, extra_info=extra_info)
             # check if space is enough and remove old torrents
+            
+        return file_name
         
         
     def refreshTrackerStatus(self, torrent):
@@ -424,21 +442,6 @@ class MetadataHandler:
             print >> sys.stderr, "metadata: checking tracker status of new torrent"
         check = TorrentChecking(torrent['infohash'])
         check.start()
-        
-    def get_filename(self,infohash, metadata, humanreadable=False):
-        # Arno: Better would have been the infohash in hex.
-        if humanreadable:
-            torrent = bdecode(metadata)
-            raw_name = torrent['info'].get('name','')
-            file_name = get_readable_torrent_name(infohash, raw_name)
-        else:
-            file_name = sha(infohash).hexdigest()+'.torrent'    # notice: it's sha1-hash of infohash
-        #_path = os.path.join(self.torrent_dir, file_name)
-        #if os.path.exists(_path):
-            # assign a name for the torrent. add a timestamp if it exists.
-            #file_name = str(time()) + '_' + file_name 
-        return file_name
-        # exceptions will be handled by got_metadata()
         
     def write_torrent(self, metadata, dir, name):
         try:
@@ -516,13 +519,13 @@ class MetadataHandler:
                     print >> sys.stderr, "metadata: wrong extra info in msg - ", message
                     extra_info = {}
                 
-            self.save_torrent(infohash, metadata, extra_info=extra_info)
+            filename = self.save_torrent(infohash, metadata, extra_info=extra_info)
             self.requested_torrents.remove(infohash)
             
             if DEBUG:
                 print >>sys.stderr,"metadata: Was I asked to dlhelp someone",self.dlhelper
 
-            self.notify_torrent_is_in(infohash,metadata)
+            self.notify_torrent_is_in(infohash,metadata,filename)
             
             
             # BarterCast: add bytes of torrent to BarterCastDB
@@ -538,11 +541,11 @@ class MetadataHandler:
         
         return True
 
-    def notify_torrent_is_in(self,infohash,metadata):
+    def notify_torrent_is_in(self,infohash,metadata,filename):
         if self.dlhelper is not None:
             self.dlhelper.metadatahandler_received_torrent(infohash, metadata)
         if self.rquerytorrenthandler is not None:
-            self.rquerytorrenthandler.metadatahandler_got_torrent(infohash,metadata)
+            self.rquerytorrenthandler.metadatahandler_got_torrent(infohash,metadata,filename)
         
     def get_num_torrents(self):
         return self.num_torrents

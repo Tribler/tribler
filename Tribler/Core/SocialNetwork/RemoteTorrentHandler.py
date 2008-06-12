@@ -56,7 +56,7 @@ class RemoteTorrentHandler:
         if DEBUG:
             print >>sys.stderr,'rtorrent: download: Requested torrent: %s' % `infohash`
        
-    def metadatahandler_got_torrent(self,infohash,metadata):
+    def metadatahandler_got_torrent(self,infohash,metadata,filename):
         """ Called by MetadataHandler when the requested torrent comes in """
         #Called by overlay thread
 
@@ -68,5 +68,5 @@ class RemoteTorrentHandler:
         usercallback = self.requestedtorrents[infohash]
         del self.requestedtorrents[infohash]
         
-        remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata)
+        remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
         self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)

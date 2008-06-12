@@ -225,7 +225,8 @@ class GridManager(object):
         
     def item_network_callback(self, *args):
         # only handle network callbacks when grid is shown
-        #print >> sys.stderr, '**** item_network_callback', args
+        #print >> sys.stderr, '******** standardGrid: item_network_callback', args
+        #print >> sys.stderr, '***** search?', self.torrentsearch_manager.inSearchMode(self.state.db)
         if not self.grid.isShowByOverview():
             self.callbacks_disabled = True
             self.session.remove_observer(self.item_network_callback) #unsubscribe this function
@@ -246,7 +247,10 @@ class GridManager(object):
     
     def itemAdded(self,subject, objectID, args):
         #if self._last_page(): # This doesn't work as the pager is not updated if page becomes full
-        if self.isRelevantItem(subject, objectID):
+        #print >> sys.stderr, '******* standard Grid: itemAdded:', objectID, args, 'search?', self.torrentsearch_manager.inSearchMode(self.state.db) 
+        if self.torrentsearch_manager.inSearchMode(self.state.db):
+            wx.CallAfter(self.refresh)
+        elif self.isRelevantItem(subject, objectID):
             task_id = str(subject) + str(int(time())/self.refresh_rate)
             self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             # that's important to add the task 3 seconds later, to ensure the task will be executed at proper time  
