@@ -70,8 +70,8 @@ REM py2exe does this: copy SSLEAY32.dll dist\installdir
 REM copy LIBEAY32.dll dist\installdir
 
 copy Tribler\binary-LICENSE.txt dist\installdir
-copy Tribler\tribler_sdb_v1.sql dist\installdir
 mkdir dist\installdir\Tribler
+copy Tribler\tribler_sdb_v1.sql dist\installdir\Tribler
 mkdir dist\installdir\Tribler\Core
 copy Tribler\Core\superpeer.txt dist\installdir\Tribler\Core
 mkdir dist\installdir\Tribler\Images
