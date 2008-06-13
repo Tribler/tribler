@@ -187,15 +187,16 @@ class VideoPlayer:
         """ Called by GUI thread when clicking "Play ASAP" button """
 
         d = ds.get_download()
+        tdef = d.get_def()
         # For multi-file torrent: when the user selects a different file, play that
         oldselectedfile = None
-        if ds.is_vod():
+        if not tdef.get_live() and ds.is_vod():
             oldselectedfiles = d.get_selected_files()
             oldselectedfile = oldselectedfiles[0] # Should be just one
         
         # 1. (Re)Start torrent in VOD mode
         switchfile = (oldselectedfile is not None and oldselectedfile != infilename) 
-        if not ds.is_vod() or switchfile:
+        if not ds.is_vod() or switchfile or tdef.get_live():
             
             if switchfile:
                 if self.playbackmode == PLAYBACKMODE_INTERNAL:
