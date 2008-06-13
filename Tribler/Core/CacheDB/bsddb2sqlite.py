@@ -584,7 +584,7 @@ class Bsddb2Sqlite:
             self.convert_PreferenceDB()
             
             self.sdb.close()
-            self.remove_bsddb()
+            #self.remove_bsddb()
             
             return True
         else:
