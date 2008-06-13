@@ -88,7 +88,7 @@ class TriblerLaunchMany(Thread):
         # Following 2 attributes set/get by UPnPThread
         self.upnp_thread = None
         self.upnp_type = config['upnp_nat_access']
-
+        self.nat_detect = config['nat_detect']
 
         self.rawserver = RawServer(self.sessdoneflag,
                                    config['timeout_check_interval'],
@@ -329,11 +329,11 @@ class TriblerLaunchMany(Thread):
     def _run(self):
         """ Called only once by network thread """
 
-	try:
-	    self.start_nat_type_detect()
-	except:
-	    print_exc()
-
+        if self.nat_detect:
+            try:
+                self.start_nat_type_detect()
+            except:
+                print_exc()
         try:
             try:
                 self.start_upnp()

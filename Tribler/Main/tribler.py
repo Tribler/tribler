@@ -290,6 +290,7 @@ class ABCApp(wx.App):
             # Set default Session params here
             torrcolldir = os.path.join(get_default_dest_dir(),STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
+            self.sconfig.set_nat_detect(True)
             
             # rename old collected torrent directory
             try:
@@ -348,7 +349,7 @@ class ABCApp(wx.App):
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
         print >>sys.stderr,"main: Stats:"
-        #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
+        print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
             # Pass DownloadStates to libaryView
             try:

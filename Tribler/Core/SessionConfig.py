@@ -1055,6 +1055,13 @@ class SessionConfigInterface:
     #
     # NAT Puncturing servers information setting
     #
+    def set_nat_detect(self,value):
+        """ Whether to try to detect the type of Network Address Translator
+        in place.
+        @param value Boolean.
+        """
+        self.sessconfig['nat_detect'] = value
+    
     def set_puncturing_private_port(self, puncturing_private_port):
         """ The listening port of the puncturing client.
         @param puncturing_private_port integer. """
@@ -1071,6 +1078,13 @@ class SessionConfigInterface:
         self.sessconfig['puncturing_coordinators'] = puncturing_coordinators
 
     # Puncturing servers information retrieval
+    def get_nat_detect(self):
+        """ Whether to try to detect the type of Network Address Translator
+        in place.
+        @return Boolean
+        """
+        return self.sessconfig['nat_detect']
+    
     def get_puncturing_private_port(self):
         """ Returns the listening port of the puncturing client.
         @return integer. """

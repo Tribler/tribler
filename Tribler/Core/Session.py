@@ -165,8 +165,9 @@ class Session(SessionRuntimeConfig):
                 os.mkdir(self.sessconfig['peer_icon_path'])
 
         # 7. NAT type detection
-        if not 'puncturing_private_port' in self.sessconfig:
+        if not 'nat_detect' in self.sessconfig:
             # Poor man's versioning, really should update PERSISTENTSTATE_CURRENTVERSION
+            self.sessconfig['nat_detect'] = sessdefaults['nat_detect']
             self.sessconfig['puncturing_private_port'] = sessdefaults['puncturing_private_port']
             self.sessconfig['stun_servers'] = sessdefaults['stun_servers']
             self.sessconfig['puncturing_coordinators'] = sessdefaults['puncturing_coordinators']

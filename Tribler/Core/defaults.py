@@ -62,6 +62,7 @@ sessdefaults['peer_icon_path'] = None
 sessdefaults['stop_collecting_threshold'] = 200
 sessdefaults['coopdlconfig'] = None
 sessdefaults['family_filter'] = True
+sessdefaults['nat_detect'] = False
 sessdefaults['puncturing_private_port'] = 6700
 sessdefaults['stun_servers'] = [('stun1.tribler.org',6701),('stun2.tribler.org',6702)]
 sessdefaults['puncturing_coordinators'] = [('puncturing.tribler.org',6703)]

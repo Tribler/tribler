@@ -840,6 +840,9 @@ class SessionRuntimeConfig(SessionConfigInterface):
     #
     # NAT Puncturing servers information setting/retrieval
     #
+    def set_nat_detect(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+    
     def set_puncturing_private_port(self, puncturing_private_port):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -848,6 +851,13 @@ class SessionRuntimeConfig(SessionConfigInterface):
 
     def set_puncturing_coordinators(self, puncturing_coordinators):
         raise OperationNotPossibleAtRuntimeException()
+
+    def get_nat_detect(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_nat_detect(self)
+        finally:
+            self.sesslock.release()
 
     def get_puncturing_private_port(self):
         self.sesslock.acquire()
