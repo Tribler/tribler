@@ -89,6 +89,8 @@ Section "!Main EXE" SecMain
  Delete "$INSTDIR\*.zip"
  File *.zip
  CreateDirectory "$INSTDIR\Tribler"
+ SetOutPath "$INSTDIR\Tribler"
+ File Tribler\*.sql
  CreateDirectory "$INSTDIR\Tribler\Core"
  SetOutPath "$INSTDIR\Tribler\Core"
  File Tribler\Core\*.txt
@@ -105,7 +107,7 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images"
-  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI"
+ SetOutPath "$INSTDIR\Tribler\Main\vwxGUI"
  File Tribler\Main\vwxGUI\*.*
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images"
  File Tribler\Main\vwxGUI\images\*.*
