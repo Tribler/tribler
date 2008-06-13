@@ -81,7 +81,10 @@ class GridManager(object):
         """
         if not self.grid.initReady:
             wx.CallAfter(self.refresh)
-            
+
+        if self.state is None:
+            return
+        
         if update_observer:
             self.setObserver()
             
@@ -144,7 +147,6 @@ class GridManager(object):
         return self.cache_numbers[key]
     
     def _getData(self, state):
-        
         #import threading
         #print >> sys.stderr, 'threading>>','****'*10, threading.currentThread().getName()
         

@@ -863,6 +863,7 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             src_int = self._insertNewSrc(src)    # add a new src, e.g., a RSS feed
             self.src_table[src] = src_int
+            self.id2src[src_int] = src
         return src_int
 
     def _addTorrentToDB(self, infohash, data, commit=True):
