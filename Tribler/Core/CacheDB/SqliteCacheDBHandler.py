@@ -1153,8 +1153,12 @@ class TorrentDBHandler(BasicDBHandler):
         
         if category_name != 'all':
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
-        if library and sort in value_name:
-            where += ' and torrent_id in (select torrent_id from MyPreference)'
+        if library:
+            if sort in value_name:
+                where += ' and torrent_id in (select torrent_id from MyPreference)'
+            else:
+                value_name[0] = 'C.torrent_id'
+                where += ' and C.torrent_id = M.torrent_id'
         else:
             where += ' and status_id=%d ' % self.status_table['good'] # if not library, show only good files
             # add familyfilter
@@ -1177,11 +1181,9 @@ class TorrentDBHandler(BasicDBHandler):
         #print_stack
             
         if library and sort not in value_name:
-            value_name[0] = 'C.torrent_id'
-            where += ' and C.torrent_id = M.torrent_id'
             res_list = self._db.getAll('CollectedTorrent C, MyPreference M', value_name, where, limit=limit, offset=offset, order_by=order_by)
             #print_stack()
-            print >> sys.stderr, '*** dbhandler: getTorrents sort by progress', res_list
+            #print >> sys.stderr, '*** dbhandler: getTorrents sort by progress', res_list
         else:
             res_list = self._db.getAll('CollectedTorrent', value_name, where, limit=limit, offset=offset, order_by=order_by)
         
