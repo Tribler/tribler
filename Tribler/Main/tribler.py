@@ -349,7 +349,7 @@ class ABCApp(wx.App):
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
         print >>sys.stderr,"main: Stats:"
-        print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
+        #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
             # Pass DownloadStates to libaryView
             try:
