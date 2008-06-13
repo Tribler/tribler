@@ -990,7 +990,7 @@ class TorrentDBHandler(BasicDBHandler):
         # to.do: update the torrent panel's number of seeders/leechers 
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
-    def updateTracker(self, infohash, kw, tier=1, tracker=None):
+    def updateTracker(self, infohash, kw, tier=1, tracker=None, commit=True):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
             return
@@ -1011,6 +1011,9 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             where = 'torrent_id=%d AND tracker=%s'%(torrent_id, repr(tracker))
         self._db.update('TorrentTracker', where, **update)
+
+        if commit:
+            self.commit()
         #self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
     def deleteTorrent(self, infohash, delete_file=False, commit = True):
