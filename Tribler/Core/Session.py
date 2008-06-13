@@ -20,6 +20,7 @@ from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.NATFirewall.PuncturingClient import PuncturingClient
 
 DEBUG = True
 
@@ -162,6 +163,13 @@ class Session(SessionRuntimeConfig):
             self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'],STATEDIR_PEERICON_DIR)
             if not os.path.isdir(self.sessconfig['peer_icon_path']):
                 os.mkdir(self.sessconfig['peer_icon_path'])
+
+        # 7. NAT type detection
+        if not 'puncturing_private_port' in self.sessconfig:
+            # Poor man's versioning, really should update PERSISTENTSTATE_CURRENTVERSION
+            self.sessconfig['puncturing_private_port'] = sessdefaults['puncturing_private_port']
+            self.sessconfig['stun_servers'] = sessdefaults['stun_servers']
+            self.sessconfig['puncturing_coordinators'] = sessdefaults['puncturing_coordinators']
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()
@@ -671,3 +679,23 @@ class Session(SessionRuntimeConfig):
         basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
         return os.path.join(trackerdir,basename)
 
+    def get_nat_type(self):
+        """ Return the type of Network Address Translator (NAT) detected.
+        Return values:
+        "Blocked"
+        "Open Internet"
+        "Restricted Cone Firewall"
+        "Port Restricted Cone Firewall"
+        "Full Cone NAT"
+        "Restricted Cone NAT"
+        "Port Restricted Cone NAT"
+        "Symmetric NAT"
+        @return String 
+        """
+        # TODO: define constants in simpledefs for these
+        # Called by any thread
+        self.sesslock.acquire()
+        try:
+            return PuncturingClient.getInstance().get_nat_type()
+        finally:
+            self.sesslock.release()

@@ -56,7 +56,6 @@ class GUIUtility:
         self.triblerRed = wx.Colour(255, 51, 0)
         self.max_remote_queries = 10    # max number of remote peers to query
         self.remote_search_threshold = 20    # start remote search when results is less than this number
-            
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
             GUIUtility(*args, **kw)
@@ -418,7 +417,10 @@ class GUIUtility:
         except:
             text = invitation_body.split("\n")
             InviteFriendsDialog(text)
-        
+
+    def get_nat_type(self):
+        return self.utility.session.get_nat_type()
+
     def dosearch(self):
         sf = self.standardOverview.getSearchField()
         if sf is None:

@@ -72,7 +72,6 @@ NTFY_ACT_RECOMMEND = 6
 NTFY_ACT_DISK_FULL = 7
 NTFY_ACT_NEW_VERSION = 8
  
- 
 # Disk-allocation policies for download, see DownloadConfig.set_alloc_type
 DISKALLOC_NORMAL = 'normal'              
 DISKALLOC_BACKGROUND = 'background'      

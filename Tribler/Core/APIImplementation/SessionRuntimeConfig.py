@@ -837,3 +837,35 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
+    #
+    # NAT Puncturing servers information setting/retrieval
+    #
+    def set_puncturing_private_port(self, puncturing_private_port):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def set_stun_servers(self, stun_servers):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def set_puncturing_coordinators(self, puncturing_coordinators):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_puncturing_private_port(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_puncturing_private_port(self)
+        finally:
+            self.sesslock.release()
+
+    def get_stun_servers(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_stun_servers(self)
+        finally:
+            self.sesslock.release()
+
+    def get_puncturing_coordinators(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_puncturing_coordinators(self)
+        finally:
+            self.sesslock.release()

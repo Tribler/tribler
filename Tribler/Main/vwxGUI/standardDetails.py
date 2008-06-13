@@ -29,6 +29,7 @@ from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.CacheDB.CacheDBHandler import GUIDBHandler, BarterCastDBHandler
 from Tribler.Core.CacheDB.EditDist import editDist
 
+
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
 DEBUG = False
@@ -858,7 +859,8 @@ class standardDetails(wx.Panel):
                 self.getGuiObj('descriptionField2', tab = 'profileDetails_Download').SetLabel(text % count)
                 text = self.utility.lang.get("profileDetails_Download_Friends_improve", giveerror=False)
                 self.getGuiObj('descriptionField3', tab = 'profileDetails_Download').SetLabel(text)
-                
+
+                nat =  item.get('nat_type') 
                 if self.guiUtility.isReachable():
                     text1 = self.utility.lang.get("profileDetails_Download_VisibleYes", giveerror=False)
                     text2 = self.utility.lang.get("profileDetails_Download_VisibleYes_improve", giveerror=False)
@@ -867,7 +869,7 @@ class standardDetails(wx.Panel):
                 else:
                     text1 = self.utility.lang.get("profileDetails_Download_VisibleNo", giveerror=False)
                     text2 = self.utility.lang.get("profileDetails_Download_VisibleNo_improve", giveerror=False)
-                    self.getGuiObj('descriptionField4', tab = 'profileDetails_Download').SetLabel(text1)
+                    self.getGuiObj('descriptionField4', tab = 'profileDetails_Download').SetLabel(text1 % nat)
                     self.getGuiObj('descriptionField5', tab = 'profileDetails_Download').SetLabel(text2)
 
             # --------------------------------------------------------------------------------------------------------------------------------------------------------        

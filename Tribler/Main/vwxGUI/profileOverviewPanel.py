@@ -11,6 +11,7 @@ from time import time
 from traceback import print_exc
 import urllib
 
+
 class ProfileOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
@@ -201,6 +202,7 @@ class ProfileOverviewPanel(wx.Panel):
         self.update_url = 'http://tribler.org'
         self.new_version = 'unknown'
         self.check_result = -3 #unknown check result, -2 means error, -1 means newer version on the client, 0 means same version, 1 means newer version on the website
+	self.nat_type = -1
         
     def reloadData(self, event=None):
         """updates the fields in the panel with new data if it has changed"""
@@ -216,7 +218,7 @@ class ProfileOverviewPanel(wx.Panel):
         max_overall_index_bar = 6 #the maximal value the overall bar can have
         
         #--- Quality of tribler recommendation
-        #<<<get the number of downloads for this user
+        #get the number of downloads for this user
 
         count = len(self.mypref.getMyPrefList())
         index_q = self.indexValue(count,100, max_index_bar) #from 0 to 5
@@ -228,7 +230,7 @@ class ProfileOverviewPanel(wx.Panel):
                 self.getGuiElement("perf_Quality").setIndex(index_q)
                     
         #--- Discovered files
-        #<<<get the number of files
+        #get the number of files
         count = int(self.torrent_db.getNumberTorrents())
         index_f = self.indexValue(count,3000, max_index_bar) #from 0 to 5
         if count != self.discovered_files:
@@ -239,7 +241,7 @@ class ProfileOverviewPanel(wx.Panel):
                 self.getGuiElement("perf_Files").setIndex(index_f)
 
         #--- Discovered persons
-        #<<<get the number of peers
+        #get the number of peers
         count = int(self.peer_db.getNumberPeers())
         index_p = self.indexValue(count,2000, max_index_bar) #from 0 to 5
         if count != self.discovered_persons:
@@ -250,7 +252,7 @@ class ProfileOverviewPanel(wx.Panel):
                 self.getGuiElement("perf_Persons").setIndex(index_p)
 
         #--- Optimal download speed
-        #<<<set the download stuff
+        #set the download stuff
         index_1 = 0
         #get upload rate, download rate, upload slots: maxupload': '5', 'maxuploadrate': '0', 'maxdownloadrate': '0'
         maxuploadrate = self.guiUtility.utility.config.Read('maxuploadrate', 'int') #kB/s
@@ -260,11 +262,11 @@ class ProfileOverviewPanel(wx.Panel):
             index_1 = max_index_bar
         else: #between 0 and 100KB/s
             index_1 = self.indexValue(maxuploadrate,100, max_index_bar) #from 0 to 5
-        #<<<set the reachability value
+        #set the reachability value
         index_2 = 0
         if self.guiUtility.isReachable():
             index_2 = max_index_bar
-        #<<<get the number of friends
+        #get the number of friends
         count = len(self.friend_db.getFriends())
         index_h = self.indexValue(count,20, max_index_bar) #from 0 to 5
         bMoreFriends = False
@@ -274,6 +276,15 @@ class ProfileOverviewPanel(wx.Panel):
         index_s = self.indexValue(index_1+index_2+index_h, 3*max_index_bar, max_index_bar)
         if self.max_upload_rate!=maxuploadrate or self.is_reachable!=self.guiUtility.isReachable or bMoreFriends:
             self.data['number_friends']=count
+	#get the NAT type
+	natinfo = self.guiUtility.get_nat_type()
+	natChange = False
+        if self.nat_type!=natinfo:
+	    natChange = True
+            self.nat_type= natinfo
+	if self.max_upload_rate!=maxuploadrate or self.is_reachable!=self.guiUtility.isReachable or natChange:
+	    self.data['nat_type']=natinfo
+
             bShouldRefresh = True
             self.max_upload_rate = maxuploadrate
             self.is_reachable = self.guiUtility.isReachable
@@ -281,9 +292,9 @@ class ProfileOverviewPanel(wx.Panel):
                 self.getGuiElement("perf_Download").setIndex(index_s)
 
         #--- Network reach
-        #<<<get the number of friends
+        #get the number of friends
         #use index_h computed above
-        #<<<get new version
+        #get new version
         index_v = 0
         bCheckVersionChange = self.newversion
         if bCheckVersionChange:
@@ -303,7 +314,7 @@ class ProfileOverviewPanel(wx.Panel):
                 self.getGuiElement("perf_Presence").setIndex(index_n)
 
         #--- Overall performance
-        #<<<set the overall performance to a random number
+        #set the overall performance to a random number
         overall_index = self.indexValue(index_q+index_p+index_f+index_s+index_n, 5*max_index_bar, max_overall_index_bar)
         elem = self.getGuiElement("perf_Overall")
         if overall_index != elem.getIndex() or self.data.get('overall_rank') is None:
@@ -430,3 +441,4 @@ class ProfileOverviewPanel(wx.Panel):
             elif curr_v < my_v:
                 return -1
         return 0 
+

@@ -260,7 +260,10 @@ class ABCApp(wx.App):
             #print "DIM",wx.GetDisplaySize()
             #print "MM",wx.GetDisplaySizeMM()
 
-            wx.CallAfter(self.startWithRightView)            
+            wx.CallAfter(self.startWithRightView)
+            # Delay this so GUI has time to paint
+            wx.CallAfter(self.loadSessionCheckpoint)
+                        
             
         except Exception,e:
             print_exc()
@@ -303,10 +306,6 @@ class ABCApp(wx.App):
         
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
-        
-        
-        # ARNOCOMMENT: Not yet working as Jie's sqlDB stuff was not yet 
-        # instrumented with notifier calls.
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
 
@@ -323,14 +322,9 @@ class ABCApp(wx.App):
         #print >>sys.stderr,"main: Read dlconfig",defaultDLConfig.dlconfig
 
         s.set_coopdlconfig(defaultDLConfig)
-        
-        # Load all other downloads
-        # TODO: reset all saved DownloadConfig to new default?
-        if self.params[0] != "":
-            # There is something on the cmdline, start all stopped
-            s.load_checkpoint(initialdlstatus=DLSTATUS_STOPPED)
-        else:
-            s.load_checkpoint()
+
+        # Loading of checkpointed Downloads delayed to allow GUI to paint,
+        # see loadSessionCheckpoint
 
         # Create global rate limiter
         self.ratelimiter = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
@@ -345,8 +339,7 @@ class ABCApp(wx.App):
  
         # Only allow updates to come in after we defined ratelimiter
         s.set_download_states_callback(self.sesscb_states_callback)
- 
-
+        
     def sesscb_states_callback(self,dslist):
         """ Called by SessionThread """
         wx.CallAfter(self.gui_states_callback,dslist)
@@ -354,6 +347,8 @@ class ABCApp(wx.App):
         
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
+        print >>sys.stderr,"main: Stats:"
+        #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
             # Pass DownloadStates to libaryView
             try:
@@ -362,9 +357,10 @@ class ABCApp(wx.App):
                 gm = modedata['grid'].gridManager
                 gm.download_state_gui_callback(dslist)
             except KeyError:
+                # Apparently libraryMode only has has a 'grid' key when visible
                 pass
             except AttributeError:
-                pass
+                print_exc()
             except:
                 print_exc()
             
@@ -399,6 +395,15 @@ class ABCApp(wx.App):
                 
         except:
             print_exc()
+
+    def loadSessionCheckpoint(self):
+        # Load all other downloads
+        # TODO: reset all saved DownloadConfig to new default?
+        if self.params[0] != "":
+            # There is something on the cmdline, start all stopped
+            self.utility.session.load_checkpoint(initialdlstatus=DLSTATUS_STOPPED)
+        else:
+            self.utility.session.load_checkpoint()
 
 
     def sesscb_ntfy_dbstats(self,subject,changeType,objectID,*args):

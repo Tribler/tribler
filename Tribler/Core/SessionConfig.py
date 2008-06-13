@@ -401,6 +401,7 @@ class SessionConfigInterface:
         @return Boolean. """
         return self.sessconfig['dialback']
 
+
     #
     # Tribler's social networking feature transmits a nickname and picture
     # to all Tribler peers it meets.
@@ -1050,6 +1051,41 @@ class SessionConfigInterface:
         else:
             return DownloadStartupConfig(dlconfig)
         
+
+    #
+    # NAT Puncturing servers information setting
+    #
+    def set_puncturing_private_port(self, puncturing_private_port):
+        """ The listening port of the puncturing client.
+        @param puncturing_private_port integer. """
+        self.sessconfig['puncturing_private_port'] = puncturing_private_port
+
+    def set_stun_servers(self, stun_servers):
+        """ The addresses of the STUN servers (at least 2)
+        @param List of (hostname/ip,port) tuples. """
+        self.sessconfig['stun_servers'] = stun_servers
+
+    def set_puncturing_coordinators(self, puncturing_coordinators):
+        """ The address of the puncturing coordinators (at least 1)
+        @param  List of (hostname/ip,port) tuples. """
+        self.sessconfig['puncturing_coordinators'] = puncturing_coordinators
+
+    # Puncturing servers information retrieval
+    def get_puncturing_private_port(self):
+        """ Returns the listening port of the puncturing client.
+        @return integer. """
+        return self.sessconfig['puncturing_private_port']
+
+    def get_stun_servers(self):
+        """ Returns the addresses of the STUN servers.
+        @return List of (hostname/ip,port) tuples. """
+        return self.sessconfig['stun_servers']
+
+    def get_puncturing_coordinators(self):
+        """ Returns the address of the puncturing coordinators.
+        @return List of (hostname/ip,port) tuples. """
+        return self.sessconfig['puncturing_coordinators']
+
 
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  

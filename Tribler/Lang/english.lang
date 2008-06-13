@@ -1259,7 +1259,8 @@ profileDetails_Download_Friends = "At the moment you have %d friends. If you mak
 profileDetails_Download_Friends_improve = "* Invite your friends, family, and colleagues by e-mail, to start tribler too and let them add you as a friend. (start e-mail software >)"
 profileDetails_Download_VisibleYes = "You are currently accessible by other people."
 profileDetails_Download_VisibleYes_improve = "* Your friends should also be accessible. For that, please guide them to www.tribler.org for instructions."
-profileDetails_Download_VisibleNo = "Other users are not able to connect to you, because your modem/router blocks them."
+#profileDetails_Download_VisibleNo = "Other users are not able to connect to you, because your modem/router blocks them."
+profileDetails_Download_VisibleNo = "Other users are not able to connect to you, because your modem/router (%s) blocks them."
 profileDetails_Download_VisibleNo_improve = "* You have to open a port on your modem/router to enable other users to connect to you. This will almost double your possible download speed. Read more on www.tribler.org for instructions."
 # --- Network Reach
 profileDetails_Presence_info = "If you want to increase your network reach, follow the instructions."
