@@ -1,6 +1,6 @@
 REM @echo off
 
-set PYTHONHOME=C:\Python243wx2801too
+set PYTHONHOME=C:\Python243
 REM Arno: Add .. to make it find khashmir
 set PYTHONPATH=%PYTHONHOME%;..
 
