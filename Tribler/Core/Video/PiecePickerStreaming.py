@@ -94,11 +94,11 @@ class PiecePickerStreaming(PiecePicker):
         """
         self.videostatus = videostatus
 
-    def got_have(self, piece):
+    def got_have(self, piece, connection=None):
         if DEBUG:
             print >>sys.stderr,"PiecePickerStreaming: got_have:",piece
         self.maxhave = max(self.maxhave,piece)
-        PiecePicker.got_have( self, piece )
+        PiecePicker.got_have( self, piece, connection )
 
     def got_seed(self):
         self.maxhave = self.numpieces
@@ -106,6 +106,12 @@ class PiecePickerStreaming(PiecePicker):
 
     def lost_have(self, piece):
         PiecePicker.lost_have( self, piece )
+
+    def got_peer(self, connection):
+        PiecePicker.got_peer( self, connection )
+
+    def lost_peer(self, connection):
+        PiecePicker.lost_peer( self, connection )
 
     def complete(self, piece):
         if DEBUG:
@@ -122,13 +128,13 @@ class PiecePickerStreaming(PiecePicker):
     #   _next: selects next piece to download. completes partial downloads first, if needed, otherwise calls
     #     next_new: selects next piece to download. override this with the piece picking policy
 
-    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces=[], willrequest=True):
+    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces=[], willrequest=True,connection=None):
         def newwantfunc( piece ):
             #print >>sys.stderr,"S",self.streaming_piece_filter( piece ),"!sP",not (piece in slowpieces),"w",wantfunc( piece )
             return not (piece in slowpieces) and wantfunc( piece )
 
         # fallback: original piece picker
-        p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con, slowpieces, willrequest)
+        p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con, slowpieces=slowpieces, willrequest=willrequest,connection=connection)
         if DEBUGPP and self.videostatus.prebuffering:
             print >>sys.stderr,"PiecePickerStreaming: next returns",p
         if p is None and not self.videostatus.live_streaming:
@@ -139,7 +145,7 @@ class PiecePickerStreaming(PiecePicker):
             self.transporter.notify_playable()
         return p
 
-    def _next(self, haves, wantfunc, complete_first, helper_con, willrequest=True):
+    def _next(self, haves, wantfunc, complete_first, helper_con, willrequest=True, connection=None):
         """ First, complete any partials if needed. Otherwise, select a new piece. """
 
         #print >>sys.stderr,"PiecePickerStreaming: complete_first is",complete_first,"started",self.started
@@ -195,7 +201,7 @@ class PiecePickerStreaming(PiecePicker):
         if len(cancelpieces) > 0:
             self.downloader.cancel_piece_download(cancelpieces,allowrerequest=False)
 
-        p = self.next_new(haves, wantfunc, complete_first, helper_con,willrequest=willrequest)
+        p = self.next_new(haves, wantfunc, complete_first, helper_con,willrequest=willrequest,connection=connection)
         if p is not None:
             self.register_piece(p)
         return p
@@ -221,7 +227,7 @@ class PiecePickerStreaming(PiecePicker):
             self.outstanding[p] = rawdue
 
 
-    def next_new(self, haves, wantfunc, complete_first, helper_con, willrequest=True):
+    def next_new(self, haves, wantfunc, complete_first, helper_con, willrequest=True, connection=None):
         """ Determine which piece to download next from a peer.
 
         haves:          set of pieces owned by that peer

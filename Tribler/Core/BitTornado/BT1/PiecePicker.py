@@ -81,6 +81,9 @@ class PiecePicker:
         # whether we're done downloading
         self.done = False
 
+        # peer information
+        self.peer_connections = {}
+
         # seeding information
         self.seed_connections = {}
         self.seed_time = None
@@ -124,7 +127,7 @@ class PiecePicker:
             self.pos_in_interests[interests[i]] = i
         self.interests.append(interests)
 
-    def got_have(self, piece):
+    def got_have(self, piece, connection = None):
         """ A peer reports to have the given piece. """
 
         self.totalcount+=1
@@ -317,7 +320,7 @@ class PiecePicker:
         self._remove_from_interests(piece)
 
 # 2fastbt_
-    def _next(self, haves, wantfunc, complete_first, helper_con, willrequest=True):
+    def _next(self, haves, wantfunc, complete_first, helper_con, willrequest=True, connection=None ):
 # _2fastbt
         """ Determine which piece to download next from a peer.
 
@@ -385,10 +388,10 @@ class PiecePicker:
         return None
 
 # 2fastbt_
-    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces= [], willrequest = True):
+    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces= [], willrequest = True, connection = None):
 #        try:
         while True:
-            piece = self._next(haves, wantfunc, complete_first, helper_con, willrequest = willrequest)
+            piece = self._next(haves, wantfunc, complete_first, helper_con, willrequest = willrequest, connection = connection)
             if piece is None:
                 if DEBUG:
                     print >> sys.stderr,"PiecePicker: next: _next returned no pieces!",
@@ -415,7 +418,7 @@ class PiecePicker:
         if self.rate_predictor is None or not self.rate_predictor.has_capacity():
             return None
         else:
-            return self._next(haves, wantfunc, complete_first, True, willrequest=willrequest)
+            return self._next(haves, wantfunc, complete_first, True, willrequest = willrequest, connection = connection)
 #        except:
 #            if DEBUG:
 #                print_exc()
@@ -535,8 +538,20 @@ class PiecePicker:
                     return piece
         return -1       # something screwy; terminate connection
 
+    def got_peer(self, connection):
+        self.peer_connections[connection] = { "has": connection.download.have }
+
     def lost_peer(self, connection):
-        try:
+        if connection.download.have.complete():
+            self.lost_seed()
+        else:
+            has = connection.download.have
+            for i in xrange(0, self.numpieces):
+                if has[i]:
+                    self.lost_have(i)
+
+        if connection in self.seed_connections:
             del self.seed_connections[connection]
-        except:
-            pass
+        del self.peer_connections[connection]
+
+

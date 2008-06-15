@@ -150,6 +150,7 @@ class Choker:
         if p is None:
             p = randrange(-2, len(self.connections) + 1)
         self.connections.insert(max(p, 0), connection)
+        self.picker.got_peer(connection)
         self._rechoke()
 
     def connection_lost(self, connection):

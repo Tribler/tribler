@@ -94,12 +94,17 @@ class SingleDownload(SingleDownloadHelperInterface):
     
     def disconnected(self):
         self.downloader.lost_peer(self)
+
+        """ JD: obsoleted -- moved to picker.lost_peer
+
         if self.have.complete():
             self.downloader.picker.lost_seed()
         else:
             for i in xrange(len(self.have)):
                 if self.have[i]:
                     self.downloader.picker.lost_have(i)
+        """
+
         if self.have.complete() and self.downloader.storage.is_endgame():
             self.downloader.add_disconnected_seed(self.connection.get_readable_id())
         self._letgo()
@@ -271,7 +276,7 @@ class SingleDownload(SingleDownloadHelperInterface):
                                self,
                                self.downloader.too_many_partials(),
                                self.connection.connection.is_helper_con(),
-                               slowpieces = slowpieces)
+                               slowpieces = slowpieces, connection = self.connection)
             #et = time.time()
             #diff = et-st
             diff=-1
@@ -315,7 +320,7 @@ class SingleDownload(SingleDownloadHelperInterface):
                                    self.downloader.storage.do_I_have_requests,
                                    self, # Arno, 2008-05-22; self -> d? Original Pawel code
                                    self.downloader.too_many_partials(),
-                                   self.connection.connection.is_helper_con(), willrequest=False)
+                                   self.connection.connection.is_helper_con(), willrequest=False,connection=self.connection)
                 #et = time.time()
                 #diff = et-st
                 diff=-1
@@ -381,7 +386,7 @@ class SingleDownload(SingleDownloadHelperInterface):
         if self.have[index]:
             return
         self.have[index] = True
-        self.downloader.picker.got_have(index)
+        self.downloader.picker.got_have(index,self.connection)
         if self.have.complete():
             self.downloader.picker.became_seed()
             if self.downloader.picker.am_I_complete():
@@ -435,7 +440,7 @@ class SingleDownload(SingleDownloadHelperInterface):
         else:
             for i in xrange(len(have)):
                 if have[i]:
-                    self.downloader.picker.got_have(i)
+                    self.downloader.picker.got_have(i,self.connection)
         if self.downloader.endgamemode and not self.downloader.paused:
             for piece, begin, length in self.downloader.all_requests:
                 if self.have[piece]:
