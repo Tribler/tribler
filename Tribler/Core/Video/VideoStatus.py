@@ -59,6 +59,7 @@ class VideoStatus:
         # ----- live streaming settings
         self.live_streaming = videoinfo['live']
         self.live_startpos = None
+        self.playback_pos_observers = []
         self.wraparound = self.live_streaming and LIVE_WRAPAROUND
         # /8 means -12.5 % ... + 12.5 % = 25 % window
         self.wraparound_delta = max(4,self.movie_numpieces/8) 
@@ -75,6 +76,11 @@ class VideoStatus:
         self.playing = False
         self.prebuffering = True
         self.playback_pos = self.first_piece
+
+    def add_playback_pos_observer( self, observer ):
+        """ Add a function to be called when the playback position changes. Is called as follows:
+            observer( oldpos, newpos ). In case of initialisation: observer( None, startpos ). """
+        self.playback_pos_observers.append( observer )
 
     def real_piecelen( self, x ):
         if x == self.first_piece:
@@ -95,6 +101,8 @@ class VideoStatus:
             print >>sys.stderr,"vodstatus: set_live_pos: old",oldrange
         self.live_startpos = pos
         self.playback_pos = pos
+        for o in self.playback_pos_observers:
+            o( None, pos )
         
         if self.wraparound:
             newrange = self.live_get_valid_range()
@@ -134,6 +142,7 @@ class VideoStatus:
             return f <= x < t
 
     def inc_playback_pos( self ):
+        oldpos = self.playback_pos
         self.playback_pos += 1
 
         if self.playback_pos > self.last_piece:
@@ -141,6 +150,9 @@ class VideoStatus:
                 self.playback_pos = self.first_piece
             else:
                 self.playback_pos = self.last_piece
+
+        for o in self.playback_pos_observers:
+            o( oldpos, self.playback_pos )
 
     def in_download_range( self, x ):
         if self.wraparound:

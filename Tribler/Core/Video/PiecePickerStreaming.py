@@ -1,4 +1,4 @@
-# Written by Jan David Mol, Arno Bakker
+# wRIsten by Jan David Mol, Arno Bakker
 # see LICENSE.txt for license information
 
 import sys
@@ -11,6 +11,41 @@ from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker
 
 DEBUG = False
 DEBUGPP = False
+
+def rarest_first( has_dict, rarity_list, filter = lambda x: True ):
+    """ Select the rarest of pieces in has_dict, according
+        to the rarities in rarity_list. Breaks ties uniformly
+        at random. Additionally, `filter' is applied to select
+        the pieces we can return. """
+
+    """ Strategy:
+        - `choice' is the choice so far
+        - `n' is the number of pieces we could choose from so far
+        - `rarity' is the rarity of the choice so far
+
+        Every time we see a rarer piece, we reset our choice.
+        Every time we see a piece of the same rarity we're looking for,
+        we select it (overriding the previous choice) with probability 1/n.
+        This leads to a uniformly selected piece in one pass, be it that
+        we need more random numbers than when doing two passes. """
+
+    choice = None
+    rarity = None
+    n = 0
+
+    for k in (x for x in has_dict if filter(x)):
+        r = rarity_list[k]
+
+        if rarity is None or r < rarity:
+            rarity = r
+            n = 1
+            choice = k
+        elif r == rarity:
+            n += 1
+            if random.uniform(0,n) == 0: # uniform selects from [0,n)
+                choice = k
+
+    return choice
 
 class PiecePickerStreaming(PiecePicker):
     """ Implements piece picking for streaming video. Keeps track of playback
@@ -77,7 +112,7 @@ class PiecePickerStreaming(PiecePicker):
         prebufspeed = prebufsize/prebuftime
         PIECETIME = float(piecesize)/prebufspeed # the amount of time a peer has to dl a piece
         """
-        
+
         
     def set_transporter(self, transporter):
         self.transporter = transporter
@@ -93,12 +128,43 @@ class PiecePickerStreaming(PiecePicker):
             Look at most delta pieces ahead from download_range[0].
         """
         self.videostatus = videostatus
+        videostatus.add_playback_pos_observer( self.change_playback_pos )
+
+    def is_interesting(self,piece):
+        if self.has[piece]:
+            return False
+
+        if not self.videostatus or self.videostatus.in_download_range( piece ):
+            return True
+
+        return False
+
+    def change_playback_pos(self, oldpos, newpos):
+        if oldpos is None:
+            # (re)initialise
+            valid = self.is_interesting
+
+            for d in self.peer_connections.itervalues():
+                interesting = {}
+                has = d["connection"].download.have
+                for i in xrange(self.videostatus.first_piece,self.videostatus.last_piece+1):
+                    if has[i] and valid(i):
+                        interesting[i] = 1
+
+                d["interesting"] = interesting
+        else:
+            # playback position incremented -- remove timed out piece
+            for d in self.peer_connections.itervalues():
+                d["interesting"].pop(oldpos,0)
 
     def got_have(self, piece, connection=None):
         if DEBUG:
             print >>sys.stderr,"PiecePickerStreaming: got_have:",piece
         self.maxhave = max(self.maxhave,piece)
         PiecePicker.got_have( self, piece, connection )
+
+        if self.is_interesting(piece):
+            self.peer_connections[connection]["interesting"][piece] = 1
 
     def got_seed(self):
         self.maxhave = self.numpieces
@@ -109,6 +175,8 @@ class PiecePickerStreaming(PiecePicker):
 
     def got_peer(self, connection):
         PiecePicker.got_peer( self, connection )
+
+        self.peer_connections[connection]["interesting"] = {}
 
     def lost_peer(self, connection):
         PiecePicker.lost_peer( self, connection )
@@ -123,6 +191,10 @@ class PiecePickerStreaming(PiecePicker):
             del self.outstanding[piece]
         except:
             pass
+
+        # don't consider this piece anymore
+        for d in self.peer_connections.itervalues():
+            d["interesting"].pop(piece,0)
 
     # next: selects next piece to download. adjusts wantfunc with filter for streaming; calls
     #   _next: selects next piece to download. completes partial downloads first, if needed, otherwise calls
@@ -202,6 +274,7 @@ class PiecePickerStreaming(PiecePicker):
             self.downloader.cancel_piece_download(cancelpieces,allowrerequest=False)
 
         p = self.next_new(haves, wantfunc, complete_first, helper_con,willrequest=willrequest,connection=connection)
+
         if p is not None:
             self.register_piece(p)
         return p
@@ -239,6 +312,17 @@ class PiecePickerStreaming(PiecePicker):
         """
 
         vs = self.videostatus
+
+        if vs.live_streaming:
+            # first, make sure we know where to start downloading
+            if vs.live_startpos is None:
+                self.transporter.calc_live_startpos( self.transporter.max_prebuf_packets, False )
+                print >>sys.stderr,"vod: pp determined startpos of",vs.live_startpos
+
+            # select any interesting piece, rarest first
+            if connection:
+                # Without 'connection', we don't know who we will request from.
+                return rarest_first( self.peer_connections[connection]["interesting"], self.numhaves, wantfunc )
 
         def pick_first( f, t ): # no shuffle
             for i in vs.generate_range((f,t)):
@@ -354,10 +438,6 @@ class PiecePickerStreaming(PiecePicker):
 
         highprob_cutoff = vs.normalize( first + min( h, max_lookahead ) )
         midprob_cutoff  = vs.normalize( first + min( h + self.MU * h, max_lookahead ) )
-
-        if vs.live_streaming and vs.live_startpos is None:
-            self.transporter.calc_live_startpos( self.transporter.max_prebuf_packets, False )
-            print >>sys.stderr,"vod: pp determined startpos of",vs.live_startpos
 
         if vs.prebuffering:
             f = first

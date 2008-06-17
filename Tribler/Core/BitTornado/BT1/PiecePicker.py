@@ -539,7 +539,7 @@ class PiecePicker:
         return -1       # something screwy; terminate connection
 
     def got_peer(self, connection):
-        self.peer_connections[connection] = { "has": connection.download.have }
+        self.peer_connections[connection] = { "connection": connection }
 
     def lost_peer(self, connection):
         if connection.download.have.complete():
