@@ -68,8 +68,6 @@ class OverlayApps:
         # Part 1:
         self.metadata_handler = MetadataHandler.getInstance()
 
-        Category.getInstance(session.get_install_dir())
-
         if config['download_help']:
             # Create handler for messages to dlhelp coordinator
             self.coord_handler = CoordinatorMessageHandler(launchmany)

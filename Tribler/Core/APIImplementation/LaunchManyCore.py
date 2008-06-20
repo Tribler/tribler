@@ -160,6 +160,9 @@ class TriblerLaunchMany(Thread):
             config['download_help'] = 0
             config['socnet'] = 0
             config['rquery'] = 0
+
+        # First Category instantiation requires install_dir, so do it now
+        Category.getInstance(config['install_dir'])
             
         if config['overlay']:
             self.secure_overlay = SecureOverlay.getInstance()
