@@ -260,7 +260,7 @@ class standardOverview(wx.Panel):
         torrentfeed = TorrentFeedThread.getInstance()
         urls = torrentfeed.getURLs()
         
-        bcsub = self.utility.lang.get('buddycastsubscription')
+        bcsub = self.utility.session.get_start_recommender()
         web2sub = self.utility.lang.get('web2subscription')
         
         bcactive = self.utility.session.get_start_recommender()

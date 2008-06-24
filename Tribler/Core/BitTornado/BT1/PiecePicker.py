@@ -181,6 +181,9 @@ class PiecePicker:
     def is_valid_piece(self, piece):
         return True
 
+    def get_valid_range_iterator(self):
+        return xrange(0,len(self.has))
+
     def invalidate_piece(self,piece):
         """ A piece ceases to exist at the neighbours. Required for LIVEWRAP. """
 

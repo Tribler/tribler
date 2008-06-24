@@ -502,7 +502,7 @@ class PlayerApp(wx.App):
         """ Called by *GUI* thread.
         CAUTION: As this method is called by the GUI thread don't to any 
         time-consuming stuff here! """
-        print >>sys.stderr,"main: Stats:"
+        #print >>sys.stderr,"main: Stats:"
         
         if self.shuttingdown:
             return

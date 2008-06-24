@@ -111,6 +111,9 @@ class VideoStatus:
         else:
             return Set()
 
+    def get_live_startpos(self):
+        return self.live_startpos
+
     # the following functions work with absolute piece numbers,
     # so they all function within the range [first_piece,last_piece]
 
@@ -184,7 +187,7 @@ class VideoStatus:
         return (begin,end)
         
     def live_piece_to_invalidate(self):
-        print >>sys.stderr,"vod: live_piece_to_inval:",self.playback_pos,self.wraparound_delta,self.movie_numpieces
+        #print >>sys.stderr,"vod: live_piece_to_inval:",self.playback_pos,self.wraparound_delta,self.movie_numpieces
         return self.normalize(self.playback_pos - self.wraparound_delta)
 
     def get_range_diff(self,oldrange,newrange):

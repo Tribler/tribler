@@ -483,6 +483,16 @@ class PiecePickerStreaming(PiecePicker):
     def is_valid_piece(self,piece):
        return self.videostatus.in_valid_range(piece)
    
+    def get_valid_range_iterator(self):
+        if self.videostatus.live_streaming and self.videostatus.get_live_startpos() is None:
+            # Not hooked in, so cannot provide a sensible download range
+            #print >>sys.stderr,"PiecePickerStreaming: Not hooked in, valid range set to total"
+            return PiecePicker.get_valid_range_iterator(self)
+            
+        #print >>sys.stderr,"PiecePickerStreaming: Live hooked in, or VOD, valid range set to subset"
+        first,last = self.videostatus.download_range()
+        return self.videostatus.generate_range((first,last))
+            
    
 PiecePickerVOD = PiecePickerStreaming
 

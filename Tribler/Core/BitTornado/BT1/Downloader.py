@@ -415,32 +415,33 @@ class SingleDownload(SingleDownloadHelperInterface):
 
     def got_have_bitfield(self, have):
         
-        # Arno: LIVEWRAP: filter out valid pieces
-        # TODO: may be slow with 32K pieces.
-        
-        #print >>sys.stderr,"Downloader: got_have_bitfield: input",`have.toboollist()`
-        
-        validhave = Bitfield(self.downloader.numpieces)
-        for i in xrange(len(have)):
-            if have[i] and self.downloader.picker.is_valid_piece(i):
-                validhave[i] = True
-        have = validhave
-        
-        #print >>sys.stderr,"Downloader: got_have_bitfield: valid",`have.toboollist()`
-        
         if self.downloader.picker.am_I_complete() and have.complete():
+            # Arno: If we're both seeds
             if self.downloader.super_seeding:
                 self.connection.send_bitfield(have.tostring()) # be nice, show you're a seed too
             self.connection.close()
             self.downloader.add_disconnected_seed(self.connection.get_readable_id())
             return
-        self.have = have
+
+        #print >>sys.stderr,"Downloader: got_have_bitfield: VVV#############################################################################################VVVVVVVVVVVVVVVVVVVVVVVVV valid",self.downloader.picker.get_valid_range_iterator(),"len",self.downloader.numpieces
+        #print >>sys.stderr,"Downloader: got_have_bitfield: input",`have.toboollist()`
         if have.complete():
+            # Arno: He is seed
             self.downloader.picker.got_seed()
         else:
-            for i in xrange(len(have)):
+            # Arno: LIVEWRAP: filter out valid pieces
+            # TODO: may be slow with 32K pieces.
+            validhave = Bitfield(self.downloader.numpieces)
+            for i in self.downloader.picker.get_valid_range_iterator():
                 if have[i]:
+                    validhave[i] = True
                     self.downloader.picker.got_have(i,self.connection)
+            have = validhave
+        # Store filtered bitfield
+        self.have = have
+        
+        #print >>sys.stderr,"Downloader: got_have_bitfield: valid",`have.toboollist()`
+                    
         if self.downloader.endgamemode and not self.downloader.paused:
             for piece, begin, length in self.downloader.all_requests:
                 if self.have[piece]:
