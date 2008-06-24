@@ -19,7 +19,7 @@ import threading
 import base64
 from random import randint
 
-from bencode import bencode, bdecode
+from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Core.simpledefs import *
 from Tribler.Category.Category import Category

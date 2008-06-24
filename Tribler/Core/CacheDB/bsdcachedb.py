@@ -112,7 +112,7 @@ from sets import Set
 from traceback import print_exc, print_stack
 from threading import currentThread
 
-from bencode import bencode, bdecode
+from Tribler.Core.BitTornado.bencode import bencode, bdecode
 
 #from Tribler.utilities import isValidPermid, isValidInfohash
 

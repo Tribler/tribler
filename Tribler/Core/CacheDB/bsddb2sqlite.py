@@ -6,7 +6,8 @@ from time import time
 from sets import Set
 from sha import sha
 from base64 import encodestring, decodestring
-from bencode import bdecode
+
+from Tribler.Core.BitTornado.bencode import bdecode
 
 LIB=0
 # 0:  pysqlite, 1: APSW
