@@ -98,8 +98,6 @@ class PlayerApp(wx.App):
         self.said_start_playback = False
         self.shuttingdown = False
 
-        self.reporter = Reporter()
-        
         wx.App.__init__(self, x)
         
     def OnInit(self):
@@ -170,9 +168,11 @@ class PlayerApp(wx.App):
                 self.sconfig.set_listen_port(PLAYER_LISTENPORT)    
                 self.sconfig.set_overlay(False)
                 self.sconfig.set_megacache(False)
-            
+
             self.s = Session(self.sconfig)
             self.s.set_download_states_callback(self.sesscb_states_callback)
+
+            self.reporter = Reporter( self.sconfig )
 
             if RATELIMITADSL:
                 self.r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
@@ -496,7 +496,7 @@ class PlayerApp(wx.App):
         #access control to self.videoFrame easier
         #self.gui_states_callback(dslist)
         wx.CallAfter(self.gui_states_callback,dslist)
-        return (1.0,True) # get peerlist, needed for research stats
+        return (10.0,True) # get peerlist, needed for research stats
 
     def gui_states_callback(self,dslist):
         """ Called by *GUI* thread.
