@@ -103,8 +103,8 @@ class Reporter:
         protstr = lambda b: ["bt","g2g"][int(bool(b))]
             
         now = time()
-        v = ds.get_vod_stats() or { "played": 0, "stall": 0, "late": 0, "dropped": 0, "prebuf": -1, "inpath": "(none)" }
-        vi = ds.get_videoinfo() or { "live": False }
+        v = ds.get_vod_stats() or { "played": 0, "stall": 0, "late": 0, "dropped": 0, "prebuf": -1 }
+        vi = ds.get_videoinfo() or { "live": False, "inpath": "(none)" }
         scfg = self.sconfig
 
         down_total, down_rate, up_total, up_rate = 0, 0.0, 0, 0.0
