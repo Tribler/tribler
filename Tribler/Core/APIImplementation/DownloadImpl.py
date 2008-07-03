@@ -41,7 +41,7 @@ class DownloadImpl:
     #
     # Creating a Download
     #
-    def setup(self,dcfg=None,pstate=None,initialdlstatus=None,lmcreatedcallback=None,lmvodplayablecallback=None):
+    def setup(self,dcfg=None,pstate=None,initialdlstatus=None,lmcreatedcallback=None,lmvodeventcallback=None):
         """
         Create a Download object. Used internally by Session.
         @param dcfg DownloadStartupConfig or None (in which case 
@@ -119,7 +119,7 @@ class DownloadImpl:
             if initialdlstatus != DLSTATUS_STOPPED:
                 if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED: 
                     # Also restart on STOPPED_ON_ERROR, may have been transient
-                    self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodplayablecallback)
+                    self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodeventcallback)
                 
             self.pstate_for_restart = pstate
                 
@@ -129,7 +129,7 @@ class DownloadImpl:
             self.set_error(e)
             self.dllock.release()
 
-    def create_engine_wrapper(self,lmcreatedcallback,pstate,lmvodplayablecallback):
+    def create_engine_wrapper(self,lmcreatedcallback,pstate,lmvodeventcallback):
         """ Called by any thread, assume dllock already acquired """
         if DEBUG:
             print >>sys.stderr,"Download: create_engine_wrapper()"
@@ -182,7 +182,7 @@ class DownloadImpl:
             mimetype = self.get_mimetype(file)
             # Arno: don't encode mimetype in lambda, allow for dynamic 
             # determination by videoanalyser
-            vod_usercallback_wrapper = lambda mimetype,stream,filename,length:self.session.uch.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],mimetype,stream,filename,length)
+            vod_usercallback_wrapper = lambda event,params:self.session.uch.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],event,params)
             
             vodfileindex = {'index':idx,'inpath':file,'bitrate':bitrate,'live':live,'mimetype':mimetype,'usercallback':vod_usercallback_wrapper}
         elif live:
@@ -194,15 +194,15 @@ class DownloadImpl:
 
 
         # Delegate creation of engine wrapper to network thread
-        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcreatedcallback,pstate,lmvodplayablecallback)
+        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcreatedcallback,pstate,lmvodeventcallback)
         self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,0) 
         
 
-    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback,pstate,lmvodplayablecallback):
+    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback,pstate,lmvodeventcallback):
         """ Called by network thread """
         self.dllock.acquire()
         try:
-            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error,pstate,lmvodplayablecallback)
+            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error,pstate,lmvodeventcallback)
             sd = self.sd
             exc = self.error
             if lmcallback is not None:
@@ -335,7 +335,7 @@ class DownloadImpl:
             if self.sd is None:
                 self.error = None # assume fatal error is reproducible
                 # h4xor: restart using earlier loaded resumedata
-                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=self.pstate_for_restart,lmvodplayablecallback=self.session.lm.network_vod_playable_callback)
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=self.pstate_for_restart,lmvodeventcallback=self.session.lm.network_vod_event_callback)
             # No exception if already started, for convenience
         finally:
             self.dllock.release()

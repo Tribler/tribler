@@ -54,7 +54,7 @@ class MovieOnDemandTransporter(MovieTransport):
     # set the bitrate in movieselector.
     MINPLAYBACKRATE = 32*1024
 
-    def __init__(self,bt1download,videostatus,videoinfo,videoanalyserpath,vodplayablefunc):
+    def __init__(self,bt1download,videostatus,videoinfo,videoanalyserpath,vodeventfunc):
         self.videoinfo = videoinfo
         self.bt1download = bt1download
         self.piecepicker = bt1download.picker
@@ -62,7 +62,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.storagewrapper = bt1download.storagewrapper
         self.fileselector = bt1download.fileselector
 
-        self.vodplayablefunc = vodplayablefunc
+        self.vodeventfunc = vodeventfunc
         self.videostatus = vs = videostatus
         
         # Add quotes around path, as that's what os.popen() wants on win32
@@ -929,22 +929,29 @@ class MovieOnDemandTransporter(MovieTransport):
         
         print >>sys.stderr,"vod: trans: notify_playable: Calling usercallback to tell it we're ready to play",self.videoinfo['usercallback']
         
-        # MIME type determined normally in LaunchManyCore.network_vod_playable_callback
+        # MIME type determined normally in LaunchManyCore.network_vod_event_callback
         # However, allow for recognition by videoanalyser
         mimetype = self.get_mimetype()
         complete = self.piecepicker.am_I_complete()
         if complete:
             stream = None
+            filename = self.videoinfo["outpath"]
         else:
             stream = MovieTransportStreamWrapper(self)
-            endstream = None
             if self.videostatus.live_streaming and self.videostatus.authparams['authmethod'] != LIVE_AUTHMETHOD_NONE:
                 endstream = AuthStreamWrapper(stream,self.authenticator) 
             else:
-                endstream = stream 
+                endstream = stream
+            filename = None 
             
         # Call user callback
-        self.vodplayablefunc(self.videoinfo,complete,mimetype,endstream,self.size())
+        self.vodeventfunc( self.videoinfo, "start", {
+            "complete":  complete,
+            "filename":  filename,
+            "mimetype":  mimetype,
+            "stream":    endstream,
+            "size":      self.size(),
+        } )
 
     def get_stats(self):
         """ Returns accumulated statistics. """

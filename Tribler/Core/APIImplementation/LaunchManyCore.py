@@ -242,7 +242,7 @@ class TriblerLaunchMany(Thread):
             # Store in list of Downloads, always. 
             infohash = d.get_def().get_infohash()
             self.downloads[infohash] = d
-            d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_playable_callback)
+            d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_event_callback)
             
             def add_torrent_to_db():
                 if self.torrent_db != None and self.mypref_db != None:
@@ -660,20 +660,15 @@ class TriblerLaunchMany(Thread):
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str)
 
         
-    def network_vod_playable_callback(self,videoinfo,complete,mimetype,stream,length):
+    def network_vod_event_callback(self,videoinfo,event,params):
         """ Called by network thread """
 
-        if complete:
-            if DEBUG:
-                print >>sys.stderr,"tlm: network_vod_playable_callback: PiecePicker says complete, give filename"
-            filename = videoinfo['outpath']
-        else:
-            if DEBUG:
-                print >>sys.stderr,"tlm: network_vod_playable_callback: PiecePiecker says incomplete, give stream"
-            filename = None
+        if DEBUG:
+            print >>sys.stderr,"tlm: network_vod_event_callback: event %s, params %s" % (event,params)
+
         
         # Call Session threadpool to call user's callback        
-        videoinfo['usercallback'](mimetype,stream,filename,length)
+        videoinfo['usercallback'](event,params)
 
 
     def update_torrent_checking_period(self):

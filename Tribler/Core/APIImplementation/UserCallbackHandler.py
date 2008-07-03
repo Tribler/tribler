@@ -29,13 +29,13 @@ class UserCallbackHandler:
         # stop threadpool
         self.threadpool.joinAll()
 
-    def perform_vod_usercallback(self,d,usercallback,mimetype,stream,filename,length):
+    def perform_vod_usercallback(self,d,usercallback,event,params):
         """ Called by network thread """
         if DEBUG:
             print >>sys.stderr,"Session: perform_vod_usercallback()",`d.get_def().get_name_as_unicode()`
         def session_vod_usercallback_target():
             try:
-                usercallback(d,mimetype,stream,filename,length)
+                usercallback(d,event,params)
             except:
                 print_exc()
         self.perform_usercallback(session_vod_usercallback_target)

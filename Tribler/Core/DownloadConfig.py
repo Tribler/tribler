@@ -61,22 +61,30 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['saveas']
 
-    def set_video_start_callback(self,usercallback):
+    def set_video_event_callback(self,usercallback):
         """ Download the torrent in Video-On-Demand mode or as live stream.
-        When the video is ready to play, the usercallback function will be 
+        When a playback event occurs, the usercallback function will be 
         called, with the following list of arguments:
+
+            Download,event,params
+
+        In which event is a string, and params a dictionary. The following
+        events are supported:
+
+        "start":
+            The params will contain the fields
         
-            Download,mimetype,stream,filename,length
+                mimetype,stream,filename,length
         
-        If the filename is set, the video can be read from there. If not,
-        the video can be read from the stream, which is a file-like object 
-        supporting the read(),seek(), and close() operations. The MIME type of 
-        the video is given by "mimetype", the length of the stream in bytes 
-        by "length" which may be None if the length is unknown (e.g. when live 
-        streaming).
+            If the filename is set, the video can be read from there. If not,
+            the video can be read from the stream, which is a file-like object 
+            supporting the read(),seek(), and close() operations. The MIME type
+            of the video is given by "mimetype", the length of the stream in
+            bytes by "length" which may be None if the length is unknown (e.g.
+            when live streaming).
         
-        To fetch a specific file from a multi-file torrent, use the 
-        set_selected_files() method. This method sets the mode to DLMODE_VOD 
+            To fetch a specific file from a multi-file torrent, use the 
+            set_selected_files() method. This method sets the mode to DLMODE_VOD 
   
         The usercallback will be called by a popup thread which can be used
         indefinitely (within reason) by the higher level code.

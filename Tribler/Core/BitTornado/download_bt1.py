@@ -392,7 +392,7 @@ class BT1Download:
     def _reqmorefunc(self, pieces):
         self.downloader.requeue_piece_download(pieces)
 
-    def startEngine(self, ratelimiter = None, vodplayablefunc = None):
+    def startEngine(self, ratelimiter = None, vodeventfunc = None):
         
         if DEBUG:
             print >>sys.stderr,"BT1Download: startEngine",`self.info['name']`
@@ -474,11 +474,17 @@ class BT1Download:
             if self.picker.am_I_complete():
                 if DEBUG:
                     print >>sys.stderr,"BT1Download: startEngine: VOD requested, but file complete on disk",self.videoinfo
-                vodplayablefunc(self.videoinfo,True,None,None,self.videostatus.selected_movie["size"])
+                vodeventfunc( self.videoinfo, "start", {
+                    "complete":  True,
+                    "filename":  self.videoinfo["outpath"],
+                    "mimetype":  None,
+                    "stream":    None,
+                    "size":      self.videostatus.selected_movie["size"],
+                } )
             else:
                 if DEBUG:
                     print >>sys.stderr,"BT1Download: startEngine: Going into VOD mode",self.videoinfo
-                self.voddownload = MovieOnDemandTransporter(self,self.videostatus,self.videoinfo,self.videoanalyserpath,vodplayablefunc)
+                self.voddownload = MovieOnDemandTransporter(self,self.videostatus,self.videoinfo,self.videoanalyserpath,vodeventfunc)
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"
 

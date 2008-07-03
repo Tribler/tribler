@@ -290,7 +290,7 @@ class PlayerApp(wx.App):
         
         # Setup how to download
         dcfg = DownloadStartupConfig()
-        dcfg.set_video_start_callback(self.vod_ready_callback)
+        dcfg.set_video_event_callback(self.vod_event_callback)
         dcfg.set_dest_dir(destdir)
         
         if tdef.is_multifile_torrent():
@@ -335,7 +335,7 @@ class PlayerApp(wx.App):
                 print >>sys.stderr,"main: Starting new Download",`infohash`
                 newd = self.s.start_download(tdef,dcfg)
             else:
-                newd.set_video_start_callback(self.vod_ready_callback)
+                newd.set_video_start_callback(self.vod_event_callback)
                 if tdef.is_multifile_torrent():
                     newd.set_selected_files([dlfile])
                 print >>sys.stderr,"main: Restarting existing Download",`infohash`
@@ -704,20 +704,29 @@ class PlayerApp(wx.App):
             self.tbicon.set_icon_tooltip(txt)
 
     
-    def vod_ready_callback(self,d,mimetype,stream,filename,length):
-        """ Called by the Session when the content of the Download is ready
+    def vod_event_callback(self,d,event,params):
+        """ Called by the Session when the content of the Download is ready or has to be paused
          
         Called by Session thread """
-        print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
+
+        print >>sys.stderr, "vod_event_callback",d,event,params
+
+        if event == "start":
+            filename = params["filename"]
+            mimetype = params["mimetype"]
+            stream   = params["stream"]
+            length   = params["size"]
+
+            print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
     
-        if filename:
-            func = lambda:self.play_from_file(filename)
-            wx.CallAfter(func)
-        else:
-            # HACK: TODO: make to work with file-like interface
-            videoserv = VideoHTTPServer.getInstance()
-            videoserv.set_inputstream(mimetype,stream,length)
-            wx.CallAfter(self.play_from_stream)
+            if filename:
+                func = lambda:self.play_from_file(filename)
+                wx.CallAfter(func)
+            else:
+                # HACK: TODO: make to work with file-like interface
+                videoserv = VideoHTTPServer.getInstance()
+                videoserv.set_inputstream(mimetype,stream,length)
+                wx.CallAfter(self.play_from_stream)
 
     def play_from_stream(self):
         """ Called by MainThread """

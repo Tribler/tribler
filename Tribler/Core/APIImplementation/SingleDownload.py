@@ -28,7 +28,7 @@ DEBUG = False
 class SingleDownload:
     """ This class is accessed solely by the network thread """
     
-    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate,lmvodplayablecallback):
+    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate,lmvodeventcallback):
         
         self.dow = None
         self.set_error_func = set_error_func
@@ -36,7 +36,7 @@ class SingleDownload:
             self.dldoneflag = Event()
             
             self.dlrawserver = multihandler.newRawServer(infohash,self.dldoneflag)
-            self.lmvodplayablecallback = lmvodplayablecallback
+            self.lmvodeventcallback = lmvodeventcallback
     
             self.logmsgs = []
             self._hashcheckfunc = None
@@ -138,7 +138,7 @@ class SingleDownload:
         if DEBUG:
             print >>sys.stderr,"SingleDownload: hashcheck_done()"
         try:
-            self.dow.startEngine(vodplayablefunc = self.lmvodplayablecallback)
+            self.dow.startEngine(vodeventfunc = self.lmvodeventcallback)
             self._getstatsfunc = self.dow.startStats() # not possible earlier
             self.dow.startRerequester()
             self.dlrawserver.start_listening(self.dow.getPortHandler())
