@@ -59,7 +59,7 @@ class VODNoFileSelectedInMultifileTorrentException(TriblerException):
 class LiveTorrentRequiresUsercallbackException(TriblerException):
     """ Attempt to download a live-stream torrent without specifying a 
     callback function to call when the stream is ready to play. 
-    Use set_video_start_callback(usercallback) to correct this problem. """
+    Use set_video_event_callback(usercallback) to correct this problem. """
     def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
 
