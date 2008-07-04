@@ -161,6 +161,7 @@ dldefaults['coopdl_coordinator_permid'] = ''
 dldefaults['exclude_ips'] = ''
 dldefaults['mode'] = 0
 dldefaults['vod_usercallback'] = None
+dldefaults['vod_userevents'] = []
 dldefaults['video_source'] = None
 dldefaults['video_ratelimit'] = 0
 dldefaults['video_source_authconfig'] = None

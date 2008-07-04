@@ -85,6 +85,8 @@ class DownloadConfigInterface:
         
             To fetch a specific file from a multi-file torrent, use the 
             set_selected_files() method. This method sets the mode to DLMODE_VOD 
+
+        The usercallback should ignore events it does not support.
   
         The usercallback will be called by a popup thread which can be used
         indefinitely (within reason) by the higher level code.
@@ -93,6 +95,17 @@ class DownloadConfigInterface:
         """
         self.dlconfig['mode'] = DLMODE_VOD
         self.dlconfig['vod_usercallback'] = usercallback
+
+    def set_video_events(self,events=[]):
+        """ Sets which events will be supported with the usercallback set
+        by set_video_event_callback. Supporting the "start" event is mandatory,
+        and can therefore be omitted from the list.
+
+        @param events        A list of supported events.
+        """
+
+        # create a copy to avoid loosing the info
+        self.dlconfig['vod_userevents'] = events[:]
 
     def set_video_source(self,videosource,authconfig=None):
         """ Provides the live video source for this torrent from an external
@@ -127,11 +140,17 @@ class DownloadConfigInterface:
         @return DLMODE_NORMAL/DLMODE_VOD """
         return self.dlconfig['mode']
 
-    def get_vod_callback(self):
-        """ Returns the function that was passed to set_video_start_callback().
+    def get_video_event_callback(self):
+        """ Returns the function that was passed to set_video_event_callback().
         @return A function.
         """
         return self.dlconfig['vod_usercallback']
+
+    def get_video_events(self):
+        """ Returns the function that was passed to set_video_events().
+        @return A list of events.
+        """
+        return self.dlconfig['vod_userevents']
 
     def get_video_source(self):
         """ Returns the object that was passed to set_video_source().

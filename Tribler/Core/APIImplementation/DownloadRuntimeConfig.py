@@ -45,11 +45,19 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
     def set_saveas(self,path):
         raise OperationNotPossibleAtRuntimeException()
 
-    def set_video_start_callback(self,usercallback):
+    def set_video_event_callback(self,usercallback):
         """ Note: this currently works only when the download is stopped. """
         self.dllock.acquire()
         try:
-            DownloadConfigInterface.set_video_start_callback(self,usercallback)
+            DownloadConfigInterface.set_video_event_callback(self,usercallback)
+        finally:
+            self.dllock.release()
+
+    def set_video_events(self,events):
+        """ Note: this currently works only when the download is stopped. """
+        self.dllock.acquire()
+        try:
+            DownloadConfigInterface.set_video_events(self,events)
         finally:
             self.dllock.release()
 
@@ -68,10 +76,17 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
-    def get_vod_usercallback(self):
+    def get_video_event_callback(self):
         self.dllock.acquire()
         try:
-            return DownloadConfigInterface.get_vod_usercallback(self)
+            return DownloadConfigInterface.get_video_event_callback(self)
+        finally:
+            self.dllock.release()
+
+    def get_video_events(self):
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.get_video_events(self)
         finally:
             self.dllock.release()
 

@@ -335,7 +335,7 @@ class PlayerApp(wx.App):
                 print >>sys.stderr,"main: Starting new Download",`infohash`
                 newd = self.s.start_download(tdef,dcfg)
             else:
-                newd.set_video_start_callback(self.vod_event_callback)
+                newd.set_video_event_callback(self.vod_event_callback)
                 if tdef.is_multifile_torrent():
                     newd.set_selected_files([dlfile])
                 print >>sys.stderr,"main: Restarting existing Download",`infohash`
