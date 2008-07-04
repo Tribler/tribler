@@ -50,7 +50,7 @@ class TestG2G(TestAsServer):
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(self.config_path)
-        dscfg.set_video_start_callback(self.vod_ready_callback)
+        dscfg.set_video_event_callback(self.vod_ready_callback)
         
         self.d = self.session.start_download(tdef,dscfg)
         
@@ -58,7 +58,7 @@ class TestG2G(TestAsServer):
         self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
         self.mylistenport = 4810
 
-    def vod_ready_callback(self,d,mimetype,stream,filename,length):
+    def vod_ready_callback(self,d,event,params):
         pass
 
     def test_all(self):

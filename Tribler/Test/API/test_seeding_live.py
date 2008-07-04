@@ -115,7 +115,7 @@ class TestSeeding(TestAsServer):
 
         dscfg2 = DownloadStartupConfig()
         dscfg2.set_dest_dir(self.config_path2)
-        dscfg2.set_video_start_callback(self.downloader_vod_ready_callback)
+        dscfg2.set_video_event_callback(self.downloader_vod_ready_callback)
         
         d = self.session2.start_download(tdef2,dscfg2)
         d.set_state_callback(self.downloader_state_callback)
@@ -131,14 +131,16 @@ class TestSeeding(TestAsServer):
         
         return (1.0,False)
 
-    def downloader_vod_ready_callback(self,d,mimetype,stream,filename):
+    def downloader_vod_ready_callback(self,d,event,params):
         """ Called by SessionThread """
-        while True:
-            # Fake video playback
-            data = stream.read(self.bitrate)
-            if len(data) == 0:
-                break
-            time.sleep(1)
+        if event == "start":
+            stream = params["stream"]
+            while True:
+                # Fake video playback
+                data = stream.read(self.bitrate)
+                if len(data) == 0:
+                    break
+                time.sleep(1)
 
 
     def subtest_connect2downloader(self):
