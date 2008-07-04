@@ -230,7 +230,7 @@ class VideoPlayer:
                 self.set_vod_postponed_downloads(activetorrents)
 
             # Restart download
-            d.set_video_start_callback(self.sesscb_vod_ready_callback)
+            d.set_video_event_callback(self.sesscb_vod_ready_callback)
             if d.get_def().is_multifile_torrent():
                 d.set_selected_files([infilename])
             print >>sys.stderr,"main: Restarting existing Download",`ds.get_download().get_def().get_infohash()`
@@ -270,7 +270,7 @@ class VideoPlayer:
             self.set_vod_postponed_downloads(activetorrents)
 
         # Restart download
-        dscfg.set_video_start_callback(self.sesscb_vod_ready_callback)
+        dscfg.set_video_event_callback(self.sesscb_vod_ready_callback)
         print >>sys.stderr,"videoplay: Starting new VOD/live Download",`tdef.get_name()`
         
         d = self.utility.session.start_download(tdef,dscfg)
@@ -278,18 +278,24 @@ class VideoPlayer:
         return d
         
     
-    def sesscb_vod_ready_callback(self,d,mimetype,stream,filename,length):
+    def sesscb_vod_ready_callback(self,d,event,params):
         """ Called by the Session when the content of the Download is ready
          
         Called by Session thread """
-        print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
-        wx.CallAfter(self.gui_vod_ready_callback,d,mimetype,stream,filename,length)
+
+        if event == "start":
+            print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",params["mimetype"]
+            wx.CallAfter(self.gui_vod_ready_callback,d,event,params)
         
-    def gui_vod_ready_callback(self,d,mimetype,stream,filename,length):
-    
+    def gui_vod_ready_callback(self,d,event,params):
+        filename = params["filename"]
         if filename:
             self.play_from_file(filename)
         else:
+            stream = params["stream"]
+            mimetype = params["mimetype"]
+            length = params["length"]
+
             videoserv = VideoHTTPServer.getInstance()
             videoserv.set_inputstream(mimetype,stream,length)
             videourl = self.create_url(videoserv,'/')
