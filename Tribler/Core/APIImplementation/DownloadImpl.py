@@ -152,10 +152,17 @@ class DownloadImpl:
         kvconfig = copy.copy(self.dlconfig)
 
         # Define which file to DL in VOD mode
-        vodfileindex = {'index':-1,'inpath':None,'bitrate':0.0,'live':False,'usercallback':None,'outpath':None}
+        live = self.get_def().get_live()
+        vodfileindex = {
+            'index':-1,
+            'inpath':None,
+            'bitrate':0.0,
+            'live':live,
+            'usercallback':None,
+            'userevents': [],
+            'outpath':None}
 
         # --- streaming settings
-        live = self.get_def().get_live()
         if self.dlconfig['mode'] == DLMODE_VOD or self.dlconfig['video_source']:
             # video file present which is played or produced
             multi = False
@@ -183,15 +190,18 @@ class DownloadImpl:
             # Arno: don't encode mimetype in lambda, allow for dynamic 
             # determination by videoanalyser
             vod_usercallback_wrapper = lambda event,params:self.session.uch.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],event,params)
-            
-            vodfileindex = {'index':idx,'inpath':file,'bitrate':bitrate,'live':live,'mimetype':mimetype,'usercallback':vod_usercallback_wrapper}
+
+            vodfileindex['index'] = idx
+            vodfileindex['inpath'] = file
+            vodfileindex['bitrate'] = bitrate
+            vodfileindex['mimetype'] = mimetype
+            vodfileindex['usercallback'] = vod_usercallback_wrapper
+            vodfileindex['userevents'] = self.dlconfig['vod_userevents'][:]
         elif live:
             # live torrents must be streamed or produced, but not just downloaded
             raise LiveTorrentRequiresUsercallbackException()
         else:
-            mimetype = 'application/octet-stream'
-            vodfileindex = {'index':-1,'inpath':None,'bitrate':0.0,'live':False,'mimetype':mimetype,'usercallback':None}
-
+            vodfileindex['mimetype'] = 'application/octet-stream'
 
         # Delegate creation of engine wrapper to network thread
         network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcreatedcallback,pstate,lmvodeventcallback)

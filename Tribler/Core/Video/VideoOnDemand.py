@@ -733,6 +733,57 @@ class MovieOnDemandTransporter(MovieTransport):
         self.data_ready.notify()
         self.data_ready.release()
 
+    def pause( self, autoresume = False ):
+        """ Pause playback. If `autoresume' is set, playback is expected to be
+        resumed automatically once enough data has arrived. """
+
+        vs = self.videostatus
+
+        if not vs.pausable:
+            return
+
+        if vs.paused:
+            vs.autoresume = autoresume
+            return
+
+        vs.paused = True
+        vs.autoresume = autoresume
+        self.paused_at = time.time()
+        self.start_playback = None # piece_due prediction is now useless
+        self.videoinfo["usercallback"]("pause",{ "autoresume": autoresume })
+
+    def resume( self ):
+        """ Resume paused playback. """
+
+        vs = self.videostatus
+
+        if not vs.paused or not vs.pausable:
+            return
+
+        vs.paused = False
+        vs.autoresume = False
+        self.stat_stalltime += time.time() - self.paused_at
+        self.videoinfo["usercallback"]("resume",{})
+
+        self.update_prebuffering()
+        self.refill_buffer()
+
+    def autoresume( self, testfunc = lambda: True ):
+        """ Resumes if testfunc returns True. If not, will test every second. """
+
+        vs = self.videostatus
+
+        if not vs.paused or not vs.autoresume:
+            return
+
+        if not testfunc():
+            self.rawserver.add_task( self.autoresume, 1.0 )
+            return
+
+        if DEBUG:
+            print >>sys.stderr,"vod: trans: Resuming, since we can maintain this playback position"
+        self.resume()
+
     def done( self ):
         vs = self.videostatus
 
@@ -816,7 +867,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         vs = self.videostatus
 
-        if vs.prebuffering or not vs.playing:
+        if vs.prebuffering or not vs.playing or vs.paused:
             self.data_ready.release()
             return
 
@@ -857,12 +908,12 @@ class MovieOnDemandTransporter(MovieTransport):
                 if time.time() < self.piece_due( piece ):
                     # wait for packet
                     if DEBUG:
-                        print >>sys.stderr,"vod: trans: %d: due in %.2fs  pos=%d" % (piece,self.piece_due(piece)-time.time(),self.pos)
+                        print >>sys.stderr,"vod: trans: %d: due in %.2fs  pos=%d" % (piece,self.piece_due(piece)-time.time(),vs.playback_pos)
                     break
                 else:
                     # drop packet
                     if DEBUG:
-                        print >>sys.stderr,"vod: trans: %d: dropped l=%d; deadline expired %.2f sec ago" % (self.pos,piece,time.time()-self.piece_due(piece))
+                        print >>sys.stderr,"vod: trans: %d: dropped pos=%d; deadline expired %.2f sec ago" % (piece,vs.playback_pos,time.time()-self.piece_due(piece))
                     self.stat_droppedpieces += 1
                     self.inc_pos()
             else:
@@ -872,12 +923,19 @@ class MovieOnDemandTransporter(MovieTransport):
                 #    print >>sys.stderr,"vod: trans: %d: due2 in %.2fs  pos=%d" % (piece,duet,vs.playback_pos)
                 if duet <= 0.1:
                     if not vs.prebuffering:
-                        if DEBUG:
-                            print >>sys.stderr,"vod: trans: %d: Going back to prebuffering, stream is about to stall" % (piece)
-                        vs.prebuffering = True
-                        self.start_playback = None
-                        # TODO: could change length of prebuf here
-                        #self.max_prebuf_packets = ... 
+                        if vs.pausable and not vs.paused and not self.piecepicker.pos_is_sustainable():
+                            # we can't drop but can't continue at this rate, so pause video
+                            if DEBUG:
+                                print >>sys.stderr,"vod: trans: %d: Pausing, since we cannot maintain this playback position"  % (piece)
+                            self.pause( autoresume = True )
+                            self.autoresume( self.piecepicker.pos_is_sustainable )
+                        else:
+                            if DEBUG:
+                                print >>sys.stderr,"vod: trans: %d: Going back to prebuffering, stream is about to stall" % (piece)
+                            vs.prebuffering = True
+                            self.start_playback = None
+                            # TODO: could change length of prebuf here
+                            #self.max_prebuf_packets = ... 
                 break
 
         self.data_ready.release()

@@ -196,6 +196,43 @@ class PiecePickerStreaming(PiecePicker):
         for d in self.peer_connections.itervalues():
             d["interesting"].pop(piece,0)
 
+    def pos_is_sustainable(self):
+        """
+            Returns whether we have enough data around us to support the current playback position.
+            If not, playback should pause, stall or reinitialised when pieces are lost.
+        """
+        vs = self.videostatus
+
+        # only holds for live streaming for now. theoretically, vod can have the same problem
+        # since data can be seeded in a 'live' fashion
+        if not vs.live_streaming:
+            return True
+
+        if not self.peer_connections:
+            # not sustainable, but nothing we can do. Return True to avoid pausing
+            # and getting out of sync.
+            return True
+
+
+        # We assume the maximum piece number that is available at at least half of the neighbours
+        # to be sustainable. Although we only need a fixed number of neighbours with enough bandwidth,
+        # such neighbours may depart, hence we choose a relative trade-off.
+
+        # this means that our current playback position is sustainable if any future piece
+        # is owned by at least half of the peers
+
+        half = len(self.peer_connections)/2
+
+        for x in vs.generate_range( vs.download_range() ):
+            if self.numhaves[x] >= half:
+                if DEBUG:
+                    print >>sys.stderr, "pp: pos is sustainable: piece %s @ %s>%s peers" % (x,self.numhaves[x],half)
+                return True
+
+        # too few neighbours own the future pieces. it's wise to pause and let neighbours catch up
+        # with us
+        return False
+
     # next: selects next piece to download. adjusts wantfunc with filter for streaming; calls
     #   _next: selects next piece to download. completes partial downloads first, if needed, otherwise calls
     #     next_new: selects next piece to download. override this with the piece picking policy

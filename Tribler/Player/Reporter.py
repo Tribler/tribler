@@ -147,7 +147,7 @@ class Reporter:
             "t_stall":    v["stall"],
             "p_late":     v["late"],
             "p_dropped":  v["dropped"],
-            "prebuf":     v["prebuf"],
+            "t_prebuf":   v["prebuf"],
             "peers":      peerinfo.values(),
         }
 

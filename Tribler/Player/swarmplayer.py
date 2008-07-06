@@ -291,6 +291,7 @@ class PlayerApp(wx.App):
         # Setup how to download
         dcfg = DownloadStartupConfig()
         dcfg.set_video_event_callback(self.vod_event_callback)
+        dcfg.set_video_events(["start","pause","resume"])
         dcfg.set_dest_dir(destdir)
         
         if tdef.is_multifile_torrent():
@@ -727,6 +728,10 @@ class PlayerApp(wx.App):
                 videoserv = VideoHTTPServer.getInstance()
                 videoserv.set_inputstream(mimetype,stream,length)
                 wx.CallAfter(self.play_from_stream)
+        elif event == "pause":
+            self.videoFrame.videopanel.Pause()
+        elif event == "resume":
+            self.videoFrame.videopanel.Play()
 
     def play_from_stream(self):
         """ Called by MainThread """

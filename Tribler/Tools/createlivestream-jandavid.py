@@ -18,11 +18,12 @@ def state_callback(ds):
 
     return (1.0,False)
 
-def vod_ready_callback(d,mimetype,stream,filename):
+def vod_ready_callback(d,event,params):
     """ Called by the Session when the content of the Download is ready
      
     Called by Session thread """
-    print >>sys.stderr,"main: VOD ready callback called ###########################################################",mimetype
+    if event == "start":
+        print >>sys.stderr,"main: VOD ready callback called ###########################################################",params["mimetype"]
 
 
 if __name__ == "__main__":
@@ -54,7 +55,7 @@ if __name__ == "__main__":
     dscfg.set_dest_dir(destdir)
 
     source = urllib2.urlopen(sourceurl)
-    dscfg.set_video_start_callback(vod_ready_callback)
+    dscfg.set_video_event_callback(vod_ready_callback)
     dscfg.set_mode(DLMODE_NORMAL) # H4xor
     dscfg.set_video_ratelimit(1633*1024/8)
     dscfg.set_video_source(source)

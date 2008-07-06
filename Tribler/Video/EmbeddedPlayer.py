@@ -311,6 +311,21 @@ class EmbeddedPlayer(wx.Panel):
             self.slider.SetValue(oldsliderpos)
         self.update = True
         
+    def Play(self, evt=None):
+        if DEBUG:
+            print >>sys.stderr,"embedplay: Play pressed"
+        
+        if self.mediactrl.GetState() != MEDIASTATE_PLAYING:
+            self.ppbtn.setToggled(False)
+            self.mediactrl.Play()
+
+    def Pause(self, evt=None):
+        if DEBUG:
+            print >>sys.stderr,"embedplay: Pause pressed"
+        
+        if self.mediactrl.GetState() == MEDIASTATE_PLAYING:
+            self.ppbtn.setToggled(True)
+            self.mediactrl.Pause()
 
     def PlayPause(self, evt=None):
         if DEBUG:

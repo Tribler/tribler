@@ -65,7 +65,12 @@ class VideoStatus:
         self.wraparound_delta = max(4,self.movie_numpieces/8) 
 
         # ----- generic streaming settings
-        self.dropping = False # whether to drop packets that come in too late
+        # whether to drop packets that come in too late
+        if self.live_streaming:
+            self.dropping = True  # drop, but we will autopause as well
+        else:
+            self.dropping = False # just wait and produce flawless playback
+
         if videoinfo['bitrate']:
             self.set_bitrate( videoinfo['bitrate'] )
         else:
@@ -73,9 +78,13 @@ class VideoStatus:
             self.bitrate_set = False
 
         # ----- set defaults for dynamic positions
-        self.playing = False
-        self.prebuffering = True
+        self.playing = False     # video has started playback
+        self.paused = False      # video is paused
+        self.autoresume = False  # video is paused but will resume automatically
+        self.prebuffering = True # video is prebuffering
         self.playback_pos = self.first_piece
+
+        self.pausable = ("pause" in videoinfo["userevents"]) and ("resume" in videoinfo["userevents"])
 
     def add_playback_pos_observer( self, observer ):
         """ Add a function to be called when the playback position changes. Is called as follows:
@@ -97,7 +106,10 @@ class VideoStatus:
 
     def set_live_startpos( self, pos ):
         if self.wraparound:
-            oldrange = self.live_get_valid_range()
+            if self.live_startpos is None:
+                oldrange = self.first_piece,self.last_piece
+            else:
+                oldrange = self.live_get_valid_range()
             print >>sys.stderr,"vodstatus: set_live_pos: old",oldrange
         self.live_startpos = pos
         self.playback_pos = pos
