@@ -1215,8 +1215,8 @@ under the License.
 
 All code written by Jie Yang, Pawel Garbacki, Jun Wang, Arno Bakker,
 Jan David Mol, Qin Chen, Yuan Yuan, Jelle Roozenburg, Freek Zindel,
-Fabian van der Werf, Lucian Musat, Lucia D'Acunto, Rameez Rahman
-has the following license:
+Fabian van der Werf, Lucian Musat, Michel Meulpolder has the following
+license:
  
     TRIBLER file-sharing library.
 
