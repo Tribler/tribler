@@ -162,6 +162,8 @@ class PiecePickerStreaming(PiecePicker):
             print >>sys.stderr,"PiecePickerStreaming: got_have:",piece
         self.maxhave = max(self.maxhave,piece)
         PiecePicker.got_have( self, piece, connection )
+        if self.transporter:
+            self.transporter.got_have( piece )
 
         if self.is_interesting(piece):
             self.peer_connections[connection]["interesting"][piece] = 1

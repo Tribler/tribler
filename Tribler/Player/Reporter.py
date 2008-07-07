@@ -94,7 +94,7 @@ class Reporter:
             # any other error
             print_exc(file=sys.stderr)
             self.do_reporting = False
-        if DEBUG: print >>sys.stderr,"\nreport: succes:",self.do_reporting
+        if DEBUG: print >>sys.stderr,"\nreport: succes. reported %s bytes, will report again in %s seconds" % (len(data),self.do_reporting)
 
     def report_stat( self, ds ):
         chokestr = lambda b: ["c","C"][int(bool(b))]
@@ -149,6 +149,7 @@ class Reporter:
             "p_dropped":  v["dropped"],
             "t_prebuf":   v["prebuf"],
             "peers":      peerinfo.values(),
+            "pieces":     v["pieces"],
         }
 
         self.phone_home( stats )

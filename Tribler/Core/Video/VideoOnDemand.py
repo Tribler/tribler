@@ -30,6 +30,40 @@ FAKEPLAYBACK = False
 DEBUG = True
 DEBUGPP = False
 
+class PieceStats:
+    """ Keeps track of statistics for each piece as it flows through the system. """
+
+    def __init__(self):
+        self.pieces = {}
+        self.completed = {}
+
+    def set(self,piece,stat,value,firstonly=True):
+        if piece not in self.pieces:
+            self.pieces[piece] = {}
+
+        if firstonly and stat in self.pieces[piece]:
+            return
+
+        self.pieces[piece][stat] = value
+
+    def complete(self,piece):
+        self.completed[piece] = 1
+
+    def reset(self):
+        for x in self.completed:
+            self.pieces.pop(x,0)
+
+        self.completed = {}
+
+    def pop_completed(self):
+        completed = {}
+
+        for x in self.completed:
+            completed[x] = self.pieces.pop(x,{})
+
+        self.completed = {}
+        return completed
+
 class MovieOnDemandTransporter(MovieTransport):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 
@@ -141,6 +175,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.stat_droppedpieces = 0 # number of pieces dropped
         self.stat_stalltime = 0.0 # total amount of time the video was stalled
         self.stat_prebuffertime = 0.0 # amount of prebuffer time used
+        self.stat_pieces = PieceStats() # information about each piece
 
         # start periodic tasks
         self.curpiece = ""
@@ -465,6 +500,9 @@ class MovieOnDemandTransporter(MovieTransport):
             else:
                 print >>sys.stderr,"vod: trans: Prebuffering: %.2f seconds left" % (self.expected_buffering_time())
 
+    def got_have(self,piece):
+        self.stat_pieces.set( piece, "known", time.time() )
+
     def complete(self,piece,downloaded=True):
         """ Called when a movie piece has been downloaded or was available from the start (disk). """
 
@@ -472,6 +510,8 @@ class MovieOnDemandTransporter(MovieTransport):
 
         if vs.wraparound:
             assert downloaded
+
+        self.stat_pieces.set( piece, "complete", time.time() )
 
         #if DEBUG:
         #    print >>sys.stderr,"vod: trans: Completed",piece
@@ -893,6 +933,7 @@ class MovieOnDemandTransporter(MovieTransport):
                         # assumes piece_due is correct, and this piece will actually stall
                         self.stat_stalltime += stalltime
                     self.stat_playedpieces += 1
+                    self.stat_pieces.set( piece, "tobuffer", time.time() )
                     
                     self.outbuf.append( (vs.playback_pos,data) )
                     outbuflen += len(data)
@@ -915,6 +956,7 @@ class MovieOnDemandTransporter(MovieTransport):
                     if DEBUG:
                         print >>sys.stderr,"vod: trans: %d: dropped pos=%d; deadline expired %.2f sec ago" % (piece,vs.playback_pos,time.time()-self.piece_due(piece))
                     self.stat_droppedpieces += 1
+                    self.stat_pieces.complete( piece )
                     self.inc_pos()
             else:
                 # wait for packet
@@ -962,14 +1004,18 @@ class MovieOnDemandTransporter(MovieTransport):
         if not self.outbuf:
             piece = None
         else:
-            piece = self.outbuf.pop( 0 )
-            self.playbackrate.update_rate( len(piece) )
+            piece = self.outbuf.pop( 0 ) # nr,data pair
+            self.playbackrate.update_rate( len(piece[1]) )
 
         self.data_ready.release()
 
-        if self.start_playback is None and piece:
-            self.start_playback = time.time()
-            self.start_playback_piece = piece[0]
+        if piece:
+            if self.start_playback is None:
+                self.start_playback = time.time()
+                self.start_playback_piece = piece[0]
+
+            self.stat_pieces.set( piece[0], "toplayer", time.time() )
+            self.stat_pieces.complete( piece[0] )
 
         return piece
 
@@ -1012,7 +1058,7 @@ class MovieOnDemandTransporter(MovieTransport):
         } )
 
     def get_stats(self):
-        """ Returns accumulated statistics. """
+        """ Returns accumulated statistics. The piece data is cleared after this call to save memory. """
         """ Called by network thread """
         s = { "played": self.stat_playedpieces,
               "late": self.stat_latepieces,
@@ -1020,7 +1066,8 @@ class MovieOnDemandTransporter(MovieTransport):
               "stall": self.stat_stalltime,
               "pos": self.videostatus.playback_pos,
               "prebuf": self.stat_prebuffertime,
-              "pp": self.piecepicker.stats }
+              "pp": self.piecepicker.stats,
+              "pieces": self.stat_pieces.pop_completed(), }
         return s
 
     def get_prebuffering_progress(self):
