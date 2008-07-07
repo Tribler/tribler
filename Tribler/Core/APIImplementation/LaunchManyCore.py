@@ -161,9 +161,6 @@ class TriblerLaunchMany(Thread):
             config['socnet'] = 0
             config['rquery'] = 0
 
-        # First Category instantiation requires install_dir, so do it now
-        Category.getInstance(config['install_dir'])
-            
         if config['overlay']:
             self.secure_overlay = SecureOverlay.getInstance()
             self.secure_overlay.register(self, config['overlay_max_message_length'])
@@ -185,6 +182,20 @@ class TriblerLaunchMany(Thread):
         else:
             self.secure_overlay = None
             self.overlay_apps = None
+
+
+        if config['megacache'] or config['overlay']:
+            # Arno: THINK! whoever added this should at least have made the
+            # config files configurable via SessionConfigInterface.
+            #
+            # TODO: see if we can move this out of the core. We could make the
+            # category a parameter to TorrentDB.addExternalTorrent(), but that
+            # will not work directly for MetadataHandler, which is part of the
+            # core. 
+             
+            # Some author: First Category instantiation requires install_dir, so do it now
+            Category.getInstance(config['install_dir'])
+
         
         self.internaltracker = None
         if config['internaltracker']:
