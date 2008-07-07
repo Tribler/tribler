@@ -779,7 +779,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         vs = self.videostatus
 
-        if not vs.pausable:
+        if not vs.playing or not vs.pausable:
             return
 
         if vs.paused:
@@ -797,7 +797,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         vs = self.videostatus
 
-        if not vs.paused or not vs.pausable:
+        if not vs.playing or not vs.paused or not vs.pausable:
             return
 
         vs.paused = False
@@ -813,7 +813,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         vs = self.videostatus
 
-        if not vs.paused or not vs.autoresume:
+        if not vs.playing or not vs.paused or not vs.autoresume:
             return
 
         if not testfunc():
