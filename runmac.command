@@ -24,8 +24,8 @@ then
   exit -1
 fi
 
-export PYTHONPATH=`pwd`/lib:`pwd`/lib/Library/Frameworks/Python.framework/Versions/2.5/lib/python2.5/site-packages/
-export DYLD_LIBRARY_PATH=`pwd`/lib
+export PYTHONPATH=`pwd`/macbinaries:`pwd`/lib/Library/Frameworks/Python.framework/Versions/2.5/lib/python2.5/site-packages/
+export DYLD_LIBRARY_PATH=`pwd`/macbinaries
 
 # use a hardlink so the script is in the current directory, otherwise
 # python will start to chdir all over the place

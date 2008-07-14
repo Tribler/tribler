@@ -37,7 +37,7 @@ build/imagecontents/:
 	rm -rf $@
 	mkdir -p $@
 
-	cd ${SRCDIR} && DYLD_LIBRARY_PATH=lib PYTHONPATH=lib ${PYTHON} -OO - < Tribler/Player/Build/Mac/setuptriblermac.py py2app
+	cd ${SRCDIR} && DYLD_LIBRARY_PATH=macbinaries PYTHONPATH=macbinaries ${PYTHON} -OO - < Tribler/Player/Build/Mac/setuptriblermac.py py2app
 	mv ${SRCDIR}/dist/* $@
 
 	# Thin everything for this architecture. Some things ship Universal (Python, wxPython, ...) and
