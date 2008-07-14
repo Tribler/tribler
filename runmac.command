@@ -9,7 +9,7 @@
 # Next to this, you need wxPython 2.8-unicode and Python 2.5 installed.
 
 PYTHONVER=2.5
-PYTHON=python$PYTHONVER
+PYTHON=/usr/local/bin/python$PYTHONVER
 
 DIRCHANGE=`dirname $0`
 
@@ -24,7 +24,8 @@ then
   exit -1
 fi
 
-export PYTHONPATH=lib/Library/Frameworks/Python.framework/Versions/$PYTHONVER/lib/python$PYTHONVER/site-packages
+export PYTHONPATH=`pwd`/lib:`pwd`/lib/Library/Frameworks/Python.framework/Versions/2.5/lib/python2.5/site-packages/
+export DYLD_LIBRARY_PATH=`pwd`/lib
 
 # use a hardlink so the script is in the current directory, otherwise
 # python will start to chdir all over the place

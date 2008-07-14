@@ -7,29 +7,15 @@
 #
 # Use lower versions at your own risk.
 
-OPENSSL_VER=0.9.8e
-PYTHON_VER=2.5
-VLC_REV=20403
-M2CRYPTO_VER=0.18.2
+PYTHON_VER=
 PWD:=${shell pwd}
 ARCH:=${shell arch}
 
-ifeq ($(ARCH),ppc)
-  # PPC
-  OPENSSL_CONFIG=darwin-ppc-cc
-  FFMPEG_CONFIG=--cpu=G4
-else
-  # INTEL
-  OPENSSL_CONFIG=darwin-i386-cc
-  FFMPEG_CONFIG=--cpu=pentium-m --enable-memalign-hack
-endif
-
-all:	clean dirs SwarmPlayer-${ARCH}.dmg ../lib
+all:	clean dirs SwarmPlayer-${ARCH}.dmg
 
 clean:
 	rm -rf build/imagecontents/ SwarmPlayer.dmg
 
-SITEPACKAGES=build/lib/Library/Frameworks/Python.framework/Versions/${PYTHON_VER}/lib/python${PYTHON_VER}/site-packages
 PYTHON=python${PYTHON_VER}
 
 distclean:
@@ -45,16 +31,23 @@ dirs:
 
 APPRES=build/imagecontents/SwarmPlayer.app/Contents/Resources
 
-build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ build/lib/ffmpeg build/lib/.vlc 
+SRCDIR=../../../..
+
+build/imagecontents/:
 	rm -rf $@
 	mkdir -p $@
 
-	cd ../../../.. && PYTHONPATH=Tribler/Player/Build/Mac/${SITEPACKAGES} ${PYTHON} -OO - < Tribler/Player/Build/Mac/setuptriblermac.py py2app
-	mv ../../../../dist/* $@
+	cd ${SRCDIR} && DYLD_LIBRARY_PATH=lib PYTHONPATH=lib ${PYTHON} -OO - < Tribler/Player/Build/Mac/setuptriblermac.py py2app
+	mv ${SRCDIR}/dist/* $@
 
 	# Thin everything for this architecture. Some things ship Universal (Python, wxPython, ...) and
 	# others get a stub for the other architecture (things built by Universal Python)
 	for i in `find build/imagecontents`; do ./smart_lipo_thin $$i; done
+
+        # Replace any rogue references to local ones. For instance, some libraries are accidently
+        # linked against /usr/local/lib/* or /opt/local/lib. Py2app puts them in the Frameworks dir,
+        # but fails to correct the references in the binaries.
+	#./process_libs build/imagecontents | bash -
 
 	# Background
 	mkdir -p $@/.background
@@ -126,121 +119,3 @@ SwarmPlayer-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
 	/Developer/Tools/DeRez -useDF SLAResources.rsrc > build/temp/sla.r
 	/Developer/Tools/Rez -a build/temp/sla.r -o $@
 	hdiutil flatten $@
-
-# ----- OpenSSL and M2Crypto
-
-OPENSSL_CONFIG += shared --prefix=${PWD}/build/lib
-
-build/temp/openssl-${OPENSSL_VER}.tar.gz:
-	curl http://www.openssl.org/source/openssl-${OPENSSL_VER}.tar.gz -o $@
-
-build/temp/.openssl:		build/temp/openssl-${OPENSSL_VER}.tar.gz
-	cd build/temp && tar xfz openssl-${OPENSSL_VER}.tar.gz
-	rm -rf build/temp/openssl
-	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl
-
-	cd build/temp/openssl && ./Configure ${OPENSSL_CONFIG}
-	cd build/temp/openssl && make install
-	touch $@
-
-build/temp/.m2crypto:
-	svn co http://svn.osafoundation.org/m2crypto/tags/$M2CRYPTO_VER build/temp/m2crypto
-	touch $@
-
-${SITEPACKAGES}/M2Crypto/:	build/temp/.openssl build/temp/.m2crypto
-	cd build/temp/m2crypto && ${PYTHON} setup.py build build_ext --openssl=${PWD}/build/lib
-	cd build/temp/m2crypto && ${PYTHON} setup.py install --root ${PWD}/build/lib
-
-	touch $@
-
-# ----- VLC
-# If VLC is prebuilt, copy build/temp/vlc 
-
-VLCDIR=${PWD}/build/temp/vlc
-VLCPREFIX=${VLCDIR}/install-root
-
-build/temp/.vlc:
-	svn co -r ${VLC_REV} svn://svn.videolan.org/vlc/trunk ${VLCDIR}
-	cd ${VLCDIR}/extras/contrib && ./bootstrap
-
-	cat ${VLCDIR}/extras/contrib/config.mak | sed 's#wget#'`which wget`'#' > build/temp/config.mak.temp
-	mv build/temp/config.mak.temp ${VLCDIR}/extras/contrib/config.mak
-
-	cd ${VLCDIR}/extras/contrib && make src
-	touch $@
-
-${VLCDIR}/Makefile:	build/temp/.vlc
-	svn revert ${VLCDIR}/m4/* ${VLCDIR}/po/*
-	cd ${VLCDIR} && ./bootstrap
-	cd ${VLCDIR} && ./configure --enable-debug --disable-x11 --disable-xvideo --disable-glx --disable-qt4 --disable-sdl --enable-mad --enable-libdvbpsi --enable-a52 --disable-dvdplay --enable-dvdnav --enable-dvdread --enable-ffmpeg --enable-faad --enable-flac --enable-vorbis --enable-speex --enable-theora --enable-ogg --enable-shout --enable-cddb --disable-cddax --enable-vcdx --disable-skins --disable-skins2 --disable-wxwidgets --enable-freetype --enable-fribidi --disable-caca --enable-live555 --enable-dca --enable-goom --enable-modplug --enable-gnutls --enable-daap --disable-ncurses --enable-libtwolame --enable-x264 --enable-png --enable-realrtsp --disable-libtool --prefix=${VLCPREFIX}
-	cd ${VLCDIR} && patch -p0 -N < ${PWD}/vlc-macosx-compile.patch
-	cp mkinstalldirs ${VLCDIR}/autotools
-
-${VLCPREFIX}/lib/libvlc.a:	${VLCDIR}/Makefile
-	# build and install vlc
-	cd ${VLCDIR} && ./compile
-
-	# some necessary patches :( since these files differ between builds and architectures,
-	# and one might want to run this Makefile several times in case of errors, we don't use patch
-	cat ${VLCDIR}/Makefile | sed 's/vlc_app_DATA = VLC.app//;' > build/temp/Makefile.temp
-	mv build/temp/Makefile.temp ${VLCDIR}/Makefile
-	cat ${VLCDIR}/vlc-config | sed 's/^cflags_tuning=.*/cflags_tuning=""/;s/-lvlc-control//;' > build/temp/vlc-config.temp
-	mv build/temp/vlc-config.temp ${VLCDIR}/vlc-config
-	chmod a+x ${VLCDIR}/vlc-config
-
-	cat ${VLCDIR}/po/Makefile | sed 's#@MKINSTALLDIRS@#'${VLCDIR}'/autotools/mkinstalldirs#;' > build/temp/Makefile.temp
-	mv build/temp/Makefile.temp ${VLCDIR}/po/Makefile
-	chmod a+x ${VLCDIR}/vlc-config
-
-	cd ${VLCDIR} && make install
-
-	# copy some missing libraries into the install-root
-	for i in `${VLCDIR}/vlc-config --target builtin`; do cp ${VLCDIR}/$$i ${VLCPREFIX}/lib/vlc; done
-	cp ${VLCDIR}/extras/contrib/vlc-lib/vlc_*.dylib ${VLCPREFIX}/lib/
-
-${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so:	${VLCPREFIX}/lib/libvlc.a
-	# build python bindings
-	cd ${VLCDIR}/bindings/python && ${PYTHON} setup.py install --prefix=${VLCPREFIX}
-
-build/temp/vlc/.complete:    ${VLCPREFIX}/lib/libvlc.a ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
-	touch $@
-
-build/lib/.vlc:
-	# allow VLC to come prebuilt. If build/temp/vlc/.complete was an official dependency,
-	# make would test its timestamp against its dependencies, which is undesirable
-	# if the whole tree was copied resulting in basically random timestamps
-	test -e build/temp/vlc/.complete || make build/temp/vlc/.complete
-
-	# fix dependencies of the plugins
-	./process_libs ${VLCPREFIX}/lib
-	./process_libs ${VLCPREFIX}/lib
-
-	# place the libraries/plugins in build/lib
-	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; cp $$i ${PWD}/build/lib/$$i; done
-
-	# place vlc.so with the site-packages
-	cp ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so $@
-
-	touch $@
-
-
-../lib:			build/lib/.vlc
-	# let run from source locate libraries
-	rm -f ../lib
-	ln -s ${PWD}/build/lib ../lib
-
-# ----- FFmpeg
-
-FFMPEG_CONFIG += --disable-vhook --disable-network --disable-ffserver --disable-ffplay
-
-build/temp/.ffmpeg:
-	svn co svn://svn.mplayerhq.hu/ffmpeg/trunk build/temp/ffmpeg
-	touch $@
-
-build/temp/ffmpeg/ffmpeg:	build/temp/.ffmpeg
-	cd build/temp/ffmpeg && ./configure ${FFMPEG_CONFIG}
-	cd build/temp/ffmpeg && make
-
-build/lib/ffmpeg:		build/temp/ffmpeg/ffmpeg
-	cp $^ $@
-

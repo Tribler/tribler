@@ -492,7 +492,7 @@ class VLCMediaCtrl(wx.Window):
         params += ["--key-fullscreen", "Esc"] # must come last somehow on Win32
 
         if sys.platform == 'darwin':
-            params += ["--plugin-path", "%s/lib/vlc" % (
+            params += ["--plugin-path", "%s/lib/plugins" % (
                  # location of plugins: next to tribler.py
                  os.path.abspath(os.path.dirname(sys.argv[0]))
                  )]
@@ -515,7 +515,7 @@ class VLCMediaCtrl(wx.Window):
         if not self.visinit:
             xid = self.GetHandle()
             if sys.platform == 'darwin':
-                self.media.get_vlc_instance().video_set_macosx_parent_type(1)
+                self.media.set_visual_macosx_type(vlc.DrawableControlRef)
             self.media.set_visual(xid)
             self.visinit = True
 

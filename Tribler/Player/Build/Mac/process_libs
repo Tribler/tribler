@@ -15,18 +15,20 @@ do
       next;
     }
 
-    if(m#([@]executable_path/([^ ]+))#) {
-      # remove @executable_path from the references
+    if(m#(/usr/local/lib/([^ /]+))#) {
+      # make reference to /usr/local/lib/* local
 
+      print "# Reference to $1 found in '$i'\n";
       print "chmod a+w '$i'\n";
-      print "install_name_tool -change $1 $2 '$i'\n";
+      print "install_name_tool -change $1 \@executable_path/../Frameworks/$2 '$i'\n";
     }
-    if(m#(/Users/.*/(lib/([^ /]+)))#) {
-      # add missing libs and make references relative
 
-      print "cp $1 build/lib/$3\n";
-      print "chmod a+w build/lib/$3 '$i'\n";
-      print "install_name_tool -change $1 $2 '$i'\n";
+    if(m#(/opt/local/lib/([^ /]+))#) {
+      # make reference to /opt/local/lib/* local
+
+      print "# Reference to $1 found in '$i'\n";
+      print "chmod a+w '$i'\n";
+      print "install_name_tool -change $1 \@executable_path/../Frameworks/$2 '$i'\n";
     }
   '
-done | bash -
+done
