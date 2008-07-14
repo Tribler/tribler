@@ -492,7 +492,7 @@ class VLCMediaCtrl(wx.Window):
         params += ["--key-fullscreen", "Esc"] # must come last somehow on Win32
 
         if sys.platform == 'darwin':
-            params += ["--plugin-path", "%s/lib/plugins" % (
+            params += ["--plugin-path", "%s/macbinaries/vlc_plugins" % (
                  # location of plugins: next to tribler.py
                  os.path.abspath(os.path.dirname(sys.argv[0]))
                  )]

@@ -47,7 +47,7 @@ class SessionConfigInterface:
             if sys.platform == 'win32':
                 self.sessconfig['videoanalyserpath'] = ffmpegname
             elif sys.platform == 'darwin':
-                self.sessconfig['videoanalyserpath'] = "lib/ffmpeg"
+                self.sessconfig['videoanalyserpath'] = "macbinaries/ffmpeg"
             else:
                 self.sessconfig['videoanalyserpath'] = ffmpegname
         else:

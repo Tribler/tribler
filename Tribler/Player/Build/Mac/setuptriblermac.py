@@ -47,7 +47,7 @@ if "ec_init" not in M2Crypto.m2.__dict__:
 
 #import vlc
 
-#vlc = vlc.MediaControl(["--plugin-path",os.getcwd()+"/lib/plugins"])
+#vlc = vlc.MediaControl(["--plugin-path",os.getcwd()+"/macbinaries/vlc_plugins"])
 
 # =================
 # build SwarmPlayer.app
@@ -109,10 +109,10 @@ setup(
            + includedir( "Tribler/Images" )
 
            # add VLC plugins
-           + includedir( "lib/plugins" )
+           + includedir( "macbinaries/vlc_plugins" )
 
            # add ffmpeg binary
-           + ["lib/ffmpeg"]
+           + ["macbinaries/ffmpeg"]
             ,
     } }
 )
