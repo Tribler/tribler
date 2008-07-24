@@ -289,7 +289,7 @@ class ProgressSlider(wx.Panel):
             self.sliderChangedAction()
             
     def sliderChangedAction(self):
-        self.GetParent().Seek(None)
+        self.GetParent().Seek()
             
         
                 

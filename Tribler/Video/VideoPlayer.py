@@ -1,4 +1,4 @@
-# Written by Arno Bakker
+# Written by Arnfo Bakker
 # see LICENSE.txt for license information
 import sys
 import os
@@ -9,7 +9,7 @@ from threading import currentThread,Event
 from traceback import print_exc,print_stack
 import urlparse
 
-from Tribler.Video.VideoServer import VideoHTTPServer
+from Tribler.Video.VideoServer import VideoHTTPServer,VideoRawVLCServer
 from Tribler.Video.Progress import ProgressBar,BufferInfo, ProgressInf
 from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 from utils import win32_retrieve_video_play_command,win32_retrieve_playcmd_from_mimetype,quote_program_path,videoextdefaults
@@ -25,20 +25,32 @@ OTHERTORRENTS_STOP_RESTART = 0
 OTHERTORRENTS_STOP = 1
 OTHERTORRENTS_CONTINUE = 2
 
+USE_VLC_RAW_INTERFACE = False
+
+
 class VideoPlayer:
     
     __single = None
     
-    def __init__(self):
+    def __init__(self,httpport=6880):
         if VideoPlayer.__single:
             raise RuntimeError, "VideoPlayer is singleton"
         VideoPlayer.__single = self
-        self.parentwindow = None
+        self.videoframe = None
         self.extprogress = None
-        self.contentname = None
-
         self.vod_download = None
+        self.playbackmode = None
+        self.alwaysinternalplayback = False
         self.vod_postponed_downloads = []
+
+        if not USE_VLC_RAW_INTERFACE:
+            # Start HTTP server for serving video to player widget
+            self.videohttpserv = VideoHTTPServer.getInstance(httpport) # create
+            self.videohttpserv.background_serve()
+            self.videohttpserv.register(self.videohttpserver_error_callback,self.videohttpserver_set_status_callback)
+
+        # Must create the instance here, such that it won't get garbage collected
+        self.videoserv = VideoRawVLCServer.getInstance()
 
         
     def getInstance(*args, **kw):
@@ -47,60 +59,145 @@ class VideoPlayer:
         return VideoPlayer.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self,utility):
+    def register(self,utility,alwaysinternalplayback=False):
         
         self.utility = utility # TEMPARNO: make sure only used for language strings
 
+        self.alwaysinternalplayback = alwaysinternalplayback
         self.determine_playbackmode()
 
-    def set_content_name(self,name):
-        self.contentname = name
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.parentwindow.set_content_name(self.contentname)
-
-    def set_content_image(self,wximg):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.parentwindow.set_content_image(wximg)
-
-    def determine_playbackmode(self):
-        playbackmode = PLAYBACKMODE_INTERNAL # self.utility.config.Read('videoplaybackmode', "int")
-        feasible = return_feasible_playback_modes(self.utility.getPath())
-        if playbackmode in feasible:
-            self.playbackmode = playbackmode
-        else:
-            self.playbackmode = feasible[0]
-        #print >>sys.stderr,"videoplay: playback mode is %d wanted %d" % (self.playbackmode,playbackmode)
-
-        ###self.playbackmode = PLAYBACKMODE_EXTERNAL_MIME
-
-    def set_parentwindow(self,parentwindow):
-        self.parentwindow = parentwindow
+    def set_videoframe(self,videoframe):
+        self.videoframe = videoframe
 
 
-   ##  def play_from_file(self,videoinfo):
-##         """ Play video file from disk """
-##         dest = videoinfo['outpath']
-##         if DEBUG:
-##             print >>sys.stderr,"videoplay: Playing file from disk",dest
+    def play_file(self,dest):
+        """ Play video file from disk """
+        if DEBUG:
+            print >>sys.stderr,"videoplay: Playing file from disk",dest
 
-##         (prefix,ext) = os.path.splitext(dest)
-##         [mimetype,cmd] = self.get_video_player(ext,dest)
+        (prefix,ext) = os.path.splitext(dest)
+        [mimetype,cmd] = self.get_video_player(ext,dest)
         
-##         if DEBUG:
-##             print >>sys.stderr,"videoplay: play_from_file: cmd is",cmd
+        if DEBUG:
+            print >>sys.stderr,"videoplay: play_file: cmd is",cmd
         
-##         self.launch_video_player(cmd)
-
- 
-    def swapin_videopanel_gui_callback(self,cmd,play=False,progressinf=None):
-        """ Called by GUI thread """
-        self.parentwindow.swapin_videopanel(cmd,play=play,progressinf=progressinf)
- 
-    def progress4ext_gui_callback(self,progressinf,cmd):
-        """ Called by GUI thread """
         self.launch_video_player(cmd)
 
+    def play_file_via_httpserv(self,dest):
+        """ Play a file via our internal HTTP server. Needed when the user
+        selected embedded VLC as player and the filename contains Unicode
+        characters.
+        """ 
+        if DEBUG:
+            print >>sys.stderr,"videoplay: Playing file with Unicode filename via HTTP"
+
+        videoserver = VideoHTTPServer.getInstance()
+        
+        (prefix,ext) = os.path.splitext(dest)
+        videourl = self.create_url(videoserver,'/'+os.path.basename(prefix+ext))
+        [mimetype,cmd] = self.get_video_player(ext,videourl)
+
+        stream = open(dest,"rb")
+        stats = os.stat(dest)
+        length = stats.st_size
+        streaminfo = {'mimetype':mimetype,'stream':stream,'length':length}
+        videoserv.set_inputstream(streaminfo)
+        
+        self.launch_video_player(cmd)
+
+
+ 
+    def play_url(self,url):
+        """ Play video file from network or disk """
+        if DEBUG:
+            print >>sys.stderr,"videoplay: Playing file from url",url
+        
+        self.determine_playbackmode()
+        
+        t = urlparse.urlsplit(url)
+        dest = t[2]
+        
+        # VLC will play .flv files, but doesn't like the URLs that YouTube uses,
+        # so quote them
+        if self.playbackmode != PLAYBACKMODE_INTERNAL:
+            if sys.platform == 'win32':
+                x = [t[0],t[1],t[2],t[3],t[4]]
+                n = urllib.quote(x[2])
+                if DEBUG:
+                    print >>sys.stderr,"videoplay: play_url: OLD PATH WAS",x[2],"NEW PATH",n
+                x[2] = n
+                n = urllib.quote(x[3])
+                if DEBUG:
+                    print >>sys.stderr,"videoplay: play_url: OLD QUERY WAS",x[3],"NEW PATH",n
+                x[3] = n
+                url = urlparse.urlunsplit(x)
+            elif url[0] != '"' and url[0] != "'":
+                # to prevent shell escape problems
+                # TODO: handle this case in escape_path() that now just covers spaces
+                url = "'"+url+"'" 
+
+        (prefix,ext) = os.path.splitext(dest)
+        [mimetype,cmd] = self.get_video_player(ext,url)
+        
+        if DEBUG:
+            print >>sys.stderr,"videoplay: play_url: cmd is",cmd
+        
+        self.launch_video_player(cmd)
+
+
+    def play_stream(self,streaminfo):
+        if DEBUG:
+            print >>sys.stderr,"videoplay: play_stream"
+
+        self.determine_playbackmode()
+
+        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+            if USE_VLC_RAW_INTERFACE:
+                # Play using direct callbacks from the VLC C-code
+                self.launch_video_player(None,streaminfo=streaminfo)
+            else:
+                # Play via internal HTTP server
+                self.videohttpserv.set_inputstream(streaminfo)
+                url = self.create_url(self.videohttpserv,'/')
+
+                self.launch_video_player(url)
+        else:
+            # External player, play stream via internal HTTP server
+            self.videohttpserv.set_inputstream(streaminfo)
+            url = self.create_url(self.videohttpserv,'/')
+
+            [mimetype,cmd] = self.get_video_player(None,url,mimetype=streaminfo['mimetype'])
+            self.launch_video_player(cmd)
+
+
+    def launch_video_player(self,cmd,streaminfo=None):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+
+            if streaminfo is None:
+                # Play URL from network or disk
+                self.videoframe.get_videopanel().Load(cmd)
+            else:
+                # Play using direct callbacks from the VLC C-code
+                self.videoframe.get_videopanel().Load('raw:',streaminfo=streaminfo)
+
+            self.videoframe.show_videoframe()
+            self.videoframe.get_videopanel().StartPlay()
+        else:
+            # Launch an external player
+            # Play URL from network or disk
+            self.exec_video_player(cmd)
+
+
+    def stop_playback(self,reset=False):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+            self.videoframe.get_videopanel().Stop()
+            if reset:
+                self.videoframe.get_videopanel().Reset()
+
+
+
     def play(self,ds):
+        """ Used by Tribler Main """
         self.determine_playbackmode()
         
         d = ds.get_download()
@@ -146,44 +243,14 @@ class VideoPlayer:
         
         if complete:
             if flag:
-                self.play_file_via_http(selectedoutfilename)
+                self.play_file_via_httpserv(selectedoutfilename)
             else:
-                self.play_from_file(selectedoutfilename)
+                self.play_file(selectedoutfilename)
         else:
-            self.play_vod_via_http(ds,selectedinfilename)
-
-    def play_from_file(self,dest):
-        """ Play video file from disk """
-        if DEBUG:
-            print >>sys.stderr,"videoplay: Playing file from disk",dest
-
-        (prefix,ext) = os.path.splitext(dest)
-        [mimetype,cmd] = self.get_video_player(ext,dest)
-        
-        if DEBUG:
-            print >>sys.stderr,"videoplay: play_from_file: cmd is",cmd
-        
-        self.launch_video_player(cmd)
-
-    def play_file_via_http(self,dest):
-        if DEBUG:
-            print >>sys.stderr,"videoplay: Playing encrypted file via HTTP"
-
-        videoserver = VideoHTTPServer.getInstance()
-        
-        (prefix,ext) = os.path.splitext(dest)
-        videourl = self.create_url(videoserver,'/'+os.path.basename(prefix+ext))
-        [mimetype,cmd] = self.get_video_player(ext,videourl)
-
-        stream = open(dest,"rb")
-        stats = os.stat(dest)
-        length = stats.st_size
-        videoserv.set_inputstream(mimetype,stream,length)
-        
-        self.launch_video_player(cmd)
+            self.play_vod(ds,selectedinfilename)
 
 
-    def play_vod_via_http(self,ds,infilename):
+    def play_vod(self,ds,infilename):
         """ Called by GUI thread when clicking "Play ASAP" button """
 
         d = ds.get_download()
@@ -200,7 +267,7 @@ class VideoPlayer:
             
             if switchfile:
                 if self.playbackmode == PLAYBACKMODE_INTERNAL:
-                    self.parentwindow.reset_videopanel()
+                    self.videoframe.get_videopanel().Reset()
             
             [proceed,othertorrents] = self.warn_user(ds,infilename)
             if not proceed:
@@ -230,7 +297,7 @@ class VideoPlayer:
                 self.set_vod_postponed_downloads(activetorrents)
 
             # Restart download
-            d.set_video_event_callback(self.sesscb_vod_ready_callback)
+            d.set_video_start_callback(self.sesscb_vod_event_callback)
             if d.get_def().is_multifile_torrent():
                 d.set_selected_files([infilename])
             print >>sys.stderr,"main: Restarting existing Download",`ds.get_download().get_def().get_infohash()`
@@ -270,7 +337,7 @@ class VideoPlayer:
             self.set_vod_postponed_downloads(activetorrents)
 
         # Restart download
-        dscfg.set_video_event_callback(self.sesscb_vod_ready_callback)
+        dscfg.set_video_start_callback(self.sesscb_vod_event_callback)
         print >>sys.stderr,"videoplay: Starting new VOD/live Download",`tdef.get_name()`
         
         d = self.utility.session.start_download(tdef,dscfg)
@@ -278,35 +345,39 @@ class VideoPlayer:
         return d
         
     
-    def sesscb_vod_ready_callback(self,d,event,params):
+    def sesscb_vod_event_callback(self,d,event,params):
         """ Called by the Session when the content of the Download is ready
          
         Called by Session thread """
+        print >>sys.stderr,"VideoPlayer: sesscb_vod_event_callback called",currentThread().getName(),"###########################################################",params["mimetype"]
+        wx.CallAfter(self.gui_vod_event_callback,d,event,params)
 
+    def gui_vod_event_callback(self,d,event,params):
+        """ Also called by SwarmPlayer """
+
+        print >>sys.stderr,"VideoPlayer: gui_vod_event:",event
         if event == "start":
-            print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",params["mimetype"]
-            wx.CallAfter(self.gui_vod_ready_callback,d,event,params)
-        
-    def gui_vod_ready_callback(self,d,event,params):
-        filename = params["filename"]
-        if filename:
-            self.play_from_file(filename)
-        else:
-            stream = params["stream"]
+            filename = params["filename"]
             mimetype = params["mimetype"]
-            length = params["length"]
+            stream   = params["stream"]
+            length   = params["size"]
 
-            videoserv = VideoHTTPServer.getInstance()
-            videoserv.set_inputstream(mimetype,stream,length)
-            videourl = self.create_url(videoserv,'/')
-            videofiles = d.get_selected_files()
-            [mimetype,cmd] = self.get_video_player(None,videourl,mimetype=mimetype)
-
-            self.launch_video_player(cmd)
+            if filename:
+                self.play_file(filename)
+            else:
+                blocksize = d.get_def().get_piece_length()
+                streaminfo = {'mimetype':mimetype,'stream':stream,'length':length,'blocksize':blocksize}
+                self.play_stream(streaminfo)
+        elif event == "pause":
+            if self.playbackmode == PLAYBACKMODE_INTERNAL:
+                self.videoframe.videopanel.Pause()
+        elif event == "resume":
+            if self.playbackmode == PLAYBACKMODE_INTERNAL:
+                self.videoframe.videopanel.Play()
 
 
     def ask_user_to_select_video(self,videofiles):
-        dlg = VideoChooser(self.parentwindow,self.utility,videofiles,title='Tribler',expl='Select which file to play')
+        dlg = VideoChooser(self.videoframe,self.utility,videofiles,title='Tribler',expl='Select which file to play')
         result = dlg.ShowModal()
         if result == wx.ID_OK:
             index = dlg.getChosenIndex()
@@ -327,7 +398,7 @@ class VideoPlayer:
             return False
 
     def warn_user(self,ds,infilename):
-        dlg = VODWarningDialog(self.parentwindow,self.utility,ds,infilename)
+        dlg = VODWarningDialog(self.videoframe,self.utility,ds,infilename)
         result = dlg.ShowModal()
         othertorrents = dlg.get_othertorrents()
         dlg.Destroy()
@@ -338,48 +409,6 @@ class VideoPlayer:
         asciipath = unicode2str(upath)
         return schemeserv+urllib.quote(asciipath)
 
- 
-    def play_url(self,url):
-        """ Play video file from disk """
-        if DEBUG:
-            print >>sys.stderr,"videoplay: Playing file from url",url
-        
-        self.determine_playbackmode()
-        
-        t = urlparse.urlsplit(url)
-        dest = t[2]
-        
-        # VLC will play .flv files, but doesn't like the URLs that YouTube uses,
-        # so quote them
-        if self.playbackmode != PLAYBACKMODE_INTERNAL:
-            if sys.platform == 'win32':
-                x = [t[0],t[1],t[2],t[3],t[4]]
-                n = urllib.quote(x[2])
-                if DEBUG:
-                    print >>sys.stderr,"videoplay: play_url: OLD PATH WAS",x[2],"NEW PATH",n
-                x[2] = n
-                n = urllib.quote(x[3])
-                if DEBUG:
-                    print >>sys.stderr,"videoplay: play_url: OLD QUERY WAS",x[3],"NEW PATH",n
-                x[3] = n
-                url = urlparse.urlunsplit(x)
-            elif url[0] != '"' and url[0] != "'":
-                # to prevent shell escape problems
-                # TODO: handle this case in escape_path() that now just covers spaces
-                url = "'"+url+"'" 
-
-        (prefix,ext) = os.path.splitext(dest)
-        [mimetype,cmd] = self.get_video_player(ext,url)
-        
-        if DEBUG:
-            print >>sys.stderr,"videoplay: play_url: cmd is",cmd
-        
-        self.launch_video_player(cmd)
-
-
-    def stop_playback(self):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.parentwindow.stop_playback()
 
 
     def get_video_player(self,ext,videourl,mimetype=None):
@@ -431,13 +460,7 @@ class VideoPlayer:
         print >>sys.stderr,"videoplay: using external user-defined player by executing ",cmd
         return [mimetype,cmd]
 
-            
 
-    def launch_video_player(self,cmd):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.parentwindow.swapin_videopanel(cmd)
-        else:
-            self.exec_video_player(cmd)
 
     def exec_video_player(self,cmd):
         if DEBUG:
@@ -504,6 +527,45 @@ class VideoPlayer:
         
     def get_vod_download(self):
         return self.vod_download
+
+
+    def set_content_name(self,name):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+            self.videoframe.get_videopanel().SetContentName(name)
+
+    def set_content_image(self,wximg):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+            self.videoframe.get_videopanel().SetContentImage(wximg)
+
+    def determine_playbackmode(self):
+        if self.alwaysinternalplayback:
+            playbackmode = PLAYBACKMODE_INTERNAL
+        else:
+            # WARNING READS TRIBLER CONFIG, DON'T USE in SWARMPLAYER
+            playbackmode = self.utility.config.Read('videoplaybackmode', "int")
+        feasible = return_feasible_playback_modes(self.utility.getPath())
+        if playbackmode in feasible:
+            self.playbackmode = playbackmode
+        else:
+            self.playbackmode = feasible[0]
+
+    def videohttpserver_error_callback(self,e,url):
+        """ Called by HTTP serving thread """
+        wx.CallAfter(self.videohttpserver_error_guicallback,e,url)
+        
+    def videohttpserver_error_guicallback(self,e,url):
+        print >>sys.stderr,"main: Video server reported error",str(e)
+        pass
+
+    def videohttpserver_set_status_callback(self,status):
+        """ Called by HTTP serving thread """
+        wx.CallAfter(self.videohttpserver_set_status_guicallback,status)
+
+    def videohttpserver_set_status_guicallback(self,status):
+        self.videoframe.get_videopanel().SetPlayerStatus(status)
+ 
+
+
 
 class VideoChooser(wx.Dialog):
     

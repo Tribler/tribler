@@ -13,9 +13,11 @@ from time import sleep
 from tempfile import mkstemp
 from threading import currentThread,Event, Thread
 from traceback import print_stack,print_exc
+import random
+
 from Progress import ProgressBar, ProgressSlider, VolumeSlider
 from Buttons import PlayerSwitchButton, PlayerButton
-
+from Tribler.Video.VLCWrapper import VLCLogoWindow
 
 # Fabian: can't use the constants from wx.media since 
 # those all yield 0 (for my wx)
@@ -32,21 +34,16 @@ vlcstatusmap = {vlc.PlayingStatus:'vlc.PlayingStatus',
                 vlc.EndStatus:'vlc.EndStatus',
                 vlc.UndefinedStatus:'vlc.UndefinedStatus'}
 
-DEBUG = True
-
-
-class VideoItem:
-    
-    def __init__(self,path):
-        self.path = path
-        
-    def getPath(self):
-        return self.path
+DEBUG = False
 
 
 class VideoFrame(wx.Frame):
+    """ Provides a wx.Frame around an EmbeddedPlayerPanel so the embedded player
+    is shown as a separate window. The Embedded Player consists of a VLCLogoWindow
+    and the media controls such as Play/Pause buttons and Volume Control.
+    """
     
-    def __init__(self,parent,title,iconpath,logopath):
+    def __init__(self,parent,title,iconpath,vlcwrap,logopath):
         self.utility = parent.utility
         if title is None:
             title = self.utility.lang.get('tb_video_short')
@@ -54,132 +51,77 @@ class VideoFrame(wx.Frame):
         wx.Frame.__init__(self, None, -1, title, 
                           size=(800,520)) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
         
-        self.logopath = logopath
-        self.createMainPanel()
+        self.create_videopanel(vlcwrap,logopath)
 
+        # Set icons for Frame
         self.icons = wx.IconBundle()
         self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
         self.SetIcons(self.icons)
-        
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
-    def createMainPanel(self):
-        oldcwd = os.getcwd()
-        if sys.platform == 'win32':
-            global vlcinstalldir
-            vlcinstalldir = os.path.join(self.utility.getPath(),"vlc")
-            os.chdir(vlcinstalldir)
-
+    def create_videopanel(self,vlcwrap, logopath):
         self.showingvideo = False
-        self.videopanel = EmbeddedPlayer(self, -1, self, False, self.utility, self.logopath)
-        #self.videopanel.Hide()
+        self.videopanel = EmbeddedPlayerPanel(self, self.utility, vlcwrap, logopath)
         self.Hide()
-        # Arno, 2007-04-02: There is a weird problem with stderr when using VLC on Linux
-        # see Tribler\Video\vlcmedia.py:VLCMediaCtrl. Solution is to sleep 1 sec here.
-        # Arno: 2007-04-23: Appears to have been caused by wx.SingleInstanceChecker
-        # in wxPython-2.8.1.1.
-        #
-        #if sys.platform == 'linux2':
-        #    print "Sleeping for a few seconds to allow VLC to initialize"
-        #    sleep(5)
-            
-        if sys.platform == 'win32':
-            os.chdir(oldcwd)
 
-    def OnCloseWindow(self, event = None):
-        self.swapout_videopanel()        
-        
-
-    def swapin_videopanel(self,url,play=True):
-        
+    def show_videoframe(self):
         if DEBUG:
             print >>sys.stderr,"videoframe: Swap IN videopanel"
-        
-        if not self.showingvideo:
-            self.showingvideo = True
-            self.Show()
             
-        self.Raise()
-        self.SetFocus()
-
-        self.item = VideoItem(url)
-        self.videopanel.SetItem(self.item,play=play)
-
-    def swapout_videopanel(self):
-        
+        if self.videopanel is not None:
+            if not self.showingvideo:
+                self.showingvideo = True
+                self.Show()
+                
+            self.Raise()
+            self.SetFocus()
+    
+    def hide_videoframe(self):
         if DEBUG:
             print >>sys.stderr,"videoframe: Swap OUT videopanel"
-        
-        self.videopanel.reset()
-        if self.showingvideo:
-            self.showingvideo = False
-            self.Hide()
 
-    def reset_videopanel(self):
-        self.videopanel.reset()
-        
-    def set_player_status(self,s):
-        """ Called by any thread """
         if self.videopanel is not None:
-            self.videopanel.set_player_status(s)
+            self.videopanel.reset()
+            if self.showingvideo:
+                self.showingvideo = False
+                self.Hide()
 
-    def set_content_name(self,name):
-        """ Called by any thread """
-        if self.videopanel is not None:
-            self.videopanel.set_content_name(name)
+    def get_videopanel(self):
+        return self.videopanel
 
-    def set_content_image(self,wximg):
-        """ Called by GUI thread """
-        if self.videopanel is None:
-            return None
-        else:
-            return self.videopanel.set_content_image(wximg)
-
-        
-    def stop_playback(self):
-        """ Called by GUI thread """
-        if self.videopanel is not None:
-            self.videopanel.Stop()
-            
-    def set_wxclosing(self):
+    def delete_videopanel(self):
         self.videopanel = None
-      
-    def get_state(self):
-        """ Returns the state of VLC as summarized by Fabian: 
-        MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED or None """
 
-        if self.videopanel is None:
-            return None
-        else:
-            return self.videopanel.GetState()
-     
-                  
+    def OnCloseWindow(self, event = None):
+        self.hide_videoframe()        
+                 
 
-class EmbeddedPlayer(wx.Panel):
+class EmbeddedPlayerPanel(wx.Panel):
+    """
+    The Embedded Player consists of a VLCLogoWindow and the media controls such 
+    as Play/Pause buttons and Volume Control.
+    """
 
-    def __init__(self, parent, id, closehandler, allowclose, utility, logopath):
-        wx.Panel.__init__(self, parent, id)
-        self.item = None
-        self.status = 'Loading player...'
-
-        self.closehandler = closehandler
+    def __init__(self, parent, utility, vlcwrap, logopath):
+        wx.Panel.__init__(self, parent, -1)
         self.utility = utility
+
         #self.SetBackgroundColour(wx.WHITE)
         self.SetBackgroundColour(wx.BLACK)
-
         mainbox = wx.BoxSizer(wx.VERTICAL)
-        self.mediactrl = VLCMediaCtrl(self, -1,logopath)
+        self.vlcwin = VLCLogoWindow(self,vlcwrap,logopath)
+        self.vlcwrap = vlcwrap
 
-        # TEMP ARNO: until we figure out how to show in-playback prebuffering info
-        self.statuslabel = wx.StaticText(self, -1, self.status )
+        # Arno: until we figure out how to show in-playback prebuffering info
+        self.statuslabel = wx.StaticText(self, -1, 'Loading player...' )
         self.statuslabel.SetForegroundColour(wx.WHITE)
         
         ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
         #self.slider = wx.Slider(self, -1)
         self.slider = ProgressSlider(self, self.utility)
         #self.slider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.Seek)
-        #self.slider.Bind(wx.EVT_SCROLL_THUMBTRACK, self.stopSliderUpdate)
+        #self.slider.Bind(wx.EVT_SCROLL_THUMBTRACK, self.StopSliderUpdate)
         self.slider.SetRange(0,1)
         self.slider.SetValue(0)
         self.oldvolume = None
@@ -209,7 +151,7 @@ class EmbeddedPlayer(wx.Panel):
         ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
         ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
         
-        mainbox.Add(self.mediactrl, 1, wx.EXPAND, 1)
+        mainbox.Add(self.vlcwin, 1, wx.EXPAND, 1)
         mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
         mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)
@@ -219,137 +161,100 @@ class EmbeddedPlayer(wx.Panel):
         self.update = False
         self.timer = None
         
-    def SetItem(self, item, play = True):
-        self.item = item
+    def Load(self,url,streaminfo = None):
         if DEBUG:
-            print >>sys.stderr,"embedplay: Telling player to play",item.getPath(),currentThread().getName()
+            print >>sys.stderr,"embedplay: Load:",url,streaminfo,currentThread().getName()
            
         # Arno: hack: disable dragging when not playing from file.
-        if item.getPath().startswith('http:'):
+        if url.startswith('http:') or streaminfo is not None:
            self.slider.DisableDragging()
         else:
            self.slider.EnableDragging()
-        self.set_player_status('')
+        self.SetPlayerStatus('')
              
-        self.mediactrl.Load(self.item.getPath())
+        self.vlcwrap.load(url,streaminfo=streaminfo)
+        
+        # Enable update of progress slider
         self.update = True
         wx.CallAfter(self.slider.SetValue,0)
-        
         if self.timer is None:
             self.timer = wx.Timer(self)
-            self.Bind(wx.EVT_TIMER, self.updateSlider)
+            self.Bind(wx.EVT_TIMER, self.UpdateSlider)
         self.timer.Start(200)
         
-        if play:
-            self.playtimer = DelayTimer(self)
+    def StartPlay(self):
+        """ Start playing the new item after VLC has stopped playing the old
+        one
+        """
+        if DEBUG:
+            print >>sys.stderr,"embedplay: PlayWhenStopped"
+        self.playtimer = DelayTimer(self)
 
+    def Play(self, evt=None):
+        if DEBUG:
+            print >>sys.stderr,"embedplay: Play pressed"
 
-    def enableInput(self):
-        self.ppbtn.Enable(True)
-        self.slider.Enable(True)
-        self.fsbtn.Enable(True)
+        if self.GetState() != MEDIASTATE_PLAYING:
+            self.ppbtn.setToggled(False)
+            self.vlcwrap.start()
 
-    def updateProgressSlider(self, pieces_complete):
-        self.slider.setBufferFromPieces(pieces_complete)
-        self.slider.Refresh()
+    def Pause(self, evt=None):
+        """ Toggle between playing and pausing of current item """
+        if DEBUG:
+            print >>sys.stderr,"embedplay: Pause pressed"
         
-    def enableSaveButton(self, b, callback):
-        self.save_button.setToggled(b)
-        if b:
-            self.save_callback = callback
+        if self.GetState() == MEDIASTATE_PLAYING:
+            self.ppbtn.setToggled(True)
+            self.vlcwrap.pause()
+
+
+    def PlayPause(self, evt=None):
+        """ Toggle between playing and pausing of current item """
+        if DEBUG:
+            print >>sys.stderr,"embedplay: PlayPause pressed"
+        
+        if self.GetState() == MEDIASTATE_PLAYING:
+            self.ppbtn.setToggled(True)
+            self.vlcwrap.pause()
+
         else:
-            self.save_callback = lambda:None
-        
-    def disableInput(self):
-        return # Not currently used
-        
-        self.ppbtn.Disable()
-        self.slider.Disable()
-        self.fsbtn.Disable()
-
-    def reset(self):
-        self.disableInput()
-        self.Stop()
-
-    def updateSlider(self, evt):
-        if not self.volumeicon.isToggled():
-            self.volume.SetValue(int(self.mediactrl.GetVolume() * 100))
-
-        #s = self.mediactrl.GetState()
-
-        if self.update:
-            len = self.mediactrl.Length()
-            if len == -1:
-                return
-            len /= 1000
-
-            cur = self.mediactrl.Tell() / 1000
-
-            self.slider.SetRange(0, len)
-            self.slider.SetValue(cur)
-            self.slider.SetTimePosition(self.mediactrl.getPosition(), len)
-
-    def stopSliderUpdate(self, evt):
-        self.update = False
+            self.ppbtn.setToggled(False)
+            self.vlcwrap.start()
 
 
-    def Seek(self, evt):
-        if self.item == None:
-            return
-        
-        oldsliderpos = self.slider.GetValue()
-        print >>sys.stderr, 'GetValue returned %s' % oldsliderpos
-        pos = oldsliderpos * 1000
-        
+    def Seek(self, evt=None):
         if DEBUG:
             print >>sys.stderr,"embedplay: Seek", pos
+        
+        oldsliderpos = self.slider.GetValue()
+        #print >>sys.stderr, 'embedplay: Seek: GetValue returned,',oldsliderpos
+        pos = int(oldsliderpos * 1000.0)
+        #print >>sys.stderr, 'embedplay: Seek: newpos',pos
+        
         try:
-            self.mediactrl.Seek(pos)
-        except vlc.InvalidPosition,e:
+            if self.GetState() == MEDIASTATE_STOPPED:
+                self.vlcwrap.start(pos)
+            else:
+                self.vlcwrap.set_media_position(pos)
+        except:
+            print_exc()
             if DEBUG:
                 print >> sys.stderr, 'embedplay: could not seek'
             self.slider.SetValue(oldsliderpos)
         self.update = True
         
-    def Play(self, evt=None):
-        if DEBUG:
-            print >>sys.stderr,"embedplay: Play pressed"
-        
-        if self.mediactrl.GetState() != MEDIASTATE_PLAYING:
-            self.ppbtn.setToggled(False)
-            self.mediactrl.Play()
-
-    def Pause(self, evt=None):
-        if DEBUG:
-            print >>sys.stderr,"embedplay: Pause pressed"
-        
-        if self.mediactrl.GetState() == MEDIASTATE_PLAYING:
-            self.ppbtn.setToggled(True)
-            self.mediactrl.Pause()
-
-    def PlayPause(self, evt=None):
-        if DEBUG:
-            print >>sys.stderr,"embedplay: PlayPause pressed"
-        
-        if self.mediactrl.GetState() == MEDIASTATE_PLAYING:
-            self.ppbtn.setToggled(True)
-            self.mediactrl.Pause()
-
-        else:
-            self.ppbtn.setToggled(False)
-            self.mediactrl.Play()
 
     def FullScreen(self,evt=None):
-        self.mediactrl.FullScreen()
+        self.vlcwrap.set_fullscreen(True)
 
     def Mute(self, evt = None):
         if self.volumeicon.isToggled():
             if self.oldvolume is not None:
-                self.mediactrl.SetVolume(self.oldvolume)
+                self.vlcwrap.sound_set_volume(self.oldvolume)
             self.volumeicon.setToggled(False)
         else:
-            self.oldvolume = self.mediactrl.GetVolume()
-            self.mediactrl.SetVolume(0) # mute sound
+            self.oldvolume = self.vlwrap.sound_get_volume()
+            self.vlcwrap.sound_set_volume(0.0) # mute sound
             self.volumeicon.setToggled(True)
         
     def Save(self, evt = None):
@@ -357,64 +262,108 @@ class EmbeddedPlayer(wx.Panel):
         if self.save_button.isToggled():
             self.save_callback()
             
-                
     
     def SetVolume(self, evt = None):
-        print >> sys.stderr, self.volume.GetValue()
-        self.mediactrl.SetVolume(float(self.volume.GetValue()) / 100)
+        if DEBUG:
+            print >> sys.stderr, "embedplay: SetVolume:",self.volume.GetValue()
+        self.vlwrap.sound_set_volume(float(self.volume.GetValue()) / 100)
         # reset mute
         if self.volumeicon.isToggled():
             self.volumeicon.setToggled(False)
 
-    """
-    def run(self):
-        while not self.stop.isSet():
-            evt = UpdateEvent(self.GetId())
-            wx.PostEvent(self, evt)
-            self.stop.wait(0.2)
-    """
-
     def Stop(self):
+        if DEBUG:
+            print >> sys.stderr, "embedplay: Stop"
+        self.vlcwrap.stop()
         self.ppbtn.SetLabel(self.utility.lang.get('playprompt'))
-        self.mediactrl.Stop()
         self.slider.SetValue(0)
         if self.timer is not None:
             self.timer.Stop()
         self.bitrateset = False
 
     def GetState(self):
-        if self.mediactrl is None:
-            return None
+        """ Returns the state of VLC as summarized by Fabian: 
+        MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED """
+        if DEBUG:
+            print >>sys.stderr,"embedplay: GetState"
+            
+        status = self.vlcwrap.get_stream_information_status()
+        if status == vlc.PlayingStatus:
+            return MEDIASTATE_PLAYING
+        elif status == vlc.PauseStatus:
+            return MEDIASTATE_PAUSED
         else:
-            return self.mediactrl.GetState()
+            return MEDIASTATE_STOPPED
 
-    def __del__(self):
+
+    def EnableSaveButton(self, b, callback):
+        self.save_button.setToggled(b)
+        if b:
+            self.save_callback = callback
+        else:
+            self.save_callback = lambda:None
+
+    def Reset(self):
+        self.DisableInput()
         self.Stop()
-        wx.Panel.__del__(self)
+        self.UpdateProgressSlider([False])
+
+    #
+    # Control on-screen information
+    #
+    def UpdateStatus(self,playerstatus,pieces_complete):
+        self.SetPlayerStatus(playerstatus)
+        self.UpdateProgressSlider(pieces_complete)
+    
+    def SetPlayerStatus(self,s):
+        self.statuslabel.SetLabel(s)
+
+    def SetContentName(self,s):
+        self.vlcwin.set_content_name(s)
+
+    def SetContentImage(self,wximg):
+        self.vlcwin.set_content_image(wximg)
 
 
-    def CloseWindow(self,event=None):
-        self.Stop()
-        self.closehandler.swapout_videopanel()
+    #
+    # Internal methods
+    #
+    def EnableInput(self):
+        self.ppbtn.Enable(True)
+        self.slider.Enable(True)
+        self.fsbtn.Enable(True)
 
-
-    def set_player_status(self,s):
-        #if self.mediactrl:
-        #    self.mediactrl.setStatus(s)
-        wx.CallAfter(self.OnSetStatus,s)
+    def UpdateProgressSlider(self, pieces_complete):
+        self.slider.setBufferFromPieces(pieces_complete)
+        self.slider.Refresh()
         
-    def OnSetStatus(self,s):
-        self.status = s
-        self.statuslabel.SetLabel(self.status)
-
-    def set_content_name(self,s):
-        if self.mediactrl:
-            self.mediactrl.setContentName(s)
-
-    def set_content_image(self,wximg):
-        if self.mediactrl:
-            self.mediactrl.setContentImage(wximg)
+    def DisableInput(self):
+        return # Not currently used
         
+        self.ppbtn.Disable()
+        self.slider.Disable()
+        self.fsbtn.Disable()
+
+    def UpdateSlider(self, evt):
+        if not self.volumeicon.isToggled():
+            self.volume.SetValue(int(self.vlcwrap.sound_get_volume() * 100))
+
+        if self.update and self.GetState() != MEDIASTATE_STOPPED:
+            len = self.vlcwrap.get_stream_information_length()
+            if len == -1:
+                return
+            len /= 1000
+
+            cur = self.vlcwrap.get_media_position() / 1000
+
+            self.slider.SetRange(0, len)
+            self.slider.SetValue(cur)
+            self.slider.SetTimePosition(float(cur), len)
+
+    def StopSliderUpdate(self, evt):
+        self.update = False
+
+
 
 class DelayTimer(wx.Timer):
     """ vlc.MediaCtrl needs some time to stop after we give it a stop command.
@@ -426,7 +375,7 @@ class DelayTimer(wx.Timer):
         self.Start(100)
         
     def Notify(self):
-        if self.embedplay.mediactrl.GetState() != MEDIASTATE_PLAYING:
+        if self.embedplay.GetState() != MEDIASTATE_PLAYING:
             if DEBUG:
                 print >>sys.stderr,"embedplay: VLC has stopped playing previous video, starting it on new"
             self.Stop()
@@ -434,273 +383,3 @@ class DelayTimer(wx.Timer):
         elif DEBUG:
             print >>sys.stderr,"embedplay: VLC is still playing old video"
 
-
-
-VLC_MAXVOL = 200
-
-class VLCMediaCtrl(wx.Window):
-    def __init__(self, parent, id, logofilename):
-
-        wx.Window.__init__(self, parent, id, size=(320,240))
-        self.SetMinSize((320,240))
-        self.SetBackgroundColour(wx.BLACK)
-        self.status = "Player is loading..."
-        self.name = None
-        self.contentbm = None
-
-        if logofilename is not None:
-            self.logo = wx.BitmapFromImage(wx.Image(logofilename),-1)
-            self.Bind(wx.EVT_PAINT, self.OnPaint)
-
-        #
-        # Arno, 2007-04-02: On Linux (Centos 4.4) with vlc 0.8.6a I get a weird 
-        # problem. When vlc is loaded the main Tribler gets IOErrors while writing
-        # to stderr. It is unclear what the cause of these errors is. 
-        # 
-        # What appears to work is to have the MainThread sleep 1 second after it
-        # created the VLC control and using "--verbose 0 --logile X" as parameters.
-        #
-        # Arno, 2007-05-08: The problem with stderr appears to be caused by wx.SingleInstanceChecker
-        # for wxWidgets 2.8.0.1
-        #
-        #[loghandle,logfilename] = mkstemp("vlc-log")
-        #os.close(loghandle)
-        #self.media = vlc.MediaControl(["--verbose","0","--logfile",logfilename,"--key-fullscreen","Esc"])
-        #self.media = vlc.MediaControl(["--key-fullscreen","Esc"])
-        #self.media = vlc.MediaControl()
-        self.getVlcMediaCtrl()
-
-    def getVlcMediaCtrl(self):
-        if sys.platform == 'win32':
-                cwd = os.getcwd()
-                os.chdir(vlcinstalldir)
-
-        # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
-        params = ["--verbose=0"]
-        #params += ["--key-fullscreen", "Esc"]
-        params += ["--no-drop-late-frames"] # Arno: 2007-11-19: don't seem to work as expected DEBUG
-        params += ["--no-skip-frames"]
-        params += ["--quiet-synchro"]
-        # VLC wiki says: "apply[ing] deinterlacing even if the original is not
-        # interlaced, is a really bad idea."
-        #params += ["--vout-filter","deinterlace"]
-        #params += ["--deinterlace-mode","linear"]
-        #params += ["--demux=ts"]
-        #params += ["--codec=mp4"]
-        #
-        params += ["--no-plugins-cache"]
-        params += ["--key-fullscreen", "Esc"] # must come last somehow on Win32
-
-        if sys.platform == 'darwin':
-            params += ["--plugin-path", "%s/macbinaries/vlc_plugins" % (
-                 # location of plugins: next to tribler.py
-                 os.path.abspath(os.path.dirname(sys.argv[0]))
-                 )]
-            
-        self.media = vlc.MediaControl(params)
-
-        self.visinit = False
-
-        if sys.platform == 'win32':
-                os.chdir(cwd)
-        
-
-    # Be sure that this window is visible before
-    # calling Play(), otherwise GetHandle() fails
-    def Play(self):
-        #self.setStatus("Player is loading...")
-        if self.GetState() == MEDIASTATE_PLAYING:
-            return
-
-        if not self.visinit:
-            xid = self.GetHandle()
-            if sys.platform == 'darwin':
-                self.media.set_visual_macosx_type(vlc.DrawableControlRef)
-            self.media.set_visual(xid)
-            self.visinit = True
-
-        if self.GetState() == MEDIASTATE_STOPPED:
-            pos = vlc.Position()
-            pos.origin = vlc.AbsolutePosition
-            pos.key = vlc.MediaTime
-            pos.value = 0
-            if DEBUG:
-                print >>sys.stderr,"VLCMediaCtrl: Actual play command"
-            self.media.start(pos)
-        else:
-            if DEBUG:
-                print >>sys.stderr,"VLCMediaCtrl: Actual resume command"
-            self.media.resume()
-
-    def Length(self):
-        if self.GetState() == MEDIASTATE_STOPPED:
-            return -1
-        else:
-            return self.media.get_stream_information()["length"]
-    
-
-    def Tell(self):
-        if self.GetState() == MEDIASTATE_STOPPED:
-            return 0
-        else:
-            return self.media.get_media_position(vlc.AbsolutePosition, vlc.MediaTime).value
-
-
-    def GetState(self):
-        """ Returns the state of VLC as summarized by Fabian: 
-        MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED """
-        
-        status = self.media.get_stream_information()["status"]
-        #if DEBUG:
-        #    print "VLCMediaCtrl: VLC reports status",status,vlcstatusmap[status]
-        if status == vlc.PlayingStatus:
-            return MEDIASTATE_PLAYING
-        elif status == vlc.PauseStatus:
-            return MEDIASTATE_PAUSED
-        else:
-            return MEDIASTATE_STOPPED
-
-    def getPosition(self):
-        return self.media.get_media_position(vlc.AbsolutePosition, vlc.MediaTime).value/1000.0
-
-    def Load(self,url):
-        if DEBUG:
-            print >>sys.stderr,"VLCMediaCtrl: Play called",`url`
-        
-        self.media.exit()
-        self.getVlcMediaCtrl()
-        #self.Stop()
-        #self.media.playlist_clear()
-        #self.visinit = False
-        #self.media = vlc.MediaControl()# ["--key-fullscreen","Esc"])
-        #print >>sys.stderr,"VLCMediaCtrl: LOADING",url
-        self.media.playlist_add_item(url)
-
-
-    def Pause(self):
-        if DEBUG:
-            print >>sys.stderr,"VLCMediaCtrl: Pause called"
-
-        self.media.pause()
-
-
-    def Seek(self, where, mode = wx.FromStart):
-        """ Arno: For some files set_media_position() doesn't work. Subsequent get_media_positions()
-            then do not return the right value always
-        """
-        pos = vlc.Position() 
-        where = int(where)
-        print >> sys.stderr, 'Seeking to: %s' % where
-        if mode == wx.FromStart:
-            pos.origin = vlc.AbsolutePosition
-            pos.key = vlc.MediaTime
-            pos.value = where
-        elif mode == wx.FromCurrent:
-            pos.origin = vlc.RelativePosition
-            pos.key = vlc.MediaTime
-            pos.value = where
-        elif mode == wx.FromEnd:
-            pos.origin = vlc.AbsolutePosition
-            pos.key = vlc.MediaTime
-            pos.value = self.Length() - where
-
-        if self.GetState() == MEDIASTATE_STOPPED:
-            self.media.start(pos)
-        else:
-            self.media.set_media_position(pos)
-        
-        
-
-    def Stop(self):
-        self.media.stop()
-        self.media.playlist_clear()
-        self.setStatus("Player is stopped")
-
-
-    def __del__(self):
-        self.media.exit()
-
-
-    def SetVolume(self, dVolume):
-        vol = int(dVolume * VLC_MAXVOL)
-        self.media.sound_set_volume(vol)
-
-
-    def GetVolume(self):
-        vol = self.media.sound_get_volume()
-        return float(vol) / VLC_MAXVOL
-
-    def FullScreen(self):
-        self.media.set_fullscreen(1)
-        
-        
-    def OnPaint(self,evt):
-        dc = wx.PaintDC(self)
-        dc.Clear()
-        dc.BeginDrawing()        
-
-        x,y,maxw,maxh = self.GetClientRect()
-        halfx = (maxw-x)/2
-        halfy = (maxh-y)/2
-        halfx -= self.logo.GetWidth()/2
-        halfy -= self.logo.GetHeight()/2
-
-        dc.SetPen(wx.Pen("#BLACK",0))
-        dc.SetBrush(wx.Brush("BLACK"))
-        if sys.platform == 'linux2':
-            dc.DrawRectangle(x,y,maxw,maxh)
-        dc.DrawBitmap(self.logo,halfx,halfy,True)
-        #logox = max(0,maxw-self.logo.GetWidth()-30)
-        #dc.DrawBitmap(self.logo,logox,20,True)
-
-        dc.SetTextForeground(wx.WHITE)
-        dc.SetTextBackground(wx.BLACK)
-        
-        lineoffset = 120
-        txty = halfy+self.logo.GetHeight()+lineoffset
-        name = self.getContentName() 
-        if name is not None:
-            txt = self.name
-            dc.DrawText(txt,30,txty)
-            lineoffset += 30
-
-        #txt = self.getStatus()
-        #dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
-        
-        if self.contentbm is not None:
-            bmy = max(0,txty-20-self.contentbm.GetHeight())
-            dc.DrawBitmap(self.contentbm,30,bmy,True)
-        
-        dc.EndDrawing()
-        if evt is not None:
-            evt.Skip(True)
-        
-    def getStatus(self):
-        return self.status
-    
-    def setStatus(self,s):
-        wx.CallAfter(self.OnSetStatus,s)
-        
-    def OnSetStatus(self,s):
-        self.status = s
-        if self.GetState() == MEDIASTATE_STOPPED:
-            #self.OnPaint(None)
-            self.Refresh()
-
-    def setContentName(self,s):
-        #print >>sys.stderr,"VLCMediaCtrl: setContentName",s
-        wx.CallAfter(self.OnSetContentName,s)
-        
-    def OnSetContentName(self,s):
-        self.name = s
-        self.Refresh()
-
-    def getContentName(self):
-        return self.name
-
-    def setContentImage(self,wximg):
-        if wximg is not None:
-            self.contentbm = wx.BitmapFromImage(wximg,-1)
-        else:
-            self.contentbm = None
-        

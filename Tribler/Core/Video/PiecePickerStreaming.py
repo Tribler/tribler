@@ -235,6 +235,7 @@ class PiecePickerStreaming(PiecePicker):
         # with us
         return False
 
+
     # next: selects next piece to download. adjusts wantfunc with filter for streaming; calls
     #   _next: selects next piece to download. completes partial downloads first, if needed, otherwise calls
     #     next_new: selects next piece to download. override this with the piece picking policy

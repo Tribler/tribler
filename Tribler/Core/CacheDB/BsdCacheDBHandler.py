@@ -15,7 +15,7 @@ from sets import Set
 from Tribler.Core.Utilities.utilities import show_permid_shorter, validIP, validPort, validPermid, validName
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import *
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager # move to peerDBHandler
+from Tribler.Core.CacheDB.MugshotManager import MugshotManager # move to peerDBHandler
 
 DEBUG = False
 

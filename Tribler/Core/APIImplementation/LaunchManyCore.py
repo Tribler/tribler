@@ -154,12 +154,6 @@ class TriblerLaunchMany(Thread):
             self.friend_db      = None
             self.bartercast_db  = None
             self.mm = None
-        
-        if not config['overlay']:
-            config['buddycast'] = 0
-            config['download_help'] = 0
-            config['socnet'] = 0
-            config['rquery'] = 0
 
         if config['overlay']:
             self.secure_overlay = SecureOverlay.getInstance()
@@ -182,7 +176,10 @@ class TriblerLaunchMany(Thread):
         else:
             self.secure_overlay = None
             self.overlay_apps = None
-
+            config['buddycast'] = 0
+            config['download_help'] = 0
+            config['socnet'] = 0
+            config['rquery'] = 0
 
         if config['megacache'] or config['overlay']:
             # Arno: THINK! whoever added this should at least have made the
@@ -196,7 +193,7 @@ class TriblerLaunchMany(Thread):
             # Some author: First Category instantiation requires install_dir, so do it now
             Category.getInstance(config['install_dir'])
 
-        
+        # Internal tracker
         self.internaltracker = None
         if config['internaltracker']:
             self.internaltracker = Tracker(config, self.rawserver)

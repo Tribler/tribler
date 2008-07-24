@@ -27,7 +27,7 @@ from Tribler.Core.Video.LiveSourceAuth import ECDSAAuthenticator,AuthStreamWrapp
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
-DEBUG = True
+DEBUG = False
 DEBUGPP = False
 
 class PieceStats:
@@ -434,7 +434,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.prebufprogress = float(self.max_prebuf_packets-len(missing_pieces))/float(self.max_prebuf_packets)
         
         if DEBUG:
-            print >>sys.stderr,"vod: trans: Already got",(self.prebufprogress*100.0),"% of prebuffer",prebufrange
+            print >>sys.stderr,"vod: trans: Already got",(self.prebufprogress*100.0),"% of prebuffer"
         
         if not gotall and DEBUG:
             print >>sys.stderr,"vod: trans: Still need pieces",missing_pieces,"for prebuffering/FFMPEG analysis"

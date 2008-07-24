@@ -12,7 +12,7 @@ import thread
 from threading import RLock,Thread,currentThread
 from traceback import print_exc
 
-DEBUG = True
+DEBUG = False
         
 
 class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
@@ -32,9 +32,7 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
 
         self.lock = RLock()        
         
-        self.stream = None
-        self.mimetype = None
-        self.length = None
+        self.streaminfo = None
         
         self.errorcallback = None
         self.statuscallback = None
@@ -56,18 +54,17 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         self.errorcallback = errorcallback
         self.statuscallback = statuscallback
 
-    def set_inputstream(self,mimetype,stream,length):
+    def set_inputstream(self,streaminfo):
         self.lock.acquire()
-        self.stream = stream
-        self.mimetype = mimetype
-        self.length = length
+        self.streaminfo = streaminfo
         self.lock.release()
         
     def get_inputstream(self):
         self.lock.acquire()
-        ret = (self.mimetype,self.stream,self.length)
-        self.lock.release()
-        return ret
+        try:
+            return self.streaminfo
+        finally:
+            self.lock.release()
 
     def get_port(self):
         return self.port
@@ -94,12 +91,20 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 
             #if self.server.statuscallback is not None:
             #    self.server.statuscallback("Player ready - Attempting to load file...")
-            (mimetype,stream,length) = self.server.get_inputstream()
-            if stream is None:
+            streaminfo = self.server.get_inputstream()
+            if streaminfo is None:
                 if DEBUG:
                     print >>sys.stderr,"videoserv: do_GET: No data to serve request"
                 return
-            print >>sys.stderr,"videoserv: MIME type is",mimetype,"length",length
+            else:
+                mimetype = streaminfo['mimetype']
+                stream = streaminfo['stream']
+                length = streaminfo['length']
+                if 'blocksize' in streaminfo:
+                    blocksize = streaminfo['blocksize']
+                else:
+                    blocksize = 65536
+            print >>sys.stderr,"videoserv: MIME type is",mimetype,"length",length,"blocksize",blocksize
     
             # h4x0r until we merge patches from player-release-0.0 branch
             if mimetype is None and length is None:
@@ -133,7 +138,10 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
             count = 0
             while True:
-                data = stream.read()
+                data = stream.read(blocksize)
+                
+                #print >>sys.stderr,"videoserv: HTTP: read",len(data),"bytes"
+                
                 if length is None:
                     # If length unknown, use chunked encoding
                     # http://www.ietf.org/rfc/rfc2616.txt, $3.6.1 
@@ -175,3 +183,91 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             print_exc()
         if self.server.statuscallback is not None:
             self.server.statuscallback("Error playing video:"+str(e))
+
+
+class VideoRawVLCServer:
+    __single = None
+    
+    def __init__(self):
+        if VideoRawVLCServer.__single:
+            raise RuntimeError, "VideoRawVLCServer is Singleton"
+        VideoRawVLCServer.__single = self 
+
+        self.lock = RLock()
+        self.oldsid = None
+        self.streaminfos = {}
+        
+        
+        self.lastsid = None # workaround bug? in raw inf
+        
+    def getInstance(*args, **kw):
+        if VideoRawVLCServer.__single is None:
+            VideoRawVLCServer(*args, **kw)
+        return VideoRawVLCServer.__single
+    getInstance = staticmethod(getInstance)
+    
+    def set_inputstream(self,streaminfo,sid):
+        """ Store a record for stream ID "sid" which may be
+        retrieved by VLC anytime after this call
+        """
+        self.lock.acquire()
+        try:
+            self.streaminfos[sid] = streaminfo
+            
+            # workaround
+            self.lastsid = sid
+        finally:
+            self.lock.release()
+        
+    def get_inputstream(self,sid):
+        """ Get the record for the given stream """
+        # TODO: locking?
+        self.lock.acquire()
+        try:
+            return self.streaminfos[sid]
+        finally:
+            self.lock.release()
+
+    def shutdown(self):
+        pass
+
+    def ReadDataCallback(self, bufc, buflen, sid):
+        #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: stream",sid,"wants", buflen,"thread",currentThread().getName()
+        try:
+            # workaround
+            #sid = self.lastsid
+            #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: stream override sid",sid
+            
+            if self.oldsid is not None and self.oldsid != sid:
+                # Switched streams, garbage collect old
+                oldstream = self.streaminfos[self.oldsid]['stream']
+                del self.streaminfos[self.oldsid]
+                self.oldsid = sid
+                try:
+                    oldstream.close()
+                except:
+                    print_exc()
+            
+            streaminfo = self.get_inputstream(sid)
+            print >>sys.stderr,"rawread: sid",sid,"n",buflen
+            data = streaminfo['stream'].read(buflen)
+            size = len(data)
+            #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: read from stream", size
+            if size == 0:
+                return 0
+            else:
+                bufc[0:size]=data
+            #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: bufc size ", len(bufc)
+            return size
+        except:
+            print_exc()
+            return -1
+        
+    def SeekDataCallback(self, pos, sid):
+        try:
+            #print >>sys.stderr,"VideoRawVLCServer: SeekDataCallback: stream",sid,"seeking to", pos
+            # Arno: TODO: add support for seeking
+            return -1
+        except:
+            print_exc()
+            return -1

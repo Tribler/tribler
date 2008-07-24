@@ -8,6 +8,8 @@ import time
 import commands
 import tempfile
 import urllib2
+import random
+
 from threading import enumerate,currentThread,RLock
 from traceback import print_exc
 
@@ -26,15 +28,19 @@ from Tribler.Core.API import *
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
-from Tribler.Video.EmbeddedPlayer import VideoFrame,MEDIASTATE_STOPPED
-from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser, PLAYBACKMODE_INTERNAL
+from Tribler.Video.EmbeddedPlayer import VideoFrame, MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED
+from Tribler.Video.VLCWrapper import VLCWrapper
+
 from Tribler.Player.systray import PlayerTaskBarIcon
 from Tribler.Player.Reporter import Reporter
 from Tribler.Utilities.Instance2Instance import *
 
 from Tribler.Main.Utility.utility import Utility # TO REMOVE
 from Tribler.Video.utils import videoextdefaults
+
+# TEMPVLCRAW
+from threading import Timer
 
 DEBUG = True
 ONSCREENDEBUG = False
@@ -48,17 +54,20 @@ PLAYER_LISTENPORT = 8620
 VIDEOHTTP_LISTENPORT = 6879
 
 class PlayerFrame(VideoFrame):
-
     def __init__(self,parent):
-        VideoFrame.__init__(self,parent,'SwarmPlayer 1.0.0',parent.iconpath,parent.logopath)
+        VideoFrame.__init__(self,parent,'SwarmPlayer 0.3.0 raw8069',parent.iconpath,parent.vlcwrap,parent.logopath)
         self.parent = parent
+        self.closed = False
         
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
     
     def OnCloseWindow(self, event = None):
         
-        self.set_wxclosing() # Call VideoFrame superclass
-        
+        print >>sys.stderr,"main: ON CLOSE WINDOW"
+
+        # TODO: first event.Skip does not close window, second apparently does
+        # Check how event differs
+
         if event is not None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
@@ -68,13 +77,18 @@ class PlayerFrame(VideoFrame):
             event.Skip()
         else:
             print >>sys.stderr,"main: Closing untriggered by event"
-         
+
         # This gets called multiple times somehow
-        if self.parent.videoFrame is not None:
+        if not self.closed:
+            self.closed = True
+            self.parent.videoFrame = None
+
+            self.get_videopanel().Stop()
             self.parent.remove_current_download_if_not_complete()
             self.parent.restart_other_downloads()
             
-        self.parent.videoFrame = None
+        print >>sys.stderr,"main: Closing done"
+        # TODO: Show balloon in systray when closing window to indicate things continue there
 
 
 
@@ -96,6 +110,7 @@ class PlayerApp(wx.App):
         self.r = None # protected by dlock
         self.count = 0
         self.said_start_playback = False
+        self.decodeprogress = 0
         self.shuttingdown = False
 
         wx.App.__init__(self, x)
@@ -123,20 +138,27 @@ class PlayerApp(wx.App):
             self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
             self.i2is.start()
 
+            self.vlcwrap = VLCWrapper(self.installdir)
+
             self.videoplay = None 
             self.start_video_frame()
             
-            # Start HTTP server for serving video to player widget
-            self.videoserv = VideoHTTPServer.getInstance(VIDEOHTTP_LISTENPORT) # create
-            self.videoserv.background_serve()
-            self.videoserv.register(self.videoserver_error_callback,self.videoserver_set_status_callback)
-
             # Fire up the player widget
-            self.videoplay = VideoPlayer.getInstance()
-            self.videoplay.register(self.utility)
-            self.videoplay.set_parentwindow(self.videoFrame)
-            # h4xor TEMP ARNO
-            self.videoplay.playbackmode = PLAYBACKMODE_INTERNAL
+            self.videoplay = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
+            self.videoplay.register(self.utility,alwaysinternalplayback=True)
+            self.videoplay.set_videoframe(self.videoFrame)
+
+            # JUST PLAY VIDEO
+            if False:
+                if False:
+                    stream = open(self.params[0],"rb")
+                    #streaminfo = {'mimetype':'video/mp2t','stream':stream,'length':None}
+                    streaminfo = {'mimetype':'video/x-matroska','stream':stream,'length':None}
+                    self.videoplay.play_stream(streaminfo)
+                    return True
+                else:
+                    self.videoplay.play_file(self.params[0])
+                    return True
             
             # Read config
             state_dir = Session.get_default_state_dir('.SwarmPlayer')
@@ -215,12 +237,12 @@ class PlayerApp(wx.App):
         self.Bind(wx.EVT_CLOSE, self.videoFrame.OnCloseWindow)
         self.Bind(wx.EVT_QUERY_END_SESSION, self.videoFrame.OnCloseWindow)
         self.Bind(wx.EVT_END_SESSION, self.videoFrame.OnCloseWindow)
-        self.videoFrame.Show(True)
+        self.videoFrame.show_videoframe()
 
         if self.videoplay is not None:
-            self.videoplay.set_parentwindow(self.videoFrame)
+            self.videoplay.set_videoframe(self.videoFrame)
         self.said_start_playback = False
-
+        
     def select_torrent_from_disk(self):
         dlg = wx.FileDialog(None, 
                             'SwarmPlayer: Select torrent to play', 
@@ -290,7 +312,10 @@ class PlayerApp(wx.App):
         
         # Setup how to download
         dcfg = DownloadStartupConfig()
-        dcfg.set_video_event_callback(self.vod_event_callback)
+        
+        # Delegate processing to VideoPlayer
+        dcfg.set_video_event_callback(self.videoplay.sesscb_vod_event_callback)
+        
         dcfg.set_video_events(["start","pause","resume"])
         dcfg.set_dest_dir(destdir)
         
@@ -308,9 +333,10 @@ class PlayerApp(wx.App):
         if self.videoFrame is None:
             self.start_video_frame()
         else:
-            # Stop playing
-            self.videoplay.stop_playback()
-        self.videoFrame.videopanel.updateProgressSlider([False])
+            # Stop playing, reset stream progress info + sliders 
+            self.videoplay.stop_playback(reset=True)
+            self.said_start_playback = False
+        self.decodeprogress = 0
         
         # Stop all
         newd = None
@@ -336,7 +362,8 @@ class PlayerApp(wx.App):
                 print >>sys.stderr,"main: Starting new Download",`infohash`
                 newd = self.s.start_download(tdef,dcfg)
             else:
-                newd.set_video_event_callback(self.vod_event_callback)
+                # Delegate processing to VideoPlayer
+                newd.set_video_event_callback(self.videoplay.sesscb_vod_event_callback)
                 if tdef.is_multifile_torrent():
                     newd.set_selected_files([dlfile])
                 print >>sys.stderr,"main: Restarting existing Download",`infohash`
@@ -351,7 +378,7 @@ class PlayerApp(wx.App):
         cname = tdef.get_name_as_unicode()
         if len(videofiles) > 1:
             cname += u' - '+bin2unicode(dlfile)
-        self.videoplay.set_content_name(u'Loading: '+cname)
+        self.videoFrame.get_videopanel().SetContentName(u'Loading: '+cname)
         
         try:
             [mime,imgdata] = tdef.get_thumbnail()
@@ -359,9 +386,9 @@ class PlayerApp(wx.App):
                 f = StringIO(imgdata)
                 img = wx.EmptyImage(-1,-1)
                 img.LoadMimeStream(f,mime,-1)
-                self.videoplay.set_content_image(img)
+                self.videoFrame.get_videopanel().SetContentImage(img)
             else:
-                self.videoplay.set_content_image(None)
+                self.videoFrame.get_videopanel().SetContentImage(None)
         except:
             print_exc()
 
@@ -391,6 +418,11 @@ class PlayerApp(wx.App):
 
     def remote_start_download(self,torrentfilename):
         """ Called by GUI thread """
+        self.vlcwrap.stop()
+        print >>sys.stderr,"PLAYLIST BEFORE",self.vlcwrap.playlist_get_list()
+        self.vlcwrap.playlist_clear()
+        print >>sys.stderr,"PLAYLIST AFTER",self.vlcwrap.playlist_get_list()
+
         self.remove_current_download_if_not_complete()
         self.start_download(torrentfilename)
 
@@ -528,6 +560,7 @@ class PlayerApp(wx.App):
         # Calc total dl/ul speed and find DownloadState for current Download
         ds = None
         for ds2 in dslist:
+            print >>sys.stderr,"main: Stats: Finding",`d.get_def().get_infohash()`,"==",`ds2.get_download().get_def().get_infohash()`
             if ds2.get_download() == d:
                 ds = ds2
             elif playermode == DLSTATUS_DOWNLOADING:
@@ -556,7 +589,7 @@ class PlayerApp(wx.App):
         if ds is None:
             return
         elif playermode == DLSTATUS_DOWNLOADING:
-            print >>sys.stderr,"main: Stats: DL:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+            print >>sys.stderr,"main: Stats: DL:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"dl",ds.get_current_speed(DOWNLOAD)
 
         # If we're done playing we can now restart any previous downloads to 
         # seed them.
@@ -568,13 +601,14 @@ class PlayerApp(wx.App):
             return
         else:
             self.display_stats_in_videoframe(ds,totalhelping,totalspeed)
+            pass
 
 
     def display_stats_in_videoframe(self,ds,totalhelping,totalspeed):
         # Display stats for currently playing Download
         
-        videoplayer_mediastate = self.videoFrame.get_state()
-        #print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
+        videoplayer_mediastate = self.videoFrame.get_videopanel().GetState()
+        print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
         
         logmsgs = ds.get_log_messages()
         logmsg = None
@@ -603,7 +637,7 @@ class PlayerApp(wx.App):
             else:
                 intime = "%dh:%02dm:%02ds" % (h,m,s)
                 
-        #print >>sys.stderr,"main: VODStats",preprogress,playable
+        #print >>sys.stderr,"main: VODStats",preprogress,playable,"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 
         if ds.get_status() == DLSTATUS_HASHCHECKING:
             genprogress = ds.get_progress()
@@ -612,25 +646,32 @@ class PlayerApp(wx.App):
         elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
             msg = 'Error playing: '+str(ds.get_error())
         elif playable:
-            if not self.said_start_playback:
-                msg = "Starting playback..."
-                self.said_start_playback = True
-            elif videoplayer_mediastate == MEDIASTATE_STOPPED:
-                #npeers = ds.get_num_peers()
-                #npeerstr = str(npeers)
-                if totalhelping == 0:
-                    topmsg = u"Please leave the SwarmPlayer running, this will help other SwarmPlayer users to download faster."
+            if videoplayer_mediastate == MEDIASTATE_STOPPED:
+                if self.said_start_playback:
+                    #npeers = ds.get_num_peers()
+                    #npeerstr = str(npeers)
+                    if totalhelping == 0:
+                        topmsg = u"Please leave the SwarmPlayer running, this will help other SwarmPlayer users to download faster."
+                    else:
+                        topmsg = u"Helping "+str(totalhelping)+" SwarmPlayer users to download. Please leave it running in the background."
                 else:
-                    topmsg = u"Helping "+str(totalhelping)+" SwarmPlayer users to download. Please leave it running in the background."
-                    
-                # Display this on status line
-                # TODO: Show balloon in systray when closing window to indicate things continue there
+                    # Player status was never PLAYING since we openend the 
+                    # video frame, don't say a word.
+                    topmsg = u''
+                msg = ''
+            elif videoplayer_mediastate == MEDIASTATE_PLAYING:
+                self.said_start_playback = True
+                cname = ds.get_download().get_def().get_name_as_unicode()
+                topmsg = u'Decoding: '+cname+' '+str(self.decodeprogress)+' s'
+                self.decodeprogress += 1
+                msg = ''
+            else:
+                topmsg = u''
                 msg = ''
                 
-                # Display helping info on "content name" line.
-                self.videoplay.set_content_name(topmsg)
-            else:
-                msg = ''
+            # Display helping info on "content name" line.
+            self.videoFrame.get_videopanel().SetContentName(topmsg)
+                
         elif preprogress != 1.0:
             pstr = str(int(preprogress*100))
             npeers = ds.get_num_peers()
@@ -662,11 +703,10 @@ class PlayerApp(wx.App):
             peertxt = " peer %d" % (totalhelping)
             msg = uptxt + downtxt + peertxt
             
-        self.videoFrame.set_player_status(msg)
-        self.videoFrame.videopanel.updateProgressSlider(ds.get_pieces_complete())    
+        self.videoFrame.get_videopanel().UpdateStatus(msg,ds.get_pieces_complete())
         
         # Toggle save button
-        self.videoFrame.videopanel.enableSaveButton(ds.get_status() == DLSTATUS_SEEDING, self.save_video_copy)    
+        self.videoFrame.get_videopanel().EnableSaveButton(ds.get_status() == DLSTATUS_SEEDING, self.save_video_copy)    
             
         if False: # Only works if the sesscb_states_callback() method returns (x,True)
             peerlist = ds.get_peerlist()
@@ -687,9 +727,6 @@ class PlayerApp(wx.App):
         if self.r is None:
             return
 
-        # ARNOTEST
-        return
-
         # Adjust speeds once every 4 seconds
         adjustspeeds = False
         if self.count % 4 == 0:
@@ -704,46 +741,8 @@ class PlayerApp(wx.App):
         if self.tbicon is not None:
             self.tbicon.set_icon_tooltip(txt)
 
+    # vod_event_callback moved to VideoPlayer.py
     
-    def vod_event_callback(self,d,event,params):
-        """ Called by the Session when the content of the Download is ready or has to be paused
-         
-        Called by Session thread """
-
-        print >>sys.stderr, "vod_event_callback",d,event,params
-
-        if event == "start":
-            filename = params["filename"]
-            mimetype = params["mimetype"]
-            stream   = params["stream"]
-            length   = params["size"]
-
-            print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
-    
-            if filename:
-                func = lambda:self.play_from_file(filename)
-                wx.CallAfter(func)
-            else:
-                # HACK: TODO: make to work with file-like interface
-                videoserv = VideoHTTPServer.getInstance()
-                videoserv.set_inputstream(mimetype,stream,length)
-                wx.CallAfter(self.play_from_stream)
-        elif event == "pause":
-            self.videoFrame.videopanel.Pause()
-        elif event == "resume":
-            self.videoFrame.videopanel.Play()
-
-    def play_from_stream(self):
-        """ Called by MainThread """
-        print >>sys.stderr,"main: Playing from stream"
-        self.videoplay.play_url('http://127.0.0.1:'+str(VIDEOHTTP_LISTENPORT)+'/')
-    
-    def play_from_file(self,filename):
-        """ Called by MainThread """
-        print >>sys.stderr,"main: Playing from file",filename
-        self.videoplay.play_url(filename)
-
-
     def restart_other_downloads(self):
         """ Called by GUI thread """
         if self.shuttingdown:
@@ -942,6 +941,8 @@ def run(params = None):
     if 'debug' in params:
         global ONSCREENDEBUG
         ONSCREENDEBUG=True
+    if 'raw' in params:
+        Tribler.Video.VideoPlayer.USE_VLC_RAW_INTERFACE = True
     
     # Create single instance semaphore
     # Arno: On Linux and wxPython-2.8.1.1 the SingleInstanceChecker appears
