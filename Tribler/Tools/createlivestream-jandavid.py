@@ -22,7 +22,7 @@ def vod_ready_callback(d,event,params):
     """ Called by the Session when the content of the Download is ready
      
     Called by Session thread """
-    if event == "start":
+    if event == VODEVENT_START:
         print >>sys.stderr,"main: VOD ready callback called ###########################################################",params["mimetype"]
 
 

@@ -1,9 +1,11 @@
 # Written by Bram Cohen and Pawel Garbacki
 # see LICENSE.txt for license information
 
+import sys
 from random import randrange, shuffle
+from traceback import print_exc,print_stack
+
 from Tribler.Core.BitTornado.clock import clock
-from traceback import print_stack
 
 try:
     True
@@ -125,6 +127,17 @@ class Choker:
         count = len(preferred)
         hit = False
         to_unchoke = []
+        
+        # LIVESOURCE
+        if 'live_aux_seeders' in self.config:
+            for hostport in self.config['live_aux_seeders']:
+                for c in self.connections:
+                    if c.get_ip() == hostport[0]:
+                        u = c.get_upload()
+                        to_unchoke.append(u)
+                        #print >>sys.stderr,"Choker: _rechoke: LIVE: Permanently unchoking aux seed",hostport
+        # LIVESOURCE
+        
         for c in self.connections:
             u = c.get_upload()
             if c in preferred:

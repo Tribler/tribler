@@ -6,6 +6,8 @@ from math import ceil
 from sets import Set
 from traceback import print_exc,print_stack
 
+from Tribler.Core.simpledefs import *
+
 # live streaming means wrapping around
 LIVE_WRAPAROUND = True
 
@@ -23,7 +25,8 @@ class VideoStatus:
                        in their recorded order
             videoinfo = videoinfo object from download engine
         """
-        self.piecelen = piecelen
+        self.piecelen = piecelen # including signature, if any
+        self.sigsize = 0
         self.fileinfo = fileinfo
         self.videoinfo = videoinfo
         self.authparams = authparams
@@ -84,7 +87,7 @@ class VideoStatus:
         self.prebuffering = True # video is prebuffering
         self.playback_pos = self.first_piece
 
-        self.pausable = ("pause" in videoinfo["userevents"]) and ("resume" in videoinfo["userevents"])
+        self.pausable = (VODEVENT_PAUSE in videoinfo["userevents"]) and (VODEVENT_RESUME in videoinfo["userevents"])
 
     def add_playback_pos_observer( self, observer ):
         """ Add a function to be called when the playback position changes. Is called as follows:

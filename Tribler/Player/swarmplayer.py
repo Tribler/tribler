@@ -28,7 +28,7 @@ from Tribler.Core.API import *
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
-from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser, PLAYBACKMODE_INTERNAL
+from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser, PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_DEFAULT 
 from Tribler.Video.EmbeddedPlayer import VideoFrame, MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED
 from Tribler.Video.VLCWrapper import VLCWrapper
 
@@ -112,6 +112,8 @@ class PlayerApp(wx.App):
         self.said_start_playback = False
         self.decodeprogress = 0
         self.shuttingdown = False
+        self.getpeerlistcount = 2
+        self.decodeprogress = 0
 
         wx.App.__init__(self, x)
         
@@ -139,14 +141,16 @@ class PlayerApp(wx.App):
             self.i2is.start()
 
             self.vlcwrap = VLCWrapper(self.installdir)
-
-            self.videoplay = None 
-            self.start_video_frame()
             
             # Fire up the player widget
             self.videoplay = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
-            self.videoplay.register(self.utility,alwaysinternalplayback=True)
-            self.videoplay.set_videoframe(self.videoFrame)
+            # H4xor: Use external player on Ubuntu when no VLC python bindings avail 
+            playbackmode = PLAYBACKMODE_INTERNAL
+            self.videoplay.register(self.utility,overrideplaybackmode=playbackmode)
+
+            # Open video window
+            self.start_video_frame()
+
 
             # JUST PLAY VIDEO
             if False:
@@ -204,7 +208,11 @@ class PlayerApp(wx.App):
             # Load torrent
             if self.params[0] != "":
                 torrentfilename = self.params[0]
-                print "PARAMS",self.params
+                
+                # TEST: just play video file
+                #self.videoplay.play_url(torrentfilename)
+                #return True
+                
             else:
                 torrentfilename = self.select_torrent_from_disk()
                 if torrentfilename is None:
@@ -315,15 +323,17 @@ class PlayerApp(wx.App):
         
         # Delegate processing to VideoPlayer
         dcfg.set_video_event_callback(self.videoplay.sesscb_vod_event_callback)
-        
-        dcfg.set_video_events(["start","pause","resume"])
+        dcfg.set_video_events([VODEVENT_START,VODEVENT_PAUSE,VODEVENT_RESUME])
+
         dcfg.set_dest_dir(destdir)
         
         if tdef.is_multifile_torrent():
             dcfg.set_selected_files([dlfile])
         
-        dcfg.set_max_conns_to_initiate(300)
-        dcfg.set_max_conns(300)
+        # Arno: 2008-7-15: commented out, just stick with old ABC-tuned 
+        # settings for now
+        #dcfg.set_max_conns_to_initiate(300)
+        #dcfg.set_max_conns(300)
         
         # Start download
         dlist = self.s.get_downloads()
@@ -364,6 +374,8 @@ class PlayerApp(wx.App):
             else:
                 # Delegate processing to VideoPlayer
                 newd.set_video_event_callback(self.videoplay.sesscb_vod_event_callback)
+                newd.set_video_events([VODEVENT_START,VODEVENT_PAUSE,VODEVENT_RESUME])
+
                 if tdef.is_multifile_torrent():
                     newd.set_selected_files([dlfile])
                 print >>sys.stderr,"main: Restarting existing Download",`infohash`
@@ -528,15 +540,26 @@ class PlayerApp(wx.App):
         # Arno: delegate to GUI thread. This makes some things (especially
         #access control to self.videoFrame easier
         #self.gui_states_callback(dslist)
-        wx.CallAfter(self.gui_states_callback,dslist)
-        return (10.0,True) # get peerlist, needed for research stats
+        
+        # Arno: we want the prebuf stats every second, and we want the
+        # detailed peerlist, needed for research stats. Getting them every
+        # second may be too expensive, so get them every 10.
+        #
+        self.getpeerlistcount += 1
+        getpeerlist = (self.getpeerlistcount % 10) == 0
+        haspeerlist =  (self.getpeerlistcount % 10) == 1
+        
+        wx.CallAfter(self.gui_states_callback,dslist,haspeerlist)
+        
+        #print >>sys.stderr,"main: SessStats:",self.getpeerlistcount,getpeerlist,haspeerlist
+        return (1.0,getpeerlist) 
 
-    def gui_states_callback(self,dslist):
+    def gui_states_callback(self,dslist,haspeerlist):
         """ Called by *GUI* thread.
         CAUTION: As this method is called by the GUI thread don't to any 
         time-consuming stuff here! """
-        #print >>sys.stderr,"main: Stats:"
         
+        #print >>sys.stderr,"main: Stats:"
         if self.shuttingdown:
             return
         
@@ -554,7 +577,7 @@ class PlayerApp(wx.App):
         # When not playing, display stats for all Downloads and apply rate control.
         if playermode == DLSTATUS_SEEDING:
             for ds in dslist:
-                print >>sys.stderr,"main: Stats: Seeding:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+                print >>sys.stderr,"main: Stats: Seeding: %s %.1f%% %s" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error())
             self.ratelimit_callback(dslist)
             
         # Calc total dl/ul speed and find DownloadState for current Download
@@ -564,18 +587,19 @@ class PlayerApp(wx.App):
             if ds2.get_download() == d:
                 ds = ds2
             elif playermode == DLSTATUS_DOWNLOADING:
-                print >>sys.stderr,"main: Stats: Waiting:",dlstatus_strings[ds2.get_status()],ds2.get_progress(),"%",ds2.get_error()
+                print >>sys.stderr,"main: Stats: Waiting: %s %.1f%% %s" % (dlstatus_strings[ds2.get_status()],100.0*ds2.get_progress(),ds2.get_error())
             
             for dir in [UPLOAD,DOWNLOAD]:
                 totalspeed[dir] += ds2.get_current_speed(dir)
             totalhelping += ds2.get_num_peers()
 
-        # Report statistics on all downloads to research server
-        try:
-            for d in dslist:
-                self.reporter.report_stat(d)
-        except:
-            print_exc()
+        # Report statistics on all downloads to research server, every 10 secs
+        if haspeerlist:
+            try:
+                for d in dslist:
+                    self.reporter.report_stat(d)
+            except:
+                print_exc()
 
         # Set systray icon tooltip. This has limited size on Win32!
         txt = 'SwarmPlayer\n\n'
@@ -589,12 +613,18 @@ class PlayerApp(wx.App):
         if ds is None:
             return
         elif playermode == DLSTATUS_DOWNLOADING:
-            print >>sys.stderr,"main: Stats: DL:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"dl",ds.get_current_speed(DOWNLOAD)
+            print >>sys.stderr,"main: Stats: DL: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error(),ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
 
         # If we're done playing we can now restart any previous downloads to 
         # seed them.
         if playermode != DLSTATUS_SEEDING and ds.get_status() == DLSTATUS_SEEDING:
             self.restart_other_downloads() # GUI UPDATE
+
+        # cf. 25 Mbps cap to reduce CPU usage and improve playback on slow machines
+        # Arno: on some torrents this causes VLC to fail to tune into the video
+        # although it plays audio???
+        #ds.get_download().set_max_speed(DOWNLOAD,1500) 
+
 
         # Don't display stats if there is no video frame to show them on.
         if self.videoFrame is None:
@@ -646,31 +676,43 @@ class PlayerApp(wx.App):
         elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
             msg = 'Error playing: '+str(ds.get_error())
         elif playable:
-            if videoplayer_mediastate == MEDIASTATE_STOPPED:
-                if self.said_start_playback:
-                    #npeers = ds.get_num_peers()
-                    #npeerstr = str(npeers)
-                    if totalhelping == 0:
-                        topmsg = u"Please leave the SwarmPlayer running, this will help other SwarmPlayer users to download faster."
-                    else:
-                        topmsg = u"Helping "+str(totalhelping)+" SwarmPlayer users to download. Please leave it running in the background."
+            if not self.said_start_playback:
+                msg = "Starting playback..."
+                
+            if videoplayer_mediastate == MEDIASTATE_STOPPED and self.said_start_playback:
+                
+                #print >>sys.stderr,"MEDIA STATE STOOPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPED",videoplayer_mediastate
+                
+                
+                #npeers = ds.get_num_peers()
+                #npeerstr = str(npeers)
+                if totalhelping == 0:
+                    topmsg = u"Please leave the SwarmPlayer running, this will help other SwarmPlayer users to download faster."
                 else:
-                    # Player status was never PLAYING since we openend the 
-                    # video frame, don't say a word.
-                    topmsg = u''
+                    topmsg = u"Helping "+str(totalhelping)+" SwarmPlayer users to download. Please leave it running in the background."
+                    
+                # Display this on status line
+                # TODO: Show balloon in systray when closing window to indicate things continue there
                 msg = ''
+                
+                # Display helping info on "content name" line.
+                self.videoplay.set_content_name(topmsg)
             elif videoplayer_mediastate == MEDIASTATE_PLAYING:
                 self.said_start_playback = True
+                # It may take a while for VLC to actually start displaying
+                # video, as it is trying to tune in to the stream (finding
+                # I-Frame). Display some info to show that:
+                #
                 cname = ds.get_download().get_def().get_name_as_unicode()
                 topmsg = u'Decoding: '+cname+' '+str(self.decodeprogress)+' s'
                 self.decodeprogress += 1
                 msg = ''
+                # Display tuning in info on "content name" line.
+                self.videoplay.set_content_name(topmsg)
+            elif videoplayer_mediastate == MEDIASTATE_PAUSED:
+                msg = "Buffering... " + str(int(100.0*preprogress))+"%"
             else:
-                topmsg = u''
                 msg = ''
-                
-            # Display helping info on "content name" line.
-            self.videoFrame.get_videopanel().SetContentName(topmsg)
                 
         elif preprogress != 1.0:
             pstr = str(int(preprogress*100))
@@ -702,7 +744,8 @@ class PlayerApp(wx.App):
             downtxt = " down %.1f" % (totalspeed[DOWNLOAD])
             peertxt = " peer %d" % (totalhelping)
             msg = uptxt + downtxt + peertxt
-            
+
+        # Update status msg and progress bar
         self.videoFrame.get_videopanel().UpdateStatus(msg,ds.get_pieces_complete())
         
         # Toggle save button
@@ -742,7 +785,7 @@ class PlayerApp(wx.App):
             self.tbicon.set_icon_tooltip(txt)
 
     # vod_event_callback moved to VideoPlayer.py
-    
+
     def restart_other_downloads(self):
         """ Called by GUI thread """
         if self.shuttingdown:
@@ -938,9 +981,9 @@ def run(params = None):
     if len(sys.argv) > 1:
         params = sys.argv[1:]
     
-    if 'debug' in params:
-        global ONSCREENDEBUG
-        ONSCREENDEBUG=True
+    #if 'debug' in params:
+    global ONSCREENDEBUG
+    ONSCREENDEBUG=True
     if 'raw' in params:
         Tribler.Video.VideoPlayer.USE_VLC_RAW_INTERFACE = True
     

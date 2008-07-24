@@ -171,6 +171,10 @@ class Session(SessionRuntimeConfig):
             if key not in self.sessconfig:
                 self.sessconfig[key] = defvalue
 
+        if not 'live_aux_seeders' in self.sessconfig:
+            # Poor man's versioning, really should update PERSISTENTSTATE_CURRENTVERSION
+            self.sessconfig['live_aux_seeders'] = sessdefaults['live_aux_seeders']
+
         # Checkpoint startup config
         self.save_pstate_sessconfig()
 

@@ -48,8 +48,8 @@ class VideoFrame(wx.Frame):
         if title is None:
             title = self.utility.lang.get('tb_video_short')
         
-        wx.Frame.__init__(self, None, -1, title, 
-                          size=(800,520)) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
+        size = (800,520) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
+        wx.Frame.__init__(self, None, -1, title, size=size) 
         
         self.create_videopanel(vlcwrap,logopath)
 
@@ -110,7 +110,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         #self.SetBackgroundColour(wx.WHITE)
         self.SetBackgroundColour(wx.BLACK)
         mainbox = wx.BoxSizer(wx.VERTICAL)
-        self.vlcwin = VLCLogoWindow(self,vlcwrap,logopath)
+        
+        self.vlcwin = VLCLogoWindow(self,(320,240),vlcwrap,logopath)
         self.vlcwrap = vlcwrap
 
         # Arno: until we figure out how to show in-playback prebuffering info

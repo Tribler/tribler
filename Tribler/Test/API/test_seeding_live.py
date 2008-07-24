@@ -133,7 +133,7 @@ class TestSeeding(TestAsServer):
 
     def downloader_vod_ready_callback(self,d,event,params):
         """ Called by SessionThread """
-        if event == "start":
+        if event == VODEVENT_START:
             stream = params["stream"]
             while True:
                 # Fake video playback

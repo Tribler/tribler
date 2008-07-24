@@ -71,8 +71,8 @@ class DownloadConfigInterface:
         In which event is a string, and params a dictionary. The following
         events are supported:
 
-        "start":
-            The params will contain the fields
+        VODEVENT_START:
+            The params dictionary will contain the fields
         
                 mimetype,stream,filename,length
         
@@ -86,6 +86,20 @@ class DownloadConfigInterface:
             To fetch a specific file from a multi-file torrent, use the 
             set_selected_files() method. This method sets the mode to DLMODE_VOD 
 
+        VODEVENT_PAUSE:
+            The download engine would like video playback to be paused as the
+            data is not coming in fast enough / the data due is not available
+            yet.
+            
+            The params dictionary contains the fields
+            
+                autoresume
+                
+            "autoresume" indicates ...
+        
+        VODEVENT_RESUME:
+            The download engine would like video playback to resume.
+
         The usercallback should ignore events it does not support.
   
         The usercallback will be called by a popup thread which can be used
@@ -98,10 +112,10 @@ class DownloadConfigInterface:
 
     def set_video_events(self,events=[]):
         """ Sets which events will be supported with the usercallback set
-        by set_video_event_callback. Supporting the "start" event is mandatory,
-        and can therefore be omitted from the list.
+        by set_video_event_callback. Supporting the VODEVENT_START event is 
+        mandatory, and can therefore be omitted from the list.
 
-        @param events        A list of supported events.
+        @param events        A list of supported VODEVENT_* events.
         """
 
         # create a copy to avoid loosing the info
@@ -135,6 +149,14 @@ class DownloadConfigInterface:
         @param mode DLMODE_NORMAL/DLMODE_VOD """
         self.dlconfig['mode'] = mode 
 
+    def set_live_aux_seeders(self,seeders):
+        """ Sets a number of live seeders, auxiliary servers that
+        get high priority at the source server to distribute its content
+        to others.
+        @param nodes A list of [IP address,port] lists.
+        """
+        self.dlconfig['live_aux_seeders'] = seeders
+
     def get_mode(self):
         """ Returns the mode of this download. 
         @return DLMODE_NORMAL/DLMODE_VOD """
@@ -163,6 +185,12 @@ class DownloadConfigInterface:
         @return An integer.
         """
         return self.dlconfig['video_ratelimit']
+
+    def get_live_aux_seeders(self):
+        """ Returns the aux. live seeders set. 
+        @return A list of [IP address,port] lists. """
+        return self.dlconfig['live_aux_seeders']
+
 
     def set_selected_files(self,files):
         """ Select which files in the torrent to download. The filenames must 

@@ -1,0 +1,4 @@
+?package(swarmplayer):needs="x11" section="Apps/Net" \
+	 title="SwarmPlayer" \
+	 icon="/usr/share/pixmaps/swarmplayer.xpm" \
+	 command="swarmplayer"

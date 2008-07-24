@@ -5,6 +5,7 @@ import sys
 from traceback import print_exc,print_stack
 from cStringIO import StringIO
 import struct
+import time
 
 from sha import sha
 
@@ -62,19 +63,23 @@ class NullAuthenticator(Authenticator):
 class ECDSAAuthenticator(Authenticator):
     """ Authenticator who places a ECDSA signature in the last part of a
     piece. In particular, the sig consists of:
-    - an 8 byte timestamp
+    - an 8 byte sequence number
+    - an 8 byte real-time timestamp
     - a 1 byte length field followed by
     - a variable-length ECDSA signature in ASN.1, (max 64 bytes)  
     - optionally 0x00 padding bytes, if the ECDSA sig is less than 64 bytes,
-    to give a total of 73 bytes.
+    to give a total of 81 bytes.
     """
     
+    SEQNUM_SIZE = 8
+    RTSTAMP_SIZE = 8
+    LENGTH_SIZE = 1
     MAX_ECDSA_ASN1_SIGSIZE = 64
-    TIMESTAMP_SIZE = 8
-    # = timestamp + 1 byte length + MAX_ECDSA, padded
-    # put timestamp directly after content, so we calc the sig directly from
-    # the received buffer.
-    OUR_SIGSIZE = TIMESTAMP_SIZE+1+MAX_ECDSA_ASN1_SIGSIZE 
+    EXTRA_SIZE = SEQNUM_SIZE + RTSTAMP_SIZE
+    # = seqnum + rtstamp + 1 byte length + MAX_ECDSA, padded
+    # put seqnum + rtstamp directly after content, so we calc the sig directly 
+    # from the received buffer.
+    OUR_SIGSIZE = EXTRA_SIZE+LENGTH_SIZE+MAX_ECDSA_ASN1_SIGSIZE 
     
     def __init__(self,piecelen,npieces,keypair=None,pubkeypem=None):
         
@@ -88,16 +93,19 @@ class ECDSAAuthenticator(Authenticator):
             self.pubkey = EC.pub_key_from_der(pubkeypem)
         else:
             self.pubkey = None
-        self.timestamp = 0L
+        self.seqnum = 0L
 
     def get_content_blocksize(self):
         return self.contentblocksize
     
     def sign(self,content):
-        ts = struct.pack('>Q', self.timestamp)
-        self.timestamp += 1L
+        rtstamp = time.time()
+        #print >>sys.stderr,"ECDSAAuth: sign: ts %.5f s" % rtstamp
+        
+        extra = struct.pack('>Qd', self.seqnum,rtstamp)
+        self.seqnum += 1L
 
-        sig = sign_data(content,ts,self.keypair)
+        sig = sign_data(content,extra,self.keypair)
         # The sig returned is either 64 or 63 bytes long (62 also possible I 
         # guess). Therefore we transmit size as 1 bytes and fill to 64 bytes.
         lensig = chr(len(sig))
@@ -106,68 +114,89 @@ class ECDSAAuthenticator(Authenticator):
             # the header length for that I assume.
             diff = self.MAX_ECDSA_ASN1_SIGSIZE-len(sig)
             padding = '\x00' * diff 
-            return [content,ts,lensig,sig,padding]
+            return [content,extra,lensig,sig,padding]
         else:
-            return [content,ts,lensig,sig]
+            return [content,extra,lensig,sig]
         
     def verify(self,piece,index):
         """ A piece is valid if:
         - the signature is correct,
-        - the timestamp % npieces == piecenr.
-        - the timestamp is no older than self.timestamp - npieces
+        - the seqnum % npieces == piecenr.
+        - the seqnum is no older than self.seqnum - npieces
         @param piece The piece data as received from peer
         @param index The piece number as received from peer
         @return Boolean
         """
-        # Can we do this without memcpy?
-        #print >>sys.stderr,"ECDSAAuth: verify",len(piece)
-        ts = piece[-self.OUR_SIGSIZE:-self.OUR_SIGSIZE+self.TIMESTAMP_SIZE]
-        lensig = ord(piece[-self.OUR_SIGSIZE+self.TIMESTAMP_SIZE])
-        #print >>sys.stderr,"ECDSAAuth: verify lensig",lensig
-        diff = lensig-self.MAX_ECDSA_ASN1_SIGSIZE
-        if diff == 0:
-            sig = piece[-self.OUR_SIGSIZE+self.TIMESTAMP_SIZE+1:]
-        else:
-            sig = piece[-self.OUR_SIGSIZE+self.TIMESTAMP_SIZE+1:diff]
-        content = piece[:-self.OUR_SIGSIZE]
-        if DEBUG:
-            print >>sys.stderr,"ECDSAAuth: verify piece",index,"sig",`sig`
-            print >>sys.stderr,"ECDSAAuth: verify dig",sha(content).hexdigest()
-        
         try:
-            ret = verify_data_pubkeyobj(content,ts,self.pubkey,sig)
+            # Can we do this without memcpy?
+            #print >>sys.stderr,"ECDSAAuth: verify",len(piece)
+            extra = piece[-self.OUR_SIGSIZE:-self.OUR_SIGSIZE+self.EXTRA_SIZE]
+            lensig = ord(piece[-self.OUR_SIGSIZE+self.EXTRA_SIZE])
+            if lensig > self.MAX_ECDSA_ASN1_SIGSIZE:
+                print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"lensig wrong",lensig
+                return False
+            #print >>sys.stderr,"ECDSAAuth: verify lensig",lensig
+            diff = lensig-self.MAX_ECDSA_ASN1_SIGSIZE
+            if diff == 0:
+                sig = piece[-self.OUR_SIGSIZE+self.EXTRA_SIZE+self.LENGTH_SIZE:]
+            else:
+                sig = piece[-self.OUR_SIGSIZE+self.EXTRA_SIZE+self.LENGTH_SIZE:diff]
+            content = piece[:-self.OUR_SIGSIZE]
+            if DEBUG:
+                print >>sys.stderr,"ECDSAAuth: verify piece",index,"sig",`sig`
+                print >>sys.stderr,"ECDSAAuth: verify dig",sha(content).hexdigest()
+        
+            ret = verify_data_pubkeyobj(content,extra,self.pubkey,sig)
             if ret:
-                timestamp = struct.unpack('>Q',ts)[0]
-                mod = timestamp % self.get_npieces()
-                thres = self.timestamp - self.get_npieces()
-                if timestamp <= thres:
-                    print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"old timestamp",timestamp,"<<",self.timestamp
+                (seqnum, rtstamp) = struct.unpack('>Qd',extra)
+                
+                if DEBUG:
+                    print >>sys.stderr,"ECDSAAuth: verify piece",index,"seq",seqnum,"ts %.5f s" % rtstamp,"ls",lensig
+                
+                mod = seqnum % self.get_npieces()
+                thres = self.seqnum - self.get_npieces()/2
+                if seqnum <= thres:
+                    print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"old seqnum",seqnum,"<<",self.seqnum
                     return False
                 elif mod != index:
                     print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"expected",mod
                     return False 
                 else:
-                    self.timestamp = max(self.timestamp,timestamp)
+                    self.seqnum = max(self.seqnum,seqnum)
             else:
                 print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ piece",index,"failed sig"
             
             return ret
         except:
             print_exc()
-            return False
+            return False 
 
     def get_content(self,piece):
         return piece[:-self.OUR_SIGSIZE]
+
+    # Extra fields
+    def get_seqnum(self,piece):
+        (seqnum, rtstamp) = self._decode_extra(piece)
+        return seqnum
+
+    def get_rtstamp(self,piece):
+        (seqnum, rtstamp) = self._decode_extra(piece)
+        return rtstamp
+        
+    def _decode_extra(self,piece):
+        extra = piece[-self.OUR_SIGSIZE:-self.OUR_SIGSIZE+self.EXTRA_SIZE]
+        return struct.unpack('>Qd',extra)
+
     
-def sign_data(plaintext,ts,ec_keypair):
+def sign_data(plaintext,extra,ec_keypair):
     digester = sha(plaintext)
-    digester.update(ts)
+    digester.update(extra)
     digest = digester.digest()
     return ec_keypair.sign_dsa_asn1(digest)
     
-def verify_data_pubkeyobj(plaintext,ts,pubkey,blob):
+def verify_data_pubkeyobj(plaintext,extra,pubkey,blob):
     digester = sha(plaintext)
-    digester.update(ts)
+    digester.update(extra)
     digest = digester.digest()
     return pubkey.verify_dsa_asn1(digest,blob)
     
@@ -182,10 +211,12 @@ class AuthStreamWrapper:
         self.buffer = StringIO()
         self.authenticator = authenticator
         self.piecelen = authenticator.get_piece_length()
+        self.last_rtstamp = None
 
     def read(self,numbytes=None):
         rawdata = self._readn(self.piecelen)
         content = self.authenticator.get_content(rawdata)
+        self.last_rtstamp = self.authenticator.get_rtstamp(rawdata)
         if numbytes is None:
             return content
         elif numbytes < len(content):
@@ -193,6 +224,10 @@ class AuthStreamWrapper:
             raise ValueError('reading less than piecesize not supported yet')
         else:
             return content
+
+    def get_generation_time(self):
+        """ Returns the time at which the last read piece was generated at the source. """
+        return self.last_rtstamp
     
     def seek(self,pos,whence=None):
         if pos != 0:

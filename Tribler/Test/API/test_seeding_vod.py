@@ -140,7 +140,7 @@ class TestSeeding(TestAsServer):
         return (1.0,False)
 
     def downloader_vod_ready_callback(self,d,event,params):
-        if event == "start":
+        if event == VODEVENT_START:
             self.vod_started = True
 
         

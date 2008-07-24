@@ -94,7 +94,7 @@ class Reporter:
             # any other error
             print_exc(file=sys.stderr)
             self.do_reporting = False
-        if DEBUG: print >>sys.stderr,"\nreport: succes. reported %s bytes, will report again in %s seconds" % (len(data),self.do_reporting)
+        if DEBUG: print >>sys.stderr,"\nreport: succes. reported %s bytes, will report again (%s) in %s seconds" % (len(data),self.do_reporting,self.report_interval)
 
     def report_stat( self, ds ):
         chokestr = lambda b: ["c","C"][int(bool(b))]
@@ -104,7 +104,9 @@ class Reporter:
             
         now = time()
         v = ds.get_vod_stats() or { "played": 0, "stall": 0, "late": 0, "dropped": 0, "prebuf": -1, "pieces": {} }
-        vi = ds.get_videoinfo() or { "live": False, "inpath": "(none)" }
+        vi = ds.get_videoinfo() or { "live": False, "inpath": "(none)", "status": None }
+        vs = vi["status"]
+
         scfg = self.sconfig
 
         down_total, down_rate, up_total, up_rate = 0, 0.0, 0, 0.0
@@ -130,6 +132,11 @@ class Reporter:
                 "up_rate": p["uprate"]/1024.0,
             }
 
+        if vs:
+            valid_range = vs.download_range()
+        else:
+            valid_range = ""
+
         stats = {
             "timestamp":  time(),
             "epoch":      self.epoch,
@@ -150,6 +157,8 @@ class Reporter:
             "t_prebuf":   v["prebuf"],
             "peers":      peerinfo.values(),
             "pieces":     v["pieces"],
+            "validrange": valid_range,
         }
 
         self.phone_home( stats )
+

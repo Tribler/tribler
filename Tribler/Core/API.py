@@ -6,6 +6,14 @@
 #
 """ Tribler Core API v1.0.0rc4, Jun 19 2008. Import this to use the API """
 
+# History:
+# 1.0.0rc5 : Added option to define auxiliary seeding servers for live stream
+#            (=these servers are always unchoked at the source server).
+#
+# 1.0.0rc4 : Changed DownloadConfig.set_vod_start_callback() to a generic 
+#            event-driven interface.
+
+
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Base import *
 from Tribler.Core.Session import *

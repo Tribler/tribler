@@ -1,7 +1,7 @@
 REM @echo off
 
 set PYTHONHOME=C:\Python252
-REM Arno: Add .. to make it find khashmir. Add . to find us (Python 2.5)
+REM Arno: Add .. to make it find khashmir. Add . to find us (python 2.5)
 set PYTHONPATH=.;%PYTHONHOME%;..
 
 echo PYTHONPATH SET TO %PYTHONPATH%

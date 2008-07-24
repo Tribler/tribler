@@ -1,5 +1,5 @@
 !define PRODUCT "SwarmPlayer"
-!define VERSION "1.0.0"
+!define VERSION "1.0.1"
 
 !include "MUI.nsh"
 
@@ -40,8 +40,8 @@ BrandingText "${PRODUCT}"
 ;Pages
 
 !define MUI_LICENSEPAGE_RADIOBUTTONS
-!define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I'm cool"
-!define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "Go away"
+!define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I accept"
+!define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "I decline"
 ;   !define MUI_FINISHPAGE_RUN "$INSTDIR\swarmplayer.exe"
 
 !insertmacro MUI_PAGE_LICENSE "binary-LICENSE.txt"

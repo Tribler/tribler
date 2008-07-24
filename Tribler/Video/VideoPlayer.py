@@ -40,7 +40,7 @@ class VideoPlayer:
         self.extprogress = None
         self.vod_download = None
         self.playbackmode = None
-        self.alwaysinternalplayback = False
+        self.overrideplaybackmode = None
         self.vod_postponed_downloads = []
 
         if not USE_VLC_RAW_INTERFACE:
@@ -59,11 +59,11 @@ class VideoPlayer:
         return VideoPlayer.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self,utility,alwaysinternalplayback=False):
+    def register(self,utility,overrideplaybackmode=None):
         
         self.utility = utility # TEMPARNO: make sure only used for language strings
 
-        self.alwaysinternalplayback = alwaysinternalplayback
+        self.overrideplaybackmode = overrideplaybackmode
         self.determine_playbackmode()
 
     def set_videoframe(self,videoframe):
@@ -356,11 +356,11 @@ class VideoPlayer:
         """ Also called by SwarmPlayer """
 
         print >>sys.stderr,"VideoPlayer: gui_vod_event:",event
-        if event == "start":
+        if event == VODEVENT_START:
             filename = params["filename"]
             mimetype = params["mimetype"]
             stream   = params["stream"]
-            length   = params["size"]
+            length   = params["length"]
 
             if filename:
                 self.play_file(filename)
@@ -368,13 +368,14 @@ class VideoPlayer:
                 blocksize = d.get_def().get_piece_length()
                 streaminfo = {'mimetype':mimetype,'stream':stream,'length':length,'blocksize':blocksize}
                 self.play_stream(streaminfo)
-        elif event == "pause":
-            if self.playbackmode == PLAYBACKMODE_INTERNAL:
-                self.videoframe.videopanel.Pause()
-        elif event == "resume":
-            if self.playbackmode == PLAYBACKMODE_INTERNAL:
-                self.videoframe.videopanel.Play()
-
+        elif event == VODEVENT_PAUSE:
+            if self.videoframe is not None: 
+                self.videoFrame.get_videopanel().Pause()
+            self.set_player_status("Buffering...")
+        elif event == VODEVENT_RESUME:
+            if self.videoframe is not None:
+                self.videoFrame.get_videopanel().Play()
+            self.set_player_status("")
 
     def ask_user_to_select_video(self,videofiles):
         dlg = VideoChooser(self.videoframe,self.utility,videofiles,title='Tribler',expl='Select which file to play')
@@ -530,19 +531,24 @@ class VideoPlayer:
 
 
     def set_content_name(self,name):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().SetContentName(name)
 
     def set_content_image(self,wximg):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().SetContentImage(wximg)
 
+    def set_player_status(self,msg):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            self.videoframe.get_videopanel().SetPlayerStatus(msg)
+
+
     def determine_playbackmode(self):
-        if self.alwaysinternalplayback:
-            playbackmode = PLAYBACKMODE_INTERNAL
+        if self.overrideplaybackmode is not None:
+            playbackmode = self.overrideplaybackmode  
         else:
             # WARNING READS TRIBLER CONFIG, DON'T USE in SWARMPLAYER
-            playbackmode = self.utility.config.Read('videoplaybackmode', "int")
+            playbackmode = PLAYBACKMODE_INTERNAL # self.utility.config.Read('videoplaybackmode', "int")
         feasible = return_feasible_playback_modes(self.utility.getPath())
         if playbackmode in feasible:
             self.playbackmode = playbackmode

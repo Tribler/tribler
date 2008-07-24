@@ -17,7 +17,10 @@ class PlayerTaskBarIcon(wx.TaskBarIcon):
         self.icons = wx.IconBundle()
         self.icons.AddIconFromFile(iconfilename,wx.BITMAP_TYPE_ICO)
         self.icon = self.icons.GetIcon(wx.Size(-1,-1))
-        self.SetIcon(self.icon,'SwarmPlayer')
+
+        if sys.platform != "darwin":
+            # Mac already has the right icon set at startup
+            self.SetIcon(self.icon,'SwarmPlayer')
         
     def CreatePopupMenu(self):        
         menu = wx.Menu()
@@ -42,6 +45,10 @@ class PlayerTaskBarIcon(wx.TaskBarIcon):
     
     
     def set_icon_tooltip(self,txt):
+        if sys.platform == "darwin":
+            # no taskbar tooltip on OS/X
+            return
+
         self.SetIcon(self.icon,txt)
     
     

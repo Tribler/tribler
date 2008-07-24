@@ -112,3 +112,7 @@ COOPDL_ROLE_HELPER = 'helper'
 LIVE_AUTHMETHOD_NONE = "None"   # None
 LIVE_AUTHMETHOD_ECDSA = "ECDSA" # Elliptic Curve DSA signatures
 
+# Video-On-Demand / live events
+VODEVENT_START = "start"
+VODEVENT_PAUSE = "pause"
+VODEVENT_RESUME = "resume"

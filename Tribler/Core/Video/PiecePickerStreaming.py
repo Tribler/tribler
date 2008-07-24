@@ -9,6 +9,10 @@ from traceback import print_exc,print_stack
 
 from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker 
 
+# percent piece loss to emulate -- we just don't request this percentage of the pieces
+# only implemented for live streaming
+PIECELOSS = 0
+
 DEBUG = False
 DEBUGPP = False
 
@@ -131,6 +135,9 @@ class PiecePickerStreaming(PiecePicker):
         videostatus.add_playback_pos_observer( self.change_playback_pos )
 
     def is_interesting(self,piece):
+        if PIECELOSS and piece % 100 < PIECELOSS:
+            return False
+
         if self.has[piece]:
             return False
 
@@ -144,7 +151,7 @@ class PiecePickerStreaming(PiecePicker):
             # (re)initialise
             valid = self.is_interesting
 
-            for d in self.peer_connections.itervalues():
+            for d in self.peer_connections.values():
                 interesting = {}
                 has = d["connection"].download.have
                 for i in xrange(self.videostatus.first_piece,self.videostatus.last_piece+1):
@@ -154,7 +161,7 @@ class PiecePickerStreaming(PiecePicker):
                 d["interesting"] = interesting
         else:
             # playback position incremented -- remove timed out piece
-            for d in self.peer_connections.itervalues():
+            for d in self.peer_connections.values():
                 d["interesting"].pop(oldpos,0)
 
     def got_have(self, piece, connection=None):
@@ -198,7 +205,11 @@ class PiecePickerStreaming(PiecePicker):
         for d in self.peer_connections.itervalues():
             d["interesting"].pop(piece,0)
 
-    def pos_is_sustainable(self):
+    def num_nonempty_neighbours(self):
+        # return #neighbours who have something
+        return len( [c for c in self.peer_connections if c.download.have.numfalse < c.download.have.length] )
+
+    def pos_is_sustainable(self,fudge=2):
         """
             Returns whether we have enough data around us to support the current playback position.
             If not, playback should pause, stall or reinitialised when pieces are lost.
@@ -208,13 +219,9 @@ class PiecePickerStreaming(PiecePicker):
         # only holds for live streaming for now. theoretically, vod can have the same problem
         # since data can be seeded in a 'live' fashion
         if not vs.live_streaming:
+            if DEBUG:
+                print >>sys.stderr, "PiecePickerStreaming: pos is sustainable: not streaming live"
             return True
-
-        if not self.peer_connections:
-            # not sustainable, but nothing we can do. Return True to avoid pausing
-            # and getting out of sync.
-            return True
-
 
         # We assume the maximum piece number that is available at at least half of the neighbours
         # to be sustainable. Although we only need a fixed number of neighbours with enough bandwidth,
@@ -223,13 +230,31 @@ class PiecePickerStreaming(PiecePicker):
         # this means that our current playback position is sustainable if any future piece
         # is owned by at least half of the peers
 
-        half = len(self.peer_connections)/2
+        # ignore peers which have nothing
+        numconn = self.num_nonempty_neighbours()
+
+        if not numconn:
+            # not sustainable, but nothing we can do. Return True to avoid pausing
+            # and getting out of sync.
+            if DEBUG:
+                print >>sys.stderr, "PiecePickerStreaming: pos is sustainable: no neighbours with pieces"
+            return True
+
+        half = max( 1, numconn/2 )
+        skip = fudge # ignore the first 'fudge' pieces
 
         for x in vs.generate_range( vs.download_range() ):
-            if self.numhaves[x] >= half:
+            if skip > 0:
+                skip -= 1
+            elif self.numhaves[x] >= half:
                 if DEBUG:
-                    print >>sys.stderr, "pp: pos is sustainable: piece %s @ %s>%s peers" % (x,self.numhaves[x],half)
+                    print >>sys.stderr, "PiecePickerStreaming: pos is sustainable: piece %s @ %s>%s peers (fudge=%s)" % (x,self.numhaves[x],half,fudge)
                 return True
+            else:
+                pass
+
+        if DEBUG:
+            print >>sys.stderr, "PiecePickerStreaming: pos is NOT sustainable playpos=%s fudge=%s numconn=%s half=%s numpeers=%s %s" % (vs.playback_pos,fudge,numconn,half,len(self.peer_connections),[x.get_ip() for x in self.peer_connections])
 
         # too few neighbours own the future pieces. it's wise to pause and let neighbours catch up
         # with us

@@ -19,9 +19,9 @@ class VLCLogoWindow(wx.Window):
     "Loading: bla.video" message when VLC is not playing.
     """
     
-    def __init__(self, parent, vlcwrap, logopath):
-        wx.Window.__init__(self, parent, -1, size=(320,240))
-        self.SetMinSize((320,240))
+    def __init__(self, parent, size, vlcwrap, logopath):
+        wx.Window.__init__(self, parent, -1, size=size)
+        self.SetMinSize(size)
         self.SetBackgroundColour(wx.BLACK)
         
         self.vlcwrap = vlcwrap
@@ -140,10 +140,26 @@ class VLCWrapper:
     
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
         params = ["--verbose=0"]
-        #params += ["--key-fullscreen", "Esc"]
+        
+        """
+        # To enable logging to file:
+        #[loghandle,logfilename] = mkstemp("vlc-log")
+        #os.close(loghandle)
+        currwd = os.getcwd()
+        logfilename = os.path.join(currwd,"vlc.log")
+        params += ["--file-logging"]
+        params += ["--logfile",logfilename]
+        """
+        
         params += ["--no-drop-late-frames"] # Arno: 2007-11-19: don't seem to work as expected DEBUG
         params += ["--no-skip-frames"]
         params += ["--quiet-synchro"]
+        # JD: avoid "fast catchup" after frame loss by letting VLC have a flexible buffer
+        #params += ["--access-filter","timeshift"]
+        #params += ["--timeshift-force"]
+        # Arno: attempt to improve robustness
+        params += ["--http-reconnect"]
+
         # VLC wiki says: "apply[ing] deinterlacing even if the original is not
         # interlaced, is a really bad idea."
         #params += ["--vout-filter","deinterlace"]

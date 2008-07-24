@@ -18,9 +18,9 @@ then
   cd $DIRCHANGE
 fi
 
-if [ ! -e "lib" ]
+if [ ! -e "macbinaries" ]
 then
-  echo Please let the 'lib' symlink point to your built libraries [typically mac/build/lib].
+  echo Please unpack macbinaries-`arch`.tar.gz here, so that the macbinaries directory will be created and filled with the binaries required for operation.
   exit -1
 fi
 

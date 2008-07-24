@@ -83,6 +83,7 @@ class SingleDownload:
                 else:
                     authparams = None
                 self.videostatus = VideoStatus(metainfo['info']['piece length'],self.dow.files,vodfileindex,authparams)
+                self.videoinfo['status'] = self.videostatus
                 self.dow.set_videoinfo(vodfileindex,self.videostatus)
 
             #if DEBUG:

@@ -66,6 +66,7 @@ sessdefaults['nat_detect'] = False
 sessdefaults['puncturing_private_port'] = 6700
 sessdefaults['stun_servers'] = [('stun1.tribler.org',6701),('stun2.tribler.org',6702)]
 sessdefaults['puncturing_coordinators'] = [('puncturing.tribler.org',6703)]
+sessdefaults['live_aux_seeders'] = []
 
 trackerdefaults = {}
 trackerdefaults['tracker_url'] = None

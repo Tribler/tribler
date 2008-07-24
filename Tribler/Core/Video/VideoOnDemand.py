@@ -10,6 +10,7 @@ from tempfile import mkstemp
 from threading import Thread
 from sets import Set
 import time
+import collections
 
 import SocketServer
 import BaseHTTPServer
@@ -21,7 +22,7 @@ from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker
 from Tribler.Core.Video.MovieTransport import MovieTransport,MovieTransportStreamWrapper
 from Tribler.Core.Video.VideoStatus import VideoStatus
 from Tribler.Core.Video.PiecePickerStreaming import PiecePickerStreaming 
-from Tribler.Core.simpledefs import LIVE_AUTHMETHOD_NONE,LIVE_AUTHMETHOD_ECDSA
+from Tribler.Core.simpledefs import *
 from Tribler.Core.Video.LiveSourceAuth import ECDSAAuthenticator,AuthStreamWrapper
 
 # pull all video data as if a video player was attached
@@ -68,11 +69,13 @@ class MovieOnDemandTransporter(MovieTransport):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 
     # seconds to prebuffer if bitrate is known
-    PREBUF_SEC_LIVE = 5
+    PREBUF_SEC_LIVE = 10
     PREBUF_SEC_VOD  = 10
 
     # max number of seconds in queue to player
-    BUFFER_TIME = 2.0 # St*pid vlc apparently can't handle lots of data pushed to it
+    # Arno: < 2008-07-15: St*pid vlc apparently can't handle lots of data pushed to it
+    # Arno: 2008-07-15: 0.8.6h apparently can
+    BUFFER_TIME = 5.0
     
     # polling interval to refill buffer
     #REFILL_INTERVAL = BUFFER_TIME * 0.75
@@ -81,12 +84,16 @@ class MovieOnDemandTransporter(MovieTransport):
 
     # amount of time (seconds) to push a packet into
     # the player queue ahead of schedule
-    PIECE_DUE_SKEW = 0.1
+    VLC_BUFFER_SIZE = 0
+    PIECE_DUE_SKEW = 0.1 + VLC_BUFFER_SIZE
 
     # Arno: If we don't know playtime and FFMPEG gave no decent bitrate, this is the minimum
     # bitrate (in KByte/s) that the playback birate-estimator must have to make us
     # set the bitrate in movieselector.
     MINPLAYBACKRATE = 32*1024
+
+    # maximum delay between pops before we force a restart (seconds)
+    MAX_POP_TIME = 60
 
     def __init__(self,bt1download,videostatus,videoinfo,videoanalyserpath,vodeventfunc):
         self.videoinfo = videoinfo
@@ -181,8 +188,8 @@ class MovieOnDemandTransporter(MovieTransport):
         self.curpiece = ""
         self.curpiece_pos = 0
         self.outbuf = []
-        self.start_playback = None
-        self.start_playback_piece = 0 # relative piece number
+        self.last_pop = None # time of last pop
+        self.reset_bitrate_prediction()
 
         self.lasttime=0
         # For DownloadState
@@ -190,10 +197,13 @@ class MovieOnDemandTransporter(MovieTransport):
         self.prebufstart = time.time()
         self.playable = False
         self.usernotified = False
+        
+        self.outbuflen = None
 
         # LIVESOURCEAUTH
         if vs.live_streaming and vs.authparams['authmethod'] == LIVE_AUTHMETHOD_ECDSA:
             self.authenticator = ECDSAAuthenticator(vs.first_piecelen,vs.movie_numpieces,pubkeypem=vs.authparams['pubkey'])
+            vs.sigsize = vs.piecelen - self.authenticator.get_content_blocksize()
         else:
             self.authenticator = None
 
@@ -237,10 +247,15 @@ class MovieOnDemandTransporter(MovieTransport):
             numseeds = 0
             numhaves = self.piecepicker.has 
             totalhaves = self.piecepicker.numgot
+
+            treshhold = 1
         else:
             numseeds = self.piecepicker.seeds_connected
             numhaves = self.piecepicker.numhaves # excludes seeds
             totalhaves = self.piecepicker.totalcount # excludes seeds
+
+            numconns = self.piecepicker.num_nonempty_neighbours()
+            treshhold = max( 1, numconns/2 )
 
         # FUDGE: number of pieces we subtract from maximum known/have,
         # to start playback with some buffer present. We need enough
@@ -269,19 +284,31 @@ class MovieOnDemandTransporter(MovieTransport):
             vs.set_live_startpos( 0 )
             return True
 
-        # maxnum = highest existing piece number
+        # maxnum = highest existing piece number owned by more than half of the neighbours
+        maxnum = None
         for i in xrange(epiece,bpiece-1,-1):
-            if numhaves[i] > 0:
+            #if DEBUG:
+            #    if 0 < numhaves[i] < treshhold:
+            #        print >>sys.stderr,"vod: calc_live_offset: discarding piece %d as it is owned by only %d<%d neighbours" % (i,numhaves[i],treshhold)
+
+            if numhaves[i] >= treshhold:
                 maxnum = i
+                if DEBUG:
+                    print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours" % (i,numhaves[i],treshhold)
                 break
+
+        if maxnum is None:
+            return False
 
         # if there is wraparound, newest piece may actually have wrapped
         if vs.wraparound and maxnum > epiece - vs.wraparound_delta:
             delta_left = vs.wraparound_delta - (epiece-maxnum)
 
             for i in xrange( vs.first_piece+delta_left-1, vs.first_piece-1, -1 ):
-                if numhaves[i] > 0:
+                if numhaves[i] >= treshhold:
                     maxnum = i
+                    if DEBUG:
+                        print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours" % (i,numhaves[i],treshhold)
                     break
 
         # start watching from maximum piece number, adjusted by fudge.
@@ -289,12 +316,18 @@ class MovieOnDemandTransporter(MovieTransport):
             maxnum = vs.normalize( maxnum - FUDGE )
             #f = bpiece + (maxnum - bpiece - FUDGE) % (epiece-bpiece)
             #t = bpiece + (f - bpiece + vs.wraparound_delta) % (epiece-bpiece)
+
+            # start at a piece known to exist to avoid waiting for something that won't appear
+            # for another round. guaranteed to succeed since we would have bailed if noone had anything
+            while not numhaves[maxnum]:
+                maxnum = vs.normalize( maxnum + 1 )
         else:
             maxnum = max( bpiece, maxnum - FUDGE )
 
             if maxnum == bpiece:
                 # video has just started -- watch from beginning
                 return True
+
 
         print >>sys.stderr,"vod: === HOOKING IN AT PIECE %d (based on have: %s) ===" % (maxnum,have)
         toinvalidateset = vs.set_live_startpos( maxnum )
@@ -312,15 +345,19 @@ class MovieOnDemandTransporter(MovieTransport):
             # Stop adjusting the download range
             return
 
-        if not (self.videostatus.live_startpos is None):
-            # Adjust it only once on what we see around us
-            return
+        # JD:keep checking correct playback pos since it can change if we switch neighbours
+        # due to faulty peers etc
+
+        #if not (self.videostatus.live_startpos is None):
+        #    # Adjust it only once on what we see around us
+        #    return
 
         if self.calc_live_startpos( self.max_prebuf_packets, False ):
             # Adjust it only once on what we see around us
-            return
+            #return
+            pass
 
-        self.rawserver.add_task( self.live_streaming_timer, 5 )
+        self.rawserver.add_task( self.live_streaming_timer, 1 )
 
     def parse_video(self):
         """ Feeds the first max_prebuf_packets to ffmpeg to determine video bitrate. """
@@ -358,6 +395,10 @@ class MovieOnDemandTransporter(MovieTransport):
 
             if piece is None:
                 break
+
+            # remove any signatures etc
+            if self.authenticator is not None:
+                piece = self.authenticator.get_content( piece )
 
             try:
                 child_out.write( piece )
@@ -501,7 +542,22 @@ class MovieOnDemandTransporter(MovieTransport):
                 print >>sys.stderr,"vod: trans: Prebuffering: %.2f seconds left" % (self.expected_buffering_time())
 
     def got_have(self,piece):
+        vs = self.videostatus
+
+        # update stats
         self.stat_pieces.set( piece, "known", time.time() )
+        """
+        if vs.playing and vs.wraparound:
+            # check whether we've slipped back too far
+            d = vs.wraparound_delta
+            n = max(1,self.piecepicker.num_nonempty_neighbours()/2)
+            if self.piecepicker.numhaves[piece] > n and d/2 < (piece - vs.playback_pos) % vs.movie_numpieces < d:
+                # have is confirmed by more than half of the neighours and is in second half of future window
+                print >>sys.stderr,"vod: trans: Forcing restart. Am at playback position %d but saw %d at %d>%d peers." % (vs.playback_pos,piece,self.piecepicker.numhaves[piece],n)
+
+                self.start(force=True)
+        """
+
 
     def complete(self,piece,downloaded=True):
         """ Called when a movie piece has been downloaded or was available from the start (disk). """
@@ -689,7 +745,7 @@ class MovieOnDemandTransporter(MovieTransport):
             
             piecenr,self.curpiece = x
             if DEBUG:
-                print >>sys.stderr,"vod: popped piece %d to transport to player" % piecenr
+                print >>sys.stderr,"vod: trans: %d: popped piece to transport to player" % piecenr
 
         curpos = self.curpiece_pos
         left = len(self.curpiece) - curpos
@@ -712,45 +768,50 @@ class MovieOnDemandTransporter(MovieTransport):
 
         return data
 
-    def start( self, bytepos = 0 ):
+    def start( self, bytepos = 0, force = False ):
         """ Initialise to start playing at position `bytepos'. """
 
         vs = self.videostatus
 
-        if vs.playing:
+        if vs.playing and not force:
             return
 
-        if vs.live_streaming:
-            # Determine where to start playing. There may be several seconds
-            # between starting the download and starting playback, which we'll
-            # want to skip.
-            self.calc_live_startpos( self.max_prebuf_packets, True )
-
-            # override any position request by VLC, we only have live data
-            piece = vs.playback_pos
-            offset = 0
-        else:
-            # Determine piece number and offset
-            if bytepos < vs.first_piecelen:
-                piece = vs.first_piece
-                offset = bytepos
-            else:
-                newbytepos = bytepos - vs.first_piecelen
-
-                piece  = vs.first_piece + newbytepos / vs.piecelen + 1
-                offset = newbytepos % vs.piecelen
-
-        print >>sys.stderr,"vod: trans: === START request at offset %d (piece %d) ===" % (bytepos,piece)
-
-        # Initialise all playing variables
+        # lock before changing startpos or any other playing variable
         self.data_ready.acquire()
-        self.curpiece = "" # piece currently being popped
-        self.curpiece_pos = offset
-        self.set_pos( piece )
-        self.outbuf = []
-        vs.playing = True
-        self.playbackrate = Measure( 60 )
-        self.data_ready.release()
+        try:
+            if vs.live_streaming:
+                # Determine where to start playing. There may be several seconds
+                # between starting the download and starting playback, which we'll
+                # want to skip.
+                self.calc_live_startpos( self.max_prebuf_packets, True )
+
+                # override any position request by VLC, we only have live data
+                piece = vs.playback_pos
+                offset = 0
+            else:
+                # Determine piece number and offset
+                if bytepos < vs.first_piecelen:
+                    piece = vs.first_piece
+                    offset = bytepos
+                else:
+                    newbytepos = bytepos - vs.first_piecelen
+
+                    piece  = vs.first_piece + newbytepos / vs.piecelen + 1
+                    offset = newbytepos % vs.piecelen
+
+            print >>sys.stderr,"vod: trans: === START at offset %d (piece %d) (forced: %s) ===" % (bytepos,piece,force)
+
+            # Initialise all playing variables
+            self.curpiece = "" # piece currently being popped
+            self.curpiece_pos = offset
+            self.set_pos( piece )
+            self.outbuf = []
+            self.last_pop = time.time()
+            self.reset_bitrate_prediction()
+            vs.playing = True
+            self.playbackrate = Measure( 60 )
+        finally:
+            self.data_ready.release()
 
         # See what we can do right now
         self.update_prebuffering()
@@ -769,6 +830,7 @@ class MovieOnDemandTransporter(MovieTransport):
         # clear buffer and notify possible readers
         self.data_ready.acquire()
         self.outbuf = []
+        self.last_pop = None
         vs.prebuffering = False
         self.data_ready.notify()
         self.data_ready.release()
@@ -786,11 +848,14 @@ class MovieOnDemandTransporter(MovieTransport):
             vs.autoresume = autoresume
             return
 
+        if DEBUG:
+            print >>sys.stderr,"vod: trans: paused (autoresume: %s)" % (autoresume,)
+
         vs.paused = True
         vs.autoresume = autoresume
         self.paused_at = time.time()
-        self.start_playback = None # piece_due prediction is now useless
-        self.videoinfo["usercallback"]("pause",{ "autoresume": autoresume })
+        #self.reset_bitrate_prediction()
+        self.videoinfo["usercallback"](VODEVENT_PAUSE,{ "autoresume": autoresume })
 
     def resume( self ):
         """ Resume paused playback. """
@@ -800,10 +865,14 @@ class MovieOnDemandTransporter(MovieTransport):
         if not vs.playing or not vs.paused or not vs.pausable:
             return
 
+        if DEBUG:
+            print >>sys.stderr,"vod: trans: resumed"
+
         vs.paused = False
         vs.autoresume = False
         self.stat_stalltime += time.time() - self.paused_at
-        self.videoinfo["usercallback"]("resume",{})
+        self.addtime_bitrate_prediction( time.time() - self.paused_at )
+        self.videoinfo["usercallback"](VODEVENT_RESUME,{})
 
         self.update_prebuffering()
         self.refill_buffer()
@@ -817,7 +886,7 @@ class MovieOnDemandTransporter(MovieTransport):
             return
 
         if not testfunc():
-            self.rawserver.add_task( self.autoresume, 1.0 )
+            self.rawserver.add_task( lambda: self.autoresume( testfunc ), 1.0 )
             return
 
         if DEBUG:
@@ -871,6 +940,85 @@ class MovieOnDemandTransporter(MovieTransport):
             return None
         return data.tostring()
 
+    def reset_bitrate_prediction(self):
+        self.start_playback = None
+        self.last_playback = None
+        self.history_playback = collections.deque()
+
+    def addtime_bitrate_prediction(self,seconds):
+        if self.start_playback is not None:
+            self.start_playback["local_ts"] += seconds
+
+    def valid_piece_data(self,i,piece):
+        if not piece:
+            return False
+
+        if not self.start_playback or self.authenticator is None:
+            # no check possible
+            return True
+
+        s = self.start_playback
+
+        seqnum = self.authenticator.get_seqnum( piece )
+        source_ts = self.authenticator.get_rtstamp( piece )
+
+        if seqnum < s["absnr"] or source_ts < s["source_ts"]:
+            # old packet???
+            print >>sys.stderr,"vod: trans: **** INVALID PIECE #%s **** seqnum=%d but we started at seqnum=%d" % (i,seqnum,s["absnr"])
+            return False
+
+        return True
+
+        
+
+
+    def update_bitrate_prediction(self,i,piece):
+        """ Update the rate prediction given that piece i has just been pushed to the buffer. """
+
+        if self.authenticator is not None:
+            seqnum = self.authenticator.get_seqnum( piece )
+            source_ts = self.authenticator.get_rtstamp( piece )
+        else:
+            seqnum = i
+            source_ts = 0
+
+        d = {
+            "nr": i,
+            "absnr": seqnum,
+            "local_ts": time.time(),
+            "source_ts": source_ts,
+        }
+
+        # record 
+        if self.start_playback is None:
+            self.start_playback = d
+
+        if self.last_playback and self.last_playback["absnr"] > d["absnr"]:
+            # called out of order
+            return
+
+        self.last_playback = d
+
+        # keep a recent history
+        MAX_HIST_LEN = 10*60 # seconds
+
+        self.history_playback.append( d )
+
+        # of at most 10 entries (or minutes if we keep receiving pieces)
+        while source_ts - self.history_playback[0]["source_ts"] > MAX_HIST_LEN:
+            self.history_playback.popleft()
+
+        if DEBUG:
+            vs = self.videostatus
+            first, last = self.history_playback[0], self.history_playback[-1]
+            
+            if first["source_ts"] and first != last:
+                bitrate = "%.2f kbps" % (8.0 / 1024 * (vs.piecelen - vs.sigsize) * (last["absnr"] - first["absnr"]) / (last["source_ts"] - first["source_ts"]),)
+            else:
+                bitrate = "%.2f kbps (external info)" % (8.0 / 1024 * vs.bitrate)
+
+            print >>sys.stderr,"vod: trans: %i: pushed at t=%.2f, age is t=%.2f, bitrate = %s" % (i,d["local_ts"]-self.start_playback["local_ts"],d["source_ts"]-self.start_playback["source_ts"],bitrate)
+
     def piece_due(self,i):
         """ Return the time when we expect to have to send a certain piece to the player. For
         wraparound, future pieces are assumed. """
@@ -878,26 +1026,48 @@ class MovieOnDemandTransporter(MovieTransport):
         if self.start_playback is None:
             return float(2 ** 31) # end of time
 
-        vs = self.videostatus 
+        s = self.start_playback
+        l = self.last_playback
+        vs = self.videostatus
 
-        now = time.time() - self.start_playback
-
-        # relative to starting position
-        if vs.wraparound and i < self.start_playback_piece:
-            i = (vs.last_piece - self.start_playback_piece + 1) + (i - vs.first_piece)
-        else:
-            i = i - self.start_playback_piece
-
-        if i == 0:
-            # now
+        if not vs.wraparound and i < l["nr"]:
+            # should already have arrived!
             return time.time()
 
-        if self.start_playback_piece == vs.first_piece:
+        # assume at most one wrap-around between l and i
+        piecedist = (i - l["nr"]) % vs.movie_numpieces
+
+        if s["source_ts"]:
+            # ----- we have timing information from the source
+            first, last = self.history_playback[0], self.history_playback[-1]
+
+            if first != last:
+                # we have at least two recent pieces, so can calculate average bitrate. use the recent history
+                # do *not* adjust for sigsize since we don't want the actual video speed but the piece rate
+                bitrate = 1.0 * vs.piecelen * (last["absnr"] - first["absnr"]) / (last["source_ts"] - first["source_ts"])
+            else:
+                # fall-back to bitrate predicted from torrent / ffmpeg
+                bitrate = vs.bitrate
+           
+            # extrapolate with the average bitrate so far
+            return s["local_ts"] + l["source_ts"] - s["source_ts"] + piecedist * vs.piecelen / bitrate - self.PIECE_DUE_SKEW
+
+        # ----- no timing information from pieces, so do old-fashioned methods
+
+        i =  piecedist + (l["absnr"] - s["absnr"])
+
+        if s["nr"] == vs.first_piece:
             bytepos = vs.first_piecelen + (i-1) * vs.piecelen
         else:
             bytepos = i * vs.piecelen
 
-        return self.start_playback + bytepos / vs.bitrate - self.PIECE_DUE_SKEW
+        return s["local_ts"] + bytepos / vs.bitrate - self.PIECE_DUE_SKEW
+
+    def max_buffer_size( self ):
+        vs = self.videostatus
+
+        # Arno: 1/2 MB or based on bitrate if that is above 5 Mbps
+        return max( 0*512*1024, self.BUFFER_TIME * vs.bitrate )
 
     def refill_buffer( self ):
         """ Push pieces into the player FIFO when needed and able. This counts as playing
@@ -907,78 +1077,149 @@ class MovieOnDemandTransporter(MovieTransport):
 
         vs = self.videostatus
 
-        if vs.prebuffering or not vs.playing or vs.paused:
+        if vs.prebuffering or not vs.playing:
             self.data_ready.release()
             return
 
-        mx = max( 2, self.BUFFER_TIME * vs.bitrate ) # max bytes in outbut buffer
-        outbuflen = sum( [len(d) for (p,d) in self.outbuf] )
+        #if self.last_pop is not None and time.time() - self.last_pop > self.MAX_POP_TIME:
+        #    # last pop too long ago, restart
+        #    self.data_ready.release()
+        #    self.stop()
+        #    self.start(force=True)
+        #    return
+
+        if vs.paused:
+            self.data_ready.release()
+            return
+
+        mx = self.max_buffer_size()
+        self.outbuflen = sum( [len(d) for (p,d) in self.outbuf] )
+        now = time.time()
+
+        def buffer_underrun():
+            return self.outbuflen == 0 and self.start_playback and now - self.start_playback["local_ts"] > 1.0
+
+        if buffer_underrun():
+            if vs.dropping: # live
+                def sustainable():
+                    # buffer underrun -- check for available pieces
+                    num_future_pieces = 0
+                    for piece in vs.generate_range( vs.download_range() ):
+                        if self.has[piece]:
+                            num_future_pieces += 1
+
+                    goal = mx / 2
+                    # progress
+                    self.prebufprogress = min(1.0,float(num_future_pieces * vs.piecelen) / float(goal))
+                    
+                    # enough future data to fill the buffer
+                    return num_future_pieces * vs.piecelen >= goal
+            else: # vod
+                def sustainable():
+                    num_immediate_packets = 0
+                    for piece in vs.generate_range( vs.download_range() ):
+                        if self.has[piece]:
+                            num_immediate_packets += 1
+                        else:
+                            break
+                    else:
+                        # progress
+                        self.prebufprogress = 1.0
+                        # completed loop without breaking, so we have everything we need
+                        return True
+                    
+                    # progress
+                    self.prebufprogress = min(1.0,float(num_immediate_packets) / float(self.max_prebuf_packets))
+
+                    return num_immediate_packets >= self.max_prebuf_packets
+
+            if vs.pausable and not sustainable():
+                if DEBUG:
+                    print >>sys.stderr,"vod: trans:                        BUFFER UNDERRUN -- PAUSING"
+                self.pause( autoresume = True )
+                self.autoresume( sustainable )
+
+                self.data_ready.release()
+                return
+            else:
+                if DEBUG:
+                    print >>sys.stderr,"vod: trans:                        BUFFER UNDERRUN -- IGNORING"
+
+        def push( i, data ):
+            # force buffer underrun:
+            #if self.start_playback and time.time()-self.start_playback["local_ts"] > 60:
+            #    # hack: dont push after 1 minute
+            #    return
+
+            # push packet into queue
+            if DEBUG:
+                print >>sys.stderr,"vod: trans: %d: pushed l=%d" % (vs.playback_pos,piece)
+
+            # update predictions based on this piece
+            self.update_bitrate_prediction( i, data )
+
+            self.stat_playedpieces += 1
+            self.stat_pieces.set( i, "tobuffer", time.time() )
+                    
+            self.outbuf.append( (vs.playback_pos,data) )
+            self.outbuflen += len(data)
+
+            self.data_ready.notify()
+            self.inc_pos()
+
+        def drop( i ):
+            # drop packet
+            if DEBUG:
+                print >>sys.stderr,"vod: trans: %d: dropped pos=%d; deadline expired %.2f sec ago !!!!!!!!!!!!!!!!!!!!!!" % (piece,vs.playback_pos,time.time()-self.piece_due(i))
+
+            self.stat_droppedpieces += 1
+            self.stat_pieces.complete( i )
+            self.inc_pos()
 
         for piece in vs.generate_range( vs.download_range() ): 
             ihavepiece = self.has[piece]
-            if ihavepiece:
-                #if DEBUG:
-                #    print >>sys.stderr,"vod: trans: Got bytes in output buf",outbuflen,"max is",mx
-                if outbuflen < mx:
-                    # piece found -- add it to the queue
-                    if DEBUG:
-                        print >>sys.stderr,"vod: trans: %d: pushed l=%d" % (vs.playback_pos,piece)
-                    data = self.get_piece( piece )
-                    if data is None:
-                        # I should have the piece, but I don't: WAAAAHH!
-                        break
+            forcedrop = False
 
-                    stalltime = time.time() - self.piece_due( piece )
-                    if stalltime > 0:
-                        # assumes piece_due is correct, and this piece will actually stall
-                        self.stat_stalltime += stalltime
-                    self.stat_playedpieces += 1
-                    self.stat_pieces.set( piece, "tobuffer", time.time() )
-                    
-                    self.outbuf.append( (vs.playback_pos,data) )
-                    outbuflen += len(data)
-
-                    self.data_ready.notify()
-                    self.inc_pos()
-                else:
-                    # We have the piece, but cannot write it to buffer
-                    #if DEBUG:
-                    #    print >>sys.stderr,"vod: trans: buffer full: [%d: queued l=%d]" % (vs.playback_pos,piece)
-                    pass
-            elif vs.dropping:
-                if time.time() < self.piece_due( piece ):
-                    # wait for packet
-                    if DEBUG:
-                        print >>sys.stderr,"vod: trans: %d: due in %.2fs  pos=%d" % (piece,self.piece_due(piece)-time.time(),vs.playback_pos)
-                    break
-                else:
-                    # drop packet
-                    if DEBUG:
-                        print >>sys.stderr,"vod: trans: %d: dropped pos=%d; deadline expired %.2f sec ago" % (piece,vs.playback_pos,time.time()-self.piece_due(piece))
-                    self.stat_droppedpieces += 1
-                    self.stat_pieces.complete( piece )
-                    self.inc_pos()
-            else:
-                # wait for packet
-                duet = self.piece_due(piece)-time.time()
-                #if DEBUG:
-                #    print >>sys.stderr,"vod: trans: %d: due2 in %.2fs  pos=%d" % (piece,duet,vs.playback_pos)
-                if duet <= 0.1:
-                    if not vs.prebuffering:
-                        if vs.pausable and not vs.paused and not self.piecepicker.pos_is_sustainable():
-                            # we can't drop but can't continue at this rate, so pause video
-                            if DEBUG:
-                                print >>sys.stderr,"vod: trans: %d: Pausing, since we cannot maintain this playback position"  % (piece)
-                            self.pause( autoresume = True )
-                            self.autoresume( self.piecepicker.pos_is_sustainable )
-                        else:
-                            if DEBUG:
-                                print >>sys.stderr,"vod: trans: %d: Going back to prebuffering, stream is about to stall" % (piece)
-                            vs.prebuffering = True
-                            self.start_playback = None
-                            # TODO: could change length of prebuf here
-                            #self.max_prebuf_packets = ... 
+            # check whether we have room to store it
+            if self.outbuflen > mx:
+                # buffer full
                 break
+
+            # final check for piece validity
+            if ihavepiece:
+                data = self.get_piece( piece )
+                if not self.valid_piece_data( piece, data ):
+                    # I should have the piece, but I don't: WAAAAHH!
+                    forcedrop = True
+                    ihavepiece = False
+
+            if ihavepiece:
+                # have piece - push it into buffer
+                if DEBUG:
+                    print >>sys.stderr,"vod: trans:                        BUFFER STATUS (max %.0f): %.0f kbyte" % (mx/1024.0,self.outbuflen/1024.0)
+
+                # piece found -- add it to the queue
+                push( piece, data )
+            else:
+                # don't have piece, or forced to drop
+                if not vs.dropping and forcedrop:
+                    print >>sys.stderr,"vod: trans: DROPPING INVALID PIECE #%s, even though we shouldn't drop anything." % piece
+                if vs.dropping or forcedrop:
+                    if time.time() >= self.piece_due( piece ) or buffer_underrun():
+                        # piece is too late or we have an empty buffer (and future data to play, otherwise we would have paused) -- drop packet
+                        drop( piece )
+                    else:
+                        # we have time to wait for the piece and still have data in our buffer -- wait for packet
+                        if DEBUG:
+                            print >>sys.stderr,"vod: trans: %d: due in %.2fs  pos=%d" % (piece,self.piece_due(piece)-time.time(),vs.playback_pos)
+                    break
+                else: # not dropping
+                    if self.outbuflen == 0:
+                        print >>sys.stderr,"vod: trans: SHOULD NOT HAPPEN: missing piece but not dropping. should have paused. pausable=",vs.pausable
+                    else:
+                        if DEBUG:
+                            print >>sys.stderr,"vod: trans: prebuffering done, but could not fill buffer."
+                    break
 
         self.data_ready.release()
 
@@ -1007,13 +1248,11 @@ class MovieOnDemandTransporter(MovieTransport):
             piece = self.outbuf.pop( 0 ) # nr,data pair
             self.playbackrate.update_rate( len(piece[1]) )
 
+        self.last_pop = time.time()
+
         self.data_ready.release()
 
         if piece:
-            if self.start_playback is None:
-                self.start_playback = time.time()
-                self.start_playback_piece = piece[0]
-
             self.stat_pieces.set( piece[0], "toplayer", time.time() )
             self.stat_pieces.complete( piece[0] )
 
@@ -1049,12 +1288,13 @@ class MovieOnDemandTransporter(MovieTransport):
             filename = None 
             
         # Call user callback
-        self.vodeventfunc( self.videoinfo, "start", {
+        print >>sys.stderr,"vod: trans: notify_playable: calling:",self.vodeventfunc
+        self.vodeventfunc( self.videoinfo, VODEVENT_START, {
             "complete":  complete,
             "filename":  filename,
             "mimetype":  mimetype,
             "stream":    endstream,
-            "size":      self.size(),
+            "length":      self.size(),
         } )
 
     def get_stats(self):

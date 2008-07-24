@@ -7,29 +7,23 @@
 #
 # Use lower versions at your own risk.
 
+APPNAME=SwarmPlayer
 PYTHON_VER=
 PWD:=${shell pwd}
 ARCH:=${shell arch}
 
-all:	clean dirs SwarmPlayer-${ARCH}.dmg
-
-clean:
-	rm -rf build/imagecontents/ SwarmPlayer.dmg
-
 PYTHON=python${PYTHON_VER}
 
-distclean:
-	rm -rf build/ SwarmPlayer.dmg
-	make dirs
+all:	clean SwarmPlayer-${ARCH}.dmg
 
-dirs:
-	mkdir -p build/temp build/lib
+clean:
+	rm -rf build/imagecontents/ ${APPNAME}-${ARCH}.dmg
 
-.PHONY: 		all clean distclean dirs
+.PHONY: 		all clean dirs
 
 # ----- SwarmPlayer 
 
-APPRES=build/imagecontents/SwarmPlayer.app/Contents/Resources
+APPRES=build/imagecontents/${APPNAME}.app/Contents/Resources
 
 SRCDIR=../../../..
 
@@ -37,7 +31,7 @@ build/imagecontents/:
 	rm -rf $@
 	mkdir -p $@
 
-	cd ${SRCDIR} && DYLD_LIBRARY_PATH=macbinaries PYTHONPATH=macbinaries ${PYTHON} -OO - < Tribler/Player/Build/Mac/setuptriblermac.py py2app
+	cd ${SRCDIR} && DYLD_LIBRARY_PATH=macbinaries PYTHONPATH=macbinaries ${PYTHON} -OO - < ${PWD}/setuptriblermac.py py2app
 	mv ${SRCDIR}/dist/* $@
 
 	# Thin everything for this architecture. Some things ship Universal (Python, wxPython, ...) and
@@ -61,11 +55,12 @@ build/imagecontents/:
 
 	touch $@
 
-SwarmPlayer-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
+${APPNAME}-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
 	rm -f $@
+	mkdir -p build/temp
 
 	# create image
-	hdiutil create -srcfolder $< -format UDRW -scrub -volname SwarmPlayer $@
+	hdiutil create -srcfolder $< -format UDRW -scrub -volname ${APPNAME} $@
 
 	# open it
 	hdiutil attach -readwrite -noverify -noautoopen $@ -mountpoint build/temp/mnt
@@ -78,7 +73,7 @@ SwarmPlayer-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
 	# position items
 	# oddly enough, 'set f .. as alias' can fail, but a reboot fixes that
 	osascript -e "tell application \"Finder\"" \
-	-e "   set f to POSIX file (\""${PWD}"/build/temp/mnt\" as string) as alias" \
+	-e "   set f to POSIX file (\"${PWD}/build/temp/mnt\" as string) as alias" \
 	-e "   tell folder f" \
 	-e "       open" \
 	-e "       tell container window" \
@@ -92,7 +87,7 @@ SwarmPlayer-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
 	-e "       set icon size of the icon view options of container window to 128" \
 	-e "       set arrangement of the icon view options of container window to not arranged" \
 	-e "       set background picture of the icon view options of container window to file \".background:background.png\"" \
-	-e "       set position of item \"SwarmPlayer.app\" to {150, 140}" \
+	-e "       set position of item \"${APPNAME}.app\" to {150, 140}" \
 	-e "       set position of item \"Applications\" to {410, 140}" \
 	-e "       set the bounds of the container window to {50, 100, 600, 400}" \
 	-e "       update without registering applications" \

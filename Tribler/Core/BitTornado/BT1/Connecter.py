@@ -8,6 +8,8 @@ from types import DictType,IntType,LongType,ListType,StringType
 from random import shuffle
 from traceback import print_exc,print_stack
 from math import ceil
+import socket
+import urlparse
 
 from Tribler.Core.BitTornado.bitfield import Bitfield
 from Tribler.Core.BitTornado.clock import clock
@@ -32,6 +34,7 @@ except:
     True = 1
     False = 0
 
+KICK_OLD_CLIENTS=False
 DEBUG = False
 DEBUG_NORMAL_MSGS = False
 DEBUG_UT_PEX = False
@@ -76,6 +79,12 @@ EXTEND_MSG_HANDSHAKE_ID = chr(0)
 EXTEND_MSG_OVERLAYSWARM = 'Tr_OVERLAYSWARM'
 EXTEND_MSG_G2G_V1       = 'Tr_G2G'
 EXTEND_MSG_G2G_V2       = 'Tr_G2G_v2'
+
+CURRENT_LIVE_VERSION=1
+EXTEND_MSG_LIVE_PREFIX  = 'Tr_LIVE_v'
+LIVE_FAKE_MESSAGE_ID    = chr(254)
+
+
 
 G2G_CALLBACK_INTERVAL = 4
 
@@ -144,8 +153,13 @@ class Connection:
     def close(self):
         if DEBUG:
             print 'connection closed'
+
+        if self.get_ip() == self.connecter.tracker_ip:
+            print >>sys.stderr,"connecter: close: live: WAAH closing SOURCE"
+
         self.connection.close()
         self.closed = True
+
         
     def is_closed(self):
         return self.closed
@@ -304,7 +318,7 @@ class Connection:
                 self.extend_hs_dict['m'] = {}
             # Note: we store the dict without converting the msg IDs to bytes.
             self.extend_hs_dict['m'].update(d['m'])
-            if EXTEND_MSG_OVERLAYSWARM in self.extend_hs_dict['m']:
+            if self.connecter.overlay_enabled and EXTEND_MSG_OVERLAYSWARM in self.extend_hs_dict['m']:
                 # This peer understands our overlay swarm extension
                 if self.connection.locally_initiated:
                     if DEBUG:
@@ -321,6 +335,26 @@ class Connection:
                     self.g2g_version = EXTEND_MSG_G2G_V2
                 else:
                     self.g2g_version = EXTEND_MSG_G2G_V1
+            
+            # LIVEHACK
+            if KICK_OLD_CLIENTS:
+                peerhaslivekey = False
+                for key in self.extend_hs_dict['m']:
+                    if key.startswith(EXTEND_MSG_LIVE_PREFIX):
+                        peerhaslivekey = True
+                        livever = int(key[len(EXTEND_MSG_LIVE_PREFIX):])
+                        if livever < CURRENT_LIVE_VERSION:
+                            raise ValueError("Too old LIVE VERSION "+livever)
+                        else:
+                            print >>sys.stderr,"Connecter: live: Keeping connection to up-to-date peer v",livever,self.get_ip()
+                        
+                if not peerhaslivekey:
+                    if self.get_ip() == self.connecter.tracker_ip:
+                        # Keep connection to tracker / source
+                        print >>sys.stderr,"Connecter: live: Keeping connection to SOURCE",self.connecter.tracker_ip 
+                        pass
+                    else:
+                        raise ValueError("Kicking old LIVE peer "+self.get_ip())
 
         # 'p' is peer's listen port, 'v' is peer's version, all optional
         # 'e' is used by uTorrent to show it prefers encryption (whatever that means)
@@ -503,7 +537,7 @@ class Connecter:
 # 2fastbt_
     def __init__(self, make_upload, downloader, choker, numpieces, piece_size,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
-            coordinator = None, helper = None, mylistenport = None, use_g2g = False, infohash=None):
+            coordinator = None, helper = None, mylistenport = None, use_g2g = False, infohash=None, tracker=None):
         self.downloader = downloader
         self.make_upload = make_upload
         self.choker = choker
@@ -525,6 +559,17 @@ class Connecter:
         self.round = 0
         self.mylistenport = mylistenport
         self.infohash = infohash
+        self.tracker = tracker
+        try:
+            (scheme, netloc, path, pars, query, fragment) = urlparse.urlparse(self.tracker)
+            host = netloc.split(':')[0] 
+            self.tracker_ip = socket.getaddrinfo(host,None)[0][4][0]
+        except:
+            print_exc()
+            self.tracker_ip = None
+            
+        print >>sys.stderr,"Connecter: live: source/tracker is",self.tracker_ip
+        
         self.overlay_enabled = 0
         if self.config['overlay']:
             self.overlay_enabled = True
@@ -572,6 +617,13 @@ class Connecter:
             self.EXTEND_HANDSHAKE_M_DICT.update(d)
             self.sched(self.g2g_callback,G2G_CALLBACK_INTERVAL)
             
+        # LIVEHACK
+        livekey = EXTEND_MSG_LIVE_PREFIX+str(CURRENT_LIVE_VERSION)
+        d = {livekey:ord(LIVE_FAKE_MESSAGE_ID)}
+        self.EXTEND_HANDSHAKE_M_DICT.update(d)
+
+        print >>sys.stderr,"Connecter: EXTEND: my dict",self.EXTEND_HANDSHAKE_M_DICT
+
         # BarterCast
         if config['overlay']:
             self.overlay_bridge = OverlayThreadingBridge.getInstance()
@@ -583,6 +635,9 @@ class Connecter:
 
     def connection_made(self, connection):
         c = Connection(connection, self)
+        
+        print >>sys.stderr,"Connecter: live: setting",connection.get_ip(),c.get_ip()
+        
         self.connections[connection] = c
 
         if connection.supports_extend_messages():
@@ -632,6 +687,12 @@ class Connecter:
             
         #########################
 
+
+        print >>sys.stderr,"Connecter: live: del1: deleting",connection.get_ip(),c.get_ip()
+        if c.get_ip() == self.tracker_ip:
+            print >>sys.stderr,"connecter: connection_lost: live: WAAH2 closing SOURCE"
+            print_stack()
+            
         del self.connections[connection]
         if c.download:
             c.download.disconnected()
@@ -969,12 +1030,12 @@ class Connecter:
                     c.got_g2g_piece_xfer_v2(ppdict)
                 else:
                     if DEBUG:
-                        print >>sys.stderr,"Close on bad EXTEND: peer sent ID that maps to name we don't support"
+                        print >>sys.stderr,"Close on bad EXTEND: peer sent ID that maps to name we don't support",ext_msg_name,`ext_id`,ord(ext_id)
                     connection.close()
                     return
             return
         except Exception,e:
-            if DEBUG:
+            if not DEBUG:
                 print >>sys.stderr,"Close on bad EXTEND: exception",str(e)
                 traceback.print_exc()
             connection.close()

@@ -34,7 +34,7 @@ from clock import clock
 import re
 from __init__ import createPeerID
 
-from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
+from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT, VODEVENT_START
 from Tribler.Core.Merkle.merkle import create_fake_hashes
 from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 from Tribler.Core.Video.PiecePickerStreaming import PiecePickerVOD
@@ -104,7 +104,7 @@ class BT1Download:
         
         self.play_video = (config['mode'] == DLMODE_VOD)
         self.am_video_source = bool(config['video_source'])
-        self.use_g2g = self.play_video or self.am_video_source
+        self.use_g2g = (self.play_video or self.am_video_source) and ('live' in response['info'])
         self.videoinfo = None
         self.videoanalyserpath = videoanalyserpath
         self.voddownload = None
@@ -433,7 +433,7 @@ class BT1Download:
         self.connecter = Connecter(self._make_upload, self.downloader, self.choker, 
                             self.len_pieces, self.piecesize, self.upmeasure, self.config, 
                             self.ratelimiter, self.info.has_key('root hash'),
-                            self.rawserver.add_task, self.coordinator, self.helper, self.port, self.use_g2g,self.infohash)
+                            self.rawserver.add_task, self.coordinator, self.helper, self.port, self.use_g2g,self.infohash,self.response.get('announce',None))
 # _2fastbt
         self.encoder = Encoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 
@@ -475,12 +475,12 @@ class BT1Download:
             if self.picker.am_I_complete():
                 if DEBUG:
                     print >>sys.stderr,"BT1Download: startEngine: VOD requested, but file complete on disk",self.videoinfo
-                vodeventfunc( self.videoinfo, "start", {
+                vodeventfunc( self.videoinfo, VODEVENT_START, {
                     "complete":  True,
                     "filename":  self.videoinfo["outpath"],
                     "mimetype":  None,
                     "stream":    None,
-                    "size":      self.videostatus.selected_movie["size"],
+                    "length":      self.videostatus.selected_movie["size"],
                 } )
             else:
                 if DEBUG:
