@@ -18,15 +18,15 @@ class TimedTaskQueue:
     
     __single = None
     
-    def __init__(self,nameprefix="TimedTaskQueue"):
+    def __init__(self,nameprefix="TimedTaskQueue",isDaemon=True):
         self.cond = Condition()
         self.queue = []
         self.thread = Thread(target = self.run)
-        self.thread.setDaemon(True)
+        self.thread.setDaemon(isDaemon)
         self.thread.setName( nameprefix+self.thread.getName() )
         self.thread.start()
         
-    def add_task(self,task,t,id=None):
+    def add_task(self,task,t=0,id=None):
         """ t parameter is now usable, unlike before. 
             If id is given, all the existing tasks with the same id will be removed
             before inserting this task 
@@ -83,7 +83,18 @@ class TimedTaskQueue:
             
             # Execute task outside lock
             try:
-                task()        
+                # 'stop' and 'quit' are only used for unit test
+                if task == 'stop':  
+                    break
+                elif task == 'quit':
+                    if len(self.queue) == 0:
+                        break
+                    else:
+                        (when,task,id) = self.queue[-1]
+                        t = when-time()+0.001
+                        self.add_task('quit',t)
+                else:
+                    task()        
             except:
                 print_exc()
         

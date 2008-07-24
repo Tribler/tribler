@@ -1,3 +1,6 @@
+# Written by Arno Bakker
+# see LICENSE.txt for license information
+
 import sys
 
 def bin2unicode(bin,possible_encoding='utf_8'):

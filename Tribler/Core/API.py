@@ -4,7 +4,7 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.0rc3, Jun 12 2008. Import this to use the API """
+""" Tribler Core API v1.0.0rc4, Jun 19 2008. Import this to use the API """
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Base import *

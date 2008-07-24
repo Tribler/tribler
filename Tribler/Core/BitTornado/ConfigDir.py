@@ -1,4 +1,5 @@
-#written by John Hoffman
+# Written by John Hoffman
+# see LICENSE.txt for license information
 
 from inifile import ini_write, ini_read
 from bencode import bencode, bdecode

@@ -9,7 +9,7 @@ from traceback import print_exc,print_stack
 # live streaming means wrapping around
 LIVE_WRAPAROUND = True
 
-DEBUG = True
+DEBUG = False
 
 class VideoStatus:
     """ Info about the selected video and status of the playback. """

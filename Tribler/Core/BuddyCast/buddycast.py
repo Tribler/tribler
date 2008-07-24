@@ -155,7 +155,7 @@ Random Peers
 """
 
 import sys
-from random import sample, randint
+from random import sample, randint, shuffle
 from time import time, gmtime, strftime
 from traceback import print_exc, print_stack
 from sets import Set
@@ -239,11 +239,10 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
 class BuddyCastFactory:
     __single = None
     
-    def __init__(self, db_dir='', superpeer=False, log=''):
+    def __init__(self, superpeer=False, log=''):
         if BuddyCastFactory.__single:
             raise RuntimeError, "BuddyCastFactory is singleton"
         BuddyCastFactory.__single = self 
-        self.db_dir = db_dir
         self.registered = False
         self.buddycast_core = None
         self.buddycast_interval = 15    # MOST IMPORTANT PARAMETER
@@ -253,7 +252,7 @@ class BuddyCastFactory:
         self.running = False
         self.data_handler = None
         self.started = False    # did call do_buddycast() at least once 
-        self.max_peers = 2500
+        self.max_peers = 2500   # was 2500
         self.data_ready_evt = Event()
         if self.superpeer:
             print "Start as SuperPeer mode"
@@ -290,8 +289,10 @@ class BuddyCastFactory:
             self.overlay_bridge.add_task(self.olthread_register, 0)
 
     def olthread_register(self):
-        print >> sys.stderr, "bc: OlThread Register", currentThread().getName()
-        self.data_handler = DataHandler(self.launchmany, self.overlay_bridge, db_dir=self.db_dir, max_num_peers=self.max_peers) 
+    	if debug:
+	        print >> sys.stderr, "bc: OlThread Register", currentThread().getName()
+	        
+        self.data_handler = DataHandler(self.launchmany, self.overlay_bridge, max_num_peers=self.max_peers) 
         
         # ARNOCOMMENT: get rid of this dnsindb / get_dns_from_peerdb abuse off SecureOverlay
         self.bartercast_core = BarterCastCore(self.data_handler, self.overlay_bridge, self.log, self.launchmany.secure_overlay.get_dns_from_peerdb)
@@ -312,7 +313,6 @@ class BuddyCastFactory:
             self.overlay_bridge.add_task(self.data_handler.postInit, 2)    # avoid flash crowd
             self.overlay_bridge.add_task(self.doBuddyCast, 6)
             self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers, 10)
-            #self.overlay_bridge.add_task(self.data_handler.updateAllSim, 5*60)
             
             print >> sys.stderr, "BuddyCast starts up", currentThread().getName()
         else:
@@ -1717,8 +1717,6 @@ class BuddyCastCore:
             if len(self.remote_search_peer_candidates) > self.num_search_cand:
                 self.remote_search_peer_candidates.pop(0)
                 
-            #print "******"*5, "got a remote search peer in cache", `permid`, oversion, ntorrents, last_seen, len(self.remote_search_peer_candidates)
-                
     def getRemoteSearchPeers(self, npeers):
         if len(self.remote_search_peer_candidates) > npeers:
             _peers = sample(self.remote_search_peer_candidates, npeers)    # randomly select
@@ -1729,7 +1727,7 @@ class BuddyCastCore:
         
         
 class DataHandler:
-    def __init__(self, launchmany, overlay_bridge, db_dir='', max_num_peers=2500):
+    def __init__(self, launchmany, overlay_bridge, max_num_peers=2500):
         self.launchmany = launchmany
         self.overlay_bridge = overlay_bridge
         self.config = self.launchmany.session.sessconfig # should be safe at startup
@@ -1762,7 +1760,7 @@ class DataHandler:
         self.all_peer_list = None
         self.num_peers_ui = None
         self.num_torrents_ui = None
-        
+        self.cached_updates = {'peer':{},'torrent':{}}
             
     def __del__(self):
         #self.close()
@@ -1804,15 +1802,11 @@ class DataHandler:
     def updatePort(self, port):
         self.my_db.put('port', port)
   
-    def postInit(self):
+    def postInit(self, delay=4, batch=50, update_interval=10):
         # build up a cache layer between app and db
-        #self.updateAllCooccurrence()
-        now = time()
         self.updateMyPreferences()
         self.loadAllPeers(self.max_num_peers)
-        #self.loadAllPrefs(self.max_num_peers)
-        self.updateAllSim()
-        #self.updateAllI2ISim()
+        self.updateAllSim(delay, batch, update_interval)
 
     def updateMyPreferences(self, num_pref=None):
         # get most recent preferences, and sort by torrent id
@@ -1847,15 +1841,59 @@ class DataHandler:
 #        for pid in self.peers:
 #            self.peers[pid][PEER_PREF_POS].sort()    # keep in order
 
-    def updateAllSim(self):
-        #start = time()
-        self._updateAllPeerSim()    # 0.503/2.352 second (calculate, commit)
-        #end = time()
-        #print >> sys.stderr, "****** _updateAllPeerSim", end-start
-        self._updateAllItemRel()    # 0.235/5.421 second (calculate, commit)
-        #print >> sys.stderr, "****** _updateAllItemRel", time()-end
+    def updateAllSim(self, delay=4, batch=50, update_interval=10):
+        self._updateAllPeerSim(delay, batch, update_interval)    # 0.156 second
+        self._updateAllItemRel(delay, batch, update_interval)    # 0.875 second
+        # Tuning batch (without index relevance)
         
-    def _updateAllPeerSim(self):
+        # batch = 25:                             0.00 0.22 0.58
+        # batch = 50: min/avg/max execution time: 0.09 0.29 0.63 second 
+        # batch = 100:                            0.16 0.47 0.95
+        # update_interval=10
+        # 50000 updates take: 50000 / 50 * (10+0.3) / 3600 = 3 hours
+        # cpu load: 0.3/10 = 3%
+        
+        # With index relevance:
+        # batch = 50: min/avg/max execution time: 0.08 0.62 1.39 second
+        # batch = 25:                             0.00 0.41 1.67
+        # update_interval=5, batch=25
+        # 50000 updates take: 50000 / 25 * (5+0.4) / 3600 = 3 hours
+        # cpu load: 0.4/5 = 8%
+        
+    def cacheSimUpdates(self, update_table, updates, delay, batch, update_interval):
+        self.cached_updates[update_table].update(updates)
+        self.overlay_bridge.add_task(lambda:self.checkSimUpdates(batch, update_interval), delay, 'checkSimUpdates')
+        
+    def checkSimUpdates(self, batch, update_interval):
+        last_update = 0
+        if self.cached_updates['peer']:
+            updates = []
+            update_peers = self.cached_updates['peer']
+            keys = update_peers.keys()
+            shuffle(keys)   # to avoid always update the same items when cacheSimUpdates is called frequently
+            for key in keys[:batch]:
+                updates.append((update_peers.pop(key), key))
+            self.overlay_bridge.add_task(lambda:self.peer_db.updatePeerSims(updates), last_update + update_interval, 'updatePeerSims')
+            last_update += update_interval 
+            
+        if self.cached_updates['torrent']:
+            i = 0
+            updates = []
+            update_peers = self.cached_updates['torrent'] 
+            keys = update_peers.keys()
+            shuffle(keys)   
+            for key in keys:
+                updates.append((update_peers.pop(key), key))
+                i += 1
+                if i == batch:
+                    break
+            self.overlay_bridge.add_task(lambda:self.torrent_db.updateTorrentRelevances(updates), last_update + update_interval, 'updateTorrentRelevances')
+            last_update += update_interval
+            
+        if self.cached_updates['peer'] or self.cached_updates['torrent']:
+            self.overlay_bridge.add_task(lambda:self.checkSimUpdates(batch, update_interval), last_update+0.001, 'checkSimUpdates')
+        
+    def _updateAllPeerSim(self, delay, batch, update_interval):
         # update similarity to all peers to keep consistent
 
         if self.old_peer_num == len(self.peers):    # if no new peers, don't update
@@ -1865,7 +1903,7 @@ class DataHandler:
         for peer_id in self.peers:
             self.nprefs += len(self.peers[peer_id][PEER_PREF_POS])
             
-        updates = []
+        updates = {}
         for peer_id in self.peers:
             oldsim = self.peers[peer_id][PEER_SIM_POS]
             if not self.peers[peer_id][PEER_PREF_POS]:
@@ -1873,14 +1911,13 @@ class DataHandler:
             self.updateSimilarity(peer_id, False)
             sim = self.peers[peer_id][PEER_SIM_POS]
             if abs(sim - oldsim) > oldsim*0.05:
-                updates.append((sim,peer_id))
+                updates[peer_id] = sim
 
         #print >> sys.stderr, '****************** update peer sim', len(updates), len(self.peers)        
         if updates:
-            self.old_peer_num = len(self.peers)
-            self.overlay_bridge.add_task(lambda:self.peer_db.updatePeerSims(updates), 5)
-        
-    def _updateAllItemRel(self):
+            self.cacheSimUpdates('peer', updates, delay, batch, update_interval)
+                        
+    def _updateAllItemRel(self, delay, batch, update_interval):
         # update all item's relevance
         # Relevance of I = Sum(Sim(Users who have I)) + Poplarity(I)
         # warning: this function may take 5 seconds to commit to the database
@@ -1900,19 +1937,22 @@ class DataHandler:
                         tids[tid][0] += sim
                         tids[tid][1] += 1
         
-        old_rels = dict(self.torrent_db.getTorrentRelevances(tids))
+        res = self.torrent_db.getTorrentRelevances(tids)
+        if res:
+            old_rels = dict(res)
+        else:
+            old_rels = {}
         #print >> sys.stderr, '********* update all item rel', len(old_rels), len(tids) #, old_rels[:10]
         
         for tid in tids.keys():
             tids[tid] = tids[tid][0]/tids[tid][1] + tids[tid][1]
             old_rel = old_rels.get(tid, None)
-            if old_rel != None and abs(old_rel - tids[tid]) < old_rel*0.05:
+            if old_rel != None and abs(old_rel - tids[tid]) <= old_rel*0.05:
                 tids.pop(tid)   # don't update db
             
-        #print >> sys.stderr, '**************--- update all item rel', len(tids) #, len(self.peers), nsimpeers, tids.items()[:10]  # 37307 2500
+        #print >> sys.stderr, '**************--- update all item rel', len(tids), len(old_rels) #, len(self.peers), nsimpeers, tids.items()[:10]  # 37307 2500
         if tids:
-            updates = zip(tids.values(),tids.keys())
-            self.overlay_bridge.add_task(lambda:self.torrent_db.updateTorrentRelevances(updates), 5)
+            self.cacheSimUpdates('torrent', tids, delay, batch, update_interval)
 
     def addMyPref(self, infohash):
         infohash_str=bin2str(infohash)
@@ -1981,16 +2021,10 @@ class DataHandler:
             for torrent_id in overlap:
                 self.owners[torrent_id].add(peer_id)
     
-    def getMyLivePreferences(self, num):
+    def getMyLivePreferences(self, num=0):
         """ Get a number of my preferences. Get all if num==0 """
         
         return self.mypref_db.getRecentLivePrefList(num)
-#        
-#        mypreflist = self.torrent_db.getLiveTorrents(self.mypreflist)
-#        if num > 0 and len(mypreflist) > num:
-#            return mypreflist[:num]
-#        else:
-#            return mypreflist
         
     def getPeerSim(self, peer_permid, read_db=False, raw=False):
         if read_db:
@@ -2027,7 +2061,7 @@ class DataHandler:
         else:
             return self.peers[peer_id][PEER_PREF_POS]
     
-    def addPeer(self, peer_permid, last_seen, peer_data=None):  
+    def addPeer(self, peer_permid, last_seen, peer_data=None, commit=True):  
         """ add a peer from buddycast message to both cache and db """
         
         if peer_permid != self.permid:
@@ -2045,7 +2079,7 @@ class DataHandler:
             peerprefs = self.pref_db.getPrefList(peer_permid)    # [torrent_id]
             self.peers[peer_id] = [last_seen, sim, array('l', peerprefs)]    # last_seen, similarity, pref
                     
-    def _addPeerToDB(self, peer_permid, last_seen, peer_data):
+    def _addPeerToDB(self, peer_permid, last_seen, peer_data, commit=True):
         
         new_peer_data = {}
         try:
@@ -2056,7 +2090,7 @@ class DataHandler:
             if peer_data.has_key('name'):
                 new_peer_data['name'] = dunno2unicode(peer_data['name'])    # store in db as unicode
 
-            self.peer_db.addPeer(peer_permid, new_peer_data, update_dns=True, commit=False)
+            self.peer_db.addPeer(peer_permid, new_peer_data, update_dns=True, commit=commit)
             
         except KeyError:
             print_exc()
@@ -2088,15 +2122,6 @@ class DataHandler:
             self.nprefs += len(prefs2add)
             peer_id = self.getPeerID(peer_permid)
             self.updateSimilarity(peer_id)
-            
-#    def checkUpdate(self):
-#        if self.total_pref_changed >= self.update_i2i_threshold:
-#            #self.updateAllI2ISim()
-#            pass
-#            
-#        npeers = len(self.peers)
-#        if npeers > self.max_num_peers*1.05:    # remove peers when exceeded 5%
-#            self.removePeers(npeers - self.max_num_peers)
             
     def updateSimilarity(self, peer_id, update_db=True):
         """ update a peer's similarity """

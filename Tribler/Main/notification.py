@@ -1,3 +1,6 @@
+# Written by Jan David Mol 
+# see LICENSE.txt for license information
+
 import os,sys
 from traceback import print_exc
 

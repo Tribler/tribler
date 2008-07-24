@@ -910,8 +910,8 @@ class Tracker:
             ( self.allowed, self.allowed_dir_files, self.allowed_dir_blocked,
                 added, garbage2 ) = r
             
-            print >>sys.stderr,"tracker: parse_allowed: Found new",`added`
-            
+            if DEBUG:
+                print >>sys.stderr,"tracker: parse_allowed: Found new",`added`
             
             self.state['allowed'] = self.allowed
             self.state['allowed_dir_files'] = self.allowed_dir_files

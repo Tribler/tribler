@@ -622,13 +622,13 @@ class Connecter:
             up_kb = int(c.total_uploaded / 1024)
             
             if DEBUG:
-                print >> sys.stderr, "BARTERCAST: attempting database update, adding olthread"
+                print >> sys.stderr, "bartercast: attempting database update, adding olthread"
             
             olthread_bartercast_conn_lost_lambda = lambda:olthread_bartercast_conn_lost(ip,port,down_kb,up_kb)
             self.overlay_bridge.add_task(olthread_bartercast_conn_lost_lambda,0)
         else:
             if DEBUG:
-                print >> sys.stderr, "BARTERCAST: no overlay bridge found"    
+                print >> sys.stderr, "bartercast: no overlay bridge found"
             
         #########################
 
@@ -994,7 +994,7 @@ def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
         my_permid = bartercastdb.my_permid
     
         if DEBUG:
-            print >> sys.stderr, "BARTERCAST (Connecter): Up %d down %d peer %s:%s (PermID = %s)" % (up_kb, down_kb, ip, port, permid)
+            print >> sys.stderr, "bartercast: (Connecter): Up %d down %d peer %s:%s (PermID = %s)" % (up_kb, down_kb, ip, port, `permid`)
     
         # Save exchanged KBs in BarterCastDB
         changed = False

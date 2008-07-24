@@ -4,18 +4,15 @@
 from socket import *
 import sys
 
-debug = True
+debug = False
 
 
 
 # Print debug information
 def dprint(info):
-
 	global debug
-
 	if debug:
 		print >> sys.stderr, 'NATFirewall: %s' % unicode(info)
-
 
 
 # The client sends a request to a server asking it to send the response back to the address and port the request came from
@@ -38,10 +35,12 @@ def Test1(udpsock, serveraddr):
 	except ValueError, (strerror):
 
 		dprint("Could not receive data: %s" % (strerror))
+		return retVal
 
 	except error, (errno, strerror):
 
 		dprint("Could not receive data: %s" % (strerror))
+		return retVal
 
 	publicIP, publicPort = reply.split(":")
 

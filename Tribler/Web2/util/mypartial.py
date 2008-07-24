@@ -1,3 +1,5 @@
+# Written by Fabian van der Werf
+# see LICENSE.txt for license information
 
 #taken from python library reference
 def mypartial(func, *args, **keywords):

@@ -4,7 +4,7 @@
 import re
 import sys
 
-DEBUG = True
+DEBUG = False
 
 class KeywordSearch:
     """

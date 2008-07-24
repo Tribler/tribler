@@ -253,6 +253,10 @@ class Coordinator:
             if DEBUG:
                 print >> sys.stderr,"dlhelp: PIECES_RESERVED: error sending to",show_permid_short(permid),exc
             pass
+        else:
+            if DEBUG:
+                print >> sys.stderr,"dlhelp: PIECES_RESERVED: Successfully sent to",show_permid_short(permid)
+            pass
 
 
     #

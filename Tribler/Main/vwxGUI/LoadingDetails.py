@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke 
+# see LICENSE.txt for license information
+
 import wx, os
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility

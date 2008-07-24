@@ -9,7 +9,7 @@ from time import time
 from traceback import print_exc
 from Tribler.Core.Session import Session
 
-PHONEHOME = True
+PHONEHOME = False
 DEBUG = True
 
 class Reporter:

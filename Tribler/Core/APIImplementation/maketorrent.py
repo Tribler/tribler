@@ -27,7 +27,7 @@ from Tribler.Core.defaults import tdefdictdefaults
 
 ignore = [] # Arno: was ['core', 'CVS']
 
-DEBUG = True
+DEBUG = False
 
 def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda x: None):
     """ Create a torrent file from the supplied input. 

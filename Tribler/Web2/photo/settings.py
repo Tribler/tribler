@@ -1,3 +1,5 @@
+# Written by Fabian van der Werf
+# see LICENSE.txt for license information
 
 ENCODING = "utf-8"
 

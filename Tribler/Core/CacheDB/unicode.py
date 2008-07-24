@@ -1,3 +1,8 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
+# Arno: why not use Tribler/Core/Utilities/unicode.py
+
 import sys
 
 def bin2unicode(bin,possible_encoding='utf_8'):

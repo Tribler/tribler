@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg
+# see LICENSE.txt for license information
+
 import re, sys, os
 
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
@@ -9,6 +12,7 @@ class XXXFilter:
         self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
                 
     def initTerms(self, filename):
+        assert os.path.exists(filename), "Cannot find filter file at "+os.path.abspath(filename)
         f = file(filename, 'r')
         lines = f.read().lower().splitlines()
         terms = set()

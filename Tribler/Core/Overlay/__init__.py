@@ -1,3 +1,2 @@
-CurrentVersion = 2
-LowestVersion = 2
-SupportedVersions = range(LowestVersion, CurrentVersion+1)
+# Written by Arno Bakker
+# see LICENSE.txt for license information

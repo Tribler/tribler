@@ -27,7 +27,7 @@ from Tribler.Core.Search.SearchManager import SearchManager
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
-MAX_NQUERIES = 10
+MAX_PEERS_TO_QUERY = 10
 
 DEBUG = False
 
@@ -121,18 +121,18 @@ class RemoteQueryMsgHandler:
     #
     # Send query
     # 
-    def send_query(self,query,usercallback,max_nqueries=MAX_NQUERIES):
+    def send_query(self,query,usercallback,max_peers_to_query=MAX_PEERS_TO_QUERY):
         """ Called by GUI Thread """
-        if max_nqueries is None:
-            max_nqueries = MAX_NQUERIES
+        if max_peers_to_query is None:
+            max_peers_to_query = MAX_PEERS_TO_QUERY
         if DEBUG:
             print >>sys.stderr,"rquery: send_query",query
-        if max_nqueries > 0:
-            send_query_func = lambda:self.network_send_query_callback(query,usercallback,max_nqueries)
+        if max_peers_to_query > 0:
+            send_query_func = lambda:self.network_send_query_callback(query,usercallback,max_peers_to_query)
             self.overlay_bridge.add_task(send_query_func,0)
 
 
-    def network_send_query_callback(self,query,usercallback,max_nqueries):
+    def network_send_query_callback(self,query,usercallback,max_peers_to_query):
         """ Called by overlay thread """
         p = self.create_query(query,usercallback)
         m = QUERY+p
@@ -143,20 +143,20 @@ class RemoteQueryMsgHandler:
         
         #print "******** send query net cb:", query, len(self.connections), self.connections
         
-        nqueries = 0
+        peers_to_query = 0
         for permid in self.connections:
             self.overlay_bridge.connect(permid,query_conn_callback_lambda)
-            nqueries += 1
+            peers_to_query += 1
         
-        if nqueries < max_nqueries and self.bc_fac and self.bc_fac.buddycast_core:
-            query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(MAX_NQUERIES-nqueries)
+        if peers_to_query < max_peers_to_query and self.bc_fac and self.bc_fac.buddycast_core:
+            query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(MAX_PEERS_TO_QUERY-peers_to_query)
             for permid in query_cand:
                 if permid not in self.connections:    # don't call twice
                     self.overlay_bridge.connect(permid,query_conn_callback_lambda)
-                    nqueries += 1
+                    peers_to_query += 1
         
         if DEBUG:
-            print >>sys.stderr,"rquery: send_query: Sent to",nqueries,"peers"
+            print >>sys.stderr,"rquery: send_query: Sent to",peers_to_query,"peers"
         
     def create_query(self,query,usercallback):
         d = {}
@@ -204,6 +204,10 @@ class RemoteQueryMsgHandler:
         
         if not isValidQuery(d,selversion):
             return False
+
+        # ACCESS CONTROL, INCLUDING CHECKING IF PEER HAS NOT EXCEEDED
+        # QUERY QUOTUM IS DONE in Tribler/Core/RequestPolicy.py
+        #
 
         # Process
         self.process_query(permid, d, selversion)
@@ -302,7 +306,8 @@ class RemoteQueryMsgHandler:
 
     def process_query_reply(self,permid,query,usercallback,d):
         
-        print >>sys.stderr,"rquery: process_query_reply:",show_permid_short(permid),query,d
+        if DEBUG:
+            print >>sys.stderr,"rquery: process_query_reply:",show_permid_short(permid),query,d
         
         if len(d['a']) > 0:
             remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
@@ -344,7 +349,6 @@ class RemoteQueryMsgHandler:
             peer = self.peer_db.getPeer(permid)
             try:
                 if peer is not None:
-                    print >>sys.stderr,"rqmh: inc_peer_nqueries: getPeer",peer
                     nqueries = peer['num_queries']
                     if nqueries is None:
                         nqueries = 0

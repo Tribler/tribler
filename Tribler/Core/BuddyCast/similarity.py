@@ -25,7 +25,7 @@ Test:
 from sets import Set
 
 def P2PSim(pref1, pref2):
-    """ Calculate similarity between peers """
+    """ Calculate simple similarity between peers """
     
     cooccurrence = len(Set(pref1) & Set(pref2))
     if cooccurrence == 0:
@@ -69,12 +69,13 @@ def P2PSimSorted(pref1, pref2):
     return sim
 
 
-def P2PSimLM(peer_permid, my_pref, peer_pref, owners, total_prefs, mu):
+def P2PSimLM(peer_permid, my_pref, peer_pref, owners, total_prefs, mu=1.0):
     """
-        P(U'|U) = Sum{I}Pbs(U'|I)Pml(I|U)
+        Calculate similarity between two peers using Bayesian Smooth.
+        P(U|U') = Sum{I}Pbs(U|I)Pml(I|U')
         Pbs(U|I) = (c(U,I) + mu*Pml(U))/(Sum{U}c(U,I) + mu)  
         Pml(U) = Sum{I}c(U,I) / Sum{U,I}c(U,I) 
-        Pml(I|U) = c(U,I)/Sum{I}c(U,I) 
+        Pml(I|U') = c(U',I)/Sum{I}c(U',I) 
     """
 
     npeerprefs = len(peer_pref)
@@ -86,11 +87,11 @@ def P2PSimLM(peer_permid, my_pref, peer_pref, owners, total_prefs, mu):
         return 0
         
     PmlU = float(npeerprefs) / total_prefs
+    PmlIU = 1.0 / nmyprefs
     peer_sim = 0.0
-    for torrent_hash in owners:
-        nowners = len(owners[torrent_hash]) + 1    # add myself
-        PmlIU = 1.0 / nmyprefs
-        cUI = torrent_hash in peer_pref
+    for item in owners:
+        nowners = len(owners[item]) + 1    # add myself
+        cUI = item in peer_pref
         PbsUI = float(cUI + mu*PmlU)/(nowners + mu)
         peer_sim += PbsUI*PmlIU
     return peer_sim * 100000

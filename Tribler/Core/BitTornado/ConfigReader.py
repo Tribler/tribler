@@ -1,4 +1,5 @@
-#written by John Hoffman
+# Written by John Hoffman
+# see LICENSE.txt for license information
 
 import sys
 from wxPython.wx import *

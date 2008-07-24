@@ -134,12 +134,18 @@ def fix_filebasename(name, unit=False, maxlen=255):
         fixed = True
         
     if fixed:
-        return fixedname.strip() # Arno: remove initial or ending space
+        return last_minute_filename_clean(fixedname)
     elif spaces == len(name):
         # contains only spaces
         return '_'
     else:
-        return name.strip() # Arno: remove initial or ending space
+        return last_minute_filename_clean(name)
+    
+def last_minute_filename_clean(name):
+    s = name.strip() # Arno: remove initial or ending space
+    if sys.platform == 'win32' and s.endswith('..'):
+        s = s[:-2]
+    return s
 
 
 def get_readable_torrent_name(infohash, raw_filename):
@@ -149,3 +155,4 @@ def get_readable_torrent_name(infohash, raw_filename):
     save_name = ' ' + fix_filebasename(raw_filename, maxlen=254-len(suffix)) + suffix
     # use a space ahead to distinguish from previous collected torrents
     return save_name
+

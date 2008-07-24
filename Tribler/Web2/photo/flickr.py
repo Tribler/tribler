@@ -1,4 +1,5 @@
-
+# Written by Fabian van der Werf
+# see LICENSE.txt for license information
 
 import threading
 import util.observer

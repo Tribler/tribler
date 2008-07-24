@@ -1,3 +1,6 @@
+# Written by BitTornado authors and Arno Bakker
+# see LICENSE.txt for license information
+
 ## Arno: FIXME _idprefix is also defined in BitTornado.__init__ and that's the one
 ## actually used in connections, so make sure they are defined in one place
 ## (here) and correct.

@@ -16,9 +16,10 @@ from Tribler.Core.simpledefs import *
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.osutils import getfreespace,get_readable_torrent_name
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
-
 from threading import currentThread
-DEBUG = True
+
+DEBUG = False
+
 BARTERCAST_TORRENTS = True
 
 # Python no recursive imports?
@@ -307,7 +308,7 @@ class MetadataHandler:
         my_permid = bartercastdb.my_permid
 
         if DEBUG:
-            print >> sys.stderr, "BARTERCAST: Torrent (%d KB) %s to/from peer %s" % (torrent_kb, up_or_down, `name`)
+            print >> sys.stderr, "bartercast: Torrent (%d KB) %s to/from peer %s" % (torrent_kb, up_or_down, `name`)
 
         if torrent_kb > 0:
             bartercastdb.incrementItem((my_permid, permid), up_or_down, torrent_kb)
@@ -521,8 +522,8 @@ class MetadataHandler:
             filename = self.save_torrent(infohash, metadata, extra_info=extra_info)
             self.requested_torrents.remove(infohash)
             
-            if DEBUG:
-                print >>sys.stderr,"metadata: Was I asked to dlhelp someone",self.dlhelper
+            #if DEBUG:
+            #    print >>sys.stderr,"metadata: Was I asked to dlhelp someone",self.dlhelper
 
             self.notify_torrent_is_in(infohash,metadata,filename)
             

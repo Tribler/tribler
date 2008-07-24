@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg
+# see LICENSE.txt for license information
+
 import sys, commands, re
 from Tribler.Core.simpledefs import UPLOAD
 from Tribler.Core.exceptions import NotYetImplementedException

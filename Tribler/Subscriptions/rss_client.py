@@ -41,7 +41,6 @@ URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 
 DEBUG = False
 
-
 class TorrentFeedThread(Thread):
     
     __single = None
@@ -58,6 +57,9 @@ class TorrentFeedThread(Thread):
         self.feeds = []
         self.lock = RLock()
         self.done = Event()
+
+        # when rss feeds change, we have to restart the checking
+        self.feeds_changed = False
 
     def getInstance(*args, **kw):
         if TorrentFeedThread.__single is None:
@@ -96,6 +98,7 @@ class TorrentFeedThread(Thread):
             if status == "active":
                 feed = TorrentFeedReader(url,self.gethistfilename(url))
                 self.feeds.append(feed)
+                self.feeds_changed = True
             if dowrite:
                 self.writefile()
         self.lock.release()
@@ -146,6 +149,7 @@ class TorrentFeedThread(Thread):
                 feed = self.feeds[i]
                 if feed.feed_url == url:
                     del self.feeds[i]
+                    self.feeds_changed = True
                     break
             self.writefile()
         self.lock.release()
@@ -155,65 +159,67 @@ class TorrentFeedThread(Thread):
         while not self.done.isSet():
             self.lock.acquire()
             cfeeds = self.feeds[:]
+            self.feeds_changed = False
             self.lock.release()
-            
-            for feed in cfeeds:
-                rssurl = feed.feed_url
-                if DEBUG:
-                    print >>sys.stderr,"suscrip: Opening RSS feed",rssurl
-                try:
-                    pairs = feed.refresh()
-                    for title,urlopenobj in pairs:
-                        if DEBUG:
-                            print >>sys.stderr,"subscrip: Retrieving",`title`,"from",rssurl
-                        if urlopenobj is not None:
-                            bdata = urlopenobj.read()
-                            urlopenobj.close()
-    
-                            data = bdecode(bdata)
-                            infohash = sha.sha(bencode(data['info'])).digest()
-                            
-                            if not self.torrent_db.hasTorrent(infohash):
-                                if DEBUG:
-                                    print >>sys.stderr,"subscript: Storing",`title`
-                                self.save_torrent(infohash,bdata,source=rssurl)
-                            elif DEBUG:
-                                print >>sys.stderr,"subscript: Not storing",`title`,"already have it"
-                        # Sleep in between torrent retrievals        
-                        sleep(self.intertorrentinterval) 
-                except:
-                    traceback.print_exc()
-                
-            # Sleep in between refreshes
-            """
-            statscopy = {}
-            self.lock.acquire()
-            for feed in self.feeds:
-                statscopy[feed.feed_url] = feed.urls_already_seen.copy()
-                self.process_statscopy(statscopy)
-            self.lock.release()
-            """
-            # Arno: total waiting time should be 60 minutes
-            for count in range(120):
-                #if DEBUG:
-                #    print >>sys.stderr,"subscrip: Sleeping for 30 after checking all feeds"
-                self.lock.acquire()
-                cfeeds2 = self.feeds[:]
-                urls = []
-                for feed in cfeeds:
-                    urls.append(feed.feed_url)
-                urls2 = []
-                for feed in cfeeds2:
-                    urls2.append(feed.feed_url)
-                self.lock.release()
-                urls.sort()
-                urls2.sort()
-                if urls != urls2:
-                    if DEBUG:
-                        print >>sys.stderr,"subscrip: Detected an addition/removal from feeds list, rechecking all feeds"
-                    break
-                sleep(30)
 
+            # feeds contains (rss_url, generator) pairs
+            feeds = {}
+            for feed in cfeeds:
+                try:
+                    sugestion_generator = feed.refresh()
+                except:
+                    pass
+                else:
+                    feeds[feed.feed_url] = sugestion_generator
+
+            # loop through the feeds and try one from each feed at a time
+            while feeds:
+                for (rss_url, generator) in feeds.items():
+
+                    # are there items left in this generator
+                    try:
+                        title, urlopenobj = generator.next()
+                        if not urlopenobj:
+                            continue
+
+                        bdata = urlopenobj.read()
+                        urlopenobj.close()
+
+                        data = bdecode(bdata)
+                        if 'info' in data:
+                            infohash = sha.sha(bencode(data['info'])).digest()
+                            if not self.torrent_db.hasTorrent(infohash):
+                                self.save_torrent(infohash, bdata, source=rss_url)
+
+                    except StopIteration:
+                        # there are no more items in generator
+                        del(feeds[rss_url])
+
+                    except ValueError:
+                        # the bdecode failed
+                        pass
+
+                    # sleep in between torrent retrievals
+                    sleep(self.intertorrentinterval)
+
+                    self.lock.acquire()
+                    try:
+                        if self.feeds_changed:
+                            feeds = None
+                            break
+                    finally:
+                        self.lock.release()
+
+            for count in range(120):
+                self.lock.acquire()
+                try:
+                    if self.feeds_changed:
+                        break
+                finally:
+                    self.lock.release()
+
+                sleep(30)
+                        
 
     def save_torrent(self,infohash,bdata,source=''):
         hexinfohash = binascii.hexlify(infohash)
@@ -263,7 +269,11 @@ class TorrentFeedReader:
     def __init__(self,feed_url,histfilename):
         self.feed_url = feed_url
         self.urls_already_seen = URLHistory(histfilename)
-        self.href_re = re.compile('href="(.*?)"')
+        # todo: the self.href_re expression does not take into account that single quotes, escaped quotes, etz. can be used
+        self.href_re = re.compile('href="(.*?)"', re.IGNORECASE) 
+        # the following filter is applied on the xml data because other characters crash the parser
+        self.filter_xml_expression = re.compile("(&\w+;)|([^\w\d\s~`!@#$%^&*()-_=+{}[\]\\|:;\"'<,>.?/])", re.IGNORECASE)
+
         self.torrent_types = ['application/x-bittorrent','application/x-download']
 
     def isTorrentType(self,type):
@@ -286,46 +296,48 @@ class TorrentFeedReader:
         feed_socket = urlOpenTimeout(self.feed_url,timeout=5)
         feed_xml = feed_socket.read()
         feed_socket.close()
-        #if DEBUG:
-        #    print "<mluc> feed.refresh read xml:",feed_xml
-        feed_dom = parseString(feed_xml)
 
-        entries = [(title,link) for title,link in
-                   [(item.getElementsByTagName("title")[0].childNodes[0].data,
-                     item.getElementsByTagName("link")[0].childNodes[0].data) for
-                    item in feed_dom.getElementsByTagName("item")]
-                   if link.endswith(".torrent") and not self.urls_already_seen.contains(link)]
+        # 14/07/08 boudewijn: some special characters and html code is
+        # raises a parser exception. We filter out these character
+        # sequenses using a regular expression in the filter_xml
+        # function
+        dom = parseString(self._filter_xml(feed_xml))
+        entries = []
 
+        # The following XML will result in three links with the same title.
+        #
+        # <item>
+        # <title>The title</title>
+        # <link>http:/frayja.com/torrent/1</link>
+        # <foobar src="frayja.com/torrent/2">Unused title</foobar>
+        # <moomilk url="frayja.com/torrent/3">Unused title</moomilk>
+        # </items>
+        for item in dom.getElementsByTagName("item") + dom.getElementsByTagName("entry"):
+            title = None
+            links = []
+            child = item.firstChild
+            while child:
+                if child.nodeType == 1: # ELEMENT_NODE (according to the DOM standard)
+                    if child.nodeName == "title" and child.firstChild:
+                        title = child.firstChild.data
 
-        # vuze feeds contain <entry> tags instead of <item> tags which includes
-        # a <content> tags that contain the link to the torrent file as an 
-        # attribute. Support them especially
-        for item in feed_dom.getElementsByTagName("entry"):
-            title = item.getElementsByTagName("title")[0].childNodes[0].data
-            #print "ENCLOSURE",item.getElementsByTagName("content")
-            k = item.getElementsByTagName("content").length
-            #print "ENCLOSURE LEN",k
-            for i in range(k):
-                child = item.getElementsByTagName("content").item(i)
-                #print "ENCLOSURE CHILD",`child`
-                if child.hasAttribute("src"):
-                    link = child.getAttribute("src")
-                    #print "ENCLOSURE CHILD getattrib",link
-                    if not self.urls_already_seen.contains(link):
-                        entries.append((title,link))
-                #else:
-                #    print "ENCLOSURE CHILD NO src"
+                    if child.nodeName == "link" and child.firstChild:
+                        links.append(child.firstChild.data)
 
+                    if child.hasAttribute("src"):
+                        links.append(child.getAttribute("src"))
+
+                    if child.hasAttribute("url"):
+                        links.append(child.getAttribute("url"))
+
+                child = child.nextSibling
+
+            if title and links:
+                entries.extend([(title, link) for link in links])
 
         if DEBUG:
             print >>sys.stderr,"subscrip: Parse of RSS returned",len(entries),"previously unseen torrents"
 
-#        for title,link in entries:
-#            print "Link",link,"is in cache?",self.urls_already_seen.contains(link)
-#
-#        return
-
-        
         for title,link in entries:
             # print title,link
             try:
@@ -373,15 +385,32 @@ class TorrentFeedReader:
                             pass
                 if not found_torrent:
                     yield title,None
+            except GeneratorExit:
+                if DEBUG:
+                    print >>sys.stderr, "GENERATOREXIT"
+                # the generator is destroyed. we accept this by returning
+                return
             except:
                 traceback.print_exc()
                 yield title,None
 
     def shutdown(self):
         self.urls_already_seen.write()
-        
+
+    def _filter_xml_helper(self, match):
+        """helper function to filter invalid xml"""
+        one = match.group(1)
+        if one in ("&gt;", "&lt;", "&quot;", "&amp;"):
+            return one
+        return "?"
+
+    def _filter_xml(self, xml):
+        """filters out characters and tags that crash xml.dom.minidom.parseString"""
+        return self.filter_xml_expression.sub(self._filter_xml_helper, xml)
 
 class URLHistory:
+
+    read_history_expression = re.compile("(\d+(?:[.]\d+)?)\s+(\w+)", re.IGNORECASE)
     
     def __init__(self,filename):
         self.urls = {}
@@ -413,37 +442,38 @@ class URLHistory:
         if DEBUG:
             print >>sys.stderr,"subscrip: Reading cached",self.filename
         try:
+            file_handle = open(self.filename, "rb")
+        except IOError:
+            # file not found...
+            # there is no cache available
+            pass
+        else:
+            data = file_handle.read()
+            file_handle.close()
+
             now = time()
-            f = open(self.filename,"rb")
-            for line in f.readlines():
-                line = line[:-2] # remove \r\n
-                idx = line.find(' ')
-                timestr = line[0:idx]
-                url = line[idx+1:]
-                t = float(timestr)
-                if not self.timedout(t,now):
+            for timestamp, url in self.read_history_expression.findall(data):
+                timestamp = float(timestamp)
+                if not self.timedout(timestamp, now):
                     if DEBUG:
                         print >>sys.stderr,"subscrip: Cached url is",url
-                    self.urls[url] = t
+                    self.urls[url] = timestamp
                 elif DEBUG:
                     print >>sys.stderr,"subscrip: Timed out cached url is",t,url
-            f.close()        
-        except:
-            traceback.print_exc()
         
     def write(self):
         try:
-            f = open(self.filename,"wb")
-            for url,t in self.urls.iteritems():
-                line = str(t)+' '+url+'\r\n'
-                f.write(line)
-            f.close()        
-        except:
+            file_handle = open(self.filename, "wb")
+        except IOError:
+            # can't write file
             traceback.print_exc()
+        else:
+            for url, timestamp in self.urls.iteritems():
+                file_handle.write("%f %s\r\n" % (timestamp, url))
+            file_handle.close()        
 
     def copy(self):
         return self.urls.copy()
-    
 
     def clean_link(self,link):
         """ Special vuze case """

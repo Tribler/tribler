@@ -1,3 +1,6 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
 import sys
 import os
 from bsdcachedb import MyDB, PeerDB, TorrentDB, PreferenceDB, MyPreferenceDB, BarterCastDB
@@ -157,7 +160,8 @@ class Bsddb2Sqlite:
             'last_connected':0,
             'friend':0,
             'superpeer':0,
-            }   
+            }
+            
             data.update(db_data)
             iconfilename = sha(permid).hexdigest()
             if iconfilename in self.icons:
@@ -473,17 +477,6 @@ class Bsddb2Sqlite:
         print >>sys.stderr, "convert MyDB to MyInfo"
         
         mydb = MyDB.getInstance(self.bsddb_dir)
-
-        desired_keys = ['permid', 'ip', 'port', 'name']#, 'version', 'torrent_path'] according to Jelle's plan, all these keys will not be included in db
-        for key in desired_keys:
-            value = mydb._data[key]
-#            if key == 'permid' and value:
-#                value = bin2str(value)
-            self.cur.execute("insert into MyInfo (entry,value) values (?,?)", (key,value))
-            
-        if torrent_dir is not None:
-            sql = "insert into MyInfo (entry,value) values ('torrent_dir', ?)"
-            self.cur.execute(sql, (torrent_dir,))
             
         friends = mydb.getFriends()
         for permid in friends:
@@ -577,7 +570,7 @@ class Bsddb2Sqlite:
             
             MyDB.getInstance(None, self.bsddb_dir)
             self.convert_PeerDB(peer_limit)
-            #self.convert_MyDB(torrent_dir)    # should not be called
+            self.convert_MyDB(torrent_dir)    
             self.convert_BartercastDB()
 
             self.convert_TorrentDB(torrent_limit)

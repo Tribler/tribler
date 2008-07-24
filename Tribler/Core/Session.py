@@ -22,7 +22,7 @@ from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandl
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.NATFirewall.PuncturingClient import PuncturingClient
 
-DEBUG = True
+DEBUG = False
 
 class Session(SessionRuntimeConfig):
     """
@@ -164,13 +164,12 @@ class Session(SessionRuntimeConfig):
             if not os.path.isdir(self.sessconfig['peer_icon_path']):
                 os.mkdir(self.sessconfig['peer_icon_path'])
 
-        # 7. NAT type detection
-        if not 'nat_detect' in self.sessconfig:
-            # Poor man's versioning, really should update PERSISTENTSTATE_CURRENTVERSION
-            self.sessconfig['nat_detect'] = sessdefaults['nat_detect']
-            self.sessconfig['puncturing_private_port'] = sessdefaults['puncturing_private_port']
-            self.sessconfig['stun_servers'] = sessdefaults['stun_servers']
-            self.sessconfig['puncturing_coordinators'] = sessdefaults['puncturing_coordinators']
+        # 7. Poor man's versioning of SessionConfig, add missing
+        # default values. Really should use PERSISTENTSTATE_CURRENTVERSION 
+        # and do conversions.
+        for key,defvalue in sessdefaults.iteritems():
+            if key not in self.sessconfig:
+                self.sessconfig[key] = defvalue
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()
@@ -595,7 +594,7 @@ class Session(SessionRuntimeConfig):
                 kws = query[len('SIMPLE '):]
                 
                 rqmh = RemoteQueryMsgHandler.getInstance()
-                rqmh.send_query(kws,usercallback,max_nqueries=max_peers_to_query)
+                rqmh.send_query(kws,usercallback,max_peers_to_query=max_peers_to_query)
             else:
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:

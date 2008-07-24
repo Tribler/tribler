@@ -8,7 +8,7 @@ from threading import currentThread
 from Tribler.Core.exceptions import *
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
-DEBUG = True
+DEBUG = False
 
 MAX_QUERIES_FROM_RANDOM_PEER = 1000
 

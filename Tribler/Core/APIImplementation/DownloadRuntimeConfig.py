@@ -6,7 +6,7 @@ from traceback import print_exc
 
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
-DEBUG = True
+DEBUG = False
 
 class DownloadRuntimeConfig(DownloadConfigInterface):
     """

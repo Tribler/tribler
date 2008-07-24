@@ -4,9 +4,9 @@
 import os
 import sys
 
-# LAYERVIOLATION
 if (sys.platform == 'win32'):
-    from Tribler.Main.Utility.regchecker import Win32RegChecker,HKLM
+    from Tribler.Core.Utilities.win32regchecker import Win32RegChecker,HKLM
+
 
 videoextdefaults = ['aac','asf','avi','dv','divx','flac','flc','mkv','mpeg','mpeg4','mpegts','mpg4','mp3','mp4','mpg','mkv','mov','m4v','ogg','ogm','qt','rm','swf','vob','wmv','wav']
 

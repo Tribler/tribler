@@ -1,5 +1,5 @@
-
-
+# Written by Fabian van der Werf
+# see LICENSE.txt for license information
 
 from bsddb import dbshelve
 import os

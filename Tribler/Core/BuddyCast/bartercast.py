@@ -1,3 +1,6 @@
+# Written by Michel Meulpolder
+# see LICENSE.txt for license information
+
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.BitTornado.BT1.MessageID import BARTERCAST #, KEEP_ALIVE

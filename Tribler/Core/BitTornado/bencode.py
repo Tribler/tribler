@@ -14,7 +14,7 @@ except ImportError:
 from traceback import print_exc
 import sys
 
-DEBUG = True
+DEBUG = False
 
 def decode_int(x, f):
     f += 1

@@ -1,4 +1,5 @@
-
+# Written by Jelle Roozenburg, Maarten ten Brinke 
+# see LICENSE.txt for license information
 
 class GridState(object):
     def __init__(self, db, category, sort, reverse = False, library = False):

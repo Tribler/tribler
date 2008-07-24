@@ -1,3 +1,5 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke 
+# see LICENSE.txt for license information
 import wx, os, sys
 from traceback import print_exc
 

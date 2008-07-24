@@ -5,7 +5,7 @@
 import os,sys,string,time
 from traceback import print_exc
 
-DEBUG = True
+DEBUG = False
 
 class MovieTransport:
     

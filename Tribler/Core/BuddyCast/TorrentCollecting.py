@@ -1,3 +1,6 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
 import sys
 from Tribler.Core.Utilities.utilities import show_permid, bin2str
 from random import randint

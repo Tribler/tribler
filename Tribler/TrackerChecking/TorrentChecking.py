@@ -32,9 +32,9 @@ from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from Tribler.Core.CacheDB.sqlitecachedb import safe_dict
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
-from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+#from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 
-DEBUG = False
+DEBUG = True
 
 class TorrentChecking(Thread):
     
@@ -105,11 +105,13 @@ class TorrentChecking(Thread):
                 return
     
             if self.infohash is None and torrent['ignored_times'] > 0:
+                print >> sys.stderr, 'Torrent_checking: torrent: %s' % torrent
+                kw = { 'ignored_times': torrent['ignored_times']-1 }
                 if self.db_thread:
                     self.db_thread.add_task(lambda:
-                        TorrentDBHandler.getInstance().updateTracker(torrent_id, torrent['ignored_times']-1))
+                        TorrentDBHandler.getInstance().updateTracker(torrent['infohash'], kw))
                 else:
-                    TorrentDBHandler.getInstance().updateTracker(torrent_id, torrent['ignored_times']-1)
+                    TorrentDBHandler.getInstance().updateTracker(torrent['infohash'], kw)
                 return
     
             # may be block here because the internet IO
@@ -118,6 +120,8 @@ class TorrentChecking(Thread):
                 if self.db_thread:
                     self.db_thread.add_task(lambda:
                         TorrentDBHandler.getInstance().deleteTorrent(torrent['infohash']))
+                else:
+                    TorrentDBHandler.getInstance().deleteTorrent(torrent['infohash'])
                 return
             
             # TODO: tracker checking also needs to be update
@@ -146,9 +150,9 @@ class TorrentChecking(Thread):
             
             if self.db_thread:
                 self.db_thread.add_task(lambda:
-                    TorrentDBHandler.getInstance().updateTorrent(torrent['infohash'], updateFlag=True, **kw))
+                    TorrentDBHandler.getInstance().updateTorrent(torrent['infohash'], **kw))
             else:
-                TorrentDBHandler.getInstance().updateTorrent(torrent['infohash'], updateFlag=True, **kw)
+                TorrentDBHandler.getInstance().updateTorrent(torrent['infohash'], **kw)
         finally:
             if not self.db_thread:
                 TorrentDBHandler.getInstance().close()

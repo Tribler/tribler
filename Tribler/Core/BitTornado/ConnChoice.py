@@ -1,3 +1,6 @@
+# Written by BitTornado authors
+# see LICENSE.txt for license information
+
 connChoices=(
     {'name':'automatic',
      'rate':{'min':0, 'max':5000, 'def': 0},

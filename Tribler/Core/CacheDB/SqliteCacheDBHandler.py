@@ -4,9 +4,9 @@
 # for any function you added to database. 
 # Please reuse the functions in sqlitecachedb as more as possible
 
-from sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, sqlite, NULL
+from sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from unicode import name2unicode,dunno2unicode
-from copy import deepcopy
+from copy import deepcopy,copy
 from sets import Set
 from traceback import print_exc, print_stack
 from threading import currentThread
@@ -22,7 +22,6 @@ from random import randint
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Core.simpledefs import *
-from Tribler.Category.Category import Category
 
 DEBUG = False
 SHOW_ERROR = True
@@ -40,7 +39,6 @@ class BasicDBHandler:
         self.notifier = Notifier.getInstance()
         
     def __del__(self):
-        print_stack()
         try:
             self.sync()
         except:
@@ -106,9 +104,9 @@ class MyDBHandler(BasicDBHandler):
                 raise KeyError, key
 
     def put(self, key, value):
-        try:
+        if self.getOne('value', entry=key) is NULL:
             self._db.insert(self.table_name, entry=key, value=value)
-        except sqlite.IntegrityError:
+        else:
             where = "entry=" + repr(key)
             self._db.update(self.table_name, where, value=value)
         self.commit()
@@ -162,9 +160,17 @@ class FriendDBHandler(BasicDBHandler):
     def searchNames(self,kws):
         return doPeerSearchNames(self,'Friend',kws)
         
-    def getRanks(self, permid):
+    def getRanks(self):
         # TODO
         return []
+    
+    def size(self):
+        return self._db.size('Friend')
+    
+    def addExternalFriend(self, peer):
+        peerdb = PeerDBHandler.getInstance()
+        peerdb.addPeer(peer['permid'], peer)
+        self.setFriend(peer['permid'])
         
 NETW_MIME_TYPE = 'image/jpeg'
 
@@ -172,6 +178,10 @@ class PeerDBHandler(BasicDBHandler):
     
     __single = None    # used for multithreaded singletons pattern
     lock = threading.Lock()
+
+    gui_value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
+                      'num_peers', 'num_torrents', 'num_prefs', 
+                      'connected_times', 'buddycast_times', 'last_connected')
     
     def getInstance(*args, **kw):
         # Singleton pattern with double-checking
@@ -193,8 +203,7 @@ class PeerDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self, 'Peer')
         self.pref_db = PreferenceDBHandler.getInstance()
         self.online_peers = set()
-        #self.mm = None
-        
+
 
     def __len__(self):
         return self.size()
@@ -212,7 +221,7 @@ class PeerDBHandler(BasicDBHandler):
             value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'num_peers', 'num_torrents', 'num_prefs', 'num_queries', 
                       'connected_times', 'buddycast_times', 'last_connected', 'last_seen')
-            
+
             item = self.getOne(value_name, permid=bin2str(permid))
             if not item:
                 return None
@@ -353,16 +362,15 @@ class PeerDBHandler(BasicDBHandler):
             else:
                 value += change
             sql_update_peer = "UPDATE Peer SET %s=? WHERE peer_id=?"%key
-            self._db.execute(sql_update_peer, (value, peer_id))
+            self._db.execute_write(sql_update_peer, (value, peer_id))
             if commit:
                 self.commit()
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
     def updatePeerSims(self, sim_list):
         sql_update_sims = 'UPDATE Peer SET similarity=? WHERE peer_id=?'
+        s = time()
         self._db.executemany(sql_update_sims, sim_list, commit=True)
-        #self.commit()
-        # to do: how to notify the update of a group of peers?
 
     def getPermIDByIP(self,ip):
         permid = self.getOne('permid', ip=ip)
@@ -385,9 +393,14 @@ class PeerDBHandler(BasicDBHandler):
         if category_name == 'friend':
             where += ' and friend=1'
         
-        return self._db.getOne(table, value, where)
+        res = self._db.getOne(table, value, where)
+        if not res:
+            res = 0
+        return res
     
     def getGUIPeers(self, category_name = 'all', range = None, sort = None, reverse = False, get_online=False):
+        #
+        # ARNO: WHY DIFF WITH NORMAL getPeers??????
         # load peers for GUI
         #print >> sys.stderr, 'getGUIPeers(%s, %s, %s, %s)' % (category_name, range, sort, reverse)
         """
@@ -398,9 +411,8 @@ class PeerDBHandler(BasicDBHandler):
                  
         @in: get_online: boolean: if true, give peers a key 'online' if there is a connection now
         """
-        value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
-                      'num_peers', 'num_torrents', 'num_prefs', 
-                      'connected_times', 'buddycast_times', 'last_connected')
+        value_name = PeerDBHandler.gui_value_name
+        
         where = '(buddycast_times>0 or friend=1) '
         if category_name in ('friend', 'friends'):
             where += 'and friend=1'
@@ -417,10 +429,15 @@ class PeerDBHandler(BasicDBHandler):
                 order_by = ' %s %s' % (sort, desc)
         else:
             order_by = None
+
+        # Must come before query
+        ranks = self.getRanks()
             
         res_list = self.getAll(value_name, where, offset= offset, limit=limit, order_by=order_by)
         
-        ranks = self.getRanks()
+        #print >>sys.stderr,"getGUIPeers: where",where,"offset",offset,"limit",limit,"order",order_by
+        #print >>sys.stderr,"getGUIPeers: returned len",len(res_list)
+        
         peer_list = []
         for item in res_list:
             peer = dict(zip(value_name, item))
@@ -648,8 +665,9 @@ class PreferenceDBHandler(BasicDBHandler):
             self._db.insertInfohash(infohash)
             torrent_id = self._db.getTorrentID(infohash)
         try:
-            self._db.execute(sql_insert_peer_torrent, (peer_id, torrent_id))
-        except sqlite.IntegrityError, msg:    # duplicated
+            self._db.execute_write(sql_insert_peer_torrent, (peer_id, torrent_id))
+        except Exception, msg:    # duplicated
+            print_exc()
             pass
 
     def addPreferences(self, peer_permid, prefs, is_torrent_id=False):
@@ -674,10 +692,10 @@ class PreferenceDBHandler(BasicDBHandler):
         if len(prefs) > 0:
             for pref in torrent_id_prefs:
                 try:
-                    self._db.execute(sql_insert_peer_torrent, pref)
-                except sqlite.IntegrityError, msg:    # duplicated
+                    self._db.execute_write(sql_insert_peer_torrent, pref)
+                except Exception, msg:    # duplicated
                     print_exc()
-                    print >> sys.stderr, 'dbhandler: addPreferences:', sqlite.IntegrityError, msg
+                    print >> sys.stderr, 'dbhandler: addPreferences:', Exception, msg
                     pass
 
     def getRecentPeersPrefs(self, key, num=None):
@@ -715,14 +733,23 @@ class TorrentDBHandler(BasicDBHandler):
         
         self.mypref_db = MyPreferenceDBHandler.getInstance()
         
-        self.status_table = self._db.getTorrentStatusTable()
+        self.status_table = {'good':1, 'unknown':0, 'dead':2}
+        self.status_table.update(self._db.getTorrentStatusTable())
         self.id2status = dict([(x,y) for (y,x) in self.status_table.items()]) 
         self.torrent_dir = None
         # 0 - unknown
         # 1 - good
         # 2 - dead
         
-        self.category_table = self._db.getTorrentCategoryTable()
+        self.category_table  = {'Video':1,
+                                'VideoClips':2,
+                                'Audio':3,
+                                'Compressed':4,
+                                'Document':5,
+                                'Picture':6,
+                                'xxx':7,
+                                'other':8,}
+        self.category_table.update(self._db.getTorrentCategoryTable())
         self.category_table['unknown'] = 0 
         self.id2category = dict([(x,y) for (y,x) in self.category_table.items()])
         # 1 - Video
@@ -745,6 +772,15 @@ class TorrentDBHandler(BasicDBHandler):
                 'source_id', 'category_id', 'status_id',
                 'num_seeders', 'num_leechers', 'comment']
         self.existed_torrents = Set()
+
+
+        self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
+                      'num_leechers', 'num_seeders', 'length', 
+                      'secret', 'insert_time', 'source_id', 'torrent_file_name',
+                      'relevance', 'infohash', 'tracker', 'last_check']
+
+    def registerCategory(self, category):
+        self.category = category
 
     def getTorrentID(self, infohash):
         return self._db.getTorrentID(infohash)
@@ -823,13 +859,10 @@ class TorrentDBHandler(BasicDBHandler):
             torrent["last_check_time"] = 0
         torrent["status"] = self._getStatusID(extra_info.get('status', "unknown"))
         
-        #print >>sys.stderr,"TorrentDBHandler: _readTorrentData: ADDING TORRENT WITH STATUS",torrent["status"]
-        
         torrent["source"] = self._getSourceID(source)
         torrent["insert_time"] = long(time())
 
-        category = Category.getInstance()
-        torrent['category'] = self._getCategoryID(category.calculateCategory(metainfo, torrent['name']))
+        torrent['category'] = self._getCategoryID(self.category.calculateCategory(metainfo, torrent['name']))
         torrent['secret'] = 0 # to do: check if torrent is secret
         torrent['relevance'] = 0.0
         thumbnail = 0
@@ -872,7 +905,7 @@ class TorrentDBHandler(BasicDBHandler):
             infohash_str = bin2str(infohash)
             self._db.insert('Torrent', 
                         infohash = infohash_str,
-                        name = data['name'],
+                        name = dunno2unicode(data['name']),
                         torrent_file_name = data['torrent_file_name'],
                         length = data['length'], 
                         creation_date = data['creation_date'], 
@@ -886,12 +919,12 @@ class TorrentDBHandler(BasicDBHandler):
                         status_id = data['status'],
                         num_seeders = data['num_seeders'], 
                         num_leechers = data['num_leechers'], 
-                        comment = data['comment'])
+                        comment = dunno2unicode(data['comment']))
             torrent_id = self._db.getTorrentID(infohash)
         else:    # infohash in db
             where = 'torrent_id = %d'%torrent_id
             self._db.update('Torrent', where = where,
-                            name = data['name'],
+                            name = dunno2unicode(data['name']),
                             torrent_file_name = data['torrent_file_name'],
                             length = data['length'], 
                             creation_date = data['creation_date'], 
@@ -905,7 +938,7 @@ class TorrentDBHandler(BasicDBHandler):
                             status_id = data['status'],
                             num_seeders = data['num_seeders'], 
                             num_leechers = data['num_leechers'], 
-                            comment = data['comment'])
+                            comment = dunno2unicode(data['comment']))
         
         self._addTorrentTracker(torrent_id, data)
         if commit:
@@ -967,7 +1000,7 @@ class TorrentDBHandler(BasicDBHandler):
             status_id = self._getStatusID(kw.pop('status'))
             kw['status_id'] = status_id
         if 'progress' in kw:
-            self.mypref_db.updateProgress(infohash, kw.pop('progress'))    
+            self.mypref_db.updateProgress(infohash, kw.pop('progress'), commit=False)# commit at end of function
         if 'seeder' in kw:
             kw['num_seeders'] = kw.pop('seeder')
         if 'leecher' in kw:
@@ -995,6 +1028,7 @@ class TorrentDBHandler(BasicDBHandler):
         if torrent_id is None:
             return
         update = {}
+        assert type(kw) == dict and kw, 'updateTracker error: kw should be filled dict, but is: %s' % kw
         if 'last_check_time' in kw:
             update['last_check'] = kw.pop('last_check_time')
         if 'ignore_number' in kw:
@@ -1039,12 +1073,12 @@ class TorrentDBHandler(BasicDBHandler):
     def _deleteTorrent(self, infohash, keep_infohash=True):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is not None:
-            self._db.delete(self.table_name, torrent_id=torrent_id)
+            if keep_infohash:
+                self._db.update(self.table_name, where="torrent_id=%d"%torrent_id, torrent_file_name=None)
+            else:
+                self._db.delete(self.table_name, torrent_id=torrent_id)
             if infohash in self.existed_torrents:
                 self.existed_torrents.remove(infohash)
-            # insert the infohash to ensure integrity
-            if keep_infohash:
-                self._db.insert(self.table_name, torrent_id=torrent_id, infohash=bin2str(infohash))
             self._db.delete('TorrentTracker', torrent_id=torrent_id)
             #print '******* delete torrent', torrent_id, `infohash`, self.hasTorrent(infohash)
             
@@ -1083,13 +1117,16 @@ class TorrentDBHandler(BasicDBHandler):
         # to do: replace keys like source -> source_id and status-> status_id ??
         
         if keys is None:
-            keys = ('torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
-                    'num_leechers', 'num_seeders',   'length', 
-                    'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                    'relevance', 'infohash', 'torrent_id')
+            keys = deepcopy(self.value_name)
+            #('torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
+            # 'num_leechers', 'num_seeders',   'length', 
+            # 'secret', 'insert_time', 'source_id', 'torrent_file_name',
+            # 'relevance', 'infohash', 'torrent_id')
         else:
-            keys = list(keys)   
-        res = self._db.getOne('CollectedTorrent', keys, infohash=bin2str(infohash))
+            keys = list(keys)
+        where = 'C.torrent_id = T.torrent_id and announce_tier=1 '
+        
+        res = self._db.getOne('CollectedTorrent C, TorrentTracker T', keys, where=where, infohash=bin2str(infohash))
         if not res:
             return None
         torrent = dict(zip(keys, res))
@@ -1103,16 +1140,20 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['status'] = self.id2status[torrent['status_id']]
             del torrent['status_id']
         torrent['infohash'] = infohash
+        if 'last_check' in torrent:
+            torrent['last_check_time'] = torrent['last_check']
+            del torrent['last_check']
         
         if include_mypref:
-            tid = torrent['torrent_id']
+            tid = torrent['C.torrent_id']
             stats = self.mypref_db.getMyPrefStats(tid)
-            del torrent['torrent_id']
+            del torrent['C.torrent_id']
             if stats:
                 torrent['myDownloadHistory'] = True
                 torrent['creation_time'] = stats[tid][0]
                 torrent['progress'] = stats[tid][1]
                 torrent['destination_path'] = stats[tid][2]
+                
         return torrent
 
     def getNumberTorrents(self, category_name = 'all', library = False):
@@ -1127,9 +1168,11 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             where += ' and status_id=%d ' % self.status_table['good']
             # add familyfilter
-            where += Category.getInstance().get_family_filter_sql(self._getCategoryID)
+            where += self.category.get_family_filter_sql(self._getCategoryID)
         
         number = self._db.getOne(table, value, where)
+        if not number:
+            number = 0
         return number
     
     def getTorrents(self, category_name = 'all', range = None, library = False, sort = None, reverse = False):
@@ -1138,31 +1181,30 @@ class TorrentDBHandler(BasicDBHandler):
         
         @return Returns a list of dicts with keys: 
             torrent_id, infohash, name, category, status, creation_date, num_files, num_leechers, num_seeders,
-            length, secret, insert_time, source, torrent_filename, relevance, simRank
+            length, secret, insert_time, source, torrent_filename, relevance, simRank, tracker, last_check
             (if in library: myDownloadHistory, download_started, progress, dest_dir)
-        
+            
         """
         
         #print >> sys.stderr, 'getTorrents(%s, %s, %s, %s, %s)' % (category_name, range, library, sort, reverse)
         s = time()
-        value_name = ['torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
-                      'num_leechers', 'num_seeders', 'length', 
-                      'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                      'relevance', 'infohash']
-        where = '1 '
+        
+        value_name = deepcopy(self.value_name)
+            
+        where = 'T.torrent_id = C.torrent_id and announce_tier=1 '
         
         if category_name != 'all':
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
         if library:
             if sort in value_name:
-                where += ' and torrent_id in (select torrent_id from MyPreference)'
+                where += ' and C.torrent_id in (select torrent_id from MyPreference)'
             else:
                 value_name[0] = 'C.torrent_id'
-                where += ' and C.torrent_id = M.torrent_id'
+                where += ' and C.torrent_id = M.torrent_id and announce_tier=1'
         else:
             where += ' and status_id=%d ' % self.status_table['good'] # if not library, show only good files
             # add familyfilter
-            where += Category.getInstance().get_family_filter_sql(self._getCategoryID)
+            where += self.category.get_family_filter_sql(self._getCategoryID)
         if range:
             offset= range[0]
             limit = range[1] - range[0]
@@ -1179,19 +1221,28 @@ class TorrentDBHandler(BasicDBHandler):
             
         #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS val",value_name,"where",where,"limit",limit,"offset",offset,"order",order_by
         #print_stack
-            
+        
+        # Must come before query
+        ranks = self.getRanks()
+
+        #self._db.show_execute = True
         if library and sort not in value_name:
-            res_list = self._db.getAll('CollectedTorrent C, MyPreference M', value_name, where, limit=limit, offset=offset, order_by=order_by)
-            #print_stack()
-            #print >> sys.stderr, '*** dbhandler: getTorrents sort by progress', res_list
+            res_list = self._db.getAll('CollectedTorrent C, MyPreference M, TorrentTracker T', value_name, where, limit=limit, offset=offset, order_by=order_by)
         else:
-            res_list = self._db.getAll('CollectedTorrent', value_name, where, limit=limit, offset=offset, order_by=order_by)
+            res_list = self._db.getAll('CollectedTorrent C, TorrentTracker T', value_name, where, limit=limit, offset=offset, order_by=order_by)
+        #self._db.show_execute = False
         
         mypref_stats = self.mypref_db.getMyPrefStats()
-        ranks = self.getRanks()
         
         #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS ###################",len(res_list)
+        
+        torrent_list = self.valuelist2torrentlist(value_name,res_list,ranks,mypref_stats)
+        del res_list
+        del mypref_stats
+        return torrent_list
 
+    def valuelist2torrentlist(self,value_name,res_list,ranks,mypref_stats):
+        
         torrent_list = []
         for item in res_list:
             value_name[0] = 'torrent_id'
@@ -1208,27 +1259,24 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['status'] = self.id2status[torrent['status_id']]
             torrent['simRank'] = ranksfind(ranks,torrent['infohash'])
             torrent['infohash'] = str2bin(torrent['infohash'])
-            #torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers'] 
+            #torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers']
+            torrent['last_check_time'] = torrent['last_check']
+            del torrent['last_check']
             del torrent['source_id']
             del torrent['category_id']
             del torrent['status_id']
             torrent_id = torrent['torrent_id']
-            if torrent_id in mypref_stats:
+            if mypref_stats is not None and torrent_id in mypref_stats:
                 # add extra info for torrent in mypref
                 torrent['myDownloadHistory'] = True
                 data = mypref_stats[torrent_id]  #(create_time,progress,destdir)
                 torrent['download_started'] = data[0]
                 torrent['progress'] = data[1]
                 torrent['destdir'] = data[2]
-                
+            
             #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS",`torrent`
                 
             torrent_list.append(torrent)
-        del res_list
-        del mypref_stats
-        # torrent_list consumes about 2MB for 4836 torrents, and this function costs about 0.15 second
-        #print time()-s
-        #print >> sys.stderr, '*** dbhandler: getTorrents', torrent_list
         return  torrent_list
         
     def getRanks(self,):
@@ -1263,9 +1311,9 @@ class TorrentDBHandler(BasicDBHandler):
         sql_del_tracker = "delete from TorrentTracker where torrent_id=?"
         sql_del_pref = "delete from Preference where torrent_id=?"
         for torrent_file_name, torrent_id, infohash, relevance, weight in res_list:
-            self._db.execute(sql_del_torrent, (torrent_id,))
-            self._db.execute(sql_del_tracker, (torrent_id,))
-            self._db.execute(sql_del_pref, (torrent_id,))
+            self._db.execute_write(sql_del_torrent, (torrent_id,))
+            self._db.execute_write(sql_del_tracker, (torrent_id,))
+            self._db.execute_write(sql_del_pref, (torrent_id,))
         
         self._db.commit()
         
@@ -1303,8 +1351,8 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevances(self, tid_rel_pairs):
         if len(tid_rel_pairs) > 0:
             sql_update_sims = 'UPDATE Torrent SET relevance=? WHERE torrent_id=?'
+            s = time()
             self._db.executemany(sql_update_sims, tid_rel_pairs, commit=True)
-            #self.commit()
         
     def searchNames(self,kws):
         """ Get all torrents (good and bad) that have the specified keywords in 
@@ -1313,44 +1361,30 @@ class TorrentDBHandler(BasicDBHandler):
         @param kws A list of keyword strings
         @return A list of dictionaries.
         """ 
-        sql = 'select * from Torrent where' 
         
         mypref_stats = self.mypref_db.getMyPrefStats()
-        
+
+        where = 'C.torrent_id = T.torrent_id and announce_tier=1'        
         for i in range(len(kws)):
             kw = kws[i]
-            sql += ' name like "%'+kw+'%"'
-            if (i+1) != len(kws):
-                sql += ' and'  
-        #print >>sys.stderr,"torrent_db: searchNames: sql",sql
-        res = self._db.execute(sql)
-        #print >>sys.stderr,"torrent_db: searchNames: res",`res`
-        
-        all = []
-        for flist in res:
-            #print >>sys.stderr,"torrent_db: searchNames: Got Record",`flist`
-            d = self._selectStar2dict(flist)
-            torrent_id = flist[0]
-            d['myDownloadHistory'] = torrent_id in mypref_stats
-            all.append(d)
-        return all
+            where += ' and name like "%'+kw+'%"'
+
+        value_name = copy(self.value_name)
+        if 'torrent_id' in value_name:
+            index = value_name.index('torrent_id')
+            value_name.remove('torrent_id')
+            value_name.insert(index, 'C.torrent_id')
             
-    def _selectStar2dict(self,flist):
-        """ CAUTION: keys must contain the names of the fields as they appear in the
-        Torrent table. I.e. the order of the fields when you do SELECT * from Torrent.
-        NEWDBSTANDARD
-        """
-        keys = ['torrent_id','infohash','name','torrent_file_name','length','creation_date','num_files','thumbnail','insert_time','secret','relevance','source_id','category_id','status_id','num_seeders','num_leechers','comment']
-        torrent = dict(zip(keys,flist))
-        infohash = str2bin(flist[1])
-        torrent['infohash'] = infohash
-        torrent['source'] = self.id2src[torrent['source_id']]
-        del torrent['source_id']
-        torrent['category'] = [self.id2category[torrent['category_id']]]
-        del torrent['category_id']
-        torrent['status'] = self.id2status[torrent['status_id']]
-        del torrent['status_id']
-        return torrent
+        #print >>sys.stderr,"torrent_db: searchNames: where",where
+        res_list = self._db.getAll('CollectedTorrent C, TorrentTracker T', value_name, where)
+        #print >>sys.stderr,"torrent_db: searchNames: res",`res_list`
+        
+        torrent_list = self.valuelist2torrentlist(value_name,res_list,None,mypref_stats)
+        del res_list
+        del mypref_stats
+        
+        return torrent_list
+            
 
     def selectTorrentToCollect(self, permid, candidate_list=None):
         """ select a torrent to collect from a given candidate list
@@ -1454,21 +1488,20 @@ class TorrentDBHandler(BasicDBHandler):
         Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
         """
         id = self._getSourceID(source)
-        sql = 'select * from Torrent where Torrent.source_id = %d' % (id) 
+
+        where = 'C.source_id = %d and C.torrent_id = T.torrent_id and announce_tier=1' % (id)
+        # add familyfilter
+        where += self.category.get_family_filter_sql(self._getCategoryID)
         
-        #print >>sys.stderr,"torrent_db: getTorrentsFromSource: sql",sql
-        res = self._db.execute(sql)
-        #print >>sys.stderr,"torrent_db: getTorrentsFromSource: res",`res`
+        value_name = deepcopy(self.value_name)
+
+        res_list = self._db.getAll('Torrent C, TorrentTracker T', value_name, where)
         
-        all = []
-        for flist in res:
-            print >>sys.stderr,"torrent_db: getTorrentsFromSource: Got Record",`flist`
-            try:
-                d = self._selectStar2dict(flist)
-                all.append(d)
-            except: # unicode error
-                print_exc()
-        return all
+        torrent_list = self.valuelist2torrentlist(value_name,res_list,None,None)
+        del res_list
+        
+        return torrent_list
+
         
     def setSecret(self,infohash,secret):
         kw = {'secret': secret}
@@ -1499,7 +1532,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
         MyPreferenceDBHandler.__single = self
         BasicDBHandler.__init__(self, 'MyPreference')
 
-        self.status_table = self._db.getTorrentStatusTable()
+        self.status_table = {'good':1, 'unknown':0, 'dead':2}
+        self.status_table.update(self._db.getTorrentStatusTable())
         self.status_good = self.status_table['good']
         self.recent_preflist = None
         self.coccurrence = None
@@ -1519,7 +1553,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
     def getMyPrefListInfohash(self):
         sql = 'select infohash from Torrent where torrent_id in (select torrent_id from MyPreference)'
-        res = self._db.execute(sql)
+        res = self._db.fetchall(sql)
         return [str2bin(p[0]) for p in res]
     
     def getMyPrefStats(self, torrent_id=None):
@@ -1552,7 +1586,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
                     self.recent_preflist = self._getRecentLivePrefList()
             finally:
                 self.rlock.release()
-        return self.recent_preflist
+        if num > 0:
+            return self.recent_preflist[:num]
+        else:
+            return self.recent_preflist
         
     def _getRecentLivePrefList(self, num=0):    # num = 0: all files
         # get recent and live torrents
@@ -2003,6 +2040,7 @@ class GUIDBHandler:
         return [(str2bin(t[0]),t[1]) for t in res]
     
     def getSimItems(self, infohash, limit):
+        # recommendation based on collaborative filtering
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
             return []
@@ -2024,6 +2062,7 @@ class GUIDBHandler:
         return [(str2bin(t[0]),t[1], t[2], t[3]) for t in res]
         
     def getSimilarTitles(self, name, limit, infohash, prefix_len=5):
+        # recommendation based on similar titles
         name = name.replace("'","`")
         sql_get_sim_files = """
             select infohash, name, status_id from Torrent 
@@ -2064,7 +2103,7 @@ class GUIDBHandler:
          
     def get_family_filter_sql(self, table_name=''):
         torrent_db_handler = TorrentDBHandler.getInstance()
-        return Category.getInstance().get_family_filter_sql(torrent_db_handler._getCategoryID, table_name=table_name)
+        return torrent_db_handler.category.get_family_filter_sql(torrent_db_handler._getCategoryID, table_name=table_name)
 
     
 def doPeerSearchNames(self,dbname,kws):
@@ -2072,31 +2111,32 @@ def doPeerSearchNames(self,dbname,kws):
     Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
     """
     if dbname == 'Peer':
-        sql = 'select * from Peer where (Peer.buddycast_times>0 or Peer.friend=1) and '
+        where = '(Peer.buddycast_times>0 or Peer.friend=1) and '
+    elif dbname == 'Friend':
+        where  = ''
     else:
-        sql = 'select * from Friend where '
+        raise Exception('unknown dbname: %s' % dbname)
     
-    for i in range(len(kws)):
-        kw = kws[i]
-        sql += ' name like "%'+kw+'%"'
-        if (i+1) != len(kws):
-            sql += ' and'  
-    print >>sys.stderr,"peer_db: searchNames: sql",sql
-    res = self._db.execute(sql)
-    print >>sys.stderr,"peer_db: searchNames: res",`res`
-
-    # See getGUIPeers()
-    value_name = ('peer_id','permid', 'name', 'ip', 'port', 'similarity', 'friend',
-                  'num_peers', 'num_torrents', 'num_prefs', 
-                  'connected_times', 'buddycast_times', 'last_connected')
-    
+    # Must come before query
     ranks = self.getRanks()
 
+    for i in range(len(kws)):
+        kw = kws[i]
+        where += ' name like "%'+kw+'%"'
+        if (i+1) != len(kws):
+            where += ' and'
+            
+    # See getGUIPeers()
+    value_name = PeerDBHandler.gui_value_name
+    
+    #print >>sys.stderr,"peer_db: searchNames: sql",where
+    res_list = self._db.getAll(dbname, value_name, where)
+    #print >>sys.stderr,"peer_db: searchNames: res",res_list
+    
     peer_list = []
-    for item in res:
-        print >>sys.stderr,"peer_db: searchNames: Got Record",`item`
+    for item in res_list:
+        #print >>sys.stderr,"peer_db: searchNames: Got Record",`item`
         peer = dict(zip(value_name, item))
-        del peer['peer_id']
         peer['name'] = dunno2unicode(peer['name'])
         peer['simRank'] = ranksfind(ranks,peer['permid'])
         peer['permid'] = str2bin(peer['permid'])
@@ -2104,6 +2144,8 @@ def doPeerSearchNames(self,dbname,kws):
     return peer_list
 
 def ranksfind(ranks,key):
+    if ranks is None:
+        return -1
     try:
         return ranks.index(key)
     except:

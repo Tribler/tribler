@@ -1,3 +1,6 @@
+# Written by Bram Cohen
+# see LICENSE.txt for license information
+
 class Filter:
     def __init__(self, callback):
         self.callback = callback

@@ -201,7 +201,6 @@ class SocketHandler:
         self.interfaces = []
         # if bind != [] bind to all specified addresses (can be IPs or hostnames)
         # else bind to default ipv6 and ipv4 address
-        print >> sys.stderr, 'Bind: %s' % `bind`
         if bind:
             if self.ipv6_enable:
                 socktype = socket.AF_UNSPEC
@@ -270,7 +269,7 @@ class SocketHandler:
                 pass
         for listen_port in portrange:
             try:
-                print >> sys.stderr, listen_port, bind, reuse
+                #print >> sys.stderr, listen_port, bind, reuse
                 self.bind(listen_port, bind, reuse = reuse,
                                ipv6_socket_style = ipv6_socket_style)
                 return listen_port

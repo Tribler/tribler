@@ -1,3 +1,6 @@
+# Written by Feek Zindel
+# see LICENSE.txt for license information
+
 import httplib
 import socket
 import urllib2

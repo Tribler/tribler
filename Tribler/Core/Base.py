@@ -6,7 +6,7 @@ import sys
 
 from Tribler.Core.exceptions import *
 
-DEBUG = True
+DEBUG = False
 
 #
 # Tribler API base classes

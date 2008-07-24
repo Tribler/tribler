@@ -1,3 +1,6 @@
+# Written by Arno Bakker and ABC authors  
+# see LICENSE.txt for license information
+
 import sys
 import wx
 
@@ -147,7 +150,7 @@ class MainMenuBar(wx.MenuBar):
                                self.utility.lang.get('choosetorrentfile'), 
                                self.utility.getLastDir("open"), 
                                '', 
-                               self.utility.lang.get('torrentfileswildcard') + ' (*.torrent;*'+TRIBLER_TORRENT_EXT+')|*.torrent;*'+TRIBLER_TORRENT_EXT, 
+                               self.utility.lang.get('torrentfileswildcard') + ' (*.torrent;*'+TRIBLER_TORRENT_EXT+';*.tstream)|*.torrent;*'+TRIBLER_TORRENT_EXT+'*.tstream', 
                                wx.OPEN|wx.MULTIPLE)
         result = dialog.ShowModal()
         dialog.Destroy()

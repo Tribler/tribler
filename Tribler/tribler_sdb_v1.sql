@@ -214,6 +214,8 @@ COMMIT TRANSACTION create_table;
 
 ----------------------------------------
 
+BEGIN TRANSACTION init_values;
+
 INSERT INTO Category VALUES (1, 'Video', 'Video Files');
 INSERT INTO Category VALUES (2, 'VideoClips', 'Video Clips');
 INSERT INTO Category VALUES (3, 'Audio', 'Audio');
@@ -231,3 +233,5 @@ INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
 INSERT INTO MyInfo VALUES ('version', 1);
+
+COMMIT TRANSACTION init_values;

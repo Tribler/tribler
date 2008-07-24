@@ -168,7 +168,12 @@ class OverlayApps:
             if DEBUG:
                 print >> sys.stderr,"olapps: Giving message to handler for",getMessageName(id)
             try:
-                return self.msg_handlers[id](permid,selversion,message)
+                st = time()
+                ret = self.msg_handlers[id](permid,selversion,message)
+                et = time()
+                diff = et - st
+                if diff > 0.5:
+                    print >> sys.stderr,"olapps: ",getMessageName(id),"TOOK %.5f" % diff
             except:
                 # Catch all
                 print_exc()

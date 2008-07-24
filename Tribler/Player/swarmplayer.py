@@ -55,7 +55,7 @@ VIDEOHTTP_LISTENPORT = 6879
 
 class PlayerFrame(VideoFrame):
     def __init__(self,parent):
-        VideoFrame.__init__(self,parent,'SwarmPlayer 0.3.0 raw8069',parent.iconpath,parent.vlcwrap,parent.logopath)
+        VideoFrame.__init__(self,parent,'SwarmPlayer 0.3.0 raw8475',parent.iconpath,parent.vlcwrap,parent.logopath)
         self.parent = parent
         self.closed = False
         

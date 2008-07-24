@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke 
+# see LICENSE.txt for license information
+
 import wx, os, sys, os.path
 import wx.xrc as xrc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -9,7 +12,6 @@ from Tribler.Main.vwxGUI.standardGrid import GridState
 from Tribler.Core.Utilities.utilities import sort_dictlist
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Utility.constants import *
-from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.Utilities.unicode import *
 from threading import Thread,currentThread
@@ -87,10 +89,12 @@ class standardOverview(wx.Panel):
         #self.Show(False)
         
         self.currentPanel = self.loadPanel()
-        assert self.currentPanel, "Panel could not be loaded"
+        assert self.currentPanel, "standardOverview: Panel could not be loaded"
         #self.currentPanel.GetSizer().Layout()
         #self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
+        if self.data[self.mode].get('grid'):
+            self.data[self.mode]['grid'].gridManager.reactivate()
         
         if self.oldpanel:
             self.hSizer.Detach(self.oldpanel)
@@ -100,7 +104,8 @@ class standardOverview(wx.Panel):
         self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)
         
         self.hSizer.Layout()
-        print >> sys.stderr, 'standardOverview: refreshMode: %s' % self.currentPanel.__class__.__name__
+        if DEBUG:
+            print >> sys.stderr, 'standardOverview: refreshMode: %s' % self.currentPanel.__class__.__name__
         wx.CallAfter(self.hSizer.Layout)
         wx.CallAfter(self.currentPanel.Layout)
         wx.CallAfter(self.currentPanel.Refresh)
@@ -231,6 +236,9 @@ class standardOverview(wx.Panel):
         if filterState:
             filterState.setDefault(oldFilterState)
             
+        #if filterState.db == 'libraryMode':
+        #    print >> sys.stderr, 'standardOverview: ********************** VALID LIBRARY Filterstate:', filterState
+            
         if filterState and filterState.isValid():
             if self.mode in ('filesMode', 'personsMode', 'libraryMode', 'friendsMode'):
                 #self.loadTorrentData(filterState[0], filterState[1])
@@ -252,18 +260,21 @@ class standardOverview(wx.Panel):
             
        
         else:
-            print >> sys.stderr, 'Invalid Filterstate:', filterState    
+            print >> sys.stderr, 'standardOverview: Invalid Filterstate:', filterState
+            #print_stack()    
     
 
     def loadSubscriptionData(self):
-        print >> sys.stderr, 'load subscription data'
+        if DEBUG:
+            print >> sys.stderr, 'load subscription data'
+            
         torrentfeed = TorrentFeedThread.getInstance()
         urls = torrentfeed.getURLs()
         
         bcsub = self.utility.session.get_start_recommender()
         web2sub = self.utility.lang.get('web2subscription')
         
-        bcactive = self.utility.session.get_start_recommender()
+        bcactive = self.utility.session.get_buddycast() and self.utility.session.get_start_recommender()
         bcstatus = 'inactive'
         if bcactive:
             bcstatus = 'active'

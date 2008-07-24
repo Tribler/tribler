@@ -19,7 +19,7 @@ from Tribler.Core.Utilities.unicode import metainfoname2unicode
 # LAYERVIOLATION
 from Tribler.Video.utils import win32_retrieve_video_play_command
 
-DEBUG = True
+DEBUG = False
 
 class DownloadImpl:
     
@@ -246,11 +246,14 @@ class DownloadImpl:
         self.dllock.acquire()
         try:
             if self.sd is None:
+                
+                print >>sys.stderr,"DownloadImpl: network_get_state: no SingleDownload"
+                
                 ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
                 
-                (status,stats,logmsgs,coopdl_helpers) = self.sd.get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,0.0,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,coopdl_helpers=coopdl_helpers,peerid=self.sd.peerid,videoinfo=self.sd.videoinfo)
+                (status,stats,logmsgs,coopdl_helpers,coopdl_coordinator) = self.sd.get_stats(getpeerlist)
+                ds = DownloadState(self,status,self.error,0.0,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,coopdl_helpers=coopdl_helpers,coopdl_coordinator=coopdl_coordinator,peerid=self.sd.peerid,videoinfo=self.sd.videoinfo)
                 self.progressbeforestop = ds.get_progress()
                 
             if sessioncalling:

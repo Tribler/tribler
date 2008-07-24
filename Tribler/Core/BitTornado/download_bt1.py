@@ -58,7 +58,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 class BT1Download:    
     def __init__(self, statusfunc, finfunc, errorfunc, excfunc, logerrorfunc, doneflag, 
@@ -131,7 +131,8 @@ class BT1Download:
             self.coordinator = None
             self.rate_predictor = None
             
-            print >>sys.stderr,"BT1Download: coopdl_role is",self.config['coopdl_role'],`self.config['coopdl_coordinator_permid']`
+            if DEBUG:
+                print >>sys.stderr,"BT1Download: coopdl_role is",self.config['coopdl_role'],`self.config['coopdl_coordinator_permid']`
             
             if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR:
                 self.coordinator = Coordinator(self.infohash, self.len_pieces)

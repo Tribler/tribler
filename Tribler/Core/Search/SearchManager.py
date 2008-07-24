@@ -5,7 +5,7 @@ from traceback import print_exc
 
 from Tribler.Core.Search.KeywordSearch import KeywordSearch
 
-DEBUG = True
+DEBUG = False
 
 class SearchManager:
     """ Arno: This is DB neutral. All it assumes is a DBHandler with

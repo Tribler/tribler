@@ -102,6 +102,9 @@ class Helper:
         else:
             return False
 
+    def get_coordinator_permid(self):
+        return self.coordinator_permid
+
     #
     # Interface for PiecePicker and Downloader
     # 
@@ -145,13 +148,13 @@ class Helper:
             return result
         if self.coordinator is not None:
             if DEBUG:
-                print >>sys.stderr,"helper: reserve_pieces: calling self.coordinator.reserve_pieces"
+                print >>sys.stderr,"helper: reserve_pieces: I am coordinator, calling self.coordinator.reserve_pieces"
             new_reserved_pieces = self.coordinator.network_reserve_pieces(pieces_to_send, all_or_nothing)
             for piece in new_reserved_pieces:
                 self._reserve_piece(piece)
         else:
             if DEBUG:
-                print >>sys.stderr,"helper: reserve_pieces: self.coordinator not set"
+                print >>sys.stderr,"helper: reserve_pieces: sending remote reservation request"
             self.send_or_queue_reservation(sdownload,pieces_to_send,result)
             return []
 
@@ -258,6 +261,9 @@ class Helper:
             else:
                 all_or_nothing = chr(0)
             payload = self.torrent_hash + all_or_nothing + bencode(pieces)
+
+            if DEBUG:
+                print >> sys.stderr,"helper: RESERVE_PIECES: Sending!!!!!!!!!!!!!",show_permid_short(permid)
 
             self.overlay_bridge.send(permid, RESERVE_PIECES + payload,self.olthread_reserve_pieces_send_callback)
         elif DEBUG:

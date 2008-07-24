@@ -53,9 +53,6 @@ from cStringIO import StringIO
 import urllib
 import webbrowser
 
-if (sys.platform == 'win32'):
-        from Tribler.Main.Dialogs.regdialog import RegCheckDialog
-
 from Tribler.Main.vwxGUI.MainFrame import MainFrame
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
@@ -72,7 +69,7 @@ from Tribler.Main.notification import init as notification_init
 from Tribler.Category.Category import Category
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
-from Tribler.Video.VideoServer import VideoHTTPServer
+from Tribler.Video.VLCWrapper import VLCWrapper
 from Tribler.Web2.util.update import Web2Updater
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Utilities.Instance2Instance import *
@@ -176,13 +173,16 @@ class ABCApp(wx.App):
             # Start server for instance2instance communication
             self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
             self.i2is.start()
+
+            # The python-vlc bindings. Created only once at the moment,
+            # using MediaControl.exit() more than once with the raw interface
+            # blows up the GUI.
+            #
+            self.vlcwrap = VLCWrapper(self.installdir)
             
-            self.videoplayer = VideoPlayer.getInstance()
+            # Fire up the player widget
+            self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
             self.videoplayer.register(self.utility)
-            # Start HTTP server for serving video to player widget
-            self.videoserv = VideoHTTPServer.getInstance(VIDEOHTTP_LISTENPORT) # create
-            self.videoserv.background_serve()
-            self.videoserv.register(self.videoserver_error_callback,self.videoserver_set_status_callback)
 
             notification_init( self.utility )
 
@@ -354,11 +354,16 @@ class ABCApp(wx.App):
             # Pass DownloadStates to libaryView
             try:
                 # Jelle: libraryMode only exists after user clicked button
-                modedata = self.guiUtility.standardOverview.data['libraryMode']
-                gm = modedata['grid'].gridManager
-                gm.download_state_gui_callback(dslist)
+                if self.guiUtility.standardOverview is not None:
+                    mode = self.guiUtility.standardOverview.mode 
+                    if mode == 'libraryMode' or mode == 'friendsMode':
+                        # Also pass dslist to friendsView, for coopdl boosting info
+                        modedata = self.guiUtility.standardOverview.data[mode]
+                        gm = modedata['grid'].gridManager
+                        gm.download_state_gui_callback(dslist)
             except KeyError:
                 # Apparently libraryMode only has has a 'grid' key when visible
+                print_exc()
                 pass
             except AttributeError:
                 print_exc()
@@ -437,25 +442,6 @@ class ABCApp(wx.App):
         wx.CallAfter(self.frame.onReachable)
 
 
-    def videoserver_error_callback(self,e,url):
-        """ Called by HTTP serving thread """
-        wx.CallAfter(self.videoserver_error_guicallback,e,url)
-        
-    def videoserver_error_guicallback(self,e,url):
-        print >>sys.stderr,"main: Video server reported error",str(e)
-        #    self.show_error(str(e))
-        pass
-
-    def videoserver_set_status_callback(self,status):
-        """ Called by HTTP serving thread """
-        wx.CallAfter(self.videoserver_set_status_guicallback,status)
-
-    def videoserver_set_status_guicallback(self,status):
-        # TODO:
-        if self.frame is not None:
-            self.frame.set_player_status(status)
-
-
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be
         # valid.
@@ -488,14 +474,14 @@ class ABCApp(wx.App):
     
     def db_exception_handler(self,e):
         if DEBUG:
-            print >> sys.stderr,"abc: Database Exception handler called",e,"value",e.args,"#"
+            print >> sys.stderr,"main: Database Exception handler called",e,"value",e.args,"#"
         try:
             if e.args[1] == "DB object has been closed":
                 return # We caused this non-fatal error, don't show.
             if self.error is not None and self.error.args[1] == e.args[1]:
                 return # don't repeat same error
         except:
-            print >> sys.stderr, "abc: db_exception_handler error", e, type(e)
+            print >> sys.stderr, "main: db_exception_handler error", e, type(e)
             print_exc()
             #print_stack()
         self.error = e
@@ -513,7 +499,7 @@ class ABCApp(wx.App):
     def i2icallback(self,cmd,param):
         """ Called by Instance2Instance thread """
         
-        print >>sys.stderr,"abc: Another instance called us with cmd",cmd,"param",param
+        print >>sys.stderr,"main: Another instance called us with cmd",cmd,"param",param
         
         if cmd == 'START':
             torrentfilename = None

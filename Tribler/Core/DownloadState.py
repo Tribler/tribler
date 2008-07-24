@@ -15,7 +15,7 @@ from Tribler.Core.defaults import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
 
-DEBUG = True
+DEBUG = False
 
 class DownloadState(Serializable):
     """
@@ -25,7 +25,7 @@ class DownloadState(Serializable):
     
     cf. libtorrent torrent_status
     """
-    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,coopdl_helpers=None,peerid=None,videoinfo=None):
+    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,coopdl_helpers=[],coopdl_coordinator=None,peerid=None,videoinfo=None):
         """ Internal constructor.
         @param download The Download this state belongs too.
         @param status The status of the Download (DLSTATUS_*)
@@ -46,6 +46,7 @@ class DownloadState(Serializable):
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
         self.coopdl_helpers = coopdl_helpers
+        self.coopdl_coordinator = coopdl_coordinator
         self.peerid = peerid
         self.videoinfo = videoinfo
         if stats is None:
@@ -333,3 +334,11 @@ class DownloadState(Serializable):
             return []
         else:
            return self.coopdl_helpers 
+
+    def get_coopdl_coordinator(self):
+        """ Returns the permid of the coordinator when helping that peer
+        in a cooperative download
+        @return A PermID.
+        """
+        return self.coopdl_coordinator
+    

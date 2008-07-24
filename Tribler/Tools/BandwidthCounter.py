@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg
+# see LICENSE.txt for license information
+
 import sys, commands, re, time
 
 IFCONFIG_REGEXP = re.compile('rx bytes:(\d+).*?tx bytes:(\d+)')

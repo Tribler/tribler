@@ -12,6 +12,7 @@ import binascii
 
 from Tribler.Core.TorrentDef import *
 from Tribler.Core.Session import *
+from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short

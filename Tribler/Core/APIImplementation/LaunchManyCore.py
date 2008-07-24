@@ -51,10 +51,11 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.RequestPolicy import *
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.osutils import get_readable_torrent_name
+from Tribler.Category.Category import Category
 
 SPECIAL_VALUE=481
 
-DEBUG = True
+DEBUG = False
 PROFILE = False
 
 # Internal classes
@@ -128,8 +129,8 @@ class TriblerLaunchMany(Thread):
             self.peer_db        = PeerDBHandler.getInstance()
             # Register observer to update connection opened/closed to peer_db_handler
             self.peer_db.registerConnectionUpdater(self.session)
-            
             self.torrent_db     = TorrentDBHandler.getInstance()
+            self.torrent_db.registerCategory(Category.getInstance())
             self.mypref_db      = MyPreferenceDBHandler.getInstance()
             self.pref_db        = PreferenceDBHandler.getInstance()
             self.superpeer_db   = SuperPeerDBHandler.getInstance()

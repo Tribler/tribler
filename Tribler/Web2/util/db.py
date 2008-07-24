@@ -1,3 +1,5 @@
+# Written by Fabian van der Werf
+# see LICENSE.txt for license information
 
 import sys
 import Queue
@@ -499,7 +501,8 @@ class ThreadedDBSearch(observer.Subject):
         self.__sleeplock.acquire()
         self.__wanted += num
         
-        print >>sys.stderr,"web2: db: ThreadedDBSearch: getMore",num,"stop",self.__stop.isSet()
+        if DEBUG:
+	        print >>sys.stderr,"web2: db: ThreadedDBSearch: getMore",num,"stop",self.__stop.isSet()
         
         self.__sleeplock.notifyAll()
         self.__sleeplock.release()
@@ -590,7 +593,7 @@ class CompoundDBSearch(observer.Subject, observer.Observer):
 
             if self.total <= self.wanted:
                 if DEBUG:
-                    print "CompoundSearch: returning an item"
+                    print >>sys.stderr,"web2: db: CompoundSearch: returning an item"
                 self.notify(item)
             else:
                 self.items.append(item)

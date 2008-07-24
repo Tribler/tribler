@@ -32,15 +32,18 @@ class SingleDownload:
         
         self.dow = None
         self.set_error_func = set_error_func
+        self.videoinfo = None
+        self.videostatus = None
+        self.lmvodeventcallback = lmvodeventcallback
+        self.lmhashcheckcompletecallback = None
+        self.logmsgs = []
+        self._hashcheckfunc = None
+        self._getstatsfunc = None
         try:
             self.dldoneflag = Event()
-            
             self.dlrawserver = multihandler.newRawServer(infohash,self.dldoneflag)
             self.lmvodeventcallback = lmvodeventcallback
     
-            self.logmsgs = []
-            self._hashcheckfunc = None
-            self._getstatsfunc = None
             if pstate is not None:
                 self.hashcheckfrac = pstate['dlstate']['progress']
             else:
@@ -69,9 +72,6 @@ class SingleDownload:
             #    print >>sys.stderr,"SingleDownload: dow.saveAs returned",file
             
             # Set local filename in vodfileindex
-            self.videoinfo = None
-            self.videostatus = None
-
             if vodfileindex is not None:
                 index = vodfileindex['index']
                 if index == -1:
@@ -95,7 +95,6 @@ class SingleDownload:
                 resumedata=pstate['engineresumedata']
             self._hashcheckfunc = self.dow.initFiles(resumedata=resumedata)
             
-            self.lmhashcheckcompletecallback = None
             
         except Exception,e:
             self.fatalerrorfunc(e)
@@ -182,19 +181,23 @@ class SingleDownload:
     def get_stats(self,getpeerlist):
         logmsgs = self.logmsgs[:] # copy
         coopdl_helpers = []
+        if self.dow.helper is None:
+            coopdl_coordinator = None
+        else:
+            coopdl_coordinator = self.dow.helper.get_coordinator_permid() 
         if self.dow is not None and self.dow.coordinator is not None: 
             # No coordinator when you're a helper
             peerreclist = self.dow.coordinator.network_get_asked_helpers_copy()
             for peerrec in peerreclist:
                 coopdl_helpers.append(peerrec['permid'])
         if self._getstatsfunc is None:
-            return (DLSTATUS_WAITING4HASHCHECK,None,logmsgs,coopdl_helpers)
+            return (DLSTATUS_WAITING4HASHCHECK,None,logmsgs,coopdl_helpers,coopdl_coordinator)
         elif self._getstatsfunc == SPECIAL_VALUE:
             stats = {}
             stats['frac'] = self.hashcheckfrac
-            return (DLSTATUS_HASHCHECKING,stats,logmsgs,coopdl_helpers)
+            return (DLSTATUS_HASHCHECKING,stats,logmsgs,coopdl_helpers,coopdl_coordinator)
         else:
-            return (None,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs,coopdl_helpers)
+            return (None,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs,coopdl_helpers,coopdl_coordinator)
 
     def get_infohash(self):
         return self.infohash
