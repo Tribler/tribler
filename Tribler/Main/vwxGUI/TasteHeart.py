@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
+# see LICENSE.txt for license information
+
 import wx, os, sys,time
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility

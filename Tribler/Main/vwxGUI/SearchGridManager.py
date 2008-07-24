@@ -54,17 +54,19 @@ class TorrentSearchGridManager:
         return TorrentSearchGridManager.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self,torrent_db,gridmgr):
+    def register(self,torrent_db):
         self.torrent_db = torrent_db
         self.searchmgr = SearchManager(torrent_db)
+        
+    def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
     
     def getHitsInCategory(self,mode,categorykey,range):
+        begintime = time()
         # mode is 'filesMode', 'libraryMode'
         # categorykey can be 'all', 'Video', 'Document', ...
         
         if DEBUG:
-            
             print >>sys.stderr,"TorrentSearchGridManager: getHitsInCategory:",mode,categorykey,range
         
         categorykey = categorykey.lower()
@@ -95,20 +97,21 @@ class TorrentSearchGridManager:
             
             okGood = torrent['status'] == 'good' or torrent.get('myDownloadHistory', False)
             
-            print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
+            #print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
             return okLibrary and okCategory and okGood
         
         # 1. Local search puts hits in self.hits
-        self.searchLocalDatabase(mode)
+        new_local_hits = self.searchLocalDatabase(mode)
         
         if DEBUG:
             print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items' % len(self.hits)
-        
-        # 2. Filter self.hits on category and status
-        self.hits = filter(torrentFilter,self.hits)
+
+        if new_local_hits:
+            # 2. Filter self.hits on category and status
+            self.hits = filter(torrentFilter,self.hits)
 
         if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after search found: %d items' % len(self.hits)
+            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items' % len(self.hits)
         
         self.standardOverview.setSearchFeedback('web2', False, -1, self.searchkeywords[mode])
         self.standardOverview.setSearchFeedback('remote', False, -1, self.searchkeywords[mode])
@@ -121,12 +124,15 @@ class TorrentSearchGridManager:
         
         # 3. Add remote hits that may apply. TODO: double filtering, could
         # add remote hits to self.hits before filter(torrentFilter,...)
+
+        if mode != 'libraryMode':
+            self.addStoredRemoteResults(mode, categorykey)
+            self.addStoredWeb2Results(mode,categorykey,range)
+
+            if DEBUG:
+                print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
         
-        self.addStoredRemoteResults(mode, categorykey)
-        if DEBUG:
-            print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after search: %d items' % len(self.hits)
-        
-        self.addStoredWeb2Results(mode,categorykey,range)
+
                 
 #       if self.inSearchMode(mode):
 #            self.standardOverview.setSearchFeedback('torrent', True, len(self.hits))                
@@ -138,7 +144,9 @@ class TorrentSearchGridManager:
         else:
             end = range[1]
         begin = range[0]
+        beginsort = time()
         self.sort()
+        #print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time()-beginsort))
         return [len(self.hits),self.hits[begin:end]]
                 
                 
@@ -154,7 +162,10 @@ class TorrentSearchGridManager:
                 self.dod.clear()
 
     def inSearchMode(self, mode):
-        return bool(self.searchkeywords.get(mode))
+        if self.standardOverview is None:
+            return bool(self.searchkeywords.get(mode))
+        else:
+            return bool(self.searchkeywords.get(mode)) and self.standardOverview.getSearchBusy()
          
     def stopSearch(self):
         # TODO
@@ -169,17 +180,18 @@ class TorrentSearchGridManager:
         if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
             if DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
-            return self.hits
-            
+            return False
+
+        self.oldsearchkeywords[mode] = self.searchkeywords[mode]
         if DEBUG:
             print >>sys.stderr,"TorrentSearchGridManager: searchLocalDB: Want",self.searchkeywords[mode]
         
         if len(self.searchkeywords[mode]) == 0 or len(self.searchkeywords[mode]) == 1 and self.searchkeywords[mode][0] == '':
-            return self.hits
+            return False
         
         self.hits = self.searchmgr.search(self.searchkeywords[mode])
         
-        return self.hits
+        return True
 
     def addStoredRemoteResults(self, mode, cat):
         """ Called by GetHitsInCategory() to add remote results to self.hits """
@@ -213,7 +225,6 @@ class TorrentSearchGridManager:
         
     def gotRemoteHits(self,permid,kws,answers,mode):
         """ Called by GUIUtil when hits come in. """
-        print >>sys.stderr,"rmote each time, so we can call sort here, hehe" 
         try:
             if DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers)
@@ -265,9 +276,14 @@ class TorrentSearchGridManager:
                     # TODO: select best result?
                     if not (newval['infohash'] in self.remoteHits): 
                         self.remoteHits[newval['infohash']] = newval
+                        #numResults +=1
+                        #if numResults % 5 == 0:
+                        #self.refreshGrid()
                     
                 if mode == 'filesMode' and self.standardOverview.getSearchBusy():
                     self.refreshGrid()
+                    if DEBUG:
+                        print >>sys.stderr,'Refresh grid after new remote torrent hits came in'
                 #    if self.notifyView(value, 'add'):
                 #        numResults +=1
                 #self.standardOverview.setSearchFeedback('remote', False, numResults, self.searchkeywords[mode])
@@ -286,7 +302,9 @@ class TorrentSearchGridManager:
             
 
     def notifyView(self,value,cmd):
-        print >>sys.stderr,"TorrentSearchGridManager: notfyView ###########################",cmd,`value`
+        if DEBUG:
+            print >>sys.stderr,"TorrentSearchGridManager: notfyView",cmd,`value`
+        pass
 
     #
     # Move to Web2SearchGridManager
@@ -302,7 +320,7 @@ class TorrentSearchGridManager:
         """ Called by Web2DBSearchThread*s* """
         if DEBUG:
             print >>sys.stderr,"TorrentSearchGridManager: tthread_gotWeb2Hit",`item['content_name']`
-        print >>sys.stderr,"webondemand each time, so we can call sort here, hehe"
+
         wx.CallAfter(self.refreshGrid)
         
     def web2tonewdb(self,value):
@@ -338,10 +356,15 @@ class TorrentSearchGridManager:
                 if DEBUG:
                     print >>sys.stderr,"TorrentSearchManager: web2: requestMore?",range[1],self.dod.getNumRequested()
                 pagesize = range[1] - range[0]
-                diff = self.dod.getNumRequested() - range[1]
-                if diff <= pagesize:
+                #diff = self.dod.getNumRequested() - range[1]
+                #if diff <= pagesize:
+                # JelleComment: above code doesnt work, because other search results are also on pages
+                # so we might have 100 pages of local search results. If range is related to 80th page
+                # websearch will try to get 80xpagesize youtube videos
+                # Set it steady to 3 pages
+                if self.dod.getNumRequested() < 3*pagesize:
                     if DEBUG:
-                        print >>sys.stderr,"TorrentSearchManager: web2: requestMore diff",diff
+                        print >>sys.stderr,"TorrentSearchManager: web2: requestMore diff",pagesize
                     self.dod.requestMore(pagesize)
                     
                 data = self.dod.getDataSafe()
@@ -353,10 +376,22 @@ class TorrentSearchGridManager:
                     # Translate to NEWDB/FileItemPanel format, doing this in 
                     # web2/video/genericsearch.py breaks something
                     newval = self.web2tonewdb(value)
-                    self.hits.append(newval)
-                    numResults += 1
+
+                    known = False
+                    for item in self.hits:
+                        if item['infohash'] == newval['infohash']:
+                            known = True
+                            break
+                    if not known:
+                        self.hits.append(newval)
+                        numResults += 1
 
                 self.standardOverview.setSearchFeedback('web2', False, numResults, self.searchkeywords[mode])
+        #    else:
+        #        print >>sys.stderr,"TorrentSearchManager: No web2 hits, no self.dod"
+                
+        #else:
+        #    print >>sys.stderr,"TorrentSearchManager: No web2 hits, mode",mode,"web2on",web2on,"in search",self.inSearchMode(mode),"catkey",categorykey
     
     #Rameez: The following code will call normalization functions and then 
     #sort and merge the combine torrent and youtube results
@@ -364,12 +399,12 @@ class TorrentSearchGridManager:
         self.normalizeResults()
         self.statisticalNormalization()
         #Rameez: now sort combined (i.e after the above two normalization procedures)
-        for i in range( len(self.hits)-1):
-            for j in range (i+1, len(self.hits)):
-                if self.hits[i].get('normScore') < self.hits[j].get('normScore'):
-                    temp = self.hits[i]
-                    self.hits[i]= self.hits[j]
-                    self.hits[j] = temp
+        def cmp(a,b):
+            # normScores can be small, so multiply
+            return int(100000.0 * (b.get('normScore',0) - a.get('normScore',0)))
+        self.hits.sort(cmp)
+        
+        
                             
     
     def normalizeResults(self):
@@ -377,22 +412,19 @@ class TorrentSearchGridManager:
         youtube_total = 0
         
         #Rameez: normalize torrent results
-        for i in range(len(self.hits)):
-            if not self.hits[i].has_key('views'):
-                torrent_total += self.hits[i].get('num_seeders')
-        
-        for i in range(len(self.hits)):
-            if not self.hits[i].has_key('views'):
-                self.hits[i]['normScore'] = self.hits[i].get('num_seeders')/float(torrent_total)
-
         #Rameez: normalize youtube results
-        for i in range(len(self.hits)):
-            if self.hits[i].has_key('views') and self.hits[i].get('views') != "unknown":
-                youtube_total += int(self.hits[i].get('views'))
-        
-        for i in range(len(self.hits)):
-            if self.hits[i].has_key('views') and self.hits[i].get('views') != "unknown":
-                self.hits[i]['normScore'] = self.hits[i].get('views')/float(youtube_total)
+        for hit in self.hits:
+            if not hit.has_key('views'):
+                torrent_total += hit.get('num_seeders',0)
+            elif hit['views'] != 'unknown':
+                youtube_total += int(hit['views'])
+    
+        for hit in self.hits:
+            if not hit.has_key('views'):
+                hit['normScore'] = hit.get('num_seeders',0)/float(torrent_total)
+            elif hit['views'] != 'unknown':
+                hit['normScore'] = int(hit['views'])/float(youtube_total)
+
     
         
     
@@ -502,10 +534,13 @@ class PeerSearchGridManager:
         return PeerSearchGridManager.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self,peer_db,friend_db,gridmgr):
+    def register(self,peer_db,friend_db):
         self.psearchmgr = SearchManager(peer_db)
         self.fsearchmgr = SearchManager(friend_db)
+
+    def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
+
     
     def getHits(self,mode,range):
         # mode is 'personsMode', 'friendsMode'
@@ -517,6 +552,8 @@ class PeerSearchGridManager:
             
         # Local search puts hits in self.hits
         self.searchLocalDatabase(mode)
+        
+        #print >>sys.stderr,"PeerSearchGridManager: searchLocalDB: GOT HITS",self.hits
         
         if DEBUG:
             print >>sys.stderr,'PeerSearchGridManager: getHitsInCat: search found: %d items' % len(self.hits)
@@ -543,8 +580,8 @@ class PeerSearchGridManager:
                 
     def setSearchKeywords(self,wantkeywords, mode):
 
-        if len(wantkeywords) == 0:
-            print_stack()
+#        if len(wantkeywords) == 0:
+#            print_stack()
         
         self.searchkeywords[mode] = wantkeywords
 
@@ -563,7 +600,9 @@ class PeerSearchGridManager:
             if DEBUG:
                 print >>sys.stderr,"PeerSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
             return self.hits
-            
+
+        self.oldsearchkeywords[mode] = self.searchkeywords[mode]
+        
         if DEBUG:
             print >>sys.stderr,"PeerSearchGridManager: searchLocalDB: Want",self.searchkeywords[mode]
         
@@ -572,9 +611,9 @@ class PeerSearchGridManager:
         
         if mode == 'personsMode':
             self.hits = self.psearchmgr.search(self.searchkeywords[mode])
-        else:
+        else: # friends
             self.hits = self.fsearchmgr.search(self.searchkeywords[mode])
-        
+
         return self.hits
     
         

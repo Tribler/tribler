@@ -17,8 +17,6 @@ import cStringIO
 import TasteHeart
 from font import *
 
-from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
-
 DEBUG = False
 
 # font sizes
@@ -63,7 +61,6 @@ class FilesItemPanel(wx.Panel):
         self.warningMode = False
         self.oldCategoryLabel = None
         self.guiserver = parent.guiserver
-        self.metadatahandler = MetadataHandler.getInstance()
         self.addComponents()
         self.iconsManager = IconsManager.getInstance()
         self.Show()
@@ -184,7 +181,7 @@ class FilesItemPanel(wx.Panel):
             # V Line
             self.vLine6 = self.addLine() 
             # Add Source Icon
-            self.sourceIcon = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='bcIcon')
+            self.sourceIcon = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='bcicon')
             self.sourceIcon.setBackground(wx.WHITE)
             #self.sourceIcon.SetToolTipString(self.utility.lang.get('---'))          
             self.hSizer.Add(self.sourceIcon, 0, wx.TOP, 2)
@@ -262,8 +259,8 @@ class FilesItemPanel(wx.Panel):
                     
                 self.creationDate.Enable(True)
                 if torrent['num_seeders'] >= 0:
-                    self.seedersNumber.SetLabel('%d' % torrent['num_seeders'])
-                    self.leechersNumber.SetLabel('%d' % torrent['num_leechers'])
+                    self.seedersNumber.SetLabel('%s' % torrent['num_seeders'])
+                    self.leechersNumber.SetLabel('%s' % torrent['num_leechers'])
                 else:
                     self.seedersNumber.SetLabel('?')
                     self.leechersNumber.SetLabel('?')
@@ -475,7 +472,6 @@ class ThumbnailViewer(wx.Panel):
     def __init__(self, parent, mode, **kw):
         self.parent = parent 
         wx.Panel.__init__(self, parent, **kw)
-        self.metadatahandler = parent.metadatahandler
         self.mode = mode
         self._PostInit()
         
@@ -563,10 +559,14 @@ class ThumbnailViewer(wx.Panel):
                 if not DEBUG:
                     print "fip: Scheduling read of thumbnail for",`torrent['name']`,"from",torrent_filename
                 
-                
-                
+                def loadMetaDataNow():
+                    try:
+                        self.loadMetadata(torrent,torrent_filename)
+                    except wx.PyDeadObjectError:
+                        pass
+                    
                 try:
-                    self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
+                    self.GetParent().guiserver.add_task(loadMetaDataNow,0)
                 except wx.PyDeadObjectError:
                     pass
         

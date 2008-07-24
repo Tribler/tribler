@@ -1,5 +1,10 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke 
+# see LICENSE.txt for license information
+
 import wx, os, sys
 from traceback import print_exc
+from time import time
+
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 DEBUG = False
@@ -10,6 +15,8 @@ class tribler_topButton(wx.Panel):
     It redraws the background of the parent Panel, if this is an imagepanel with
     a variable self.bitmap.
     """
+
+    __bitmapCache = {}
 
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
@@ -43,6 +50,7 @@ class tribler_topButton(wx.Panel):
         self.selected = False
         self.tooltip = None
         self.old_bitmaps = None #bitmaps that were initially loaded on the button with searchBitmaps function, and now have been changed to some provisory ones using switchTo
+
         self.searchBitmaps()
         self.createBackgroundImage()
         
@@ -53,7 +61,6 @@ class tribler_topButton(wx.Panel):
 #        print >> sys.stderr, self.Name
 #        print >> sys.stderr, 'size'
 #        print >> sys.stderr, self.Size
-        
         
         self.initDone = True
         self.Refresh(True)
@@ -68,21 +75,21 @@ class tribler_topButton(wx.Panel):
         # get the image directory
         self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
        
-        if not os.path.isdir(self.imagedir):
-            print 'Error: no image directory found in %s' % self.imagedir
-            return
-        
         # find a file with same name as this panel
         self.bitmapPath = [os.path.join(self.imagedir, self.GetName()+'.png'), 
                         os.path.join(self.imagedir, self.GetName()+'_clicked.png')]
         
         i = 0
         for img in self.bitmapPath:
-            if os.path.isfile(img):
-                self.bitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+            try:
+                if img in tribler_topButton.__bitmapCache:
+                    self.bitmaps[i] = tribler_topButton.__bitmapCache[img]
+                else:
+                    self.bitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+                    tribler_topButton.__bitmapCache[img] = self.bitmaps[i] 
                 i+=1
-            elif DEBUG:
-                print 'Could not find image: %s' % img
+            except:
+                print_exc()
          
            
     def setBitmaps(self, normalBitmap, selectedBitmap=None):
@@ -279,6 +286,9 @@ class tribler_topButton(wx.Panel):
 
 class SwitchButton(tribler_topButton):
         
+    # Somehow can't inherit these
+    __bitmapCache = {}
+        
     def searchBitmaps(self):
         self.toggled = False
         self.allBitmaps = [None, None, None, None]
@@ -286,16 +296,7 @@ class SwitchButton(tribler_topButton):
         self.mouseOver = False
                 
         # get the image directory
-        abcpath = self.utility.getPath()
         self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
-        if not os.path.isdir(self.imagedir):
-            olddir = self.imagedir
-            # Started app.py in vwxDir?
-            self.imagedir = os.path.join(abcpath, 'images')
-            
-        if not os.path.isdir(self.imagedir):
-            print >> sys.stderr, 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
-            return
         
         # find a file with same name as this panel
         self.bitmapPath = [os.path.join(self.imagedir, self.GetName()+'.png'), 
@@ -306,11 +307,15 @@ class SwitchButton(tribler_topButton):
         
         i = 0
         for img in self.bitmapPath:
-            if os.path.isfile(img):
-                self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+            try:
+                if img in SwitchButton.__bitmapCache:
+                    self.allBitmaps[i] = SwitchButton.__bitmapCache[img]
+                else:
+                    self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+                    SwitchButton.__bitmapCache[img] = self.allBitmaps[i] 
                 i+=1
-            elif DEBUG:
-                print >> sys.stderr, 'Could not find image: %s' % img
+            except:
+                print_exc()
                 
 
         if self.toggled:
@@ -345,6 +350,9 @@ class SwitchButton(tribler_topButton):
     
 
 class PlayerSwitchButton(tribler_topButton):
+
+    # Somehow can't inherit these
+    __bitmapCache = {}
         
     def __init__(self, imagedir, filename):
         self.initDone = False
@@ -378,11 +386,9 @@ class PlayerSwitchButton(tribler_topButton):
         self.parentBitmap = None
         self.mouseOver = False
                 
-                    
-        if not os.path.isdir(self.imagedir):
-            print 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
-            return
-        
+        # get the image directory
+        self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
+
         # find a file with same name as this panel
         self.bitmapPath = [os.path.join(self.imagedir, self.filename+'.png'), 
                         os.path.join(self.imagedir, self.filename+'_clicked.png'),
@@ -392,12 +398,15 @@ class PlayerSwitchButton(tribler_topButton):
         
         i = 0
         for img in self.bitmapPath:
-            if os.path.isfile(img):
-                self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+            try:
+                if img in PlayerSwitchButton.__bitmapCache:
+                    self.allBitmaps[i] = PlayerSwitchButton.__bitmapCache[img]
+                else:
+                    self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+                    PlayerSwitchButton.__bitmapCache[img] = self.allBitmaps[i] 
                 i+=1
-            elif DEBUG:
-                print 'Could not find image: %s' % img
-                
+            except:
+                print_exc()
 
         if self.toggled:
             self.bitmaps = self.allBitmaps[2:]

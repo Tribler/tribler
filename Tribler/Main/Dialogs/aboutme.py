@@ -176,56 +176,56 @@ class AboutMeDialog(MyHtmlDialog):
 
 
         content =    "<B><CENTER>" + \
-                     self.utility.lang.get('title') + \
-                     "<BR>" + \
-                     self.utility.lang.get('version') + \
+                       self.utility.lang.get('title') + " V" + self.utility.lang.get('version') + \
                      "</CENTER></B>" + \
                      "<FONT SIZE=-1>" + \
+                     "<CENTER><BR>" + self.utility.lang.get('build_date') + "</CENTER>" + \
+                     "<P>Tribler is an Internet TV application." + \
+                     "<BR>It allows you to find, share, and consume videos." + \
+                     "<BR>" + \
+                     "<BR>Created by the Tribler P2P research Team." + \
+                     "<BR>This work is supported by various research grants from the Dutch ministry of economic affairs, the Dutch Technology Foundation STW, and the European Union 6th+7th framework program.</TD>" + \
+                     "<BR>" + \
                      "<P><TABLE BORDER=0 CELLSPACING=0>" + \
                      "<TR>" + \
-                         "<TD>Author:</TD>" + \
-                         "<TD>Tribler Team &amp; Choopan Rattanapoka (choopanr@hotmail.com)</TD>" + \
+                         "<TD>Contributors:</TD>" + \
+                         "<TD>Delft University of Technology</TD>" + \
                      "</TR>" + \
-                     "<TR>" + \
-                         "<TD>Date:</TD>" + \
-                         "<TD>" + self.utility.lang.get('build_date') + "</TD>" + \
-                     "</TR>" + \
+                     "<TR><TD>&nbsp;</TD><TD>" + \
+                         "(<A HREF=mailto:triblersoft@gmail.com>triblersoft@gmail.com</A>)" + \
+                         "<BR>Vrije Universiteit Amsterdam" + \
+                         "<BR>University Politehnica Bucharest" + \
+                         "<BR>Royal Institute of Technology Stockholm" + \
+                         "<BR>Your-name-here if you submit code" + \
+                     "</TD></TR>" + \
                      "<TR>" + \
                          "<TD>Homepage:</TD>" + \
                          "<TD><A HREF=http://www.tribler.org>Tribler Homepage</A></TD>" + \
                      "</TR>" + \
                      "<TR>" + \
                          "<TD>Forums:</TD>" + \
-                         "<TD><A HREF=http://sourceforge.net/forum/?group_id=159448>Tribler Forums</A></TD>" + \
+                         "<TD><A HREF=http://www.tribler.org/discussion/1>Tribler Forums</A></TD>" + \
                      "</TR>" + \
-                     "<TR>" + \
-                         "<TD>Additional Code:</TD>" + \
-                         "<TD>Tim Tucker (<A HREF=mailto:abc@timtucker.com>abc@timtucker.com</A>)</TD>" + \
-                     "</TR>" + \
-                     "<TR><TD>&nbsp;</TD><TD>" + \
-                         "NoirSoldats (noirsoldats@codemeu.com)" + \
-                         "<BR>kratoak5" + \
-                         "<BR>roee88" + \
-                         "<BR>Delft University of Technology (<A HREF=mailto:triblersoft@gmail.com>triblersoft@gmail.com</A>)" + \
-                         "<BR>Vrije Universiteit Amsterdam" + \
-                     "</TD></TR>" + \
                      "<TR>" + \
                          "<TD COLSPAN=2>" + self.utility.lang.get('translate') + "</TD>"\
                      "</TR>" + \
                      "</TABLE>" + \
                      "<P>The system core is <A HREF=http://www.bittornado.com>BitTornado " + bittornado_version + "</A>" + \
                      "<BR>based on Bittorrent coded by Bram Cohen" + \
-                     "<P>Special Thanks:" + \
+                     "<BR>Plus the ABC code by Choopan Rattanapoka and Tim Tucker." + \
+                     "<BR>Special Thanks:" + \
+                     "<BR>NoirSoldats (noirsoldats@codemeu.com)" + \
+                     "<BR>kratoak5" + \
+                     "<BR>roee88" + \
                      "<BR>Greg Fleming (www.darkproject.com)" + \
                      "<BR>Pir4nhaX (www.clanyakuza.com)" + \
                      "<BR>Michel Hartmann (php4abc.i-networx.de)" + \
-                     "<BR>Everybody for supporting ABC" + \
                      "<P>Powered by <A HREF=http://www.python.org>Python " + python_version + "</A>, " + \
                                    "<A HREF=http://www.wxpython.org>wxPython " + wx_version + "</A>, " + \
                                    "<A HREF=http://starship.python.net/crew/theller/py2exe/>py2exe " + py2exe_version + "</A>, " + \
                                    "<A HREF=http://nsis.sourceforge.net/>NSIS " + nsis_version + "</A>" + \
-                     "<P>Copyright (c) 2003-2004, Choopan Rattanapoka" + \
-                    "<P>Copyright (c) 2005-2008, Delft University of Technology and Vrije Universiteit Amsterdam" + \
+                     "<P>Parts copyrighted (c) 2003-2004, Choopan Rattanapoka" + \
+                     "<P>Copyright (c) 2005-2008, Delft University of Technology and Vrije Universiteit Amsterdam" + \
                      "</FONT>"
 
         MyHtmlDialog.__init__(self, parent, title, content)

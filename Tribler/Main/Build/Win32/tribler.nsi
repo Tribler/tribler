@@ -154,6 +154,17 @@ Section "Make Default For .torrent" SecDefaultTorrent
 SectionEnd
 
 Section "Make Default For .tstream" SecDefaultTStream
+   ; Arno: Poor man's attempt to check if already registered
+   ReadRegStr $0 HKCR .tstream ""
+   ReadRegStr $1 HKCR "tstream\shell\open\command" ""
+   StrCpy $2 $1 -4 
+   StrCmp $0 "" 0 +2
+      return
+   MessageBox MB_YESNO ".tstream already registered to $2. Overwrite?" IDYES +2 IDNO 0
+      Return
+   DetailPrint "Arno registering .tstream: $0 $1 $2"
+
+   ; Register
    WriteRegStr HKCR .tstream "" tstream
    WriteRegStr HKCR .tstream "Content Type" application/x-tribler-stream
    WriteRegStr HKCR "MIME\Database\Content Type\application/x-tribler-stream" Extension .tstream

@@ -1,3 +1,5 @@
+# Written by ABC authors
+# see LICENSE.txt for license information
 import sys
 import wx
 from os import path

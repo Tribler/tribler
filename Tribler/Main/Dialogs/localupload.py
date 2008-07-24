@@ -1,5 +1,7 @@
+# Written by Choopan RATTANAPOKA
+# see LICENSE.txt for license information
+
 #########################################################################
-# Author : Choopan RATTANAPOKA
 # Description : To change local upload options for each torrent
 #########################################################################
 import wx

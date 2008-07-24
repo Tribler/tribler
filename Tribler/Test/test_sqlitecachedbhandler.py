@@ -5,25 +5,42 @@ import tempfile
 from traceback import print_exc
 import thread, threading
 from time import time
-from shutil import copy as copyFile
 from binascii import unhexlify
+from shutil import copy as copyFile, move
 
-
-if os.path.exists('test_sqlitecachedbhandler.py'):
+if os.path.exists(__file__):
     BASE_DIR = '..'
     sys.path.insert(1, os.path.abspath('..'))
 elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
-else:
-    BASE_DIR = 'Tribler'
     
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, sqlite, bin2str, str2bin
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
+from Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
+from Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, MyDBHandler, BasicDBHandler, PeerDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler
+from Category.Category import Category
+
+def extract_db_files(file_dir, file_name):
+    try:
+        import tarfile
+        tar=tarfile.open(os.path.join(file_dir, file_name), 'r|gz')
+        for member in tar:
+            print "extract file", member
+            tar.extract(member)
+            dest = os.path.join(file_dir,member.name)
+            dest_dir = os.path.dirname(dest)
+            if not os.path.isdir(dest_dir):
+                os.makedirs(dest_dir)
+            move(member.name, dest)
+        tar.close()
+        return True
+    except:
+        print_exc()
+        return False
 
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = None
 FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'Test/extend_db_dir/'))
 TRIBLER_DB_PATH = os.path.join(FILES_DIR, 'tribler.sdb')
+STATE_FILE_NAME_PATH = os.path.join(FILES_DIR, 'tribler.sdb-journal')
 TRIBLER_DB_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_tribler.sdb')
 
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
@@ -32,25 +49,34 @@ S_TORRENT_PATH = os.path.join(FILES_DIR, 'single.torrent')
 M_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_multiple.torrent')    
 M_TORRENT_PATH = os.path.join(FILES_DIR, 'multiple.torrent')    
 
-LIB = 0
-AUTOCOMMIT = 0
 BUSYTIMEOUT = 5000
+SHOW_NOT_TESTED_FUNCTIONS = False    # Enable this to show the functions not tested yet
 
 def init():
     if not os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-        print >> sys.stderr, "Please download bak_tribler.sdb from http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb and save it as", os.path.abspath(TRIBLER_DB_PATH_BACKUP)
-        sys.exit(1)
+        got = extract_db_files(FILES_DIR, 'bak_tribler.tar.gz')
+        if not got:
+            print >> sys.stderr, "Please download bak_tribler.sdb from http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb and save it as", os.path.abspath(TRIBLER_DB_PATH_BACKUP)
+            sys.exit(1)
     if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
         copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
-        print "refresh sqlite db", TRIBLER_DB_PATH
+        #print "refresh sqlite db", TRIBLER_DB_PATH
+        if os.path.exists(STATE_FILE_NAME_PATH):
+            os.remove(STATE_FILE_NAME_PATH)
+            print "remove journal file"
+    SQLiteCacheDB.getInstance().initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
+    TorrentDBHandler.getInstance().registerCategory(Category.getInstance(os.path.join(BASE_DIR, '..')))
 
+def getFuncs2Test(calss_name):
+    return filter(lambda s:s != 'lock' and not s.startswith('__') and s not in dir(BasicDBHandler), dir(calss_name))
+            
 SQLiteCacheDB.DEBUG = False
 
 class TestSqliteBasicDBHandler(unittest.TestCase):
     
     def setUp(self):
         db_path = TRIBLER_DB_PATH
-        SQLiteCacheDB.getInstance().initDB(db_path, lib=LIB, autocommit=AUTOCOMMIT, busytimeout=BUSYTIMEOUT)
+        SQLiteCacheDB.getInstance().initDB(db_path, busytimeout=BUSYTIMEOUT)
         
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
@@ -138,7 +164,7 @@ class TestSqliteMyDBHandler(unittest.TestCase):
     def setUp(self):
         db_path = TRIBLER_DB_PATH
         db = SQLiteCacheDB.getInstance()
-        db.openDB(db_path, lib=LIB, autocommit=AUTOCOMMIT, busytimeout=BUSYTIMEOUT)
+        db.openDB(db_path, busytimeout=BUSYTIMEOUT)
         
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
@@ -165,7 +191,7 @@ class TestSuperPeerDBHandler(unittest.TestCase):
     def setUp(self):
         db_path = TRIBLER_DB_PATH
         db = SQLiteCacheDB.getInstance()
-        db.openDB(db_path, lib=LIB, autocommit=AUTOCOMMIT, busytimeout=BUSYTIMEOUT)
+        db.openDB(db_path, busytimeout=BUSYTIMEOUT)
         self.sp1 = '0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04\x00\\\xdfXv\xffX\xf2\xfe\x96\xe1_]\xf5\x1b\xb4\x91\x91\xa5I\xf0nl\x81\xd2A\xfb\xb7u)\x01T\xa9*)r\x9b\x81s\xb7j\xd2\xecrSg$;\xc8"7s\xecSF\xd3\x0bgK\x1c'
         self.sp2 = '0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04\x01\xdb\x80+O\xd9N7`\xfc\xd3\xdd\xf0 \xfdC^\xc9\xd7@\x97\xaa\x91r\x1c\xdeL\xf2n\x9f\x00U\xc1A\xf9Ae?\xd8t}_c\x08\xb3G\xf8g@N! \xa0\x90M\xfb\xca\xcfZ@'
         
@@ -180,33 +206,33 @@ class TestSuperPeerDBHandler(unittest.TestCase):
         
     def _test_getSuperPeerList(self):
         db = SuperPeerDBHandler.getInstance()
-        sps = db.getSuperPeerList()
+        sps = db.getSuperPeers()
         assert self.sp1 in sps
         assert self.sp2 in sps
         
     def test_setSuperPeer(self):
         db = SuperPeerDBHandler.getInstance()
         
-        sps = db.getSuperPeerList(refresh=True)
+        sps = db.getSuperPeers()
         assert len(sps) == 8, len(sps)
         
-        db.setPeerStatus(self.sp1, 0)
-        sps = db.getSuperPeerList(refresh=True)
+        db.peer_db_handler.addPeer(self.sp1, {'superpeer':0})
+        sps = db.getSuperPeers()
         assert self.sp1 not in sps
         assert len(sps) == 7, len(sps)
         
-        db.setPeerStatus(self.sp1, 0)
-        sps = db.getSuperPeerList(refresh=True)
+        db.peer_db_handler.addPeer(self.sp1, {'superpeer':0})
+        sps = db.getSuperPeers()
         assert self.sp1 not in sps
         assert len(sps) == 7
 
-        db.setPeerStatus(self.sp1, 1)
-        sps = db.getSuperPeerList(refresh=True)
+        db.peer_db_handler.addPeer(self.sp1, {'superpeer':1})
+        sps = db.getSuperPeers()
         assert self.sp1 in sps
         assert len(sps) == 8
         
-        db.setPeerStatus(self.sp1, 1)
-        sps = db.getSuperPeerList(refresh=True)
+        db.peer_db_handler.addPeer(self.sp1, {'superpeer':1})
+        sps = db.getSuperPeers()
         assert self.sp1 in sps
         assert len(sps) == 8
         
@@ -215,22 +241,22 @@ class TestSuperPeerDBHandler(unittest.TestCase):
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 'name':'fake peer x'}
         db = SuperPeerDBHandler.getInstance()
         db.addExternalSuperPeer(peer_x)
-        sps = db.getSuperPeerList(refresh=True)
+        sps = db.getSuperPeers()
         assert fake_permid_x in sps
         assert len(sps) == 9, len(sps)
         
         db.addExternalSuperPeer(peer_x)
-        sps = db.getSuperPeerList(refresh=True)
+        sps = db.getSuperPeers()
         assert fake_permid_x in sps
         assert len(sps) == 9, len(sps)
 
         db._db.deletePeer(fake_permid_x, force=True)
-        sps = db.getSuperPeerList(refresh=True)
+        sps = db.getSuperPeers()
         assert fake_permid_x not in sps
         assert len(sps) == 8, len(sps)
 
         db._db.deletePeer(fake_permid_x, force=True)
-        sps = db.getSuperPeerList(refresh=True)
+        sps = db.getSuperPeers()
         assert fake_permid_x not in sps
         assert len(sps) == 8, len(sps)
         
@@ -239,7 +265,7 @@ class TestFriendDBHandler(unittest.TestCase):
     def setUp(self):
         db_path = TRIBLER_DB_PATH
         db = SQLiteCacheDB.getInstance()
-        db.openDB(db_path, lib=LIB, autocommit=AUTOCOMMIT, busytimeout=BUSYTIMEOUT)
+        db.openDB(db_path, busytimeout=BUSYTIMEOUT)
         self.sp1 = '0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04\x00\\\xdfXv\xffX\xf2\xfe\x96\xe1_]\xf5\x1b\xb4\x91\x91\xa5I\xf0nl\x81\xd2A\xfb\xb7u)\x01T\xa9*)r\x9b\x81s\xb7j\xd2\xecrSg$;\xc8"7s\xecSF\xd3\x0bgK\x1c'
         self.sp2 = '0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04\x01\xdb\x80+O\xd9N7`\xfc\xd3\xdd\xf0 \xfdC^\xc9\xd7@\x97\xaa\x91r\x1c\xdeL\xf2n\x9f\x00U\xc1A\xf9Ae?\xd8t}_c\x08\xb3G\xf8g@N! \xa0\x90M\xfb\xca\xcfZ@'
         self.fr1 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAL/l2IyVa6lc3KAqQyEnR++rIzi+AamnbzXHCxOFAFy67COiBhrC79PLzzUiURbHDx21QA4p8w3UDHLA')
@@ -252,35 +278,35 @@ class TestFriendDBHandler(unittest.TestCase):
         size = db.size()
         assert size == 2, size
         
-    def test_getFriendList(self):
+    def test_getFriends(self):
         db = FriendDBHandler.getInstance()
-        friends = db.getFriendList()
+        friends = db.getFriends()
         assert self.sp1 not in friends
         assert self.fr1 in friends
         
     def test_setFriend(self):
         db = FriendDBHandler.getInstance()
-        db.addFriend(self.sp1)
+        db.setFriend(self.sp1)
         assert db.isFriend(self.sp1)
-        sps = db.getFriendList()
+        sps = db.getFriends()
         assert self.sp1 in sps
         assert len(sps) == 3
         
-        db.addFriend(self.sp1)
+        db.setFriend(self.sp1)
         assert db.isFriend(self.sp1)
-        sps = db.getFriendList()
+        sps = db.getFriends()
         assert self.sp1 in sps
         assert len(sps) == 3
         
         db.deleteFriend(self.sp1)
         assert not db.isFriend(self.sp1)
-        sps = db.getFriendList()
+        sps = db.getFriends()
         assert self.sp1 not in sps
         assert len(sps) == 2
         
         db.deleteFriend(self.sp1)
         assert not db.isFriend(self.sp1)
-        sps = db.getFriendList()
+        sps = db.getFriends()
         assert self.sp1 not in sps
         assert len(sps) == 2
         
@@ -289,52 +315,24 @@ class TestFriendDBHandler(unittest.TestCase):
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 'name':'fake peer x'}
         db = FriendDBHandler.getInstance()
         db.addExternalFriend(peer_x)
-        sps = db.getFriendList(refresh=True)
+        sps = db.getFriends()
         assert fake_permid_x in sps
         assert len(sps) == 3, len(sps)
-        friends = db.getFriends()
-        assert len(friends) == 3, len(friends)
-        names = []
-        for f in friends:
-            names.append(f['name'])
-        names.sort()
-        assert names == ['Root', 'blue', 'fake peer x']
         
         db.addExternalFriend(peer_x)
-        sps = db.getFriendList(refresh=True)
+        sps = db.getFriends()
         assert fake_permid_x in sps
         assert len(sps) == 3, len(sps)
-        friends = db.getFriends()
-        assert len(friends) == 3, len(friends)
-        names = []
-        for f in friends:
-            names.append(f['name'])
-        names.sort()
-        assert names == ['Root', 'blue', 'fake peer x']
 
         db._db.deletePeer(fake_permid_x, force=True)
-        sps = db.getFriendList(refresh=True)
+        sps = db.getFriends()
         assert fake_permid_x not in sps
         assert len(sps) == 2, len(sps)
-        friends = db.getFriends()
-        assert len(friends) == 2, len(friends)
-        names = []
-        for f in friends:
-            names.append(f['name'])
-        names.sort()
-        assert names == ['Root', 'blue']
         
         db._db.deletePeer(fake_permid_x, force=True)
-        sps = db.getFriendList(refresh=True)
+        sps = db.getFriends()
         assert fake_permid_x not in sps
         assert len(sps) == 2, len(sps)
-        friends = db.getFriends()
-        assert len(friends) == 2, len(friends)
-        names = []
-        for f in friends:
-            names.append(f['name'])
-        names.sort()
-        assert names == ['Root', 'blue']
         
         
 class TestSqlitePeerDBHandler(unittest.TestCase):
@@ -342,7 +340,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
     def setUp(self):
         db_path = TRIBLER_DB_PATH
         db = SQLiteCacheDB.getInstance()
-        db.openDB(db_path, lib=LIB, autocommit=AUTOCOMMIT, busytimeout=BUSYTIMEOUT)
+        db.openDB(db_path, busytimeout=BUSYTIMEOUT)
         self.sp1 = '0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04\x00\\\xdfXv\xffX\xf2\xfe\x96\xe1_]\xf5\x1b\xb4\x91\x91\xa5I\xf0nl\x81\xd2A\xfb\xb7u)\x01T\xa9*)r\x9b\x81s\xb7j\xd2\xecrSg$;\xc8"7s\xecSF\xd3\x0bgK\x1c'
         self.sp2 = '0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04\x01\xdb\x80+O\xd9N7`\xfc\xd3\xdd\xf0 \xfdC^\xc9\xd7@\x97\xaa\x91r\x1c\xdeL\xf2n\x9f\x00U\xc1A\xf9Ae?\xd8t}_c\x08\xb3G\xf8g@N! \xa0\x90M\xfb\xca\xcfZ@'
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
@@ -607,7 +605,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
     def setUp(self):
         db_path = TRIBLER_DB_PATH
         db = SQLiteCacheDB.getInstance()
-        db.openDB(db_path, lib=LIB, autocommit=AUTOCOMMIT, busytimeout=BUSYTIMEOUT)
+        db.openDB(db_path, busytimeout=BUSYTIMEOUT)
         
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
@@ -652,12 +650,12 @@ class TestPreferenceDBHandler(unittest.TestCase):
         assert prefdb.size() == oldpref_size + 2
         assert oldinfohash_size + 2 == db._db.size('Torrent'), (oldinfohash_size + 2, db._db.size('Torrent'))
         
-        pl = prefdb.getPrefList(fake_permid_x)
+        pl = prefdb.getPrefList(fake_permid_x, return_infohash=True)
         assert len(pl) == 2
         assert fake_infoahsh in pl
         assert fake_infoahsh2 in pl
 
-        pl = prefdb.getPrefList(fake_permid_x)
+        pl = prefdb.getPrefList(fake_permid_x, return_infohash=True)
         assert len(pl) == 2, pl
         assert fake_infoahsh in pl
         assert fake_infoahsh2 in pl
@@ -680,7 +678,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         assert prefdb.size() == oldpref_size + 2
         assert oldinfohash_size + 2 == db._db.size('Torrent')
         
-        pl = prefdb.getPrefList(fake_permid_x)
+        pl = prefdb.getPrefList(fake_permid_x, return_infohash=True)
         assert len(pl) == 2
         assert fake_infoahsh in pl
         assert fake_infoahsh2 in pl
@@ -723,17 +721,17 @@ class TestPreferenceDBHandler(unittest.TestCase):
         assert prefdb.size() == oldpref_size + 2, [prefdb.size(), oldpref_size]
         assert oldinfohash_size + 2 == db._db.size('Torrent')
         
-        pl = prefdb.getPrefList(fake_permid_x)
+        pl = prefdb.getPrefList(fake_permid_x, return_infohash=True)
         assert len(pl) == 2
-        assert fake_infoahsh in pl
-        assert fake_infoahsh2 in pl
+        assert fake_infoahsh in pl, (fake_infoahsh, pl)
+        assert fake_infoahsh2 in pl, (fake_infoahsh2, pl)
 
-        pl = prefdb.getPrefList(fake_permid_x)
+        pl = prefdb.getPrefList(fake_permid_x, return_infohash=True)
         assert len(pl) == 2, pl
         assert fake_infoahsh in pl
         assert fake_infoahsh2 in pl
         prefdb._deletePeer(fake_permid_x)
-        pl = prefdb.getPrefList(fake_permid_x)
+        pl = prefdb.getPrefList(fake_permid_x, return_infohash=True)
         assert pl == []
         assert prefdb.size() == oldpref_size, (prefdb.size(), oldpref_size)
         
@@ -750,7 +748,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         assert prefdb.size() == oldpref_size + 2
         assert oldinfohash_size + 2 == db._db.size('Torrent')
         
-        pl = prefdb.getPrefList(fake_permid_x)
+        pl = prefdb.getPrefList(fake_permid_x, return_infohash=True)
         assert len(pl) == 2
         assert fake_infoahsh in pl
         assert fake_infoahsh2 in pl
@@ -772,15 +770,45 @@ class TestPreferenceDBHandler(unittest.TestCase):
 
         
 class TestTorrentDBHandler(unittest.TestCase):
-    
+
     def setUp(self):
         db_path = TRIBLER_DB_PATH
         db = SQLiteCacheDB.getInstance()
-        db.openDB(db_path, lib=LIB, autocommit=AUTOCOMMIT, busytimeout=BUSYTIMEOUT)
+        db.openDB(db_path, busytimeout=BUSYTIMEOUT)
         
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
 
+    def tested_functions(self):
+        if SHOW_NOT_TESTED_FUNCTIONS:
+            all_funcs = getFuncs2Test(TorrentDBHandler) 
+            tested_funcs = [
+                "registerCategory",
+                "getInstance",
+                "hasTorrent",
+                "hasMetaData",
+                "getNumberTorrents", "_getCategoryID",
+                "getTorrents",
+                "size",
+                "getTorrentID",
+                "_addTorrentToDB", "_addTorrentTracker",
+                "getOne",
+                "getTracker",
+                "updateTorrent",
+                "updateTorrentRelevance",
+                "deleteTorrent", "_deleteTorrent", "eraseTorrentFile",
+                "getNumberCollectedTorrents",
+                "getTorrent",
+                "freeSpace",
+                "getInfohash",
+            ]
+            for func in all_funcs:
+                if func not in tested_funcs:
+                    print "TestTorrentDBHandler: not test", func
+                
+#    def test_misc(self):
+#        db = TorrentDBHandler.getInstance()
+        
     def _test_hasTorrent(self):
         infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
         infohash = str2bin(infohash_str)
@@ -794,54 +822,32 @@ class TestTorrentDBHandler(unittest.TestCase):
     def test_count(self):
         db = TorrentDBHandler.getInstance()
         start = time()
-        for i in range(10):
-            num = db.getNumberTorrents()
-        print "count costs:", (time()-start)/10
+        num = db.getNumberTorrents()
+        assert num == 4483
         
-        sql_del_torrent = "delete from Torrent where torrent_id=?"
-        tids = tuple(range(1,100))
-        #db._db.executemany(sql_del_torrent,tids)
-        
-#    def test_getTorrentStatus(self):
-#        infohash_42001 = 'N+bA9CiBX4+ATZzmt03bv99MsSA='
-#        infohash = str2bin(infohash_42001)
-#        db = TorrentDBHandler.getInstance()
-#        torrent_id = db._db.getTorrentID(infohash)
-#        assert torrent_id == 42001
-#        sid = db.getTorrentStatus(infohash)
-#        assert sid == None
-#        
-#        infohash_1 = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
-#        infohash = str2bin(infohash_1)
-#        db = TorrentDBHandler.getInstance()
-#        torrent_id = db._db.getTorrentID(infohash)
-#        assert torrent_id == 1
-#        sid = db.getTorrentStatus(infohash)
-#        assert sid == 1
-
-#    def test_loadTorrents(self):
-#        db = TorrentDBHandler.getInstance()
-#        torrent_size = db._db.size('CollectedTorrent')
-#        db2 = MyPreferenceDBHandler.getInstance()
-#        mypref_size = db2.size()
-#        res = db.getTorrents()
-#        ### assert len(res) == torrent_size - mypref_size, (len(res), torrent_size - mypref_size)
-#        res = db.loadTorrents(True)
-#        len(res) == torrent_size
-#        data = res[0]
-#        #print data
-#        assert data['category'][0] in db.category_table.keys(), data['category']
-#        assert data['status'] in db.status_table.keys(), data['status']
-#        assert data['source'] in db.src_table.keys(), data['source']
-#        assert len(data['infohash']) == 20
+    def test_loadTorrents(self):
+        db = TorrentDBHandler.getInstance()
+        torrent_size = db._db.size('CollectedTorrent')
+        db2 = MyPreferenceDBHandler.getInstance()
+        mypref_size = db2.size()
+        res = db.getTorrents()
+        ### assert len(res) == torrent_size - mypref_size, (len(res), torrent_size - mypref_size)
+        res = db.getTorrents()
+        len(res) == torrent_size
+        data = res[0]
+        #print data
+        assert data['category'][0] in db.category_table.keys(), data['category']
+        assert data['status'] in db.status_table.keys(), data['status']
+        assert data['source'] in db.src_table.keys(), data['source']
+        assert len(data['infohash']) == 20
                 
-    def _test_add_update_delete_Torrent(self):
-        self._test_addTorrent()
-        ### self._test_updateTorrent()
-        ### self._test_deleteTorrent()
+    def test_add_update_delete_Torrent(self):
+        self.addTorrent()
+        self.updateTorrent()
+        self.deleteTorrent()
         pass
                 
-    def _test_addTorrent(self):
+    def addTorrent(self):
         
         MyDBHandler.getInstance().put('torrent_dir', '.')
          
@@ -874,6 +880,8 @@ class TestTorrentDBHandler(unittest.TestCase):
         
         single_torrent_id = db._db.getTorrentID(s_infohash)
         multiple_torrent_id = db._db.getTorrentID(m_infohash)
+        
+        assert db.getInfohash(single_torrent_id) == s_infohash
         
         single_name = 'Tribler_4.1.7_src.zip'
         multiple_name = 'Tribler_4.1.7_src'
@@ -913,7 +921,15 @@ class TestTorrentDBHandler(unittest.TestCase):
         assert len(m_trackers) == 1
         assert ('http://tpb.tracker.thepiratebay.org/announce',1) in m_trackers, m_trackers
         
-    def _test_updateTorrent(self):
+        s_torrent = db.getTorrent(s_infohash)
+        m_torrent = db.getTorrent(m_infohash)
+        assert s_torrent['name'] == 'Tribler_4.1.7_src.zip'
+        assert m_torrent['name'] == 'Tribler_4.1.7_src'
+        assert m_torrent['last_check_time'] == 0
+        assert len(s_torrent) == 16
+        assert len(m_torrent) == 16 
+        
+    def updateTorrent(self):
         db = TorrentDBHandler.getInstance()
         
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
@@ -940,13 +956,13 @@ class TestTorrentDBHandler(unittest.TestCase):
         leecher = db.getOne('num_leechers', torrent_id=multiple_torrent_id)
         assert leecher == 321
         last_check_time = db._db.getOne('TorrentTracker', 'last_check', announce_tier=1, torrent_id=multiple_torrent_id)
-        assert last_check_time == 1234567
+        assert last_check_time == 1234567, last_check_time
         ignore_number = db._db.getOne('TorrentTracker', 'ignored_times', announce_tier=1, torrent_id=multiple_torrent_id)
         assert ignore_number == 1
         retry_number = db._db.getOne('TorrentTracker', 'retried_times', announce_tier=1, torrent_id=multiple_torrent_id)
         assert retry_number == 2
                 
-    def _test_deleteTorrent(self):
+    def deleteTorrent(self):
         mydb = MyDBHandler.getInstance()
         mydb.put('torrent_dir', FILES_DIR)
         db = TorrentDBHandler.getInstance()
@@ -969,37 +985,18 @@ class TestTorrentDBHandler(unittest.TestCase):
         my_infohash = str2bin(my_infohash_str_126)
         assert not db.deleteTorrent(my_infohash)
         
-    def _test_getCollectedTorrentHashes(self):
+    def test_getCollectedTorrentHashes(self):
         db = TorrentDBHandler.getInstance()
         res = db.getNumberCollectedTorrents()
-        ### assert res == 4848, res
+        assert res == 4848, res
         
-    def _test_freeSpace(self):
+    def test_freeSpace(self):
         db = TorrentDBHandler.getInstance()
+        old_res = db.getNumberCollectedTorrents()
         db.freeSpace(20)
-        
-#    def test_pref_getTorrent(self):
-#        db = TorrentDBHandler.getInstance()
-#        infohash_list = db.getAllTorrents()
-#        s = time()
-#        for infohash in infohash_list:
-#            res = db.getTorrent(infohash, ('name', 'torrent_file_name', 'status_id'))    # a little faster
-#        print time()-s
-#        s = time()
-#        for infohash in infohash_list:
-#            res = db.getTorrent2(infohash, ('name', 'torrent_file_name', 'status_id'))
-#        print time()-s
-#        
-#    def test_pref_getAllTorrents(self):
-#        db = TorrentDBHandler.getInstance()
-#        s = time()
-#        for i in range(100):
-#            res = db.getAllTorrents()    # much faster
-#        print time()-s
-#        s = time()
-#        for i in range(100):
-#            res = db.getAllTorrents2()
-#        print time()-s
+        res = db.getNumberCollectedTorrents()
+        assert old_res - res == 20
+        init()
         
         
 class TestMyPreferenceDBHandler(unittest.TestCase):
@@ -1007,7 +1004,7 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
     def setUp(self):
         db_path = TRIBLER_DB_PATH
         db = SQLiteCacheDB.getInstance()
-        db.openDB(db_path, lib=LIB, autocommit=AUTOCOMMIT, busytimeout=BUSYTIMEOUT)
+        db.openDB(db_path, busytimeout=BUSYTIMEOUT)
         mypref_db = MyPreferenceDBHandler.getInstance()
         mypref_db.loadData()
         
@@ -1036,7 +1033,7 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         assert bin2str(pl[1]) == infohash_str_1279
         
         pl = db.getRecentLivePrefList(8)
-        assert len(pl) == 8
+        assert len(pl) == 8, (len(pl), pl)
         assert bin2str(pl[0]) == infohash_str_126
         assert bin2str(pl[1]) == infohash_str_1279
 
@@ -1083,7 +1080,7 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         db = MyPreferenceDBHandler.getInstance()
         assert db.hasMyPreference(infohash)
         torrent_id = db._db.getTorrentID(infohash)
-        db.updateProgress(torrent_id, 3.14)
+        db.updateProgress(infohash, 3.14)
         p = db.getOne('progress', torrent_id=torrent_id)
         assert p == 3.14
 
@@ -1113,14 +1110,14 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
 def test_suite():
     init()
     suite = unittest.TestSuite()
-#    suite.addTest(unittest.makeSuite(TestSqliteBasicDBHandler))
-#    suite.addTest(unittest.makeSuite(TestSqliteMyDBHandler))
-#    suite.addTest(unittest.makeSuite(TestSuperPeerDBHandler))
-#    suite.addTest(unittest.makeSuite(TestFriendDBHandler))
-#    suite.addTest(unittest.makeSuite(TestSqlitePeerDBHandler))
-#    suite.addTest(unittest.makeSuite(TestPreferenceDBHandler))
+    suite.addTest(unittest.makeSuite(TestSqliteBasicDBHandler))
+    suite.addTest(unittest.makeSuite(TestSqliteMyDBHandler))
+    suite.addTest(unittest.makeSuite(TestSuperPeerDBHandler))
+    suite.addTest(unittest.makeSuite(TestFriendDBHandler))
+    suite.addTest(unittest.makeSuite(TestSqlitePeerDBHandler))
+    suite.addTest(unittest.makeSuite(TestPreferenceDBHandler))
     suite.addTest(unittest.makeSuite(TestTorrentDBHandler))
-#    suite.addTest(unittest.makeSuite(TestMyPreferenceDBHandler))
+    suite.addTest(unittest.makeSuite(TestMyPreferenceDBHandler))
     return suite
 
 def main():

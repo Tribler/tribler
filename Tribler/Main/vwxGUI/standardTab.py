@@ -1,5 +1,7 @@
 # -*- coding: iso-8859-1 -*- 
 # Don't modify comment 
+# Written by Jelle Roozenburg, Maarten ten Brinke 
+# see LICENSE.txt for license information
 
 import wx
 #[inc]add your include files here

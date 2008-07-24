@@ -92,7 +92,8 @@ class TestDownloadHelp(TestAsServer):
             friendsdb.addFriend(self.mypermid)
         else:
             self.session.set_overlay_request_policy(AllowAllRequestPolicy())
-              
+          
+        self.session.set_download_states_callback(self.states_callback)
 
     def tearDown(self):
         """ override TestAsServer """
@@ -106,6 +107,13 @@ class TestDownloadHelp(TestAsServer):
         self.myss.close()
         self.myss2.close()
 
+
+    def states_callback(self,dslist):
+        print >>sys.stderr,"stats: dslist",len(dslist)
+        for ds in dslist:
+            print >>sys.stderr,"stats: coordinator",`ds.get_coopdl_coordinator()`
+            print >>sys.stderr,"stats: helpers",`ds.get_coopdl_helpers()`
+        return (0.5,False)
 
     #
     # Good 2fast

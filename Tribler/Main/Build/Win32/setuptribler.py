@@ -1,4 +1,5 @@
-# setup.py
+# Written by ABC authors and Arno Bakker
+# see LICENSE.txt for license information
 import time
 import sys
 import os

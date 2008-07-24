@@ -1,3 +1,6 @@
+# Written by Yuan Yuan, Jie Yang
+# see LICENSE.txt for license information
+
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from time import sleep
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler

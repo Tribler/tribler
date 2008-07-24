@@ -1,3 +1,5 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker, Lucian Musat 
+# see LICENSE.txt for license information
 
 import wx, time, random, os
 from wx import xrc
@@ -39,6 +41,7 @@ class GUIUtility:
         self.params = params
         self.frame = None
         self.selectedMainButton = None
+        self.standardOverview = None
         
         # Arno: 2008-04-16: I want to keep this for searching, as an extension
         # of the standardGrid.GridManager
@@ -56,6 +59,8 @@ class GUIUtility:
         self.triblerRed = wx.Colour(255, 51, 0)
         self.max_remote_queries = 10    # max number of remote peers to query
         self.remote_search_threshold = 20    # start remote search when results is less than this number
+
+    
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
             GUIUtility(*args, **kw)
@@ -396,7 +401,8 @@ class GUIUtility:
         ip_txt = self.utility.lang.get('ipaddress')+": "+ip
 
         # port = self.utility.controller.listen_port
-        port = self.utility.config.Read('minport', 'int')
+        #port = self.utility.config.Read('minport', 'int')
+        port = self.utility.config.get_listen_port()
         port_txt = self.utility.lang.get('portnumber')+" "+str(port)
 
         subject = self.utility.lang.get('invitation_subject')
@@ -444,6 +450,7 @@ class GUIUtility:
         low = input.lower()
         wantkeywords = [i for i in low.split(' ') if i]
         self.torrentsearch_manager.setSearchKeywords(wantkeywords, mode)
+        self.torrentsearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
         #print "******** gui uti searchFiles", wantkeywords
         gridstate = GridState(self.standardOverview.mode, 'all', 'num_seeders')
         self.standardOverview.filterChanged(gridstate)
@@ -467,12 +474,14 @@ class GUIUtility:
             #
             # Query YouTube, etc.
             #
-            if mode == 'filesMode':
+            web2on = self.utility.config.Read('enableweb2search',"boolean")
+            if mode == 'filesMode' and web2on:
                 self.torrentsearch_manager.searchWeb2(60) # 3 pages, TODO: calc from grid size
 
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
-        print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",`hits`
+        if DEBUG:
+            print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",len(hits)
 
         kws = query.split()
         wx.CallAfter(self.torrentsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
@@ -498,6 +507,7 @@ class GUIUtility:
         wantkeywords = low.split(' ')
 
         self.peersearch_manager.setSearchKeywords(wantkeywords, mode)
+        self.peersearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
         #print "******** gui uti searchFiles", wantkeywords
         gridstate = GridState(self.standardOverview.mode, 'all', 'last_seen')
         self.standardOverview.filterChanged(gridstate)

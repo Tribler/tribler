@@ -1,3 +1,6 @@
+# Written by ABC authors 
+# see LICENSE.txt for license information
+
 import re
 import binascii
 import sys

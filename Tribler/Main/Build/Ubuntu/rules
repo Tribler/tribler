@@ -57,14 +57,15 @@ binary-indep: build install
 	dh_installman
 
 	mkdir -p debian/tribler/usr/share/tribler/
-	cp -rf `ls -1d * | grep -v debian | grep -v test` debian/tribler/usr/share/tribler/
+	cp -rf `ls -1d Tribler khashmir` debian/tribler/usr/share/tribler/
+	rm -rf debian/tribler/usr/share/tribler/Tribler/Test
 	# add other files
 	mkdir -p debian/tribler/usr/bin
-	cp -f tribler.sh debian/tribler/usr/bin/tribler
-	cp -f LICENSE.txt debian/copyright
+	cp -f debian/tribler.sh debian/tribler/usr/bin/tribler
+	cp -f Tribler/LICENSE.txt debian/copyright
 	# for the menu
 	mkdir -p debian/tribler/usr/share/pixmaps
-	cp -f tribler.xpm debian/tribler/usr/share/pixmaps/
+	cp -f debian/tribler.xpm debian/tribler/usr/share/pixmaps/
 
 	dh_installchangelogs 
 	dh_installinit -r --no-start -- stop 20 0 6 .

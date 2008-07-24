@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke 
+# see LICENSE.txt for license information
+
 import wx, os, sys
 import wx.xrc as xrc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility

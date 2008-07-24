@@ -1,3 +1,6 @@
+# Written by ABC authors and Arno Bakker 
+# see LICENSE.txt for license information
+
 ##########################
 #
 # Things to handle backward compatability for the old-style

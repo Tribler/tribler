@@ -1,6 +1,5 @@
-#########################################################################
-# Author : Tim Tucker
-#########################################################################
+# Written by Tim Tucker 
+# see LICENSE.txt for license information
 import wx
 from os import path
 

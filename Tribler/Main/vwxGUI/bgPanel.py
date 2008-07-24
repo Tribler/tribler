@@ -1,6 +1,9 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
+# see LICENSE.txt for license information
 import wx, os, sys
 import wx.xrc as xrc
 
+from traceback import print_stack,print_exc
 
 DEBUG = False
 
@@ -8,7 +11,9 @@ class ImagePanelBasic(wx.Panel):
     """
     Panel with automatic backgroundimage control.
     """
-            
+    
+    __bitmapCache = {}
+
     def __init__(self, tile, *args, **kw):
         self.backgroundColour = wx.Colour(102,102,102)
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -61,21 +66,27 @@ class ImagePanelBasic(wx.Panel):
         # get the image directory
         self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
 
-        if not os.path.isdir(self.imagedir):
-            print '[bgPanel] Error: no image directory found in %s' % self.imagedir
-            return
-        
         # find a file with same name as this panel
         if name is None:
             self.bitmapPath = os.path.join(self.imagedir, self.GetName()+'.png')
         else:
             self.bitmapPath = os.path.join(self.imagedir, name)
-        
-        
-        if os.path.isfile(self.bitmapPath):
-            self.setBitmap(wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY))
-        elif DEBUG:
-            print 'bgPanel: Could not load image: %s' % self.bitmapPath
+
+        try:
+            # These unnamed things popup on LibraryView
+            if self.bitmapPath.endswith('panel.png'):
+                return
+            
+            img = self.bitmapPath
+            if img in ImagePanelBasic.__bitmapCache:
+                bitmap = ImagePanelBasic.__bitmapCache[img]
+            else:
+                bitmap = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+                ImagePanelBasic.__bitmapCache[img] = bitmap
+            
+            self.setBitmap(bitmap)
+        except:
+            print_exc()
         
     def createBackgroundImage(self):
         wx.EVT_PAINT(self, self.OnPaint)

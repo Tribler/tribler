@@ -2,10 +2,7 @@ import wx, math, time, os, sys, threading
 from traceback import print_exc
 from wx.lib.stattext import GenStaticText as StaticText
 
-# LAYERVIOLATION
-from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-
-
+from Tribler.Core.API import *
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
@@ -276,10 +273,10 @@ class SubscriptionsItemPanel(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"subip: checkboxAction"
 
-	newstatus = self.cB.GetValue()
-	self.toggleStatus( newstatus )
+        newstatus = self.cB.GetValue()
+        self.toggleStatus( newstatus )
 	
-	event.Skip()
+        event.Skip()
         
     def mouseAction(self, event):
         if DEBUG:
@@ -311,12 +308,21 @@ class SubscriptionsItemPanel(wx.Panel):
             return self.data['url']
         
     def toggleBuddycast(self,status):
-        self.utility.config.Write('startrecommender',status, "boolean")
-        bcfac = BuddyCastFactory.getInstance()
-        if status == True:
-            bcfac.restartBuddyCast()
-        else:
-            bcfac.pauseBuddyCast()
+        try:
+            # Save SessionStartupConfig
+            state_dir = self.utility.session.get_state_dir()
+            cfgfilename = Session.get_default_config_filename(state_dir)
+            scfg = SessionStartupConfig.load(cfgfilename)
+            
+            for target in [scfg,self.utility.session]:
+                try:
+                    target.set_start_recommender(status)
+                except:
+                    print_exc()
+    
+            scfg.save(cfgfilename)
+        except:
+            print_exc()
 
     def toggleWeb2Search(self,status):
         if status and sys.platform == 'linux2':
@@ -324,8 +330,6 @@ class SubscriptionsItemPanel(wx.Panel):
             dlg.ShowModal()
             dlg.Destroy()
 
-            
-            print 'Are you sure?'
         self.utility.config.Write('enableweb2search',status, "boolean")
         search = self.guiUtility.getSearchField(mode='filesMode')
         if status:

@@ -1,3 +1,5 @@
+# Written by Jie Yang, Arno Bakker
+# see LICENSE.txt for license information
 import os
 import tempfile
 import unittest

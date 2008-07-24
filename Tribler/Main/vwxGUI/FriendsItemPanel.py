@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
+# see LICENSE.txt for license information
+
 import wx, math, time, os, sys, threading
 from traceback import print_exc
 from Tribler.Core.Utilities.utilities import *
@@ -173,9 +176,17 @@ class FriendsItemPanel(wx.Panel):
     def setData(self, peer_data):
         # set bitmap, rating, title
         
+        
+        #if self.data is None:
+        #    oldpermid = None
+        #else:
+        #    oldpermid = self.data['permid']
+        
         self.data = peer_data
         # do not reload similar peers
-        if similarPeer(peer_data, self.datacopy):
+        if peer_data is not None and 'coopdlstatus' in peer_data:
+            pass
+        elif similarPeer(peer_data, self.datacopy):
             return
         self.datacopy = copyPeer(peer_data)
                         
@@ -200,6 +211,10 @@ class FriendsItemPanel(wx.Panel):
                     self.status.SetLabel('conn.  %s' % friendly_time(statusPeer))
             else:
                 self.status.SetLabel( 'unknown')
+
+            if 'coopdlstatus' in peer_data:
+                self.helping.SetLabel(peer_data['coopdlstatus'])
+                self.helping.SetToolTipString(peer_data['coopdlstatus'])
                 
 #            self.delete.Show()
             self.tasteHeart.Show()
@@ -238,7 +253,8 @@ class FriendsItemPanel(wx.Panel):
         else:
             self.taste.SetLabel('')
             self.tasteHeart.Hide()
-                  
+
+        #if oldpermid is None or oldpermid != peer_data['permid']:
         self.thumb.setData(peer_data)
                
         self.Layout()
@@ -362,24 +378,6 @@ class FriendThumbnailViewer(ThumbnailViewer):
 #        if self.mouseOver:
         if self.data is not None and type(self.data)==type({}) and self.data.get('permid'):
 
-#            print "DATA IS",self.data
-
-            helping = None
-            if self.data.get('friend'):
-                torrentname = self.is_helping(self.data.get('permid'))
-                if DEBUG:
-                    print >>sys.stderr,"fip: Friend",self.data['name'],"is helping with torrent",torrentname
-                if torrentname is not None:
-                    helping = "helping with "+torrentname
-            if helping is None:
-                
-                self.GetParent().helping.SetLabel('')
-                self.GetParent().helping.SetToolTipString('')
-                #self.GetParent().status.SetLabel('status unknown')
-            else:                
-                self.GetParent().helping.SetLabel(helping)
-                self.GetParent().helping.SetToolTipString(helping)
-#                self.GetParent().status.SetLabel(helping)
             rank = self.data.get('simRank',-1) 
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             if rank > 0 and rank <= 5:
@@ -412,14 +410,6 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 friend = self.iconsManager.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(friend,60 ,65, True)            
             if self.data.get('online'):
-                #label = 'online'
-                label = ''
-                if helping is not None:
-                    #label = 'online,'+helping
-                    label = helping
-                self.GetParent().helping.SetLabel(label)
-                self.GetParent().helping.SetToolTipString(label)
-                #self.GetParent().status.SetLabel(label)
                 dc.SetFont(wx.Font(FS_ONLINE, FONTFAMILY, FONTWEIGHT, wx.BOLD, False, FONTFACE))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 26, 66)
@@ -431,17 +421,3 @@ class FriendThumbnailViewer(ThumbnailViewer):
             dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
             dc.DrawLines(self.border)
         
-
-    def is_helping(self,permid):
-        utility = self.GetParent().utility
-        for ABCTorrentTemp in self.utility.torrents["active"]:
-            engine = ABCTorrentTemp.connection.engine
-            if engine is not None:
-                coordinator = engine.getDownloadhelpCoordinator()
-                if coordinator is not None:
-                    helpingFriends = coordinator.get_asked_helpers_copy()
-                    for rec in helpingFriends:
-                        if permid == rec['permid']:
-                            return ABCTorrentTemp.info['name']
-        return None
-                

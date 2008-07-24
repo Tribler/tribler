@@ -1,3 +1,5 @@
+# Written by ABC authors and Arno Bakker 
+# see LICENSE.txt for license information
 import wx
 import sys
 import os

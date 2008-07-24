@@ -34,22 +34,20 @@ def test_suite():
     return suite
 
 def suite():
-    #import test_cachedb as test_cachedb
+    import test_sqlitecachedb as test_sqlitecachedb
     #import test_friend as test_friend
-    #import test_cachedbhandler as test_cachedbhandler
+    import test_sqlitecachedbhandler as test_sqlitecachedbhandler
     import test_superpeers as test_superpeers
-    """
     import test_buddycast as test_buddycast
-    import test_buddycast2_datahandler as test_buddycast2_datahandler
+    ##import test_buddycast2_datahandler as test_buddycast2_datahandler
     import test_sim as test_sim
-    """
     import test_merkle as test_merkle
     import test_permid as test_permid
     import test_permid_response1 as test_permid_response1
     import test_dialback_request as test_dialback_request
     import test_extend_hs as test_extend_hs
     import test_extend_hs_t350 as test_extend_hs_t350
-    #import test_social_overlap as test_social_overlap
+    import test_social_overlap as test_social_overlap
     import test_gui_server as test_gui_server
     import test_remote_query as test_remote_query
     import test_ut_pex as test_ut_pex
@@ -65,13 +63,13 @@ def suite():
     # '##' = disable temporarily for testing a specific test
     #
     test_modules = [
-        #test_cachedb,
+        #test_sqlitecachedb,
         ##test_friend,   # TEMPARNO: need to fix MyDB ref
-        #test_cachedbhandler,
-        #test_superpeers, # TEMPARNO: need to fix MyDB + SuperPeerList ref
-        ##test_buddycast,  # currently not working due to unfinished test functions
+        #test_sqlitecachedbhandler,
+        #test_superpeers, 
+        test_buddycast,  # currently not working due to unfinished test functions
         ##test_buddycast2_datahandler, # complains about addRemoteSearchPeer 
-        ##test_sim, # currently not working due to unfinished test functions
+        #test_sim, # currently not working due to unfinished test functions
         #test_merkle,
         #test_permid,
         #test_permid_response1,
@@ -82,8 +80,8 @@ def suite():
         #test_gui_server,
         #test_remote_query,
         #test_ut_pex,
-        #test_bartercast
-        test_g2g
+        #test_bartercast,
+        #test_g2g
         ]
 
     alltests = unittest.TestSuite()

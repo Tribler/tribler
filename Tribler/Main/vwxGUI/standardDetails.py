@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke, Lucian Musat 
+# see LICENSE.txt for license information
+
 import wx.xrc as xrc
 from binascii import hexlify
 from time import sleep,time
@@ -14,7 +17,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.MetadataHandler import get_filename
 from Tribler.Main.Utility.constants import COL_PROGRESS
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
@@ -23,7 +25,7 @@ from Tribler.Main.vwxGUI.tribler_List import DLFilesList
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import *
-from Tribler.Core.Utilities.unicode import bin2unicode
+from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 
 # LAYERVIOLATION
 from Tribler.Core.CacheDB.CacheDBHandler import GUIDBHandler, BarterCastDBHandler
@@ -534,6 +536,7 @@ class standardDetails(wx.Panel):
                             self.getGuiObj('down').SetToolTipString('')
                             seedersField.SetSize((36,18))
                             
+                        # TODO: last_check_time: no in Torrent schema: get from TorrentTracker 
                         refreshString = '%s: %s' % (self.utility.lang.get('last_checked'), friendly_time(torrent.get('last_check_time')))
                         self.getGuiObj('refresh').SetToolTipString(refreshString)
                     seedersField.GetParent().Layout()
@@ -562,6 +565,8 @@ class standardDetails(wx.Panel):
                 # Set tracker info
                 trackerField = self.getGuiObj('trackerField', tab = tab)
                 trackerField.Wrap(-1)
+                
+                # TODO: 'tracker': not in Torrent schema: get from TorrentTracker 
                 if torrent.has_key('tracker'):
                     trackerString = torrent['tracker']
                     short = getShortTrackerFormat(trackerString)
@@ -587,7 +592,7 @@ class standardDetails(wx.Panel):
 #                return #no valid torrent
             
             titleField = self.getGuiObj('titleField')
-            titleField.SetLabel(item.get('name',''))
+            titleField.SetLabel(item.get('name') or '')
             titleField.Wrap(-1)
             
             #set the picture
@@ -596,14 +601,14 @@ class standardDetails(wx.Panel):
                 # Check if we have already read the thumbnail and metadata information from this torrent file
                 if item.get('metadata'):
                     bmp = item['metadata'].get('ThumbnailBitmap')
-                else:
+                elif 'permid' in item:
                     mime, icondata = self.peer_db.getPeerIcon(item['permid'])
                     if icondata:
                         bmp = data2wxBitmap(mime,icondata)
                         
                 if not bmp:
                     superpeers = self.superpeer_db.getSuperPeers()
-                    if item['permid'] in superpeers:
+                    if 'permid' in item and item['permid'] in superpeers:
                         bmp = self.iconsManager.get_default('personsMode','SUPERPEER_BITMAP')
                     else:
                         bmp = self.iconsManager.get_default('personsMode','DEFAULT_THUMB')
@@ -638,13 +643,13 @@ class standardDetails(wx.Panel):
                 else:
                     self.getGuiObj('statusField').SetLabel( 'unknown')
 
-                if 'npeers' in item:
-                    n = unicode(item['npeers'])
+                if 'num_peers' in item:
+                    n = unicode(item['num_peers'])
                     if not n or n=='0':
                         n = '?'
                     self.getGuiObj('discPersonsField').SetLabel(n)
-                if 'ntorrents' in item:
-                    n = unicode(item['ntorrents'])
+                if 'num_torrents' in item:
+                    n = unicode(item['num_torrents'])
                     if not n or n == '0':
                         n = '?'
                     self.getGuiObj('discFilesField').SetLabel(n)
@@ -1030,8 +1035,8 @@ class standardDetails(wx.Panel):
         self.show_loading(self.getGuiObj('peopleWhoField'))
         self.show_loading(self.getGuiObj('simTitlesField'))
         
-        overlay_bridge = OverlayThreadingBridge.getInstance()
-        overlay_bridge.add_task(lambda:self.updateSimLists(item), id='fillSimLists')
+        guiserver = GUITaskQueue.getInstance()
+        guiserver.add_task(lambda:self.updateSimLists(item), 0, id='fillSimLists')
 
     def updateSimLists(self, item):
         def cmpfunc(x, y):
@@ -1086,9 +1091,11 @@ class standardDetails(wx.Panel):
                     elif status_id == 2:  # dead
                         color = "red"
                         continue
+                    name = dunno2unicode(name)
                     index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                     sim_torrent_list.SetItemTextColour(index, color)
                     torrent_list.append(infohash)
+                        # TODO: show a tip string on this listitem. SetToolTipString?
                 sim_torrent_list.setInfoHashList(torrent_list)
 
             if len(torrent_list) == 0:
@@ -1132,6 +1139,7 @@ class standardDetails(wx.Panel):
                 for infohash, name, status_id in sim_titles:
                     #if infohash == item['infohash']:
                     #    continue
+                    name = dunno2unicode(name)
                     index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                     if status_id == 0:  # good
                         color = "blue"
@@ -1183,9 +1191,9 @@ class standardDetails(wx.Panel):
         self.show_loading(ofList)
         self.show_loading(cfList)
 
-        overlay_bridge = OverlayThreadingBridge.getInstance()
+        guiserver = GUITaskQueue.getInstance()
         permid = self.item.get('permid')
-        overlay_bridge.add_task(lambda:self.updateTorrentLists(permid), id='fillTorrentLists')
+        guiserver.add_task(lambda:self.updateTorrentLists(permid), 0, id='fillTorrentLists')
 
     def updateTorrentLists(self, permid):
         common_files = None
@@ -1549,7 +1557,9 @@ class standardDetails(wx.Panel):
             return True
 
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
-        print >> sys.stderr, 'got torrent to download', 'torrent_file_name' in torrent, torrent
+        if DEBUG:
+	        print >> sys.stderr, 'standardDetails: got torrent to download', 'torrent_file_name' in torrent, torrent
+	        
         if 'torrent_file_name' not in torrent:
             filename = get_filename(torrent['infohash']) 
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
@@ -1655,8 +1665,6 @@ class standardDetails(wx.Panel):
             d = ds.get_download()
             progress = ds.get_progress()
             
-            if progress < 1.0:
-                tl.append([progress,d])
             
             totaldlspeed += ds.get_current_speed(DOWNLOAD)
             totalulspeed += ds.get_current_speed(UPLOAD)
@@ -1664,6 +1672,12 @@ class standardDetails(wx.Panel):
             status = ds.get_status()
             if status != DLSTATUS_STOPPED and status != DLSTATUS_STOPPED_ON_ERROR:
                 nactive += 1
+
+                # Only show active downloading unfinished torrents
+                if progress < 1.0:
+                    tl.append([progress,d])
+
+                
 
             if DEBUG:
                 print >>sys.stderr,"standardDetails: stats:",`d.get_def().get_name()`,progress,status

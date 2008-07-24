@@ -9,8 +9,8 @@ import os
 from types import StringType, IntType, ListType, DictType
 from math import ceil
 
+from Tribler.Core.API import *
 from Tribler.Core.Merkle.merkle import *
-from Tribler.Main.TorrentMaker.btmakemetafile import make_meta_file
 from Tribler.Core.BitTornado.bencode import bdecode
 
 from traceback import print_exc
@@ -197,19 +197,17 @@ class TestMerkleHashes(unittest.TestCase):
             fp.close()
             torrentfilename = datafilename+'.tribe'
 
-            # 2. create args for make_meta_file
-            url = "http://localhost:6969/announce"
-            params = {}
-            params['merkle_torrent'] = 1
-            params['piece_size_pow2'] = int(log(piece_size,2))
-            flag = Event()
-            def dummy_progress(val):
-                pass
-            def dummy_filecallback(f1,f2,f3):
-                pass
+            # 2. Set torrent args
+            tdef = TorrentDef()
+            tdef.set_tracker("http://localhost:6969/announce")
+            tdef.set_create_merkle_torrent(True)
+            tdef.set_piece_length(int(log(piece_size,2)))
 
             # 3. create Merkle torrent
-            make_meta_file(datafilename,url,params,flag,dummy_progress,1,dummy_filecallback)
+            #make_meta_file(datafilename,url,params,flag,dummy_progress,1,dummy_filecallback)
+            tdef.add_content(datafilename)
+            tdef.finalize()
+            tdef.save(torrentfilename)
 
             # 4. read Merkle torrent
             fp = open(torrentfilename,"rb")

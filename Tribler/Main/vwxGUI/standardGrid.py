@@ -2,6 +2,10 @@
 # see LICENSE.txt for license information
 
 import os, sys, wx, math
+from traceback import print_exc,print_stack
+import wx.xrc as xrc
+from time import time
+
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.filesItemPanel import FilesItemPanel
 from Tribler.Main.vwxGUI.LibraryItemPanel import LibraryItemPanel
@@ -16,10 +20,6 @@ from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import *
 from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
 from Tribler.Core.Utilities.utilities import *
-from traceback import print_exc,print_stack
-
-import wx.xrc as xrc
-import web2
 
 DEBUG = False
 
@@ -44,7 +44,7 @@ class GridManager(object):
         self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.friend_db = self.session.open_dbhandler(NTFY_FRIENDS)
-        
+
         self.state = None
         self.total_items = 0
         self.page = 0
@@ -55,18 +55,20 @@ class GridManager(object):
         self.dslist = []
         
         self.torrentsearch_manager = utility.guiUtility.torrentsearch_manager
-        self.torrentsearch_manager.register(self.torrent_db,self)
+        self.torrentsearch_manager.register(self.torrent_db)
 
         self.peersearch_manager = utility.guiUtility.peersearch_manager
-        self.peersearch_manager.register(self.peer_db,self.friend_db,self)
+        self.peersearch_manager.register(self.peer_db,self.friend_db)
         self.guiserver = GUITaskQueue.getInstance()
         
-        self.refresh_rate = 3   # how often to refresh the GUI in seconds
+        # Jie's hacks to avoid DB concurrency, REMOVE ASAP!!!!!!!!!!!!
+        # ARNOCOMMENT
+        self.refresh_rate = 1.5   # how often to refresh the GUI in seconds
         
         self.cache_numbers = {}
-        self.cache_ntorrent_interval = 5
+        self.cache_ntorrent_interval = 1
         self.last_ntorrent_cache = 0
-        self.cache_npeer_interval = 3
+        self.cache_npeer_interval = 1
         self.last_npeer_cache = 0
         
     def set_state(self, state, reset_page = False):
@@ -81,6 +83,7 @@ class GridManager(object):
         """
         if not self.grid.initReady:
             wx.CallAfter(self.refresh)
+            return
 
         if self.state is None:
             return
@@ -89,7 +92,7 @@ class GridManager(object):
             self.setObserver()
             
         self.data, self.total_items = self._getData(self.state)
-        # print >> sys.stderr, 'Data length: %d/%d' % (len(self.data), self.total_items)
+        #print >> sys.stderr, 'GridManager: Data length: %d/%d' % (len(self.data), self.total_items)
         self.grid.setData(self.data)
         if DEBUG:
             print >> sys.stderr, 'GridManager: state: %s gave %d results' % (self.state, len(self.data))
@@ -186,7 +189,9 @@ class GridManager(object):
                 except:
                     print_exc()
 
-        
+            if state.db == 'friendsMode':
+                data = self.addCoopDLStatus(data)
+
         else:
             raise Exception('Unknown data db in GridManager: %s' % state.db)
 
@@ -198,7 +203,7 @@ class GridManager(object):
     def setObserver(self):
         self.session.remove_observer(self.item_network_callback)
         for notify_constant in ntfy_mappings[self.state.db]:
-            print >> sys.stderr, 'For %s we added %s' % (self.state.db, notify_constant)
+            #print >> sys.stderr, 'gridmgr: For %s we added %s' % (self.state.db, notify_constant)
             self.session.add_observer(self.item_network_callback, notify_constant,
                                       [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CONNECTION])
         
@@ -210,6 +215,7 @@ class GridManager(object):
         # After a grid has been hidden by the standardOverview, network/db callbacks
         # are not handled anymore. This function is called if a resize event is caught
         # if callbacks were disabled, they are enabled again
+            
         if self.callbacks_disabled:
             #print >> sys.stderr, ('*' * 50 + '\n')*3
             #print >> sys.stderr, 'Reactivating grid', self.grid.__class__.__name__
@@ -236,7 +242,10 @@ class GridManager(object):
             self.callbacks_disabled = True
             self.session.remove_observer(self.item_network_callback) #unsubscribe this function
         else:
-            self.itemChanged(*args)
+
+            # 15/07/0 Boudewijn: only change grid when still searching
+            if self.torrentsearch_manager.inSearchMode(self.state.db):
+                self.itemChanged(*args)
         
     def itemChanged(self,subject,changeType,objectID,*args):
         "called by GuiThread"
@@ -254,6 +263,7 @@ class GridManager(object):
         #if self._last_page(): # This doesn't work as the pager is not updated if page becomes full
         #print >> sys.stderr, '******* standard Grid: itemAdded:', objectID, args, 'search?', self.torrentsearch_manager.inSearchMode(self.state.db) 
         if self.torrentsearch_manager.inSearchMode(self.state.db):
+            print >> sys.stderr, 'Grid refresh because search item added!!!============================='
             wx.CallAfter(self.refresh)
         elif self.isRelevantItem(subject, objectID):
             task_id = str(subject) + str(int(time())/self.refresh_rate)
@@ -269,7 +279,7 @@ class GridManager(object):
         # So we have to alway refresh here
         
         #if (self._objectOnPage(subject, objectID)
-        if True:
+        if not self.torrentsearch_manager.inSearchMode(self.state.db):
             task_id = str(subject) + str(int(time())/self.refresh_rate)
             self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             #self.refresh()
@@ -285,10 +295,14 @@ class GridManager(object):
         Called by GUIThread
         """
         self.dslist = dslist
-        for infohash in [ds.get_download().get_def().get_infohash() for ds in dslist]:
-            if self._objectOnPage(NTFY_TORRENTS, infohash):
-                self.refresh()
-                break
+        if self.state.db == 'libraryMode':
+            for infohash in [ds.get_download().get_def().get_infohash() for ds in dslist]:
+                if self._objectOnPage(NTFY_TORRENTS, infohash):
+                    self.refresh()
+                    break
+        else:
+            # friendsMode
+            self.refresh()
         
     def _objectOnPage(self, subject, objectID):
         if subject == NTFY_PEERS:
@@ -331,6 +345,23 @@ class GridManager(object):
         return liblist
 
    
+    def addCoopDLStatus(self, liblist):
+        # Add downloadstate data to list of friend dicts
+        for ds in self.dslist:
+            helpers = ds.get_coopdl_helpers()
+            coordinator = ds.get_coopdl_coordinator()
+            
+            for friend in liblist:
+                if friend['permid'] in helpers:
+                    # Friend is helping us
+                    friend['coopdlstatus'] = u'Helping you with '+ds.get_download().get_def().get_name_as_unicode()
+                elif friend['permid'] == coordinator:
+                    # Friend is getting help from us
+                    friend['coopdlstatus'] = u'You help with '+ds.get_download().get_def().get_name_as_unicode()
+                #else:
+                #    friend['coopdlstatus'] = u'Sleeping'
+                    
+        return liblist
         
         
 class standardGrid(wx.Panel):
@@ -349,6 +380,7 @@ class standardGrid(wx.Panel):
         self.sizeMode = 'auto'
         self.columnHeader = None
         self.topMargin = 5
+        self.lastSize = None
         self.panels = []
         self.viewmode = viewmode
         self.guiUtility = GUIUtility.getInstance()
@@ -375,7 +407,7 @@ class standardGrid(wx.Panel):
             else:
                 raise Exception('unknown viewmode: %s' % self.viewmode)
                 
-            
+        # LAYERVIOLATION, use self.session.open_dbhandler() for superpeers
         self.superpeer_db = SuperPeerDBHandler.getInstance()
         self.torrentfeed = TorrentFeedThread.getInstance()
         self.guiserver = GUITaskQueue.getInstance()
@@ -399,6 +431,7 @@ class standardGrid(wx.Panel):
         
         self.addComponents()
         self.calculateRows()
+        
         if self.viewmode == 'list':
             self.toggleColumnHeaders(True)
         self.Show()
@@ -453,7 +486,7 @@ class standardGrid(wx.Panel):
             #self.updatePanel(0, self.currentRows)
             self.calculateRows()
             #self.updateCols(oldcols, self.cols)
-            self.refreshData()
+            self.gridManager.refresh()
             self.toggleColumnHeaders(mode == 'list')
         
     def onSizeChange(self, event=None):
@@ -502,7 +535,6 @@ class standardGrid(wx.Panel):
         if not self.initReady:
             return
                 
-       
         self.refreshPanels()
         if DEBUG:
             print >>sys.stderr,'standardGrid: <mluc>start columns:',\
@@ -556,7 +588,7 @@ class standardGrid(wx.Panel):
                     self.setDataOfPanel(i, self.data[i])
                 else:
                     self.setDataOfPanel(i, None)
-        
+                    
         self.updateSelection()
     
     def gridResized(self, rows):
@@ -601,8 +633,11 @@ class standardGrid(wx.Panel):
         for i in range(0, self.items):
             self.setDataOfPanel(i, None)
             
-    def onResize(self, event=None):        
-        # print >>sys.stderr, "event: %s" % event
+    def onResize(self, event=None):
+        if self.GetSize() == self.lastSize:
+            return
+        self.lastSize = self.GetSize()
+        #print >>sys.stderr, "standardGrid: resize event: %s" % self.GetSize()
         self.calculateRows(event)
         self.gridManager.reactivate()
         if event:
@@ -611,7 +646,7 @@ class standardGrid(wx.Panel):
    
         
     def calculateRows(self, event=None):
-    
+
         size = self.GetSize()
         oldRows = self.currentRows
         if self.columnHeader:
@@ -635,7 +670,6 @@ class standardGrid(wx.Panel):
             
             self.updatePanel(oldRows, self.currentRows)
             self.gridResized(self.currentRows)
-            
         
         
     def updateCols(self, oldCols, newCols):
@@ -663,11 +697,13 @@ class standardGrid(wx.Panel):
     def updatePanel(self, oldRows, newRows):
         if DEBUG:
             print >> sys.stderr, 'Grid: updating from %d to %d rows' % (oldRows, newRows)
-        # put torrent items in grid 
+        # put torrent items in grid
+        
         if newRows > oldRows:
             for i in range(oldRows, newRows):
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
                 self.panels.append([])
+                
                 for panel in range(0, self.cols):
                     dataPanel = self.getSubPanel(self.keyTypedOnGridItem)
                     self.subPanelClass = dataPanel.__class__
@@ -677,6 +713,7 @@ class standardGrid(wx.Panel):
                     #dataPanel.SetSize((-1, self.subPanelHeight))
                     hSizer.Add(dataPanel, 1, wx.ALIGN_CENTER|wx.ALL|wx.GROW, 0)
                 self.vSizer.Add(hSizer, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
+                
         elif newRows < oldRows:
             #print "Destroying row %d up to %d" % (newRows, oldRows-1)
             for row in range(oldRows-1, newRows-1, -1):
@@ -844,6 +881,8 @@ class standardGrid(wx.Panel):
         isshown = name[:index] == mode[:index]
         return isshown
     
+    def getGridManager(self):
+        return self.gridManager
     
     
 class filesGrid(standardGrid):

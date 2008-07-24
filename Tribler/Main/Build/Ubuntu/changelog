@@ -1,3 +1,63 @@
+tribler (4.1.9-1ubuntu1) gutsy; urgency=low
+
+  * New release 
+
+ -- Tribler <tribler@tribler.org>  Wed, 27 Feb 2008 14:59:40 +0100
+
+tribler (4.1.8-1ubuntu1) gutsy; urgency=low
+
+  * New release 
+
+ -- Tribler <tribler@tribler.org>  Tue, 12 Feb 2008 09:12:17 +0100
+
+tribler (4.1.7-1ubuntu1) feisty; urgency=low
+
+  * New release
+
+ -- Tribler <tribler@tribler.org>  Thu, 11 Oct 2007 14:56:08 +0200
+
+tribler (4.1.6-1ubuntu1) feisty; urgency=low
+
+  * New release
+
+ -- Tribler <tribler@tribler.org>  Fri,  5 Oct 2007 11:00:26 +0200
+
+tribler (4.1.5-1ubuntu3) feisty; urgency=low
+
+  * changelog
+
+ -- Tribler <tribler@ubuntu-dev>  Fri,  5 Oct 2007 11:00:22 +0200
+
+tribler (4.1.5-1ubuntu2) feisty; urgency=low
+
+  * Removed -x from tribler startup script. 
+
+ -- Tribler Team <tribler@tribler.org>  Mon, 24 Sep 2007 16:08:16 +0200
+
+tribler (4.1.5-1ubuntu1) feisty; urgency=low
+
+  * New release
+
+ -- Tribler Team <tribler@tribler.org>  Mon, 24 Sep 2007 15:58:13 +0200
+
+tribler (4.1.4-1ubuntu4) feisty; urgency=low
+
+  * New release
+
+ -- Tribler Team <tribler@tribler.org>  Thu, 20 Sep 2007 15:00:21 +0200
+
+tribler (4.1.4-1ubuntu2) feisty; urgency=low
+
+  * Changed dependency to wx2.8-unicode, font enum problem
+
+ -- Tribler Team <tribler@tribler.org>  Tue, 18 Sep 2007 14:31:06 +0200
+
+tribler (4.1.4-1ubuntu1) feisty; urgency=low
+
+  * New release
+
+ -- Tribler Team <tribler@tribler.org>  Tue, 18 Sep 2007 14:21:21 +0200
+
 tribler (4.0.2-1ubuntu1) feisty; urgency=low
 
   * New release

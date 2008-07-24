@@ -1,3 +1,5 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke 
+# see LICENSE.txt for license information
 import wx, os, sys
 import wx.xrc as xrc
 
@@ -102,7 +104,8 @@ class standardFilter(wx.Panel):
             self.state = GridState(self.mode,
                               dict_state.get('category'),
                               None)
-            print >> sys.stderr,'%s returns %s' % (self.__class__.__name__, self.state)
+            if DEBUG:
+	            print >> sys.stderr,'standardFilter: %s returns %s' % (self.__class__.__name__, self.state)
             self.guiUtility.standardOverview.filterChanged(self.state)
         except:
             if DEBUG:
@@ -121,8 +124,9 @@ class standardFilter(wx.Panel):
 #        self.filterState = filterState
     
     def getState(self):
-        if not self.state:
-            self.mouseAction()
+        # Arno, 2008-6-20: The state that mouseAction computers for libraryMode is not valid
+        #if not self.state:
+        #    self.mouseAction()
         return self.state
 
     

@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
+# see LICENSE.txt for license information
+
 import wx, math, time, os, sys, threading
 import random
 from traceback import print_exc

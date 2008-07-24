@@ -4,6 +4,8 @@
 # Arno, pychecker-ing: the addTarget and getTarget methods of JobQueue are
 # no longer there, this code needs to be updated.
 
+# 2008-06-24: add OverlayBridge equiv to DataHandler() constructor calls.
+
 import os
 import sys
 import unittest

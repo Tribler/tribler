@@ -1,5 +1,6 @@
+# Written by Tim Tucker
+# see LICENSE.txt for license information
 #########################################################################
-# Author : Tim Tucker
 # Description : Ask whether or not to associate ABC with torrents
 #########################################################################
 import wx

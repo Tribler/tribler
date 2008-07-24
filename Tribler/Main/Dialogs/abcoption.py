@@ -1,11 +1,9 @@
-# ARNOCOMMENT: Rewrite this such that it uses SessionConfig and cleanup of
-# unused abc.conf params. See also Tribler/Utility/utility.py and others.
+# Written by ABC authors and Arno Bakker
+# see LICENSE.txt for license information
 
 # TODO: 
-# - Add ratelimiter to tribler Session. Wait on Jelle checkin
 # - Adhere to SeedingOptions. Wait on Jelle checkin
 # - Make Core adhere to diskfullthreshold
-# - Remove old config params from Tribler.Main.Utility class
 
 import sys
 import wx
@@ -17,7 +15,6 @@ from cStringIO import StringIO
 
 from wx.lib import colourselect
 
-from Tribler.Main.Dialogs.abcmenu import MenuDialog
 from Tribler.Main.Utility.configreader import ConfigReader
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename

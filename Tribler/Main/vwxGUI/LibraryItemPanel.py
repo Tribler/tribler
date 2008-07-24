@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
+# see LICENSE.txt for license information
+
 import wx, math, time, os, sys, threading
 from traceback import print_exc,print_stack
 from Tribler.Core.Utilities.utilities import *
@@ -10,7 +13,6 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Video.Progress import ProgressBar
-from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.simpledefs import *
 from Tribler.Video.utils import videoextdefaults
@@ -85,23 +87,26 @@ class LibraryItemPanel(wx.Panel):
         self.warningMode = False
         self.oldCategoryLabel = None
         self.torrentDetailsFrame = None
-        self.metadatahandler = MetadataHandler.getInstance()
+        
         self.addComponents()
             
         #self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
         
         self.cache_progress = {}
         self.gui_server = GUITaskQueue.getInstance()
-        
+
         self.SetMinSize((-1, 22))
         self.selected = False
         self.Show()
         self.Refresh()
         self.Layout()
+        
+        
 
     def addComponents(self):
-        self.Show(False)
         
+        self.Show(False)
+
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         # Add Spacer
@@ -132,6 +137,7 @@ class LibraryItemPanel(wx.Panel):
         self.addLine()
         # Add Gauge/progressbar
         #self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
+
         self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(100,5))
         
         # >> Drawn in progressbar
@@ -161,7 +167,7 @@ class LibraryItemPanel(wx.Panel):
         
         # V Line
         self.addLine()
-        
+
         # Up/Down text speed
 #        self.downSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='downSpeed')
 #        self.downSpeed.setBackground(wx.WHITE)
@@ -207,7 +213,7 @@ class LibraryItemPanel(wx.Panel):
         
         # V Line
         self.addLine()
-        
+
         # Boost button
         self.boost = SwitchButton(self, name="boost")
         self.boost.setBackground(wx.WHITE)
@@ -254,6 +260,7 @@ class LibraryItemPanel(wx.Panel):
             #window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)                         
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
+
             
     def getColumns(self):
         return [{'sort':'', 'title':'', 'width':35, 'tip':''},
@@ -291,12 +298,19 @@ class LibraryItemPanel(wx.Panel):
         # set bitmap, rating, title
         
         #print_stack()
+        #print >>sys.stderr,"lip: setData called"       
         
         if threading.currentThread().getName() != "MainThread":
             print >>sys.stderr,"lip: setData called by nonMainThread!",threading.currentThread().getName()
             print_stack()
 
         self.vodMode = False
+        
+        if self.data is None:
+            oldinfohash = None
+        else:
+            oldinfohash = self.data['infohash']
+        
         self.data = torrent
         
         if torrent is None:
@@ -347,9 +361,13 @@ class LibraryItemPanel(wx.Panel):
             if finished and ds.get_status() == DLSTATUS_STOPPED:
                 status = self.utility.lang.get('completed')
             else:
-                status = dlstatus_strings[ds.get_status()]
+                statusshort = dlstatus_strings[ds.get_status()]
+                status = self.utility.lang.get(statusshort)
                 
-            self.statusField.SetLabel(self.utility.lang.get(status))
+            if ds.get_coopdl_coordinator() is not None:
+                status += ", helping" 
+                
+            self.statusField.SetLabel(status)
             self.statusField.SetToolTipString(self.statusField.GetLabel())
             
             #status = abctorrent.status.getStatus()
@@ -394,7 +412,7 @@ class LibraryItemPanel(wx.Panel):
             
             if not ds.get_status() in (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,\
                                         DLSTATUS_HASHCHECKING):
-                showBoost = active and (not finished)
+                showBoost = active and (not finished) and (ds.get_coopdl_coordinator() is None)
                 if showBoost and not ds.is_vod():
                     showPlayFast = True
                 
@@ -434,7 +452,7 @@ class LibraryItemPanel(wx.Panel):
             self.playFast.setToggled(not switchable, tooltip = {"disabled" : self.utility.lang.get('playFastDisabled'), "enabled" : self.utility.lang.get('playFastEnabled')})
 
             self.boost.setEnabled(showBoost)
-            self.boost.setToggled(self.is_boosted(), tooltip = {"disabled" : self.utility.lang.get('boostDisabled'), "enabled" : self.utility.lang.get('boostEnabled')})
+            self.boost.setToggled(self.is_boosted_or_boosting(), tooltip = {"disabled" : self.utility.lang.get('boostDisabled'), "enabled" : self.utility.lang.get('boostEnabled')})
             
             self.pause.setToggled(ds.get_status() == DLSTATUS_STOPPED or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
                         
@@ -478,14 +496,16 @@ class LibraryItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(torrent['name'])
+
+            # Only reload thumb when changing torrent displayed
+            if torrent['infohash'] != oldinfohash:
+                #print >>sys.stderr,"REFRESH THUMBNAIL",`torrent['name']`
+                self.thumb.setTorrent(torrent)
+        
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Hide()
-            
-        
-            
-        self.thumb.setTorrent(torrent)
                
         self.Layout()
         self.Refresh()
@@ -706,11 +726,11 @@ class LibraryItemPanel(wx.Panel):
         videoplayer = VideoPlayer.getInstance() 
         videoplayer.vod_back_to_standard_dlmode(ABCTorrentTemp) 
         
-    def is_boosted(self): 
+    def is_boosted_or_boosting(self): 
         if self.data is None: 
             return False 
         ds = self.data.get('ds') 
-        return ds and len(ds.get_coopdl_helpers()) > 0
+        return ds and (len(ds.get_coopdl_helpers()) > 0 or ds.get_coopdl_coordinator() is not None)
              
     def abcTorrentShutdown(self, infohash):
         """

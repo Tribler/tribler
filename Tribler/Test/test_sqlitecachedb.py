@@ -8,14 +8,34 @@ from threading import Thread
 from time import time,sleep
 import math
 from random import shuffle
+from shutil import copy as copyFile, move
 
-if os.path.exists('test_sqlitecachedb.py'):
+if os.path.exists(__file__):    #'test_sqlitecachedb.py'
     BASE_DIR = '..'
     sys.path.insert(1, os.path.abspath('..'))
 elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
     
-from Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Core.CacheDB.sqlitecachedb import SQLiteCacheDB, apsw, DEFAULT_BUSY_TIMEOUT
+    
+def extract_db_files(file_dir, file_name):
+    try:
+        import tarfile
+        tar=tarfile.open(os.path.join(file_dir, file_name), 'r|gz')
+        for member in tar:
+            print "extract file", member
+            tar.extract(member)
+            dest = os.path.join(file_dir,member.name)
+            dest_dir = os.path.dirname(dest)
+            if not os.path.isdir(dest_dir):
+                os.makedirs(dest_dir)
+            move(member.name, dest)
+        tar.close()
+        return True
+    except:
+        print_exc()
+        return False
+    
     
 CREATE_SQL_FILE = os.path.join(BASE_DIR, 'tribler_sdb_v1.sql')
 assert os.path.isfile(CREATE_SQL_FILE)
@@ -23,16 +43,23 @@ DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = None
 FILES_DIR = os.path.join(BASE_DIR, 'Test/extend_db_dir/')
 TRIBLER_DB_PATH = os.path.join(FILES_DIR, 'tribler.sdb')
+STATE_FILE_NAME_PATH = os.path.join(FILES_DIR, 'tribler.sdb-journal')
 TRIBLER_DB_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_tribler.sdb')
 if not os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-    print >> sys.stderr, "Please download bak_tribler.sdb from http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb and save it as", os.path.abspath(TRIBLER_DB_PATH_BACKUP)
-    sys.exit(1)
+    got = extract_db_files(FILES_DIR, 'bak_tribler.tar.gz')
+    if not got:
+        print >> sys.stderr, "Please download bak_tribler.sdb from http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb and save it as", os.path.abspath(TRIBLER_DB_PATH_BACKUP)
+        sys.exit(1)
 if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-    from shutil import copy as copyFile
     copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
     #print "refresh sqlite db", TRIBLER_DB_PATH
+    if os.path.exists(STATE_FILE_NAME_PATH):
+            os.remove(STATE_FILE_NAME_PATH)
+            print "remove journal file"
 
 SQLiteCacheDB.DEBUG = False
+DEBUG = True
+INFO = True
 
 class SQLitePerformanceTest:
     def __init__(self):
@@ -252,8 +279,12 @@ class SQLitePerformanceTest:
                 sim_torrents_id = tuple([ti for (ti,co) in sim_torrents])
 
             if len(sim_torrents_id) > 0:
+                if len(sim_torrents_id) == 1:
+                    sim_torrents = '(' + str(sim_torrents_id[0]) +')'
+                else:
+                    sim_torrents = repr(sim_torrents_id)
                 sql = "select name,torrent_id from CollectedTorrent where torrent_id in " + \
-                    repr(sim_torrents_id) + " order by name"
+                   sim_torrents + " order by name"
                 sim_names = self.db.fetchall(sql)
                 #for name,ti in sim_names:
                 #    print name, ti
@@ -294,47 +325,18 @@ class SQLitePerformanceTest:
             print "Time for peer history %.4f"%(past/real_num), past, real_num
         
 
-class TestSQLitePerformanceTest(unittest.TestCase):
+class TestSQLitePerformance(unittest.TestCase):
     
-    def setUp(self):
-        print "cur thread set up", threading.currentThread().getName()
-        self.tmp_dir = tempfile.gettempdir() 
-        self.db_path = tempfile.mktemp()
-        self.db_name = os.path.split(self.db_path)[1]
-        
     def tearDown(self):
         sqlite_test = SQLitePerformanceTest()
         sqlite_test.close(clean=True)
-        if os.path.exists(self.db_path):
-            os.remove(self.db_path)
         
-#    def removeTempDirs(self, dir_path):
-#        for filename in os.listdir(dir_path):
-#            abs_path = os.path.join(dir_path, filename)
-#            os.remove(abs_path)
-#        os.removedirs(dir_path)
-    
-    def benchmark_new_db(self, lib=0):
+    def test_benchmark_db(self):
         sqlite_test = SQLitePerformanceTest()
-        sqlite_test.initDB(self.db_path, None, CREATE_SQL_FILE, lib=lib)
+        sqlite_test.initDB(TRIBLER_DB_PATH, None, CREATE_SQL_FILE)
         sqlite_test.test()
         sqlite_test.close(clean=True)
-        
-    def benchmark_with_db(self, lib=0):
-        sqlite_test = SQLitePerformanceTest()
-        db_path = TRIBLER_DB_PATH
-        sqlite_test.openDB(db_path, lib=lib)
-        sqlite_test.test()
-        sqlite_test.close()
     
-    def test_benchmark_new_db(self):
-        self.benchmark_new_db()
-        self.benchmark_new_db(lib=1)
-        
-    def test_benchmark_with_db(self):
-        self.benchmark_with_db(lib=0)
-        self.benchmark_with_db(lib=1)
-        
     def test_thread_benchmark_with_db(self):
         class Worker1(Thread):
             def run(self):
@@ -383,11 +385,14 @@ class TestSQLitePerformanceTest(unittest.TestCase):
 class TestSqliteCacheDB(unittest.TestCase):
     
     def setUp(self):
-        self.tmp_dir = tempfile.gettempdir() 
-        self.db_path = tempfile.mktemp()
+        self.db_path = 'tmp.db'
+        if os.path.exists(self.db_path):
+            os.remove(self.db_path) 
         self.db_name = os.path.split(self.db_path)[1]
         
     def tearDown(self):
+        db = SQLiteCacheDB.getInstance()
+        db.close(clean=True)
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
             
@@ -403,13 +408,13 @@ class TestSqliteCacheDB(unittest.TestCase):
     def test_create_temp_db(self):
         sqlite_test = SQLiteCacheDB.getInstance()
         sql = "create table person(lastname, firstname);"
-        sqlite_test.createDB(sql, self.db_path)
+        sqlite_test.createDBTable(sql, self.db_path)
         sqlite_test.close()
         
-    def basic_funcs(self, lib=0):
+    def basic_funcs(self):
         db = SQLiteCacheDB.getInstance()
         create_sql = "create table person(lastname, firstname);"
-        db.createDB(create_sql, lib=lib)
+        db.createDBTable(create_sql, self.db_path)
         db.insert('person', lastname='a', firstname='b')
         one = db.fetchone('select * from person')
         assert one == ('a','b')
@@ -455,10 +460,7 @@ class TestSqliteCacheDB(unittest.TestCase):
         db.close()
         
     def test_basic_funcs_lib0(self):
-        self.basic_funcs(0)
-        
-    def test_basic_funcs_lib1(self):
-        self.basic_funcs(1)
+        self.basic_funcs()
         
     def test_insertPeer(self):
         create_sql = """
@@ -485,7 +487,7 @@ class TestSqliteCacheDB(unittest.TestCase):
         );
         """
         db = SQLiteCacheDB.getInstance()
-        db.createDB(create_sql)
+        db.createDBTable(create_sql, self.db_path)
         assert db.size('Peer') == 0
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 'name':'fake peer x'}
@@ -501,8 +503,9 @@ class TestSqliteCacheDB(unittest.TestCase):
         
 class TestThreadedSqliteCacheDB(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir = tempfile.gettempdir() 
-        self.db_path = tempfile.mktemp()
+        self.db_path = 'tmp.db'
+        if os.path.exists(self.db_path):
+            os.remove(self.db_path) 
         self.db_name = os.path.split(self.db_path)[1]
         SQLiteCacheDB.DEBUG = False
         
@@ -513,13 +516,20 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
         
-    def create_db(self, lib=0, db_path=None):
+    def create_db(self, db_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
         create_sql = "create table person(lastname, firstname);"
-        SQLiteCacheDB.initDB(db_path, None, create_sql, lib=lib, check_version=False, busytimeout=10000)
+        db = SQLiteCacheDB.getInstance()
+        tmp_sql_path = 'tmp.sql'
+        f = open(tmp_sql_path, 'w')
+        f.write(create_sql)
+        f.close()
+        #print "initDB", db_path
+        db.initDB(db_path, tmp_sql_path, busytimeout=busytimeout, check_version=False)
+        os.remove(tmp_sql_path)
                     
     def write_data(self):
         db = SQLiteCacheDB.getInstance()
-        db.begin()
+        #db.begin()
         db.insert('person', lastname='a', firstname='b')
         values = []
         for i in range(100):
@@ -527,7 +537,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
             values.append(value)
         db.insertMany('person', values)
         db.commit()
-        db.begin()
+        #db.begin()
         db.commit()
         db.commit()
         db.close()
@@ -568,157 +578,264 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         assert one == 654, one
         db.close()
 
-    def _test_open_close_db(self):
+    def test_open_close_db(self):
         sqlite_test = SQLiteCacheDB.getInstance()
-        sqlite_test.openDB(self.db_path, 0)
+        sqlite_test.openDB(self.db_path, 1250)
         sqlite_test.close()
         sqlite_test.close()
         sqlite_test.openDB(self.db_path, 0)
         sqlite_test.close()
 
-    def _test_create_temp_db(self):
+    def test_create_temp_db(self):
         sqlite_test = SQLiteCacheDB.getInstance()
         sql = "create table person(lastname, firstname);"
-        sqlite_test.createDB(sql, self.db_path)
-        sqlite_test.close()
+        sqlite_test.createDBTable(sql, self.db_path)
+        sqlite_test.close(clean=True)
         
-    def basic_funcs(self, lib=0):
-        self.create_db(lib, self.db_path)
+    def basic_funcs(self):
+        self.create_db(self.db_path)
         self.write_data()
         sleep(1)
         self.read_data()
         
-    def _test_basic_funcs_lib0(self):
+    def test_basic_funcs_lib0(self):
         self.basic_funcs()
 
-    def _test_basic_funcs_lib1(self):
-        self.basic_funcs(1)
-
-    def _test_new_thread_basic_funcs(self, lib=0):
+    def test_new_thread_basic_funcs(self):
         # test create/write/read db by 3 different threads
         # 3 seperate connections should be created, one per thread
-        self.create_db(lib, self.db_path)
+        #print >> sys.stderr, '------>>>>> test_new_thread_basic_funcs', threading.currentThread().getName()
+        self.create_db(self.db_path)
         thread.start_new_thread(self.write_data, ())
         sleep(2)
         thread.start_new_thread(self.read_data, ())
         sleep(2)
         
-    
-        
-    def keep_reading_data(self, period=5):
-        db = SQLiteCacheDB.getInstance()
-        st = time()
-        while True:
-            all = db.fetchall("select * from person where lastname='37'")
-            num37 = len(all)
-            print num37,
-            et = time()
-            if et-st > period:
-                print
-                break
-        db.close()
-    
     def test_concurrency(self):
-        class Writer(Thread):
+        class Reader(Thread):
             def __init__(self, period):
                 self.period = period
                 Thread.__init__(self)
-                self.setName('Writer'+self.getName())
-            
-            def keep_writing_data(self, period):
+                self.setName('Reader.'+self.getName())
+                self.read_locks = 0
+                self.num = ' R%3s '%self.getName().split('-')[-1]
+                
+            def keep_reading_data(self, period):
                 db = SQLiteCacheDB.getInstance()
                 st = time()
-                print  >> sys.stderr, "begin write", self.getName(), period, time()
-                begin_time = time()
-                try:
-                    while True:
-                        db.begin()
-                        values = []
-                        for i in range(10):
-                            value = (str(i), str(i**2))
-                            values.append(value)
-                        print ">>start write", self.getName(), time()
-                        db.insertMany('person', values)
-                        print ">>end write", self.getName(), time()
-                        db.commit()
-                        print ">>committed", self.getName(), time()
-                        sleep(0.01)
-                        et = time()
-                        if et-st > period:
-                            break
-                except Exception, msg:
-                    print_exc()
-                    print >> sys.stderr, "On Error", time(), begin_time, time()-begin_time, Exception, msg
-                print "done write"
-                db.close()
-                
-            def run(self):
-                self.keep_writing_data(self.period)
-                
-        class Reader(Thread):
-            def __init__(self, period, sleeptime):
-                self.period = period
-                self.sleeptime = sleeptime
-                Thread.__init__(self)
-                self.setName('Reader'+self.getName())
-                
-            def keep_reading_data(self, period, sleeptime):
-                db = SQLiteCacheDB.getInstance()
-                st = time()
-                all = db.fetchall("select * from person where lastname='7'")
-                if not all:
-                    oldnum = 0
-                else:
-                    oldnum = len(all)
-                print "begin read", period
+                oldnum = 0
+                self.all = []
+                self.read_times = 0
+                if DEBUG_R:
+                    print "begin read", self.getName(), period, time()
                 while True:
-                    all = db.fetchall("select * from person where lastname='7'")
-                    num = len(all)
-                    print "----------- read", self.getName(), num
-                    assert num>=oldnum, (num, oldnum)
                     et = time()
-                    #sleep(0)
-                    #sleep(sleeptime)
                     if et-st > period:
                         break
+                    if DEBUG_R:
+                        print "...start read", self.getName(), time()
+                        sys.stdout.flush()
+                    
+                    try:
+                        self.all = db.fetchall("select * from person")
+                        self.last_read = time()-st
+                        self.read_times += 1
+                    except Exception, msg:
+                        print_exc()
+                        print "*-*", Exception, msg
+                        self.read_locks += 1
+                        if DEBUG:
+                            print >> sys.stdout, "Locked while reading!", self.read_locks
+                            sys.stdout.flush()
+                    else:
+                        if DEBUG_R:
+                            print "...end read", self.getName(), time(), len(self.all)
+                            sys.stdout.flush()
+                    
+#                    num = len(all)
+                    #print "----------- read", self.getName(), num
+#                    if DEBUG_R:
+#                        if num>oldnum:
+#                            print self.getName(), "readed", num-oldnum
+#                            sys.stdout.flush()
                 db.close()
-                if period > 1:
-                    assert num>oldnum
+                if DEBUG_R:
+                    print "done read", self.getName(), len(self.all), time()-st
+                    sys.stdout.flush()
+                    
+                    
+                #assert self.read_locks == 0, self.read_locks
                 
             def run(self):
-                self.keep_reading_data(self.period, self.sleeptime)
+                self.keep_reading_data(self.period)
         
-        def start_testing(nwriters,nreaders,write_period=3,read_period=3,read_sleeptime=0.21):
-            print >> sys.stderr, nwriters, 'Writers', nreaders, 'Readers'
+        class Writer(Thread):
+            def __init__(self, period, num_write, commit):
+                self.period = period
+                Thread.__init__(self)
+                self.setName('Writer.'+self.getName())
+                self.write_locks = 0
+                self.writes = 0
+                self.commit = commit
+                self.num_write = num_write
+                self.num = ' W%3s '%self.getName().split('-')[-1]
+                
+            def keep_writing_data(self, period, num_write, commit=False):
+                db = SQLiteCacheDB.getInstance()
+                st = time()
+                if DEBUG:
+                    print "begin write", self.getName(), period, time()
+                    sys.stdout.flush()
+                begin_time = time()
+                w_times = []
+                c_times = []
+                self.last_write = 0
+                try:
+                    while True:
+                        st = time()
+                        if st-begin_time > period:
+                            break
+                        #db.begin()
+                        values = []
+                        
+                        for i in range(num_write):
+                            value = (str(i)+'"'+"'", str(i**2)+'"'+"'")
+                            values.append(value)
+                        
+                        try:
+                            st = time()
+                            if DEBUG:
+                                print '-'+self.num + "start write", self.getName(), self.writes, time()-begin_time
+                                sys.stdout.flush()
+                                
+                            sql = 'INSERT INTO person VALUES (?, ?)'
+                            db.executemany(sql, values, commit=commit)
+                            self.last_write = time()-begin_time
+
+                            write_time = time()-st
+                            w_times.append(write_time)
+                            if DEBUG:
+                                print '-'+self.num + "end write", self.getName(), '+', write_time 
+                                sys.stdout.flush()
+                            self.writes += 1
+                        except apsw.BusyError:
+                            self.write_locks += 1
+                            if DEBUG:
+                                if commit:
+                                    s = "Writing/Commiting"
+                                else:
+                                    s = "Writing"
+                                print >> sys.stdout, '>'+self.num + "Locked while ", s, self.getName(), self.write_locks, time()-st
+                                sys.stdout.flush()
+                            continue
+                                                
+                        if SLEEP_W >= 0:
+                            sleep(SLEEP_W/1000.0)
+                            
+                        if DO_STH > 0:
+                            do_sth(DO_STH)
+                            
+                except Exception, msg:
+                    print_exc()
+                    print >> sys.stderr, "On Error", time(), begin_time, time()-begin_time, Exception, msg, self.getName()
+                if INFO:
+                    avg_w = avg_c = max_w = max_c = min_w = min_c = -1
+                    if len(w_times) > 0:
+                        avg_w = sum(w_times)/len(w_times)
+                        max_w = max(w_times)  
+                        min_w = min(w_times) 
+                        
+                    output = self.num + " # W Locks: %d;"%self.write_locks + " # W: %d;"%self.writes
+                    output += " Time: %.1f;"%self.last_write + ' Min Avg Max W: %.2f %.2f %.2f '%(min_w, avg_w, max_w)
+                    self.result = output
+                
+                db.commit()
+                db.commit()
+                db.commit() # test if it got problem if it is called more than once
+                db.close()
+                
+            def run(self):
+                self.keep_writing_data(self.period, self.num_write, commit=self.commit)
+                
+        def do_sth(n=300):
+            # 1000: 1.4 second
+            # 500: 0.34
+            # 300: 0.125
+            for i in xrange(n):
+                l = range(n)
+                shuffle(l)
+                l.sort()
+            
+
+        def start_testing(nwriters,nreaders,write_period,num_write,read_period, 
+                          db_path, busytimeout, commit):
+            self.create_db(db_path, busytimeout)
+            if INFO:
+                print "Busy Timeout:", busytimeout, "milliseconds" 
+                library = 'APSW'
+                print 'Library:', library, 'Writers:', nwriters, 'Readers:', nreaders, \
+                    "Num Writes:", num_write, "Write Period:", write_period, "Read Period:", read_period, "Commit:", commit, "Busytimeout:", busytimeout
+                sys.stdout.flush()
             writers = []
             for i in range(nwriters):
-                w = Writer(write_period)
+                w = Writer(write_period, num_write, commit)
                 w.start()
                 writers.append(w)
             
             readers = []
             for i in range(nreaders):
-                r = Reader(read_period, read_sleeptime)
+                r = Reader(read_period)
                 r.start()
                 readers.append(r)
                 
-            for w in writers:
-                w.join()
-                
+            total_rlock = 0
             for r in readers:
                 r.join()
-            
-        self.create_db(0, self.db_path)
-        #start_testing(1,1)
-        #start_testing(1,10,10,3)
-        start_testing(5,5)    # always got 'db is locked' error in linux
+                total_rlock += r.read_locks
+                if INFO:
+                    print >> sys.stdout, r.num, "# R Locks: %d;"%r.read_locks, "# R: %d;"%len(r.all), "Last read: %.3f;"%r.last_read, "Read Times:", r.read_times
+                    sys.stdout.flush()
+                del r
+                
+            total_wlock = 0
+            for w in writers:
+                w.join()
+                total_wlock += w.write_locks
+                if INFO:
+                    print w.result
+                    sys.stdout.flush()
+                del w
+                
+            return total_rlock, total_wlock
         
+        #sys.setcheckinterval(1)
+        DEBUG_R = False
+        DEBUG = False
+        INFO = False
+        SLEEP_W = -10 # millisecond. -1 to disable, otherwise indicate how long to sleep
+        DO_STH = 0                
+        NLOOPS = 1
+        total_rlock = total_wlock = 0
+        
+        for i in range(NLOOPS):
+            rlock, wlock = start_testing(nwriters=1, nreaders=0, num_write=100, write_period=5, read_period=5, 
+                          db_path=self.db_path, busytimeout=5000, commit=True)
+            total_rlock += rlock
+            total_wlock += wlock
+
+        db = SQLiteCacheDB.getInstance()
+        all = db.fetchall("select * from person")
+        if INFO:
+            print "Finally inserted", len(all)
+            
+        assert total_rlock == 0 and total_wlock == 0, (total_rlock, total_wlock)
+        assert len(all) > 0, len(all)
         
 def test_suite():
     suite = unittest.TestSuite()
-    #suite.addTest(unittest.makeSuite(TestSqliteCacheDB))
+    suite.addTest(unittest.makeSuite(TestSqliteCacheDB))
     suite.addTest(unittest.makeSuite(TestThreadedSqliteCacheDB))
-    #suite.addTest(unittest.makeSuite(TestSQLitePerformanceTest))
+    suite.addTest(unittest.makeSuite(TestSQLitePerformance))
     
     return suite
         

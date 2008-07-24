@@ -1,3 +1,6 @@
+# Written by Fabian van der Werf, Jelle Roozenburg, Maarten ten Brinke 
+# see LICENSE.txt for license information
+
 import sys
 import copy, threading
 from traceback import print_stack,print_exc
