@@ -403,9 +403,6 @@ class VLCLogoWindow(wx.Window):
         realized, otherwise the self.GetHandle() call that vlcwrap.set_window()
         does, doesn't return a correct XID.
         """
-        
-        print >>sys.stderr,"VLCLogoWindow: tell_vlcwrap_win $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",self
-        
         self.vlcwrap.set_window(self)
 
     def get_vlcwrap(self):
