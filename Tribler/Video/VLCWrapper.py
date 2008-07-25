@@ -41,12 +41,10 @@ class VLCWrapper:
         GetHandle() returns a valid xid. See
         http://mailman.videolan.org/pipermail/vlc-devel/2006-September/025895.html
         """
-        
         xid = wxwindow.GetHandle()
-        
-        print >>sys.stderr,"VLCWrapper: XID IS $$$$$$$$$$$$$$$$$$$$$",xid
-        
-        
+        if xid == 0:
+            print >>sys.stderr,"VLCWrapper: WARNING: window passed to vlcwrap not yet materialized, XID=0"
+            
         if sys.platform == 'darwin':
             self.media.set_visual_macosx_type(vlc.DrawableControlRef)
         self.media.set_visual(xid)

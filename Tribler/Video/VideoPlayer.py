@@ -61,8 +61,6 @@ class VideoPlayer:
         self.preferredplaybackmode = preferredplaybackmode
         self.determine_playbackmode()
 
-        print >>sys.stderr,"VideoPlayer: register: SELECTED",self.playbackmode
-
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             # The python-vlc bindings. Created only once at the moment,
             # as using MediaControl.exit() more than once with the raw interface
@@ -167,9 +165,6 @@ class VideoPlayer:
 
         self.determine_playbackmode()
 
-
-        print >>sys.stderr,"VideoPlayer: play_stream: SELECTED",self.playbackmode    
-
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             if USE_VLC_RAW_INTERFACE:
                 # Play using direct callbacks from the VLC C-code
@@ -194,14 +189,8 @@ class VideoPlayer:
 
             if streaminfo is None:
                 # Play URL from network or disk
-                
-                print >>sys.stderr,"VideoPlayer: launch_vid: streaminfo NONE" 
-                
                 self.videoframe.get_videopanel().Load(cmd)
             else:
-                
-                print >>sys.stderr,"VideoPlayer: launch_vid: streaminfo set"
-                
                 # Play using direct callbacks from the VLC C-code
                 self.videoframe.get_videopanel().Load('raw:',streaminfo=streaminfo)
 
@@ -210,9 +199,6 @@ class VideoPlayer:
         else:
             # Launch an external player
             # Play URL from network or disk
-            
-            print >>sys.stderr,"VideoPlayer: launch_vid: External"
-            
             self.exec_video_player(cmd)
 
 
