@@ -9,21 +9,16 @@ from threading import currentThread,Event
 from traceback import print_exc,print_stack
 import urlparse
 
+from Tribler.Video.defs import *
 from Tribler.Video.VideoServer import VideoHTTPServer,VideoRawVLCServer
 from Tribler.Video.Progress import ProgressBar,BufferInfo, ProgressInf
-from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
-from utils import win32_retrieve_video_play_command,win32_retrieve_playcmd_from_mimetype,quote_program_path,videoextdefaults
+from Tribler.Video.utils import win32_retrieve_video_play_command,win32_retrieve_playcmd_from_mimetype,quote_program_path,videoextdefaults
+
 from Tribler.Core.simpledefs import *
+from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
+
 
 DEBUG = True
-
-PLAYBACKMODE_INTERNAL = 0
-PLAYBACKMODE_EXTERNAL_DEFAULT = 1
-PLAYBACKMODE_EXTERNAL_MIME = 2
-
-OTHERTORRENTS_STOP_RESTART = 0
-OTHERTORRENTS_STOP = 1
-OTHERTORRENTS_CONTINUE = 2
 
 USE_VLC_RAW_INTERFACE = False
 
@@ -40,7 +35,7 @@ class VideoPlayer:
         self.extprogress = None
         self.vod_download = None
         self.playbackmode = None
-        self.overrideplaybackmode = None
+        self.preferredplaybackmode = None
         self.vod_postponed_downloads = []
 
         if not USE_VLC_RAW_INTERFACE:
@@ -59,12 +54,33 @@ class VideoPlayer:
         return VideoPlayer.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self,utility,overrideplaybackmode=None):
+    def register(self,utility,preferredplaybackmode=None):
         
         self.utility = utility # TEMPARNO: make sure only used for language strings
 
-        self.overrideplaybackmode = overrideplaybackmode
+        self.preferredplaybackmode = preferredplaybackmode
         self.determine_playbackmode()
+
+        print >>sys.stderr,"VideoPlayer: register: SELECTED",self.playbackmode
+
+        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+            # The python-vlc bindings. Created only once at the moment,
+            # as using MediaControl.exit() more than once with the raw interface
+            # blows up the GUI.
+            #
+            from Tribler.Video.VLCWrapper import VLCWrapper
+            self.vlcwrap = VLCWrapper(self.utility.getPath())
+            self.supportedvodevents = [VODEVENT_START,VODEVENT_PAUSE,VODEVENT_RESUME]
+        else:
+            self.vlcwrap = None
+            # Can't pause when external player
+            self.supportedvodevents = [VODEVENT_START]
+
+    def get_vlcwrap(self):
+        return self.vlcwrap
+    
+    def get_supported_vod_events(self):
+        return self.supportedvodevents
 
     def set_videoframe(self,videoframe):
         self.videoframe = videoframe
@@ -151,6 +167,9 @@ class VideoPlayer:
 
         self.determine_playbackmode()
 
+
+        print >>sys.stderr,"VideoPlayer: play_stream: SELECTED",self.playbackmode    
+
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             if USE_VLC_RAW_INTERFACE:
                 # Play using direct callbacks from the VLC C-code
@@ -175,8 +194,14 @@ class VideoPlayer:
 
             if streaminfo is None:
                 # Play URL from network or disk
+                
+                print >>sys.stderr,"VideoPlayer: launch_vid: streaminfo NONE" 
+                
                 self.videoframe.get_videopanel().Load(cmd)
             else:
+                
+                print >>sys.stderr,"VideoPlayer: launch_vid: streaminfo set"
+                
                 # Play using direct callbacks from the VLC C-code
                 self.videoframe.get_videopanel().Load('raw:',streaminfo=streaminfo)
 
@@ -185,11 +210,14 @@ class VideoPlayer:
         else:
             # Launch an external player
             # Play URL from network or disk
+            
+            print >>sys.stderr,"VideoPlayer: launch_vid: External"
+            
             self.exec_video_player(cmd)
 
 
     def stop_playback(self,reset=False):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().Stop()
             if reset:
                 self.videoframe.get_videopanel().Reset()
@@ -297,7 +325,8 @@ class VideoPlayer:
                 self.set_vod_postponed_downloads(activetorrents)
 
             # Restart download
-            d.set_video_start_callback(self.sesscb_vod_event_callback)
+            d.set_video_event_callback(self.sesscb_vod_event_callback)
+            d.set_video_events(self.get_supported_vod_events())
             if d.get_def().is_multifile_torrent():
                 d.set_selected_files([infilename])
             print >>sys.stderr,"main: Restarting existing Download",`ds.get_download().get_def().get_infohash()`
@@ -337,7 +366,8 @@ class VideoPlayer:
             self.set_vod_postponed_downloads(activetorrents)
 
         # Restart download
-        dscfg.set_video_start_callback(self.sesscb_vod_event_callback)
+        dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
+        dscfg.set_video_events(self.get_supported_vod_events())
         print >>sys.stderr,"videoplay: Starting new VOD/live Download",`tdef.get_name()`
         
         d = self.utility.session.start_download(tdef,dscfg)
@@ -349,7 +379,8 @@ class VideoPlayer:
         """ Called by the Session when the content of the Download is ready
          
         Called by Session thread """
-        print >>sys.stderr,"VideoPlayer: sesscb_vod_event_callback called",currentThread().getName(),"###########################################################",params["mimetype"]
+        
+        print >>sys.stderr,"VideoPlayer: sesscb_vod_event_callback called",currentThread().getName(),"###########################################################"
         wx.CallAfter(self.gui_vod_event_callback,d,event,params)
 
     def gui_vod_event_callback(self,d,event,params):
@@ -370,11 +401,11 @@ class VideoPlayer:
                 self.play_stream(streaminfo)
         elif event == VODEVENT_PAUSE:
             if self.videoframe is not None: 
-                self.videoFrame.get_videopanel().Pause()
+                self.videoframe.get_videopanel().Pause()
             self.set_player_status("Buffering...")
         elif event == VODEVENT_RESUME:
             if self.videoframe is not None:
-                self.videoFrame.get_videopanel().Play()
+                self.videoframe.get_videopanel().Play()
             self.set_player_status("")
 
     def ask_user_to_select_video(self,videofiles):
@@ -529,32 +560,49 @@ class VideoPlayer:
     def get_vod_download(self):
         return self.vod_download
 
-
+    #
+    # Set information about video playback progress that is displayed
+    # to the user.
+    #
     def set_content_name(self,name):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+        if self.videoframe is not None:
             self.videoframe.get_videopanel().SetContentName(name)
 
     def set_content_image(self,wximg):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+        if self.videoframe is not None:
             self.videoframe.get_videopanel().SetContentImage(wximg)
 
     def set_player_status(self,msg):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+        if self.videoframe is not None:
             self.videoframe.get_videopanel().SetPlayerStatus(msg)
 
+    def set_player_status_and_progress(self,msg,pieces_complete):
+        if self.videoframe is not None:
+            self.videoframe.get_videopanel().UpdateStatus(msg,pieces_complete)
+        
+    def set_save_button(self,enable,savebutteneventhandler):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            self.videoframe.get_videopanel().EnableSaveButton(enable,savebutteneventhandler)
+
+    def get_state(self):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            return self.videoframe.get_videopanel().GetState()
+        else:
+            return MEDIASTATE_PLAYING
 
     def determine_playbackmode(self):
-        if self.overrideplaybackmode is not None:
-            playbackmode = self.overrideplaybackmode  
-        else:
-            # WARNING READS TRIBLER CONFIG, DON'T USE in SWARMPLAYER
-            playbackmode = PLAYBACKMODE_INTERNAL # self.utility.config.Read('videoplaybackmode', "int")
         feasible = return_feasible_playback_modes(self.utility.getPath())
-        if playbackmode in feasible:
-            self.playbackmode = playbackmode
+        if self.preferredplaybackmode in feasible:
+            self.playbackmode = self.preferredplaybackmode
         else:
             self.playbackmode = feasible[0]
 
+    def get_playbackmode(self):
+        return self.playbackmode
+
+    #
+    # Internal methods
+    #
     def videohttpserver_error_callback(self,e,url):
         """ Called by HTTP serving thread """
         wx.CallAfter(self.videohttpserver_error_guicallback,e,url)

@@ -499,6 +499,8 @@ class DownloadImpl:
         to which the downloaded content is saved. """
         return os.path.join(self.dlconfig['saveas'],self.correctedinfoname)
     
+    # ARNOCOMMENT: better if we removed this from Core, user knows which
+    # file he selected to play, let him figure out MIME type
     def get_mimetype(self,file):
         (prefix,ext) = os.path.splitext(file)
         ext = ext.lower()
@@ -508,10 +510,23 @@ class DownloadImpl:
             try:
                 [mimetype,playcmd] = win32_retrieve_video_play_command(ext,file)
                 if DEBUG:
-                    print >>sys.stderr,"videoplay: Win32 reg said playcmd is",playcmd
+                    print >>sys.stderr,"DownloadImpl: Win32 reg said MIME type is",mimetype
             except:
                 print_exc()
+        else:
+            try:
+                import mimetypes
+                homedir = os.path.expandvars('${HOME}')
+                homemapfile = os.path.join(homedir,'.mimetypes')
+                mapfiles = [homemapfile] + mimetypes.knownfiles
+                mimetypes.init(mapfiles)
+                (mimetype,encoding) = mimetypes.guess_type(file)
                 
+                print >>sys.stderr,"DownloadImpl: /etc/mimetypes+ said MIME type is",mimetype
+            except:
+                print_exc()
+
+        # if auto detect fails
         if mimetype is None:
             if ext == '.avi':
                 mimetype = 'video/avi'

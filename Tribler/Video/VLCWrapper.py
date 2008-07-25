@@ -6,107 +6,20 @@ import os
 import time
 import random
 
-import wx
 import vlc
 
 from Tribler.Video.VideoServer import VideoRawVLCServer
 
+vlcstatusmap = {vlc.PlayingStatus:'vlc.PlayingStatus',
+                vlc.PauseStatus:'vlc.PauseStatus',
+                vlc.ForwardStatus:'vlc.ForwardStatus',
+                vlc.BackwardStatus:'vlc.BackwardStatus',
+                vlc.InitStatus:'vlc.InitStatus',
+                vlc.EndStatus:'vlc.EndStatus',
+                vlc.UndefinedStatus:'vlc.UndefinedStatus'}
+
 DEBUG = True
 
-class VLCLogoWindow(wx.Window):
-    """ A wx.Window to be passed to the vlc.MediaControl to draw the video
-    in. In addition, the class can display a logo, a thumbnail and a 
-    "Loading: bla.video" message when VLC is not playing.
-    """
-    
-    def __init__(self, parent, size, vlcwrap, logopath):
-        wx.Window.__init__(self, parent, -1, size=size)
-        self.SetMinSize(size)
-        self.SetBackgroundColour(wx.BLACK)
-        
-        self.vlcwrap = vlcwrap
-
-        if logopath is not None:
-            self.logo = wx.BitmapFromImage(wx.Image(logopath),-1)
-        else:
-            self.logo = None
-        self.contentname = None
-        self.contentbm = None
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-
-        wx.CallAfter(self.tell_vclwrap_window_for_playback)
-        
-    def tell_vclwrap_window_for_playback(self):
-        """ This method must be called after the VLCLogoWindow has been
-        realized, otherwise the self.GetHandle() call that vlcwrap.set_window()
-        does, doesn't return a correct XID.
-        """
-        self.vlcwrap.set_window(self)
-
-    def get_vlcwrap(self):
-        return self.vlcwrap
-
-    def set_content_name(self,s):
-        if DEBUG:
-            print >>sys.stderr,"VLCWin: set_content_name"
-        self.contentname = s
-        self.Refresh()
-    
-    def set_content_image(self,wximg):
-        if DEBUG:
-            print >>sys.stderr,"VLCWin: set_content_image"
-        if wximg is not None:
-            self.contentbm = wx.BitmapFromImage(wximg,-1)
-        else:
-            self.contentbm = None
-
-
-    def OnPaint(self,evt):
-        if DEBUG:
-            print >>sys.stderr,"VLCWin: OnPaint"
-
-        dc = wx.PaintDC(self)
-        dc.Clear()
-        dc.BeginDrawing()        
-
-        dc.SetPen(wx.Pen("#BLACK",0))
-        dc.SetBrush(wx.Brush("BLACK"))
-
-        x,y,maxw,maxh = self.GetClientRect()
-        halfx = (maxw-x)/2
-        halfy = (maxh-y)/2
-
-        if sys.platform == 'linux2':
-            dc.DrawRectangle(x,y,maxw,maxh)
-
-        lineoffset = 120
-
-        if self.logo is not None:
-            halfx -= self.logo.GetWidth()/2
-            halfy -= self.logo.GetHeight()/2
-
-            dc.DrawBitmap(self.logo,halfx,halfy,True)
-            
-            txty = halfy+self.logo.GetHeight()+lineoffset
-        else:
-            txty = halfy
-
-        dc.SetTextForeground(wx.WHITE)
-        dc.SetTextBackground(wx.BLACK)
-        
-        if self.contentname is not None:
-            dc.DrawText(self.contentname,30,txty)
-            lineoffset += 30
-
-        if self.contentbm is not None:
-            bmy = max(0,txty-20-self.contentbm.GetHeight())
-            dc.DrawBitmap(self.contentbm,30,bmy,True)
-        
-        dc.EndDrawing()
-        if evt is not None:
-            evt.Skip(True)
-        
-        
 
 VLC_MAXVOLUME = 200
 
@@ -128,7 +41,12 @@ class VLCWrapper:
         GetHandle() returns a valid xid. See
         http://mailman.videolan.org/pipermail/vlc-devel/2006-September/025895.html
         """
+        
         xid = wxwindow.GetHandle()
+        
+        print >>sys.stderr,"VLCWrapper: XID IS $$$$$$$$$$$$$$$$$$$$$",xid
+        
+        
         if sys.platform == 'darwin':
             self.media.set_visual_macosx_type(vlc.DrawableControlRef)
         self.media.set_visual(xid)
@@ -139,7 +57,7 @@ class VLCWrapper:
             os.chdir(os.path.join(self.installdir,'vlc'))
     
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
-        params = ["--verbose=0"]
+        params = ["--verbose=2"]
         
         """
         # To enable logging to file:

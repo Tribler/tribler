@@ -95,8 +95,10 @@ class DownloadConfigInterface:
             
                 autoresume
                 
-            "autoresume" indicates ...
-        
+            "autoresume" indicates whether or not the Core will generate
+            a VODEVENT_RESUME when it is ready again, or that this is left
+            to the core user.
+                    
         VODEVENT_RESUME:
             The download engine would like video playback to resume.
 

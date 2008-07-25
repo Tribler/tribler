@@ -68,8 +68,7 @@ from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
 from Tribler.Main.notification import init as notification_init
 from Tribler.Category.Category import Category
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
-from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
-from Tribler.Video.VLCWrapper import VLCWrapper
+from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Web2.util.update import Web2Updater
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Utilities.Instance2Instance import *
@@ -174,15 +173,11 @@ class ABCApp(wx.App):
             self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
             self.i2is.start()
 
-            # The python-vlc bindings. Created only once at the moment,
-            # using MediaControl.exit() more than once with the raw interface
-            # blows up the GUI.
-            #
-            self.vlcwrap = VLCWrapper(self.installdir)
-            
-            # Fire up the player widget
+            # Fire up the VideoPlayer, it abstracts away whether we're using
+            # an internal or external video player.
+            playbackmode = self.utility.config.Read('videoplaybackmode', "int")
             self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
-            self.videoplayer.register(self.utility)
+            self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode)
 
             notification_init( self.utility )
 

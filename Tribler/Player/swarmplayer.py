@@ -28,9 +28,9 @@ from Tribler.Core.API import *
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
-from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser, PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_DEFAULT 
-from Tribler.Video.EmbeddedPlayer import VideoFrame, MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED
-from Tribler.Video.VLCWrapper import VLCWrapper
+from Tribler.Video.defs import * 
+from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser  
+from Tribler.Video.EmbeddedPlayer import VideoFrame
 
 from Tribler.Player.systray import PlayerTaskBarIcon
 from Tribler.Player.Reporter import Reporter
@@ -55,7 +55,7 @@ VIDEOHTTP_LISTENPORT = 6879
 
 class PlayerFrame(VideoFrame):
     def __init__(self,parent):
-        VideoFrame.__init__(self,parent,'SwarmPlayer 0.3.0 raw8475',parent.iconpath,parent.vlcwrap,parent.logopath)
+        VideoFrame.__init__(self,parent,'SwarmPlayer 1.1 raw8475',parent.iconpath,parent.videoplayer.get_vlcwrap(),parent.logopath)
         self.parent = parent
         self.closed = False
         
@@ -83,7 +83,7 @@ class PlayerFrame(VideoFrame):
             self.closed = True
             self.parent.videoFrame = None
 
-            self.get_videopanel().Stop()
+            self.parent.videoplayer.stop_playback()
             self.parent.remove_current_download_if_not_complete()
             self.parent.restart_other_downloads()
             
@@ -140,17 +140,14 @@ class PlayerApp(wx.App):
             self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
             self.i2is.start()
 
-            self.vlcwrap = VLCWrapper(self.installdir)
-            
-            # Fire up the player widget
-            self.videoplay = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
-            # H4xor: Use external player on Ubuntu when no VLC python bindings avail 
+            # Fire up the VideoPlayer, it abstracts away whether we're using
+            # an internal or external video player.
+            self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
             playbackmode = PLAYBACKMODE_INTERNAL
-            self.videoplay.register(self.utility,overrideplaybackmode=playbackmode)
+            self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode)
 
             # Open video window
             self.start_video_frame()
-
 
             # JUST PLAY VIDEO
             if False:
@@ -158,10 +155,10 @@ class PlayerApp(wx.App):
                     stream = open(self.params[0],"rb")
                     #streaminfo = {'mimetype':'video/mp2t','stream':stream,'length':None}
                     streaminfo = {'mimetype':'video/x-matroska','stream':stream,'length':None}
-                    self.videoplay.play_stream(streaminfo)
+                    self.videoplayer.play_stream(streaminfo)
                     return True
                 else:
-                    self.videoplay.play_file(self.params[0])
+                    self.videoplayer.play_file(self.params[0])
                     return True
             
             # Read config
@@ -210,7 +207,7 @@ class PlayerApp(wx.App):
                 torrentfilename = self.params[0]
                 
                 # TEST: just play video file
-                #self.videoplay.play_url(torrentfilename)
+                #self.videoplayer.play_url(torrentfilename)
                 #return True
                 
             else:
@@ -247,8 +244,8 @@ class PlayerApp(wx.App):
         self.Bind(wx.EVT_END_SESSION, self.videoFrame.OnCloseWindow)
         self.videoFrame.show_videoframe()
 
-        if self.videoplay is not None:
-            self.videoplay.set_videoframe(self.videoFrame)
+        if self.videoplayer is not None:
+            self.videoplayer.set_videoframe(self.videoFrame)
         self.said_start_playback = False
         
     def select_torrent_from_disk(self):
@@ -322,8 +319,8 @@ class PlayerApp(wx.App):
         dcfg = DownloadStartupConfig()
         
         # Delegate processing to VideoPlayer
-        dcfg.set_video_event_callback(self.videoplay.sesscb_vod_event_callback)
-        dcfg.set_video_events([VODEVENT_START,VODEVENT_PAUSE,VODEVENT_RESUME])
+        dcfg.set_video_event_callback(self.videoplayer.sesscb_vod_event_callback)
+        dcfg.set_video_events(self.videoplayer.get_supported_vod_events())
 
         dcfg.set_dest_dir(destdir)
         
@@ -344,7 +341,7 @@ class PlayerApp(wx.App):
             self.start_video_frame()
         else:
             # Stop playing, reset stream progress info + sliders 
-            self.videoplay.stop_playback(reset=True)
+            self.videoplayer.stop_playback(reset=True)
             self.said_start_playback = False
         self.decodeprogress = 0
         
@@ -373,8 +370,8 @@ class PlayerApp(wx.App):
                 newd = self.s.start_download(tdef,dcfg)
             else:
                 # Delegate processing to VideoPlayer
-                newd.set_video_event_callback(self.videoplay.sesscb_vod_event_callback)
-                newd.set_video_events([VODEVENT_START,VODEVENT_PAUSE,VODEVENT_RESUME])
+                newd.set_video_event_callback(self.videoplayer.sesscb_vod_event_callback)
+                newd.set_video_events(self.videoplayer.get_supported_vod_events())
 
                 if tdef.is_multifile_torrent():
                     newd.set_selected_files([dlfile])
@@ -390,7 +387,7 @@ class PlayerApp(wx.App):
         cname = tdef.get_name_as_unicode()
         if len(videofiles) > 1:
             cname += u' - '+bin2unicode(dlfile)
-        self.videoFrame.get_videopanel().SetContentName(u'Loading: '+cname)
+        self.videoplayer.set_content_name(u'Loading: '+cname)
         
         try:
             [mime,imgdata] = tdef.get_thumbnail()
@@ -398,9 +395,9 @@ class PlayerApp(wx.App):
                 f = StringIO(imgdata)
                 img = wx.EmptyImage(-1,-1)
                 img.LoadMimeStream(f,mime,-1)
-                self.videoFrame.get_videopanel().SetContentImage(img)
+                self.videoplayer.set_content_image(img)
             else:
-                self.videoFrame.get_videopanel().SetContentImage(None)
+                self.videoplayer.set_content_image(None)
         except:
             print_exc()
 
@@ -430,10 +427,7 @@ class PlayerApp(wx.App):
 
     def remote_start_download(self,torrentfilename):
         """ Called by GUI thread """
-        self.vlcwrap.stop()
-        print >>sys.stderr,"PLAYLIST BEFORE",self.vlcwrap.playlist_get_list()
-        self.vlcwrap.playlist_clear()
-        print >>sys.stderr,"PLAYLIST AFTER",self.vlcwrap.playlist_get_list()
+        self.videoplayer.stop_playback(reset=True)
 
         self.remove_current_download_if_not_complete()
         self.start_download(torrentfilename)
@@ -583,7 +577,6 @@ class PlayerApp(wx.App):
         # Calc total dl/ul speed and find DownloadState for current Download
         ds = None
         for ds2 in dslist:
-            print >>sys.stderr,"main: Stats: Finding",`d.get_def().get_infohash()`,"==",`ds2.get_download().get_def().get_infohash()`
             if ds2.get_download() == d:
                 ds = ds2
             elif playermode == DLSTATUS_DOWNLOADING:
@@ -637,8 +630,8 @@ class PlayerApp(wx.App):
     def display_stats_in_videoframe(self,ds,totalhelping,totalspeed):
         # Display stats for currently playing Download
         
-        videoplayer_mediastate = self.videoFrame.get_videopanel().GetState()
-        print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
+        videoplayer_mediastate = self.videoplayer.get_state()
+        #print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
         
         logmsgs = ds.get_log_messages()
         logmsg = None
@@ -680,12 +673,6 @@ class PlayerApp(wx.App):
                 msg = "Starting playback..."
                 
             if videoplayer_mediastate == MEDIASTATE_STOPPED and self.said_start_playback:
-                
-                #print >>sys.stderr,"MEDIA STATE STOOPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPED",videoplayer_mediastate
-                
-                
-                #npeers = ds.get_num_peers()
-                #npeerstr = str(npeers)
                 if totalhelping == 0:
                     topmsg = u"Please leave the SwarmPlayer running, this will help other SwarmPlayer users to download faster."
                 else:
@@ -696,7 +683,7 @@ class PlayerApp(wx.App):
                 msg = ''
                 
                 # Display helping info on "content name" line.
-                self.videoplay.set_content_name(topmsg)
+                self.videoplayer.set_content_name(topmsg)
             elif videoplayer_mediastate == MEDIASTATE_PLAYING:
                 self.said_start_playback = True
                 # It may take a while for VLC to actually start displaying
@@ -708,7 +695,7 @@ class PlayerApp(wx.App):
                 self.decodeprogress += 1
                 msg = ''
                 # Display tuning in info on "content name" line.
-                self.videoplay.set_content_name(topmsg)
+                self.videoplayer.set_content_name(topmsg)
             elif videoplayer_mediastate == MEDIASTATE_PAUSED:
                 msg = "Buffering... " + str(int(100.0*preprogress))+"%"
             else:
@@ -746,10 +733,10 @@ class PlayerApp(wx.App):
             msg = uptxt + downtxt + peertxt
 
         # Update status msg and progress bar
-        self.videoFrame.get_videopanel().UpdateStatus(msg,ds.get_pieces_complete())
+        self.videoplayer.set_player_status_and_progress(msg,ds.get_pieces_complete())
         
         # Toggle save button
-        self.videoFrame.get_videopanel().EnableSaveButton(ds.get_status() == DLSTATUS_SEEDING, self.save_video_copy)    
+        self.videoplayer.set_save_button(ds.get_status() == DLSTATUS_SEEDING, self.save_video_copy)    
             
         if False: # Only works if the sesscb_states_callback() method returns (x,True)
             peerlist = ds.get_peerlist()
@@ -840,7 +827,7 @@ class PlayerApp(wx.App):
     def clear_session_state(self):
         """ Try to fix SwarmPlayer """
         try:
-            self.videoplay.stop_playback()
+            self.videoplayer.stop_playback()
         except:
             print_exc()
         try:
@@ -981,9 +968,9 @@ def run(params = None):
     if len(sys.argv) > 1:
         params = sys.argv[1:]
     
-    #if 'debug' in params:
-    global ONSCREENDEBUG
-    ONSCREENDEBUG=True
+    if 'debug' in params:
+        global ONSCREENDEBUG
+        ONSCREENDEBUG=True
     if 'raw' in params:
         Tribler.Video.VideoPlayer.USE_VLC_RAW_INTERFACE = True
     

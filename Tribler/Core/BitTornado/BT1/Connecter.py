@@ -635,9 +635,6 @@ class Connecter:
 
     def connection_made(self, connection):
         c = Connection(connection, self)
-        
-        print >>sys.stderr,"Connecter: live: setting",connection.get_ip(),c.get_ip()
-        
         self.connections[connection] = c
 
         if connection.supports_extend_messages():
@@ -687,11 +684,8 @@ class Connecter:
             
         #########################
 
-
-        print >>sys.stderr,"Connecter: live: del1: deleting",connection.get_ip(),c.get_ip()
         if c.get_ip() == self.tracker_ip:
             print >>sys.stderr,"connecter: connection_lost: live: WAAH2 closing SOURCE"
-            print_stack()
             
         del self.connections[connection]
         if c.download:

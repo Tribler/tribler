@@ -4,8 +4,6 @@
 import wx
 import sys
 
-import vlc
-
 import os, shutil
 import time
 import traceback
@@ -15,24 +13,9 @@ from threading import currentThread,Event, Thread
 from traceback import print_stack,print_exc
 import random
 
-from Progress import ProgressBar, ProgressSlider, VolumeSlider
-from Buttons import PlayerSwitchButton, PlayerButton
-from Tribler.Video.VLCWrapper import VLCLogoWindow
-
-# Fabian: can't use the constants from wx.media since 
-# those all yield 0 (for my wx)
-# Arno: These modes are not what vlc returns, but Fabian's summary of that
-MEDIASTATE_PLAYING = 1
-MEDIASTATE_PAUSED  = 2
-MEDIASTATE_STOPPED = 3
-
-vlcstatusmap = {vlc.PlayingStatus:'vlc.PlayingStatus',
-                vlc.PauseStatus:'vlc.PauseStatus',
-                vlc.ForwardStatus:'vlc.ForwardStatus',
-                vlc.BackwardStatus:'vlc.BackwardStatus',
-                vlc.InitStatus:'vlc.InitStatus',
-                vlc.EndStatus:'vlc.EndStatus',
-                vlc.UndefinedStatus:'vlc.UndefinedStatus'}
+from Tribler.Video.defs import *
+from Tribler.Video.Progress import ProgressBar, ProgressSlider, VolumeSlider
+from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
 
 DEBUG = False
 
@@ -48,7 +31,10 @@ class VideoFrame(wx.Frame):
         if title is None:
             title = self.utility.lang.get('tb_video_short')
         
-        size = (800,520) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
+        if vlcwrap is None:
+            size = (800,150)
+        else:
+            size = (800,520) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
         wx.Frame.__init__(self, None, -1, title, size=size) 
         
         self.create_videopanel(vlcwrap,logopath)
@@ -76,13 +62,21 @@ class VideoFrame(wx.Frame):
                 
             self.Raise()
             self.SetFocus()
+                       
+            # H4x0r: We need to tell the VLC wrapper a XID of a
+            # window to paint in. Apparently on win32 the XID is only
+            # known when the window is shown. We give it the command
+            # to show here, so shortly after it should be shown.
+            #
+            wx.CallAfter(self.videopanel.TellLVCWrapWindow4Playback())
+
     
     def hide_videoframe(self):
         if DEBUG:
             print >>sys.stderr,"videoframe: Swap OUT videopanel"
 
         if self.videopanel is not None:
-            self.videopanel.reset()
+            self.videopanel.Reset()
             if self.showingvideo:
                 self.showingvideo = False
                 self.Hide()
@@ -110,51 +104,59 @@ class EmbeddedPlayerPanel(wx.Panel):
         #self.SetBackgroundColour(wx.WHITE)
         self.SetBackgroundColour(wx.BLACK)
         mainbox = wx.BoxSizer(wx.VERTICAL)
+
+
+        if vlcwrap is None:
+            size = (320,64)
+        else:
+            size = (320,240) 
         
-        self.vlcwin = VLCLogoWindow(self,(320,240),vlcwrap,logopath)
+        self.vlcwin = VLCLogoWindow(self,size,vlcwrap,logopath)
         self.vlcwrap = vlcwrap
 
         # Arno: until we figure out how to show in-playback prebuffering info
         self.statuslabel = wx.StaticText(self, -1, 'Loading player...' )
         self.statuslabel.SetForegroundColour(wx.WHITE)
-        
-        ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
-        #self.slider = wx.Slider(self, -1)
-        self.slider = ProgressSlider(self, self.utility)
-        #self.slider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.Seek)
-        #self.slider.Bind(wx.EVT_SCROLL_THUMBTRACK, self.StopSliderUpdate)
-        self.slider.SetRange(0,1)
-        self.slider.SetValue(0)
-        self.oldvolume = None
-        
-                        
-        self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'pause', 'play')
-        self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
 
-        self.volumebox = wx.BoxSizer(wx.HORIZONTAL)
-        self.volumeicon = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'volume', 'mute')   
-        self.volumeicon.Bind(wx.EVT_LEFT_UP, self.Mute)
-        self.volume = VolumeSlider(self, self.utility)
-        self.volume.SetRange(0, 100)
-        self.volumebox.Add(self.volumeicon, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.volumebox.Add(self.volume, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-
-        self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'fullScreen')
-        self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
-
-        self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'saveDisabled', 'save')   
-        self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
-        self.save_callback = lambda:None
-        
-        ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
-        ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
-        ctrlsizer.Add(self.volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
-        ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
-        ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
+        if vlcwrap is not None:
+            ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
+            #self.slider = wx.Slider(self, -1)
+            self.slider = ProgressSlider(self, self.utility)
+            #self.slider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.Seek)
+            #self.slider.Bind(wx.EVT_SCROLL_THUMBTRACK, self.StopSliderUpdate)
+            self.slider.SetRange(0,1)
+            self.slider.SetValue(0)
+            self.oldvolume = None
+            
+                            
+            self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'pause', 'play')
+            self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
+    
+            self.volumebox = wx.BoxSizer(wx.HORIZONTAL)
+            self.volumeicon = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'volume', 'mute')   
+            self.volumeicon.Bind(wx.EVT_LEFT_UP, self.Mute)
+            self.volume = VolumeSlider(self, self.utility)
+            self.volume.SetRange(0, 100)
+            self.volumebox.Add(self.volumeicon, 0, wx.ALIGN_CENTER_VERTICAL)
+            self.volumebox.Add(self.volume, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+    
+            self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'fullScreen')
+            self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
+    
+            self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'saveDisabled', 'save')   
+            self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
+            self.save_callback = lambda:None
+            
+            ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
+            ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+            ctrlsizer.Add(self.volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+            ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
+            ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
         
         mainbox.Add(self.vlcwin, 1, wx.EXPAND, 1)
         mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
-        mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
+        if vlcwrap is not None:
+            mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)
         
         self.playtimer = None
@@ -165,7 +167,6 @@ class EmbeddedPlayerPanel(wx.Panel):
     def Load(self,url,streaminfo = None):
         if DEBUG:
             print >>sys.stderr,"embedplay: Load:",url,streaminfo,currentThread().getName()
-           
         # Arno: hack: disable dragging when not playing from file.
         if url.startswith('http:') or streaminfo is not None:
            self.slider.DisableDragging()
@@ -289,6 +290,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             print >>sys.stderr,"embedplay: GetState"
             
         status = self.vlcwrap.get_stream_information_status()
+        
+        import vlc
         if status == vlc.PlayingStatus:
             return MEDIASTATE_PLAYING
         elif status == vlc.PauseStatus:
@@ -314,7 +317,8 @@ class EmbeddedPlayerPanel(wx.Panel):
     #
     def UpdateStatus(self,playerstatus,pieces_complete):
         self.SetPlayerStatus(playerstatus)
-        self.UpdateProgressSlider(pieces_complete)
+        if self.vlcwrap is not None:
+            self.UpdateProgressSlider(pieces_complete)
     
     def SetPlayerStatus(self,s):
         self.statuslabel.SetLabel(s)
@@ -363,6 +367,106 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def StopSliderUpdate(self, evt):
         self.update = False
+
+
+    def TellLVCWrapWindow4Playback(self):
+        if self.vlcwrap is not None:
+            self.vlcwin.tell_vclwrap_window_for_playback()
+
+
+class VLCLogoWindow(wx.Window):
+    """ A wx.Window to be passed to the vlc.MediaControl to draw the video
+    in (normally). In addition, the class can display a logo, a thumbnail and a 
+    "Loading: bla.video" message when VLC is not playing.
+    """
+    
+    def __init__(self, parent, size, vlcwrap, logopath):
+        wx.Window.__init__(self, parent, -1, size=size)
+        self.SetMinSize(size)
+        self.SetBackgroundColour(wx.BLACK)
+        
+        self.vlcwrap = vlcwrap
+
+        if logopath is not None:
+            self.logo = wx.BitmapFromImage(wx.Image(logopath),-1)
+        else:
+            self.logo = None
+        self.contentname = None
+        self.contentbm = None
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+
+        if self.vlcwrap is not None:
+            wx.CallAfter(self.tell_vclwrap_window_for_playback)
+        
+    def tell_vclwrap_window_for_playback(self):
+        """ This method must be called after the VLCLogoWindow has been
+        realized, otherwise the self.GetHandle() call that vlcwrap.set_window()
+        does, doesn't return a correct XID.
+        """
+        
+        print >>sys.stderr,"VLCLogoWindow: tell_vlcwrap_win $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",self
+        
+        self.vlcwrap.set_window(self)
+
+    def get_vlcwrap(self):
+        return self.vlcwrap
+
+    def set_content_name(self,s):
+        if DEBUG:
+            print >>sys.stderr,"VLCWin: set_content_name"
+        self.contentname = s
+        self.Refresh()
+    
+    def set_content_image(self,wximg):
+        if DEBUG:
+            print >>sys.stderr,"VLCWin: set_content_image"
+        if wximg is not None:
+            self.contentbm = wx.BitmapFromImage(wximg,-1)
+        else:
+            self.contentbm = None
+
+    def OnPaint(self,evt):
+        dc = wx.PaintDC(self)
+        dc.Clear()
+        dc.BeginDrawing()        
+
+        x,y,maxw,maxh = self.GetClientRect()
+        halfx = (maxw-x)/2
+        halfy = (maxh-y)/2
+        halfx -= self.logo.GetWidth()/2
+        halfy -= self.logo.GetHeight()/2
+
+        dc.SetPen(wx.Pen("#BLACK",0))
+        dc.SetBrush(wx.Brush("BLACK"))
+        if sys.platform == 'linux2':
+            dc.DrawRectangle(x,y,maxw,maxh)
+        dc.DrawBitmap(self.logo,halfx,halfy,True)
+        #logox = max(0,maxw-self.logo.GetWidth()-30)
+        #dc.DrawBitmap(self.logo,logox,20,True)
+
+        dc.SetTextForeground(wx.WHITE)
+        dc.SetTextBackground(wx.BLACK)
+        
+        lineoffset = 120
+        txty = halfy+self.logo.GetHeight()+lineoffset
+        if txty > maxh:
+            txty = 0
+        if self.contentname is not None:
+            txt = self.contentname
+            dc.DrawText(txt,30,txty)
+            lineoffset += 30
+
+        #txt = self.getStatus()
+        #dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
+        
+        if self.contentbm is not None:
+            bmy = max(20,txty-20-self.contentbm.GetHeight())
+            dc.DrawBitmap(self.contentbm,30,bmy,True)
+        
+        dc.EndDrawing()
+        if evt is not None:
+            evt.Skip(True)
+
 
 
 

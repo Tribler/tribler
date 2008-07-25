@@ -236,16 +236,13 @@ class MainFrame(wx.Frame):
         feasible = return_feasible_playback_modes(self.utility.getPath())
         if PLAYBACKMODE_INTERNAL in feasible:
             # This means vlc is available
+            videoplayer = VideoPlayer.getInstance()
+            
             from Tribler.Video.EmbeddedPlayer import VideoFrame
             iconpath = os.path.join(self.utility.getPath(),'Tribler','Images','tribler.ico')
             logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler.png')
-            self.videoFrame = VideoFrame(self,'Tribler Video',iconpath,self.utility.app.vlcwrap,logopath)
+            self.videoFrame = VideoFrame(self,'Tribler Video',iconpath,videoplayer.get_vlcwrap(),logopath)
 
-            #self.videores = xrc.XmlResource("Tribler/vwxGUI/MyPlayer.xrc")
-            #self.videoframe = self.videores.LoadFrame(None, "MyPlayer")
-            #self.videoframe.Show()
-            
-            videoplayer = VideoPlayer.getInstance()
             videoplayer.set_videoframe(self.videoFrame)
         else:
             videoplayer = VideoPlayer.getInstance()
