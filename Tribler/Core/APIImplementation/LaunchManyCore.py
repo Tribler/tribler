@@ -136,7 +136,8 @@ class TriblerLaunchMany(Thread):
             self.superpeer_db   = SuperPeerDBHandler.getInstance()
             self.superpeer_db.loadSuperPeers(config)
             self.friend_db      = FriendDBHandler.getInstance()
-            self.bartercast_db  = BarterCastDBHandler.getInstance(self.session)
+            self.bartercast_db  = BarterCastDBHandler.getInstance()
+            self.bartercast_db.registerSession(self.session)
             torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
             self.my_db.put('torrent_dir', torrent_collecting_dir)
             

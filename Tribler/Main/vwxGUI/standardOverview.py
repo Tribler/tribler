@@ -447,7 +447,14 @@ class standardOverview(wx.Panel):
         
     def removeTorrentFromLibrary(self, torrent):
         infohash = torrent['infohash']
-        self.mypreference_db.deletePreference(infohash)
+        from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
+        bc = BuddyCastFactory.getInstance()
+        if bc.registered:
+            # schedule it to overlay to avoid delay in GUI
+            bc.overlay_bridge.add_task(lambda:self.mypreference_db.deletePreference(infohash))
+            bc.overlay_bridge.add_task(lambda:bc.delMyPref(infohash))
+        else:
+            self.mypreference_db.deletePreference(infohash)
         
     def toggleLoadingDetailsPanel(self, visible):
         loadingDetails = self.data[self.mode].get('loadingDetailsPanel')

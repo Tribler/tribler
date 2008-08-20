@@ -34,7 +34,7 @@ from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 #from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 
-DEBUG = True
+DEBUG = False
 
 class TorrentChecking(Thread):
     

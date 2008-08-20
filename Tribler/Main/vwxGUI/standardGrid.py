@@ -81,6 +81,7 @@ class GridManager(object):
         """
         Refresh the data of the grid
         """
+        #print >> sys.stderr, '**********==============********* refresh', self.grid.initReady
         if not self.grid.initReady:
             wx.CallAfter(self.refresh)
             return
@@ -236,20 +237,18 @@ class GridManager(object):
         
     def item_network_callback(self, *args):
         # only handle network callbacks when grid is shown
-        #print >> sys.stderr, '******** standardGrid: item_network_callback', args
         #print >> sys.stderr, '***** search?', self.torrentsearch_manager.inSearchMode(self.state.db)
         if not self.grid.isShowByOverview():
             self.callbacks_disabled = True
             self.session.remove_observer(self.item_network_callback) #unsubscribe this function
         else:
-
-            # 15/07/0 Boudewijn: only change grid when still searching
-            if self.torrentsearch_manager.inSearchMode(self.state.db):
+            # 15/07/08 Boudewijn: only change grid when still searching
+            #if self.torrentsearch_manager.inSearchMode(self.state.db):    # 25/07/08 Jie: it causes GUI never updated when not in search mode
                 self.itemChanged(*args)
+             
         
     def itemChanged(self,subject,changeType,objectID,*args):
         "called by GuiThread"
-        #print >> sys.stderr, '****'*10, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, `objectID`, args)
         if changeType == NTFY_INSERT:
             self.itemAdded(subject, objectID, args)
         elif changeType in (NTFY_UPDATE, NTFY_CONNECTION):
@@ -266,7 +265,7 @@ class GridManager(object):
             print >> sys.stderr, 'Grid refresh because search item added!!!============================='
             wx.CallAfter(self.refresh)
         elif self.isRelevantItem(subject, objectID):
-            task_id = str(subject) + str(int(time())/self.refresh_rate)
+            task_id = str(subject) + str(int(time()/self.refresh_rate))
             self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             # that's important to add the task 3 seconds later, to ensure the task will be executed at proper time  
             #self.refresh()
@@ -280,13 +279,13 @@ class GridManager(object):
         
         #if (self._objectOnPage(subject, objectID)
         if not self.torrentsearch_manager.inSearchMode(self.state.db):
-            task_id = str(subject) + str(int(time())/self.refresh_rate)
+            task_id = str(subject) + str(int(time()/self.refresh_rate))
             self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             #self.refresh()
     
     def itemDeleted(self,subject, objectID, args):
         if self._objectOnPage(subject, objectID):
-            task_id = str(subject) + str(int(time())/self.refresh_rate)
+            task_id = str(subject) + str(int(time()/self.refresh_rate))
             self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             #self.refresh()
     
@@ -315,10 +314,12 @@ class GridManager(object):
         return objectID in [a[id_name] for a in self.data]
        
     def isRelevantItem(self, subject, objectID):
+        return True #Jie: let DB decide if the notifier should be sent
+    
         db_handler = self.session.open_dbhandler(subject)
         if subject == NTFY_PEERS:
             peer = db_handler.getPeer(objectID)
-            ok = peer and (peer['buddycast_times']>0 or peer['friend'])
+            ok = peer and (peer['last_connected']>0 or peer['friend'])
             #if not ok:
             #    print >> sys.stderr, 'Gridmanager: Peer is not relevant: %s' % peer
             return ok

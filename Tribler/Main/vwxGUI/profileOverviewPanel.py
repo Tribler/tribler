@@ -13,7 +13,6 @@ from time import time
 from traceback import print_exc
 import urllib
 
-
 class ProfileOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
@@ -28,6 +27,8 @@ class ProfileOverviewPanel(wx.Panel):
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         self.mypref = None
+        self.reload_counter = -1
+        self.reload_cache = [None, None, None]
         if len(args) == 0: 
             pre = wx.PrePanel() 
             # the Create step is done by XRC. 
@@ -204,54 +205,80 @@ class ProfileOverviewPanel(wx.Panel):
         self.update_url = 'http://tribler.org'
         self.new_version = 'unknown'
         self.check_result = -3 #unknown check result, -2 means error, -1 means newer version on the client, 0 means same version, 1 means newer version on the website
-	self.nat_type = -1
+        self.nat_type = -1
         
     def reloadData(self, event=None):
         """updates the fields in the panel with new data if it has changed"""
-        
+
         if not self.IsShown(): #should not update data if not shown
             return
         #print "<mluc> profileOverviewPanel in reloadData"
         
+        # 28/07/08 boudewijn: the reloadData method is called every
+        # twice when first displayed and every 5 seconds
+        # afterwards. We do not need to recalculate all the statistics
+        # on each of these calls. The self.reload_counter ensures that
+        # either the preference list, the number of torrents, or the
+        # number of peers is calculated during a single run of this
+        # method.
+        if self.reload_counter >= 3:
+            self.reload_counter = 0
+        else:
+            self.reload_counter += 1
+
         self.showNameMugshot()
 
         bShouldRefresh = False
         max_index_bar = 5 #the maximal value the normal bar can have
         max_overall_index_bar = 6 #the maximal value the overall bar can have
-        
+
         #--- Quality of tribler recommendation
         #get the number of downloads for this user
+        if self.reload_counter == 0 or self.reload_cache[0] is None:
+            count = len(self.mypref.getMyPrefList())
+            index_q = self.indexValue(count,100, max_index_bar) #from 0 to 5
+            if count != self.quality_value:
+                self.data['downloaded_files'] = count
+                bShouldRefresh = True
+                self.quality_value = count
+                guiElement = self.getGuiElement("pref_Quality")
+                if guiElement:
+                    guiElement.setIndex(index_q)
+            self.reload_cache[0] = index_q
+        else:
+            index_q = self.reload_cache[0]
 
-        count = len(self.mypref.getMyPrefList())
-        index_q = self.indexValue(count,100, max_index_bar) #from 0 to 5
-        if count != self.quality_value:
-            self.data['downloaded_files'] = count
-            bShouldRefresh = True
-            self.quality_value = count
-            if self.getGuiElement("perf_Quality"):
-                self.getGuiElement("perf_Quality").setIndex(index_q)
-                    
         #--- Discovered files
         #get the number of files
-        count = int(self.torrent_db.getNumberTorrents())
-        index_f = self.indexValue(count,3000, max_index_bar) #from 0 to 5
-        if count != self.discovered_files:
-            self.data['discovered_files'] = count
-            bShouldRefresh = True
-            self.discovered_files = count
-            if self.getGuiElement("perf_Files"):
-                self.getGuiElement("perf_Files").setIndex(index_f)
+        if self.reload_counter == 1 or self.reload_cache[1] is None:
+            count = int(self.torrent_db.getNumberTorrents())
+            index_f = self.indexValue(count,3000, max_index_bar) #from 0 to 5
+            if count != self.discovered_files:
+                self.data['discovered_files'] = count
+                bShouldRefresh = True
+                self.discovered_files = count
+                guiElement = self.getGuiElement("perf_Files")
+                if guiElement:
+                    guiElement.setIndex(index_f)
+            self.reload_cache[1] = index_f
+        else:
+            index_f = self.reload_cache[1]
 
         #--- Discovered persons
         #get the number of peers
-        count = int(self.peer_db.getNumberPeers())
-        index_p = self.indexValue(count,2000, max_index_bar) #from 0 to 5
-        if count != self.discovered_persons:
-            self.data['discovered_persons'] = count
-            bShouldRefresh = True
-            self.discovered_persons = count
-            if self.getGuiElement("perf_Persons"):
-                self.getGuiElement("perf_Persons").setIndex(index_p)
+        if self.reload_counter == 2 or self.reload_cache[2] is None:
+            count = int(self.peer_db.getNumberPeers())
+            index_p = self.indexValue(count,2000, max_index_bar) #from 0 to 5
+            if count != self.discovered_persons:
+                self.data['discovered_persons'] = count
+                bShouldRefresh = True
+                self.discovered_persons = count
+                guiElement = self.getGuiElement("perf_Persons")
+                if guiElement:
+                    guiElement.setIndex(index_p)
+            self.reload_cache[2] = index_p
+        else:
+            index_p = self.reload_cache[2]
 
         #--- Optimal download speed
         #set the download stuff
@@ -278,20 +305,22 @@ class ProfileOverviewPanel(wx.Panel):
         index_s = self.indexValue(index_1+index_2+index_h, 3*max_index_bar, max_index_bar)
         if self.max_upload_rate!=maxuploadrate or self.is_reachable!=self.guiUtility.isReachable or bMoreFriends:
             self.data['number_friends']=count
-	#get the NAT type
-	natinfo = self.guiUtility.get_nat_type()
-	natChange = False
+
+        #get the NAT type
+        natinfo = self.guiUtility.get_nat_type()
+        natChange = False
         if self.nat_type!=natinfo:
-	    natChange = True
+            natChange = True
             self.nat_type= natinfo
-	if self.max_upload_rate!=maxuploadrate or self.is_reachable!=self.guiUtility.isReachable or natChange:
-	    self.data['nat_type']=natinfo
+        if self.max_upload_rate!=maxuploadrate or self.is_reachable!=self.guiUtility.isReachable or natChange:
+            self.data['nat_type']=natinfo
 
             bShouldRefresh = True
             self.max_upload_rate = maxuploadrate
             self.is_reachable = self.guiUtility.isReachable
-            if self.getGuiElement("perf_Download"):
-                self.getGuiElement("perf_Download").setIndex(index_s)
+            guiElement = self.getGuiElement("perf_Download")
+            if guiElement:
+                guiElement.setIndex(index_s)
 
         #--- Network reach
         #get the number of friends
@@ -312,8 +341,9 @@ class ProfileOverviewPanel(wx.Panel):
         index_n = self.indexValue(index_h+index_v, 2*max_index_bar, max_index_bar)
         if bMoreFriends or bCheckVersionChange:
             bShouldRefresh = True
-            if self.getGuiElement("perf_Presence"):
-                self.getGuiElement("perf_Presence").setIndex(index_n)
+            guiElement = self.getGuiElement("perf_Presence")
+            if guiElement:
+                guiElement.setIndex(index_n)
 
         #--- Overall performance
         #set the overall performance to a random number
@@ -357,7 +387,7 @@ class ProfileOverviewPanel(wx.Panel):
             self.timer = wx.Timer(self, -1)
             self.Bind(wx.EVT_TIMER, self.reloadData, self.timer)
             self.timer.Start(5000)
-        
+
     def OnMyInfoWizard(self, event = None):
         wizard = MyInfoWizard(self)
         wizard.RunWizard(wizard.getFirstPage())

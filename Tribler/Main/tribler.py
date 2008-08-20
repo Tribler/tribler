@@ -97,7 +97,8 @@ class ABCApp(wx.App):
         self.single_instance_checker = single_instance_checker
         self.installdir = installdir
         self.error = None
-            
+        self.last_update = 0
+        self.update_freq = 0    # how often to update #peers/#torrents
         wx.App.__init__(self, x)
         
         
@@ -416,17 +417,22 @@ class ABCApp(wx.App):
         """ Set total # peers and torrents discovered """
         
         # Arno: GUI thread accessing database
+        now = time()
+        if now - self.last_update < self.update_freq:
+            return  
+        self.last_update = now
         peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
         npeers = peer_db.getNumberPeers()
         torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         nfiles = torrent_db.getNumberTorrents()
+        if nfiles > 30 and npeers > 30:
+            self.update_freq = 2
         # Arno: not closing db connections, assuming main thread's will be 
         # closed at end.
                 
         self.frame.numberPersons.SetLabel('%d' % npeers)
         self.frame.numberFiles.SetLabel('%d' % nfiles)
-        
-
+        #print >> sys.stderr, "************>>>>>>>> setDBStats", npeers, nfiles
         
     def sesscb_ntfy_activities(self,subject,changeType,objectID,msg):
         # Called by SessionCallback thread

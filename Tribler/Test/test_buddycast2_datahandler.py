@@ -11,18 +11,19 @@ from tempfile import mkdtemp
 from distutils.dir_util import copy_tree, remove_tree
 from sets import Set
 from traceback import print_exc
+from shutil import copy as copyFile, move
+from time import sleep
 
 if os.path.exists(__file__):
     BASE_DIR = '..'
-    sys.path.insert(1, os.path.abspath('..'))
+    sys.path.insert(1, os.path.abspath(os.path.join('..','..')))
 elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
     
-from Core.BuddyCast.buddycast import DataHandler
-from Core.CacheDB.CacheDBHandler import *
-from Category.Category import Category
-from Utilities.TimedTaskQueue import TimedTaskQueue
-from shutil import copy as copyFile, move
+from Tribler.Core.BuddyCast.buddycast import DataHandler, BuddyCastFactory
+from Tribler.Core.CacheDB.CacheDBHandler import *
+from Tribler.Category.Category import Category
+from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 
 import hotshot, hotshot.stats
 import math
@@ -80,7 +81,7 @@ def init():
     TorrentDBHandler.getInstance().registerCategory(Category.getInstance(os.path.join(BASE_DIR, '..')))
 
 class FakeSession:
-    sessconfig = None
+    sessconfig = {}
     def get_permid(self):
         return None
 
@@ -96,19 +97,32 @@ class FakeLauchMany:
         self.superpeer_db   = SuperPeerDBHandler.getInstance()
         self.friend_db      = FriendDBHandler.getInstance()
         self.session = FakeSession()
-        self.bartercast_db  = BarterCastDBHandler.getInstance(self.session)
+        self.bartercast_db  = BarterCastDBHandler.getInstance()
+        self.bartercast_db.registerSession(self.session)
+        self.secure_overlay = FakeSecureOverlay()
 #        torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
 #        self.my_db.put('torrent_dir', torrent_collecting_dir)
+        self.listen_port = 1234
         
+    def get_ext_ip(self):
+        return None
+    
+    def set_activity(self, NTFY_ACT_RECOMMEND, buf):
+        pass
+    
 class FakeThread:
     def join(self):
         pass
+    
+class FakeSecureOverlay:
+    def get_dns_from_peerdb(self, permid):
+        return None    
     
 class FakeOverlayBridge:
     
     def __init__(self):
         self.thread = FakeThread()
-            
+                    
     def add_task(self, task, time=0, id=None):
         if task == 'stop':
             return
@@ -119,84 +133,105 @@ class TestBuddyCastDataHandler(unittest.TestCase):
     
     def setUp(self):
         # prepare database
-#        if sys.platform == 'win32':
-#            realhomevar = '${APPDATA}'
-#        else:
-#            realhomevar = '${HOME}'
-#        realhome = os.path.expandvars(realhomevar)
-#        testdbpath = os.path.join(realhome,'.Tribler', 'bsddb')
-#        self.homepath = mkdtemp()
-#        print "\ntest: create tmp dir", self.homepath, testdbpath
-#        self.dbpath = os.path.join(self.homepath, 'bsddb')
-#        copy_tree(testdbpath, self.dbpath)
-#        
-#        self.install_path = '..'
+
         launchmany = FakeLauchMany()
         self.overlay_bridge = TimedTaskQueue(isDaemon=False) 
         #self.overlay_bridge = FakeOverlayBridge()
         self.data_handler = DataHandler(launchmany, self.overlay_bridge, max_num_peers=2500)
 
     def tearDown(self):
-        #del self.data_handler
-        #self.data_handler.close()
         self.overlay_bridge.add_task('quit')
         self.overlay_bridge.thread.join()
         del self.data_handler
         
-#    def test_getAllPeers(self):
-#        # testing to get a number of recently seen peers
-#        num_peers = 64    #TODO: remove dir problem, right test
-#        self.data_handler.loadAllPeers(num_peers)
-#        peers = self.data_handler.peers
-#        values = peers.values()
-#        values.sort()
-#        oldvls = 0
-#        for v in values:
-#            vls = v[0]
-#            assert vls >= oldvls, (vls, oldvls)
-#            oldvls = vls
-#        assert len(peers) == num_peers, (len(peers), num_peers)
-#        
-#    def test_updateMyPreferences(self):
-#        self.data_handler.updateMyPreferences()
-#        assert len(self.data_handler.getMyLivePreferences())>0, len(self.data_handler.getMyLivePreferences())
-#        
-#    def test_updateAllSim(self):
-#        num_peers = 64
-#        self.data_handler.loadAllPeers(num_peers)
-#        self.data_handler.updateAllSim()
-#        
     def test_postInit(self):
         #self.data_handler.postInit()
-        self.data_handler.postInit(1,50,0)
+        self.data_handler.postInit(1,50,0, 50)
         #from time import sleep
-        #sleep(50)
         
-    def xxtest_profile(self):
-        def foo(n = 10000):
-            def bar(n):
-                for i in range(n):
-                    math.pow(i,2)
-            def baz(n):
-                for i in range(n):
-                    math.sqrt(i)
-            bar(n)
-            baz(n)
-        
-        self.preload2(136, 30)
-        print "profile starts"
-        prof = hotshot.Profile("test.prof")
-        prof.runcall(self.buddycast.buddycast_core.getBuddyCastData)
-        prof.close()
-        stats = hotshot.stats.load("test.prof")
-        stats.strip_dirs()
-        stats.sort_stats('cumulative', 'time', 'calls')
-        stats.print_stats(100)
-        
+class TestBuddyCast(unittest.TestCase):
+    
+    def setUp(self):
+        # prepare database
 
+        launchmany = FakeLauchMany()
+        self.overlay_bridge = TimedTaskQueue(isDaemon=False) 
+        #self.overlay_bridge = FakeOverlayBridge()
+        superpeer=False # enable it to test superpeer
+        self.bc = BuddyCastFactory.getInstance(superpeer=superpeer)
+        self.bc.register(self.overlay_bridge, launchmany, None, 
+                 None, None, True)
+
+    def tearDown(self):
+        self.overlay_bridge.add_task('quit')
+        self.overlay_bridge.thread.join()
+        del self.bc
+
+    def remove_t_index(self):
+        indices = [
+        'Torrent_length_idx',
+        'Torrent_creation_date_idx',
+        'Torrent_relevance_idx',
+        'Torrent_num_seeders_idx',
+        'Torrent_num_leechers_idx',
+        #'Torrent_name_idx',
+        ]
+        for index in indices:
+            sql = 'drop index ' + index
+            self.data_handler.torrent_db._db.execute_write(sql)
+            
+    def remove_p_index(self):
+        indices = [
+        'Peer_name_idx',
+        'Peer_ip_idx',
+        'Peer_similarity_idx',
+        'Peer_last_seen_idx',
+        'Peer_last_connected_idx',
+        'Peer_num_peers_idx',
+        'Peer_num_torrents_idx'
+        ]
+        for index in indices:
+            sql = 'drop index ' + index
+            self.data_handler.peer_db._db.execute_write(sql)
+
+    def local_test(self):
+                
+        self.remove_t_index()
+        self.remove_p_index()
+                
+        from log_parser import get_buddycast_data
+        
+        #start_time = time()
+        #print >> sys.stderr, "buddycast: ******************* start local test"
+        costs = []
+        self.data_handler.postInit(updatesim=False)
+        for permid, selversion, msg in get_buddycast_data(os.path.join(FILES_DIR,'superpeer120070902sp7001.log')):
+            message = bencode(msg)
+            #print 'got msg:', permid, selversion, message
+            try:
+                s = time()
+                self.bc.gotBuddyCastMessage(message, permid, selversion)
+                cost = time()-s
+                costs.append(cost)
+            except:
+                print_exc()
+                break
+            print 'got msg: %d %.2f %.2f %.2f %.2f' %(len(costs), cost, min(costs), sum(costs)/len(costs), max(costs))
+        # with all indices, min/avg/max:  0.00 1.78 4.57 seconds
+        # without index, min/avg/max:  0.00 1.38 3.43 seconds  (58)
+
+       
+    def test_start(self):
+        self.bc.olthread_register(start=False)
+        self.data_handler = self.bc.data_handler
+        self.local_test()
+        sleep(10)
+        
+    
 def test_suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestBuddyCastDataHandler))
+    #suite.addTest(unittest.makeSuite(TestBuddyCastDataHandler))
+    suite.addTest(unittest.makeSuite(TestBuddyCast))
     
     return suite
 

@@ -103,13 +103,12 @@ class MyDBHandler(BasicDBHandler):
             else:
                 raise KeyError, key
 
-    def put(self, key, value):
+    def put(self, key, value, commit=True):
         if self.getOne('value', entry=key) is NULL:
-            self._db.insert(self.table_name, entry=key, value=value)
+            self._db.insert(self.table_name, commit=commit, entry=key, value=value)
         else:
             where = "entry=" + repr(key)
-            self._db.update(self.table_name, where, value=value)
-        self.commit()
+            self._db.update(self.table_name, where, commit=commit, value=value)
 
 class FriendDBHandler(BasicDBHandler):
     
@@ -136,10 +135,7 @@ class FriendDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self, 'Peer')
         
     def setFriend(self, permid, friend=True, commit=True):
-        
-        self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), friend=friend)
-        if commit:
-            self.commit()
+        self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), commit=commit, friend=friend)
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'friend')
 
     def getFriends(self):
@@ -220,7 +216,7 @@ class PeerDBHandler(BasicDBHandler):
             # make it compatible for calls to old bsddb interface
             value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'num_peers', 'num_torrents', 'num_prefs', 'num_queries', 
-                      'connected_times', 'buddycast_times', 'last_connected', 'last_seen')
+                      'connected_times', 'buddycast_times', 'last_connected', 'last_seen', 'last_buddycast')
 
             item = self.getOne(value_name, permid=bin2str(permid))
             if not item:
@@ -271,7 +267,7 @@ class PeerDBHandler(BasicDBHandler):
         
         return peers
     
-    def addPeer(self, permid, value, update_dns=True, update_lastseen=True, commit = True):
+    def addPeer(self, permid, value, update_dns=True, update_connected=False, commit=True):
         # add or update a peer
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
         # Jie: deepcopy(value)?
@@ -281,22 +277,20 @@ class PeerDBHandler(BasicDBHandler):
         if 'permid' in value:
             _permid = value.pop('permid')
             
-        if 'last_seen' in value:
-            if not update_lastseen :
-                _last_seen = value.pop('last_seen')
-            else:    # get the latest last_seen
-                old_last_seen = self.getOne('last_seen', permid=bin2str(permid))
-                last_seen = value['last_seen']
-                now = int(time())
-                value['last_seen'] = min(now, max(last_seen, old_last_seen))
-            
         if not update_dns:
             if value.has_key('ip'):
                 _ip = value.pop('ip')
             if value.has_key('port'):
                 _port = value.pop('port')
+                
+        if update_connected:
+            old_connected = self.getOne('connected_times', permid=bin2str(permid))
+            if not old_connected:
+                value['connected_times'] = 1
+            else:
+                value['connected_times'] = old_connected + 1
             
-        peer_existed = self._db.insertPeer(permid, **value)
+        peer_existed = self._db.insertPeer(permid, commit=commit, **value)
         
         if _permid is not None:
             value['permid'] = permid
@@ -307,12 +301,10 @@ class PeerDBHandler(BasicDBHandler):
         if _port is not None:
             value['port'] = _port
         
-        if commit:
-            self.commit()
-        
         if peer_existed:
             self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
-        else:
+        # Jie: only notify the GUI when a peer was connected
+        if 'connected_times' in value:
             self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
             
     def hasPeer(self, permid):
@@ -331,9 +323,7 @@ class PeerDBHandler(BasicDBHandler):
         return ret
     
     def updatePeer(self, permid, commit=True, **argv):
-        self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), **argv)
-        if commit:
-            self.commit()
+        self._db.update(self.table_name, 'permid='+repr(bin2str(permid)), commit=commit, **argv)
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
     def deletePeer(self, permid=None, peer_id=None, force=False, commit=True):
@@ -344,11 +334,9 @@ class PeerDBHandler(BasicDBHandler):
             peer_id = self._db.getPeerID(permid)
         if peer_id is None:
             return
-        deleted = self._db.deletePeer(permid=permid, peer_id=peer_id, force=force)
+        deleted = self._db.deletePeer(permid=permid, peer_id=peer_id, force=force, commit=commit)
         if deleted:
-            self.pref_db._deletePeer(peer_id=peer_id)
-        if commit:
-            self.commit()
+            self.pref_db._deletePeer(peer_id=peer_id, commit=commit)
         self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
             
     def updateTimes(self, permid, key, change=1, commit=True):
@@ -362,15 +350,13 @@ class PeerDBHandler(BasicDBHandler):
             else:
                 value += change
             sql_update_peer = "UPDATE Peer SET %s=? WHERE peer_id=?"%key
-            self._db.execute_write(sql_update_peer, (value, peer_id))
-            if commit:
-                self.commit()
+            self._db.execute_write(sql_update_peer, (value, peer_id), commit=commit)
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
-    def updatePeerSims(self, sim_list):
+    def updatePeerSims(self, sim_list, commit=True):
         sql_update_sims = 'UPDATE Peer SET similarity=? WHERE peer_id=?'
         s = time()
-        self._db.executemany(sql_update_sims, sim_list, commit=True)
+        self._db.executemany(sql_update_sims, sim_list, commit=commit)
 
     def getPermIDByIP(self,ip):
         permid = self.getOne('permid', ip=ip)
@@ -387,13 +373,15 @@ class PeerDBHandler(BasicDBHandler):
             return None
         
     def getNumberPeers(self, category_name = 'all'):
-        table = 'Peer'
-        value = 'count(peer_id)'
-        where = '(buddycast_times>0 or friend=1)'
+        # 28/07/08 boudewijn: counting the union from two seperate
+        # select statements is faster than using a single select
+        # statement with an OR in the WHERE clause. Note that UNION
+        # returns a distinct list of peer_id's.
         if category_name == 'friend':
-            where += ' and friend=1'
-        
-        res = self._db.getOne(table, value, where)
+            sql = 'SELECT COUNT(peer_id) FROM Peer WHERE last_connected > 0 AND friend = 1'
+        else:
+            sql = 'SELECT COUNT(peer_id) FROM (SELECT peer_id FROM Peer WHERE last_connected > 0 UNION SELECT peer_id FROM Peer WHERE friend = 1)'
+        res = self._db.fetchone(sql)
         if not res:
             res = 0
         return res
@@ -413,7 +401,7 @@ class PeerDBHandler(BasicDBHandler):
         """
         value_name = PeerDBHandler.gui_value_name
         
-        where = '(buddycast_times>0 or friend=1) '
+        where = '(last_connected>0 or friend=1) '
         if category_name in ('friend', 'friends'):
             where += 'and friend=1'
         if range:
@@ -458,7 +446,7 @@ class PeerDBHandler(BasicDBHandler):
         value_name = 'permid'
         order_by = 'similarity desc'
         rankList_size = 20
-        where = '(buddycast_times>0 or friend=1) '
+        where = '(last_connected>0 or friend=1) '
         res_list = self._db.getAll('Peer', value_name, where=where, limit=rankList_size, order_by=order_by)
         return [a[0] for a in res_list]
         
@@ -642,16 +630,16 @@ class PreferenceDBHandler(BasicDBHandler):
             res = self._db.fetchall(sql_get_infohash, (peer_id,))
             return [str2bin(t[0]) for t in res]
     
-    def _deletePeer(self, permid=None, peer_id=None):   # delete a peer from pref_db
+    def _deletePeer(self, permid=None, peer_id=None, commit=True):   # delete a peer from pref_db
         # should only be called by PeerDBHandler
         if peer_id is None:
             peer_id = self._db.getPeerID(permid)
             if peer_id is None:
                 return
         
-        self._db.delete(self.table_name, peer_id=peer_id)
+        self._db.delete(self.table_name, commit=commit, peer_id=peer_id)
 
-    def addPreference(self, permid, infohash, data={}):
+    def addPreference(self, permid, infohash, data={}, commit=True):
         # This function should be replaced by addPeerPreferences 
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
         peer_id = self._db.getPeerID(permid)
@@ -665,16 +653,15 @@ class PreferenceDBHandler(BasicDBHandler):
             self._db.insertInfohash(infohash)
             torrent_id = self._db.getTorrentID(infohash)
         try:
-            self._db.execute_write(sql_insert_peer_torrent, (peer_id, torrent_id))
+            self._db.execute_write(sql_insert_peer_torrent, (peer_id, torrent_id), commit=commit)
         except Exception, msg:    # duplicated
             print_exc()
-            pass
 
-    def addPreferences(self, peer_permid, prefs, is_torrent_id=False):
+    def addPreferences(self, peer_permid, prefs, is_torrent_id=False, commit=True):
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
         peer_id = self._db.getPeerID(peer_permid)
         if peer_id is None:
-            print >> sys.stderr, 'PreferenceDBHandler: add preference of a peer which is not existed in Peer table', `permid`
+            print >> sys.stderr, 'PreferenceDBHandler: add preference of a peer which is not existed in Peer table', `peer_permid`
             return
         
         if not is_torrent_id:
@@ -690,13 +677,11 @@ class PreferenceDBHandler(BasicDBHandler):
             
         sql_insert_peer_torrent = "INSERT INTO Preference (peer_id, torrent_id) VALUES (?,?)"        
         if len(prefs) > 0:
-            for pref in torrent_id_prefs:
-                try:
-                    self._db.execute_write(sql_insert_peer_torrent, pref)
-                except Exception, msg:    # duplicated
-                    print_exc()
-                    print >> sys.stderr, 'dbhandler: addPreferences:', Exception, msg
-                    pass
+            try:
+                self._db.executemany(sql_insert_peer_torrent, torrent_id_prefs, commit=commit)
+            except Exception, msg:    # duplicated
+                print_exc()
+                print >> sys.stderr, 'dbhandler: addPreferences:', Exception, msg
 
     def getRecentPeersPrefs(self, key, num=None):
         # get the recently seen peers' preference. used by buddycast
@@ -875,9 +860,9 @@ class TorrentDBHandler(BasicDBHandler):
         #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
         return infohash, torrent
         
-    def addInfohash(self, infohash):
+    def addInfohash(self, infohash, commit=True):
         if self._db.getTorrentID(infohash) is None:
-            self._db.insert('Torrent', infohash=bin2str(infohash))
+            self._db.insert('Torrent', commit=commit, infohash=bin2str(infohash))
 
     def _getStatusID(self, status):
         return self.status_table.get(status.lower(), 0)
@@ -904,6 +889,7 @@ class TorrentDBHandler(BasicDBHandler):
         if torrent_id is None:    # not in db
             infohash_str = bin2str(infohash)
             self._db.insert('Torrent', 
+                        commit=True,    # must commit to get the torrent id
                         infohash = infohash_str,
                         name = dunno2unicode(data['name']),
                         torrent_file_name = data['torrent_file_name'],
@@ -924,6 +910,7 @@ class TorrentDBHandler(BasicDBHandler):
         else:    # infohash in db
             where = 'torrent_id = %d'%torrent_id
             self._db.update('Torrent', where = where,
+                            commit=False,
                             name = dunno2unicode(data['name']),
                             torrent_file_name = data['torrent_file_name'],
                             length = data['length'], 
@@ -940,22 +927,21 @@ class TorrentDBHandler(BasicDBHandler):
                             num_leechers = data['num_leechers'], 
                             comment = dunno2unicode(data['comment']))
         
-        self._addTorrentTracker(torrent_id, data)
+        self._addTorrentTracker(torrent_id, data, commit=False)
         if commit:
             self.commit()    
+        self._db.show_execute = False
         return torrent_id
     
     def _insertNewSrc(self, src, commit=True):
         desc = ''
         if src.startswith('http') and src.endswith('xml'):
             desc = 'RSS'
-        self._db.insert('TorrentSource', name=src, description=desc)
+        self._db.insert('TorrentSource', commit=commit, name=src, description=desc)
         src_id = self._db.getOne('TorrentSource', 'source_id', name=src)
-        if commit:
-            self.commit()
         return src_id
 
-    def _addTorrentTracker(self, torrent_id, data, add_all=False):
+    def _addTorrentTracker(self, torrent_id, data, add_all=False, commit=True):
         # Set add_all to True if you want to put all multi-trackers into db.
         # In the current version (4.2) only the main tracker is used.
         exist = self._db.getOne('TorrentTracker', 'tracker', torrent_id=torrent_id)
@@ -990,7 +976,7 @@ class TorrentDBHandler(BasicDBHandler):
                     trackers[tracker] = None
                 tier_num += 1
             
-        self._db.executemany(sql_insert_torrent_tracker, values)
+        self._db.executemany(sql_insert_torrent_tracker, values, commit=commit)
         
     def updateTorrent(self, infohash, commit=True, **kw):    # watch the schema of database
         if 'category' in kw:
@@ -1007,7 +993,7 @@ class TorrentDBHandler(BasicDBHandler):
             kw['num_leechers'] = kw.pop('leecher')
         if 'last_check_time' in kw or 'ignore_number' in kw or 'retry_number' in kw \
           or 'retried_times' in kw or 'ignored_times' in kw:
-            self.updateTracker(infohash, kw)
+            self.updateTracker(infohash, kw, commit=False)
         
         for key in kw.keys():
             if key not in self.keys:
@@ -1016,11 +1002,11 @@ class TorrentDBHandler(BasicDBHandler):
         if len(kw) > 0:
             infohash_str = bin2str(infohash)
             where = "infohash='%s'"%infohash_str
-            self._db.update(self.table_name, where, **kw)
+            self._db.update(self.table_name, where, commit=False, **kw)
             
         if commit:
             self.commit()
-        # to.do: update the torrent panel's number of seeders/leechers 
+            # to.do: update the torrent panel's number of seeders/leechers 
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
     def updateTracker(self, infohash, kw, tier=1, tracker=None, commit=True):
@@ -1044,12 +1030,8 @@ class TorrentDBHandler(BasicDBHandler):
             where = 'torrent_id=%d AND announce_tier=%d'%(torrent_id, tier)
         else:
             where = 'torrent_id=%d AND tracker=%s'%(torrent_id, repr(tracker))
-        self._db.update('TorrentTracker', where, **update)
+        self._db.update('TorrentTracker', where, commit=commit, **update)
 
-        if commit:
-            self.commit()
-        #self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
-        
     def deleteTorrent(self, infohash, delete_file=False, commit = True):
         if not self.hasTorrent(infohash):
             return False
@@ -1063,23 +1045,21 @@ class TorrentDBHandler(BasicDBHandler):
             deleted = True
         
         if deleted:
-            self._deleteTorrent(infohash)
-        if commit:
-            self.commit()
+            self._deleteTorrent(infohash, commit=commit)
             
         self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, infohash)
         return deleted
 
-    def _deleteTorrent(self, infohash, keep_infohash=True):
+    def _deleteTorrent(self, infohash, keep_infohash=True, commit=True):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is not None:
             if keep_infohash:
-                self._db.update(self.table_name, where="torrent_id=%d"%torrent_id, torrent_file_name=None)
+                self._db.update(self.table_name, where="torrent_id=%d"%torrent_id, commit=commit, torrent_file_name=None)
             else:
-                self._db.delete(self.table_name, torrent_id=torrent_id)
+                self._db.delete(self.table_name, commit=commit, torrent_id=torrent_id)
             if infohash in self.existed_torrents:
                 self.existed_torrents.remove(infohash)
-            self._db.delete('TorrentTracker', torrent_id=torrent_id)
+            self._db.delete('TorrentTracker', commit=commit, torrent_id=torrent_id)
             #print '******* delete torrent', torrent_id, `infohash`, self.hasTorrent(infohash)
             
     def eraseTorrentFile(self, infohash):
@@ -1310,10 +1290,11 @@ class TorrentDBHandler(BasicDBHandler):
         sql_del_torrent = "delete from Torrent where torrent_id=?"
         sql_del_tracker = "delete from TorrentTracker where torrent_id=?"
         sql_del_pref = "delete from Preference where torrent_id=?"
-        for torrent_file_name, torrent_id, infohash, relevance, weight in res_list:
-            self._db.execute_write(sql_del_torrent, (torrent_id,))
-            self._db.execute_write(sql_del_tracker, (torrent_id,))
-            self._db.execute_write(sql_del_pref, (torrent_id,))
+        tids = [(torrent_id,) for torrent_file_name, torrent_id, infohash, relevance, weight in res_list]
+
+        self._db.executemany(sql_del_torrent, tids, commit=False)
+        self._db.executemany(sql_del_tracker, tids, commit=False)
+        self._db.executemany(sql_del_pref, tids, commit=False)
         
         self._db.commit()
         
@@ -1348,11 +1329,10 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevance(self, infohash, relevance):
         self.updateTorrent(infohash, relevance=relevance)
 
-    def updateTorrentRelevances(self, tid_rel_pairs):
+    def updateTorrentRelevances(self, tid_rel_pairs, commit=True):
         if len(tid_rel_pairs) > 0:
             sql_update_sims = 'UPDATE Torrent SET relevance=? WHERE torrent_id=?'
-            s = time()
-            self._db.executemany(sql_update_sims, tid_rel_pairs, commit=True)
+            self._db.executemany(sql_update_sims, tid_rel_pairs, commit=commit)
         
     def searchNames(self,kws):
         """ Get all torrents (good and bad) that have the specified keywords in 
@@ -1536,14 +1516,12 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.status_table.update(self._db.getTorrentStatusTable())
         self.status_good = self.status_table['good']
         self.recent_preflist = None
-        self.coccurrence = None
         self.rlock = threading.RLock()
         
     def loadData(self):
         self.rlock.acquire()
         try:
             self.recent_preflist = self._getRecentLivePrefList()
-            self.coccurrence = self.getAllTorrentCoccurrence()
         finally:
             self.rlock.release()
                 
@@ -1631,9 +1609,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         d['progress'] = data.get('progress', 0)
         d['creation_time'] = data.get('creation_time', int(time()))
         d['torrent_id'] = torrent_id
-        self._db.insert(self.table_name, **d)
-        if commit:
-            self.commit()
+        self._db.insert(self.table_name, commit=commit, **d)
         self.notifier.notify(NTFY_MYPREFERENCES, NTFY_INSERT, infohash)
         self.rlock.acquire()
         try:
@@ -1641,7 +1617,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
                 self.recent_preflist = self._getRecentLivePrefList()
             else:
                 self.recent_preflist.insert(0, infohash)
-            self.coccurrence = self.getAllTorrentCoccurrence()
         finally:
             self.rlock.release()
         return True
@@ -1652,15 +1627,12 @@ class MyPreferenceDBHandler(BasicDBHandler):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
             return
-        self._db.delete(self.table_name, **{'torrent_id':torrent_id})
-        if commit:
-            self.commit()
+        self._db.delete(self.table_name, commit=commit, **{'torrent_id':torrent_id})
         self.notifier.notify(NTFY_MYPREFERENCES, NTFY_DELETE, infohash)
         self.rlock.acquire()
         try:
             if self.recent_preflist is not None and infohash in self.recent_preflist:
                 self.recent_preflist.remove(infohash)
-                self.coccurrence = self.getAllTorrentCoccurrence()
         finally:
             self.rlock.release()
             
@@ -1669,25 +1641,19 @@ class MyPreferenceDBHandler(BasicDBHandler):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None:
             return
-        self._db.update(self.table_name, 'torrent_id=%d'%torrent_id, progress=progress)
-        if commit:
-            self.commit()
+        self._db.update(self.table_name, 'torrent_id=%d'%torrent_id, commit=commit, progress=progress)
         #print >> sys.stderr, '********* update progress', `infohash`, progress, commit
 
-    def getInfohashRelevance(self, infohash):
-        torrent_id = self._db.getTorrentID(infohash)
-        return self.coccurrence.get(torrent_id, 0)
-
-    def getAllTorrentCoccurrence(self):
-        # should be placed in PreferenceDBHandler, but put here to be convenient for TorrentCollecting
-        sql = """select torrent_id, count(torrent_id) as coocurrency from Preference where peer_id in
-            (select peer_id from Preference where torrent_id in 
-            (select torrent_id from MyPreference)) and torrent_id not in 
-            (select torrent_id from MyPreference)
-            group by torrent_id
-            """
-        coccurrence = dict(self._db.fetchall(sql))
-        return coccurrence
+#    def getAllTorrentCoccurrence(self):
+#        # should be placed in PreferenceDBHandler, but put here to be convenient for TorrentCollecting
+#        sql = """select torrent_id, count(torrent_id) as coocurrency from Preference where peer_id in
+#            (select peer_id from Preference where torrent_id in 
+#            (select torrent_id from MyPreference)) and torrent_id not in 
+#            (select torrent_id from MyPreference)
+#            group by torrent_id
+#            """
+#        coccurrence = dict(self._db.fetchall(sql))
+#        return coccurrence
 
         
 class BarterCastDBHandler(BasicDBHandler):
@@ -1708,19 +1674,19 @@ class BarterCastDBHandler(BasicDBHandler):
     
     getInstance = staticmethod(getInstance)
 
-    def __init__(self, session):
+    def __init__(self):
         BarterCastDBHandler.__single = self
         BasicDBHandler.__init__(self, 'BarterCast')
         self.peer_db = PeerDBHandler.getInstance()
+        #        self.my_permid = "" 
+        if DEBUG:
+            print >> sys.stderr, "BARTERCAST: MyPermid is ", self.my_permid
+            
+    def registerSession(self, session):
         self.session = session
 
         # Retrieve MyPermid
         self.my_permid = session.get_permid()
-#        self.my_permid = "" 
-        if DEBUG:
-            print >> sys.stderr, "BARTERCAST: MyPermid is ", self.my_permid
-            
-
                 
     def getName(self, permid):
 
@@ -1755,12 +1721,13 @@ class BarterCastDBHandler(BasicDBHandler):
 
     def getItem(self, (permid_from, permid_to), default=False):
 
+        # ARNODB: now converting back to dbid! just did reverse in getItemList
         peer_id1 = self.getPeerID(permid_from)
         peer_id2 = self.getPeerID(permid_to)
         
         if peer_id1 is None:
-            self._db.insertPeer(permid_from)
-            peer_id1 = self.getPeerID(permid_from)
+            self._db.insertPeer(permid_from) # ARNODB: database write
+            peer_id1 = self.getPeerID(permid_from) # ARNODB: database write
         
         if peer_id2 is None:
             self._db.insertPeer(permid_to)
@@ -1794,6 +1761,8 @@ class BarterCastDBHandler(BasicDBHandler):
     def getItemList(self):    # get the list of all peers' permid
         
         keys = self.getAll(('peer_id_from','peer_id_to'))
+        # ARNODB: this dbid -> permid translation is more efficiently done
+        # on the final top-N list.
         keys = map(lambda (id_from, id_to): (self.getPermid(id_from), self.getPermid(id_to)), keys)
         return keys
 
@@ -1922,9 +1891,7 @@ class BarterCastDBHandler(BasicDBHandler):
         item['peer_id_from'] = peer_id1
         item['peer_id_to'] = peer_id2    
             
-        self._db.insert(self.table_name, **item)
-        if commit:
-            self._db.commit()
+        self._db.insert(self.table_name, commit=commit, **item)
 
     def updateItem(self, (permid_from, permid_to), key, value, commit=True):
         
@@ -1935,7 +1902,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
         # if item doesn't exist: add it
         if itemdict == None:
-            self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())}, commit=False)
+            self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())}, commit=True)
             itemdict = self.getItem((permid_from, permid_to))
 
         # get peer ids
@@ -1946,43 +1913,34 @@ class BarterCastDBHandler(BasicDBHandler):
             
             where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
             item = {key: value}
-            self._db.update(self.table_name, where = where, **item)            
-
-        if commit:
-            self._db.commit()
-
-    
+            self._db.update(self.table_name, where = where, commit=commit, **item)            
 
     def incrementItem(self, (permid_from, permid_to), key, value, commit=True):
-        try:
-            if DEBUG:
-                print >> sys.stderr, "BarterCast: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
-    
+        if DEBUG:
+            print >> sys.stderr, "BarterCast: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+
+        itemdict = self.getItem((permid_from, permid_to))
+
+        # if item doesn't exist: add it
+        if itemdict == None:
+            self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())}, commit=True)
             itemdict = self.getItem((permid_from, permid_to))
-    
-            # if item doesn't exist: add it
-            if itemdict == None:
-                self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())}, commit=False)
-                itemdict = self.getItem((permid_from, permid_to))
-                
-            # get peer ids
-            peer_id1 = itemdict['peer_id_from']
-            peer_id2 = itemdict['peer_id_to']
-    
-            if key in itemdict.keys():
-                old_value = itemdict[key]
-                new_value = old_value + value
-                
-                where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
-    
-                item = {key: new_value}
-                self._db.update(self.table_name, where = where, **item)            
-                return new_value
-    
-            return None
-        finally:
-            if commit:
-                self._db.commit()
+            
+        # get peer ids
+        peer_id1 = itemdict['peer_id_from']
+        peer_id2 = itemdict['peer_id_to']
+
+        if key in itemdict.keys():
+            old_value = itemdict[key]
+            new_value = old_value + value
+            
+            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
+
+            item = {key: new_value}
+            self._db.update(self.table_name, where = where, commit=commit, **item)            
+            return new_value
+
+        return None
             
 
 class GUIDBHandler:
@@ -2111,7 +2069,7 @@ def doPeerSearchNames(self,dbname,kws):
     Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
     """
     if dbname == 'Peer':
-        where = '(Peer.buddycast_times>0 or Peer.friend=1) and '
+        where = '(Peer.last_connected>0 or Peer.friend=1) and '
     elif dbname == 'Friend':
         where  = ''
     else:

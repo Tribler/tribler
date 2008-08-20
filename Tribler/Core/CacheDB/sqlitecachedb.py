@@ -7,6 +7,7 @@ from copy import deepcopy
 from Queue import Queue, Empty 
 from time import time, sleep
 from base64 import encodestring, decodestring
+from unicode import dunno2unicode
 import math
 from random import shuffle
 import threading
@@ -27,7 +28,7 @@ DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 BSDDB_DIR_NAME = 'bsddb'
 CURRENT_DB_VERSION = 1
-DEFAULT_BUSY_TIMEOUT = 5000
+DEFAULT_BUSY_TIMEOUT = 10000
 MAX_SQL_BATCHED_TO_TRANSACTION = 1000   # don't change it unless carefully tested. A transaction with 1000 batched updates took 1.5 seconds
 NULL = None
 icon_dir = None
@@ -409,13 +410,17 @@ class SQLiteCacheDB:
         except Exception, msg:
             print_exc()
             print >> sys.stderr, "cachedb: execute error:", Exception, msg 
-            #thread_name = threading.currentThread().getName()
-            #print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
-            #raise Exception, msg
-            return None
+            thread_name = threading.currentThread().getName()
+            print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
+            #return None
+            # ARNODB: this is incorrect, it should reraise the exception
+            # such that _transaction can rollback or recommit. 
+            # This bug already reported by Johan
+            raise msg
+        
 
     def execute_read(self, sql, args=None):
-        # this is only called for reading. If you want to write the db, always use execute_write, or executemany()
+        # this is only called for reading. If you want to write the db, always use execute_write or executemany
         return self._execute(sql, args)
     
     def execute_write(self, sql, args=None, commit=True):
@@ -432,7 +437,6 @@ class SQLiteCacheDB:
         SQLiteCacheDB.cache_transaction_table[thread_name].extend(all)
 
         if commit:
-            s = time()
             self.commit()
             
     def cache_transaction(self, sql, args=None):
@@ -483,8 +487,8 @@ class SQLiteCacheDB:
             try:
                 self._execute(sql, args)
             except Exception,e:
-                self.commit_retry_if_busy_or_rollback(e,0) 
-        
+                self.commit_retry_if_busy_or_rollback(e,0)
+            
     def commit_retry_if_busy_or_rollback(self,e,tries):
         """ 
         Arno:
@@ -525,15 +529,15 @@ class SQLiteCacheDB:
    
         
     # -------- Write Operations --------
-    def insert(self, table_name, **argv):
+    def insert(self, table_name, commit=True, **argv):
         if len(argv) == 1:
             sql = 'INSERT INTO %s (%s) VALUES (?);'%(table_name, argv.keys()[0])
         else:
             questions = '?,'*len(argv)
             sql = 'INSERT INTO %s %s VALUES (%s);'%(table_name, tuple(argv.keys()), questions[:-1])
-        self.execute_write(sql, argv.values())
+        self.execute_write(sql, argv.values(), commit)
     
-    def insertMany(self, table_name, values, keys=None):
+    def insertMany(self, table_name, values, keys=None, commit=True):
         """ values must be a list of tuples """
 
         questions = '?,'*len(values[0])
@@ -541,23 +545,23 @@ class SQLiteCacheDB:
             sql = 'INSERT INTO %s VALUES (%s);'%(table_name, questions[:-1])
         else:
             sql = 'INSERT INTO %s %s VALUES (%s);'%(table_name, tuple(keys), questions[:-1])
-        self.executemany(sql, values)
+        self.executemany(sql, values, commit=commit)
     
-    def update(self, table_name, where=None, **argv):
+    def update(self, table_name, where=None, commit=True, **argv):
         sql = 'UPDATE %s SET '%table_name
         for k in argv.keys():
             sql += '%s=?,'%k
         sql = sql[:-1]
         if where != None:
             sql += ' where %s'%where
-        self.execute_write(sql, argv.values())
+        self.execute_write(sql, argv.values(), commit)
         
-    def delete(self, table_name, **argv):
+    def delete(self, table_name, commit=True, **argv):
         sql = 'DELETE FROM %s WHERE '%table_name
         for k in argv:
             sql += '%s=? AND '%k
         sql = sql[:-5]
-        self.execute_write(sql, argv.values())
+        self.execute_write(sql, argv.values(), commit)
     
     # -------- Read Operations --------
     def size(self, table_name):
@@ -704,33 +708,33 @@ class SQLiteCacheDB:
         
 
     #------------- useful functions for multiple handlers ----------
-    def insertPeer(self, permid, update=True, **argv):
+    def insertPeer(self, permid, update=True, commit=True, **argv):
         """ Insert a peer. permid is the binary permid.
         If the peer is already in db and update is True, update the peer.
         """
         peer_id = self.getPeerID(permid)
         peer_existed = False
+        if 'name' in argv:
+            argv['name'] = dunno2unicode(argv['name'])
         if peer_id != None:
             peer_existed = True
             if update:
                 where='peer_id=%d'%peer_id
-                self.update('Peer', where, **argv)
-                #print >>sys.stderr,"sqldb: insertPeer: existing, updatePeer",`permid`
+                self.update('Peer', where, commit=commit, **argv)
         else:
-            #print >>sys.stderr,"********* sqldb: insertPeer, new",`permid`, argv
-            self.insert('Peer', permid=bin2str(permid), **argv)
+            self.insert('Peer', permid=bin2str(permid), commit=commit, **argv)
         return peer_existed
                 
-    def deletePeer(self, permid=None, peer_id=None, force=True):
+    def deletePeer(self, permid=None, peer_id=None, force=True, commit=True):
         if peer_id is None:
             peer_id = self.getPeerID(permid)
             
         deleted = False
         if peer_id != None:
             if force:
-                self.delete('Peer', peer_id=peer_id)
+                self.delete('Peer', peer_id=peer_id, commit=commit)
             else:
-                self.delete('Peer', peer_id=peer_id, friend=0, superpeer=0)
+                self.delete('Peer', peer_id=peer_id, friend=0, superpeer=0, commit=commit)
             deleted = not self.hasPeer(permid, check_db=True)
             if deleted and permid in self.permid_id:
                 self.permid_id.pop(permid)
@@ -762,7 +766,7 @@ class SQLiteCacheDB:
             else:
                 return True
     
-    def insertInfohash(self, infohash, check_dup=False):
+    def insertInfohash(self, infohash, check_dup=False, commit=True):
         """ Insert an infohash. infohash is binary """
         
         if infohash in self.infohash_id:
@@ -773,17 +777,17 @@ class SQLiteCacheDB:
         infohash_str = bin2str(infohash)
         sql_insert_torrent = "INSERT INTO Torrent (infohash) VALUES (?)"
         try:
-            self.execute_write(sql_insert_torrent, (infohash_str,))
+            self.execute_write(sql_insert_torrent, (infohash_str,), commit)
         except sqlite.IntegrityError, msg:
             if check_dup:
                 print >> sys.stderr, 'sqldb:', sqlite.IntegrityError, msg, `infohash`
     
-    def deleteInfohash(self, infohash=None, torrent_id=None):
+    def deleteInfohash(self, infohash=None, torrent_id=None, commit=True):
         if torrent_id is None:
             torrent_id = self.getTorrentID(infohash)
             
         if torrent_id != None:
-            self.delete('Torrent', torrent_id=torrent_id)
+            self.delete('Torrent', torrent_id=torrent_id, commit=commit)
             if infohash in self.infohash_id:
                 self.infohash_id.pop(infohash)
     

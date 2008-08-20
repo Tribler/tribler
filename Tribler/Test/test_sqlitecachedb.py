@@ -70,6 +70,35 @@ class SQLitePerformanceTest:
     
     def initDB(self, *args, **argv):
         self.db.initDB(*args, **argv)
+        #self.remove_t_index()
+        #self.remove_p_index()
+        
+    def remove_t_index(self):
+        indices = [
+        'Torrent_length_idx',
+        'Torrent_creation_date_idx',
+        'Torrent_relevance_idx',
+        'Torrent_num_seeders_idx',
+        'Torrent_num_leechers_idx',
+        #'Torrent_name_idx',
+        ]
+        for index in indices:
+            sql = 'drop index ' + index
+            self.db.execute_write(sql)
+            
+    def remove_p_index(self):
+        indices = [
+        'Peer_name_idx',
+        'Peer_ip_idx',
+        'Peer_similarity_idx',
+        'Peer_last_seen_idx',
+        'Peer_last_connected_idx',
+        'Peer_num_peers_idx',
+        'Peer_num_torrents_idx'
+        ]
+        for index in indices:
+            sql = 'drop index ' + index
+            self.db.execute_write(sql)
         
     def close(self, clean=False):
         self.db.close(clean=clean)
@@ -144,7 +173,7 @@ class SQLitePerformanceTest:
             page_times.append(page_time)
         table_row = page_times[:]
         table_row.insert(0, nrecs)    # insert second
-        table_row.insert(0, type)    # insert first    # TODO: bug: type
+        table_row.insert(0, 'test')    # insert first
         avg_sorted_page_time = sum(page_times[1:])/len(page_times[1:])
         table_row.insert(len(sort_keys)*2, avg_sorted_page_time)    # insert last
         table_row.insert(len(sort_keys)*2, 1.0/avg_sorted_page_time)    # insert last
@@ -169,7 +198,8 @@ class SQLitePerformanceTest:
         peer_table_row = self.banchTestBrowse(table_name, nitems, peer_sort_keys)
         print
         
-        if type=='tiny':
+        type = 'test'
+        if type=='test':
             print '|| DB Type || #Torrents',
             for key in torrent_sort_keys:
                 print '||', key, 
@@ -177,7 +207,7 @@ class SQLitePerformanceTest:
         
         self.printTableRow(torrent_table_row)
         
-        if type=='tiny':
+        if type=='test':
             print '|| DB Type || #Peers',
             for key in peer_sort_keys:
                 print '||', key, 
@@ -199,7 +229,7 @@ class SQLitePerformanceTest:
             page_times.append(page_time)
         table_row = page_times[:]
         table_row.insert(0, nrecs)    # insert second
-        table_row.insert(0, type)    # insert first
+        table_row.insert(0, 'test')    # insert first
         avg_sorted_page_time = sum(page_times[1:])/len(page_times[1:])
         table_row.insert(len(categories)*2, avg_sorted_page_time)    # insert last
         table_row.insert(len(categories)*2, 1.0/avg_sorted_page_time)    # insert last
@@ -213,11 +243,10 @@ class SQLitePerformanceTest:
                     7: 'xxx',
                     8: 'other'}
 
-        if type=='tiny':
-            print '|| DB Type || #Torrents',
-            for key in categories:
-                print '||', cat_name[key], 
-            print '|| avg sec/page || avg pages/sec ||'
+        print '|| DB Type || #Torrents',
+        for key in categories:
+            print '||', cat_name[key], 
+        print '|| avg sec/page || avg pages/sec ||'
         
         self.printTableRow(table_row)
         print
@@ -337,7 +366,7 @@ class TestSQLitePerformance(unittest.TestCase):
         sqlite_test.test()
         sqlite_test.close(clean=True)
     
-    def test_thread_benchmark_with_db(self):
+    def _test_thread_benchmark_with_db(self):
         class Worker1(Thread):
             def run(self):
                 sqlite_test = SQLitePerformanceTest()

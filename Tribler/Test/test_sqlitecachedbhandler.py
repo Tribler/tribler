@@ -412,16 +412,16 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         peer_x['ip'] = '4.3.2.1'
         peer_x['port'] = 432
         peer_x['last_seen'] = 1234567
-        db.addPeer(fake_permid_x, peer_x, update_dns=False, update_lastseen=False)
+        db.addPeer(fake_permid_x, peer_x, update_dns=False)
         p = db.getPeer(fake_permid_x)
         assert p['ip'] == '1.2.3.4'
         assert p['port'] == 234
-        assert p['last_seen'] == 12345, p['last_seen']
+        assert p['last_seen'] == 1234567, p['last_seen']
 
         peer_x['ip'] = '4.3.2.1'
         peer_x['port'] = 432
-        peer_x['last_seen'] = 1234567
-        db.addPeer(fake_permid_x, peer_x, update_dns=True, update_lastseen=False)
+        peer_x['last_seen'] = 12345
+        db.addPeer(fake_permid_x, peer_x, update_dns=True)
         p = db.getPeer(fake_permid_x)
         assert p['ip'] == '4.3.2.1'
         assert p['port'] == 432
@@ -429,17 +429,16 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
 
         peer_x['ip'] = '1.2.3.1'
         peer_x['port'] = 234
-        peer_x['last_seen'] = 1234567
-        db.addPeer(fake_permid_x, peer_x, update_dns=False, update_lastseen=True)
+        db.addPeer(fake_permid_x, peer_x, update_dns=False)
         p = db.getPeer(fake_permid_x)
         assert p['ip'] == '4.3.2.1'
         assert p['port'] == 432
-        assert p['last_seen'] == 1234567
+        assert p['last_seen'] == 12345
 
         peer_x['ip'] = '1.2.3.4'
         peer_x['port'] = 234
         peer_x['last_seen'] = 1234569
-        db.addPeer(fake_permid_x, peer_x, update_dns=True, update_lastseen=True)
+        db.addPeer(fake_permid_x, peer_x, update_dns=True)
         p = db.getPeer(fake_permid_x)
         assert p['ip'] == '1.2.3.4'
         assert p['port'] == 234
@@ -447,12 +446,10 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
 
         peer_x['ip'] = '1.2.3.5'
         peer_x['port'] = 236
-        peer_x['last_seen'] = 1234561
-        db.addPeer(fake_permid_x, peer_x, update_dns=True, update_lastseen=True)
+        db.addPeer(fake_permid_x, peer_x, update_dns=True)
         p = db.getPeer(fake_permid_x)
         assert p['ip'] == '1.2.3.5'
         assert p['port'] == 236
-        assert p['last_seen'] == 1234569
 
         db._db.deletePeer(fake_permid_x, force=True)
         p = db.getPeer(fake_permid_x)
@@ -594,7 +591,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         db = PeerDBHandler.getInstance()
         peer_size = db.size()
         res = db.getGUIPeers()
-        assert len(res) == 1407
+        assert len(res) == 1477, len(res)
         data = res[0]
         p = db.getPeer(data['permid'])
         assert p['name'] == data['name']
@@ -1083,14 +1080,6 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         db.updateProgress(infohash, 3.14)
         p = db.getOne('progress', torrent_id=torrent_id)
         assert p == 3.14
-
-    def test_getAllTorrentCoccurrence(self):
-        db = MyPreferenceDBHandler.getInstance()
-        db.getAllTorrentCoccurrence()
-        res = db.coccurrence
-        assert len(res) == 2215
-        assert res[1253] == 19
-        assert res[330] == 6
 
     def test_getMyPrefListInfohash(self):
         db = MyPreferenceDBHandler.getInstance()

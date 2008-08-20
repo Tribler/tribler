@@ -192,6 +192,10 @@ class BarterCastCore:
             self.bartercastdb.updateItem((sender_permid, permid), 'uploaded', data_to, commit=False)
             self.bartercastdb.updateItem((sender_permid, permid), 'downloaded', data_from, commit=True)
             
+        # ARNODB: 
+        # 1. change this such that the commit is done on the last write, not 
+        # every iteration.
+        # 2. get rid of index on DB? See where used
 
     ################################
     def replyBarterCast(self, target_permid, selversion):
