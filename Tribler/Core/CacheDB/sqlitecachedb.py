@@ -32,7 +32,7 @@ DEFAULT_BUSY_TIMEOUT = 10000
 MAX_SQL_BATCHED_TO_TRANSACTION = 1000   # don't change it unless carefully tested. A transaction with 1000 batched updates took 1.5 seconds
 NULL = None
 icon_dir = None
-SHOW_ALL_EXECUTE = False
+SHOW_ALL_EXECUTE = True
 costs = []
 cost_reads = []
 

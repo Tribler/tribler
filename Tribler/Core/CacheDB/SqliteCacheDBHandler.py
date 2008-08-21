@@ -572,7 +572,8 @@ class SuperPeerDBHandler(BasicDBHandler):
             if not isinstance(superpeer, dict) or 'permid' not in superpeer:
                 continue
             permid = superpeer.pop('permid')
-            self.peer_db_handler.addPeer(permid, superpeer)
+            self.peer_db_handler.addPeer(permid, superpeer, commit=False)
+        self.peer_db_handler.commit()
     
     def getSuperPeers(self):
         # return list with permids of superpeers
@@ -1943,7 +1944,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
     def addPeersBatch(self,permids):
         """ Add unknown permids as batch -> single transaction """
-        if DEBUG:
+        if not DEBUG:
             print >> sys.stderr, "bartercastdb: addPeersBatch: n=",len(permids)
         
         for permid in permids:
@@ -1971,8 +1972,9 @@ class BarterCastDBHandler(BasicDBHandler):
         peer_id1 = itemdict['peer_id_from']
         peer_id2 = itemdict['peer_id_to']
 
-        if key in itemdict.keys():
+        if 'uploaded' in itemdict.keys() and 'downloaded' in itemdict.keys():
             
+            print >>sys.stderr,"bartercastdb: UPDATE EXISTING"
             where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
             item = {'uploaded': ul, 'downloaded':dl}
             self._db.update(self.table_name, where = where, commit=commit, **item)            

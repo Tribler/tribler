@@ -85,9 +85,10 @@ class TestBuddyCastDataHandler(unittest.TestCase):
     def setUp(self):
         db_path = TRIBLER_DB_PATH
         db = SQLiteCacheDB.getInstance()
-        db.initDB(db_path, lib=LIB, autocommit=AUTOCOMMIT, busytimeout=BUSYTIMEOUT)
+        db.initDB(db_path, busytimeout=BUSYTIMEOUT)
         launchmany = FakeLaunchmany(db)
-        self.datahandler = DataHandler(launchmany)
+        overlay_bridge = FakeOverlayBridge()
+        self.datahandler = DataHandler(launchmany,overlay_bridge)
                 
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
