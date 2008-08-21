@@ -220,6 +220,8 @@ class SQLiteCacheDB:
         @busytimeout       Set the maximum time, in milliseconds, that SQLite will wait if the database is locked. 
         """
 
+        #print >>sys.stderr,"sqlcachedb: openDB",dbfile_path
+
         # already opened a db in this thread, reuse it
         thread_name = threading.currentThread().getName()
         if thread_name in SQLiteCacheDB.cursor_table:

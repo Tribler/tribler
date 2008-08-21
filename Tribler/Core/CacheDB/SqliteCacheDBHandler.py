@@ -1680,7 +1680,7 @@ class BarterCastDBHandler(BasicDBHandler):
         self.peer_db = PeerDBHandler.getInstance()
         #        self.my_permid = "" 
         if DEBUG:
-            print >> sys.stderr, "BARTERCAST: MyPermid is ", self.my_permid
+            print >> sys.stderr, "bartercastdb: MyPermid is ", self.my_permid
             
     def registerSession(self, session):
         self.session = session
@@ -1770,7 +1770,7 @@ class BarterCastDBHandler(BasicDBHandler):
     def getTopNPeers(self, n, local_only = False):
         
         if DEBUG:
-            print >> sys.stderr, "BARTERCAST: Called getTopNPeers, local = ", local_only
+            print >> sys.stderr, "bartercastdb: getTopNPeers: local = ", local_only
         
         n = max(1, n)
         itemlist = self.getItemList()
@@ -1797,7 +1797,7 @@ class BarterCastDBHandler(BasicDBHandler):
                     down = item['downloaded'] *1024
 
                     if DEBUG:
-                        print >> sys.stderr, "BARTERCAST DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_from), self.getName(permid_to), up, down)
+                        print >> sys.stderr, "bartercastdb: getTopNPeers: DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_from), self.getName(permid_to), up, down)
 
                     processed.append((permid_from, permid_to))
 
@@ -1826,7 +1826,7 @@ class BarterCastDBHandler(BasicDBHandler):
             down = total_down[peer]
 
             if DEBUG:
-                print >> sys.stderr, "BarterCast: total of %s: up = %d down = %d" % (self.getName(peer), up, down)
+                print >> sys.stderr, "bartercastdb: getTopNPeers: total of %s: up = %d down = %d" % (self.getName(peer), up, down)
 
             # we know rank on total upload?
             value = up
@@ -1883,7 +1883,6 @@ class BarterCastDBHandler(BasicDBHandler):
         if peer_id1 is None:
             self._db.insertPeer(permid_from)
             peer_id1 = self.getPeerID(permid_from)
-
         if peer_id2 is None:
             self._db.insertPeer(permid_to)
             peer_id2 = self.getPeerID(permid_to)
@@ -1896,7 +1895,7 @@ class BarterCastDBHandler(BasicDBHandler):
     def updateItem(self, (permid_from, permid_to), key, value, commit=True):
         
         if DEBUG:
-            print >> sys.stderr, "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+            print >> sys.stderr, "bartercastdb: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
 
         itemdict = self.getItem((permid_from, permid_to))
 
@@ -1917,7 +1916,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
     def incrementItem(self, (permid_from, permid_to), key, value, commit=True):
         if DEBUG:
-            print >> sys.stderr, "BarterCast: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+            print >> sys.stderr, "bartercastdb: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
 
         itemdict = self.getItem((permid_from, permid_to))
 
@@ -1941,6 +1940,42 @@ class BarterCastDBHandler(BasicDBHandler):
             return new_value
 
         return None
+
+    def addPeersBatch(self,permids):
+        """ Add unknown permids as batch -> single transaction """
+        if DEBUG:
+            print >> sys.stderr, "bartercastdb: addPeersBatch: n=",len(permids)
+        
+        for permid in permids:
+            peer_id = self.getPeerID(permid)
+            # check if they already exist in database; if not: add
+            if peer_id is None:
+                self._db.insertPeer(permid,commit=False)
+        self._db.commit()
+
+    def updateULDL(self, (permid_from, permid_to), ul, dl, commit=True):
+        """ Add ul/dl record to database as a single write """
+        
+        if DEBUG:
+            print >> sys.stderr, "bartercastdb: updateULDL (%s, %s) ['ul'] += %s ['dl'] += %s" % (self.getName(permid_from), self.getName(permid_to), str(ul), str(dl))
+
+        itemdict = self.getItem((permid_from, permid_to))
+
+        # if item doesn't exist: add it
+        if itemdict == None:
+            itemdict =  {'uploaded':ul, 'downloaded': dl, 'last_seen': int(time())}
+            self.addItem((permid_from, permid_to), itemdict, commit=commit)
+            return
+
+        # get peer ids
+        peer_id1 = itemdict['peer_id_from']
+        peer_id2 = itemdict['peer_id_to']
+
+        if key in itemdict.keys():
+            
+            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
+            item = {'uploaded': ul, 'downloaded':dl}
+            self._db.update(self.table_name, where = where, commit=commit, **item)            
             
 
 class GUIDBHandler:

@@ -115,6 +115,15 @@ class TestBarterCast(TestAsServer):
         
         bartercast_data = {'data': data}
 
+        ###
+        for id in range(0,10):
+            permid = 'permid'+str(id)
+            data_to = 100
+            data_from = 200
+            data[permid] = {'u': data_to, 'd': data_from}
+        bartercast_data = {'data': data}
+        ###
+
         print "Bartercast_data: ", bartercast_data
         
         return self.create_payload(bartercast_data)

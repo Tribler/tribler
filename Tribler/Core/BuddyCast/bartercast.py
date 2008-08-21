@@ -1,5 +1,6 @@
 # Written by Michel Meulpolder
 # see LICENSE.txt for license information
+import sys
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Statistics.Logger import OverlayLogger
@@ -139,7 +140,11 @@ class BarterCastCore:
        
         data = bartercast_data['data']
 
+        st = time()
         self.handleBarterCastMsg(sender_permid, data)
+        et = time()
+        diff = et - st
+        print >>sys.stderr,"bartercast: HANDLE took %.4f" % diff
        
         if not self.isBlocked(sender_permid, self.send_block_list):
             self.replyBarterCast(sender_permid, selversion)    
@@ -174,12 +179,20 @@ class BarterCastCore:
        
     ################################
     def handleBarterCastMsg(self, sender_permid, data):
-        
+        """ process bartercast data in database """
         if DEBUG:
             print >> sys.stderr, "bartercast: Processing bartercast msg from: ", self.bartercastdb.getName(sender_permid)
         
-        # process bartercast data in database
-        for permid in data.keys():
+        
+        permids = data.keys()
+        
+        # 1. Add any unknown peers to the database in a single transaction
+        self.bartercastdb.addPeersBatch(permids)
+        
+        # 2. Add all the received records to the database in a single transaction
+        datalen = len(permids)
+        for i in range(0,datalen):
+            permid = permids[i]
             
             data_to = data[permid]['u']
             data_from = data[permid]['d']
@@ -189,19 +202,22 @@ class BarterCastCore:
                                                                         data_to, data_from)
 
             # update database sender->permid and permid->sender
-            self.bartercastdb.updateItem((sender_permid, permid), 'uploaded', data_to, commit=False)
-            self.bartercastdb.updateItem((sender_permid, permid), 'downloaded', data_from, commit=True)
+            commit = (i == datalen-1)
+            self.bartercastdb.updateULDL((sender_permid, permid), data_to, data_from, commit=commit)
             
         # ARNODB: 
-        # 1. change this such that the commit is done on the last write, not 
-        # every iteration.
-        # 2. get rid of index on DB? See where used
+        # get rid of index on DB? See where used
+
 
     ################################
     def replyBarterCast(self, target_permid, selversion):
         """ Reply a bartercast message """
 
+        st = time()
         self.createAndSendBarterCastMessage(target_permid, selversion)
+        et = time()
+        diff = et - st
+        print >>sys.stderr,"bartercast: CREATE took %.4f" % diff
 
 
 

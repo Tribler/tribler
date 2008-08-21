@@ -67,7 +67,7 @@ def suite():
         ##test_friend,   # TEMPARNO: need to fix MyDB ref
         #test_sqlitecachedbhandler,
         #test_superpeers, 
-        test_buddycast,  # currently not working due to unfinished test functions
+        #test_buddycast,  # currently not working due to unfinished test functions
         ##test_buddycast2_datahandler, # complains about addRemoteSearchPeer 
         #test_sim, # currently not working due to unfinished test functions
         #test_merkle,
@@ -80,7 +80,7 @@ def suite():
         #test_gui_server,
         #test_remote_query,
         #test_ut_pex,
-        #test_bartercast,
+        test_bartercast,
         #test_g2g
         ]
 

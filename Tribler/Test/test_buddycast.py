@@ -28,7 +28,7 @@ elif os.path.exists('clean.bat'):
 sys.path.insert(1, os.path.abspath(BASE_DIR))
     
     
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, sqlite, bin2str, str2bin
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
 from Tribler.Core.BuddyCast.buddycast import DataHandler
 
