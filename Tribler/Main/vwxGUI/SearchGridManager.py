@@ -399,9 +399,12 @@ class TorrentSearchGridManager:
         self.normalizeResults()
         self.statisticalNormalization()
         #Rameez: now sort combined (i.e after the above two normalization procedures)
+
+        #print >> sys.stderr, 'SearchGridMan: Search res: %s' % [a.get('normScore',0) for a in self.hits]
         def cmp(a,b):
             # normScores can be small, so multiply
-            return int(100000.0 * (b.get('normScore',0) - a.get('normScore',0)))
+            # No normscore gives negative 1000, because should be less than 0 (mean)
+            return int(1000000.0 * (b.get('normScore',-1000) - a.get('normScore',-1000)))
         self.hits.sort(cmp)
         
         
@@ -410,6 +413,7 @@ class TorrentSearchGridManager:
     def normalizeResults(self):
         torrent_total = 0
         youtube_total = 0
+        KEY_NORMSCORE = 'normScore'
         
         #Rameez: normalize torrent results
         #Rameez: normalize youtube results
@@ -418,25 +422,38 @@ class TorrentSearchGridManager:
                 torrent_total += hit.get('num_seeders',0)
             elif hit['views'] != 'unknown':
                 youtube_total += int(hit['views'])
-    
+
+        if torrent_total == 0: # if zero, set to one for divZeroExc. we can do this, cause nominator will also be zero in following division
+            torrent_total = 1 
+        if youtube_total == 0:
+            youtube_total = 1
+            
         for hit in self.hits:
             if not hit.has_key('views'):
-                hit['normScore'] = hit.get('num_seeders',0)/float(torrent_total)
+                hit[KEY_NORMSCORE] = hit.get('num_seeders',0)/float(torrent_total)
             elif hit['views'] != 'unknown':
-                hit['normScore'] = int(hit['views'])/float(youtube_total)
+                hit[KEY_NORMSCORE] = int(hit['views'])/float(youtube_total)
 
     
         
     
     def statisticalNormalization(self):
+        youtube_hits = [hit for hit in self.hits if (hit.get('views', 'unknown') != "unknown"
+                                                     and hit.has_key('normScore'))]
+        torrent_hits = [hit for hit in self.hits if (not hit.has_key('views')
+                                                     and hit.has_key('normScore'))]
+        self.doStatNormalization(youtube_hits)
+        self.doStatNormalization(torrent_hits)
+
+    def doStatNormalization(self, hits):
+        #Rameez: statistically normalize torrent results
+        
         count = 0
         tot = 0
-        #Rameez: statistically normalize torrent results
-        for i in range(len(self.hits)):
-            if not self.hits[i].has_key('views'):
-                if self.hits[i].has_key('normScore'):
-                    tot += self.hits[i]['normScore']
-                    count +=1
+
+        for hit in hits:
+            tot += hit['normScore']
+            count +=1
         
         if count > 0:
             mean = tot/count
@@ -444,12 +461,10 @@ class TorrentSearchGridManager:
             mean = 0
         
         sum = 0
-        for i in range(len(self.hits)):
-            if not self.hits[i].has_key('views'):
-                if self.hits[i].has_key('normScore'):
-                    temp = self.hits[i]['normScore'] - mean
-                    temp = temp * temp
-                    sum += temp
+        for hit in hits:
+            temp = hit['normScore'] - mean
+            temp = temp * temp
+            sum += temp
         
         if count > 1:
             dev = sum /(count-1)
@@ -458,49 +473,11 @@ class TorrentSearchGridManager:
         
         stdDev = sqrt(dev)
         
-        for i in range(len(self.hits)):
-            if not self.hits[i].has_key('views'):
-                if self.hits[i].has_key('normScore'):
-                    if stdDev > 0:
-                        self.hits[i]['normScore'] = (self.hits[i]['normScore']-mean)/ stdDev
+        for hit in hits:
+            if stdDev > 0:
+                hit['normScore'] = (hit['normScore']-mean)/ stdDev
         
         
-        
-        uCount = 0
-        uTot = 0        
-        #Rameez: statistically normalize youtube results
-        for i in range(len(self.hits)):
-            if self.hits[i].has_key('views') and self.hits[i].get('views') != "unknown":
-                uTot += self.hits[i]['normScore'] 
-                uCount += 1
-        
-        if uCount > 0:
-            uMean = uTot/uCount
-        else:
-            uMean = 0
-        
-        uSum = 0
-        
-        
-        for i in range(len(self.hits)):
-            if self.hits[i].has_key('views') and self.hits[i].get('views') != "unknown":
-                temp = self.hits[i]['normScore'] - uMean
-                temp = temp * temp
-                uSum += temp
-        
-        
-        if uCount > 1:
-            uDev = uSum /(uCount-1)
-        else:
-            uDev = 0
-        
-        ustdDev = sqrt(uDev)
-
-        for i in range(len(self.hits)):
-            if self.hits[i].has_key('views') and self.hits[i].get('views') != "unknown":
-                if ustdDev > 0:
-                    self.hits[i]['normScore'] = (self.hits[i]['normScore'] - uMean)/ustdDev
-
 
 
 class PeerSearchGridManager:

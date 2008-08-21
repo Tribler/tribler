@@ -100,7 +100,9 @@ class standardOverview(wx.Panel):
             self.hSizer.Detach(self.oldpanel)
             self.oldpanel.Hide()
             #self.oldpanel.Disable()
-        
+
+        assert len(self.hSizer.GetChildren()) == 0, 'Error: standardOverview self.hSizer has old-panel and gets new panel added (2 panel bug). Old panels are: %s' % self.hSizer.GetChildren()
+            
         self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)
         
         self.hSizer.Layout()

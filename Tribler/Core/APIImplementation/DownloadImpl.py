@@ -114,7 +114,11 @@ class DownloadImpl:
     
             if DEBUG:
                 print >>sys.stderr,"DownloadImpl: setup: initialdlstatus",`self.tdef.get_name_as_unicode()`,initialdlstatus
-    
+
+            # Set progress
+            if pstate is not None and pstate.has_key('dlstate'):
+                self.progressbeforestop = pstate['dlstate'].get('progress', 0.0)
+            
             # Note: initialdlstatus now only works for STOPPED
             if initialdlstatus != DLSTATUS_STOPPED:
                 if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED: 
@@ -246,9 +250,8 @@ class DownloadImpl:
         self.dllock.acquire()
         try:
             if self.sd is None:
-                
-                print >>sys.stderr,"DownloadImpl: network_get_state: no SingleDownload"
-                
+                if DEBUG:
+                    print >>sys.stderr,"DownloadImpl: network_get_state: no SingleDownload"
                 ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
                 
