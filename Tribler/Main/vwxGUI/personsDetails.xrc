@@ -368,6 +368,7 @@
                 <pos>6,103</pos>
                 <size>284,85</size>
                 <fg>#     0</fg>
+                <style>wxLC_REPORT|wxNO_BORDER|wxLC_NO_HEADER|wxLC_SINGLE_SEL</style>
               </object>
             </object>
             <object class="sizeritem">
@@ -403,6 +404,7 @@
                 <pos>6,215</pos>
                 <size>284,160</size>
                 <fg>#     0</fg>
+                <style>wxLC_REPORT|wxNO_BORDER|wxLC_NO_HEADER|wxLC_SINGLE_SEL</style>
               </object>
             </object>
           </object>

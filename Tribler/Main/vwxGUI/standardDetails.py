@@ -214,17 +214,43 @@ class standardDetails(wx.Panel):
                     print_exc()
         
     def setListAspect2OneColumn(self, list_name):
-        ofList = self.getGuiObj(list_name)
-        ofList.ClearAll()
-        if sys.platform == 'win32':
-            ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
-        else:
-            ofList.SetSingleStyle(wx.NO_BORDER)
-            ofList.SetSingleStyle(wx.LC_REPORT)
-            ofList.SetSingleStyle(wx.LC_NO_HEADER)
-            ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
-        ofList.InsertColumn(0, "Torrent") #essential code
-#        ofList.SetColumnWidth(0,wx.LIST_AUTOSIZE)
+        try:
+            ofList = self.getGuiObj(list_name)
+            ofList.ClearAll()
+            if False: # sys.platform == 'win32':
+                ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
+            else:
+                #ofList.SetSingleStyle(wx.LC_REPORT)
+                ofList.SetSingleStyle(wx.LC_NO_HEADER)
+                ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
+                ofList.SetSingleStyle(wx.NO_BORDER)
+            ofList.InsertColumn(0, "Torrent") #essential code
+    #        ofList.SetColumnWidth(0,wx.LIST_AUTOSIZE)
+        except:
+            # Arno, 2008-08-21: wxPython 2.8.8.1 doesn't like LC_REPORT anymore,
+            # for unknown reasons. Our hack around is this exception handler,
+            # and we MANUALLY added the style parameters to the .xrc files.
+            """
+            Traceback (most recent call last):
+              File "C:\Python252\Lib\site-packages\wx-2.8-msw-unicode\wx\_core.py", line 14555, in <lambda>
+                lambda event: event.callable(*event.args, **event.kw) )
+              File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 131, in _PostInit
+                self.guiUtility.initStandardDetails(self)
+              File "C:\build\mainbranch\Tribler\Main\vwxGUI\GuiUtility.py", line 294, in initStandardDetails
+                self.standardDetails.setMode('filesMode', firstItem)        
+              File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 155, in setMode
+                self.refreshMode()
+              File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 171, in refreshMode
+                self.currentPanel = self.loadPanel()
+              File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 269, in loadPanel
+                self.setListAspect2OneColumn("peopleWhoField")
+              File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 220, in setListAspect2OneColumn
+                ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
+              File "C:\Python252\Lib\site-packages\wx-2.8-msw-unicode\wx\_core.py", line 9140, in SetWindowStyleFlag
+                return _core_.Window_SetWindowStyleFlag(*args, **kwargs)
+            wx._core.PyAssertionError: C++ assertion "nModes == 1" failed at ..\..\src\msw\listctrl.cpp(380) in wxListCtrl::MSWGetStyle(): wxListCtrl style should have exactly one mode bit set            
+            """
+            print_exc()
         
     def loadPanel(self):
         currentPanel = self.data[self.mode].get('panel',None)

@@ -144,6 +144,7 @@
               <object class="wxListCtrl" name="subscrTodayField" subclass="Tribler.Main.vwxGUI.tribler_List.DLFilesList">
                 <pos>6,59</pos>
                 <size>20,155</size>
+                <style>wxLC_REPORT|wxNO_BORDER|wxLC_NO_HEADER|wxLC_SINGLE_SEL</style>
               </object>
             </object>
             <object class="sizeritem">
@@ -179,6 +180,7 @@
               <object class="wxListCtrl" name="subscrYesterdayField" subclass="Tribler.Main.vwxGUI.tribler_List.DLFilesList">
                 <pos>6,238</pos>
                 <size>20,160</size>
+                <style>wxLC_REPORT|wxNO_BORDER|wxLC_NO_HEADER|wxLC_SINGLE_SEL</style>
               </object>
             </object>
           </object>

@@ -386,6 +386,7 @@
               <object class="wxListCtrl" name="peopleWhoField" subclass="Tribler.Main.vwxGUI.tribler_List.DLFilesList">
                 <pos>6,182</pos>
                 <size>284,125</size>
+                <style>wxLC_REPORT|wxNO_BORDER|wxLC_NO_HEADER|wxLC_SINGLE_SEL</style>
               </object>
             </object>
             <object class="sizeritem">
@@ -420,6 +421,7 @@
               <object class="wxListCtrl" name="simTitlesField" subclass="Tribler.Main.vwxGUI.tribler_List.DLFilesList">
                 <pos>3,325</pos>
                 <size>284,125</size>
+                <style>wxLC_REPORT|wxNO_BORDER|wxLC_NO_HEADER|wxLC_SINGLE_SEL</style>
               </object>
             </object>
           </object>
