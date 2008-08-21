@@ -1883,8 +1883,6 @@ class BarterCastDBHandler(BasicDBHandler):
         peer_id2 = itemdict['peer_id_to']
 
         if 'uploaded' in itemdict.keys() and 'downloaded' in itemdict.keys():
-            
-            print >>sys.stderr,"bartercastdb: UPDATE EXISTING"
             where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
             item = {'uploaded': ul, 'downloaded':dl}
             self._db.update(self.table_name, where = where, commit=commit, **item)            
