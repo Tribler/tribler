@@ -17,6 +17,7 @@ from Tribler.Core.defaults import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
 from Tribler.Core.APIImplementation.miscutils import *
+from Tribler.Core.LiveSourceAuthConfig import LiveSourceAuthConfig
 
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.osutils import *

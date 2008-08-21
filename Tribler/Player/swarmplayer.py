@@ -161,6 +161,10 @@ class PlayerApp(wx.App):
                     self.videoplayer.play_file(self.params[0])
                     return True
             
+            if False: # just play video file
+                self.videoplay.play_from_file(self.params[0])
+                return True
+            
             # Read config
             state_dir = Session.get_default_state_dir('.SwarmPlayer')
             

@@ -199,22 +199,18 @@ class TorrentDef(Serializable,Copyable):
     def create_live(self,name,bitrate,playtime="1:00:00",authconfig=None):
         """ Create a live streaming multimedia torrent with a specific bitrate.
         
-        The authconfig is a dictionary with the key information required to
-        allow authentication of packets from the source. At the moment it
-        has one required field "authmethod" with a two allowed values:
-        <pre>
-        LIVE_AUTHMETHOD_NONE   No source authentication.
-        LIVE_AUTHMETHOD_ECDSA  A ECDSA signature of 64 bytes is put in each piece.
-        As a result, the content in each packet is get_piece_length()-64, so
-        that this into account when selecting the bitrate.
-        </pre>
-        When the authmethod field has value LIVE_AUTHMETHOD_ECDSA there must 
-        also be a "keypair" field containing an Elliptic Curve keypair 
-        (M2Crypto.EC) object.
+        The authconfig is a subclass LiveSourceAuthConfig with the key 
+        information required to allow authentication of packets from the source,
+        or None. In the latter case there is no source authentication. The other
+        current legal value is an instance of ECDSALiveSourceAuthConfig. When
+        using this method, a sequence number, real-time timestamp and an ECDSA
+        signature of 64 bytesis put in each piece. As a result, the content in
+        each packet is get_piece_length()-81, so that this into account when
+        selecting the bitrate.
         
-        The authconfig info is stored in the 'info' part of the torrent file
-        when finalized, so changing the authentication info changes the
-        identity (infohash) of the torrent.
+        The info from the authconfig is stored in the 'info' part of the 
+        torrent file when finalized, so changing the authentication info changes
+        the identity (infohash) of the torrent.
          
         @param name The name of the stream.
         @param bitrate The desired bitrate in bytes per second.

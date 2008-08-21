@@ -1,9 +1,8 @@
 import sys
 import time
-from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from traceback import print_exc
+
+from Tribler.Core.API import *
 
 DEBUG = True
 
@@ -33,6 +32,20 @@ def vod_event_callback(d,event,params):
             time.sleep( waittime )
 
 
+def state_callback(ds):
+    try:
+        d = ds.get_download()
+	p = "%.0f %%" % (100.0*ds.get_progress())
+	dl = "dl %.0f" % (ds.get_current_speed(DOWNLOAD))
+	ul = "ul %.0f" % (ds.get_current_speed(UPLOAD))
+        print >>sys.stderr,dlstatus_strings[ds.get_status() ],p,dl,ul,"====="
+    except:
+        print_exc()
+
+    return (1.0,False)
+
+
+
 scfg = SessionStartupConfig()
 scfg.set_overlay( False )
 
@@ -40,8 +53,11 @@ s = Session( scfg )
 tdef = TorrentDef.load('ParadisoCam.mpegts.tstream')
 dscfg = DownloadStartupConfig()
 dscfg.set_video_event_callback( vod_event_callback )
+dscfg.set_max_uploads(16)
 
 d = s.start_download( tdef, dscfg )
+
+d.set_state_callback(state_callback,getpeerlist=False)
 
 while True:
   time.sleep(60)
