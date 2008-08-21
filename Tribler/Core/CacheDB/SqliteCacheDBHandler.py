@@ -1703,6 +1703,11 @@ class BarterCastDBHandler(BasicDBHandler):
         else:
             return name
 
+    def getNameByID(self, peer_id):
+        permid = self.getPermid(peer_id)
+        return self.getName(permid)
+
+
     def getPermid(self, peer_id):
 
         # by convention '-1' is the id of non-tribler peers
@@ -1733,10 +1738,14 @@ class BarterCastDBHandler(BasicDBHandler):
         if peer_id2 is None:
             self._db.insertPeer(permid_to)
             peer_id2 = self.getPeerID(permid_to)
-                
-        if peer_id1 is not None and peer_id2 is not None:
             
-            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
+        return self.getItemByIDs((peer_id1,peer_id2),default=default)
+
+
+    def getItemByIDs(self, (peer_id_from, peer_id_to), default=False):
+        if peer_id_from is not None and peer_id_to is not None:
+            
+            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id_from, peer_id_to)
             item = self.getOne(('downloaded', 'uploaded', 'last_seen'), where=where)
         
             if item is None:
@@ -1749,14 +1758,13 @@ class BarterCastDBHandler(BasicDBHandler):
             itemdict['downloaded'] = item[0]
             itemdict['uploaded'] = item[1]
             itemdict['last_seen'] = item[2]
-            itemdict['peer_id_from'] = peer_id1
-            itemdict['peer_id_to'] = peer_id2
+            itemdict['peer_id_from'] = peer_id_from
+            itemdict['peer_id_to'] = peer_id_to
 
             return itemdict
 
         else:
             return None
-
 
 
     def getItemList(self):    # get the list of all peers' permid
@@ -1767,104 +1775,6 @@ class BarterCastDBHandler(BasicDBHandler):
         keys = map(lambda (id_from, id_to): (self.getPermid(id_from), self.getPermid(id_to)), keys)
         return keys
 
-    # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
-    def getTopNPeers(self, n, local_only = False):
-        
-        if DEBUG:
-            print >> sys.stderr, "bartercastdb: getTopNPeers: local = ", local_only
-        
-        n = max(1, n)
-        itemlist = self.getItemList()
-        
-        
-        if local_only:
-            # get only items of my local dealings
-            itemlist = filter(lambda (permid_from, permid_to): permid_to == self.my_permid or permid_from == self.my_permid, itemlist)
-
-        total_up = {}
-        total_down = {}
-
-        processed = []
-
-        for (permid_from, permid_to) in itemlist:
-            
-            if not (permid_to, permid_from) in processed:
-
-                item = self.getItem((permid_from, permid_to))
-                
-                if item is not None:
-
-                    up = item['uploaded'] *1024 # make into bytes
-                    down = item['downloaded'] *1024
-
-                    if DEBUG:
-                        print >> sys.stderr, "bartercastdb: getTopNPeers: DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_from), self.getName(permid_to), up, down)
-
-                    processed.append((permid_from, permid_to))
-
-                    # fix for multiple my_permids
-                    if permid_from == 'non-tribler':
-                        permid_to = self.my_permid
-                    if permid_to == 'non-tribler':
-                        permid_from = self.my_permid
-
-                    # process permid_from
-                    total_up[permid_from] = total_up.get(permid_from, 0) + up
-                    total_down[permid_from] = total_down.get(permid_from, 0) + down
-
-                    # process permid_to
-                    total_up[permid_to] = total_up.get(permid_to, 0) + down
-                    total_down[permid_to] = total_down.get(permid_to, 0) +  up
-
-                    
-        # create top N peers
-        top = []
-        min = 0
-
-        for peer in total_up.keys():
-
-            up = total_up[peer]
-            down = total_down[peer]
-
-            if DEBUG:
-                print >> sys.stderr, "bartercastdb: getTopNPeers: total of %s: up = %d down = %d" % (self.getName(peer), up, down)
-
-            # we know rank on total upload?
-            value = up
-
-            # check if peer belongs to current top N
-            if peer != 'non-tribler' and peer != self.my_permid and (len(top) < n or value > min):
-
-                top.append((peer, up, down))
-
-                # sort based on value
-                top.sort(cmp = lambda (p1, u1, d1), (p2, u2, d2): cmp(u2, u1))
-
-                # if list contains more than N elements: remove the last (=lowest value)
-                if len(top) > n:
-                    del top[-1]
-
-                # determine new minimum of values    
-                min = top[-1][1]
-
-
-
-        result = {}
-
-        result['top'] = top
-
-        # My total up and download, including interaction with non-tribler peers
-        result['total_up'] = total_up.get(self.my_permid, 0)
-        result['total_down'] = total_down.get(self.my_permid, 0)
-
-        # My up and download with tribler peers only
-        result['tribler_up'] = result['total_up'] - total_down.get('non-tribler', 0)
-        result['tribler_down'] = result['total_down'] - total_up.get('non-tribler', 0)
-
-        if DEBUG:
-            print >> sys.stderr, result
-
-        return result
 
     def addItem(self, (permid_from, permid_to), item, commit=True):
 
@@ -1978,6 +1888,121 @@ class BarterCastDBHandler(BasicDBHandler):
             where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
             item = {'uploaded': ul, 'downloaded':dl}
             self._db.update(self.table_name, where = where, commit=commit, **item)            
+
+
+
+    def getPeerIDPairs(self):    # get the list of all peers' permid
+        
+        keys = self.getAll(('peer_id_from','peer_id_to'))
+        return keys
+
+    # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
+    def getTopNPeers(self, n, local_only = False):
+        """ getTopNPeers that uses peer_ids in calculation
+        @return a dict containing a 'top' key with a list of (permid,up,down) 
+        tuples, a 'total_up', 'total_down', 'tribler_up', 'tribler_down' field. 
+        Sizes are in kilobytes.
+        """
+        if DEBUG:
+            print >> sys.stderr, "bartercastdb: getTopNPeers: local = ", local_only
+        
+        n = max(1, n)
+        keys = self.getPeerIDPairs()
+        
+        my_peer_id = self.getPeerID(self.my_permid)
+        if local_only:
+            # get only items of my local dealings
+            keys = filter(lambda (peer_id_from, peer_id_to): peer_id_to == my_peer_id or peer_id_from == my_peer_id, keys)
+
+        total_up = {}
+        total_down = {}
+
+        processed = []
+
+        for (peer_id_from, peer_id_to) in keys:
+            
+            if not (peer_id_to, peer_id_from) in processed:
+
+                item = self.getItemByIDs((peer_id_from, peer_id_to))
+                
+                if item is not None:
+
+                    up = item['uploaded'] *1024 # make into bytes
+                    down = item['downloaded'] *1024
+
+                    if DEBUG:
+                        print >> sys.stderr, "bartercastdb: NUgetTopNPeers: DB entry: (%s, %s) up = %d down = %d" % (self.getNameByID(peer_id_from), self.getNameByID(peer_id_to), up, down)
+
+                    processed.append((peer_id_from, peer_id_to))
+
+                    # fix for multiple my_permids
+                    if peer_id_from == -1: # 'non-tribler':
+                        peer_id_to = my_peer_id
+                    if peer_id_to == -1: # 'non-tribler':
+                        peer_id_from = my_peer_id
+
+                    # process peer_id_from
+                    total_up[peer_id_from] = total_up.get(peer_id_from, 0) + up
+                    total_down[peer_id_from] = total_down.get(peer_id_from, 0) + down
+
+                    # process peer_id_to
+                    total_up[peer_id_to] = total_up.get(peer_id_to, 0) + down
+                    total_down[peer_id_to] = total_down.get(peer_id_to, 0) +  up
+
+                    
+        # create top N peers
+        top = []
+        min = 0
+
+        for peer_id in total_up.keys():
+
+            up = total_up[peer_id]
+            down = total_down[peer_id]
+
+            if DEBUG:
+                print >> sys.stderr, "bartercastdb: NUgetTopNPeers: total of %s: up = %d down = %d" % (self.getName(peer_id), up, down)
+
+            # we know rank on total upload?
+            value = up
+
+            # check if peer belongs to current top N
+            if peer_id != -1 and peer_id != my_peer_id and (len(top) < n or value > min):
+
+                top.append((peer_id, up, down))
+
+                # sort based on value
+                top.sort(cmp = lambda (p1, u1, d1), (p2, u2, d2): cmp(u2, u1))
+
+                # if list contains more than N elements: remove the last (=lowest value)
+                if len(top) > n:
+                    del top[-1]
+
+                # determine new minimum of values    
+                min = top[-1][1]
+
+        # Now convert to permid
+        permidtop = []
+        for peer_id,up,down in top:
+            permid = self.getPermid(peer_id)
+            permidtop.append((permid,up,down))
+
+        result = {}
+
+        result['top'] = permidtop
+
+        # My total up and download, including interaction with non-tribler peers
+        result['total_up'] = total_up.get(my_peer_id, 0)
+        result['total_down'] = total_down.get(my_peer_id, 0)
+
+        # My up and download with tribler peers only
+        result['tribler_up'] = result['total_up'] - total_down.get(-1, 0) # -1 = 'non-tribler'
+        result['tribler_down'] = result['total_down'] - total_up.get(-1, 0) # -1 = 'non-tribler'
+
+        if DEBUG:
+            print >> sys.stderr, result
+
+        return result
+
             
 
 class GUIDBHandler:
