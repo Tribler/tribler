@@ -16,7 +16,8 @@ if os.path.exists(__file__):    #'test_sqlitecachedb.py'
 elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
     
-from Core.CacheDB.sqlitecachedb import SQLiteCacheDB, apsw, DEFAULT_BUSY_TIMEOUT
+import apsw
+from Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT
     
 def extract_db_files(file_dir, file_name):
     try:

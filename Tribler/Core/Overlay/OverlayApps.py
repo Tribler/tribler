@@ -174,6 +174,7 @@ class OverlayApps:
                 diff = et - st
                 if diff > 0:
                     print >> sys.stderr,"olapps: ",getMessageName(id),"TOOK %.5f" % diff
+                return ret
             except:
                 # Catch all
                 print_exc()

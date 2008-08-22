@@ -48,26 +48,23 @@ class TestSocialOverlap(TestAsServer):
         # Enable social networking
         self.config.set_social_networking(True)
 
+        # Give him a usericon to send
+        fn = self.make_filename('usericon-ok.jpg')
+        f = open(fn,"rb")
+        data = f.read()
+        f.close()
+        self.config.set_mugshot(data,'image/jpeg')
+
+
     def setUpPostSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPostSession(self)
-
-        self.wxs = wxServer()
-        self.wxs.start()
-        print "Sleeping to allow wxServer to start"
-        sleep(4)
-
-        self.mm = MugshotManager.getInstance()
-        self.mm.register(self.config.sessconfig)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
         self.hispermid = str(self.his_keypair.pub().get_der())        
         self.myhash = sha(self.mypermid).digest()
 
-        # Give him a usericon to send
-        self.mm.copy_file(self.hispermid,self.make_filename('usericon-ok.jpg'))
 
-        self.count = 48
 
     def tearDown(self):
         """ override TestAsServer """
@@ -129,7 +126,7 @@ class TestSocialOverlap(TestAsServer):
 
     def create_good_persinfo(self):
         pi = {}
-        pi['name'] = 'Beurre Alexander Lucas'
+        pi['name'] = u'esta\xe7\xe3o04' # 'Beurre Alexander Lucas'
         pi['icontype'] = 'image/jpeg'
         pi['icondata'] = self.read_usericon_ok()
         sig = None

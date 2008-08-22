@@ -10,8 +10,9 @@ from Tribler.Core.BitTornado.BT1.MessageID import *
 
 from Tribler.Core.CacheDB.MugshotManager import ICON_MAX_SIZE
 from Tribler.Core.Utilities.utilities import *
+from Tribler.Core.Utilities.unicode import str2unicode
 
-DEBUG = False
+DEBUG = True
 
 MIN_OVERLAP_WAIT = 12.0*3600.0 # half a day in seconds
 
@@ -257,10 +258,14 @@ def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo
             if len(persinfo.keys()) > 1:
                  print >>sys.stderr,"socnet: Got persinfo THUMB THUMB THUMB THUMB"
         
+        # Arno, 2008-08-22: to avoid UnicodeDecode errors when commiting 
+        # on sqlite
+        name = str2unicode(persinfo['name'])
+        
         if self.peer_db.hasPeer(permid):
-            self.peer_db.updatePeer(permid, name=persinfo['name'])
+            self.peer_db.updatePeer(permid, name=name)
         else:
-            self.peer_db.addPeer(permid,{'name':persinfo['name']})
+            self.peer_db.addPeer(permid,{'name':name})
     
         # b. Save icon
         if 'icontype' in persinfo and 'icondata' in persinfo: 
