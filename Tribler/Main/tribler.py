@@ -296,6 +296,12 @@ class ABCApp(wx.App):
                     print >>sys.stderr,"main: Moved dir with old collected torrents to", torrcolldir
             except:
                 print_exc()
+
+        # 22/08/08 boudewijn: when minport is set in the abc.conf file
+        # we need to set it in the session-config
+        if self.utility.config.Exists("minport"):
+            self.sconfig.set_listen_port(self.utility.config.Read("minport", type="int"))
+            self.utility.config.DeleteEntry("minport")
         
         s = Session(self.sconfig)
         self.utility.session = s
