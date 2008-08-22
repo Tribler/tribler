@@ -966,6 +966,8 @@ class Connecter:
                 connection.close()
                 return
             ext_id = message[1]
+            if DEBUG:
+                print >>sys.stderr,"connecter: Got EXTEND message, id",ord(ext_id)
             if ext_id == EXTEND_MSG_HANDSHAKE_ID: # Handshake:
                 d = bdecode(message[2:])
                 if type(d) == DictType:
@@ -979,7 +981,7 @@ class Connecter:
                 ext_msg_name = self.our_extend_msg_id_to_name(ext_id)
                 if ext_msg_name is None:
                     if DEBUG:
-                        print >>sys.stderr,"Close on bad EXTEND: peer sent ID it didn't define in handshake"
+                        print >>sys.stderr,"Close on bad EXTEND: peer sent ID we didn't define in handshake"
                     connection.close()
                     return
                 elif ext_msg_name == EXTEND_MSG_OVERLAYSWARM:
@@ -1054,7 +1056,7 @@ def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
         # Save exchanged KBs in BarterCastDB
         changed = False
         if permid is not None:
-            name = bartercastdb.getName(permid)
+            #name = bartercastdb.getName(permid)
             
             if down_kb > 0:
                 new_value = bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb, commit=False)

@@ -77,6 +77,9 @@ def init():
             print "remove journal file"
     db = SQLiteCacheDB.getInstance()
     db.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
+    
+    print >>sys.stderr,"OPENING DB",TRIBLER_DB_PATH
+    
     #db.execute_write('drop index Torrent_relevance_idx')
     TorrentDBHandler.getInstance().registerCategory(Category.getInstance(os.path.join(BASE_DIR, '..')))
 
@@ -199,7 +202,7 @@ class TestBuddyCast(unittest.TestCase):
         self.remove_t_index()
         self.remove_p_index()
                 
-        from log_parser import get_buddycast_data
+        from Tribler.Test.log_parser import get_buddycast_data
         
         #start_time = time()
         #print >> sys.stderr, "buddycast: ******************* start local test"

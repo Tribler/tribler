@@ -71,10 +71,10 @@ class TestUTorrentPeerExchange(TestAsServer):
         s2 = BTConnection('localhost',self.hisport,mylistenport=4321,user_option_pattern='\x00\x00\x00\x00\x00\x10\x00\x00',user_infohash=self.infohash)
         s2.read_handshake_medium_rare()
         s2.send(msg2)
-        self.subtest_good_nontribler_ut_pex()
+        #self.subtest_good_nontribler_ut_pex()
         self.subtest_good_nontribler_ut_pex_diff_id()
-        self.subtest_good_tribler_ut_pex()
-        self.subtest_bad_ut_pex()
+        #self.subtest_good_tribler_ut_pex()
+        #self.subtest_bad_ut_pex()
 
     #
     # Good ut_pex message
@@ -116,7 +116,7 @@ class TestUTorrentPeerExchange(TestAsServer):
         s.read_handshake_medium_rare()
 
         # Send our ut_pex message to Tribler
-        msg = self.create_good_ut_pex(pex_id=pex_id)
+        msg = self.create_good_ut_pex()
         s.send(msg)
         
         time.sleep(5)
@@ -199,7 +199,7 @@ class TestUTorrentPeerExchange(TestAsServer):
         self.assert_(data[0] == chr(pex_id))
         d = bdecode(data[1:])
         
-        print >>sys.stderr,"test: d is",`d`
+        print >>sys.stderr,"test: d is",`d`,"pex_id",pex_id
         
         self.assert_(type(d) == DictType)
         self.assert_('added' in d.keys())

@@ -39,7 +39,6 @@ def suite():
     import test_sqlitecachedbhandler as test_sqlitecachedbhandler
     import test_superpeers as test_superpeers
     import test_buddycast as test_buddycast
-    ##import test_buddycast2_datahandler as test_buddycast2_datahandler
     import test_sim as test_sim
     import test_merkle as test_merkle
     import test_permid as test_permid
@@ -67,8 +66,7 @@ def suite():
         ##test_friend,   # TEMPARNO: need to fix MyDB ref
         #test_sqlitecachedbhandler,
         #test_superpeers, 
-        #test_buddycast,  # currently not working due to unfinished test functions
-        ##test_buddycast2_datahandler, # complains about addRemoteSearchPeer 
+        #test_buddycast,  # currently not working due to missing DataHandler functions
         #test_sim, # currently not working due to unfinished test functions
         #test_merkle,
         #test_permid,
@@ -76,12 +74,12 @@ def suite():
         #test_dialback_request,
         #test_extend_hs,
         #test_extend_hs_t350,
-        test_social_overlap,
+        #test_social_overlap,
         #test_gui_server,
         #test_remote_query,
         #test_ut_pex,
         #test_bartercast,
-        #test_g2g
+        test_g2g
         ]
 
     alltests = unittest.TestSuite()

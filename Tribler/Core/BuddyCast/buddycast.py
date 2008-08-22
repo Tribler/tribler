@@ -362,34 +362,31 @@ class BuddyCastFactory:
         
     def handleMessage(self, permid, selversion, message):
         
-        def _handleMessage():
-            if not self.registered or not self.running:
-                if DEBUG:
-                    print >> sys.stderr, "bc: handleMessage got message, but we're not enabled or running"
-                return False
-            
-            t = message[0]
-            
-            if t == BUDDYCAST:
-                return self.gotBuddyCastMessage(message[1:], permid, selversion)
-            elif t == KEEP_ALIVE:
-                if message[1:] == '':
-                    return self.gotKeepAliveMessage(permid)
-                else:
-                    return False
-                    
-            elif t == BARTERCAST:
-                if DEBUG:
-                    print >> sys.stderr, "bc: Received bartercast message"
-                if self.bartercast_core != None:
-                    return self.bartercast_core.gotBarterCastMessage(message[1:], permid, selversion)
-                
+        if not self.registered or not self.running:
+            if DEBUG:
+                print >> sys.stderr, "bc: handleMessage got message, but we're not enabled or running"
+            return False
+        
+        t = message[0]
+        
+        if t == BUDDYCAST:
+            return self.gotBuddyCastMessage(message[1:], permid, selversion)
+        elif t == KEEP_ALIVE:
+            if message[1:] == '':
+                return self.gotKeepAliveMessage(permid)
             else:
-                if DEBUG:
-                    print >> sys.stderr, "bc: wrong message to buddycast", ord(t), "Round", self.buddycast_core.round
                 return False
+                
+        elif t == BARTERCAST:
+            if DEBUG:
+                print >> sys.stderr, "bc: Received bartercast message"
+            if self.bartercast_core != None:
+                return self.bartercast_core.gotBarterCastMessage(message[1:], permid, selversion)
             
-        _handleMessage()
+        else:
+            if DEBUG:
+                print >> sys.stderr, "bc: wrong message to buddycast", ord(t), "Round", self.buddycast_core.round
+            return False
         
     def gotBuddyCastMessage(self, msg, permid, selversion):
         if self.registered and self.running:

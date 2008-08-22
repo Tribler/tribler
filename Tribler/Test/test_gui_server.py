@@ -22,7 +22,6 @@ class TestGUITaskQueue(unittest.TestCase):
     def test_simple(self):
         self.ntasks = 1
         
-        self.guiserver.register()
         self.guiserver.add_task(lambda:self.task(0),0)
 
     def test_more(self):
@@ -31,12 +30,10 @@ class TestGUITaskQueue(unittest.TestCase):
         for i in range(self.ntasks):
             # lambda functions are evil, this is not the same as lambda:task(i)
             self.guiserver.add_task(self.define_task(i),0)
-        self.guiserver.register()
 
     def test_delay(self):
         self.ntasks = 1
         
-        self.guiserver.register()
         self.guiserver.add_task(lambda:self.task(0),3)
         print "test: sleeping 5 secs so tasks gets executed"
         sleep(5)
@@ -44,7 +41,6 @@ class TestGUITaskQueue(unittest.TestCase):
     def test_delay2(self):
         self.ntasks = 2
         
-        self.guiserver.register()
         self.guiserver.add_task(lambda:self.task(1),3)
         self.guiserver.add_task(lambda:self.task(0),1)
         print "test: sleeping 5 secs so tasks gets executed"

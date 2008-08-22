@@ -45,19 +45,16 @@ class TestRemoteQuery(TestAsServer):
         
         # Add two torrents that will match our query and one that shouldn't
         torrent = self.get_default_torrent('Hallo S01E10')
-        ih = 'b' * 20
-        self.torrent_db.addTorrent(ih,torrent)
+        dbrec= self.torrent_db.addExternalTorrent('sumfilename1',metadata=torrent)
+        self.infohash1 = dbrec['infohash']
         
         torrent = self.get_default_torrent('Hallo S02E01')
-        ih = 'c' * 20
-        self.torrent_db.addTorrent(ih,torrent)
+        dbrec = self.torrent_db.addExternalTorrent('sumfilename2',metadata=torrent)
+        self.infohash2 = dbrec['infohash']
 
         torrent = self.get_default_torrent('Halo Demo')
-        ih = 'd' * 20
-        self.torrent_db.addTorrent(ih,torrent)
+        self.torrent_db.addExternalTorrent('sumfilename3',metadata=torrent)
         
-        # Arno: broken commit policy:
-        #self.torrent_db.commit()
 
     def tearDown(self):
         TestAsServer.tearDown(self)
@@ -65,18 +62,15 @@ class TestRemoteQuery(TestAsServer):
       
 
     def get_default_torrent(self,title):
-        torrent = {}
-        torrent['torrent_name'] = title
+        metadata = {}
+        metadata['announce'] = 'http://localhost:0/announce'
+        metadata['announce-list'] = []
+        metadata['creation date'] = int(time.time())
         info = {}
         info['name'] = title
-        info['creation date'] = int(time.time())
-        info['num_files'] = 0
-        info['length'] = 0
-        info['announce'] = 'http://localhost:0/announce'
-        info['announce-list'] = []
-        torrent['info'] = info
-        torrent['status'] = 'good'
-        return torrent
+        info['length'] = 481
+        metadata['info'] = info
+        return bencode(metadata)
 
     def test_all(self):
         """ 
@@ -142,8 +136,8 @@ class TestRemoteQuery(TestAsServer):
 
         k = d['a'].keys()
         self.assert_(len(k) == 2)
-        var1 = k[0] == ('b'*20) and k[1] == ('c'*20)
-        var2 = k[0] == ('c'*20) and k[1] == ('b'*20)
+        var1 = k[0] == (self.infohash1) and k[1] == (self.infohash2)
+        var2 = k[0] == (self.infohash2) and k[1] == (self.infohash1)
         self.assert_(var1 or var2)
 
     def check_adict(self,d):

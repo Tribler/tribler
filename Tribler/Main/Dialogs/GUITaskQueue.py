@@ -32,3 +32,6 @@ class GUITaskQueue(TimedTaskQueue):
         return GUITaskQueue.__single
     getInstance = staticmethod(getInstance)
 
+    def resetSingleton(self):
+        """ For testing purposes """
+        GUITaskQueue.__single = None 

@@ -5,7 +5,6 @@ import unittest
 import os
 import sys
 import time
-import wx
 from sha import sha
 from random import randint,shuffle
 from traceback import print_exc
