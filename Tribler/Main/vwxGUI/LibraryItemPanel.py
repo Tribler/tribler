@@ -710,10 +710,27 @@ class LibraryItemPanel(wx.Panel):
             return self.data.get('infohash')
         else:
             return None
+
+    def _get_videoplayer(self, exclude=None):
+        """
+        Returns the VideoPlayer instance and ensures that it knows if
+        there are other downloads running.
+        """
+
+        # 22/08/08 Boudewijn: The videoplayer has to know if there are
+        # downloads running.
+        other_downloads = False
+        for ds in self.parent.gridManager.dslist:
+            if ds is not exclude and ds.get_status() not in (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR):
+                other_downloads = True
+                break
+
+        videoplayer = VideoPlayer.getInstance()
+        videoplayer.set_other_downloads(other_downloads)
+        return videoplayer
         
     def switch_to_vod(self,ds):
-        videoplayer = VideoPlayer.getInstance()
-        videoplayer.play(ds)
+        self._get_videoplayer(exclude=ds).play(ds)
       
     def show_boost(self, ds):
         if ds is not None:
@@ -721,12 +738,10 @@ class LibraryItemPanel(wx.Panel):
             self.dlhelperframe.Show()
                 
     def play(self,ds):
-        videoplayer = VideoPlayer.getInstance()
-        videoplayer.play(ds)
+        self._get_videoplayer(exclude=ds).play(ds)
     
     def switch_to_standard_dlmode(self,ABCTorrentTemp): 
-        videoplayer = VideoPlayer.getInstance() 
-        videoplayer.vod_back_to_standard_dlmode(ABCTorrentTemp) 
+        self._get_videoplayer().vod_back_to_standard_dlmode(ABCTorrentTemp) 
         
     def is_boosted_or_boosting(self): 
         if self.data is None: 

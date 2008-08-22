@@ -37,6 +37,7 @@ class VideoPlayer:
         self.playbackmode = None
         self.preferredplaybackmode = None
         self.vod_postponed_downloads = []
+        self.other_downloads = None
 
         if not USE_VLC_RAW_INTERFACE:
             # Start HTTP server for serving video to player widget
@@ -73,6 +74,10 @@ class VideoPlayer:
             self.vlcwrap = None
             # Can't pause when external player
             self.supportedvodevents = [VODEVENT_START]
+
+    def set_other_downloads(self, other_downloads):
+        """A boolean indicating whether there are other downloads running at this time"""
+        self.other_downloads = other_downloads
 
     def get_vlcwrap(self):
         return self.vlcwrap
@@ -416,7 +421,7 @@ class VideoPlayer:
             return False
 
     def warn_user(self,ds,infilename):
-        dlg = VODWarningDialog(self.videoframe,self.utility,ds,infilename)
+        dlg = VODWarningDialog(self.videoframe,self.utility,ds,infilename,self.other_downloads)
         result = dlg.ShowModal()
         othertorrents = dlg.get_othertorrents()
         dlg.Destroy()
@@ -654,7 +659,7 @@ class VideoChooser(wx.Dialog):
 
 class VODWarningDialog(wx.Dialog):
     
-    def __init__(self, parent, utility, ds, infilename):
+    def __init__(self, parent, utility, ds, infilename, other_downloads):
         self.parent = parent
         self.utility = utility
 
@@ -699,18 +704,22 @@ class VODWarningDialog(wx.Dialog):
         text.Wrap(500)
         sizer.Add(text, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5)
 
-        self.otherslist = [self.utility.lang.get('vodrestartothertorrents'),
-                           self.utility.lang.get('vodstopothertorrents'),
-                           self.utility.lang.get('vodleaveothertorrents')]
+        # 22/08/08 boudewijn: only show the selectbox when there are
+        # torrents that are actively downloading
+        if other_downloads:
+            otherslist = [self.utility.lang.get('vodrestartothertorrents'),
+                          self.utility.lang.get('vodstopothertorrents'),
+                          self.utility.lang.get('vodleaveothertorrents')]
 
-        othersbox = wx.BoxSizer(wx.VERTICAL)
-        self.others_chooser=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), self.otherslist)
-        
-        self.others_chooser.SetSelection(OTHERTORRENTS_STOP_RESTART)
-            
-        othersbox.Add(wx.StaticText(self, -1, self.utility.lang.get('vodwhataboutothertorrents')), 1, wx.ALIGN_CENTER_VERTICAL)
-        othersbox.Add(self.others_chooser)
-        sizer.Add(othersbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+            othersbox = wx.BoxSizer(wx.VERTICAL)
+            self.others_chooser=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), otherslist)
+            self.others_chooser.SetSelection(OTHERTORRENTS_STOP_RESTART)
+
+            othersbox.Add(wx.StaticText(self, -1, self.utility.lang.get('vodwhataboutothertorrents')), 1, wx.ALIGN_CENTER_VERTICAL)
+            othersbox.Add(self.others_chooser)
+            sizer.Add(othersbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        else:
+            self.others_chooser = None
 
         sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('vodwarnprompt')), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         
@@ -725,11 +734,14 @@ class VODWarningDialog(wx.Dialog):
         self.SetSizerAndFit(sizer)
 
     def get_othertorrents(self):
-        idx = self.others_chooser.GetSelection()
+        if self.others_chooser:
+            idx = self.others_chooser.GetSelection()
+        else:
+            idx = OTHERTORRENTS_STOP_RESTART
         if DEBUG:
             print >>sys.stderr,"videoplay: Other-torrents-policy is",idx
         return idx
-
+    
     def is_mov_file(self,videoinfo):
         orig = videoinfo['inpath']
         (prefix,ext) = os.path.splitext(orig)
