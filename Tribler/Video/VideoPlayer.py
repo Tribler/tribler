@@ -240,7 +240,7 @@ class VideoPlayer:
             selectedinfilename = videofiles[0][0]
             selectedoutfilename = videofiles[0][1]
 
-        complete = ds.get_status() == DLSTATUS_SEEDING
+        complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
 
         bitrate = tdef.get_bitrate(selectedinfilename)
         if bitrate is None and not complete:
