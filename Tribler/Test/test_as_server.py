@@ -40,7 +40,6 @@ class TestAsServer(unittest.TestCase):
     def setUpPreSession(self):
         """ Should set self.config_path and self.config """
         self.config_path = tempfile.mkdtemp()
-        self.install_path = '..'
 
         self.config = SessionStartupConfig()
         self.config.set_state_dir(self.config_path)

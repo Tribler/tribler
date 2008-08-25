@@ -13,6 +13,7 @@ from types import StringType, ListType, DictType, IntType
 from M2Crypto import EC
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import QUERY, QUERY_REPLY, getMessageName
+from Tribler.Core.Utilities.utilities import show_permid_short
 
 from btconn import BTConnection
 from olconn import OLConnection
@@ -20,8 +21,13 @@ from Tribler.Test.test_as_server import TestAsServer
 
 DEBUG=True
 
-TEST_QUERY = 'hallo'
-TEST_QUERY_ONWIRE = 'SIMPLE '+TEST_QUERY
+TEST_QUERY = 'SIMPLE hallo'
+INFOHASH = 'i'*20
+CONTENT_NAME = 'Hallo S22E44'
+LENGTH = 481
+LEECHERS = 22
+SEEDERS = 11
+CATEGORY = ' Video'
 
 class TestQueryReplyActive(TestAsServer):
 
@@ -45,9 +51,14 @@ class TestQueryReplyActive(TestAsServer):
         print >> sys.stderr,"test: Pre Tribler Init"
         TestAsServer.setUpPreSession(self)
         print >> sys.stderr,"test: Pre Tribler Init: config_path",self.config_path
-        # Enable social networking
-        self.config['rquery'] = 1
+        # Enable remote querying
+        self.config.set_remote_query(True)
 
+    def setUpPostSession(self):
+        """ override TestAsServer """
+        TestAsServer.setUpPostSession(self)
+        self.hispermid = str(self.his_keypair.pub().get_der())
+        self.my_permid = str(self.my_keypair.pub().get_der())
 
     def pretest(self):
         # 1. First connect to Tribler
@@ -55,8 +66,15 @@ class TestQueryReplyActive(TestAsServer):
         sleep(3)
         
         # 2. Make Tribler send query
-        self.lm.overlay_apps.rquery_handler.sendQuery(TEST_QUERY,10)
+        self.session.query_connected_peers(TEST_QUERY,self.query_usercallback,max_peers_to_query=10)
 
+    def query_usercallback(self,permid,query,hits):
+        
+        print >>sys.stderr,"test: query_usercallback:",`permid`,`query`,`hits`
+        
+        self.assert_(query == TEST_QUERY)
+        self.assert_(permid == self.my_permid)
+        self.check_good_qreply(hits)
 
     #
     # Good QUERY, builds on TestQueryReply code
@@ -105,15 +123,14 @@ class TestQueryReplyActive(TestAsServer):
 
     def create_good_qreply(self,id):
         r = {}
-        r['content_name'] = 'Hallo S22E44'
-        r['length'] = 481
-        r['leecher'] = 11
-        r['seeder'] = 22
-        r['category'] = 'Video'
+        r['content_name'] = CONTENT_NAME
+        r['length'] = LENGTH
+        r['leecher'] = LEECHERS
+        r['seeder'] = SEEDERS
+        r['category'] = CATEGORY
         
         d2 = {}
-        ih = 'i'*20
-        d2[ih] = r
+        d2[INFOHASH] = r
         
         d = {}
         d['id'] = id
@@ -121,6 +138,18 @@ class TestQueryReplyActive(TestAsServer):
         
         b = bencode(d)
         return QUERY_REPLY+b
+    
+
+    def check_good_qreply(self,hits):
+        self.assert_(len(hits) == 1)
+        self.assert_(hits.keys()[0] == INFOHASH)
+        hit = hits[INFOHASH]
+        self.assert_(hit['content_name'] == CONTENT_NAME)
+        self.assert_(hit['length'] == LENGTH)
+        self.assert_(hit['leecher'] == LEECHERS)
+        self.assert_(hit['seeder'] == SEEDERS)
+        self.assert_(hit['category'] ==  CATEGORY)
+    
 
     def create_not_bdecodable(self,id):
         return QUERY_REPLY+"bla"
@@ -135,7 +164,7 @@ class TestQueryReplyActive(TestAsServer):
         id = d['id']
         self.assert_(type(id) == StringType)
 
-        self.assert_(q == TEST_QUERY_ONWIRE)
+        self.assert_(q == TEST_QUERY)
         return d['id']
 
 

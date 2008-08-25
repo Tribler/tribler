@@ -15,12 +15,14 @@
 #
 
 import sys
+import os
 import unittest
 from threading import Event, Thread, currentThread
 from socket import error as socketerror
 from time import sleep
 import tempfile
 from traceback import print_exc,print_stack
+import shutil
 
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
@@ -28,7 +30,8 @@ from Tribler.Core.BitTornado.BT1.MessageID import GET_METADATA
 
 from M2Crypto import EC
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay, overlay_infohash, OLPROTO_VER_CURRENT
-from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
+import Tribler.Core.CacheDB.sqlitecachedb as sqlitecachedb  
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 
 class FakeSession:
@@ -99,7 +102,7 @@ class Peer(Thread):
 
 
         self.session = FakeSession(self,self.my_keypair,self.my_permid,self.listen_port)
-        self.peer_db = PeerDBHandler.getInstance(config)
+        self.peer_db = PeerDBHandler.getInstance()
 
         self.secure_overlay.register(self,config['max_message_length'])
         print >>sys.stderr,"Peer: Setting",self.secure_overlay.get_handler(),"as handler at SocketHandler"
@@ -135,6 +138,13 @@ class Peer(Thread):
 class TestSecureOverlay(unittest.TestCase):
     
     def setUp(self):
+        self.config_path = tempfile.mkdtemp()
+        config = {}
+        config['state_dir'] = self.config_path
+        config['install_dir'] = os.path.join('..','..')
+        config['peer_icon_path'] = os.path.join(self.config_path,'peer_icons')
+        sqlitecachedb.init(config, self.rawserver_fatalerrorfunc)
+        
         secover1 = SecureOverlay.getInstance()
         secover1.resetSingleton()
         secover2 = SecureOverlay.getInstance()
@@ -165,6 +175,13 @@ class TestSecureOverlay(unittest.TestCase):
         self.peer1.shutdown()
         self.peer2.shutdown()
         sleep(5)
+        try:
+            shutil.rmtree(self.config_path)
+        except:
+            # Not fatal if something goes wrong here, and Win32 often gives
+            # spurious Permission Denied errors.
+            #print_exc()
+            pass
 
     #
     # connect_dns() to an address that noone responds at
@@ -376,7 +393,7 @@ class TestSecureOverlay(unittest.TestCase):
         sleep(2) 
         self.assert_(len(self.peer1.secure_overlay.iplport2oc) == 0)
 
-    def send_remote_close_conns_callback(self,exc,permid,selversion,locally_initiated):
+    def send_remote_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns):
         print  >> sys.stderr,"test: send_remote_close_conns_callback",exc,show_permid_short(permid)
         if self.first:
             self.assert_(exc is None)
@@ -523,7 +540,7 @@ class TestSecureOverlay(unittest.TestCase):
         self.peer1.secure_overlay.send(permid,msg,self.receive_send_callback)
         print >> sys.stderr,"test: test_got_conn_incoming exiting"
 
-    def got_conn_incoming_conns_callback(self,exc,permid,selversion,locally_initiated):
+    def got_conn_incoming_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns):
         print  >> sys.stderr,"test: got_conn_incoming_conns_callback",exc,show_permid_short(permid)
         self.assert_(exc is None)
         self.assert_(permid == self.peer1.my_permid)
@@ -557,7 +574,7 @@ class TestSecureOverlay(unittest.TestCase):
         self.assert_(permid == self.peer2.my_permid)
         self.got2 = True
 
-    def got_conn_outgoing_conns_callback(self,exc,permid,selversion,locally_initiated):
+    def got_conn_outgoing_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns):
         print  >> sys.stderr,"test: got_conn_outgoing_conns_callback",exc,show_permid_short(permid)
         self.assert_(exc is None)
         self.assert_(permid == self.peer2.my_permid)
@@ -591,7 +608,7 @@ class TestSecureOverlay(unittest.TestCase):
         self.assert_(len(self.peer1.secure_overlay.iplport2oc) == 0)
 
 
-    def got_conn_local_close_conns_callback(self,exc,permid,selversion,locally_initiated):
+    def got_conn_local_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns):
         print  >> sys.stderr,"test: got_conn_local_close_conns_callback",exc,show_permid_short(permid)
         if self.first:
             self.assert_(exc is None)
@@ -627,7 +644,7 @@ class TestSecureOverlay(unittest.TestCase):
         sleep(2) 
         self.assert_(len(self.peer1.secure_overlay.iplport2oc) == 0)
 
-    def got_conn_remote_close_conns_callback(self,exc,permid,selversion,locally_initiated):
+    def got_conn_remote_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns):
         print  >> sys.stderr,"test: got_conn_remote_close_conns_callback",exc,show_permid_short(permid)
         if self.first:
             self.assert_(exc is None)
@@ -646,7 +663,12 @@ class TestSecureOverlay(unittest.TestCase):
             self.assert_(not locally_initiated)
             self.got = True
 
-
+    def rawserver_fatalerrorfunc(self,e):
+        """ Called by network thread """
+        if DEBUG:
+            print >>sys.stderr,"test_secure_overlay: RawServer fatal error func called",e
+        print_exc()
+        self.assert_(False)
 
 
 def test_suite():

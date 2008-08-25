@@ -483,7 +483,8 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",len(hits)
 
-        kws = query.split()
+        kwstr = query[len('SIMPLE '):]
+        kws = kwstr.split()
         wx.CallAfter(self.torrentsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
 
     def stopSearch(self):

@@ -160,7 +160,7 @@ class RemoteQueryMsgHandler:
         
     def create_query(self,query,usercallback):
         d = {}
-        d['q'] = 'SIMPLE '+query
+        d['q'] = query
         d['id'] = self.create_and_register_query_id(query,usercallback)
         return bencode(d)
         

@@ -593,12 +593,10 @@ class Session(SessionRuntimeConfig):
         try:
             if self.sessconfig['overlay']:
                 if not query.startswith('SIMPLE '):
-                    raise ValueError('Query does start with SIMPLE')
-                
-                kws = query[len('SIMPLE '):]
+                    raise ValueError('Query does not start with SIMPLE')
                 
                 rqmh = RemoteQueryMsgHandler.getInstance()
-                rqmh.send_query(kws,usercallback,max_peers_to_query=max_peers_to_query)
+                rqmh.send_query(query,usercallback,max_peers_to_query=max_peers_to_query)
             else:
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:

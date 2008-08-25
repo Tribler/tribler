@@ -104,7 +104,8 @@ class BT1Download:
         
         self.play_video = (config['mode'] == DLMODE_VOD)
         self.am_video_source = bool(config['video_source'])
-        self.use_g2g = (self.play_video or self.am_video_source) and ('live' in response['info'])
+        # i.e. if VOD then G2G, if live then BT 
+        self.use_g2g = not ((self.play_video or self.am_video_source) and ('live' in response['info'])) 
         self.videoinfo = None
         self.videoanalyserpath = videoanalyserpath
         self.voddownload = None

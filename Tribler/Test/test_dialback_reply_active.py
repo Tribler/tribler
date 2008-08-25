@@ -7,6 +7,7 @@ import sys
 import time
 import socket
 import tempfile
+import shutil
 
 from M2Crypto import EC
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
@@ -85,6 +86,10 @@ class TestDialbackReplyActive(TestAsServer):
         f.close()
         
         self.config.set_install_dir(self.install_path)
+        
+        srcsqlcreatefile = os.path.join('..','..','Tribler','tribler_sdb_v1.sql')
+        dstsqlcreatefile = os.path.join(self.install_path,'Tribler','tribler_sdb_v1.sql')
+        shutil.copyfile(srcsqlcreatefile,dstsqlcreatefile)
 
         """
         # To avoid errors
