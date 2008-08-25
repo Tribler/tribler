@@ -4,9 +4,13 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.0rc4, Jun 19 2008. Import this to use the API """
+""" Tribler Core API v1.0.1rc1, Aug 25 2008. Import this to use the API """
 
 # History:
+# 1.0.1rc1 : Bugfix: The query passed to the callback function for 
+#            query_connected_peers() is now the original query, rather than
+#            the query with "SIMPLE " stripped off.
+#
 # 1.0.0rc5 : Added option to define auxiliary seeding servers for live stream
 #            (=these servers are always unchoked at the source server).
 #
