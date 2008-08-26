@@ -606,7 +606,7 @@ class FileInfoPanel(wx.Panel):
 #
 
             # Check if default download folder is not a file and create it if necessary
-            if exists(defdestfolder):
+            if os.path.exists(defdestfolder):
                 if not os.path.isdir(defdestfolder):
                     dlg = wx.MessageDialog(self, 
                                            message = self.utility.lang.get('notadir') + '\n' + \
