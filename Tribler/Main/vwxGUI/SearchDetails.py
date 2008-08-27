@@ -1,6 +1,7 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke 
 # see LICENSE.txt for license information
 import wx, os
+from traceback import print_stack
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -60,10 +61,10 @@ class SearchDetailsPanel(wx.Panel):
                 self.keywords = " ".join(keywords)
             else:
                 self.keywords = keywords
-                
+
         if finished:  
             msg = self.guiUtility.utility.lang.get('finished_search') % (self.keywords, total)
-            #self.stopMoreClicked()
+            self.searchFinished(set_message=False)
         else:
             msg = self.guiUtility.utility.lang.get('going_search') % (self.keywords, total)
         
@@ -97,10 +98,11 @@ class SearchDetailsPanel(wx.Panel):
 #        if grid.dod:
 #            grid.dod.requestMore(grid.items)
     
-    def searchFinished(self):
+    def searchFinished(self, set_message = True):
         self.searchBusy = False
         self.stopMoreButton.setToggled(True)
-        self.setMessage(None, True, 0, None)
+        if set_message:
+            self.setMessage(None, True, 0, None)
     
     def stopMoreClicked(self, event = None):
         if event:

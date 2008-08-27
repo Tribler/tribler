@@ -20,6 +20,7 @@ from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import *
 from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
 from Tribler.Core.Utilities.utilities import *
+from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
 
 DEBUG = False
 
@@ -67,13 +68,11 @@ class GridManager(object):
         
         self.cache_numbers = {}
         self.cache_ntorrent_interval = 1
-        self.last_ntorrent_cache = 0
         self.cache_npeer_interval = 1
-        self.last_npeer_cache = 0
         
     def set_state(self, state, reset_page = False):
         self.state = state
-        if reset_page:
+        if reset_page or self.inSearchMode(state):
             self.page = 0
         self.refresh(update_observer = True)
         
@@ -111,22 +110,21 @@ class GridManager(object):
         category_name = state.category
         library = (state.db == 'libraryMode')
         key = (category_name, library)
-        
-        if key not in self.cache_numbers:
-            self.cache_numbers[key] = 0
+
         now = time()
-        #print >> sys.stderr, '*********** get_number_torrents', key, self.cache_numbers[key], now - self.last_ntorrent_cache, self.cache_ntorrent_interval, self.grid.items
-        if now - self.last_ntorrent_cache > self.cache_ntorrent_interval:# or self.cache_numbers[key] < self.grid.items:
+        
+        if (key not in self.cache_numbers or
+            now - self.cache_numbers[key][1] > self.cache_ntorrent_interval):
+       
             ntorrents = self.torrent_db.getNumberTorrents(category_name = category_name, library = library)
-            self.cache_numbers[key] = ntorrents
-            if ntorrents > 1000:
-                self.cache_ntorrent_interval = 120
-            elif ntorrents > 100 and self.cache_ntorrent_interval < 30:
-                self.cache_ntorrent_interval = 30
-            self.last_ntorrent_cache = now
+            self.cache_numbers[key] = [ntorrents, now]
+            #if ntorrents > 1000:
+            #    self.cache_ntorrent_interval = 120
+            #elif ntorrents > 100 and self.cache_ntorrent_interval < 30:
+            #    self.cache_ntorrent_interval = 30
             #print >> sys.stderr, '***** update get_number_torrents', ntorrents, self.cache_ntorrent_interval, time()-now
         
-        return self.cache_numbers[key]
+        return self.cache_numbers[key][0]
     
     def get_number_peers(self, state):
         # cache the numbers to avoid loading db, which is a heavy operation
@@ -134,21 +132,15 @@ class GridManager(object):
         library = 'peer'
         key = (category_name, library)
         
-        if key not in self.cache_numbers:
-            self.cache_numbers[key] = 0
-        now = time()
-        #print >> sys.stderr, '*********** get_number_peers', key, self.cache_numbers[key], now - self.last_npeer_cache, self.cache_npeer_interval, self.grid.items
-        if now - self.last_npeer_cache > self.cache_npeer_interval: # or self.cache_numbers[key] < self.grid.items:
+        if (key not in self.cache_numbers or
+            time() - self.cache_numbers[key][1] > self.cache_npeer_interval):
+            
+            # print >> sys.stderr, '*********** get_number_peers', key, self.cache_numbers[key], now - self.last_npeer_cache, self.cache_npeer_interval, self.grid.items
             npeers = self.peer_db.getNumberPeers(category_name = category_name)
-            self.cache_numbers[key] = npeers
-            if npeers > 1000:
-                self.cache_npeer_interval = 30
-            elif npeers > 100 and self.cache_npeer_interval < 10:
-                self.cache_npeer_interval = 10
-            self.last_npeer_cache = now
+            self.cache_numbers[key] = [npeers, time()]
             #print >> sys.stderr, '***** update get_number_peers', npeers, self.cache_npeer_interval, time()-now
         
-        return self.cache_numbers[key]
+        return self.cache_numbers[key][0]
     
     def _getData(self, state):
         #import threading
@@ -158,7 +150,7 @@ class GridManager(object):
         if state.db in ('filesMode', 'libraryMode'):
             
             # Arno: state.db should be NTFY_ according to GridState...
-            if not self.torrentsearch_manager.inSearchMode(state.db):
+            if self.torrentsearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE:
             
                 total_items = self.get_number_torrents(state)   # read from cache
                 data = self.torrent_db.getTorrents(category_name = state.category, 
@@ -175,7 +167,7 @@ class GridManager(object):
             if state.db == 'friendsMode':
                 state.category = 'friend'
                 
-            if not self.peersearch_manager.inSearchMode(state.db):
+            if self.peersearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE:
                 #print >>sys.stderr,"GET GUI PEERS #################################################################################"
                 total_items = self.get_number_peers(state)
                 data = self.peer_db.getGUIPeers(category_name = state.category, 
@@ -237,7 +229,7 @@ class GridManager(object):
         
     def item_network_callback(self, *args):
         # only handle network callbacks when grid is shown
-        #print >> sys.stderr, '***** search?', self.torrentsearch_manager.inSearchMode(self.state.db)
+        # print >> sys.stderr, '***** searchmode: ', self.torrentsearch_manager.getSearchMode(self.state.db)
         if not self.grid.isShowByOverview():
             self.callbacks_disabled = True
             self.session.remove_observer(self.item_network_callback) #unsubscribe this function
@@ -261,7 +253,7 @@ class GridManager(object):
     def itemAdded(self,subject, objectID, args):
         #if self._last_page(): # This doesn't work as the pager is not updated if page becomes full
         #print >> sys.stderr, '******* standard Grid: itemAdded:', objectID, args, 'search?', self.torrentsearch_manager.inSearchMode(self.state.db) 
-        if self.torrentsearch_manager.inSearchMode(self.state.db):
+        if self.torrentsearch_manager.getSearchMode(self.state.db) == SEARCHMODE_SEARCHING:
             print >> sys.stderr, 'Grid refresh because search item added!!!============================='
             wx.CallAfter(self.refresh)
         elif self.isRelevantItem(subject, objectID):
@@ -278,7 +270,7 @@ class GridManager(object):
         # So we have to alway refresh here
         
         #if (self._objectOnPage(subject, objectID)
-        if not self.torrentsearch_manager.inSearchMode(self.state.db):
+        if self.torrentsearch_manager.getSearchMode(self.state.db) == SEARCHMODE_NONE:
             task_id = str(subject) + str(int(time()/self.refresh_rate))
             self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             #self.refresh()
@@ -363,7 +355,14 @@ class GridManager(object):
                 #    friend['coopdlstatus'] = u'Sleeping'
                     
         return liblist
-        
+
+    def inSearchMode(self, state):
+        if state.db in ('filesMode', 'libraryMode'):
+            return self.torrentsearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE
+        elif state.db in ('personsMode', 'friendsMode'):
+            return self.peersearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE
+        else:
+            return False
         
 class standardGrid(wx.Panel):
     """

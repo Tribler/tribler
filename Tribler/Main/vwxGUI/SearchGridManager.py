@@ -20,6 +20,10 @@ except ImportError:
 
 DEBUG = True
 
+SEARCHMODE_STOPPED = 1
+SEARCHMODE_SEARCHING = 2
+SEARCHMODE_NONE = 3
+
 class TorrentSearchGridManager:
     # Code to make this a singleton
     __single = None
@@ -35,6 +39,7 @@ class TorrentSearchGridManager:
         self.hits = []
         # Remote results for current keywords
         self.remoteHits = {}
+        self.stopped = False
         self.dod = None
         # Jelle's word filter
         self.searchmgr = None
@@ -113,10 +118,10 @@ class TorrentSearchGridManager:
         if DEBUG:
             print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: torrentFilter after filter found: %d items' % len(self.hits)
         
-        self.standardOverview.setSearchFeedback('web2', False, -1, self.searchkeywords[mode])
-        self.standardOverview.setSearchFeedback('remote', False, -1, self.searchkeywords[mode])
+        self.standardOverview.setSearchFeedback('web2', self.stopped, -1, self.searchkeywords[mode])
+        self.standardOverview.setSearchFeedback('remote', self.stopped, -1, self.searchkeywords[mode])
         if mode == 'filesMode':
-            self.standardOverview.setSearchFeedback('torrent', False, len(self.hits), self.searchkeywords[mode])
+            self.standardOverview.setSearchFeedback('torrent', self.stopped, len(self.hits), self.searchkeywords[mode])
         elif mode == 'libraryMode':
             # set finished true and use other string
             self.standardOverview.setSearchFeedback('library', True, len(self.hits), self.searchkeywords[mode])
@@ -134,7 +139,7 @@ class TorrentSearchGridManager:
         
 
                 
-#       if self.inSearchMode(mode):
+#       if self.getSearchMode(mode) == SEARCHMODE_SEARCHING:
 #            self.standardOverview.setSearchFeedback('torrent', True, len(self.hits))                
         
         if range[0] > len(self.hits):
@@ -151,7 +156,7 @@ class TorrentSearchGridManager:
                 
                 
     def setSearchKeywords(self,wantkeywords, mode):
-        
+        self.stopped = False
 #        if len(wantkeywords) == 0:
 #            print_stack()
         
@@ -161,14 +166,22 @@ class TorrentSearchGridManager:
             if self.dod:
                 self.dod.clear()
 
-    def inSearchMode(self, mode):
+    def getSearchMode(self, mode):
+        # Return searching, stopped, or no search
         if self.standardOverview is None:
-            return bool(self.searchkeywords.get(mode))
+            if self.searchkeywords.get(mode):
+                return SEARCHMODE_SEARCHING
         else:
-            return bool(self.searchkeywords.get(mode)) and self.standardOverview.getSearchBusy()
+            if self.searchkeywords.get(mode):
+                if self.standardOverview.getSearchBusy():
+                    return SEARCHMODE_SEARCHING
+                else:
+                    return SEARCHMODE_STOPPED
+        return SEARCHMODE_NONE
+            
          
     def stopSearch(self):
-        # TODO
+        self.stopped = True
         if self.dod:
             self.dod.stop()
      
@@ -221,7 +234,7 @@ class TorrentSearchGridManager:
                 if not known:
                     self.hits.append(remoteItem)
                     numResults+=1
-            self.standardOverview.setSearchFeedback('remote', False, numResults, self.searchkeywords[mode])
+            self.standardOverview.setSearchFeedback('remote', self.stopped, numResults, self.searchkeywords[mode])
         
     def gotRemoteHits(self,permid,kws,answers,mode):
         """ Called by GUIUtil when hits come in. """
@@ -344,9 +357,9 @@ class TorrentSearchGridManager:
         web2on = self.guiUtility.utility.config.Read('enableweb2search',"boolean")
         
         #if DEBUG:
-        #    print >>sys.stderr,"TorrentSearchGridManager: getCategory: mode",mode,"webon",web2on,"insearch",self.inSearchMode(mode),"catekey",categorykey
+        #    print >>sys.stderr,"TorrentSearchGridManager: getCategory: mode",mode,"webon",web2on,"insearch",self.getSearchMode(mode),"catekey",categorykey
         
-        if mode == 'filesMode' and web2on and self.inSearchMode(mode) and \
+        if mode == 'filesMode' and web2on and self.getSearchMode(mode) == SEARCHMODE_SEARCHING and \
             categorykey in ['video', 'all']:
             # if we are searching in filesmode
             #self.standardOverview.setSearchFeedback('web2', False, 0)
@@ -386,12 +399,12 @@ class TorrentSearchGridManager:
                         self.hits.append(newval)
                         numResults += 1
 
-                self.standardOverview.setSearchFeedback('web2', False, numResults, self.searchkeywords[mode])
+                self.standardOverview.setSearchFeedback('web2', self.stopped, numResults, self.searchkeywords[mode])
         #    else:
         #        print >>sys.stderr,"TorrentSearchManager: No web2 hits, no self.dod"
                 
         #else:
-        #    print >>sys.stderr,"TorrentSearchManager: No web2 hits, mode",mode,"web2on",web2on,"in search",self.inSearchMode(mode),"catkey",categorykey
+        #    print >>sys.stderr,"TorrentSearchManager: No web2 hits, mode",mode,"web2on",web2on,"in search",self.getSearchMode(mode),"catkey",categorykey
     
     #Rameez: The following code will call normalization functions and then 
     #sort and merge the combine torrent and youtube results
@@ -497,7 +510,7 @@ class PeerSearchGridManager:
         # Jelle's word filter
         self.psearchmgr = None
         self.fsearchmgr = None
-        
+        self.stopped = False # not stopped by default
         self.gridmgr = None
 
         self.standardOverview = None
@@ -556,20 +569,29 @@ class PeerSearchGridManager:
                 
                 
     def setSearchKeywords(self,wantkeywords, mode):
-
+        self.stopped = False
 #        if len(wantkeywords) == 0:
 #            print_stack()
         
         self.searchkeywords[mode] = wantkeywords
 
-    def inSearchMode(self, mode):
+    def getSearchMode(self, mode):
+        if bool(self.searchkeywords[mode]):
+            if not self.stopped:
+                mode = SEARCHMODE_SEARCHING
+            else:
+                mode = SEARCHMODE_STOPPED
+        else:
+            mode = SEARCHMODE_NONE
+
         if DEBUG:
-            print >>sys.stderr,"PeerSearchGridManager: inSearchMode?",self.searchkeywords[mode]
+            print >>sys.stderr,"PeerSearchGridManager: getSearchMode?",mode
         
-        return bool(self.searchkeywords[mode])
+        return mode
          
     def stopSearch(self):
-        pass
+        print_stack()
+        self.stopped = True
 
     def searchLocalDatabase(self,mode):
         """ Called by getHits() to search local DB. Caches previous query result. """

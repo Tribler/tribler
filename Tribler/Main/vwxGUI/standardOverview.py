@@ -298,89 +298,8 @@ class standardOverview(wx.Panel):
         self.data[self.mode]['data'] = reclist
         self.data[self.mode]['grid'].setData(reclist)
         
-    def updateFunTorrents(self, torrent, operate):    
-        if DEBUG:
-            print >>sys.stderr,"standardOverview: updateFunTorrents called: %s, %s" % (operate, repr(torrent.get('content_name')))
-        try:
-            detailsPanel = self.guiUtility.standardDetails
-        except:
-            detailsPanel = None
-            if DEBUG:
-                print >>sys.stderr,'standardOverview: Error could not find standardDetailsPanel'
-            
-        if operate in ['update', 'delete']:
-            if detailsPanel and detailsPanel.getIdentifier() == torrent['infohash']:
-                wx.CallAfter(detailsPanel.setData,torrent)
-        
-        #<mluc>[04.05.2007]: using self.mode corrupts the data in peermanager if the 
-        #current view selected is persons or friends, so, the solution would be to
-        #always try to update the data in filesMode
-        # PLEASE, DON'T REMOVE ALERT MESSAGE UNTIL A CORRECT SOLUTION IS FOUND!!!!
-
-        if self.mode in [ "personsMode", "friendsMode", "subscriptionsMode"]:
-            raise Exception("standardOverview: updateFunTorrents called while in non-torrent mode",self.mode,"!!!!!")
-            return
-        
-        torrentGrid = self.data[self.mode]['grid']
-        assert torrentGrid, 'standardOverview: could not find Grid of %s' % self.mode
-        
-        if self.mode == 'libraryMode':
-            # Reload whole library to make sorting ok
-            wx.CallAfter(self.filterChanged,None)
-            return
-            
-        if operate == 'update':
-            # unhealthy torrents are also updated
-            torrentgrid_updateItem_lambda = lambda:torrentGrid.updateItem(torrent,onlyupdate=True) 
-        elif operate == 'add' and torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
-            #print "******** add torrent", torrent,self.mode,self.data_manager.inSearchMode(self.mode)
-            
-            # only show update if we are not searching or update is a RemoteSearchResult
-            if not self.data_manager.inSearchMode(self.mode) or torrent.has_key('query_permid'):
-                # new torrents are only added when healthy
-                torrentgrid_updateItem_lambda = lambda:torrentGrid.updateItem(torrent)
-            else:    
-                torrentgrid_updateItem_lambda = None
-                
-        elif operate == 'delete':
-            torrentgrid_updateItem_lambda = lambda:torrentGrid.updateItem(torrent,delete=True)
-        if torrentgrid_updateItem_lambda is not None:
-            wx.CallAfter(torrentgrid_updateItem_lambda)
-        
-    def updateFunPersons(self, peer_data, operate):
-        
-        # ARNOCOMMENT: Who calls this function? If SessionCallback then we 
-        # shouldn't touch self.*
-            
-        grid = None
-        if peer_data == None:
-            return
-        if self.mode in ["personsMode","friendsMode"]:
-            grid = self.data[self.mode].get('grid')
-        if grid is not None:
-            try:
-                if DEBUG:
-                    print >>sys.stderr,"standardOverview: updateFunPersons called with",operate,"for",peer_data.get('content_name'),"in mode",self.mode
-                #something changed, so refresh data in grid
-                wx.CallAfter(self.refreshData)
-                #check if the changed peer_data is in the list of visible ones
-#                for index in range(grid.currentData,grid.currentData+grid.items):
-#                    if index<len(grid.data) and grid.data[index]['permid'] == peer_data['permid']:
-#                        if operate in ["update","add","online","offline"]:
-#                            wx.CallAfter(self.refreshData)#grid.setDataOfPanel,[index-grid.currentData, grid.data[index]])
-#                        elif operate in ["delete","hide"]:
-#                            wx.CallAfter(self.refreshData)#grid.setData,[grid.data,False])
-#                        elif operate.endswith("and top_changed"):
-#                            wx.CallAfter(grid.refreshPanels)
-#                print "#===============================================================================#"
-#                print "#                         dump visible peers                                    #"
-#                for index in range(grid.currentData,grid.currentData+grid.items):
-#                    if index<len(grid.data):
-#                        print "#     %d. %s     %f" % (grid.data[index]['simTop'],unicode2str(grid.data[index]['content_name']),grid.data[index]['similarity'])
-#                print "#===============================================================================#"
-            except:
-                print_exc()
-                wx.CallAfter(grid.refreshPanels)
+   
+   
     
     def getSearchField(self,mode=None):
         if mode is None:
@@ -390,11 +309,6 @@ class standardOverview(wx.Panel):
     def getGrid(self):
         return self.data.get(self.mode, {}).get('grid')
     
-    def clearSearch(self):
-        self.data[self.mode]['search'].Clear()
-        gridState = GridState(self.mode, 'all', 'name', reverse=True)
-        self.guiUtility.clearSearch()
-        self.filterChanged(gridState)
         
     def getSorting(self):
         fs = self.data[self.mode].get('filterState')

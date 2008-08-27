@@ -1141,7 +1141,7 @@ class TorrentDBHandler(BasicDBHandler):
         table = 'CollectedTorrent'
         value = 'count(torrent_id)'
         where = '1 '
-        
+
         if category_name != 'all':
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
         if library:

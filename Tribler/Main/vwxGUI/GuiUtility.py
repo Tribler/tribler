@@ -154,7 +154,7 @@ class GUIUtility:
             # this has to be a callafter to avoid segmentation fault
             # otherwise the panel with the event generating button is destroyed
             # in the execution of the event.
-            self.standardOverview.clearSearch()
+            self.clearSearch()
                         
             wx.CallAfter(self.standardOverview.toggleSearchDetailsPanel, False)
         elif name == 'familyFilterOn' or name == 'familyFilterOff':
@@ -452,7 +452,7 @@ class GUIUtility:
         self.torrentsearch_manager.setSearchKeywords(wantkeywords, mode)
         self.torrentsearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
         #print "******** gui uti searchFiles", wantkeywords
-        gridstate = GridState(self.standardOverview.mode, 'all', 'num_seeders')
+        gridstate = GridState(self.standardOverview.mode, 'all', 'name')
         self.standardOverview.filterChanged(gridstate)
 
         if mode == 'filesMode':
@@ -496,10 +496,18 @@ class GUIUtility:
         
     def clearSearch(self):
         mode = self.standardOverview.getMode()
+        self.standardOverview.data[mode]['search'].Clear()
         if mode == 'filesMode'  or mode == 'libraryMode':
             self.torrentsearch_manager.setSearchKeywords([],mode)
+            gridState = self.standardOverview.getFilter().getState()
+            if not gridState or not gridState.isValid():
+                gridState = GridState(mode, 'all', 'num_seeders')
+            print >> sys.stderr, 'Clearsearch, back to: %s' % gridState
+            self.standardOverview.filterChanged(gridState)
         if mode == 'personsMode'  or mode == 'friendsMode':
             self.peersearch_manager.setSearchKeywords([],mode)
+            gridState = GridState(mode, 'all', 'last_connected', reverse=False)
+            self.standardOverview.filterChanged(gridState)
         
     def searchPersons(self, mode, input):
         if DEBUG:
@@ -510,7 +518,7 @@ class GUIUtility:
         self.peersearch_manager.setSearchKeywords(wantkeywords, mode)
         self.peersearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
         #print "******** gui uti searchFiles", wantkeywords
-        gridstate = GridState(self.standardOverview.mode, 'all', 'last_seen')
+        gridstate = GridState(self.standardOverview.mode, 'all', 'last_connected')
         self.standardOverview.filterChanged(gridstate)
    
 
