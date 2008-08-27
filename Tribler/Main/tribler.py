@@ -76,6 +76,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
+import Tribler.Core.CacheDB.friends as friends 
 
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878
@@ -343,6 +344,9 @@ class ABCApp(wx.App):
         # Only allow updates to come in after we defined ratelimiter
         s.set_download_states_callback(self.sesscb_states_callback)
         
+        # Load friends from friends.txt
+        friends.init(s)
+        
     def sesscb_states_callback(self,dslist):
         """ Called by SessionThread """
         wx.CallAfter(self.gui_states_callback,dslist)
@@ -468,6 +472,8 @@ class ABCApp(wx.App):
 
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
+        
+        friends.done(self.utility.session)
         
         self.torrentfeed.shutdown()
 

@@ -1,6 +1,6 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
-
+import sys
 from time import time
 import os
 import base64
@@ -8,19 +8,23 @@ from traceback import print_exc
 
 from Tribler.Core.Utilities.utilities import validIP, validPort, validPermid, validName, show_permid
 from CacheDBHandler import FriendDBHandler
-
+from Tribler.Core.simpledefs import NTFY_FRIENDS,NTFY_PEERS
 
 default_friend_file = 'friends.txt'
 
 DEBUG = False
 
-def init(config_dir = None):
-    filename = make_filename(config_dir, default_friend_file)
-    ExternalFriendList(filename).updateFriendList()
+def init(session):
+    friend_db = session.open_dbhandler(NTFY_FRIENDS)
+    peer_db = session.open_dbhandler(NTFY_PEERS)
+    filename = make_filename(session.get_state_dir(), default_friend_file)
+    ExternalFriendList(friend_db,peer_db,filename).updateFriendList()
     
-def done(config_dir = None):
-    filename = make_filename(config_dir, default_friend_file)
-    ExternalFriendList(filename).writeFriendList()
+def done(session):
+    friend_db = session.open_dbhandler(NTFY_FRIENDS)
+    peer_db = session.open_dbhandler(NTFY_PEERS)
+    filename = make_filename(session.get_state_dir(), default_friend_file)
+    ExternalFriendList(friend_db,peer_db,filename).writeFriendList()
     
 def make_filename(config_dir,filename):
     if config_dir is None:
@@ -29,14 +33,10 @@ def make_filename(config_dir,filename):
         return os.path.join(config_dir,filename)    
 
 class ExternalFriendList:
-    def __init__(self, friend_file=default_friend_file, db_dir=''):
+    def __init__(self,friend_db,peer_db,friend_file=default_friend_file):
         self.friend_file = friend_file
-        self.db_dir = db_dir
-        self.friend_db = FriendDBHandler(db_dir=self.db_dir)
-        
-    def clear(self):    # clean database
-        if hasattr(self, 'friend_db'):
-            self.friend_db.clear()
+        self.friend_db = friend_db
+        self.peer_db = peer_db
         
     def clean(self):    # delete friend file
         try:
@@ -58,7 +58,12 @@ class ExternalFriendList:
             self.friend_db.addExternalFriend(friend)
 
     def getFriends(self):
-        return self.friend_db.getFriends()
+        friends = []
+        permids = self.friend_db.getFriends()
+        for permid in permids:
+            friend = self.peer_db.getPeer(permid)
+            friends.append(friend)
+        return friends
     
     def deleteFriend(self, permid):
         self.friend_db.deleteFriend(permid)
