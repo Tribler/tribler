@@ -298,15 +298,11 @@ class ABCApp(wx.App):
             except:
                 print_exc()
 
-        # 22/08/08 boudewijn: when minport is set in the abc.conf file
-        # we need to set it in the session-config
-        if self.utility.config.Exists("minport"):
-            self.sconfig.set_listen_port(self.utility.config.Read("minport", type="int"))
-            self.utility.config.DeleteEntry("minport")
+        # 22/08/08 boudewijn: convert abc.conf to SessionConfig
+        self.utility.convert__presession_4_1__4_2(self.sconfig)
         
         s = Session(self.sconfig)
         self.utility.session = s
-
         
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
@@ -323,7 +319,8 @@ class ABCApp(wx.App):
             defaultdestdir = os.path.join(get_default_dest_dir())
             defaultDLConfig.set_dest_dir(defaultdestdir)
 
-        #print >>sys.stderr,"main: Read dlconfig",defaultDLConfig.dlconfig
+        # 29/08/08 boudewijn: convert abc.conf to DefaultDownloadStartupConfig
+        self.utility.convert__postsession_4_1__4_2(s, defaultDLConfig)
 
         s.set_coopdlconfig(defaultDLConfig)
 

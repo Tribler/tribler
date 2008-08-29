@@ -167,6 +167,11 @@ class Bsddb2Sqlite:
             if iconfilename in self.icons:
                 icon_str = self.readIcon(iconfilename)
                 data['thumbnail'] = icon_str
+                icon_path = os.path.join(self.icon_dir, iconfilename + '.jpg')
+                if os.path.isfile(icon_path):
+                    print >> sys.stderr, 'remove', icon_path
+                    os.remove(icon_path)
+
             self._addPeerToDB(permid, data)
             npeers += 1
             self.permid_id[permid] = npeers
@@ -177,11 +182,11 @@ class Bsddb2Sqlite:
             
         self._commit()
         # delete peer icons
-        for iconfilename in self.icons:
-            icon_path = os.path.join(self.icon_dir, iconfilename + '.jpg')
-            if os.path.isfile(icon_path):
-                print >> sys.stderr, 'remove', icon_path
-                os.remove(icon_path)
+#         for iconfilename in self.icons:
+#             icon_path = os.path.join(self.icon_dir, iconfilename + '.jpg')
+#             if os.path.isfile(icon_path):
+#                 print >> sys.stderr, 'remove', icon_path
+#                 os.remove(icon_path)
         
     def readIcon(self, iconfilename):
         # read a peer icon file and return the encoded string
