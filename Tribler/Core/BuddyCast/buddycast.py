@@ -168,7 +168,7 @@ import socket
 from Tribler.Core.simpledefs import BCCOLPOLICY_SIMPLE
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE
-from Tribler.Core.Utilities.utilities import show_permid_short, show_permid,validPermid,validIP,validPort,validInfohash,readableBuddyCastMsg
+from Tribler.Core.Utilities.utilities import show_permid_short, show_permid,validPermid,validIP,validPort,validInfohash,readableBuddyCastMsg, hostname_or_ip2ip
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
@@ -1238,7 +1238,7 @@ class BuddyCastCore:
 
             new_peer_data = {}
             #new_peer_data['permid'] = peer['permid']
-            new_peer_data['ip'] = socket.gethostbyname(peer['ip'])
+            new_peer_data['ip'] = hostname_or_ip2ip(peer['ip']) 
             new_peer_data['port'] = peer['port']
             new_peer_data['last_seen'] = last_seen
             if peer.has_key('name'):
@@ -2051,7 +2051,7 @@ class DataHandler:
         new_peer_data = {}
         try:
             new_peer_data['permid'] = peer_data['permid']
-            new_peer_data['ip'] = socket.gethostbyname(peer_data['ip'])
+            new_peer_data['ip'] = hostname_or_ip2ip(peer_data['ip'])
             new_peer_data['port'] = peer_data['port']
             new_peer_data['last_seen'] = peer_data['last_seen']
             if peer_data.has_key('name'):
@@ -2257,21 +2257,4 @@ class DataHandler:
             #print hash(k), peer_data[k]
         #cache_db_data['infohash']
         #cache_db_data['pref']
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         

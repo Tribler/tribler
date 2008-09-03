@@ -483,6 +483,18 @@ def find_prog_in_PATH(prog):
             break
     return foundat
     
+def hostname_or_ip2ip(hostname_or_ip):
+    # Arno: don't DNS resolve always, grabs lock on most systems
+    ip = None
+    try:
+        socket.inet_aton(hostname_or_ip)
+        ip = hostname_or_ip
+    except:
+        print >>sys.stderr,"hostname_or_ip2ip: Hostname, not IP",hostname_or_ip
+        print_exc()
+        ip = socket.gethostbyname(hostname_or_ip)
+    return ip
+
 
 if __name__=='__main__':
 

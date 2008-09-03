@@ -3,7 +3,7 @@
 
 import os, re
 from Tribler.Category.init_category import getCategoryInfo
-from XXXFilter import XXXFilter
+from FamilyFilter import XXXFilter
 from Tribler.Core.BitTornado import bencode
 from Tribler.Core.Utilities.unicode import str2unicode, dunno2unicode
 from sets import Set
@@ -36,7 +36,7 @@ class Category:
             self.category_info = getCategoryInfo(filename)
             self.category_info.sort(rankcmp)
         except:
-            self.category_info = None
+            self.category_info = []
             print_exc()
 
         self.xxx_filter = XXXFilter(install_dir)

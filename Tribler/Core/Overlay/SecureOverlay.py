@@ -9,7 +9,6 @@ from time import time
 from sets import Set
 from cStringIO import StringIO
 from threading import currentThread
-from socket import gethostbyname
 from traceback import print_exc,print_stack
 
 from Tribler.Core.BitTornado.__init__ import createPeerID
@@ -17,7 +16,7 @@ from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern,g
 from Tribler.Core.BitTornado.BT1.convert import tobinary,toint
 
 from Tribler.Core.Overlay.permid import ChallengeResponse
-from Tribler.Core.Utilities.utilities import show_permid_short
+from Tribler.Core.Utilities.utilities import show_permid_short,hostname_or_ip2ip
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB,safe_dict,bin2str
 from Tribler.Core.simpledefs import *
 
@@ -474,7 +473,7 @@ class SecureOverlay:
             values = ('ip', 'port')
             peer = self.peer_db.getOne(values, permid=bin2str(permid))
             if peer and peer[0] and peer[1]:
-                ip = self.to_real_ip(peer[0])
+                ip = hostname_or_ip2ip(peer[0])
                 dns = (ip, int(peer[1]))
         return dns
     
@@ -527,15 +526,6 @@ class SecureOverlay:
     #
     # Internal methods
     #
-    def to_real_ip(self,hostname_or_ip):
-        """ If it's a hostname convert it to IP address first """
-        ip = None
-        try:
-            ip = gethostbyname(hostname_or_ip)
-        except:
-            pass
-        return ip
-
     def start_connection(self,dns):
         if DEBUG:
             print >> sys.stderr,"secover: Attempt to connect to",dns

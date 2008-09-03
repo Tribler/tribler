@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import re, sys, os
+from traceback import print_exc
 
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 DEBUG = False
@@ -12,17 +13,22 @@ class XXXFilter:
         self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
                 
     def initTerms(self, filename):
-        assert os.path.exists(filename), "Cannot find filter file at "+os.path.abspath(filename)
-        f = file(filename, 'r')
-        lines = f.read().lower().splitlines()
         terms = set()
         searchterms = set()
-        for line in lines:
-            if line.startswith('*'):
-                searchterms.add(line[1:])
-            else:
-                terms.add(line)
-        f.close()
+
+        try:
+            f = file(filename, 'r')
+            lines = f.read().lower().splitlines()
+    
+            for line in lines:
+                if line.startswith('*'):
+                    searchterms.add(line[1:])
+                else:
+                    terms.add(line)
+            f.close()
+        except:
+            print_exc()
+            
         if DEBUG:
             print 'Read %d XXX terms from file %s' % (len(terms)+len(searchterms), filename)
         return terms, searchterms

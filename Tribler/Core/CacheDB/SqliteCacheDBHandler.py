@@ -1854,7 +1854,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
     def addPeersBatch(self,permids):
         """ Add unknown permids as batch -> single transaction """
-        if not DEBUG:
+        if DEBUG:
             print >> sys.stderr, "bartercastdb: addPeersBatch: n=",len(permids)
         
         for permid in permids:
@@ -1889,7 +1889,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
 
 
-    def getPeerIDPairs(self):    # get the list of all peers' permid
+    def getPeerIDPairs(self):
         
         keys = self.getAll(('peer_id_from','peer_id_to'))
         return keys

@@ -12,7 +12,7 @@ from Tribler.Core.CacheDB.MugshotManager import ICON_MAX_SIZE
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Utilities.unicode import str2unicode
 
-DEBUG = True
+DEBUG = False
 
 MIN_OVERLAP_WAIT = 12.0*3600.0 # half a day in seconds
 
