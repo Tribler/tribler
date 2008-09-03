@@ -1,5 +1,5 @@
 rm Tribler/Category/porncat.txt
-rm Tribler/filter_terms.filter
+rm Tribler/Category/filter_terms.filter
 rm Tribler/readme.txt
 rm Tribler/LICENSE.txt
 rm Tribler/binary-LICENSE.txt
