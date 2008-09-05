@@ -14,6 +14,7 @@ from Tribler.Core.CoopDownload.HelperMessageHandler import HelperMessageHandler
 from MetadataHandler import MetadataHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+from Tribler.Core.NATFirewall.NatCheckMsgHandler import NatCheckMsgHandler
 from Tribler.Core.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
@@ -40,6 +41,7 @@ class OverlayApps:
         self.dialback_handler = None
         self.socnet_handler = None
         self.rquery_handler = None
+        self.natcheck_handler = None
         self.msg_handlers = {}
         self.connection_handlers = []
         self.text_mode = None
@@ -95,6 +97,11 @@ class OverlayApps:
                                     config['start_recommender'],config['buddycast_max_peers'])
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
             self.register_connection_handler(self.buddycast.handleConnection)
+
+        if config['nat_detect']:            
+            self.natcheck_handler = NatCheckMsgHandler.getInstance()
+            self.natcheck_handler.register(overlay_bridge, launchmany)
+            self.register_msg_handler(NatCheckMessages,self.natcheck_handler.handleMessage)
 
         if config['dialback']:
             self.dialback_handler = DialbackMsgHandler.getInstance()

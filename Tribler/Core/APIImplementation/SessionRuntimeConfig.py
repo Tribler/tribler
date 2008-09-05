@@ -849,6 +849,9 @@ class SessionRuntimeConfig(SessionConfigInterface):
     def set_stun_servers(self, stun_servers):
         raise OperationNotPossibleAtRuntimeException()
 
+    def set_pingback_servers(self, pingback_servers):
+        raise OperationNotPossibleAtRuntimeException()
+
     def set_puncturing_coordinators(self, puncturing_coordinators):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -870,6 +873,13 @@ class SessionRuntimeConfig(SessionConfigInterface):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.get_stun_servers(self)
+        finally:
+            self.sesslock.release()
+
+    def get_pingback_servers(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_pingback_servers(self)
         finally:
             self.sesslock.release()
 

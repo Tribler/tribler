@@ -1072,6 +1072,11 @@ class SessionConfigInterface:
         @param List of (hostname/ip,port) tuples. """
         self.sessconfig['stun_servers'] = stun_servers
 
+    def set_pingback_servers(self, pingback_servers):
+        """ The addresses of the pingback servers (at least 1)
+        @param List of (hostname/ip,port) tuples. """
+        self.sessconfig['pingback_servers'] = pingback_servers
+
     def set_puncturing_coordinators(self, puncturing_coordinators):
         """ The address of the puncturing coordinators (at least 1)
         @param  List of (hostname/ip,port) tuples. """
@@ -1094,6 +1099,11 @@ class SessionConfigInterface:
         """ Returns the addresses of the STUN servers.
         @return List of (hostname/ip,port) tuples. """
         return self.sessconfig['stun_servers']
+
+    def get_pingback_servers(self):
+        """ Returns the addresses of the pingback servers.
+        @return List of (hostname/ip,port) tuples. """
+        return self.sessconfig['pingback_servers']
 
     def get_puncturing_coordinators(self):
         """ Returns the address of the puncturing coordinators.

@@ -3,21 +3,20 @@
 #
 # Please apply networking code fixes also to DialbackConnHandler.py
 
-import sys
-from struct import pack,unpack
-from time import time
-from sets import Set
 from cStringIO import StringIO
+from sets import Set
+from struct import pack,unpack
 from threading import currentThread
+from time import time
 from traceback import print_exc,print_stack
+import sys
 
-from Tribler.Core.BitTornado.__init__ import createPeerID
 from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern,getMessageName
 from Tribler.Core.BitTornado.BT1.convert import tobinary,toint
-
+from Tribler.Core.BitTornado.__init__ import createPeerID
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB,safe_dict,bin2str
 from Tribler.Core.Overlay.permid import ChallengeResponse
 from Tribler.Core.Utilities.utilities import show_permid_short,hostname_or_ip2ip
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB,safe_dict,bin2str
 from Tribler.Core.simpledefs import *
 
 DEBUG = False
@@ -34,9 +33,10 @@ OLPROTO_VER_THIRD  = 3  # Second public release, >= 3.6.0, Dialback, BuddyCast2
 OLPROTO_VER_FOURTH = 4  # Third public release, >= 3.7.0, BuddyCast3
 OLPROTO_VER_FIFTH = 5   # Fourth public release, >= 4.0.0, SOCIAL_OVERLAP
 OLPROTO_VER_SIXTH = 6   # Fifth public release, >= 4.1.0, extra BC fields, remote query
+OLPROTO_VER_SEVENTH = 7   # Seventh public release, >= 4.2.0, natcheck/natreport
 
 # Overlay-swarm protocol version numbers
-OLPROTO_VER_CURRENT = OLPROTO_VER_SIXTH
+OLPROTO_VER_CURRENT = OLPROTO_VER_SEVENTH
 OLPROTO_VER_LOWEST = OLPROTO_VER_SECOND
 SupportedVersions = range(OLPROTO_VER_LOWEST, OLPROTO_VER_CURRENT+1)
 

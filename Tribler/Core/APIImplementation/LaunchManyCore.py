@@ -32,7 +32,6 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
-from Tribler.Core.NATFirewall.PuncturingClient import PuncturingClient
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.OverlayApps import OverlayApps
@@ -342,11 +341,6 @@ class TriblerLaunchMany(Thread):
     def _run(self):
         """ Called only once by network thread """
 
-        if self.nat_detect:
-            try:
-                self.start_nat_type_detect()
-            except:
-                print_exc()
         try:
             try:
                 self.start_upnp()
@@ -594,14 +588,6 @@ class TriblerLaunchMany(Thread):
             pstats.Stats(fname,stream=sys.stderr).sort_stats("cumulative").print_stats(20)
         else:
             self._run()
-
-    def start_nat_type_detect(self):
-        if DEBUG:
-            print >>sys.stderr,"tlm: start_nat_type_detect()"
-        pclient = Thread(None, PuncturingClient.getInstance().firewall_puncturing, None, (self.session,))
-        pclient.setName("NAT"+pclient.getName())
-        pclient.setDaemon(True)
-        pclient.start()
 
     def start_upnp(self):
         """ Arno: as the UPnP discovery and calls to the firewall can be slow,

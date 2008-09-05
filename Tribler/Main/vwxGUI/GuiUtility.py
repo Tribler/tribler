@@ -424,8 +424,8 @@ class GUIUtility:
             text = invitation_body.split("\n")
             InviteFriendsDialog(text)
 
-    def get_nat_type(self):
-        return self.utility.session.get_nat_type()
+    def get_nat_type(self, callback=None):
+        return self.utility.session.get_nat_type(callback=callback)
 
     def dosearch(self):
         sf = self.standardOverview.getSearchField()

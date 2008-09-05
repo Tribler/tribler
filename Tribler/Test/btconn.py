@@ -9,7 +9,7 @@ from StringIO import StringIO
 
 DEBUG=True
 
-current_version = 6
+current_version = 7
 lowest_version = 2
 
 protocol_name = "BitTorrent protocol"
@@ -86,6 +86,9 @@ class BTConnection:
         low_ver = unpack('<H', self.hisid[16:18])[0]
         assert(low_ver == lowest_version)
         cur_ver = unpack('<H', self.hisid[18:20])[0]
+        if DEBUG:
+            print >> sys.stderr, "cur_ver: ", cur_ver
+            print >> sys.stderr, "current_version: ", current_version
         assert(cur_ver == current_version)
 
     def read_handshake_medium_rare(self,close_ok = False):

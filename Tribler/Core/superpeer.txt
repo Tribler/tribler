@@ -7,3 +7,4 @@ superpeer5.das2.ewi.tudelft.nl, 7005, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAGZomjLNDu
 superpeer6.das2.ewi.tudelft.nl, 7006, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAfizxRUl7S3Fec2cl1+uML6tORwnUIod5mh3soWVANxmu+flFNp1yayiLPjB+dWQ6Va77FXbHDkw5smd, SuperPeer6@Tribler
 superpeer7.das2.ewi.tudelft.nl, 7007, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAFzfWHb/WPL+luFfXfUbtJGRpUnwbmyB0kH7t3UpAVSpKilym4Fzt2rS7HJTZyQ7yCI3c+xTRtMLZ0sc, SuperPeer7@Tribler
 superpeer8.das2.ewi.tudelft.nl, 7008, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAIV8h+eS+vQ+0uqZNv3MYYTLo5s0JP+cmkvJ7U4JAHhfRv1wCqZSKIuY7Q+3ESezhRnnmmX4pbOVhKTU, SuperPeer8@Tribler
+superstorage1.das2.ewi.tudelft.nl, 7001, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAKa2aWZv65UoFv0OR8BbVSnlmTPrYKcwwpGHEhK3AO2PpxiGlv/Y2mTP2kg+VXLaBBmfpdYWPA4eSdpq

@@ -20,7 +20,7 @@ from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
-from Tribler.Core.NATFirewall.PuncturingClient import PuncturingClient
+from Tribler.Core.NATFirewall.NatCheckMsgHandler import NatCheckClient
 
 DEBUG = False
 
@@ -174,6 +174,17 @@ class Session(SessionRuntimeConfig):
         if not 'live_aux_seeders' in self.sessconfig:
             # Poor man's versioning, really should update PERSISTENTSTATE_CURRENTVERSION
             self.sessconfig['live_aux_seeders'] = sessdefaults['live_aux_seeders']
+
+        if self.sessconfig['nat_detect'] is None:
+            self.sessconfig['nat_detect'] = sessdefaults['nat_detect']
+        if self.sessconfig['puncturing_private_port'] is None:
+            self.sessconfig['puncturing_private_port'] = sessdefaults['puncturing_private_port']
+        if self.sessconfig['stun_servers'] is None:
+            self.sessconfig['stun_servers'] = sessdefaults['stun_servers']
+        if self.sessconfig['puncturing_coordinators'] is None:
+            self.sessconfig['puncturing_coordinators'] = sessdefaults['puncturing_coordinators']	
+        if self.sessconfig['pingback_servers'] is None:
+            self.sessconfig['pingback_servers'] = sessdefaults['pingback_servers']
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()
@@ -681,8 +692,14 @@ class Session(SessionRuntimeConfig):
         basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
         return os.path.join(trackerdir,basename)
 
-    def get_nat_type(self):
+    def get_nat_type(self, callback=None):
         """ Return the type of Network Address Translator (NAT) detected.
+
+        When a callback parameter is supplied it will always be
+        called. When the NAT-type is already known the callback will
+        be made instantly. Otherwise, the callback will be made when
+        the NAT discovery has finished.
+
         Return values:
         "Blocked"
         "Open Internet"
@@ -692,12 +709,15 @@ class Session(SessionRuntimeConfig):
         "Restricted Cone NAT"
         "Port Restricted Cone NAT"
         "Symmetric NAT"
+        "Unknown NAT/Firewall"
+
+        @param callback Optional callback used to notify the NAT type
         @return String 
         """
         # TODO: define constants in simpledefs for these
         # Called by any thread
         self.sesslock.acquire()
         try:
-            return PuncturingClient.getInstance().get_nat_type()
+            return NatCheckClient.getInstance(self).get_nat_type(callback=callback)
         finally:
             self.sesslock.release()

@@ -53,7 +53,7 @@ class TestAsServer(unittest.TestCase):
         self.config.set_remote_query(False)
         self.config.set_internal_tracker(False)
         self.config.set_bartercast(False)
-        self.config.set_install_dir(os.path.join('..','..'))
+        self.config.set_install_dir(os.path.abspath('.'))
 
         self.my_keypair = EC.gen_params(EC.NID_sect233k1)
         self.my_keypair.gen_key()

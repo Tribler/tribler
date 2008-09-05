@@ -350,7 +350,7 @@ class SQLiteCacheDB:
                 sql_create_tables = f.read()
                 f.close()
             else:
-                raise Exception, "Cannot open sql script at %s" % sql_create
+                raise Exception, "Cannot open sql script at %s" % os.path.realpath(sql_create)
             
             self.createDBTable(sql_create_tables, dbfile_path, busytimeout)  
             if check_version:
