@@ -231,6 +231,9 @@ class Utility:
         self._convert__helper_4_1__4_2(self.config, session_config.set_start_recommender, "startrecommender", bool_)
         self._convert__helper_4_1__4_2(self.config, session_config.set_stop_collecting_threshold, "stopcollectingthreshold", int)
         self._convert__helper_4_1__4_2(self.config, session_config.set_torrent_collecting, "enabledlcollecting", bool_)
+        self._convert__helper_4_1__4_2(self.config, session_config.set_ip_for_tracker, "ip")
+        self._convert__helper_4_1__4_2(self.config, session_config.set_bind_to_addresses, "bind", lambda x:[x])
+        self._convert__helper_4_1__4_2(self.config, session_config.set_upnp_mode, "upnp_nat_access", int)
 
     def convert__postsession_4_1__4_2(self, session, default_download_config):
 
