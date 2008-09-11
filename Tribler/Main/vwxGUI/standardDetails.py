@@ -31,7 +31,6 @@ from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 from Tribler.Core.CacheDB.CacheDBHandler import GUIDBHandler, BarterCastDBHandler
 from Tribler.Core.CacheDB.EditDist import editDist
 
-
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
 DEBUG = False
@@ -107,7 +106,7 @@ class standardDetails(wx.Panel):
                                             'titleField','statusField','thumbField', 'discFilesField', 'discPersonsField']
         self.modeElements['libraryMode'] = ['titleField', 'simTitlesField', 'popularityField1','options', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'files_detailsTab', 'info_detailsTab', 'details', 
+                                            'files_detailsTab', 'info_detailsTab', 'details', 'upload_detailsTab', 'uploadTab_details',
                                             'peopleWhoField']
         self.modeElements['profileMode'] = ['levelPic', 'uploadedNumber', 'downloadedNumber']
         
@@ -123,7 +122,8 @@ class standardDetails(wx.Panel):
                             'profileDetails_Download': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','takeMeThere1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere2'],
                             #'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc1','descriptionField2','howToImprove1','descriptionField3','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0']}
                             'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0'],
-                            'profileDetails_statsTopSharers':['descriptionField0', 'downloadedNumberT', 'uploadedNumberT']}
+                            'profileDetails_statsTopSharers':['descriptionField0', 'downloadedNumberT', 'uploadedNumberT'],
+                            'uploadTab_details': ['t4t_peers', 'g2g_peers']}
         
             
         self.statdlElements = ['st28c','down_White','downSpeed','up_White','upSpeed','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
@@ -297,6 +297,10 @@ class standardDetails(wx.Panel):
                 infoTab = self.getGuiObj('info_detailsTab')
                 infoTab.setSelected(True)
                 self.getAlternativeTabPanel('filesTab_files', parent=currentPanel).Hide()
+
+                # "upload" tab is added, by Boxun
+                self.getAlternativeTabPanel('uploadTab_details', parent=currentPanel).Hide()
+
                 if modeString == 'files':
                     self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 """
@@ -1327,10 +1331,12 @@ class standardDetails(wx.Panel):
 
         if self.mode == 'libraryMode':
             tabButtons = { 'files_detailsTab':self.getGuiObj('files_detailsTab'),
-                          'info_detailsTab':self.getGuiObj('info_detailsTab')}
+                          'info_detailsTab':self.getGuiObj('info_detailsTab'),
+                          'upload_detailsTab':self.getGuiObj('upload_detailsTab')}
                           # 'graphs_detailsTab':self.getGuiObj('graphs_detailsTab') }
             tabPanelNames = { 'files_detailsTab':'filesTab_files', 
-                             'info_detailsTab':'details'}
+                             'info_detailsTab':'details',
+                             'upload_detailsTab':'uploadTab_details'}
                              #'graphs_detailsTab':'Tab_graphs'}
             #TODO: change from currentPanel to the string name of the current selected details panel
             #get the currently selected panel 
@@ -1679,6 +1685,16 @@ class standardDetails(wx.Panel):
             if peer_data is not None and peer_data.get('permid'):
                self.friend_db.toggleFriend(peer_data['permid'])
 
+    def refreshUploadStats(self, dslist):
+        # Update the overrall uploading information
+        if self.mode in ['libraryMode']:
+            if self.getGuiObj('upload_detailsTab').isSelected():
+                tab = 'uploadTab_details'
+                t4t_list = self.getGuiObj('t4t_peers', tab = tab)
+                t4t_list.setData(dslist)
+                
+                g2g_list = self.getGuiObj('g2g_peers', tab = tab)
+                g2g_list.setData(dslist)
 
     def refreshTorrentStats(self,dslist):
         """ Called by GUI thread """

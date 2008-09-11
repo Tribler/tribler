@@ -1,9 +1,11 @@
 # Written by Bram Cohen and Pawel Garbacki
 # see LICENSE.txt for license information
 
-import sys
 from random import randrange, shuffle
 from traceback import print_exc,print_stack
+import csv
+import random
+import sys
 
 from Tribler.Core.BitTornado.clock import clock
 
@@ -16,7 +18,7 @@ except:
 DEBUG = False
 
 class Choker:
-    def __init__(self, config, schedule, picker, done = lambda: False):
+    def __init__(self, config, schedule, picker, seeding_selector, done = lambda: False):
         self.config = config
         self.round_robin_period = config['round_robin_period']
         self.schedule = schedule
@@ -28,7 +30,11 @@ class Choker:
         self.super_seed = False
         self.paused = False
         schedule(self._round_robin, 5)
-
+        
+# SelectiveSeeding_
+        self.seeding_manager = None
+# _SelectiveSeeding
+        
     def set_round_robin_period(self, x):
         self.round_robin_period = x
 
@@ -41,24 +47,34 @@ class Choker:
             if count > 0:   # optimization
                 shuffle(cons)
             for c in cons:
-                i = self.picker.next_have(self.connections[c], count > 0)
-                if i is None:
-                    continue
-                if i < 0:
+# SelectiveSeeding_
+                if self.seeding_manager is None or self.seeding_manager.is_conn_eligible(c):
+# _SelectiveSeeding
+                    i = self.picker.next_have(self.connections[c], count > 0)
+                    if i is None:
+                        continue
+                    if i < 0:
+                        to_close.append(self.connections[c])
+                        continue
+                    self.connections[c].send_have(i)
+                    count -= 1
+                else:
+                    # Drop non-eligible connections 
                     to_close.append(self.connections[c])
-                    continue
-                self.connections[c].send_have(i)
-                count -= 1
             for c in to_close:
                 c.close()
         if self.last_round_robin + self.round_robin_period < clock():
             self.last_round_robin = clock()
             for i in xrange(1, len(self.connections)):
                 c = self.connections[i]
-                u = c.get_upload()
-                if u.is_choked() and u.is_interested():
-                    self.connections = self.connections[i:] + self.connections[:i]
-                    break
+                
+# SelectiveSeeding_
+                if self.seeding_manager is None or self.seeding_manager.is_conn_eligible(c):
+# _SelectiveSeeding
+                    u = c.get_upload()
+                    if u.is_choked() and u.is_interested():
+                        self.connections = self.connections[i:] + self.connections[:i]
+                        break
         self._rechoke()
 
     def _rechoke(self):
@@ -85,17 +101,21 @@ class Choker:
                     continue
 # _g2g
 
-                u = c.get_upload()
-                if not u.is_interested():
-                    continue
-                if self.done():
-                    r = u.get_rate()
-                else:
-                    d = c.get_download()
-                    r = d.get_rate()
-                    if r < 1000 or d.is_snubbed():
+# SelectiveSeeding_
+                if self.seeding_manager is None or self.seeding_manager.is_conn_eligible(c):
+# _SelectiveSeeding
+                    u = c.get_upload()
+                    if not u.is_interested():
                         continue
-                preferred.append((-r, c))
+                    if self.done():
+                        r = u.get_rate()
+                    else:
+                        d = c.get_download()
+                        r = d.get_rate()
+                        if r < 1000 or d.is_snubbed():
+                            continue
+                    preferred.append((-r, c))
+                    
             self.last_preferred = len(preferred)
             preferred.sort()
             del preferred[maxuploads-1:]
@@ -103,18 +123,22 @@ class Choker:
                 print "NORMAL UNCHOKE",preferred
             preferred = [x[1] for x in preferred]
 
-# g2g_ unchoke some g2g peers too
+            # g2g_ unchoke some g2g peers too
             g2g_preferred = []
             for c in self.connections:
                 if not c.use_g2g:
                     continue
 
-                u = c.get_upload()
-                if not u.is_interested():
-                    continue
-
-                r = c.g2g_score()
-                g2g_preferred.append((-r[0], -r[1], c))
+# SelectiveSeeding_
+                if self.seeding_manager is None or self.seeding_manager.is_conn_eligible(c):
+# _SelectiveSeeding
+                    u = c.get_upload()
+                    if not u.is_interested():
+                        continue
+    
+                    r = c.g2g_score()
+                    g2g_preferred.append((-r[0], -r[1], c))
+                    
             g2g_preferred.sort()
             del g2g_preferred[maxuploads-1:]
             if DEBUG:
@@ -189,3 +213,9 @@ class Choker:
     def pause(self, flag):
         self.paused = flag
         self._rechoke()
+    
+# SelectiveSeeding_
+    # When seeding starts, a non-trivial seeding manager will be set
+    def set_seeding_manager(self, manager):
+        self.seeding_manager = manager
+# _SelectiveSeeding

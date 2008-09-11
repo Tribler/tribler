@@ -71,6 +71,7 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Web2.util.update import Web2Updater
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
+from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 
@@ -81,7 +82,7 @@ import Tribler.Core.CacheDB.friends as friends
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878
 
-DEBUG = True
+DEBUG = False
 ALLOW_MULTIPLE = False
         
 
@@ -338,6 +339,11 @@ class ABCApp(wx.App):
         self.ratelimiter.set_global_max_seedupload_speed(maxupseed)
         self.utility.ratelimiter = self.ratelimiter
  
+# SelectiveSeeding _       
+        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
+        self.seedingcount = 0 
+# _SelectiveSeeding
+
         # Only allow updates to come in after we defined ratelimiter
         s.set_download_states_callback(self.sesscb_states_callback)
         
@@ -347,7 +353,7 @@ class ABCApp(wx.App):
     def sesscb_states_callback(self,dslist):
         """ Called by SessionThread """
         wx.CallAfter(self.gui_states_callback,dslist)
-        return(1.0,False)
+        return(1.0, True)
         
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
@@ -401,7 +407,21 @@ class ABCApp(wx.App):
                 
             # Update stats in lower right overview box
             self.guiUtility.refreshTorrentStats(dslist)
-                
+            
+            # Upload overall upload states
+            self.guiUtility.refreshUploadStats(dslist)
+            
+# SelectiveSeeding_
+            # Apply seeding policy every 60 seconds, for performance
+            applyseedingpolicy = False
+            if self.seedingcount % 60 == 0:
+                applyseedingpolicy = True
+            self.seedingcount += 1
+    
+            if applyseedingpolicy:
+                self.seedingmanager.apply_seeding_policy(dslist)
+# _SelectiveSeeding
+            
         except:
             print_exc()
 

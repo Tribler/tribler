@@ -26,6 +26,8 @@ from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 from Tribler.Core.osutils import getfreespace
 
+from Tribler.Core.defaults import *
+
 DEBUG = False
 
 
@@ -884,82 +886,138 @@ class SeedingOptionsPanel(ABCOptionPanel):
         ABCOptionPanel.__init__(self, parent, dialog)
         sizer = self.sizer
         
-        # GUI dialog for Global upload setting
-        ########################################
-
-        # Upload setting for completed files
-        ########################################
-
-        continuesection_title = wx.StaticBox(self, -1, self.utility.lang.get('uploadoptforcompletedfile'))
-        continuesection = wx.StaticBoxSizer(continuesection_title, wx.VERTICAL)
+        # Added by Boxun
+        #t4t options
+        t4t_title = wx.StaticBox(self, -1, self.utility.lang.get('tit-4-tat'))
+        t4t_section = wx.StaticBoxSizer(t4t_title, wx.VERTICAL)
         
-        uploadlist = [self.utility.lang.get('unlimitedupload'), self.utility.lang.get('continueuploadfor'), self.utility.lang.get('untilratio')]
-       
-        rb1 = wx.RadioButton(self, -1, uploadlist[0], wx.Point(-1, -1), wx.Size(-1, -1), wx.RB_GROUP)
-        rb2 = wx.RadioButton(self, -1, uploadlist[1], wx.Point(-1, -1), wx.Size(-1, -1))
-        rb3 = wx.RadioButton(self, -1, uploadlist[2], wx.Point(-1, -1), wx.Size(-1, -1))
-        self.rb = [rb1, rb2, rb3]
-              
-        mtimeval = ['30', '45', '60', '75']
-        htimeval = []
-        for i in range(24):
-            htimeval.append(str(i))
+        # Ratio buttons
+        self.rb_t4t_no_leeching = wx.RadioButton(self, -1, self.utility.lang.get('no_leeching'), wx.Point(-1, -1), wx.Size(-1, -1), wx.RB_GROUP)
+        self.rb_t4t_unlimited = wx.RadioButton(self, -1, self.utility.lang.get('unlimited_seeding'), wx.Point(-1, -1), wx.Size(-1, -1))
+        self.rb_t4t_until_time = wx.RadioButton(self, -1, self.utility.lang.get('seed_sometime'), wx.Point(-1, -1), wx.Size(-1, -1))
+        self.rb_t4t_no_seeding = wx.RadioButton(self, -1, self.utility.lang.get('no_seeding'), wx.Point(-1, -1), wx.Size(-1, -1))
+        
+        self.t4t_rbs = [self.rb_t4t_no_leeching, self.rb_t4t_unlimited, self.rb_t4t_until_time, self.rb_t4t_no_seeding]
+        
+        # Seeding ratio option
+        t4t_section.Add(self.rb_t4t_no_leeching, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        
+        # Unlimited seeding
+        t4t_section.Add(self.rb_t4t_unlimited, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        
+        # Seeding for sometime
+        hours_interval = ['0', '1', '2', '3', '5', '10']
+        mins_interval = ['15', '30', '45']
             
-        self.cbhtime = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
-                                  wx.Size(55, -1), htimeval, wx.CB_DROPDOWN|wx.CB_READONLY)
-        self.cbmtime = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
-                                  wx.Size(55, -1), mtimeval, wx.CB_DROPDOWN|wx.CB_READONLY)
-
-        continuesection.Add(rb1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-
-        time_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        time_sizer.Add(rb2, 0, wx.ALIGN_CENTER_VERTICAL)
-        time_sizer.Add(self.cbhtime, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        time_sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('hour')), 0, wx.ALIGN_CENTER_VERTICAL)
-        time_sizer.Add(self.cbmtime, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        time_sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('minute')), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.cb_t4t_hours = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
+                                  wx.Size(55, -1), hours_interval, wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.cb_t4t_mins = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
+                                  wx.Size(55, -1), mins_interval, wx.CB_DROPDOWN|wx.CB_READONLY)
         
-        continuesection.Add(time_sizer, -1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        t4t_timing_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        t4t_timing_sizer.Add(self.rb_t4t_until_time, 0, wx.ALIGN_CENTER_VERTICAL)
+        t4t_timing_sizer.Add(self.cb_t4t_hours, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        t4t_timing_sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('seed_hours')), 0, wx.ALIGN_CENTER_VERTICAL)
+        t4t_timing_sizer.Add(self.cb_t4t_mins, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        t4t_timing_sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('seed_mins')), 0, wx.ALIGN_CENTER_VERTICAL)
+        
+        t4t_section.Add(t4t_timing_sizer, -1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
-        ratioval = ['50', '75', '100', '125', '150', '175', '200', '300', '400', '500']
-        self.cbratio = wx.ComboBox(self, -1, "", 
-                                  wx.Point(-1, -1), wx.Size(65, -1), ratioval, wx.CB_DROPDOWN|wx.CB_READONLY)
+        # No seeding (That's evil, don't touch it!)
+        t4t_section.Add(self.rb_t4t_no_seeding, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+
+        sizer.Add(t4t_section, 0, wx.EXPAND|wx.ALL, 5)
+        
+        #g2g options
+        g2g_title = wx.StaticBox(self, -1, self.utility.lang.get('give-2-get'))
+        g2g_section = wx.StaticBoxSizer(g2g_title, wx.VERTICAL)
+    
+        # Ratio buttons
+        self.rb_g2g_large_ratio = wx.RadioButton(self, -1, self.utility.lang.get('seed_for_large_ratio'), wx.Point(-1, -1), wx.Size(-1, -1), wx.RB_GROUP)
+        self.rb_g2g_boost_rep = wx.RadioButton(self, -1, self.utility.lang.get('boost__reputation'), wx.Point(-1, -1), wx.Size(-1, -1))
+        self.rb_g2g_until_time = wx.RadioButton(self, -1, self.utility.lang.get('seed_sometime'), wx.Point(-1, -1), wx.Size(-1, -1))
+        self.rb_g2g_no_seeding = wx.RadioButton(self, -1, self.utility.lang.get('no_seeding'), wx.Point(-1, -1), wx.Size(-1, -1))
+    
+        self.g2g_rbs = [self.rb_g2g_large_ratio, self.rb_g2g_boost_rep, self.rb_g2g_until_time, self.rb_g2g_no_seeding]
+    
+        # Seeding ratio option
+        g2g_ratio = ['50', '75', '100', '150', '200', '300', '500']
+        self.cb_g2g_ratio = wx.ComboBox(self, -1, "", 
+                                  wx.Point(-1, -1), wx.Size(65, -1), g2g_ratio, wx.CB_DROPDOWN|wx.CB_READONLY)
        
-        percent_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        percent_sizer.Add(rb3, 0, wx.ALIGN_CENTER_VERTICAL)
-        percent_sizer.Add(self.cbratio, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
-        percent_sizer.Add(wx.StaticText(self, -1, "%"), 0, wx.ALIGN_CENTER_VERTICAL)
+        g2g_ratio_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        g2g_ratio_sizer.Add(self.rb_g2g_large_ratio, 0, wx.ALIGN_CENTER_VERTICAL)
+        g2g_ratio_sizer.Add(self.cb_g2g_ratio, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
+        g2g_ratio_sizer.Add(wx.StaticText(self, -1, "%"), 0, wx.ALIGN_CENTER_VERTICAL)
         
-        continuesection.Add(percent_sizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        g2g_section.Add(g2g_ratio_sizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        
+        # boost your reputation
+        g2g_section.Add(self.rb_g2g_boost_rep, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        
+        # Seeding for sometime            
+        self.cb_g2g_hours = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
+                                  wx.Size(55, -1), hours_interval, wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.cb_g2g_mins = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
+                                  wx.Size(55, -1), mins_interval, wx.CB_DROPDOWN|wx.CB_READONLY)
+        
+        g2g_timing_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        g2g_timing_sizer.Add(self.rb_g2g_until_time, 0, wx.ALIGN_CENTER_VERTICAL)
+        g2g_timing_sizer.Add(self.cb_g2g_hours, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        g2g_timing_sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('seed_hours')), 0, wx.ALIGN_CENTER_VERTICAL)
+        g2g_timing_sizer.Add(self.cb_g2g_mins, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        g2g_timing_sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('seed_mins')), 0, wx.ALIGN_CENTER_VERTICAL)
+        
+        g2g_section.Add(g2g_timing_sizer, -1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
-        sizer.Add(continuesection, 0, wx.EXPAND|wx.ALL, 5)
+        # No seeding (That's evil, don't touch it!)
+        g2g_section.Add(self.rb_g2g_no_seeding, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+
+        sizer.Add(g2g_section, 0, wx.EXPAND|wx.ALL, 5)
+        # ~ Boxun
         
         self.initTasks()
 
     def loadValues(self, Read = None):
-        if Read is None:
-            Read = self.utility.config.Read
-
-        self.cbratio.SetValue(Read('uploadratio'))
-        self.cbhtime.SetValue(Read('uploadtimeh'))
-        self.cbmtime.SetValue(Read('uploadtimem'))
-            
-        self.rb[Read('uploadoption', "int")].SetValue(True)
-        
+        # Load settings from dlConfig
+        try:
+            if Read is None:
+                Read = self.utility.config.Read
+                
+            self.t4t_rbs[Read('t4t_option', "int")].SetValue(True)
+            self.cb_t4t_hours.SetValue(str(Read('t4t_hours', "int")))
+            self.cb_t4t_mins.SetValue(str(Read('t4t_hours', "int")))
+            self.g2g_rbs[Read('g2g_option', "int")].SetValue(True)
+            self.cb_g2g_ratio.SetValue(str(Read('g2g_ratio', "int")))
+            self.cb_g2g_hours.SetValue(str(Read('g2g_hours', "int")))
+            self.cb_g2g_mins.SetValue(str(Read('g2g_mins', "int")))
+                
+        except:
+            print_exc()
+    
     def apply(self):
-        # Set new value to parameters
-        ##############################
-        for i in range (3):
-            if self.rb[i].GetValue():
-                self.utility.config.Write('uploadoption', i)
-
-        self.utility.config.Write('uploadtimeh', self.cbhtime.GetValue())
-        self.utility.config.Write('uploadtimem', self.cbmtime.GetValue())
-        self.utility.config.Write('uploadratio', self.cbratio.GetValue())
-
-
-
+        try:
+            # tit-4-tat 
+            for i in range (4):
+                if self.t4t_rbs[i].GetValue():
+                    self.utility.config.Write('t4t_option', i)
+                    break
         
+            self.utility.config.Write("t4t_hours", self.cb_t4t_hours.GetValue())
+            self.utility.config.Write("t4t_mins", self.cb_t4t_mins.GetValue())
+            
+            # give-2-get
+            for i in range (4):
+                if self.g2g_rbs[i].GetValue():
+                    self.utility.config.Write("g2g_option", i)
+                    break
+        
+            self.utility.config.Write("g2g_hours", self.cb_g2g_hours.GetValue())
+            self.utility.config.Write("g2g_mins", self.cb_g2g_mins.GetValue())
+            self.utility.config.Write("g2g_ratio", self.cb_g2g_ratio.GetValue())
+          
+        except:
+            print_exc()
 
 
 

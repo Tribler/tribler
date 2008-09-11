@@ -175,4 +175,124 @@ class DLFilesList(tribler_List):
             event.Skip()
             if self.updateFunc:
                 self.updateFunc(self.other_List, self)
-                
+
+class T4TSeedingList(tribler_List):
+    def __init__(self):
+        self.initReady = False
+        tribler_List.__init__(self)
+    
+    def setData(self, dslist, metadatahandler=None):
+        # Get the file(s)data for this torrent
+        if not self.initReady:
+            self._PostInit()
+        
+        try:
+            # refresh the lists
+            self.DeleteAllItems()
+            
+            for ds in dslist: 
+                peer_list = ds.get_peerlist()
+                    
+                if not peer_list:
+                    # fault tolerance
+                    peer_list = []
+                     
+                for p in peer_list:   
+                    uprate, utotal = p['uprate'], p['utotal']  
+                    if uprate == 0 and utotal == 0:
+                        continue
+                    if not p['g2g']:
+                        index = self.InsertStringItem(sys.maxint, p['ip'])
+                        self.SetStringItem(index, 1, self.utility.speed_format(uprate, 1, "KB"))
+                        self.SetStringItem(index, 2, self.utility.size_format(utotal, 1, "MB"))
+                    
+            self.onListResize(None)
+            
+        except:
+            print_exc()
+            return {}
+    
+    def _PostInit(self):
+        if not self.initReady:
+            self.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL)
+            self.InsertColumn(0, self.utility.lang.get('peer_ip'))
+            self.InsertColumn(1, self.utility.lang.get('curr_ul_rate'))
+            self.InsertColumn(2, self.utility.lang.get('ul_amount'))
+            
+            self.SetColumnWidth(0, 140)
+            self.SetColumnWidth(1, 75)
+            self.SetColumnWidth(2, 75)
+            
+            self.Bind(wx.EVT_SIZE, self.onListResize)
+        self.initReady = True
+    
+    def onListResize(self, event):
+        size = self.GetClientSize()
+        if size[0] > 50 and size[1] > 50:
+            self.ScrollList(-100, 0) # Removes HSCROLLBAR
+        if event:
+            event.Skip()   
+            
+class G2GSeedingList(tribler_List):
+    def __init__(self):
+        self.initReady = False
+        tribler_List.__init__(self)
+    
+    def setData(self, dslist, metadatahandler=None):
+        # Get the file(s)data for this torrent
+        if not self.initReady:
+            self._PostInit()
+        
+        try:
+            peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
+                        
+            # refresh the lists
+            self.DeleteAllItems()
+            
+            for ds in dslist:    
+                peer_list = ds.get_peerlist()
+                    
+                if not peer_list:
+                    peer_list = []
+                    
+                for p in peer_list:
+                    uprate, utotal = p['uprate'], p['utotal']  
+                    if uprate == 0 and utotal == 0:
+                        continue
+                    
+                    if p['g2g']:
+                        tribler_id = peer_db.getPeerID(p['id'])
+                        
+                        if not tribler_id:   
+                            tribler_id = p['ip']
+                            
+                        index = self.InsertStringItem(sys.maxint, str(tribler_id))
+                        self.SetStringItem(index, 1, self.utility.speed_format(uprate, 1, "KB"))
+                        self.SetStringItem(index, 2, self.utility.size_format(utotal, 1, "MB"))
+                    
+            self.onListResize(None)
+            
+        except:
+            print_exc()
+            return {}
+    
+    def _PostInit(self):
+        if not self.initReady:
+            self.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL)
+            self.InsertColumn(0, self.utility.lang.get('tribler_name'))
+            self.InsertColumn(1, self.utility.lang.get('curr_ul_rate'))
+            self.InsertColumn(2, self.utility.lang.get('ul_amount'))
+            
+            self.SetColumnWidth(0, 140)
+            self.SetColumnWidth(1, 75)
+            self.SetColumnWidth(2, 75)
+            
+            self.Bind(wx.EVT_SIZE, self.onListResize)
+        self.initReady = True   
+    
+    def onListResize(self, event):
+        size = self.GetClientSize()
+        if size[0] > 50 and size[1] > 50:
+            self.ScrollList(-100, 0) # Removes HSCROLLBAR
+        if event:
+            event.Skip()

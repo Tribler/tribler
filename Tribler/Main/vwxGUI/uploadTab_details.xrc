@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource version="2.3.0.1" xmlns="http://www.wxwidgets.org/wxxrc">
+  <object class="wxPanel" name="uploadTab_details">
+    <pos>0,0</pos>
+    <size>300,348</size>
+    <bg>#ffffff</bg>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      
+      <object class="sizeritem">
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="sizeritem">
+            <object class="wxBoxSizer">
+              <object class="sizeritem">
+                <object class="wxStaticText" name="st209cCC">
+                  <pos>8,8</pos>
+                  <size>129,18</size>
+                  <label>tit-for-tat:</label>
+                  <style>wxST_NO_AUTORESIZE</style>
+                </object>
+                <option>0</option>
+                <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE</flag>
+                <border>5</border>
+              </object>
+              <object class="sizeritem">
+                <object class="wxListCtrl" name="t4t_peers" subclass="Tribler.Main.vwxGUI.tribler_List.T4TSeedingList">
+                  <pos>3,64</pos>
+                  <size>292,155</size>
+                </object>
+              </object>
+              <orient>wxVERTICAL</orient>
+            </object>
+            <option>0</option>
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+          </object>
+          <object class="sizeritem">
+            <object class="wxBoxSizer">
+              <object class="sizeritem">
+                <object class="wxStaticText" name="st209cCC">
+                  <pos>8,8</pos>
+                  <size>129,18</size>
+                  <label>give-to-get:</label>
+                  <style>wxST_NO_AUTORESIZE</style>
+                </object>
+                <option>0</option>
+                <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE</flag>
+                <border>5</border>
+              </object>
+              <object class="sizeritem">
+                <object class="wxListCtrl" name="g2g_peers" subclass="Tribler.Main.vwxGUI.tribler_List.G2GSeedingList">
+                  <pos>3,64</pos>
+                  <size>292,155</size>
+                </object>
+              </object>
+              <orient>wxVERTICAL</orient>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

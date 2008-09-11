@@ -388,8 +388,13 @@ class GUIUtility:
                 self.standardDetails.refreshTorrentStats(dslist)
         except:
             print_exc()
-
-
+    
+    def refreshUploadStats(self, dslist):
+        try:
+            if self.guiOpen.isSet():
+                self.standardDetails.refreshUploadStats(dslist)
+        except:
+            print_exc()
    
     def emailFriend(self, event):
         ip = self.utility.config.Read('bind')

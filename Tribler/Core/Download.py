@@ -120,7 +120,7 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
             peerreclist = self.session.lm.peer_db.getPeers(permidlist, ['permid','ip','port'])
             
             if self.sd is not None:
-                ask_coopdl_helpers_lambda = lambda:self.sd.ask_coopdl_helpers(peerreclist)
+                ask_coopdl_helpers_lambda = lambda:self.sd is not None and self.sd.ask_coopdl_helpers(peerreclist)
                 self.session.lm.rawserver.add_task(ask_coopdl_helpers_lambda,0)
             else:
                 raise OperationNotPossibleWhenStoppedException()
@@ -140,9 +140,22 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
             peerreclist = self.session.lm.peer_db.getPeers(permidlist, ['permid','ip','port'])
                        
             if self.sd is not None:
-                stop_coopdl_helpers_lambda = lambda:self.sd.stop_coopdl_helpers(peerreclist)
+                stop_coopdl_helpers_lambda = lambda:self.sd is not None and self.sd.stop_coopdl_helpers(peerreclist)
                 self.session.lm.rawserver.add_task(stop_coopdl_helpers_lambda,0)
             else:
                 raise OperationNotPossibleWhenStoppedException()
         finally:
             self.dllock.release()
+    
+# SelectiveSeeding_
+    def set_seeding_policy(self,policy):
+        self.dllock.acquire()
+        try:
+            if self.sd is not None:
+                set_seeding_policy_lambda = lambda:self.sd is not None and self.sd.get_bt1download().choker.set_seeding_manager(policy)
+                self.session.lm.rawserver.add_task(set_seeding_policy_lambda,0)
+            else:
+                raise OperationNotPossibleWhenStoppedException()
+        finally:
+            self.dllock.release()
+# _SelectiveSeeding

@@ -221,12 +221,12 @@ rlow 			= "&Low"
 rlowest 		= "L&owest"
 
 ###################################################
-# Upload Setting
+# Seeding Setting
 ###################################################
 uploadoptforcompletedfile = "Upload option for completed files"
-unlimitedupload = "Unlimited upload"
-continueuploadfor = "Continue upload for"
-untilratio 		= "Upload until UL/DL ratio = "
+unlimitedupload = "Unlimited seeding"
+continueuploadfor = "Continue seeding for"
+untilratio 		= "Seeding until UL/DL ratio = "
 uploadsetting 	= "Upload Setting"
 maxuploads 		= "Maximum uploads:"
 maxuploadrate 	= "Maximum upload rate:"
@@ -243,6 +243,24 @@ zeroisauto 		= "(0 = Auto)"
 uploadrateintwarning = "Only integer allowed in Maximum upload rate setting"
 uploadrateminwarning = "Minimum upload rate is 3kB/s or 0 for unlimited upload rate"
 uploadrateminwarningauto = "Minimum upload rate is 3kB/s or 0 for auto upload rate"
+
+#Common option for t4t and g2g
+default_setting = "default"
+seed_sometime = "Seeding for"
+seed_hours = "hours"
+seed_mins = "minutes"
+no_seeding = "No seeding"
+
+#Seeding option texts for tit-4-tat
+tit-4-tat = "tit-4-tat: (Forgets about uploads)"
+no_leeching = "Seed until UL/DL ratio > 1.0 (no Bittorrent leeching)"
+unlimited_seeding = "Unlimited seeding"
+
+#Seeding option texts for give-2-get
+give-2-get = "give-2-get: (Remembers every upload)"
+seed_for_large_ratio = "Seed only to peers with UL/DL ratio >"
+boost__reputation = "Unlimited seeding (Boost your reputation)"
+
 
 ############################################
 # Units
@@ -1370,3 +1388,11 @@ DLSTATUS_STOPPED_ON_ERROR = "stopped/error"
 
 duplicate_download_msg = "You are already downloading this torrent, see your library."
 duplicate_download_title = "Duplicate download"
+
+################
+#Tribler UI - Upload tab
+#################
+peer_ip = "Peer IP"
+tribler_name = "Tribler name"
+curr_ul_rate = "Current upload rate"
+ul_amount = "Amount of MBytes uploaded"
