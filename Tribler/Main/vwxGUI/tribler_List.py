@@ -6,6 +6,7 @@ from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.simpledefs import *
 
 DEBUG = False
 
