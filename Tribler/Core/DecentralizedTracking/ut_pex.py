@@ -62,14 +62,16 @@ def check_ut_pex(d):
         raise ValueError('ut_pex: not a dict')
     apeers = check_ut_pex_peerlist(d,'added')
     dpeers = check_ut_pex_peerlist(d,'dropped')
-    if 'added.f' not in d:
-        raise ValueError('ut_pex: added.f: missing')
-    addedf = d['added.f']
-    if type(addedf) != StringType:
-        raise ValueError('ut_pex: added.f: not string')
-    if len(addedf) != len(apeers) and not len(addedf) == 0:
-        # KTorrent sends an empty added.f, be nice
-        raise ValueError('ut_pex: added.f: more flags than peers')
+    if 'added.f' in d:
+        addedf = d['added.f']
+        if type(addedf) != StringType:
+            raise ValueError('ut_pex: added.f: not string')
+        if len(addedf) != len(apeers) and not len(addedf) == 0:
+            # KTorrent sends an empty added.f, be nice
+            raise ValueError('ut_pex: added.f: more flags than peers')
+    # Arno, 2008-09-12: Be liberal in what we receive
+    ##else:
+        ##raise ValueError('ut_pex: added.f: missing')
     
     if DEBUG:
         print >>sys.stderr,"ut_pex: Got",apeers
@@ -78,7 +80,10 @@ def check_ut_pex(d):
     
 def check_ut_pex_peerlist(d,name):
     if name not in d:
-        raise ValueError('ut_pex:'+name+': missing')
+        # Arno, 2008-09-12: Be liberal in what we receive, some clients
+        # leave out 'dropped' key
+        ##raise ValueError('ut_pex:'+name+': missing')
+        return []
     peerlist = d[name]
     if type(peerlist) != StringType:
         raise ValueError('ut_pex:'+name+': not string')

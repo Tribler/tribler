@@ -57,8 +57,10 @@ def decode_dict(x, f):
     lastkey = None
     while x[f] != 'e':
         k, f = decode_string(x, f)
-        if lastkey >= k:
-            raise ValueError
+        # Arno, 2008-09-12: uTorrent 1.8 violates the bencoding spec, its keys
+        # in a ut_pex message are not sorted. Be liberal in what we receive:
+        ##if lastkey >= k:
+        ##    raise ValueError
         lastkey = k
         r[k], f = decode_func[x[f]](x, f)
     return (r, f + 1)
@@ -84,7 +86,8 @@ def bdecode(x, sloppy = 0):
         r, l = decode_func[x[0]](x, 0)
 #    except (IndexError, KeyError):
     except (IndexError, KeyError, ValueError):
-        #print_exc()
+        if DEBUG:
+            print_exc()
         raise ValueError, "bad bencoded data"
     if not sloppy and l != len(x):
         raise ValueError, "bad bencoded data"

@@ -153,9 +153,8 @@ class Connection:
     def close(self):
         if DEBUG:
             print 'connection closed'
-
-        if self.get_ip() == self.connecter.tracker_ip:
-            print >>sys.stderr,"connecter: close: live: WAAH closing SOURCE"
+            if self.get_ip() == self.connecter.tracker_ip:
+                print >>sys.stderr,"connecter: close: live: WAAH closing SOURCE"
 
         self.connection.close()
         self.closed = True
@@ -683,9 +682,10 @@ class Connecter:
                 print >> sys.stderr, "bartercast: no overlay bridge found"
             
         #########################
-
-        if c.get_ip() == self.tracker_ip:
-            print >>sys.stderr,"connecter: connection_lost: live: WAAH2 closing SOURCE"
+        
+        if DEBUG:
+            if c.get_ip() == self.tracker_ip:
+                print >>sys.stderr,"connecter: connection_lost: live: WAAH2 closing SOURCE"
             
         del self.connections[connection]
         if c.download:
@@ -968,7 +968,8 @@ class Connecter:
             ext_id = message[1]
             if DEBUG:
                 print >>sys.stderr,"connecter: Got EXTEND message, id",ord(ext_id)
-            if ext_id == EXTEND_MSG_HANDSHAKE_ID: # Handshake:
+            if ext_id == EXTEND_MSG_HANDSHAKE_ID: 
+                # Message is Handshake
                 d = bdecode(message[2:])
                 if type(d) == DictType:
                     c.got_extend_handshake(d)
@@ -978,6 +979,7 @@ class Connecter:
                     connection.close()
                     return
             else:
+                # Message is regular message e.g ut_pex
                 ext_msg_name = self.our_extend_msg_id_to_name(ext_id)
                 if ext_msg_name is None:
                     if DEBUG:
@@ -994,7 +996,7 @@ class Connecter:
                         c.got_ut_pex(d)
                     else:
                         if DEBUG:
-                            print >>sys.stderr,"Close on bad EXTEND: payload of handshake is not a bencoded dict"
+                            print >>sys.stderr,"Close on bad EXTEND: payload of ut_pex is not a bencoded dict"
                         connection.close()
                         return
                 elif ext_msg_name == EXTEND_MSG_G2G_V2 and self.use_g2g:
@@ -1032,7 +1034,7 @@ class Connecter:
             return
         except Exception,e:
             if not DEBUG:
-                print >>sys.stderr,"Close on bad EXTEND: exception",str(e)
+                print >>sys.stderr,"Close on bad EXTEND: exception:",str(e),`message[2:]`
                 traceback.print_exc()
             connection.close()
             return
