@@ -58,7 +58,8 @@ def decode_dict(x, f):
     while x[f] != 'e':
         k, f = decode_string(x, f)
         # Arno, 2008-09-12: uTorrent 1.8 violates the bencoding spec, its keys
-        # in a ut_pex message are not sorted. Be liberal in what we receive:
+        # in an EXTEND handshake message are not sorted. Be liberal in what we 
+        # receive:
         ##if lastkey >= k:
         ##    raise ValueError
         lastkey = k
