@@ -77,8 +77,8 @@ class CommonRequestPolicy(AbstractRequestPolicy):
 		this peer.
 		"""
 		peer = self.session.lm.peer_db.getPeer(permid)
-		print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: getPeer",`permid`,peer
-		print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: called by",currentThread().getName()
+		#print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: getPeer",`permid`,peer
+		#print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: called by",currentThread().getName()
 		if peer is None:
 			return 0
 		else:

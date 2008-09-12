@@ -128,7 +128,7 @@ class VideoSourceTransporter:
             self.buflen += len( data )
 
             if not self.handling_pieces:
-                # signal to main thread that data has arrived
+                # signal to network thread that data has arrived
                 self.rawserver.add_task( self.create_pieces )
                 self.handling_pieces = True
         finally:

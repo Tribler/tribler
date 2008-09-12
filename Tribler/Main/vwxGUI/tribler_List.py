@@ -5,8 +5,7 @@ import wx, os, sys
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.Utilities.unicode import *
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
-from Tribler.Core.simpledefs import *
+from Tribler.Core.API import *
 
 DEBUG = False
 
@@ -159,8 +158,8 @@ class DLFilesList(tribler_List):
             item = self.GetFirstSelected()
             if item != -1 and item < len(self.infohash_List):
                 infohash = self.infohash_List[item] 
-                # jie.done: clicke to download. fix it by replacing by db
-                torrent_db = TorrentDBHandler.getInstance()
+                # jie.done: click to download. fix it by replacing by db
+                torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
                 torrent = torrent_db.getTorrent(infohash)
                 torrent['infohash'] = infohash
                 ret = self.guiUtility.standardDetails.download(torrent)

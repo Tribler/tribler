@@ -378,13 +378,23 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_internaltracker(self,value):
+    def set_internal_tracker(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
-    def get_internaltracker(self):
+    def get_internal_tracker(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_internaltracker(self)
+            return SessionConfigInterface.get_internal_tracker(self)
+        finally:
+            self.sesslock.release()
+
+    def set_mainline_dht(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_mainline_dht(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_mainline_dht(self)
         finally:
             self.sesslock.release()
 
@@ -889,3 +899,4 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_puncturing_coordinators(self)
         finally:
             self.sesslock.release()
+

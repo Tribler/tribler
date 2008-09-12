@@ -68,6 +68,7 @@ sessdefaults['stun_servers'] = [('stun1.tribler.org',6701),('stun2.tribler.org',
 sessdefaults['pingback_servers'] = [('pingback.tribler.org',6702)]
 sessdefaults['puncturing_coordinators'] = [('puncturing.tribler.org',6703)]
 sessdefaults['live_aux_seeders'] = []
+sessdefaults['mainline_dht'] = True
 
 trackerdefaults = {}
 trackerdefaults['tracker_url'] = None

@@ -531,6 +531,19 @@ class SessionConfigInterface:
         @return URL. """
         return self.sessconfig['tracker_url']
 
+
+    def set_mainline_dht(self,value):
+        """ Enable mainline DHT support (default = True)
+        @param value Boolean.
+        """
+        self.sessconfig['mainline_dht'] = value
+
+    def get_mainline_dht(self):
+        """ Returns whether mainline DHT support is enabled.
+        @return Boolean. """
+        return self.sessconfig['mainline_dht']
+
+
     #
     # Internal tracker access control settings
     #

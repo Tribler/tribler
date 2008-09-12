@@ -175,17 +175,19 @@ class Session(SessionRuntimeConfig):
             # Poor man's versioning, really should update PERSISTENTSTATE_CURRENTVERSION
             self.sessconfig['live_aux_seeders'] = sessdefaults['live_aux_seeders']
 
-        if self.sessconfig['nat_detect'] is None:
+        if not 'nat_detect' in self.sessconfig:
             self.sessconfig['nat_detect'] = sessdefaults['nat_detect']
-        if self.sessconfig['puncturing_private_port'] is None:
+        if not 'puncturing_private_port' in self.sessconfig:
             self.sessconfig['puncturing_private_port'] = sessdefaults['puncturing_private_port']
-        if self.sessconfig['stun_servers'] is None:
+        if not 'stun_servers' in self.sessconfig:
             self.sessconfig['stun_servers'] = sessdefaults['stun_servers']
-        if self.sessconfig['puncturing_coordinators'] is None:
+        if not 'puncturing_coordinators' in self.sessconfig:
             self.sessconfig['puncturing_coordinators'] = sessdefaults['puncturing_coordinators']	
-        if self.sessconfig['pingback_servers'] is None:
+        if not 'pingback_servers' in self.sessconfig:
             self.sessconfig['pingback_servers'] = sessdefaults['pingback_servers']
-
+        if not 'mainline_dht' in self.sessconfig:
+            self.sessconfig['mainline_dht'] = sessdefaults['mainline_dht']
+            
         # Checkpoint startup config
         self.save_pstate_sessconfig()
 

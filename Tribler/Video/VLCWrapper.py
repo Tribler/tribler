@@ -43,7 +43,12 @@ class VLCWrapper:
         """
         xid = wxwindow.GetHandle()
         if xid == 0:
-            print >>sys.stderr,"VLCWrapper: WARNING: window passed to vlcwrap not yet materialized, XID=0"
+            if DEBUG:
+                print >>sys.stderr,"VLCWrapper: set_window: WARNING: window not yet materialized, XID=0"
+            return
+        
+        if DEBUG:
+            print >>sys.stderr,"VLCWrapper: set_window, XID=",xid
             
         if sys.platform == 'darwin':
             self.media.set_visual_macosx_type(vlc.DrawableControlRef)
@@ -101,6 +106,8 @@ class VLCWrapper:
     
     def load(self,url,streaminfo=None):
         
+        print >>sys.stderr,"VLCWrapper: load:",url,streaminfo
+        
         #self.media.exit()
         #self.media = self.get_vlc_mediactrl()
         
@@ -119,7 +126,7 @@ class VLCWrapper:
             self.videoserv.set_inputstream(streaminfo,sid)
                
             if DEBUG:
-                print >>sys.stderr,"VLCWrapper: Load: stream",sid,"size",streaminfo['length']
+                print >>sys.stderr,"VLCWrapper: load: stream",sid,"size",streaminfo['length']
             length = streaminfo['length']
             if length is None:
                 length = -1
@@ -129,11 +136,13 @@ class VLCWrapper:
             #self.media.set_raw_callbacks(videoserv.ReadDataCallback,videoserv.SeekDataCallback,length)
             
         else:
+            if DEBUG:
+                print >>sys.stderr,"VLCWrapper: load: calling playlist_add_item"
             self.media.playlist_add_item(url)
 
     def start(self,abspos=0):
         if DEBUG:
-            print >>sys.stderr,"VLCWrapper: play: start"
+            print >>sys.stderr,"VLCWrapper: play: start",self.media.playlist_get_list()
         pos = vlc.Position()
         pos.origin = vlc.AbsolutePosition
         pos.key = vlc.MediaTime

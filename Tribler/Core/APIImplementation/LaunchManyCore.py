@@ -202,15 +202,13 @@ class TriblerLaunchMany(Thread):
         else:
             self.httphandler = DummyHTTPHandler()
         self.multihandler.set_httphandler(self.httphandler)
-        
-        
-        # add task for tracker checking
-        if config['torrent_checking']:
+
+        if config['mainline_dht']:
             # Start up mainline DHT
             # Arno: do this in a try block, as khashmir gives a very funky
-            # error when started from a .dmg (not from cmd line) on Mac. In particular
-            # it complains that it cannot find the 'hex' encoding method when
-            # hstr.encode('hex') is called, and hstr is a string?!
+            # error when started from a .dmg (not from cmd line) on Mac. In 
+            # particular it complains that it cannot find the 'hex' encoding
+            # method when hstr.encode('hex') is called, and hstr is a string?!
             #
             try:
                 rsconvert = RawServerConverter(self.rawserver)
@@ -222,7 +220,10 @@ class TriblerLaunchMany(Thread):
                 c.register(mainlineDHT.dht)
             except:
                 print_exc()
-            
+        
+        
+        # add task for tracker checking
+        if config['torrent_checking']:
             self.torrent_checking_period = config['torrent_checking_period']
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
