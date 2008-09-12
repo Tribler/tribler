@@ -125,12 +125,10 @@ class UnlimitedSeeding(SeedingPolicy):
 
 
 class NoSeeding(SeedingPolicy):
-    def __init__(self, ds):
+    def __init__(self):
         SeedingPolicy.__init__(self)
-        self.ds = ds
     
     def apply(self, conn):
-        # ds.get_download().stop()
         return False
 
 class TitForTatTimeBasedSeeding(SeedingPolicy):
