@@ -53,7 +53,8 @@ class TestAsServer(unittest.TestCase):
         self.config.set_remote_query(False)
         self.config.set_internal_tracker(False)
         self.config.set_bartercast(False)
-        self.config.set_install_dir(os.path.abspath('.'))
+        # Assume all test scripts are run from Tribler/Test
+        self.config.set_install_dir(os.path.abspath(os.path.join('..','..')))
 
         self.my_keypair = EC.gen_params(EC.NID_sect233k1)
         self.my_keypair.gen_key()

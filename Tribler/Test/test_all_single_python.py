@@ -39,6 +39,7 @@ def suite():
     import test_sqlitecachedbhandler as test_sqlitecachedbhandler
     import test_superpeers as test_superpeers
     import test_buddycast as test_buddycast
+    import test_buddycast_msg as test_buddycast_msg
     import test_sim as test_sim
     import test_merkle as test_merkle
     import test_permid as test_permid
@@ -79,7 +80,8 @@ def suite():
         #test_remote_query,
         #test_ut_pex,
         #test_bartercast,
-        test_g2g
+        #test_g2g,
+        test_buddycast_msg
         ]
 
     alltests = unittest.TestSuite()
