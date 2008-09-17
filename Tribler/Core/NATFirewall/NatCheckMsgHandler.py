@@ -36,6 +36,7 @@ class NatCheckMsgHandler:
         self.session = launchmany.session		 
         self.superpeer_db = launchmany.superpeer_db 
         self.doNatCheckSender = None
+        self.natcheck_reply = ""
         self.peerlist = None
         self.registered = True
 
@@ -56,9 +57,9 @@ class NatCheckMsgHandler:
 
         superpeers = self.superpeer_db.getSuperPeers()
         if sender_permid in superpeers: # NAT check started only if requested by a superpeer
+            self.doNatCheckSender = sender_permid
             if DEBUG:
                 print >> sys.stderr,"NatCheckMsgHandler: DO_NAT_CHECK sender is superpeer"
-            self.doNatCheckSender = sender_permid
 
             try:
                 if DEBUG:
@@ -75,22 +76,31 @@ class NatCheckMsgHandler:
         if DEBUG:
             print >> sys.stderr, "NAT type: ", ncr_data
 
-        try:
-            ncr_msg = bencode(ncr_data)
-        except:
-            print_exc()
-            if DEBUG: print >> sys.stderr, "error ncr_data:", ncr_data
-            return False
-
-        # send the message
+        # connect to the peer who has made the NAT_CHECK request
         if self.doNatCheckSender is not None:
+            try:
+                ncr_msg = bencode(ncr_data)
+            except:
+                print_exc()
+                if DEBUG: print >> sys.stderr, "error ncr_data:", ncr_data
+                return False
+            self.natcheck_reply = ncr_msg
             if DEBUG:
                 print >> sys.stderr, "NatCheckMsgHandler:", ncr_data
-            self.overlay_bridge.send(self.doNatCheckSender, NAT_CHECK_REPLY+ncr_msg, self.natCheckReplySendCallback)
-        else:
-            raise RuntimeError, "NatCheckMsgHandler: bad DO_NAT_CHECK sender_permid"
+            self.overlay_bridge.connect(self.doNatCheckSender, self.natCheckReplyConnectCallback)
 
     def validDoNatCheckMessage(self, ncr_data):
+        return True
+
+    # send the message
+    def natCheckReplyConnectCallback(self, exc, dns, permid, server):
+        if DEBUG:
+            print >> sys.stderr, "******* NAT_CHECK_REPLY: connecting to", show_permid_short(permid), exc
+        if exc is not None:
+            if DEBUG:
+                print >> sys.stderr, "********* NAT_CHECK_REPLY: not able to connect to", show_permid_short(permid), exc
+            return False
+        self.overlay_bridge.send(self.doNatCheckSender, NAT_CHECK_REPLY+self.natcheck_reply, self.natCheckReplySendCallback)
         return True
 
     def natCheckReplySendCallback(self, exc, permid):
@@ -114,6 +124,7 @@ class NatCheckClient(Thread):
         self.setDaemon(True)
 
         self.session = session
+        self.permid = self.session.get_permid()
         self.nat_type = None
         self.nat_timeout = -1
         self._nat_callbacks = [] # list with callback functions that want to know the nat_type
@@ -131,7 +142,7 @@ class NatCheckClient(Thread):
         """
         Find out NAT timeout
         """
-        return timeout_check(pingback)
+        return timeout_check(show_permid(self.permid), pingback)
 
     def natcheck(self, udpsock, privateIP, privatePort, server1, server2):
         """
