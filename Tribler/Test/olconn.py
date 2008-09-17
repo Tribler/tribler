@@ -1,6 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+import sys
 import sha
 
 from Tribler.Test.test_permid import TestPermIDs
@@ -14,13 +15,13 @@ cr_random_size = 1024
 
 class OLConnection:
 
-    def __init__(self,my_keypair,hostname,port,opensock=None,mylistenport=481):
+    def __init__(self,my_keypair,hostname,port,opensock=None,mylistenport=481,myoversion=None):
         """ If opensock is not None, we assume this is a connection we
             accepted, and he initiates the Challenge/Response
         """
 
         self.my_keypair = my_keypair
-        self.b = BTConnection(hostname,port,opensock,mylistenport=mylistenport)
+        self.b = BTConnection(hostname,port,opensock,mylistenport=mylistenport,myoversion=myoversion)
         if opensock:
             self.b.read_handshake_medium_rare()
             # Read challenge
@@ -37,9 +38,11 @@ class OLConnection:
             [rB,chal_data] = self.create_good_challenge()
             self.b.send(chal_data)
             resp1_data = self.b.recv()
+            print >>sys.stderr,"olconn: recv",len(resp1_data),"bytes"
             resp1_dict = bdecode(resp1_data[1:])
             resp2_data = self.create_good_response2(rB,resp1_dict,self.b.get_his_id())
             self.b.send(resp2_data)
+            print >>sys.stderr,"olconn: sent",len(resp2_data),"bytes"
 
     def get_my_fake_listen_port(self):
         return self.b.get_my_fake_listen_port()

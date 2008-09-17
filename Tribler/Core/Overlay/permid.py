@@ -11,7 +11,7 @@ from M2Crypto import Rand,EC,EVP
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
-DEBUG = 0
+DEBUG = False
 
 # Internal constants
 keypair_ecc_curve = EC.NID_sect233k1

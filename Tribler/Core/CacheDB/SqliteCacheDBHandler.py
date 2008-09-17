@@ -271,7 +271,6 @@ class PeerDBHandler(BasicDBHandler):
         # add or update a peer
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
         # Jie: deepcopy(value)?
-        #print >>sys.stderr,"sqldbhand: addPeer",`permid`,`value`
         
         _permid = _last_seen = _ip = _port = None
         if 'permid' in value:
@@ -306,6 +305,10 @@ class PeerDBHandler(BasicDBHandler):
         # Jie: only notify the GUI when a peer was connected
         if 'connected_times' in value:
             self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
+
+        #print >>sys.stderr,"sqldbhand: addPeer",`permid`,self._db.getPeerID(permid),`value`
+        #print_stack()
+            
             
     def hasPeer(self, permid):
         return self._db.hasPeer(permid)
@@ -325,6 +328,9 @@ class PeerDBHandler(BasicDBHandler):
     def updatePeer(self, permid, commit=True, **argv):
         self._db.update(self.table_name, 'permid='+repr(bin2str(permid)), commit=commit, **argv)
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
+
+        #print >>sys.stderr,"sqldbhand: updatePeer",`permid`,argv
+        #print_stack()
 
     def deletePeer(self, permid=None, peer_id=None, force=False, commit=True):
         # don't delete friend of superpeers, except that force is True

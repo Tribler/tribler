@@ -5,15 +5,7 @@ from traceback import print_exc
 from time import sleep
 from threading import Thread, currentThread
 
-if os.path.exists('test_TimedTaskQueue.py'):
-    BASE_DIR = '..'
-elif os.path.exists('main.py'):
-    BASE_DIR = '.'
-elif os.path.exists('makedist.bat'):
-    BASE_DIR = 'Tribler'
-sys.path.insert(1, os.path.abspath(BASE_DIR))
-    
-from Utilities.TimedTaskQueue import TimedTaskQueue
+from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 
 class TestTimedTaskQueue(unittest.TestCase):
     
@@ -49,6 +41,33 @@ class TestTimedTaskQueue(unittest.TestCase):
     def task3b(self):
         self.count += 4
         assert self.count == 7 or self.count == 11
+
+    def test_addTask0FIFO(self):
+        self.queue = TimedTaskQueue()
+        self.count = 0
+        self.queue.add_task(self.task0a, 0)
+        self.queue.add_task(self.task0b, 0)
+        self.queue.add_task(self.task0c, 0)
+        self.queue.add_task(self.task0d, 0)
+        sleep(6)
+        assert self.count == 4
+        del self.queue
+
+    def task0a(self):
+        assert self.count == 0
+        self.count = 1
+        
+    def task0b(self):
+        assert self.count == 1
+        self.count = 2
+
+    def task0c(self):
+        assert self.count == 2
+        self.count = 3
+
+    def task0d(self):
+        assert self.count == 3
+        self.count = 4
     
 def test_suite():
     suite = unittest.TestSuite()

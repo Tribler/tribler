@@ -321,10 +321,13 @@ class BuddyCastFactory:
         if debug:
             print >>sys.stderr,"bc: doBuddyCast!", currentThread().getName()
         
+        # Reschedule ourselves for next round
         buddycast_interval = self.getCurrrentInterval()
         self.overlay_bridge.add_task(self.doBuddyCast, buddycast_interval)
         if not self.started:
             self.started = True
+            
+        # Do our thang.
         self.buddycast_core.work()
         
     def pauseBuddyCast(self):
@@ -404,22 +407,21 @@ class BuddyCastFactory:
         
         if DEBUG:
             print >> sys.stderr, "bc: handleConnection",exc,show_permid_short(permid),selversion,locally_initiated,currentThread().getName()
+
+        if not self.registered:
+            return
+            
+        if DEBUG:
+            nconn = 0
+            conns = self.buddycast_core.connections
+            print >> sys.stderr, "\nbc: conn in buddycast", len(conns)
+            for peer_permid in conns:
+                _permid = show_permid_short(peer_permid)
+                nconn += 1
+                print >> sys.stderr, "bc: ", nconn, _permid, conns[peer_permid]
                 
-        def _handleConnection():
-            if DEBUG:
-                print >> sys.stderr, "bc: _handleConnection",exc,show_permid_short(permid),selversion,locally_initiated,currentThread().getName()
-                nconn = 0
-                conns = self.buddycast_core.connections
-                print >> sys.stderr, "\nbc: conn in buddycast", len(conns)
-                for peer_permid in conns:
-                    _permid = show_permid_short(peer_permid)
-                    nconn += 1
-                    print >> sys.stderr, "bc: ", nconn, _permid, conns[peer_permid]
-                    
-            if self.running or exc is not None:    # if not running, only close connection
-                self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
-        if self.registered:
-            self.overlay_bridge.add_task(_handleConnection, 0)
+        if self.running or exc is not None:    # if not running, only close connection
+            self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
     
     def addMyPref(self, torrent):
         """ Called by OverlayThread (as should be everything) """
@@ -564,7 +566,7 @@ class BuddyCastCore:
                 #self.data_handler.checkUpdate()
                 gc.collect()
                 self.last_check_time = _now
-                
+            
             if self.next_initiate > 0:
                 # It replied some meesages in the last rounds, so it doesn't initiate Buddycast
                 self.print_debug_info('Active', 6)
@@ -582,7 +584,6 @@ class BuddyCastCore:
                 
             if debug:
                 print
-            
         except:
             print_exc()
         
@@ -644,6 +645,7 @@ class BuddyCastCore:
         aux.reverse()
         peers = []
         i = 0
+        
         # roll back when startfrom is bigger than npeers
         startfrom = startfrom % npeers    
         endat = startfrom + number
@@ -761,8 +763,12 @@ class BuddyCastCore:
             while len(self.connection_candidates) > 0:
                 selected_permid = sample(self.connection_candidates, 1)[0]
                 selected_peer_id = self.data_handler.getPeerID(selected_permid)
-                if selected_peer_id:
+                if selected_peer_id is None:
+                    self.removeConnCandidate(selected_permid)
+                    selected_permid = None
+                elif selected_peer_id:
                     break
+                
             return selected_permid
     
         self.target_type = 1 - self.target_type
@@ -770,7 +776,7 @@ class BuddyCastCore:
             target_permid = selectTBTarget()
         else:       # select a random peer
             target_permid = selectRPTarget()
-            
+
         return self.target_type, target_permid
     
     # ------ start buddycast exchange ------ #
@@ -1118,7 +1124,7 @@ class BuddyCastCore:
                 except:
                     errmsg = repr(msg)
                 if DEBUG:
-                    print >> sys.stderr, "bc: warning, got invalide BuddyCastMsg:", errmsg, \
+                    print >> sys.stderr, "bc: warning, got invalid BuddyCastMsg:", errmsg, \
                     "Round", self.round   # ipv6
                 return False
            
@@ -1704,7 +1710,7 @@ class DataHandler:
         self.pref_db = launchmany.pref_db
         self.friend_db = launchmany.friend_db
         self.myfriends = Set() # FIXME: implement friends
-        self.myprefs = None    # torrent ids
+        self.myprefs = []    # torrent ids
         self.peers = {}    # peer_id: [similarity, last_seen, prefs(array('l',[torrent_id])] 
         self.default_peer = [0, 0, None]
         self.owners = {}    # torrent_ids_of_mine: Set(peer_id)
@@ -2101,7 +2107,7 @@ class DataHandler:
     def updateSimilarity(self, peer_id, update_db=True, commit=True):
         """ update a peer's similarity """
         
-        if self.myprefs is None:
+        if len(self.myprefs) == 0:
             return
         sim = self.LMP2PSimilarity(peer_id)
         self.peers[peer_id][PEER_SIM_POS] = sim
@@ -2183,6 +2189,8 @@ class DataHandler:
         
         #self.data_handler.addPeerPreferences(sender_permid, prefs)
 
+        #print >>sys.stderr,"bc: handleBCData:",`cache_db_data`
+
         ADD_PEER = 1
         UPDATE_PEER = 2
         ADD_INFOHASH = 3
@@ -2222,10 +2230,19 @@ class DataHandler:
             if item[0] == ADD_PEER:
                 permid = item[1]
                 new_peer = item[2]
-                self.peer_db.addPeer(permid, new_peer, commit=False)
+                # Arno, 2008-09-17: Don't use IP data from BC message, network info gets precedence
+                updateDNS = (permid != sender_permid)
+                self.peer_db.addPeer(permid, new_peer, update_dns=updateDNS, commit=False)
             elif item[0] == UPDATE_PEER:
                 permid = item[1]
                 new_peer = item[2]
+                # Arno, 2008-09-17: Don't use IP data from BC message, network info gets precedence
+                updateDNS = (permid != sender_permid)
+                if not updateDNS:
+                    if 'ip' in new_peer:
+                        del new_peer['ip']
+                    if 'port' in new_peer:
+                        del new_peer['port']
                 self.peer_db.updatePeer(permid, commit=False, **new_peer)
             elif item[0] == ADD_INFOHASH:
                 infohash = item[1]

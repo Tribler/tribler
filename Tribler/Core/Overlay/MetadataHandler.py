@@ -82,7 +82,7 @@ class MetadataHandler:
         self.max_num_torrents = self.init_max_num_torrents = int(self.config['torrent_collecting_max_torrents'])
         self.upload_rate = 1024 * int(self.config['torrent_collecting_rate'])   # 5KB/s
         self.num_collected_torrents = 0
-        self.recently_collected_torrents = []
+        self.recently_collected_torrents = [] # list of infohashes
         self.upload_queue = []
         self.requested_torrents = Set()
         self.next_upload_time = 0

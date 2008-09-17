@@ -21,6 +21,7 @@ class TimedTaskQueue:
     def __init__(self,nameprefix="TimedTaskQueue",isDaemon=True):
         self.cond = Condition()
         self.queue = []
+        self.count = 0.0 # serves to keep task that were scheduled at the same time in FIFO order
         self.thread = Thread(target = self.run)
         self.thread.setDaemon(isDaemon)
         self.thread.setName( nameprefix+self.thread.getName() )
@@ -41,7 +42,8 @@ class TimedTaskQueue:
             print >>sys.stderr,"ttqueue: ADD EVENT",t,task
         if id != None:  # remove all redundant tasks
             self.queue = filter(lambda item:item[2]!=id, self.queue)
-        self.queue.append((when,task,id))
+        self.queue.append((when,self.count,task,id))
+        self.count += 1.0
         self.cond.notify()
         self.cond.release()
         
@@ -63,7 +65,7 @@ class TimedTaskQueue:
                         self.cond.wait(timeout)
                 # A new event was added or an event is due
                 self.queue.sort()
-                (when,task,id) = self.queue[0]
+                (when,count,task,id) = self.queue[0]
                 if DEBUG:
                     print >>sys.stderr,"ttqueue: EVENT IN QUEUE",when,task
                 now = time()

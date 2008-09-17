@@ -29,7 +29,7 @@ def tobinary(i):
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
 class BTConnection:
-    def __init__(self,hostname,port,opensock=None,user_option_pattern=None,user_infohash=None,myid=None,mylistenport=None):
+    def __init__(self,hostname,port,opensock=None,user_option_pattern=None,user_infohash=None,myid=None,mylistenport=None,myoversion=None):
         self.hisport = port
         self.buffer = StringIO()
         if mylistenport is None:
@@ -38,7 +38,9 @@ class BTConnection:
             self.myport = mylistenport
         if myid is None:
             self.myid = "".zfill(20)
-            self.myid = self.myid[:16] + pack('<H', lowest_version) + pack('<H', current_version)
+            if myoversion is None:
+                myoversion = current_version
+            self.myid = self.myid[:16] + pack('<H', lowest_version) + pack('<H', myoversion)
             self.myid = self.myid[:14] + pack('<H', self.myport) + self.myid[16:]
         else:
             self.myid = myid
@@ -86,9 +88,9 @@ class BTConnection:
         low_ver = unpack('<H', self.hisid[16:18])[0]
         assert(low_ver == lowest_version)
         cur_ver = unpack('<H', self.hisid[18:20])[0]
-        if DEBUG:
-            print >> sys.stderr, "cur_ver: ", cur_ver
-            print >> sys.stderr, "current_version: ", current_version
+        #if DEBUG:
+        #    print >> sys.stderr, "btconn: his cur_ver: ", cur_ver
+        #    print >> sys.stderr, "btconn: my curr_ver: ", current_version
         assert(cur_ver == current_version)
 
     def read_handshake_medium_rare(self,close_ok = False):

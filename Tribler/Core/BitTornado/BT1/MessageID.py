@@ -54,32 +54,11 @@ PermIDMessages = [CHALLENGE, RESPONSE1, RESPONSE2]
 HASHPIECE = chr(250)
 
 ## Buddycast Extension
-"""
-{'preferences':[[infohash]],
- #'permid': my permid,     # not used since 3.3.2
- 'connectable': self connectability, # used since version > 3.5
- 'name': my name,
- 'ip':current ip,
- 'port':current listening port,
- 'taste_buddies':[{'preferences':[[infohash]],
-                   'permid':Permanent ID,
-                   'ip':the last known IP,
-                   'port':the last known listen port,
-                   'age':the age of this preference list in integer seconds
-                  }],
- 'random_peers':[{'permid':Permanent ID,
-                  'ip':the last known IP,
-                  'port':the last known listen port,
-                  'age':the age of this preference list in integer seconds
-                 }]
- 'npeers': Number of peers known to peer
- 'nfiles': Number of files known to peer
- 'ndls': Number of downloads by peer
-}
-"""                   
+# payload is beencoded dict
 BUDDYCAST = chr(249)
+# empty payload
 KEEP_ALIVE = chr(240)
-# Bartercast
+# Bartercast, payload is bencoded dict
 BARTERCAST = chr(236)
 
 BuddyCastMessages = [BARTERCAST, BUDDYCAST, KEEP_ALIVE]
