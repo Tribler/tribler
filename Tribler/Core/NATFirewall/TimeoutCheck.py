@@ -39,7 +39,7 @@ def pingback(udpsock, pingbacksrvr):
 
 
 # Main method of the library: launches nat-timeout discovery algorithm
-def timeout_check(pingbacksrvr):
+def timeout_check(permid, pingbacksrvr):
 
     to = -1 # timeout
 
@@ -66,11 +66,8 @@ def timeout_check(pingbacksrvr):
 
     udpsock = socket(AF_INET, SOCK_DGRAM)
 
-    # Generate random ID
-    myid = random.sample(xrange(10000000),1)[0]
-
     # Create and send message
-    myidData = ("GET_MY_TIMEOUT", myid)
+    myidData = ("GET_MY_TIMEOUT", permid)
     myidMsg = bencode(myidData)
     tcpsock.send(myidMsg)
     time.sleep(1)
