@@ -1,4 +1,4 @@
-from threading import Thread
+from threading import Thread, Lock
 from traceback import print_exc
 import socket
 import sys
@@ -9,10 +9,10 @@ from Tribler.Core.NATFirewall.NatCheck import GetNATType
 from Tribler.Core.NATFirewall.TimeoutCheck import timeout_check
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
-from Tribler.Core.Utilities.utilities import show_permid_short, show_permid
+from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
 
-DEBUG = False
+DEBUG = True
 
 class NatCheckMsgHandler:
 
@@ -65,8 +65,7 @@ class NatCheckMsgHandler:
                 if DEBUG:
                     print >>sys.stderr,"NatCheckMsgHandler: start_nat_type_detect()"
                 nat_check_client = NatCheckClient.getInstance(self.session)
-                if not nat_check_client.isAlive():
-                    nat_check_client.start()
+                nat_check_client.try_start()
             except:
                 print_exc()
         elif DEBUG:
@@ -122,7 +121,7 @@ class NatCheckClient(Thread):
 
         self.setName("NatCheckClient")
         self.setDaemon(True)
-
+        self.lock = Lock()
         self.session = session
         self.permid = self.session.get_permid()
         self.nat_type = None
@@ -135,6 +134,16 @@ class NatCheckClient(Thread):
             NatCheckClient(*args, **kw)
         return NatCheckClient.__single
 
+    def try_start(self):		
+        self.lock.acquire()
+        try:
+            if not self.isAlive():
+               	self.start()
+                while not self.isAlive():
+                    time.sleep(0)
+        finally:
+            self.lock.release()
+
     def run(self):
         self.nat_discovery()
 
@@ -142,10 +151,7 @@ class NatCheckClient(Thread):
         """
         Find out NAT timeout
         """
-        # 19/09/09 Boudewijn: Removed a show_permid(...) call. Have no
-        # idea why it was here.
-        #return timeout_check(show_permid(self.permid), pingback)
-        return timeout_check(pingback)
+        return timeout_check(self.permid, pingback)
 
     def natcheck(self, udpsock, privateIP, privatePort, server1, server2):
         """
@@ -199,8 +205,7 @@ class NatCheckClient(Thread):
         else:
             if callback:
                 self._nat_callbacks.append(callback)
-            if not self.isAlive():
-                self.start()
+            self.try_start()
             return "Unknown NAT/Firewall"
 
     def _perform_nat_type_notification(self):
