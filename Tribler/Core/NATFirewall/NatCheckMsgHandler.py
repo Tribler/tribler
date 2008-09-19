@@ -12,7 +12,7 @@ from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 from Tribler.Core.Utilities.utilities import show_permid_short, show_permid
 from Tribler.Core.simpledefs import *
 
-DEBUG = True
+DEBUG = False
 
 class NatCheckMsgHandler:
 
@@ -142,7 +142,10 @@ class NatCheckClient(Thread):
         """
         Find out NAT timeout
         """
-        return timeout_check(show_permid(self.permid), pingback)
+        # 19/09/09 Boudewijn: Removed a show_permid(...) call. Have no
+        # idea why it was here.
+        #return timeout_check(show_permid(self.permid), pingback)
+        return timeout_check(pingback)
 
     def natcheck(self, udpsock, privateIP, privatePort, server1, server2):
         """

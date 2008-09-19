@@ -140,11 +140,14 @@ class BarterCastCore:
        
         data = bartercast_data['data']
 
-        st = time()
-        self.handleBarterCastMsg(sender_permid, data)
-        et = time()
-        diff = et - st
-        print >>sys.stderr,"bartercast: HANDLE took %.4f" % diff
+        if DEBUG:
+            st = time()
+            self.handleBarterCastMsg(sender_permid, data)
+            et = time()
+            diff = et - st
+            print >>sys.stderr,"bartercast: HANDLE took %.4f" % diff
+        else:
+            self.handleBarterCastMsg(sender_permid, data)
        
         if not self.isBlocked(sender_permid, self.send_block_list):
             self.replyBarterCast(sender_permid, selversion)    
@@ -213,13 +216,14 @@ class BarterCastCore:
     def replyBarterCast(self, target_permid, selversion):
         """ Reply a bartercast message """
 
-        st = time()
-        self.createAndSendBarterCastMessage(target_permid, selversion)
-        et = time()
-        diff = et - st
-        print >>sys.stderr,"bartercast: CREATE took %.4f" % diff
-
-
+        if DEBUG:
+            st = time()
+            self.createAndSendBarterCastMessage(target_permid, selversion)
+            et = time()
+            diff = et - st
+            print >>sys.stderr,"bartercast: CREATE took %.4f" % diff
+        else:
+            self.createAndSendBarterCastMessage(target_permid, selversion)
 
 
     # Blocking functions (similar to BuddyCast):

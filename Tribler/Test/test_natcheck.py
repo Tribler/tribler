@@ -11,7 +11,6 @@ from random import randint,shuffle
 from traceback import print_exc
 from types import StringType, IntType, ListType
 from threading import Thread
-from time import sleep
 from M2Crypto import Rand,EC
 
 from Tribler.Test.test_as_server import TestAsServer
@@ -20,9 +19,10 @@ from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import SuperPeerDBHandler
+
 
 DEBUG=True
-
 
 class TestNatCheck(TestAsServer):
     """ 
@@ -68,27 +68,74 @@ class TestNatCheck(TestAsServer):
             (sub)test where the error occured in the traceback it prints.
         """
         if DEBUG: print >> sys.stderr,  "Creating good nat check..."
+        self.subtest_bad_do_nat_check()
         self.subtest_good_do_nat_check()
         #self.subtest_good_nat_check_reply()
 
         
 
-    def subtest_good_do_nat_check(self):
-        """ 
-            test good DO_NAT_CHECK messages
+    def subtest_bad_do_nat_check(self):
         """
-        print >>sys.stderr,"test: good DO_NAT_CHECK"
+        Send a DO_NAT_CHECK message to the Tribler instance. No reply
+        should be send because the OLConnection is NOT a superpeer and
+        therefore not allowed to request a nat check.
+        """
+        print >>sys.stderr, "-"*80, "\ntest: bad DO_NAT_CHECK"
+
+        # make sure that the OLConnection is NOT in the superpeer_db
+        superpeer_db = SuperPeerDBHandler.getInstance()
+        self.assert_(not self.mypermid in superpeer_db.getSuperPeers())
+
+        s = OLConnection(self.my_keypair,'localhost',self.hisport)
+        msg = self.create_good_do_nat_check()
+
+        # a KEEP_ALIVE message will eventually be send, therefore,
+        # this call will not block.
+        s.send(msg)
+
+        resp = s.recv()
+        if DEBUG: print >> sys.stderr, "responce type is", message_map[resp[0]]
+        self.assert_(resp[0] != NAT_CHECK_REPLY)
+
+        time.sleep(5)
+        s.close()
+
+    def subtest_good_do_nat_check(self):
+        """
+        Send a DO_NAT_CHECK message to the Tribler instance. A reply
+        containing a nat type should be returned.
+        """
+        print >>sys.stderr, "-"*80, "\ntest: good DO_NAT_CHECK"
+
+        # make sure that the OLConnection IS in the superpeer_db
+        superpeer_db = SuperPeerDBHandler.getInstance()
+        superpeer_db.addExternalSuperPeer({"permid":self.mypermid})
+        self.assert_(self.mypermid in superpeer_db.getSuperPeers())
+
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         msg = self.create_good_do_nat_check()
         s.send(msg)
-        resp = s.recv()
-        if DEBUG: print >> sys.stderr, "resp is", resp
+
+        # It will take a LONG time before everything is discovered
+        # (the NAT firewall timeout will also be measured which
+        # probably takes a long time, currently at 10 minutes...)
+        #
+        # We must ignore KEEP_ALIVE messages that are received in the
+        # mean-time. This also means that if the code fails, this test
+        # will run forever...
+        begin = time.time()
+        print >>sys.stderr, "Waiting for responce. Will take a long time (around 1200 seconds)."
+        while True:
+            resp = s.recv()
+            print >>sys.stderr, "Waiting for responce. Will take a long time (around 1200 seconds). Waited %d seconds so far" % (time.time() - begin)
+            if DEBUG: print >> sys.stderr, "responce type is", message_map[resp[0]]
+            if resp[0] == NAT_CHECK_REPLY:
+                break
+            
         self.assert_(resp[0] == NAT_CHECK_REPLY)
         self.check_nat_check_reply(resp[1:])
-        time.sleep(10)
-        # the other side should not have closed the connection, as
-        # this is all valid, so this should not throw an exception:
-        #s.send('bla')
+
+        time.sleep(5)
         s.close()
 
 
@@ -107,7 +154,6 @@ class TestNatCheck(TestAsServer):
 
     def create_good_do_nat_check(self):
         if DEBUG: print >> sys.stderr,  "Creating good do_nat_check message..."
-        
         return DO_NAT_CHECK
 
 

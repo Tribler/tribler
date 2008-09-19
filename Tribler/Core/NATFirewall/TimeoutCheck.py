@@ -88,7 +88,7 @@ def timeout_check(pingbacksrvr):
             udpsock.close()
 
         if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "TCP connection to the pingback server has timed out"
-        return
+        return to
 
     if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", rcvMsg
 
