@@ -169,7 +169,8 @@ class OverlayThreadingBridge:
              
             olbridge_connect_callback_lambda = lambda:callback(cexc,cdns,cpermid,cselver)
             # Jie: postpone to call this callback to schedule it after the peer has been added to buddycast connection list
-            self.add_task(olbridge_connect_callback_lambda,1)    
+            # Arno, 2008-09-15: No-no-no
+            self.add_task(olbridge_connect_callback_lambda,0)    
             
         self.secover.connect(permid,olbridge_connect_callback)
 

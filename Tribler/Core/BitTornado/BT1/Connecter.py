@@ -357,7 +357,8 @@ class Connection:
 
         # 'p' is peer's listen port, 'v' is peer's version, all optional
         # 'e' is used by uTorrent to show it prefers encryption (whatever that means)
-        for key in ['p','e']:
+        # See http://www.bittorrent.org/beps/bep_0010.html
+        for key in ['p','e', 'yourip','ipv4','ipv6','reqq']:
             if key in d:
                 self.extend_hs_dict[key] = d[key]
 
