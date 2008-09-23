@@ -582,6 +582,9 @@ class Session(SessionRuntimeConfig):
         as third parameter a dictionary of hits. The number of times the 
         usercallback method will be called is undefined.
 
+        The callback will be called by a popup thread which can be used
+        indefinitely (within reason) by the higher level code.
+
         At the moment we support one type of query, which is a query for
         torrent files that match a set of keywords. The format of the
         query string is "SIMPLE kw1 kw2 kw3". In the future we plan
@@ -701,6 +704,9 @@ class Session(SessionRuntimeConfig):
         called. When the NAT-type is already known the callback will
         be made instantly. Otherwise, the callback will be made when
         the NAT discovery has finished.
+
+        The callback will be called by a popup thread which can be used
+        indefinitely (within reason) by the higher level code.
 
         Return values:
         "Blocked"

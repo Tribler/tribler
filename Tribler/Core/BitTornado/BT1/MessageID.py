@@ -39,6 +39,9 @@ PORT = chr(9)
 # uTorrent and Bram's BitTorrent now support an extended protocol
 EXTEND = chr(20)
 
+
+## IDs 255 and 254 are reserved. Tribler extensions number downwards
+
 ## PermID /Overlay Swarm Extension
 # ctxt
 CHALLENGE = chr(253)
