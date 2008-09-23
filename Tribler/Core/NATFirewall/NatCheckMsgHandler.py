@@ -134,11 +134,11 @@ class NatCheckClient(Thread):
             NatCheckClient(*args, **kw)
         return NatCheckClient.__single
 
-    def try_start(self):		
+    def try_start(self):
         self.lock.acquire()
         try:
             if not self.isAlive():
-               	self.start()
+                self.start()
                 while not self.isAlive():
                     time.sleep(0)
         finally:
