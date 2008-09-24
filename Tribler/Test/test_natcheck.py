@@ -1,4 +1,4 @@
-# Written by Arno Bakker, Michel Meulpolder
+# Written by Arno Bakker, Lucian d' Acunto, Boudewijn Schoon
 # see LICENSE.txt for license information
 
 import socket
@@ -191,7 +191,7 @@ class TestNatCheck(TestAsServer):
         self._test_bad(self.create_not_bdecodable)
 
     def _test_bad(self,gen_soverlap_func):
-        print >>sys.stderr,"test: bad BARTERCAST",gen_soverlap_func
+        print >>sys.stderr,"test: bad DO_NAT_CHECK",gen_soverlap_func
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         msg = gen_soverlap_func()
         s.send(msg)
@@ -201,7 +201,7 @@ class TestNatCheck(TestAsServer):
         s.close()
 
     def create_not_bdecodable(self):
-        return BARTERCAST+"bla"
+        return DO_NAT_CHECK+"bla"
 
     def create_not_dict1(self):
         bartercast = 481

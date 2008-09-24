@@ -68,9 +68,12 @@ class NatCheckMsgHandler:
                 nat_check_client.try_start()
             except:
                 print_exc()
+            return True
         elif DEBUG:
             print >>sys.stderr, "NatCheckMsgHandler: a nat-check-request is only allowed by a superpeer"
-
+            
+        return False
+        
     def natthreadcb_natCheckReplyCallback(self, ncr_data):
         if DEBUG:
             print >> sys.stderr, "NAT type: ", ncr_data

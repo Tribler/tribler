@@ -214,16 +214,18 @@ class TriblerLaunchMany(Thread):
                 rsconvert = RawServerConverter(self.rawserver)
                 # '' = host, TODO: when local bind set
                 mainlineDHT.init('',self.listen_port,config['state_dir'],rawserver=rsconvert)
-    
-                # Create torrent-liveliness checker based on DHT
-                c = mainlineDHTChecker.getInstance()
-                c.register(mainlineDHT.dht)
             except:
                 print_exc()
         
         
         # add task for tracker checking
         if config['torrent_checking']:
+            
+            if config['mainline_dht']:
+                # Create torrent-liveliness checker based on DHT
+                c = mainlineDHTChecker.getInstance()
+                c.register(mainlineDHT.dht)
+            
             self.torrent_checking_period = config['torrent_checking_period']
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
