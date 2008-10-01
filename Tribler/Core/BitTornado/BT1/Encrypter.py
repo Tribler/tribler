@@ -512,7 +512,7 @@ class Encoder:
             if DEBUG:
                 print >>sys.stderr,"encoder: start_connection: we're paused or too busy"
             return True
-        for v in self.connections.values():    # avoid duplicated connectiion from a single ip
+        for v in self.connections.values():    # avoid duplicated connection from a single ip
             if v is None:
                 continue
             if id and v.id == id:

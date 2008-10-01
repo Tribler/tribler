@@ -151,8 +151,6 @@ class DownloadImpl:
         vapath = self.session.get_video_analyser_path()
 
         # Note: BT1Download is started with copy of d.dlconfig, not direct access
-        # Set IP to report to tracker. 
-        self.dlconfig['ip'] = self.session.lm.get_ext_ip()
         kvconfig = copy.copy(self.dlconfig)
 
         # Define which file to DL in VOD mode
