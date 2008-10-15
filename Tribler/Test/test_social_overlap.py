@@ -85,7 +85,7 @@ class TestSocialOverlap(TestAsServer):
         # 1. test good SOCIAL_OVERLAP
         self.subtest_good_soverlap()
 
-
+        """
         # 2. test various bad SOCIAL_OVERLAP messages
         self.subtest_bad_not_bdecodable()
         self.subtest_bad_not_dict1()
@@ -94,7 +94,7 @@ class TestSocialOverlap(TestAsServer):
         self.subtest_bad_wrong_dict_keys()
 
         self.subtest_bad_persinfo()
-        
+        """
 
     #
     # Good SOCIAL_OVERLAP
@@ -155,11 +155,13 @@ class TestSocialOverlap(TestAsServer):
 
     def check_persinfo(self,d):
         self.assert_(type(d) == DictType)
-        print "test: persinfo: keys is",d.keys()
+        print >>sys.stderr,"test: persinfo: keys is",d.keys()
 
         self.assert_(d.has_key('name'))
         self.assert_(isinstance(d['name'],str))
         self.assert_(d.has_key('icontype'))
+        if d.has_key('icontype'):
+            print >>sys.stderr,"test: persinfo: HAS ICON"
         self.assert_(d.has_key('icondata'))
         self.check_usericon(d['icontype'],d['icondata'])
 
@@ -171,7 +173,7 @@ class TestSocialOverlap(TestAsServer):
         self.assert_(idx != -1)
         self.assert_(idx == ridx)
         self.assert_(len(icondata) <= ICON_MAX_SIZE)
-        print "check_usericon: len icon is",len(icondata)
+        print >>sys.stderr,"test: check_usericon: len icon is",len(icondata)
 
     # Bad soverlap
     #    

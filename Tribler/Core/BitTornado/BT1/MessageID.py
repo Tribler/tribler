@@ -120,6 +120,11 @@ G2G_PIECE_XFER = chr(235)
 
 VoDMessages = [G2G_PIECE_XFER]
 
+# Friendship messages
+FRIENDSHIP = chr(234)
+
+FriendshipMessages = [FRIENDSHIP]
+
 message_map = {
     CHOKE:"CHOKE",
     UNCHOKE:"UNCHOKE",
@@ -153,7 +158,8 @@ message_map = {
     BARTERCAST:"BARTERCAST",
     DO_NAT_CHECK:"DO_NAT_CHECK",
     NAT_CHECK_REPLY:"NAT_CHECK_REPLY",
-    G2G_PIECE_XFER: "G2G_PIECE_XFER"
+    G2G_PIECE_XFER: "G2G_PIECE_XFER",
+    FRIENDSHIP:"FRIENDSHIP"
 }
 
 

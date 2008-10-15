@@ -3,29 +3,26 @@
 
 import wx, math, time, os, sys, threading
 from traceback import print_exc,print_stack
-from Tribler.Core.Utilities.utilities import *
+from copy import deepcopy
 from wx.lib.stattext import GenStaticText as StaticText
+
+from Tribler.Core.simpledefs import *
+from Tribler.Core.Utilities.unicode import *
+from Tribler.Core.Utilities.utilities import *
+
+from Tribler.Main.Utility.constants import * 
+from Tribler.Main.Utility import *
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
-from Tribler.Main.Dialogs.dlhelperframe import DownloadHelperFrame
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.filesItemPanel import ThumbnailViewer, libraryModeThumbSize
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Main.Dialogs.dlhelperframe import DownloadHelperFrame
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
+from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.Progress import ProgressBar
-from Tribler.Core.Utilities.unicode import *
-from Tribler.Core.simpledefs import *
 from Tribler.Video.utils import videoextdefaults
-from tribler_topButton import *
-from copy import deepcopy
 from bgPanel import *
 from font import *
-from Tribler.Main.Utility.constants import * 
-from Tribler.Main.Utility import *
-from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
-
-
-import cStringIO
 
 DEBUG = False
 
@@ -291,10 +288,10 @@ class LibraryItemPanel(wx.Panel):
         
     def updateProgressInDB(self, infohash, progress):
         try:
-            mypref_db = MyPreferenceDBHandler.getInstance()
+            mypref_db = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
             mypref_db.updateProgress(infohash, progress, commit=True)
         except:
-            pass    # lock error
+            print_exc()    # lock error
         
     def setData(self, torrent):
         # set bitmap, rating, title

@@ -568,7 +568,7 @@ class Connecter:
             print_exc()
             self.tracker_ip = None
             
-        print >>sys.stderr,"Connecter: live: source/tracker is",self.tracker_ip
+        #print >>sys.stderr,"Connecter: live: source/tracker is",self.tracker_ip
         
         self.overlay_enabled = 0
         if self.config['overlay']:
@@ -622,7 +622,8 @@ class Connecter:
         d = {livekey:ord(LIVE_FAKE_MESSAGE_ID)}
         self.EXTEND_HANDSHAKE_M_DICT.update(d)
 
-        print >>sys.stderr,"Connecter: EXTEND: my dict",self.EXTEND_HANDSHAKE_M_DICT
+        if DEBUG:
+            print >>sys.stderr,"Connecter: EXTEND: my dict",self.EXTEND_HANDSHAKE_M_DICT
 
         # BarterCast
         if config['overlay']:

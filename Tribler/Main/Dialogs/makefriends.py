@@ -9,8 +9,8 @@ from traceback import print_exc
 from shutil import copy2
 import wx
 import wx.lib.imagebrowser as ib
-from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler
-from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
+
+from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import show_permid
 import wx.lib.editor as editor
 
@@ -210,8 +210,8 @@ class MakeFriendsDialog(wx.Dialog):
         elif port == 0:
             self.show_inputerror(self.utility.lang.get('friendsport_error'))
         else:
-            fdb = FriendDBHandler.getInstance()
-            pdb = PeerDBHandler.getInstance()
+            fdb = self.utility.session.open_dbhandler(NTFY_FRIENDS)
+            pdb = self.utility.session.open_dbhandler(NTFY_PEERS)
             
             #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':newiconfilename}
             #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name}
@@ -223,7 +223,9 @@ class MakeFriendsDialog(wx.Dialog):
                     
             #fdb.addExternalFriend(friend)
             pdb.addPeer(permid,friend)
-            fdb.setFriend(permid)
+            #fdb.setFriend(permid)
+            # also sets friendstate to I_INVITED
+            self.utility.session.send_friendship_message(permid,F_REQUEST_MSG)
             
             event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
             self.Destroy()

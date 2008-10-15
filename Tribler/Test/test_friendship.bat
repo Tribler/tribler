@@ -1,0 +1,15 @@
+set PYTHONPATH=..\..;%PYTHONPATH%
+
+REM python test_friendship.py singtest_good_friendship_req0
+REM python test_friendship.py singtest_good_friendship_req1
+python test_friendship.py singtest_good_friendship_he_invites
+REM python test_friendship.py singtest_good_friendship_he_already_invited
+REM python test_friendship.py singtest_good_friendship_fwd_req_dest3rdp
+REM python test_friendship.py singtest_good_friendship_fwd_resp0_dest3rdp
+REM python test_friendship.py singtest_good_friendship_fwd_resp1_dest3rdp
+REM python test_friendship.py singtest_good_friendship_fwd_req_desthim
+REM python test_friendship.py singtest_good_friendship_fwd_resp0_desthim
+REM python test_friendship.py singtest_good_friendship_fwd_resp1_desthim
+REM python test_friendship.py singtest_good_friendship_delegate_req
+REM python test_friendship.py singtest_good_friendship_delegate_shutdown
+REM python test_friendship.py singtest_bad_all

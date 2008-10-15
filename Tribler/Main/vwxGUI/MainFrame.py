@@ -46,6 +46,7 @@ import Tribler.Main.vwxGUI.updateXRC as updateXRC
 from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
+from Tribler.Main.vwxGUI.FriendshipManager import FriendshipManager
 from Tribler.Main.vwxGUI.font import *
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon 
@@ -244,10 +245,9 @@ class MainFrame(wx.Frame):
             self.videoFrame = VideoFrame(self,'Tribler Video',iconpath,videoplayer.get_vlcwrap(),logopath)
 
             videoplayer.set_videoframe(self.videoFrame)
-        else:
-            videoplayer = VideoPlayer.getInstance()
-            videoplayer.set_parentwindow(self)
 
+        iconpath = os.path.join(self.utility.getPath(),'Tribler','Images','tribler.ico')
+        self.friendsmgr = FriendshipManager(self.utility,iconpath)
         
         sys.stdout.write('GUI Complete.\n')
 
@@ -627,7 +627,7 @@ class MainFrame(wx.Frame):
             print_stack()
     
         if type == NTFY_ACT_NONE:
-            prefix = u''
+            prefix = msg
             msg = u''
         elif type == NTFY_ACT_UPNP:
             prefix = utility.lang.get('act_upnp')

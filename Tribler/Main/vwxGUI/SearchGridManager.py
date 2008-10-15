@@ -583,10 +583,8 @@ class PeerSearchGridManager:
                 mode = SEARCHMODE_STOPPED
         else:
             mode = SEARCHMODE_NONE
-
-        if DEBUG:
-            print >>sys.stderr,"PeerSearchGridManager: getSearchMode?",mode
-        
+        #if DEBUG:
+        #    print >>sys.stderr,"PeerSearchGridManager: getSearchMode?",mode
         return mode
          
     def stopSearch(self):

@@ -116,3 +116,18 @@ LIVE_AUTHMETHOD_ECDSA = "ECDSA" # Elliptic Curve DSA signatures
 VODEVENT_START = "start"
 VODEVENT_PAUSE = "pause"
 VODEVENT_RESUME = "resume"
+
+
+# Friendship messages
+F_REQUEST_MSG = "REQ"
+F_RESPONSE_MSG = "RESP"
+F_FORWARD_MSG = "FWD" # Can forward any type of other friendship message
+
+
+# States for a friend
+FS_NOFRIEND = 0
+FS_MUTUAL = 1
+FS_I_INVITED = 2
+FS_HE_INVITED = 3
+FS_I_DENIED = 4
+FS_HE_DENIED = 5

@@ -18,6 +18,7 @@ from Tribler.Core.NATFirewall.NatCheckMsgHandler import NatCheckMsgHandler
 from Tribler.Core.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler 
 from Tribler.Core.Utilities.utilities import show_permid_short
 from threading import currentThread
 from Tribler.Core.simpledefs import *
@@ -42,6 +43,7 @@ class OverlayApps:
         self.socnet_handler = None
         self.rquery_handler = None
         self.natcheck_handler = None
+        self.friendship_handler = None
         self.msg_handlers = {}
         self.connection_handlers = []
         self.text_mode = None
@@ -117,6 +119,11 @@ class OverlayApps:
             self.register_msg_handler(SocialNetworkMessages,self.socnet_handler.handleMessage)
             self.register_connection_handler(self.socnet_handler.handleConnection)
 
+            self.friendship_handler = FriendshipMsgHandler.getInstance()
+            self.friendship_handler.register(overlay_bridge, launchmany.session)
+            self.register_msg_handler(FriendshipMessages,self.friendship_handler.handleMessage)
+            self.register_connection_handler(self.friendship_handler.handleConnection)
+
         if config['rquery']:
             self.rquery_handler = RemoteQueryMsgHandler.getInstance()
             self.rquery_handler.register(overlay_bridge,launchmany,config,self.buddycast,log=config['overlay_log'])
@@ -134,6 +141,15 @@ class OverlayApps:
             # Arno: to prevent concurrency between mainthread and overlay
             # thread where BuddyCast schedules tasks
             self.buddycast.register2()
+    
+    def early_shutdown(self):
+        """ Called as soon as Session shutdown is initiated. Used to start
+        shutdown tasks that takes some time and that can run in parallel
+        to checkpointing, etc.
+        """
+        # Called by OverlayThread
+        if self.friendship_handler is not None:
+            self.friendship_handler.shutdown()
             
         
     def register_msg_handler(self, ids, handler):

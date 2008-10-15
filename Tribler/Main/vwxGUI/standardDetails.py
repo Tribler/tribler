@@ -17,11 +17,15 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+
+# LAYERVIOLATION
 from Tribler.Core.Overlay.MetadataHandler import get_filename
+
 from Tribler.Main.Utility.constants import COL_PROGRESS
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.tribler_List import DLFilesList
+from Tribler.Main.vwxGUI.FriendsItemPanel import peer2status
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import *
@@ -663,15 +667,10 @@ class standardDetails(wx.Panel):
                     self.setRankToRecommendationField(item['simRank'])
                     self.getGuiObj('TasteHeart').setRank(item['simRank'])
                 
-                if item.get('online'):
-                    self.getGuiObj('statusField').SetLabel( 'online')
-                elif item.get('last_connected') is not None:
-                    if item['last_connected'] < 0:
-                        self.getGuiObj('statusField').SetLabel('never seen')
-                    else:
-                        self.getGuiObj('statusField').SetLabel('conn.  %s' % friendly_time(item['last_connected']))
-                else:
-                    self.getGuiObj('statusField').SetLabel( 'unknown')
+
+                # Peer status = online status + frienstatus
+                label = peer2status(item)
+                self.getGuiObj('statusField').SetLabel(label) 
 
                 if 'num_peers' in item:
                     n = unicode(item['num_peers'])
@@ -684,8 +683,9 @@ class standardDetails(wx.Panel):
                         n = '?'
                     self.getGuiObj('discFilesField').SetLabel(n)
                 
-                if item.get('friend') is not None:
-                    if item['friend']:
+                if 'friend' in item:
+                    fs = item.get('friend') 
+                    if fs == FS_MUTUAL or fs == FS_I_INVITED:
                         isfriend = self.iconsManager.get_default('personsMode','ISFRIEND_BITMAP')
                         isfriend_clicked = self.iconsManager.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
                         self.getGuiObj('addAsFriend').switchTo(isfriend,isfriend_clicked)
@@ -714,7 +714,8 @@ class standardDetails(wx.Panel):
                 addAsFriend = self.getGuiObj('addAsFriend', tab = 'personsTab_advanced')
                 if addAsFriend.initDone:
                     if item.get('friend') is not None:
-                        if item['friend']:
+                        fs = item['friend']
+                        if fs == FS_MUTUAL or fs == FS_I_INVITED:
                             isfriend = self.iconsManager.get_default('personsMode','ISFRIEND_BITMAP')
                             isfriend_clicked = self.iconsManager.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
                             addAsFriend.switchTo(isfriend,isfriend_clicked)
@@ -1074,7 +1075,7 @@ class standardDetails(wx.Panel):
         
         infohash = item['infohash']
         name = item['name']
-        gui_db = GUIDBHandler.getInstance()
+        gui_db = GUIDBHandler.getInstance()  # LAYERVIOLATION
         
         sim_files = None
         sim_titles = None
@@ -1679,11 +1680,23 @@ class standardDetails(wx.Panel):
                 thumbPanel.setBitmap(default)
                 
     def addAsFriend(self):
-        # add the current user selected in details panel as a friend
+        # add the current user selected in details panel as a friend or delete
         if self.mode in ["personsMode","friendsMode"]:
             peer_data = self.item
             if peer_data is not None and peer_data.get('permid'):
-               self.friend_db.toggleFriend(peer_data['permid'])
+                #self.friend_db.toggleFriend(peer_data['permid'])
+                fs = peer_data['friend'] 
+                if fs == FS_NOFRIEND or fs == FS_I_DENIED or fs == FS_HE_DENIED:
+                    # Invite him, reinvite him
+                    self.utility.session.send_friendship_message(peer_data['permid'],F_REQUEST_MSG)
+                elif fs == FS_MUTUAL or fs == FS_I_INVITED:
+                    # Remove friendship
+                    self.utility.session.send_friendship_message(peer_data['permid'],F_RESPONSE_MSG,approved=False)
+                elif fs == FS_HE_INVITED:
+                    # Confirm friendship
+                    self.utility.session.send_friendship_message(peer_data['permid'],F_RESPONSE_MSG,approved=True)
+                    
+                
 
     def refreshUploadStats(self, dslist):
         # Update the overrall uploading information
@@ -1867,7 +1880,7 @@ class standardDetails(wx.Panel):
             
     def topNListText(self, tab):
         if not self.bartercastdb:
-            self.bartercastdb = BarterCastDBHandler.getInstance()
+            self.bartercastdb = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
         
         top_stats = self.bartercastdb.getTopNPeers(10)
         top = top_stats['top']
@@ -1920,6 +1933,8 @@ class standardDetails(wx.Panel):
             newitem = db_handler.getPeer(objectID)
         elif subject in (NTFY_TORRENTS):
             newitem = db_handler.getTorrent(objectID)
+            
+        
             
         wx.CallAfter(self.setData, newitem)
         

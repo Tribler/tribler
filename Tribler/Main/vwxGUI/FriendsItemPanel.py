@@ -3,20 +3,20 @@
 
 import wx, math, time, os, sys, threading
 from traceback import print_exc
-from Tribler.Core.Utilities.utilities import *
+from copy import deepcopy
+import cStringIO
 from wx.lib.stattext import GenStaticText as StaticText
+
+from Tribler.Core.simpledefs import *
+from Tribler.Core.Utilities.utilities import *
+from Tribler.Core.Utilities.unicode import *
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.PersonsItemPanel import ThumbnailViewer
 from Tribler.Main.Utility.utility import similarPeer, copyPeer
-from Tribler.Core.Utilities.unicode import *
-from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from font import *
-from copy import deepcopy
-import cStringIO
 from tribler_topButton import *
-from threading import Lock
 import TasteHeart
 
 DEBUG=False
@@ -199,18 +199,11 @@ class FriendsItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(peer_data['ip']+':'+str(peer_data['port']))
+            
             # status issues
-            self.status.Enable(True)            
-            statusPeer = peer_data['last_connected']              
-            if peer_data.get('online'):
-                self.status.SetLabel('online')
-            elif statusPeer is not None:
-                if statusPeer < 0:
-                    self.status.SetLabel('never seen')
-                else:                    
-                    self.status.SetLabel('conn.  %s' % friendly_time(statusPeer))
-            else:
-                self.status.SetLabel( 'unknown')
+            self.status.Enable(True)
+            label = peer2status(peer_data)
+            self.status.SetLabel(label)
 
             if 'coopdlstatus' in peer_data:
                 self.helping.SetLabel(peer_data['coopdlstatus'])
@@ -420,4 +413,43 @@ class FriendThumbnailViewer(ThumbnailViewer):
         if (self.selected and self.border):
             dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
             dc.DrawLines(self.border)
+
+
+def peer2status(peer):
+    label = peer2seenstatus(peer)
+    
+    # Friend status to show whether this is an approved friend, or not
+    fs = peer.get('friend',FS_NOFRIEND)
         
+    #if fs == FS_NOFRIEND or fs == FS_MUTUAL:
+    #    pass
+    #else:
+    fstext = fs2text(fs)
+    label = label+", "+fstext
+    return label
+
+def peer2seenstatus(peer):
+    if peer.get('online'):
+        label = 'online'
+    elif peer.get('last_connected') is not None:
+        if peer['last_connected'] < 0:
+            label = 'never seen'
+        else:
+            label = 'met %s' % friendly_time(peer['last_connected'])
+    else:
+        label = 'unknown'
+    return label
+        
+def fs2text(fs):
+    if fs == FS_NOFRIEND:
+        return "no friend"
+    elif fs == FS_MUTUAL:
+        return "is friend"
+    elif fs == FS_I_INVITED:
+        return "pending"
+    elif fs == FS_HE_INVITED:
+        return "invited you"
+    elif fs == FS_I_DENIED:
+        return "you refused"
+    elif fs == FS_HE_DENIED:
+        return "refused"

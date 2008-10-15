@@ -183,7 +183,7 @@ class NatCheckClient(Thread):
         try:
             reply = tcpsock.recv(BUFSIZ)
 
-        except timeout:
+        except socket.timeout:
             if DEBUG: print >> sys.stderr, "NATCheck:", "Connection to the coordinator has timed out"
 
         except socket.error, (errno, strerror):
@@ -270,7 +270,7 @@ class NatCheckClient(Thread):
 
         try:
             tcpsock.connect(coordinator)
-        except timeout:
+        except socket.timeout:
             if tcpsock:
                 tcpsock.close()
                 tcpsock = False

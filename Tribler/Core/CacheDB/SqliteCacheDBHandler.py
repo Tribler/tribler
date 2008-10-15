@@ -134,24 +134,19 @@ class FriendDBHandler(BasicDBHandler):
         FriendDBHandler.__single = self
         BasicDBHandler.__init__(self, 'Peer')
         
-    def setFriend(self, permid, friend=True, commit=True):
-        self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), commit=commit, friend=friend)
-        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'friend')
+    def setFriendState(self, permid, state=1, commit=True):
+        self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), commit=commit, friend=state)
+        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'friend', state)
 
-    def getFriends(self):
-        res = self._db.getAll('Friend', 'permid')
+    def getFriends(self,state=1):
+        where = 'friend=%d ' % state
+        res = self._db.getAll('Friend', 'permid',where=where)
         return [str2bin(p[0]) for p in res]
         #raise Exception('Use PeerDBHandler getGUIPeers(category = "friend")!')
 
-    def isFriend(self, permid):
+    def getFriendState(self, permid):
         res = self.getOne('friend', permid=bin2str(permid))
-        return res == 1
-        
-    def toggleFriend(self, permid):
-        self.setFriend(permid, not self.isFriend(permid))
-        
-    def deleteFriend(self,permid):
-        self.setFriend(permid, False)
+        return res
         
     def searchNames(self,kws):
         return doPeerSearchNames(self,'Friend',kws)
@@ -166,7 +161,7 @@ class FriendDBHandler(BasicDBHandler):
     def addExternalFriend(self, peer):
         peerdb = PeerDBHandler.getInstance()
         peerdb.addPeer(peer['permid'], peer)
-        self.setFriend(peer['permid'])
+        self.setFriendState(peer['permid'])
         
 NETW_MIME_TYPE = 'image/jpeg'
 
@@ -250,6 +245,7 @@ class PeerDBHandler(BasicDBHandler):
         
 
     def getPeers(self, peer_list, keys):    # get a list of dictionaries given peer list
+        # BUG: keys must contain 2 entries, otherwise the records in all are single values??
         value_names = ",".join(keys)
         sql = 'select %s from Peer where permid=?;'%value_names
         all = []
@@ -392,7 +388,7 @@ class PeerDBHandler(BasicDBHandler):
             res = 0
         return res
     
-    def getGUIPeers(self, category_name = 'all', range = None, sort = None, reverse = False, get_online=False):
+    def getGUIPeers(self, category_name = 'all', range = None, sort = None, reverse = False, get_online=False, get_ranks=True):
         #
         # ARNO: WHY DIFF WITH NORMAL getPeers??????
         # load peers for GUI
@@ -407,16 +403,18 @@ class PeerDBHandler(BasicDBHandler):
         """
         value_name = PeerDBHandler.gui_value_name
         
-        where = '(last_connected>0 or friend=1) '
+        where = '(last_connected>0 or friend=1 or friend=2 or friend=3) '
         if category_name in ('friend', 'friends'):
-            where += 'and friend=1'
+            # Show mutual, I invited and he invited 
+            where += 'and (friend=1 or friend=2 or friend=3) '
         if range:
             offset= range[0]
             limit = range[1] - range[0]
         else:
             limit = offset = None
         if sort:
-            desc = (not reverse) and 'desc' or ''
+            # Arno, 2008-10-6: buggy: not reverse???
+            desc = (reverse) and 'desc' or ''
             if sort in ('name'):
                 order_by = ' lower(%s) %s' % (sort, desc)
             else:
@@ -425,7 +423,9 @@ class PeerDBHandler(BasicDBHandler):
             order_by = None
 
         # Must come before query
-        ranks = self.getRanks()
+        if get_ranks:
+            ranks = self.getRanks()
+        ranks = None
             
         res_list = self.getAll(value_name, where, offset= offset, limit=limit, order_by=order_by)
         
@@ -1198,7 +1198,8 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             limit = offset = None
         if sort:
-            desc = (not reverse) and 'desc' or ''
+            # Arno, 2008-10-6: buggy: not reverse???
+            desc = (reverse) and 'desc' or ''
             if sort in ('name'):
                 order_by = ' lower(%s) %s' % (sort, desc)
             else:

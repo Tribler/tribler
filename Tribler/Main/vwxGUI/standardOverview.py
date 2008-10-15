@@ -3,17 +3,19 @@
 
 import wx, os, sys, os.path
 import wx.xrc as xrc
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc,print_stack
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
+
+from Tribler.Core.simpledefs import *
+from Tribler.Core.Utilities.unicode import *
+from Tribler.Core.Utilities.utilities import sort_dictlist
+from Tribler.Core.Utilities.utilities import *
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
 from Tribler.Main.vwxGUI.standardGrid import GridState
-from Tribler.Core.Utilities.utilities import sort_dictlist
-from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Utility.constants import *
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
-from Tribler.Core.Utilities.unicode import *
+
 from threading import Thread,currentThread
 from time import time
 import web2
@@ -49,8 +51,8 @@ class standardOverview(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.categorykey = None
-        self.torrent_db = TorrentDBHandler.getInstance()
-        self.mypreference_db = MyPreferenceDBHandler.getInstance()
+        self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
+        self.mypreference_db = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
       
         self.mode = None
         self.data = {} #keeps gui elements for each mode

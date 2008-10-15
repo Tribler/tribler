@@ -30,6 +30,9 @@ from traceback import print_exc, print_stack
 from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from Tribler.Core.CacheDB.sqlitecachedb import safe_dict
+
+
+# LAYERVIOLATION: careful: uses two threads depending on code, make sure we have DB session per thread.
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 #from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
@@ -91,8 +94,7 @@ class TorrentChecking(Thread):
                     TorrentDBHandler.getInstance().selectTorrentToCheck(policy=policy, return_value=return_value)
             else:   # know which torrent to check
                 if self.db_thread:
-                    self.db_thread.add_task(lambda:
-                                                 TorrentDBHandler.getInstance().selectTorrentToCheck(infohash=self.infohash, return_value=return_value))
+                    self.db_thread.add_task(lambda:TorrentDBHandler.getInstance().selectTorrentToCheck(infohash=self.infohash, return_value=return_value))
                 else:
                     TorrentDBHandler.getInstance().selectTorrentToCheck(infohash=self.infohash, return_value=return_value)
             event.wait(60.0)

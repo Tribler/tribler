@@ -11,7 +11,7 @@ import socket
 import binascii
 import shutil
 from UserDict import DictMixin
-from threading import RLock,Condition,Event,Thread,currentThread
+from threading import RLock,Condition,Event,Thread,currentThread,enumerate
 from traceback import print_exc,print_stack
 from types import StringType
 
@@ -62,12 +62,13 @@ PROFILE = False
 
 class TriblerLaunchMany(Thread):
     
-    def __init__(self,session,sesslock):
+    def __init__(self):
         """ Called only once (unless we have multiple Sessions) by MainThread """
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName("Network"+self.getName())
         
+    def register(self,session,sesslock):
         self.session = session
         self.sesslock = sesslock
         
@@ -109,10 +110,7 @@ class TriblerLaunchMany(Thread):
         
         self.overlay_bridge = OverlayThreadingBridge.getInstance()
         self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
-        #
-        # Arno: disabling out startup of torrents, need to fix this
-        # to let text-mode work again.
-        #
+        self.shutdownstarttime = None
          
         # do_cache -> do_overlay -> (do_buddycast, do_download_help)
         if config['megacache']:
@@ -495,7 +493,7 @@ class TriblerLaunchMany(Thread):
             self.rawserver_nonfatalerrorfunc(e)
 
     
-    def checkpoint(self,stop=False,checkpoint=True):
+    def checkpoint(self,stop=False,checkpoint=True,gracetime=2.0):
         """ Called by any thread, assume sesslock already held """
         # Even if the list of Downloads changes in the mean time this is
         # no problem. For removals, dllist will still hold a pointer to the
@@ -506,11 +504,12 @@ class TriblerLaunchMany(Thread):
         if DEBUG:
             print >>sys.stderr,"tlm: checkpointing",len(dllist)
         
-        network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop,checkpoint)
+        network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop,checkpoint,gracetime)
         self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
+        # TODO: checkpoint overlayapps / friendship msg handler
 
         
-    def network_checkpoint_callback(self,dllist,stop,checkpoint):
+    def network_checkpoint_callback(self,dllist,stop,checkpoint,gracetime):
         """ Called by network thread """
         if checkpoint:
             psdict = {}
@@ -534,9 +533,19 @@ class TriblerLaunchMany(Thread):
                 self.rawserver_nonfatalerrorfunc(e)
     
         if stop:
-            self.shutdown()
+            self.shutdown(gracetime=gracetime)
             
-    def shutdown(self):
+    def early_shutdown(self):
+        """ Called as soon as Session shutdown is initiated. Used to start
+        shutdown tasks that takes some time and that can run in parallel
+        to checkpointing, etc.
+        """
+        if self.overlay_apps is not None:
+            self.shutdownstarttime = time()
+            self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
+        
+            
+    def shutdown(self,gracetime=2.0):
         
         # Detect if megacache is enabled
         if self.peer_db is not None:
@@ -544,6 +553,19 @@ class TriblerLaunchMany(Thread):
             db.commit()
         
         mainlineDHT.deinit()
+        
+        # Some grace time for early shutdown tasks
+        if self.shutdownstarttime is not None:
+            now = time()
+            diff = now - self.shutdownstarttime
+            if diff < gracetime:
+                print >>sys.stderr,"tlm: shutdown: sleeping for early shutdown tasks",gracetime-diff
+                time.sleep(gracetime-diff) 
+                ts = enumerate()
+                print >>sys.stderr,"tlm: Number of threads still running",len(ts)
+                for t in ts:
+                    print >>sys.stderr,"tlm: Thread still running",t.getName(),"daemon",t.isDaemon()
+        
         # Stop network thread
         self.sessdoneflag.set()
 

@@ -5,6 +5,7 @@
 import sys
 from threading import currentThread
 
+from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
@@ -48,6 +49,8 @@ class CommonRequestPolicy(AbstractRequestPolicy):
 	def __init__(self,session):
 		""" Constructor """
 		self.session = session
+		self.friendsdb = session.open_dbhandler(NTFY_FRIENDS)
+		self.peerdb = session.open_dbhandler(NTFY_PEERS)
 		AbstractRequestPolicy.__init__(self)
 	
 	def isFriend(self, permid):
@@ -55,8 +58,8 @@ class CommonRequestPolicy(AbstractRequestPolicy):
 		@param permid The permid of the sending peer. 
 		@return Whether or not the specified permid is a friend.
 		"""
-		friend_permids = self.session.lm.friend_db.getFriends()
-		return permid in friend_permids
+		fs = self.friendsdb.getFriendState(permid)
+		return (fs == FS_MUTUAL or fs == FS_I_INVITED)
 
 	def benign_random_peer(self,permid):
 		"""
@@ -76,7 +79,7 @@ class CommonRequestPolicy(AbstractRequestPolicy):
 		@return The number of remote query messages already received from
 		this peer.
 		"""
-		peer = self.session.lm.peer_db.getPeer(permid)
+		peer = self.peerdb.getPeer(permid)
 		#print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: getPeer",`permid`,peer
 		#print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: called by",currentThread().getName()
 		if peer is None:

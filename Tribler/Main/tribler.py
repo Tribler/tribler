@@ -63,6 +63,7 @@ from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
 from Tribler.Main.vwxGUI.font import *
+from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon 
 from Tribler.Main.notification import init as notification_init
@@ -309,6 +310,7 @@ class ABCApp(wx.App):
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_friends,NTFY_PEERS,[NTFY_UPDATE])
 
         # Load the default DownloadStartupConfig
         dlcfgfilename = get_default_dscfg_filename(s)
@@ -438,13 +440,15 @@ class ABCApp(wx.App):
     def sesscb_ntfy_dbstats(self,subject,changeType,objectID,*args):
         """ Called by SessionCallback thread """
         wx.CallAfter(self.setDBStats)
-        
+        # Test
+        #if subject == NTFY_PEERS:
+        #    self.frame.friendsmgr.sesscb_friendship_callback(objectID,{})
         
     def setDBStats(self):
         """ Set total # peers and torrents discovered """
         
         # Arno: GUI thread accessing database
-        now = time()
+        now = time.time()
         if now - self.last_update < self.update_freq:
             return  
         self.last_update = now
@@ -469,6 +473,30 @@ class ABCApp(wx.App):
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
         wx.CallAfter(self.frame.onReachable)
 
+
+    def sesscb_ntfy_friends(self,subject,changeType,objectID,*args):
+        """ Called by SessionCallback thread """
+        if subject == NTFY_PEERS:
+            peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
+            peer = peerdb.getPeer(objectID)
+            self.utility.session.close_dbhandler(peerdb)
+        else:
+            peer = None
+        wx.CallAfter(self.gui_ntfy_friends,subject,changeType,objectID,args,peer)
+
+    def gui_ntfy_friends(self,subject,changeType,objectID,args,peer):
+        """ A change in friendship status, report via message window """
+        if len(args) == 2:
+            if args[0] == 'friend':
+                fs = args[1]
+                if fs != FS_I_INVITED and fs != FS_I_DENIED and fs != FS_NOFRIEND:
+                    fstext = fs2text(fs)
+                    if peer['name'] is None or peer['name'] == '':
+                        name = show_permid_short(objectID)
+                    else:
+                        name = peer['name']
+                    msg = name + u" " + fstext
+                    wx.CallAfter(self.frame.setActivity,NTFY_ACT_NONE,msg)
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

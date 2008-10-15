@@ -6,6 +6,9 @@ from traceback import print_exc,print_stack
 import wx.xrc as xrc
 from time import time
 
+from Tribler.Core.simpledefs import *
+from Tribler.Core.Utilities.utilities import *
+
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.filesItemPanel import FilesItemPanel
 from Tribler.Main.vwxGUI.LibraryItemPanel import LibraryItemPanel
@@ -13,14 +16,11 @@ from Tribler.Main.vwxGUI.PersonsItemPanel import PersonsItemPanel
 from Tribler.Main.vwxGUI.FriendsItemPanel import FriendsItemPanel
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
 from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
 from Tribler.Main.vwxGUI.GridState import GridState
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
-from Tribler.Core.simpledefs import *
-from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
-from Tribler.Core.Utilities.utilities import *
-from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
 
 DEBUG = False
 
@@ -80,10 +80,15 @@ class GridManager(object):
         """
         Refresh the data of the grid
         """
+        
+        #print >>sys.stderr,"standardGrid: refresh",update_observer,"ready",self.grid.initReady,"state",self.state
+        
+        
         #print >> sys.stderr, '**********==============********* refresh', self.grid.initReady
         if not self.grid.initReady:
             standardgrid_refresh_lambda = lambda:self.refresh(update_observer=update_observer)
             wx.CallAfter(standardgrid_refresh_lambda)
+            return
 
         if self.state is None:
             return
@@ -228,8 +233,10 @@ class GridManager(object):
 #                self.download_states_callback_set = False
         
     def item_network_callback(self, *args):
-        # only handle network callbacks when grid is shown
+        #print >>sys.stderr,"standardGrid: item_network_callback",`args`
         # print >> sys.stderr, '***** searchmode: ', self.torrentsearch_manager.getSearchMode(self.state.db)
+        
+        # only handle network callbacks when grid is shown
         if not self.grid.isShowByOverview():
             self.callbacks_disabled = True
             self.session.remove_observer(self.item_network_callback) #unsubscribe this function
@@ -254,7 +261,7 @@ class GridManager(object):
         #if self._last_page(): # This doesn't work as the pager is not updated if page becomes full
         #print >> sys.stderr, '******* standard Grid: itemAdded:', objectID, args, 'search?', self.torrentsearch_manager.inSearchMode(self.state.db) 
         if self.torrentsearch_manager.getSearchMode(self.state.db) == SEARCHMODE_SEARCHING:
-            print >> sys.stderr, 'Grid refresh because search item added!!!============================='
+            #print >> sys.stderr, 'Grid refresh because search item added!!!============================='
             wx.CallAfter(self.refresh)
         elif self.isRelevantItem(subject, objectID):
             task_id = str(subject) + str(int(time()/self.refresh_rate))
@@ -272,6 +279,9 @@ class GridManager(object):
         #if (self._objectOnPage(subject, objectID)
         if self.torrentsearch_manager.getSearchMode(self.state.db) == SEARCHMODE_NONE:
             task_id = str(subject) + str(int(time()/self.refresh_rate))
+            
+            #print >>sys.stderr,"standardGrid: itemUpdated",subject,`objectID`,`args`
+            
             self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             #self.refresh()
     
@@ -407,8 +417,7 @@ class standardGrid(wx.Panel):
             else:
                 raise Exception('unknown viewmode: %s' % self.viewmode)
                 
-        # LAYERVIOLATION, use self.session.open_dbhandler() for superpeers
-        self.superpeer_db = SuperPeerDBHandler.getInstance()
+        self.superpeer_db = self.utility.session.open_dbhandler(NTFY_SUPERPEERS)
         self.torrentfeed = TorrentFeedThread.getInstance()
         self.guiserver = GUITaskQueue.getInstance()
         

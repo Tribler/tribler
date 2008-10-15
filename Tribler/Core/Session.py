@@ -4,6 +4,7 @@
 
 import sys
 import copy
+import time
 import binascii
 from traceback import print_exc
 from threading import RLock,currentThread
@@ -20,6 +21,7 @@ from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler
 from Tribler.Core.NATFirewall.NatCheckMsgHandler import NatCheckClient
 
 DEBUG = False
@@ -195,7 +197,8 @@ class Session(SessionRuntimeConfig):
         self.uch = UserCallbackHandler(self)
 
         # Create engine with network thread
-        self.lm = TriblerLaunchMany(self,self.sesslock)
+        self.lm = TriblerLaunchMany()
+        self.lm.register(self,self.sesslock)
         self.lm.start()
 
 
@@ -553,12 +556,14 @@ class Session(SessionRuntimeConfig):
         #Called by any thread
         self.checkpoint_shutdown(stop=False)
     
-    def shutdown(self,checkpoint=True,hacksessconfcheckpoint=True):
+    def shutdown(self,checkpoint=True,gracetime=2.0,hacksessconfcheckpoint=True):
         """ Checkpoints the session and closes it, stopping the download engine.
         @param checkpoint Whether to checkpoint the Session state on shutdown.
+        @param gracetime Time to allow for graceful shutdown + signoff (seconds).
         """ 
         # Called by any thread
-        self.checkpoint_shutdown(stop=True,checkpoint=checkpoint,hacksessconfcheckpoint=hacksessconfcheckpoint)
+        self.lm.early_shutdown()
+        self.checkpoint_shutdown(stop=True,checkpoint=checkpoint,gracetime=gracetime,hacksessconfcheckpoint=hacksessconfcheckpoint)
         self.uch.shutdown()
         
     def get_downloads_pstate_dir(self):
@@ -648,10 +653,12 @@ class Session(SessionRuntimeConfig):
     #
     # Internal persistence methods
     #
-    def checkpoint_shutdown(self,stop,checkpoint,hacksessconfcheckpoint):
+    def checkpoint_shutdown(self,stop,checkpoint,gracetime,hacksessconfcheckpoint):
         """ Checkpoints the Session and optionally shuts down the Session.
         @param stop Whether to shutdown the Session as well.
-        @param checkpoint Whether to checkpoint at all, or just to stop. """
+        @param checkpoint Whether to checkpoint at all, or just to stop.
+        @param gracetime Time to allow for graceful shutdown + signoff (seconds). 
+        """
         # Called by any thread
         self.sesslock.acquire()
         try:
@@ -669,7 +676,7 @@ class Session(SessionRuntimeConfig):
             # Checkpoint all Downloads and stop NetworkThread
             if DEBUG:
                 print >>sys.stderr,"Session: checkpoint_shutdown"
-            self.lm.checkpoint(stop=stop,checkpoint=checkpoint)
+            self.lm.checkpoint(stop=stop,checkpoint=checkpoint,gracetime=gracetime)
         finally:
             self.sesslock.release()
 
@@ -687,6 +694,7 @@ class Session(SessionRuntimeConfig):
         """
         return os.path.join(state_dir,STATEDIR_SESSCONFIG)
     get_default_config_filename = staticmethod(get_default_config_filename)
+
 
     def get_internal_tracker_torrentfilename(self,infohash):
         """ Return the absolute pathname of the torrent file used by the
@@ -729,3 +737,55 @@ class Session(SessionRuntimeConfig):
             return NatCheckClient.getInstance(self).get_nat_type(callback=callback)
         finally:
             self.sesslock.release()
+
+    #
+    # Friendship functions
+    #
+    def send_friendship_message(self,permid,mtype,approved=None):
+        """ Send friendship msg to the specified peer 
+        
+        F_REQUEST_MSG:
+        
+        F_RESPONSE_MSG:
+        @param approved Whether you want him as friend or not.
+        
+        """
+        self.sesslock.acquire()
+        try:
+            if self.sessconfig['overlay']:
+                if mtype == F_FORWARD_MSG:
+                    raise ValueError("User cannot send FORWARD messages directly")
+                
+                fmh = FriendshipMsgHandler.getInstance()
+                params = {}
+                if approved is not None:
+                    params['response'] = int(approved)
+                fmh.anythread_send_friendship_msg(permid,mtype,params)
+            else:
+                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
+        finally:
+            self.sesslock.release()
+
+
+    def set_friendship_callback(self,usercallback):
+        """ When a new friendship request is received the given
+        callback function is called with as first parameter the
+        requester's permid and as second parameter a dictionary of
+        request arguments:
+            callback(requester_permid,params)
+
+        The callback is called by a popup thread which can be used
+        indefinitely (within reason) by the higher level code.
+        
+        @param usercallback A callback function adhering to the above spec.
+        """
+        self.sesslock.acquire()
+        try:
+            if self.sessconfig['overlay']:
+                fmh = FriendshipMsgHandler.getInstance()
+                fmh.register_usercallback(usercallback)
+            else:
+                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
+        finally:
+            self.sesslock.release()
+

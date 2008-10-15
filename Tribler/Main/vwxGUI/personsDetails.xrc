@@ -301,7 +301,7 @@
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>unknown</label>
                             <pos>118,61</pos>
-                            <size>111,18</size>
+                            <size>171,18</size>
                             <fg>#     0</fg>
                           </object>
                         </object>

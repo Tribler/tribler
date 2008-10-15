@@ -10,18 +10,18 @@ import webbrowser
 from sets import Set
 from webbrowser import open_new
 
+from Tribler.Core.simpledefs import *
+from Tribler.Core.Utilities.utilities import *
+from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.Category.Category import Category
+
 from bgPanel import *
 import updateXRC
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.Core.Utilities.utilities import show_permid
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog, InviteFriendsDialog
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
-from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-#from Tribler.vwxGUI.filesFilter import filesFilter
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager,PeerSearchGridManager
-from Tribler.Category.Category import Category
-from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Utility.constants import *
 
 DEBUG = False
@@ -399,15 +399,13 @@ class GUIUtility:
     def emailFriend(self, event):
         ip = self.utility.config.Read('bind')
         if ip is None or ip == '':
-            ip = self.utility.session.lm.get_ext_ip()
+            ip = self.utility.session.get_external_ip()
         mypermid = self.utility.session.get_permid()
 
         permid_txt = self.utility.lang.get('permid')+": "+show_permid(mypermid)
         ip_txt = self.utility.lang.get('ipaddress')+": "+ip
 
-        # port = self.utility.controller.listen_port
-        #port = self.utility.config.Read('minport', 'int')
-        port = self.utility.config.get_listen_port()
+        port = self.utility.session.get_listen_port()
         port_txt = self.utility.lang.get('portnumber')+" "+str(port)
 
         subject = self.utility.lang.get('invitation_subject')
@@ -657,7 +655,8 @@ class GUIUtility:
             #self.utility.makePopup(rightMouse, self.onAdvancedInfoInLibrary, 'rAdvancedInfo')
         elif self.standardOverview.mode == "personsMode" or self.standardOverview.mode == "friendsMode":     
             self.utility.makePopup(rightMouse, None, 'rOptions')
-            if item.get('friend'):
+            fs = item.get('friend') 
+            if fs == FS_MUTUAL or fs == FS_I_INVITED:
                 self.utility.makePopup(rightMouse, self.onChangeFriendStatus, 'rRemoveAsFriend')
                 self.utility.makePopup(rightMouse, self.onChangeFriendInfo, 'rChangeInfo')
             else:

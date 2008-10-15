@@ -4,31 +4,34 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.1rc3, Sep 12 2008. Import this to use the API """
+""" Tribler Core API v1.0.1rc4, Oct 9, 2008. Import this to use the API """
 
 # History:
-# 1.0.1rc3 : Bugfix: [s/g]et_internaltracker in SessionRuntimeConfig renamed to
+# 1.0.1rc4   Added: friendship extension to Session API.
+#            Added: 'gracetime' parameter to Session shutdown.
+#
+# 1.0.1rc3   Bugfix: [s/g]et_internaltracker in SessionRuntimeConfig renamed to
 #            [s/g]et_internal_tracker.
 #
 #            Added/bugfix: [s/g]et_mainline_dht in SessionConfigInterface to
 #            control whether mainline DHT support is activated.
 #
-# 1.0.1rc2 : Added: set_seeding_policy() to Download class to dynamically set
+# 1.0.1rc2   Added: set_seeding_policy() to Download class to dynamically set
 #            different seeding policies.
 #
 #            Added: Methods to SessionConfigInterface for Network Address
 #            Translator detection, see also Session.get_nat_type()
 # 
-# 1.0.1rc1 : Bugfix: The query passed to the callback function for 
+# 1.0.1rc1   Bugfix: The query passed to the callback function for 
 #            query_connected_peers() is now the original query, rather than
 #            the query with "SIMPLE " stripped off.
 #
 # 1.0.0      Released with SwarmPlayer 1.0
 #
-# 1.0.0rc5 : Added option to define auxiliary seeding servers for live stream
+# 1.0.0rc5   Added option to define auxiliary seeding servers for live stream
 #            (=these servers are always unchoked at the source server).
 #
-# 1.0.0rc4 : Changed DownloadConfig.set_vod_start_callback() to a generic 
+# 1.0.0rc4   Changed DownloadConfig.set_vod_start_callback() to a generic 
 #            event-driven interface.
 
 

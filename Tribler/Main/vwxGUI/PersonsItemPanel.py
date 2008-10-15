@@ -4,17 +4,17 @@
 import wx, math, time, os, sys, threading
 import random
 from traceback import print_exc
-from Tribler.Core.Utilities.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
+
+from Tribler.Core.simpledefs import *
+from Tribler.Core.Utilities.utilities import *
+from Tribler.Core.Utilities.unicode import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import copyPeer, similarPeer
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
-from Tribler.Core.Utilities.unicode import *
-from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Main.vwxGUI.filesItemPanel import getResizedBitmapFromImage
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from font import *
-import cStringIO
 import TasteHeart
 
 DEBUG = False
@@ -279,7 +279,8 @@ class PersonsItemPanel(wx.Panel):
                     self.taste.SetLabel('')
                     
                 # -- friend issues
-                if self.data.get('friend'):
+                fs = self.data.get('friend')
+                if fs == FS_MUTUAL or fs == FS_I_INVITED:
                     if self.data.get('online'):
                         if DEBUG:
                             print >>sys.stderr,'pip: friend online'
@@ -432,9 +433,10 @@ class ThumbnailViewer(wx.Panel):
         self.border = None
         #create the heart
         #I will use TasteHeart.BITMAPS to paint the right one
-        self.peer_db = PeerDBHandler.getInstance()
+        self.peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
+        self.superpeer_db = self.utility.session.open_dbhandler(NTFY_SUPERPEERS)
         self.iconsManager = IconsManager.getInstance()
-        self.superpeer_db = self.GetParent().parent.superpeer_db
+        
     
     def setData(self, data):
         
@@ -630,7 +632,8 @@ class ThumbnailViewer(wx.Panel):
                 dc.SetFont(wx.Font(FS_HEARTRANK,FONTFAMILY,FONTWEIGHT, wx.BOLD, False, FONTFACE))
                 text = repr(rank)                
                 dc.DrawText(text, 22, 66)
-            if self.data.get('friend'):
+            fs = self.data.get('friend') 
+            if fs == FS_MUTUAL or fs == FS_I_INVITED:
                 if self.data.get('online'):
                     friend = self.iconsManager.get_default('personsMode','FRIEND_ONLINE_BITMAP')
                 else:
