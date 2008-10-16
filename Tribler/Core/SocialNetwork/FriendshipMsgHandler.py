@@ -25,7 +25,7 @@ from Tribler.Core.BitTornado.bencode import bencode, bdecode
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.SocialNetwork.OverlapMsgHandler import OverlapMsgHandler
-from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler, FriendshipStatisticsDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.Utilities.utilities import *
 
@@ -61,6 +61,8 @@ class FriendshipMsgHandler:
         self.online_fsext_peers = Set() # online peers that speak FRIENDSHIP ext
         self.peerdb = PeerDBHandler.getInstance()
         self.frienddb = FriendDBHandler.getInstance()
+        self.friendshipStatistics_db = FriendshipStatisticsDBHandler().getInstance()
+        self.list_no_of_conn_attempts_per_target= {}
         self.usercallback = None
     
     def getInstance(*args, **kw):
@@ -146,10 +148,32 @@ class FriendshipMsgHandler:
                 if DEBUG:
                     print >>sys.stderr,"friendship: fmsg_connect_callback: Sending",`msg`
                 self.overlay_bridge.send(permid, FRIENDSHIP + bencode(msg), send_callback)
+                
+                if self.list_no_of_conn_attempts_per_target.has_key(bin2str(permid)):
+                    self.list_no_of_conn_attempts_per_target[bin2str(permid)] = self.list_no_of_conn_attempts_per_target[bin2str(permid)] + 1 
+                else:
+                    self.list_no_of_conn_attempts_per_target[bin2str(permid)] = 1
+                mypermid = self.session.get_permid()
+                self.friendshipStatistics_db.insertFriendshipStatisctics( bin2str(mypermid), bin2str(permid), int(time()), 0)
+                
         elif DEBUG:
             peer = self.peerdb.getPeer(permid)
             print >> sys.stderr, 'friendship: Could not connect to peer', show_permid_short(permid),peer['name']
             print_exc()
+            
+            mypermid = self.session.get_permid()
+            
+            if self.list_no_of_conn_attempts_per_target.has_key(bin2str(permid)):
+                self.list_no_of_conn_attempts_per_target[bin2str(permid)] = self.list_no_of_conn_attempts_per_target[bin2str(permid)] + 1 
+            else:
+                self.list_no_of_conn_attempts_per_target[bin2str(permid)] = 1
+            
+            self.friendshipStatistics_db.updateFriendshipStatistics(bin2str(mypermid), 
+                                                                     bin2str(permid), 
+                                                                     int(time()), 
+                                                                     0, 
+                                                                     self.list_no_of_conn_attempts_per_target[bin2str(permid)], 
+                                                                     10)
 
     def fmsg_send_callback(self,exc,permid,msgid):
         
@@ -159,6 +183,19 @@ class FriendshipMsgHandler:
         else:
             print >> sys.stderr, 'friendship: Could not send to ',show_permid_short(permid)  
             print_exc()
+            mypermid = self.session.get_permid()
+            
+            if self.list_no_of_conn_attempts_per_target.has_key(bin2str(target_permid)):
+                self.list_no_of_conn_attempts_per_target[bin2str(target_permid)] = self.list_no_of_conn_attempts_per_target[bin2str(target_permid)] + 1 
+            else:
+                self.list_no_of_conn_attempts_per_target[bin2str(target_permid)] = 1
+                
+            self.friendshipStatistics_db.updateFriendshipStatistics(bin2str(self.mypermid), 
+                                                                     bin2str(permid), 
+                                                                     int(time()), 
+                                                                     0, 
+                                                                     self.list_no_of_conn_attempts_per_target[bin2str(permid)], 
+                                                                     10)
 
 
 
@@ -319,6 +356,13 @@ class FriendshipMsgHandler:
             
             self.process_message(d['source']['permid'],selversion,d['msg'])
             return True
+        
+            self.friendshipStatistics_db.insertFriendshipStatisctics(bin2str(target_permid), 
+                                                                     bin2str(finalTargetPermid), 
+                                                                     int(time()), 
+                                                                     1, 
+                                                                     0, 
+                                                                     0)
         else:
             # Queue and forward
             if DEBUG:
