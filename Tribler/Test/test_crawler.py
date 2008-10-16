@@ -74,7 +74,7 @@ class TestCrawler(TestAsServer):
         """
         Send crawler messages from a non-crawler peer
         """
-        print >>sys.stderr, "-"*80, "\ntest: invalid_messageid"
+        print >>sys.stderr, "-"*80, "\ntest: invalid_permid"
 
         # make sure that the OLConnection is NOT in the crawler_db
         crawler_db = CrawlerDBHandler.getInstance()

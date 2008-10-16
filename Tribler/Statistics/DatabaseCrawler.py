@@ -1,7 +1,11 @@
 # Written by Boudewijn Schoon
 # see LICENSE.txt for license information
 
+import cPickle
+
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+
+DEBUG = False
 
 class DatabaseCrawler:
     __single = None

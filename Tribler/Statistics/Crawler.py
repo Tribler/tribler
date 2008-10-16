@@ -4,7 +4,6 @@
 # TODO: 
 # - modify lucia's stuff to new directory structure
 
-import cPickle
 import random
 import sys
 import time
@@ -216,7 +215,7 @@ class Crawler:
                 if callback:
                     callback(exc, permid)
             else:
-                _send_reply(permid, message_id, channel_id, payload, error=error, callback=callback)
+                self._send_reply(permid, message_id, channel_id, payload, error=error, callback=callback)
 
         self._overlay_bridge.connect(permid, _after_connect)
 
