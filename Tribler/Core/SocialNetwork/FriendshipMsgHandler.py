@@ -141,7 +141,9 @@ class FriendshipMsgHandler:
                 print >> sys.stderr, 'friendship: fmsg_connect_callback: sendlist len',len(sendlist)
                 #print_stack()
             
-            for tuple in sendlist:
+            for i in range(0,len(sendlist)):
+                tuple = sendlist[i]
+                
                 permid,msgid,msg = tuple
                 send_callback = lambda exc,permid:self.fmsg_send_callback(exc,permid,msgid)
                 
@@ -154,12 +156,15 @@ class FriendshipMsgHandler:
                 else:
                     self.list_no_of_conn_attempts_per_target[bin2str(permid)] = 1
                 mypermid = self.session.get_permid()
-                self.friendshipStatistics_db.insertFriendshipStatisctics( bin2str(mypermid), bin2str(permid), int(time()), 0)
                 
-        elif DEBUG:
-            peer = self.peerdb.getPeer(permid)
-            print >> sys.stderr, 'friendship: Could not connect to peer', show_permid_short(permid),peer['name']
-            print_exc()
+                commit = (i == len(sendlist)-1)
+                self.friendshipStatistics_db.insertFriendshipStatisctics( bin2str(mypermid), bin2str(permid), int(time()), 0, commit=commit)
+                
+        else:
+            if DEBUG
+                peer = self.peerdb.getPeer(permid)
+                print >> sys.stderr, 'friendship: Could not connect to peer', show_permid_short(permid),peer['name']
+                print_exc()
             
             mypermid = self.session.get_permid()
             
