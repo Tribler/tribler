@@ -6,6 +6,7 @@ import time
 import unittest
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
 from Tribler.Test.test_as_server import TestAsServer
@@ -49,7 +50,7 @@ class TestNatCheck(TestCrawler):
         error, payload = self.receive_crawler_reply(s, CRAWLER_NATCHECK, 0)
         assert error == 0
         if DEBUG:
-            print >>sys.stderr, payload
+            print >>sys.stderr, "test_natcheck:", bdecode(payload)
 
         time.sleep(1)
         s.close()

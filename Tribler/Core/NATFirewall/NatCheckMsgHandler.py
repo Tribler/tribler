@@ -23,6 +23,7 @@ class NatCheckMsgHandler:
         if NatCheckMsgHandler.__single:
             raise RuntimeError, "NatCheckMsgHandler is singleton"
         NatCheckMsgHandler.__single = self
+        self.crawler_reply_callbacks = []
 
     @staticmethod
     def getInstance(*args, **kw):
@@ -65,9 +66,10 @@ class NatCheckMsgHandler:
 
         return True
 
-    def gotDoNatCheckMessage(self, sender_permid, selversion, channel, payload, err):
+    def gotDoNatCheckMessage(self, sender_permid, selversion, channel_id, payload, reply_callback):
 
         self.doNatCheckSender = sender_permid
+        self.crawler_reply_callbacks.append(reply_callback)
 
         try:
             if DEBUG:
@@ -94,8 +96,15 @@ class NatCheckMsgHandler:
                 return False
             if DEBUG:
                 print >> sys.stderr, "NatCheckMsgHandler:", ncr_data
+
+            # todo: make sure that natthreadcb_natCheckReplyCallback is always called for a request
+            # send replies to all the requests that have been received so far
+            for reply_callback in self.crawler_reply_callbacks:
+                reply_callback(ncr_msg)
+            self.crawler_reply_callbacks = []
+            
             #self.overlay_bridge.connect(self.doNatCheckSender, self.natCheckReplyConnectCallback)
-            self.crawler.send_request(self.doNatCheckSender, CRAWLER_NATCHECK, ncr_msg) # add the callback
+            #self.crawler.send_request(self.doNatCheckSender, CRAWLER_NATCHECK, ncr_msg) # add the callback
 
     def natCheckReplySendCallback(self, exc, permid):
         if DEBUG:
