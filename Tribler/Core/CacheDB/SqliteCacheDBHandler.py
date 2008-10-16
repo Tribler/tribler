@@ -65,6 +65,10 @@ class BasicDBHandler:
         return self._db.getOne(self.table_name, value_name, where, conj, **kw)
     
     def getAll(self, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj='and', **kw):
+        
+        
+        print >>sys.stderr,"BASICDBHANDLER WHERE IS",where,kw
+        
         return self._db.getAll(self.table_name, value_name, where, group_by, having, order_by, limit, offset, conj, **kw)
     
             

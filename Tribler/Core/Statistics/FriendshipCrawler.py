@@ -1,6 +1,15 @@
+# Written by Ali Abbas
 # see LICENSE.txt for license information
 
+import sys
+import time
+from traceback import print_exc
+
+from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import SQLiteCacheDB
+from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
+
+DEBUG = True
 
 class FriendshipCrawler:
     __single = None
@@ -11,8 +20,9 @@ class FriendshipCrawler:
             cls.__single = cls(*args, **kargs)
         return cls.__single
 
-    def __init__(self):
-        self._sqlite_cache_db = SQLiteCacheDB.getInstance()
+    def __init__(self,session):
+        self.session = session
+        self.friendshipStatistics_db = FriendshipStatisticsDBHandler.getInstance()
 
     def query_initiator(self, permid, selversion, request_callback):
         """
@@ -22,12 +32,15 @@ class FriendshipCrawler:
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
         if DEBUG: 
-            print >>sys.stderr, "crawler: SeedingStatsDB_query_initiator"
-        return request_callback(CRAWLER_FRIENDSHIP_STATS, "SELECT * FROM SeedingStats WHERE crawled = 0")
+            print >>sys.stderr, "crawler: friendship_query_initiator"
+            
+        msg_dict = {'current time':int(time.time())}
+        msg = bencode(msg_dict)
+        return request_callback(CRAWLER_FRIENDSHIP_STATS,msg)
 
     def handle_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
         """
-        Received a CRAWLER_DATABASE_QUERY request.
+        Received a CRAWLER_FRIENDSHIP_QUERY request.
         @param permid The Crawler permid
         @param selversion The overlay protocol version
         @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
@@ -37,17 +50,17 @@ class FriendshipCrawler:
         if DEBUG:
             print >> sys.stderr, "crawler: handle_friendship_crawler_database_query_request", message
 
-        # execute the sql
         try:
-            cursor = self._sqlite_cache_db.execute_read(message)
+            d = bdecode(message)
+            
+            stats = self.getStaticsFromFriendshipStatisticsTable(self.session.get_permid(),d['current time'])
+            msg_dict = {'current time':d['current time'],'stats':stats}
+            msg = bencode(msg_dict)
+            reply_callback(msg)
 
         except Exception, e:
+            print_exc()
             reply_callback(str(e), 1)
-        else:
-            if cursor:
-                reply_callback(cPickle.dumps(list(cursor), 2))
-            else:
-                reply_callback("error", 1)
 
         return True
 
@@ -60,9 +73,23 @@ class FriendshipCrawler:
         @param message The message payload
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
+        
+        d = bdecode(msg)
+        
         if DEBUG:
             print >> sys.stderr, "crawler: handle_friendship_crawler_database_query_reply"
-            print >> sys.stderr, "crawler:", cPickle.loads(message)
+            print >> sys.stderr, "crawler: friendship: Got",`d`
+
+        self.saveFriendshipStatistics(permid,d['current time'],d['stats'])
 
         return True 
 
+            
+        
+    def getStaticsFromFriendshipStatisticsTable(self, mypermid, last_update_time):
+        return self.friendshipStatistics_db.getAllFriendshipStatistics(mypermid, last_update_time)
+    
+    def saveFriendshipStatistics(self,permid,currentTime,stats):
+        
+        self.friendshipStatistics_db.saveFriendshipStatisticData(stats)
+        

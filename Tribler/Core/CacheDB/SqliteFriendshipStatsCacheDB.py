@@ -84,7 +84,7 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
             raise RuntimeError, "FriendshipStatisticsDBHandler is singleton"
         FriendshipStatisticsDBHandler.__single = self
         db = SQLiteFriendshipStatsCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Friendship_statistics')
+        BasicDBHandler.__init__(self, db, 'FriendshipStatistics')
         #BasicDBHandler.__init__(self, 'Peer')
         #self.tableName = 'FriendshipStatistics'
 
@@ -98,10 +98,9 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
         @in: get_online: boolean: if true, give peers a key 'online' if there is a connection now
         """
         
-        table_name = ('FriendshipStatistics')
         value_name = ('source_permid', 'target_permid', 'isForwarder', 'request_time', 'response_time', 'no_of_attempts',
                       'no_of_helpers')
-        where = '(source_permid = '+str2bin(permid)+' and request_time > '+last_update_time+') '
+        where = 'request_time > '+str(last_update_time) # source_permid done below
         
         if range:
             offset= range[0]
@@ -117,9 +116,13 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
         else:
             order_by = None
             
-        res_list = self.getAll(table_name, value_name, offset= offset, limit=limit, order_by=order_by)
+        try:
+            permidstr = bin2str(permid)
+            res_list = self.getAll(value_name, where=where, offset= offset, limit=limit, order_by=order_by, source_permid=permidstr)
+        except:
+            print_exc()
         
-        return  res_list
+        return res_list
     
     def saveFriendshipStatisticData (self, data):
         

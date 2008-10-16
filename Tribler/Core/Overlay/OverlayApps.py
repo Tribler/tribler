@@ -142,7 +142,7 @@ class OverlayApps:
             crawler.register_message_handler(CRAWLER_SEEDINGSTATS_QUERY, seeding_stats_crawler.handle_crawler_request, seeding_stats_crawler.handle_crawler_reply)
 
             # allows access to friendship statistics (Ali)
-            friendship_crawler = FriendshipCrawler.get_instance()
+            friendship_crawler = FriendshipCrawler.get_instance(session)
             crawler.register_crawl_initiator(friendship_crawler.query_initiator)
             crawler.register_message_handler(CRAWLER_FRIENDSHIP_STATS, friendship_crawler.handle_crawler_request, friendship_crawler.handle_crawler_reply)
 
