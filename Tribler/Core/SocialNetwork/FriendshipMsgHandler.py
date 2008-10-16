@@ -161,7 +161,7 @@ class FriendshipMsgHandler:
                 self.friendshipStatistics_db.insertFriendshipStatistics( bin2str(mypermid), bin2str(permid), int(time()), 0, commit=commit)
                 
         else:
-            if DEBUG
+            if DEBUG:
                 peer = self.peerdb.getPeer(permid)
                 print >> sys.stderr, 'friendship: Could not connect to peer', show_permid_short(permid),peer['name']
                 print_exc()
