@@ -1,9 +1,6 @@
 # Written by Boudewijn Schoon
 # see LICENSE.txt for license information
 
-# TODO: 
-# - modify lucia's stuff to new directory structure
-
 import random
 import sys
 import time
