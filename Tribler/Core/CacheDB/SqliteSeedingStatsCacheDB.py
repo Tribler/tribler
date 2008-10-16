@@ -14,7 +14,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import *
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import BasicDBHandler
 
 CREATE_SEEDINGSTATS_SQL_FILE = None
-CREATE_SEEDINGSTATS_SQL_FILE_POSTFIX = os.path.join('Tribler', 'Statistics', 'tribler_seedingstats_sdb.sql')
+CREATE_SEEDINGSTATS_SQL_FILE_POSTFIX = os.path.join('Tribler', 'Core', 'Statistics', 'tribler_seedingstats_sdb.sql')
 DB_FILE_NAME = 'tribler_seedingstats.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 CURRENT_DB_VERSION = 1

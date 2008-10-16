@@ -9,9 +9,9 @@ from Tribler.Core.NATFirewall.NatCheck import GetNATType
 from Tribler.Core.NATFirewall.TimeoutCheck import timeout_check
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
+from Tribler.Core.Statistics.Crawler import *
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
-from Tribler.Statistics.Crawler import *
 
 DEBUG = False
 

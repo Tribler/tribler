@@ -20,12 +20,12 @@ from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
+from Tribler.Core.Statistics.Crawler import Crawler
+from Tribler.Core.Statistics.DatabaseCrawler import DatabaseCrawler
+from Tribler.Core.Statistics.FriendshipCrawler import FriendshipCrawler
+from Tribler.Core.Statistics.SeedingStatsCrawler import SeedingStatsCrawler
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
-from Tribler.Statistics.Crawler import Crawler
-from Tribler.Statistics.DatabaseCrawler import DatabaseCrawler
-from Tribler.Statistics.FriendshipCrawler import FriendshipCrawler
-from Tribler.Statistics.SeedingStatsCrawler import SeedingStatsCrawler
 
 DEBUG = False
 
