@@ -1,28 +1,17 @@
-# Written by Arno Bakker, Lucian d' Acunto, Boudewijn Schoon
+# Written by Arno Bakker, Boudewijn Schoon
 # see LICENSE.txt for license information
 
-import socket
-import unittest
-import os
 import sys
 import time
-#from sha import sha
-#from random import randint,shuffle
-#from traceback import print_exc
-#from types import StringType, IntType, ListType
-#from threading import Thread
-#from M2Crypto import Rand,EC
+import unittest
 
-from Tribler.Test.test_as_server import TestAsServer
-from olconn import OLConnection
-#from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
-
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
+from Tribler.Test.test_as_server import TestAsServer
 
+from olconn import OLConnection
 from test_crawler import TestCrawler
-
 
 DEBUG=True
 
@@ -30,35 +19,6 @@ class TestNatCheck(TestCrawler):
     """ 
     Testing Nat-Check statistics gathering using the Crawler framework
     """
-    
-#     def setUp(self):
-#         """ override TestAsServer """
-#         TestAsServer.setUp(self)
-#         Rand.load_file('randpool.dat', -1)
-
-#     def setUpPreSession(self):
-#         """ override TestAsServer """
-#         TestAsServer.setUpPreSession(self)
-#         # Enable buddycast
-#         self.config.set_buddycast(True)
-#         self.config.set_start_recommender(True)
-#         self.config.set_bartercast(True)
-
-#     def setUpPostSession(self):
-#         """ override TestAsServer """
-#         TestAsServer.setUpPostSession(self)
-
-#         self.mypermid = str(self.my_keypair.pub().get_der())
-#         self.hispermid = str(self.his_keypair.pub().get_der())        
-#         self.myhash = sha(self.mypermid).digest()
-
-#     def tearDown(self):
-#         """ override TestAsServer """
-#         TestAsServer.tearDown(self)
-#         try:
-#             os.remove('randpool.dat')
-#         except:
-#             pass
 
     def test_all(self):
         """
@@ -81,7 +41,7 @@ class TestNatCheck(TestCrawler):
         # make sure that the OLConnection IS in the crawler_db
         crawler_db = CrawlerDBHandler.getInstance()
         crawler_db.temporarilyAddCrawler(self.my_permid)
-        assert not self.my_permid in crawler_db.getCrawlers()
+        assert self.my_permid in crawler_db.getCrawlers()
 
         s = OLConnection(self.my_keypair, "localhost", self.hisport)
         self.send_crawler_request(s, CRAWLER_NATCHECK, 0, 0, "")
@@ -95,5 +55,9 @@ class TestNatCheck(TestCrawler):
         s.close()
 
 if __name__ == "__main__":
-    unittest.main()
+    def test_suite():
+        suite = unittest.TestSuite()
+        suite.addTest(unittest.makeSuite(TestNatCheck))
+        return suite
+    unittest.main(defaultTest="test_suite")
 
