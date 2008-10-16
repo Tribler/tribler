@@ -627,7 +627,7 @@ class CrawlerDBHandler:
         self._crawler_list = []
         
     def loadCrawlers(self, config, refresh=False):
-        filename = os.path.join(config['install_dir'], '..', "Statistics", config['crawler_file'])
+        filename = os.path.join(config['crawler_file'])
         self._crawler_list = self.readCrawlerList(filename)
 
     def readCrawlerList(self, filename=''):

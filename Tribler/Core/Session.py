@@ -152,7 +152,7 @@ class Session(SessionRuntimeConfig):
         if self.sessconfig['superpeer_file'] is None:
             self.sessconfig['superpeer_file'] = os.path.join(self.sessconfig['install_dir'],'Tribler','Core','superpeer.txt')
         if 'crawler_file' not in self.sessconfig or self.sessconfig['crawler_file'] is None:
-            self.sessconfig['crawler_file'] = os.path.join(self.sessconfig['install_dir'],'Tribler','Statistics','crawler.txt')
+            self.sessconfig['crawler_file'] = os.path.join(self.sessconfig['install_dir'], 'Tribler','Statistics','crawler.txt')
 
         # 5. download_help_dir
         if self.sessconfig['download_help_dir'] is None:
