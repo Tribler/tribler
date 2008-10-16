@@ -38,26 +38,26 @@ class AllowAllRequestPolicy(AbstractRequestPolicy):
     def allowed(self, permid, messageID):
         return self.allowAllRequestsAllPeers(permid, messageID)
 
-class CommonRequestPolicy(AbstractRequestPolicy):	
-	""" A base class implementing some methods that can be used as building 
-	blocks for RequestPolicies. 
-	""" 
-	def __init__(self,session):
-		""" Constructor """
-		self.session = session
-		self.friendsdb = session.open_dbhandler(NTFY_FRIENDS)
-		self.peerdb = session.open_dbhandler(NTFY_PEERS)
-		AbstractRequestPolicy.__init__(self)
-	
-	def isFriend(self, permid):
-		"""
-		@param permid The permid of the sending peer. 
-		@return Whether or not the specified permid is a friend.
-		"""
-		fs = self.friendsdb.getFriendState(permid)
-		return (fs == FS_MUTUAL or fs == FS_I_INVITED)
+class CommonRequestPolicy(AbstractRequestPolicy):    
+    """ A base class implementing some methods that can be used as building 
+    blocks for RequestPolicies. 
+    """ 
+    def __init__(self,session):
+        """ Constructor """
+        self.session = session
+        self.friendsdb = session.open_dbhandler(NTFY_FRIENDS)
+        self.peerdb = session.open_dbhandler(NTFY_PEERS)
+        AbstractRequestPolicy.__init__(self)
+    
+    def isFriend(self, permid):
+        """
+        @param permid The permid of the sending peer. 
+        @return Whether or not the specified permid is a friend.
+        """
+        fs = self.friendsdb.getFriendState(permid)
+        return (fs == FS_MUTUAL or fs == FS_I_INVITED)
 
-    def isSuperPeer(self, permid):
+    def isSuperPeer(self, permid):        
         """
         @param permid The permid of the sending peer.
         @return Whether of not the specified permid is a superpeer.
@@ -74,31 +74,31 @@ class CommonRequestPolicy(AbstractRequestPolicy):
     def allowAllRequestsAllPeers(self, permid, messageID):
         return True
 
-	def benign_random_peer(self,permid):
-		"""
-		@param permid The permid of the sending peer. 
-		@return Whether or not the specified permid has exceeded his
-		quota of remote query messages.
-		"""
-		if MAX_QUERIES_FROM_RANDOM_PEER > 0:
-			nqueries = self.get_peer_nqueries(permid)
-			return nqueries < MAX_QUERIES_FROM_RANDOM_PEER
-		else: 
-			return True
-	
-	def get_peer_nqueries(self, permid):
-		"""
-		@param permid The permid of the sending peer. 
-		@return The number of remote query messages already received from
-		this peer.
-		"""
-		peer = self.peerdb.getPeer(permid)
-		#print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: getPeer",`permid`,peer
-		#print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: called by",currentThread().getName()
-		if peer is None:
-			return 0
-		else:
-			return peer['num_queries']
+    def benign_random_peer(self,permid):
+        """
+        @param permid The permid of the sending peer. 
+        @return Whether or not the specified permid has exceeded his
+        quota of remote query messages.
+        """
+        if MAX_QUERIES_FROM_RANDOM_PEER > 0:
+            nqueries = self.get_peer_nqueries(permid)
+            return nqueries < MAX_QUERIES_FROM_RANDOM_PEER
+        else: 
+            return True
+    
+    def get_peer_nqueries(self, permid):
+        """
+        @param permid The permid of the sending peer. 
+        @return The number of remote query messages already received from
+        this peer.
+        """
+        peer = self.peerdb.getPeer(permid)
+        #print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: getPeer",`permid`,peer
+        #print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: called by",currentThread().getName()
+        if peer is None:
+            return 0
+        else:
+            return peer['num_queries']
 
 class AllowFriendsRequestPolicy(CommonRequestPolicy):
     """

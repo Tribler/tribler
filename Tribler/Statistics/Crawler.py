@@ -14,7 +14,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 
-DEBUG = True
+DEBUG = False
 
 # when a message payload exceedes 32KB it is divided into multiple
 # messages

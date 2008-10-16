@@ -13,7 +13,7 @@ import urlparse
 from traceback import print_exc
 
 STRICT_CHECK = False
-DEBUG = True
+DEBUG = False
 
 permid_len = 112
 infohash_len = 20

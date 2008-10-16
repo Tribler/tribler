@@ -5,7 +5,7 @@ import sys, commands, re
 from Tribler.Core.simpledefs import UPLOAD
 from Tribler.Core.exceptions import NotYetImplementedException
 
-DEBUG = True
+DEBUG = False
 DUMMY = True
 class UploadLimitation:
     

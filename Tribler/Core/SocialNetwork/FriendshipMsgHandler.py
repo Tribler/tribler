@@ -25,13 +25,14 @@ from Tribler.Core.BitTornado.bencode import bencode, bdecode
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.SocialNetwork.OverlapMsgHandler import OverlapMsgHandler
-from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler, FriendshipStatisticsDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
+from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.Utilities.utilities import *
 
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 
-DEBUG = True
+DEBUG = False
 
 """
 State diagram:

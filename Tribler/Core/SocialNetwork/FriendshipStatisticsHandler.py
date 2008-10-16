@@ -20,7 +20,7 @@ DATA = 'FRIENDSHIP_STATISTICS_DATA'
 SEND_STATISTICS = 'SEND FRIENDSHIP STATISTICS'
 ACKNOWLEDGEMENT = 'ACKNOWLEDGEMENT'
 overlay_bridge = None
-DEBUG = True
+DEBUG = False
 
 class FriendshipStatisticsHandler:
     __single = None

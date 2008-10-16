@@ -11,9 +11,9 @@ from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
-from Tribler.Core.Crawler import *
+from Tribler.Statistics.Crawler import *
 
-DEBUG = True
+DEBUG = False
 
 class NatCheckMsgHandler:
 
