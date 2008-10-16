@@ -158,7 +158,7 @@ class FriendshipMsgHandler:
                 mypermid = self.session.get_permid()
                 
                 commit = (i == len(sendlist)-1)
-                self.friendshipStatistics_db.insertFriendshipStatisctics( bin2str(mypermid), bin2str(permid), int(time()), 0, commit=commit)
+                self.friendshipStatistics_db.insertFriendshipStatistics( bin2str(mypermid), bin2str(permid), int(time()), 0, commit=commit)
                 
         else:
             if DEBUG
@@ -362,7 +362,7 @@ class FriendshipMsgHandler:
             self.process_message(d['source']['permid'],selversion,d['msg'])
             return True
         
-            self.friendshipStatistics_db.insertFriendshipStatisctics(bin2str(target_permid), 
+            self.friendshipStatistics_db.insertFriendshipStatistics(bin2str(target_permid), 
                                                                      bin2str(finalTargetPermid), 
                                                                      int(time()), 
                                                                      1, 

@@ -226,7 +226,7 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
         
         self._db.insertMany('FriendshipStatistics', data)
     
-    def insertFriendshipStatisctics(self, my_permid, target_permid, current_time, isForwarder = 0, no_of_attempts = 0, no_of_helpers = 0):
+    def insertFriendshipStatistics(self, my_permid, target_permid, current_time, isForwarder = 0, no_of_attempts = 0, no_of_helpers = 0):
        
 #        db keys: 'source_permid', 'target_permid', 'isForwarder', 'request_time', 'response_time', 
 #                 'no_of_attempts', 'no_of_helpers'
