@@ -48,6 +48,7 @@ NTFY_FRIENDS = 'friends'       # use NTFY_PEERS !!
 NTFY_MYPREFERENCES = 'mypreferences' # currently not observable
 NTFY_BARTERCAST = 'bartercast' # currently not observable
 NTFY_MYINFO = 'myinfo'
+NTFY_SEEDINGSTATS = 'seedingstats'
 
 # non data handler subjects
 NTFY_DOWNLOADS = 'downloads'   # a torrent download was added/removed/changed

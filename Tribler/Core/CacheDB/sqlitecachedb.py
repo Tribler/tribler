@@ -43,8 +43,7 @@ def init(config, db_exception_handler = None):
     config_dir = config['state_dir']
     install_dir = config['install_dir']
     CREATE_SQL_FILE = os.path.join(install_dir,CREATE_SQL_FILE_POSTFIX)
-    SQLiteCacheDB.exception_handler = db_exception_handler
-    sqlitedb = SQLiteCacheDB.getInstance()   
+    sqlitedb = SQLiteCacheDB.getInstance(db_exception_handler)   
     sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
     bsddb_path = os.path.join(config_dir, BSDDB_DIR_NAME)
     icon_dir = os.path.abspath(config['peer_icon_path'])
@@ -140,33 +139,13 @@ class safe_dict(dict):
         finally:
             self.lock.release()
 
-class SQLiteCacheDB:
-    
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.RLock()
-    exception_handler = None
-    cursor_table = safe_dict()    # {thread_name:cur}
-    cache_transaction_table = safe_dict()   # {thread_name:[sql]
-    class_variables = safe_dict({'db_path':None,'busytimeout':None})  # busytimeout is in milliseconds
+class SQLiteCacheDBBase:
 
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking to ensure that it can only create one object
-        if SQLiteCacheDB.__single is None:
-            SQLiteCacheDB.lock.acquire()   
-            try:
-                if SQLiteCacheDB.__single is None:
-                    SQLiteCacheDB(*args, **kw)
-            finally:
-                SQLiteCacheDB.lock.release()
-        return SQLiteCacheDB.__single
-    
-    getInstance = staticmethod(getInstance)
-    
-    def __init__(self):
-        # always use getInstance() to create this object
-        if SQLiteCacheDB.__single != None:
-            raise RuntimeError, "SQLiteCacheDB is singleton"
-        SQLiteCacheDB.__single = self
+    def __init__(self,db_exception_handler):
+        self.exception_handler = db_exception_handler
+        self.cursor_table = safe_dict()    # {thread_name:cur}
+        self.cache_transaction_table = safe_dict()   # {thread_name:[sql]
+        self.class_variables = safe_dict({'db_path':None,'busytimeout':None})  # busytimeout is in milliseconds
         
         self.permid_id = safe_dict()    
         self.infohash_id = safe_dict()
@@ -190,24 +169,24 @@ class SQLiteCacheDB:
             cur.close()
             con.close()
             con = None
-            del SQLiteCacheDB.cursor_table[thread_name]
+            del self.cursor_table[thread_name]
         if clean:    # used for test suite
             self.permid_id = safe_dict()
             self.infohash_id = safe_dict()
-            SQLiteCacheDB.exception_handler = None
-            SQLiteCacheDB.class_variables = safe_dict({'db_path':None,'busytimeout':None})
-            SQLiteCacheDB.cursor_table = safe_dict()
-            SQLiteCacheDB.cache_transaction_table = safe_dict()
+            self.exception_handler = None
+            self.class_variables = safe_dict({'db_path':None,'busytimeout':None})
+            self.cursor_table = safe_dict()
+            self.cache_transaction_table = safe_dict()
             
             
     # --------- static functions --------
     def getCursor(self, create=True):
         thread_name = threading.currentThread().getName()
-        curs = SQLiteCacheDB.cursor_table
+        curs = self.cursor_table
         cur = curs.get(thread_name, None)    # return [cur, cur, lib] or None
         #print >> sys.stderr, '-------------- getCursor::', len(curs), time(), curs.keys()
         if cur is None and create:
-            self.openDB(SQLiteCacheDB.class_variables['db_path'], SQLiteCacheDB.class_variables['busytimeout'])    # create a new db obj for this thread
+            self.openDB(self.class_variables['db_path'], self.class_variables['busytimeout'])    # create a new db obj for this thread
             cur = curs.get(thread_name)
         
         return cur
@@ -224,9 +203,9 @@ class SQLiteCacheDB:
 
         # already opened a db in this thread, reuse it
         thread_name = threading.currentThread().getName()
-        if thread_name in SQLiteCacheDB.cursor_table:
-            #assert dbfile_path == None or SQLiteCacheDB.class_variables['db_path'] == dbfile_path
-            return SQLiteCacheDB.cursor_table[thread_name]
+        if thread_name in self.cursor_table:
+            #assert dbfile_path == None or self.class_variables['db_path'] == dbfile_path
+            return self.cursor_table[thread_name]
 
         assert dbfile_path, "You must specify the path of database file"
         
@@ -239,7 +218,7 @@ class SQLiteCacheDB:
         con.setbusytimeout(busytimeout)
 
         cur = con.cursor()
-        SQLiteCacheDB.cursor_table[thread_name] = cur
+        self.cursor_table[thread_name] = cur
         return cur
     
     def createDBTable(self, sql_create_table, dbfile_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
@@ -271,14 +250,14 @@ class SQLiteCacheDB:
         if create_sql_filename is None:
             create_sql_filename=CREATE_SQL_FILE
         try:
-            SQLiteCacheDB.lock.acquire()
+            self.lock.acquire()
 
             # verify db path identity
-            class_db_path = SQLiteCacheDB.class_variables['db_path']
+            class_db_path = self.class_variables['db_path']
             if sqlite_filepath == None:     # reuse the opened db file?
                 if class_db_path != None:   # yes, reuse it
                     # reuse the busytimeout
-                    return self.openDB(class_db_path, SQLiteCacheDB.class_variables['busytimeout'])
+                    return self.openDB(class_db_path, self.class_variables['busytimeout'])
                 else:   # no db file opened
                     raise Exception, "You must specify the path of database file when open it at the first time"
             else:
@@ -292,7 +271,7 @@ class SQLiteCacheDB:
                     # it will update the db if necessary by checking the version number
                     self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout, check_version=check_version)
                     
-                    SQLiteCacheDB.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
+                    self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
                     
                     return self.openDB()    # return the cursor, won't reopen the db
                     
@@ -300,7 +279,7 @@ class SQLiteCacheDB:
                     raise Exception, "Only one database file can be opened. You have opened %s and are trying to open %s." % (class_db_path, sqlite_filepath) 
                         
         finally:
-            SQLiteCacheDB.lock.release()
+            self.lock.release()
 
     def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT, check_version=False):
         """
@@ -361,8 +340,9 @@ class SQLiteCacheDB:
 
     def report_exception(e):
         #return  # Jie: don't show the error window to bother users
-        if SQLiteCacheDB.exception_handler != None:
-            SQLiteCacheDB.exception_handler(e)
+        if self.exception_handler != None:
+            self.exception_handler(e)
+    report_exception = staticmethod(report_exception) 
 
     def checkDB(self, db_ver, curr_ver):
         # read MyDB and check the version number.
@@ -387,8 +367,6 @@ class SQLiteCacheDB:
             return find[0]    # throw error if something wrong
         else:
             return None
-    
-    report_exception = staticmethod(report_exception) 
     
     def show_sql(self, switch):
         # temporary show the sql executed
@@ -433,19 +411,19 @@ class SQLiteCacheDB:
     def executemany(self, sql, args, commit=True):
 
         thread_name = threading.currentThread().getName()
-        if thread_name not in SQLiteCacheDB.cache_transaction_table:
-            SQLiteCacheDB.cache_transaction_table[thread_name] = []
+        if thread_name not in self.cache_transaction_table:
+            self.cache_transaction_table[thread_name] = []
         all = [(sql, arg) for arg in args]
-        SQLiteCacheDB.cache_transaction_table[thread_name].extend(all)
+        self.cache_transaction_table[thread_name].extend(all)
 
         if commit:
             self.commit()
             
     def cache_transaction(self, sql, args=None):
         thread_name = threading.currentThread().getName()
-        if thread_name not in SQLiteCacheDB.cache_transaction_table:
-            SQLiteCacheDB.cache_transaction_table[thread_name] = []
-        SQLiteCacheDB.cache_transaction_table[thread_name].append((sql, args))
+        if thread_name not in self.cache_transaction_table:
+            self.cache_transaction_table[thread_name] = []
+        self.cache_transaction_table[thread_name].append((sql, args))
                     
     def transaction(self, sql=None, args=None):
         if sql:
@@ -456,7 +434,7 @@ class SQLiteCacheDB:
         n = 0
         sql_full = ''
         arg_list = []
-        sql_queue = SQLiteCacheDB.cache_transaction_table.get(thread_name,None)
+        sql_queue = self.cache_transaction_table.get(thread_name,None)
         if sql_queue:
             while True:
                 try:
@@ -835,6 +813,29 @@ class SQLiteCacheDB:
         res1 = self.getAll('Category', '*')
         res2 = len(self.getAll('Peer', 'name', 'name is not NULL'))
         return (res1, res2)
+
+class SQLiteCacheDB(SQLiteCacheDBBase):
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.RLock()
+
+    @classmethod
+    def getInstance(cls, *args, **kw):
+        # Singleton pattern with double-checking to ensure that it can only create one object
+        if cls.__single is None:
+            cls.lock.acquire()   
+            try:
+                if cls.__single is None:
+                    cls.__single = cls(*args, **kw)
+            finally:
+                cls.lock.release()
+        return cls.__single
+    
+    def __init__(self, *args, **kargs):
+        # always use getInstance() to create this object
+        if self.__single != None:
+            raise RuntimeError, "SQLiteCacheDB is singleton"
+        SQLiteCacheDBBase.__init__(self, *args, **kargs)
+    
 
 def convert_db(bsddb_dir, dbfile_path, sql_filename):
     # Jie: here I can convert the database created by the new Core version, but

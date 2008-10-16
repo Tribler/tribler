@@ -33,8 +33,8 @@ def show_permid_shorter(permid):
     return s[-5:]
 
 class BasicDBHandler:
-    def __init__(self, table_name):
-        self._db = SQLiteCacheDB.getInstance()
+    def __init__(self, db, table_name):
+        self._db = db
         self.table_name = table_name
         self.notifier = Notifier.getInstance()
         
@@ -90,7 +90,8 @@ class MyDBHandler(BasicDBHandler):
         if MyDBHandler.__single is not None:
             raise RuntimeError, "MyDBHandler is singleton"
         MyDBHandler.__single = self
-        BasicDBHandler.__init__(self, 'MyInfo')
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self,db,'MyInfo')
         # keys: version, torrent_dir
         
     def get(self, key, default_value=None):
@@ -132,7 +133,8 @@ class FriendDBHandler(BasicDBHandler):
         if FriendDBHandler.__single is not None:
             raise RuntimeError, "FriendDBHandler is singleton"
         FriendDBHandler.__single = self
-        BasicDBHandler.__init__(self, 'Peer')
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, 'Peer')
         
     def setFriendState(self, permid, state=1, commit=True):
         self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), commit=commit, friend=state)
@@ -191,7 +193,8 @@ class PeerDBHandler(BasicDBHandler):
         if PeerDBHandler.__single is not None:
             raise RuntimeError, "PeerDBHandler is singleton"
         PeerDBHandler.__single = self
-        BasicDBHandler.__init__(self, 'Peer')
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, 'Peer')
         self.pref_db = PreferenceDBHandler.getInstance()
         self.online_peers = set()
 
@@ -529,7 +532,8 @@ class SuperPeerDBHandler(BasicDBHandler):
         if SuperPeerDBHandler.__single is not None:
             raise RuntimeError, "SuperPeerDBHandler is singleton"
         SuperPeerDBHandler.__single = self
-        BasicDBHandler.__init__(self, 'SuperPeer')
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, 'SuperPeer')
         self.peer_db_handler = PeerDBHandler.getInstance()
         
     def loadSuperPeers(self, config, refresh=False):
@@ -538,7 +542,7 @@ class SuperPeerDBHandler(BasicDBHandler):
         self.insertSuperPeers(superpeer_list, refresh)
 
     def readSuperPeerList(self, filename=''):
-        """ read (name, permid, superpeer_ip, superpeer_port) lines from a text file """
+        """ read (superpeer_ip, superpeer_port, permid [, name]) lines from a text file """
         
         try:
             filepath = os.path.abspath(filename)
@@ -591,7 +595,87 @@ class SuperPeerDBHandler(BasicDBHandler):
         permid = _peer.pop('permid')
         _peer['superpeer'] = 1
         self._db.insertPeer(permid, **_peer)
+
+
+class CrawlerDBHandler:
+    """
+    The CrawlerDBHandler is not an actual handle to a
+    database. Instead it uses a local file (usually crawler.txt) to
+    identify crawler processes.
+    """
     
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if CrawlerDBHandler.__single is None:
+            CrawlerDBHandler.lock.acquire()   
+            try:
+                if CrawlerDBHandler.__single is None:
+                    CrawlerDBHandler(*args, **kw)
+            finally:
+                CrawlerDBHandler.lock.release()
+        return CrawlerDBHandler.__single
+    
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if CrawlerDBHandler.__single is not None:
+            raise RuntimeError, "CrawlerDBHandler is singleton"
+        CrawlerDBHandler.__single = self
+        self._crawler_list = []
+        
+    def loadCrawlers(self, config, refresh=False):
+        filename = os.path.join(config['install_dir'], '..', "Statistics", config['crawler_file'])
+        self._crawler_list = self.readCrawlerList(filename)
+
+    def readCrawlerList(self, filename=''):
+        """
+        read (permid [, name]) lines from a text file
+        returns a list containing permids
+        """
+        
+        try:
+            filepath = os.path.abspath(filename)
+            file = open(filepath, "r")
+        except IOError:
+            print >> sys.stderr, "crawler: cannot open crawler file", filepath
+            return []
+            
+        crawlers = file.readlines()
+        file.close()
+        crawlers_info = []
+        for crawler in crawlers:
+            if crawler.strip().startswith("#"):    # skip commended lines
+                continue
+            crawler_info = [a.strip() for a in crawler.split(",")]
+            try:
+                crawler_info[0] = base64.decodestring(crawler_info[0]+'\n')
+            except:
+                print_exc()
+                continue
+            crawlers_info.append(str2bin(crawler))
+                    
+        return crawlers_info
+
+    def temporarilyAddCrawler(self, permid):
+        """
+        Because of security reasons we will not allow crawlers to be
+        added to the crawler.txt list. This temporarilyAddCrawler
+        method can be used to add one for the running session. Usefull
+        for debugging and testing.
+        """
+        if not permid in self._crawler_list:
+            self._crawler_list.append(permid)
+
+    def getCrawlers(self):
+        """
+        returns a list with permids of crawlers
+        """
+        return self._crawler_list
+
+
         
 class PreferenceDBHandler(BasicDBHandler):
     
@@ -615,7 +699,8 @@ class PreferenceDBHandler(BasicDBHandler):
         if PreferenceDBHandler.__single is not None:
             raise RuntimeError, "PreferenceDBHandler is singleton"
         PreferenceDBHandler.__single = self
-        BasicDBHandler.__init__(self, 'Preference')
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, 'Preference')
             
     def _getTorrentOwnersID(self, torrent_id):
         sql_get_torrent_owners_id = "SELECT peer_id FROM Preference WHERE torrent_id==?"
@@ -721,7 +806,8 @@ class TorrentDBHandler(BasicDBHandler):
         if TorrentDBHandler.__single is not None:
             raise RuntimeError, "TorrentDBHandler is singleton"
         TorrentDBHandler.__single = self
-        BasicDBHandler.__init__(self, 'Torrent')
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, 'Torrent')
         
         self.mypref_db = MyPreferenceDBHandler.getInstance()
         
@@ -1518,7 +1604,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if MyPreferenceDBHandler.__single is not None:
             raise RuntimeError, "MyPreferenceDBHandler is singleton"
         MyPreferenceDBHandler.__single = self
-        BasicDBHandler.__init__(self, 'MyPreference')
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, 'MyPreference')
 
         self.status_table = {'good':1, 'unknown':0, 'dead':2}
         self.status_table.update(self._db.getTorrentStatusTable())
@@ -1684,7 +1771,8 @@ class BarterCastDBHandler(BasicDBHandler):
 
     def __init__(self):
         BarterCastDBHandler.__single = self
-        BasicDBHandler.__init__(self, 'BarterCast')
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, 'BarterCast')
         self.peer_db = PeerDBHandler.getInstance()
         #        self.my_permid = "" 
         if DEBUG:

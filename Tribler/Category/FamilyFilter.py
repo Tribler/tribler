@@ -27,7 +27,8 @@ class XXXFilter:
                     terms.add(line)
             f.close()
         except:
-            print_exc()
+            if DEBUG:
+                print_exc()
             
         if DEBUG:
             print 'Read %d XXX terms from file %s' % (len(terms)+len(searchterms), filename)

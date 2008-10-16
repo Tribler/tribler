@@ -3,7 +3,7 @@ from traceback import print_exc
 import socket
 import sys
 
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.NATFirewall.NatCheck import GetNATType
 from Tribler.Core.NATFirewall.TimeoutCheck import timeout_check
@@ -11,6 +11,7 @@ from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
+from Tribler.Core.Crawler import *
 
 DEBUG = True
 
@@ -29,56 +30,61 @@ class NatCheckMsgHandler:
             NatCheckMsgHandler(*args, **kw)
         return NatCheckMsgHandler.__single
 
-    def register(self, overlay_bridge, launchmany):
+    def register(self, launchmany):
         if DEBUG:
             print >> sys.stderr, "NatCheckMsgHandler: register"
-        self.overlay_bridge = overlay_bridge
-        self.session = launchmany.session		 
-        self.superpeer_db = launchmany.superpeer_db 
+
+        self.session = launchmany.session
         self.doNatCheckSender = None
-        self.natcheck_reply = ""
-        self.peerlist = None
         self.registered = True
 
-    def handleMessage(self, permid, selversion, message):
-        if not self.registered:
+    def doNatCheck(self, target_permid, selversion, arg):
+
+       # for older versions of Tribler: do nothing
+        if selversion < OLPROTO_VER_SEVENTH:
             if DEBUG:
-                print >> sys.stderr, "NatCheckMsgHandler: handleMessage got message, but we're not enabled"
+                print >> sys.stderr, "NatCheckMsgHandler: older versions of Tribler: do nothing"
+            return False
+            
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: do NAT check"
+            
+        # send the message
+        self.crawler.send_request(target_permid, CRAWLER_NATCHECK, "", callback=self.doNatCheckCallback)
+
+    def doNatCheckCallback(self, exc, permid):
+        if exc is not None:
+            return False
+	    if DEBUG:
+	        print >> sys.stderr, "******* NATCHECK_REQUEST was sent to", show_permid_short(permid), exc
+        # Register peerinfo on file
+        f = open("registerlog.txt", "a")
+        t = datetime.datetime.fromtimestamp(time.time())
+        f.write(t.strftime("%Y-%m-%d %H:%M:%S") + "," + "NATCHECK_REQUEST_SENT" + "," + str(show_permid(permid)) + "," + str(self.peer) + "\n")
+        f.close()
+
+        return True
+
+    def gotDoNatCheckMessage(self, sender_permid, selversion, channel, payload, err):
+
+        self.doNatCheckSender = sender_permid
+
+        try:
+            if DEBUG:
+                print >>sys.stderr,"NatCheckMsgHandler: start_nat_type_detect()"
+            nat_check_client = NatCheckClient.getInstance(self.session)
+            nat_check_client.try_start()
+        except:
+            print_exc()
             return False
 
-        if len(message) > 0 and message[0] == DO_NAT_CHECK:
-            if DEBUG:
-                print >> sys.stderr, "NatCheckMsgHandler: received DO_NAT_CHECK message"
-            return self.gotDoNatCheckMessage(message, permid, selversion)
-
-    def gotDoNatCheckMessage(self, recv_msg, sender_permid, selversion):
-        if len(recv_msg) is not 1:
-            raise RuntimeError, "NatCheckMsgHandler: bad DO_NAT_CHECK message"
-
-        superpeers = self.superpeer_db.getSuperPeers()
-        if sender_permid in superpeers: # NAT check started only if requested by a superpeer
-            self.doNatCheckSender = sender_permid
-            if DEBUG:
-                print >> sys.stderr,"NatCheckMsgHandler: DO_NAT_CHECK sender is superpeer"
-
-            try:
-                if DEBUG:
-                    print >>sys.stderr,"NatCheckMsgHandler: start_nat_type_detect()"
-                nat_check_client = NatCheckClient.getInstance(self.session)
-                nat_check_client.try_start()
-            except:
-                print_exc()
-            return True
-        elif DEBUG:
-            print >>sys.stderr, "NatCheckMsgHandler: a nat-check-request is only allowed by a superpeer"
-            
-        return False
+        return True
         
     def natthreadcb_natCheckReplyCallback(self, ncr_data):
         if DEBUG:
             print >> sys.stderr, "NAT type: ", ncr_data
 
-        # connect to the peer who has made the NAT_CHECK request
+        # send the message to the peer who has made the NATCHECK request, if any
         if self.doNatCheckSender is not None:
             try:
                 ncr_msg = bencode(ncr_data)
@@ -86,31 +92,75 @@ class NatCheckMsgHandler:
                 print_exc()
                 if DEBUG: print >> sys.stderr, "error ncr_data:", ncr_data
                 return False
-            self.natcheck_reply = ncr_msg
             if DEBUG:
                 print >> sys.stderr, "NatCheckMsgHandler:", ncr_data
-            self.overlay_bridge.connect(self.doNatCheckSender, self.natCheckReplyConnectCallback)
-
-    def validDoNatCheckMessage(self, ncr_data):
-        return True
-
-    # send the message
-    def natCheckReplyConnectCallback(self, exc, dns, permid, server):
-        if DEBUG:
-            print >> sys.stderr, "******* NAT_CHECK_REPLY: connecting to", show_permid_short(permid), exc
-        if exc is not None:
-            if DEBUG:
-                print >> sys.stderr, "********* NAT_CHECK_REPLY: not able to connect to", show_permid_short(permid), exc
-            return False
-        self.overlay_bridge.send(self.doNatCheckSender, NAT_CHECK_REPLY+self.natcheck_reply, self.natCheckReplySendCallback)
-        return True
+            #self.overlay_bridge.connect(self.doNatCheckSender, self.natCheckReplyConnectCallback)
+            self.crawler.send_request(self.doNatCheckSender, CRAWLER_NATCHECK, ncr_msg) # add the callback
 
     def natCheckReplySendCallback(self, exc, permid):
         if DEBUG:
-            print >> sys.stderr, "******* NAT_CHECK_REPLY was sent to", show_permid_short(permid), exc
+            print >> sys.stderr, "******* NATCHECK_REPLY was sent to", show_permid_short(permid), exc
         if exc is not None:
             return False
         return True
+
+    def gotNatCheckReplyMessage(self, recv_msg, sender_permid, selversion):
+
+        try:
+            recv_data = bdecode(recv_msg)
+        except:
+            print_exc()
+            print >> sys.stderr, "bad encoded data:", recv_msg
+            return False
+            
+        try:    # check natCheckReply message
+            self.validNatCheckReplyMsg(recv_data)
+        except RuntimeError, msg:
+            print >> sys.stderr, msg
+            return False
+
+        if DEBUG:
+            print >> sys.stderr, "***********************NatCheckMsgHandler: received NAT_CHECK_REPLY message: ", recv_data
+
+        # Register peerinfo on file
+        f = open("registerlog.txt", "a")
+        t = datetime.datetime.fromtimestamp(time.time())
+        f.write(t.strftime("%Y-%m-%d %H:%M:%S") + "," + "NAT_CHECK_REPLY" + "," + str(show_permid(sender_permid)) + "," + "[" + str(recv_data[0]) + ":" + str(recv_data[1]) + ":" + str(recv_data[2]) + ":" + str(recv_data[3]) + ":" + str(recv_data[4]) + ":" + str(recv_data[5]) + ":" + str(recv_data[6]) + "]" + "\n")
+        f.close()
+
+    def validNatCheckReplyMsg(self, ncr_data):
+
+        if not type(ncr_data) == ListType:
+            raise RuntimeError, "NatCheckMsgHandler: received data is not valid"
+            return False
+            
+        if not type(ncr_data[0]) == StringType:
+            raise RuntimeError, "NatCheckMsgHandler: received data is not valid"
+            return False
+            
+        if not type(ncr_data[1]) == IntType:
+            raise RuntimeError, "NatCheckMsgHandler: received data is not valid"
+            return False
+            
+        if not type(ncr_data[2]) == IntType:
+            raise RuntimeError, "NatCheckMsgHandler: received data is not valid"
+            return False
+            
+        if not type(ncr_data[3]) == StringType:
+            raise RuntimeError, "NatCheckMsgHandler: received data is not valid"
+            return False
+            
+        if not type(ncr_data[4]) == IntType:
+            raise RuntimeError, "NatCheckMsgHandler: received data is not valid"
+            return False
+            
+        if not type(ncr_data[5]) == StringType:
+            raise RuntimeError, "NatCheckMsgHandler: received data is not valid"
+            return False
+            
+        if not type(ncr_data[6]) == IntType:
+            raise RuntimeError, "NatCheckMsgHandler: received data is not valid"
+            return False
 
 class NatCheckClient(Thread):
 

@@ -52,6 +52,9 @@ from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Category.Category import Category
 
+from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import *
+from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import *
+
 SPECIAL_VALUE=481
 
 DEBUG = False
@@ -122,6 +125,12 @@ class TriblerLaunchMany(Thread):
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
             cachedb.init(config, self.rawserver_fatalerrorfunc)
             
+            # initialize SeedingStats database
+            cachedb.init_seeding_stats(config, self.rawserver_fatalerrorfunc)
+            
+            # initialize Friendship statistics database
+            cachedb.init_friendship_stats(config, self.rawserver_fatalerrorfunc)
+            
             self.my_db          = MyDBHandler.getInstance()
             self.peer_db        = PeerDBHandler.getInstance()
             # Register observer to update connection opened/closed to peer_db_handler
@@ -132,6 +141,9 @@ class TriblerLaunchMany(Thread):
             self.pref_db        = PreferenceDBHandler.getInstance()
             self.superpeer_db   = SuperPeerDBHandler.getInstance()
             self.superpeer_db.loadSuperPeers(config)
+            self.crawler_db     = CrawlerDBHandler.getInstance()
+            self.crawler_db.loadCrawlers(config)
+            self.seedingstats_db = SeedingStatsDBHandler.getInstance()
             self.friend_db      = FriendDBHandler.getInstance()
             self.bartercast_db  = BarterCastDBHandler.getInstance()
             self.bartercast_db.registerSession(self.session)
@@ -150,6 +162,7 @@ class TriblerLaunchMany(Thread):
             self.mypref_db      = None
             self.pref_db        = None
             self.superpeer_db   = None
+            self.seedingstats_db = None
             self.friend_db      = None
             self.bartercast_db  = None
             self.mm = None
@@ -162,7 +175,7 @@ class TriblerLaunchMany(Thread):
                         
             self.overlay_apps = OverlayApps.getInstance()
             # Default policy, override with Session.set_overlay_request_policy()
-            policy = FriendsCoopDLOtherRQueryQuotumAllowAllRequestPolicy(self.session)
+            policy = FriendsCoopDLOtherRQueryQuotumCrawlerAllowAllRequestPolicy(self.session)
             
             # For the new DB layer we need to run all overlay apps in a
             # separate thread instead of the NetworkThread as before.

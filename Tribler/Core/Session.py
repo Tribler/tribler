@@ -148,9 +148,11 @@ class Session(SessionRuntimeConfig):
                 sink = '/dev/null'
             self.sessconfig['tracker_logfile'] = sink
 
-        # 4. superpeer.txt
+        # 4. superpeer.txt and crawler.txt
         if self.sessconfig['superpeer_file'] is None:
             self.sessconfig['superpeer_file'] = os.path.join(self.sessconfig['install_dir'],'Tribler','Core','superpeer.txt')
+        if 'crawler_file' not in self.sessconfig or self.sessconfig['crawler_file'] is None:
+            self.sessconfig['crawler_file'] = os.path.join(self.sessconfig['install_dir'],'Tribler','Statistics','crawler.txt')
 
         # 5. download_help_dir
         if self.sessconfig['download_help_dir'] is None:
@@ -498,6 +500,8 @@ class Session(SessionRuntimeConfig):
                 return self.lm.mypref_db
             elif subject == NTFY_BARTERCAST:
                 return self.lm.bartercast_db
+            elif subject == NTFY_SEEDINGSTATS:
+                return self.lm.seedingstats_db
             else:
                 raise ValueError('Cannot open DB subject: '+subject)
         finally:

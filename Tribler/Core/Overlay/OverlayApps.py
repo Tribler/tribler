@@ -3,26 +3,29 @@
 #
 # All applications on top of the SecureOverlay should be started here.
 #
-import sys
-from traceback import print_exc
+from MetadataHandler import MetadataHandler
 from threading import Lock
-
+from threading import currentThread
 from time import time
+from traceback import print_exc
+import sys
+
 from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.CoopDownload.CoordinatorMessageHandler import CoordinatorMessageHandler
 from Tribler.Core.CoopDownload.HelperMessageHandler import HelperMessageHandler
-from MetadataHandler import MetadataHandler
-from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.NATFirewall.NatCheckMsgHandler import NatCheckMsgHandler
-from Tribler.Core.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
+from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler 
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
-from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler 
+from Tribler.Core.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
-from threading import currentThread
 from Tribler.Core.simpledefs import *
-
+from Tribler.Statistics.Crawler import Crawler
+from Tribler.Statistics.DatabaseCrawler import DatabaseCrawler
+from Tribler.Statistics.FriendshipCrawler import FriendshipCrawler
+from Tribler.Statistics.SeedingStatsCrawler import SeedingStatsCrawler
 
 DEBUG = False
 
@@ -42,7 +45,6 @@ class OverlayApps:
         self.dialback_handler = None
         self.socnet_handler = None
         self.rquery_handler = None
-        self.natcheck_handler = None
         self.friendship_handler = None
         self.msg_handlers = {}
         self.connection_handlers = []
@@ -100,11 +102,6 @@ class OverlayApps:
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
             self.register_connection_handler(self.buddycast.handleConnection)
 
-        if config['nat_detect']:            
-            self.natcheck_handler = NatCheckMsgHandler.getInstance()
-            self.natcheck_handler.register(overlay_bridge, launchmany)
-            self.register_msg_handler(NatCheckMessages,self.natcheck_handler.handleMessage)
-
         if config['dialback']:
             self.dialback_handler = DialbackMsgHandler.getInstance()
             # The Dialback mechanism needs the real rawserver, not the overlay_bridge
@@ -129,6 +126,42 @@ class OverlayApps:
             self.rquery_handler.register(overlay_bridge,launchmany,config,self.buddycast,log=config['overlay_log'])
             self.register_msg_handler(RemoteQueryMessages,self.rquery_handler.handleMessage)
             self.register_connection_handler(self.rquery_handler.handleConnection)
+
+        if config['crawler']:
+            crawler = Crawler.get_instance(session)
+            self.register_msg_handler([CRAWLER_REQUEST], crawler.handle_request)
+
+            # allows access to tribler database
+            database_crawler = DatabaseCrawler.get_instance()
+            crawler.register_crawl_initiator(database_crawler.query_initiator)
+            crawler.register_message_handler(CRAWLER_DATABASE_QUERY, database_crawler.handle_crawler_request, database_crawler.handle_crawler_reply)
+
+            # allows access to seeding statistics (Boxun)
+            seeding_stats_crawler = SeedingStatsCrawler.get_instance()
+            crawler.register_crawl_initiator(seeding_stats_crawler.query_initiator)
+            crawler.register_message_handler(CRAWLER_SEEDINGSTATS_QUERY, seeding_stats_crawler.handle_crawler_request, seeding_stats_crawler.handle_crawler_reply)
+
+            # allows access to friendship statistics (Ali)
+            friendship_crawler = FriendshipCrawler.get_instance()
+            crawler.register_crawl_initiator(friendship_crawler.query_initiator)
+            crawler.register_message_handler(CRAWLER_FRIENDSHIP_STATS, friendship_crawler.handle_crawler_request, friendship_crawler.handle_crawler_reply)
+
+            # allows access to nat-check statistics (Lucia)
+            natcheck_handler = NatCheckMsgHandler.getInstance()
+            natcheck_handler.register(launchmany)
+            crawler.register_crawl_initiator(natcheck_handler.doNatCheck, 60)
+            crawler.register_message_handler(CRAWLER_NATCHECK, natcheck_handler.gotDoNatCheckMessage, natcheck_handler.gotNatCheckReplyMessage)
+
+            if crawler.am_crawler():
+                # we will only accept CRAWLER_REPLY messages when we are actully a crawler
+                self.register_msg_handler([CRAWLER_REPLY], crawler.handle_reply)
+                self.register_connection_handler(crawler.handle_connection)
+
+                # 13/10/08 Boudewijn: a little test code to 'crawl' to a specific peer
+                # this connect is only used to test the crawler!
+#                 def _tmp(exc, dns, permid, selversion):
+#                     self.handleConnection(exc, permid, selversion, True)
+#                 self.overlay_bridge.connect_dns(("130.161.158.24", 7762), _tmp)
             
         self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         self.rtorrent_handler.register(overlay_bridge,self.metadata_handler,session)
@@ -160,9 +193,9 @@ class OverlayApps:
         """
         for id in ids:
             if DEBUG:
-                print >> sys.stderr,"olapps: Handler registered for",getMessageName(id)
+                print >> sys.stderr,"olapps: Message handler registered for",getMessageName(id)
             self.msg_handlers[id] = handler
-        
+
     def register_connection_handler(self, handler):
         """
             Register a handler for if a connection is established
@@ -170,8 +203,9 @@ class OverlayApps:
             handler(exc,permid,selversion,locally_initiated)
         """
         assert handler not in self.connection_handlers, 'This connection_handler is already registered'
+        if DEBUG:
+            print >> sys.stderr, "olapps: Connection handler registered for", handler
         self.connection_handlers.append(handler)
-        
 
     def handleMessage(self,permid,selversion,message):
         """ demultiplex message stream to handlers """
@@ -179,33 +213,34 @@ class OverlayApps:
         # Check auth
         if not self.requestAllowed(permid, message[0]):
             return False
-        
-        id = message[0]
-        if DEBUG:
-            print >> sys.stderr,"olapps: got_message",getMessageName(id),"v"+str(selversion)
-        if not self.msg_handlers.has_key(id):
-            if DEBUG:
-                print >> sys.stderr,"olapps: No handler found for",getMessageName(id)
-            return False
+
+        if message[0] in self.msg_handlers:
+            # This is a one byte id. (For instance a regular
+            # BitTorrent message)
+            id_ = message[0]
         else:
             if DEBUG:
-                print >> sys.stderr,"olapps: Giving message to handler for",getMessageName(id)
-            try:
-                if DEBUG:
-                    st = time()
-                    ret = self.msg_handlers[id](permid,selversion,message)
-                    et = time()
-                    diff = et - st
-                    if diff > 0:
-                        print >> sys.stderr,"olapps: ",getMessageName(id),"TOOK %.5f" % diff
-                else:
-                    ret = self.msg_handlers[id](permid,selversion,message)
-                return ret
-            except:
-                # Catch all
-                print_exc()
-                return False
+                print >> sys.stderr, "olapps: No handler found for", getMessageName(message[0:2])
+            return False
 
+        if DEBUG:
+            print >> sys.stderr, "olapps: handleMessage", getMessageName(id_), "v" + str(selversion)
+
+        try:
+            if DEBUG:
+                st = time()
+                ret = self.msg_handlers[id_](permid, selversion, message)
+                et = time()
+                diff = et - st
+                if diff > 0:
+                    print >> sys.stderr,"olapps: ",getMessageName(id_),"TOOK %.5f" % diff
+                return ret
+            else:
+                return self.msg_handlers[id_](permid, selversion, message)
+        except:
+            # Catch all
+            print_exc()
+            return False
 
     def handleConnection(self,exc,permid,selversion,locally_initiated):
         """ An overlay-connection was established. Notify interested parties. """

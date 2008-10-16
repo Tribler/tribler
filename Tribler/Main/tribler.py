@@ -346,6 +346,9 @@ class ABCApp(wx.App):
         self.seedingcount = 0 
 # _SelectiveSeeding
 
+        # seeding stats crawling
+        self.seeding_snapshot_count = 0
+
         # Only allow updates to come in after we defined ratelimiter
         s.set_download_states_callback(self.sesscb_states_callback)
         
@@ -359,7 +362,7 @@ class ABCApp(wx.App):
         
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
-        print >>sys.stderr,"main: Stats:"
+        if DEBUG: print >>sys.stderr,"main: Stats:"
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
             # Pass DownloadStates to libaryView
@@ -424,6 +427,17 @@ class ABCApp(wx.App):
                 self.seedingmanager.apply_seeding_policy(dslist)
 # _SelectiveSeeding
             
+# Crawling Seeding Stats_
+            snapshot_seeding_stats = False
+            if self.seeding_snapshot_count % 1800 == 0:
+                snapshot_seeding_stats = True
+            self.seeding_snapshot_count += 1
+            
+            if snapshot_seeding_stats:
+                seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
+                seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), dslist) 
+# _Crawling Seeding Stats
+
         except:
             print_exc()
 

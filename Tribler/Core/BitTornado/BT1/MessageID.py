@@ -107,14 +107,6 @@ QUERY_REPLY = chr(237)
 
 RemoteQueryMessages = [QUERY,QUERY_REPLY]
 
-# Do NAT check and report
-DO_NAT_CHECK = chr(234)
-NAT_CHECK_REPLY = chr(233)
-
-NatCheckMessages = [DO_NAT_CHECK, NAT_CHECK_REPLY]
-
-OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages
-
 # g2g info (uplink statistics, etc)
 G2G_PIECE_XFER = chr(235)
 
@@ -124,6 +116,27 @@ VoDMessages = [G2G_PIECE_XFER]
 FRIENDSHIP = chr(234)
 
 FriendshipMessages = [FRIENDSHIP]
+
+# Do NAT check and report
+# DO_NAT_CHECK = chr(234)
+# NAT_CHECK_REPLY = chr(233)
+
+# NatCheckMessages = [DO_NAT_CHECK, NAT_CHECK_REPLY]
+
+# Generic Crawler messages
+CRAWLER_REQUEST = chr(232)
+CRAWLER_REPLY = chr(231)
+
+CrawlerMessages = [CRAWLER_REQUEST, CRAWLER_REPLY]
+
+# All overlay-swarm messages
+OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages
+
+# Crawler sub-messages
+CRAWLER_DATABASE_QUERY = chr(1)
+CRAWLER_SEEDINGSTATS_QUERY = chr(2)
+CRAWLER_NATCHECK = chr(3)
+CRAWLER_FRIENDSHIP_STATS = chr(4)
 
 message_map = {
     CHOKE:"CHOKE",
@@ -159,13 +172,25 @@ message_map = {
     DO_NAT_CHECK:"DO_NAT_CHECK",
     NAT_CHECK_REPLY:"NAT_CHECK_REPLY",
     G2G_PIECE_XFER: "G2G_PIECE_XFER",
-    FRIENDSHIP:"FRIENDSHIP"
+    FRIENDSHIP:"FRIENDSHIP",
+
+    CRAWLER_REQUEST:"CRAWLER_REQUEST",
+    CRAWLER_REQUEST+CRAWLER_DATABASE_QUERY:"CRAWLER_DATABASE_QUERY_REQUEST",
+    CRAWLER_REQUEST+CRAWLER_SEEDINGSTATS_QUERY:"CRAWLER_SEEDINGSTATS_QUERY_REQUEST",
+    CRAWLER_REQUEST+CRAWLER_NATCHECK:"CRAWLER_NATCHECK_QUERY_REQUEST",
+    CRAWLER_REPLY:"CRAWLER_REPLY",
+    CRAWLER_REPLY+CRAWLER_DATABASE_QUERY:"CRAWLER_DATABASE_QUERY_REPLY",
+    CRAWLER_REPLY+CRAWLER_SEEDINGSTATS_QUERY:"CRAWLER_SEEDINGSTATS_QUERY_REPLY",
+    CRAWLER_REPLY+CRAWLER_NATCHECK:"CRAWLER_NATCHECK_QUERY_REPLY",
+    CRAWLER_REPLY+CRAWLER_FRIENDSHIP_STATS:"CRAWLER_FRIENDSHIP_STATS"
 }
 
-
-def getMessageName(t):
-    if t in message_map:
-        return message_map[t]
+def getMessageName(s):
+    """
+    Return the message name for message id s. This may be either a one
+    or a two byte sting
+    """
+    if s in message_map:
+        return message_map[s]
     else:
-        return "Unknown_MessageID_"+str(ord(t))
-        
+        return "Unknown_MessageID_" + "_".join([str(ord(c)) for c in s])

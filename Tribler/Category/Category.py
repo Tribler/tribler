@@ -37,7 +37,8 @@ class Category:
             self.category_info.sort(rankcmp)
         except:
             self.category_info = []
-            print_exc()
+            if DEBUG:
+                print_exc()
 
         self.xxx_filter = XXXFilter(install_dir)
         

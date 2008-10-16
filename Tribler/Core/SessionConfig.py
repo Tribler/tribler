@@ -1123,6 +1123,19 @@ class SessionConfigInterface:
         @return List of (hostname/ip,port) tuples. """
         return self.sessconfig['puncturing_coordinators']
 
+    #
+    # Crawler
+    #
+    def set_crawler(self, value):
+        """ Handle crawler messages when received (default = True)
+        @param value Boolean
+        """
+        self.sessconfig['crawler'] = value
+
+    def get_crawler(self):
+        """ Whether crawler messages are processed
+        @return Boolean. """
+        return self.sessconfig['crawler']
 
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  

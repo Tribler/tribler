@@ -167,6 +167,7 @@ class Choker:
             if c in preferred:
                 to_unchoke.append(u)
             else:
+                # TODO: apply service policies to optimistic slot
                 if count < maxuploads or not hit:
                     to_unchoke.append(u)
                     if u.is_interested():
