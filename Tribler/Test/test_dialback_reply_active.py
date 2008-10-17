@@ -61,6 +61,10 @@ class TestDialbackReplyActive(TestAsServer):
         self.install_path = tempfile.mkdtemp()
         spdir = os.path.join(self.install_path, 'Tribler', 'Core')
         os.makedirs(spdir)
+
+        statsdir = os.path.join(self.install_path, 'Tribler', 'Core', 'Statistics')
+        os.makedirs(statsdir)
+        
         superpeerfilename = os.path.join(spdir, 'superpeer.txt')
         print >> sys.stderr,"test: writing",self.NLISTENERS,"superpeers to",superpeerfilename
         f = open(superpeerfilename, "w")
@@ -87,9 +91,15 @@ class TestDialbackReplyActive(TestAsServer):
         
         self.config.set_install_dir(self.install_path)
         
-        srcsqlcreatefile = os.path.join('..','..','Tribler','tribler_sdb_v1.sql')
-        dstsqlcreatefile = os.path.join(self.install_path,'Tribler','tribler_sdb_v1.sql')
-        shutil.copyfile(srcsqlcreatefile,dstsqlcreatefile)
+        srcfiles = []
+        srcfiles.append(os.path.join("Tribler","tribler_sdb_v1.sql"))
+        srcfiles.append(os.path.join("Tribler","Core","Statistics","tribler_seedingstats_sdb.sql"))
+        srcfiles.append(os.path.join("Tribler","Core","Statistics","tribler_friendship_stats_sdb.sql"))
+        for srcfile in srcfiles:
+            sfn = os.path.join('..','..',srcfile)
+            dfn = os.path.join(self.install_path,srcfile)
+            print >>sys.stderr,"test: copying",sfn,dfn
+            shutil.copyfile(sfn,dfn)
 
         """
         # To avoid errors

@@ -8,7 +8,7 @@ if os.path.exists('test_osutils.py'):
 elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
     
-from Core.osutils import fix_filebasename
+from Tribler.Core.osutils import fix_filebasename
 
 fix_filebasename
 

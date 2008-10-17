@@ -38,6 +38,10 @@ class AllowAllRequestPolicy(AbstractRequestPolicy):
     def allowed(self, permid, messageID):
         return self.allowAllRequestsAllPeers(permid, messageID)
 
+    def allowAllRequestsAllPeers(self, permid, messageID):
+        return True
+
+
 class CommonRequestPolicy(AbstractRequestPolicy):    
     """ A base class implementing some methods that can be used as building 
     blocks for RequestPolicies. 
@@ -70,9 +74,6 @@ class CommonRequestPolicy(AbstractRequestPolicy):
         @return Whether of not the specified permid is a superpeer.
         """
         return permid in self.session.lm.crawler_db.getCrawlers()
-
-    def allowAllRequestsAllPeers(self, permid, messageID):
-        return True
 
     def benign_random_peer(self,permid):
         """

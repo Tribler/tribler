@@ -247,6 +247,13 @@ class TestCrawler(TestAsServer):
 
             return -1, ""
 
+def test_suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(TestCrawler))
+    
+    return suite
+
+
 if __name__ == "__main__":
     unittest.main()
 

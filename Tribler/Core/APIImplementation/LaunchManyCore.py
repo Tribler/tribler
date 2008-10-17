@@ -15,7 +15,6 @@ from threading import RLock,Condition,Event,Thread,currentThread,enumerate
 from traceback import print_exc,print_stack
 from types import StringType
 
-from Tribler.Core.BitTornado.__init__ import createPeerID
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.download_bt1 import BT1Download
 from Tribler.Core.BitTornado.RawServer import RawServer

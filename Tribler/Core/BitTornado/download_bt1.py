@@ -32,7 +32,6 @@ from random import seed
 from threading import Event
 from clock import clock
 import re
-from __init__ import createPeerID
 
 from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT, VODEVENT_START
 from Tribler.Core.Merkle.merkle import create_fake_hashes

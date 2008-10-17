@@ -73,6 +73,8 @@ copy Tribler\binary-LICENSE.txt dist\installdir
 mkdir dist\installdir\Tribler
 mkdir dist\installdir\Tribler\Core
 copy Tribler\Core\superpeer.txt dist\installdir\Tribler\Core
+mkdir dist\installdir\Tribler\Core\Statistics
+copy Tribler\Core\Statistics\*.sql dist\installdir\Tribler\Core\Statistics
 mkdir dist\installdir\Tribler\Images
 copy Tribler\Images\*.* dist\installdir\Tribler\Images
 copy Tribler\Player\Build\Win32\heading.bmp dist\installdir

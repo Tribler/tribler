@@ -17,7 +17,7 @@ elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
     
 import apsw
-from Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT
     
 def extract_db_files(file_dir, file_name):
     try:
@@ -304,9 +304,9 @@ class SQLitePerformanceTest:
                     sim_res.append((sim,sim_torrent_id))
                 sim_res.sort()
                 sim_res.reverse()
-                sim_torrents_id = tuple([ti for (sim,ti) in sim_res[:num_sim]])
+                sim_torrents_id = tuple([int(ti) for (sim,ti) in sim_res[:num_sim]])
             else:
-                sim_torrents_id = tuple([ti for (ti,co) in sim_torrents])
+                sim_torrents_id = tuple([int(ti) for (ti,co) in sim_torrents])
 
             if len(sim_torrents_id) > 0:
                 if len(sim_torrents_id) == 1:

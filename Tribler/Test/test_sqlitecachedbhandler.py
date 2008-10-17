@@ -14,9 +14,9 @@ if os.path.exists(__file__):
 elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
     
-from Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
-from Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, MyDBHandler, BasicDBHandler, PeerDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler
-from Category.Category import Category
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, MyDBHandler, BasicDBHandler, PeerDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler
+from Tribler.Category.Category import Category
 
 def extract_db_files(file_dir, file_name):
     try:
@@ -76,20 +76,21 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
     
     def setUp(self):
         db_path = TRIBLER_DB_PATH
-        SQLiteCacheDB.getInstance().initDB(db_path, busytimeout=BUSYTIMEOUT)
+        self.sqlitedb = SQLiteCacheDB.getInstance()
+        self.sqlitedb.initDB(db_path, busytimeout=BUSYTIMEOUT)
         
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
             
     def test_size(self):
         table_name = 'Peer'
-        db = BasicDBHandler(table_name)
+        db = BasicDBHandler(self.sqlitedb,table_name)
         size = db.size()
         assert size == 3995,size
 
     def test_getOne(self):
         table_name = 'Peer'
-        db = BasicDBHandler(table_name)
+        db = BasicDBHandler(self.sqlitedb,table_name)
         
         ip = db.getOne('ip', peer_id=1)
         assert ip == '68.108.115.221', ip
@@ -125,7 +126,7 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
         
     def test_getAll(self):
         table_name = 'Peer'
-        db = BasicDBHandler(table_name)
+        db = BasicDBHandler(self.sqlitedb,table_name)
         
         ips = db.getAll('ip')
         assert len(ips) == 3995, len(ips)
@@ -284,28 +285,28 @@ class TestFriendDBHandler(unittest.TestCase):
         assert self.sp1 not in friends
         assert self.fr1 in friends
         
-    def test_setFriend(self):
+    def test_setFriendState(self):
         db = FriendDBHandler.getInstance()
-        db.setFriend(self.sp1)
-        assert db.isFriend(self.sp1)
+        db.setFriendState(self.sp1)
+        assert db.getFriendState(self.sp1)
         sps = db.getFriends()
         assert self.sp1 in sps
         assert len(sps) == 3
         
-        db.setFriend(self.sp1)
-        assert db.isFriend(self.sp1)
+        db.setFriendState(self.sp1)
+        assert db.getFriendState(self.sp1)
         sps = db.getFriends()
         assert self.sp1 in sps
         assert len(sps) == 3
         
         db.deleteFriend(self.sp1)
-        assert not db.isFriend(self.sp1)
+        assert not db.getFriendState(self.sp1)
         sps = db.getFriends()
         assert self.sp1 not in sps
         assert len(sps) == 2
         
         db.deleteFriend(self.sp1)
-        assert not db.isFriend(self.sp1)
+        assert not db.getFriendState(self.sp1)
         sps = db.getFriends()
         assert self.sp1 not in sps
         assert len(sps) == 2

@@ -66,9 +66,10 @@ class TestAsServer(unittest.TestCase):
 
     def tearDown(self):
         """ unittest test tear down code """
-        self.session.shutdown()
-        print >>sys.stderr,"test_as_server: sleeping after session shutdown"
-        time.sleep(2)
+        if self.session is not None:
+            self.session.shutdown()
+            print >>sys.stderr,"test_as_server: sleeping after session shutdown"
+            time.sleep(2)
         try:
             shutil.rmtree(self.config_path)
         except:

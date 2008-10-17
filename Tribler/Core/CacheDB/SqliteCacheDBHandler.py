@@ -4,7 +4,7 @@
 # for any function you added to database. 
 # Please reuse the functions in sqlitecachedb as more as possible
 
-from sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from unicode import name2unicode,dunno2unicode
 from copy import deepcopy,copy
 from sets import Set
@@ -149,6 +149,9 @@ class FriendDBHandler(BasicDBHandler):
     def getFriendState(self, permid):
         res = self.getOne('friend', permid=bin2str(permid))
         return res
+        
+    def deleteFriend(self,permid):
+        self.setFriendState(permid,0)
         
     def searchNames(self,kws):
         return doPeerSearchNames(self,'Friend',kws)

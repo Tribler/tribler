@@ -141,7 +141,7 @@ class safe_dict(dict):
 
 class SQLiteCacheDBBase:
 
-    def __init__(self,db_exception_handler):
+    def __init__(self,db_exception_handler=None):
         self.exception_handler = db_exception_handler
         self.cursor_table = safe_dict()    # {thread_name:cur}
         self.cache_transaction_table = safe_dict()   # {thread_name:[sql]
@@ -825,6 +825,7 @@ class SQLiteCacheDB(SQLiteCacheDBBase):
             try:
                 if cls.__single is None:
                     cls.__single = cls(*args, **kw)
+                    #print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
             finally:
                 cls.lock.release()
         return cls.__single

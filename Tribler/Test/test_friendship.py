@@ -36,6 +36,7 @@ class TestFriendship(TestAsServer):
     
     def setUp(self):
         """ override TestAsServer """
+        print >>sys.stderr,"test: *** setup friendship"
         TestAsServer.setUp(self)
 
         self.usercallbackexpected = True
@@ -74,6 +75,7 @@ class TestFriendship(TestAsServer):
 
     def tearDown(self):
         """ override TestAsServer """
+        print >>sys.stderr,"test: *** tear down friendship"
         TestAsServer.tearDown(self)
         self.assert_((not self.usercallbackexpected) or (self.usercallbackreceived))
         time.sleep(10)
@@ -404,6 +406,7 @@ class TestFriendship(TestAsServer):
         self.usercallbackexpected = False
         self.subtest_good_friendship_fwd_fromhim(FWD,fwd=REQ)
 
+        self.session = None
 
     def config_db(self):
         peerdb = self.session.open_dbhandler(NTFY_PEERS)

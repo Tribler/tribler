@@ -10,8 +10,8 @@ if os.path.exists('test_sqlitecachedb.py'):
 elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
 
-from Core.CacheDB.cachedb import SQLiteCacheDB
-from Core.CacheDB.CacheDBHandler import SuperPeerDBHandler, PeerDBHandler
+from Tribler.Core.CacheDB.cachedb import SQLiteCacheDB
+from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler, PeerDBHandler
 
 CREATE_SQL_FILE = os.path.join(BASE_DIR, 'tribler_sdb_v1.sql')
 assert os.path.isfile(CREATE_SQL_FILE)
@@ -32,7 +32,7 @@ class TestSuperPeerList(unittest.TestCase):
         self.writeSuperPeers()
         head,tail = os.path.split(self.file_path)
         self.config = {'install_dir':head, 'superpeer_file':tail}
-        
+
         self.db = SQLiteCacheDB.getInstance()
         self.db.initDB(self.db_path, CREATE_SQL_FILE, check_version=False)
         self.splist = SuperPeerDBHandler.getInstance()

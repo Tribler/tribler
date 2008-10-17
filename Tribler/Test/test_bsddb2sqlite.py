@@ -12,8 +12,8 @@ if os.path.exists(__file__):
 elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
     
-from Core.CacheDB.bsddb2sqlite import Bsddb2Sqlite
-from Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.Core.CacheDB.bsddb2sqlite import Bsddb2Sqlite
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 
 def extract_db_files(file_dir, file_name):
     try:

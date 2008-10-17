@@ -53,6 +53,9 @@ def suite():
     import test_g2g as test_g2g
     import test_bartercast as test_bartercast
     import test_TimedTaskQueue as test_TimedTaskQueue
+    import test_natcheck as test_natcheck 
+    import test_crawler as test_crawler
+    import test_friendship_crawler as test_friendship_crawler
 
     # Note: There are more tests, but these require a fresh Python interpreter
     # for each test, so they need to be run from shell scripts. See test_*.sh and
@@ -64,24 +67,27 @@ def suite():
     #
     test_modules = [
         #test_sqlitecachedb,
-        ##test_friend,   # TEMPARNO: need to fix MyDB ref
+        ##test_friend,   # Arno, 2008-10-17: need to convert to new DB structure
         #test_sqlitecachedbhandler,
-        #test_superpeers, 
-        #test_buddycast,  # currently not working due to missing DataHandler functions
-        #test_sim, # currently not working due to unfinished test functions
+        test_superpeers, 
+        ##test_buddycast,  # currently not working due to missing DataHandler functions, 2008-10-17
+        ##test_sim, # currently not working due to unfinished test functions, 2008-10-17
         #test_merkle,
         #test_permid,
         #test_permid_response1,
         #test_dialback_request,
         #test_extend_hs,
         #test_extend_hs_t350,
-        test_social_overlap,
+        #test_social_overlap,
         #test_gui_server,
         #test_remote_query,
         #test_ut_pex,
         #test_bartercast,
         #test_g2g,
-        test_TimedTaskQueue
+        #test_TimedTaskQueue,
+        #test_crawler,
+        #test_friendship_crawler,
+        #test_natcheck
         ]
 
     alltests = unittest.TestSuite()
