@@ -65,7 +65,7 @@ def init():
             os.remove(STATE_FILE_NAME_PATH)
             print "remove journal file"
     SQLiteCacheDB.getInstance().initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
-    TorrentDBHandler.getInstance().registerCategory(Category.getInstance(os.path.join(BASE_DIR, '..')))
+    TorrentDBHandler.getInstance().register(Category.getInstance(os.path.join(BASE_DIR, '..')),'.')
 
 def getFuncs2Test(calss_name):
     return filter(lambda s:s != 'lock' and not s.startswith('__') and s not in dir(BasicDBHandler), dir(calss_name))
@@ -780,7 +780,7 @@ class TestTorrentDBHandler(unittest.TestCase):
         if SHOW_NOT_TESTED_FUNCTIONS:
             all_funcs = getFuncs2Test(TorrentDBHandler) 
             tested_funcs = [
-                "registerCategory",
+                "register",
                 "getInstance",
                 "hasTorrent",
                 "hasMetaData",
@@ -845,9 +845,6 @@ class TestTorrentDBHandler(unittest.TestCase):
         pass
                 
     def addTorrent(self):
-        
-        MyDBHandler.getInstance().put('torrent_dir', '.')
-         
         copyFile(S_TORRENT_PATH_BACKUP, S_TORRENT_PATH)
         copyFile(M_TORRENT_PATH_BACKUP, M_TORRENT_PATH)
         
@@ -960,9 +957,8 @@ class TestTorrentDBHandler(unittest.TestCase):
         assert retry_number == 2
                 
     def deleteTorrent(self):
-        mydb = MyDBHandler.getInstance()
-        mydb.put('torrent_dir', FILES_DIR)
         db = TorrentDBHandler.getInstance()
+        db.torrent_dir = FILES_DIR
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
         

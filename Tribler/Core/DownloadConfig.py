@@ -786,17 +786,18 @@ def get_default_dest_dir():
     """ 
     if sys.platform == 'win32':
         profiledir = os.path.expandvars('${USERPROFILE}')
-        tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
-        return tempdir 
+        uprofiledir = profiledir.decode(sys.getfilesystemencoding())
+        tempdir = os.path.join(uprofiledir,'Desktop','TriblerDownloads')
     elif sys.platform == 'darwin':
         profiledir = os.path.expandvars('${HOME}')
-        tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
-        return tempdir
+        uprofiledir = profiledir.decode(sys.getfilesystemencoding())
+        tempdir = os.path.join(uprofiledir,'Desktop','TriblerDownloads')
     else:
         profiledir = os.path.expandvars('${HOME}')
-        if os.path.exists(os.path.join(profiledir,'Desktop')):
-            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
+        uprofiledir = profiledir.decode(sys.getfilesystemencoding())
+        if os.path.exists(os.path.join(uprofiledir,'Desktop')):
+            tempdir = os.path.join(uprofiledir,'Desktop','TriblerDownloads')
         else:
-            tempdir = os.path.join(profiledir,'TriblerDownloads')
-        return tempdir
+            tempdir = os.path.join(uprofiledir,'TriblerDownloads')
+    return tempdir
     

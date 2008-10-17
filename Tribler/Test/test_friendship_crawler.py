@@ -39,7 +39,8 @@ class TestFriendshipCrawler(TestCrawler):
         self.some_permid = str(self.some_keypair.pub().get_der())
 
         self.friendshipStatistics_db = FriendshipStatisticsDBHandler.getInstance()
-        self.friendshipStatistics_db.insertFriendshipStatistics( bin2str(self.my_permid), bin2str(self.some_permid), int(time.time()), 0, commit=True)        
+        self.friendshipStatistics_db.insertFriendshipStatistics( bin2str(self.his_permid), bin2str(self.some_permid), int(time.time()), 0, commit=True)        
+        self.friendshipStatistics_db.insertFriendshipStatistics( bin2str(self.my_permid), bin2str(self.some_permid), int(time.time()), 0, commit=True)
 
         # make sure that the OLConnection IS in the crawler_db
         crawler_db = CrawlerDBHandler.getInstance()
@@ -76,6 +77,12 @@ class TestFriendshipCrawler(TestCrawler):
         d = bdecode(payload)
         if DEBUG:
             print >>sys.stderr, "test: Got FRIENDSHIPSTATISTICS",`d`
+        stats = d['stats']
+        self.assert_(len(stats) == 1)
+        record = d['stats'][0]
+        self.assert_(record[0] == bin2str(self.his_permid))  # source_permid
+        self.assert_(record[1] == bin2str(self.some_permid)) # target_permid
+        self.assert_(record[2] == 0) # isForwarder
 
         time.sleep(1)
         s.close()

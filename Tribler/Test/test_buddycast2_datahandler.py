@@ -81,7 +81,7 @@ def init():
     print >>sys.stderr,"OPENING DB",TRIBLER_DB_PATH
     
     #db.execute_write('drop index Torrent_relevance_idx')
-    TorrentDBHandler.getInstance().registerCategory(Category.getInstance(os.path.join(BASE_DIR, '..')))
+    TorrentDBHandler.getInstance().register(Category.getInstance(os.path.join(BASE_DIR, '..')),'.')
 
 class FakeSession:
     sessconfig = {}
@@ -94,7 +94,7 @@ class FakeLauchMany:
         self.my_db          = MyDBHandler.getInstance()
         self.peer_db        = PeerDBHandler.getInstance()
         self.torrent_db     = TorrentDBHandler.getInstance()
-        self.torrent_db.registerCategory(Category.getInstance())
+        self.torrent_db.register(Category.getInstance(),'.')
         self.mypref_db      = MyPreferenceDBHandler.getInstance()
         self.pref_db        = PreferenceDBHandler.getInstance()
         self.superpeer_db   = SuperPeerDBHandler.getInstance()
@@ -104,7 +104,6 @@ class FakeLauchMany:
         self.bartercast_db.registerSession(self.session)
         self.secure_overlay = FakeSecureOverlay()
 #        torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
-#        self.my_db.put('torrent_dir', torrent_collecting_dir)
         self.listen_port = 1234
         
     def get_ext_ip(self):

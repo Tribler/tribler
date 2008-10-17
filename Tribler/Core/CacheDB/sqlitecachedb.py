@@ -616,9 +616,6 @@ class SQLiteCacheDBBase:
             order by is represented as order_by
             group by is represented as group_by
         """
-
-        print >>sys.stderr,"sqldb WHERE IS",where,kw
-
         if isinstance(value_name, tuple):
             value_names = ",".join(value_name)
         elif isinstance(value_name, list):
@@ -660,8 +657,6 @@ class SQLiteCacheDBBase:
             sql += ' limit %d'%limit
         if offset != None:
             sql += ' offset %d'%offset
-
-        print >>sys.stderr,"sqldb STATEMENT IS",sql
 
         try:
             return self.fetchall(sql, arg) or []

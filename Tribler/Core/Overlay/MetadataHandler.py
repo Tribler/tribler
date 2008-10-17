@@ -213,27 +213,6 @@ class MetadataHandler:
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: not existing", res, torrent_path
             return True
-#        
-#        data = self.torrent_db.getTorrent(infohash)
-#        if not data or not data['torrent_name']:
-#            return True     # don't close connection
-#        live = data.get('status', 'unknown')
-#        #print "**************** check live before send metadata", live
-#        if live == 'dead':
-#            return True    # don't send dead torrents around
-#        
-#        torrent_path = None
-#        try:
-#            torrent_path = os.path.join(data['torrent_dir'], data['torrent_name'])
-#            if not os.path.isfile(torrent_path):
-#                torrent_path = None
-#        except:
-#            print_exc()
-#            
-#        if not torrent_path:
-#            if DEBUG:
-#                print >> sys.stderr,"metadata: GET_METADATA: not torrent path"
-#            return True
         
         task = {'permid':permid, 'infohash':infohash, 'torrent_path':torrent_path, 'selversion':selversion}
         self.upload_queue.append(task)

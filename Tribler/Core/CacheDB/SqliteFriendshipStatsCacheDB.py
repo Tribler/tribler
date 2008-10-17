@@ -116,11 +116,10 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
         else:
             order_by = None
             
-        try:
-            permidstr = bin2str(permid)
-            res_list = self.getAll(value_name, where=where, offset= offset, limit=limit, order_by=order_by, source_permid=permidstr)
-        except:
-            print_exc()
+        permidstr = bin2str(permid)
+        res_list = self.getAll(value_name, where=where, offset= offset, limit=limit, order_by=order_by, source_permid=permidstr)
+
+        print >>sys.stderr,"FriendshipStatisticsDBHandler: getAll: result is",res_list
         
         return res_list
     

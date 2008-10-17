@@ -32,7 +32,7 @@ from wx import xrc
 #import hotshot
 
 from threading import Thread, Event,currentThread,enumerate
-from time import time, ctime, sleep
+import time
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
 import urllib
@@ -336,7 +336,7 @@ class MainFrame(wx.Frame):
             # Also check new version of web2definitions for youtube etc. search
             Web2Updater(self.utility).checkUpdate()
         except Exception,e:
-            print >> sys.stderr, "Tribler: Version check failed", ctime(time()), str(e)
+            print >> sys.stderr, "Tribler: Version check failed", time.ctime(time.time()), str(e)
             #print_exc()
             
     def newversion(self, curr_version, my_version):

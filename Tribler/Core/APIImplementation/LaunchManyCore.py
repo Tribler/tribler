@@ -136,7 +136,8 @@ class TriblerLaunchMany(Thread):
             # Register observer to update connection opened/closed to peer_db_handler
             self.peer_db.registerConnectionUpdater(self.session)
             self.torrent_db     = TorrentDBHandler.getInstance()
-            self.torrent_db.registerCategory(Category.getInstance())
+            torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
+            self.torrent_db.register(Category.getInstance(),torrent_collecting_dir)
             self.mypref_db      = MyPreferenceDBHandler.getInstance()
             self.pref_db        = PreferenceDBHandler.getInstance()
             self.superpeer_db   = SuperPeerDBHandler.getInstance()
@@ -144,8 +145,6 @@ class TriblerLaunchMany(Thread):
             self.friend_db      = FriendDBHandler.getInstance()
             self.bartercast_db  = BarterCastDBHandler.getInstance()
             self.bartercast_db.registerSession(self.session)
-            torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
-            self.my_db.put('torrent_dir', torrent_collecting_dir)
 
             # Crawling 
             self.crawler_db     = CrawlerDBHandler.getInstance()

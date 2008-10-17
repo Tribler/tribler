@@ -65,10 +65,6 @@ class BasicDBHandler:
         return self._db.getOne(self.table_name, value_name, where, conj, **kw)
     
     def getAll(self, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj='and', **kw):
-        
-        
-        print >>sys.stderr,"BASICDBHANDLER WHERE IS",where,kw
-        
         return self._db.getAll(self.table_name, value_name, where, group_by, having, order_by, limit, offset, conj, **kw)
     
             
@@ -861,8 +857,9 @@ class TorrentDBHandler(BasicDBHandler):
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
                       'relevance', 'infohash', 'tracker', 'last_check']
 
-    def registerCategory(self, category):
+    def register(self, category, torrent_dir):
         self.category = category
+        self.torrent_dir = torrent_dir
 
     def getTorrentID(self, infohash):
         return self._db.getTorrentID(infohash)
@@ -1185,8 +1182,6 @@ class TorrentDBHandler(BasicDBHandler):
             return self._db.fetchall(sql)
     
     def getTorrentDir(self):
-        if self.torrent_dir is None:
-            self.torrent_dir = MyDBHandler.getInstance().get('torrent_dir')
         return self.torrent_dir
     
     

@@ -11,6 +11,7 @@ from time import time, strftime
 import shutil
 
 from binascii import b2a_hex as tohex, a2b_hex as unhex
+from traceback import print_exc,print_stack
 
 try:
     True
@@ -118,7 +119,7 @@ class ConfigDir:
         self.dir_datacache = os.path.join(self.dir_root, 'datacache')
         if not os.path.isdir(self.dir_datacache):
             os.mkdir(self.dir_datacache)
-
+            
         self.dir_piececache = os.path.join(self.dir_root, 'piececache')
         if not os.path.isdir(self.dir_piececache):
             os.mkdir(self.dir_piececache)

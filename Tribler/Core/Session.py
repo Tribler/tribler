@@ -240,7 +240,9 @@ class Session(SessionRuntimeConfig):
               
         if homedir is None:
             homedir = os.path.expandvars(homedirvar)
-        triblerdir = os.path.join(homedir,homedirpostfix)
+        # Support unicode in HOME vars
+        uhomedir = homedir.decode(sys.getfilesystemencoding())
+        triblerdir = os.path.join(uhomedir,homedirpostfix)
         return triblerdir
     get_default_state_dir = staticmethod(get_default_state_dir)
 
