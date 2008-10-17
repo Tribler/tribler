@@ -10,10 +10,10 @@ from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.NATFirewall.NatCheck import GetNATType
 from Tribler.Core.NATFirewall.TimeoutCheck import timeout_check
-from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 from Tribler.Core.Statistics.Crawler import *
-from Tribler.Core.Utilities.utilities import show_permid_short
+from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
+from types import IntType, StringType, ListType
 from Tribler.Core.simpledefs import *
 
 DEBUG = True
