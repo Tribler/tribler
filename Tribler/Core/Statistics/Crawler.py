@@ -196,7 +196,7 @@ class Crawler:
                 # store the new timestamp
                 self._message_handlers[message_id] = (request_callback, reply_callback, now)
 
-                return request_callback(permid, selversion, channel_id, message[5:], lambda payload="", error=0:self.send_reply(permid, message_id, channel_id, payload, error))
+                return request_callback(permid, selversion, channel_id, message[5:], lambda payload="", error=0, callback=None:self.send_reply(permid, message_id, channel_id, payload, error=error, callback=callback))
 
             else:
                 # frequency error
@@ -353,7 +353,7 @@ class Crawler:
         while self._deadlines:
             deadline, frequency, initiator_callback, permid, selversion = self._deadlines[0]
             if now > deadline:
-                initiator_callback(permid, selversion, lambda message_id, payload:self.send_request(permid, message_id, payload, frequency=frequency))
+                initiator_callback(permid, selversion, lambda message_id, payload, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
 
                 # set new deadline
                 self._deadlines[0][0] = now + frequency

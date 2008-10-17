@@ -40,7 +40,7 @@ class NatCheckMsgHandler:
         self.doNatCheckSender = None
         self.registered = True
 
-    def doNatCheck(self, target_permid, selversion, arg):
+    def doNatCheck(self, target_permid, selversion, request_callback):
 
        # for older versions of Tribler: do nothing
         if selversion < OLPROTO_VER_SEVENTH:
@@ -52,7 +52,8 @@ class NatCheckMsgHandler:
             print >> sys.stderr, "NatCheckMsgHandler: do NAT check"
             
         # send the message
-        self.crawler.send_request(target_permid, CRAWLER_NATCHECK, "", callback=self.doNatCheckCallback)
+        request_callback(CRAWLER_NATCHECK, "", callback=self.doNatCheckCallback)
+#        self.crawler.send_request(target_permid, CRAWLER_NATCHECK, "", callback=self.doNatCheckCallback)
 
     def doNatCheckCallback(self, exc, permid):
         if exc is not None:
