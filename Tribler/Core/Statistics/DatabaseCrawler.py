@@ -47,12 +47,12 @@ class DatabaseCrawler:
             cursor = self._sqlite_cache_db.execute_read(message)
 
         except Exception, e:
-            reply_callback(str(e), 1)
+            reply_callback(str(e), error=1)
         else:
             if cursor:
                 reply_callback(cPickle.dumps(list(cursor), 2))
             else:
-                reply_callback("error", 1)
+                reply_callback("error", error=2)
 
         return True
 

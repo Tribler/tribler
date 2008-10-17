@@ -1,5 +1,8 @@
 # see LICENSE.txt for license information
 
+import sys
+import cPickle
+
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import *
 
@@ -69,25 +72,33 @@ class SeedingStatsCrawler:
         @param reply_callback Call this function once to send the reply: reply_callback(payload [, error=123])
         """
         if DEBUG:
-            print >> sys.stderr, "crawler: handle_crawler_SeedingStats_request", message
+            print >> sys.stderr, "crawler: handle_crawler_request", len(message)
 
         # execute the sql
-        sql_query, sql_update = cPickle.loads(message)
-        
         try:
-            cursor = self._sqlite_cache_db.execute_read(sql_query)
+            queries = cPickle.loads(message)
         except Exception, e:
             reply_callback(str(e), 1)
-        else:
-            if cursor:
-                res = list(cursor)
-                reply_callback(cPickle.dumps(res, 2))
+            return True
 
-                if timestamp:
-                    # update crawled records
-                    self._sqlite_cache_db.execute_write(sql_update)
-            else:
-                reply_callback("error", 1)
+        if DEBUG:
+            print >> sys.stderr, "crawler: handle_crawler_request", queries
+
+        results = []
+        try:
+            for query in queries:
+                cursor = self._sqlite_cache_db.execute_read(query)
+                if cursor:
+                    results.append(list(cursor))
+                else:
+                    results.append(None)
+        except Exception, e:
+            if DEBUG:
+                print >> sys.stderr, "crawler: handle_crawler_request", e
+            results.append(str(e))
+            reply_callback(cPickle.dumps(results), 2)
+        else:
+            reply_callback(cPickle.dumps(results))
 
         return True
 
