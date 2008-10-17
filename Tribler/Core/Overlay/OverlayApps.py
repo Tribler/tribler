@@ -149,7 +149,7 @@ class OverlayApps:
             # allows access to nat-check statistics (Lucia)
             natcheck_handler = NatCheckMsgHandler.getInstance()
             natcheck_handler.register(launchmany)
-            crawler.register_crawl_initiator(natcheck_handler.doNatCheck, 60)
+            crawler.register_crawl_initiator(natcheck_handler.doNatCheck, 3600)
             crawler.register_message_handler(CRAWLER_NATCHECK, natcheck_handler.gotDoNatCheckMessage, natcheck_handler.gotNatCheckReplyMessage)
 
             if crawler.am_crawler():
