@@ -65,7 +65,7 @@ class NatCheckMsgHandler:
         # Register peerinfo on file
         f = open("registerlog.txt", "a")
         t = datetime.datetime.fromtimestamp(time.time())
-        f.write(t.strftime("%Y-%m-%d %H:%M:%S") + "," + "NATCHECK_REQUEST_SENT" + "," + str(show_permid(permid)) + "," + str(self.peer) + "\n")
+        f.write(t.strftime("%Y-%m-%d %H:%M:%S") + "," + "NATCHECK_REQUEST_SENT" + "," + str(show_permid(permid)) + "\n")
         f.close()
 
         return True
