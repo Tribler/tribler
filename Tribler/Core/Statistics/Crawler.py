@@ -200,7 +200,7 @@ class Crawler:
 
             else:
                 # frequency error
-                send_reply(permid, message_id, channel_id, "frequency error", error=254)
+                self.send_reply(permid, message_id, channel_id, "frequency error", error=254)
                 return True
         else:
             # protocol version conflict or invalid message
