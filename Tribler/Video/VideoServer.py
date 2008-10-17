@@ -212,6 +212,7 @@ class VideoRawVLCServer:
         """
         self.lock.acquire()
         try:
+            print >>sys.stderr,"VLCRawServer: setting sid",sid
             self.streaminfos[sid] = streaminfo
             
             # workaround

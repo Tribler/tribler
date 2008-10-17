@@ -134,15 +134,17 @@ class VLCWrapper:
             self.media.set_raw_callbacks(self.videoserv.ReadDataCallback,self.videoserv.SeekDataCallback,length,sid)
             # AAA
             #self.media.set_raw_callbacks(videoserv.ReadDataCallback,videoserv.SeekDataCallback,length)
-            
         else:
             if DEBUG:
                 print >>sys.stderr,"VLCWrapper: load: calling playlist_add_item"
             self.media.playlist_add_item(url)
 
+        #print >>sys.stderr,"VLCWrapper: load: after list is",self.media.playlist_get_list()
+
+
     def start(self,abspos=0):
         if DEBUG:
-            print >>sys.stderr,"VLCWrapper: play: start",self.media.playlist_get_list()
+            print >>sys.stderr,"VLCWrapper: start: list is",self.media.playlist_get_list()
         pos = vlc.Position()
         pos.origin = vlc.AbsolutePosition
         pos.key = vlc.MediaTime

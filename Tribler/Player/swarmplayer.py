@@ -883,7 +883,9 @@ class PlayerApp(wx.App):
             self.dlock.acquire()
             try:
                 if self.s is not None:
-                    print >>sys.stderr,"main: Removing incomplete download"
+                    print >>sys.stderr,"main: Removing incomplete download",`d.get_def().get_name_as_unicode()`
+                    # If you want to sleep here, to delay removal because VLC is
+                    # still playing from it, you must remove the locking.
                     self.s.remove_download(d,removecontent=True)
             finally:
                 self.dlock.release()
