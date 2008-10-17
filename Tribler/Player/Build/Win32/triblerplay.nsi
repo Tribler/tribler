@@ -94,6 +94,7 @@ Section "!Main EXE" SecMain
  File Tribler\Core\*.txt
  CreateDirectory "$INSTDIR\Tribler\Core\Statistics"
  SetOutPath "$INSTDIR\Tribler\Core\Statistics"
+ File Tribler\Core\Statistics\*.txt
  File Tribler\Core\Statistics\*.sql
  CreateDirectory "$INSTDIR\Tribler\Images"
  SetOutPath "$INSTDIR\Tribler\Images"
