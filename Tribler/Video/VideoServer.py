@@ -249,7 +249,7 @@ class VideoRawVLCServer:
                     print_exc()
             
             streaminfo = self.get_inputstream(sid)
-            print >>sys.stderr,"rawread: sid",sid,"n",buflen
+            #print >>sys.stderr,"rawread: sid",sid,"n",buflen
             data = streaminfo['stream'].read(buflen)
             size = len(data)
             #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: read from stream", size
