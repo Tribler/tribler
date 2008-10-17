@@ -203,7 +203,7 @@ def validTorrentFile(metainfo):
     if 'announce-list' in metainfo:
         al = metainfo['announce-list']
         if type(al) != ListType:
-            raise ValueErorr('announce-list is not list, but '+`type(al)`)
+            raise ValueError('announce-list is not list, but '+`type(al)`)
         for tier in al:
             if type(tier) != ListType:
                 raise ValueErorr('announce-list tier is not list '+`tier`)

@@ -612,6 +612,17 @@ class TorrentDef(Serializable,Copyable):
         else:
             raise TorrentDefNotFinalizedException()
 
+    def set_name(self,name):
+        """ Set the name of this torrent
+        @param name name of torrent as String
+        """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['name'] = name
+        self.metainfo_valid = False
+
+        
     def get_name_as_unicode(self):
         """ Returns the info['name'] field as Unicode string.
         @return Unicode string. """
