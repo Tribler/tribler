@@ -33,8 +33,10 @@ class FriendshipCrawler:
         """
         if DEBUG: 
             print >>sys.stderr, "crawler: friendship_query_initiator"
-            
-        msg_dict = {'current time':int(time.time())}
+        
+        get_last_updated_time = self.friendshipStatistics_db.getLastUpdateTimeOfThePeer(permid)
+         
+        msg_dict = {'current time':get_last_updated_time}
         msg = bencode(msg_dict)
         return request_callback(CRAWLER_FRIENDSHIP_STATS,msg)
 
@@ -92,4 +94,10 @@ class FriendshipCrawler:
     def saveFriendshipStatistics(self,permid,currentTime,stats):
         
         self.friendshipStatistics_db.saveFriendshipStatisticData(stats)
+    
+    def getLastUpdateTime(self, permid):
+        
+        mypermid = self.session.get_permid()
+        
+        return self.friendshipStatistics_db.getLastUpdatedTime(permid)
         

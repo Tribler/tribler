@@ -142,4 +142,34 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
         sql_insert_friendstatistics = "UPDATE FriendshipStatistics SET request_time = "+str(current_time) +", no_of_attempts = "+str(no_of_attempts)+", no_of_helpers = "+str(no_of_helpers)+", modified_on = "+str(current_time)+" where source_permid = '"+my_permid+"' and target_permid = '"+target_permid+"'"
         
         self._db.execute_write(sql_insert_friendstatistics,commit=commit)
+    
+    def updateFriendshipResponseTime(self, my_permid, target_permid, current_time, commit = True):
+        
+        sql_insert_friendstatistics = "UPDATE FriendshipStatistics SET request_time = "+str(current_time)+ ", modified_on = "+str(current_time)+" where source_permid = '"+my_permid+"' and target_permid = '"+target_permid+"'"
+        
+        self._db.execute_write(sql_insert_friendstatistics,commit=commit)
+        
+    def insertOrUpdateFriendshipStatistics(self, my_permid, target_permid, current_time, isForwarder = 0, no_of_attempts = 0, no_of_helpers = 0, commit = True):
+        
+#        sql_entry_exists_of_the_peer = "SELECT souce_permid FROM FriendshipStatistics where source_permid = " + my_permid
+        
+        res = self._db.getOne(('source_permid'), source_permid=my_permid)
+        
+        if not res:
+            sql_insert_friendstatistics = "INSERT INTO FriendshipStatistics (source_permid, target_permid, isForwarder, request_time, response_time, no_of_attempts, no_of_helpers, modified_on) VALUES ('"+my_permid+"','"+target_permid+"',"+str(isForwarder)+","+str(current_time)+", 0 , "+str(no_of_attempts)+","+str(no_of_helpers)+","+str(current_time)+")"
+        else:
+            sql_insert_friendstatistics = "UPDATE FriendshipStatistics SET no_of_attempts = "+str(no_of_attempts)+", no_of_helpers = "+str(no_of_helpers)+", modified_on = "+str(current_time)+" where source_permid = '"+my_permid+"' and target_permid = '"+target_permid+"'"
+            
+        self._db.execute_write(sql_insert_friendstatistics,commit=commit)
+
+    
+    def getLastUpdateTimeOfThePeer(self, permid):
+        
+        res = self._db.getAll('source_permid', order_by='modified_on desc', limit=1)
+        
+        if not res:
+            return 0
+        else:
+            return res['modified_on']
+             
         

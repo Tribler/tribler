@@ -130,11 +130,11 @@ class FriendshipMsgHandler:
                     state = FS_I_DENIED
                 self.frienddb.setFriendState(permid, commit=True,state=state)
 
-                
+        func = lambda exc,dns,permid,selversion:self.fmsg_connect_callback(exc, dns, permid, selversion, type)
         self.overlay_bridge.connect(permid,self.fmsg_connect_callback)
         
         
-    def fmsg_connect_callback(self,exc,dns,permid,selversion):
+    def fmsg_connect_callback(self,exc,dns,permid,selversion, type):
         """ Callback function for the overlay connect function """
         # Called by OverlayThread
 
@@ -156,16 +156,41 @@ class FriendshipMsgHandler:
                 
                 if DEBUG:
                     print >>sys.stderr,"friendship: fmsg_connect_callback: Sending",`msg`
-                self.overlay_bridge.send(permid, FRIENDSHIP + bencode(msg), send_callback)
                 
-                if self.list_no_of_conn_attempts_per_target.has_key(bin2str(permid)):
-                    self.list_no_of_conn_attempts_per_target[bin2str(permid)] = self.list_no_of_conn_attempts_per_target[bin2str(permid)] + 1 
-                else:
-                    self.list_no_of_conn_attempts_per_target[bin2str(permid)] = 1
                 mypermid = self.session.get_permid()
                 
                 commit = (i == len(sendlist)-1)
-                self.friendshipStatistics_db.insertFriendshipStatistics( bin2str(mypermid), bin2str(permid), int(time()), 0, commit=commit)
+                isForwarder = 0
+                no_of_helpers = 0
+#                if type == F_REQUEST_MSG:
+#                    print
+#                elif type == F_RESPONSE_MSG:
+#                    print
+                #Set forwarder to True and also no of helpers to 10
+                if type == F_FORWARD_MSG:
+                    isForwarder = 1
+                    no_of_helpers = 10
+                    
+                  
+                no_of_attempts = 0
+                if permid in self.currmsgs:
+                    msgid2rec = self.currmsgs[permid]
+                    for msgid in msgid2rec:
+                        msgrec = msgid2rec[msgid]
+                        no_of_attempts = msgrec['attempt']
+                
+#                insertFriendshipStatistics(self, my_permid, target_permid, current_time, isForwarder = 0, no_of_attempts = 0, no_of_helpers = 0, commit = True):
+                
+                self.friendshipStatistics_db.insertOrUpdateFriendshipStatistics( bin2str(mypermid), 
+                                                                         bin2str(permid), 
+                                                                         int(time()),
+                                                                         isForwarder, 
+                                                                         no_of_attempts ,
+                                                                         no_of_helpers, 
+                                                                         commit=commit)
+                
+                self.overlay_bridge.send(permid, FRIENDSHIP + bencode(msg), send_callback)
+                
                 
         else:
             if DEBUG:
@@ -175,17 +200,30 @@ class FriendshipMsgHandler:
             
             mypermid = self.session.get_permid()
             
-            if self.list_no_of_conn_attempts_per_target.has_key(bin2str(permid)):
-                self.list_no_of_conn_attempts_per_target[bin2str(permid)] = self.list_no_of_conn_attempts_per_target[bin2str(permid)] + 1 
-            else:
-                self.list_no_of_conn_attempts_per_target[bin2str(permid)] = 1
-            
-            self.friendshipStatistics_db.updateFriendshipStatistics(bin2str(mypermid), 
-                                                                     bin2str(permid), 
-                                                                     int(time()), 
-                                                                     0, 
-                                                                     self.list_no_of_conn_attempts_per_target[bin2str(permid)], 
-                                                                     10)
+            isForwarder = 0
+            no_of_helpers = 0
+            if type == F_FORWARD_MSG:
+                isForwarder = 1
+                no_of_helpers = 10
+                    
+                  
+            no_of_attempts = 0
+            if permid in self.currmsgs:
+                msgid2rec = self.currmsgs[permid]
+                for msgid in msgid2rec:
+                    msgrec = msgid2rec[msgid]
+                    no_of_attempts = msgrec['attempt']
+                
+                
+            self.friendshipStatistics_db.insertOrUpdateFriendshipStatistics( bin2str(mypermid), 
+                                                                         bin2str(permid), 
+                                                                         int(time()),
+                                                                         isForwarder, 
+                                                                         no_of_attempts ,
+                                                                         no_of_helpers)
+        
+        
+
 
     def fmsg_send_callback(self,exc,permid,msgid):
         
@@ -197,19 +235,26 @@ class FriendshipMsgHandler:
             print_exc()
             mypermid = self.session.get_permid()
             
-            if self.list_no_of_conn_attempts_per_target.has_key(bin2str(target_permid)):
-                self.list_no_of_conn_attempts_per_target[bin2str(target_permid)] = self.list_no_of_conn_attempts_per_target[bin2str(target_permid)] + 1 
-            else:
-                self.list_no_of_conn_attempts_per_target[bin2str(target_permid)] = 1
-                
-            self.friendshipStatistics_db.updateFriendshipStatistics(bin2str(self.mypermid), 
-                                                                     bin2str(permid), 
-                                                                     int(time()), 
-                                                                     0, 
-                                                                     self.list_no_of_conn_attempts_per_target[bin2str(permid)], 
-                                                                     10)
-
-
+        
+        no_of_attempts = 0
+        no_of_helpers = 10
+        isForwarder = False
+        if permid in self.currmsgs:
+            msgid2rec = self.currmsgs[permid]
+            for msgid in msgid2rec:
+                msgrec = msgid2rec[msgid]
+                no_of_attempts = msgrec['attempt']
+                if msgrec['forwarded'] == True:
+                    isForwarder = 1
+            
+            
+        self.friendshipStatistics_db.insertOrUpdateFriendshipStatistics( bin2str(mypermid), 
+                                                                         bin2str(permid), 
+                                                                         int(time()),
+                                                                         isForwarder, 
+                                                                         no_of_attempts ,
+                                                                         no_of_helpers)
+                    
 
 
     #
@@ -343,6 +388,14 @@ class FriendshipMsgHandler:
 
     def process_response(self,permid,d):
 
+        mypermid = self.session.get_permid()
+                     
+                
+        self.friendshipStatistics_db.updateFriendshipResponseTime( bin2str(mypermid), 
+                                                                         bin2str(permid), 
+                                                                         int(time()))
+
+        
         fs = self.frienddb.getFriendState(permid)
          
         # If the request to add has been approved
@@ -367,14 +420,10 @@ class FriendshipMsgHandler:
             self.addPeerToDB(d['source'])
             
             self.process_message(d['source']['permid'],selversion,d['msg'])
+            
             return True
         
-            self.friendshipStatistics_db.insertFriendshipStatistics(bin2str(target_permid), 
-                                                                     bin2str(finalTargetPermid), 
-                                                                     int(time()), 
-                                                                     1, 
-                                                                     0, 
-                                                                     0)
+            
         else:
             # Queue and forward
             if DEBUG:
