@@ -42,18 +42,28 @@ class TestNatCheck(TestCrawler):
         # make sure that the OLConnection IS in the crawler_db
         crawler_db = CrawlerDBHandler.getInstance()
         crawler_db.temporarilyAddCrawler(self.my_permid)
-        assert self.my_permid in crawler_db.getCrawlers()
 
-        s = OLConnection(self.my_keypair, "localhost", self.hisport)
-        self.send_crawler_request(s, CRAWLER_NATCHECK, 0, 0, "")
+        s = OLConnection(self.my_keypair, "localhost", self.hisport, mylistenport=self.listen_port)
+        self.send_crawler_request(s, CRAWLER_NATCHECK, 42, 0, "")
+        s.close()
 
-        error, payload = self.receive_crawler_reply(s, CRAWLER_NATCHECK, 0)
+        if DEBUG: print >>sys.stderr, "test_natcheck: the nat-check code allows for a 10 minute delay in reporting the nat stats"
+        self.listen_socket.settimeout(11 * 60)
+
+        # wait for reply
+        try:
+            conn, addr = self.listen_socket.accept()
+        except socket.timeout:
+            if DEBUG: print >> sys.stderr,"test_natcheck: timeout, bad, peer didn't connect to send the crawler reply"
+            assert False, "test_natcheck: timeout, bad, peer didn't connect to send the crawler reply"
+        s = OLConnection(self.my_keypair, "", 0, conn, mylistenport=self.listen_port)
+
+        # read reply
+        error, payload = self.receive_crawler_reply(s, CRAWLER_NATCHECK, 42)
         assert error == 0
-        if DEBUG:
-            print >>sys.stderr, "test_natcheck:", bdecode(payload)
+        if DEBUG: print >>sys.stderr, "test_natcheck:", bdecode(payload)
 
         time.sleep(1)
-        s.close()
 
 if __name__ == "__main__":
     def test_suite():

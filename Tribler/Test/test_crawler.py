@@ -48,6 +48,14 @@ class TestCrawler(TestAsServer):
         self.my_hash = sha(self.my_permid).digest()
         self.his_permid = str(self.his_keypair.pub().get_der())        
 
+        # Start our server side, to with Tribler will try to connect
+        self.listen_port = 4123
+        self.listen_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.listen_socket.bind(("", self.listen_port))
+        self.listen_socket.listen(10)
+        self.listen_socket.settimeout(10)
+        
     def tearDown(self):
         """ override TestAsServer """
         TestAsServer.tearDown(self)
@@ -69,6 +77,7 @@ class TestCrawler(TestAsServer):
         self.subtest_invalid_messageid()
         self.subtest_invalid_sql_query()
         self.subtest_valid_messageid()
+        self.subtest_dialback()
 
     def subtest_invalid_permid(self):
         """
@@ -167,6 +176,36 @@ class TestCrawler(TestAsServer):
         time.sleep(1)
         s.close()
 
+    def subtest_dialback(self):
+        """
+        Send a valid request, disconnect, and wait for an incomming
+        connection with the reply
+        """
+        print >>sys.stderr, "-"*80, "\ntest: dialback"
+        
+        # make sure that the OLConnection IS in the crawler_db
+        crawler_db = CrawlerDBHandler.getInstance()
+        crawler_db.temporarilyAddCrawler(self.my_permid)
+
+        s = OLConnection(self.my_keypair, "localhost", self.hisport, mylistenport=self.listen_port)
+        self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 0, "SELECT * FROM peer")
+        s.close()
+
+        # wait for reply
+        try:
+            conn, addr = self.listen_socket.accept()
+        except socket.timeout:
+            if DEBUG: print >> sys.stderr,"test_crawler: timeout, bad, peer didn't connect to send the crawler reply"
+            assert False, "test_crawler: timeout, bad, peer didn't connect to send the crawler reply"
+        s = OLConnection(self.my_keypair, "", 0, conn, mylistenport=self.listen_port)
+
+        # read reply
+        error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
+        assert error == 0
+        if DEBUG: print >>sys.stderr, cPickle.loads(payload)
+
+        time.sleep(1)
+
     def send_crawler_request(self, sock, message_id, channel_id, frequency, payload):
         # Sending a request from a Crawler to a Tribler peer
         #     SIZE    INDEX
@@ -206,7 +245,7 @@ class TestCrawler(TestAsServer):
 
                     return ord(response[4]), "".join(parts)
 
-            return False
+            return -1, ""
 
 if __name__ == "__main__":
     unittest.main()

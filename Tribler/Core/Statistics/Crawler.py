@@ -81,11 +81,13 @@ class Crawler:
         def _after_connect(exc, dns, permid, selversion):
             if exc:
                 # could not connect.
+                if DEBUG: print >>sys.stderr, "crawler: could not connect", dns, exc
                 if callback:
                     callback(exc, permid)
             else:
                 _send_request(permid, message_id, payload, frequency=frequency, callback=callback)
 
+        if DEBUG: print >>sys.stderr, "crawler: connecting (send_request)..."
         self._overlay_bridge.connect(permid, _after_connect)
 
     def _send_request(self, permid, message_id, payload, frequency=3600, callback=None):
@@ -109,6 +111,8 @@ class Crawler:
         #     n byte: 5...   Request payload
 
         # reserve a new channel-id
+        if DEBUG: print >>sys.stderr, "crawler: sending request message..."
+
         if permid in self._channels:
             channels = self._channels[permid]
         else:
@@ -209,11 +213,13 @@ class Crawler:
         def _after_connect(exc, dns, permid, selversion):
             if exc:
                 # could not connect.
+                if DEBUG: print >>sys.stderr, "crawler: could not connect", dns, exc
                 if callback:
                     callback(exc, permid)
             else:
                 self._send_reply(permid, message_id, channel_id, payload, error=error, callback=callback)
 
+        if DEBUG: print >>sys.stderr, "crawler: connecting... (send_reply)"
         self._overlay_bridge.connect(permid, _after_connect)
 
     def _send_reply(self, permid, message_id, channel_id, payload, error=0, callback=None):
@@ -237,6 +243,7 @@ class Crawler:
         #     1 byte: 3      Parts left
         #     1 byte: 4      Indicating success (0) or failure (non 0)
         #     n byte: 5...   Reply payload
+        if DEBUG: print >>sys.stderr, "crawler: sending reply message..."
 
         if len(payload) > MAX_PAYLOAD_LENGTH:
             remaining_payload = payload[MAX_PAYLOAD_LENGTH:]

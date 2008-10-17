@@ -1,6 +1,7 @@
 # Written by Boudewijn Schoon
 # see LICENSE.txt for license information
 
+import sys
 import cPickle
 
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
@@ -26,7 +27,7 @@ class DatabaseCrawler:
         @param selversion The oberlay protocol version
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        if DEBUG: print >>sys.stderr, "crawler: database_query_initiator"
+        if DEBUG: print >>sys.stderr, "databasecrawler: database_query_initiator"
         return request_callback(CRAWLER_DATABASE_QUERY, "SELECT * FROM category")
 
     def handle_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
@@ -39,7 +40,7 @@ class DatabaseCrawler:
         @param reply_callback Call this function once to send the reply: reply_callback(payload [, error=123])
         """
         if DEBUG:
-            print >> sys.stderr, "crawler: handle_crawler_database_request", message
+            print >> sys.stderr, "databasecrawler: handle_crawler_database_request", message
 
         # execute the sql
         try:
@@ -65,7 +66,7 @@ class DatabaseCrawler:
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
         if DEBUG:
-            print >> sys.stderr, "crawler: handle_crawler_database_reply"
-            print >> sys.stderr, "crawler:", cPickle.loads(message)
+            print >> sys.stderr, "databasecrawler: handle_crawler_database_reply"
+            print >> sys.stderr, "databasecrawler:", cPickle.loads(message)
 
         return True
