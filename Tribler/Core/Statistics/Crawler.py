@@ -10,7 +10,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 
-DEBUG = False
+DEBUG = True
 
 # when a message payload exceedes 32KB it is divided into multiple
 # messages
@@ -73,22 +73,6 @@ class Crawler:
         Returns True if this running Tribler is a Crawler
         """
         return self._session.get_permid() in self._crawler_db.getCrawlers()
-
-    def send_request(self, permid, message_id, payload, frequency=3600, callback=None):
-        """
-        This method ensures that a connection to PERMID exists before sending the message
-        """
-        def _after_connect(exc, dns, permid, selversion):
-            if exc:
-                # could not connect.
-                if DEBUG: print >>sys.stderr, "crawler: could not connect", dns, exc
-                if callback:
-                    callback(exc, permid)
-            else:
-                _send_request(permid, message_id, payload, frequency=frequency, callback=callback)
-
-        if DEBUG: print >>sys.stderr, "crawler: connecting (send_request)..."
-        self._overlay_bridge.connect(permid, _after_connect)
 
     def _send_request(self, permid, message_id, payload, frequency=3600, callback=None):
         """
@@ -162,6 +146,22 @@ class Crawler:
                                                    chr((frequency >> 8) & 0xFF) + chr(frequency & 0xFF),
                                                    payload)), _after_send_request)
         return channel_id
+
+    def send_request(self, permid, message_id, payload, frequency=3600, callback=None):
+        """
+        This method ensures that a connection to PERMID exists before sending the message
+        """
+        def _after_connect(exc, dns, permid, selversion):
+            if exc:
+                # could not connect.
+                if DEBUG: print >>sys.stderr, "crawler: could not connect", dns, exc
+                if callback:
+                    callback(exc, permid)
+            else:
+                self._send_request(permid, message_id, payload, frequency=frequency, callback=callback)
+
+        if DEBUG: print >>sys.stderr, "crawler: connecting (send_request)..."
+        self._overlay_bridge.connect(permid, _after_connect)
 
     def handle_request(self, permid, selversion, message):
         """

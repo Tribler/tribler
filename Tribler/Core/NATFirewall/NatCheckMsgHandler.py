@@ -2,6 +2,7 @@ from threading import Thread, Lock
 from traceback import print_exc
 import random
 import socket
+import time
 import sys
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK
@@ -14,7 +15,7 @@ from Tribler.Core.Statistics.Crawler import *
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
 
-DEBUG = False
+DEBUG = True
 
 class NatCheckMsgHandler:
 

@@ -4,6 +4,7 @@
 import sys
 import cPickle
 
+from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_DATABASE_QUERY
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 
 DEBUG = False
