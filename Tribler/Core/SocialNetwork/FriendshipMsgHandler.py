@@ -134,7 +134,7 @@ class FriendshipMsgHandler:
         self.overlay_bridge.connect(permid,self.fmsg_connect_callback)
         
         
-    def fmsg_connect_callback(self,exc,dns,permid,selversion, type):
+    def fmsg_connect_callback(self,exc,dns,permid,selversion, type = None):
         """ Callback function for the overlay connect function """
         # Called by OverlayThread
 
@@ -206,7 +206,7 @@ class FriendshipMsgHandler:
                 isForwarder = 1
                 no_of_helpers = 10
                     
-                  
+                 
             no_of_attempts = 0
             if permid in self.currmsgs:
                 msgid2rec = self.currmsgs[permid]
@@ -235,6 +235,7 @@ class FriendshipMsgHandler:
             print_exc()
             mypermid = self.session.get_permid()
             
+        mypermid = self.session.get_permid()
         
         no_of_attempts = 0
         no_of_helpers = 10

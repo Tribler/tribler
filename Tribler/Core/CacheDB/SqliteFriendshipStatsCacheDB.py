@@ -153,7 +153,7 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
         
 #        sql_entry_exists_of_the_peer = "SELECT souce_permid FROM FriendshipStatistics where source_permid = " + my_permid
         
-        res = self._db.getOne(('source_permid'), source_permid=my_permid)
+        res = self._db.getOne('FriendshipStatistics', ('source_permid'), source_permid=my_permid)
         
         if not res:
             sql_insert_friendstatistics = "INSERT INTO FriendshipStatistics (source_permid, target_permid, isForwarder, request_time, response_time, no_of_attempts, no_of_helpers, modified_on) VALUES ('"+my_permid+"','"+target_permid+"',"+str(isForwarder)+","+str(current_time)+", 0 , "+str(no_of_attempts)+","+str(no_of_helpers)+","+str(current_time)+")"
