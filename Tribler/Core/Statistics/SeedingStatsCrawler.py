@@ -16,30 +16,6 @@ class SeedingStatsCrawler:
 
     def __init__(self):
         self._sqlite_cache_db = SQLiteSeedingStatsCacheDB.getInstance()
-
-    def query_initiator(self, permid, selversion, request_callback):
-        """
-        Established a new connection. Send a CRAWLER_DATABASE_QUERY request.
-        @param permid The Tribler peer permid
-        @param selversion The oberlay protocol version
-        @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
-        """
-        if DEBUG: 
-            print >>sys.stderr, "crawler: SeedingStatsDB_query_initiator"
-        
-        try:
-            sql_query = "SELECT MAX(timestamp) FROM SeedingStats WHERE permID='%s' ORDER BY timestamp DESC"%(bin2str(permid), time())
-            cursor = self._sqlite_cache_db.execute_read(sql_query)
-        except:
-            print_exc()
-        else:
-            if cursor:
-                res = list(cursor)[0][0]
-                if res is not None:
-                    return request_callback(CRAWLER_SEEDINGSTATS_QUERY, "SELECT * FROM SeedingStats WHERE crawled = 0 and timestamp BETWEEN %s and %s ORDER BY timestamp DESC"%(res[0][0], time()))
-                else:
-                    return request_callback(CRAWLER_SEEDINGSTATS_QUERY, "SELECT * FROM SeedingStats WHERE crawled = 0 and timestamp BETWEEN %s and %s ORDER BY timestamp DESC"%(0, time()))
-    
     
     def query_initiator(self, permid, selversion, request_callback):
         """
