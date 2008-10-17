@@ -24,6 +24,8 @@ SHOW_ALL_EXECUTE = False
 costs = []
 cost_reads = []
 
+DEBUG = False
+
 def init_seeding_stats(config, db_exception_handler = None):
         """ create SeedingStats database """
         global CREATE_SEEDINGSTATS_SQL_FILE
@@ -97,7 +99,8 @@ class SeedingStatsDBHandler(BasicDBHandler):
                 commit = True
             
             ## FIXME: get correct peer reputation
-            reputation = 1
+            # All peers are treated as neutral without the preemptive unchoking policy
+            reputation = 0
             
             res = self.existedInfoHash(infohash)
             
@@ -143,3 +146,47 @@ class SeedingStatsDBHandler(BasicDBHandler):
         except:
             print_exc()
 
+
+class SeedingStatsSettingsDBHandler(BasicDBHandler):
+    
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if SeedingStatsSettingsDBHandler.__single is None:
+            SeedingStatsSettingsDBHandler.lock.acquire()   
+            try:
+                if SeedingStatsSettingsDBHandler.__single is None:
+                    SeedingStatsSettingsDBHandler(*args, **kw)
+            finally:
+                SeedingStatsSettingsDBHandler.lock.release()
+        return SeedingStatsSettingsDBHandler.__single
+    
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if SeedingStatsSettingsDBHandler.__single is not None:
+            raise RuntimeError, "SeedingStatDBHandler is singleton"
+        SeedingStatsSettingsDBHandler.__single = self
+        db = SQLiteSeedingStatsCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, 'CrawlingSettings')
+    
+    def loadCrawlingSettings(self):
+        try:
+            sql_query = "SELECT * FROM CrawlingSettings"
+            cursor = self._db.execute_read(sql_query)
+        except:
+            print_exc()
+        
+        if cursor:
+            return list(cursor)
+        else:
+            return None
+    
+    def updateCrawlingSettings(self, args):
+        try:
+            sql_update = "UPDATE CrawlingSettings SET crawling_interval=%s, crawling_enabled=%s WHERE version=1"%(args[0], args[1])
+            cursor = self._db.execute_write(sql_update)
+        except:
+            print_exc()

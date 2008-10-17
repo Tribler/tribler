@@ -149,6 +149,7 @@ class TriblerLaunchMany(Thread):
             self.crawler_db     = CrawlerDBHandler.getInstance()
             self.crawler_db.loadCrawlers(config)
             self.seedingstats_db = SeedingStatsDBHandler.getInstance()
+            self.seedingstatssettings_db = SeedingStatsSettingsDBHandler.getInstance()
             self.friendship_statistics_db = FriendshipStatisticsDBHandler().getInstance()
             
             #self.mm = MugshotManager.getInstance()

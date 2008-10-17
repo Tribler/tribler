@@ -504,6 +504,8 @@ class Session(SessionRuntimeConfig):
                 return self.lm.bartercast_db
             elif subject == NTFY_SEEDINGSTATS:
                 return self.lm.seedingstats_db
+            elif subject == NTFY_SEEDINGSTATSSETTINGS:
+                return self.lm.seedingstatssettings_db
             else:
                 raise ValueError('Cannot open DB subject: '+subject)
         finally:
