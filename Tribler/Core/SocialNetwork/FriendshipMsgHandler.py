@@ -9,6 +9,7 @@
 # due to forwarding.
 #
 
+import threading
 import sys
 import os
 import socket
@@ -51,26 +52,31 @@ RESEND_INTERVAL = 5*60
 
 
 class FriendshipMsgHandler:
-    __single = None
+    __singleton = None
+    __lock = threading.Lock()
+
+    @classmethod
+    def getInstance(cls, *args, **kargs):
+        if not cls.__singleton:
+            cls.__lock.acquire()
+            try:
+                if not cls.__singleton:
+                    cls.__singleton = cls(*args, **kargs)
+            finally:
+                cls.__lock.release()
+        return cls.__singleton
     
     def __init__(self):
-        if FriendshipMsgHandler.__single:
+        if FriendshipMsgHandler.__singleton:
             raise RuntimeError, "FriendshipMsgHandler is singleton"
-        FriendshipMsgHandler.__single = self
         self.overlay_bridge = None
         self.currmsgs = {}
         self.online_fsext_peers = Set() # online peers that speak FRIENDSHIP ext
         self.peerdb = PeerDBHandler.getInstance()
         self.frienddb = FriendDBHandler.getInstance()
-        self.friendshipStatistics_db = FriendshipStatisticsDBHandler().getInstance()
+        self.friendshipStatistics_db = FriendshipStatisticsDBHandler.getInstance()
         self.list_no_of_conn_attempts_per_target= {}
         self.usercallback = None
-    
-    def getInstance(*args, **kw):
-        if FriendshipMsgHandler.__single is None:
-            FriendshipMsgHandler(*args, **kw)       
-        return FriendshipMsgHandler.__single
-    getInstance = staticmethod(getInstance)
     
     def register(self, overlay_bridge, session):
         if DEBUG:
