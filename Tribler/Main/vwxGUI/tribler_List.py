@@ -54,7 +54,10 @@ class FilesList(tribler_List):
         
     def _PostInit(self):
         if not self.initReady:
-            self.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL)
+            try:
+                self.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL)
+            except:
+                print_exc()
             self.InsertColumn(0, self.utility.lang.get('file'))
             self.InsertColumn(1, self.utility.lang.get('size'))
             self.Bind(wx.EVT_SIZE, self.onListResize)
@@ -214,7 +217,10 @@ class T4TSeedingList(tribler_List):
     
     def _PostInit(self):
         if not self.initReady:
-            self.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL)
+            try:
+                self.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL)
+            except:
+                print_exc()
             self.InsertColumn(0, self.utility.lang.get('peer_ip'))
             self.InsertColumn(1, self.utility.lang.get('curr_ul_rate'))
             self.InsertColumn(2, self.utility.lang.get('ul_amount'))
@@ -278,7 +284,10 @@ class G2GSeedingList(tribler_List):
     
     def _PostInit(self):
         if not self.initReady:
-            self.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL)
+            try:
+                self.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL)
+            except:
+                print_exc()
             self.InsertColumn(0, self.utility.lang.get('tribler_name'))
             self.InsertColumn(1, self.utility.lang.get('curr_ul_rate'))
             self.InsertColumn(2, self.utility.lang.get('ul_amount'))

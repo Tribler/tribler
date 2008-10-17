@@ -277,7 +277,7 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(vLine, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
         
     def updateProgress(self, infohash, progress):
-        print >> sys.stderr, 'Lib: updateProgress: %s %s' % (self.title.GetLabel(), progress)
+        #print >> sys.stderr, 'Lib: updateProgress: %s %s' % (self.title.GetLabel(), progress)
         
         if infohash not in self.cache_progress:
             self.cache_progress[infohash] = 0 # progress
