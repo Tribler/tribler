@@ -1,5 +1,6 @@
 from threading import Thread, Lock
 from traceback import print_exc
+import random
 import socket
 import sys
 
@@ -290,7 +291,7 @@ class NatCheckClient(Thread):
         stun1 = stun_servers[0]
         stun2 = stun_servers[1]
         pingback_servers = self.session.get_pingback_servers()
-        pingback = pingback_servers[0]
+        pingback = random.choice(pingback_servers)
         coordinators = self.session.get_puncturing_coordinators()
         coordinator = coordinators[0]
 
