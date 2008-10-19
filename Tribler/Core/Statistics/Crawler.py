@@ -124,7 +124,7 @@ class Crawler:
                 return 0
 
         # create a buffer to receive the reply
-        channels[channel_id] = (time.time() + CHANNEL_TIMEOUT, "")
+        channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
 
         def _after_send_request(exc, permid):
             if DEBUG:
@@ -185,7 +185,7 @@ class Crawler:
                 # crawlers send requests to eachother)
                 return False
             else:
-                channels[channel_id] = (time.time() + CHANNEL_TIMEOUT, "")
+                channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
 
             request_callback, reply_callback, last_request_timestamp = self._message_handlers[message_id]
 
