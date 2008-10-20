@@ -115,8 +115,6 @@ class NatCheckMsgHandler:
                 reply_callback(ncr_msg, callback=self.natCheckReplySendCallback)
             self.crawler_reply_callbacks = []
             
-            #self.overlay_bridge.connect(self.doNatCheckSender, self.natCheckReplyConnectCallback)
-            #self.crawler.send_request(self.doNatCheckSender, CRAWLER_NATCHECK, ncr_msg) # add the callback
 
     def natCheckReplySendCallback(self, exc, permid):
         if DEBUG:
@@ -143,7 +141,7 @@ class NatCheckMsgHandler:
                 return False
 
             try:    # check natCheckReply message
-                self.validNatCheckReplyMsg(payload)
+                self.validNatCheckReplyMsg(recv_data)
             except RuntimeError, e:
                 print >> sys.stderr, e
                 return False
