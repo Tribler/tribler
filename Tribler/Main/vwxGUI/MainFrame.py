@@ -92,6 +92,8 @@ class FileDropTarget(wx.FileDropTarget):
 # Custom class loaded by XRC
 class MainFrame(wx.Frame):
     def __init__(self, *args):
+        self.utility = None
+        self.category = None
         if len(args) == 0:
             pre = wx.PreFrame()
             # the Create step is done by XRC.
@@ -115,6 +117,7 @@ class MainFrame(wx.Frame):
         self.params = self.guiUtility.params
         self.utility.frame = self
         self.torrentfeed = None
+        self.category = Category.getInstance()
         
         title = self.utility.lang.get('title') + \
                 " " + \
@@ -617,10 +620,13 @@ class MainFrame(wx.Frame):
             if tt is not None:
                 tt.SetTip(self.utility.lang.get('reachable_tooltip'))
 
-    def setActivity(self,type,msg=u'', utility=None):
+    def setActivity(self,type,msg=u'',arg2=None):
         
-        if utility is None:
-            utility = self.utility
+        #print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
+        
+        if self.utility is None:
+            print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
+            return
             
         if currentThread().getName() != "MainThread":
             print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
@@ -630,21 +636,26 @@ class MainFrame(wx.Frame):
             prefix = msg
             msg = u''
         elif type == NTFY_ACT_UPNP:
-            prefix = utility.lang.get('act_upnp')
+            prefix = self.utility.lang.get('act_upnp')
         elif type == NTFY_ACT_REACHABLE:
-            prefix = utility.lang.get('act_reachable')
+            prefix = self.utility.lang.get('act_reachable')
         elif type == NTFY_ACT_GET_EXT_IP_FROM_PEERS:
-            prefix = utility.lang.get('act_get_ext_ip_from_peers')
+            prefix = self.utility.lang.get('act_get_ext_ip_from_peers')
         elif type == NTFY_ACT_MEET:
-            prefix = utility.lang.get('act_meet')
+            prefix = self.utility.lang.get('act_meet')
         elif type == NTFY_ACT_GOT_METADATA:
-            prefix = utility.lang.get('act_got_metadata')
+            prefix = self.utility.lang.get('act_got_metadata')
+            
+            if self.category.family_filter_enabled() and arg2 == 7: # XXX category
+                print >>sys.stderr,"MainFrame: setActivity: Hiding XXX torrent",msg
+                return
+            
         elif type == NTFY_ACT_RECOMMEND:
-            prefix = utility.lang.get('act_recommend')
+            prefix = self.utility.lang.get('act_recommend')
         elif type == NTFY_ACT_DISK_FULL:
-            prefix = utility.lang.get('act_disk_full')   
+            prefix = self.utility.lang.get('act_disk_full')   
         elif type == NTFY_ACT_NEW_VERSION:
-            prefix = utility.lang.get('act_new_version')   
+            prefix = self.utility.lang.get('act_new_version')   
         if msg == u'':
             text = prefix
         else:

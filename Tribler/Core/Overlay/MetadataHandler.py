@@ -320,8 +320,9 @@ class MetadataHandler:
         torrent = self.torrent_db.addExternalTorrent(filename, source, extra_info)
         if torrent is None:
             return
-        
-        self.launchmany.set_activity(NTFY_ACT_GOT_METADATA,unicode('"'+torrent['name']+'"'))
+
+        # Arno, 2008-10-20: XXX torrents are filtered out in the final display stage
+        self.launchmany.set_activity(NTFY_ACT_GOT_METADATA,unicode('"'+torrent['name']+'"'),torrent['category'])
 
         if self.initialized:
             self.num_torrents += 1 # for free disk limitation

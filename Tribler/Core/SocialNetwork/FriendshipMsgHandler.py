@@ -33,7 +33,7 @@ from Tribler.Core.Utilities.utilities import *
 
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 
-DEBUG = False
+DEBUG = True
 
 """
 State diagram:
@@ -116,7 +116,8 @@ class FriendshipMsgHandler:
         # Called by overlay thread 
         
         if submit:
-            print >>sys.stderr,"friendship: send_friendship_msg: Saving msg",show_permid_short(permid)
+            if DEBUG:
+                print >>sys.stderr,"friendship: send_friendship_msg: Saving msg",show_permid_short(permid)
             self.save_msg(permid,type,params)
             
             if type == F_REQUEST_MSG:
@@ -140,6 +141,7 @@ class FriendshipMsgHandler:
 
         if exc is None:
             if selversion < OLPROTO_VER_SEVENTH:
+                self.remove_msgs_for_ltv7_peer(permid)
                 return
             
             # Reached him
@@ -195,8 +197,8 @@ class FriendshipMsgHandler:
         else:
             if DEBUG:
                 peer = self.peerdb.getPeer(permid)
-                print >> sys.stderr, 'friendship: Could not connect to peer', show_permid_short(permid),peer['name']
-                print_exc()
+                print >>sys.stderr, 'friendship: Could not connect to peer', show_permid_short(permid),peer['name']
+                print >>sys.stderr,exc
             
             mypermid = self.session.get_permid()
             
@@ -231,9 +233,9 @@ class FriendshipMsgHandler:
         if exc is None:
             self.delete_msg(permid,msgid)
         else:
-            print >> sys.stderr, 'friendship: Could not send to ',show_permid_short(permid)  
-            print_exc()
-            mypermid = self.session.get_permid()
+            if DEBUG:
+                print >> sys.stderr, 'friendship: Could not send to ',show_permid_short(permid)  
+                print_exc()
             
         mypermid = self.session.get_permid()
         
@@ -256,6 +258,20 @@ class FriendshipMsgHandler:
                                                                          no_of_attempts ,
                                                                          no_of_helpers)
                     
+
+    def remove_msgs_for_ltv7_peer(self,permid):
+        """ Remove messages destined for a peer that does not speak >= v7 of
+        the overlay protocol
+        """
+        sendlist = self.get_msgs_as_sendlist(targetpermid=permid)
+        if DEBUG:
+            print >> sys.stderr, 'friendship: remove_msgs_for_ltv7_peer: sendlist len',len(sendlist)
+        
+        for i in range(0,len(sendlist)):
+            tuple = sendlist[i]
+            
+            permid,msgid,msg = tuple
+            self.delete_msg(permid,msgid)
 
 
     #
@@ -466,7 +482,8 @@ class FriendshipMsgHandler:
             d['response'] = params['response']
         elif type == F_FORWARD_MSG:
             
-            print >>sys.stderr,"friendship: create: fwd: params",`params`
+            if DEBUG:
+                print >>sys.stderr,"friendship: create: fwd: params",`params`
             peer = self.peerdb.getPeer(params['destpermid']) # ,keys=['ip', 'port']) 
             if peer is None:
                 if DEBUG:
@@ -567,7 +584,8 @@ class FriendshipMsgHandler:
         
     def delete_msg(self,permid,msgid):
         try: 
-            print >>sys.stderr,"friendship: Deleting msg",show_permid_short(permid),msgid
+            if DEBUG:
+                print >>sys.stderr,"friendship: Deleting msg",show_permid_short(permid),msgid
             msgid2rec = self.currmsgs[permid]
             del msgid2rec[msgid]
         except:
@@ -600,7 +618,8 @@ class FriendshipMsgHandler:
                         diff = eta - now
                         
                     peer = self.peerdb.getPeer(permid)
-                    print >>sys.stderr,"friendship: reschedule: ETA",show_permid_short(permid),peer['name'],diff
+                    if DEBUG:
+                        print >>sys.stderr,"friendship: reschedule: ETA",show_permid_short(permid),peer['name'],diff
                 
                 if eta is None: 
                     delmsgids.append((permid,msgid))
@@ -659,7 +678,8 @@ class FriendshipMsgHandler:
             for msgid in msgid2rec:
                 msgrec = msgid2rec[msgid]
                 
-                print >>sys.stderr,"friendship: get_msgs: Creating",msgrec['type'],`msgrec['params']`
+                if DEBUG:
+                    print >>sys.stderr,"friendship: get_msgs: Creating",msgrec['type'],`msgrec['params']`
                 if msgrec['type'] == F_FORWARD_MSG:
                     msg = msgrec['params']
                 else:
@@ -719,9 +739,14 @@ class FriendshipMsgHandler:
                 print >>sys.stderr,"friendship: delegate: friend helper",show_permid_short(permid)
         
         # 3. Sort online peers on similarity, highly similar should be tastebuddies
-        print >>sys.stderr,"friendship: delegate: Number of online v7 peers",len(self.online_fsext_peers)
+        if DEBUG:
+            print >>sys.stderr,"friendship: delegate: Number of online v7 peers",len(self.online_fsext_peers)
         tastebuddies = self.peerdb.getPeers(list(self.online_fsext_peers),['similarity','name']) 
         tastebuddies.sort(sim_desc_cmp)
+
+        if DEBUG:
+            print >>sys.stderr,"friendship: delegate: Sorted tastebuddies",`tastebuddies`
+
         tastebuddies_permids = []
         size = min(10,len(tastebuddies))
         for i in xrange(0,size):
@@ -785,11 +810,13 @@ class FriendshipMsgHandler:
     def forward_send_callback(self,exc,permid,destpermid,msgid):
         if DEBUG:
             if exc is None:
-                print >>sys.stderr,"friendship: forward: Success forwarding to helper",show_permid_short(permid)
+                if DEBUG:
+                    print >>sys.stderr,"friendship: forward: Success forwarding to helper",show_permid_short(permid)
                 self.set_msg_forwarded(destpermid,msgid)
             else:
-                print >>sys.stderr,"friendship: forward: Failed to forward to helper",show_permid_short(permid)
-        
+                if DEBUG:
+                    print >>sys.stderr,"friendship: forward: Failed to forward to helper",show_permid_short(permid)
+                pass
         
     def checkpoint(self):
         statedir = self.session.get_state_dir()

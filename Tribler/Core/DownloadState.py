@@ -218,7 +218,6 @@ class DownloadState(Serializable):
         @return A list of booleans
         """
         if self.stats is None:
-            print >> sys.stderr, 'debug: stats is none'
             return []
         else:
             return self.haveslice

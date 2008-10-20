@@ -269,6 +269,6 @@ def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo
     
         # b. Save icon
         if 'icontype' in persinfo and 'icondata' in persinfo: 
-            if DEBUG:
-                print >> sys.stderr,"socnet: saving icon for",show_permid_short(permid)
+            if not DEBUG:
+                print >> sys.stderr,"socnet: saving icon for @@@@@@@@@@",show_permid_short(permid),name
             self.peer_db.updatePeerIcon(permid, persinfo['icontype'],persinfo['icondata'])    

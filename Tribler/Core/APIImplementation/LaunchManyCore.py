@@ -690,10 +690,10 @@ class TriblerLaunchMany(Thread):
         self.session.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
         
         
-    def set_activity(self,type, str = ''):
+    def set_activity(self,type, str = '', arg2=None):
         """ Called by overlay + network thread """
-        #print >>sys.stderr,"tlm: set_activity",type,str
-        self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str)
+        #print >>sys.stderr,"tlm: set_activity",type,str,arg2
+        self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
 
         
     def network_vod_event_callback(self,videoinfo,event,params):

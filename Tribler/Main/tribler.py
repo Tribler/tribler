@@ -483,11 +483,11 @@ class ABCApp(wx.App):
         self.frame.numberFiles.SetLabel('%d' % nfiles)
         #print >> sys.stderr, "************>>>>>>>> setDBStats", npeers, nfiles
         
-    def sesscb_ntfy_activities(self,subject,changeType,objectID,msg):
+    def sesscb_ntfy_activities(self,subject,changeType,objectID,*args):
         # Called by SessionCallback thread
-        #print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,changeType,objectID,msg
-        wx.CallAfter(self.frame.setActivity,objectID,msg, self.utility)
-
+        #print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,"ct",changeType,"oid",objectID,"a",args
+        wx.CallAfter(self.frame.setActivity,objectID,*args)
+    
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
         wx.CallAfter(self.frame.onReachable)
 

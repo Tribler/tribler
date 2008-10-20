@@ -1927,7 +1927,7 @@ class standardDetails(wx.Panel):
         
     def db_callback(self,subject,changeType,objectID,*args):
         # called by threadpool thread
-        print >> sys.stderr, 'stdDetails: db_callback: %s %s %s %s' % (subject, changeType, `objectID`, args)
+        #print >> sys.stderr, 'stdDetails: db_callback: %s %s %s %s' % (subject, changeType, `objectID`, args)
         db_handler = self.guiUtility.utility.session.open_dbhandler(subject)
         if subject == NTFY_PEERS:
             newitem = db_handler.getPeer(objectID)
