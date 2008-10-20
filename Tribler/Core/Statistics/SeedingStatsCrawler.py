@@ -31,7 +31,7 @@ class SeedingStatsCrawler:
             print >>sys.stderr, "crawler: SeedingStatsDB_update_settings_initiator"
         
         try:
-            sql_query = "SELECT MAX(timestamp) FROM SeedingStats WHERE permID='%s' ORDER BY timestamp DESC"%(bin2str(permid), time())
+            sql_query = "SELECT MAX(timestamp) FROM SeedingStats WHERE permID='%s' ORDER BY timestamp DESC"%(bin2str(permid))
             cursor = self._sqlite_cache_db.execute_read(sql_query)
         except:
             print_exc()
