@@ -348,7 +348,10 @@ class ABCApp(wx.App):
 
         # seeding stats crawling
         self.seeding_snapshot_count = 0
-
+        self.seedingstats_settings = s.open_dbhandler(NTFY_SEEDINGSTATSSETTINGS).loadCrawlingSettings()
+        self.seedingstats_enabled = self.seedingstats_settings[0][2]
+        self.seedingstats_interval = self.seedingstats_settings[0][1]
+        
         # Only allow updates to come in after we defined ratelimiter
         s.set_download_states_callback(self.sesscb_states_callback)
         
@@ -428,14 +431,15 @@ class ABCApp(wx.App):
 # _SelectiveSeeding
             
 # Crawling Seeding Stats_
-            snapshot_seeding_stats = False
-            if self.seeding_snapshot_count % 1800 == 0:
-                snapshot_seeding_stats = True
-            self.seeding_snapshot_count += 1
-            
-            if snapshot_seeding_stats:
-                seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
-                seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), dslist) 
+            if self.seedingstats_enabled == 1:
+                snapshot_seeding_stats = False
+                if self.seeding_snapshot_count % self.seedingstats_interval == 0:
+                    snapshot_seeding_stats = True
+                self.seeding_snapshot_count += 1
+                
+                if snapshot_seeding_stats:
+                    seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
+                    seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), dslist, self.seedingstats_interval) 
 # _Crawling Seeding Stats
 
         except:

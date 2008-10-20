@@ -86,7 +86,7 @@ class SeedingStatsDBHandler(BasicDBHandler):
         db = SQLiteSeedingStatsCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'SeedingStats')
     
-    def updateSeedingStats(self, permID, dslist):
+    def updateSeedingStats(self, permID, dslist, interval):
         permID = bin2str(permID)
     
         commit = False
@@ -107,10 +107,10 @@ class SeedingStatsDBHandler(BasicDBHandler):
             if res is not None:
                 # res is list of ONE tuple
                 
-                self.updateSeedingStat(infohash, reputation, res[0][0], commit)
+                self.updateSeedingStat(infohash, reputation, res[0][0], interval, commit)
             else:
                 # Insert new record
-                self.insertSeedingStat(infohash, permID, reputation, commit)
+                self.insertSeedingStat(infohash, permID, reputation, interval, commit)
             
     
     def existedInfoHash(self, infohash):
@@ -132,16 +132,16 @@ class SeedingStatsDBHandler(BasicDBHandler):
         except:
             return None
     
-    def updateSeedingStat(self, infohash, reputation, seedingtime, commit): 
+    def updateSeedingStat(self, infohash, reputation, seedingtime, interval, commit): 
         try:
-            sql_update = "UPDATE SeedingStats SET seeding_time=%s, reputation=%s WHERE info_hash='%s' AND crawled=0"%(seedingtime + 1800, reputation, infohash)
+            sql_update = "UPDATE SeedingStats SET seeding_time=%s, reputation=%s WHERE info_hash='%s' AND crawled=0"%(seedingtime + interval, reputation, infohash)
             self._db.execute_write(sql_update, None, commit)
         except:
             print_exc()
     
-    def insertSeedingStat(self, infohash, permID, reputation, commit):
+    def insertSeedingStat(self, infohash, permID, reputation, interval, commit):
         try:
-            sql_insert = "INSERT INTO SeedingStats VALUES(%s, '%s', '%s', %s, %s, %s)"%(time(), permID, infohash, 1800, reputation, 0)
+            sql_insert = "INSERT INTO SeedingStats VALUES(%s, '%s', '%s', %s, %s, %s)"%(time(), permID, infohash, interval, reputation, 0)
             self._db.execute_write(sql_insert, None, commit)
         except:
             print_exc()
@@ -174,19 +174,19 @@ class SeedingStatsSettingsDBHandler(BasicDBHandler):
     
     def loadCrawlingSettings(self):
         try:
-            sql_query = "SELECT * FROM CrawlingSettings"
+            sql_query = "SELECT * FROM SeedingStatsSettings"
             cursor = self._db.execute_read(sql_query)
+            
+            if cursor:
+                return list(cursor)
+            else:
+                return None
         except:
             print_exc()
-        
-        if cursor:
-            return list(cursor)
-        else:
-            return None
     
     def updateCrawlingSettings(self, args):
         try:
-            sql_update = "UPDATE CrawlingSettings SET crawling_interval=%s, crawling_enabled=%s WHERE version=1"%(args[0], args[1])
+            sql_update = "UPDATE SeedingStatsSettings SET crawling_interval=%s, crawling_enabled=%s WHERE version=1"%(args[0], args[1])
             cursor = self._db.execute_write(sql_update)
         except:
             print_exc()

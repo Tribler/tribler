@@ -116,8 +116,14 @@ class SeedingStatsCrawler:
 
         try:
             results = cPickle.loads(message, 2)
-            values = map(tuple, results)
-            self._sqlite_cache_db.insertMany("SeedingStats", values)
+            for res in results:
+                if res is not None:
+                    try:
+                        self._sqlite_cache_db.insertMany("SeedingStats", res)
+                    except:
+                        # not a sql statment, exception message in the reply message 
+                        print res
+                        
         except Exception, e:
             print_exc()
             return False
@@ -144,7 +150,9 @@ class SeedingStatsCrawler:
             self._sqlite_cache_db.execute_write(sql_query)
         except Exception, e:
             reply_callback(str(e), 1)
-
+        else:
+            reply_callback(cPickle.dumps('Update succeeded.'))
+        
         return True
 
     def handle_crawler_update_setings_reply(self, permid, selversion, channel_id, message, reply_callback):
