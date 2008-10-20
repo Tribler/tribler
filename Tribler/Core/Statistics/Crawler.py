@@ -145,7 +145,7 @@ class Crawler:
             # call the optional callback supplied with send_request
             if callback:
                 callback(exc, permid)
-        
+
         if DEBUG: print >> sys.stderr, "crawler: sending", getMessageName(CRAWLER_REQUEST+message_id), "with", len(payload), "bytes payload to", show_permid_short(permid)
         self._overlay_bridge.send(permid, "".join((CRAWLER_REQUEST,
                                                    message_id,
@@ -391,7 +391,10 @@ class Crawler:
         while self._deadlines:
             deadline, frequency, initiator_callback, permid, selversion = self._deadlines[0]
             if now > deadline:
-                initiator_callback(permid, selversion, lambda message_id, payload, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
+                try:
+                    initiator_callback(permid, selversion, lambda message_id, payload, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
+                except Exception:
+                    print_exc()
 
                 # set new deadline
                 self._deadlines[0][0] = now + frequency

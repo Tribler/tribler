@@ -16,7 +16,7 @@ from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from types import IntType, StringType, ListType
 from Tribler.Core.simpledefs import *
 
-DEBUG = False
+DEBUG = True
 
 class NatCheckMsgHandler:
 
@@ -43,8 +43,11 @@ class NatCheckMsgHandler:
         self.registered = True
 
     def doNatCheck(self, target_permid, selversion, request_callback):
+        """
+        The nat-check initiator_callback
+        """
 
-       # for older versions of Tribler: do nothing
+        # for older versions of Tribler: do nothing
         if selversion < OLPROTO_VER_SEVENTH:
             if DEBUG:
                 print >> sys.stderr, "NatCheckMsgHandler: older versions of Tribler: do nothing"
@@ -55,9 +58,11 @@ class NatCheckMsgHandler:
             
         # send the message
         request_callback(CRAWLER_NATCHECK, "", callback=self.doNatCheckCallback)
-#        self.crawler.send_request(target_permid, CRAWLER_NATCHECK, "", callback=self.doNatCheckCallback)
+
+        return True
 
     def doNatCheckCallback(self, exc, permid):
+
         if exc is not None:
             return False
 	    if DEBUG:
@@ -71,6 +76,9 @@ class NatCheckMsgHandler:
         return True
 
     def gotDoNatCheckMessage(self, sender_permid, selversion, channel_id, payload, reply_callback):
+        """
+        The handle-request callback
+        """
 
         self.doNatCheckSender = sender_permid
         self.crawler_reply_callbacks.append(reply_callback)
@@ -118,6 +126,9 @@ class NatCheckMsgHandler:
         return True
 
     def gotNatCheckReplyMessage(self, permid, selversion, channel_id, error, payload, request_callback):
+        """
+        The handle-reply callback
+        """
         if error:
             if DEBUG:
                 print >> sys.stderr, "NatCheckMsgHandler: gotNatCheckReplyMessage"

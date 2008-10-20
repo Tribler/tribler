@@ -33,7 +33,7 @@ class FriendshipCrawler:
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
         if DEBUG: 
-            print >>sys.stderr, "crawler: friendship_query_initiator"
+            print >>sys.stderr, "FriendshipCrawler: friendship_query_initiator"
         
         get_last_updated_time = self.friendshipStatistics_db.getLastUpdateTimeOfThePeer(permid)
          
@@ -51,7 +51,7 @@ class FriendshipCrawler:
         @param reply_callback Call this function once to send the reply: reply_callback(payload [, error=123])
         """
         if DEBUG:
-            print >> sys.stderr, "crawler: handle_friendship_crawler_database_query_request", message
+            print >> sys.stderr, "FriendshipCrawler: handle_friendship_crawler_database_query_request", message
 
         try:
             d = bdecode(message)
@@ -101,17 +101,15 @@ class FriendshipCrawler:
         return self.friendshipStatistics_db.getAllFriendshipStatistics(mypermid, last_update_time)
     
     def saveFriendshipStatistics(self,permid,currentTime,stats):
-        pass
-        # todo: 
-#   File "/home/boudewijn/svn.tribler.org/abc/branches/mainbranch/Tribler/Core/Statistics/FriendshipCrawler.py", line 102, in saveFriendshipStatistics
-#     self.friendshipStatistics_db.saveFriendshipStatisticData(stats)
-#   File "/home/boudewijn/svn.tribler.org/abc/branches/mainbranch/Tribler/Core/CacheDB/SqliteFriendshipStatsCacheDB.py", line 128, in saveFriendshipStatisticData
-#     self._db.insertMany('FriendshipStatistics', data)
-#   File "/home/boudewijn/svn.tribler.org/abc/branches/mainbranch/Tribler/Core/CacheDB/sqlitecachedb.py", line 523, in insertMany
-#     questions = '?,'*len(values[0])
-# IndexError: list index out of range
+        if stats:
+            # 20/10/08. Boudewijn: A mistake in the code results in
+            # only 7 items in the list instead of 8. We add one here
+            # to get things working.
+            for stat in stats:
+                if len(stat) == 7:
+                    stat.append(0)
 
-# self.friendshipStatistics_db.saveFriendshipStatisticData(stats)
+            self.friendshipStatistics_db.saveFriendshipStatisticData(stats)
     
     def getLastUpdateTime(self, permid):
         
