@@ -31,7 +31,7 @@ import re
 import urlparse
 from xml.dom.minidom import parseString
 from threading import Thread,RLock,Event
-from time import sleep,time
+import time
 import sha
 
 from Tribler.Core.API import *
@@ -155,7 +155,7 @@ class TorrentFeedThread(Thread):
         self.lock.release()
         
     def run(self):
-        sleep(10) # Let other Tribler components, in particular, Session startup
+        time.sleep(10) # Let other Tribler components, in particular, Session startup
         while not self.done.isSet():
             self.lock.acquire()
             cfeeds = self.feeds[:]
@@ -200,7 +200,7 @@ class TorrentFeedThread(Thread):
                         pass
 
                     # sleep in between torrent retrievals
-                    sleep(self.intertorrentinterval)
+                    time.sleep(self.intertorrentinterval)
 
                     self.lock.acquire()
                     try:
@@ -218,7 +218,7 @@ class TorrentFeedThread(Thread):
                 finally:
                     self.lock.release()
 
-                sleep(30)
+                time.sleep(30)
                         
 
     def save_torrent(self,infohash,bdata,source=''):
@@ -419,7 +419,7 @@ class URLHistory:
         
     def add(self,dirtyurl):
         url = self.clean_link(dirtyurl)
-        self.urls[url] = time()
+        self.urls[url] = time.time()
                     
     def contains(self,dirtyurl):
         url = self.clean_link(dirtyurl)
@@ -432,7 +432,7 @@ class URLHistory:
         if t is None:
             return False
         else:
-            now = time()
+            now = time.time()
             return not self.timedout(t,now) # no need to delete
     
     def timedout(self,t,now):
@@ -451,7 +451,7 @@ class URLHistory:
             data = file_handle.read()
             file_handle.close()
 
-            now = time()
+            now = time.time()
             for timestamp, url in self.read_history_expression.findall(data):
                 timestamp = float(timestamp)
                 if not self.timedout(timestamp, now):

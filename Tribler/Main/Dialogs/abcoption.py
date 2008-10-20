@@ -548,12 +548,28 @@ class DiskPanel(ABCOptionPanel):
             diskfullthreshold = 0
         self.utility.config.Write('diskfullthreshold', diskfullthreshold)
 
+
         # Save DownloadStartupConfig
         defaultdestdir = self.dir.GetValue()
         self.defaultDLConfig.set_dest_dir(defaultdestdir)
         
         dlcfgfilename = get_default_dscfg_filename(self.utility.session)
         self.defaultDLConfig.save(dlcfgfilename)
+        
+        # Save SessionStartupConfig
+        # Also change torrent collecting dir, which is by default in the default destdir
+        state_dir = self.utility.session.get_state_dir()
+        cfgfilename = Session.get_default_config_filename(state_dir)
+        scfg = SessionStartupConfig.load(cfgfilename)
+
+        dirname = os.path.join(defaultdestdir,STATEDIR_TORRENTCOLL_DIR)
+        for target in [scfg,self.utility.session]:
+            try:
+                target.set_torrent_collecting_dir(dirname)
+            except:
+                print_exc()
+
+        scfg.save(cfgfilename)
         
 
         

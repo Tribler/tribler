@@ -76,6 +76,7 @@ class MetadataHandler:
             self.min_free_space = 200*(2**20)    # at least 1 MB left on disk
         self.config_dir = os.path.abspath(self.config['state_dir'])
         self.torrent_dir = os.path.abspath(self.config['torrent_collecting_dir'])
+        print >>sys.stderr,"metadata: collect dir is",self.torrent_dir 
         assert os.path.isdir(self.torrent_dir)
         self.free_space = self.get_free_space()
         print >> sys.stderr, "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
