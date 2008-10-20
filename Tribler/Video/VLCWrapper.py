@@ -34,7 +34,7 @@ class VLCWrapper:
     def __init__(self,installdir):
         self.installdir = installdir
         self.media = self.get_vlc_mediactrl()
-        self.videoserv = VideoRawVLCServer.getInstance()
+        self.videorawserv = VideoRawVLCServer.getInstance()
     
     def set_window(self,wxwindow):
         """ Must be called after wxwindow has been realized, such that
@@ -123,7 +123,7 @@ class VLCWrapper:
             persists during the lifetime of the player process.
             """
             
-            self.videoserv.set_inputstream(streaminfo,sid)
+            self.videorawserv.set_inputstream(streaminfo,sid)
                
             if DEBUG:
                 print >>sys.stderr,"VLCWrapper: load: stream",sid,"size",streaminfo['length']
@@ -131,7 +131,7 @@ class VLCWrapper:
             if length is None:
                 length = -1
             
-            self.media.set_raw_callbacks(self.videoserv.ReadDataCallback,self.videoserv.SeekDataCallback,length,sid)
+            self.media.set_raw_callbacks(self.videorawserv.ReadDataCallback,self.videorawserv.SeekDataCallback,length,sid)
             # AAA
             #self.media.set_raw_callbacks(videoserv.ReadDataCallback,videoserv.SeekDataCallback,length)
         else:

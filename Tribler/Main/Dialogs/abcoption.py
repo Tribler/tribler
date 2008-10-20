@@ -1274,6 +1274,9 @@ class VideoPanel(ABCOptionPanel):
 
         sizer.Add(analysissection, 0, wx.EXPAND|wx.ALL, 5)
         
+        restarttxt = wx.StaticText(self, -1, self.utility.lang.get('restartabc'))
+        sizer.Add(restarttxt, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT,5)
+        
         if sys.platform == 'win32':
             self.quote = '"'
         else:

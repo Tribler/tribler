@@ -249,7 +249,7 @@ class DownloadImpl:
         try:
             if self.sd is None:
                 if DEBUG:
-                    print >>sys.stderr,"DownloadImpl: network_get_state: no SingleDownload"
+                    print >>sys.stderr,"DownloadImpl: network_get_state: Download not running"
                 ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
                 
@@ -523,7 +523,8 @@ class DownloadImpl:
                 mimetypes.init(mapfiles)
                 (mimetype,encoding) = mimetypes.guess_type(file)
                 
-                print >>sys.stderr,"DownloadImpl: /etc/mimetypes+ said MIME type is",mimetype
+                if DEBUG:
+                    print >>sys.stderr,"DownloadImpl: /etc/mimetypes+ said MIME type is",mimetype
             except:
                 print_exc()
 

@@ -158,8 +158,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     break
                     
                 count += 1
-                if count % 100 == 0:
-                    print >>sys.stderr,"videoserv: writing data % 100"
+                #if count % 100 == 0:
+                print >>sys.stderr,"videoserv: writing data % 100"
                 
             if DEBUG:
                 print >>sys.stderr,"videoserv: do_GET: Done sending data"

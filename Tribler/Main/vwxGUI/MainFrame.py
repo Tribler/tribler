@@ -55,6 +55,7 @@ from Tribler.Category.Category import Category
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoServer import VideoHTTPServer
+from Tribler.Video.EmbeddedPlayer import VideoFrame
 from Tribler.Web2.util.update import Web2Updater
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Utilities.Instance2Instance import *
@@ -242,10 +243,9 @@ class MainFrame(wx.Frame):
             # This means vlc is available
             videoplayer = VideoPlayer.getInstance()
             
-            from Tribler.Video.EmbeddedPlayer import VideoFrame
             iconpath = os.path.join(self.utility.getPath(),'Tribler','Images','tribler.ico')
             logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler.png')
-            self.videoFrame = VideoFrame(self,'Tribler Video',iconpath,videoplayer.get_vlcwrap(),logopath)
+            self.videoFrame = PlayerFrame(self,'Tribler Video',iconpath,videoplayer.get_vlcwrap(),logopath)
 
             videoplayer.set_videoframe(self.videoFrame)
 
@@ -676,5 +676,46 @@ class MainFrame(wx.Frame):
     def quit(self):
         if self.wxapp is not None:
             self.wxapp.ExitMainLoop()
+     
+     
+class PlayerFrame(VideoFrame):
+    """
+    Wrapper around VideoFrame that allows us to catch the Close event. On
+    that event we should notify tribler such that it can stop any live torrents,
+    and restart others that may have been stopped.
+    """
+    def __init__(self,parent,title,iconpath,vlcwrap,logopath):
+        VideoFrame.__init__(self,parent,title,iconpath,vlcwrap,logopath)
+        self.parent = parent
+        self.closed = False
+        
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+    
+    def OnCloseWindow(self, event = None):
+        
+        print >>sys.stderr,"PlayerFrame: ON CLOSE WINDOW"
+
+        # This gets called multiple times somehow
+        # TODO: first event.Skip does not close window, second apparently does
+        if not self.closed:
+    
+            if event is not None:
+                nr = event.GetEventType()
+                lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
+                if nr in lookup: 
+                    nr = lookup[nr]
+                print >>sys.stderr,"PlayerFrame: Closing due to event ",nr
+                event.Skip()
+            else:
+                print >>sys.stderr,"PlayerFrame: Closing untriggered by event"
+    
+        
+            self.closed = True
+            VideoFrame.OnCloseWindow(self,event)
+            
+            if self.parent.wxapp is not None:
+                self.parent.wxapp.OnClosingVideoFrameOrExtPlayer()
+            
+        print >>sys.stderr,"PlayerFrame: Closing done"
         
 

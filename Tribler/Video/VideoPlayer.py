@@ -8,6 +8,7 @@ import urllib
 from threading import currentThread,Event
 from traceback import print_exc,print_stack
 import urlparse
+from errno import ECONNRESET
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoServer import VideoHTTPServer,VideoRawVLCServer
@@ -38,15 +39,12 @@ class VideoPlayer:
         self.preferredplaybackmode = None
         self.vod_postponed_downloads = []
         self.other_downloads = None
+        self.closeextplayercallback = None
 
-        if not USE_VLC_RAW_INTERFACE:
-            # Start HTTP server for serving video to player widget
-            self.videohttpserv = VideoHTTPServer.getInstance(httpport) # create
-            self.videohttpserv.background_serve()
-            self.videohttpserv.register(self.videohttpserver_error_callback,self.videohttpserver_set_status_callback)
-
+        self.videohttpservport = httpport
+        self.videohttpserv = None
         # Must create the instance here, such that it won't get garbage collected
-        self.videoserv = VideoRawVLCServer.getInstance()
+        self.videorawserv = VideoRawVLCServer.getInstance()
 
         
     def getInstance(*args, **kw):
@@ -55,7 +53,7 @@ class VideoPlayer:
         return VideoPlayer.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self,utility,preferredplaybackmode=None):
+    def register(self,utility,preferredplaybackmode=None,closeextplayercallback=None):
         
         self.utility = utility # TEMPARNO: make sure only used for language strings
 
@@ -70,10 +68,19 @@ class VideoPlayer:
             from Tribler.Video.VLCWrapper import VLCWrapper
             self.vlcwrap = VLCWrapper(self.utility.getPath())
             self.supportedvodevents = [VODEVENT_START,VODEVENT_PAUSE,VODEVENT_RESUME]
-        else:
+            
+        if self.playbackmode != PLAYBACKMODE_INTERNAL or not USE_VLC_RAW_INTERFACE:
+            # Start HTTP server for serving video to external player
+            self.videohttpserv = VideoHTTPServer.getInstance(self.videohttpservport) # create
+            self.videohttpserv.background_serve()
+            self.videohttpserv.register(self.videohttpserver_error_callback,self.videohttpserver_set_status_callback)
+            
             self.vlcwrap = None
             # Can't pause when external player
             self.supportedvodevents = [VODEVENT_START]
+            
+        if closeextplayercallback is not None:
+            self.closeextplayercallback = closeextplayercallback
 
     def set_other_downloads(self, other_downloads):
         """A boolean indicating whether there are other downloads running at this time"""
@@ -345,6 +352,8 @@ class VideoPlayer:
         othertorrents = OTHERTORRENTS_STOP_RESTART
         activetorrents = self.utility.session.get_downloads()
         
+        #print >>sys.stderr,"videoplay: other torrents: Currently active are",len(activetorrents)
+        
         if DEBUG:
             for d2 in activetorrents:
                 print >>sys.stderr,"videoplay: other torrents: Currently active is",`d2.get_def().get_name()`
@@ -421,7 +430,13 @@ class VideoPlayer:
             return False
 
     def warn_user(self,ds,infilename):
-        dlg = VODWarningDialog(self.videoframe,self.utility,ds,infilename,self.other_downloads)
+        
+        islive = ds.get_download().get_def().get_live()
+        if islive and not self.other_downloads:
+            # If it's the only download and live, don't warn.
+            return
+        
+        dlg = VODWarningDialog(self.videoframe,self.utility,ds,infilename,self.other_downloads,islive)
         result = dlg.ShowModal()
         othertorrents = dlg.get_othertorrents()
         dlg.Destroy()
@@ -591,6 +606,12 @@ class VideoPlayer:
     def get_playbackmode(self):
         return self.playbackmode
 
+    #def set_preferredplaybackmode(self,mode):
+    #    This is a bit complex: If there is no int. player avail we change
+    #    the VideoFrame to contain some minimal info. Would have to dynamically
+    #    change that back if we allow dynamic switching of video player.
+    #    self.preferredplaybackmode = mode
+
     #
     # Internal methods
     #
@@ -599,8 +620,10 @@ class VideoPlayer:
         wx.CallAfter(self.videohttpserver_error_guicallback,e,url)
         
     def videohttpserver_error_guicallback(self,e,url):
-        print >>sys.stderr,"main: Video server reported error",str(e)
-        pass
+        print >>sys.stderr,"VideoPlayer: Video HTTP server reported error",str(e)
+        # if e[0] == ECONNRESET and self.closeextplayercallback is not None:
+        if self.closeextplayercallback is not None:
+            self.closeextplayercallback()
 
     def videohttpserver_set_status_callback(self,status):
         """ Called by HTTP serving thread """
@@ -659,15 +682,23 @@ class VideoChooser(wx.Dialog):
 
 class VODWarningDialog(wx.Dialog):
     
-    def __init__(self, parent, utility, ds, infilename, other_downloads):
+    def __init__(self, parent, utility, ds, infilename, other_downloads, islive):
         self.parent = parent
         self.utility = utility
 
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
-        title = self.utility.lang.get('vodwarntitle')
+        if islive:
+            title = self.utility.lang.get('livewarntitle')
+        else:
+            title = self.utility.lang.get('vodwarntitle')
+        
         wx.Dialog.__init__(self,parent,-1,title,style=style)
 
-        msg = self.utility.lang.get('vodwarngeneral')
+        if islive:
+            msg = self.utility.lang.get('livewarngeneral')
+        else:
+            msg = self.utility.lang.get('vodwarngeneral')
+        
         """
         if bitrate is None:
             msg += self.utility.lang.get('vodwarnbitrateunknown')

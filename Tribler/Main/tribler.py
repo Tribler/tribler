@@ -181,7 +181,7 @@ class ABCApp(wx.App):
             # an internal or external video player.
             playbackmode = self.utility.config.Read('videoplaybackmode', "int")
             self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
-            self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode)
+            self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode,closeextplayercallback=self.OnClosingVideoFrameOrExtPlayer)
 
             notification_init( self.utility )
 
@@ -396,11 +396,7 @@ class ABCApp(wx.App):
             for ds in dslist:
                 d = ds.get_download()
                 if d == vodd and ds.get_status() == DLSTATUS_SEEDING:
-                    restartdlist = self.videoplayer.get_vod_postponed_downloads()
-                    self.videoplayer.set_vod_postponed_downloads([]) # restart only once
-                    for d in restartdlist:
-                        if d in currdlist:
-                            d.restart()
+                    self.restart_other_downloads(currdlist)
                     break
                             
             # Adjust speeds once every 4 seconds
@@ -444,6 +440,22 @@ class ABCApp(wx.App):
 
         except:
             print_exc()
+
+    def restart_other_downloads(self,currdlist):
+        restartdlist = self.videoplayer.get_vod_postponed_downloads()
+        self.videoplayer.set_vod_postponed_downloads([]) # restart only once
+        for d in restartdlist:
+            if d in currdlist:
+                d.restart()
+
+
+    def OnClosingVideoFrameOrExtPlayer(self):
+        vodd = self.videoplayer.get_vod_download()
+        if vodd.get_def().get_live():
+            print >>sys.stderr,"main: OnClosingVideoFrameOrExtPlayer: vodd is live, stopping",vodd.get_def().get_name_as_unicode()
+            vodd.stop()
+        self.restart_other_downloads(self.utility.session.get_downloads())
+
 
     def loadSessionCheckpoint(self):
         # Load all other downloads
