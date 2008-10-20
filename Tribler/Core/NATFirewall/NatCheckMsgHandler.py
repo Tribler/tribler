@@ -104,7 +104,7 @@ class NatCheckMsgHandler:
             # todo: make sure that natthreadcb_natCheckReplyCallback is always called for a request
             # send replies to all the requests that have been received so far
             for reply_callback in self.crawler_reply_callbacks:
-                reply_callback(ncr_msg)
+                reply_callback(ncr_msg, callback=self.natCheckReplySendCallback)
             self.crawler_reply_callbacks = []
             
             #self.overlay_bridge.connect(self.doNatCheckSender, self.natCheckReplyConnectCallback)
@@ -117,7 +117,7 @@ class NatCheckMsgHandler:
             return False
         return True
 
-    def gotNatCheckReplyMessage(self, recv_msg, sender_permid, selversion):
+    def gotNatCheckReplyMessage(self, sender_permid, selversion, channel, recv_msg, other):
 
         try:
             recv_data = bdecode(recv_msg)
