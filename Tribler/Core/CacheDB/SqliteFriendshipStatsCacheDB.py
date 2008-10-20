@@ -25,6 +25,8 @@ SHOW_ALL_EXECUTE = False
 costs = []
 cost_reads = []
 
+DEBUG = False
+
 def init_friendship_stats(config, db_exception_handler = None):
         """ create friendship statistics database """
         global CREATE_FRIENDSHIP_STATS_SQL_FILE
@@ -119,7 +121,8 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
         permidstr = bin2str(permid)
         res_list = self.getAll(value_name, where=where, offset= offset, limit=limit, order_by=order_by, source_permid=permidstr)
 
-        print >>sys.stderr,"FriendshipStatisticsDBHandler: getAll: result is",res_list
+        if DEBUG:
+                print >>sys.stderr,"FriendshipStatisticsDBHandler: getAll: result is",res_list
         
         return res_list
     
@@ -170,6 +173,7 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
         if not res:
             return 0
         else:
+            # todo!
             return 0 # bug??? res['modified_on']
              
         
