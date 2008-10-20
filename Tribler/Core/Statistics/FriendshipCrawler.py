@@ -5,11 +5,12 @@ import sys
 import time
 from traceback import print_exc
 
+from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_FRIENDSHIP_STATS
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import SQLiteCacheDB
 from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
 
-DEBUG = True
+DEBUG = False
 
 class FriendshipCrawler:
     __single = None
@@ -66,34 +67,51 @@ class FriendshipCrawler:
 
         return True
 
-    def handle_crawler_reply(self, permid, selversion, channel_id, message, request_callback):
+    def handle_crawler_reply(self, permid, selversion, channel_id, error, message, request_callback):
         """
         Received a CRAWLER_FRIENDSHIP_STATS request.
         @param permid The Crawler permid
         @param selversion The overlay protocol version
         @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
+        @param error The error value. 0 indicates success.
         @param message The message payload
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        
-        d = bdecode(msg)
-        
-        if DEBUG:
-            print >> sys.stderr, "crawler: handle_friendship_crawler_database_query_reply"
-            print >> sys.stderr, "crawler: friendship: Got",`d`
 
-        self.saveFriendshipStatistics(permid,d['current time'],d['stats'])
+        if error:
+            if DEBUG:
+                print >> sys.stderr, "friendshipcrawler: handle_crawler_reply"
+                print >> sys.stderr, "friendshipcrawler: error", error, message
+
+        else:
+            try:
+                d = bdecode(message)
+            except Exception:
+                print_exc()
+            else:
+                if DEBUG:
+                    print >> sys.stderr, "friendshipcrawler: handle_crawler_reply"
+                    print >> sys.stderr, "friendshipcrawler: friendship: Got",`d`
+
+                self.saveFriendshipStatistics(permid,d['current time'],d['stats'])
 
         return True 
-
-            
         
     def getStaticsFromFriendshipStatisticsTable(self, mypermid, last_update_time):
         return self.friendshipStatistics_db.getAllFriendshipStatistics(mypermid, last_update_time)
     
     def saveFriendshipStatistics(self,permid,currentTime,stats):
-        
-        self.friendshipStatistics_db.saveFriendshipStatisticData(stats)
+        pass
+        # todo: 
+#   File "/home/boudewijn/svn.tribler.org/abc/branches/mainbranch/Tribler/Core/Statistics/FriendshipCrawler.py", line 102, in saveFriendshipStatistics
+#     self.friendshipStatistics_db.saveFriendshipStatisticData(stats)
+#   File "/home/boudewijn/svn.tribler.org/abc/branches/mainbranch/Tribler/Core/CacheDB/SqliteFriendshipStatsCacheDB.py", line 128, in saveFriendshipStatisticData
+#     self._db.insertMany('FriendshipStatistics', data)
+#   File "/home/boudewijn/svn.tribler.org/abc/branches/mainbranch/Tribler/Core/CacheDB/sqlitecachedb.py", line 523, in insertMany
+#     questions = '?,'*len(values[0])
+# IndexError: list index out of range
+
+# self.friendshipStatistics_db.saveFriendshipStatisticData(stats)
     
     def getLastUpdateTime(self, permid):
         

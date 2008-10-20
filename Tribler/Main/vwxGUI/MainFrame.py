@@ -625,12 +625,14 @@ class MainFrame(wx.Frame):
         #print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
         
         if self.utility is None:
-            print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
+            if DEBUG:
+                print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
             return
             
         if currentThread().getName() != "MainThread":
-            print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
-            print_stack()
+            if DEBUG:
+                print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
+                print_stack()
     
         if type == NTFY_ACT_NONE:
             prefix = msg
@@ -647,7 +649,8 @@ class MainFrame(wx.Frame):
             prefix = self.utility.lang.get('act_got_metadata')
             
             if self.category.family_filter_enabled() and arg2 == 7: # XXX category
-                print >>sys.stderr,"MainFrame: setActivity: Hiding XXX torrent",msg
+                if DEBUG:
+                    print >>sys.stderr,"MainFrame: setActivity: Hiding XXX torrent",msg
                 return
             
         elif type == NTFY_ACT_RECOMMEND:

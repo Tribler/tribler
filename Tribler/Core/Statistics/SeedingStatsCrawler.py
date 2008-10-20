@@ -3,6 +3,7 @@
 import sys
 import cPickle
 
+from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_SEEDINGSTATS_QUERY
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import *
 
@@ -31,7 +32,7 @@ class SeedingStatsCrawler:
             print >>sys.stderr, "crawler: SeedingStatsDB_update_settings_initiator"
         
         try:
-            sql_query = "SELECT MAX(timestamp) FROM SeedingStats WHERE permID='%s' ORDER BY timestamp DESC"%(bin2str(permid))
+            sql_query = "SELECT MAX(timestamp) FROM SeedingStats WHERE permID='%s' ORDER BY timestamp DESC"%bin2str(permid)
             cursor = self._sqlite_cache_db.execute_read(sql_query)
         except:
             print_exc()
@@ -102,31 +103,36 @@ class SeedingStatsCrawler:
 
         return True
 
-    def handle_crawler_reply(self, permid, selversion, channel_id, message, reply_callback):
+    def handle_crawler_reply(self, permid, selversion, channel_id, error, message, reply_callback):
         """
         Received a CRAWLER_DATABASE_QUERY request.
         @param permid The Crawler permid
         @param selversion The overlay protocol version
         @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
+        @param error The error value. 0 indicates success.
         @param message The message payload
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        if DEBUG:
-            print >> sys.stderr, "olapps: handle_crawler_SeedingStats_reply"
+        if error:
+            if DEBUG:
+                print >> sys.stderr, "seedingstatscrawler: handle_crawler_reply"
+                print >> sys.stderr, "seedingstatscrawler: error", error
 
-        try:
-            results = cPickle.loads(message, 2)
-            for res in results:
-                if res is not None:
-                    try:
-                        self._sqlite_cache_db.insertMany("SeedingStats", res)
-                    except:
-                        # not a sql statment, exception message in the reply message 
-                        print res
-                        
-        except Exception, e:
-            print_exc()
-            return False
+        else:
+            try:
+                results = cPickle.loads(message)
+
+                if DEBUG:
+                    print >> sys.stderr, "seedingstatscrawler: handle_crawler_reply"
+                    print >> sys.stderr, "seedingstatscrawler:", results
+
+                # the first item in the list contains the results from the select query
+                if results[0]:
+                    values = map(tuple, results[0])
+                    self._sqlite_cache_db.insertMany("SeedingStats", values)
+            except Exception, e:
+                print_exc()
+                return False
 
         return True
 

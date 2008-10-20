@@ -28,8 +28,11 @@ class DatabaseCrawler:
         @param selversion The oberlay protocol version
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        if DEBUG: print >>sys.stderr, "databasecrawler: database_query_initiator"
-        return request_callback(CRAWLER_DATABASE_QUERY, "SELECT * FROM category")
+        if DEBUG: print >>sys.stderr, "databasecrawler: query_initiator"
+        # 20/10/08. Boudewijn: We are currently not Crawling for any
+        # stats from the Tribler database
+        #return request_callback(CRAWLER_DATABASE_QUERY, "SELECT * FROM category")
+        pass
 
     def handle_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
         """
@@ -41,7 +44,7 @@ class DatabaseCrawler:
         @param reply_callback Call this function once to send the reply: reply_callback(payload [, error=123])
         """
         if DEBUG:
-            print >> sys.stderr, "databasecrawler: handle_crawler_database_request", message
+            print >> sys.stderr, "databasecrawler: handle_crawler_request", message
 
         # execute the sql
         try:
@@ -57,17 +60,23 @@ class DatabaseCrawler:
 
         return True
 
-    def handle_crawler_reply(self, permid, selversion, channel_id, message, request_callback):
+    def handle_crawler_reply(self, permid, selversion, channel_id, error, message, request_callback):
         """
         Received a CRAWLER_DATABASE_QUERY request.
         @param permid The Crawler permid
         @param selversion The overlay protocol version
         @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
+        @param error The error value. 0 indicates success.
         @param message The message payload
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        if DEBUG:
-            print >> sys.stderr, "databasecrawler: handle_crawler_database_reply"
-            print >> sys.stderr, "databasecrawler:", cPickle.loads(message)
+        if error:
+            if DEBUG:
+                print >> sys.stderr, "databasecrawler: handle_crawler_reply"
+                print >> sys.stderr, "databasecrawler: error", error, message
+        else:
+            if DEBUG:
+                print >> sys.stderr, "databasecrawler: handle_crawler_reply"
+                print >> sys.stderr, "databasecrawler:", cPickle.loads(message)
 
         return True

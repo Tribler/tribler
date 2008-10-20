@@ -76,6 +76,8 @@ class TestCrawler(TestAsServer):
         self.subtest_invalid_permid()
         self.subtest_invalid_messageid()
         self.subtest_invalid_sql_query()
+        self.subtest_invalid_frequency()
+        self.subtest_invalid_tablename()
         self.subtest_valid_messageid()
         self.subtest_dialback()
 
@@ -151,6 +153,55 @@ class TestCrawler(TestAsServer):
 
         time.sleep(1)
         s.close()
+
+    def subtest_invalid_frequency(self):
+        """
+        Send two valid requests shortly after each other. However,
+        indicate that the frequency should be largs. This should
+        result in a frequency error
+        """
+        print >>sys.stderr, "-"*80, "\ntest: invalid_sql_query"
+
+        # make sure that the OLConnection IS in the crawler_db
+        crawler_db = CrawlerDBHandler.getInstance()
+        crawler_db.temporarilyAddCrawler(self.my_permid)
+
+        s = OLConnection(self.my_keypair, "localhost", self.hisport)
+        self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 1000, "SELECT * FROM peer")
+        error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
+        assert error == 0
+
+        # try on the same connection
+        self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 1000, "SELECT * FROM peer")
+        error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
+        assert error == 254 # should give a frequency erro
+
+        # try on a new connection
+        s = OLConnection(self.my_keypair, "localhost", self.hisport)
+        self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 1000, "SELECT * FROM peer")
+        error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
+        assert error == 254 # should give a frequency erro
+
+        time.sleep(1)
+        s.close()
+        
+
+    def subtest_invalid_tablename(self):
+        """
+        Send an invalid query and check that we get the actual sql
+        exception back
+        """
+        print >>sys.stderr, "-"*80, "\ntest: invalid_tablename"
+
+        # make sure that the OLConnection IS in the crawler_db
+        crawler_db = CrawlerDBHandler.getInstance()
+        crawler_db.temporarilyAddCrawler(self.my_permid)
+
+        s = OLConnection(self.my_keypair, "localhost", self.hisport)
+        self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 1000, "SELECT * FROM nofoobar")
+        error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
+        assert error != 0
+        assert payload == "SQLError: no such table: nofoobar"
 
     def subtest_valid_messageid(self):
         """
@@ -252,7 +303,6 @@ def test_suite():
     suite.addTest(unittest.makeSuite(TestCrawler))
     
     return suite
-
 
 if __name__ == "__main__":
     unittest.main()

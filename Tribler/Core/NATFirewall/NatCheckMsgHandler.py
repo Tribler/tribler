@@ -16,7 +16,7 @@ from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from types import IntType, StringType, ListType
 from Tribler.Core.simpledefs import *
 
-DEBUG = True
+DEBUG = False
 
 class NatCheckMsgHandler:
 
@@ -61,7 +61,7 @@ class NatCheckMsgHandler:
         if exc is not None:
             return False
 	    if DEBUG:
-	        print >> sys.stderr, "******* NATCHECK_REQUEST was sent to", show_permid_short(permid), exc
+	        print >> sys.stderr, "NATCHECK_REQUEST was sent to", show_permid_short(permid), exc
         # Register peerinfo on file
         f = open("registerlog.txt", "a")
         t = datetime.datetime.fromtimestamp(time.time())
@@ -112,34 +112,41 @@ class NatCheckMsgHandler:
 
     def natCheckReplySendCallback(self, exc, permid):
         if DEBUG:
-            print >> sys.stderr, "******* NATCHECK_REPLY was sent to", show_permid_short(permid), exc
+            print >> sys.stderr, "NATCHECK_REPLY was sent to", show_permid_short(permid), exc
         if exc is not None:
             return False
         return True
 
-    def gotNatCheckReplyMessage(self, sender_permid, selversion, channel, recv_msg, other):
+    def gotNatCheckReplyMessage(self, permid, selversion, channel_id, error, payload, request_callback):
+        if error:
+            if DEBUG:
+                print >> sys.stderr, "NatCheckMsgHandler: gotNatCheckReplyMessage"
+                print >> sys.stderr, "NatCheckMsgHandler: error", error
 
-        try:
-            recv_data = bdecode(recv_msg)
-        except:
-            print_exc()
-            print >> sys.stderr, "bad encoded data:", recv_msg
-            return False
-            
-        try:    # check natCheckReply message
-            self.validNatCheckReplyMsg(recv_data)
-        except RuntimeError, msg:
-            print >> sys.stderr, msg
-            return False
+        else:
+            try:
+                recv_data = bdecode(payload)
+            except:
+                print_exc()
+                print >> sys.stderr, "bad encoded data:", payload
+                return False
 
-        if DEBUG:
-            print >> sys.stderr, "***********************NatCheckMsgHandler: received NAT_CHECK_REPLY message: ", recv_data
+            try:    # check natCheckReply message
+                self.validNatCheckReplyMsg(payload)
+            except RuntimeError, e:
+                print >> sys.stderr, e
+                return False
 
-        # Register peerinfo on file
-        f = open("registerlog.txt", "a")
-        t = datetime.datetime.fromtimestamp(time.time())
-        f.write(t.strftime("%Y-%m-%d %H:%M:%S") + "," + "NAT_CHECK_REPLY" + "," + str(show_permid(sender_permid)) + "," + "[" + str(recv_data[0]) + ":" + str(recv_data[1]) + ":" + str(recv_data[2]) + ":" + str(recv_data[3]) + ":" + str(recv_data[4]) + ":" + str(recv_data[5]) + ":" + str(recv_data[6]) + "]" + "\n")
-        f.close()
+            if DEBUG:
+                print >> sys.stderr, "NatCheckMsgHandler: received NAT_CHECK_REPLY message: ", recv_data
+
+            # Register peerinfo on file
+            f = open("registerlog.txt", "a")
+            t = datetime.datetime.fromtimestamp(time.time())
+            f.write(t.strftime("%Y-%m-%d %H:%M:%S") + "," + "NAT_CHECK_REPLY" + "," + str(show_permid(permid)) + "," + "[" + str(recv_data[0]) + ":" + str(recv_data[1]) + ":" + str(recv_data[2]) + ":" + str(recv_data[3]) + ":" + str(recv_data[4]) + ":" + str(recv_data[5]) + ":" + str(recv_data[6]) + "]" + "\n")
+            f.close()
+
+        return True
 
     def validNatCheckReplyMsg(self, ncr_data):
 

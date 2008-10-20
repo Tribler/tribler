@@ -7,9 +7,7 @@ import unittest
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
-from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
-from Tribler.Test.test_as_server import TestAsServer
 
 from olconn import OLConnection
 from test_crawler import TestCrawler
