@@ -8,6 +8,7 @@ import cPickle
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
+from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import *
 
 from olconn import OLConnection
 from test_crawler import TestCrawler
@@ -53,7 +54,7 @@ class TestSeedingStats(TestCrawler):
             if DEBUG:
                 print >>sys.stderr, "test_seeding_stats:", payload
 
-        time.sleep(1)
+#        time.sleep(1)
         
     def subtest_valid_query(self):
         """
@@ -65,7 +66,11 @@ class TestSeedingStats(TestCrawler):
         # make sure that the OLConnection IS in the crawler_db
         crawler_db = CrawlerDBHandler.getInstance()
         crawler_db.temporarilyAddCrawler(self.my_permid)
-
+        
+        # test with valid data
+        seedingstats_db = SQLiteSeedingStatsCacheDB.getInstance()
+        seedingstats_db.insertMany("SeedingStats", [(50000, 'foobar', 'dummy_seed', 500, 0, 0), (80000, 'bar', 'dummy_seed', 800, 1, 0)])
+        
         s = OLConnection(self.my_keypair, "localhost", self.hisport, mylistenport=self.listen_port)
 
         queries = [cPickle.dumps(["SELECT * FROM SeedingStats", "SELECT * FROM SeedingStats WHERE crawled = 0"])]
@@ -78,7 +83,7 @@ class TestSeedingStats(TestCrawler):
             if DEBUG:
                 print >>sys.stderr, "test_seeding_stats:", cPickle.loads(payload)
 
-        time.sleep(1)
+#        time.sleep(1)
 
 if __name__ == "__main__":
     def test_suite():
