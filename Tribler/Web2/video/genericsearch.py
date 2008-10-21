@@ -93,7 +93,6 @@ class GenericSearch(db.ThreadedDBSearch):
             
         if DEBUG:
             print >>sys.stderr,'web2: gs: Got video url: %s' % src
-            print >>sys.stderr,'web2: gs: Got page',itempage
             
         name = re.findall(self.get('RE_NAME'), itempage)
         if len(name) == 0:
