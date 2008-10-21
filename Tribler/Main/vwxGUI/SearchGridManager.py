@@ -18,7 +18,7 @@ except ImportError:
     print_exc()
     
 
-DEBUG = True
+DEBUG = False
 
 SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
