@@ -697,22 +697,7 @@ class PlayerFrame(VideoFrame):
     def OnCloseWindow(self, event = None):
         
         print >>sys.stderr,"PlayerFrame: ON CLOSE WINDOW"
-
-        # This gets called multiple times somehow
-        # TODO: first event.Skip does not close window, second apparently does
         if not self.closed:
-    
-            if event is not None:
-                nr = event.GetEventType()
-                lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
-                if nr in lookup: 
-                    nr = lookup[nr]
-                print >>sys.stderr,"PlayerFrame: Closing due to event ",nr
-                event.Skip()
-            else:
-                print >>sys.stderr,"PlayerFrame: Closing untriggered by event"
-    
-        
             self.closed = True
             VideoFrame.OnCloseWindow(self,event)
             

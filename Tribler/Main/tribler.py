@@ -454,11 +454,12 @@ class ABCApp(wx.App):
 
     def OnClosingVideoFrameOrExtPlayer(self):
         vodd = self.videoplayer.get_vod_download()
-        if vodd.get_def().get_live():
-            print >>sys.stderr,"main: OnClosingVideoFrameOrExtPlayer: vodd is live, stopping",vodd.get_def().get_name_as_unicode()
-            vodd.stop()
-        self.restart_other_downloads(self.utility.session.get_downloads())
-
+        if vodd is not None:
+            if vodd.get_def().get_live():
+                print >>sys.stderr,"main: OnClosingVideoFrameOrExtPlayer: vodd is live, stopping",vodd.get_def().get_name_as_unicode()
+                vodd.stop()
+            self.restart_other_downloads(self.utility.session.get_downloads())
+        #else: playing Web2 video
 
     def loadSessionCheckpoint(self):
         # Load all other downloads
