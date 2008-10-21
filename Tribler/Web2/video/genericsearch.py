@@ -29,7 +29,7 @@ class GenericSearch(db.ThreadedDBSearch):
     
     def parseItem(self, workitem):
         if DEBUG:
-            print 'parseItem called with %s' % str(workitem)
+            print >>sys.stderr,'web2: gs: parseItem called with %s' % str(workitem)
             
         item = {}
 
@@ -39,7 +39,7 @@ class GenericSearch(db.ThreadedDBSearch):
 
         url = self.get('URL_WATCH') % id
         if DEBUG:
-            print "getting URL", url
+            print >>sys.stderr,"web2: gs: getting URL", url
         conn = urllib.urlopen(url)
         itempage = conn.read().replace('\n','')
         srcpage = itempage
@@ -50,7 +50,7 @@ class GenericSearch(db.ThreadedDBSearch):
         if url_for_src:
             url_for_src = url_for_src % id
             if DEBUG:
-                print "getting URL", url_for_src
+                print >>sys.stderr,"web2: gs: getting URL", url_for_src
             conn = urllib.urlopen(url_for_src)
             srcpage = conn.read().replace('\n','')
             conn.close()
@@ -75,7 +75,7 @@ class GenericSearch(db.ThreadedDBSearch):
                 trynum += 1
             if not success:
                 if DEBUG:
-                    print 'Error, src=%s' % src
+                    print >>sys.stderr,'web2: gs: Error, src=%s' % src
                 return None
         
         
@@ -87,17 +87,17 @@ class GenericSearch(db.ThreadedDBSearch):
         
         unquote_url = self.get('UNQUOTE')
         if DEBUG:
-            print 'unquote: %s' % unquote_url
+            print >>sys.stderr,'web2: gs: unquote: %s' % unquote_url
         if unquote_url:
             src = urllib.unquote(src)
             
         if DEBUG:
-            print 'Got video url: %s' % src
+            print >>sys.stderr,'web2: gs: Got video url: %s' % src
             
         name = re.findall(self.get('RE_NAME'), itempage)
         if len(name) == 0:
             if DEBUG:
-                print 'Youtube: name error'
+                print >>sys.stderr,'web2: gs: Youtube: name error'
             return None
         #print name[0]
         ENCODING = self.get('ENCODING')
@@ -110,7 +110,7 @@ class GenericSearch(db.ThreadedDBSearch):
 #        category = re.findall(RE_CAT, itempage)
 #        if len(category) == 0:
 #            if DEBUG:
-#                print 'Youtube: Category error'
+#                print >>sys.stderr,'web2: gs: Youtube: Category error'
 #            return None
 #        category = unicode(category[0], ENCODING)
 #        category = codec.decodehtml(category)
@@ -185,10 +185,10 @@ class GenericSearch(db.ThreadedDBSearch):
             log("%s: no more items" % self.site)
             return []
         
-        #print "Self.newpage = true"
+        #print >>sys.stderr,"web2: gs: Self.newpage = true"
         url = self.get('URL_SEARCH') % (self.query, self.pagecount)
         if DEBUG:
-            print "Retrieving url", url
+            print >>sys.stderr,"web2: gs: Retrieving url", url
         try:
             pageconn = urllib.urlopen(url)
         except:
@@ -196,8 +196,8 @@ class GenericSearch(db.ThreadedDBSearch):
         page = pageconn.read().replace('\n','')
         pageconn.close()
         if DEBUG:
-            #print 'The page:\n%s' % page
-            print 'Regexp: %s' % self.get('RE_SEARCHITEM')
+            #print >>sys.stderr,'web2: gs: The page:\n%s' % page
+            print >>sys.stderr,'web2: gs: Regexp: %s' % self.get('RE_SEARCHITEM')
         items = re.findall(self.get('RE_SEARCHITEM'), page, re.S)
 
         self.pagecount += 1
@@ -208,7 +208,7 @@ class GenericSearch(db.ThreadedDBSearch):
                 self.hasnext = False
 
         if DEBUG:
-            print 'Items found: %s' % str(items)
+            print >>sys.stderr,'web2: gs: Items found: %s' % str(items)
         return items
 
 
