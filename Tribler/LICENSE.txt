@@ -27,8 +27,9 @@ Software.
 
 All code written by Jie Yang, Pawel Garbacki, Jun Wang, Arno Bakker,
 Jan David Mol, Qin Chen, Yuan Yuan, Jelle Roozenburg, Freek Zindel,
-Fabian van der Werf, Lucian Musat, Michel Meulpolder has the following 
-license:
+Fabian van der Werf, Lucian Musat, Michel Meulpolder, Maarten ten Brinke,
+Ali Abbas, Boxun Zhang, Lucia d' Acunto, Rameez Rahman, Boudewijn Schoon,
+Richard Gwin has the following license:
 
     TRIBLER file-sharing library.
 
@@ -59,6 +60,16 @@ license:
     1081 HV Amsterdam
     The Netherlands
  
+
+The research leading to this library has received funding from:
+ - BSIK Freeband Communication I-Share project (Dutch Ministry of Economic 
+   Affairs)
+ - Netherlands Organisation for Scientific Research (NWO) grant 612.060.215.
+ - Dutch Technology Foundation STW: Veni project DTC.7299
+ - European Community's Sixth Framework Programme in the P2P-FUSION project 
+   under contract no 035249.
+ - The European Community's Seventh Framework Programme in the P2P-Next project
+   under grant agreement no 216217.
 
 -------------------------------------------------------------------------------
 

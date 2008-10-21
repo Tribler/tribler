@@ -66,7 +66,7 @@ class TorrentSearchGridManager:
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
     
-    def getHitsInCategory(self,mode,categorykey,range):
+    def getHitsInCategory(self,mode,categorykey,range,sort,reverse):
         begintime = time()
         # mode is 'filesMode', 'libraryMode'
         # categorykey can be 'all', 'Video', 'Document', ...
@@ -150,7 +150,14 @@ class TorrentSearchGridManager:
             end = range[1]
         begin = range[0]
         beginsort = time()
-        self.sort()
+        
+        if sort == 'rameezmetric':
+            self.sort()
+        else:
+            # Sort on columns in list view
+            cmpfunc = lambda a,b:torrent_cmp(a,b,sort)
+            self.hits.sort(cmpfunc,reverse=reverse)
+            
         #print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time()-beginsort))
         return [len(self.hits),self.hits[begin:end]]
                 
@@ -323,6 +330,10 @@ class TorrentSearchGridManager:
     # Move to Web2SearchGridManager
     #
     def searchWeb2(self,initialnum):
+        
+        if DEBUG:
+            print >>sys.stderr,"TorrentSearchGridManager: searchWeb2:",initialnum
+        
         if self.dod:
             self.dod.stop()
         self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords['filesMode']),guiutil=self.guiUtility)
@@ -614,3 +625,15 @@ class PeerSearchGridManager:
         return self.hits
     
         
+def torrent_cmp(a,b,sort):
+    """ Compare torrent db records based on key "sort" """
+    vala = a.get(sort,0)
+    valb = b.get(sort,0)
+    if vala == valb:
+        return 0
+    elif vala < valb:
+        return -1
+    else:
+        return 1
+    
+    

@@ -186,8 +186,9 @@ class FriendsItemPanel(wx.Panel):
         # do not reload similar peers
         if peer_data is not None and 'coopdlstatus' in peer_data:
             pass
-        elif similarPeer(peer_data, self.datacopy):
-            return
+        # Arno, 2008-10-21: Make sure connected time is updated
+        #elif similarPeer(peer_data, self.datacopy):
+        #    return
         self.datacopy = copyPeer(peer_data)
                         
         if peer_data is None:
@@ -299,7 +300,8 @@ class FriendsItemPanel(wx.Panel):
                 if self.data:
                     if DEBUG:
                         print >>sys.stderr,'contentpanel: deleting'
-#                    self.guiUtility.deleteTorrent(self.data)
+                    # self.guiUtility.deleteTorrent(self.data)
+                    pass
         event.Skip()
         
     def mouseAction(self, event):

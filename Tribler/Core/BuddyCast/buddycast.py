@@ -1900,6 +1900,9 @@ class DataHandler:
                             tids[tid] = [0,0]
                         tids[tid][0] += sim
                         tids[tid][1] += 1
+
+        if len(tids) == 1:
+            return
         
         res = self.torrent_db.getTorrentRelevances(tids)
         if res:

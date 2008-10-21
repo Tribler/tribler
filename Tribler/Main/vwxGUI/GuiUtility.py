@@ -455,7 +455,7 @@ class GUIUtility:
         self.torrentsearch_manager.setSearchKeywords(wantkeywords, mode)
         self.torrentsearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
         #print "******** gui uti searchFiles", wantkeywords
-        gridstate = GridState(self.standardOverview.mode, 'all', 'name')
+        gridstate = GridState(self.standardOverview.mode, 'all', 'rameezmetric')
         self.standardOverview.filterChanged(gridstate)
 
         if mode == 'filesMode':
@@ -505,7 +505,8 @@ class GUIUtility:
             gridState = self.standardOverview.getFilter().getState()
             if not gridState or not gridState.isValid():
                 gridState = GridState(mode, 'all', 'num_seeders')
-            print >> sys.stderr, 'Clearsearch, back to: %s' % gridState
+            if DEBUG:
+                print >> sys.stderr, 'GUIUtil: clearSearch, back to: %s' % gridState
             self.standardOverview.filterChanged(gridState)
         if mode == 'personsMode'  or mode == 'friendsMode':
             self.peersearch_manager.setSearchKeywords([],mode)

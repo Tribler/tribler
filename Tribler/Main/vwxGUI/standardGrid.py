@@ -151,6 +151,8 @@ class GridManager(object):
         #import threading
         #print >> sys.stderr, 'threading>>','****'*10, threading.currentThread().getName()
         
+        #print >>sys.stderr,"standardGrid: _getData: state is",state
+        
         range = (self.page * self.grid.items, (self.page+1)*self.grid.items)
         if state.db in ('filesMode', 'libraryMode'):
             
@@ -164,7 +166,7 @@ class GridManager(object):
                                                        library = (state.db == 'libraryMode'),
                                                        reverse = state.reverse)
             else:
-                [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range)
+                [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
                 
             if state.db == 'libraryMode':
                 data = self.addDownloadStates(data)
