@@ -5,7 +5,7 @@ import os
 import sys
 import base64
 from traceback import print_exc
-import mimetypes
+import tempfile
 
 import wx
 import wx.lib.imagebrowser as ib
@@ -15,7 +15,7 @@ import wx.lib.imagebrowser as ib
 # it don't work. This explicit import seems to:
 from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
 
-from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
+from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Core.Utilities.unicode import str2unicode
 #from common import CommonTriblerList
 from Tribler.Main.Utility.constants import *
@@ -166,11 +166,19 @@ class NameIconWizardPage(WizardPageSimple):
                 else:
                     bm = wx.BitmapFromImage(im.Scale(64,64),-1)
                     self.iconbtn.SetBitmapLabel(bm)
-                    iconfile = file(self.iconpath,'rb')
-                    self.icondata = iconfile.read()
-                    self.iconmime = mimetypes.guess_type(self.iconpath)[0] or 'image/jpeg'
-                    iconfile.close()
+                    
+                    # Arno, 2008-10-21: scale image!
+                    sim = im.Scale(ICON_MAX_DIM,ICON_MAX_DIM)
+                    [thumbhandle,thumbfilename] = tempfile.mkstemp("user-thumb")
+                    os.close(thumbhandle)
+                    sim.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
+                    
+                    self.iconmime = 'image/jpeg'
+                    f = open(thumbfilename,"rb")
+                    self.icondata = f.read()
+                    f.close()
             except:
+                print_exc()
                 self.show_inputerror(self.utility.lang.get('iconbadformat'))
         else:
             pass
