@@ -11,13 +11,24 @@ from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButto
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Main.Utility.utility import getMetainfo, similarTorrent, copyTorrent
-from Tribler.Main.vwxGUI.IconsManager import IconsManager
+from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage
+
+from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
+from Tribler.Core.BitTornado.bencode import bencode,bdecode
+import urllib
+import cStringIO
+
 from copy import deepcopy
 import cStringIO
+import mimetypes
+import tempfile
 import TasteHeart
 from font import *
 
+
 DEBUG = False
+
+AUTOMODERATION_SAVE_WEBSEARCH_IMAGE_TO_TORRENT=True
 
 # font sizes
 if sys.platform == 'darwin':
@@ -223,7 +234,7 @@ class FilesItemPanel(wx.Panel):
                 stat = 'None'
             else:
                 stat = torrent.keys() # torrent['myDownloadHistory']]
-            print >>sys.stderr,"fip: setData:",stat
+            #print >>sys.stderr,"fip: setData:",stat
         
         self.data = torrent
         
@@ -527,10 +538,8 @@ class ThumbnailViewer(wx.Panel):
         self.sourceIcon = si
         
     def setThumbnail(self, torrent):
-        #if torrent.get('web2'):
-            #import pdb
-            #pdb.set_trace()
-        # Get the file(s)data for this torrent
+        #print >>sys.stderr,"fip: setThumb:",torrent['name']
+        
         thumbtype = (self.parent.listItem) and 'small' or 'normal'
         bmp = None
         readable = torrent.get('metadata',{}).get('ThumbReadable')
@@ -556,7 +565,7 @@ class ThumbnailViewer(wx.Panel):
                 torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
                 torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
                 
-                if not DEBUG:
+                if DEBUG:
                     print "fip: Scheduling read of thumbnail for",`torrent['name']`,"from",torrent_filename
                 
                 def loadMetaDataNow():
@@ -619,7 +628,28 @@ class ThumbnailViewer(wx.Panel):
             # read the data from the torrent file and create the wxBitmap in the GUI callback.
 
             newmetadata = loadAzureusMetadataFromTorrent(torrent_filename)
+            
+            
+            if newmetadata.get('Thumbnail') is None and AUTOMODERATION_SAVE_WEBSEARCH_IMAGE_TO_TORRENT:
+                # Use Google Image search to find a thumb
+                (mimetype,thumbdata) = google_image_search(torrent['name'])
+                
+                if DEBUG:
+                    if thumbdata is None:
+                        t = None
+                    else:
+                        t = 'data'
+                    print >>sys.stderr,"fip: automod: Google Image Search Got:",mimetype,t
+                
+                if mimetype is not None and thumbdata is not None:
+                    # Scale image
+                    scaledthumbdata = scale_image_convert_jpeg(mimetype,thumbdata,171)
+                    newmetadata = { 'Thumbnail' : scaledthumbdata}
+                    
+                    # Save thumb data in torrent, auto-moderation ;o)
+                    saveAzureusMetadataToTorrent(torrent_filename,scaledthumbdata)
         else:
+            # Web2 items have preview fields
             newmetadata = { 'Thumbnail' : torrent['preview'] }
 
       
@@ -650,7 +680,7 @@ class ThumbnailViewer(wx.Panel):
             #    metadata['ThumbnailBitmapLibrary'] = bmplib
                 
             # Dump the raw data
-            del metadata['Thumbnail']
+            #del metadata['Thumbnail']
         else:
             metadata['ThumbnailReadable'] = False
           
@@ -809,3 +839,105 @@ def getResizedBitmapFromImage(img, size):
             img.Rescale(nw, nh)
         bmp = wx.BitmapFromImage(img)
         return bmp
+
+def google_image_search(name):
+    try:
+        rname = name.replace('.',' ')
+        rname = rname.replace('-',' ')
+        rname = rname.replace('_',' ')
+        rname = rname.replace('[',' ')
+        rname = rname.replace(']',' ')
+        if DEBUG:
+            print >>sys.stderr,"fip: automod: Name becomes keywords",rname
+        
+        qname = urllib.quote(rname)
+
+        # 1. Query Google Image search
+        url = 'http://www.searchmash.com/results/images:'+qname+''
+        if DEBUG:
+            print >>sys.stderr,"fip: automod: Query URL",url
+        f = urlOpenTimeout(url,timeout=2)
+        resp = f.read()
+        f.close()
+        
+        start = 0
+        while True:
+            #print >>sys.stderr,"fip: automod: Searching from idx",start
+            i = resp.find("imageUrl",start)
+            if i == -1:
+                break
+            else:
+                i += len("imageUrl\":\"")
+                j = resp.find("\"",i)
+                if j == -1:
+                    break
+                else:
+                    # 2. Found an Image, see if we can guess MIME type
+                    imgurl = resp[i:j]
+                    if DEBUG:
+                        print >>sys.stderr,"fip: automod: Found image",imgurl
+
+                    iconmime = mimetypes.guess_type(imgurl)[0]
+                    if iconmime is None:
+                        start = j
+                        continue
+                    
+                    # 3. Load the image
+                    try:
+                        f = urlOpenTimeout(imgurl,timeout=2)
+                        imgresp = f.read()
+                        f.close()
+                        
+                        if imgresp == '':
+                            start = j
+                            continue
+                        
+                        return (iconmime,imgresp)
+                    except:
+                        print_exc()
+                        start = j
+                        continue
+    except:
+        print_exc()
+    return (None,None)
+
+
+def scale_image_convert_jpeg(mimetype,data,dim):
+    icondata = None
+    try:
+        cio = cStringIO.StringIO(data)
+        if wx.Image.CanReadStream(cio):
+            sim = data2wxImage(mimetype,data,dim=dim)
+            [thumbhandle,thumbfilename] = tempfile.mkstemp("torrent-thumb")
+            os.close(thumbhandle)
+            sim.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
+                            
+            f = open(thumbfilename,"rb")
+            icondata = f.read()
+            f.close()
+            
+            os.remove(thumbfilename)
+    except:
+        print_exc()
+        
+    return icondata
+    
+
+def saveAzureusMetadataToTorrent(torrentfilename,scaledthumbdata):
+    try:
+        f = open(torrentfilename,"rb")
+        data = f.read()
+        f.close()
+        d = bdecode(data)
+        
+        d['azureus_properties'] = {}
+        d['azureus_properties']['Content'] = {}
+        d['azureus_properties']['Content']['Thumbnail'] = scaledthumbdata
+        
+        newdata = bencode(d)
+        f = open(torrentfilename,"wb")
+        f.write(newdata)
+        f.close()
+    except:
+        print_exc()
+        

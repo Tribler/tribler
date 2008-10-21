@@ -177,6 +177,7 @@ class NameIconWizardPage(WizardPageSimple):
                     f = open(thumbfilename,"rb")
                     self.icondata = f.read()
                     f.close()
+                    os.remove(thumbfilename)
             except:
                 print_exc()
                 self.show_inputerror(self.utility.lang.get('iconbadformat'))

@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 import wx, os
-import StringIO
+import cStringIO
 
 from Tribler.Core.API import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -197,11 +197,12 @@ class IconsManager:
             return data2wxBitmap('image/jpeg',data, dim)
 
 
-def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
+def data2wxImage(type,data,dim=ICON_MAX_DIM):
     try:
-        assert data
+        if data is None:
+            return None
         
-        mi = StringIO.StringIO(data)
+        mi = cStringIO.StringIO(data)
         # St*pid wx says "No handler for image/bmp defined" while this
         # is the image handler that is guaranteed to always be there,
         # according to the docs :-(
@@ -210,7 +211,21 @@ def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
         else:
             im = wx.ImageFromStreamMime(mi,type)
         
-        bm = wx.BitmapFromImage(im.Scale(dim,dim),-1)
+        return im.Scale(dim,dim)
+    except:
+        print >> sys.stderr, 'data2wxImage called (%s, %s)' % (`type`,`dim`)
+        print_exc()
+        return None
+        
+
+def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
+    try:
+        im = data2wxImage(type,data,dim=dim)
+        if im is None:
+            bm = None
+        else:
+            bm = wx.BitmapFromImage(im,-1)
+            
         return bm
     except:
         print >> sys.stderr, 'data2wxBitmap called (%s, %s)' % (`type`,`dim`)
