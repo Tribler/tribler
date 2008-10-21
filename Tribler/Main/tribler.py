@@ -75,7 +75,6 @@ from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDiv
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
-from Tribler.Core.Statistics.Crawler import Crawler
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
@@ -229,9 +228,7 @@ class ABCApp(wx.App):
             
             #self.frame.Refresh()
             #self.frame.Layout()
-            crawler = Crawler.get_instance(self.utility.session)
-            if not crawler.am_crawler():
-                self.frame.Show(True)
+            self.frame.Show(True)
             self.setDBStats()
             
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)

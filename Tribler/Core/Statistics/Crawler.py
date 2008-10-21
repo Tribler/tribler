@@ -84,27 +84,7 @@ class Crawler:
         """
         return self._session.get_permid() in self._crawler_db.getCrawlers()
 
-    def _send_request(self, permid, message_id, payload, frequency=3600, callback=None):
-        """
-        Send a CRAWLER_REQUEST message to permid. This method assumes
-        that connection exists to the permid.
-
-        @param permid The destination peer
-        @param message_id The message id
-        @param payload The message content
-        @param frequency Destination peer will return a frequency-error when this message_id has been received within the last frequency seconds
-        @param callback Callable function/method is called when request is send with 2 paramaters (exc, permid)
-        @return The message channel-id > 0 on success, and 0 on failure
-        """
-        # Sending a request from a Crawler to a Tribler peer
-        #     SIZE    INDEX
-        #     1 byte: 0      CRAWLER_REQUEST (from Tribler.Core.BitTornado.BT1.MessageID)
-        #     1 byte: 1      --MESSAGE-SPECIFIC-ID--
-        #     1 byte: 2      Channel id
-        #     2 byte: 3+4    Frequency
-        #     n byte: 5...   Request payload
-
-        # reserve a new channel-id
+    def _acquire_channel_id(self, permid):
         if permid in self._channels:
             channels = self._channels[permid]
         else:
@@ -131,16 +111,65 @@ class Crawler:
                 # no channel-id's left
                 return 0
 
+        return channel_id
+
+    def _release_channel_id(self, permid, channel_id):
+        if permid in self._channels:
+            if channel_id in self._channels[permid]:
+                del self._channels[permid][channel_id]
+            if not self._channels[permid]:
+                del self._channels[permid]
+
+    def send_request(self, permid, message_id, payload, frequency=3600, callback=None):
+        """
+        This method ensures that a connection to PERMID exists before sending the message
+        """
+        # reserve a new channel-id
+        channel_id = self._acquire_channel_id(permid)
+
+        def _after_connect(exc, dns, permid, selversion):
+            if exc:
+                # could not connect.
+                if DEBUG: print >>sys.stderr, "crawler: could not connect", dns, show_permid_short(permid), exc
+                self._release_channel_id(permid, channel_id)
+                if callback:
+                    callback(exc, permid)
+            else:
+                self._send_request(permid, message_id, channel_id, payload, frequency=frequency, callback=callback)
+
+#         if DEBUG: print >>sys.stderr, "crawler: connecting (send_request)...", show_permid_short(permid)
+        self._overlay_bridge.connect(permid, _after_connect)
+        return channel_id
+
+    def _send_request(self, permid, message_id, channel_id, payload, frequency=3600, callback=None):
+        """
+        Send a CRAWLER_REQUEST message to permid. This method assumes
+        that connection exists to the permid.
+
+        @param permid The destination peer
+        @param message_id The message id
+        @param payload The message content
+        @param frequency Destination peer will return a frequency-error when this message_id has been received within the last frequency seconds
+        @param callback Callable function/method is called when request is send with 2 paramaters (exc, permid)
+        @return The message channel-id > 0 on success, and 0 on failure
+        """
+        # Sending a request from a Crawler to a Tribler peer
+        #     SIZE    INDEX
+        #     1 byte: 0      CRAWLER_REQUEST (from Tribler.Core.BitTornado.BT1.MessageID)
+        #     1 byte: 1      --MESSAGE-SPECIFIC-ID--
+        #     1 byte: 2      Channel id
+        #     2 byte: 3+4    Frequency
+        #     n byte: 5...   Request payload
+
         # create a buffer to receive the reply
-        channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
+        self._channels[permid][channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
 
         def _after_send_request(exc, permid):
             if DEBUG:
                 if exc:
                     print >> sys.stderr, "crawler: could not send request to", show_permid_short(permid), exc
             if exc:
-                if permid in self._channels and channel_id in self._channels[permid]:
-                    del self._channels[permid][channel_id]
+                self._release_channel_id(permid, channel_id)
 
             # call the optional callback supplied with send_request
             if callback:
@@ -153,22 +182,6 @@ class Crawler:
                                                    chr((frequency >> 8) & 0xFF) + chr(frequency & 0xFF),
                                                    payload)), _after_send_request)
         return channel_id
-
-    def send_request(self, permid, message_id, payload, frequency=3600, callback=None):
-        """
-        This method ensures that a connection to PERMID exists before sending the message
-        """
-        def _after_connect(exc, dns, permid, selversion):
-            if exc:
-                # could not connect.
-                if DEBUG: print >>sys.stderr, "crawler: could not connect", dns, show_permid_short(permid), exc
-                if callback:
-                    callback(exc, permid)
-            else:
-                self._send_request(permid, message_id, payload, frequency=frequency, callback=callback)
-
-#         if DEBUG: print >>sys.stderr, "crawler: connecting (send_request)...", show_permid_short(permid)
-        self._overlay_bridge.connect(permid, _after_connect)
 
     def handle_request(self, permid, selversion, message):
         """
@@ -341,7 +354,7 @@ class Crawler:
                     # disconnect based on the return value from the
                     # message handler
                     try:
-                        self._message_handlers[message_id][1](permid, selversion, channel_id, error, payload, lambda message_id, payload, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
+                        self._message_handlers[message_id][1](permid, selversion, channel_id, error, payload, lambda message_id, payload, frequency=3600, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
                     except:
                         print_exc()
                     return True
@@ -392,7 +405,7 @@ class Crawler:
             deadline, frequency, initiator_callback, permid, selversion = self._deadlines[0]
             if now > deadline:
                 try:
-                    initiator_callback(permid, selversion, lambda message_id, payload, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
+                    initiator_callback(permid, selversion, lambda message_id, payload, frequency=frequency, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
                 except Exception:
                     print_exc()
 

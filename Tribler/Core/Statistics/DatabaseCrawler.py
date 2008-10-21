@@ -6,8 +6,9 @@ import cPickle
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_DATABASE_QUERY
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.Core.Utilities.utilities import show_permid_short
 
-DEBUG = False
+DEBUG = True
 
 class DatabaseCrawler:
     __single = None
@@ -28,11 +29,8 @@ class DatabaseCrawler:
         @param selversion The oberlay protocol version
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        if DEBUG: print >>sys.stderr, "databasecrawler: query_initiator"
-        # 20/10/08. Boudewijn: We are currently not Crawling for any
-        # stats from the Tribler database
-        #return request_callback(CRAWLER_DATABASE_QUERY, "SELECT * FROM category")
-        pass
+        if DEBUG: print >>sys.stderr, "databasecrawler: query_initiator", show_permid_short(permid)
+        request_callback(CRAWLER_DATABASE_QUERY, "SELECT 'peer_count', count(*) FROM Peer; SELECT 'torrent_count', count(*) FROM Torrent")
 
     def handle_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
         """
@@ -44,7 +42,7 @@ class DatabaseCrawler:
         @param reply_callback Call this function once to send the reply: reply_callback(payload [, error=123])
         """
         if DEBUG:
-            print >> sys.stderr, "databasecrawler: handle_crawler_request", message
+            print >> sys.stderr, "databasecrawler: handle_crawler_request", show_permid_short(permid), message
 
         # execute the sql
         try:
@@ -75,8 +73,6 @@ class DatabaseCrawler:
                 print >> sys.stderr, "databasecrawler: handle_crawler_reply"
                 print >> sys.stderr, "databasecrawler: error", error, message
         else:
-            if DEBUG:
-                print >> sys.stderr, "databasecrawler: handle_crawler_reply"
-                print >> sys.stderr, "databasecrawler:", cPickle.loads(message)
+            print >> sys.stderr, "databasecrawler: handle_crawler_reply", show_permid_short(permid), cPickle.loads(message)
 
         return True
