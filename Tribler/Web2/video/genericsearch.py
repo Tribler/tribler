@@ -93,11 +93,12 @@ class GenericSearch(db.ThreadedDBSearch):
             
         if DEBUG:
             print >>sys.stderr,'web2: gs: Got video url: %s' % src
+            print >>sys.stderr,'web2: gs: Got page',itempage
             
         name = re.findall(self.get('RE_NAME'), itempage)
         if len(name) == 0:
             if DEBUG:
-                print >>sys.stderr,'web2: gs: Youtube: name error'
+                print >>sys.stderr,'web2: gs: Cannot find item name, error'
             return None
         #print name[0]
         ENCODING = self.get('ENCODING')
@@ -209,6 +210,7 @@ class GenericSearch(db.ThreadedDBSearch):
 
         if DEBUG:
             print >>sys.stderr,'web2: gs: Items found: %s' % str(items)
+            #print >>sys.stderr,'web2: gs: Page',page
         return items
 
 

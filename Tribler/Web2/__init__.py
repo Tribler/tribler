@@ -11,6 +11,10 @@ def web2query(query, type, gui_utility):
     web2config = Web2Config.getInstance(gui_utility.utility)
     searches = []
     for searchname in web2config.getWeb2Sites(type):
+        
+        if searchname == "youtube":
+            continue
+        
         searches.append(GenericSearch(searchname, query, web2config))
 
     return util.db.CompoundDBSearch(searches,gui_utility.standardOverview)
