@@ -1,10 +1,10 @@
-from threading import Thread, Lock
 from traceback import print_exc
+import datetime
 import random
 import socket
-import datetime
-import time
 import sys
+import thread
+import time
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
@@ -191,19 +191,16 @@ class NatCheckMsgHandler:
             raise RuntimeError, "NatCheckMsgHandler: received data is not valid"
             return False
 
-class NatCheckClient(Thread):
+class NatCheckClient:
 
     __single = None
 
     def __init__(self, session):
-        Thread.__init__(self)
         if NatCheckClient.__single:
             raise RuntimeError, "NatCheckClient is singleton"
         NatCheckClient.__single = self
-
-        self.setName("NatCheckClient")
-        self.setDaemon(True)
-        self.lock = Lock()
+        self._lock = thread.allocate_lock()
+        self._running = False
         self.session = session
         self.permid = self.session.get_permid()
         self.nat_type = None
@@ -217,17 +214,41 @@ class NatCheckClient(Thread):
         return NatCheckClient.__single
 
     def try_start(self):
-        self.lock.acquire()
+        acquire = self._lock.acquire
+        release = self._lock.release
+
+        acquire()
         try:
-            if not self.isAlive():
-                self.start()
-                while not self.isAlive():
+            if DEBUG:
+                if self._running:
+                    print >>sys.stderr, "natcheckmsghandler: the thread is already running"
+                else:
+                    print >>sys.stderr, "natcheckmsghandler: starting the thread"
+            
+            if not self._running:
+                thread.start_new_thread(self.run, ())
+
+                while True:
+                    release()
                     time.sleep(0)
+                    acquire()
+                    if self._running:
+                        break
         finally:
-            self.lock.release()
+            release()
 
     def run(self):
-        self.nat_discovery()
+        self._lock.acquire()
+        self._running = True
+        self._lock.release()
+
+        try:
+            self.nat_discovery()
+
+        finally:
+            self._lock.acquire()
+            self._running = False
+            self._lock.release()
 
     def timeout_check(self, pingback):
         """
