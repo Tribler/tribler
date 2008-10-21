@@ -28,7 +28,7 @@ from font import *
 
 DEBUG = False
 
-AUTOMODERATION_SAVE_WEBSEARCH_IMAGE_TO_TORRENT=True
+AUTOMODERATION_SAVE_WEBSEARCH_IMAGE_TO_TORRENT = False
 
 # font sizes
 if sys.platform == 'darwin':
