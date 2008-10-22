@@ -16,7 +16,7 @@ from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from types import IntType, StringType, ListType
 from Tribler.Core.simpledefs import *
 
-DEBUG = True
+DEBUG = False
 
 class NatCheckMsgHandler:
 
