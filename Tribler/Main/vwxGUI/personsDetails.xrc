@@ -363,7 +363,7 @@
             <object class="sizeritem">
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
-              <option>0</option>
+              <option>1</option>
               <object class="wxListCtrl" name="commonFilesField" subclass="Tribler.Main.vwxGUI.tribler_List.tribler_List">
                 <pos>6,103</pos>
                 <size>284,85</size>
@@ -399,7 +399,7 @@
             <object class="sizeritem">
               <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
-              <option>0</option>
+              <option>1</option>
               <object class="wxListCtrl" name="alsoDownloadedField" subclass="Tribler.Main.vwxGUI.tribler_List.DLFilesList">
                 <pos>6,215</pos>
                 <size>284,160</size>
