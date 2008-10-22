@@ -28,6 +28,14 @@ if __name__ == "__main__":
 
     s = Session(sscfg)
 
+# 22/10/08. Boudewijn: connect to a specific peer
+    # connect to a specific peer using the overlay
+#     def after_connect(*args):
+#         print args
+#     from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
+#     overlay = SecureOverlay.getInstance()
+#     overlay.connect_dns(("130.161.158.24", 7762), after_connect)
+
     # condition variable would be prettier, but that don't listen to 
     # KeyboardInterrupt
     #time.sleep(sys.maxint/2048)
@@ -39,5 +47,5 @@ if __name__ == "__main__":
     
     s.shutdown()
     time.sleep(3)    
-    shutil.rmtree(statedir)
+
     

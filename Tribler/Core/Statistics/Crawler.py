@@ -324,11 +324,6 @@ class Crawler:
             parts_left = ord(message[3])
             error = ord(message[4])
 
-            if DEBUG:
-                if error == 254:
-                    # frequency error (we did this request recently)
-                    print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(message), "bytes payload from", show_permid_short(permid), "indicating a frequency error"
-
             # A request must exist in self._channels, otherwise we did
             # not request this reply
             if permid in self._channels and channel_id in self._channels[permid]:
@@ -345,7 +340,12 @@ class Crawler:
                     return True
                 else:
                     timestamp, payload = self._channels[permid].pop(channel_id)
-                    if DEBUG: print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(payload), "bytes payload from", show_permid_short(permid)
+                    if DEBUG:
+                        if error == 254:
+                            # frequency error (we did this request recently)
+                            print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(message), "bytes payload from", show_permid_short(permid), "indicating a frequency error"
+                        else:
+                            print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(payload), "bytes payload from", show_permid_short(permid)
                     if not self._channels[permid]:
                         del self._channels[permid]
 
@@ -361,6 +361,7 @@ class Crawler:
                 # reply from unknown permid or channel
                 if DEBUG: print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(payload), "bytes payload from", show_permid_short(permid), "from unknown peer or unused channel"
                 
+        if DEBUG: print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(payload), "bytes payload from", show_permid_short(permid), "from unknown peer or unused channel"
         return False
 
     def handle_connection(self, exc, permid, selversion, locally_initiated):
@@ -371,7 +372,7 @@ class Crawler:
         """
         if exc:
             # connection lost
-            if DEBUG: print >>sys.stderr, "crawler: overlay connection lost", show_permid_short(permid)
+            if DEBUG: print >>sys.stderr, "crawler: overlay connection lost", show_permid_short(permid), exc
 
         elif selversion >= OLPROTO_VER_SEVENTH:
             # verify that we do not already have deadlines for this permid

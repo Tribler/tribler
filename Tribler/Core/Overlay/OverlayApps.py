@@ -109,6 +109,8 @@ class OverlayApps:
             self.register_msg_handler([DIALBACK_REQUEST],
                                       self.dialback_handler.olthread_handleSecOverlayMessage)
             self.register_connection_handler(self.dialback_handler.olthread_handleSecOverlayConnection)
+        else:
+            self.register_msg_handler([DIALBACK_REQUEST], self.handleDisabledMessage)
 
         if config['socnet']:
             self.socnet_handler = SocialNetworkMsgHandler.getInstance()
@@ -143,7 +145,7 @@ class OverlayApps:
 
             if "database" in sys.argv:
                 # allows access to tribler database
-                crawler.register_crawl_initiator(database_crawler.query_initiator, frequency=30)
+                crawler.register_crawl_initiator(database_crawler.query_initiator)
 
             if "seedingstats" in sys.argv:
                 # allows access to seeding statistics (Boxun)
@@ -161,12 +163,8 @@ class OverlayApps:
                 # we will only accept CRAWLER_REPLY messages when we are actully a crawler
                 self.register_msg_handler([CRAWLER_REPLY], crawler.handle_reply)
                 self.register_connection_handler(crawler.handle_connection)
-
-                # 13/10/08 Boudewijn: a little test code to 'crawl' to a specific peer
-                # this connect is only used to test the crawler!
-#                 def _tmp(exc, dns, permid, selversion):
-#                     self.handleConnection(exc, permid, selversion, True)
-#                 self.overlay_bridge.connect_dns(("130.161.158.24", 7762), _tmp)
+        else:
+            self.register_msg_handler([CRAWLER_REQUEST, CRAWLER_REPLY], self.handleDisabledMessage)
             
         self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         self.rtorrent_handler.register(overlay_bridge,self.metadata_handler,session)
@@ -246,6 +244,9 @@ class OverlayApps:
             # Catch all
             print_exc()
             return False
+
+    def handleDisabledMessage(*args):
+        return True
 
     def handleConnection(self,exc,permid,selversion,locally_initiated):
         """ An overlay-connection was established. Notify interested parties. """
