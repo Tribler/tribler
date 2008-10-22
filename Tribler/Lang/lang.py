@@ -84,7 +84,7 @@ class Lang:
         if (label == 'version'):
             return version_id
         if (label == 'build'):
-            return "Build 9281"
+            return "Build 9283"
         if (label == 'build_date'):
             return "Oct 22, 2008"
 
