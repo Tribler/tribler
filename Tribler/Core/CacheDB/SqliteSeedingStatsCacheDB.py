@@ -12,6 +12,7 @@ from traceback import print_exc, extract_stack, print_stack
 
 from Tribler.Core.CacheDB.sqlitecachedb import *
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import BasicDBHandler
+from Tribler.Core.simpledefs import *
 
 CREATE_SEEDINGSTATS_SQL_FILE = None
 CREATE_SEEDINGSTATS_SQL_FILE_POSTFIX = os.path.join('Tribler', 'Core', 'Statistics', 'tribler_seedingstats_sdb.sql')
@@ -88,25 +89,30 @@ class SeedingStatsDBHandler(BasicDBHandler):
     
     def updateSeedingStats(self, permID, dslist, interval):
         permID = bin2str(permID)
-    
+        
+        seedings = []
+        
+        for item in dslist:
+            if item.get_status() == DLSTATUS_SEEDING:
+                seedings.append(item)
+                
         commit = False
-        for i in range(0, len(dslist)):
-            ds = dslist[i]
+        for i in range(0, len(seedings)):
+            ds = seedings[i]
             
             infohash = bin2str(ds.get_download().get_def().get_infohash())
-            
-            if i == len(dslist)-1:
+                
+            if i == len(seedings)-1:
                 commit = True
-            
+                
             ## FIXME: get correct peer reputation
             # All peers are treated as neutral without the preemptive unchoking policy
             reputation = 0
-            
+                
             res = self.existedInfoHash(infohash)
-            
+                
             if res is not None:
                 # res is list of ONE tuple
-                
                 self.updateSeedingStat(infohash, reputation, res[0][0], interval, commit)
             else:
                 # Insert new record
