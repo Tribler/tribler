@@ -112,6 +112,7 @@
         <object class="wxListCtrl" name="includedFiles" subclass="Tribler.Main.vwxGUI.tribler_List.FilesList">
           <pos>3,64</pos>
           <size>292,155</size>
+          <style>wxLC_REPORT|wxNO_BORDER|wxLC_SINGLE_SEL</style>
         </object>
       </object>
     </object>

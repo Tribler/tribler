@@ -27,6 +27,7 @@
                 <object class="wxListCtrl" name="t4t_peers" subclass="Tribler.Main.vwxGUI.tribler_List.T4TSeedingList">
                   <pos>3,64</pos>
                   <size>292,155</size>
+                  <style>wxLC_REPORT|wxNO_BORDER|wxLC_SINGLE_SEL</style>
                 </object>
               </object>
               <orient>wxVERTICAL</orient>
@@ -52,6 +53,7 @@
                 <object class="wxListCtrl" name="g2g_peers" subclass="Tribler.Main.vwxGUI.tribler_List.G2GSeedingList">
                   <pos>3,64</pos>
                   <size>292,155</size>
+                  <style>wxLC_REPORT|wxNO_BORDER|wxLC_SINGLE_SEL</style>
                 </object>
               </object>
               <orient>wxVERTICAL</orient>
