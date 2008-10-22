@@ -295,7 +295,7 @@ class SecureOverlay:
                         oc.send_message(message)
                         callback(None,permid)
                     else:
-                        callback(KeyError('Recorded IP address + port now of other permid'),permid,0)
+                        callback(KeyError('Recorded IP address + port now of other permid'),permid)
                 else:
                     callback(KeyError('Connection not yet established'),permid)
         except Exception,exc:
