@@ -16,7 +16,7 @@ from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 from Tribler.Core.Utilities.utilities import show_permid_short
 
-DEBUG = False
+DEBUG = True
 
 # when a message payload exceedes 32KB it is divided into multiple
 # messages
@@ -189,29 +189,28 @@ class Crawler:
         """
         if selversion >= OLPROTO_VER_SEVENTH and len(message) >= 5 and message[1] in self._message_handlers:
 
-            now = time.time()
             message_id = message[1]
             channel_id = ord(message[2])
             frequency = ord(message[3]) << 8 | ord(message[4])
-
-            if permid in self._channels:
-                channels = self._channels[permid]
-            else:
-                channels = {}
-                self._channels[permid] = channels
-
-            if channel_id in channels:
-                # channel-id must be unused (this can occur when two
-                # crawlers send requests to eachother)
-                return False
-            else:
-                channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
-
+            now = time.time()
             request_callback, reply_callback, last_request_timestamp = self._message_handlers[message_id]
 
             # frequency: we will report a requency error when we have
             # received this request within FREQUENCY seconds
             if last_request_timestamp + frequency < now:
+
+                if permid in self._channels:
+                    channels = self._channels[permid]
+                else:
+                    channels = {}
+                    self._channels[permid] = channels
+
+                if channel_id in channels:
+                    # channel-id must be unused (this can occur when two
+                    # crawlers send requests to eachother)
+                    return False
+                else:
+                    channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
 
                 # store the new timestamp
                 self._message_handlers[message_id] = (request_callback, reply_callback, now)
@@ -325,10 +324,10 @@ class Crawler:
             parts_left = ord(message[3])
             error = ord(message[4])
 
-            if error == 254:
-                # frequency error (we did this request recently)
-                if DEBUG: print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(message), "bytes payload from", show_permid_short(permid), "indicating a frequency error"
-                return True
+            if DEBUG:
+                if error == 254:
+                    # frequency error (we did this request recently)
+                    print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(message), "bytes payload from", show_permid_short(permid), "indicating a frequency error"
 
             # A request must exist in self._channels, otherwise we did
             # not request this reply
@@ -375,8 +374,6 @@ class Crawler:
             if DEBUG: print >>sys.stderr, "crawler: overlay connection lost", show_permid_short(permid)
 
         elif selversion >= OLPROTO_VER_SEVENTH:
-            if DEBUG: print >>sys.stderr, "crawler: new overlay connection", show_permid_short(permid)
-
             # verify that we do not already have deadlines for this permid
             already_known = False
             for tup in self._deadlines:
@@ -385,6 +382,7 @@ class Crawler:
                     break
 
             if not already_known:
+                if DEBUG: print >>sys.stderr, "crawler: new overlay connection", show_permid_short(permid)
                 for initiator_callback, frequency in self._crawl_initiators:
                     self._deadlines.append([0, frequency, initiator_callback, permid, selversion])
 
@@ -403,7 +401,7 @@ class Crawler:
         now = time.time()
         while self._deadlines:
             deadline, frequency, initiator_callback, permid, selversion = self._deadlines[0]
-            if now > deadline:
+            if now > deadline + DEADLINE_OFFSET:
                 try:
                     initiator_callback(permid, selversion, lambda message_id, payload, frequency=frequency, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
                 except Exception:
@@ -428,7 +426,7 @@ class Crawler:
         now = time.time()
         for permid in self._channels:
             for channel_id, (deadline, buffer_) in self._channels[permid].iteritems():
-                if now > deadline + DEADLINE_OFFSET:
+                if now > deadline:
                     del self._channels[permid][channel_id]
             if not self._channels[permid]:
                 del self._channels[permid]

@@ -131,30 +131,31 @@ class OverlayApps:
             crawler = Crawler.get_instance(session)
             self.register_msg_handler([CRAWLER_REQUEST], crawler.handle_request)
 
+            database_crawler = DatabaseCrawler.get_instance()
+            crawler.register_message_handler(CRAWLER_DATABASE_QUERY, database_crawler.handle_crawler_request, database_crawler.handle_crawler_reply)
+            seeding_stats_crawler = SeedingStatsCrawler.get_instance()
+            crawler.register_message_handler(CRAWLER_SEEDINGSTATS_QUERY, seeding_stats_crawler.handle_crawler_request, seeding_stats_crawler.handle_crawler_reply)
+            friendship_crawler = FriendshipCrawler.get_instance(session)
+            crawler.register_message_handler(CRAWLER_FRIENDSHIP_STATS, friendship_crawler.handle_crawler_request, friendship_crawler.handle_crawler_reply)
+            natcheck_handler = NatCheckMsgHandler.getInstance()
+            natcheck_handler.register(launchmany)
+            crawler.register_message_handler(CRAWLER_NATCHECK, natcheck_handler.gotDoNatCheckMessage, natcheck_handler.gotNatCheckReplyMessage)
+
             if "database" in sys.argv:
                 # allows access to tribler database
-                database_crawler = DatabaseCrawler.get_instance()
-                crawler.register_crawl_initiator(database_crawler.query_initiator)
-                crawler.register_message_handler(CRAWLER_DATABASE_QUERY, database_crawler.handle_crawler_request, database_crawler.handle_crawler_reply)
+                crawler.register_crawl_initiator(database_crawler.query_initiator, frequency=30)
 
             if "seedingstats" in sys.argv:
                 # allows access to seeding statistics (Boxun)
-                seeding_stats_crawler = SeedingStatsCrawler.get_instance()
                 crawler.register_crawl_initiator(seeding_stats_crawler.query_initiator)
-                crawler.register_message_handler(CRAWLER_SEEDINGSTATS_QUERY, seeding_stats_crawler.handle_crawler_request, seeding_stats_crawler.handle_crawler_reply)
 
             if "friendship" in sys.argv:
                 # allows access to friendship statistics (Ali)
-                friendship_crawler = FriendshipCrawler.get_instance(session)
                 crawler.register_crawl_initiator(friendship_crawler.query_initiator)
-                crawler.register_message_handler(CRAWLER_FRIENDSHIP_STATS, friendship_crawler.handle_crawler_request, friendship_crawler.handle_crawler_reply)
 
             if "natcheck" in sys.argv:
                 # allows access to nat-check statistics (Lucia)
-                natcheck_handler = NatCheckMsgHandler.getInstance()
-                natcheck_handler.register(launchmany)
                 crawler.register_crawl_initiator(natcheck_handler.doNatCheck)
-                crawler.register_message_handler(CRAWLER_NATCHECK, natcheck_handler.gotDoNatCheckMessage, natcheck_handler.gotNatCheckReplyMessage)
 
             if crawler.am_crawler():
                 # we will only accept CRAWLER_REPLY messages when we are actully a crawler
