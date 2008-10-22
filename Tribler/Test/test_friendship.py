@@ -144,6 +144,34 @@ class TestFriendship(TestAsServer):
         self.assert_(fs == FS_MUTUAL)
 
 
+
+    def singtest_good_resp_he_already_at_mutual(self):
+        """ 
+            Test good FRIENDSHIP REQ message:
+            We set the friendDB as if Tribler already sent an invite, 
+            we then send a REQ, which should give an automatic reply. 
+        """
+        peerdb = self.session.open_dbhandler(NTFY_PEERS)
+        peer = {}
+        peer['permid'] = self.mypermid
+        peer['ip'] = '127.0.0.2'
+        peer['port'] = 5000
+        peer['last_seen'] = 0
+        peerdb.addPeer(peer['permid'],peer,update_dns=True,commit=True)
+
+        frienddb = self.session.open_dbhandler(NTFY_FRIENDS)
+        frienddb.setFriendState(self.mypermid,FS_MUTUAL)
+        print >>sys.stderr,"test: already invited, setting",show_permid_short(self.mypermid)
+
+        self.usercallbackexpected = False
+        self.subtest_good_friendship_req(RESP,mresp=1,expectreply=False)
+
+        frienddb = self.session.open_dbhandler(NTFY_FRIENDS)
+        fs = frienddb.getFriendState(self.mypermid)
+        self.assert_(fs == FS_MUTUAL)
+
+
+
     def singtest_good_friendship_req1_send_social_overlap(self):
         """ 
             Test good FRIENDSHIP REQ message: 
@@ -165,7 +193,7 @@ class TestFriendship(TestAsServer):
         self.session.send_friendship_message(permid,RESP,approved=True)
 
 
-    def subtest_good_friendship_req(self,mtype,fwd=None,mresp=None,socover=False):
+    def subtest_good_friendship_req(self,mtype,fwd=None,mresp=None,socover=False,expectreply=True):
         print >>sys.stderr,"test: good FRIENDSHIP",mtype,fwd
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         
@@ -190,15 +218,20 @@ class TestFriendship(TestAsServer):
                 else:
                     self.assert_(False)
         except socket.timeout:
-            print >> sys.stderr,"test: Timeout, bad, peer didn't reply with FRIENDSHIP message"
-            self.assert_(False)
+            if expectreply:
+                print >> sys.stderr,"test: Timeout, bad, peer didn't reply with FRIENDSHIP message"
+                self.assert_(False)
+            else:
+                print >> sys.stderr,"test: Timeout, good, wasn't expecting a reply"
+                self.assert_(True)
 
-        self.check_friendship(resp[1:],RESP,None,mresp)
-        time.sleep(10)
-        # the other side should not have closed the connection, as
-        # this is all valid, so this should not throw an exception:
-        s.send('bla')
-        s.close()
+        if expectreply:
+            self.check_friendship(resp[1:],RESP,None,mresp)
+            time.sleep(10)
+            # the other side should not have closed the connection, as
+            # this is all valid, so this should not throw an exception:
+            s.send('bla')
+            s.close()
 
 
 

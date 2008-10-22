@@ -33,7 +33,7 @@ from Tribler.Core.Utilities.utilities import *
 
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 
-DEBUG = False
+DEBUG = True
 
 """
 State diagram:
@@ -419,8 +419,8 @@ class FriendshipMsgHandler:
         if d['response'] == 1:
             if fs == FS_I_INVITED:
                 self.frienddb.setFriendState(permid, commit=True, state = FS_MUTUAL)
-            else:
-                # Unsollicited response, consider this an invite
+            elif fs != FS_MUTUAL:
+                # Unsollicited response, consider this an invite, if not already friend
                 self.frienddb.setFriendState(permid, commit=True, state = FS_HE_INVITED)
         else:
             # He denied our friendship
