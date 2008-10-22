@@ -1776,16 +1776,38 @@ class BarterCastDBHandler(BasicDBHandler):
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'BarterCast')
         self.peer_db = PeerDBHandler.getInstance()
-        #        self.my_permid = "" 
+           
         if DEBUG:
             print >> sys.stderr, "bartercastdb: MyPermid is ", self.my_permid
-            
+
+        
     def registerSession(self, session):
         self.session = session
 
         # Retrieve MyPermid
         self.my_permid = session.get_permid()
-                
+
+        # Keep administration of total upload and download
+        # (to include in BarterCast message)
+        my_peerid = self.getPeerID(self.my_permid)
+        
+        if my_peerid != None:
+            where = "peer_id_from=%s" % (my_peerid)
+            item = self.getOne(('sum(uploaded)', 'sum(downloaded)'), where=where)
+        else:
+            item = None
+        
+        if item != None and len(item) == 2:
+            self.total_up = int(item[0])
+            self.total_down = int(item[1])
+        else:
+            self.total_up = 0
+            self.total_down = 0
+
+    
+    def getTotals(self):
+        return (self.total_up, self.total_down)
+                        
     def getName(self, permid):
 
         if permid == 'non-tribler':
@@ -1926,6 +1948,13 @@ class BarterCastDBHandler(BasicDBHandler):
         if DEBUG:
             print >> sys.stderr, "bartercastdb: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
 
+        # adjust total_up and total_down
+        if permid_from == self.my_permid:
+            if key == 'uploaded':
+                self.total_up += int(value)
+            if key == 'downloaded':
+                self.total_down += int(value)
+    
         itemdict = self.getItem((permid_from, permid_to))
 
         # if item doesn't exist: add it
@@ -2016,7 +2045,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
         for (peer_id_from, peer_id_to) in keys:
             
-            if not (peer_id_to, peer_id_from) in processed:
+            if (not (peer_id_to, peer_id_from) in processed) and (not peer_id_to == peer_id_from):
 
                 item = self.getItemByIDs((peer_id_from, peer_id_to))
                 

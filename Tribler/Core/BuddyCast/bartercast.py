@@ -45,6 +45,7 @@ class BarterCastCore:
             self.overlay_log = OverlayLogger(self.log)
 
 
+
     ################################
     def createAndSendBarterCastMessage(self, target_permid, selversion, active = False):
 
@@ -70,6 +71,7 @@ class BarterCastCore:
         self.secure_overlay.send(target_permid, BARTERCAST+bartercast_msg, self.bartercastSendCallback)
 
         self.blockPeer(target_permid, self.send_block_list, self.block_interval)
+        
             
 
     ################################
@@ -80,6 +82,7 @@ class BarterCastCore:
         local_top = self.bartercastdb.getTopNPeers(NO_PEERS_IN_MSG, local_only = True)['top']
         top_peers = map(lambda (permid, up, down): permid, local_top)
         data = {}
+        totals = self.bartercastdb.getTotals()
         
         for permid in top_peers:
             
@@ -93,7 +96,7 @@ class BarterCastCore:
 
                 data[permid] = {'u': data_to, 'd': data_from}
         
-        bartercast_data = {'data': data}
+        bartercast_data = {'data': data, 'totals': totals}
         
         return bartercast_data
 
@@ -140,6 +143,11 @@ class BarterCastCore:
        
         data = bartercast_data['data']
 
+        if 'totals' in bartercast_data:
+            totals = bartercast_data['totals']
+        else:
+            totals = None
+
         if DEBUG:
             st = time()
             self.handleBarterCastMsg(sender_permid, data)
@@ -147,7 +155,7 @@ class BarterCastCore:
             diff = et - st
             print >>sys.stderr,"bartercast: HANDLE took %.4f" % diff
         else:
-            self.handleBarterCastMsg(sender_permid, data)
+            self.handleBarterCastMsg(sender_permid, data, totals)
        
         if not self.isBlocked(sender_permid, self.send_block_list):
             self.replyBarterCast(sender_permid, selversion)    
@@ -181,18 +189,28 @@ class BarterCastCore:
         return True
        
     ################################
-    def handleBarterCastMsg(self, sender_permid, data):
+    def handleBarterCastMsg(self, sender_permid, data, totals = None):
         """ process bartercast data in database """
         if DEBUG:
             print >> sys.stderr, "bartercast: Processing bartercast msg from: ", self.bartercastdb.getName(sender_permid)
+            print >> sys.stderr, "totals: ", totals
         
         
         permids = data.keys()
+        changed = False
         
         # 1. Add any unknown peers to the database in a single transaction
         self.bartercastdb.addPeersBatch(permids)
         
-        # 2. Add all the received records to the database in a single transaction
+
+        # 2. Add totals to database (without committing)
+        if totals != None and len(totals) == 2:
+            up = int(totals[0])
+            down = int(totals[1])
+            self.bartercastdb.updateULDL((sender_permid, sender_permid), up, down, commit = False)
+            changed = True
+
+        # 3. Add all the received records to the database in a single transaction
         datalen = len(permids)
         for i in range(0,datalen):
             permid = permids[i]
@@ -205,8 +223,13 @@ class BarterCastCore:
                                                                         data_to, data_from)
 
             # update database sender->permid and permid->sender
-            commit = (i == datalen-1)
-            self.bartercastdb.updateULDL((sender_permid, permid), data_to, data_from, commit=commit)
+            #commit = (i == datalen-1)
+            self.bartercastdb.updateULDL((sender_permid, permid), data_to, data_from, commit = False)
+            changed = True
+            
+        if changed:
+            self.bartercastdb.commit()
+            
             
         # ARNODB: 
         # get rid of index on DB? See where used

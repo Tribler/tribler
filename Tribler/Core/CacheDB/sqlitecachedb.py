@@ -608,7 +608,7 @@ class SQLiteCacheDBBase:
             arg = kw.values()
         else:
             arg = None
-        #print >> sys.stderr, 'SQL: %s %s' % (sql, arg)
+        # print >> sys.stderr, 'SQL: %s %s' % (sql, arg)
         return self.fetchone(sql,arg)
     
     def getAll(self, table_name, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj='and', **kw):
