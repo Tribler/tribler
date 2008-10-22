@@ -10,13 +10,13 @@ from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.NATFirewall.NatCheck import GetNATType
 from Tribler.Core.NATFirewall.TimeoutCheck import timeout_check
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH, SecureOverlay
 from Tribler.Core.Statistics.Crawler import *
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from types import IntType, StringType, ListType
 from Tribler.Core.simpledefs import *
 
-DEBUG = False
+DEBUG = True
 
 class NatCheckMsgHandler:
 
@@ -67,10 +67,13 @@ class NatCheckMsgHandler:
             return False
 	    if DEBUG:
 	        print >> sys.stderr, "NATCHECK_REQUEST was sent to", show_permid_short(permid), exc
+
+        overlay = SecureOverlay.getInstance()
+        peeraddr = overlay.get_dns_from_peerdb(permid)
         # Register peerinfo on file
         f = open("registerlog.txt", "a")
         t = datetime.datetime.fromtimestamp(time.time())
-        f.write(t.strftime("%Y-%m-%d %H:%M:%S") + "," + "NATCHECK_REQUEST_SENT" + "," + str(show_permid(permid)) + "\n")
+        f.write(t.strftime("%Y-%m-%d %H:%M:%S") + "," + "NATCHECK_REQUEST_SENT" + "," + str(peeraddr) + "," + str(show_permid(permid)) + "\n")
         f.close()
 
         return True
