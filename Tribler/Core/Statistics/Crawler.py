@@ -22,9 +22,9 @@ DEBUG = False
 # messages
 MAX_PAYLOAD_LENGTH = 32 * 1024
 
-# after 6 hours the channels for any outstanding CRAWLER_REQUEST
+# after 1 hour the channels for any outstanding CRAWLER_REQUEST
 # messages will be closed
-CHANNEL_TIMEOUT = 6 * 60 * 60 
+CHANNEL_TIMEOUT = 60 * 60
 
 # if the frequency is 60 seconds, re-send the request after 60 +
 # DEADLINE_OFFSET seconds
@@ -107,10 +107,13 @@ class Crawler:
             while channel_id in channels and channel_id != 0:
                 channel_id -= 1
 
-            if channel_id == 0:
-                # no channel-id's left
-                return 0
+        if channel_id:
+            # create a buffer to receive the reply
+            channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
 
+        print >>sys.stderr, "crawler: _acquire_channel_id:", show_permid_short(permid), len(channels), "channels used"
+
+        # a valid channel-id or 0 when no channel-id is left
         return channel_id
 
     def _release_channel_id(self, permid, channel_id):
@@ -138,7 +141,10 @@ class Crawler:
                 self._send_request(permid, message_id, channel_id, payload, frequency=frequency, callback=callback)
 
 #         if DEBUG: print >>sys.stderr, "crawler: connecting (send_request)...", show_permid_short(permid)
-        self._overlay_bridge.connect(permid, _after_connect)
+        if channel_id == 0:
+            if DEBUG: print >>sys.stderr, "crawler: send_request: Can not acquire channel-id", show_permid_short(permid)
+        else:
+            self._overlay_bridge.connect(permid, _after_connect)
         return channel_id
 
     def _send_request(self, permid, message_id, channel_id, payload, frequency=3600, callback=None):
@@ -160,10 +166,6 @@ class Crawler:
         #     1 byte: 2      Channel id
         #     2 byte: 3+4    Frequency
         #     n byte: 5...   Request payload
-
-        # create a buffer to receive the reply
-        self._channels[permid][channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
-
         def _after_send_request(exc, permid):
             if DEBUG:
                 if exc:
@@ -426,9 +428,12 @@ class Crawler:
         """
         now = time.time()
         for permid in self._channels:
+            to_remove = []
             for channel_id, (deadline, buffer_) in self._channels[permid].iteritems():
                 if now > deadline:
-                    del self._channels[permid][channel_id]
+                    to_remove.append(channel_id)
+            for channel_id in to_remove:
+                del self._channels[permid][channel_id]
             if not self._channels[permid]:
                 del self._channels[permid]
 
