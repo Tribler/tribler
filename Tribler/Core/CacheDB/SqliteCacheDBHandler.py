@@ -431,7 +431,7 @@ class PeerDBHandler(BasicDBHandler):
         # Must come before query
         if get_ranks:
             ranks = self.getRanks()
-        ranks = None
+        # Arno, 2008-10-23: Someone disabled ranking of people, why?
             
         res_list = self.getAll(value_name, where, offset= offset, limit=limit, order_by=order_by)
         
@@ -2291,7 +2291,7 @@ def ranksfind(ranks,key):
     if ranks is None:
         return -1
     try:
-        return ranks.index(key)
+        return ranks.index(key)+1
     except:
         return -1
     

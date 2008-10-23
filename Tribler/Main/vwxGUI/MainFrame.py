@@ -286,6 +286,9 @@ class MainFrame(wx.Frame):
             self.startDownload(torrentfilename,cmdline=True)
 
     def startDownload(self,torrentfilename,destdir=None,tdef = None, cmdline = False):
+        
+        if DEBUG:
+            print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef,cmdline
         try:
             if tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
@@ -565,10 +568,7 @@ class MainFrame(wx.Frame):
                 self.tbicon.Destroy()
             self.Destroy()
         except:
-            data = StringIO()
-            print_exc(file = data)
-            sys.stderr.write(data.getvalue())
-            pass
+            print_exc()
 
         #tribler_done(self.utility.getConfigPath())            
         

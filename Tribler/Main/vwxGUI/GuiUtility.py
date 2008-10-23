@@ -698,7 +698,7 @@ class GUIUtility:
             if sys.platform == 'darwin':
                 dest = 'file://%s' % dest
             
-            print >> sys.stderr, dest
+            print >> sys.stderr,"GUIUtil: onOpenDest",dest
             complete = True
             # check if destination exists
             assert dest is not None and os.access(dest, os.R_OK), 'Could not retrieve destination'

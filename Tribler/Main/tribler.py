@@ -65,7 +65,6 @@ from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
 from Tribler.Main.vwxGUI.font import *
 from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.Dialogs.systray import ABCTaskBarIcon 
 from Tribler.Main.notification import init as notification_init
 from Tribler.Category.Category import Category
 from Tribler.Subscriptions.rss_client import TorrentFeedThread

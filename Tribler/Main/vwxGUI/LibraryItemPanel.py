@@ -619,10 +619,18 @@ class LibraryItemPanel(wx.Panel):
             if name == 'pause':
                  #playbutton
                  dest_dir = self.data.get('destdir')
-                 if  dest_dir is not None:
+                 if dest_dir is not None:
                      # Start torrent again
                      if DEBUG:
                          print >>sys.stderr,'lip: starting torrent %s with data in dir %s' % (repr(self.data['name']), dest_dir)
+                         
+                     if os.path.isfile(dest_dir):
+                         # Arno: the 4.1 database values are wrong, also for 
+                         # single-file torrents the content_dir is 
+                         # "savedir"+torrentname. Try to componsate
+                         dest_dir = os.path.dirname(dest_dir)
+                         print >>sys.stderr,'lip: starting torrent %s with data in corrected 4.1 dir %s' % (repr(self.data['name']), dest_dir)
+                         
                      self.guiUtility.standardDetails.download(self.data, dest = dest_dir, force = True)
                  
                  elif DEBUG:

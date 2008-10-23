@@ -454,11 +454,12 @@ class Bsddb2Sqlite:
                 torrent_id = self._addTorrentToDB(infohash)
             download_name = data.get('content_name', '')
             download_dir = data.get('content_dir', '')
-            dest_path = os.path.join(download_dir, download_name)
+            # Arno, 2008-10-23: destdir should be topdir
+            dest_path = download_dir #os.path.join(download_dir, download_name)
+            #print >>sys.stderr,"bsddb2sqlite: mypreferences: Setting destdir to",dest_path
             creation_time = data.get('created_time', 0)
             prog = self.progress.get(infohash, 0)    
-            self.cur.execute(sql, (torrent_id, dest_path, prog, creation_time)
-            )
+            self.cur.execute(sql, (torrent_id, dest_path, prog, creation_time))
         #self.cur.execute('select count(*) from MyPreference')
         #print 'add MyPreferenceDB', self.cur.fetchone()[0]
         

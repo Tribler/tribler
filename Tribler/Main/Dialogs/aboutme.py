@@ -81,18 +81,24 @@ class VersionDialog(MyHtmlDialog):
         
         content = ""
         try :
-            if not self.hasNewVersion():
+            nu = self.hasNewVersion()
+            if nu == 0:
                 content += "<FONT SIZE=+1>"
                 content += self.utility.lang.get('nonewversion')
                 content += "<BR>\n"
                 content += "</FONT>"
-            else:
+            elif nu == 1:
                 content += "<FONT SIZE=+1>"
                 newversion = self.utility.lang.get('hasnewversion')
                 content += "<a href=" + self.update_url + ">" + newversion + "</a>"
                 content += "<BR>\n"
                 content += "</FONT>"
-        except :
+            else:
+                content += "<FONT SIZE=+1>"
+                content = self.utility.lang.get('cantconnectwebserver')
+                content += "<BR>\n"
+                content += "</FONT>"
+        except:
             content = self.utility.lang.get('cantconnectwebserver')
             print_exc()
             
@@ -105,7 +111,7 @@ class VersionDialog(MyHtmlDialog):
         my_version = self.utility.getVersion()
         try:
             # Arno: TODO: don't let this be done by MainThread 
-            curr_status = urlOpenTimeout('http://tribler.org/version/').readlines()
+            curr_status = urlOpenTimeout('http://tribler.org/version/',timeout=1).readlines()
             line1 = curr_status[0]
             if len(curr_status) > 1:
                 self.update_url = curr_status[1].strip()
@@ -113,10 +119,13 @@ class VersionDialog(MyHtmlDialog):
                 self.update_url = 'http://tribler.org/'
             _curr_status = line1.split()
             self.curr_version = _curr_status[0]
-            return self.newversion(self.curr_version, my_version)
+            if self.newversion(self.curr_version, my_version):
+                return 1
+            else:
+                return 0
         except:
             print_exc()
-            return False
+            return -1
             
     def newversion(self, curr_version, my_version):
         curr = curr_version.split('.')
@@ -169,7 +178,11 @@ class AboutMeDialog(MyHtmlDialog):
 #        color = self.GetBackgroundColour()
 #        bgcolor = "#%02x%02x%02x" % (color.Red(), color.Green(), color.Blue())
 
-        wx_version = str(wx.MAJOR_VERSION) + "." + str(wx.MINOR_VERSION) + "." + str(wx.RELEASE_NUMBER)
+        wx_version = ""
+        for v in wx.VERSION:
+            s = str(v)+"."
+            wx_version += s
+        wx_version = wx_version.strip(".")
         
         major, minor, micro, releaselevel, serial = sys.version_info
         python_version = str(major) + "." + str(minor) + "." + str(micro)
@@ -194,9 +207,6 @@ class AboutMeDialog(MyHtmlDialog):
                      "<TR><TD>&nbsp;</TD><TD>" + \
                          "(<A HREF=mailto:triblersoft@gmail.com>triblersoft@gmail.com</A>)" + \
                          "<BR>Vrije Universiteit Amsterdam" + \
-                         "<BR>University Politehnica Bucharest" + \
-                         "<BR>Royal Institute of Technology Stockholm" + \
-                         "<BR>Your-name-here if you submit code" + \
                      "</TD></TR>" + \
                      "<TR>" + \
                          "<TD>Homepage:</TD>" + \
@@ -224,6 +234,7 @@ class AboutMeDialog(MyHtmlDialog):
                                    "<A HREF=http://www.wxpython.org>wxPython " + wx_version + "</A>, " + \
                                    "<A HREF=http://starship.python.net/crew/theller/py2exe/>py2exe " + py2exe_version + "</A>, " + \
                                    "<A HREF=http://nsis.sourceforge.net/>NSIS " + nsis_version + "</A>" + \
+                     "<P>Parts copyrighted (c) 2001-2002, Bram Cohen" + \
                      "<P>Parts copyrighted (c) 2003-2004, Choopan Rattanapoka" + \
                      "<P>Copyright (c) 2005-2008, Delft University of Technology and Vrije Universiteit Amsterdam" + \
                      "</FONT>"
