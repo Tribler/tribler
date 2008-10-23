@@ -40,9 +40,13 @@ class SeedingStatsCrawler:
             if cursor:
                 res = list(cursor)[0][0]
                 if res is not None:
-                    return request_callback(CRAWLER_SEEDINGSTATS_QUERY, cPickle.dumps(["SELECT * FROM SeedingStats WHERE crawled = 0 and timestamp BETWEEN %s and %s ORDER BY timestamp DESC"%(res[0][0], time()), 'UPDATE SeedingStats SET crawled=1 WHERE crawled=0 and timestamp <=%s'%res]))
+                    read_query = "SELECT * FROM SeedingStats WHERE crawled = 0 and timestamp BETWEEN %s and %s ORDER BY timestamp DESC" % (res, time())
+                    write_query = 'UPDATE SeedingStats SET crawled=1 WHERE crawled=0 and timestamp <=%s' % res
+                    return request_callback(CRAWLER_SEEDINGSTATS_QUERY, cPickle.dumps([("read", read_query), ("write", write_query)]))
                 else:
-                    return request_callback(CRAWLER_SEEDINGSTATS_QUERY, cPickle.dumps(["SELECT * FROM SeedingStats WHERE crawled = 0 and timestamp BETWEEN %s and %s ORDER BY timestamp DESC"%(0, time()), 'UPDATE SeedingStats SET crawled=1 WHERE crawled=0 and timestamp <=0']))
+                    read_query = "SELECT * FROM SeedingStats WHERE crawled = 0 and timestamp BETWEEN %s and %s ORDER BY timestamp DESC" % (0, time())
+                    write_query = 'UPDATE SeedingStats SET crawled=1 WHERE crawled=0 and timestamp <=0'
+                    return request_callback(CRAWLER_SEEDINGSTATS_QUERY, cPickle.dumps([("read", read_query), ("write", write_query)]))
     
     
     def update_settings_initiator(self, permid, selversion, request_callback):
@@ -71,24 +75,28 @@ class SeedingStatsCrawler:
         @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
         @param message The message payload
         @param reply_callback Call this function once to send the reply: reply_callback(payload [, error=123])
+
+        MESSAGE contains a cPickled list. Each list element is a
+        tuple. Each tuple consists of a string (either 'read' or
+        'write') and a string (the query)
         """
         if DEBUG:
             print >> sys.stderr, "crawler: handle_crawler_request", len(message)
 
-        # execute the sql
-        try:
-            queries = cPickle.loads(message)
-        except Exception, e:
-            reply_callback(str(e), 1)
-            return True
-
-        if DEBUG:
-            print >> sys.stderr, "crawler: handle_crawler_request", queries
-
         results = []
         try:
-            for query in queries:
-                cursor = self._sqlite_cache_db.execute_read(query)
+            items = cPickle.loads(message)
+            if DEBUG:
+                print >> sys.stderr, "crawler: handle_crawler_request", items
+
+            for action, query in items:
+                if action == "read":
+                    cursor = self._sqlite_cache_db.execute_read(query)
+                elif action == "write":
+                    cursor = self._sqlite_cache_db.execute_write(query)
+                else:
+                    raise Exception("invalid payload")
+
                 if cursor:
                     results.append(list(cursor))
                 else:
@@ -97,7 +105,7 @@ class SeedingStatsCrawler:
             if DEBUG:
                 print >> sys.stderr, "crawler: handle_crawler_request", e
             results.append(str(e))
-            reply_callback(cPickle.dumps(results), 2)
+            reply_callback(cPickle.dumps(results), 1)
         else:
             reply_callback(cPickle.dumps(results))
 
