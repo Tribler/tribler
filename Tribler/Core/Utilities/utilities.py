@@ -487,12 +487,17 @@ def hostname_or_ip2ip(hostname_or_ip):
     # Arno: don't DNS resolve always, grabs lock on most systems
     ip = None
     try:
+        # test that hostname_or_ip contains a xxx.xxx.xxx.xxx string
         socket.inet_aton(hostname_or_ip)
         ip = hostname_or_ip
     except:
-        print >>sys.stderr,"hostname_or_ip2ip: Hostname, not IP",hostname_or_ip
-        print_exc()
-        ip = socket.gethostbyname(hostname_or_ip)
+        try:
+            # dns-lookup for hostname_or_ip into an ip address
+            ip = socket.gethostbyname(hostname_or_ip)
+        except:
+            print >>sys.stderr,"hostname_or_ip2ip: Hostname, not IP",hostname_or_ip
+            print_exc()
+
     return ip
 
 
