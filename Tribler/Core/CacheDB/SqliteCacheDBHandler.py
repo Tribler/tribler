@@ -1797,7 +1797,7 @@ class BarterCastDBHandler(BasicDBHandler):
         else:
             item = None
         
-        if item != None and len(item) == 2:
+        if item and len(item) == 2 and item[0] != None and item[1] != None:
             self.total_up = int(item[0])
             self.total_down = int(item[1])
         else:
