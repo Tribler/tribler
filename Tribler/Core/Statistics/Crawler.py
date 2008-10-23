@@ -26,9 +26,10 @@ MAX_PAYLOAD_LENGTH = 32 * 1024
 # messages will be closed
 CHANNEL_TIMEOUT = 60 * 60
 
-# if the frequency is 60 seconds, re-send the request after 60 +
-# DEADLINE_OFFSET seconds
-DEADLINE_OFFSET = 10
+# the FREQUENCY_FLEXIBILITY tels the client how strict it must adhere
+# to the frequency. the value indicates how many seconds a request
+# will be allowed before the actual frequency deadline
+FREQUENCY_FLEXIBILITY = 5
 
 class Crawler:
     __singleton = None
@@ -199,7 +200,7 @@ class Crawler:
 
             # frequency: we will report a requency error when we have
             # received this request within FREQUENCY seconds
-            if last_request_timestamp + frequency < now:
+            if last_request_timestamp + frequency < now + FREQUENCY_FLEXIBILITY:
 
                 if permid in self._channels:
                     channels = self._channels[permid]
@@ -404,7 +405,7 @@ class Crawler:
         now = time.time()
         while self._deadlines:
             deadline, frequency, initiator_callback, permid, selversion = self._deadlines[0]
-            if now > deadline + DEADLINE_OFFSET:
+            if now > deadline:
                 try:
                     initiator_callback(permid, selversion, lambda message_id, payload, frequency=frequency, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
                 except Exception:
