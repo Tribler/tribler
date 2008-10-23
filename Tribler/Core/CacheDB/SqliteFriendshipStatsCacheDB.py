@@ -101,7 +101,7 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
         """
         
         value_name = ('source_permid', 'target_permid', 'isForwarder', 'request_time', 'response_time', 'no_of_attempts',
-                      'no_of_helpers')
+                      'no_of_helpers', 'modified_on')
         where = 'request_time > '+str(last_update_time) # source_permid done below
         
         if range:
