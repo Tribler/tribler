@@ -111,7 +111,7 @@ class Crawler:
             # create a buffer to receive the reply
             channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
 
-        print >>sys.stderr, "crawler: _acquire_channel_id:", show_permid_short(permid), len(channels), "channels used"
+        # print >>sys.stderr, "crawler: _acquire_channel_id:", show_permid_short(permid), len(channels), "channels used"
 
         # a valid channel-id or 0 when no channel-id is left
         return channel_id
