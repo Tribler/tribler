@@ -37,7 +37,7 @@ from Tribler.Player.systray import PlayerTaskBarIcon
 from Tribler.Player.Reporter import Reporter
 from Tribler.Utilities.Instance2Instance import *
 
-from Tribler.Main.Utility.utility import Utility # TO REMOVE
+from Tribler.Player.UtilityStub import UtilityStub
 from Tribler.Video.utils import videoextdefaults
 
 # TEMPVLCRAW
@@ -130,7 +130,10 @@ class PlayerApp(wx.App):
                     return False
             
             # Normal startup
-            self.utility = Utility(self.installdir)
+            # Read config
+            state_dir = Session.get_default_state_dir('.SwarmPlayer')
+            
+            self.utility = UtilityStub(self.installdir,state_dir)
             self.utility.app = self
             print >>sys.stderr,self.utility.lang.get('build')
             self.iconpath = os.path.join(self.installdir,LIBRARYNAME,'Images','swarmplayer.ico')
@@ -165,9 +168,6 @@ class PlayerApp(wx.App):
             if False: # just play video file
                 self.videoplay.play_from_file(self.params[0])
                 return True
-            
-            # Read config
-            state_dir = Session.get_default_state_dir('.SwarmPlayer')
             
             # The playerconfig contains all config parameters that are not
             # saved by checkpointing the Session or its Downloads.
