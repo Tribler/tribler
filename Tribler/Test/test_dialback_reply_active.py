@@ -10,6 +10,7 @@ import tempfile
 import shutil
 
 from M2Crypto import EC
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import DIALBACK_REQUEST, DIALBACK_REPLY, getMessageName
 from Tribler.Core.Utilities.utilities import show_permid
@@ -59,10 +60,10 @@ class TestDialbackReplyActive(TestAsServer):
 
         # Write superpeers.txt
         self.install_path = tempfile.mkdtemp()
-        spdir = os.path.join(self.install_path, 'Tribler', 'Core')
+        spdir = os.path.join(self.install_path, LIBRARYNAME, 'Core')
         os.makedirs(spdir)
 
-        statsdir = os.path.join(self.install_path, 'Tribler', 'Core', 'Statistics')
+        statsdir = os.path.join(self.install_path, LIBRARYNAME, 'Core', 'Statistics')
         os.makedirs(statsdir)
         
         superpeerfilename = os.path.join(spdir, 'superpeer.txt')
@@ -92,9 +93,9 @@ class TestDialbackReplyActive(TestAsServer):
         self.config.set_install_dir(self.install_path)
         
         srcfiles = []
-        srcfiles.append(os.path.join("Tribler","tribler_sdb_v1.sql"))
-        srcfiles.append(os.path.join("Tribler","Core","Statistics","tribler_seedingstats_sdb.sql"))
-        srcfiles.append(os.path.join("Tribler","Core","Statistics","tribler_friendship_stats_sdb.sql"))
+        srcfiles.append(os.path.join(LIBRARYNAME,"tribler_sdb_v1.sql"))
+        srcfiles.append(os.path.join(LIBRARYNAME,"Core","Statistics","tribler_seedingstats_sdb.sql"))
+        srcfiles.append(os.path.join(LIBRARYNAME,"Core","Statistics","tribler_friendship_stats_sdb.sql"))
         for srcfile in srcfiles:
             sfn = os.path.join('..','..',srcfile)
             dfn = os.path.join(self.install_path,srcfile)

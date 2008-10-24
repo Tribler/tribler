@@ -9,6 +9,7 @@ import binascii
 from traceback import print_exc
 from threading import RLock,currentThread
 
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.Base import *
@@ -23,6 +24,7 @@ from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandl
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler
 from Tribler.Core.NATFirewall.NatCheckMsgHandler import NatCheckClient
+import Tribler.Core.Overlay.permid as permidmod
 
 DEBUG = False
 
@@ -99,7 +101,7 @@ class Session(SessionRuntimeConfig):
         # Let user handle that, he's got default_state_dir, etc.
 
         # Core init
-        Tribler.Core.Overlay.permid.init()
+        permidmod.init()
 
         #print 'Session: __init__ config is', self.sessconfig
         
@@ -114,14 +116,14 @@ class Session(SessionRuntimeConfig):
             
         if os.access(self.sessconfig['eckeypairfilename'],os.F_OK):
             # May throw exceptions
-            self.keypair = Tribler.Core.Overlay.permid.read_keypair(self.sessconfig['eckeypairfilename'])
+            self.keypair = permidmod.read_keypair(self.sessconfig['eckeypairfilename'])
         else:
-            self.keypair = Tribler.Core.Overlay.permid.generate_keypair()
+            self.keypair = permidmod.generate_keypair()
 
             # Save keypair
             pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
-            Tribler.Core.Overlay.permid.save_keypair(self.keypair,pairfilename)
-            Tribler.Core.Overlay.permid.save_pub_key(self.keypair,pubfilename)
+            permidmod.save_keypair(self.keypair,pairfilename)
+            permidmod.save_pub_key(self.keypair,pubfilename)
 
         
         # 2. Downloads persistent state dir
@@ -150,9 +152,9 @@ class Session(SessionRuntimeConfig):
 
         # 4. superpeer.txt and crawler.txt
         if self.sessconfig['superpeer_file'] is None:
-            self.sessconfig['superpeer_file'] = os.path.join(self.sessconfig['install_dir'],'Tribler','Core','superpeer.txt')
+            self.sessconfig['superpeer_file'] = os.path.join(self.sessconfig['install_dir'],LIBRARYNAME,'Core','superpeer.txt')
         if 'crawler_file' not in self.sessconfig or self.sessconfig['crawler_file'] is None:
-            self.sessconfig['crawler_file'] = os.path.join(self.sessconfig['install_dir'], 'Tribler','Core','Statistics','crawler.txt')
+            self.sessconfig['crawler_file'] = os.path.join(self.sessconfig['install_dir'], LIBRARYNAME,'Core','Statistics','crawler.txt')
 
         # 5. download_help_dir
         if self.sessconfig['download_help_dir'] is None:

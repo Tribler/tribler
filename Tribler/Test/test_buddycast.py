@@ -27,14 +27,14 @@ elif os.path.exists('clean.bat'):
 
 sys.path.insert(1, os.path.abspath(BASE_DIR))
     
-    
+from Tribler.__init__ import LIBRARYNAME    
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
 from Tribler.Core.BuddyCast.buddycast import DataHandler
 
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = None
-FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'Tribler/Test/extend_db_dir/'))
+FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, LIBRARYNAME,'Test','extend_db_dir'))
 TRIBLER_DB_PATH = os.path.join(FILES_DIR, 'tribler.sdb')
 TRIBLER_DB_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_tribler.sdb')
 

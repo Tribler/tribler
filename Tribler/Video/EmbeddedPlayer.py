@@ -13,6 +13,7 @@ from threading import currentThread,Event, Thread
 from traceback import print_stack,print_exc
 import random
 
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Video.defs import *
 from Tribler.Video.Progress import ProgressBar, ProgressSlider, VolumeSlider
 from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
@@ -129,21 +130,21 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.oldvolume = None
             
                             
-            self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'pause', 'play')
+            self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME, 'Images'), 'pause', 'play')
             self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
     
             self.volumebox = wx.BoxSizer(wx.HORIZONTAL)
-            self.volumeicon = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'volume', 'mute')   
+            self.volumeicon = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME, 'Images'), 'volume', 'mute')   
             self.volumeicon.Bind(wx.EVT_LEFT_UP, self.Mute)
             self.volume = VolumeSlider(self, self.utility)
             self.volume.SetRange(0, 100)
             self.volumebox.Add(self.volumeicon, 0, wx.ALIGN_CENTER_VERTICAL)
             self.volumebox.Add(self.volume, 0, wx.ALIGN_CENTER_VERTICAL, 0)
     
-            self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'fullScreen')
+            self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME, 'Images'), 'fullScreen')
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
     
-            self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'saveDisabled', 'save')   
+            self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME, 'Images'), 'saveDisabled', 'save')   
             self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
             self.save_callback = lambda:None
             

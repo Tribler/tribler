@@ -4,12 +4,14 @@
 import re, sys, os
 from traceback import print_exc
 
+from Tribler.__init__ import LIBRARYNAME
+
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 DEBUG = False
 
 class XXXFilter:
     def __init__(self, install_dir):
-        termfilename = os.path.join(install_dir, 'Tribler', 'Category','filter_terms.filter')
+        termfilename = os.path.join(install_dir, LIBRARYNAME, 'Category','filter_terms.filter')
         self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
                 
     def initTerms(self, filename):

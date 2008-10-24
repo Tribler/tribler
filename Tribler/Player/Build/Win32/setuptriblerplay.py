@@ -19,6 +19,8 @@ except ImportError:
 from distutils.core import setup
 import py2exe
 
+from Tribler.__init__ import LIBRARYNAME
+
 ################################################################
 #
 # Setup script used for py2exe
@@ -30,8 +32,8 @@ import py2exe
 #
 ################################################################
 
-mainfile = os.path.join('Tribler','Player','swarmplayer.py')
-progicofile = os.path.join('Tribler','Images','swarmplayer.ico')
+mainfile = os.path.join(LIBRARYNAME,'Player','swarmplayer.py')
+progicofile = os.path.join(LIBRARYNAME,'Images','swarmplayer.ico')
 
 target_player = {
     "script": mainfile,
@@ -43,7 +45,7 @@ setup(
 #    (Disabling bundle_files for now -- apparently causes some issues with Win98)
 #    options = {"py2exe": {"bundle_files": 1}},
 #    zipfile = None,
-    options = {"py2exe": {"packages": ["Tribler.Core","encodings"],"optimize": 2}},
+    options = {"py2exe": {"packages": [LIBRARYNAME+".Core","encodings"],"optimize": 2}},
     data_files = [("installdir",[])], 
     windows = [target_player],
 )

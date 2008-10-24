@@ -5,6 +5,8 @@ import wx,time
 import sys,os
 
 
+from Tribler.__init__ import LIBRARYNAME
+
 class BufferInfo:
     """ Arno: WARNING: the self.tricolore member is read by the MainThread and 
         written by the network thread. As it is a fixed array with simple values, this
@@ -210,8 +212,8 @@ class ProgressSlider(wx.Panel):
         self.SetMinSize((1,25))
         self.SetBackgroundColour(wx.WHITE)
         self.utility = utility
-        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','background.png'))
-        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','sliderDot.png'))
+        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Images','background.png'))
+        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Images','sliderDot.png'))
         self.sliderPosition = None
         self.rectHeight = 5
         self.rectBorderColour = wx.LIGHT_GREY
@@ -413,8 +415,8 @@ class VolumeSlider(wx.Panel):
         self.SetMinSize((150,25))
         self.SetBackgroundColour(wx.WHITE)
         self.utility = utility
-        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','background.png'))
-        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','sliderVolume.png'))
+        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Images','background.png'))
+        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Images','sliderVolume.png'))
         self.sliderPosition = None
         self.rectHeight = 5
         self.rectBorderColour = wx.LIGHT_GREY

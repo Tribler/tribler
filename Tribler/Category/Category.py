@@ -14,6 +14,8 @@ from traceback import print_exc
 from threading import Condition
 import sys
 
+from Tribler.__init__ import LIBRARYNAME
+
 DEBUG=False
 category_file = "category.conf"
     
@@ -28,7 +30,7 @@ class Category:
         
         if Category.__single:
             raise RuntimeError, "Category is singleton"
-        filename = os.path.join(install_dir,'Tribler', 'Category', category_file)
+        filename = os.path.join(install_dir,LIBRARYNAME, 'Category', category_file)
         Category.__single = self
         self.utility = None
         #self.torrent_db = TorrentDBHandler.getInstance()

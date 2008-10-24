@@ -10,11 +10,12 @@ from random import shuffle
 import threading
 from traceback import print_exc, extract_stack, print_stack
 
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.CacheDB.sqlitecachedb import *
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import BasicDBHandler
 
 CREATE_FRIENDSHIP_STATS_SQL_FILE = None
-CREATE_FRIENDSHIP_STATS_SQL_FILE_POSTFIX = os.path.join('Tribler', 'Core', 'Statistics', 'tribler_friendship_stats_sdb.sql')
+CREATE_FRIENDSHIP_STATS_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'Core', 'Statistics', 'tribler_friendship_stats_sdb.sql')
 DB_FILE_NAME = 'tribler_friendship_stats.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 BSDDB_DIR_NAME = 'bsddb'

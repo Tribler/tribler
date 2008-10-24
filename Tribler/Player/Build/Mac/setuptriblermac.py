@@ -9,6 +9,8 @@ from distutils.util import get_platform
 import sys,os,platform,shutil
 from setuptools import setup
 
+from Tribler.__init__ import LIBRARYNAME
+
 # modules to include into bundle
 includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml.sax", "email.iterators"]
 
@@ -85,7 +87,7 @@ def filterincludes( l, f ):
     return [(x,y) for (x,y) in l if f(y[0])]
 
 # ----- build the app bundle
-mainfile = os.path.join('Tribler','Player','swarmplayer.py')
+mainfile = os.path.join(LIBRARYNAME,'Player','swarmplayer.py')
 
 setup(
     setup_requires=['py2app'],
@@ -95,18 +97,18 @@ setup(
         'argv_emulation': True,
         'includes': includeModules,
         'excludes': ["Tkinter","Tkconstants","tcl"],
-        'iconfile': 'Tribler/Player/Build/Mac/tribler.icns',
-        'plist': Plist.fromFile('Tribler/Player/Build/Mac/Info.plist'),
+        'iconfile': LIBRARYNAME+'/Player/Build/Mac/tribler.icns',
+        'plist': Plist.fromFile(LIBRARYNAME+'/Player/Build/Mac/Info.plist'),
         'optimize': 2*int(not __debug__),
         'resources':
-            [("Tribler/Lang", ["Tribler/Lang/english.lang"]),
-             "Tribler/binary-LICENSE.txt", 
-             "Tribler/readme.txt",
-             "Tribler/Images/swarmplayer.ico",
-             "Tribler/Player/Build/Mac/TriblerDoc.icns",
+            [(LIBRARYNAME+"/Lang", [LIBRARYNAME+"/Lang/english.lang"]),
+             LIBRARYNAME+"/binary-LICENSE.txt", 
+             LIBRARYNAME+"/readme.txt",
+             LIBRARYNAME+"/Images/swarmplayer.ico",
+             LIBRARYNAME+"/Player/Build/Mac/TriblerDoc.icns",
            ]
            # add images
-           + includedir( "Tribler/Images" )
+           + includedir( LIBRARYNAME+"/Images" )
 
            # add VLC plugins
            + includedir( "macbinaries/vlc_plugins" )

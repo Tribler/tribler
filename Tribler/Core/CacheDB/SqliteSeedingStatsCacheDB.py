@@ -10,12 +10,13 @@ from random import shuffle
 import threading
 from traceback import print_exc, extract_stack, print_stack
 
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.CacheDB.sqlitecachedb import *
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import BasicDBHandler
 from Tribler.Core.simpledefs import *
 
 CREATE_SEEDINGSTATS_SQL_FILE = None
-CREATE_SEEDINGSTATS_SQL_FILE_POSTFIX = os.path.join('Tribler', 'Core', 'Statistics', 'tribler_seedingstats_sdb.sql')
+CREATE_SEEDINGSTATS_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'Core', 'Statistics', 'tribler_seedingstats_sdb.sql')
 DB_FILE_NAME = 'tribler_seedingstats.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 CURRENT_DB_VERSION = 1

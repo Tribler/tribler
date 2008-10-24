@@ -13,6 +13,8 @@ from random import shuffle
 import threading
 from traceback import print_exc, extract_stack, print_stack
 
+from Tribler.__init__ import LIBRARYNAME
+
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
 #support_version = (3,5,9)
@@ -23,7 +25,7 @@ import apsw
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
 CREATE_SQL_FILE = None
-CREATE_SQL_FILE_POSTFIX = os.path.join('Tribler', 'tribler_sdb_v1.sql')
+CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'tribler_sdb_v1.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 BSDDB_DIR_NAME = 'bsddb'

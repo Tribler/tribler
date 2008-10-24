@@ -7,6 +7,7 @@ import os
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
 
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.Utility.configreader import ConfigReader
 from Tribler.Main.Utility.helpers import existsAndIsReadable
 from Tribler.Core.BitTornado.__init__ import version_id
@@ -30,7 +31,7 @@ class Lang:
         filename = self.utility.config.Read('language_file')
         
         
-        langpath = os.path.join(self.utility.getPath(), 'Tribler',  "Lang")
+        langpath = os.path.join(self.utility.getPath(), LIBRARYNAME,  "Lang")
         
         sys.stdout.write("Setting up languages\n")
         sys.stdout.write("Language file: " + str(filename) + "\n")

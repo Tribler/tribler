@@ -24,6 +24,7 @@ except:
     pass
 import wx
 
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
@@ -132,8 +133,8 @@ class PlayerApp(wx.App):
             self.utility = Utility(self.installdir)
             self.utility.app = self
             print >>sys.stderr,self.utility.lang.get('build')
-            self.iconpath = os.path.join(self.installdir,'Tribler','Images','swarmplayer.ico')
-            self.logopath = os.path.join(self.installdir,'Tribler','Images','logoSwarmPlayer.png')
+            self.iconpath = os.path.join(self.installdir,LIBRARYNAME,'Images','swarmplayer.ico')
+            self.logopath = os.path.join(self.installdir,LIBRARYNAME,'Images','logoSwarmPlayer.png')
 
             
             # Start server for instance2instance communication
