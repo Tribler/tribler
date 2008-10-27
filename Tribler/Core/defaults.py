@@ -174,7 +174,7 @@ dldefaults['selected_files'] = []
 dldefaults['ut_pex_max_addrs_from_peer'] = 16
 
 # Seeding items added by Boxun
-dldefaults['t4t_option'] = 1
+dldefaults['t4t_option'] = 0
 dldefaults['t4t_hours'] = 0
 dldefaults['t4t_mins'] = 30
 dldefaults['g2g_option'] = 1
