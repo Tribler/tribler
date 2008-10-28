@@ -1815,6 +1815,9 @@ class BarterCastDBHandler(BasicDBHandler):
             self.total_up = 0
             self.total_down = 0
             
+        if DEBUG:
+            print >> sys.stderr, "My reputation: ", self.getMyReputation()
+            
     
     def getTotals(self):
         return (self.total_up, self.total_down)
@@ -2190,7 +2193,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
 
     ################################
-    def reputationByID(self, peerid, max_distance = MAXFLOW_DISTANCE, alpha = ALPHA):
+    def getReputationByID(self, peerid, max_distance = MAXFLOW_DISTANCE, alpha = ALPHA):
 
         (upflow, downflow) = self.maxflow(peerid, max_distance)
         rep = atan((upflow - downflow) * alpha)/(0.5 * pi)
@@ -2198,10 +2201,17 @@ class BarterCastDBHandler(BasicDBHandler):
 
 
     ################################
-    def reputation(self, permid, max_distance = MAXFLOW_DISTANCE, alpha = ALPHA):
+    def getReputation(self, permid, max_distance = MAXFLOW_DISTANCE, alpha = ALPHA):
 
         peerid = self.getPeerID(permid)
-        return self.reputationByID(peerid, max_distance, alpha)   
+        return self.reputationByID(peerid, max_distance, alpha)  
+
+         
+    ################################
+    def getMyReputation(self, alpha = ALPHA):
+
+        rep = atan((self.total_up - self.total_down) * alpha)/(0.5 * pi)
+        return rep   
 
 
             
