@@ -19,9 +19,16 @@ import threading
 import base64
 from random import randint
 
+from maxflow import Network
+from math import atan, pi
+
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Core.simpledefs import *
+
+# maxflow constants
+MAXFLOW_DISTANCE = 2
+ALPHA = float(1)/30000
 
 DEBUG = False
 SHOW_ERROR = True
@@ -1776,7 +1783,11 @@ class BarterCastDBHandler(BasicDBHandler):
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'BarterCast')
         self.peer_db = PeerDBHandler.getInstance()
-           
+        
+        # create the maxflow network
+        self.network = Network({})
+        self.update_network()
+                   
         if DEBUG:
             print >> sys.stderr, "bartercastdb: MyPermid is ", self.my_permid
 
@@ -1789,10 +1800,10 @@ class BarterCastDBHandler(BasicDBHandler):
 
         # Keep administration of total upload and download
         # (to include in BarterCast message)
-        my_peerid = self.getPeerID(self.my_permid)
+        self.my_peerid = self.getPeerID(self.my_permid)
         
-        if my_peerid != None:
-            where = "peer_id_from=%s" % (my_peerid)
+        if self.my_peerid != None:
+            where = "peer_id_from=%s" % (self.my_peerid)
             item = self.getOne(('sum(uploaded)', 'sum(downloaded)'), where=where)
         else:
             item = None
@@ -1803,7 +1814,7 @@ class BarterCastDBHandler(BasicDBHandler):
         else:
             self.total_up = 0
             self.total_down = 0
-
+            
     
     def getTotals(self):
         return (self.total_up, self.total_down)
@@ -2126,6 +2137,72 @@ class BarterCastDBHandler(BasicDBHandler):
             print >> sys.stderr, result
 
         return result
+        
+        
+    ################################
+    def update_network(self):
+
+        keys = self.getPeerIDPairs() #getItemList()
+
+        graph = {}
+        
+        # Create barter graph out of bartercast data
+        for (p, q) in keys:
+
+            item1 = self.getItemByIDs((p, q))
+            item2 = self.getItemByIDs((q, p))
+
+            if item2 != None:
+                up = max(item1['uploaded'], item2['downloaded'])
+                down = max(item1['downloaded'], item2['uploaded'])
+            else:
+                up = item1['uploaded']
+                down = item1['downloaded']
+
+            if up < 0 or down < 0:
+                print p, q, up, down
+
+            if p != q:
+
+                if not p in graph:
+                    graph[p] = {}
+
+                if not q in graph:
+                    graph[q] = {}
+
+                # p -> q
+                graph[p][q] = {'cap': up, 'flow': 0}
+
+                # q -> p
+                graph[q][p] = {'cap': down, 'flow': 0}
+
+        self.network = Network(graph)
+        
+
+    ################################
+    def maxflow(self, peerid, max_distance = MAXFLOW_DISTANCE):
+
+        self.update_network()
+        upflow = self.network.maxflow(peerid, self.my_peerid, max_distance)
+        downflow = self.network.maxflow(self.my_peerid, peerid, max_distance)
+
+        return (upflow, downflow) 
+
+
+    ################################
+    def reputationByID(self, peerid, max_distance = MAXFLOW_DISTANCE, alpha = ALPHA):
+
+        (upflow, downflow) = self.maxflow(peerid, max_distance)
+        rep = atan((upflow - downflow) * alpha)/(0.5 * pi)
+        return rep   
+
+
+    ################################
+    def reputation(self, permid, max_distance = MAXFLOW_DISTANCE, alpha = ALPHA):
+
+        peerid = self.getPeerID(permid)
+        return self.reputationByID(peerid, max_distance, alpha)   
+
 
             
 
