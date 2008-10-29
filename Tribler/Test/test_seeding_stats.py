@@ -73,7 +73,7 @@ class TestSeedingStats(TestCrawler):
         
         s = OLConnection(self.my_keypair, "localhost", self.hisport, mylistenport=self.listen_port)
 
-        queries = [cPickle.dumps(["SELECT * FROM SeedingStats", "SELECT * FROM SeedingStats WHERE crawled = 0"])]
+        queries = [cPickle.dumps([("read", "SELECT * FROM SeedingStats"), ("read", "SELECT * FROM SeedingStats WHERE crawled = 0")])]
         for query in queries:
             self.send_crawler_request(s, CRAWLER_SEEDINGSTATS_QUERY, 0, 0, query)
 
