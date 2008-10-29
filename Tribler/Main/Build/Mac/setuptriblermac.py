@@ -8,6 +8,7 @@ import py2app
 from distutils.util import get_platform
 import sys,os,platform,shutil
 from setuptools import setup
+from Tribler.__init__ import LIBRARYNAME
 
 # modules to include into bundle
 includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml.sax", "email.iterators"]
@@ -17,7 +18,7 @@ includePanels=[
      "standardOverview","standardDetails","standardGrid","standardPager","standardFilter",
      "TextButton","btn_DetailsHeader","tribler_List","profileOverviewPanel"]
 
-includeModules += ["Tribler.vwxGUI.%s" % x for x in includePanels]
+includeModules += ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 
 # ----- some basic checks
 
@@ -60,9 +61,9 @@ except:
 
 # ----- import VLC
 
-import vlc
+#import vlc
 
-vlc = vlc.MediaControl(["--plugin-path","lib/vlc"])
+#vlc = vlc.MediaControl(["--plugin-path","macbinaries/vlc_plugins"])
 
 # =================
 # build Tribler.app
@@ -103,41 +104,47 @@ def filterincludes( l, f ):
 
 from Tribler.Main.vwxGUI.updateXRC import main as updateXRC
 
-updateXRC( [os.path.abspath(os.path.dirname(sys.argv[0]))+"/vwxGUI"] )
+updateXRC( [os.path.abspath(os.path.dirname(sys.argv[0]))+"/Main/vwxGUI"] )
 
 # ----- build the app bundle
 
+mainfile = os.path.join(LIBRARYNAME,'Main','tribler.py')
 setup(
     setup_requires=['py2app'],
     name='Tribler',
-    app=['tribler.py'],
+    app=[mainfile],
     options={ 'py2app': {
         'argv_emulation': True,
         'includes': includeModules,
         'excludes': ["Tkinter","Tkconstants","tcl"],
-        'iconfile': 'mac/tribler.icns',
-        'plist': Plist.fromFile('mac/Info.plist'),
+        'iconfile': LIBRARYNAME+'/Main/Build/Mac/tribler.icns',
+        'plist': Plist.fromFile(LIBRARYNAME+'/Main/Build/Mac/Info.plist'),
         'optimize': 2*int(not __debug__),
         'resources':
-            [("Lang", ["Lang/english.lang"]),
-             "superpeer.txt",
-             "category.conf",
-             "binary-LICENSE.txt", 
-             "readme.txt",
-             "tribler.ico",
-             "torrenticon.ico",
-             "mac/TriblerDoc.icns",
-             ("lib", ["mac/build/lib/ffmpeg"],
-           )]
+            [(LIBRARYNAME+"/Lang", [LIBRARYNAME+"/Lang/english.lang"]),
+             (LIBRARYNAME+"/Core", [LIBRARYNAME+"/Core/superpeer.txt"]),
+             (LIBRARYNAME+"/Category", [LIBRARYNAME+"/Category/category.conf"]),
+             LIBRARYNAME+"/binary-LICENSE.txt", 
+             LIBRARYNAME+"/readme.txt",
+             LIBRARYNAME+"/Main/Build/Mac/TriblerDoc.icns",
+           ]
            # add images
-           + includedir( "icons" )
-           + includedir( "Tribler/vwxGUI/images" )
+           + includedir( LIBRARYNAME+"/Images" )
+           + includedir( LIBRARYNAME+"/Main/vwxGUI/images" )
 
            # add GUI elements
-           + filterincludes( includedir( "Tribler/vwxGUI" ), lambda x: x.endswith(".xrc") )
+           + filterincludes( includedir( LIBRARYNAME+"/Main/vwxGUI" ), lambda x: x.endswith(".xrc") )
+
+           # add crawler info and SQL statements
+           + filterincludes( includedir( LIBRARYNAME+"/Core/Statistics" ), lambda x: x.endswith(".txt") )
+           + filterincludes( includedir( LIBRARYNAME+"/Core/Statistics" ), lambda x: x.endswith(".sql") )
 
            # add VLC plugins
-           + filterincludes( includedir( "mac/build/lib/vlc", "lib/vlc" ), lambda x: x.endswith(".dylib") )
+           + includedir( "macbinaries/vlc_plugins" )
+
+           # add ffmpeg binary
+           + ["macbinaries/ffmpeg"]
             ,
     } }
 )
+
