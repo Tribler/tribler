@@ -20,7 +20,7 @@ from threading import currentThread
 
 DEBUG = False
 
-BARTERCAST_TORRENTS = True
+BARTERCAST_TORRENTS = False
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
