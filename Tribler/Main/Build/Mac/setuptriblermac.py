@@ -138,6 +138,7 @@ setup(
            # add crawler info and SQL statements
            + filterincludes( includedir( LIBRARYNAME+"/Core/Statistics" ), lambda x: x.endswith(".txt") )
            + filterincludes( includedir( LIBRARYNAME+"/Core/Statistics" ), lambda x: x.endswith(".sql") )
+           + filterincludes( includedir( LIBRARYNAME+"/" ), lambda x: x.endswith(".sql") )
 
            # add VLC plugins
            + includedir( "macbinaries/vlc_plugins" )
