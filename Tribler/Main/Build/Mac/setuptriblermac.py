@@ -144,7 +144,7 @@ setup(
            + includedir( "macbinaries/vlc_plugins" )
 
            # add ffmpeg binary
-           + ["macbinaries/ffmpeg"]
+           + [("macbinaries",["macbinaries/ffmpeg"])]
             ,
     } }
 )
