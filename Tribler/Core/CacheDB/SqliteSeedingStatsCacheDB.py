@@ -88,7 +88,7 @@ class SeedingStatsDBHandler(BasicDBHandler):
         db = SQLiteSeedingStatsCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'SeedingStats')
     
-    def updateSeedingStats(self, permID, dslist, interval):
+    def updateSeedingStats(self, permID, reputation, dslist, interval):
         permID = bin2str(permID)
         
         seedings = []
@@ -105,10 +105,6 @@ class SeedingStatsDBHandler(BasicDBHandler):
                 
             if i == len(seedings)-1:
                 commit = True
-                
-            ## FIXME: get correct peer reputation
-            # All peers are treated as neutral without the preemptive unchoking policy
-            reputation = 0
                 
             res = self.existedInfoHash(infohash)
                 
