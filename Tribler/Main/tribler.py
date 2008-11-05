@@ -341,7 +341,8 @@ class ABCApp(wx.App):
         self.utility.ratelimiter = self.ratelimiter
  
 # SelectiveSeeding _       
-        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
+        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read, self.utility.session)
+        
         self.seedingcount = 0 
 # _SelectiveSeeding
 
@@ -433,8 +434,13 @@ class ABCApp(wx.App):
                 self.seeding_snapshot_count += 1
                 
                 if snapshot_seeding_stats:
+                    bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+                    reputation = bc_db.getMyReputation()
+                    self.utility.session.close_dbhandler(bc_db)
+                    
                     seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
-                    seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), dslist, self.seedingstats_interval) 
+                    seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval) 
+                    self.utility.session.close_dbhandler(seedingstats_db)
 # _Crawling Seeding Stats
 
         except:
