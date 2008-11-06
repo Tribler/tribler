@@ -94,14 +94,14 @@ ALLOW_MULTIPLE = False
 #
 ##############################################################
 class ABCApp(wx.App):
-    def __init__(self, x, params, single_instance_checker, installdir):
+    def __init__(self, redirectstderrout, params, single_instance_checker, installdir):
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.installdir = installdir
         self.error = None
         self.last_update = 0
         self.update_freq = 0    # how often to update #peers/#torrents
-        wx.App.__init__(self, x)
+        wx.App.__init__(self, redirectstderrout)
         
         
     def OnInit(self):
@@ -194,6 +194,7 @@ class ABCApp(wx.App):
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
             self.guiUtility.frame = self.frame
+            self.frame.set_wxapp(self)
             
             self.guiUtility.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
             self.guiUtility.mainSizer = self.guiUtility.scrollWindow.GetSizer()
@@ -220,7 +221,7 @@ class ABCApp(wx.App):
                 numfileslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
 
             self.menubar = MainMenuBar(self.frame,self.utility)
-            self.frame.set_wxapp(self)
+            
 
             # Make sure self.utility.frame is set
             self.startAPI()
@@ -286,16 +287,30 @@ class ABCApp(wx.App):
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
             # Set default Session params here
-            torrcolldir = os.path.join(get_default_dest_dir(),STATEDIR_TORRENTCOLL_DIR)
+            destdir = get_default_dest_dir()
+            torrcolldir = os.path.join(destdir,STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
             self.sconfig.set_nat_detect(True)
             
             # rename old collected torrent directory
             try:
+                if not os.path.exists(destdir):
+                    os.makedirs(destdir)
                 old_collected_torrent_dir = os.path.join(state_dir, 'torrent2')
                 if not os.path.exists(torrcolldir) and os.path.isdir(old_collected_torrent_dir):
                     os.rename(old_collected_torrent_dir, torrcolldir)
                     print >>sys.stderr,"main: Moved dir with old collected torrents to", torrcolldir
+                    
+                # Arno, 2008-10-23: Also copy torrents the user got himself
+                old_own_torrent_dir = os.path.join(state_dir, 'torrent')
+                for name in os.listdir(old_own_torrent_dir):
+                    oldpath = os.path.join(old_own_torrent_dir,name)
+                    newpath = os.path.join(torrcolldir,name)
+                    if not os.path.exists(newpath):
+                        print >>sys.stderr,"main: Copying own torrent",oldpath,newpath
+                        os.rename(oldpath,newpath)
+                    
+                # Internal tracker
             except:
                 print_exc()
 
@@ -341,8 +356,7 @@ class ABCApp(wx.App):
         self.utility.ratelimiter = self.ratelimiter
  
 # SelectiveSeeding _       
-        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read, self.utility.session)
-        
+        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)#, self.utility.session)
         self.seedingcount = 0 
 # _SelectiveSeeding
 
@@ -515,7 +529,7 @@ class ABCApp(wx.App):
         if subject == NTFY_PEERS:
             peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
             peer = peerdb.getPeer(objectID)
-            self.utility.session.close_dbhandler(peerdb)
+            #self.utility.session.close_dbhandler(peerdb)
         else:
             peer = None
         wx.CallAfter(self.gui_ntfy_friends,subject,changeType,objectID,args,peer)

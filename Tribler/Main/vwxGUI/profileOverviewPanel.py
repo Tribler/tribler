@@ -10,8 +10,10 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Core.simpledefs import *
 from time import time
-from traceback import print_exc
+from traceback import print_exc,print_stack
 import urllib
+
+RELOAD_DELAY = 60 * 1000 # milliseconds
 
 class ProfileOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
@@ -29,6 +31,12 @@ class ProfileOverviewPanel(wx.Panel):
         self.mypref = None
         self.reload_counter = -1
         self.reload_cache = [None, None, None]
+        
+        # SELDOM cache
+        self.bartercast_db = None
+        self.barterup = 0
+        self.barterdown = 0
+        
         if len(args) == 0: 
             pre = wx.PrePanel() 
             # the Create step is done by XRC. 
@@ -46,7 +54,7 @@ class ProfileOverviewPanel(wx.Panel):
         return True
     
     def _PostInit(self):
-        #print "<mluc> tribler_topButton in _PostInit"
+        #print >>sys.stderr,"profileOverviewPanel: in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         
@@ -104,6 +112,7 @@ class ProfileOverviewPanel(wx.Panel):
 
         self.newversion = False
         self.checkNewVersion()
+        self.seldomReloadData()
          
         wx.CallAfter(self.reloadData)
         wx.CallAfter(self.Refresh)
@@ -210,8 +219,11 @@ class ProfileOverviewPanel(wx.Panel):
     def reloadData(self, event=None):
         """updates the fields in the panel with new data if it has changed"""
 
+        #print >>sys.stderr,"profileOverviewPanel: reloadData, shown is",self.IsShown()
+
         if not self.IsShown(): #should not update data if not shown
             return
+            
         #print "<mluc> profileOverviewPanel in reloadData"
         
         # 28/07/08 boudewijn: the reloadData method is called every
@@ -363,19 +375,15 @@ class ProfileOverviewPanel(wx.Panel):
             bShouldRefresh = True
         
         # --- Upload and download amounts
-        if self.bartercast_db is None:
-            up = 'n/a'
-            down = 'n/a'
-        else:
-            topinfo = self.bartercast_db.getTopNPeers(0, local_only = True)
-            up = self.utility.size_format(topinfo.get('total_up'))
-            down = self.utility.size_format(topinfo.get('total_down'))
+        # Arno: this involves reading a potentially huge db, do only on
+        # clicks that show overview panel. See seldomReloadData()
+            
         old_up = self.getGuiElement('uploadedNumber').GetLabel()
         old_down = self.getGuiElement('downloadedNumber').GetLabel()
-        if up != old_up:
-            self.getGuiElement('uploadedNumber').SetLabel(up)
-        if down != old_down:
-            self.getGuiElement('downloadedNumber').SetLabel(down)
+        if self.barterup != old_up:
+            self.getGuiElement('uploadedNumber').SetLabel(self.barterup)
+        if self.barterdown != old_down:
+            self.getGuiElement('downloadedNumber').SetLabel(self.barterdown)
             
             
         if bShouldRefresh:
@@ -386,7 +394,23 @@ class ProfileOverviewPanel(wx.Panel):
         if not self.timer:
             self.timer = wx.Timer(self, -1)
             self.Bind(wx.EVT_TIMER, self.reloadData, self.timer)
-            self.timer.Start(5000)
+            self.timer.Start(RELOAD_DELAY)
+
+
+    def seldomReloadData(self):
+        #print >>sys.stderr,"profileOverviewPanel: seldomReloadData!!!!!!" 
+        
+        if self.bartercast_db is None:
+            up = 'n/a'
+            down = 'n/a'
+        else:
+            topinfo = self.bartercast_db.getTopNPeers(0, local_only = True)
+            up = self.utility.size_format(topinfo.get('total_up'))
+            down = self.utility.size_format(topinfo.get('total_down'))
+
+        self.barterup = up
+        self.barterdown = down
+
 
     def OnMyInfoWizard(self, event = None):
         wizard = MyInfoWizard(self)

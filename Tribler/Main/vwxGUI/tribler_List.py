@@ -199,6 +199,8 @@ class T4TSeedingList(tribler_List):
                 if not peer_list:
                     # fault tolerance
                     peer_list = []
+                else:
+                    peer_list.sort(dspeer_uprate_cmp,reverse=True)
                      
                 for p in peer_list:   
                     uprate, utotal = p['uprate'], p['utotal']  
@@ -260,6 +262,8 @@ class G2GSeedingList(tribler_List):
                     
                 if not peer_list:
                     peer_list = []
+                else:
+                    peer_list.sort(dspeer_uprate_cmp,reverse=True)
                     
                 for p in peer_list:
                     uprate, utotal = p['uprate'], p['utotal']  
@@ -305,3 +309,15 @@ class G2GSeedingList(tribler_List):
             self.ScrollList(-100, 0) # Removes HSCROLLBAR
         if event:
             event.Skip()
+
+def dspeer_uprate_cmp(a,b):
+    """ Sort on upload rate """
+    ar = a['uprate']
+    br = b['uprate']
+    if ar < br:
+        return -1
+    elif ar == br:
+        return 0
+    else:
+        return 1
+    

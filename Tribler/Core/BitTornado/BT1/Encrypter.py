@@ -570,7 +570,8 @@ class Encoder:
                     return False
                 # don't allow multiple connections from the same ip if security is set.
                 if self.config['security'] and ip != 'unknown' and ip == v.get_ip(True) and port == v.get_port(False):
-                    print >>sys.stderr,"Encoder: got_id: closing duplicate connection"
+                    if DEBUG:
+                        print >>sys.stderr,"Encoder: got_id: closing duplicate connection"
                     v.close()
         return True
 

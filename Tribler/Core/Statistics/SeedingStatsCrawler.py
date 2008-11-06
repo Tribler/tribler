@@ -4,7 +4,6 @@ import sys
 import cPickle
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_SEEDINGSTATS_QUERY
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import *
 
 DEBUG = False
@@ -30,24 +29,9 @@ class SeedingStatsCrawler:
         """
         if DEBUG: 
             print >>sys.stderr, "crawler: SeedingStatsDB_update_settings_initiator"
-        
-        try:
-            sql_query = "SELECT MAX(timestamp) FROM SeedingStats WHERE permID='%s' ORDER BY timestamp DESC"%bin2str(permid)
-            cursor = self._sqlite_cache_db.execute_read(sql_query)
-        except:
-            print_exc()
-        else:
-            if cursor:
-                res = list(cursor)[0][0]
-                if res is not None:
-                    read_query = "SELECT * FROM SeedingStats WHERE crawled = 0 and timestamp BETWEEN %s and %s ORDER BY timestamp DESC" % (res, time())
-                    write_query = 'UPDATE SeedingStats SET crawled=1 WHERE crawled=0 and timestamp <=%s' % res
-                    return request_callback(CRAWLER_SEEDINGSTATS_QUERY, cPickle.dumps([("read", read_query), ("write", write_query)]))
-                else:
-                    read_query = "SELECT * FROM SeedingStats WHERE crawled = 0 and timestamp BETWEEN %s and %s ORDER BY timestamp DESC" % (0, time())
-                    write_query = 'UPDATE SeedingStats SET crawled=1 WHERE crawled=0 and timestamp <=0'
-                    return request_callback(CRAWLER_SEEDINGSTATS_QUERY, cPickle.dumps([("read", read_query), ("write", write_query)]))
-    
+        read_query = "SELECT * FROM SeedingStats WHERE crawled = 0"
+        write_query = "UPDATE SeedingStats SET crawled = 1 WHERE crawled = 0"
+        return request_callback(CRAWLER_SEEDINGSTATS_QUERY, cPickle.dumps([("read", read_query), ("write", write_query)], 2))
     
     def update_settings_initiator(self, permid, selversion, request_callback):
         """
@@ -64,7 +48,7 @@ class SeedingStatsCrawler:
         except:
             print_exc()
         else:
-            return request_callback(CRAWLER_SEEDINGSTATS_QUERY, cPickle.dumps(sql_update))
+            return request_callback(CRAWLER_SEEDINGSTATS_QUERY, cPickle.dumps(sql_update, 2))
                
     
     def handle_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
@@ -105,11 +89,12 @@ class SeedingStatsCrawler:
             if DEBUG:
                 print >> sys.stderr, "crawler: handle_crawler_request", e
             results.append(str(e))
-            reply_callback(cPickle.dumps(results), 1)
+            reply_callback(cPickle.dumps(results, 2), 1)
         else:
-            reply_callback(cPickle.dumps(results))
+            reply_callback(cPickle.dumps(results, 2))
 
         return True
+
 
     def handle_crawler_reply(self, permid, selversion, channel_id, error, message, reply_callback):
         """
@@ -139,6 +124,14 @@ class SeedingStatsCrawler:
                     values = map(tuple, results[0])
                     self._sqlite_cache_db.insertMany("SeedingStats", values)
             except Exception, e:
+
+                # 04/11/08 boudewijn: cPickle.loads(...) sometimes
+                # results in EOFError. This may be caused by message
+                # being interpreted as non-binary.
+                f = open("seedingstats-EOFError.data", "ab")
+                f.write("--\n%s\n--\n" % message)
+                f.close()
+
                 print_exc()
                 return False
 
@@ -165,7 +158,7 @@ class SeedingStatsCrawler:
         except Exception, e:
             reply_callback(str(e), 1)
         else:
-            reply_callback(cPickle.dumps('Update succeeded.'))
+            reply_callback(cPickle.dumps('Update succeeded.', 2))
         
         return True
 

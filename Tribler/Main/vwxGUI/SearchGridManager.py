@@ -357,6 +357,7 @@ class TorrentSearchGridManager:
         newval['url'] = value['url']
         newval['num_leechers'] = value['leecher']
         newval['num_seeders'] = value['views']
+        newval['creation_date'] = value['date']
         newval['views'] = value['views']
         newval['web2'] = value['web2']
         newval['length'] = value['length']

@@ -3,11 +3,12 @@
 
 import sys
 import cPickle
-from time import ctime
+from time import strftime
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_DATABASE_QUERY
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
+from Tribler.Core.Statistics.Crawler import Crawler
 
 DEBUG = False
 
@@ -22,9 +23,14 @@ class DatabaseCrawler:
 
     def __init__(self):
         self._sqlite_cache_db = SQLiteCacheDB.getInstance()
-        self._file = open("databasecrawler.txt", "a")
-        self._file.write("\n".join(("# " + "*" * 80, "# Crawler started\n")))
-        self._file.flush()
+
+        crawler = Crawler.get_instance()
+        if crawler.am_crawler():
+            self._file = open("databasecrawler.txt", "a")
+            self._file.write("\n".join(("# " + "*" * 80, "# Crawler started\n")))
+            self._file.flush()
+        else:
+            self._file = None
 
     def query_initiator(self, permid, selversion, request_callback):
         """
@@ -34,9 +40,17 @@ class DatabaseCrawler:
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
         if DEBUG: print >>sys.stderr, "databasecrawler: query_initiator", show_permid_short(permid)
-        request_callback(CRAWLER_DATABASE_QUERY, "SELECT 'peer_count', count(*) FROM Peer; SELECT 'torrent_count', count(*) FROM Torrent")
-        self._file.write("; ".join((ctime(), "REQUEST", show_permid(permid), "\n")))
-        self._file.flush()
+        request_callback(CRAWLER_DATABASE_QUERY, "SELECT 'peer_count', count(*) FROM Peer; SELECT 'torrent_count', count(*) FROM Torrent", callback=self._after_request_callback)
+
+    def _after_request_callback(self, exc, permid):
+        """
+        Called by the Crawler with the result of the request_callback
+        call in the query_initiator method.
+        """
+        if not exc:
+            if DEBUG: print >>sys.stderr, "databasecrawler: request send to", show_permid_short(permid)
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "REQUEST", show_permid(permid), "\n")))
+            self._file.flush()
 
     def handle_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
         """
@@ -78,14 +92,14 @@ class DatabaseCrawler:
             if DEBUG:
                 print >> sys.stderr, "databasecrawler: handle_crawler_reply", error, message
 
-            self._file.write("; ".join((ctime(), "REPLY", show_permid(permid), str(error), message, "\n")))
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  REPLY", show_permid(permid), str(error), message, "\n")))
             self._file.flush()
 
         else:
             if DEBUG:
                 print >> sys.stderr, "databasecrawler: handle_crawler_reply", show_permid_short(permid), cPickle.loads(message)
 
-            self._file.write("; ".join((ctime(), "REPLY", show_permid(permid), str(error), str(cPickle.loads(message)), "\n")))
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  REPLY", show_permid(permid), str(error), str(cPickle.loads(message)), "\n")))
             self._file.flush()
 
         return True

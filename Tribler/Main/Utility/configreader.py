@@ -4,6 +4,7 @@
 import sys
 import wx
 import os
+from traceback import print_stack
 
 from cStringIO import StringIO
 
@@ -11,6 +12,8 @@ from ConfigParser import ConfigParser, MissingSectionHeaderError, NoSectionError
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.defaults import dldefaults,DEFAULTPORT
+
+# TODO: remove these defaults, config doesn't work this way with Tribler Core.
 bt1_defaults = []
 for k,v in dldefaults.iteritems():
     bt1_defaults.append((k,v,"See triblerAPI"))
@@ -242,6 +245,10 @@ class ConfigReader(ConfigParser):
             # via this mechanism. However, that doesn't take into account the
             # values from BitTornado/download_bt1.py defaults. I added that.
             if value is None:
+                if not DEBUG:
+                    sys.stderr.write("ConfigReader: Error while reading parameter, no def: (" + str(param) + ")\n")
+                    print_stack()
+                    
                 for k,v,d in bt1_defaults:
                     if k == param:
                         value = v

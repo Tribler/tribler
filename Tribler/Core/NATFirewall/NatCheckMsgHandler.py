@@ -4,7 +4,7 @@ import random
 import socket
 import sys
 import thread
-import time
+from time import strftime, sleep
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
@@ -27,6 +27,15 @@ class NatCheckMsgHandler:
             raise RuntimeError, "NatCheckMsgHandler is singleton"
         NatCheckMsgHandler.__single = self
         self.crawler_reply_callbacks = []
+        self._secure_overlay = SecureOverlay.getInstance()
+
+        crawler = Crawler.get_instance()
+        if crawler.am_crawler():
+            self._file = open("natcheckcrawler.txt", "a")
+            self._file.write("\n".join(("# " + "*" * 80, "# Crawler started\n")))
+            self._file.flush()
+        else:
+            self._file = None
 
     @staticmethod
     def getInstance(*args, **kw):
@@ -68,14 +77,13 @@ class NatCheckMsgHandler:
 	    if DEBUG:
 	        print >> sys.stderr, "NATCHECK_REQUEST was sent to", show_permid_short(permid), exc
 
-        overlay = SecureOverlay.getInstance()
-        peeraddr = overlay.get_dns_from_peerdb(permid)
         # Register peerinfo on file
-        f = open("registerlog.txt", "a")
-        t = datetime.datetime.fromtimestamp(time.time())
-        f.write(t.strftime("%Y-%m-%d %H:%M:%S") + "," + "NATCHECK_REQUEST_SENT" + "," + str(peeraddr) + "," + str(show_permid(permid)) + "\n")
-        f.close()
-
+        self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),
+                                    "REQUEST",
+                                    show_permid(permid),
+                                    str(self._secure_overlay.get_dns_from_peerdb(permid)),
+                                    "\n")))
+        self._file.flush()
         return True
 
     def gotDoNatCheckMessage(self, sender_permid, selversion, channel_id, payload, reply_callback):
@@ -135,6 +143,16 @@ class NatCheckMsgHandler:
                 print >> sys.stderr, "NatCheckMsgHandler: gotNatCheckReplyMessage"
                 print >> sys.stderr, "NatCheckMsgHandler: error", error
 
+            # generic error: another crawler already obtained these results
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),
+                                        "  REPLY",
+                                        show_permid(permid),
+                                        str(self._secure_overlay.get_dns_from_peerdb(permid)),
+                                        "ERROR(%d)" % error,
+                                        payload,
+                                        "\n")))
+            self._file.flush()
+
         else:
             try:
                 recv_data = bdecode(payload)
@@ -153,11 +171,13 @@ class NatCheckMsgHandler:
                 print >> sys.stderr, "NatCheckMsgHandler: received NAT_CHECK_REPLY message: ", recv_data
 
             # Register peerinfo on file
-            f = open("registerlog.txt", "a")
-            t = datetime.datetime.fromtimestamp(time.time())
-            f.write(t.strftime("%Y-%m-%d %H:%M:%S") + "," + "NAT_CHECK_REPLY" + "," + str(show_permid(permid)) + "," + "[" + str(recv_data[0]) + ":" + str(recv_data[1]) + ":" + str(recv_data[2]) + ":" + str(recv_data[3]) + ":" + str(recv_data[4]) + ":" + str(recv_data[5]) + ":" + str(recv_data[6]) + "]" + "\n")
-            f.close()
-
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),
+                                        "  REPLY",
+                                        show_permid(permid),
+                                        str(self._secure_overlay.get_dns_from_peerdb(permid)),
+                                        ":".join([str(x) for x in recv_data]),
+                                        "\n")))
+            self._file.flush()
         return True
 
     def validNatCheckReplyMsg(self, ncr_data):
@@ -233,7 +253,7 @@ class NatCheckClient:
 
                 while True:
                     release()
-                    time.sleep(0)
+                    sleep(0)
                     acquire()
                     if self._running:
                         break
@@ -344,6 +364,7 @@ class NatCheckClient:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('www.tribler.org',80))
         privateIP = s.getsockname()[0]
+        s.close()
         del s
 
         privateAddr = (privateIP, privatePort)

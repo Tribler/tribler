@@ -89,6 +89,8 @@ class OverlayApps:
         
         if not config['torrent_collecting']:
             self.torrent_collecting_solution = 0
+        else:
+            self.torrent_collecting_solution = config['buddycast_collecting_solution']
         
         if config['buddycast']:
             # Create handler for Buddycast messages
@@ -97,7 +99,7 @@ class OverlayApps:
             self.buddycast.register(overlay_bridge, launchmany, 
                                     launchmany.rawserver_fatalerrorfunc,
                                     self.metadata_handler, 
-                                    config['buddycast_collecting_solution'],
+                                    self.torrent_collecting_solution,
                                     config['start_recommender'],config['buddycast_max_peers'])
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
             self.register_connection_handler(self.buddycast.handleConnection)
@@ -143,26 +145,28 @@ class OverlayApps:
             natcheck_handler.register(launchmany)
             crawler.register_message_handler(CRAWLER_NATCHECK, natcheck_handler.gotDoNatCheckMessage, natcheck_handler.gotNatCheckReplyMessage)
 
-            if "database" in sys.argv:
-                # allows access to tribler database
-                crawler.register_crawl_initiator(database_crawler.query_initiator)
-
-            if "seedingstats" in sys.argv:
-                # allows access to seeding statistics (Boxun)
-                crawler.register_crawl_initiator(seeding_stats_crawler.query_initiator)
-
-            if "friendship" in sys.argv:
-                # allows access to friendship statistics (Ali)
-                crawler.register_crawl_initiator(friendship_crawler.query_initiator)
-
-            if "natcheck" in sys.argv:
-                # allows access to nat-check statistics (Lucia)
-                crawler.register_crawl_initiator(natcheck_handler.doNatCheck)
-
             if crawler.am_crawler():
+
                 # we will only accept CRAWLER_REPLY messages when we are actully a crawler
                 self.register_msg_handler([CRAWLER_REPLY], crawler.handle_reply)
                 self.register_connection_handler(crawler.handle_connection)
+
+                if "database" in sys.argv:
+                    # allows access to tribler database
+                    crawler.register_crawl_initiator(database_crawler.query_initiator)
+
+                if "seedingstats" in sys.argv:
+                    # allows access to seeding statistics (Boxun)
+                    crawler.register_crawl_initiator(seeding_stats_crawler.query_initiator, frequency=60*30)
+
+                if "friendship" in sys.argv:
+                    # allows access to friendship statistics (Ali)
+                    crawler.register_crawl_initiator(friendship_crawler.query_initiator)
+
+                if "natcheck" in sys.argv:
+                    # allows access to nat-check statistics (Lucia)
+                    crawler.register_crawl_initiator(natcheck_handler.doNatCheck)
+
         else:
             self.register_msg_handler([CRAWLER_REQUEST, CRAWLER_REPLY], self.handleDisabledMessage)
             

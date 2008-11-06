@@ -72,8 +72,8 @@ class MetadataHandler:
         self.torrent_db = launchmany.torrent_db 
         self.config = config
         self.min_free_space = self.config['stop_collecting_threshold']*(2**20)
-        if self.min_free_space <= 0:
-            self.min_free_space = 200*(2**20)    # at least 1 MB left on disk
+        #if self.min_free_space <= 0:
+        #    self.min_free_space = 200*(2**20)    # at least 200 MB left on disk
         self.config_dir = os.path.abspath(self.config['state_dir'])
         self.torrent_dir = os.path.abspath(self.config['torrent_collecting_dir'])
         print >>sys.stderr,"metadata: collect dir is",self.torrent_dir 
@@ -390,7 +390,7 @@ class MetadataHandler:
     def save_torrent(self, infohash, metadata, source='BC', extra_info={}):
         # check if disk is full before save it to disk and database
         if not self.initialized:
-            return
+            return None
 
 #        if self.free_space <= self.min_free_space or self.num_collected_torrents % 10 == 0:
 #            self.check_free_space()
@@ -401,7 +401,7 @@ class MetadataHandler:
             self.free_space = self.get_free_space()
             if self.free_space - len(metadata) < self.min_free_space:
                 self.warn_disk_full()
-                return
+                return None
         
         file_name = get_filename(infohash, metadata)
         if DEBUG:
@@ -506,12 +506,13 @@ class MetadataHandler:
             #if DEBUG:
             #    print >>sys.stderr,"metadata: Was I asked to dlhelp someone",self.dlhelper
 
-            self.notify_torrent_is_in(infohash,metadata,filename)
+            if filename is not None:
+                self.notify_torrent_is_in(infohash,metadata,filename)
             
             
             # BarterCast: add bytes of torrent to BarterCastDB
             # Save exchanged KBs in BarterCastDB
-            if permid != None and BARTERCAST_TORRENTS:
+            if permid is not None and BARTERCAST_TORRENTS:
                 self.overlay_bridge.add_task(lambda:self.olthread_bartercast_torrentexchange(permid, 'downloaded'), 0)
                 
                 
@@ -543,10 +544,10 @@ class MetadataHandler:
         if not self.registered:
             return 0
         try:
-            freespace = getfreespace(self.config_dir)
+            freespace = getfreespace(self.torrent_dir)
             return freespace
         except:
-            print >> sys.stderr, "meta: cannot get free space of", self.config_dir
+            print >> sys.stderr, "meta: cannot get free space of", self.torrent_dir
             print_exc()
             return 0
 

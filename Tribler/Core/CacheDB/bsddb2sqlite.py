@@ -340,6 +340,8 @@ class Bsddb2Sqlite:
             if data['progress'] > 0:
                 self.progress[infohash] = data['progress']
 
+            #print >>sys.stderr,"bsddb2sqlite: _addTorrentToDB:",data['name'], data['torrent_name']
+
             sql_insert_torrent = """
             INSERT INTO Torrent 
             (infohash, name, torrent_file_name,

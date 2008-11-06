@@ -524,7 +524,7 @@ class DownloadImpl:
                 (mimetype,encoding) = mimetypes.guess_type(file)
                 
                 if DEBUG:
-                    print >>sys.stderr,"DownloadImpl: /etc/mimetypes+ said MIME type is",mimetype
+                    print >>sys.stderr,"DownloadImpl: /etc/mimetypes+ said MIME type is",mimetype,file
             except:
                 print_exc()
 

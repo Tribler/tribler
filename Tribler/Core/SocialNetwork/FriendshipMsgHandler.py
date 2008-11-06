@@ -157,7 +157,7 @@ class FriendshipMsgHandler:
                 send_callback = lambda exc,permid:self.fmsg_send_callback(exc,permid,msgid)
                 
                 if DEBUG:
-                    print >>sys.stderr,"friendship: fmsg_connect_callback: Sending",`msg`
+                    print >>sys.stderr,"friendship: fmsg_connect_callback: Sending",`msg`,msgid
                 
                 mypermid = self.session.get_permid()
                 
@@ -177,7 +177,7 @@ class FriendshipMsgHandler:
                 no_of_attempts = 0
                 if permid in self.currmsgs:
                     msgid2rec = self.currmsgs[permid]
-                    for msgid in msgid2rec:
+                    if msgid in msgid2rec:
                         msgrec = msgid2rec[msgid]
                         no_of_attempts = msgrec['attempt']
                 
@@ -197,7 +197,10 @@ class FriendshipMsgHandler:
         else:
             if DEBUG:
                 peer = self.peerdb.getPeer(permid)
-                print >>sys.stderr, 'friendship: Could not connect to peer', show_permid_short(permid),peer['name']
+                if peer is None:
+                    print >>sys.stderr, 'friendship: Could not connect to peer', show_permid_short(permid),peer
+                else:
+                    print >>sys.stderr, 'friendship: Could not connect to peer', show_permid_short(permid),peer['name']
                 print >>sys.stderr,exc
             
             mypermid = self.session.get_permid()
@@ -589,7 +592,8 @@ class FriendshipMsgHandler:
             msgid2rec = self.currmsgs[permid]
             del msgid2rec[msgid]
         except:
-            print_exc()
+            #print_exc()
+            pass
 
     def set_msg_forwarded(self,permid,msgid):
         try: 
@@ -617,9 +621,12 @@ class FriendshipMsgHandler:
                     if eta is not None:
                         diff = eta - now
                         
-                    peer = self.peerdb.getPeer(permid)
                     if DEBUG:
-                        print >>sys.stderr,"friendship: reschedule: ETA",show_permid_short(permid),peer['name'],diff
+                        peer = self.peerdb.getPeer(permid)
+                        if peer is None:
+                            print >>sys.stderr,"friendship: reschedule: ETA: wtf, peer not in DB!",show_permid_short(permid)
+                        else:
+                            print >>sys.stderr,"friendship: reschedule: ETA",show_permid_short(permid),peer['name'],diff
                 
                 if eta is None: 
                     delmsgids.append((permid,msgid))
@@ -674,12 +681,12 @@ class FriendshipMsgHandler:
             permids = [targetpermid] 
         
         for permid in permids:
-            msgid2rec = self.currmsgs.get(permid,[])
+            msgid2rec = self.currmsgs.get(permid,{})
             for msgid in msgid2rec:
                 msgrec = msgid2rec[msgid]
                 
                 if DEBUG:
-                    print >>sys.stderr,"friendship: get_msgs: Creating",msgrec['type'],`msgrec['params']`
+                    print >>sys.stderr,"friendship: get_msgs: Creating",msgrec['type'],`msgrec['params']`,msgid
                 if msgrec['type'] == F_FORWARD_MSG:
                     msg = msgrec['params']
                 else:
@@ -698,7 +705,7 @@ class FriendshipMsgHandler:
             permids = [targetpermid] 
         
         for permid in permids:
-            msgid2rec = msgid2rec = self.currmsgs.get(permid,[])
+            msgid2rec = self.currmsgs.get(permid,{})
             for msgid in msgid2rec:
                 if targetmsgid is None or msgid == targetmsgid:
                     msgrec = msgid2rec[msgid]

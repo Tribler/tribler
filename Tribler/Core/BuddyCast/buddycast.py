@@ -177,6 +177,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from similarity import P2PSim, P2PSimSorted, P2PSimLM
 from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollecting
 from Tribler.Core.Statistics.Logger import OverlayLogger
+from Tribler.Core.Statistics.Crawler import Crawler
 
 from threading import Event, currentThread
 
@@ -516,6 +517,10 @@ class BuddyCastCore:
         # Bartercast
         self.bartercast_core = bartercast_core
         #self.bartercast_core.buddycast_core = self    
+
+        # Crawler
+        crawler = Crawler.get_instance()
+        self.crawler = crawler.am_crawler()
         
         if self.superpeer:
             from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
@@ -690,13 +695,23 @@ class BuddyCastCore:
         """ Close expired connections, and extend the expiration of 
             peers in connection lists
         """
-        
+
+        timeout_list = []
         for peer_permid in self.connections:
             # we don't close connection here, because if no incoming msg,
             # sockethandler will close connection in 5-6 min.
             
             if (peer_permid in self.connected_connectable_peers or \
                  peer_permid in self.connected_unconnectable_peers):   
+                timeout_list.append(peer_permid)
+
+        if self.crawler:
+            # since we are crawling, we are not interested in
+            # retaining connections for a long time.
+            for peer_permid in timeout_list:
+                self.closeConnection(peer_permid, "a crawler does not retain connections for long")
+        else:
+            for peer_permid in timeout_list:
                 self.sendKeepAliveMsg(peer_permid)
                 
     def sendKeepAliveMsg(self, peer_permid):
@@ -728,7 +743,13 @@ class BuddyCastCore:
     def gotKeepAliveMessage(self, peer_permid):
         if self.isConnected(peer_permid):
             if debug:
-                print "bc: Got keep alive from", self.get_peer_info(peer_permid)
+                print >> sys.stderr, "bc: Got keep alive from", self.get_peer_info(peer_permid)
+            if self.crawler:
+                # since we are crawling, we are not interested in
+                # retaining connections for a long time.
+                if debug:
+                    print >> sys.stderr, "bc: Got keep alive from", self.get_peer_info(peer_permid), "closing connection because we are a crawler"
+                return False
             return True
         else:
             if DEBUG:

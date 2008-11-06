@@ -428,15 +428,18 @@ class Crawler:
         established for a long time
         """
         now = time.time()
+        to_remove_permids = []
         for permid in self._channels:
-            to_remove = []
+            to_remove_channel_ids = []
             for channel_id, (deadline, buffer_) in self._channels[permid].iteritems():
                 if now > deadline:
-                    to_remove.append(channel_id)
-            for channel_id in to_remove:
+                    to_remove_channel_ids.append(channel_id)
+            for channel_id in to_remove_channel_ids:
                 del self._channels[permid][channel_id]
             if not self._channels[permid]:
-                del self._channels[permid]
+                to_remove_permids.append(permid)
+        for permid in to_remove_permids:
+            del self._channels[permid]
 
         # resubmit
         self._overlay_bridge.add_task(self._check_channels, 60)

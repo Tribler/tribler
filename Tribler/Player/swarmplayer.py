@@ -1,6 +1,20 @@
 # Written by Arno Bakker, Choopan RATTANAPOKA, Jie Yang
 # see LICENSE.txt for license information
 #
+# TODO: set 'download_slice_size' to 32K, such that pieces are no longer
+# downloaded in 2 chunks. This particularly avoids a bad case where you
+# kick the source: you download chunk 1 of piece X
+# from lagging peer and download chunk 2 of piece X from source. With the piece
+# now complete you check the sig. As the first part of the piece is old, this
+# fails and we kick the peer that gave us the completing chunk, which is the 
+# source.
+#
+# Note that the BT spec says: 
+# "All current implementations use 2 15 , and close connections which request 
+# an amount greater than 2 17." http://www.bittorrent.org/beps/bep_0003.html
+#
+# So it should be 32KB already. However, the BitTorrent (3.4.1, 5.0.9), 
+# BitTornado and Azureus all use 2 ** 14 = 16KB chunks.
 
 import os
 import sys

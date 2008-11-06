@@ -18,6 +18,7 @@ import socket
 import threading
 import base64
 from random import randint
+from sets import Set
 
 from maxflow import Network
 from math import atan, pi
@@ -31,7 +32,7 @@ MAXFLOW_DISTANCE = 2
 ALPHA = float(1)/30000
 
 DEBUG = False
-SHOW_ERROR = True
+SHOW_ERROR = False
 
 def show_permid_shorter(permid):
     if not permid:
@@ -1808,15 +1809,15 @@ class BarterCastDBHandler(BasicDBHandler):
         else:
             item = None
         
-        if item and len(item) == 2 and item[0] != None and item[1] != None:
+        if item != None and len(item) == 2 and item[0] != None and item[1] != None:
             self.total_up = int(item[0])
             self.total_down = int(item[1])
         else:
             self.total_up = 0
             self.total_down = 0
             
-        if DEBUG:
-            print >> sys.stderr, "My reputation: ", self.getMyReputation()
+#         if DEBUG:
+#             print >> sys.stderr, "My reputation: ", self.getMyReputation()
             
     
     def getTotals(self):
@@ -2027,62 +2028,81 @@ class BarterCastDBHandler(BasicDBHandler):
             item = {'uploaded': ul, 'downloaded':dl}
             self._db.update(self.table_name, where = where, commit=commit, **item)            
 
-
-
     def getPeerIDPairs(self):
-        
         keys = self.getAll(('peer_id_from','peer_id_to'))
         return keys
-
-    # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
+        
     def getTopNPeers(self, n, local_only = False):
-        """ getTopNPeers that uses peer_ids in calculation
+        """
+        Return (sorted) list of the top N peers with the highest (combined) 
+        values for the given keys. This version uses batched reads and peer_ids
+        in calculation
         @return a dict containing a 'top' key with a list of (permid,up,down) 
         tuples, a 'total_up', 'total_down', 'tribler_up', 'tribler_down' field. 
         Sizes are in kilobytes.
         """
-        if DEBUG:
+        
+        # TODO: this won't scale to many interactions, as the size of the DB
+        # is NxN
+        
+        if not DEBUG:
             print >> sys.stderr, "bartercastdb: getTopNPeers: local = ", local_only
+            #print_stack()
         
         n = max(1, n)
-        keys = self.getPeerIDPairs()
-        
         my_peer_id = self.getPeerID(self.my_permid)
-        if local_only:
-            # get only items of my local dealings
-            keys = filter(lambda (peer_id_from, peer_id_to): peer_id_to == my_peer_id or peer_id_from == my_peer_id, keys)
-
         total_up = {}
         total_down = {}
+        # Arno, 2008-10-30: I speculate this is to count transfers only once,
+        # i.e. the DB stored (a,b) and (b,a) and we want to count just one.
+        
+        processed =  Set()
+        
 
-        processed = []
-
-        for (peer_id_from, peer_id_to) in keys:
+        value_name = '*'
+        increment = 500
+        
+        nrecs = self.size()
+        #print >>sys.stderr,"NEXTtopN: size is",nrecs
+        
+        for offset in range(0,nrecs,increment):
+            if offset+increment > nrecs:
+                limit = nrecs-offset
+            else:
+                limit = increment
+            #print >>sys.stderr,"NEXTtopN: get",offset,limit
+        
+            reslist = self.getAll(value_name, offset=offset, limit=limit)
+            #print >>sys.stderr,"NEXTtopN: res len is",len(reslist),`reslist`
+            for res in reslist:
+                (peer_id_from,peer_id_to,downloaded,uploaded,last_seen,value) = res
             
-            if (not (peer_id_to, peer_id_from) in processed) and (not peer_id_to == peer_id_from):
-
-                item = self.getItemByIDs((peer_id_from, peer_id_to))
-                
-                if item is not None:
-
-                    up = item['uploaded'] *1024 # make into bytes
-                    down = item['downloaded'] *1024
-
+                if local_only:
+                    if not (peer_id_to == my_peer_id or peer_id_from == my_peer_id):
+                        # get only items of my local dealings
+                        continue
+                        
+                if (not (peer_id_to, peer_id_from) in processed) and (not peer_id_to == peer_id_from):
+                #if (not peer_id_to == peer_id_from):
+        
+                    up = uploaded *1024 # make into bytes
+                    down = downloaded *1024
+    
                     if DEBUG:
-                        print >> sys.stderr, "bartercastdb: NUgetTopNPeers: DB entry: (%s, %s) up = %d down = %d" % (self.getNameByID(peer_id_from), self.getNameByID(peer_id_to), up, down)
-
-                    processed.append((peer_id_from, peer_id_to))
-
+                        print >> sys.stderr, "bartercastdb: getTopNPeers: DB entry: (%s, %s) up = %d down = %d" % (self.getNameByID(peer_id_from), self.getNameByID(peer_id_to), up, down)
+    
+                    processed.add((peer_id_from, peer_id_to))
+    
                     # fix for multiple my_permids
                     if peer_id_from == -1: # 'non-tribler':
                         peer_id_to = my_peer_id
                     if peer_id_to == -1: # 'non-tribler':
                         peer_id_from = my_peer_id
-
+    
                     # process peer_id_from
                     total_up[peer_id_from] = total_up.get(peer_id_from, 0) + up
                     total_down[peer_id_from] = total_down.get(peer_id_from, 0) + down
-
+    
                     # process peer_id_to
                     total_up[peer_id_to] = total_up.get(peer_id_to, 0) + down
                     total_down[peer_id_to] = total_down.get(peer_id_to, 0) +  up
@@ -2098,7 +2118,7 @@ class BarterCastDBHandler(BasicDBHandler):
             down = total_down[peer_id]
 
             if DEBUG:
-                print >> sys.stderr, "bartercastdb: NUgetTopNPeers: total of %s: up = %d down = %d" % (self.getName(peer_id), up, down)
+                print >> sys.stderr, "bartercastdb: getTopNPeers: total of %s: up = %d down = %d" % (self.getName(peer_id), up, down)
 
             # we know rank on total upload?
             value = up
@@ -2213,8 +2233,6 @@ class BarterCastDBHandler(BasicDBHandler):
         rep = atan((self.total_up - self.total_down) * alpha)/(0.5 * pi)
         return rep   
 
-
-            
 
 class GUIDBHandler:
     """ All the functions of this class are only (or mostly) used by GUI.

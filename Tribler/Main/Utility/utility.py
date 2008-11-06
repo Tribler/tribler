@@ -90,7 +90,7 @@ class Utility:
         else:
             self.regchecker = None
             
-        self.lastdir = { "save" : self.config.Read('defaultfolder'), 
+        self.lastdir = { "save" : "", 
                          "open" : "", 
                          "log": "" }
 
@@ -167,6 +167,16 @@ class Utility:
             'prefwindow_width': '720', 
             'prefwindow_height': '480', 
             'prefwindow_split': '150', 
+            't4t_option': 0, # Seeding items added by Boxun
+            't4t_hours': 0,
+            't4t_mins': 30,
+            'g2g_option': 1,
+            'g2g_ratio': 75,
+            'g2g_hours': 0,
+            'g2g_mins': 30,
+            'family-filter': 1,
+            'window_x': 0,
+            'window_y': 0,
         }
 
         if sys.platform == 'win32':

@@ -27,6 +27,7 @@ So make sure you have
 	M2Crypto >= 0.16
         pywin32 >= Build 208 (Windows only, for e.g. UPnP support)
 	vlc >= 0.8.6a and its python bindings (for internal video player)
+        python-apsw >= 3.6.x
 
 Note that Tribler only works with wxPython UNICODE, not ANSI. With small
 adjustments it probably also works with wxPython 2.6.  Python 2.4 is prefered,

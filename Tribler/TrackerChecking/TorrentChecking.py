@@ -107,7 +107,8 @@ class TorrentChecking(Thread):
                 return
     
             if self.infohash is None and torrent['ignored_times'] > 0:
-                print >> sys.stderr, 'Torrent_checking: torrent: %s' % torrent
+                if DEBUG:
+                    print >> sys.stderr, 'Torrent_checking: torrent: %s' % torrent
                 kw = { 'ignored_times': torrent['ignored_times']-1 }
                 if self.db_thread:
                     self.db_thread.add_task(lambda:

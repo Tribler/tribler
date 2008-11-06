@@ -237,7 +237,11 @@ class GUIUtility:
         
     def standardProfileOverview(self):
         profileList = []
+        panel = self.standardOverview.data['profileMode'].get('panel',None)
+        if panel is not None:
+            panel.seldomReloadData()
         self.standardOverview.setMode('profileMode')
+        self.standardDetails.seldomReloadData()
         self.standardDetails.setMode('profileMode')
         
     def standardLibraryOverview(self):       

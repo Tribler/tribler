@@ -156,6 +156,7 @@ class GenericSearch(db.ThreadedDBSearch):
         
         item['url'] = src
         item['views'] = 'unknown'
+        
         if self.get('RE_VIEWS'):
             views = re.findall(self.get('RE_VIEWS'), itempage)
             if views:    
@@ -164,7 +165,10 @@ class GenericSearch(db.ThreadedDBSearch):
         if self.get('RE_DATE'):
             date = re.findall(self.get('RE_DATE'), itempage, re.S)
             if date:
-                item['info'] = { 'creation date' : GenericDateParser(date[0], self) }
+                d = GenericDateParser(date[0], self)
+                if d is None:
+                    d = date[0]
+                item['info'] = { 'creation date' : d }
                 item['date'] = item['info']['creation date']
                 
         item['status'] = 'good'

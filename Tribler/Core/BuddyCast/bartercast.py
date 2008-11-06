@@ -1,6 +1,6 @@
 # Written by Michel Meulpolder
 # see LICENSE.txt for license information
-import sys
+import sys, os
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Statistics.Logger import OverlayLogger
@@ -11,13 +11,16 @@ from traceback import print_exc, print_stack
 from types import StringType, ListType, DictType
 from time import time, gmtime, strftime, ctime
 
+from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIFTH
 
 
 MAX_BARTERCAST_LENGTH = 10 * 1024 * 1024 # TODO: give this length a reasonable value
 NO_PEERS_IN_MSG = 10
+REFRESH_TOPN_INTERVAL = 30 * 60
 
 DEBUG = False
+LOG = False
 
 def now():
     return int(time())
@@ -25,7 +28,7 @@ def now():
 class BarterCastCore:
 
     ################################
-    def __init__(self, data_handler, secure_overlay, log = '', dnsindb = None):
+    def __init__(self, data_handler, overlay_bridge, log = '', dnsindb = None):
     
         if DEBUG:
             print >> sys.stderr, "=================Initializing bartercast core"
@@ -33,16 +36,32 @@ class BarterCastCore:
         self.data_handler = data_handler
         self.dnsindb = dnsindb
         self.log = log
-        self.secure_overlay = secure_overlay
+        self.overlay_bridge = overlay_bridge
         self.bartercastdb = BarterCastDBHandler.getInstance()
         
         self.network_delay = 30
         self.send_block_list = {}
         self.recv_block_list = {}
         self.block_interval = 1*60*60   # block interval for a peer to barter   cast
+
+        self.topn = self.bartercastdb.getTopNPeers(NO_PEERS_IN_MSG, local_only = True)['top']
+        self.overlay_bridge.add_task(self.refreshTopN, REFRESH_TOPN_INTERVAL)
         
         if self.log:
             self.overlay_log = OverlayLogger(self.log)
+            
+        if LOG:
+            self.logfile = '/Users/michel/packages/bartercast_dataset/bartercast42.log'
+            if not os.path.exists(self.logfile):
+                log = open(self.logfile, 'w')
+                log.close()
+
+
+    ################################
+    def refreshTopN(self):
+
+        self.topn = self.bartercastdb.getTopNPeers(NO_PEERS_IN_MSG, local_only = True)['top']
+        self.overlay_bridge.add_task(self.refreshTopN, REFRESH_TOPN_INTERVAL)
 
 
 
@@ -59,7 +78,10 @@ class BarterCastCore:
 
         # create a new bartercast message
         bartercast_data = self.createBarterCastMessage(target_permid)
-
+        
+        if LOG:
+            self.logMsg(bartercast_data, target_permid, 'out', logfile = self.logfile)
+        
         try:
             bartercast_msg = bencode(bartercast_data)
         except:
@@ -68,7 +90,7 @@ class BarterCastCore:
             return
             
         # send the message    
-        self.secure_overlay.send(target_permid, BARTERCAST+bartercast_msg, self.bartercastSendCallback)
+        self.overlay_bridge.send(target_permid, BARTERCAST+bartercast_msg, self.bartercastSendCallback)
 
         self.blockPeer(target_permid, self.send_block_list, self.block_interval)
         
@@ -79,10 +101,10 @@ class BarterCastCore:
         """ Create a bartercast message """
 
         my_permid = self.bartercastdb.my_permid
-        local_top = self.bartercastdb.getTopNPeers(NO_PEERS_IN_MSG, local_only = True)['top']
+        local_top = self.topn
         top_peers = map(lambda (permid, up, down): permid, local_top)
         data = {}
-        totals = self.bartercastdb.getTotals()
+        totals = self.bartercastdb.getTotals()  # (total_up, total_down)
         
         for permid in top_peers:
             
@@ -140,6 +162,9 @@ class BarterCastCore:
         except RuntimeError, msg:
             print >> sys.stderr, msg
             return False
+            
+        if LOG:
+            self.logMsg(bartercast_data, sender_permid, 'in', logfile = self.logfile)
        
         data = bartercast_data['data']
 
@@ -274,3 +299,55 @@ class BarterCastCore:
         
         if DEBUG:
             print >>sys.stderr,'bartercast: %s Blocked peer %s'% (ctime(now()), self.bartercastdb.getName(peer_permid))
+
+
+    ################################
+    def logMsg(self, msg_data, msg_permid, in_or_out, logfile):
+        
+        if in_or_out == 'in':
+            permid_from = permid_for_user(msg_permid) 
+        
+        elif in_or_out == 'out':
+            permid_from = 'LOCAL'
+            
+        else:
+            return
+            
+        timestamp = now()
+            
+        log = open(logfile, 'a')
+        string = '%.1f %s %s' % (timestamp, in_or_out, permid_for_user(msg_permid))
+        log.write(string + '\n')
+        print >> sys.stderr, string
+        
+        data = msg_data.get('data', [])
+        
+        for permid in data:
+            u = data[permid]['u']
+            d = data[permid]['d']
+            
+            string = '%.1f %s %s %d %d' % (timestamp, permid_from, permid_for_user(permid), u, d)
+            log.write(string + '\n')
+            print >> sys.stderr, string
+            
+        totals = msg_data.get('totals', None)
+
+        if totals != None:
+            (u, d) = totals
+            
+            string = '%.1f TOT %s %d %d' % (timestamp, permid_from, u, d)
+            log.write(string + '\n')
+            print >> sys.stderr, string
+            
+            
+        log.close()
+        
+        
+                
+        
+        
+        
+    
+    
+    
+            

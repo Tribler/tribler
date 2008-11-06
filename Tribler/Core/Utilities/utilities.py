@@ -495,7 +495,8 @@ def hostname_or_ip2ip(hostname_or_ip):
         try:
             # dns-lookup for hostname_or_ip into an ip address
             ip = socket.gethostbyname(hostname_or_ip)
-            print >>sys.stderr,"hostname_or_ip2ip: resolved ip from hostname, an ip should have been provided", hostname_or_ip
+            if not hostname_or_ip.startswith("superpeer"):
+                print >>sys.stderr,"hostname_or_ip2ip: resolved ip from hostname, an ip should have been provided", hostname_or_ip
 
         except:
             print >>sys.stderr,"hostname_or_ip2ip: invalid hostname", hostname_or_ip

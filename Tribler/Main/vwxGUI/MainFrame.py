@@ -509,14 +509,19 @@ class MainFrame(wx.Frame):
     ##################################
                
     def OnCloseWindow(self, event = None):
+        found = False
         if event != None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
-            if nr in lookup: nr = lookup[nr]
-            print "main: Closing due to event ",nr
-            print >>sys.stderr,"main: Closing due to event ",nr
+            if nr in lookup: 
+                nr = lookup[nr]
+                found = True
+                
+            print "mainframe: Closing due to event ",nr,`event`
+            print >>sys.stderr,"mainframe: Closing due to event ",nr,`event`
         else:
-            print "main: Closing untriggered by event"
+            print "mainframe: Closing untriggered by event"
+        
         
         # Don't do anything if the event gets called twice for some reason
         if self.utility.abcquitting:
@@ -534,16 +539,13 @@ class MainFrame(wx.Frame):
                         event.Veto()
                         return
             except:
-                data = StringIO()
-                print_exc(file = data)
-                sys.stderr.write(data.getvalue())
-                pass
+                print_exc()
             
         self.utility.abcquitting = True
         self.GUIupdate = False
         
         self.guiUtility.guiOpen.clear()
-        
+
         try:
             # Restore the window before saving size and position
             # (Otherwise we'll get the size of the taskbar button and a negative position)
@@ -561,7 +563,7 @@ class MainFrame(wx.Frame):
                 self.videoFrame.Destroy()
         except:
             pass
-
+        
         try:
             if self.tbicon is not None:
                 self.tbicon.RemoveIcon()
@@ -570,16 +572,19 @@ class MainFrame(wx.Frame):
         except:
             print_exc()
 
-        #tribler_done(self.utility.getConfigPath())            
-        
         if DEBUG:    
-            print >>sys.stderr,"main: OnCloseWindow END"
+            print >>sys.stderr,"mainframe: OnCloseWindow END"
 
         if DEBUG:
             ts = enumerate()
             for t in ts:
-                print >>sys.stderr,"main: Thread still running",t.getName(),"daemon",t.isDaemon()
+                print >>sys.stderr,"mainframe: Thread still running",t.getName(),"daemon",t.isDaemon()
 
+        if not found:
+            # On Linux with wx 2.8.7.1 this method gets sometimes called with
+            # a CommandEvent instead of EVT_CLOSE, wx.EVT_QUERY_END_SESSION or
+            # wx.EVT_END_SESSION
+            self.quit()
 
 
     def onWarning(self,exc):

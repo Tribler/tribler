@@ -7,8 +7,8 @@ from traceback import print_exc
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_FRIENDSHIP_STATS
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import SQLiteCacheDB
 from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 DEBUG = False
 
@@ -108,6 +108,7 @@ class FriendshipCrawler:
             for stat in stats:
                 if len(stat) == 7:
                     stat.append(0)
+                stat.append(bin2str(permid))
 
             self.friendshipStatistics_db.saveFriendshipStatisticData(stats)
     

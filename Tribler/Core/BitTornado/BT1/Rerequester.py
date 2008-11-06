@@ -306,7 +306,7 @@ class Rerequester:
             try:
                 if DEBUG:
                     print >>sys.stderr,"Rerequest tracker:"
-                    print t+s
+                    print >>sys.stderr,t+s
                 h = urlopen(t+s)
                 closer[0] = h.close
                 data = h.read()

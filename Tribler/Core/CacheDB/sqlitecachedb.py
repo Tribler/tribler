@@ -226,7 +226,7 @@ class SQLiteCacheDBBase:
     def createDBTable(self, sql_create_table, dbfile_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
         """ 
         Create a SQLite database.
-        @sql_create_tables The sql statements to create tables in the database. 
+        @sql_create_table  The sql statements to create tables in the database. 
                            Every statement must end with a ';'.
         @dbfile_path       The path to store the database file. Set dbfile_path=':memory:' to creates a db in memory.
         @busytimeout       Set the maximum time, in milliseconds, that SQLite will wait if the database is locked.
@@ -381,6 +381,7 @@ class SQLiteCacheDBBase:
 
     def _execute(self, sql, args=None):
         cur = self.getCursor()
+
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'

@@ -68,16 +68,16 @@ class VideoPlayer:
             from Tribler.Video.VLCWrapper import VLCWrapper
             self.vlcwrap = VLCWrapper(self.utility.getPath())
             self.supportedvodevents = [VODEVENT_START,VODEVENT_PAUSE,VODEVENT_RESUME]
+        else:
+            self.vlcwrap = None
+            # Can't pause when external player
+            self.supportedvodevents = [VODEVENT_START]
             
         if self.playbackmode != PLAYBACKMODE_INTERNAL or not USE_VLC_RAW_INTERFACE:
             # Start HTTP server for serving video to external player
             self.videohttpserv = VideoHTTPServer.getInstance(self.videohttpservport) # create
             self.videohttpserv.background_serve()
             self.videohttpserv.register(self.videohttpserver_error_callback,self.videohttpserver_set_status_callback)
-            
-            self.vlcwrap = None
-            # Can't pause when external player
-            self.supportedvodevents = [VODEVENT_START]
             
         if closeextplayercallback is not None:
             self.closeextplayercallback = closeextplayercallback

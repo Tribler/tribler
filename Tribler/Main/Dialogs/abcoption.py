@@ -1088,7 +1088,7 @@ class TriblerPanel(ABCOptionPanel):
         tcsection.Add(npeers_box, 0, wx.EXPAND|wx.ALL, 5)
         
         tc_threshold_box = wx.BoxSizer(wx.HORIZONTAL)    # set the min space to stop torrent collecting
-        self.tc_threshold = self.utility.makeNumCtrl(self, 200, min = 1, max = 999999)
+        self.tc_threshold = self.utility.makeNumCtrl(self, 200, min = 0, max = 999999)
         tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('tc_threshold')), 0, wx.ALIGN_CENTER_VERTICAL)
         tc_threshold_box.Add(self.tc_threshold, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')), 0, wx.ALIGN_CENTER_VERTICAL)

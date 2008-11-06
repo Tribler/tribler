@@ -25,6 +25,7 @@ class ProgressIcon(wx.Panel):
 #        check if bitmaps list field was created
         if self.__dict__['bitmapsList'] is None:
             self.bitmapsList = []
+        self.index = 0
         self.backgroundColor = wx.Colour(102,102,102)
         pre = wx.PrePanel()
         # the Create step is done by XRC.

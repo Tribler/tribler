@@ -12,7 +12,8 @@ CREATE TABLE FriendshipStatistics (
   response_time        numeric,
   no_of_attempts       integer DEFAULT 0,
   no_of_helpers		   integer DEFAULT 0,
-  modified_on		   numeric
+  modified_on		   numeric,
+  crawled_permid       text NOT NULL
 );
 
 ----------------------------------------

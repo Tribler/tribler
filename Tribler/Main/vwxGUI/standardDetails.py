@@ -54,6 +54,10 @@ class standardDetails(wx.Panel):
     Wrappers around details xrc panels
     """
     def __init__(self, *args):
+        
+        self.bartercastdb = None
+        self.top_stats = None
+        
         if len(args) == 0:
             pre = wx.PrePanel()
             # the Create step is done by XRC.
@@ -92,6 +96,9 @@ class standardDetails(wx.Panel):
             self.lastItemSelected[mode] = None
         self.currentPanel = None
         self.videoplayer = VideoPlayer.getInstance()
+        self.addasfriendcount = 0
+        self.addasfriendlast = 0
+        
         self.addComponents()
         
         #self.Refresh()
@@ -492,6 +499,8 @@ class standardDetails(wx.Panel):
                                 if s != '':
                                     if s == 'BC':
                                         s = 'Received from other user'
+                                    elif s == 'RQ':
+                                        s = 'Query result from other user'
                                     descrtxt = "Source: "+s
 
                                 flag = True
@@ -504,6 +513,9 @@ class standardDetails(wx.Panel):
                         s = torrent['source']
                         if s == 'BC':
                             s = 'Received from other user'
+                        elif s == 'RQ':
+                            s = 'Query result from other user'
+
                         descrtxt = "Source: "+s
 
                 descriptionField.SetLabel(descrtxt)
@@ -1591,10 +1603,10 @@ class standardDetails(wx.Panel):
 
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
         if DEBUG:
-	        print >> sys.stderr, 'standardDetails: got torrent to download', 'torrent_file_name' in torrent, torrent
+	        print >> sys.stderr, 'standardDetails: got torrent to download', 'torrent_file_name' in torrent, torrent_dir, torrent['torrent_file_name'] 
 	        
         if 'torrent_file_name' not in torrent:
-            filename = get_filename(torrent['infohash']) 
+            torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
 
         if torrent.get('name'):
@@ -1650,6 +1662,7 @@ class standardDetails(wx.Panel):
         torrent = {}
         torrent['torrent_file_name'] = filename
         torrent['infohash'] = infohash
+        self.setBelongsToMyDowloadHistory(torrent, True)
         
         wx.CallAfter(self.download,torrent)
 
@@ -1684,6 +1697,18 @@ class standardDetails(wx.Panel):
         if self.mode in ["personsMode","friendsMode"]:
             peer_data = self.item
             if peer_data is not None and peer_data.get('permid'):
+                
+                self.addasfriendcount += 1
+                now = time()
+                diff = now - self.addasfriendlast 
+                if self.addasfriendcount >= 2 and diff < 1.0:
+                    print >>sys.stderr,"standardDetails: addAsFriend: ratelimiter!"
+                    return
+                if diff > 10.0:
+                    self.addasfriendcount = 0 
+                
+                print >>sys.stderr,"standardDetails: addAsFriend: stats",self.addasfriendcount,diff
+                
                 #self.friend_db.toggleFriend(peer_data['permid'])
                 fs = peer_data['friend'] 
                 if fs == FS_NOFRIEND or fs == FS_I_DENIED or fs == FS_HE_DENIED:
@@ -1695,7 +1720,7 @@ class standardDetails(wx.Panel):
                 elif fs == FS_HE_INVITED:
                     # Confirm friendship
                     self.utility.session.send_friendship_message(peer_data['permid'],F_RESPONSE_MSG,approved=True)
-                    
+                self.addasfriendlast = time()
                 
 
     def refreshUploadStats(self, dslist):
@@ -1879,10 +1904,14 @@ class standardDetails(wx.Panel):
             print 'StandardDetails: setting size of stand.details to: %s' % str(size)
             
     def topNListText(self, tab):
-        if not self.bartercastdb:
-            self.bartercastdb = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
         
-        top_stats = self.bartercastdb.getTopNPeers(10)
+        #print >>sys.stderr,"standardDetails: topNListText ^^^^^^^^^"
+        
+        if self.top_stats is None:
+            return
+        
+        top_stats = self.top_stats
+        
         top = top_stats['top']
         #total_up = top_stats['total_up']
         #total_down = top_stats['total_down']
@@ -1909,6 +1938,18 @@ class standardDetails(wx.Panel):
         self.getGuiObj('downloadedNumberT', tab = tab).SetLabel(self.utility.size_format(tribler_down))
         self.getGuiObj('uploadedNumberT', tab = tab).SetLabel(self.utility.size_format(tribler_up))
 
+
+    def seldomReloadData(self):
+        # Arno: this involves reading a potentially huge db, do only on
+        # clicks that show overview panel.
+        
+        #print >>sys.stderr,"standardDetails: seldomReloadData!!!!!!!!"
+        
+        if not self.bartercastdb:
+            self.bartercastdb = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+        
+        self.top_stats = self.bartercastdb.getTopNPeers(10)
+        
 
     def updateCallback(self, item):
         "Update callback handling for this item"

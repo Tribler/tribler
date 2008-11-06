@@ -21,6 +21,8 @@ class FriendshipManager:
         self.iconpath = iconpath
         self.iconsManager = IconsManager.getInstance()
 
+        self.permids = []
+
         self.session.set_friendship_callback(self.sesscb_friendship_callback)
     
     def sesscb_friendship_callback(self,permid,params):
@@ -35,6 +37,12 @@ class FriendshipManager:
         wx.CallAfter(self.gui_friendship_callback,permid,peer,icon)
         
     def gui_friendship_callback(self,permid,peer,icon):
+        
+        if permid in self.permids:
+            return
+        else:
+            self.permids.append(permid)
+        
         if peer['name'] is None or peer['name'] == "":
             name = show_permid_short(permid)
         else:
@@ -51,6 +59,8 @@ class FriendshipManager:
         dial = FriendRequestDialog(None,self.utility,self.iconpath,name,bm)
         returnValue = dial.ShowModal()
         #print >>sys.stderr,"fm: displayReq: RETURN",returnValue
+        
+        self.permids.remove(permid)
         if returnValue != wx.ID_CANCEL:
             approved = returnValue == wx.ID_YES
             # Send our response 
