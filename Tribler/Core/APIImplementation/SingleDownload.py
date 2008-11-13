@@ -28,7 +28,7 @@ DEBUG = False
 class SingleDownload:
     """ This class is accessed solely by the network thread """
     
-    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate,lmvodeventcallback):
+    def __init__(self,infohash,metainfo,kvconfig,multihandler,get_extip_func,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate,lmvodeventcallback):
         
         self.dow = None
         self.set_error_func = set_error_func
@@ -63,6 +63,7 @@ class SingleDownload:
                             infohash,
                             self.peerid,
                             self.dlrawserver,
+                            get_extip_func,
                             listenport,
                             videoanalyserpath
                             )

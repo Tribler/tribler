@@ -1,8 +1,10 @@
+
+
 # Written by Bram Cohen, Pawel Garbacki and Arno Bakker
 # see LICENSE.txt for license information
 
 import time
-import traceback,sys
+import sys
 from sha import sha
 from types import DictType,IntType,LongType,ListType,StringType
 from random import shuffle
@@ -20,11 +22,10 @@ from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 
 from MessageID import *
 
-# 2fastbt_
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, BarterCastDBHandler
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Core.DecentralizedTracking.ut_pex import *
-# _2fastbt
+from Tribler.Core.BitTornado.BT1.track import compact_ip,decompact_ip
 
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 
@@ -130,6 +131,8 @@ class Connection:
         self.total_uploaded = 0
         
         self.ut_pex_first_flag = True # first time we sent a ut_pex to this peer?
+        
+        self.na_candidate_ext_ip = None 
 
 
     def get_myip(self, real=False):
@@ -294,7 +297,7 @@ class Connection:
             self.just_unchoked = 0
 
     #
-    # ut_pex support
+    # Extension protocol support
     #
     def supports_extend_msg(self,msg_name):
         if 'm' in self.extend_hs_dict:
@@ -362,6 +365,23 @@ class Connection:
             if key in d:
                 self.extend_hs_dict[key] = d[key]
 
+        #print >>sys.stderr,"connecter: got_extend_hs: keys",d.keys()
+
+        # If he tells us our IP, record this and see if we get a majority vote on it
+        if 'yourip' in d:
+            try:
+                yourip = decompact_ip(d['yourip'])
+                from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+                dmh = DialbackMsgHandler.getInstance()
+                dmh.network_btengine_extend_yourip(yourip)
+                
+                if 'same_nat_try_internal' in self.connecter.config and self.connecter.config['same_nat_try_internal']:
+                    if 'ipv4' in d:
+                        self.na_check_for_same_nat(yourip)
+            except:
+                print_exc()
+
+
     def his_extend_msg_name_to_id(self,ext_name):
         """ returns the message id (byte) for the given message name or None """
         val = self.extend_hs_dict['m'].get(ext_name)
@@ -370,6 +390,44 @@ class Connection:
         else:
             return chr(val)
 
+    def get_extend_encryption(self):
+        return self.extend_hs_dict.get('e',0)
+    
+    def get_extend_listenport(self):
+        return self.extend_hs_dict.get('p')
+
+    def send_extend_handshake(self):
+
+        # NETWORK AWARE
+        hisip = self.connection.get_ip(real=True)
+        ipv4 = None
+        if self.connecter.config.get('same_nat_try_internal',0):
+            [client,version] = decodePeerID(self.connection.id)
+            print >>sys.stderr,"connecter: send_extend_hs: Peer is client",client
+            if client == TRIBLER_PEERID_LETTER:
+                # If we're connecting to a Tribler peer, show our internal IP address
+                # as 'ipv4'.
+                ipv4 = self.get_ip(real=True)
+        
+        # See: http://www.bittorrent.org/beps/bep_0010.html
+        d = {}
+        d['m'] = self.connecter.EXTEND_HANDSHAKE_M_DICT
+        d['p'] = self.connecter.mylistenport
+        ver = version_short.replace('-',' ',1)
+        d['v'] = ver
+        d['e'] = 0  # Apparently this means we don't like uTorrent encryption
+        d['yourip'] = compact_ip(hisip)
+        if ipv4 is not None:
+            # Only send IPv4 when necessary, we prefer this peer to use this addr.
+            d['ipv4'] = compact_ip(ipv4) 
+        
+        self._send_message(EXTEND + EXTEND_MSG_HANDSHAKE_ID + bencode(d))
+        if DEBUG:
+            print >>sys.stderr,'connecter: sent extend: id=0+',d,"yourip",hisip,"ipv4",ipv4
+
+    #
+    # ut_pex support
+    #
     def got_ut_pex(self,d):
         if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Got uTorrent PEX:",d
@@ -395,23 +453,6 @@ class Connection:
                 print >>sys.stderr,"connecter: Starting ut_pex conns to",len(sample_added_peers_with_id)
             self.connection.Encoder.start_connections(sample_added_peers_with_id)
 
-    def get_extend_encryption(self):
-        return self.extend_hs_dict.get('e',0)
-    
-    def get_extend_listenport(self):
-        return self.extend_hs_dict.get('p')
-
-    def send_extend_handshake(self):
-        d = {}
-        d['m'] = self.connecter.EXTEND_HANDSHAKE_M_DICT
-        d['p'] = self.connecter.mylistenport
-        ver = version_short.replace('-',' ',1)
-        d['v'] = ver
-        d['e'] = 0  # Apparently this means we don't like uTorrent encryption
-        self._send_message(EXTEND + EXTEND_MSG_HANDSHAKE_ID + bencode(d))
-        if DEBUG:
-            print >>sys.stderr,'connecter: sent extend: id=0+',d
-
     def send_extend_ut_pex(self,payload):
         msg = EXTEND+self.his_extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX)+payload
         self._send_message(msg)
@@ -422,6 +463,7 @@ class Connection:
             return True
         else:
             return False
+
 
     #
     # Give-2-Get
@@ -533,11 +575,107 @@ class Connection:
             print >>sys.stderr,"connecter: peer",dns,"said he supported overlay swarm, but we can't connect to him",exc
 
 
+    #
+    # NETWORK AWARE
+    #
+    def na_check_for_same_nat(self,yourip):
+        """ See if peer is local, e.g. behind same NAT, same AS or something.
+        If so, try to optimize:
+        - Same NAT -> reconnect to use internal network 
+        """
+        hisip = self.connection.get_ip(real=True)
+        if hisip == yourip:
+            # Do we share the same NAT?
+            myextip = self.connecter.get_extip_func(unknowniflocal=True)
+            myintip = self.get_ip(real=True)
+
+            if DEBUG:
+                print >>sys.stderr,"connecter: na_check_for_same_nat: his",hisip,"myext",myextip,"myint",myintip
+            
+            if hisip != myintip or hisip == '127.0.0.1': # to allow testing
+                # He can't fake his source addr, so we're not running on the
+                # same machine,
+
+                # He may be quicker to determine we should have a local
+                # conn, so prepare for his connection in advance.
+                #
+                if myextip is None:
+                    # I don't known my external IP and he's not on the same
+                    # machine as me. yourip could be our real external IP, test.
+                    if DEBUG:
+                        print >>sys.stderr,"connecter: na_check_same_nat: Don't know my ext ip, try to loopback to",yourip,"to see if that's me"
+                    self.na_start_loopback_connection(yourip)
+                elif hisip == myextip:
+                    # Same NAT. He can't fake his source addr.
+                    # Attempt local network connection
+                    if DEBUG:
+                        print >>sys.stderr,"connecter: na_check_same_nat: Yes, trying to connect via internal"
+                    self.na_start_internal_connection()
+                else: 
+                    # hisip != myextip
+                    # He claims we share the same IP, but I think my ext IP
+                    # is something different. Either he is lying or I'm
+                    # mistaken, test
+                    if DEBUG:
+                        print >>sys.stderr,"connecter: na_check_same_nat: Maybe, me thinks not, try to loopback to",yourip
+                    self.na_start_loopback_connection(yourip)
+                
+                
+    def na_start_loopback_connection(self,yourip):
+        """ Peer claims my external IP is "yourip". Try to connect back to myself """
+        if DEBUG:
+            print >>sys.stderr,"connecter: na_start_loopback: Checking if my ext ip is",yourip
+        self.na_candidate_ext_ip = yourip
+        
+        dns = (yourip,self.connecter.mylistenport)
+        self.connection.Encoder.start_connection(dns,0,forcenew=True)
+
+    def na_got_loopback(self,econnection):
+        """ Got a connection with my peer ID. Check that this is indeed me looping
+        back to myself. No man-in-the-middle attacks protection. This is complex
+        if we're also connecting to ourselves because of a stale tracker 
+        registration. Window of opportunity is small. 
+        """
+        himismeip = econnection.get_ip(real=True)
+        if DEBUG:
+            print >>sys.stderr,"connecter: conn: na_got_loopback:",himismeip,self.na_candidate_ext_ip
+        if self.na_candidate_ext_ip == himismeip:
+            self.na_start_internal_connection()
+                    
+
+    def na_start_internal_connection(self):
+        """ Reconnect to peer using internal network """
+        if DEBUG:
+            print >>sys.stderr,"connecter: na_start_internal_connection"
+        
+        # Doesn't really matter who initiates. Letting other side do it makes
+        # testing easier.
+        if not self.is_locally_initiated():
+            
+            hisip = decompact_ip(self.extend_hs_dict['ipv4'])
+            hisport = self.extend_hs_dict['p']
+            
+            # For testing, see Tribler/Test/test_na_extend_hs.py
+            if hisip == '224.4.8.1' and hisport == 4810:
+                hisip = '127.0.0.1'
+                hisport = 4811
+                
+            self.connection.na_want_internal_conn_from = hisip        
+            
+            hisdns = (hisip,hisport)
+            if DEBUG:
+                print >>sys.stderr,"connecter: na_start_internal_connection to",hisdns
+            self.connection.Encoder.start_connection(hisdns,0)
+
+    def na_get_address_distance(self):
+        return self.connection.na_get_address_distance()
+            
+
 class Connecter:
 # 2fastbt_
     def __init__(self, make_upload, downloader, choker, numpieces, piece_size,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
-            coordinator = None, helper = None, mylistenport = None, use_g2g = False, infohash=None, tracker=None):
+            coordinator = None, helper = None, get_extip_func = lambda: None, mylistenport = None, use_g2g = False, infohash=None, tracker=None):
         self.downloader = downloader
         self.make_upload = make_upload
         self.choker = choker
@@ -557,6 +695,7 @@ class Connecter:
         self.coordinator = coordinator
         self.helper = helper
         self.round = 0
+        self.get_extip_func = get_extip_func
         self.mylistenport = mylistenport
         self.infohash = infohash
         self.tracker = tracker
@@ -648,7 +787,7 @@ class Connecter:
                 print >>sys.stderr,"connecter: Peer is client",client,"version",version,c.get_ip()
             
             if self.overlay_enabled and client == TRIBLER_PEERID_LETTER and version <= '3.5.0' and connection.locally_initiated:
-                # Old Tribler, establish overlay connection
+                # Old Tribler, establish overlay connection<
                 if DEBUG:
                     print >>sys.stderr,"connecter: Peer is previous Tribler version, attempt overlay connection"
                 c.connect_overlay()
@@ -752,7 +891,7 @@ class Connecter:
                     payload = create_ut_pex(aconns,dconns,c)    
                     c.send_extend_ut_pex(payload)
                 except:
-                    traceback.print_exc()
+                    print_exc()
         self.sched(self.ut_pex_callback,60)
 
     def g2g_callback(self):
@@ -766,6 +905,26 @@ class Connecter:
         except:
             print_exc()
 
+
+    # NETWORK AWARE
+    def na_got_loopback(self,econnection):
+        if DEBUG:
+            print >>sys.stderr,"connecter: na_got_loopback: Got connection from",econnection.get_ip(),econnection.get_port()
+        for c in self.connections.itervalues():
+            ret = c.na_got_loopback(econnection)
+            if ret is not None:
+                return ret
+        return False
+
+    def na_got_internal_connection(self,origconn,newconn):
+        """ This is called only at the initiator side of the internal conn.
+        Doesn't matter, only one is enough to close the original connection.
+        """
+        if DEBUG:
+            print >>sys.stderr,"connecter: na_got_internal: From",newconn.get_ip(),newconn.get_port()
+        
+        origconn.close()
+
     def got_message(self, connection, message):
         # connection: Encrypter.Connection; c: Connecter.Connection
         c = self.connections[connection]    
@@ -774,6 +933,9 @@ class Connecter:
         # before BITFIELD even
         
         st = time.time()
+
+        if False: #connection.get_ip().startswith("192"):
+            print >>sys.stderr,"connecter: Got",getMessageName(t),connection.get_ip()
         
         if DEBUG_NORMAL_MSGS:
             print >>sys.stderr,"connecter: Got",getMessageName(t),connection.get_ip()
@@ -876,16 +1038,17 @@ class Connecter:
                     print >>sys.stderr,"Close on bad PIECE: msg len"
                 connection.close()
                 return
-            if DEBUG_NORMAL_MSGS:
+            if DEBUG_NORMAL_MSGS: # or connection.get_ip().startswith("192"):
                 print >>sys.stderr,"connecter: Got PIECE(",i,") from",connection.get_ip()
-                
+            if connection.get_ip().startswith("192"):
+                print >>sys.stderr,"@",
             try:
                 if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
                     self.got_piece(i)
             except Exception,e:
                 if DEBUG:
                     print >>sys.stderr,"Close on bad PIECE: exception",str(e)
-                    traceback.print_exc()
+                    print_exc()
                 connection.close()
                 return
             
@@ -926,7 +1089,7 @@ class Connecter:
             except Exception,e:
                 if DEBUG:
                     print >>sys.stderr,"Close on bad HASHPIECE: exception",str(e)
-                    traceback.print_exc()
+                    print_exc()
                 connection.close()
                 return
         elif t == G2G_PIECE_XFER: 
@@ -1037,7 +1200,7 @@ class Connecter:
         except Exception,e:
             if not DEBUG:
                 print >>sys.stderr,"Close on bad EXTEND: exception:",str(e),`message[2:]`
-                traceback.print_exc()
+                print_exc()
             connection.close()
             return
 

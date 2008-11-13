@@ -727,7 +727,32 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['ut_pex_max_addrs_from_peer']
 
+    def set_same_nat_try_internal(self,value):
+        """ Whether to try to detect if a peer is behind the same NAT as
+        this Session and then establish a connection over the internal
+        network
+        @param value Boolean
+        """
+        self.dlconfig['same_nat_try_internal'] = value
 
+    def get_same_nat_try_internal(self):
+        """ Returns whether same NAT detection is enabled.
+        @return Boolean """
+        return self.dlconfig['same_nat_try_internal']
+    
+    def set_unchoke_bias_for_internal(self,value):
+        """ Amount to add to unchoke score for peers on the internal network.
+        @param value A number
+        """
+        self.dlconfig['unchoke_bias_for_internal'] = value
+
+    def get_unchoke_bias_for_internal(self):
+        """ Returns the bias for peers on the internal network.
+        @return A number
+        """
+        return self.dlconfig['unchoke_bias_for_internal']
+    
+    
 class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
     """
     (key,value) pair config of per-torrent runtime parameters,

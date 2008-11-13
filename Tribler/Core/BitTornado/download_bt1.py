@@ -61,7 +61,7 @@ DEBUG = False
 
 class BT1Download:    
     def __init__(self, statusfunc, finfunc, errorfunc, excfunc, logerrorfunc, doneflag, 
-                 config, response, infohash, id, rawserver, port,
+                 config, response, infohash, id, rawserver, get_extip_func, port,
                  videoanalyserpath, appdataobj = None):
         self.statusfunc = statusfunc
         self.finfunc = finfunc
@@ -74,6 +74,7 @@ class BT1Download:
         self.infohash = infohash
         self.myid = id
         self.rawserver = rawserver
+        self.get_extip_func = get_extip_func
         self.port = port
         
         self.info = self.response['info']  
@@ -433,7 +434,7 @@ class BT1Download:
         self.connecter = Connecter(self._make_upload, self.downloader, self.choker, 
                             self.len_pieces, self.piecesize, self.upmeasure, self.config, 
                             self.ratelimiter, self.info.has_key('root hash'),
-                            self.rawserver.add_task, self.coordinator, self.helper, self.port, self.use_g2g,self.infohash,self.response.get('announce',None))
+                            self.rawserver.add_task, self.coordinator, self.helper, self.get_extip_func, self.port, self.use_g2g,self.infohash,self.response.get('announce',None))
 # _2fastbt
         self.encoder = Encoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 

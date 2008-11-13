@@ -4,9 +4,17 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.1rc4, Oct 9, 2008. Import this to use the API """
+""" Tribler Core API v1.0.2rc1, Nov 13, 2008. Import this to use the API """
 
 # History:
+#
+# 1.0.2rc1   Added: set_same_nat_try_internal(). If set Tribler will
+#            check if other Tribler peers it meets in a swarm are behind the 
+#            same NAT and if so, replace the connection with an connection over 
+#            the internal network. Also added set_unchoke_bias_for_internal()
+#
+# 1.0.1      Released with Tribler 4.5.0
+#
 # 1.0.1rc4   Added: friendship extension to Session API.
 #            Added: 'gracetime' parameter to Session shutdown.
 #

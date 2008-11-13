@@ -57,8 +57,7 @@ class TestExtendHandshake(TestAsServer):
         self.torrentfn = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
         tdef = TorrentDef.load(self.torrentfn)
 
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(self.config_path)
+        dscfg = self.setUpDownloadConfig()
         
         self.session.start_download(tdef,dscfg)
 
@@ -66,6 +65,12 @@ class TestExtendHandshake(TestAsServer):
         self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
         self.mylistenport = 4810
 
+    def setUpDownloadConfig(self):
+        dscfg = DownloadStartupConfig()
+        dscfg.set_dest_dir(self.config_path)
+        return dscfg        
+        
+        
     def test_all(self):
         """ 
             I want to start a Tribler client once and then connect to
@@ -303,6 +308,9 @@ class TestExtendHandshake(TestAsServer):
 
 
 def test_suite():
+    
+    print >>sys.stderr,"test: test_suite #######################################3"
+    
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestExtendHandshake))
     

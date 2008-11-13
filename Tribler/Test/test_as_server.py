@@ -14,7 +14,7 @@ from struct import pack,unpack
 from StringIO import StringIO
 from threading import Thread,currentThread
 from types import DictType, StringType
-from traceback import print_exc
+from traceback import print_exc,print_stack
 
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from M2Crypto import EC

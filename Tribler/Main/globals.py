@@ -10,6 +10,7 @@ STATEDIR_DLCONFIG = "dlconfig.pickle"
 # Global variable containing the DownloadStartupConfig to use for crearing 
 # Downloads
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.defaults import DLDEFAULTS_VERSION,dldefaults
 
 class DefaultDownloadStartupConfig(DownloadStartupConfig):
     __single = None
@@ -28,6 +29,15 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         return DefaultDownloadStartupConfig.__single
     getInstance = staticmethod(getInstance)
 
+    def updateToCurrentVersion(self):
+        oldver = self.dlconfig['version']
+        if oldver != DLDEFAULTS_VERSION:
+            for key in dldefaults.keys():
+                if key not in self.dlconfig:
+                    print >>sys.stderr,"DefaultDownloadStartupConfig: Adding field",key
+                    self.dlconfig[key] = dldefaults[key]
+            self.dlconfig['version'] = DLDEFAULTS_VERSION
+
     #
     # Class method
     #
@@ -43,6 +53,9 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         dlconfig = pickle.load(f)
         dscfg = DefaultDownloadStartupConfig(dlconfig)
         f.close()
+        
+        dscfg.updateToCurrentVersion()
+        
         return dscfg
     load = staticmethod(load)
 

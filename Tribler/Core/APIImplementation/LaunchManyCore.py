@@ -80,6 +80,8 @@ class TriblerLaunchMany(Thread):
         self.locally_guessed_ext_ip = self.guess_ext_ip_from_local_info()
         self.upnp_ext_ip = None
         self.dialback_ext_ip = None
+        self.yourip_ext_ip = None
+
 
         # Orig
         self.sessdoneflag = Event()
@@ -194,6 +196,11 @@ class TriblerLaunchMany(Thread):
             config['download_help'] = 0
             config['socnet'] = 0
             config['rquery'] = 0
+            
+            # Minimal to allow yourip external-IP address detection
+            some_dialback_handler = DialbackMsgHandler.getInstance()
+            some_dialback_handler.register_yourip(self)
+            
 
         if config['megacache'] or config['overlay']:
             # Arno: THINK! whoever added this should at least have made the
@@ -668,19 +675,46 @@ class TriblerLaunchMany(Thread):
         self.dialback_ext_ip = ip
         self.sesslock.release()
 
-    def get_ext_ip(self):
+    def yourip_got_ext_ip_callback(self,ip):
+        """ Called by network thread """
+        self.sesslock.acquire()
+        self.yourip_ext_ip = ip
+        if DEBUG:
+            print >> sys.stderr,"tlm: yourip_got_ext_ip_callback: others think my IP address is",ip
+        self.sesslock.release()
+
+
+    def get_ext_ip(self,unknowniflocal=False):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
-            if self.dialback_ext_ip is not None: # best
+            if self.dialback_ext_ip is not None: 
+                # more reliable
                 return self.dialback_ext_ip # string immutable
-            elif self.upnp_ext_ip is not None: # good
-                return self.upnp_ext_ip 
-            else: # slighly wild guess
-                return self.locally_guessed_ext_ip
+            elif self.upnp_ext_ip is not None: 
+                # good reliability, if known
+                return self.upnp_ext_ip
+            elif self.yourip_ext_ip is not None: 
+                # majority vote, could be rigged 
+                return self.yourip_ext_ip 
+            else: 
+                # slighly wild guess
+                if unknowniflocal:
+                    return None
+                else:
+                    return self.locally_guessed_ext_ip
         finally:
             self.sesslock.release()
         
+
+    def get_int_ip(self):
+        """ Called by any thread """
+        self.sesslock.acquire()
+        try:
+            return self.locally_guessed_ext_ip
+        finally:
+            self.sesslock.release()
+
 
     #
     # Events from core meant for API user

@@ -214,7 +214,7 @@ class DownloadImpl:
         """ Called by network thread """
         self.dllock.acquire()
         try:
-            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error,pstate,lmvodeventcallback)
+            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,self.session.lm.get_ext_ip,listenport,vapath,vodfileindex,self.set_error,pstate,lmvodeventcallback)
             sd = self.sd
             exc = self.error
             if lmcallback is not None:

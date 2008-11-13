@@ -8,13 +8,27 @@
 # *ConfigInterface classes, because they are not currently implemented (IPv6)
 # or we only use them internally.
 #
+# WARNING:  
+#    As we have release Tribler 4.5.0 you must now take into account that
+#    people have stored versions of these params on their disk. Make sure 
+#    you change the version number of the structure and provide upgrade code
+#    such that your code won't barf because we loaded an older version from
+#    disk that does not have your new fields.
+#
 
 from simpledefs import *
 
 DEFAULTPORT=7762
 
+#
+# Session opts
+#
+# History: 
+#  Version 2: as released in Tribler 4.5.0
+#
+SESSDEFAULTS_VERSION = 2
 sessdefaults = {}
-sessdefaults['version'] = PERSISTENTSTATE_CURRENTVERSION
+sessdefaults['version'] = SESSDEFAULTS_VERSION
 sessdefaults['state_dir'] = None
 sessdefaults['install_dir'] = '.'
 sessdefaults['ip'] = ''
@@ -113,10 +127,15 @@ trackerdefaults['tracker_scrape_allowed'] = ITRACKSCRAPE_ALLOW_FULL
 
 sessdefaults.update(trackerdefaults)
 
-
+#
 # BT per download opts
+#
+# History: 
+#  Version 2: as released in Tribler 4.5.0
+#  Version 3: 
+DLDEFAULTS_VERSION = 3
 dldefaults = {}
-dldefaults['version'] = PERSISTENTSTATE_CURRENTVERSION
+dldefaults['version'] = DLDEFAULTS_VERSION
 dldefaults['max_uploads'] = 7
 dldefaults['keepalive_interval'] = 120.0
 dldefaults['download_slice_size'] = 2 ** 14
@@ -172,15 +191,9 @@ dldefaults['video_ratelimit'] = 0
 dldefaults['video_source_authconfig'] = None
 dldefaults['selected_files'] = []
 dldefaults['ut_pex_max_addrs_from_peer'] = 16
-
-# Seeding items added by Boxun
-dldefaults['t4t_option'] = 0
-dldefaults['t4t_hours'] = 0
-dldefaults['t4t_mins'] = 30
-dldefaults['g2g_option'] = 1
-dldefaults['g2g_ratio'] = 75
-dldefaults['g2g_hours'] = 0
-dldefaults['g2g_mins'] = 30
+# Version 3:
+dldefaults['same_nat_try_internal'] = 0
+dldefaults['unchoke_bias_for_internal'] = 0
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

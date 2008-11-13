@@ -127,6 +127,9 @@ class Connection:
         self.connecter_conn = None
 # _overlay
         self.support_merklehash= False
+        self.na_want_internal_conn_from = None
+        self.na_address_distance = None
+        
         if self.locally_initiated:
             incompletecounter.increment()
 # 2fastbt_
@@ -284,7 +287,7 @@ class Connection:
         if s != '':
             self.connecter.got_message(self, s)
         #else:
-        #    print >>sys.stderr,"Encoder: got keepalive from",s.getpeername()
+        #    print >>sys.stderr,"encoder: got keepalive from",s.getpeername()
         return 4, self.read_len
 
     def read_dead(self, s):
@@ -373,6 +376,30 @@ class Connection:
             return False
         return coordinator.is_helper_ip(self.get_ip())
 # _2fastbt
+
+    # NETWORK AWARE
+    def na_set_address_distance(self):
+        """ Calc address distance. Currently simple: if same /24 then 0
+        else 1. TODO: IPv6
+        """
+        hisip = self.get_ip(real=True)
+        myip = self.get_myip(real=True)
+        
+        a = hisip.split(".")
+        b = myip.split(".")
+        if a[0] == b[0] and a[1] == b[1] and a[2] == b[2]:
+            if DEBUG:
+               print >>sys.stderr,"encoder.connection: na: Found peer on local LAN",self.get_ip()
+            self.na_address_distance = 0
+        else:
+            self.na_address_distance = 1
+        
+    def na_get_address_distance(self):
+        return self.na_address_distance
+    
+
+
+
 
 class Encoder:
     def __init__(self, connecter, raw_server, my_id, max_len,
@@ -499,7 +526,7 @@ class Encoder:
             print_exc()
             raise
 
-    def start_connection(self, dns, id, coord_con = False):
+    def start_connection(self, dns, id, coord_con = False, forcenew = False):
         """ Locally initiated connection """
         if DEBUG:
             print >>sys.stderr,"encoder: start_connection:",dns
@@ -508,21 +535,24 @@ class Encoder:
         if ( self.paused
              or len(self.connections) >= self.max_connections
              or id == self.my_id
-             or self.banned.has_key(dns[0]) ):
+             or self.banned.has_key(dns[0]) ) and not forcenew:
             if DEBUG:
                 print >>sys.stderr,"encoder: start_connection: we're paused or too busy"
             return True
         for v in self.connections.values():    # avoid duplicated connection from a single ip
             if v is None:
                 continue
-            if id and v.id == id:
+            if id and v.id == id and not forcenew:
                 if DEBUG:
                     print >>sys.stderr,"encoder: start_connection: already connected to peer",`id`
                 return True
             ip = v.get_ip(True)
             port = v.get_port(False)
             
-            if self.config['security'] and ip != 'unknown' and ip == dns[0] and port == dns[1]:
+            if DEBUG:
+                print >>sys.stderr,"encoder: start_connection: candidate",ip,port,"want",dns[0],dns[1]
+
+            if self.config['security'] and ip != 'unknown' and ip == dns[0] and port == dns[1] and not forcenew:
                 if DEBUG:
                     print >>sys.stderr,"encoder: start_connection: using existing",ip,"want port",dns[1],"existing port",port,"id",`id`
                 return True
@@ -549,38 +579,53 @@ class Encoder:
         """ check if the connection can be accepted """
         
         if connection.id == self.my_id:
-            self.connecter.external_connection_made -= 1
+            # NETWORK AWARE
+            ret = self.connecter.na_got_loopback(connection)
             if DEBUG:
-                print >>sys.stderr,"Encoder: got_id: connection to myself?"
-            return False
+                print >>sys.stderr,"encoder: got_id: connection to myself? keep",ret
+            if ret == False:
+                self.connecter.external_connection_made -= 1
+            return ret
+        
         ip = connection.get_ip(True)
         port = connection.get_port(False)
+        
+        # NETWORK AWARE
+        connection.na_set_address_distance()
+        
         if self.config['security'] and self.banned.has_key(ip):
             if DEBUG:
-                print >>sys.stderr,"Encoder: got_id: security ban on IP"
+                print >>sys.stderr,"encoder: got_id: security ban on IP"
             return False
         for v in self.connections.values():
             if connection is not v:
-# 2fastbt_
-                if connection.id == v.id and \
-                    v.create_time < connection.create_time:
-# _2fastbt
+                # NETWORK AWARE
+                if DEBUG:
+                    print >>sys.stderr,"encoder: got_id: new internal conn from peer? ids",connection.id,v.id
+                if connection.id == v.id:
                     if DEBUG:
-                        print >>sys.stderr,"Encoder: got_id: create time bad?!"
+                        print >>sys.stderr,"encoder: got_id: new internal conn from peer? addrs",v.na_want_internal_conn_from,ip
+                    if v.na_want_internal_conn_from == ip:
+                        # We were expecting a connection from this peer that shares
+                        # a NAT with us via the internal network. This is it.
+                        self.connecter.na_got_internal_connection(v,connection)
+                        return True  
+                    elif v.create_time < connection.create_time:
+                        if DEBUG:
+                            print >>sys.stderr,"encoder: got_id: create time bad?!"
                     return False
                 # don't allow multiple connections from the same ip if security is set.
                 if self.config['security'] and ip != 'unknown' and ip == v.get_ip(True) and port == v.get_port(False):
-                    if DEBUG:
-                        print >>sys.stderr,"Encoder: got_id: closing duplicate connection"
+                    print >>sys.stderr,"encoder: got_id: closing duplicate connection"
                     v.close()
         return True
 
     def external_connection_made(self, connection):
         """ Remotely initiated connection """
         if DEBUG:
-            print >>sys.stderr,"Encoder: external_conn_made"
+            print >>sys.stderr,"encoder: external_conn_made",connection.get_ip()
         if self.paused or len(self.connections) >= self.max_connections:
-            print >>sys.stderr,"Encoder: external_conn_made: paused or too many"
+            print >>sys.stderr,"encoder: external_conn_made: paused or too many"
             connection.close()
             return False
         con = Connection(self, connection, None)
@@ -590,22 +635,20 @@ class Encoder:
 
     def externally_handshaked_connection_made(self, connection, options, msg_remainder):
         if DEBUG:
-            print >>sys.stderr,"Encoder: external_handshaked_conn_made"
-# 2fastbt_
+            print >>sys.stderr,"encoder: external_handshaked_conn_made",connection.get_ip()
+        # 2fastbt_
         if self.paused or len(self.connections) >= self.max_connections:
-# _2fastbt
             connection.close()
             return False
-#        con = Connection(self, connection, None, True, options = options)
+
         con = Connection(self, connection, None, True)
         con.set_options(options)
         # before: connection.handler = Encoder
-# 2fastbt_
         # Don't forget to count the external conns!
         self.connections[connection] = con
-# _2fastbt
         connection.set_handler(con)
         # after: connection.handler = Encrypter.Connecter
+
         if msg_remainder:
             con.data_came_in(con, msg_remainder)
         return True

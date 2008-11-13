@@ -147,6 +147,13 @@ def compact_peer_info(ip, port):
         s = ''  # not a valid IP, must be a domain name
     return s
 
+def compact_ip(ip):
+    return ''.join([chr(int(i)) for i in ip.split('.')])
+
+def decompact_ip(cip):
+    return '.'.join([str(ord(i)) for i in cip])
+
+
 class Tracker:
     def __init__(self, config, rawserver):
         self.config = config

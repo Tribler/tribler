@@ -48,6 +48,7 @@ REPLY_VALIDITY = 2*24*3600.0    # seconds
 # PEERS_TO_ASK not 5 but 7.
 #
 PEERS_TO_AGREE = 4   # peers have to say X is my IP before I believe them
+YOURIP_PEERS_TO_AGREE = 16 # peers have to say X is my IP via 'yourip' in EXTEND hs before I believe them
 PEERS_TO_ASK   = 7   # maximum number of outstanding requests 
 MAX_TRIES      = 35  # 5 times 7 peers
 
@@ -74,7 +75,9 @@ class DialbackMsgHandler:
         self.superpeer_db = None
         self.trust_superpeers = None
         self.old_ext_ip = None
+        self.myips_according_to_yourip = []
         self.returnconnhand = ReturnConnHandler.getInstance()
+        
 
     def getInstance(*args, **kw):
         if DialbackMsgHandler.__single is None:
@@ -97,6 +100,11 @@ class DialbackMsgHandler:
         self.returnconnhand.start_listening()
 
         self.old_ext_ip = launchmany.get_ext_ip()
+
+
+    def register_yourip(self,launchmany):
+        """ Called by MainThread """
+        self.launchmany = launchmany
 
 
     def olthread_handleSecOverlayConnection(self,exc,permid,selversion,locally_initiated):
@@ -327,38 +335,12 @@ class DialbackMsgHandler:
                 self.consensusip = myip
                 self.fromsuperpeer = True
         else:
-            # 5. Ordinary peer, just add his opinion
-            self.myips.append([myip,time()])
-            if DEBUG:
-                print >> sys.stderr,"dialback: DIALBACK_REPLY: peer said I have IP address",myip
-    
-            # 6. Remove stale opinions
-            newlist = []
-            threshold = time()-REPLY_VALIDITY
-            for pair in self.myips:
-                if pair[1] >= threshold:
-                    newlist.append(pair)
-            self.myips = newlist
-            
-            # 7. See if we have X peers that agree
-            opinions = {}
-            for pair in self.myips:
-                ip = pair[0]
-                if not (ip in opinions):
-                    opinions[ip] = 1
-                else:
-                    opinions[ip] += 1
-    
-            for o in opinions:
-                if opinions[o] >= PEERS_TO_AGREE:
-                    # We have a quorum
-                    if self.consensusip is None:
-                        self.consensusip = o
-                        if DEBUG:
-                            print >> sys.stderr,"dialback: DIALBACK_REPLY: Got consensus on my IP address being",self.consensusip
-                    else:
-                        # Hmmmm... more than one consensus
-                        pass
+            # 5, 6. 7, 8. Record this peers opinion and see if we get a 
+            # majority vote.
+            #
+            self.myips,consensusip = tally_opinion(myip,self.myips,PEERS_TO_AGREE)
+            if self.consensusip is None:
+                self.consensusip = consensusip 
 
         # 8. Change IP address if different
         if self.consensusip is not None:
@@ -392,6 +374,21 @@ class DialbackMsgHandler:
         # variables go from False to True once and stay there, or remain False
         return self.dbreach or self.btenginereach
 
+
+    def network_btengine_extend_yourip(self,myip):
+        """ Called by Connecter when we receive an EXTEND handshake that 
+        contains an yourip line.
+        
+        TODO: weigh opinion based on whether we locally initiated the connection
+        from a trusted tracker response, or that the address came from ut_pex.
+        """
+        self.myips_according_to_yourip, yourip_consensusip = tally_opinion(myip,self.myips_according_to_yourip,YOURIP_PEERS_TO_AGREE)
+        if DEBUG:
+            print >> sys.stderr,"dialback: yourip: someone said my IP is",myip
+        if yourip_consensusip is not None:
+            self.launchmany.yourip_got_ext_ip_callback(yourip_consensusip)
+            if DEBUG:
+                print >> sys.stderr,"dialback: yourip: I think my IP address is",self.old_ext_ip,"others via EXTEND hs say",yourip_consensusip,"recording latter as option"
 
     #
     # Internal methods
@@ -427,3 +424,42 @@ class DialbackMsgHandler:
                 return permid
         return None
 
+
+def tally_opinion(myip,oplist,requiredquorum):
+
+    consensusip = None
+
+    # 5. Ordinary peer, just add his opinion
+    oplist.append([myip,time()])
+    if DEBUG:
+        print >> sys.stderr,"dialback: DIALBACK_REPLY: peer said I have IP address",myip
+
+    # 6. Remove stale opinions
+    newlist = []
+    threshold = time()-REPLY_VALIDITY
+    for pair in oplist:
+        if pair[1] >= threshold:
+            newlist.append(pair)
+    oplist = newlist
+    
+    # 7. See if we have X peers that agree
+    opinions = {}
+    for pair in oplist:
+        ip = pair[0]
+        if not (ip in opinions):
+            opinions[ip] = 1
+        else:
+            opinions[ip] += 1
+
+    for o in opinions:
+        if opinions[o] >= requiredquorum:
+            # We have a quorum
+            if consensusip is None:
+                consensusip = o
+                if DEBUG:
+                    print >> sys.stderr,"dialback: DIALBACK_REPLY: Got consensus on my IP address being",consensusip
+            else:
+                # Hmmmm... more than one consensus
+                pass
+
+    return oplist,consensusip

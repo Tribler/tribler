@@ -1,4 +1,4 @@
-# Written by Bram Cohen and Pawel Garbacki
+# Written by Bram Cohen, Pawel Garbacki, Boxun Zhang
 # see LICENSE.txt for license information
 
 from random import randrange, shuffle
@@ -31,9 +31,9 @@ class Choker:
         self.paused = False
         schedule(self._round_robin, 5)
         
-# SelectiveSeeding_
+        # SelectiveSeeding
         self.seeding_manager = None
-# _SelectiveSeeding
+
         
     def set_round_robin_period(self, x):
         self.round_robin_period = x
@@ -47,9 +47,9 @@ class Choker:
             if count > 0:   # optimization
                 shuffle(cons)
             for c in cons:
-# SelectiveSeeding_
+                # SelectiveSeeding
                 if self.seeding_manager is None or self.seeding_manager.is_conn_eligible(c):
-# _SelectiveSeeding
+
                     i = self.picker.next_have(self.connections[c], count > 0)
                     if i is None:
                         continue
@@ -68,9 +68,8 @@ class Choker:
             for i in xrange(1, len(self.connections)):
                 c = self.connections[i]
                 
-# SelectiveSeeding_
+                # SelectiveSeeding
                 if self.seeding_manager is None or self.seeding_manager.is_conn_eligible(c):
-# _SelectiveSeeding
                     u = c.get_upload()
                     if u.is_choked() and u.is_interested():
                         self.connections = self.connections[i:] + self.connections[:i]
@@ -78,7 +77,7 @@ class Choker:
         self._rechoke()
 
     def _rechoke(self):
-# 2fastbt_
+        # 2fast
         helper = self.picker.helper
         if helper is not None and helper.coordinator is None and helper.is_complete():
             for c in self.connections:
@@ -86,24 +85,35 @@ class Choker:
                     u = c.get_upload()
                     u.choke()
             return
-# _2fastbt
 
-        preferred = []
-        maxuploads = self.config['max_uploads']
         if self.paused:
             for c in self.connections:
                 c.get_upload().choke()
             return
+
+        # NETWORK AWARE
+        if 'unchoke_bias_for_internal' in self.config:
+            checkinternalbias = self.config['unchoke_bias_for_internal']
+        else:
+            checkinternalbias = 0
+
+        if DEBUG:
+            print >>sys.stderr,"choker: _rechoke: checkinternalbias",checkinternalbias
+            
+        # 0. Construct candidate list
+        preferred = []
+        maxuploads = self.config['max_uploads']
         if maxuploads > 1:
+            
+            # 1. Get some regular candidates
             for c in self.connections:
-# g2g_ unchoke some g2g peers later
+
+                # g2g: unchoke some g2g peers later
                 if c.use_g2g:
                     continue
-# _g2g
 
-# SelectiveSeeding_
+                # SelectiveSeeding
                 if self.seeding_manager is None or self.seeding_manager.is_conn_eligible(c):
-# _SelectiveSeeding
                     u = c.get_upload()
                     if not u.is_interested():
                         continue
@@ -114,54 +124,70 @@ class Choker:
                         r = d.get_rate()
                         if r < 1000 or d.is_snubbed():
                             continue
+                       
+                    # NETWORK AWARENESS 
+                    if checkinternalbias and c.na_get_address_distance() == 0:
+                        r += checkinternalbias
+                        if DEBUG:
+                            print >>sys.stderr,"choker: _rechoke: BIASING",c.get_ip(),c.get_port()
+
                     preferred.append((-r, c))
                     
             self.last_preferred = len(preferred)
             preferred.sort()
             del preferred[maxuploads-1:]
             if DEBUG:
-                print "NORMAL UNCHOKE",preferred
+                print >>sys.stderr,"choker: _rechoke: NORMAL UNCHOKE",preferred
             preferred = [x[1] for x in preferred]
 
-            # g2g_ unchoke some g2g peers too
+            # 2. Get some g2g candidates 
             g2g_preferred = []
             for c in self.connections:
                 if not c.use_g2g:
                     continue
 
-# SelectiveSeeding_
+                # SelectiveSeeding
                 if self.seeding_manager is None or self.seeding_manager.is_conn_eligible(c):
-# _SelectiveSeeding
+
                     u = c.get_upload()
                     if not u.is_interested():
                         continue
     
                     r = c.g2g_score()
+                    if checkinternalbias and c.na_get_address_distance() == 0:
+                        r[0] += checkinternalbias
+                        r[1] += checkinternalbias
+                        if DEBUG:
+                            print >>sys.stderr,"choker: _rechoke: G2G BIASING",c.get_ip(),c.get_port()
+                   
                     g2g_preferred.append((-r[0], -r[1], c))
                     
             g2g_preferred.sort()
             del g2g_preferred[maxuploads-1:]
             if DEBUG:
-                print "G2G UNCHOKE",g2g_preferred
+                print  >>sys.stderr,"choker: _rechoke: G2G UNCHOKE",g2g_preferred
             g2g_preferred = [x[2] for x in g2g_preferred]
 
             preferred += g2g_preferred
-# _g2g
 
+
+        # 
         count = len(preferred)
         hit = False
         to_unchoke = []
         
+        # 3. The live source must always unchoke its auxiliary seeders
         # LIVESOURCE
         if 'live_aux_seeders' in self.config:
+            
             for hostport in self.config['live_aux_seeders']:
                 for c in self.connections:
                     if c.get_ip() == hostport[0]:
                         u = c.get_upload()
                         to_unchoke.append(u)
                         #print >>sys.stderr,"Choker: _rechoke: LIVE: Permanently unchoking aux seed",hostport
-        # LIVESOURCE
-        
+
+        # 4. Select from candidate lists, aux seeders always selected
         for c in self.connections:
             u = c.get_upload()
             if c in preferred:
@@ -172,18 +198,19 @@ class Choker:
                     to_unchoke.append(u)
                     if u.is_interested():
                         count += 1
-                        if DEBUG and not hit: print "OPTIMISTIC UNCHOKE",c
+                        if DEBUG and not hit: print  >>sys.stderr,"choker: OPTIMISTIC UNCHOKE",c
                         hit = True
                 else:
-# 2fastbt_
                     if not c.connection.is_coordinator_con() and not c.connection.is_helper_con():
                         u.choke()
                     elif u.is_choked():
                         to_unchoke.append(u)
-# _2fastbt
+
+        # 5. Unchoke selected candidates
         for u in to_unchoke:
             u.unchoke()
 
+            
     def connection_made(self, connection, p = None):
         if p is None:
             p = randrange(-2, len(self.connections) + 1)
@@ -191,7 +218,8 @@ class Choker:
         self.picker.got_peer(connection)
         self._rechoke()
 
-    def connection_lost(self, connection):
+    def connection_lost(self, connection): 
+        """ connection is a Connecter.Connection """
         self.connections.remove(connection)
         self.picker.lost_peer(connection)
         if connection.get_upload().is_interested() and not connection.get_upload().is_choked():
@@ -215,8 +243,7 @@ class Choker:
         self.paused = flag
         self._rechoke()
     
-# SelectiveSeeding_
-    # When seeding starts, a non-trivial seeding manager will be set
+    # SelectiveSeeding
     def set_seeding_manager(self, manager):
+        # When seeding starts, a non-trivial seeding manager will be set
         self.seeding_manager = manager
-# _SelectiveSeeding

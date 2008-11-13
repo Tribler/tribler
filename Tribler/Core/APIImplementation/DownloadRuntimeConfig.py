@@ -494,3 +494,24 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
+    def set_same_nat_try_internal(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_same_nat_try_internal(self):
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.get_same_nat_try_internal(self)
+        finally:
+            self.dllock.release()
+
+
+    def set_unchoke_bias_for_internal(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+    
+    def get_unchoke_bias_for_internal(self):
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.get_unchoke_bias_for_internal(self)
+        finally:
+            self.dllock.release()
+    
