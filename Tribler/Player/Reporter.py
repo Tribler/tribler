@@ -70,7 +70,7 @@ class Reporter:
         if DEBUG: print >>sys.stderr,"\nreport: phoning home."
         try:
             data = zlib.compress( s, 9 ).encode("base64")
-            sock = urllib.urlopen("http://swarmplayer.mininova.org/reporting/report.cgi",data)
+            sock = urllib.urlopen("http://swpreporter.tribler.org/reporting/report.cgi",data)
             result = sock.read()
             sock.close()
 
