@@ -32,7 +32,7 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 
 # LAYERVIOLATION
-from Tribler.Core.CacheDB.CacheDBHandler import GUIDBHandler, BarterCastDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import GUIDBHandler
 from Tribler.Core.CacheDB.EditDist import editDist
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
@@ -1580,22 +1580,28 @@ class standardDetails(wx.Panel):
             torrent = self.item
             
         if (torrent is None or torrent.get('myDownloadHistory')) and not force:
+            print >>sys.stderr,"standardDetails: download: Bailout"
             return
             
         #print "**** standdetail: download", `torrent`
             
         if torrent.get('web2'):
             if DEBUG:
-                print >>sys.stderr,"standardDetails: Playing WEB2 video: " + torrent['url']
+                print >>sys.stderr,"standardDetails: download: Playing WEB2 video: " + torrent['url']
             #self.videoplayer.parentwindow.swapin_videopanel(torrent['url'])
             self.videoplayer.play_url(torrent['url'])
             return True
 
-        if 'query_permid' in torrent:
+        if 'query_permid' in torrent and not torrent.get('myDownloadHistory'):
             if DEBUG:
-                print >>sys.stderr,"standardDetails: User selected query result for download"
+                print >>sys.stderr,"standardDetails: download: User selected query result for download"
             try:
-                self.utility.session.download_torrentfile_from_peer(torrent['query_permid'],torrent['infohash'],self.sesscb_got_requested_torrent)
+                torrent['query_torrent_was_requested'] = True
+                sesscb_got_requested_torrent_lambda = lambda infohash,metadata,filename:self.sesscb_got_requested_torrent(torrent,infohash,metadata,filename)
+                self.utility.session.download_torrentfile_from_peer(torrent['query_permid'],torrent['infohash'],sesscb_got_requested_torrent_lambda)
+                
+                # Show pending colour
+                wx.CallAfter(self.guiUtility.standardOverview.refreshGridManager)
             except:
                 print_exc()
                 print >> sys.stderr, torrent, torrent.keys()
@@ -1603,7 +1609,7 @@ class standardDetails(wx.Panel):
 
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
         if DEBUG:
-	        print >> sys.stderr, 'standardDetails: got torrent to download', 'torrent_file_name' in torrent, torrent_dir, torrent['torrent_file_name'] 
+	        print >> sys.stderr, 'standardDetails: download: got torrent to download', 'torrent_file_name' in torrent, torrent_dir, torrent['torrent_file_name'] 
 	        
         if 'torrent_file_name' not in torrent:
             torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
@@ -1616,6 +1622,7 @@ class standardDetails(wx.Panel):
         #start_download = self.utility.lang.get('start_downloading')
         #str = name + "?"
         
+        print >>sys.stderr,"standardDetails: download: Preparing to start:",`name`
         
         if os.path.isfile(torrent_filename):
             
@@ -1626,7 +1633,7 @@ class standardDetails(wx.Panel):
                     self.torrent_db.setSecret(torrent['infohash'], secret)
 
                 if DEBUG:
-                    print >>sys.stderr,'standardDetails: download started'
+                    print >>sys.stderr,'standardDetails: download: download started'
                 # save start download time.
                 #torrent['download_started'] = time()
                 #torrent['progress'] = 0.0
@@ -1650,22 +1657,22 @@ class standardDetails(wx.Panel):
             else:
                 return False
 
-    def sesscb_got_requested_torrent(self,infohash,metadata,filename):
+    def sesscb_got_requested_torrent(self,querytorrent,infohash,metadata,filename):
         """ The torrent file requested from another peer came in.
+        @param querytorrent The original torrent record as shown on the screen
         @param infohash The infohash of the torrent file.
         @param metadata The contents of the torrent file (still bencoded)
         """
         # Called by SessionCallback thread
         print >>sys.stderr,"standardDetails: sesscb_got_requested_torrent:",`infohash`
         
-        # ARNOCOMMENT: h4x0r this
-        torrent = {}
-        torrent['torrent_file_name'] = filename
-        torrent['infohash'] = infohash
-        self.setBelongsToMyDowloadHistory(torrent, True)
+        # Update the torrent record, and refresh the view afterwards such 
+        # that it shows as a torrent being downloaded.
+        querytorrent['torrent_file_name'] = filename
+        self.setBelongsToMyDowloadHistory(querytorrent, True)
         
-        wx.CallAfter(self.download,torrent)
-
+        wx.CallAfter(self.download,querytorrent,force=True)
+        wx.CallAfter(self.guiUtility.standardOverview.refreshGridManager)
 
     def setBelongsToMyDowloadHistory(self,torrent, b):
         """Set a certain new torrent to be in the download history or not
@@ -1759,8 +1766,8 @@ class standardDetails(wx.Panel):
 
                 
 
-            if DEBUG:
-                print >>sys.stderr,"standardDetails: stats:",`d.get_def().get_name()`,progress,status
+            #if DEBUG:
+            #    print >>sys.stderr,"standardDetails: stats:",`d.get_def().get_name()`,progress,status
             
 
 

@@ -1,3 +1,6 @@
+# Written by Boxun Zhang
+# see LICENSE.txt for license information
+
 import sys
 import time 
 from Tribler.Core.simpledefs import *

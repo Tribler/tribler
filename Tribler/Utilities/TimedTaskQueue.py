@@ -40,6 +40,7 @@ class TimedTaskQueue:
         when = time()+t
         if DEBUG:
             print >>sys.stderr,"ttqueue: ADD EVENT",t,task
+            
         if id != None:  # remove all redundant tasks
             self.queue = filter(lambda item:item[2]!=id, self.queue)
         self.queue.append((when,self.count,task,id))
@@ -65,6 +66,7 @@ class TimedTaskQueue:
                         self.cond.wait(timeout)
                 # A new event was added or an event is due
                 self.queue.sort()
+                
                 (when,count,task,id) = self.queue[0]
                 if DEBUG:
                     print >>sys.stderr,"ttqueue: EVENT IN QUEUE",when,task
@@ -92,7 +94,7 @@ class TimedTaskQueue:
                     if len(self.queue) == 0:
                         break
                     else:
-                        (when,task,id) = self.queue[-1]
+                        (when,count,task,id) = self.queue[-1]
                         t = when-time()+0.001
                         self.add_task('quit',t)
                 else:

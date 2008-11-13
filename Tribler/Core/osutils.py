@@ -65,10 +65,11 @@ except:
                     size = long(sizestring)                    
                     
                     if size == 0L:
-                        print "getfreespace: can't determine freespace of ",path
-                        print "0?"
+                        print >>sys.stderr,"getfreespace: can't determine freespace of ",path
                         for line in mystdout:
-                            print line
+                            print >>sys.stderr,line
+                            
+                        size = 2**80L
                 except:
                     # If in doubt, just return something really large
                     # (1 yottabyte)

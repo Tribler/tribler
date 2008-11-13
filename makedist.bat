@@ -1,4 +1,5 @@
 REM @echo off
+REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
 set PYTHONHOME=C:\Python252
 REM Arno: Add .. to make it find khashmir. Add . to find our core (py 2.5)

@@ -1,8 +1,8 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
-# Note for Developers: Please write testsuit in Tribler/Test/test_sqlitecachedbhandler.py 
-# for any function you added to database. 
-# Please reuse the functions in sqlitecachedb as more as possible
+# Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py 
+# for any function you add to database. 
+# Please reuse the functions in sqlitecachedb as much as possible
 
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from unicode import name2unicode,dunno2unicode
@@ -583,7 +583,7 @@ class SuperPeerDBHandler(BasicDBHandler):
                     superpeer['name'] = superpeer_info[3]
                 superpeers_info.append(superpeer)
             except:
-                pass
+                print_exc()
                     
         return superpeers_info
 
@@ -1798,6 +1798,8 @@ class BarterCastDBHandler(BasicDBHandler):
 
         # Retrieve MyPermid
         self.my_permid = session.get_permid()
+        if self.my_permid is None:
+            raise ValueError('Cannot get permid from Session')
 
         # Keep administration of total upload and download
         # (to include in BarterCast message)
@@ -2045,7 +2047,7 @@ class BarterCastDBHandler(BasicDBHandler):
         # TODO: this won't scale to many interactions, as the size of the DB
         # is NxN
         
-        if not DEBUG:
+        if DEBUG:
             print >> sys.stderr, "bartercastdb: getTopNPeers: local = ", local_only
             #print_stack()
         

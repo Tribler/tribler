@@ -1,3 +1,4 @@
+# Written by Boxun Zhang, Boudewijn Schoon
 # see LICENSE.txt for license information
 
 import sys

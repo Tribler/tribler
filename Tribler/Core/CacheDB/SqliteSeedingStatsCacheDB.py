@@ -1,3 +1,6 @@
+# Written by Boxun Zhang
+# see LICENSE.txt for license information
+
 import sys
 import os
 from copy import deepcopy

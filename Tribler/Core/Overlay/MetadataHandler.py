@@ -128,7 +128,7 @@ class MetadataHandler:
         if caller == "dlhelp":
             self.requested_torrents.add(infohash)
         
-        if self.free_space - self.avg_torrent_size < self.min_free_space:   # no space to collect
+        if self.min_free_space != 0 and (self.free_space - self.avg_torrent_size < self.min_free_space):   # no space to collect
             self.free_space = self.get_free_space()
             if self.free_space - self.avg_torrent_size < self.min_free_space:
                 self.warn_disk_full()
@@ -368,36 +368,15 @@ class MetadataHandler:
             self.num_torrents = self.torrent_db.getNumberCollectedTorrents()
             self.free_space = self.get_free_space()
         
-#===============================================================================
-#    def check_free_space(self):
-#        self.free_space = self.get_free_space()
-#        if self.free_space < self.min_free_space < self.free_space + 2:    
-#            # no enough space caused by this module, removing old torrents
-#            # if the disk is suddenly used a lot, it may be other reason, so we stop removing torrents
-#            if self.num_torrents >= 0:    # wait for loading it before deleting
-#                space_need = self.min_free_space - self.free_space
-#                num2del = 1 + space_need / (25*(2**10))    # how many torrents to del, assume each torrent is 25K
-#                self.max_num_torrents = self.num_torrents - num2del
-#                if DEBUG:
-#                    print >> sys.stderr, "meta: disk overflow when save_torrent", self.free_space/(2**20), \
-#                        self.min_free_space/(2**20), num2del, self.num_torrents, self.max_num_torrents
-#                if self.max_num_torrents > 0:
-#                    self.check_overflow()
-#        # always change back
-#        self.max_num_torrents = self.init_max_num_torrents
-#===============================================================================
         
     def save_torrent(self, infohash, metadata, source='BC', extra_info={}):
         # check if disk is full before save it to disk and database
         if not self.initialized:
             return None
 
-#        if self.free_space <= self.min_free_space or self.num_collected_torrents % 10 == 0:
-#            self.check_free_space()
-
         self.check_overflow()
             
-        if self.free_space - len(metadata) < self.min_free_space or self.num_collected_torrents % 10 == 0:
+        if self.min_free_space != 0 and (self.free_space - len(metadata) < self.min_free_space or self.num_collected_torrents % 10 == 0):
             self.free_space = self.get_free_space()
             if self.free_space - len(metadata) < self.min_free_space:
                 self.warn_disk_full()
@@ -555,7 +534,7 @@ class MetadataHandler:
         self.upload_rate = rate * 1024
         
     def set_min_free_space(self, min_free_space):
-        self.min_free_space = max(1, min_free_space)*(2**20)    # at least 1 MB
+        self.min_free_space = min_free_space*(2**20)
 
     def checking_upload_queue(self):
         """ check the upload queue every 5 seconds, and send torrent out if the queue 

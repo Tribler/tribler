@@ -15,7 +15,7 @@ from cStringIO import StringIO
 
 from wx.lib import colourselect
 
-from Tribler.Main.Utility.configreader import ConfigReader
+from Tribler.Utilities.configreader import ConfigReader
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 

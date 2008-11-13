@@ -1,4 +1,5 @@
 REM @echo off
+set LIBRARYNAME=Tribler
 
 set PYTHONHOME=C:\Python252
 REM Arno: Add .. to make it find khashmir. Add . to find us (python 2.5)
@@ -52,13 +53,13 @@ REM packs them in the installer .EXE
 
 mkdir dist\installdir
 
-%PYTHONHOME%\python.exe -O Tribler\Player\Build\Win32\setuptriblerplay.py py2exe
+%PYTHONHOME%\python.exe -O %LIBRARYNAME%\Player\Build\Win32\setuptriblerplay.py py2exe
 
 REM Arno: Move py2exe results to installdir
 move dist\*.* dist\installdir
 
-copy Tribler\Player\Build\Win32\triblerplay.nsi dist\installdir
-copy Tribler\Player\Build\Win32\swarmplayer.exe.manifest dist\installdir
+copy %LIBRARYNAME%\Player\Build\Win32\triblerplay.nsi dist\installdir
+copy %LIBRARYNAME%\Player\Build\Win32\swarmplayer.exe.manifest dist\installdir
 REM copy %PYTHONHOME%\msvcr71.dll dist\installdir
 REM For Vista. This works only when building on XP
 REM as Vista doesn't have this DLL by default.
@@ -69,18 +70,18 @@ copy %PYTHONHOME%\msvcp60.dll dist\installdir
 REM py2exe does this: copy SSLEAY32.dll dist\installdir
 REM copy LIBEAY32.dll dist\installdir
 
-copy Tribler\binary-LICENSE.txt dist\installdir
-mkdir dist\installdir\Tribler
-mkdir dist\installdir\Tribler\Core
-copy Tribler\Core\superpeer.txt dist\installdir\Tribler\Core
-mkdir dist\installdir\Tribler\Core\Statistics
-copy Tribler\Core\Statistics\*.txt dist\installdir\Tribler\Core\Statistics
-copy Tribler\Core\Statistics\*.sql dist\installdir\Tribler\Core\Statistics
-mkdir dist\installdir\Tribler\Images
-copy Tribler\Images\*.* dist\installdir\Tribler\Images
-copy Tribler\Player\Build\Win32\heading.bmp dist\installdir
-mkdir dist\installdir\Tribler\Lang
-copy Tribler\Lang\*.lang dist\installdir\Tribler\Lang
+copy %LIBRARYNAME%\binary-LICENSE.txt dist\installdir
+mkdir dist\installdir\%LIBRARYNAME%
+mkdir dist\installdir\%LIBRARYNAME%\Core
+copy %LIBRARYNAME%\Core\superpeer.txt dist\installdir\%LIBRARYNAME%\Core
+mkdir dist\installdir\%LIBRARYNAME%\Core\Statistics
+copy %LIBRARYNAME%\Core\Statistics\*.txt dist\installdir\%LIBRARYNAME%\Core\Statistics
+copy %LIBRARYNAME%\Core\Statistics\*.sql dist\installdir\%LIBRARYNAME%\Core\Statistics
+mkdir dist\installdir\%LIBRARYNAME%\Images
+copy %LIBRARYNAME%\Images\*.* dist\installdir\%LIBRARYNAME%\Images
+copy %LIBRARYNAME%\Player\Build\Win32\heading.bmp dist\installdir
+mkdir dist\installdir\%LIBRARYNAME%\Lang
+copy %LIBRARYNAME%\Lang\*.lang dist\installdir\%LIBRARYNAME%\Lang
 
 copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I

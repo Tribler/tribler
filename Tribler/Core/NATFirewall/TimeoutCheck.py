@@ -1,3 +1,6 @@
+# Written by Lucia D'Acunto
+# see LICENSE.txt for license information
+
 from socket import *
 from types import StringType, ListType, TupleType, DictType, IntType
 import random

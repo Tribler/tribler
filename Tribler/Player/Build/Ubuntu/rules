@@ -4,6 +4,7 @@
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
+LIBRARYNAME=Tribler
 
 configure: configure-stamp
 configure-stamp:
@@ -57,12 +58,12 @@ binary-indep: build install
 	dh_installman
 
 	mkdir -p debian/swarmplayer/usr/share/swarmplayer/
-	cp -rf `ls -1d Tribler khashmir` debian/swarmplayer/usr/share/swarmplayer/
-	rm -rf debian/swarmplayer/usr/share/swarmplayer/Tribler/Test
+	cp -rf `ls -1d ${LIBRARYNAME} khashmir` debian/swarmplayer/usr/share/swarmplayer/
+	rm -rf debian/swarmplayer/usr/share/swarmplayer/${LIBRARYNAME}/Test
 	# add other files
 	mkdir -p debian/swarmplayer/usr/bin
 	cp -f debian/swarmplayer.sh debian/swarmplayer/usr/bin/swarmplayer
-	cp -f Tribler/LICENSE.txt debian/copyright
+	cp -f ${LIBRARYNAME}/LICENSE.txt debian/copyright
 	# for the menu
 	mkdir -p debian/swarmplayer/usr/share/pixmaps
 	cp -f debian/swarmplayer.xpm debian/swarmplayer/usr/share/pixmaps/

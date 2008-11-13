@@ -29,6 +29,9 @@ class TestSuperPeerList(unittest.TestCase):
         self.file_path = tempfile.mktemp()
         self.db_path = tempfile.mktemp()
         
+        #print >>sys.stderr,"test: file_path",self.file_path
+        #print >>sys.stderr,"test: db_path",self.db_path
+        
         self.writeSuperPeers()
         head,tail = os.path.split(self.file_path)
         self.config = {'install_dir':head, 'superpeer_file':tail}

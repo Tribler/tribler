@@ -108,7 +108,8 @@ class FriendshipCrawler:
             for stat in stats:
                 if len(stat) == 7:
                     stat.append(0)
-                stat.append(bin2str(permid))
+                if len(stat) == 7 or len(stat) == 8:
+                    stat.append(bin2str(permid))
 
             self.friendshipStatistics_db.saveFriendshipStatisticData(stats)
     

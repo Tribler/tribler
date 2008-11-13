@@ -16,7 +16,7 @@ from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 from Tribler.Core.Utilities.utilities import show_permid_short
 
-DEBUG = False
+DEBUG = True
 
 # when a message payload exceedes 32KB it is divided into multiple
 # messages
@@ -56,10 +56,16 @@ class Crawler:
         # the initiators are called when a new connection is received
         self._crawl_initiators = []
 
-        # _dealines contains (deadline, frequency, initiator-callback, permid, selversion)
-        # deadlines register information on when to call the crawl initiators again for a specific permid
-        self._deadlines = []
+        # _initiator_dealines contains (deadline, frequency, initiator-callback, permid, selversion)
+        # deadlines register information on when to call the crawl
+        # initiators again for a specific permid
+        self._initiator_deadlines = []
         
+        # _dialback_deadlines contains message_id:(deadline, permid) pairs
+        # client peers should connect back to -a- crawler indicated by
+        # permid after deadline expired
+        self._dialback_deadlines = {}
+
         # _channels contains permid:buffer-dict pairs. Where
         # buffer_dict contains channel-id:(timestamp, buffer)
         # pairs. Where buffer is the payload from multipart messages
@@ -224,6 +230,13 @@ class Crawler:
                     request_callback(permid, selversion, channel_id, message[5:], lambda payload="", error=0, callback=None:self.send_reply(permid, message_id, channel_id, payload, error=error, callback=callback))
                 except:
                     print_exc()
+
+                # 11/11/08. Boudewijn: Because the client peers may
+                # not always be connectable, the client peers will
+                # actively seek to connect to -a- crawler after
+                # frequency expires. 
+                self._dialback_deadlines[message_id] = (now + frequency, permid)
+
                 return True
 
             else:
@@ -380,7 +393,7 @@ class Crawler:
         elif selversion >= OLPROTO_VER_SEVENTH:
             # verify that we do not already have deadlines for this permid
             already_known = False
-            for tup in self._deadlines:
+            for tup in self._initiator_deadlines:
                 if tup[3] == permid:
                     already_known = True
                     break
@@ -388,9 +401,9 @@ class Crawler:
             if not already_known:
                 if DEBUG: print >>sys.stderr, "crawler: new overlay connection", show_permid_short(permid)
                 for initiator_callback, frequency in self._crawl_initiators:
-                    self._deadlines.append([0, frequency, initiator_callback, permid, selversion])
+                    self._initiator_deadlines.append([0, frequency, initiator_callback, permid, selversion])
 
-                self._deadlines.sort()
+                self._initiator_deadlines.sort()
 
                 # Start sending crawler requests
                 self._check_deadlines(False)
@@ -403,22 +416,40 @@ class Crawler:
         after frequency seconds
         """
         now = time.time()
-        while self._deadlines:
-            deadline, frequency, initiator_callback, permid, selversion = self._deadlines[0]
-            if now > deadline:
-                try:
-                    initiator_callback(permid, selversion, lambda message_id, payload, frequency=frequency, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
-                except Exception:
-                    print_exc()
 
-                # set new deadline
-                self._deadlines[0][0] = now + frequency
-            else:
-                break
+        # crawler side deadlines...
+        if self._initiator_deadlines:
+            while self._initiator_deadlines:
+                deadline, frequency, initiator_callback, permid, selversion = self._initiator_deadlines[0]
+                if now > deadline + DEADLINE_OFFSET:
+                    try:
+                        initiator_callback(permid, selversion, lambda message_id, payload, frequency=frequency, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
+                    except Exception:
+                        print_exc()
 
-        # resort
-        self._deadlines.sort()
-            
+                    # set new deadline
+                    self._initiator_deadlines[0][0] = now + frequency
+                else:
+                    break
+
+            # resort
+            self._initiator_deadlines.sort()
+
+        # client side deadlines...
+        if self._dialback_deadlines:
+
+            def _after_connect(exc, dns, permid, selversion):
+                if DEBUG:
+                    if exc:
+                        print >>sys.stderr, "crawler: dialback to crawler failed", dns, show_permid_short(permid), exc
+                    else:
+                        print >>sys.stderr, "crawler: dialback to crawler established", dns, show_permid_short(permid)
+
+            for message_id, (deadline, permid) in self._dialback_deadlines.items():
+                if now > deadline + DEADLINE_OFFSET:
+                    self._overlay_bridge.connect(permid, _after_connect)
+                    del self._dialback_deadlines[message_id]
+
         if resubmit:
             self._overlay_bridge.add_task(lambda:self._check_deadlines(True), 5)
 

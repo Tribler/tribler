@@ -13,7 +13,7 @@ CREATE TABLE FriendshipStatistics (
   no_of_attempts       integer DEFAULT 0,
   no_of_helpers		   integer DEFAULT 0,
   modified_on		   numeric,
-  crawled_permid       text NOT NULL
+  crawled_permid       text NOT NULL DEFAULT client
 );
 
 ----------------------------------------
@@ -31,6 +31,8 @@ COMMIT TRANSACTION create_table;
 
 BEGIN TRANSACTION init_values;
 
-INSERT INTO MyInfo VALUES ('version', 1);
+-- Version 1: Initial version, published in Tribler 4.5.0
+-- Version 2: Added crawled_permid to FriendshipStatistics table.
+INSERT INTO MyInfo VALUES ('version', 2);
 
 COMMIT TRANSACTION init_values;

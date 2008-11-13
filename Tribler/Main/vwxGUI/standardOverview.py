@@ -208,6 +208,17 @@ class standardOverview(wx.Panel):
             # load and show the data in the grid
             grid.setData(self.data[self.mode].get('data'))
 
+    def refreshGridManager(self):        
+        if DEBUG:
+            print >>sys.stderr,"standardOverview: refreshGridManager"
+            #print_stack()
+            
+        try:
+            grid = self.data[self.mode].get('grid')
+            if grid:
+                gridmgr = grid.getGridManager().refresh()
+        except:
+            print_exc()
         
     def updateSelection(self):
         grid = self.data[self.mode].get('grid')

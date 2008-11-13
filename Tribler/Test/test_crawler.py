@@ -167,7 +167,7 @@ class TestCrawler(TestAsServer):
         crawler_db.temporarilyAddCrawler(self.my_permid)
 
         s = OLConnection(self.my_keypair, "localhost", self.hisport)
-        self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 1000, "SELECT * FROM peer")
+        self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 0, "SELECT * FROM peer")
         error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
         assert error == 0
 
@@ -198,10 +198,10 @@ class TestCrawler(TestAsServer):
         crawler_db.temporarilyAddCrawler(self.my_permid)
 
         s = OLConnection(self.my_keypair, "localhost", self.hisport)
-        self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 1000, "SELECT * FROM nofoobar")
+        self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 0, "SELECT * FROM nofoobar")
         error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
         assert error != 0
-        assert payload == "SQLError: no such table: nofoobar"
+        assert payload == "SQLError: no such table: nofoobar", payload
 
     def subtest_valid_messageid(self):
         """

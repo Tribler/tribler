@@ -26,7 +26,7 @@ from Tribler.Core.BitTornado.__init__ import version_id
 if (sys.platform == 'win32'):
     from Tribler.Main.Utility.regchecker import RegChecker
 
-from Tribler.Main.Utility.configreader import ConfigReader
+from Tribler.Utilities.configreader import ConfigReader
 from Tribler.Main.Utility.compat import convertINI, moveOldConfigFiles
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 

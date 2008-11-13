@@ -8,8 +8,7 @@ from traceback import print_exc, print_stack
 from cStringIO import StringIO
 
 from Tribler.__init__ import LIBRARYNAME
-from Tribler.Main.Utility.configreader import ConfigReader
-from Tribler.Main.Utility.helpers import existsAndIsReadable
+from Tribler.Utilities.configreader import ConfigReader
 from Tribler.Core.BitTornado.__init__ import version_id
 
 ################################################################
@@ -85,9 +84,9 @@ class Lang:
         if (label == 'version'):
             return version_id
         if (label == 'build'):
-            return "Build 9398"
+            return "Build 9780"
         if (label == 'build_date'):
-            return "Oct 27, 2008"
+            return "Nov 12, 2008"
 
         # see if it exists in 'user.lang'
         if tryuser:
@@ -206,3 +205,6 @@ class Lang:
                 dlg.Destroy()
         sys.stderr.write("\nError reading language file!\n")
         sys.stderr.write("  Cannot find value for variable: " + label + "\n")
+
+def existsAndIsReadable(filename):
+    return os.access(filename, os.F_OK) and os.access(filename, os.R_OK)

@@ -13,6 +13,7 @@ from sets import Set
 from traceback import print_exc
 from shutil import copy as copyFile, move
 from time import sleep
+import base64
 
 if os.path.exists(__file__):
     BASE_DIR = '..'
@@ -24,6 +25,7 @@ from Tribler.Core.BuddyCast.buddycast import DataHandler, BuddyCastFactory
 from Tribler.Core.CacheDB.CacheDBHandler import *
 from Tribler.Category.Category import Category
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
+from Tribler.Core.Statistics.Crawler import Crawler
 
 import hotshot, hotshot.stats
 import math
@@ -86,11 +88,14 @@ def init():
 class FakeSession:
     sessconfig = {}
     def get_permid(self):
-        return None
+        return base64.decodestring('MG0CAQEEHR/bQNvwga7Ury5+8vg/DTGgmMpGCz35Zs/2iz7coAcGBSuBBAAaoUADPgAEAL2I5yVc1+dWVEx3nbriRKJmOSlQePZ9LU7yYQoGABMvU1uGHvqnT9t+53eaCGziV12MZ1g2p0GLmZP9\n' )
 
 class FakeLauchMany:
     
     def __init__(self):
+        self.session = FakeSession()
+        self.crawler = Crawler.get_instance(self.session)
+        
         self.my_db          = MyDBHandler.getInstance()
         self.peer_db        = PeerDBHandler.getInstance()
         self.torrent_db     = TorrentDBHandler.getInstance()
@@ -99,7 +104,6 @@ class FakeLauchMany:
         self.pref_db        = PreferenceDBHandler.getInstance()
         self.superpeer_db   = SuperPeerDBHandler.getInstance()
         self.friend_db      = FriendDBHandler.getInstance()
-        self.session = FakeSession()
         self.bartercast_db  = BarterCastDBHandler.getInstance()
         self.bartercast_db.registerSession(self.session)
         self.secure_overlay = FakeSecureOverlay()
@@ -143,8 +147,6 @@ class TestBuddyCastDataHandler(unittest.TestCase):
 
     def tearDown(self):
         self.overlay_bridge.add_task('quit')
-        self.overlay_bridge.thread.join()
-        del self.data_handler
         
     def test_postInit(self):
         #self.data_handler.postInit()
@@ -166,8 +168,7 @@ class TestBuddyCast(unittest.TestCase):
 
     def tearDown(self):
         self.overlay_bridge.add_task('quit')
-        self.overlay_bridge.thread.join()
-        del self.bc
+        print "Before join"
 
     def remove_t_index(self):
         indices = [
@@ -221,18 +222,24 @@ class TestBuddyCast(unittest.TestCase):
             print 'got msg: %d %.2f %.2f %.2f %.2f' %(len(costs), cost, min(costs), sum(costs)/len(costs), max(costs))
         # with all indices, min/avg/max:  0.00 1.78 4.57 seconds
         # without index, min/avg/max:  0.00 1.38 3.43 seconds  (58)
-
+        print "Done"
        
     def test_start(self):
-        self.bc.olthread_register(start=False)
-        self.data_handler = self.bc.data_handler
-        self.local_test()
-        sleep(10)
-        
+        try:
+            self.bc.olthread_register(start=False)
+            self.data_handler = self.bc.data_handler
+            self.local_test()
+            print "Sleeping for 10 secs"
+            sleep(10)
+            print "Done2"
+            
+        except:
+            print_exc()
+            self.assert_(False)
     
 def test_suite():
     suite = unittest.TestSuite()
-    #suite.addTest(unittest.makeSuite(TestBuddyCastDataHandler))
+    suite.addTest(unittest.makeSuite(TestBuddyCastDataHandler))
     suite.addTest(unittest.makeSuite(TestBuddyCast))
     
     return suite

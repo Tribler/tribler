@@ -1,5 +1,7 @@
 !define PRODUCT "SwarmPlayer"
 !define VERSION "1.1.0"
+!define LIBRARYNAME "Tribler"
+
 
 !include "MUI.nsh"
 
@@ -88,23 +90,23 @@ Section "!Main EXE" SecMain
  File *.dll
  Delete "$INSTDIR\*.zip"
  File *.zip
- CreateDirectory "$INSTDIR\Tribler"
- CreateDirectory "$INSTDIR\Tribler\Core"
- SetOutPath "$INSTDIR\Tribler\Core"
- File Tribler\Core\*.txt
- CreateDirectory "$INSTDIR\Tribler\Core\Statistics"
- SetOutPath "$INSTDIR\Tribler\Core\Statistics"
- File Tribler\Core\Statistics\*.txt
- File Tribler\Core\Statistics\*.sql
- CreateDirectory "$INSTDIR\Tribler\Images"
- SetOutPath "$INSTDIR\Tribler\Images"
- File Tribler\Images\*.*
- CreateDirectory "$INSTDIR\Tribler\Lang"
- SetOutPath "$INSTDIR\Tribler\Lang"
+ CreateDirectory "$INSTDIR\${LIBRARYNAME}"
+ CreateDirectory "$INSTDIR\${LIBRARYNAME}\Core"
+ SetOutPath "$INSTDIR\${LIBRARYNAME}\Core"
+ File ${LIBRARYNAME}\Core\*.txt
+ CreateDirectory "$INSTDIR\${LIBRARYNAME}\Core\Statistics"
+ SetOutPath "$INSTDIR\${LIBRARYNAME}\Core\Statistics"
+ File ${LIBRARYNAME}\Core\Statistics\*.txt
+ File ${LIBRARYNAME}\Core\Statistics\*.sql
+ CreateDirectory "$INSTDIR\${LIBRARYNAME}\Images"
+ SetOutPath "$INSTDIR\${LIBRARYNAME}\Images"
+ File ${LIBRARYNAME}\Images\*.*
+ CreateDirectory "$INSTDIR\${LIBRARYNAME}\Lang"
+ SetOutPath "$INSTDIR\${LIBRARYNAME}\Lang"
  IfFileExists user.lang userlang
- File Tribler\Lang\*.*
+ File ${LIBRARYNAME}\Lang\*.*
  userlang:
- File /x user.lang Tribler\Lang\*.*
+ File /x user.lang ${LIBRARYNAME}\Lang\*.*
  SetOutPath "$INSTDIR"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayName" "${PRODUCT} (remove only)"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString" "$INSTDIR\Uninstall.exe"
@@ -136,7 +138,7 @@ Section "Make Default For .tstream" SecDefaultTStream
    WriteRegBin HKCR tstream EditFlags 00000100
    WriteRegStr HKCR "tstream\shell" "" open
    WriteRegStr HKCR "tstream\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\Tribler\Images\swarmplayer.ico"
+   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\${LIBRARYNAME}\Images\swarmplayer.ico"
 SectionEnd
 
 Section /o "Make Default For .torrent" SecDefaultTorrent
@@ -149,7 +151,7 @@ Section /o "Make Default For .torrent" SecDefaultTorrent
    WriteRegBin HKCR bittorrent EditFlags 00000100
    WriteRegStr HKCR "bittorrent\shell" "" open
    WriteRegStr HKCR "bittorrent\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\Tribler\Images\torrenticon.ico"
+   WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\${LIBRARYNAME}\Images\torrenticon.ico"
 SectionEnd
 
 ;--------------------------------
@@ -169,8 +171,8 @@ SectionEnd
 
 Section "Uninstall"
 
- Delete "$INSTDIR\Tribler\*.*"
- RMDir "$INSTDIR\Tribler"
+ Delete "$INSTDIR\${LIBRARYNAME}\*.*"
+ RMDir "$INSTDIR\${LIBRARYNAME}"
 
  Delete "$INSTDIR\*.*"
  RMDir "$INSTDIR"

@@ -1,15 +1,19 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
+#
+# TODO: integrate with test_TimedTaskQueue
+
 import unittest
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from time import sleep
+
+from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 
 class TestGUITaskQueue(unittest.TestCase):
     
     def setUp(self):
         self.ntasks = 0
         self.completed = []
-        self.guiserver = GUITaskQueue()
+        self.guiserver = TimedTaskQueue()
         
     def tearDown(self):
         sleep(2)
@@ -17,7 +21,6 @@ class TestGUITaskQueue(unittest.TestCase):
         if self.completed != range(self.ntasks):
             print "test failed",self.completed
             self.assert_(False)
-        self.guiserver.resetSingleton()
 
     def test_simple(self):
         self.ntasks = 1

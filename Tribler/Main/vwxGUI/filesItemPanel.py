@@ -358,6 +358,8 @@ class FilesItemPanel(wx.Panel):
             print >>sys.stderr,'fip: item selected'
         if self.data and self.data.get('myDownloadHistory'):
             colour = self.guiUtility.selectedColourDownload
+        elif self.data and self.data.get('query_torrent_was_requested',False):
+            colour = self.guiUtility.selectedColourPending
         else:
             colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)        

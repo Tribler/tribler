@@ -327,7 +327,7 @@ class MainFrame(wx.Frame):
         # Called by GUITaskQueue thread
         my_version = self.utility.getVersion()
         try:
-            curr_status = urllib.urlopen('http://tribler.org/version').readlines()
+            curr_status = urllib.urlopen('http://tribler.org/version/').readlines()
             line1 = curr_status[0]
             if len(curr_status) > 1:
                 self.update_url = curr_status[1].strip()

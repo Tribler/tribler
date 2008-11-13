@@ -56,6 +56,7 @@ class GUIUtility:
         self.unselectedColourDownload = wx.Colour(198,226,147)        
         self.unselectedColour2Download = wx.Colour(190,209,139)
         self.selectedColourDownload = wx.Colour(145,173,78)
+        self.selectedColourPending = wx.Colour(208,251,244)
         self.triblerRed = wx.Colour(255, 51, 0)
         self.max_remote_queries = 10    # max number of remote peers to query
         self.remote_search_threshold = 20    # start remote search when results is less than this number

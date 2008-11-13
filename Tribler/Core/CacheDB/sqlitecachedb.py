@@ -29,7 +29,7 @@ CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'tribler_sdb_v1.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 BSDDB_DIR_NAME = 'bsddb'
-CURRENT_DB_VERSION = 1
+CURRENT_MAIN_DB_VERSION = 1
 DEFAULT_BUSY_TIMEOUT = 10000
 MAX_SQL_BATCHED_TO_TRANSACTION = 1000   # don't change it unless carefully tested. A transaction with 1000 batched updates took 1.5 seconds
 NULL = None
@@ -49,7 +49,7 @@ def init(config, db_exception_handler = None):
     sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
     bsddb_path = os.path.join(config_dir, BSDDB_DIR_NAME)
     icon_dir = os.path.abspath(config['peer_icon_path'])
-    sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE, bsddb_path)  # the first place to create db in Tribler
+    sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE, bsddb_path,current_db_version=CURRENT_MAIN_DB_VERSION)  # the first place to create db in Tribler
     return sqlitedb
         
 def done(config_dir):
@@ -239,7 +239,8 @@ class SQLiteCacheDBBase:
                create_sql_filename = None, 
                bsddb_dirpath = None, 
                busytimeout = DEFAULT_BUSY_TIMEOUT,
-               check_version = True):
+               check_version = True,
+               current_db_version = None):
         """ 
         Create and initialize a SQLite database given a sql script. 
         Only one db can be opened. If the given dbfile_path is different with the opened DB file, warn and exit
@@ -271,7 +272,7 @@ class SQLiteCacheDBBase:
                     #sys.exit(0)
                     # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
                     # it will update the db if necessary by checking the version number
-                    self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout, check_version=check_version)
+                    self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout, check_version=check_version, current_db_version=current_db_version)
                     
                     self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
                     
@@ -283,7 +284,7 @@ class SQLiteCacheDBBase:
         finally:
             self.lock.release()
 
-    def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT, check_version=False):
+    def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT, check_version=False, current_db_version=None):
         """
         open the db if possible, otherwise create a new one
         update the db if necessary by checking the version number
@@ -338,7 +339,7 @@ class SQLiteCacheDBBase:
                 sqlite_db_version = self.readDBVersion()
             
         if check_version:
-            self.checkDB(sqlite_db_version, CURRENT_DB_VERSION)
+            self.checkDB(sqlite_db_version, current_db_version)
 
     def report_exception(e):
         #return  # Jie: don't show the error window to bother users
@@ -369,6 +370,10 @@ class SQLiteCacheDBBase:
             return find[0]    # throw error if something wrong
         else:
             return None
+    
+    def writeDBVersion(self, version, commit=True):
+        sql = "UPDATE MyInfo SET value=? WHERE entry='version'"
+        self.execute_write(sql, [version], commit=commit)
     
     def show_sql(self, switch):
         # temporary show the sql executed

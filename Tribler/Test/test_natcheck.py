@@ -4,6 +4,7 @@
 import sys
 import time
 import unittest
+import socket
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
@@ -63,10 +64,11 @@ class TestNatCheck(TestCrawler):
 
         time.sleep(1)
 
+def test_suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(TestNatCheck))
+    return suite
+
 if __name__ == "__main__":
-    def test_suite():
-        suite = unittest.TestSuite()
-        suite.addTest(unittest.makeSuite(TestNatCheck))
-        return suite
     unittest.main(defaultTest="test_suite")
 

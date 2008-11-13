@@ -245,7 +245,7 @@ class PlayerSwitchButton(PlayerButton):
                 
                     
         if not os.path.isdir(self.imagedir):
-            print 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
+            print >>sys.stderr,'PlayerSwitchButton: Error: no image directory found in',self.imagedir
             return
         
         # find a file with same name as this panel

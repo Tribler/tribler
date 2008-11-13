@@ -73,6 +73,7 @@ from Tribler.Web2.util.update import Web2Updater
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
+from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 
 from Tribler.Core.API import *
@@ -120,8 +121,8 @@ class ABCApp(wx.App):
             # Set locale to determine localisation
             #locale.setlocale(locale.LC_ALL, '')
 
-            sys.stdout.write('Client Starting Up.\n')
-            sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
+            sys.stderr.write('Client Starting Up.\n')
+            sys.stderr.write('Build: ' + self.utility.lang.get('build') + '\n')
 
             bm = wx.Bitmap(os.path.join(self.utility.getPath(),'Tribler','Images','splash.jpg'),wx.BITMAP_TYPE_JPEG)
             #s = wx.MINIMIZE_BOX | wx.MAXIMIZE_BOX | wx.RESIZE_BORDER | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.CLIP_CHILDREN

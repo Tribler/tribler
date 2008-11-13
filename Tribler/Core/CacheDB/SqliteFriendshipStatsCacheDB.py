@@ -1,3 +1,6 @@
+# Written by Ali Abbas
+# see LICENSE.txt for license information
+
 import sys
 import os
 from copy import deepcopy
@@ -18,13 +21,7 @@ CREATE_FRIENDSHIP_STATS_SQL_FILE = None
 CREATE_FRIENDSHIP_STATS_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'Core', 'Statistics', 'tribler_friendship_stats_sdb.sql')
 DB_FILE_NAME = 'tribler_friendship_stats.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
-BSDDB_DIR_NAME = 'bsddb'
-CURRENT_DB_VERSION = 1
-DEFAULT_BUSY_TIMEOUT = 10000
-MAX_SQL_BATCHED_TO_TRANSACTION = 1000   # don't change it unless carefully tested. A transaction with 1000 batched updates took 1.5 seconds
-SHOW_ALL_EXECUTE = False
-costs = []
-cost_reads = []
+CURRENT_DB_VERSION = 2
 
 DEBUG = False
 
@@ -36,10 +33,28 @@ def init_friendship_stats(config, db_exception_handler = None):
         CREATE_FRIENDSHIP_STATS_SQL_FILE = os.path.join(install_dir,CREATE_FRIENDSHIP_STATS_SQL_FILE_POSTFIX)
         sqlitedb = SQLiteFriendshipStatsCacheDB.getInstance(db_exception_handler)   
         sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
-        sqlitedb.initDB(sqlite_db_path, CREATE_FRIENDSHIP_STATS_SQL_FILE)  # the first place to create db in Tribler
+        sqlitedb.initDB(sqlite_db_path, CREATE_FRIENDSHIP_STATS_SQL_FILE,current_db_version=CURRENT_DB_VERSION)  # the first place to create db in Tribler
         return sqlitedb
 
-class SQLiteFriendshipStatsCacheDB(SQLiteCacheDBBase):
+
+class FSCacheDBBaseV2(SQLiteCacheDBBase):
+    """ See Tribler/Core/Statistics/tribler_friendship_stats_sdb.sql 
+    for a description of the various versions
+    """
+    
+    def updateDB(self,fromver,tover):
+        print >>sys.stderr,"fscachedb2: Upgrading",fromver,tover
+        if fromver == 1 and tover == 2:
+            # Do ALTER TABLE stuff to add crawler_permid field.
+            sql = "ALTER TABLE FriendshipStatistics ADD COLUMN crawled_permid TEXT DEFAULT client NOT NULL;"
+            self.execute_write(sql, commit=False)
+            # updating version stepwise so if this works, we store it
+            # regardless of later, potentially failing updates
+            self.writeDBVersion(2, commit=False)
+            self.commit()
+            
+
+class SQLiteFriendshipStatsCacheDB(FSCacheDBBaseV2):
     __single = None    # used for multithreaded singletons pattern
     lock = threading.RLock()
 
@@ -60,7 +75,7 @@ class SQLiteFriendshipStatsCacheDB(SQLiteCacheDBBase):
         if self.__single != None:
             raise RuntimeError, "SQLiteFriendshipStatsCacheDB is singleton"
         
-        SQLiteCacheDBBase.__init__(self, *args, **kw)
+        FSCacheDBBaseV2.__init__(self, *args, **kw)
     
     
     
