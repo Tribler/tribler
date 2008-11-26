@@ -50,6 +50,9 @@ NTFY_BARTERCAST = 'bartercast' # currently not observable
 NTFY_MYINFO = 'myinfo'
 NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
+NTFY_SEARCH = 'search'
+NTFY_TERM= 'term'
+
 
 # non data handler subjects
 NTFY_DOWNLOADS = 'downloads'   # a torrent download was added/removed/changed

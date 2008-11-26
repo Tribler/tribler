@@ -273,7 +273,12 @@ def encode_dict(x, r):
     ilist = x.items()
     ilist.sort()
     for k, v in ilist:
-        r.extend((str(len(k)), ':', k))
+        try:
+            r.extend((str(len(k)), ':', k))
+        except:
+            print >> sys.stderr, "k: %s" % k
+            raise
+            
         encode_func[type(v)](v, r)
     r.append('e')
 

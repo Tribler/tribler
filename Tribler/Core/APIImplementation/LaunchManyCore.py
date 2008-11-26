@@ -146,6 +146,9 @@ class TriblerLaunchMany(Thread):
             self.friend_db      = FriendDBHandler.getInstance()
             self.bartercast_db  = BarterCastDBHandler.getInstance()
             self.bartercast_db.registerSession(self.session)
+            self.search_db      = SearchDBHandler.getInstance()
+            self.term_db        = TermDBHandler.getInstance()
+
 
             # Crawling 
             self.crawler_db     = CrawlerDBHandler.getInstance()

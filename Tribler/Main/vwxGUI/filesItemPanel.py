@@ -352,7 +352,13 @@ class FilesItemPanel(wx.Panel):
         self.hSizer.Add(vLine, 0, wx.RIGHT|wx.LEFT|wx.EXPAND, 3)
         return vLine
           
-    def select(self, rowIndex, colIndex):
+    def select(self, rowIndex, colIndex, pageIndex=-1, panelsPerRow=-1, rowsPerPage=-1):
+        # if pageIndex is given, we assume panelsPerRow and rowsPerPage are given as well,
+        # and set click_position, a 0-indexed value indicating the rank of the panel
+        if pageIndex>-1:
+             panelsPerPage = panelsPerRow * rowsPerPage
+             self.data["click_position"] = pageIndex * panelsPerPage + rowIndex * panelsPerRow + colIndex
+
         self.selected = True
         if DEBUG:
             print >>sys.stderr,'fip: item selected'

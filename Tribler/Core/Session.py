@@ -485,6 +485,8 @@ class Session(SessionRuntimeConfig):
         NTFY_FRIENDS -> FriendsDBHandler
         NTFY_MYPREFERENCES -> MyPreferenceDBHandler
         NTFY_BARTERCAST -> BartercastDBHandler
+        NTFY_SEARCH -> SearchDBHandler
+        NTFY_TERM -> TermDBHandler
         </pre>
         """ 
         # Called by any thread
@@ -508,6 +510,10 @@ class Session(SessionRuntimeConfig):
                 return self.lm.seedingstats_db
             elif subject == NTFY_SEEDINGSTATSSETTINGS:
                 return self.lm.seedingstatssettings_db
+            elif subject == NTFY_SEARCH:
+                return self.lm.search_db
+            elif subject == NTFY_TERM:
+                return self.lm.term_db
             else:
                 raise ValueError('Cannot open DB subject: '+subject)
         finally:

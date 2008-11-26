@@ -29,7 +29,7 @@ CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'tribler_sdb_v1.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 BSDDB_DIR_NAME = 'bsddb'
-CURRENT_MAIN_DB_VERSION = 1
+CURRENT_MAIN_DB_VERSION = 2
 DEFAULT_BUSY_TIMEOUT = 10000
 MAX_SQL_BATCHED_TO_TRANSACTION = 1000   # don't change it unless carefully tested. A transaction with 1000 batched updates took 1.5 seconds
 NULL = None
@@ -820,8 +820,39 @@ class SQLiteCacheDBBase:
         res1 = self.getAll('Category', '*')
         res2 = len(self.getAll('Peer', 'name', 'name is not NULL'))
         return (res1, res2)
+    
+class SQLiteCacheDBV2(SQLiteCacheDBBase):
+    def updateDB(self, fromver, tover):
+        # bring database up to version 2, if necessary        
+        if fromver < 2:
+            sql = """
+ALTER TABLE MyPreference ADD COLUMN click_position INTEGER DEFAULT -1;
+ALTER TABLE MyPreference ADD COLUMN reranking_strategy INTEGER DEFAULT -1;
+ALTER TABLE Preference ADD COLUMN click_position INTEGER DEFAULT -1;
+ALTER TABLE Preference ADD COLUMN reranking_strategy INTEGER DEFAULT -1;
+CREATE TABLE Search (
+                     peer_id INTEGER DEFAULT 0,
+                     torrent_id INTEGER DEFAULT 0,
+                     term_id INTEGER DEFAULT 0,
+                     term_order INTEGER DEFAULT 0
+                     );
+CREATE INDEX idx_search_term ON Search (term_id);
+CREATE INDEX idx_search_torrent ON Search (torrent_id);                     
+CREATE TABLE Term (
+                    term_id INTEGER DEFAULT 0,
+                    term VARCHAR(255),
+                    PRIMARY KEY (term_id)
+                    );
+CREATE INDEX idx_terms_term ON Term(term);        
+"""       
+            
+            self.execute_write(sql, commit=False)
+            # updating version stepwise so if this works, we store it
+            # regardless of later, potentially failing updates
+            self.writeDBVersion(2, commit=False)
+            self.commit()
 
-class SQLiteCacheDB(SQLiteCacheDBBase):
+class SQLiteCacheDB(SQLiteCacheDBV2):
     __single = None    # used for multithreaded singletons pattern
     lock = threading.RLock()
 

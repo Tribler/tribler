@@ -63,6 +63,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_
 from Tribler.Video.utils import videoextdefaults
 
 
+from Tribler.Core.simpledefs import *
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 
@@ -285,7 +286,7 @@ class MainFrame(wx.Frame):
             torrentfilename = self.params[0]
             self.startDownload(torrentfilename,cmdline=True)
 
-    def startDownload(self,torrentfilename,destdir=None,tdef = None, cmdline = False):
+    def startDownload(self,torrentfilename,destdir=None,tdef = None, cmdline = False, clicklog=None):
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef,cmdline
@@ -303,7 +304,11 @@ class MainFrame(wx.Frame):
                 videoplayer = VideoPlayer.getInstance()
                 return videoplayer.start_and_play(tdef,dscfg)
             else:
-                return self.utility.session.start_download(tdef,dscfg)
+                result = self.utility.session.start_download(tdef,dscfg)
+                # store result because we want to store clicklog data right after download was started, then return result
+                mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+                mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
+                return result 
 
         except DuplicateDownloadException:
             # show nice warning dialog

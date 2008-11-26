@@ -172,7 +172,7 @@ from Tribler.Core.Utilities.utilities import show_permid_short, show_permid,vali
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from similarity import P2PSim, P2PSimSorted, P2PSimLM
 from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollecting
@@ -185,11 +185,16 @@ from bartercast import BarterCastCore
 
 DEBUG = False   # for errors
 debug = False   # for status
+debugnic = True # for my temporary outputs
+unblock = 0
 
-MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
+MAX_BUDDYCAST_LENGTH = 1024*1024   # NIC: 10 KByte -- I set this to 1024 KByte.     
+                                   # The term_id->term dictionary can become almost arbitrarily long
+                                   # would be strange if buddycast stopped working once a user has done a lot of searches... 
+
 REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in this version
 
-# uesed for datahandler.peers
+# used for datahandler.peers
 PEER_SIM_POS = 0
 PEER_LASTSEEN_POS = 1
 PEER_PREF_POS = 2
@@ -253,6 +258,7 @@ class BuddyCastFactory:
         self.data_handler = None
         self.started = False    # did call do_buddycast() at least once 
         self.max_peers = 2500   # was 2500
+        self.ranonce = False # NIC: had the impression that BuddyCast can be tested more reliably if I wait until it has gone through buddycast_core.work() successfully once
         if self.superpeer:
             print "Start as SuperPeer mode"
         
@@ -330,6 +336,7 @@ class BuddyCastFactory:
             
         # Do our thang.
         self.buddycast_core.work()
+        self.ranonce = True # NIC now we can start testing and stuff works better
         
     def pauseBuddyCast(self):
         self.running = False
@@ -435,6 +442,9 @@ class BuddyCastFactory:
     
     
 class BuddyCastCore:
+    
+    TESTASSERVER = False # for unit testing
+    
     def __init__(self, overlay_bridge, launchmany, data_handler, 
                  buddycast_interval, superpeer, 
                  metadata_handler, torrent_collecting_solution, bartercast_core, log=None):
@@ -857,6 +867,9 @@ class BuddyCastCore:
                     
     def createAndSendBuddyCastMessage(self, target_permid, selversion, active):
         
+        
+        
+        
         buddycast_data = self.createBuddyCastMessage(target_permid, selversion)
         if debug:
             print >> sys.stderr, "bc: createAndSendBuddyCastMessage", len(buddycast_data), currentThread().getName()
@@ -903,11 +916,16 @@ class BuddyCastCore:
                     MSG_ID = 'PASSIVE_BC'
                 msg = repr(readableBuddyCastMsg(buddycast_data))    # from utilities
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
+        return buddycast_data # NIC: for testing
                 
-    def createBuddyCastMessage(self, target_permid, selversion):
+    def createBuddyCastMessage(self, target_permid, selversion, target_ip=None, target_port=None):
         """ Create a buddycast message for a target peer on selected protocol version """
-        
-        target_ip,target_port = self.dnsindb(target_permid)
+        # NIC: added manual target_ip, target_port parameters for testing
+        try:
+            target_ip,target_port = self.dnsindb(target_permid)    
+        except:
+            if not self.TESTASSERVER:
+                raise # allow manual ips during unit-testing if dnsindb fails
         if not target_ip or not target_port:
             return {}
         my_pref = self.data_handler.getMyLivePreferences(self.num_myprefs)       #[pref]
@@ -936,6 +954,10 @@ class BuddyCastCore:
             buddycast_data['npeers'] = npeers
             buddycast_data['nfiles'] = ntorrents
             buddycast_data['ndls'] = nmyprefs
+
+        if selversion >= OLPROTO_VER_EIGHTH:
+            buddycast_data["clicklog"] = self.data_handler.get_clicklog(my_pref)
+            
             
         return buddycast_data
 
@@ -981,6 +1003,8 @@ class BuddyCastCore:
             for i in range(len(peers)):
                 peers[i]['similarity'] = int(peers[i]['similarity']+0.5)    # bencode doesn't accept float type
         
+
+
         # Every peer >= 6 in message attachs nfiles and oversion for remote search from version 6
         for i in range(len(peers)):
             oversion = peers[i].pop('oversion')
@@ -1083,10 +1107,16 @@ class BuddyCastCore:
         unblock_time = now() + block_interval
         block_list[peer_id] = unblock_time
         
+    
+        
     def isBlocked(self, peer_permid, block_list):
+        if self.data_handler.testAsServer():
+            return False # we do not want to be blocked when sending various messages
+
         peer_id = peer_permid
         if peer_id not in block_list:
             return False
+             
         unblock_time = block_list[peer_id]
         if now() >= unblock_time - self.network_delay:    # 30 seconds for network delay
             block_list.pop(peer_id)
@@ -1127,14 +1157,25 @@ class BuddyCastCore:
 
         active = self.isBlocked(sender_permid, self.send_block_list)
         
+        
         if active:
             self.print_debug_info('Active', 18, sender_permid)
         else:
             self.print_debug_info('Passive', 2, sender_permid)
         
         buddycast_data = {}
-        try:
-            buddycast_data = bdecode(recv_msg)
+        try:    
+            try:
+                buddycast_data = bdecode(recv_msg) 
+            except ValueError, msg:
+                try:
+                    errmsg = str(msg)
+                except:
+                    errmsg = repr(msg)
+                if DEBUG:
+                    print >> sys.stderr, "bc: warning, got invalid BuddyCastMsg:", errmsg, \
+                    "Round", self.round   # ipv6
+                return False            
             buddycast_data.update({'permid':sender_permid})
             try:    # check buddycast message
                 validBuddyCastData(buddycast_data, 0, 
@@ -1168,6 +1209,7 @@ class BuddyCastCore:
             
             # store discovered peers/preferences/torrents to cache and db
             conn = buddycast_data.get('connectable', 0)    # 0 - unknown
+            
             self.handleBuddyCastMessage(sender_permid, buddycast_data, selversion)
             if active:
                 conn = 1
@@ -1281,12 +1323,18 @@ class BuddyCastCore:
         if selversion >= OLPROTO_VER_SIXTH:
             stats = {'num_peers':buddycast_data['npeers'],'num_torrents':buddycast_data['nfiles'],'num_prefs':buddycast_data['ndls']}
             cache_db_data['peer'][sender_permid].update(stats)
+        
+        # if selversion >= OLPROTO_VER_EIGHTH:
+            cl = buddycast_data.get('clicklog',None)
+            if cl:
+                cache_db_data['clicklog'] = cl
        
         cache_db_data['peer'][sender_permid]['last_buddycast'] = _now
         
         infohashes = Set(buddycast_data.get('collected torrents', []))
         prefs = Set(buddycast_data.get('preferences', []))  # only accept sender's preference, to avoid pollution
         infohashes = infohashes.union(prefs)
+
                 
         cache_db_data['infohash'] = infohashes
         #self.data_handler.addInfohashes(infohashes, commit=True)
@@ -1762,7 +1810,7 @@ class DataHandler:
     
     def getMyName(self, name=''):
         return self.config.get('nickname', name)
-        
+
     def getMyIp(self, ip=''):
         return self.launchmany.get_ext_ip()
     
@@ -1777,6 +1825,15 @@ class DataHandler:
             return permid
         else:
             return self.peer_db.getPeerID(permid)
+
+    def get_clicklog(self, mypref):
+        """ Get clicklog data for selected preferences. 
+            Put this into a separate method to separate earlier and newer versions of protocol.
+            Created data also lives in separate entry of buddycast data dict
+            """
+            
+        return self.mypref_db.getClickLog(mypref)
+
     
     def getTorrentID(self, infohash):
         if isinstance(infohash, int) and infohash > 0:
@@ -2103,7 +2160,7 @@ class DataHandler:
         if commit:
             self.torrent_db.commit()
                 
-    def addPeerPreferences(self, peer_permid, prefs, commit=True):
+    def addPeerPreferences(self, peer_permid, prefs, commit=True, clicklog={}):
         """ add a peer's preferences to both cache and db """
         
         if peer_permid == self.permid:
@@ -2113,16 +2170,27 @@ class DataHandler:
         if not cur_prefs:
             cur_prefs = []
         prefs2add = []
+        infohash2torrentid = {} 
         for infohash in prefs:
             torrent_id = self.torrent_db.getTorrentID(infohash)
             if not torrent_id:
                 print >> sys.stderr, "buddycast: DB Warning: infohash", bin2str(infohash), "should have been inserted into db, but was not found"
                 continue
+            # store torrent_id in clicklog data structure so we don't have to repeat lookup later on
+            if clicklog:
+                if 'torrentdata' in clicklog:
+                    if infohash in clicklog['torrentdata']:
+                        clicklog['torrentdata'][infohash]['torrent_id'] = torrent_id
+            infohash2torrentid[infohash] = torrent_id
+
             if torrent_id not in cur_prefs:
                 prefs2add.append(torrent_id)
                 cur_prefs.append(torrent_id)
+                
+                
+                
         if len(prefs2add) > 0:
-            self.pref_db.addPreferences(peer_permid, prefs2add, is_torrent_id=True, commit=commit)
+            self.pref_db.addPreferences(peer_permid, prefs2add, is_torrent_id=True, commit=commit, clicklog=clicklog) # NIC I realize it's kind of ugly to put my new arguments behind the commit, but I'm trying to remain backwards compatible here
             self.updatePeerPref(peer_permid, cur_prefs)
             self.nprefs += len(prefs2add)
             peer_id = self.getPeerID(peer_permid)
@@ -2215,6 +2283,7 @@ class DataHandler:
 
         #print >>sys.stderr,"bc: handleBCData:",`cache_db_data`
 
+
         ADD_PEER = 1
         UPDATE_PEER = 2
         ADD_INFOHASH = 3
@@ -2289,7 +2358,10 @@ class DataHandler:
                 self.addRelativeSim(sender_permid, permid, sim, max_tb_sim)
                 
         if cache_db_data['pref']:
-            self.addPeerPreferences(sender_permid, cache_db_data['pref'], commit=False)
+            self.addPeerPreferences(sender_permid, 
+                                    cache_db_data['pref'], 
+                                    commit=False, 
+                                    clicklog=cache_db_data.get('clicklog',{}))
             
         #self.torrent_db._db.show_sql(1)
         self.torrent_db.commit()

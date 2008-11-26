@@ -1625,9 +1625,14 @@ class standardDetails(wx.Panel):
         print >>sys.stderr,"standardDetails: download: Preparing to start:",`name`
         
         if os.path.isfile(torrent_filename):
+
+            clicklog={"keywords": self.guiUtility.torrentsearch_manager.searchkeywords[self.mode]}
+            if "click_position" in torrent:
+                clicklog["click_position"] = torrent["click_position"]
+
             
             # Api download
-            d = self.utility.frame.startDownload(torrent_filename,destdir=dest)
+            d = self.utility.frame.startDownload(torrent_filename,destdir=dest, clicklog=clicklog)
             if d:
                 if secret:
                     self.torrent_db.setSecret(torrent['infohash'], secret)

@@ -102,8 +102,17 @@ class ABCApp(wx.App):
         self.error = None
         self.last_update = 0
         self.update_freq = 0    # how often to update #peers/#torrents
-        wx.App.__init__(self, redirectstderrout)
         
+        try:
+            ubuntu = True
+            if not redirectstderrout and ubuntu:
+                # On Ubuntu 8.10 not redirecting output fails
+                #wx.App.__init__(self, redirect=True ,filename='/tmp/tribler-stderrout.log')
+                wx.App.__init__(self, redirect=True)
+            else:
+                wx.App.__init__(self, redirectstderrout)
+        except:
+            print_exc()
         
     def OnInit(self):
         try:
@@ -655,37 +664,43 @@ def run(params = None):
     
     if len(sys.argv) > 1:
         params = sys.argv[1:]
-    
-    # Create single instance semaphore
-    # Arno: On Linux and wxPython-2.8.1.1 the SingleInstanceChecker appears
-    # to mess up stderr, i.e., I get IOErrors when writing to it via print_exc()
-    #
-    if sys.platform != 'linux2':
+    try:
+            
+        # Create single instance semaphore
+        # Arno: On Linux and wxPython-2.8.1.1 the SingleInstanceChecker appears
+        # to mess up stderr, i.e., I get IOErrors when writing to it via print_exc()
+        #
+        #if sys.platform != 'linux2':
         single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
-    else:
-        single_instance_checker = DummySingleInstanceChecker("tribler-")
-
-    if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
-        #Send  torrent info to abc single instance
-        if params[0] != "":
-            torrentfilename = params[0]
-            i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
-    else:
-        arg0 = sys.argv[0].lower()
-        if arg0.endswith('.exe'):
-            installdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+        
+        print >>sys.stderr,"single_instance_checker.IsAnotherRunning()",single_instance_checker.IsAnotherRunning()
+        
+        #else:
+        #    single_instance_checker = DummySingleInstanceChecker("tribler-")
+    
+        if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
+            #Send  torrent info to abc single instance
+            if params[0] != "":
+                torrentfilename = params[0]
+                i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
         else:
-            installdir = os.getcwd()  
-        # Arno: don't chdir to allow testing as other user from other dir.
-        #os.chdir(installdir)
-
-        # Launch first abc single instance
-        app = ABCApp(0, params, single_instance_checker, installdir)
-        configpath = app.getConfigPath()
-        app.MainLoop()
-
-    print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
-    sleep(1)
+            arg0 = sys.argv[0].lower()
+            if arg0.endswith('.exe'):
+                installdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+            else:
+                installdir = os.getcwd()  
+            # Arno: don't chdir to allow testing as other user from other dir.
+            #os.chdir(installdir)
+    
+            # Launch first abc single instance
+            app = ABCApp(0, params, single_instance_checker, installdir)
+            configpath = app.getConfigPath()
+            app.MainLoop()
+    
+        print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
+        sleep(1)
+    except:
+        print_exc()
 
     # This is the right place to close the database, unfortunately Linux has
     # a problem, see ABCFrame.OnCloseWindow

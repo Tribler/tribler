@@ -774,7 +774,12 @@ class standardGrid(wx.Panel):
                         #print 'item deselected2'
                         pan.deselect(rowIndex,colIndex)#number = number)
                     else:
-                        pan.select(rowIndex,colIndex)
+                        #pan.select(rowIndex,colIndex)
+                        pan.select(rowIndex, 
+                                   colIndex,
+                                   self.standardPager.currentPage, 
+                                   self.cols, 
+                                   self.currentRows)                         
                     number += 1
                     colIndex += 1
                 rowIndex += 1

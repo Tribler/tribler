@@ -742,9 +742,10 @@ class PreferenceDBHandler(BasicDBHandler):
         
         self._db.delete(self.table_name, commit=commit, peer_id=peer_id)
 
-    def addPreference(self, permid, infohash, data={}, commit=True):
+    def addPreference(self, permid, infohash, data={}, commit=True):           
         # This function should be replaced by addPeerPreferences 
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
+        # NIC did not change this function as it seems addPreference*s* is getting called
         peer_id = self._db.getPeerID(permid)
         if peer_id is None:
             print >> sys.stderr, 'PreferenceDBHandler: add preference of a peer which is not existed in Peer table', `permid`
@@ -760,8 +761,9 @@ class PreferenceDBHandler(BasicDBHandler):
         except Exception, msg:    # duplicated
             print_exc()
 
-    def addPreferences(self, peer_permid, prefs, is_torrent_id=False, commit=True):
+    def addPreferences(self, peer_permid, prefs, is_torrent_id=False, commit=True, clicklog={}):
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
+        
         peer_id = self._db.getPeerID(peer_permid)
         if peer_id is None:
             print >> sys.stderr, 'PreferenceDBHandler: add preference of a peer which is not existed in Peer table', `peer_permid`
@@ -785,6 +787,133 @@ class PreferenceDBHandler(BasicDBHandler):
             except Exception, msg:    # duplicated
                 print_exc()
                 print >> sys.stderr, 'dbhandler: addPreferences:', Exception, msg
+                
+        if clicklog:
+            if not clicklog=={}:
+                self.addClicklogToPreferences(peer_id, clicklog, commit=commit)
+                
+    def addClicklogToPreferences(self, peer_id, clicklog, commit=True):
+        """adds clicklog data to already-stored preferences.
+           we might in fact save some time by integrating the clicklog data into 
+           the INSERT INTO Preference loop in the addPreferences method.
+           For the time being, I however prefer leaving these as two steps
+           in a sort of "defensive" programming approach.
+           
+           clicklog, if not empty, is of the format 
+           
+             clicklog  =
+{
+  termid2terms:
+  {
+    "1": "ubuntu",
+    "2": "linux",
+    ...
+  },
+ 
+  torrentdata:
+  {
+    "some_info_hash":
+      {
+        torrent_id: 0,
+        click_position: 1,
+        reranking_strategy: 2,
+        search_terms: [1,2]
+      },
+    ...
+   }
+}
+
+        this is basically the format described in addClicklogToPreferences,
+        but torrent_id has been added in buddycast.
+        if this has not happened, this may mean that the torrent has been already added earlier,
+        or that something is going wrong. in any case, we then ignore the corresponding entry
+        
+        note that term ids are ids of the remote client, so they have to be translated.
+        
+        this method concretely
+        * updates the Preference entries
+        * translates the term ids to local client's term ids (eventually creating new terms)
+        * adds connection between torrent and translated term ids in the Search DB
+        """
+        
+        #print >> sys.stderr, "got clicklog data!: %s " % clicklog 
+        
+        torrentdata = clicklog.get('torrentdata', None)
+        if not torrentdata:
+            if DEBUG:
+                print >>sys.stderr, "torrentdata is empty in buddycast clicklog data from peer %d" % peer_id
+            return
+           
+        # get translations
+        foreign_termid2terms = clicklog.get('termid2terms', None)
+        termdb = TermDBHandler.getInstance()
+        searchdb = SearchDBHandler.getInstance()
+        if not foreign_termid2terms:
+            if DEBUG:
+                print >>sys.stderr, "termid2terms is empty in buddycast clicklog data from peer %d" % peer_id
+            return        
+        
+        # should the following go into some explicit validation part?
+        # this is a measure against buddycast sending millions of terms for the client to store
+        # on average, I would expect the number of unique terms to be n to 2*n for n torrents
+        # here, we draw the line if it is 20*n
+        max_avg_search_terms_per_torrent = 20 
+        if len(foreign_termid2terms)>max_avg_search_terms_per_torrent*len(torrentdata):
+            if DEBUG:
+                print >>sys.stderr, "peer %d sends %d search terms for %d torrents " + \
+                                    "(more than avg %d unique terms per torrent), aborting" % \
+                                    (peer_id, len(foreign_termid2terms), len(torrentdata), max_avg_search_terms_per_torrent)
+            return
+        
+        # get local term ids for terms.
+        foreign2local = dict([(foreign_termid, termdb.getTermID(foreign_term))
+                              for (foreign_termid, foreign_term)
+                              in foreign_termid2terms.items()])
+        
+        # process torrent data
+        for (torrent_hash, torrent_entry) in torrentdata.items():
+            if not type(torrent_entry)==dict:
+                if DEBUG:
+                    print >> sys.stderr, "received non-dict torrent_entry in clicklog entry for torrent %s from peer %d" % \
+                                         (torrent_hash, peer_id)
+                continue
+            
+            (torrent_id, click_position, reranking_strategy, search_terms) = \
+                [torrent_entry.get(key, None) 
+                 for key in ('torrent_id', 'click_position', 'reranking_strategy', 'search_terms')]
+            
+            print "(torrent_id, click_position, reranking_strategy, search_terms): %s" % [torrent_id, click_position, reranking_strategy, search_terms]
+            
+            if not torrent_id:
+                print >> sys.stderr, "torrent_id not set, retrieving manually!"
+                torrent_id = TorrentDBHandler.getInstance().getTorrentID(infohash)
+            
+             
+            if (not torrent_id) or (not click_position) or (not reranking_strategy) or (not search_terms):
+                if DEBUG:
+                    print >>sys.stderr, "incomplete torrent entry received for torrent %s from peer %d" % \
+                                        (torrent_hash, peer_id)
+                
+            # update Preferences
+            self._db.update(self.table_name, 
+                            "torrent_id=%d" % torrent_id, 
+                            commit=commit, 
+                            click_position=click_position, 
+                            reranking_strategy=reranking_strategy)
+            
+            # insert Search
+            term_ids = [foreign2local[str(foreign)] for foreign in search_terms]            
+            searchdb.storeKeywordsByID(peer_id, torrent_id, term_ids, commit=commit)
+            
+        
+    def getAllEntries(self):
+        """use with caution,- for testing purposes"""
+        return self.getAll("rowid, peer_id, torrent_id, click_position,reranking_strategy", order_by="peer_id, torrent_id")
+           
+           
+
+
+
 
     def getRecentPeersPrefs(self, key, num=None):
         # get the recently seen peers' preference. used by buddycast
@@ -1673,6 +1802,81 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return self.recent_preflist[:num]
         else:
             return self.recent_preflist
+
+    def getClickLog(self, mypref):
+        """ create a ClickLog data structure for the torrents
+            contained in mypref, with mypref being the 
+            result of a previous call to getRecentLivePrefList,
+            a list of info hashes in binary format
+            """
+            
+        #print >> sys.stderr, "getting clicklog!"
+            
+        termid2terms = {}
+        torrentdata = {}
+        searchdb = SearchDBHandler.getInstance()
+        termdb = TermDBHandler.getInstance()
+            
+        for infohash in mypref:
+            infohash_str = bin2str(infohash)
+            torrent_id = self._db.getTorrentID(infohash)
+
+            value_name = ('click_position','reranking_strategy')
+            where = 'torrent_id=%s' % torrent_id
+            res = self.getAll(value_name, where)
+            if res == None:
+                if DEBUG:
+                    print >> sys.stderr, "getClicklog: torrent_id %d: not found in MyPreferences, although passed on in mypref argument!" % torrent_id
+                continue 
+            click_position, reranking_strategy = res[0] 
+            search_terms = searchdb.getMyTorrentSearchTerms(torrent_id)
+            torrent_entry = {'click_position': click_position,
+                             'reranking_strategy': reranking_strategy,
+                             'search_terms': search_terms}
+            torrentdata[infohash] = torrent_entry # str(torrent_id) 
+            
+            #print "search_terms: %s" % search_terms
+            for search_term in search_terms:
+                if not search_term in termid2terms:
+                    termid2terms[str(search_term)] = termdb.getTerm(search_term)
+                    
+        clicklog = {'termid2terms': termid2terms,
+                'torrentdata': torrentdata}
+        
+        #print >> sys.stderr, "created clicklog: %s" % clicklog 
+            
+        return  clicklog
+
+        
+    def addClicklogToMyPreference(self, infohash, clicklog_data, commit=True):
+        torrent_id = self._db.getTorrentID(infohash)
+        clicklog_already_stored = False # equivalent to hasMyPreference TODO
+        if torrent_id is None or clicklog_already_stored:
+            return False
+
+        d = {}
+        # copy those elements of the clicklog data which are used in the update command
+        for clicklog_key in ["click_position", "reranking_strategy"]: 
+            if clicklog_key in clicklog_data: 
+                d[clicklog_key] = clicklog_data[clicklog_key]
+                                
+        if d=={}:
+            if DEBUG:
+                print >> sys.stderr, "no updatable information given to addClicklogToMyPreference"
+        else:
+            if DEBUG:
+                print >> sys.stderr, "addClicklogToMyPreference: updatable clicklog data: %s" % d
+            self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, commit=commit, **d)
+                
+        # have keywords stored by SearchDBHandler
+        if 'keywords' in clicklog_data:
+            if not clicklog_data['keywords']==[]:
+                searchdb = SearchDBHandler.getInstance() 
+                searchdb.storeKeywords(peer_id=0, 
+                                       torrent_id=torrent_id, 
+                                       terms=clicklog_data['keywords'], 
+                                       commit=commit)   
+ 
         
     def _getRecentLivePrefList(self, num=0):    # num = 0: all files
         # get recent and live torrents
@@ -1748,6 +1952,12 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return
         self._db.update(self.table_name, 'torrent_id=%d'%torrent_id, commit=commit, progress=progress)
         #print >> sys.stderr, '********* update progress', `infohash`, progress, commit
+
+    def getAllEntries(self):
+        """use with caution,- for testing purposes"""
+        return self.getAll("torrent_id, click_position, reranking_strategy", order_by="torrent_id")
+
+
 
 #    def getAllTorrentCoccurrence(self):
 #        # should be placed in PreferenceDBHandler, but put here to be convenient for TorrentCollecting
@@ -2356,6 +2566,197 @@ class GUIDBHandler:
         torrent_db_handler = TorrentDBHandler.getInstance()
         return torrent_db_handler.category.get_family_filter_sql(torrent_db_handler._getCategoryID, table_name=table_name)
 
+
+
+class TermDBHandler(BasicDBHandler):
+    
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if TermDBHandler.__single is None:
+            TermDBHandler.lock.acquire()   
+            try:
+                if TermDBHandler.__single is None:
+                    TermDBHandler(*args, **kw)
+            finally:
+                TermDBHandler.lock.release()
+        return TermDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if TermDBHandler.__single is not None:
+            raise RuntimeError, "TermDBHandler is singleton"
+        TermDBHandler.__single = self
+        db = SQLiteCacheDB.getInstance()        
+        BasicDBHandler.__init__(self, db, 'Term')
+            
+    def getTermID(self, term):
+        """returns the ID of term in table Term; creates a new entry if necessary"""
+        #print >>sys.stderr, "getTermid: %s" % term
+        term_id = self.getOne('term_id', term=term.lower())
+        if term_id:
+            return term_id
+        self.insertTerm(term, commit=True)
+        return self.getTermID(term)
+    
+    def insertTerm(self, term, commit=True):
+        """creates a new entry for term in table Term"""
+        self._db.insert(self.table_name, commit=commit, term=term)
+    
+    def getTerm(self, term_id):
+        """returns the term for a given term_id"""
+        return self.getOne('term', term_id=term_id)
+    
+    def getTermsStartingWith(self, beginning):
+        """returns all terms starting with beginning"""
+        return [x[0] 
+                for x 
+                in self.getAll('term', 
+                               'term like \'%s%%\'' % 
+                                 beginning.lower().replace('\'',''))] 
+        # should be ordered by number of times term has been seen      
+        # should we cache this information somewhere?
+        # I don't think so; we only have to compute it for the candidates, and showing those only makes sense when you have enough letters that you don't get 100 candidates, so one migt compute those few in real-time
+        # then again...
+
+        # also include family filter
+    
+    def getAllEntries(self):
+        """use with caution,- for testing purposes"""
+        return self.getAll("term_id, term", order_by="term_id")
+
+    
+    
+class SearchDBHandler(BasicDBHandler):
+    
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if SearchDBHandler.__single is None:
+            SearchDBHandler.lock.acquire()   
+            try:
+                if SearchDBHandler.__single is None:
+                    SearchDBHandler(*args, **kw)
+            finally:
+                SearchDBHandler.lock.release()
+        return SearchDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if SearchDBHandler.__single is not None:
+            raise RuntimeError, "SearchDBHandler is singleton"
+        SearchDBHandler.__single = self
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, 'Search')
+        
+        
+    ### write methods
+    
+    def storeKeywordsByID(self, peer_id, torrent_id, term_ids, commit=True):
+        sql_insert_search = """
+INSERT INTO Search (peer_id, torrent_id, term_id, term_order) values (?, ?, ?, ?)
+"""
+        # TODO before we insert, we should delete all potentially existing entries
+        # with these exact values
+        # otherwise, some strange attacks might become possible
+        # and again we cannot assume that user/torrent/term only occurs once
+
+        # create insert data
+        values = [(peer_id, torrent_id, term_id, term_order) 
+                  for (term_id, term_order) 
+                  in zip(term_ids, range(len(term_ids)))]
+        self._db.executemany(sql_insert_search, values, commit=commit)        
+        
+    def storeKeywords(self, peer_id, torrent_id, terms, commit=True):
+        """creates a single entry in Search with peer_id and torrent_id for every term in terms"""
+        term_db = TermDBHandler.getInstance()
+        term_ids = Set([term_db.getTermID(term) for term in terms]) 
+        # make it a set so we can assume each user/torrent/term triple to exist only once
+        self.storeKeywordsByID(peer_id, torrent_id, term_ids, commit)
+
+    def getAllEntries(self):
+        """use with caution,- for testing purposes"""
+        return self.getAll("rowid, peer_id, torrent_id, term_id, term_order ", order_by="rowid")
+    
+    def getAllOwnEntries(self):
+        """use with caution,- for testing purposes"""
+        return self.getAll("rowid, peer_id, torrent_id, term_id, term_order ", where="peer_id=0", order_by="rowid")
+    
+
+    
+    ### read methods
+    
+    def getNumTermsPerTorrent(self, torrent_id):
+        """returns the number of terms associated with a given torrent"""
+        return self.getOne("COUNT (DISTINCT term_id)", torrent_id=torrent_id)
+        
+    def getNumTorrentsPerTerm(self, term_id):
+        """returns the number of torrents stored with a given term."""
+        return self.getOne("COUNT (DISTINCT torrent_id)", term_id=term_id)
+    
+    def getNumTorrentTermCooccurrences(self, term_id, torrent_id):
+        """returns the number of times a torrent has been associated with a term"""
+        return self.getOne("COUNT (*)", term_id=term_id, torrent_id=torrent_id)    
+    
+    def getRelativeTermFrequency(self, term_id, torrent_id):
+        """returns the relative importance of a term for a torrent
+        This is basically tf/idf 
+        term frequency tf = # keyword used per torrent/# keywords used with torrent at all
+        inverse document frequency = # of torrents associated with term at all
+        
+        normalization in tf ensures that a torrent cannot get most important for all keywords just 
+        by, e.g., poisoning the db with a lot of keywords for this torrent
+        idf normalization ensures that returned values are meaningful across several keywords 
+        """
+        
+        terms_per_torrent = self.getNumTermsPerTorrent(term_id)
+        if terms_per_torrent==0:
+            return 0
+        
+        torrents_per_term = self.getNumTorrentsPerTerm(torrent_id)
+        if torrents_per_term == 0:
+            return 0
+        
+        coocc = self.getNumTorrentTermCooccurrences(term_id, torrent_id)
+        
+        tf = coocc/float(terms_per_torrent)
+        idf = 1/math.log(torrents_per_term)
+        
+        return tf*idf
+    
+    
+    def getTorrentSearchTerms(self, torrent_id, peer_id):
+        return self.getAll("term_id", "torrent_id=%d AND peer_id=%s" % (torrent_id, peer_id), order_by="term_order")
+    
+    def getMyTorrentSearchTerms(self, torrent_id):
+        return [x[0] for x in self.getTorrentSearchTerms(torrent_id, peer_id=0)]
+        
+                
+    ### currently unused
+                  
+    def numSearchesWithTerm(self, term_id):
+        """returns the number of searches stored with a given term. 
+        I feel like I might miss something, but this should simply be the number of rows containing
+        the term"""
+        return self.getOne("COUNT (*)", term_id=term_id)
+    
+    def getNumTorrentPeers(self, torrent_id):
+        """returns the number of users for a given torrent. if this should be used 
+        extensively, an index on torrent_id might be in order"""
+        return self.getOne("COUNT (DISTINCT peer_id)", torrent_id=torrent_id)
+    
+    def removeKeywords(self, peer_id, torrent_id, commit=True):
+        """removes records of keywords used by peer_id to find torrent_id"""
+        # TODO
+        # would need to be called by deletePreference
+        pass
+    
+    
+    
     
 def doPeerSearchNames(self,dbname,kws):
     """ Get all peers that have the specified keywords in their name. 
