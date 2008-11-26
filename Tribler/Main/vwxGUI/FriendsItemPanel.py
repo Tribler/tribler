@@ -257,7 +257,7 @@ class FriendsItemPanel(wx.Panel):
         
           
         
-    def select(self, rowIndex, colIndex):
+    def select(self, rowIndex, colIndex, ignore1, ignore2, ignore3):
         self.selected = True
 #        if colIndex == 0:
 #            self.vLine.Hide()            

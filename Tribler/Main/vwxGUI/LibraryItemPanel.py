@@ -511,7 +511,7 @@ class LibraryItemPanel(wx.Panel):
         self.GetContainingSizer().Layout()
         #self.parent.Refresh()
         
-    def select(self, rowIndex, colIndex):
+    def select(self, rowIndex, colIndex, ignore1, ignore2, ignore3):
         self.selected = True
         colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)

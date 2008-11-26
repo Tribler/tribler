@@ -322,7 +322,7 @@ class PersonsItemPanel(wx.Panel):
         self.hSizer.Add(vLine, 0, wx.RIGHT|wx.LEFT|wx.EXPAND, 3)
         return vLine
         
-    def select(self, rowIndex, colIndex):
+    def select(self, rowIndex, colIndex, ignore1, ignore2, ignore3):
         if DEBUG:
             print 'pip: person selected'
         colour = self.guiUtility.selectedColour
