@@ -2598,7 +2598,7 @@ class TermDBHandler(BasicDBHandler):
         term_id = self.getOne('term_id', term=term.lower())
         if term_id:
             return term_id
-        self.insertTerm(term, commit=True)
+        self.insertTerm(term.lower(), commit=True)
         return self.getTermID(term)
     
     def insertTerm(self, term, commit=True):
