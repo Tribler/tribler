@@ -1409,4 +1409,3 @@ tribler_name = "Tribler name"
 curr_ul_rate = "Current upload rate"
 ul_amount = "Amount of MBytes uploaded"
 
-duplicate_download_title = "Duplicate download"

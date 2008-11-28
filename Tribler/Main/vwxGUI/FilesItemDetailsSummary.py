@@ -144,11 +144,10 @@ class FilesItemDetailsSummary(bgPanel):
 
 
         # check for moderation
-        if self.mcdb.hasModeration(bin2str(self.infohash)):
+        if self.infohash is not None and self.mcdb.hasModeration(bin2str(self.infohash)):
             moderation = self.mcdb.getModeration(bin2str(self.infohash))
-	    mod_name = moderation[1]
+            mod_name = moderation[1]
         else:
-            
             mod_name = "Not Moderated"
             # disable fake and real buttons
             self.fake.setState(False)

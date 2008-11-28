@@ -1110,7 +1110,7 @@ class BuddyCastCore:
     
         
     def isBlocked(self, peer_permid, block_list):
-        if self.data_handler.testAsServer():
+        if self.TESTASSERVER:
             return False # we do not want to be blocked when sending various messages
 
         peer_id = peer_permid

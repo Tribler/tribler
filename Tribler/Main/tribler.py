@@ -112,7 +112,7 @@ class ABCApp(wx.App):
 
         
         try:
-            ubuntu = True
+            ubuntu = False
             if not redirectstderrout and ubuntu:
                 # On Ubuntu 8.10 not redirecting output fails
                 #wx.App.__init__(self, redirect=True ,filename='/tmp/tribler-stderrout.log')
