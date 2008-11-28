@@ -8,6 +8,9 @@ import random
 from threading import Event, Semaphore
 from time import sleep
 from sha import sha
+from traceback import print_exc
+#from cStringIO import StringIO
+
 from wx.lib import masked
 
 from Tribler.Lang.lang import Lang
@@ -164,9 +167,9 @@ class Utility:
             'window_height': '768', 
             'detailwindow_width': '800', 
             'detailwindow_height': '500', 
-            'prefwindow_width': '720', 
+            'prefwindow_width': '1000', 
             'prefwindow_height': '480', 
-            'prefwindow_split': '150', 
+            'prefwindow_split': '400', 
             't4t_option': 0, # Seeding items added by Boxun
             't4t_hours': 0,
             't4t_mins': 30,
@@ -755,6 +758,7 @@ def getMetainfo(src, openoptions = 'rb', style = "file"):
             metainfo = bdecode(metainfo_file.read())
             metainfo_file.close()
     except:
+        print_exc()
         if metainfo_file is not None:
             try:
                 metainfo_file.close()

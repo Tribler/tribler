@@ -131,7 +131,7 @@ class MainFrame(wx.Frame):
         
         self.SetSize(size)
         self.SetPosition(position)
-        self.SetTitle(title)
+        self.SetTitle("Tribler 5.0") # # # (before title)
         tt = self.GetToolTip()
         if tt is not None:
             tt.SetTip('')
@@ -249,6 +249,9 @@ class MainFrame(wx.Frame):
             self.videoFrame = PlayerFrame(self,'Tribler Video',iconpath,videoplayer.get_vlcwrap(),logopath)
 
             videoplayer.set_videoframe(self.videoFrame)
+        else:
+            videoplayer = VideoPlayer.getInstance()
+##            videoplayer.set_parentwindow(self)
 
         iconpath = os.path.join(self.utility.getPath(),'Tribler','Images','tribler.ico')
         self.friendsmgr = FriendshipManager(self.utility,iconpath)
@@ -676,7 +679,7 @@ class MainFrame(wx.Frame):
             
         #if DEBUG:
         #    print  >> sys.stderr,"main: Setting activity",`text`,"EOT"
-        self.messageField.SetLabel(text)
+        #self.messageField.SetLabel(text)
 
     def set_player_status(self,s):
         """ Called by VideoServer when using an external player """

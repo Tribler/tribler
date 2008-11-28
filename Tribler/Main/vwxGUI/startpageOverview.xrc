@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource version="2.3.0.1" xmlns="http://www.wxwidgets.org/wxxrc">
+  <object class="wxPanel" name="startpageOverview">
+    <pos>0,0</pos>
+    <size>620,425</size>
+    <bg>#666666</bg>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>13</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxRIGHT|wxFIXED_MINSIZE</flag>
+            <border>7</border>
+            <option>1</option>
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>10</border>
+                <option>0</option>
+                <object class="wxPanel" name="popVideosPanel">
+                  <bitmap>images/triblerpanel_topcenter.png</bitmap>
+                  <pos>0,0</pos>
+                  <size>306,24</size>
+                  <bg>#     0</bg>
+                  <fg>#ffffff</fg>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>1</option>
+                      <object class="wxStaticText" name="popVideos">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Most Popular videos (last 7 days)</label>
+                        <pos>3,3</pos>
+                        <size>301,15</size>
+                        <bg>#     0</bg>
+                        <fg>#ffffff</fg>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxPanel" name="dummyMostPopular" subclass="Tribler.Main.vwxGUI.bgPanel.ImagePanel">
+                  <pos>0,20</pos>
+                  <size>281,130</size>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>105,2</size>
+                    <flag>wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>1</option>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxPanel" name="All popular files" subclass="Tribler.Main.vwxGUI.TextButton.TextButton">
+                      <pos>205,165</pos>
+                      <size>101,19</size>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxRIGHT|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>10</border>
+                <option>1</option>
+                <object class="wxPanel" name="popChannelsPanel">
+                  <bitmap>images/triblerpanel_topcenter.png</bitmap>
+                  <pos>417,0</pos>
+                  <size>100,20</size>
+                  <bg>#     0</bg>
+                  <fg>#ffffff</fg>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>1</option>
+                      <object class="wxStaticText" name="popChannels">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Most Popular channels (last 7 days)
+</label>
+                        <pos>3,3</pos>
+                        <size>409,15</size>
+                        <bg>#     0</bg>
+                        <fg>#ffffff</fg>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxPanel" name="dummyPopularChannels" subclass="Tribler.Main.vwxGUI.bgPanel.ImagePanel">
+                  <pos>309,20</pos>
+                  <size>274,193</size>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

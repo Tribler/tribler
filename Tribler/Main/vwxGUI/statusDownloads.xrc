@@ -1,46 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+<resource version="2.3.0.1" xmlns="http://www.wxwidgets.org/wxxrc">
   <object class="wxPanel" name="statusDownloads">
     <pos>0,0</pos>
-    <size>300,155</size>
-    <bg>#ffffff</bg>
+    <size>260,425</size>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
-        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>0</border>
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="playList">
+              <pos>3,3</pos>
+              <size>246,55</size>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>9</border>
         <option>0</option>
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
           <object class="sizeritem">
-            <flag>wxFIXED_MINSIZE</flag>
-            <border>0</border>
-            <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
-              <pos>0,0</pos>
-              <size>10,20</size>
-            </object>
-          </object>
-          <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-            <border>3</border>
+            <border>10</border>
             <option>1</option>
-            <object class="wxPanel" name="pn10c">
+            <object class="wxPanel" name="statusHeader">
               <bitmap>images/triblerpanel_topcenter.png</bitmap>
-              <pos>10,0</pos>
-              <size>100,20</size>
+              <pos>0,237</pos>
+              <size>238,20</size>
               <bg>#     0</bg>
               <fg>#ffffff</fg>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="st28c">
+                  <object class="wxStaticText" name="Downloading">
+                    <hidden>1</hidden>
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Active ...</label>
-                    <pos>0,3</pos>
+                    <label>---</label>
+                    <pos>3,3</pos>
                     <size>89,15</size>
                     <bg>#     0</bg>
                     <fg>#ffffff</fg>
@@ -62,7 +70,7 @@
                   <object class="wxStaticText" name="downSpeed">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>0 KB/s</label>
-                    <pos>109,3</pos>
+                    <pos>20,3</pos>
                     <size>69,15</size>
                     <bg>#     0</bg>
                     <fg>#ffffff</fg>
@@ -84,7 +92,7 @@
                   <object class="wxStaticText" name="upSpeed">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>0 KB/s</label>
-                    <pos>198,3</pos>
+                    <pos>201,3</pos>
                     <size>94,15</size>
                     <bg>#     0</bg>
                     <fg>#ffffff</fg>
@@ -93,20 +101,11 @@
               </object>
             </object>
           </object>
-          <object class="sizeritem">
-            <flag>wxFIXED_MINSIZE</flag>
-            <border>0</border>
-            <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
-              <pos>288,0</pos>
-              <size>10,20</size>
-            </object>
-          </object>
         </object>
       </object>
       <object class="sizeritem">
         <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>10</border>
+        <border>3</border>
         <option>0</option>
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
@@ -118,7 +117,7 @@
               <style>wxST_NO_AUTORESIZE</style>
               <label>
 </label>
-              <pos>10,23</pos>
+              <pos>3,32</pos>
               <size>170,18</size>
               <fg>#     0</fg>
             </object>
@@ -129,6 +128,7 @@
             <option>0</option>
             <object class="wxStaticText" name="percent1">
               <style>wxST_NO_AUTORESIZE</style>
+              <label></label>
               <pos>246,23</pos>
               <size>42,18</size>
               <fg>#     0</fg>
@@ -138,7 +138,7 @@
       </object>
       <object class="sizeritem">
         <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>10</border>
+        <border>3</border>
         <option>0</option>
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
@@ -148,7 +148,8 @@
             <option>1</option>
             <object class="wxStaticText" name="download2">
               <style>wxST_NO_AUTORESIZE</style>
-              <pos>10,41</pos>
+              <label></label>
+              <pos>3,41</pos>
               <size>170,18</size>
               <fg>#     0</fg>
             </object>
@@ -159,6 +160,7 @@
             <option>0</option>
             <object class="wxStaticText" name="percent2">
               <style>wxST_NO_AUTORESIZE</style>
+              <label></label>
               <pos>246,41</pos>
               <size>42,18</size>
               <fg>#     0</fg>
@@ -168,7 +170,7 @@
       </object>
       <object class="sizeritem">
         <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>10</border>
+        <border>3</border>
         <option>0</option>
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
@@ -178,6 +180,7 @@
             <option>1</option>
             <object class="wxStaticText" name="download3">
               <style>wxST_NO_AUTORESIZE</style>
+              <label></label>
               <pos>10,59</pos>
               <size>170,18</size>
               <fg>#     0</fg>
@@ -189,6 +192,7 @@
             <option>0</option>
             <object class="wxStaticText" name="percent3">
               <style>wxST_NO_AUTORESIZE</style>
+              <label></label>
               <pos>246,59</pos>
               <size>42,18</size>
               <fg>#     0</fg>
@@ -198,7 +202,7 @@
       </object>
       <object class="sizeritem">
         <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>10</border>
+        <border>3</border>
         <option>0</option>
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
@@ -208,6 +212,7 @@
             <option>1</option>
             <object class="wxStaticText" name="download4">
               <style>wxST_NO_AUTORESIZE</style>
+              <label></label>
               <pos>10,77</pos>
               <size>170,18</size>
               <fg>#     0</fg>
@@ -219,20 +224,12 @@
             <option>0</option>
             <object class="wxStaticText" name="percent4">
               <style>wxST_NO_AUTORESIZE</style>
+              <label></label>
               <pos>246,77</pos>
               <size>42,18</size>
               <fg>#     0</fg>
             </object>
           </object>
-        </object>
-      </object>
-      <object class="sizeritem">
-        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>3</border>
-        <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
-          <pos>0,148</pos>
-          <size>300,5</size>
         </object>
       </object>
     </object>

@@ -11,6 +11,10 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import copyPeer, similarPeer
+from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
+
+from Tribler.Main.vwxGUI.TextButton import TextButtonLeft
+from Tribler.Main.vwxGUI.PersonsItemDetailsSummary import PersonsItemDetailsSummary
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Main.vwxGUI.filesItemPanel import getResizedBitmapFromImage
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
@@ -46,8 +50,10 @@ class PersonsItemPanel(wx.Panel):
         self.parent = parent
         self.listItem = (self.parent.cols == 1)
         self.data = None
+        self.summary = None
         self.datacopy = {}
         self.titleLength = 137 # num characters
+        self.ThumbnailViewer = ThumbnailViewer
         self.triblerGrey = wx.Colour(128,128,128)
         self.selected = False
         self.warningMode = False
@@ -60,6 +66,7 @@ class PersonsItemPanel(wx.Panel):
         self.Show()
         self.Refresh()
         self.Layout()
+        self.triblerStyles = TriblerStyles.getInstance()
         
 
     def addComponents(self):
@@ -68,27 +75,30 @@ class PersonsItemPanel(wx.Panel):
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
-        self.SetBackgroundColour(self.unselectedColour)
+#        self.SetBackgroundColour(self.unselectedColour)
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
         if not self.listItem:
-            self.SetMinSize((80,110))
+            self.SetMinSize((80,140))
 #            # Add spacer
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.vSizer = wx.BoxSizer(wx.VERTICAL)            
             # Add thumb
-            self.thumb = ThumbnailViewer(self)
+            self.thumb = ThumbnailViewer(self, 'personsMode')
             self.thumb.setBackground(wx.BLACK)
             self.thumb.SetSize((80,80))
             self.vSizer.Add(self.thumb, 0, wx.ALL, 0)
             # Add title        
             self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,15))        
-            self.title.SetBackgroundColour(wx.WHITE)
-            self.title.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.title.SetMinSize((80,30))
+            self.triblerStyles.setLightText(self.title)
             self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)  
+            
+            self.moreInfo = TextButtonLeft(self, name = "more info >")                    
+            self.moreInfo.SetMinSize((60,20))
+            self.vSizer.Add(self.moreInfo, 0, wx.BOTTOM|wx.EXPAND|wx.ALIGN_RIGHT, 3)     
             #
             self.hSizer.Add(self.vSizer,0,wx.ALL,0)
             self.hSizer.Add([5,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
@@ -96,44 +106,41 @@ class PersonsItemPanel(wx.Panel):
             
         else: #list item
             self.SetMinSize((670,22))
+            
+            self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-            self.thumb = ThumbnailViewer(self)
+            self.vSizerOverall.Add(self.hSizer, 0, wx.FIXED|wx.EXPAND, 0)
+            
+            self.thumb = ThumbnailViewer(self, 'personsMode')
             self.thumb.setBackground(wx.BLACK)
             self.thumb.SetSize((18,18))
             self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
             # Add title
             self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,18), wx.ST_NO_AUTORESIZE)        
-            self.title.SetBackgroundColour(wx.WHITE)
-            self.title.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.title.SetMinSize((105,14))
+            self.triblerStyles.setLightText(self.title)
             self.hSizer.Add(self.title, 1,wx.TOP|wx.BOTTOM, 2) 
             # V Line
             self.vLine3 = self.addLine()
             # Add status
             self.status= wx.StaticText(self,-1,"10",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-            self.status.SetBackgroundColour(wx.WHITE)
-            self.status.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.status.SetForegroundColour(self.triblerGrey)  
             self.status.SetMinSize((165,18))
+            self.triblerStyles.setLightText(self.status)
             self.hSizer.Add(self.status, 0,wx.TOP|wx.BOTTOM, 2)     
             # V Line
             self.vLine1 = self.addLine() 
             # Add discovered Files
             self.discFiles = wx.StaticText(self,-1,"110000",wx.Point(0,0),wx.Size(75,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-            self.discFiles.SetBackgroundColour(wx.WHITE)
-            self.discFiles.SetFont(wx.Font(FS_DISCOVERED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.discFiles.SetForegroundColour(self.triblerGrey) 
             self.discFiles.SetMinSize((40,18))
+            self.triblerStyles.setLightText(self.discFiles)
             self.hSizer.Add(self.discFiles, 0,wx.TOP, 3)  
             # V Line
             self.vLine2 = self.addLine() 
             # Add discovered Persons
             self.discPersons= wx.StaticText(self,-1,"100000",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-            self.discPersons.SetBackgroundColour(wx.WHITE)
-            self.discPersons.SetFont(wx.Font(FS_DISCOVERED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.discPersons.SetForegroundColour(self.triblerGrey) 
             self.discPersons.SetMinSize((40,18))
+            self.triblerStyles.setLightText(self.discPersons)
             self.hSizer.Add(self.discPersons, 0,wx.TOP,3)  
             # V Line
             self.vLine4 = self.addLine() 
@@ -165,8 +172,13 @@ class PersonsItemPanel(wx.Panel):
             self.vSizer3.Add(self.friendsIcon,0, wx.FIXED_MINSIZE, 0)
             self.hSizer.Add(self.vSizer3, 0, wx.TOP|wx.RIGHT, 0)
             
+            
+            self.hSizerSummary = wx.BoxSizer(wx.HORIZONTAL)
+            self.vSizerOverall.Add(self.hSizerSummary, 1, wx.FIXED_MINSIZE|wx.EXPAND, 0)            
+            
+            self.SetSizer(self.vSizerOverall)
 #            self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-            self.SetSizer(self.hSizer);
+#            self.SetSizer(self.hSizer);
                
 
         
@@ -175,9 +187,12 @@ class PersonsItemPanel(wx.Panel):
         self.Refresh()
         
         for window in self.GetChildren():
-            window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-            window.Bind(wx.EVT_KEY_UP, self.keyTyped)
-            window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
+            if window.GetName() != 'more info >':
+                window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
+                window.Bind(wx.EVT_KEY_UP, self.keyTyped)
+                window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
+            else:
+                window.Bind(wx.EVT_LEFT_UP, self.moreInfoClicked)
 
     def getColumns(self):
         return [{'sort':'name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_personname') },
@@ -308,6 +323,8 @@ class PersonsItemPanel(wx.Panel):
                 self.vLine1.Hide()
                 self.vLine2.Hide()
                 self.vLine3.Hide()
+            else:
+                self.moreInfo.Show()
                 self.vLine4.Hide()            
                 self.vLine5.Hide()            
 
@@ -317,6 +334,7 @@ class PersonsItemPanel(wx.Panel):
         self.Refresh()
         #self.parent.Refresh()
         
+
     def addLine(self):
         vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
         self.hSizer.Add(vLine, 0, wx.RIGHT|wx.LEFT|wx.EXPAND, 3)
@@ -339,7 +357,9 @@ class PersonsItemPanel(wx.Panel):
             self.tasteHeart.setBackground(colour)  
             self.taste.SetBackgroundColour(colour)
             self.friendsIcon.setBackground(colour)       
-            
+        else:
+            self.moreInfo.Hide()
+
         self.Refresh()
                 
     def deselect(self, rowIndex, colIndex):
@@ -359,6 +379,8 @@ class PersonsItemPanel(wx.Panel):
             self.discPersons.SetBackgroundColour(colour)
             self.status.SetBackgroundColour(colour)
             self.tasteHeart.setBackground(colour) 
+            self.togglePersonsItemDetailsSummary(True)
+            self.guiUtility.standardOverview.selectedPeer = self.data['permid'] 
             self.taste.SetBackgroundColour(colour) 
             self.friendsIcon.setBackground(colour)  
         
@@ -381,6 +403,7 @@ class PersonsItemPanel(wx.Panel):
         if self.data:
             self.guiUtility.selectPeer(self.data)
             
+            self.togglePersonsItemDetailsSummary(False)
         if event.RightDown():
             self.rightMouseButton(event)
             
@@ -413,16 +436,40 @@ class ThumbnailViewer(wx.Panel):
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
+        
+    def togglePersonsItemDetailsSummary(self, visible):
+
+        if visible and not self.summary:
+            self.summary = PersonsItemDetailsSummary(self, mode='persons')
+            self.triblerStyles.setLightText(self.summary)
+            self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
+            self.SetMinSize((-1,140))
+            
+        elif self.summary and not visible:
+            self.summary.Hide()
+            # the Thumb should be destoryed seperately because it has a different parent.
+            self.summary.thumbSummary.Destroy()
+            self.summary.DestroyChildren()            
+            self.summary.Destroy()
+            self.summary = None
+            self.SetMinSize((-1,22))
+            
+    def moreInfoClicked(self, event):
+        event.Skip()        
+        self.guiUtility.standardOverview.selectedPeer = self.data['permid']         
+        self.guiUtility.buttonClicked(event)
         wx.CallAfter(self._PostInit)
         event.Skip()
         return True
     
     def _PostInit(self):
         # Do all init here
-        self.backgroundColor = wx.WHITE
+#        self.backgroundColor = wx.WHITE
         self.dataBitmap = self.maskBitmap = None
         self.data = None
         self.mouseOver = False
+        self.triblerGrey = wx.Colour(128,128,128)
+        self.triblerLightGrey = wx.Colour(203,203,203)
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
@@ -438,7 +485,7 @@ class ThumbnailViewer(wx.Panel):
         self.iconsManager = IconsManager.getInstance()
         
     
-    def setData(self, data):
+    def setData(self, data, summary=''):
         
         if not data:
             self.Hide()
@@ -451,11 +498,12 @@ class ThumbnailViewer(wx.Panel):
         self.data = data
         self.setThumbnail(data)
 
-    def setThumbnail(self, data):
+    def setThumbnail(self, data, summary=''):
         # Get the file(s)data for this torrent
         try:
+            
             listItem = self.GetParent().listItem
-            if listItem:
+            if listItem and summary != 'filesItemSummary':
                 defThumb = 'DEFAULT_THUMB_SMALL'
             else:
                 defThumb = 'DEFAULT_THUMB'
@@ -642,7 +690,7 @@ class ThumbnailViewer(wx.Panel):
             elif self.data.get('online'):         
                 dc.SetFont(wx.Font(FS_ONLINE,FONTFAMILY,FONTWEIGHT, wx.BOLD, False,FONTFACE))
                 dc.SetTextForeground('#007303')
-                dc.DrawText('online', 38, 64)
+                dc.DrawText('online', 28, 64)
         
 #        dc.SetTextForeground(wx.WHITE)
         #dc.DrawText('rating', 5, 60)

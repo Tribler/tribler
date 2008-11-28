@@ -61,7 +61,18 @@ class IconsManager:
         self.SOURCE_ICON_LIVELEAK = wx.Bitmap(os.path.join(self.guiImagePath, 'icon_liveleak.png'))
         self.SOURCE_ICON_REMOTE = wx.Bitmap(os.path.join(self.guiImagePath, 'icon_remote.png'))
         self.categoryThumbs = {}
-        
+
+        # Added from mugshot manager to show items in left menu
+        #######################################################
+        self.MENUICONHOME = wx.Bitmap(os.path.join(self.guiImagePath, 'MenuiconHome.png'))
+        self.MENUICONSTATS= wx.Bitmap(os.path.join(self.guiImagePath, 'MenuiconStats.png'))
+        self.MENUICONPROFILE= wx.Bitmap(os.path.join(self.guiImagePath, 'MenuiconProfile.png'))
+        self.MENUICONALLDOWNLOADS= wx.Bitmap(os.path.join(self.guiImagePath, 'MenuiconAlldownloads.png'))
+        self.MENUICONPLAYLIST= wx.Bitmap(os.path.join(self.guiImagePath, 'MenuiconPlaylist.png'))
+        self.MENUICONALLFRIENDS = wx.Bitmap(os.path.join(self.guiImagePath, 'MenuiconAllfriends.png'))
+        self.MENUICONALLSUBSCRIPTIONS = wx.Bitmap(os.path.join(self.guiImagePath, 'MenuiconAllsubscriptions.png'))
+        self.MENUICONGROUPS = wx.Bitmap(os.path.join(self.guiImagePath, 'MenuiconGroups.png'))
+
         
         self.peer_db = self.guiUtility.utility.session.open_dbhandler(NTFY_PEERS)
         

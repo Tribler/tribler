@@ -89,7 +89,7 @@ class ConfigReader(ConfigParser):
         
     def testConfig(self, goodconfig, newline, passes = 0):
         if newline:
-            testconfig = goodconfig + newline + "\n"
+            testconfig = goodconfig + newline + "\r\n"
             
             # Write out to a StringIO object
             newfile = StringIO(testconfig)

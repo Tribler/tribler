@@ -63,7 +63,9 @@ from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
 from Tribler.Main.vwxGUI.font import *
+
 from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
+
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Category.Category import Category
@@ -79,13 +81,16 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 import Tribler.Core.CacheDB.friends as friends 
+from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
+
+import pdb
 
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878
 
 DEBUG = False
 ALLOW_MULTIPLE = False
-        
+FIRST = True    
 
 ##############################################################
 #
@@ -102,6 +107,9 @@ class ABCApp(wx.App):
         self.error = None
         self.last_update = 0
         self.update_freq = 0    # how often to update #peers/#torrents
+
+        self.guiserver = GUITaskQueue.getInstance()
+
         
         try:
             ubuntu = True
@@ -119,7 +127,7 @@ class ABCApp(wx.App):
             self.utility = Utility(self.installdir)
             self.utility.app = self
 
-            self.postinitstarted = False
+            #self.postinitstarted = False
             """
             Hanging self.OnIdle to the onidle event doesnot work under linux (ubuntu). The images in xrc files
             will not load in any but the filespanel.
@@ -170,9 +178,13 @@ class ABCApp(wx.App):
             # Initialise fonts
             font.init()
 
-            #tribler_init(self.utility.getConfigPath(),self.utility.getPath(),self.db_exception_handler)
             
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
+            
+            # Singleton for management of user's mugshots (i.e. icons/display pictures)
+            #self.mm = MugshotManager.getInstance()
+            
+            #self.mm.register(self.utility.getConfigPath(),self.utility.getPath())
             
             # H4x0r a bit
             set_tasteheart_bitmaps(self.utility.getPath())
@@ -180,12 +192,14 @@ class ABCApp(wx.App):
 
             cat = Category.getInstance(self.utility.getPath())
             cat.init_from_main(self.utility)
-            
+
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
-            self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
-            self.i2is.start()
+            #self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
+            #self.i2is.start()
 
+            self.triblerStyles = TriblerStyles.getInstance()
+            
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
             playbackmode = self.utility.config.Read('videoplaybackmode', "int")
@@ -204,8 +218,10 @@ class ABCApp(wx.App):
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
             self.guiUtility.frame = self.frame
+
             self.frame.set_wxapp(self)
-            
+      
+
             self.guiUtility.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
             self.guiUtility.mainSizer = self.guiUtility.scrollWindow.GetSizer()
             self.frame.topBackgroundRight = xrc.XRCCTRL(self.frame, "topBG3")
@@ -213,37 +229,109 @@ class ABCApp(wx.App):
             self.guiUtility.scrollWindow.SetScrollRate(15,15)
             self.frame.mainButtonPersons = xrc.XRCCTRL(self.frame, "mainButtonPersons")
 
-            self.frame.numberPersons = xrc.XRCCTRL(self.frame, "numberPersons")
-            numperslabel = xrc.XRCCTRL(self.frame, "persons")
-            self.frame.numberFiles = xrc.XRCCTRL(self.frame, "numberFiles")
-            numfileslabel = xrc.XRCCTRL(self.frame, "files")
+#            self.frame.numberPersons = xrc.XRCCTRL(self.frame, "numberPersons")
+#            numperslabel = xrc.XRCCTRL(self.frame, "persons")
+#            self.frame.numberFiles = xrc.XRCCTRL(self.frame, "numberFiles")
+#            numfileslabel = xrc.XRCCTRL(self.frame, "files")
             self.frame.messageField = xrc.XRCCTRL(self.frame, "messageField")
-            self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
-            tt = self.frame.firewallStatus.GetToolTip()
-            if tt is not None:
-                tt.SetTip(self.utility.lang.get('unknownreac_tooltip'))
-            
-            if sys.platform == "linux2":
-                self.frame.numberPersons.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-                self.frame.numberFiles.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-                self.frame.messageField.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-                numperslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-                numfileslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            #self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
+            self.frame.search = xrc.XRCCTRL(self.frame, 'searchField')
+            self.frame.search.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDown)
+            self.frame.go = xrc.XRCCTRL(self.frame, 'go')
+            self.frame.go.Bind(wx.EVT_LEFT_UP, self.OnGoKeyPressed)
 
-            self.menubar = MainMenuBar(self.frame,self.utility)
-            
 
+            self.frame.pageTitle = xrc.XRCCTRL(self.frame, "pageTitle")
+            self.frame.pageTitlePanel = xrc.XRCCTRL(self.frame, "pageTitlePanel")
+            #self.frame.leftMenuHeader = xrc.XRCCTRL(self.frame, "leftMenuHeader")
+            #self.frame.rightMenuHeader = xrc.XRCCTRL(self.frame, "rightMenuHeader")
+            #self.frame.LeftMenu = xrc.XRCCTRL(self.frame, "LeftMenu")
+            #self.frame.hideLeft = xrc.XRCCTRL(self.frame, "hideLeft")
+            #self.frame.hideRight = xrc.XRCCTRL(self.frame, "hideRight")
+            #self.frame.playerDockedPanel = xrc.XRCCTRL(self.frame, "playerDockedPanel")
+            #self.advancedFiltering = xrc.XRCCTRL(self.frame, "advancedFiltering")
+            self.frame.standardDetails = xrc.XRCCTRL(self.frame, "standardDetails")
+            self.frame.standardOverview = xrc.XRCCTRL(self.frame, "standardOverview")
+ 
+         
+            #self.triblerStyles.titleBar(self.frame.pageTitle)
+            #self.triblerStyles.titleBar(self.frame.pageTitlePanel)
+            #self.triblerStyles.titleBar(self.frame.leftMenuHeader)
+            #self.triblerStyles.titleBar(self.frame.rightMenuHeader)
+            
+            #tt = self.frame.firewallStatus.GetToolTip()
+            #if tt is not None:
+                #tt.SetTip(self.utility.lang.get('unknownreac_tooltip'))
+            
+            #if sys.platform == "linux2":
+#                self.frame.numberPersons.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+#                self.frame.numberFiles.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+                #self.frame.messageField.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+#                numperslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+#                numfileslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+
+            #self.menubar = MainMenuBar(self.frame,self.utility)
+
+
+
+
+            
+            
             # Make sure self.utility.frame is set
             self.startAPI()
+           
+            
+            self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
+            # -------- search -------
+            
+            
+            #-------------------------
             
             #self.frame.Refresh()
             #self.frame.Layout()
-            self.frame.Show(True)
+            self.frame.Show()
+            
+            self.frame.search_icon = xrc.XRCCTRL(self.frame, "search_icon")
+            self.frame.tribler_logo2 = xrc.XRCCTRL(self.frame, "tribler_logo2")
+            self.frame.files_friends = xrc.XRCCTRL(self.frame, "files_friends")
+            self.frame.top_image = xrc.XRCCTRL(self.frame, "top_image")
+            self.frame.sharing_reputation = xrc.XRCCTRL(self.frame, "sharing_reputation")
+            self.frame.srgradient = xrc.XRCCTRL(self.frame, "srgradient")
+            self.frame.help = xrc.XRCCTRL(self.frame, "help")
+            self.frame.sr_indicator = xrc.XRCCTRL(self.frame, "sr_indicator")
+            self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
+            self.frame.black_spacer = xrc.XRCCTRL(self.frame, "black_spacer")
+            self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_bg")
+            self.frame.help = xrc.XRCCTRL(self.frame,"help")
+            self.frame.searching = xrc.XRCCTRL(self.frame,"searching")
+
+
+
+            #self.frame.top_shade0 = xrc.XRCCTRL(self.frame,"top_shade0")
+            #self.frame.top_shade0.createBackgroundImage()
+            #self.frame.top_shade = xrc.XRCCTRL(self.frame,"top_shade")
+            #self.frame.top_shade.createBackgroundImage()
+            #self.frame.top_shade2 = xrc.XRCCTRL(self.frame,"top_shade2")
+            #self.frame.top_shade2.createBackgroundImage()
+            
+            self.frame.tribler_logo2.Hide()
+            self.frame.standardOverview.Hide()
+            self.frame.standardDetails.Hide()
+            self.frame.pageTitlePanel.Hide()
+            self.frame.pageTitle.Hide()
+            self.frame.sharing_reputation.Hide()
+            self.frame.srgradient.Hide()
+            self.frame.help.Hide()
+            self.frame.sr_indicator.Hide()
+
+
+
             self.setDBStats()
             
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
             
+
             # Arno, 2007-05-03: wxWidgets 2.8.3.0 and earlier have the MIME-type for .bmp 
             # files set to 'image/x-bmp' whereas 'image/bmp' is the official one.
             try:
@@ -281,6 +369,95 @@ class ABCApp(wx.App):
             return False
 
         return True
+
+    
+    def OnSearchKeyDown(self,event): # # #
+
+        global FIRST
+        
+        keycode = event.GetKeyCode()
+        #if event.CmdDown():
+        #print "OnSearchKeyDown: keycode",keycode
+        if keycode == wx.WXK_RETURN and self.frame.search.GetValue().strip() != '': 
+            if FIRST:
+                FIRST=False
+                self.frame.top_image.Hide()
+                
+                self.frame.pageTitlePanel.Show()
+                self.frame.tribler_logo2.Show()
+
+                self.frame.sharing_reputation.Show()
+                self.frame.help.Show()
+                
+                self.frame.black_spacer.Hide()
+
+                self.frame.top_bg.Hide()
+
+                self.frame.hsizer = self.frame.sr_indicator.GetContainingSizer()               
+                self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help'))
+
+                #sizer = self.frame.top_shade.GetContainingSizer()
+                #sizer.Remove(1)
+                #self.frame.top_shade.Destroy()
+                #self.frame.Layout() 
+
+                self.frame.top_bg.createBackgroundImage()
+                self.frame.top_bg.Refresh()
+                self.frame.top_bg.Update()
+                self.frame.top_bg.Show()
+                self.frame.srgradient.Show()
+                self.frame.sr_indicator.Show()
+                self.frame.standardOverview.Show()
+                self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
+            
+            self.guiUtility.standardFilesOverview()
+            self.guiUtility.dosearch()
+        else:
+            event.Skip()     
+
+    def OnGoKeyPressed(self,event): # # #
+
+        global FIRST
+        if self.frame.search.GetValue().strip() != '':
+            if FIRST:
+                FIRST=False
+
+                self.frame.top_image.Hide()
+                
+                self.frame.pageTitlePanel.Show()
+                self.frame.tribler_logo2.Show()
+
+                self.frame.sharing_reputation.Show()
+                self.frame.help.Show()
+                    
+                self.frame.black_spacer.Hide()
+
+                self.frame.top_bg.Hide()
+                self.frame.hsizer = self.frame.sr_indicator.GetContainingSizer()               
+                self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help'))
+
+                #sizer = self.frame.top_shade.GetContainingSizer()
+                #sizer.Remove(1)
+                #self.frame.top_shade.Destroy()
+                #self.frame.Layout() 
+
+
+
+
+                self.frame.top_bg.createBackgroundImage()
+                self.frame.top_bg.Refresh(True)
+                self.frame.top_bg.Update()
+                self.frame.top_bg.Show()    
+                self.frame.srgradient.Show()
+                self.frame.sr_indicator.Show()
+                self.frame.standardOverview.Show()
+                self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
+        
+
+            self.guiUtility.standardFilesOverview()
+            self.guiUtility.dosearch()
+        
+
 
     def startAPI(self):
         
@@ -327,9 +504,12 @@ class ABCApp(wx.App):
         # 22/08/08 boudewijn: convert abc.conf to SessionConfig
         self.utility.convert__presession_4_1__4_2(self.sconfig)
         
-        s = Session(self.sconfig)
-        self.utility.session = s
         
+
+        s = Session(self.sconfig)
+        #pdb.set_trace()
+        self.utility.session = s
+
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
@@ -342,7 +522,7 @@ class ABCApp(wx.App):
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            #print_exc()
+           #print_exc()
             defaultdestdir = os.path.join(get_default_dest_dir())
             defaultDLConfig.set_dest_dir(defaultdestdir)
 
@@ -386,6 +566,29 @@ class ABCApp(wx.App):
         """ Called by SessionThread """
         wx.CallAfter(self.gui_states_callback,dslist)
         return(1.0, True)
+
+    def get_reputation(self):
+        """ get the current reputation score"""
+        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+        reputation = bc_db.getMyReputation()
+        self.utility.session.close_dbhandler(bc_db)
+        return reputation
+
+    def set_reputation(self):
+        """ set the reputation in the GUI"""
+        reputation = self.get_reputation()
+        print >> sys.stderr , "Reputation" , reputation
+        self.frame.hsizer.Remove(0)
+        self.frame.hsizer.Prepend(wx.Size(reputation*50+50,0),0,wx.LEFT,0)
+        self.frame.hsizer.Layout()
+
+    def update_reputation(self):
+        """ update the reputation"""
+        wx.CallAfter(self.set_reputation)
+        self.guiserver.add_task(self.update_reputation,10.0) 
+
+
+
         
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
@@ -521,8 +724,8 @@ class ABCApp(wx.App):
         # Arno: not closing db connections, assuming main thread's will be 
         # closed at end.
                 
-        self.frame.numberPersons.SetLabel('%d' % npeers)
-        self.frame.numberFiles.SetLabel('%d' % nfiles)
+        #self.frame.numberPersons.SetLabel('%d' % npeers)
+        #self.frame.numberFiles.SetLabel('%d' % nfiles)
         #print >> sys.stderr, "************>>>>>>>> setDBStats", npeers, nfiles
         
     def sesscb_ntfy_activities(self,subject,changeType,objectID,*args):
@@ -610,6 +813,7 @@ class ABCApp(wx.App):
         return self.utility.getConfigPath()
 
     def startWithRightView(self):
+        print "ok !!!"
         if self.params[0] != "":
             self.guiUtility.standardLibraryOverview()
  
@@ -650,7 +854,7 @@ class DummySingleInstanceChecker:
         numProcesses = len(progressInfo.split('\n'))
         if DEBUG:
             print 'ProgressInfo: %s, num: %d' % (progressInfo, numProcesses)
-        return numProcesses > 1
+        return False
                 
         
 ##############################################################

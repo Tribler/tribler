@@ -23,6 +23,12 @@ from Tribler.Video.Progress import ProgressBar
 from Tribler.Video.utils import videoextdefaults
 from bgPanel import *
 from font import *
+from Tribler.Main.vwxGUI.FilesItemDetailsSummary import LibraryItemDetailsSummary
+from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
+
+from Tribler.Main.Utility.constants import * 
+from Tribler.Main.Utility import *
+from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 
 DEBUG = False
 
@@ -60,7 +66,7 @@ statusLibrary  = {"downloading"     : "LibStatus_downloading.png",
 
 
 class LibraryItemPanel(wx.Panel):
-    def __init__(self, parent, keyTypedFun = None):
+    def __init__(self, parent, keyTypedFun = None, name='regular'):
 
         global TORRENTPANEL_BACKGROUND
         
@@ -68,31 +74,43 @@ class LibraryItemPanel(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.parent = parent
+        if self.parent.GetName() == 'libraryGrid':
+            self.listItem = (self.parent.viewmode == 'list')
+#            self.guiserver = parent.guiserver
+        else:
+            self.listItem = True
+#            self.guiserver = GUIServer.getInstance()
+        
+            
         self.guiserver = parent.guiserver
         self.triblerGrey = wx.Colour(128,128,128)
         
         #self.statusTorrent = TorrentStatus(self)
-        
-        self.listItem = True # library always in listmode
+        self.ThumbnailViewer = ThumbnailViewer
+#        self.listItem = True # library always in listmode
         self.data = None
         self.status = None
         self.rightMouse = None
         self.datacopy = None
-        self.titleLength = 16 # num characters
+        self.titleLength = 106 # num characters
         self.vodMode = False
         self.selected = False
         self.warningMode = False
+        self.summary = None
         self.oldCategoryLabel = None
+        self.name = name
         self.torrentDetailsFrame = None
         
         self.addComponents()
             
         #self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
         
+#        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        #self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)   
         self.cache_progress = {}
         self.gui_server = GUITaskQueue.getInstance()
 
-        self.SetMinSize((-1, 22))
+#        self.SetMinSize((-1, 130))
         self.selected = False
         self.Show()
         self.Refresh()
@@ -100,11 +118,12 @@ class LibraryItemPanel(wx.Panel):
         
         
 
+        self.triblerStyles = TriblerStyles.getInstance()
     def addComponents(self):
         
         self.Show(False)
 
-        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
         
         # Add Spacer
         self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
@@ -219,34 +238,14 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.boost, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
         self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
        
-        # Play Fast
-        self.playFast = SwitchButton(self, name="playFast")
-        self.playFast.setBackground(wx.WHITE)
-        self.playFast.SetSize((39,16))
-        self.playFast.setEnabled(False)
-        self.hSizer.Add(self.playFast, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
-        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)   
-
-        # Play
-        self.playerPlay = SwitchButton(self, name="libraryPlay")
-        self.playerPlay.setBackground(wx.WHITE)
-        self.playerPlay.SetSize((16,16))
-        self.playerPlay.setEnabled(False)
-        self.hSizer.Add(self.playerPlay, 0, wx.TOP|wx.ALIGN_RIGHT, 2)          
-        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
-#       
-        # TODO: TB >delete button should be removed when delete function in rightMouseButton menu works 
-        # Delete button
-        #self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='deleteLibraryitem')
-        #self.delete.setBackground(wx.WHITE)
-        #self.hSizer.Add(self.delete,0,wx.TOP|wx.FIXED_MINSIZE|wx.ALIGN_TOP,7)
-        #self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)         
-    
+            
         # Add Refresh        
-        self.SetSizer(self.hSizer);
+        self.SetSizer(self.vSizerOverall);
         self.SetAutoLayout(1);
         self.Layout();
         self.Refresh()
+        
+#        print 'tb > self.bgPanel size = %s' % self.titleBG.GetSize(), self.titleBG.GetPosition()
         
         # 2.8.4.2 return value of GetChildren changed
         wl = [self]
@@ -260,7 +259,7 @@ class LibraryItemPanel(wx.Panel):
 
             
     def getColumns(self):
-        return [{'sort':'', 'title':'', 'width':35, 'tip':''},
+        return [{'sort':'', 'title':'', 'width':40,'tip':'', 'component':'comboboxFilter'},
                 {'sort':'name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
                 {'sort':'progress', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('C_progress')},
                 {'sort':'??','dummy':True, 'pic':'downSpeedColumn','title':'down', 'width':70, 'tip':self.utility.lang.get('C_downspeed')},
@@ -273,8 +272,9 @@ class LibraryItemPanel(wx.Panel):
         self.setData(self.data)
         
     def addLine(self):
-        vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
-        self.hSizer.Add(vLine, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
+        vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,0),wx.LI_VERTICAL)
+#        vLine.Show(False)
+        self.vSizer1.Add(vLine, 0, wx.LEFT|wx.RIGHT, 3)
         
     def updateProgress(self, infohash, progress):
         #print >> sys.stderr, 'Lib: updateProgress: %s %s' % (self.title.GetLabel(), progress)
@@ -356,6 +356,27 @@ class LibraryItemPanel(wx.Panel):
                 eta = ''
             self.eta.SetLabel(eta)
             self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
+            # status is mapped with >Utility/constants.py
+            if status == STATUS_QUEUE :  
+                #print 'queue'
+                pass
+    ##            elif status == STATUS_STOP or status == STATUS_PAUSE :  
+    ##                self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
+    ##            elif status == STATUS_ACTIVE:  
+    ##                self.statusIcon.searchBitmap(name = statusLibrary["downloading"])
+    ##            elif status == STATUS_HASHCHECK:  
+    ##                print 'hash check'
+    ##            elif status == STATUS_SUPERSEED :  
+    ##                self.statusIcon.searchBitmap(name = statusLibrary["seeding"])
+    ##            elif status == STATUS_FINISHED :  
+    ##                self.statusIcon.searchBitmap(name = statusLibrary["completed"])
+                    
+    ##statusLibrary  = {"downloading"     : "LibStatus_boosting.png",
+    ##                  "stopped"         : "LibStatus_stopped.png",
+    ##                  "boosting"        : "LibStatus_boosting.png",
+    ##                  "completed"       : "LibStatus_completed.png",
+    ##                  "seeding"         : "LibSatus_seeding.png"}
+    
             
             if finished and ds.get_status() == DLSTATUS_STOPPED:
                 status = self.utility.lang.get('completed')
@@ -368,7 +389,7 @@ class LibraryItemPanel(wx.Panel):
                 
             self.statusField.SetLabel(status)
             self.statusField.SetToolTipString(self.statusField.GetLabel())
-            
+                
             #status = abctorrent.status.getStatus()
 #            print "--tb-------------------------------"
 #            print status
@@ -458,25 +479,30 @@ class LibraryItemPanel(wx.Panel):
                 
         elif torrent: # inactive torrent
             
-            #self.pb.setEnabled(False)
-            #self.downSpeed2.Hide()
-            self.speedDown2.SetLabel('')
-            #self.upSpeed.Hide()            
-            self.speedUp2.SetLabel('')
+            if not self.listItem:
+                #self.pb.setEnabled(False)
+                self.downSpeed2.Hide()
+                self.speedDown2.SetLabel('--')
+                self.upSpeed.Hide()            
+                self.speedUp2.SetLabel('--')
+                
+                # Only show playbutton
+                self.playFast.setEnabled(False)
+                self.boost.setEnabled(False)
             
-            # Only show playbutton
-            self.playFast.setEnabled(False)
-            self.boost.setEnabled(False)
             self.pause.setEnabled(True)
             self.pause.setToggled(True)
             if torrent.get('progress') == 100.0:
-                self.playerPlay.setEnabled(True)
-                self.playerPlay.setToggled(True, tooltip = {"disabled" : self.utility.lang.get('playerDisabled'), "enabled" : self.utility.lang.get('playerEnabled')})
+##                self.playerPlay.setEnabled(True)
+##                self.playerPlay.setToggled(True, tooltip = {"disabled" : self.utility.lang.get('playerDisabled'), "enabled" : self.utility.lang.get('playerEnabled')})
                 self.statusField.SetLabel(self.utility.lang.get('completed'))
             else:
-                self.playerPlay.setEnabled(False)
+##                self.playerPlay.setEnabled(False)
                 self.statusField.SetLabel(self.utility.lang.get('stop'))
-            self.statusField.SetToolTipString(self.statusField.GetLabel())
+            
+            if not self.listItem:
+                self.statusField.SetToolTipString(self.statusField.GetLabel())
+                
             self.eta.SetLabel('')
             
             if torrent.get('progress') != None:                
@@ -512,17 +538,26 @@ class LibraryItemPanel(wx.Panel):
         #self.parent.Refresh()
         
     def select(self, rowIndex, colIndex, ignore1, ignore2, ignore3):
-        self.selected = True
-        colour = self.guiUtility.selectedColour
+        self.selected = True        
+        colour = self.triblerStyles.selected(5)
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(colour)
-#        self.downSpeed.setBackground(colour)
-#        self.upSpeed.setBackground(colour)
-        self.playFast.setBackground(colour)
-        self.boost.setBackground(colour)
-##        self.statusIcon.setBackground(colour)
-        self.playerPlay.setBackground(colour)
-        self.SetBackgroundColour(colour)
+#        self.percentage.SetBackgroundColour(colour)
+#        self.eta.SetBackgroundColour(colour)
+#        if not self.listItem:
+#            self.upSpeed.setBackground(colour)
+#            self.speedUp2.SetBackgroundColour(colour)
+#            self.downSpeed.setBackground(colour)
+#            self.speedDown2.SetBackgroundColour(colour)
+#            self.statusField.SetBackgroundColour(colour)
+#            self.playFast.setBackground(colour)
+#            self.boost.setBackground(colour)
+##        self.playerPlay.setBackground(colour)        
+        if self.listItem:
+            self.toggleLibraryItemDetailsSummary(True)            
+            
+        
+        self.guiUtility.standardOverview.selectedTorrent = self.data['infohash']
         self.Refresh()
 
         
@@ -530,19 +565,28 @@ class LibraryItemPanel(wx.Panel):
     def deselect(self, rowIndex, colIndex):
         self.selected = False
         if rowIndex % 2 == 0:
-            colour = self.guiUtility.unselectedColour
+            colour = self.triblerStyles.selected(2)
         else:
-            colour = self.guiUtility.unselectedColour2
+            colour = self.triblerStyles.selected(2)            
             
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
-#        self.downSpeed.setBackground(colour)
-#        self.upSpeed.setBackground(colour)
-        self.SetBackgroundColour(colour)
-        self.playFast.setBackground(colour)
-        self.boost.setBackground(colour)
-##        self.statusIcon.setBackground(colour)
-        self.playerPlay.setBackground(colour)
+#        self.percentage.SetBackgroundColour(colour)
+#        self.eta.SetBackgroundColour(colour)
+#        
+#        if not self.listItem:
+#            self.upSpeed.setBackground(colour)
+#            self.speedUp2.SetBackgroundColour(colour)
+#            self.downSpeed.setBackground(colour)
+#            self.speedDown2.SetBackgroundColour(colour)
+#            self.statusField.SetBackgroundColour(colour)
+#            self.playFast.setBackground(colour)
+#            self.boost.setBackground(colour)
+##        self.playerPlay.setBackground(colour)
+        if self.listItem:
+            self.toggleLibraryItemDetailsSummary(False)
+            
+        
         self.Refresh()
         
     def keyTyped(self, event):
@@ -787,4 +831,36 @@ class LibraryItemPanel(wx.Panel):
             if standardOverview.mode == 'libraryMode':
                 standardOverview.filterChanged(None)
                 #print 'filterChanged()called'
+
+                
+                
+    def toggleLibraryItemDetailsSummary(self, visible):
+
+        if visible and not self.summary:           
+            self.summary = LibraryItemDetailsSummary(self, torrentHash = self.data['infohash'])
+            self.triblerStyles.setLightText(self.summary)
+            self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
+            self.SetMinSize((-1,100)) 
+                
+        elif self.summary and not visible:
+            self.summary.Hide()
+            self.summary.thumbSummary.Destroy()
+            self.summary.DestroyChildren() 
+            self.summary.Destroy()
+            self.summary = None
+            self.SetMinSize((-1,22))
+            
+    def OnPaint(self, evt):
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(wx.BLUE))
+        
+        dc.Clear()
+        
+        if self.title:
+#            print 'tb > self.title.GetLabel() = %s' % self.title.GetLabel()
+            dc.SetFont(wx.Font(14,FONTFAMILY,FONTWEIGHT, wx.BOLD, False,FONTFACE))
+            dc.SetTextForeground('#007303')
+#            dc.DrawText(self.title.GetLabel(), 0, 0)
+            dc.DrawText('online', 38, 64)
+            self.title.Hide()
 

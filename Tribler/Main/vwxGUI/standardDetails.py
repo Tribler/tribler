@@ -29,13 +29,15 @@ from Tribler.Main.vwxGUI.FriendsItemPanel import peer2status
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import *
+from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
+from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 
 # LAYERVIOLATION
 from Tribler.Core.CacheDB.CacheDBHandler import GUIDBHandler
 from Tribler.Core.CacheDB.EditDist import editDist
 
-DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
+DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'fileDetailsMode','subscriptionsMode', 'messageMode']
 
 DEBUG = False
 
@@ -80,11 +82,14 @@ class standardDetails(wx.Panel):
         self.utility = self.guiUtility.utility        
         self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         self.friend_db = self.utility.session.open_dbhandler(NTFY_FRIENDS)
+        self.triblerStyles = TriblerStyles.getInstance()
         self.peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
         self.superpeer_db = self.utility.session.open_dbhandler(NTFY_SUPERPEERS)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.iconsManager = IconsManager.getInstance()
         #self.gui_db = GUIDBHandler.getInstance()
+        self.playList = []
+      
                                     
         self.mode = None
         self.item = None
@@ -96,9 +101,15 @@ class standardDetails(wx.Panel):
             self.lastItemSelected[mode] = None
         self.currentPanel = None
         self.videoplayer = VideoPlayer.getInstance()
+
         self.addasfriendcount = 0
         self.addasfriendlast = 0
         
+
+        
+        
+        
+
         self.addComponents()
         
         #self.Refresh()
@@ -122,6 +133,8 @@ class standardDetails(wx.Panel):
         self.modeElements['profileMode'] = ['levelPic', 'uploadedNumber', 'downloadedNumber']
         
         
+        self.modeElements['fileDetailsMode'] = ['titleField', 'receivedToday', 'subscrTodayField', 'receivedYesterday', 'subscrYesterdayField'] #  'receivedTotal']
+        
         self.modeElements['subscriptionsMode'] = ['titleField', 'receivedToday', 'subscrTodayField', 'receivedYesterday', 'subscrYesterdayField'] #  'receivedTotal']
         
         self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField', 'trackerField'],                            
@@ -133,18 +146,21 @@ class standardDetails(wx.Panel):
                             'profileDetails_Download': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','takeMeThere1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere2'],
                             #'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc1','descriptionField2','howToImprove1','descriptionField3','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0']}
                             'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0'],
+
                             'profileDetails_statsTopSharers':['descriptionField0', 'downloadedNumberT', 'uploadedNumberT'],
                             'uploadTab_details': ['t4t_peers', 'g2g_peers']}
+
         
             
-        self.statdlElements = ['st28c','down_White','downSpeed','up_White','upSpeed','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
+        self.statdlElements = ['statusHeader','Downloading', 'st28c','down_White','downSpeed','up_White','upSpeed','download1','percent1','download2','percent2','download3','percent3','download4','percent4','playList']
             
         self.guiUtility.initStandardDetails(self)
+       
         
 
     def addComponents(self):
         self.SetBackgroundColour(wx.Colour(102,102,102))
-        #self.SetBackgroundColour(wx.Colour(255,51,0))
+#        self.SetBackgroundColour(wx.Colour(255,51,0))
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(1)
@@ -186,12 +202,22 @@ class standardDetails(wx.Panel):
         #self.currentPanel.Enable(True)
 #        self.currentPanel.SetBackgroundColour("red")
         
-        self.currentPanel.Show(True)
         
+        self.currentPanel.Show(True)
+#        print self.mode
+        
+
+        if self.mode == 'filesMode' or self.mode == 'libraryMode' or self.mode=='personsMode' or self.mode == 'friendsMode' or self.mode == 'profileMode' or self.mode == 'subscriptionsMode' or self.mode == 'fileDetailsMode' :
+#            print 'tb'
+            self.currentPanel.SetSize((-1,5))
+            self.currentPanel.Hide()
+            
+#        
         if self.oldpanel:
             self.hSizer.Detach(self.oldpanel)
             self.oldpanel.Hide()
             #self.oldpanel.Disable()
+        
         
         self.hSizer.Insert(0, self.currentPanel, 0, wx.ALL|wx.EXPAND, 0)
         
@@ -377,11 +403,12 @@ class standardDetails(wx.Panel):
                 self.getAlternativeTabPanel('profileDetails_Persons', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 self.getAlternativeTabPanel('profileDetails_Download', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 self.getAlternativeTabPanel('profileDetails_Presence', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel                
-                self.getAlternativeTabPanel('profileDetails_statsTopSharers', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel                
+#                self.getAlternativeTabPanel('profileDetails_statsTopSharers', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel                
         return currentPanel
     
     def loadStatusPanel(self):
         currentPanel = self.loadXRCPanel(os.path.join(self.guiUtility.vwxGUI_path, 'statusDownloads.xrc'), 'statusDownloads')
+        
         mode = 'status'
         for element in self.statdlElements:
             xrcElement = None
@@ -397,10 +424,33 @@ class standardDetails(wx.Panel):
                     print >> sys.stderr,'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, mode)
                 pass
             if name:
-                self.data[mode][name] = xrcElement                
+                self.data[mode][name] = xrcElement
+        
+        # header styling
+        self.data['status']['downSpeed']
+        self.triblerStyles.titleBar(self.data['status']['statusHeader'])
+        self.triblerStyles.titleBar(self.data['status']['Downloading']) 
+        self.triblerStyles.titleBar(self.data['status']['down_White']) 
+        self.triblerStyles.titleBar(self.data['status']['downSpeed']) 
+        self.triblerStyles.titleBar(self.data['status']['up_White'])                 
+        self.triblerStyles.titleBar(self.data['status']['upSpeed']) 
+        # content styling
+        self.triblerStyles.setDarkText(self.data['status']['download1']) 
+        self.triblerStyles.setDarkText(self.data['status']['percent1']) 
+        self.triblerStyles.setDarkText(self.data['status']['download2']) 
+        self.triblerStyles.setDarkText(self.data['status']['percent2']) 
+        self.triblerStyles.setDarkText(self.data['status']['download3']) 
+        self.triblerStyles.setDarkText(self.data['status']['percent3']) 
+        self.triblerStyles.setDarkText(self.data['status']['download4']) 
+        self.triblerStyles.setDarkText(self.data['status']['percent4']) 
+        
+        
+        
+#        self.triblerStyles.titleBar(self.data['status']['statusHeader'], text= self.data['status']['statusHeader'].GetName())                
 
         
         return currentPanel
+    
 
     
     def loadXRCPanel(self, filename, panelName, parent=None):
@@ -464,12 +514,12 @@ class standardDetails(wx.Panel):
             titleField.SetLabel(title)
             titleField.Wrap(-1) # doesn't appear to work
             
-            self.setTorrentThumb(self.mode, torrent, self.getGuiObj('thumbField'))        
+#            self.setTorrentThumb(self.mode, torrent, self.getGuiObj('thumbField'))        
             
             if self.getGuiObj('info_detailsTab').isSelected():
                 # The info tab is selected, show normal torrent info
                 
-                self.setDownloadbutton(torrent)
+#                self.setDownloadbutton(torrent)
                 
                 descriptionField = self.getGuiObj('descriptionField')
 
@@ -963,10 +1013,10 @@ class standardDetails(wx.Panel):
                 self.getGuiObj('descriptionField5', tab = 'profileDetails_Presence').SetLabel(text2)
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Top N List of sharers
-            elif self.currentPanel == self.getGuiObj('profileDetails_statsTopSharers'):
-                tab = 'profileDetails_statsTopSharers'
-                self.topNListText(tab)
-                self.refreshStandardDetailsHeight()
+#            elif self.currentPanel == self.getGuiObj('profileDetails_statsTopSharers'):
+#                tab = 'profileDetails_statsTopSharers'
+#                self.topNListText(tab)
+#                self.refreshStandardDetailsHeight()
                 
             else:
                 tab = "error"
@@ -1045,16 +1095,22 @@ class standardDetails(wx.Panel):
             print_exc()
         return bElementMoved
     
-    def setDownloadbutton(self, torrent, tab = None):
-        downloadButton = self.getGuiObj('download', tab = tab)
-        if downloadButton:
-            if torrent.get('myDownloadHistory', False):
+    def setDownloadbutton(self, torrent, tab = None, item = ''):
+        if item == '':
+            self.downloadButton2 = self.getGuiObj('download', tab = tab)
+        else:
+            self.downloadButton2 = item
+            
+        if self.downloadButton2:
+            if torrent.get('myDownloadHistory', False):              
                 bitmap, bitmap2 = self.iconsManager.getDownloadButton('library')
-            elif torrent.get('web2'):
+            elif torrent.get('web2'):               
                 bitmap, bitmap2 = self.iconsManager.getDownloadButton('play')
-            else:
+            else:                             
                 bitmap, bitmap2 = self.iconsManager.getDownloadButton('download')
-            downloadButton.setBitmaps(bitmap, bitmap2)
+                
+            self.downloadButton2.setBitmaps(bitmap, bitmap2)
+            self.downloadButton2.Refresh()
                  
     def getGuiObj(self, obj_name, tab=None, mode=None):
         """handy function to retreive an object based on it's name for the current mode"""
@@ -1078,6 +1134,7 @@ class standardDetails(wx.Panel):
         self.show_loading(self.getGuiObj('peopleWhoField'))
         self.show_loading(self.getGuiObj('simTitlesField'))
         
+                
         guiserver = GUITaskQueue.getInstance()
         guiserver.add_task(lambda:self.updateSimLists(item), 0, id='fillSimLists')
 
@@ -1542,7 +1599,7 @@ class standardDetails(wx.Panel):
         if not self.data:
             return
         if obj == self.downloadButton:
-            self.download(self.data)
+            self.download(self.data)            
             # --tb--
 #        if obj == self.optionsButtonLibrary:
 #            # zelfde menu als rechterMuisKnop
@@ -1579,6 +1636,9 @@ class standardDetails(wx.Panel):
         if torrent is None:
             torrent = self.item
             
+#        if self.GetName() == 'download':
+
+            
         if (torrent is None or torrent.get('myDownloadHistory')) and not force:
             print >>sys.stderr,"standardDetails: download: Bailout"
             return
@@ -1590,6 +1650,7 @@ class standardDetails(wx.Panel):
                 print >>sys.stderr,"standardDetails: download: Playing WEB2 video: " + torrent['url']
             #self.videoplayer.parentwindow.swapin_videopanel(torrent['url'])
             self.videoplayer.play_url(torrent['url'])
+            self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
             return True
 
         if 'query_permid' in torrent and not torrent.get('myDownloadHistory'):
@@ -1603,8 +1664,10 @@ class standardDetails(wx.Panel):
                 # Show pending colour
                 wx.CallAfter(self.guiUtility.standardOverview.refreshGridManager)
             except:
-                print_exc()
-                print >> sys.stderr, torrent, torrent.keys()
+                print_exc()                        
+            
+            self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
+            print >> sys.stderr, torrent, torrent.keys()
             return True
 
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
@@ -1640,6 +1703,7 @@ class standardDetails(wx.Panel):
                 if DEBUG:
                     print >>sys.stderr,'standardDetails: download: download started'
                 # save start download time.
+                self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
                 #torrent['download_started'] = time()
                 #torrent['progress'] = 0.0
                 self.setBelongsToMyDowloadHistory(torrent, True)
@@ -1657,6 +1721,8 @@ class standardDetails(wx.Panel):
             if result == wx.ID_YES:
                 infohash = torrent['infohash']
                 self.torrent_db.deleteTorrent(infohash, delete_file=True, commit = True)
+        
+        
                 
                 return True
             else:
@@ -1688,14 +1754,14 @@ class standardDetails(wx.Panel):
         torrent['myDownloadHistory'] = True
 
 
-    def setTorrentThumb(self, mode, torrent, thumbPanel):
+    def setTorrentThumb(self, mode, torrent, thumbPanel, size = 'large'):
         
         if not thumbPanel:
             return 
         
         thumbPanel.setBackground(wx.BLACK)
         if mode in  ['filesMode', 'libraryMode']:
-            self.getThumbnailLarge(torrent,thumbPanel)
+            self.getThumbnailLarge(torrent,thumbPanel, size)
         elif mode in ['personsMode', 'friendMode']:
             # get thumbimage of person
             if False:
@@ -1805,7 +1871,7 @@ class standardDetails(wx.Panel):
 
     def refreshTorrentTotalStats(self,nactive,totaldlspeed,totalulspeed):
         """ Called by GUI thread """
-        leftlabel = self.data['status']['st28c']
+        leftlabel = self.data['status']['Downloading']
         rightlabel = self.data['status']['downSpeed']
         rightlabel2 = self.data['status']['upSpeed']
         
@@ -1815,6 +1881,41 @@ class standardDetails(wx.Panel):
         leftlabel.SetLabel(lefttext)
         rightlabel.SetLabel(righttxt)
         rightlabel2.SetLabel(righttxt2)
+        
+    def addToPlaylist(self, name ='--', add=False):
+        playListPanel = self.data['status']['playList']
+        
+        if playListPanel.GetChildren() == []:
+            vSizer = wx.BoxSizer(wx.VERTICAL)
+            playListPanel.SetSizer(vSizer)
+            playListPanel.SetAutoLayout(1)
+        else:
+            vSizer = playListPanel.GetSizer()
+            
+        if not add and len(self.playList) > 0:
+            playListPanel.DestroyChildren()
+            self.playList = []
+        
+        if name != '':    
+            self.playList.append(name)            
+        
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)            
+            text = wx.StaticText(playListPanel,-1,"",wx.Point(0,0)) 
+            text.SetSize((-1, 12))
+#            text.SetBackgroundColour(wx.WHITE)
+            text.SetLabel(name)
+            hSizer.Add(text, 1, wx.TOP, 2)
+            
+            progressBar = ImagePanel(playListPanel, -1, wx.DefaultPosition, wx.Size(30,10), name='progressBar')
+            hSizer.Add(progressBar, 0, wx.FIXED_MINSIZE|wx.TOP|wx.ALIGN_RIGHT, 4)
+          
+            vSizer.Add(hSizer, 0, wx.EXPAND, 0)
+    
+            number = len(self.playList)    
+            playListPanel.SetMinSize((-1, (number*15+12)))
+            playListPanel.Layout()
+            playListPanel.GetParent().Layout() #Layout of statusDownloads
+            self.Layout() #Layout of StandardDetails
 
     def updateLastCheck(self, event=None):
         #print 'updateLastCheck'
@@ -1839,7 +1940,7 @@ class standardDetails(wx.Panel):
         return update
     """
             
-    def getThumbnailLarge(self,torrent,thumbPanel):
+    def getThumbnailLarge(self,torrent,thumbPanel, size='large'):
         readable = torrent.get('metadata',{}).get('ThumbReadable')
         if readable == False:
             default = self.iconsManager.getCategoryIcon('filesMode',torrent.get('category'), 'large')
@@ -1855,11 +1956,17 @@ class standardDetails(wx.Panel):
             metadata = loadAzureusMetadataFromTorrent(torrent_filename)
             if metadata:
                 thumbnailString = metadata.get('Thumbnail')
+               
             else:
                 thumbnailString = None
 
+
         if 'metadata' not in torrent:
-            torrent['metadata'] = {}
+            # Dump the raw data
+            if thumbnailString:
+                del metadata['Thumbnail']
+            
+            torrent['metadata'] = metadata
             
         if thumbnailString:
             img = createThumbImage(thumbnailString)
@@ -1903,10 +2010,10 @@ class standardDetails(wx.Panel):
             statusPanelHeight = 0
         
         newHeight = panel.GetSize()[1] + statusPanelHeight + margin
-        size = (300,newHeight)
-        self.SetSize(size)
-        self.SetMinSize(size)
-        self.SetMaxSize(size)
+#        size = (20,newHeight)
+#        self.SetSize(size)
+#        self.SetMinSize(size)
+#        self.SetMaxSize(size)
         self.GetContainingSizer().Layout()
         # Resize scrollWindow to make scrollbars update to new windowsize
         self.guiUtility.scrollWindow.FitInside()

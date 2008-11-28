@@ -10,18 +10,30 @@ from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.Utilities.utilities import sort_dictlist
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+
+from traceback import print_exc,print_stack
+from Tribler.Main.vwxGUI.fileDetailsOverviewPanel import fileDetailsOverviewPanel
+from Tribler.Main.vwxGUI.personDetailsOverviewPanel import personDetailsOverviewPanel
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
+
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
 from Tribler.Main.vwxGUI.standardGrid import GridState
 from Tribler.Main.Utility.constants import *
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
+from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
+
+
+from Tribler.Core.Utilities.unicode import *
+
 from threading import Thread,currentThread
 from time import time
 import web2
 
 
-OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
+OVERVIEW_MODES = ['startpageMode', 'statsMode', 'filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode',
+                  'messageMode', 'libraryMode', 'itemdetailsMode', 'fileDetailsMode','playlistMode', 'personDetailsMode', 'playlistMode']
 
 DEBUG = False
 
@@ -41,6 +53,7 @@ class standardOverview(wx.Panel):
             self._PostInit()
         
     def OnCreate(self, event):
+#        print 'standardOverview'
         self.Unbind(wx.EVT_WINDOW_CREATE)
         wx.CallAfter(self._PostInit)
         event.Skip()
@@ -54,7 +67,16 @@ class standardOverview(wx.Panel):
         self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         self.mypreference_db = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
       
-        self.mode = None
+        self.triblerStyles = TriblerStyles.getInstance()
+
+        
+#        self.SetBackgroundColour((255,255,90))
+        
+        
+#        self.Bind(wx.EVT_SIZE, self.standardOverviewResize)
+        self.mode = None        
+        self.selectedTorrent = None
+        self.selectedPeer = None
         self.data = {} #keeps gui elements for each mode
         for mode in OVERVIEW_MODES:
             self.data[mode] = {} #each mode has a dictionary of gui elements with name and reference
@@ -62,8 +84,10 @@ class standardOverview(wx.Panel):
         self.addComponents()
         #self.Refresh()
         
+#        self.guiUtility.frame.Bind(wx.EVT_SIZE, self.standardOverviewResize())
+#        self.Bind(wx.EVT_SIZE, self.standardOverviewResize)
         self.guiUtility.initStandardOverview(self)    # show file panel
-        self.toggleLoadingDetailsPanel(True)
+        #self.toggleLoadingDetailsPanel(True)
         
         #print >> sys.stderr, '[StartUpDebug]----------- standardOverview is in postinit ----------', currentThread().getName(), '\n\n'
         
@@ -71,24 +95,41 @@ class standardOverview(wx.Panel):
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.hSizer)
+                    
+    def standardOverviewResize(self, event=None):
+#        self.SetAutoLayout(0) 
+#        self.SetSize((-1,(self.guiUtility.frame.GetSize()[1]-200)))
+#        self.SetWindowStyleFlag(wx)
+#        self.Layout()
+#        self.currentPanel.SetSize((-1, (self.GetSize()[1]-250)))
+#        print 'tb > standardOverviewResize Resize'     
+#        print self.currentPanel.GetSize()
+#        self.SetSize((-1, 1000))
+#        
+
+#        print self.GetSize() 
+        if event:
+            event.Skip()
+        
         self.SetAutoLayout(1)
         self.Layout()
         
     def setMode(self, mode):
         # switch to another view, 
         # mode is one of the [filesMode, personsMode, friendsMode, profileMode, libraryMode, subscriptionsMode]
-        if self.mode != mode:
+        if self.mode != mode or mode == 'fileDetailsMode' or mode == 'playlistMode':
             #self.stopWeb2Search()
             self.mode = mode
             self.refreshMode()
             
     def getMode(self):
         return self.mode
+        
+        self.guiUtility.filterStandard.SetData(self.mode)
             
     def refreshMode(self):
         # load xrc
-        self.oldpanel = self.currentPanel
-        #self.Show(False)
+        self.oldpanel = self.currentPanel   
         
         self.currentPanel = self.loadPanel()
         assert self.currentPanel, "standardOverview: Panel could not be loaded"
@@ -98,26 +139,44 @@ class standardOverview(wx.Panel):
         if self.data[self.mode].get('grid'):
             self.data[self.mode]['grid'].gridManager.reactivate()
         
-        if self.oldpanel:
+        if self.oldpanel and self.oldpanel != self.currentPanel:
             self.hSizer.Detach(self.oldpanel)
             self.oldpanel.Hide()
             #self.oldpanel.Disable()
 
         assert len(self.hSizer.GetChildren()) == 0, 'Error: standardOverview self.hSizer has old-panel and gets new panel added (2 panel bug). Old panels are: %s' % self.hSizer.GetChildren()
             
-        self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)
+        if self.oldpanel != self.currentPanel: 
+            self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)   
         
+        nameCP = self.currentPanel.GetName()
+        if nameCP == 'profileOverview' or nameCP == 'fileDetailsOverview' or nameCP == 'personDetailsOverview' or nameCP == 'statsOverview': 
+            sizeCP = self.currentPanel.GetSize()
+            sizeFrame = self.Parent.GetSize()
+            
+            heightCP = max(sizeCP[1], sizeFrame[1])
+#            print 'heightCP = %s' % heightCP
+            self.SetSize((-1, heightCP))        
+            self.SetMinSize((500,sizeCP[1]))
+        else:
+            self.SetMinSize((800,500)) ## before (10,400)
+
         self.hSizer.Layout()
+        
+
+        wx.CallAfter(self.Parent.Layout)
         if DEBUG:
             print >> sys.stderr, 'standardOverview: refreshMode: %s' % self.currentPanel.__class__.__name__
         wx.CallAfter(self.hSizer.Layout)
         wx.CallAfter(self.currentPanel.Layout)
         wx.CallAfter(self.currentPanel.Refresh)
-        #self.Show(True)
+
+        wx.CallAfter(self.guiUtility.scrollWindow.FitInside)
+#        self.guiUtility.scrollWindow.FitInside()        
         
-        
-    def loadPanel(self):
+    def loadPanel(self):        
         currentPanel = self.data[self.mode].get('panel',None)
+
         modeString = self.mode[:-4]
         if DEBUG:
             print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
@@ -163,33 +222,90 @@ class standardOverview(wx.Panel):
                             txt = self.utility.lang.get('filesdefaultsearchtxt')
                         search.SetValue(txt)
                         search.Bind(wx.EVT_MOUSE_EVENTS, self.guiUtility.OnSearchMouseAction)
-                                            
-                pager.setGrid(grid)
                 
-                if self.mode in ['filesMode', 'personsMode']:
-                    viewModeSelect = xrc.XRCCTRL(currentPanel, 'modeItems')
-                    overviewSizeSelect = xrc.XRCCTRL(currentPanel, 'numberItems')                    
+                if pager is not None:                            
+                    pager.setGrid(grid)
+                
+                if self.mode in ['filesMode', 'personsMode']: 
+                    print ''
+                   
+#                    print 'self.mode = %s' % self.mode  
+#                    print currentPanel         
+##                    self.standardOverview.data['filesMode'].get('grid')
+##                    currentViewMode = currentPanel.grid.viewmode             
+##                    currentPanel.viewModeSelect = xrc.XRCCTRL(currentPanel, 'modeItems')
+###                    overviewSizeSelect = xrc.XRCCTRL(currentPanel, 'numberItems')                    
                     # set default values
-                    viewModeSelect.Select(0) #SetValue('thumbnails')
-                    overviewSizeSelect.Select(0) #SetValue('auto')
+                    
+#                    self.mode.viewModeSelect = viewModeSelect
+
+#                    currentPanel.viewModeSelect.Select(1) #SetValue('thumbnails')
+                    ##overviewSizeSelect.Select(0) #SetValue('auto')
                     #viewModeSelect.Bind(wx.EVT_COMBOBOX, grid.onViewModeChange)
-                    viewModeSelect.Bind(wx.EVT_CHOICE, grid.onViewModeChange)
+#                    currentPanel.viewModeSelect.Bind(wx.EVT_CHOICE, grid.onViewModeChange(mode = 'filesMode'))
                     #overviewSizeSelect.Bind(wx.EVT_COMBOBOX, grid.onSizeChange)
-                    overviewSizeSelect.Bind(wx.EVT_CHOICE, grid.onSizeChange)
+                    ##overviewSizeSelect.Bind(wx.EVT_CHOICE, grid.onSizeChange)
+                    
+                    
+                    
                     
                 if self.mode == 'subscriptionsMode':
                     rssurlctrl = xrc.XRCCTRL(currentPanel,'pasteUrl')
                     rssurlctrl.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSubscribeKeyDown)
                     rssurlctrl.Bind(wx.EVT_LEFT_UP, self.guiUtility.OnSubscribeMouseAction)
                     txt = self.utility.lang.get('rssurldefaulttxt')
-                    rssurlctrl.SetValue(txt)
-
+                    rssurlctrl.SetValue(txt)                
                     self.data[self.mode]['rssurlctrl'] = rssurlctrl
+                    
+                if self.mode == 'startpageMode':    
+                    # header styling
+#                    self.data['status']['downSpeed']
+                    
+#                    self.data[mode][name] = xrcElement
+                    self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popVideosPanel'))
+                    self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popVideos'))
+                    self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popChannelsPanel'))
+                    self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popChannels'))
+#                    self.triblerStyles.titleBar(self.data['status']['Downloading']) 
+#                    self.triblerStyles.titleBar(self.data['status']['down_White']) 
+#                    self.triblerStyles.titleBar(self.data['status']['downSpeed']) 
+#                    self.triblerStyles.titleBar(self.data['status']['up_White'])                 
+#                    self.triblerStyles.titleBar(self.data['status']['upSpeed']) 
+#                    # content styling
+#                    self.triblerStyles.setDarkText(self.data['status']['download1']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['percent1']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['download2']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['percent2']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['download3']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['percent3']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['download4']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['percent4']) 
+        
             except:
                 if DEBUG:
                     print >>sys.stderr,'standardOverview: Error: Could not load panel, grid and pager for mode %s' % self.mode
                     print >>sys.stderr,'standardOverview: Tried panel: %s=%s, grid: %s=%s, pager: %s=%s' % (panelName, currentPanel, modeString+'Grid', grid, 'standardPager', pager)
-                print_exc()
+                print_exc()                
+        
+        
+        if self.mode in ['filesMode', 'personsMode']:
+            grid = self.data[self.mode].get('grid') 
+            if self.guiUtility.gridViewMode != grid.viewmode :
+                grid.onViewModeChange(mode=self.guiUtility.gridViewMode)
+                
+                  
+                
+        if self.mode == 'fileDetailsMode':
+            print 'tb > fileDetailsMode'
+            self.data[self.mode]['panel'].setData(self.selectedTorrent)
+            
+        if self.mode == 'playlistMode':
+            print 'tb > playlistMode'
+            self.data[self.mode]['panel'].setData(self.selectedTorrent)
+        
+        if self.mode == 'personDetailsMode':
+            self.data[self.mode]['panel'].setData(self.selectedPeer)
+
         return currentPanel
      
     def refreshData(self):        
@@ -245,6 +361,7 @@ class standardOverview(wx.Panel):
         assert filterState is None or 'GridState' in str(type(filterState)), 'filterState is %s' % str(filterState)
         oldFilterState = self.data[self.mode].get('filterState')
         
+#        print 'tb >FILTERCHANGED!!!!!'
         if DEBUG:
             print >>sys.stderr,"standardOverview: filterChanged: from",oldFilterState,"to",filterState
         
@@ -261,13 +378,17 @@ class standardOverview(wx.Panel):
             elif self.mode in ('subscriptionsMode'):
                 self.loadSubscriptionData()
                 self.refreshData()
+#        if DEBUG:
+#            print >> sys.stderr, 'standardOverview: filterstate: %s' % filterState
+            
             else:
                 if DEBUG:
                     print >>sys.stderr,'standardOverview: Filters not yet implemented in this mode'
                 return
-            
+                            
             if DEBUG:
                 print >>sys.stderr,"standardOverview: before refreshData"
+                
     
           
             #self.refreshData()
@@ -391,7 +512,7 @@ class standardOverview(wx.Panel):
         if visible:
             if not loadingDetails:
                 loadingDetails = LoadingDetailsPanel(self.data[self.mode]['panel'])
-                
+                                
                 sizer.Insert(3,loadingDetails, 0, wx.ALL|wx.EXPAND, 0)
                 self.data[self.mode]['loadingDetailsPanel'] = loadingDetails
                 loadingDetails.Show()
@@ -456,3 +577,7 @@ class standardOverview(wx.Panel):
         grid = self.getGrid()
         if grid:
             grid.stopWeb2Search()
+        
+           
+        
+    

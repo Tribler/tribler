@@ -63,9 +63,9 @@ class standardPager(wx.Panel):
    
     def addComponents(self):
         self.Show(False)
-        self.SetBackgroundColour(self.guiUtility.triblerRed)
+        self.SetBackgroundColour((216,216,216))
         self.normalFont = wx.Font(FS_ITEMNORMAL,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE) # was Arial
-        self.boldFont  = wx.Font(FS_ITEMBOLD,FONTFAMILY,FONTWEIGHT,wx.BOLD,True,FONTFACE) # was Arial
+        self.boldFont  = wx.Font(FS_ITEMNORMAL,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE) # was Arial
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         #self.number = wx.StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))
@@ -77,9 +77,9 @@ class standardPager(wx.Panel):
 #        self.leftPages = ImagePanel(self)
 #        self.leftPages.SetBitmap(wx.Bitmap("prev2.gif",wx.BITMAP_TYPE_GIF))
 #        self.hSizer.Add(self.leftPages, 0, BORDER_EXPAND, 0)
-        self.left = tribler_topButton(self, name='pager_left')
+        self.left = tribler_topButton(self, name='prevpage')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.left.setBackground(self.guiUtility.triblerRed)
+        ##self.left.setBackground(self.guiUtility.triblerRed)
         #self.hSizer.AddSpacer(wx.Size(25))
         self.hSizer.Add(self.left, 0, wx.TOP, 5)
         
@@ -87,9 +87,9 @@ class standardPager(wx.Panel):
         self.refreshPageNumbers()
         
         
-        self.right = tribler_topButton(self, name='pager_right')
+        self.right = tribler_topButton(self, name='nextpage')
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.right.setBackground(self.guiUtility.triblerRed)
+        ##self.right.setBackground(self.guiUtility.triblerRed)
         self.hSizer.AddSpacer(wx.Size(5))
         self.hSizer.Add(self.right, 0, wx.TOP, 5)
        
@@ -186,19 +186,24 @@ class standardPager(wx.Panel):
             if page == current:
                 
                 panel.SetFont(self.boldFont)
+                panel.SetForegroundColour((0,110,149))
+
             else:
                 panel.SetFont(self.normalFont)
+                panel.SetForegroundColour((255,51,0))
+
             page+=1
         
         
-            
-        
-    
     def getDefaultTextField(self, t=""):
         text = StaticText(self, -1, t)
-        text.SetForegroundColour(wx.WHITE)
-        text.SetBackgroundColour(self.guiUtility.triblerRed)
+        text.SetForegroundColour((255,51,0))
+        text.SetBackgroundColour((216,216,216))
         return text
+
+
+
+
     
     def refresh(self):
         "Called by Grid if size or data changes"

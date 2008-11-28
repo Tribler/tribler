@@ -381,7 +381,7 @@ class standardGrid(wx.Panel):
     Panel which shows a grid with static number of columns and dynamic number
     of rows
     """
-    def __init__(self, cols, subPanelHeight, orientation='horizontal', viewmode = 'thumbnails'):
+    def __init__(self, cols, subPanelHeight, orientation='horizontal', viewmode = 'list'): ##
         self.initReady = False
         self.data = None
         self.detailPanel = None
@@ -444,7 +444,7 @@ class standardGrid(wx.Panel):
         self.calculateRows()
         
         if self.viewmode == 'list':
-            self.toggleColumnHeaders(True)
+            self.toggleColumnHeaders(False)
         self.Show()
         self.Layout()
         self.Refresh()
@@ -783,6 +783,7 @@ class standardGrid(wx.Panel):
                     number += 1
                     colIndex += 1
                 rowIndex += 1
+            self.Layout()
         except:
             # I sometimes get UnicodeErrors here somewhere
             print_exc()

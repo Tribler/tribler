@@ -1,0 +1,853 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="statsOverview" subclass="Tribler.Main.vwxGUI.statsOverviewPanel.statsOverviewPanel">
+    <pos>0,0</pos>
+    <size>860,500</size>
+    <bg>#666666</bg>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>13</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>10</border>
+                <option>0</option>
+                <object class="wxPanel" name="top10Panel">
+                  <bitmap>images/triblerpanel_topcenter.png</bitmap>
+                  <pos>0,0</pos>
+                  <size>254,20</size>
+                  <bg>#     0</bg>
+                  <fg>#ffffff</fg>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxLEFT|wxEXPAND</flag>
+                      <border>3</border>
+                      <option>1</option>
+                      <object class="wxStaticText" name="top10">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>top 10 Tribler Uploaders</label>
+                        <pos>3,3</pos>
+                        <size>206,15</size>
+                        <bg>#     0</bg>
+                        <fg>#ffffff</fg>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                      <border>4</border>
+                      <option>0</option>
+                      <object class="wxPanel" name="infoIcon1" subclass="Tribler.Main.vwxGUI.bgPanel.ImagePanel">
+                        <tooltip>Tribler is a special network on top of the overall network.\nThese figures shows the top 10 uploaders within the Tribler network.</tooltip>
+                        <pos>412,4</pos>
+                        <size>8,8</size>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>278,8</size>
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+              </object>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxStaticText" name="descriptionField0">
+                  <label>no info available yet
+
+
+
+	
+</label>
+                  <pos>3,28</pos>
+                  <size>423,428</size>
+                  <font>
+                    <size>8</size>
+                    <family>modern</family>
+                    <style>normal</style>
+                    <weight>normal</weight>
+                    <underlined>0</underlined>
+                    <face>Verdana</face>
+                  </font>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>10</border>
+                <option>0</option>
+                <object class="wxPanel" name="totalBTPanel">
+                  <bitmap>images/triblerpanel_topcenter.png</bitmap>
+                  <pos>294,0</pos>
+                  <size>254,20</size>
+                  <bg>#     0</bg>
+                  <fg>#ffffff</fg>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxLEFT|wxEXPAND</flag>
+                      <border>3</border>
+                      <option>1</option>
+                      <object class="wxStaticText" name="totalBT">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Stats for the whole network:</label>
+                        <pos>11,3</pos>
+                        <size>206,15</size>
+                        <bg>#     0</bg>
+                        <fg>#ffffff</fg>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="st227cC">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>total downloaded:</label>
+                          <pos>435,22</pos>
+                          <size>149,18</size>
+                          <font>
+                            <size>9</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>bold</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
+                        </object>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="st227cCC">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>total uploaded:</label>
+                          <pos>332,56</pos>
+                          <size>149,18</size>
+                          <font>
+                            <size>9</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>bold</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>1</option>
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="downloadedNumber">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>_</label>
+                          <pos>538,22</pos>
+                          <size>355,18</size>
+                          <font>
+                            <size>9</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>bold</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
+                        </object>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="uploadedNumber">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>_</label>
+                          <pos>558,285</pos>
+                          <size>169,18</size>
+                          <font>
+                            <size>9</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>bold</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>10</border>
+                <option>0</option>
+                <object class="wxPanel" name="totalTriblerPanel">
+                  <bitmap>images/triblerpanel_topcenter.png</bitmap>
+                  <pos>381,62</pos>
+                  <size>254,20</size>
+                  <bg>#     0</bg>
+                  <fg>#ffffff</fg>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxLEFT|wxEXPAND</flag>
+                      <border>3</border>
+                      <option>1</option>
+                      <object class="wxStaticText" name="totalTribler">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Your exchanges with other Tribler users:</label>
+                        <pos>3,3</pos>
+                        <size>206,15</size>
+                        <bg>#     0</bg>
+                        <fg>#ffffff</fg>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="st227cCCCC">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>total downloaded:</label>
+                          <pos>435,94</pos>
+                          <size>149,18</size>
+                          <font>
+                            <size>9</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>bold</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
+                        </object>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="st227cCCCCC">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>total uploaded:</label>
+                          <pos>435,114</pos>
+                          <size>149,18</size>
+                          <font>
+                            <size>9</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>bold</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>11</border>
+                    <option>1</option>
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="uploadedNumberT">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>_</label>
+                          <pos>584,94</pos>
+                          <size>99,18</size>
+                          <font>
+                            <size>9</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>bold</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
+                        </object>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="downloadedNumberT">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>_</label>
+                          <pos>584,114</pos>
+                          <size>149,18</size>
+                          <font>
+                            <size>9</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>bold</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>10</border>
+                <option>0</option>
+                <object class="wxPanel" name="networkDiscPanel">
+                  <bitmap>images/triblerpanel_topcenter.png</bitmap>
+                  <pos>432,142</pos>
+                  <size>254,20</size>
+                  <bg>#     0</bg>
+                  <fg>#ffffff</fg>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxLEFT|wxEXPAND</flag>
+                      <border>3</border>
+                      <option>1</option>
+                      <object class="wxStaticText" name="networkDisc">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Automatic network discovery:</label>
+                        <pos>3,3</pos>
+                        <size>206,15</size>
+                        <bg>#     0</bg>
+                        <fg>#ffffff</fg>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxBOTTOM|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxRIGHT|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="files">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>discovered files:</label>
+                          <pos>435,162</pos>
+                          <size>149,18</size>
+                          <bg>#  4454</bg>
+                          <fg>#ffffff</fg>
+                        </object>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="persons">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>discovered persons:</label>
+                          <pos>435,185</pos>
+                          <size>149,18</size>
+                          <bg>#  4454</bg>
+                          <fg>#ffffff</fg>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>1</option>
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="numberFiles">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>---</label>
+                          <pos>586,162</pos>
+                          <size>35,18</size>
+                        </object>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="numberPersons">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>---</label>
+                          <pos>586,185</pos>
+                          <size>35,18</size>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                  <orient>wxVERTICAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>10</border>
+                    <option>1</option>
+                    <object class="wxPanel" name="yrNetworkPanel">
+                      <bitmap>images/triblerpanel_topcenter.png</bitmap>
+                      <pos>432,206</pos>
+                      <size>100,20</size>
+                      <bg>#     0</bg>
+                      <fg>#ffffff</fg>
+                      <object class="wxBoxSizer">
+                        <orient>wxHORIZONTAL</orient>
+                        <object class="sizeritem">
+                          <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                          <border>3</border>
+                          <option>1</option>
+                          <object class="wxStaticText" name="yrNetwork">
+                            <style>wxST_NO_AUTORESIZE</style>
+                            <label>Your network</label>
+                            <pos>3,3</pos>
+                            <size>409,15</size>
+                            <bg>#     0</bg>
+                            <fg>#ffffff</fg>
+                          </object>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>5</border>
+                    <option>0</option>
+                    <object class="wxPanel" name="dummyYourNetwork" subclass="Tribler.Main.vwxGUI.bgPanel.ImagePanel">
+                      <pos>432,231</pos>
+                      <size>423,213</size>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag></flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>10</border>
+                <option>0</option>
+                <object class="wxPanel" name="perfPanel">
+                  <hidden>1</hidden>
+                  <bitmap>images/triblerpanel_topcenter.png</bitmap>
+                  <pos>3,513</pos>
+                  <size>589,20</size>
+                  <bg>#     0</bg>
+                  <fg>#ffffff</fg>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxLEFT|wxEXPAND</flag>
+                      <border>3</border>
+                      <option>1</option>
+                      <object class="wxStaticText" name="perf">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Performance</label>
+                        <pos>3,3</pos>
+                        <size>131,15</size>
+                        <bg>#     0</bg>
+                        <fg>#ffffff</fg>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxFIXED_MINSIZE</flag>
+                <border>18</border>
+                <option>0</option>
+                <object class="wxPanel" name="bgPanel_Overall" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                  <hidden>1</hidden>
+                  <pos>3,629</pos>
+                  <size>600,85</size>
+                  <bg>#666666</bg>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <flag>wxLEFT|wxFIXED_MINSIZE</flag>
+                      <border>15</border>
+                      <option>0</option>
+                      <object class="wxPanel" name="perf_Overall" subclass="Tribler.Main.vwxGUI.perfBar.BigPerfBar">
+                        <pos>3,3</pos>
+                        <size>70,85</size>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                      <object class="wxBoxSizer">
+                        <orient>wxVERTICAL</orient>
+                        <object class="spacer">
+                          <size>435,49</size>
+                          <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                          <border>3</border>
+                          <option>0</option>
+                        </object>
+                        <object class="sizeritem">
+                          <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                          <border>6</border>
+                          <option>0</option>
+                          <object class="wxStaticText" name="text_Overall">
+                            <style>wxST_NO_AUTORESIZE</style>
+                            <label>overall performance (*)</label>
+                            <pos>88,52</pos>
+                            <size>439,26</size>
+                            <bg>#e6e6e6</bg>
+                            <font>
+                              <size>14</size>
+                              <family>modern</family>
+                              <style>normal</style>
+                              <weight>normal</weight>
+                              <underlined>0</underlined>
+                              <face>Verdana</face>
+                            </font>
+                          </object>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>105,29</size>
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+              </object>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxPanel" name="bgPanel_Quality" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                  <hidden>1</hidden>
+                  <pos>3,720</pos>
+                  <size>417,40</size>
+                  <bg>#cbcbcb</bg>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="spacer">
+                      <size>15,27</size>
+                      <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                      <border>5</border>
+                      <option>0</option>
+                      <object class="wxPanel" name="perf_Quality" subclass="Tribler.Main.vwxGUI.perfBar.SmallPerfBar">
+                        <pos>15,5</pos>
+                        <size>25,30</size>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                      <border>15</border>
+                      <option>0</option>
+                      <object class="wxStaticText" name="text_Quality">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Quality of tribler recommendations</label>
+                        <pos>45,15</pos>
+                        <size>335,25</size>
+                        <bg>#cbcbcb</bg>
+                        <font>
+                          <size>10</size>
+                          <family>modern</family>
+                          <style>normal</style>
+                          <weight>normal</weight>
+                          <underlined>0</underlined>
+                          <face>Verdana</face>
+                        </font>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>2</border>
+                <option>0</option>
+                <object class="wxPanel" name="bgPanel_Files" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                  <hidden>1</hidden>
+                  <pos>3,762</pos>
+                  <size>20,40</size>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="spacer">
+                      <size>15,10</size>
+                      <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                      <border>5</border>
+                      <option>0</option>
+                      <object class="wxPanel" name="perf_Files" subclass="Tribler.Main.vwxGUI.perfBar.SmallPerfBar">
+                        <pos>15,5</pos>
+                        <size>25,30</size>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>15</border>
+                      <option>0</option>
+                      <object class="wxStaticText" name="text_Files">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Discovered files</label>
+                        <pos>48,3</pos>
+                        <size>379,16</size>
+                        <bg>#cbcbcb</bg>
+                        <font>
+                          <size>10</size>
+                          <family>modern</family>
+                          <style>normal</style>
+                          <weight>normal</weight>
+                          <underlined>0</underlined>
+                          <face>Verdana</face>
+                        </font>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>2</border>
+                <option>0</option>
+                <object class="wxPanel" name="bgPanel_Persons" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                  <hidden>1</hidden>
+                  <pos>3,804</pos>
+                  <size>20,40</size>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="spacer">
+                      <size>15,10</size>
+                      <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                      <border>5</border>
+                      <option>0</option>
+                      <object class="wxPanel" name="perf_Persons" subclass="Tribler.Main.vwxGUI.perfBar.SmallPerfBar">
+                        <pos>15,5</pos>
+                        <size>25,30</size>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>15</border>
+                      <option>0</option>
+                      <object class="wxStaticText" name="text_Persons">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Discovered persons</label>
+                        <pos>48,3</pos>
+                        <size>419,16</size>
+                        <bg>#cbcbcb</bg>
+                        <font>
+                          <size>10</size>
+                          <family>modern</family>
+                          <style>normal</style>
+                          <weight>normal</weight>
+                          <underlined>0</underlined>
+                          <face>Verdana</face>
+                        </font>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>2</border>
+                <option>0</option>
+                <object class="wxPanel" name="bgPanel_Download" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                  <hidden>1</hidden>
+                  <pos>3,846</pos>
+                  <size>20,40</size>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="spacer">
+                      <size>15,10</size>
+                      <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                      <border>5</border>
+                      <option>0</option>
+                      <object class="wxPanel" name="perf_Download" subclass="Tribler.Main.vwxGUI.perfBar.SmallPerfBar">
+                        <pos>18,3</pos>
+                        <size>25,30</size>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>15</border>
+                      <option>0</option>
+                      <object class="wxStaticText" name="text_Download">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Optimal download speed
+</label>
+                        <pos>48,3</pos>
+                        <size>384,23</size>
+                        <bg>#cbcbcb</bg>
+                        <font>
+                          <size>10</size>
+                          <family>modern</family>
+                          <style>normal</style>
+                          <weight>normal</weight>
+                          <underlined>0</underlined>
+                          <face>Verdana</face>
+                        </font>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>2</border>
+                <option>0</option>
+                <object class="wxPanel" name="bgPanel_Presence" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                  <hidden>1</hidden>
+                  <pos>3,888</pos>
+                  <size>20,40</size>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="spacer">
+                      <size>15,10</size>
+                      <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                      <border>5</border>
+                      <option>0</option>
+                      <object class="wxPanel" name="perf_Presence" subclass="Tribler.Main.vwxGUI.perfBar.SmallPerfBar">
+                        <pos>15,5</pos>
+                        <size>25,30</size>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>15</border>
+                      <option>0</option>
+                      <object class="wxStaticText" name="text_Presence">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>Network reach</label>
+                        <pos>45,15</pos>
+                        <size>339,16</size>
+                        <bg>#cbcbcb</bg>
+                        <font>
+                          <size>10</size>
+                          <family>modern</family>
+                          <style>normal</style>
+                          <weight>normal</weight>
+                          <underlined>0</underlined>
+                          <face>Verdana</face>
+                        </font>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

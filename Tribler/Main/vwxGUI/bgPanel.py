@@ -46,7 +46,7 @@ class ImagePanelBasic(wx.Panel):
         # Do all init here
         if self.bitmap is None: #mluc: search for bitmap only if not already set; it may happen as the setBitmap might be called before the _PostInit
             self.searchBitmap()
-        self.createBackgroundImage()
+        ##self.createBackgroundImage()
         #        print self.Name
 #        print '> size'
 #        print self.Size
@@ -60,6 +60,8 @@ class ImagePanelBasic(wx.Panel):
         self.backgroundColour = colour
         self.Refresh()
         
+
+
     def searchBitmap(self, name = None):
         self.bitmap = None
         
@@ -72,21 +74,26 @@ class ImagePanelBasic(wx.Panel):
         else:
             self.bitmapPath = os.path.join(self.imagedir, name)
 
-        try:
+        if os.path.isfile(self.bitmapPath):
+            self.setBitmap(wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY))
+        elif DEBUG:
+            print 'bgPanel: Could not load image: %s' % self.bitmapPath
+
+##        try:
             # These unnamed things popup on LibraryView
-            if self.bitmapPath.endswith('panel.png'):
-                return
+##            if self.bitmapPath.endswith('panel.png'):
+##                return
+##            
+##            img = self.bitmapPath
+##            if img in ImagePanelBasic.__bitmapCache:
+##                bitmap = ImagePanelBasic.__bitmapCache[img]
+##            else:
+##                bitmap = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+##                ImagePanelBasic.__bitmapCache[img] = bitmap
             
-            img = self.bitmapPath
-            if img in ImagePanelBasic.__bitmapCache:
-                bitmap = ImagePanelBasic.__bitmapCache[img]
-            else:
-                bitmap = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
-                ImagePanelBasic.__bitmapCache[img] = bitmap
-            
-            self.setBitmap(bitmap)
-        except:
-            print_exc()
+##            self.setBitmap(bitmap)
+##        except:
+##            print_exc()
         
     def createBackgroundImage(self):
         wx.EVT_PAINT(self, self.OnPaint)

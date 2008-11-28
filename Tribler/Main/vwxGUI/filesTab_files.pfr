@@ -14,7 +14,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.6.0
-VisualWxIdent=8760
+VisualWxIdent=8725
 l_hasAutoSize=1
 strTree=00it=3 01it=4 02it=23 03it=52 04it=48 05it=43 05it=44 04it=49 05it=50 05it=51 03it=41 03it=62 01it=46 
 [Controlli]
@@ -23,7 +23,7 @@ n=8
 n=1
 ws_name=filesTab_files.pfr
 ws_dir=.\\
-i_id=62
+i_id=63
 s_tipoFile=21
 s_tipoComp=0
 wx_WindowFileADD=543521385
@@ -558,7 +558,7 @@ Theme=0
 style=
 Estyle=
 i_stylePN=16
-idIncCmpFilCmp=3624
+idIncCmpFilCmp=0
 i_tipoComp=690504
 isContenitor=1
 validator=

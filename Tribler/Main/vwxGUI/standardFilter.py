@@ -6,7 +6,7 @@ import wx.xrc as xrc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 from Tribler.Category.Category import Category
-from Tribler.Main.vwxGUI.standardGrid import GridState
+from Tribler.Main.vwxGUI.GridState import GridState
 from font import *
 
 DEBUG = False

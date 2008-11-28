@@ -443,6 +443,8 @@ global_uprate_hint_line4 = "Note: Each torrent will always get a minimum"
 global_uprate_hint_line5 = "      of 3KB/s"
 
 choose_language = "Language: "
+recategorize = "Recategorize all torrents: "
+recategorize_button = "Recategorize now"
 choosevideoplayer = "Choose video player"
 choosevideoanalyser = "Locate FFMPEG"
 
@@ -1133,7 +1135,7 @@ loading = "Loading ..."
 act_upnp = "Opening firewall (if any) via UPnP"
 act_reachable = "Seeing if not firewalled"
 act_get_ext_ip_from_peers = "Asking peers for my IP address"
-act_meet = "Person connected:\n"
+act_meet = "Person connected: "
 act_got_metadata = "File discovered:"
 act_recommend = "Discovered more persons and files from"
 act_disk_full = "Disk is full to collect more torrents. Please change your preferences or free space on "
@@ -1344,6 +1346,7 @@ search_remote = "Tribler network (%d results)"
 searchStop       = "stop searching"
 searchStopEnabled= "stopped searching"
 searchClear      = "clear results and browse all discovered files"
+help             = "view your sharing reputation"
 
 ################
 #Tribler UI - Column headers Tribler 4.1.0
@@ -1389,6 +1392,7 @@ DLSTATUS_STOPPED = "stopped"
 DLSTATUS_STOPPED_ON_ERROR = "stopped/error"
 
 duplicate_download_msg = "You are already downloading this torrent, see your library."
+
 duplicate_download_title = "Duplicate download"
 
 #
@@ -1404,3 +1408,5 @@ peer_ip = "Peer IP"
 tribler_name = "Tribler name"
 curr_ul_rate = "Current upload rate"
 ul_amount = "Amount of MBytes uploaded"
+
+duplicate_download_title = "Duplicate download"

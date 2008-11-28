@@ -10,6 +10,7 @@ import webbrowser
 from sets import Set
 from webbrowser import open_new
 
+
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
@@ -17,14 +18,33 @@ from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
 
+
+from Tribler.Core.Utilities.unicode import dunno2unicode
+
+
+
 from bgPanel import *
 import updateXRC
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog, InviteFriendsDialog
+
+from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
+from Tribler.Category.Category import Category
+
+#from Tribler.vwxGUI.LeftMenu import LeftMenu
+#from Tribler.vwxGUI.filesFilter import filesFilter
+
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager,PeerSearchGridManager
 from Tribler.Main.Utility.constants import *
 
-DEBUG = False
+
+
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import ModerationCastDBHandler
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+
+DEBUG = True
 
 class GUIUtility:
     __single = None
@@ -42,7 +62,16 @@ class GUIUtility:
         self.frame = None
         self.selectedMainButton = None
         self.standardOverview = None
-        
+        self.data_manager = None
+
+        self.torrenthash = None
+
+        self.mcdb = ModerationCastDBHandler.getInstance()
+
+        self.fake = None
+        self.real = None
+
+
         # Arno: 2008-04-16: I want to keep this for searching, as an extension
         # of the standardGrid.GridManager
         self.torrentsearch_manager = TorrentSearchGridManager.getInstance(self)
@@ -50,14 +79,24 @@ class GUIUtility:
         
         self.guiOpen = Event()
         
-        self.selectedColour = wx.Colour(255,200,187)       
-        self.unselectedColour = wx.WHITE
-        self.unselectedColour2 = wx.Colour(230,230,230)        
+        
+       
+        self.gridViewMode = 'thumbnails' 
+        self.thumbnailViewer = None
+#        self.LeftMenu = LeftMenu()
+#        self.standardOverview = standardOverview()
+        
+        self.selectedColour = wx.Colour(216,233,240) ## before 155,200,187
+        self.unselectedColour = wx.Colour(255,255,255) ## before 102,102,102      
+        self.unselectedColour2 = wx.Colour(255,255,255) ## before 230,230,230       
         self.unselectedColourDownload = wx.Colour(198,226,147)        
         self.unselectedColour2Download = wx.Colour(190,209,139)
         self.selectedColourDownload = wx.Colour(145,173,78)
         self.selectedColourPending = wx.Colour(208,251,244)
         self.triblerRed = wx.Colour(255, 51, 0)
+        self.bgColour = wx.Colour(102,102,102)
+        self.darkTextColour = wx.Colour(51,51,51)
+        
         self.max_remote_queries = 10    # max number of remote peers to query
         self.remote_search_threshold = 20    # start remote search when results is less than this number
 
@@ -70,11 +109,15 @@ class GUIUtility:
         
     def buttonClicked(self, event):
         "One of the buttons in the GUI has been clicked"
+        self.frame.SetFocus()
 
         event.Skip(True) #should let other handlers use this event!!!!!!!
             
         name = ""
         obj = event.GetEventObject()
+        
+        print 'tb > name of object that is clicked = %s' % obj.GetName()
+
         try:
             name = obj.GetName()
         except:
@@ -83,15 +126,45 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,'GUIUtil: Button clicked %s' % name
         
-        if name.startswith('mainButton'):
-            self.mainButtonClicked(name, obj)
+        if name == 'moreFileInfo':
+            self.standardFileDetailsOverview()
+        elif name == 'moreFileInfoPlaylist':
+            self.standardFileDetailsOverview()
+#            self.standardPlaylistOverview()
+        elif name == 'more info >': 
+            self.standardPersonDetailsOverview()                      
+        elif name == 'backButton':            
+            self.standardStartpage() 
+            
+        elif name == 'All popular files':            
+            self.standardFilesOverview()  ##
+            
+        elif name == 'viewThumbs' or name == 'viewList':
+#            print 'currentpanel = %s' % self.standardOverview.currentPanel.GetName()
+#            self.viewThumbs = xrc.XRCCTRL(self.frame, "viewThumbs")
+#            self.viewList = xrc.XRCCTRL(self.frame, "viewList")  
+            
+            grid = self.standardOverview.data[self.standardOverview.mode].get('grid')
+            if name == 'viewThumbs':
+                self.viewThumbs.setSelected(True)
+                self.viewList.setSelected(False)                
+                grid.onViewModeChange(mode='thumbnails')
+                self.gridViewMode = 'thumbnails'
+            elif name == 'viewList':
+                self.viewThumbs.setSelected(False)
+                self.viewList.setSelected(True)                
+                grid.onViewModeChange(mode='list')               
+                self.gridViewMode = 'list'
+
         elif name.lower().find('detailstab') > -1:
             self.detailsTabClicked(name)
         elif name == 'refresh':
             self.refreshTracker()
         elif name == "addAsFriend" or name == 'deleteFriend':
             self.standardDetails.addAsFriend()
-        elif name == 'download':
+
+        elif name == 'download' or name == 'download1':
+            print 'tb > download'
             self.standardDetails.download()
         elif name == 'addFriend':
             #print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
@@ -140,8 +213,11 @@ class GUIUtility:
                 URL = 'http://www.tribler.org/'
                 webbrowser.open(URL)                
         elif name == "search": # search files/persons button
+#            print 'search'
             if DEBUG:
                 print >>sys.stderr,'GUIUtil: search button clicked'
+            
+            self.standardFilesOverview()
             self.dosearch()
         elif name == 'subscribe':
             self.subscribe()
@@ -173,44 +249,127 @@ class GUIUtility:
                     filterCombo = xrc.XRCCTRL(self.frame, filtername)
                     if filterCombo:
                         filterCombo.refresh()
+
+        elif name == 'hideLeft':            
+            if self.frame.LeftMenu.IsShown():               
+                self.frame.LeftMenu.Hide() 
+                self.frame.hideLeft.setToggled()
+            else:
+                self.frame.LeftMenu.Show() 
+                self.frame.hideLeft.setToggled()
+
+            self.standardOverview.GetParent().Layout()
+            self.frame.Refresh()
+            
+        elif name == 'hideRight':            
+            if self.standardDetails.IsShown():
+                self.standardDetails.Hide() 
+                self.frame.playerDockedPanel.Hide()
+                self.frame.hideRight.setToggled()                
+            else:
+                self.standardDetails.Show() 
+                self.frame.playerDockedPanel.Show()
+                self.frame.hideRight.setToggled()
+
+            self.standardOverview.GetParent().Layout()
+            self.frame.Refresh()
+
+        elif name == 'playAdd' or name == 'play' or name == 'playAdd1' or name == 'play1':   
+            playableFiles = self.standardOverview.data['fileDetailsMode']['panel'].selectedFiles[:]
+            
+            if name == 'play' or name == 'play1':
+                self.standardDetails.addToPlaylist(name = '', add=False)
+            
+            for p in playableFiles:
+                if p != '':
+                    self.standardDetails.addToPlaylist(name = p.GetLabel(), add=True)
+
+        elif name == 'advancedFiltering':    
+            if self.filterStandard.visible:
+                self.filterStandard.Hide()
+                self.filterStandard.visible = False
+                self.standardOverview.GetParent().Layout()
+                #                self.frame.Refresh()
+            else:
+                self.filterStandard.Show()
+                self.filterStandard.visible = True
+                self.standardOverview.GetParent().Layout()
+                #                self.frame.Refresh()
+
+        elif name == 'fake':    
+            self.real.setState(False) # disabled real button
+            moderation = self.mcdb.getModeration(bin2str(self.torrenthash))
+            self.mcdb.blockModerator(bin2str(moderation[0]))
+            #print >> sys.stderr , "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" , bin2str(self.torrenthash)    
+            
+
+        elif name == 'real':    
+            self.fake.setState(False) # disable fake button
+            moderation = self.mcdb.getModeration(bin2str(self.torrenthash))
+            self.mcdb.forwardModerator(bin2str(moderation[0]))
+
+            #print >> sys.stderr , "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" , bin2str(self.torrenthash)    
+ 
+
         elif DEBUG:
-            print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
+            print >> sys.stderr, 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
         
-    def mainButtonClicked(self, name, button):
-        "One of the mainbuttons in the top has been clicked"
-        
-        if not button.isSelected():
-            if self.selectedMainButton:
-                self.selectedMainButton.setSelected(False)
-            button.setSelected(True)
-            self.selectedMainButton = button
+#    def mainButtonClicked(self, name, button):
+#        "One of the mainbuttons in the top has been clicked"
+#        
+#        if not button.isSelected():
+#            if self.selectedMainButton:
+#                self.selectedMainButton.setSelected(False)
+#            button.setSelected(True)
+#            self.selectedMainButton = button
+#
+#        if name == 'mainButtonStartpage':
+#            self.standardStartpage()
+#        if name == 'mainButtonStats':
+#            self.standardStats()
+#        elif name == 'mainButtonFiles':
+#            self.standardFilesOverview()
+#        elif name == 'mainButtonPersons':
+#            self.standardPersonsOverview()
+#        elif name == 'mainButtonProfile':
+#            self.standardProfileOverview()
+#        elif name == 'mainButtonLibrary':
+#            self.standardLibraryOverview()
+#        elif name == 'mainButtonFriends':
+#            self.standardFriendsOverview()
+#        elif name == 'mainButtonRss':
+#            self.standardSubscriptionsOverview()
+#        elif name == 'mainButtonFileDetails':
+#            self.standardFileDetailsOverview()
+##            print 'tb debug> guiUtility button press ready'
+#        elif name == 'mainButtonPersonDetails':
+#            self.standardPersonDetailsOverview()
+#        elif name == 'mainButtonMessages':
+#            self.standardMessagesOverview()
+#        elif DEBUG:
+#            print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
+    
+    def standardStartpage(self, filters = ['','']):
+        self.frame.pageTitle.SetLabel('START PAGE')               
+        filesDetailsList = []
+        self.standardOverview.setMode('startpageMode')        
+#        self.standardOverview.filterChanged(filters)
+#        self.standardDetails.setMode('fileDetails') 
 
-        
-        if name == 'mainButtonFiles':
-            self.standardFilesOverview()
-        elif name == 'mainButtonPersons':
-            self.standardPersonsOverview()
-        elif name == 'mainButtonProfile':
-            self.standardProfileOverview()
-        elif name == 'mainButtonLibrary':
-            self.standardLibraryOverview()
-        elif name == 'mainButtonFriends':
-            self.standardFriendsOverview()
-        elif name == 'mainButtonRss':
-            self.standardSubscriptionsOverview()
-        elif name == 'mainButtonMessages':
-            self.standardMessagesOverview()
-        elif DEBUG:
-            print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
+    def standardStats(self, filters = ['','']):
+        self.frame.pageTitle.SetLabel('STATS')               
+#        filesDetailsList = []
+        self.standardOverview.setMode('statsMode')
             
-    def standardFilesOverview(self ):        
+    def standardFilesOverview(self, filters = ['','']):
+        self.frame.pageTitle.SetLabel('ALL FILES')
         self.standardOverview.setMode('filesMode')
-        gridState = self.standardOverview.getFilter().getState()
+        #gridState = self.standardOverview.getFilter().getState()
         #if filters:
         #    filters[1] = 'seeder'
-        if not gridState or not gridState.isValid():
-            gridState = GridState('filesMode', 'all', 'num_seeders')
+        #if not gridState or not gridState.isValid():
+        gridState = GridState('filesMode', 'all', 'num_seeders')
         self.standardOverview.filterChanged(gridState)
         try:
             if self.standardDetails:
@@ -218,7 +377,11 @@ class GUIUtility:
         except:
             pass
         
+        
+        
+        
     def standardPersonsOverview(self):
+        self.frame.pageTitle.SetLabel('TRIBLER')
         self.standardOverview.setMode('personsMode')
         if not self.standardOverview.getSorting():
             gridState = GridState('personsMode', 'all', 'last_connected', reverse=False)
@@ -228,6 +391,7 @@ class GUIUtility:
         #self.standardOverview.toggleSearchDetailsPanel(False)
         
     def standardFriendsOverview(self):
+        self.frame.pageTitle.SetLabel('ALL FRIENDS')
         self.standardOverview.setMode('friendsMode')
         if not self.standardOverview.getSorting():
             gridState = GridState('friendsMode', 'all', 'name', reverse=True)
@@ -237,6 +401,7 @@ class GUIUtility:
         #self.standardOverview.toggleSearchDetailsPanel(False)
         
     def standardProfileOverview(self):
+        self.frame.pageTitle.SetLabel('PROFILE')
         profileList = []
         panel = self.standardOverview.data['profileMode'].get('panel',None)
         if panel is not None:
@@ -244,8 +409,10 @@ class GUIUtility:
         self.standardOverview.setMode('profileMode')
         self.standardDetails.seldomReloadData()
         self.standardDetails.setMode('profileMode')
+
         
-    def standardLibraryOverview(self):       
+    def standardLibraryOverview(self, filters = None): 
+        self.frame.pageTitle.SetLabel('DOWNLOADS')      
         self.standardOverview.setMode('libraryMode')
         gridState = self.standardOverview.getFilter().getState()
         if not gridState or not gridState.isValid():
@@ -254,11 +421,46 @@ class GUIUtility:
         
         self.standardDetails.setMode('libraryMode')
         
-    def standardSubscriptionsOverview(self):       
+    def playlistOverview(self, filters = None): 
+        self.frame.pageTitle.SetLabel('DOWNLOADS')      
+        self.standardOverview.setMode('playlistMode')
+#        if filters != ['','']:
+#        self.standardOverview.filterChanged(filters, setgui = True)
+#        self.standardDetails.setMode('libraryMode')
+        
+        
+    def standardSubscriptionsOverview(self):
+        self.frame.pageTitle.SetLabel('SUBSCRIPTIONS')       
         self.standardOverview.setMode('subscriptionsMode')
         gridState = GridState('subscriptionMode', 'all', 'name')
         self.standardOverview.filterChanged(gridState)
         self.standardDetails.setMode('subscriptionsMode')
+    
+    def standardFileDetailsOverview(self, filters = ['','']):               
+        filesDetailsList = []
+        self.standardOverview.setMode('fileDetailsMode')
+#        print 'tb > self.standardOverview.GetSize() 1= %s ' % self.standardOverview.GetSize()
+#        print 'tb > self.frame = %s ' % self.frame.GetSize()
+        
+        frameSize = self.frame.GetSize()
+#        self.standardOverview.SetMinSize((1000,2000))
+#        self.scrollWindow.FitInside()
+#        print 'tb > self.standardOverview.GetSize() 2= %s ' % self.standardOverview.GetSize()
+#        self.scrollWindow.SetScrollbars(1,1,1024,2000)
+        
+##        self.scrollWindow.SetScrollbars(1,1,frameSize[0],frameSize[1])
+#        self.standardOverview.SetSize((-1, 2000))
+#        print 'tb > self.standardOverview.GetSize() = %s' % self.standardOverview.GetSize()
+#        self.standardOverview.filterChanged(filters)
+#        self.standardDetails.setMode('fileDetails')
+    def standardPlaylistOverview(self, filters = ['','']):               
+        filesDetailsList = []
+        self.standardOverview.setMode('playlistMode')
+        
+
+    def standardPersonDetailsOverview(self, filters = ['','']):               
+        filesDetailsList = []
+        self.standardOverview.setMode('personDetailsMode')
          
     def standardMessagesOverview(self):
         if DEBUG:
@@ -268,23 +470,37 @@ class GUIUtility:
     def initStandardOverview(self, standardOverview):
         "Called by standardOverview when ready with init"
         self.standardOverview = standardOverview
-        self.standardFilesOverview()
+#        self.standardFilesOverview(filters = ['all', 'seeder'])
+        self.standardStartpage()
         wx.CallAfter(self.refreshOnResize)
-
-        # Preselect mainButtonFiles
-        filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
-        filesButton.setSelected(True)
-        self.selectedMainButton = filesButton
         
-        # Init family filter
+        # Preselect mainButtonFiles
+#        filesButton = xrc.XRCCTRL(self.frame, 'Start page')
+#        filesButton.setSelected(True)
+#        self.selectedMainButton = filesButton
 
-        self.familyButtonOn = xrc.XRCCTRL(self.frame, 'familyFilterOn')
-        self.familyButtonOff = xrc.XRCCTRL(self.frame, 'familyFilterOff')
+        # init thumb / list view
+        self.gridViewMode = 'list'
+        
+        self.filterStandard.Hide() ## hide the standardOverview at startup
+
+        # Init family filter        
+        #self.familyButtonOn = xrc.XRCCTRL(self.frame, 'familyFilterOn')
+        #self.familyButtonOff = xrc.XRCCTRL(self.frame, 'familyFilterOff')
         catobj = Category.getInstance()
-        if catobj.family_filter_enabled():
-            self.familyButtonOn.setToggled(True)
-        else:    
-            self.familyButtonOff.setToggled(True)
+        #if catobj.family_filter_enabled():
+            #self.familyButtonOn.setToggled(True)
+        #else:    
+            #self.familyButtonOff.setToggled(True)
+        
+        self.rqmh = RemoteQueryMsgHandler.getInstance()
+        self.rqmh.register2(self.data_manager)
+        #self.getSearchField =  ABCApp.getSearchfield.getInstance()
+        
+    def initFilterStandard(self, filterStandard):
+        self.filterStandard = filterStandard
+        self.advancedFiltering = xrc.XRCCTRL(self.frame, "advancedFiltering")
+            
      
     def getOverviewElement(self):
         """should get the last selected item for the current standard overview, or
@@ -297,7 +513,9 @@ class GUIUtility:
         self.standardDetails = standardDetails
         firstItem = self.standardOverview.getFirstItem()
         self.standardDetails.setMode('filesMode', firstItem)        
-        self.standardDetails.refreshStatusPanel(True) 
+#        self.standardDetails.Hide()
+        # init player here?    
+        self.standardDetails.refreshStatusPanel(True)         
         self.guiOpen.set()
         
     def deleteTorrent(self, torrent):
@@ -339,23 +557,32 @@ class GUIUtility:
         self.standardDetails.tabClicked(name)
         
     def refreshOnResize(self):
+#        print 'tb > REFRESH ON RESIZE'
+#        print self.standardOverview.GetContainingSizer().GetItem(0)
+
+#        self.standardOverview.GetContainingSizer().GetItem(self.standardOverview).SetProportion(1)
+#        self.standardOverview.SetProportion(1)
         try:
             if DEBUG:
                 print >>sys.stderr,'GuiUtility: explicit refresh'
-            self.mainSizer.FitInside(self.frame)
-            self.standardDetails.Refresh()
-            self.frame.topBackgroundRight.Refresh()
-            self.frame.topBackgroundRight.GetSizer().Layout()
+            ##self.mainSizer.FitInside(self.frame)
+            ##self.standardDetails.Refresh()
+            ##self.frame.topBackgroundRight.Refresh()
+            ##self.frame.topBackgroundRight.GetSizer().Layout()
             #self.frame.topBackgroundRight.GetContainingSizer().Layout()
-            self.updateSizeOfStandardOverview()
-            self.standardDetails.Layout()
-            self.standardDetail.GetContainingSizer.Layout()
-            self.standardOverview.Refresh()
+            ##self.updateSizeOfStandardOverview()
+            ##self.standardDetails.Layout()
+            ##self.standardDetail.GetContainingSizer.Layout()
+            ##self.standardOverview.Refresh()
             
         except:
             pass # When resize is done before panels are loaded: no refresh
     
     def updateSizeOfStandardOverview(self):
+        print 'tb > SetProportion'
+        self.standardOverview.SetProportion(1)
+        
+        
         if self.standardOverview.gridIsAutoResizing():
             #print 'size1: %d, size2: %d' % (self.frame.GetClientSize()[1], self.frame.window.GetClientSize()[1])
             margin = 10
@@ -436,7 +663,8 @@ class GUIUtility:
         return self.utility.session.get_nat_type(callback=callback)
 
     def dosearch(self):
-        sf = self.standardOverview.getSearchField()
+        sf = self.frame.search
+        #sf = self.standardOverview.getSearchField()
         if sf is None:
             return
         input = sf.GetValue().strip()
@@ -463,6 +691,7 @@ class GUIUtility:
         gridstate = GridState(self.standardOverview.mode, 'all', 'rameezmetric')
         self.standardOverview.filterChanged(gridstate)
 
+
         if mode == 'filesMode':
             #
             # Query the peers we are connected to
@@ -485,6 +714,7 @@ class GUIUtility:
             web2on = self.utility.config.Read('enableweb2search',"boolean")
             if mode == 'filesMode' and web2on:
                 self.torrentsearch_manager.searchWeb2(60) # 3 pages, TODO: calc from grid size
+
 
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
@@ -532,10 +762,13 @@ class GUIUtility:
    
 
     def OnSearchKeyDown(self,event):
+        
         keycode = event.GetKeyCode()
         #if event.CmdDown():
         #print "OnSearchKeyDown: keycode",keycode
         if keycode == wx.WXK_RETURN:
+            app.frame.Hide()
+            self.standardFilesOverview()
             self.dosearch()
         else:
             event.Skip()     
@@ -774,6 +1007,63 @@ class GUIUtility:
         ret = dialog.ShowModal()
         dialog.Destroy()
         event.Skip()
+        
+    def filesList(self, torrent, metadatahandler):
+        # tb > code is copied from Tribler > vwxGUI > tribler>List.py [FilesList]
+        # Get the file(s)data for this torrent
+
+            
+        if DEBUG:
+            print >>sys.stderr,'tribler_List: setData of FilesTabPanel called'
+        try:
+            
+            if torrent.get('web2') or 'query_permid' in torrent: # web2 or remote query result
+                self.filelist = []
+    #                self.DeleteAllItems()
+                self.onListResize(None)
+                return {}
+    
+            (torrent_dir,torrent_name) = metadatahandler.get_std_torrent_dir_name(torrent)
+            torrent_filename = os.path.join(torrent_dir, torrent_name)
+            if not os.path.exists(torrent_filename):
+                if DEBUG:    
+                    print >>sys.stderr,"tribler_List: Torrent: %s does not exist" % torrent_filename
+                return {}
+            
+            metadata = self.utility.getMetainfo(torrent_filename)
+            if not metadata:
+                return {}
+            info = metadata.get('info')
+            if not info:
+                return {}
+            
+            #print metadata.get('comment', 'no comment')
+                
+                
+            filedata = info.get('files')
+            if not filedata:
+                filelist = [(dunno2unicode(info.get('name')),self.utility.size_format(info.get('length')))]
+            else:
+                filelist = []
+                for f in filedata:
+                    filelist.append((dunno2unicode('/'.join(f.get('path'))), self.utility.size_format(f.get('length')) ))
+                filelist.sort()
+                
+            
+            return filelist
+            
+        except:
+            if DEBUG:
+                print >>sys.stderr,'tribler_List: error getting list of files in torrent'
+            print_exc()
+            return {}
+       
+    def getGuiElement(self, name):
+        if not self.elements.has_key(name) or not self.elements[name]:
+            return None
+        return self.elements[name]
+    
+
 
     
 # =========END ========= actions for rightMouse button ==========================================
@@ -786,4 +1076,3 @@ class GUIUtility:
                 item.GetSizer().Layout()
             elif item.IsWindow():
                 item.GetWindow().Refresh()
-

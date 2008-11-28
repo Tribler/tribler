@@ -21,6 +21,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_
 
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Video.VideoPlayer import *
+from Tribler.Category.Category import Category
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
@@ -420,6 +421,14 @@ class MiscPanel(ABCOptionPanel):
         lang_box.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(lang_box, 0, wx.ALL, 5)
         
+        self.recategorize_button  = wx.Button(self, -1, self.utility.lang.get('recategorize_button'))
+        self.recategorize_button.Bind(wx.EVT_BUTTON, self.onRecategorize)
+        
+        recategorize_box = wx.BoxSizer(wx.HORIZONTAL)
+        recategorize_box.Add(wx.StaticText(self, -1, self.utility.lang.get('recategorize')), 0, wx.ALIGN_CENTER_VERTICAL)
+        recategorize_box.Add(self.recategorize_button, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        sizer.Add(recategorize_box, 0, wx.ALL, 5)
+        
         self.initTasks()
         
     def loadValues(self, Read = None):
@@ -488,6 +497,10 @@ class MiscPanel(ABCOptionPanel):
             if config.Exists('languagename'):
                 self.utility.languages[config.Read('languagename')] = filename
 
+    def onRecategorize(self, event=None):
+        catobj = Category.getInstance()
+        torrentdata = self.utility.guiUtility.data_manager.data
+        catobj.reSortAll(torrentdata)
 
 ################################################################
 #
@@ -1617,4 +1630,7 @@ class ABCOptionDialog(wx.Dialog):
             self.saveWindowSettings()
             
             self.EndModal(wx.ID_OK)
+    
+    
+
 

@@ -15,6 +15,8 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.PersonsItemPanel import ThumbnailViewer
 from Tribler.Main.Utility.utility import similarPeer, copyPeer
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
+from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
+from Tribler.Main.vwxGUI.PersonsItemDetailsSummary import PersonsItemDetailsSummary
 from font import *
 from tribler_topButton import *
 import TasteHeart
@@ -40,6 +42,7 @@ class FriendsItemPanel(wx.Panel):
     PersonsItemPanel shows one persons item inside the PersonsGridPanel
     """
     def __init__(self, parent, keyTypedFun= None):
+        self.triblerStyles = TriblerStyles.getInstance()
         global TORRENTPANEL_BACKGROUND
         
         wx.Panel.__init__(self, parent, -1)
@@ -47,8 +50,11 @@ class FriendsItemPanel(wx.Panel):
         self.utility = self.guiUtility.utility
         self.parent = parent
         self.data = None
+        self.summary = None
         self.datacopy = {}
+        self.FriendThumbnailViewer = ThumbnailViewer
         self.titleLength = 77 # num characters
+        self.listItem = True
         self.triblerGrey = wx.Colour(128,128,128)
         self.selected = False
         self.warningMode = False
@@ -57,6 +63,8 @@ class FriendsItemPanel(wx.Panel):
         self.addComponents()
         self.Show()
         self.Refresh()
+        self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
+        
         self.Layout()
 
     def addComponents(self):
@@ -70,7 +78,7 @@ class FriendsItemPanel(wx.Panel):
 #        self.vSizerAll = wx.BoxSizer(wx.VERTICAL)
         
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+        self.vSizerOverall.Add(self.hSizer, 0, wx.FIXED|wx.EXPAND, 0)
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
  
@@ -78,17 +86,15 @@ class FriendsItemPanel(wx.Panel):
         self.hSizer.Add([8,22],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
         
         # Add thumb
-        self.thumb = FriendThumbnailViewer(self)
+        self.thumb = FriendThumbnailViewer(self, 'friendsMode')
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((18,18))
         self.hSizer.Add(self.thumb, 0, wx.ALL, 2)        
         
         # Add title
-        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(100,15))        
-        self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(FS_FRIENDTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((100,14))        
-        self.title.SetLabel('')
+        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(100,15))                
+        self.title.SetMinSize((100,14))
+        self.triblerStyles.setLightText(self.title)                
         self.hSizer.Add(self.title,1,wx.TOP,4)
         
         # Add left vertical line
@@ -96,11 +102,8 @@ class FriendsItemPanel(wx.Panel):
         
         # Add status
         self.status =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(130,12), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE )        
-        self.status.SetBackgroundColour(wx.WHITE)
-        self.status.SetFont(wx.Font(FS_STATUS,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.status.SetForegroundColour(self.triblerGrey)        
         self.status.SetMinSize((165,12))
-        self.status.SetLabel("") 
+        self.triblerStyles.setLightText(self.status)        
         self.hSizer.Add(self.status,0,wx.TOP|wx.EXPAND,4)
         
         # Add left vertical line
@@ -108,11 +111,8 @@ class FriendsItemPanel(wx.Panel):
                 
         # Add message > if today new content is discovered from him/her
         self.helping =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(130,12), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-        self.helping.SetBackgroundColour(wx.WHITE)
-        self.helping.SetFont(wx.Font(FS_STATUS,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.helping.SetForegroundColour(self.triblerGrey)        
         self.helping.SetMinSize((30,14))
-        self.helping.SetLabel('') 
+        self.triblerStyles.setLightText(self.helping)
         self.hSizer.Add(self.helping,1,wx.TOP,4)
         
         # Add left vertical line
@@ -126,14 +126,16 @@ class FriendsItemPanel(wx.Panel):
         self.hSizer2.Add(self.tasteHeart, 0, wx.TOP, 0)        
         # Add Taste similarity
         self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
-        self.taste.SetBackgroundColour(wx.WHITE)
-        self.taste.SetFont(wx.Font(FS_HEARTRANK,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.taste.SetMinSize((40,15))
-        self.taste.SetLabel('')
+        self.triblerStyles.setLightText(self.taste)
         self.hSizer2.Add(self.taste, 0, wx.LEFT, 2)        
         self.vSizer.Add(self.hSizer2, 0, wx.TOP, 2)
         self.hSizer.Add(self.vSizer, 0, wx.LEFT|wx.RIGHT, 2)
         
+        self.hSizerSummary = wx.BoxSizer(wx.HORIZONTAL)
+        self.vSizerOverall.Add(self.hSizerSummary, 1, wx.FIXED_MINSIZE|wx.EXPAND, 0)            
+            
+        self.SetSizer(self.vSizerOverall)
         # Add delete button
 ##        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(16,16),name='deleteFriend')                
 ##        self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 4)
@@ -141,7 +143,7 @@ class FriendsItemPanel(wx.Panel):
 #        self.vSizerAll.Add(self.hSizer, 0, wx.EXPAND, 0)
         #Add bottom horizontal line
 #        self.addLine(False)
-        self.SetSizer(self.hSizer);
+
         self.SetAutoLayout(1);
         self.Layout();
         self.Refresh()
@@ -165,8 +167,8 @@ class FriendsItemPanel(wx.Panel):
             
     def addLine(self, vertical=True):
         if vertical:
-            vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
-            self.hSizer.Add(vLine, 0, wx.RIGHT|wx.LEFT|wx.EXPAND, 3)
+            vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,0),wx.LI_VERTICAL)
+            self.hSizer.Add(vLine, 0, wx.RIGHT|wx.LEFT, 3)
             return vLine
         else:
             hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(-1,1),wx.LI_HORIZONTAL)
@@ -249,7 +251,7 @@ class FriendsItemPanel(wx.Panel):
             self.tasteHeart.Hide()
 
         #if oldpermid is None or oldpermid != peer_data['permid']:
-        self.thumb.setData(peer_data)
+        self.thumb.setData(peer_data, summary='')
                
         self.Layout()
         self.Refresh()
@@ -259,17 +261,20 @@ class FriendsItemPanel(wx.Panel):
         
     def select(self, rowIndex, colIndex, ignore1, ignore2, ignore3):
         self.selected = True
+        colour = self.triblerStyles.selected(3)
 #        if colIndex == 0:
 #            self.vLine.Hide()            
 #        else:
 #            self.vLine.Show()
         self.thumb.setSelected(True)
-        self.title.SetBackgroundColour(self.selectedColour)
-        self.status.SetBackgroundColour(self.selectedColour)
-        self.helping.SetBackgroundColour(self.selectedColour)
-        self.taste.SetBackgroundColour(self.selectedColour)
-        self.tasteHeart.setBackground(self.selectedColour)
-        self.SetBackgroundColour(self.selectedColour)
+        self.title.SetBackgroundColour(colour)
+        self.status.SetBackgroundColour(colour)
+        self.helping.SetBackgroundColour(colour)
+        self.taste.SetBackgroundColour(colour)
+        self.tasteHeart.setBackground(colour)
+        self.SetBackgroundColour(colour)
+        self.toggleFriendsItemDetailsSummary(True)
+        self.guiUtility.standardOverview.selectedPeer = self.data['permid'] 
         self.Refresh()
         self.SetFocus()
         
@@ -280,9 +285,9 @@ class FriendsItemPanel(wx.Panel):
 #        else:
 #            self.vLine.Show()
         if rowIndex % 2 == 0:
-            colour = self.guiUtility.unselectedColour
+            colour = self.triblerStyles.selected(1)
         else:
-            colour = self.guiUtility.unselectedColour2
+            colour = self.triblerStyles.selected(2)
             
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
@@ -291,6 +296,7 @@ class FriendsItemPanel(wx.Panel):
         self.taste.SetBackgroundColour(colour)
         self.tasteHeart.setBackground(colour)
         self.SetBackgroundColour(colour)
+        self.toggleFriendsItemDetailsSummary(False)
         self.Refresh()
     
     def keyTyped(self, event):
@@ -323,15 +329,33 @@ class FriendsItemPanel(wx.Panel):
         if self.data:
             return self.data['permid']
         
+    def toggleFriendsItemDetailsSummary(self, visible):
+
+        if visible and not self.summary:
+            self.summary = PersonsItemDetailsSummary(self, mode='friends')
+            self.triblerStyles.setLightText(self.summary)
+            self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
+            self.SetMinSize((-1,140))
+            
+        elif self.summary and not visible:
+            self.summary.Hide()
+            # the Thumb should be destoryed seperately because it has a different parent.
+            self.summary.thumbSummary.Destroy()
+            self.summary.DestroyChildren()            
+            self.summary.Destroy()
+            self.summary = None
+            self.SetMinSize((-1,22))
+        
 
     
                 
 
 class FriendThumbnailViewer(ThumbnailViewer):
-    def __init__(self, *args, **kw):    
-        ThumbnailViewer.__init__(self, *args, **kw)
+    def __init__(self, parent, mode, **kw):    
+        self.parent = parent
+        ThumbnailViewer.__init__(self, parent, mode, **kw)
         
-    def setThumbnail(self, data):
+    def setThumbnail(self, data, summary=''):
         # Get the file(s)data for this torrent
         try:
             width, height = self.GetSize()

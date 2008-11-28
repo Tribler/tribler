@@ -15,36 +15,45 @@ class SearchDetailsPanel(wx.Panel):
         
         
     def addComponents(self):
-        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        #(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
-        self.stopMoreButton = SwitchButton(self, -1, wx.DefaultPosition, wx.DefaultSize, name='searchStop')
-        self.stopMoreButton.Bind(wx.EVT_LEFT_UP, self.stopMoreClicked)
-        self.stopMoreButton.SetToolTipString(self.guiUtility.utility.lang.get('searchStop'))        
-        self.clearButton = tribler_topButton(self, -1, wx.DefaultPosition, wx.DefaultSize, name='searchClear')        
-        self.clearButton.SetToolTipString(self.guiUtility.utility.lang.get('searchClear'))
-        self.hSizer.Add([9,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
-        self.hSizer.Add(self.stopMoreButton, 0, wx.ALL, 1)
-        self.hSizer.Add(self.clearButton, 0, wx.ALL, 1)
         
-        self.hSizer.Add([8,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
-        self.textPanel = wx.Panel(self)
+        
+        #(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
+        self.vSizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.textPanel = wx.Panel(self)        
+        
         self.text = wx.StaticText(self.textPanel, -1, '')
-        self.text.SetForegroundColour(wx.Colour(255,255,255))
+        self.text.SetForegroundColour(wx.Colour(150,150,150))
         sizer.Add(self.text, 1, wx.ALL, 0)
+        
         self.textPanel.SetSizer(sizer)
         self.textPanel.SetAutoLayout(1)
         self.textPanel.SetForegroundColour(wx.WHITE)        
-        self.textPanel.SetBackgroundColour(wx.Colour(53,53,53))
-        
-        self.text.SetSize((-1, 15))
+        self.textPanel.SetBackgroundColour(wx.Colour(255,255,255))        
+        self.text.SetSize((100, 15))
         self.hSizer.Add(self.textPanel, 1, wx.TOP|wx.EXPAND, 3)
+        self.vSizer.Add(self.hSizer, 1, wx.TOP|wx.EXPAND, 3)
+
+        ##self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)       
+        ##self.stopMoreButton = SwitchButton(self, -1, wx.DefaultPosition, wx.DefaultSize, name='searchStop')
+        ##self.stopMoreButton.Bind(wx.EVT_LEFT_UP, self.stopMoreClicked)
+        ##self.stopMoreButton.SetToolTipString(self.guiUtility.utility.lang.get('searchStop'))        
+        ##self.clearButton = tribler_topButton(self, -1, wx.DefaultPosition, wx.DefaultSize, name='searchClear')        
+        ##self.clearButton.SetToolTipString(self.guiUtility.utility.lang.get('searchClear'))
+        ##self.hSizer2.Add([9,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
+        ##self.hSizer2.Add(self.stopMoreButton, 0, wx.ALL, 1)
+        ##self.hSizer2.Add(self.clearButton, 0, wx.ALL, 1)
+        ##self.vSizer.Add(self.hSizer2, 0, wx.TOP|wx.EXPAND, 3)
         
-        self.SetSizer(self.hSizer);
+        #self.hSizer.Add([8,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
+        
+        self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
-        self.SetMinSize((-1, 19))
-        self.SetBackgroundColour(wx.Colour(53,53,53))
-        self.hSizer.Layout()
+        self.SetMinSize((-1, 40))
+        self.SetBackgroundColour(wx.Colour(255,255,255))
+        self.vSizer.Layout()
         self.Layout()
         self.searchBusy = True #??
         #self.Show(True)
@@ -52,7 +61,7 @@ class SearchDetailsPanel(wx.Panel):
         
     def setMessage(self, stype, finished, num, keywords = []):
         if stype:
-            self.results[stype] = num
+            self.results[stype] = num # FIXME different remote search overwrite eachother
         
         total = sum([v for v in self.results.values() if v != -1])
         
@@ -84,7 +93,7 @@ class SearchDetailsPanel(wx.Panel):
         self.text.SetToolTipString(tt)
         
     def startSearch(self):
-        self.stopMoreButton.setToggled(False)
+        ##self.stopMoreButton.setToggled(False)
         self.searchBusy = True
         
     def stopSearch(self):
@@ -100,7 +109,7 @@ class SearchDetailsPanel(wx.Panel):
     
     def searchFinished(self, set_message = True):
         self.searchBusy = False
-        self.stopMoreButton.setToggled(True)
+        ##self.stopMoreButton.setToggled(True)
         if set_message:
             self.setMessage(None, True, 0, None)
     

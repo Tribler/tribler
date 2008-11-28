@@ -19,13 +19,7 @@ class ProfileOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
         self.initDone = False
-        self.elementsName = [ 'bgPanel_Overall', 'perf_Overall', 'icon_Overall', 'text_Overall', 
-                             'bgPanel_Quality', 'perf_Quality', 'text_Quality', 
-                             'bgPanel_Files', 'perf_Files', 'text_Files', 
-                             'bgPanel_Persons', 'perf_Persons', 'text_Persons', 
-                             'bgPanel_Download', 'perf_Download', 'text_Download', 
-                             'bgPanel_Presence', 'perf_Presence', 'text_Presence',
-                             'myNameField', 'thumb', 'edit', 'downloadedNumber', 'uploadedNumber']
+        self.elementsName = ['myNameField', 'thumb', 'edit']
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         self.mypref = None
@@ -74,39 +68,12 @@ class ProfileOverviewPanel(wx.Panel):
             self.elements[element] = xrcElement
 
         self.getNameMugshot()
-
-        self.buttons = []
-        #add mouse over text and progress icon
-        for elem_name in self.elementsName:
-            if elem_name.startswith("bgPanel_"):
-                self.buttons.append(elem_name)
-                but_elem = self.getGuiElement(elem_name)
-                but_elem.setBackground(wx.Colour(203,203,203))
-                suffix = elem_name[8:]
-                text_elem = self.getGuiElement('text_%s' % suffix)
-                perf_elem = self.getGuiElement('perf_%s' % suffix)
-                icon_elem = self.getGuiElement('icon_%s' % suffix)
-                if isinstance(self.getGuiElement(elem_name),tribler_topButton) :
-                    if text_elem:
-                        text_elem.Bind(wx.EVT_MOUSE_EVENTS, but_elem.mouseAction)
-                    if perf_elem:
-                        perf_elem.Bind(wx.EVT_MOUSE_EVENTS, but_elem.mouseAction)
-                    if icon_elem:
-                        icon_elem.Bind(wx. EVT_MOUSE_EVENTS, but_elem.mouseAction)
-                else:
-                    but_elem.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-                if text_elem:
-                    text_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
-                if perf_elem:
-                    perf_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
-                if icon_elem:
-                    icon_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
                     
         self.getGuiElement('myNameField').SetLabel('')
         self.initDone = True
         
 #        self.Update()
-        self.initData()
+#        self.initData()
         self.timer = None
         self.Bind(wx.EVT_SHOW, self.OnShow)
 
@@ -125,7 +92,7 @@ class ProfileOverviewPanel(wx.Panel):
 #        else:
 #            print "<mluc> profileOverviewPanel is visible"
             pass
-        #wx.CallAfter(self.reloadData())
+        #wx.CallAfter(self.reloadData)
 
     def getNameMugshot(self):
         self.myname = self.utility.session.get_nickname()
@@ -144,28 +111,9 @@ class ProfileOverviewPanel(wx.Panel):
     def sendClick(self, event):
         source = event.GetEventObject()
         source_name = source.GetName()
-#        print "<mluc> send event from",source_name
-        if source_name.startswith('text_') or source_name.startswith('perf_') or source_name.startswith('icon_'):
-            #send event to background button
-            but_name = 'bgPanel_'+source_name[5:]
-            self.selectNewButton(but_name)
-#            print "<mluc> send event to",but_name
-            new_owner = self.getGuiElement(but_name)
-            event.SetEventObject(new_owner)
-            wx.PostEvent( new_owner, event)
-        elif source_name.startswith('bgPanel_'):
-            self.selectNewButton(source_name)
-        elif source_name == "edit":
+        if source_name == "edit":
             self.OnMyInfoWizard(event)
 
-    def selectNewButton(self, sel_but):
-        for button in self.buttons:
-            butElem = self.getGuiElement(button)
-            if button == sel_but:
-                if isinstance(butElem,tribler_topButton):
-                    butElem.setSelected(True)
-            elif isinstance(butElem, tribler_topButton) and butElem.isSelected():
-                butElem.setSelected(False)
 
     def getGuiElement(self, name):
         if not self.elements.has_key(name) or not self.elements[name]:
@@ -173,47 +121,6 @@ class ProfileOverviewPanel(wx.Panel):
             return None
         return self.elements[name]
     
-    def indexValue(self, value, max_value, max_index=5):
-        """given a value and a maximal value, computes an index from 0 to max_index 
-        so that when value >= max_value, it returns max_index
-        uses an algorithm that complies to this example:
-        max_index = 5
-        max_value = 100
-        |---------------|
-        | value | index |
-        |---------------|
-        |   0   |   0   |
-        |  1-24 |   1   |
-        | 25-49 |   2   |
-        | 50-74 |   3   |
-        | 75-99 |   4   |
-        | >=100 |   5   |
-        |---------------|
-        """
-        if max_index <= 0:
-            return 0
-        if value <= 0:
-            return 0
-        if value >= max_value:
-            return max_index
-        index = 1 + int(value * (max_index-1) / max_value)
-        if index > max_index:
-            index = max_index
-        if index < 0:
-            index = 0
-        return index
-    
-    def initData(self):
-        self.quality_value = -1
-        self.discovered_files = -1
-        self.discovered_persons = -1
-        self.number_friends = -1
-        self.max_upload_rate = -1
-        self.is_reachable = False
-        self.last_version_check_time = -1
-        self.update_url = 'http://tribler.org'
-        self.new_version = 'unknown'
-        self.check_result = -3 #unknown check result, -2 means error, -1 means newer version on the client, 0 means same version, 1 means newer version on the website
         self.nat_type = -1
         
     def reloadData(self, event=None):
@@ -241,8 +148,6 @@ class ProfileOverviewPanel(wx.Panel):
         self.showNameMugshot()
 
         bShouldRefresh = False
-        max_index_bar = 5 #the maximal value the normal bar can have
-        max_overall_index_bar = 6 #the maximal value the overall bar can have
 
         #--- Quality of tribler recommendation
         #get the number of downloads for this user

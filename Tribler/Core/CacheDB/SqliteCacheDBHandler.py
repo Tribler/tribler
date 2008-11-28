@@ -17,15 +17,19 @@ import os
 import socket
 import threading
 import base64
-from random import randint
+from random import randint, sample
 from sets import Set
+
 
 from maxflow import Network
 from math import atan, pi
 
+
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Core.simpledefs import *
+from Tribler.Core.BuddyCast.moderationcast_util import *
+from Tribler.Core.Overlay.permid import sign_data, verify_data
 
 # maxflow constants
 MAXFLOW_DISTANCE = 2
@@ -41,8 +45,8 @@ def show_permid_shorter(permid):
     return s[-5:]
 
 class BasicDBHandler:
-    def __init__(self, db, table_name):
-        self._db = db
+    def __init__(self,db, table_name): ## self, table_name
+        self._db = db ## SQLiteCacheDB.getInstance()
         self.table_name = table_name
         self.notifier = Notifier.getInstance()
         
@@ -99,7 +103,7 @@ class MyDBHandler(BasicDBHandler):
             raise RuntimeError, "MyDBHandler is singleton"
         MyDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self,db,'MyInfo')
+        BasicDBHandler.__init__(self,db,'MyInfo') ## self,db,'MyInfo'
         # keys: version, torrent_dir
         
     def get(self, key, default_value=None):
@@ -142,7 +146,7 @@ class FriendDBHandler(BasicDBHandler):
             raise RuntimeError, "FriendDBHandler is singleton"
         FriendDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Peer')
+        BasicDBHandler.__init__(self,db, 'Peer') ## self,db,'Peer'
         
     def setFriendState(self, permid, state=1, commit=True):
         self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), commit=commit, friend=state)
@@ -205,7 +209,7 @@ class PeerDBHandler(BasicDBHandler):
             raise RuntimeError, "PeerDBHandler is singleton"
         PeerDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Peer')
+        BasicDBHandler.__init__(self, db,'Peer') ## self, db ,'Peer'
         self.pref_db = PreferenceDBHandler.getInstance()
         self.online_peers = set()
 
@@ -711,7 +715,7 @@ class PreferenceDBHandler(BasicDBHandler):
             raise RuntimeError, "PreferenceDBHandler is singleton"
         PreferenceDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Preference')
+        BasicDBHandler.__init__(self,db, 'Preference') ## self,db,'Preference'
             
     def _getTorrentOwnersID(self, torrent_id):
         sql_get_torrent_owners_id = "SELECT peer_id FROM Preference WHERE torrent_id==?"
@@ -947,7 +951,7 @@ class TorrentDBHandler(BasicDBHandler):
             raise RuntimeError, "TorrentDBHandler is singleton"
         TorrentDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Torrent')
+        BasicDBHandler.__init__(self,db, 'Torrent') ## self,db,torrent
         
         self.mypref_db = MyPreferenceDBHandler.getInstance()
         
@@ -1744,7 +1748,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
             raise RuntimeError, "MyPreferenceDBHandler is singleton"
         MyPreferenceDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'MyPreference')
+        BasicDBHandler.__init__(self,db, 'MyPreference') ## self,db,'MyPreference'
 
         self.status_table = {'good':1, 'unknown':0, 'dead':2}
         self.status_table.update(self._db.getTorrentStatusTable())
@@ -1992,7 +1996,7 @@ class BarterCastDBHandler(BasicDBHandler):
     def __init__(self):
         BarterCastDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'BarterCast')
+        BasicDBHandler.__init__(self, db,'BarterCast') ## self,db,'BarterCast'
         self.peer_db = PeerDBHandler.getInstance()
         
         # create the maxflow network
@@ -2003,11 +2007,19 @@ class BarterCastDBHandler(BasicDBHandler):
             print >> sys.stderr, "bartercastdb: MyPermid is ", self.my_permid
 
         
+    ##def registerSession(self, session):
+    ##    self.session = session
+
+        # Retrieve MyPermid
+    ##    self.my_permid = session.get_permid()
+
+
     def registerSession(self, session):
         self.session = session
 
         # Retrieve MyPermid
         self.my_permid = session.get_permid()
+
         if self.my_permid is None:
             raise ValueError('Cannot get permid from Session')
 
@@ -2377,41 +2389,215 @@ class BarterCastDBHandler(BasicDBHandler):
     ################################
     def update_network(self):
 
+
         keys = self.getPeerIDPairs() #getItemList()
 
-        graph = {}
+
+    ################################
+    def getMyReputation(self, alpha = ALPHA):
+
+        rep = atan((self.total_up - self.total_down) * alpha)/(0.5 * pi)
+        return rep   
+
+
+
+
+
+
+
+class ModerationCastDBHandler(BasicDBHandler):
+    
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
         
-        # Create barter graph out of bartercast data
-        for (p, q) in keys:
+        if ModerationCastDBHandler.__single is None:
+            ModerationCastDBHandler.lock.acquire()   
+            try:
+                if ModerationCastDBHandler.__single is None:
+                    ModerationCastDBHandler(*args, **kw)
+            finally:
+                ModerationCastDBHandler.lock.release()
+        return ModerationCastDBHandler.__single
+    
+    getInstance = staticmethod(getInstance)
 
-            item1 = self.getItemByIDs((p, q))
-            item2 = self.getItemByIDs((q, p))
+    def __init__(self):
+        ModerationCastDBHandler.__single = self
+        try:
+            db = SQLiteCacheDB.getInstance()
+            #BasicDBHandler.__init__(self, db, 'BarterCast')
+            BasicDBHandler.__init__(self,db,'ModerationCast')
+            print >> sys.stderr, "moderation core made" 
+        except: 
+            print >> sys.stderr, "couldn't make the table"
+        self.peer_db = PeerDBHandler.getInstance()
+ 
+        if DEBUG:
+            print >> sys.stderr, "MODERATIONCAST: MyPermid is ", self.my_permid
+    
+    def registerSession(self, session):
+        self.session = session
+        self.my_permid = session.get_permid()
+    
+    def __len__(self):
+        return sum([db._size() for db in self.dbs])
 
-            if item2 != None:
-                up = max(item1['uploaded'], item2['downloaded'])
-                down = max(item1['downloaded'], item2['uploaded'])
+    def getAllModerations(self, permid):
+        sql = 'select * from ModerationCast where mod_id==?'
+        
+        records = self._db.fetchall(sql, (permid,))
+        return records
+    
+    def getModeration(self, infohash):
+        #assert validInfohash(infohash)
+        sql = 'select * from ModerationCast where infohash==?' #and time_stamp in (select max(time_stamp) latest FROM ModerationCast where infohash==? group by infohash)'
+        item = self._db.fetchone(sql,(infohash,))
+        return item
+
+
+    def hasModeration(self, infohash):
+        """ Returns True iff there is a moderation for infohash infohash """
+        sql = 'select mod_id from ModerationCast where infohash==?'
+        item = self._db.fetchone(sql,(infohash,))
+        #print >> sys.stderr,"well well well",infohash," sdd",item
+        if item is None:
+            return False
+        else:
+            return True
+        
+        #return self.moderation_db.hasItem(infohash)
+
+    def hasModerator(self, permid):
+        """ Returns True iff there is a moderator for PermID permid in the moderatorDB """
+        #print >> sys.stderr, "this is the permid of meeeeeeeeeeeeee ", permid
+        #string = str(bin2str(permid))
+        sql = "Select mod_id from Moderators where mod_id==?"
+        args = permid
+        
+        item = self._db.fetchone(sql,(permid,))
+        if item is None:
+            return False
+        else:
+            return True
+    
+    def getModerator(self, permid):
+        sql = 'select * from Moderators where mod_id==?'# + str(permid)
+        item = self._db.fetchone(sql,(permid,))
+        return item
+    
+    def getModeratorPermids(self):
+        sql = 'select mod_id from Moderators'
+        item = self._db.fetchall(sql)
+        return item
+
+    def getVotedModerators(self):
+        sql = 'select * from Moderators where status !=0'
+        item = self._db.fetchall(sql)
+        return item
+    
+    
+    def getForwardModeratorPermids(self):
+        sql = 'select mod_id from Moderators where status==1'
+        permid_strs = self._db.fetchall(sql)
+        return permid_strs
+    
+    def getBlockedModeratorPermids(self):
+        sql = 'select mod_id from Moderators where status==-1'
+        item = self._db.fetchall(sql)
+        return item
+        #CALL VOTECAST TABLES and return the value
+        #return [permid for permid in self.moderator_db.getKeys() if permid['blocked']]        
+
+    def getTopModeratorPermids(self, top=10):
+        withmod = [permid for permid in self.moderator_db.getKeys() if permid.has_key('moderations') and permid['moderations'] != []]
+        
+        def topSort(moda, modb):
+            return len(moda['moderations'])-len(modb['moderations'])
+        
+        return withmod.sort(topSort)[0:top]
+    def updateModeration(self, moderation):
+        assert type(moderation) == dict
+        assert moderation.has_key('time_stamp') and validTimestamp(moderation['time_stamp'])
+        assert moderation.has_key('mod_id') and validPermid(moderation['mod_id'])
+        self.validSignature(moderation)
+        infohash = moderation['infohash']
+        moderator = moderation['mod_id']
+        if self.hasModerator(moderator) and moderator in self.getBlockedModeratorPermids():
+            print >> sys.stderr, "Got moderation from blocked moderator", show_permid_short(moderator)+", not using it!"
+            return
+        if self.hasModeration(infohash):
+            print >> sys.stderr, "so this is the problem with infohash",infohash
+        
+        if not self.hasModeration(infohash) or self.getModeration(infohash)[3] < moderation['time_stamp']:
+            print >> sys.stderr, "did it come here"
+            self.addModeration(moderation)
+        
+    def addOwnModeration(self, mod, clone=False):
+        assert type(mod) == dict
+        assert mod.has_key('infohash')
+        assert validInfohash(mod['infohash'])
+        
+        moderation = {}
+        moderation = mod
+        #Add current time as a timestamp
+        moderation['time_stamp'] = now()
+        moderation['mod_id'] = bin2str(self.my_permid)
+        #Add permid and signature:
+        self._sign(moderation)
+        
+        self.addModeration(moderation, clone=False)
+    
+    def addModeration(self, moderation, clone=True):
+        if self.hasModeration(moderation['infohash']):
+            if self.getModeration(moderation['infohash'])[3] < moderation['time_stamp']:
+                self.deleteModeration(moderation['infohash'])
+                #print >> sys.stderr,"welcome to the family"
             else:
-                up = item1['uploaded']
-                down = item1['downloaded']
+                return
+        
+        self._db.insert(self.table_name, **moderation)
+        
+        if self.getModeratorPermids() is None or not self.hasModerator(moderation['mod_id']):
+            new = {}
+            new['mod_id'] = moderation['mod_id']
+            #change it later RAMEEZ
+            new['status'] = 0
+            new['time_stamp'] = now()
+            self._db.insert('Moderators', **new)
+        
+        
+    def deleteModeration(self, infohash):
+        sql = 'Delete From ModerationCast where infohash==?'
+        self._db.execute_write(sql,(infohash,))
+    
+    
+    def deleteModerations(self, permid):
+        sql = 'Delete From ModerationCast where mod_id==?'
+        self._db.execute_write(sql,(permid,))
 
-            if up < 0 or down < 0:
-                print p, q, up, down
+        
+    
+    def deleteModerator(self, permid):
+        """ Deletes moderator with permid permid from database """
+        sql = 'Delete From Moderators where mod_id==?'
+        self._db.execute_write(sql,(permid,))
+        
+        self.deleteModerations(permid)
 
-            if p != q:
+    def blockModerator(self, permid, blocked=True):
+        """ Blocks/unblocks moderator with permid permid """
+        if blocked:
+            
+            self.deleteModerations(permid)
+            
+            sql = 'Update Moderators set status = -1 where mod_id==?'
+            self._db.execute_write(sql,(permid,))
+        else:
+            self.forwardModerator(permid)
 
-                if not p in graph:
-                    graph[p] = {}
 
-                if not q in graph:
-                    graph[q] = {}
-
-                # p -> q
-                graph[p][q] = {'cap': up, 'flow': 0}
-
-                # q -> p
-                graph[q][p] = {'cap': down, 'flow': 0}
-
-        self.network = Network(graph)
         
 
     ################################
@@ -2444,6 +2630,377 @@ class BarterCastDBHandler(BasicDBHandler):
 
         rep = atan((self.total_up - self.total_down) * alpha)/(0.5 * pi)
         return rep   
+
+
+
+    def forwardModerator(self, permid, forward=True):
+        sql = 'Update Moderators set status = 1 where mod_id==?'
+        self._db.execute_write(sql,(permid,))
+
+    def getName(self, permid):
+        
+        name = self.peer_db.getPeer(permid, 'name')
+        
+        if name == None or name == '':
+            return 'peer %s' % show_permid_shorter(permid) 
+        else:
+            return name
+    
+    def getPermid(self, peer_id):
+
+        # by convention '-1' is the id of non-tribler peers
+        if peer_id == -1:
+            return 'non-tribler'
+        else:
+            return self.peer_db.getPermid(peer_id)
+
+
+    def getPeerID(self, permid):
+        # by convention '-1' is the id of non-tribler peers
+        if permid == "non-tribler":
+            return -1
+        else:
+            return self.peer_db.getPeerID(permid)
+
+    
+    def hasPeer(self, permid):
+        return self.peer_db.hasPeer(permid)
+                
+    
+    def recentOwnModerations(self, nr=13):
+        """ Returns the most recent nr moderations (if existing) that you have created """
+        
+        
+        #List of our moderations
+        if not self.hasModerator(bin2str(self.my_permid)):
+            return []
+        
+        forwardable = self.getAllModerations(bin2str(self.my_permid))
+
+        #Sort the infohashes in this list based on timestamp
+        forwardable.sort(self._compareFunction)
+        
+        #Return most recent, forwardable, moderations (max nr)
+        return forwardable[0:nr]
+    
+    def randomOwnModerations(self, nr=12):
+        """ Returns nr random moderations (if existing) that you have created """
+        
+        #List of our moderations
+        if not self.hasModerator(bin2str(self.my_permid)):
+            return []
+        
+        forwardable = self.getAllModerations(bin2str(self.my_permid))
+        
+        if len(forwardable) > nr:
+            #Return random subset of size nr
+            return sample(forwardable, nr)
+        else:
+            #Return complete set
+            return forwardable
+    
+    def recentModerations(self, nr=13):
+        """ Returns the most recent nr moderations (if existing), for moderators that you selected to forward for """
+        forwardable = []
+        
+        #Create a list of infohashes that we are willing to forward
+        keys = self.getModeratorPermids()
+        for key in keys:
+            moderator = self.getModerator(key[0])
+            if moderator[1] == 1:
+                forwardable.extend(self.getAllModerations(key[0]))
+                
+
+        #Sort the infohashes in this list based on timestamp
+        forwardable.sort(self._compareFunction)
+        
+        #Return most recent, forwardable, moderations (max nr)
+        return forwardable[0:nr]
+
+    
+    
+
+    def randomModerations(self, nr=12):
+        """ Returns nr random moderations (if existing), for moderators that you selected to forward for """
+        forwardable = []
+        
+        #Create a list of infohashes that we are willing to forward
+        keys = self.getModeratorPermids()
+        for key in keys:
+            #print >> sys.stderr, "what is the average now baby?????????", key[0]
+            moderator = self.getModerator(key[0])
+            #print >> sys.stderr, "what is the average now my sooooonnnn", moderator[1]
+            if moderator[1] == 1:
+                forwardable.extend(self.getAllModerations(key[0]))
+
+        if len(forwardable) > nr:
+            #Return random subset of size nr
+            return sample(forwardable, nr)
+        else:
+            #Return complete set
+            return forwardable
+    
+    
+    def getModerationInfohashes(self):
+        return self.moderation_db.getKeys()
+
+    
+    def _compareFunction(self,moderationx,moderationy):
+        if moderationx[3] > moderationy[3]:
+            return 1
+        if moderationx[3] == moderationy[3]:
+            return 0
+        return -1
+    
+    '''def _compareFunction(self,infohashx,infohashy):
+        """ Compare function to sort an infohash-list based on the moderation-timestamps """
+        #print >> sys.stderr, "what's it all about ?????????????", infohashx[0], infohashy[0]
+        print >> sys.stderr, "i am a great great man ;-)", infohashx,"?????????????",infohashy
+        tx = self.getModeration(infohashx[3])
+        ty = self.getModeration(infohashy[3])
+        
+        #print >> sys.stderr, "i am a great great man ;-)", tx,"?????????????",ty
+        
+        if tx > ty:
+            return 1
+        if tx == ty:
+            return 0
+        return -1'''
+
+
+    def _sign(self, moderation):
+        assert moderation is not None
+        assert type(moderation) == dict
+        assert not moderation.has_key('signature')    #This would corrupt the signature
+        moderation['mod_id'] = bin2str(self.my_permid)
+        bencoding = bencode(moderation)
+        moderation['signature'] = bin2str(sign_data(bencoding, self.session.keypair))
+    
+    def validSignature(self,moderation):
+        blob = str2bin(moderation['signature'])
+        permid = str2bin(moderation['mod_id'])
+        #Plaintext excludes signature:
+        del moderation['signature']
+        plaintext = bencode(moderation)
+        moderation['signature'] = bin2str(blob)
+
+        r = verify_data(plaintext, permid, blob)
+        if not r:
+            if DEBUG:
+                print "Invalid signature >>>>>>"
+        return r
+    
+    
+#end moderation
+class VoteCastDBHandler(BasicDBHandler):
+    
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
+        
+        if VoteCastDBHandler.__single is None:
+            VoteCastDBHandler.lock.acquire()   
+            try:
+                if VoteCastDBHandler.__single is None:
+                    VoteCastDBHandler(*args, **kw)
+            finally:
+                VoteCastDBHandler.lock.release()
+        return VoteCastDBHandler.__single
+    
+    getInstance = staticmethod(getInstance)
+
+    def __init__(self):
+        VoteCastDBHandler.__single = self
+        try:
+            db = SQLiteCacheDB.getInstance()
+            BasicDBHandler.__init__(self,db,'VoteCast')
+            print >> sys.stderr, "vote core made" 
+        except: 
+            print >> sys.stderr, "couldn't make the table"
+        
+        self.peer_db = PeerDBHandler.getInstance()
+        self.moderationcast_db = ModerationCastDBHandler.getInstance()
+        if DEBUG:
+            print >> sys.stderr, "VOTECAST: MyPermid is ", self.my_permid
+    
+    def registerSession(self, session):
+        self.session = session
+        self.my_permid = session.get_permid()
+    
+    def __len__(self):
+        return sum([db._size() for db in self.dbs])
+    
+    def getAllVotes(self, permid):
+        sql = 'select * from VoteCast where mod_id==?'
+        
+        records = self._db.fetchall(sql, (permid,))
+        return records
+    
+    def getAverageVotes(self):
+        moderators = self.moderationcast_db.getModeratorPermids()
+        if len(moderators) == 0:
+            return 0
+        
+        total_votes = 0.0
+        
+        for mod in moderators:
+            votes = self.getAllVotes(mod[0])
+            total_votes += len(votes)
+        
+        
+        avg = total_votes/len(moderators)
+        return avg
+    
+    
+    def getAverageRank(self):
+        moderators = self.moderationcast_db.getModeratorPermids()
+        if len(moderators) == 0:
+            return 0
+        avg = 0.0
+        #print >> sys.stderr, "number of moderatosr has increased ", len(moderators)
+        for mod in moderators:
+            #print >> sys.stderr, "moderators ####: ", mod
+            votes = self.getPosNegVotes(mod)
+            pos = votes[0]
+            neg = votes[1]
+            if pos + neg == 0:
+                rank = 0
+            else:
+                rank = pos/(pos+neg)
+            avg +=rank
+        
+        value = avg/len(moderators)
+        return value
+    
+    def getPosNegVotes(self, permid):
+        sql = 'select * from VoteCast where mod_id==?'
+        
+        records = self._db.fetchall(sql, (permid[0],))
+        pos_votes = 0
+        neg_votes = 0
+        
+        if records is None:
+            return(pos_votes,neg_votes)
+        
+        for vote in records:
+            
+            if vote[2] == "1":
+                pos_votes +=1
+            else:
+                neg_votes +=1
+        return (pos_votes, neg_votes)
+    
+    
+    def getAllVotesByVoter(self, permid):
+        #assert validInfohash(infohash)
+        sql = 'select * from VoteCast where voter_id==?' #and time_stamp in (select max(time_stamp) latest FROM ModerationCast where infohash==? group by infohash)'
+        item = self._db.fetchone(sql,(self.getPeerID(permid),))
+        return item
+
+
+    def hasVote(self, permid, voter_peerid):
+        """ Returns True iff there is a moderation for infohash infohash """
+        sql = 'select mod_id, voter_id from VoteCast where mod_id==? and voter_id==?'
+        item = self._db.fetchone(sql,(permid,voter_peerid,))
+        #print >> sys.stderr,"well well well",infohash," sdd",item
+        if item is None:
+            return False
+        else:
+            return True
+    
+    def getBallotBox(self):
+        sql = 'select * from VoteCast'
+        items = self._db.fetchall(sql)
+        return items   
+    
+    
+    def getVote(self,permid,peerid):
+        sql = 'select * from VoteCast where mod_id==? and voter_id==?'
+        item = self._db.fetchone(sql,(permid,peerid,))
+        return item
+    
+    def addVote(self, vote, clone=True):
+        vote['time_stamp'] = now()
+        if self.hasVote(vote['mod_id'],vote['voter_id']):
+            self.deleteVote(vote['mod_id'],vote['voter_id'])
+        #print >>  sys.stderr, "it shouldn't have >>>> ", vote
+        self._db.insert(self.table_name, **vote)
+        #print >> sys.stderr, "converting automatically????", self.getVote(vote['mod_id'], vote['voter_id'])
+    
+    def deleteVotes(self, permid):
+        sql = 'Delete From VoteCast where mod_id==?'
+        self._db.execute_write(sql,(permid,))
+    
+    def deleteVote(self, permid, voter_id):
+        sql = 'Delete From VoteCast where mod_id==? and voter_id==?'
+        self._db.execute_write(sql,(permid,voter_id,))
+    
+    def getPermid(self, peer_id):
+
+        # by convention '-1' is the id of non-tribler peers
+        if peer_id == -1:
+            return 'non-tribler'
+        else:
+            return self.peer_db.getPermid(peer_id)
+
+
+    def getPeerID(self, permid):
+        # by convention '-1' is the id of non-tribler peers
+        if permid == "non-tribler":
+            return -1
+        else:
+            return self.peer_db.getPeerID(permid)
+
+    
+    def hasPeer(self, permid):
+        return self.peer_db.hasPeer(permid)
+    
+    def recentVotes(self, nr=25):
+        """ Returns the most recent nr moderations (if existing), for moderators that you selected to forward for """
+        forwardable = []
+        
+        #Create a list of infohashes that we are willing to forward
+        keys = self.moderationcast_db.getVotedModerators() 
+        for key in keys:
+            #print >> sys.stderr, "reasons i don't know ", key
+            forwardable.append(key)
+        
+        forwardable.sort(self._compareFunction)
+        return forwardable[0:nr]
+    
+    def randomVotes(self, nr=25):
+        """ Returns nr random moderations (if existing), for moderators that you selected to forward for """
+        forwardable = []
+        
+        #Create a list of infohashes that we are willing to forward
+        keys = self.moderationcast_db.getVotedModerators()
+        
+        for key in keys:
+            #print >> sys.stderr, "votes i don't know ", key
+            forwardable.append(key)
+            
+        if len(forwardable) > nr:
+            #Return random subset of size nr
+            return sample(forwardable, nr)
+        else:
+            #Return complete set
+            return forwardable
+        
+    def _compareFunction(self,moderatorx, moderatory):
+        """ Compare function to sort an infohash-list based on the moderation-timestamps """
+        print >> sys.stderr, "what are you comparing", moderatorx,"sdfafdsfds", moderatory
+        
+        if moderatorx[2] > moderatory[2]:
+            return 1
+        
+        if moderatorx[2] == moderatory[2]:
+            return 0
+        return -1
+
+#end votes
+
+           
 
 
 class GUIDBHandler:
@@ -2590,7 +3147,7 @@ class TermDBHandler(BasicDBHandler):
             raise RuntimeError, "TermDBHandler is singleton"
         TermDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()        
-        BasicDBHandler.__init__(self, db, 'Term')
+        BasicDBHandler.__init__(self,db, 'Term') ## self, db, 'Term'
             
     def getTermID(self, term):
         """returns the ID of term in table Term; creates a new entry if necessary"""
@@ -2651,7 +3208,7 @@ class SearchDBHandler(BasicDBHandler):
             raise RuntimeError, "SearchDBHandler is singleton"
         SearchDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Search')
+        BasicDBHandler.__init__(self,db, 'Search') ## self,db,'Search'
         
         
     ### write methods
@@ -2803,3 +3360,6 @@ def ranksfind(ranks,key):
     except:
         return -1
     
+
+
+

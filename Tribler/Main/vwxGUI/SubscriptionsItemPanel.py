@@ -12,6 +12,7 @@ from Tribler.Main.vwxGUI.IconsManager import IconsManager,data2wxBitmap
 
 
 from font import *
+from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from tribler_topButton import *
 import TasteHeart
 
@@ -57,6 +58,7 @@ class SubscriptionsItemPanel(wx.Panel):
         self.Show()
         self.Refresh()
         self.Layout()
+        self.triblerStyles = TriblerStyles.getInstance()
 
     def addComponents(self):
         self.Show(False)
@@ -89,20 +91,8 @@ class SubscriptionsItemPanel(wx.Panel):
         
         # Add title                
         self.title =wx.StaticText(self,-1,"Tribler discovery through other Tribler Users",wx.Point(0,0),wx.Size(800,20))                
-        #self.title.SetBackgroundColour(wx.BLUE)        
-        self.title.SetFont(wx.Font(FS_SUBSCRTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((550,20))
+        self.triblerStyles.setLightText(self.title)
         self.hSizer.Add(self.title, 1, wx.TOP|wx.RIGHT, 5)     
-        
-        # Add title        
-        #self.today =wx.StaticText(self,-1,"today: 10 files",wx.Point(0,0),wx.Size(140,18))        
-        #self.today.SetBackgroundColour(wx.WHITE)
-        #self.today.SetFont(wx.Font(10,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        #self.today.SetMinSize((140,18))
-        #self.hSizer.Add(self.today, 0, wx.BOTTOM|wx.TOP|wx.RIGHT, 3)
-        
-        # Add left vertical line
-#        self.vLine1 = self.addLine()
         
         """
         # Add total number of received files
@@ -222,23 +212,26 @@ class SubscriptionsItemPanel(wx.Panel):
           
         
     def select(self, rowIndex, colIndex):
-        colour = self.guiUtility.selectedColour
+        
+        colour = self.triblerStyles.selected(3)
         if DEBUG:
             print >>sys.stderr,'subip: selected'
         self.thumb.setSelected(True)
-        self.SetBackgroundColour(self.selectedColour)
+        self.SetBackgroundColour(colour)
+        self.title.SetBackgroundColour(colour)
         #self.totalnumber.SetBackgroundColour(self.selectedColour)
         self.Refresh()
         
     def deselect(self, rowIndex, colIndex):
         #print >>sys.stderr,'subip: deselected',self.data
         if rowIndex % 2 == 0:
-            colour = self.guiUtility.unselectedColour
+            colour = self.triblerStyles.selected(1)
         else:
-            colour = self.guiUtility.unselectedColour2
+            colour = self.triblerStyles.selected(2)
             
         self.thumb.setSelected(False)
         self.SetBackgroundColour(colour)
+        self.title.SetBackgroundColour(colour)
         #self.totalnumber.SetBackgroundColour(colour)
         self.Refresh()
     

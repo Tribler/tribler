@@ -1,9 +1,7 @@
-# Written by Jelle Roozenburg, Maarten ten Brinke 
-# see LICENSE.txt for license information
 import sys, re, os, os.path
 
-DEBUG = True
-ENABLED = False
+DEBUG = False
+ENABLED = True
 
 def changeFile(filename):
     f_in = file(filename, 'r')
@@ -11,11 +9,10 @@ def changeFile(filename):
     f_in.close()
     
     olddata = data
-    
-    # Define all used custom classes here and the related wxPython classes. 
-    # They will be replaced by the regexp.
+
+    # Define all used custom classes here and the related wxPython classes. They will be replaced by the regexp.
     # (customClassName, wxClassName, filename for import)
-    customDir = 'Tribler.Main.vwxGUI.'
+    customDir = 'Tribler.vwxGUI.'
     customClasses = [('bgPanel', 'wxPanel', customDir+'bgPanel'), 
                      ('ImagePanel', 'wxPanel', customDir+'bgPanel'),
                      ('tribler_topButton', 'wxPanel', customDir+'tribler_topButton'),                     
@@ -42,6 +39,7 @@ def changeFile(filename):
                      ('libraryFilter', 'wxPanel', customDir+'standardFilter'),
                      ('libraryDetails', 'wxPanel', customDir+'libraryDetails'),
                      
+                     ('playlistGrid', 'wxPanel', customDir+'standardGrid'),
                      #('profileOverview', 'wxPanel', customDir+'ProfileOverviewPanel'),
                      ('SmallPerfBar', 'wxPanel', customDir+'perfBar'),                   
                      ('BigPerfBar', 'wxPanel', customDir+'perfBar'),                   
@@ -54,23 +52,35 @@ def changeFile(filename):
                      ('subscriptionsOverview', 'wxPanel', customDir+'subscriptionsOverview'),                     
                      ('subscriptionsDetails', 'wxPanel', customDir+'subscriptionsDetails'),                     
                      ('subscriptionsGrid', 'wxPanel', customDir+'standardGrid'),
+
+                     ('fileDetailsOverview', 'wxPanel', customDir+'fileDetailsOverview'),                     
+                     
+                     ('filterStandard', 'wxPanel', customDir+'filterStandard'),                     
+                     ('LeftMenu', 'wxPanel', customDir+'LeftMenu'),
+                     ('playerDockedPanel', 'wxPanel', customDir+'playerDockedPanel'),
                      
                      ('TasteHeart', 'wxPanel', customDir+'TasteHeart'),
-                     ('TextButton', 'wxPanel', customDir+'TextButton')
+                     ('TextButton', 'wxPanel', customDir+'TextButton'),
+                     ('TextButtonLeft', 'wxPanel', customDir+'TextButtonLeft'),
+                     ('TextButtonLeftH1', 'wxPanel', customDir+'TextButtonLeftH1'),
+                     ('TextEdit', 'wxPanel', customDir+'TextEdit')
                      ]
     
     # Define all used custom classes here and the related wxPython classes. They will be replaced by the regexp.
     # (objectName, subClassName)
     customSubClasses = [('profileOverview', customDir+'profileOverviewPanel.ProfileOverviewPanel'),
-                        ('MyFrame', 'Tribler.Main.vwxGUI.MainFrame.MainFrame')] # no customDir, abc_vwx.py is in root dir
+                        ('statsOverview', customDir+'statsOverviewPanel.statsOverviewPanel'),
+                        ('fileDetailsOverview', customDir+'fileDetailsOverviewPanel.fileDetailsOverviewPanel'),
+                        ('playlistOverview', customDir+'playlistOverviewPanel.playlistOverviewPanel'),
+                        ('personDetailsOverview', customDir+'personDetailsOverviewPanel.personDetailsOverviewPanel'),
+                        ('playerDocked', customDir+'playerDockedPanel.playerDockedPanel'),
+                        ('MyFrame', 'tribler.ABCFrame')] # no customDir, abc_vwx.py is in root dir
     
     
     for (customClass, wxClass, customFile) in customClasses:
-        # Arno: remove last > to update classname
         data = re.sub('<object class="%s" name="([^"]+)">' % customClass, u'<object class="%s" name="\\1" subclass="%s.%s">' % (wxClass, customFile, customClass), data )
     
     for (objectName, subClass) in customSubClasses:
-        # Arno: remove last > to update classname
         data = re.sub('<object class="([^"]+)" name="%s">' % objectName, u'<object class="\\1" name="%s" subclass="%s">' % (objectName, subClass), data )
     
     data = re.sub('<bg>\d</bg>', u'<bg>#000000</bg>', data)
@@ -98,9 +108,6 @@ def main(args):
     except:
         dir = '.'
     xrcs = []
-    
-    print '---------- updating dir',dir
-    
     for filename in os.listdir(dir):
         if filename.lower().endswith('.xrc'):
             xrcs.append(filename)
@@ -122,4 +129,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main(sys.argv)
