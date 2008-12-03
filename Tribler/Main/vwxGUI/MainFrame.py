@@ -707,6 +707,10 @@ class PlayerFrame(VideoFrame):
         
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
     
+    def show_videoframe(self):
+        self.closed = False
+        VideoFrame.show_videoframe(self)
+    
     def OnCloseWindow(self, event = None):
         
         print >>sys.stderr,"PlayerFrame: ON CLOSE WINDOW"

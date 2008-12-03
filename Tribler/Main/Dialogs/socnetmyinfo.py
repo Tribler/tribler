@@ -128,11 +128,18 @@ class NameIconWizardPage(WizardPageSimple):
             im = IconsManager.getInstance()
             bm = im.get_default('personsMode','DEFAULT_THUMB')
 
-        self.iconbtn = wx.BitmapButton(self, -1, bm)
-        icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        #label = wx.StaticText(self, -1, self.utility.lang.get('obligiconformat'))
-        #icon_box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
-        self.Bind(wx.EVT_BUTTON, self.OnIconButton, self.iconbtn)
+        if sys.platform != 'darwin':
+            self.iconbtn = wx.BitmapButton(self, -1, bm)
+            icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+            #label = wx.StaticText(self, -1, self.utility.lang.get('obligiconformat'))
+            #icon_box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
+            self.Bind(wx.EVT_BUTTON, self.OnIconButton, self.iconbtn)
+        else:
+            path = os.path.expandvars('$HOME')
+            self.iconbtn = wx.FilePickerCtrl(self, -1, path)
+            self.Bind(wx.EVT_FILEPICKER_CHANGED,self.OnIconSelected,id=self.iconbtn.GetId())
+            icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        
         topbox.Add(icon_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
 
 
@@ -158,33 +165,43 @@ class NameIconWizardPage(WizardPageSimple):
         dlg.Centre()
         if dlg.ShowModal() == wx.ID_OK:
             self.iconpath = dlg.GetFile()
-
-            try:
-                im = wx.Image(self.iconpath)
-                if im is None:
-                    self.show_inputerror(self.utility.lang.get('cantopenfile'))
-                else:
-                    bm = wx.BitmapFromImage(im.Scale(64,64),-1)
-                    self.iconbtn.SetBitmapLabel(bm)
-                    
-                    # Arno, 2008-10-21: scale image!
-                    sim = im.Scale(ICON_MAX_DIM,ICON_MAX_DIM)
-                    [thumbhandle,thumbfilename] = tempfile.mkstemp("user-thumb")
-                    os.close(thumbhandle)
-                    sim.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
-                    
-                    self.iconmime = 'image/jpeg'
-                    f = open(thumbfilename,"rb")
-                    self.icondata = f.read()
-                    f.close()
-                    os.remove(thumbfilename)
-            except:
-                print_exc()
-                self.show_inputerror(self.utility.lang.get('iconbadformat'))
+            self.process_input()
         else:
             pass
 
-        dlg.Destroy()        
+        dlg.Destroy()
+                    
+
+    def OnIconSelected(self,event=None):
+        self.iconpath = self.iconbtn.GetPath()
+        self.process_input()
+
+    def process_input(self):
+        try:
+            im = wx.Image(self.iconpath)
+            if im is None:
+                self.show_inputerror(self.utility.lang.get('cantopenfile'))
+            else:
+                if sys.platform != 'darwin':
+                    bm = wx.BitmapFromImage(im.Scale(64,64),-1)
+                    self.iconbtn.SetBitmapLabel(bm)
+                
+                # Arno, 2008-10-21: scale image!
+                sim = im.Scale(ICON_MAX_DIM,ICON_MAX_DIM)
+                [thumbhandle,thumbfilename] = tempfile.mkstemp("user-thumb")
+                os.close(thumbhandle)
+                sim.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
+                
+                self.iconmime = 'image/jpeg'
+                f = open(thumbfilename,"rb")
+                self.icondata = f.read()
+                f.close()
+                os.remove(thumbfilename)
+        except:
+            print_exc()
+            self.show_inputerror(self.utility.lang.get('iconbadformat'))
+        
+
 
     def show_inputerror(self,txt):
         dlg = wx.MessageDialog(self, txt, self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)

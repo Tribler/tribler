@@ -644,6 +644,13 @@ class LibraryItemPanel(wx.Panel):
                     ds.get_download().stop()
                     obj.setToggled(True)
                     
+                    from Tribler.Video.VideoPlayer import VideoPlayer
+                    videoplayer = VideoPlayer.getInstance()
+                    stopd = ds.get_download()
+                    playd = videoplayer.get_vod_download()
+                    if stopd == playd:
+                        videoplayer.close()
+                    
             elif name == 'playFast':
                 if not self.vodMode:
                     self.vodMode = True

@@ -1082,17 +1082,17 @@ class SessionConfigInterface:
 
     def set_stun_servers(self, stun_servers):
         """ The addresses of the STUN servers (at least 2)
-        @param List of (hostname/ip,port) tuples. """
+        @param stun_servers List of (hostname/ip,port) tuples. """
         self.sessconfig['stun_servers'] = stun_servers
 
     def set_pingback_servers(self, pingback_servers):
         """ The addresses of the pingback servers (at least 1)
-        @param List of (hostname/ip,port) tuples. """
+        @param pingback_servers List of (hostname/ip,port) tuples. """
         self.sessconfig['pingback_servers'] = pingback_servers
 
     def set_puncturing_coordinators(self, puncturing_coordinators):
         """ The address of the puncturing coordinators (at least 1)
-        @param  List of (hostname/ip,port) tuples. """
+        @param puncturing_coordinators List of (hostname/ip,port) tuples. """
         self.sessconfig['puncturing_coordinators'] = puncturing_coordinators
 
     # Puncturing servers information retrieval

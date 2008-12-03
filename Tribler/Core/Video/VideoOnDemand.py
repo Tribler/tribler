@@ -23,7 +23,7 @@ from Tribler.Core.Video.MovieTransport import MovieTransport,MovieTransportStrea
 from Tribler.Core.Video.VideoStatus import VideoStatus
 from Tribler.Core.Video.PiecePickerStreaming import PiecePickerStreaming 
 from Tribler.Core.simpledefs import *
-from Tribler.Core.Video.LiveSourceAuth import ECDSAAuthenticator,AuthStreamWrapper
+from Tribler.Core.Video.LiveSourceAuth import ECDSAAuthenticator,AuthStreamWrapper,VariableReadAuthStreamWrapper
 
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
@@ -1051,17 +1051,22 @@ class MovieOnDemandTransporter(MovieTransport):
            
             # extrapolate with the average bitrate so far
             return s["local_ts"] + l["source_ts"] - s["source_ts"] + piecedist * vs.piecelen / bitrate - self.PIECE_DUE_SKEW
-
-        # ----- no timing information from pieces, so do old-fashioned methods
-
-        i =  piecedist + (l["absnr"] - s["absnr"])
-
-        if s["nr"] == vs.first_piece:
-            bytepos = vs.first_piecelen + (i-1) * vs.piecelen
         else:
-            bytepos = i * vs.piecelen
-
-        return s["local_ts"] + bytepos / vs.bitrate - self.PIECE_DUE_SKEW
+            # ----- no timing information from pieces, so do old-fashioned methods
+            if vs.live_streaming:
+                # Arno, 2008-11-20: old-fashioned method is well bad,
+                # ignore.
+                return time.time() + 60.0
+            else:
+                i =  piecedist + (l["absnr"] - s["absnr"])
+                
+                if s["nr"] == vs.first_piece:
+                    bytepos = vs.first_piecelen + (i-1) * vs.piecelen
+                else:
+                    bytepos = i * vs.piecelen
+                
+                return s["local_ts"] + bytepos / vs.bitrate - self.PIECE_DUE_SKEW
+            
 
     def max_buffer_size( self ):
         vs = self.videostatus
@@ -1133,7 +1138,8 @@ class MovieOnDemandTransporter(MovieTransport):
 
                     return num_immediate_packets >= self.max_prebuf_packets
 
-            if vs.pausable and not sustainable():
+            sus = sustainable()
+            if vs.pausable and not sus:
                 if DEBUG:
                     print >>sys.stderr,"vod: trans:                        BUFFER UNDERRUN -- PAUSING"
                 self.pause( autoresume = True )
@@ -1141,10 +1147,15 @@ class MovieOnDemandTransporter(MovieTransport):
 
                 self.data_ready.release()
                 return
+            elif sus:
+                if DEBUG:
+                    print >>sys.stderr,"vod: trans:                        BUFFER UNDERRUN -- IGNORING, rate is sustainable"
             else:
                 if DEBUG:
-                    print >>sys.stderr,"vod: trans:                        BUFFER UNDERRUN -- IGNORING"
-
+                   print >>sys.stderr,"vod: trans:                         BUFFER UNDERRUN -- STALLING, cannot pause player to fall back some, so just wait for more pieces"
+                self.data_ready.release()
+                return
+                    
         def push( i, data ):
             # force buffer underrun:
             #if self.start_playback and time.time()-self.start_playback["local_ts"] > 60:
@@ -1282,7 +1293,8 @@ class MovieOnDemandTransporter(MovieTransport):
         else:
             stream = MovieTransportStreamWrapper(self)
             if self.videostatus.live_streaming and self.videostatus.authparams['authmethod'] != LIVE_AUTHMETHOD_NONE:
-                endstream = AuthStreamWrapper(stream,self.authenticator) 
+                intermedstream = AuthStreamWrapper(stream,self.authenticator)
+                endstream = VariableReadAuthStreamWrapper(intermedstream,self.authenticator.get_piece_length()) 
             else:
                 endstream = stream
             filename = None 

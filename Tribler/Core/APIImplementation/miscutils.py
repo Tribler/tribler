@@ -39,4 +39,4 @@ def NamedTimer(*args,**kwargs):
     t = Timer(*args,**kwargs)
     t.setDaemon(True)
     t.setName("NamedTimer"+t.getName())
-    return t    
+    return t

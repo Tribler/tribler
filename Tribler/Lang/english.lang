@@ -1023,6 +1023,7 @@ errorinvalidwinunitname="This name cannot be used as a Windows unit name."
 
 suggestedname="Suggested corrected name :"
 invalidwinname="This name cannot be used as a Windows file or folder name."
+iconbadformat="The icon you selected is not in a supported format"
 
 #########
 #Other

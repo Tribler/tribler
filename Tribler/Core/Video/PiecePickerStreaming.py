@@ -273,7 +273,7 @@ class PiecePickerStreaming(PiecePicker):
         # fallback: original piece picker
         p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con, slowpieces=slowpieces, willrequest=willrequest,connection=connection)
         if DEBUGPP and self.videostatus.prebuffering:
-            print >>sys.stderr,"PiecePickerStreaming: next returns",p
+            print >>sys.stderr,"PiecePickerStreaming: original PP.next returns",p
         if p is None and not self.videostatus.live_streaming:
             # When the file we selected from a multi-file torrent is complete,
             # we won't request anymore pieces, so the normal way of detecting 
@@ -339,6 +339,8 @@ class PiecePickerStreaming(PiecePicker):
             self.downloader.cancel_piece_download(cancelpieces,allowrerequest=False)
 
         p = self.next_new(haves, wantfunc, complete_first, helper_con,willrequest=willrequest,connection=connection)
+        if DEBUG:
+            print >>sys.stderr,"PiecePickerStreaming: next_new returns",p
 
         if p is not None:
             self.register_piece(p)

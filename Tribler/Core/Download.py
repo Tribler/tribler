@@ -1,6 +1,6 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
-""" The representation of a running BT download/upload """
+""" The representation of a running BT download/upload. """
 
 import sys
 import os
@@ -26,7 +26,7 @@ from Tribler.Core.osutils import *
 
 class Download(DownloadRuntimeConfig,DownloadImpl):
     """
-    Representation of a running BT download/upload
+    Representation of a running BT download/upload.
     
     A Download implements the DownloadConfigInterface which can be used to
     change download parameters are runtime (for selected parameters).

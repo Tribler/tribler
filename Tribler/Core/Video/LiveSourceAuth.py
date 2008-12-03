@@ -217,8 +217,8 @@ class AuthStreamWrapper:
         rawdata = self._readn(self.piecelen)
         content = self.authenticator.get_content(rawdata)
         self.last_rtstamp = self.authenticator.get_rtstamp(rawdata)
-        if numbytes is None:
-            return content
+        if numbytes is None or numbytes < 0:
+            raise ValueError('Stream has unlimited size, read all not supported.')
         elif numbytes < len(content):
             # TODO: buffer unread data for next read
             raise ValueError('reading less than piecesize not supported yet')
@@ -252,4 +252,51 @@ class AuthStreamWrapper:
         data = self.buffer.read(n)
         self.buffer.seek(0)
         return data
+        
+
+
+class VariableReadAuthStreamWrapper:
+    """ Wrapper around AuthStreamWrapper that allows reading of variable
+    number of bytes. TODO: optimize whole stack of AuthWrapper, 
+    MovieTransportWrapper, MovieOnDemandTransporter
+    """
+    
+    def __init__(self,inputstream,piecelen):
+        self.inputstream = inputstream
+        self.buffer = ''
+        self.piecelen = piecelen
+
+    def read(self,numbytes=None):
+        if numbytes is None or numbytes < 0:
+            raise ValueError('Stream has unlimited size, read all not supported.')
+        return self._readn(numbytes)
+
+    def get_generation_time(self):
+        """ Returns the time at which the last read piece was generated at the source. """
+        return self.inputstream.get_generation_time()
+    
+    def seek(self,pos,whence=None):
+        return self.inputstream.seek(pos,whence=whence)
+        
+    def close(self):
+        self.inputstream.close()
+
+    # Internal method
+    def _readn(self,nwant):
+        """ read exactly nwant bytes from inputstream, block if unavail """
+        
+        while len(self.buffer) < nwant:
+            # Must read fixed size blocks from authwrapper
+            data = self.inputstream.read(self.piecelen)
+            if len(data) == 0:
+                break
+            self.buffer += data
+            
+        # TODO: optimize: Inefficient, memory allocation and copying
+        pre = self.buffer[0:nwant]
+        post = self.buffer[nwant:]
+        self.buffer = post
+        #print >>sys.stderr,"var: Returning",len(pre),"data",pre
+        return pre
+    
         

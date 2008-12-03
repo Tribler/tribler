@@ -66,12 +66,12 @@ class DownloadConfigInterface:
         """ Download the torrent in Video-On-Demand mode or as live stream.
         When a playback event occurs, the usercallback function will be 
         called, with the following list of arguments:
-
+        <pre>
             Download,event,params
-
+        </pre>
         In which event is a string, and params a dictionary. The following
         events are supported:
-
+        <pre>
         VODEVENT_START:
             The params dictionary will contain the fields
         
@@ -102,7 +102,7 @@ class DownloadConfigInterface:
                     
         VODEVENT_RESUME:
             The download engine would like video playback to resume.
-
+        </pre>
         The usercallback should ignore events it does not support.
   
         The usercallback will be called by a popup thread which can be used
@@ -156,7 +156,7 @@ class DownloadConfigInterface:
         """ Sets a number of live seeders, auxiliary servers that
         get high priority at the source server to distribute its content
         to others.
-        @param nodes A list of [IP address,port] lists.
+        @param seeders A list of [IP address,port] lists.
         """
         self.dlconfig['live_aux_seeders'] = seeders
 

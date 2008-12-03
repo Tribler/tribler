@@ -215,11 +215,16 @@ class VideoPlayer:
 
 
     def stop_playback(self,reset=False):
+        """ Stop playback in current video window """
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().Stop()
             if reset:
                 self.videoframe.get_videopanel().Reset()
 
+    def close(self):
+        """ Stop playback and close current video window """
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            self.videoframe.hide_videoframe()
 
 
     def play(self,ds):
