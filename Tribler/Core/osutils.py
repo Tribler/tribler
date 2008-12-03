@@ -14,7 +14,7 @@ try:
     from os import statvfs
     import statvfs
     def getfreespace(path):
-        s = os.statvfs(path)
+        s = os.statvfs(path.encode("utf-8"))
         size = s[statvfs.F_BAVAIL] * long(s[statvfs.F_BSIZE])
         return size
 except:

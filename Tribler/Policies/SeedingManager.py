@@ -116,7 +116,7 @@ class SeedingPolicy:
     def __init__(self):
         pass
     
-    def appy(self, conn):
+    def apply(self, conn):
         pass
     
 class UnlimitedSeeding(SeedingPolicy):
