@@ -163,8 +163,7 @@ class GUIUtility:
         elif name == "addAsFriend" or name == 'deleteFriend':
             self.standardDetails.addAsFriend()
 
-        elif name == 'download' or name == 'download1':
-            print 'tb > download'
+        elif name in ('download', 'download1', 'playbig'):
             self.standardDetails.download()
         elif name == 'addFriend':
             #print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()

@@ -94,6 +94,7 @@ class FileDropTarget(wx.FileDropTarget):
 # Custom class loaded by XRC
 class MainFrame(wx.Frame):
     def __init__(self, *args):
+        self.firewallStatus = None
         self.utility = None
         self.category = None
         if len(args) == 0:
@@ -308,9 +309,21 @@ class MainFrame(wx.Frame):
                 return videoplayer.start_and_play(tdef,dscfg)
             else:
                 result = self.utility.session.start_download(tdef,dscfg)
+                vod_download = True # temp Jelle
+                if vod_download:
+                    print >> sys.stderr,'Jelle impl'
+                    videoplayer = VideoPlayer.getInstance()
+                    videoplayer.videoframe.show_videoframe()
+
+                    def callback(ds):
+                        print >> sys.stderr, 'Jelle callback'
+                        wx.CallAfter(videoplayer.play, ds)
+                        return -1, False
+                
+                    result.set_state_callback(callback)
                 # store result because we want to store clicklog data right after download was started, then return result
                 mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-                mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
+                # mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
                 return result 
 
         except DuplicateDownloadException:

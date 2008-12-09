@@ -1638,7 +1638,7 @@ class standardDetails(wx.Panel):
             
 #        if self.GetName() == 'download':
 
-            
+        force = True
         if (torrent is None or torrent.get('myDownloadHistory')) and not force:
             print >>sys.stderr,"standardDetails: download: Bailout"
             return
@@ -1666,7 +1666,7 @@ class standardDetails(wx.Panel):
             except:
                 print_exc()                        
             
-            self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
+            #self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
             print >> sys.stderr, torrent, torrent.keys()
             return True
 
@@ -1695,7 +1695,8 @@ class standardDetails(wx.Panel):
 
             
             # Api download
-            d = self.utility.frame.startDownload(torrent_filename,destdir=dest, clicklog=clicklog)
+            d = self.utility.frame.startDownload(torrent_filename,destdir=dest,
+                                                 clicklog=clicklog)
             if d:
                 if secret:
                     self.torrent_db.setSecret(torrent['infohash'], secret)
@@ -1703,7 +1704,7 @@ class standardDetails(wx.Panel):
                 if DEBUG:
                     print >>sys.stderr,'standardDetails: download: download started'
                 # save start download time.
-                self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
+                #self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
                 #torrent['download_started'] = time()
                 #torrent['progress'] = 0.0
                 self.setBelongsToMyDowloadHistory(torrent, True)
