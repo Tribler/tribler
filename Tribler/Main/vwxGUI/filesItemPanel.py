@@ -454,10 +454,11 @@ class FilesItemPanel(wx.Panel):
              panelsPerPage = panelsPerRow * rowsPerPage
              self.data["click_position"] = pageIndex * panelsPerPage + rowIndex * panelsPerRow + colIndex
 
+        # allows to deselect a selected torrent
+        #if self.selected == True:
+        #    self.deselect(rowIndex, colIndex)
+        #    return 
 
-        if self.selected == True:
-            self.deselect(rowIndex, colIndex)
-            return 
         self.selected = True
         if DEBUG:
             print >>sys.stderr,'fip: item selected'

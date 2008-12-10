@@ -298,12 +298,14 @@ class ABCApp(wx.App):
             self.frame.sharing_reputation = xrc.XRCCTRL(self.frame, "sharing_reputation")
             self.frame.srgradient = xrc.XRCCTRL(self.frame, "srgradient")
             self.frame.help = xrc.XRCCTRL(self.frame, "help")
+            self.frame.help.Bind(wx.EVT_LEFT_UP, self.helpClick)
             self.frame.sr_indicator = xrc.XRCCTRL(self.frame, "sr_indicator")
             self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
             self.frame.black_spacer = xrc.XRCCTRL(self.frame, "black_spacer")
             self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_bg")
             self.frame.help = xrc.XRCCTRL(self.frame,"help")
             self.frame.searching = xrc.XRCCTRL(self.frame,"searching")
+            self.frame.search_results = xrc.XRCCTRL(self.frame,"search_results")
 
 
 
@@ -370,6 +372,14 @@ class ABCApp(wx.App):
 
         return True
 
+    def helpClick(self,event=None):
+        title = self.utility.lang.get('sharing_reputation_information_title')
+        msg = self.utility.lang.get('sharing_reputation_information_message')
+            
+        dlg = wx.MessageDialog(None, msg, title, wx.OK|wx.ICON_INFORMATION)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+
     
     def OnSearchKeyDown(self,event): # # #
 
@@ -394,7 +404,15 @@ class ABCApp(wx.App):
                 self.frame.top_bg.Hide()
 
                 self.frame.hsizer = self.frame.sr_indicator.GetContainingSizer()               
-                self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help'))
+
+                bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+                reputation = bc_db.getMyReputation()
+                self.utility.session.close_dbhandler(bc_db)
+
+                self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
+
+
+
 
                 #sizer = self.frame.top_shade.GetContainingSizer()
                 #sizer.Remove(1)
@@ -433,8 +451,14 @@ class ABCApp(wx.App):
                 self.frame.black_spacer.Hide()
 
                 self.frame.top_bg.Hide()
+
                 self.frame.hsizer = self.frame.sr_indicator.GetContainingSizer()               
-                self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help'))
+
+                bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+                reputation = bc_db.getMyReputation()
+                self.utility.session.close_dbhandler(bc_db)
+
+                self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
 
                 #sizer = self.frame.top_shade.GetContainingSizer()
                 #sizer.Remove(1)
@@ -571,6 +595,7 @@ class ABCApp(wx.App):
         """ get the current reputation score"""
         bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
         reputation = bc_db.getMyReputation()
+        self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
         self.utility.session.close_dbhandler(bc_db)
         return reputation
 

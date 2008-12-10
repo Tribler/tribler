@@ -98,6 +98,13 @@
                                     </object>
                                   </object>
                                 </object>
+                                <object class="sizeritem">
+                                  <object class="wxStaticText" name="search_results">
+                                    <label></label>
+                                    <size>320,0</size>
+                                    <style>wxALIGN_RIGHT</style>
+                                  </object>
+                                </object>
                               </object>
                               <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                             </object>

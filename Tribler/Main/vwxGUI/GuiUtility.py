@@ -71,6 +71,11 @@ class GUIUtility:
         self.fake = None
         self.real = None
 
+        # videoplayer
+        self.videoplayer = None
+        self.video_small = None
+
+
 
         # Arno: 2008-04-16: I want to keep this for searching, as an extension
         # of the standardGrid.GridManager
@@ -705,7 +710,7 @@ class GUIUtility:
                 if num_remote_queries > 0:
                     self.utility.session.query_connected_peers(q,self.sesscb_got_remote_hits,num_remote_queries)
                      
-                    self.standardOverview.setSearchFeedback('remote', False, 0, wantkeywords)
+                    self.standardOverview.setSearchFeedback('remote', False, 0, wantkeywords,self.frame.search_results)
                     
             #
             # Query YouTube, etc.

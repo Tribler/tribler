@@ -1032,6 +1032,8 @@ warningopenfile = "Torrent is not completed yet, are you sure you want to open i
 upgradeabc = "Your software is outdated. Would you like to visit http://tribler.org to upgrade?"
 upgradeabctitle = "Update to Tribler "
 mainpage = "Tribler Main Page"
+sharing_reputation_information_title = "Sharing reputation information"
+sharing_reputation_information_message = "This progress bar views your sharing reputation. The better your sharing ratio the higher your sharing reputation."
 
 #############
 #Make Torrent
@@ -1335,7 +1337,8 @@ rssurldefaulttxt = "Paste your RSS link here"
 
 vlc_linux_start_bug_title = "No flash video streaming on Ubuntu Linux with VLC"
 vlc_linux_start_bug = "The current Ubuntu version of the VLC video player cannot stream Youtube.com movies. So be warned, they will not start playing until they have been completely downloaded. We have submitted a patch to Ubuntu."
-going_search = "Searching for '%s'... (%d results)"
+going_search = "Results: %d"
+#going_search = "Searching for '%s'... (%d results)"
 finished_search = "Finished search '%s'. (%d results)"
 search_web2 = "Web movies (%d results)"
 search_torrent = "Discovered files (%d results)"
@@ -1347,7 +1350,7 @@ search_remote = "Tribler network (%d results)"
 searchStop       = "stop searching"
 searchStopEnabled= "stopped searching"
 searchClear      = "clear results and browse all discovered files"
-help             = "view your sharing reputation"
+help             = "Current sharing reputation : %s"
 
 ################
 #Tribler UI - Column headers Tribler 4.1.0

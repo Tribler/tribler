@@ -31,9 +31,24 @@ from threading import Thread,currentThread
 from time import time
 import web2
 
+from font import *
+
 
 OVERVIEW_MODES = ['startpageMode', 'statsMode', 'filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode',
                   'messageMode', 'libraryMode', 'itemdetailsMode', 'fileDetailsMode','playlistMode', 'personDetailsMode', 'playlistMode']
+# font sizes
+if sys.platform == 'darwin':
+    FS_FILETITLE = 10
+    FS_SIMILARITY = 10
+    FS_HEARTRANK = 8
+elif sys.platform == 'linux2':
+    FS_FILETITLE = 8
+    FS_SIMILARITY = 7
+    FS_HEARTRANK = 7
+else:
+    FS_FILETITLE = 8
+    FS_SIMILARITY = 10
+    FS_HEARTRANK = 7
 
 DEBUG = False
 
@@ -69,6 +84,8 @@ class standardOverview(wx.Panel):
       
         self.triblerStyles = TriblerStyles.getInstance()
 
+        self.search_results = self.guiUtility.frame.search_results
+        self.results = {}
         
 #        self.SetBackgroundColour((255,255,90))
         
@@ -475,12 +492,39 @@ class standardOverview(wx.Panel):
             return searchDetailsPanel.searchBusy
         else:
             return False
-            
-    def _setSearchFeedback(self, type, finished, num, keywords = []):
+    def _setSearchFeedback(self, type, finished, num, keywords = [], searchresults = None):
         #print 'standardOverview: _setSearchFeedback called by', currentThread().getName()
-        searchDetailsPanel = self.data[self.mode].get('searchDetailsPanel')
-        if searchDetailsPanel:
-            searchDetailsPanel.setMessage(type, finished, num, keywords)
+
+        self.setMessage(type, finished, num, keywords)
+
+
+        ##searchDetailsPanel = self.data[self.mode].get('searchDetailsPanel')
+        ##if searchDetailsPanel:
+        ##    searchDetailsPanel.setMessage(type, finished, num, searchresults, keywords)
+
+    def setMessage(self, stype, finished, num, keywords = []):
+        if stype:
+            self.results[stype] = num # FIXME different remote search overwrite eachother
+        
+        total = sum([v for v in self.results.values() if v != -1])
+        
+        if keywords:
+            if type(keywords) == list:
+                self.keywords = " ".join(keywords)
+            else:
+                self.keywords = keywords
+
+        if finished:  
+            msg = self.guiUtility.utility.lang.get('finished_search') % (self.keywords, total)
+            self.searchFinished(set_message=False)
+        else:
+            msg = self.guiUtility.utility.lang.get('going_search') % (total)
+
+        self.search_results.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.BOLD,True,FONTFACE))
+        self.search_results.SetForegroundColour((255,0,0))
+        self.search_results.SetLabel(msg)    
+
+
         
     def growWithGrid(self):
         gridHeight = self.data[self.mode]['grid'].GetSize()[1]
