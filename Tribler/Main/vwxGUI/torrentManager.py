@@ -14,7 +14,7 @@ from Tribler.Core.Utilities.utilities import friendly_time, sort_dictlist, remov
 from Tribler.Core.Utilities.unicode import str2unicode, dunno2unicode
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.SynDBHandler import SynTorrentDBHandler
+#from Tribler.Core.CacheDB.SynDBHandler import SynTorrentDBHandler ## no longer used
 ##from Tribler.Core.CacheDB.CacheDBHandler import OwnerDBHandler
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Core.CacheDB.EditDist import editDist

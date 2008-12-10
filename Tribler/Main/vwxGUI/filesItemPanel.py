@@ -27,8 +27,8 @@ from font import *
 
 
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager
-from Tribler.Main.Dialogs.GUIServer import GUIServer
+#from Tribler.Main.Dialogs.MugshotManager import MugshotManager ## no longer used
+#from Tribler.Main.Dialogs.GUIServer import GUIServer ## no longer used
 
 from Tribler.Main.vwxGUI.FilesItemDetailsSummary import FilesItemDetailsSummary
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
