@@ -148,12 +148,15 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
             self.dllock.release()
     
 # SelectiveSeeding_
-    def set_seeding_policy(self,policy):
+    def set_seeding_policy(self,smanager):
+        """ Assign the seeding policy to use for this Download.
+        @param smanager An instance of Tribler.Policies.SeedingManager 
+        """
         self.dllock.acquire()
         try:
             if self.sd is not None:
-                set_seeding_policy_lambda = lambda:self.sd is not None and self.sd.get_bt1download().choker.set_seeding_manager(policy)
-                self.session.lm.rawserver.add_task(set_seeding_policy_lambda,0)
+                set_seeding_smanager_lambda = lambda:self.sd is not None and self.sd.get_bt1download().choker.set_seeding_manager(smanager)
+                self.session.lm.rawserver.add_task(set_seeding_smanager_lambda,0)
             else:
                 raise OperationNotPossibleWhenStoppedException()
         finally:

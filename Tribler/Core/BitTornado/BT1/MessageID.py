@@ -121,6 +121,9 @@ FriendshipMessages = [FRIENDSHIP]
 # DO_NAT_CHECK = chr(234)
 # NAT_CHECK_REPLY = chr(233)
 
+####### FREE ID = 233
+
+
 # NatCheckMessages = [DO_NAT_CHECK, NAT_CHECK_REPLY]
 
 # Generic Crawler messages

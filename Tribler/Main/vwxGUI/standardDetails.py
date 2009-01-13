@@ -904,7 +904,7 @@ class standardDetails(wx.Panel):
             elif self.currentPanel == self.getGuiObj('profileDetails_Files'):  
                 tab = 'profileDetails_Files'              
                 count = item.get('discovered_files',0)
-                count2 = self.utility.config.Read('maxntorrents','int')
+                count2 = self.utility.session.get_torrent_collecting_max_torrents()
                 text = self.utility.lang.get("profileDetails_Files_description", giveerror=False)
                 text1 = self.utility.lang.get("profileDetails_Files_improve", giveerror=False)
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Files').SetLabel(text % count)

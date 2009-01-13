@@ -4,7 +4,6 @@
 from traceback import print_exc
 import datetime
 import random
-import socket
 import sys
 import thread
 from time import strftime, sleep
@@ -12,7 +11,7 @@ from time import strftime, sleep
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.NATFirewall.NatCheck import GetNATType
-from Tribler.Core.NATFirewall.TimeoutCheck import timeout_check
+from Tribler.Core.NATFirewall.TimeoutCheck import GetTimeout
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH, SecureOverlay
 from Tribler.Core.Statistics.Crawler import *
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
@@ -248,6 +247,12 @@ class NatCheckClient:
 
         acquire()
         try:
+            if DEBUG:
+                if self._running:
+                    print >>sys.stderr, "natcheckmsghandler: the thread is already running"
+                else:
+                    print >>sys.stderr, "natcheckmsghandler: starting the thread"
+            
             if not self._running:
                 thread.start_new_thread(self.run, ())
 
@@ -277,17 +282,17 @@ class NatCheckClient:
         """
         Find out NAT timeout
         """
-        return timeout_check(self.permid, pingback)
+        return GetTimeout(pingback)
 
-    def natcheck(self, udpsock, privateIP, privatePort, server1, server2):
+    def natcheck(self, in_port, server1, server2):
         """
         Find out NAT type and public address and port
         """        
-        NatType, publicIP, publicPort = GetNATType(udpsock, privateIP, privatePort, server1, server2)
-        if DEBUG: print >> sys.stderr, "NATCheck:", "NAT Type: " + NatType[1]
-        if DEBUG: print >> sys.stderr, "NATCheck:", "Public Address: " + publicIP + ":" + str(publicPort)
-        if DEBUG: print >> sys.stderr, "NATCheck:", "Private Address: " + privateIP + ":" + str(privatePort)
-        return NatType, publicIP, publicPort, privateIP, privatePort
+        nat_type, ex_ip, ex_port, in_ip = GetNATType(in_port, server1, server2)
+        if DEBUG: print >> sys.stderr, "NATCheck:", "NAT Type: " + nat_type[1]
+        if DEBUG: print >> sys.stderr, "NATCheck:", "Public Address: " + ex_ip + ":" + str(ex_port)
+        if DEBUG: print >> sys.stderr, "NATCheck:", "Private Address: " + in_ip + ":" + str(in_port)
+        return nat_type, ex_ip, ex_port, in_ip
 
     def get_nat_type(self, callback=None):
         """
@@ -321,7 +326,7 @@ class NatCheckClient:
         """
         Main method of the class: launches nat discovery algorithm
         """
-        privatePort = self.session.get_puncturing_private_port()
+        in_port = self.session.get_puncturing_internal_port()
         stun_servers = self.session.get_stun_servers()
         random.seed()
         random.shuffle(stun_servers)
@@ -330,57 +335,36 @@ class NatCheckClient:
         pingback_servers = self.session.get_pingback_servers()
         random.shuffle(pingback_servers)
 
-        if DEBUG: print >> sys.stderr, "NATCheck:", 'Starting natcheck client with %s %s %s' % (privatePort, stun1, stun2)
-
-        # Set up the socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(('www.tribler.org',80))
-        privateIP = s.getsockname()[0]
-        s.close()
-        del s
-
-        privateAddr = (privateIP, privatePort)
-
-        udpsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udpsock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-
-        try:
-            udpsock.bind(privateAddr)
-        except socket.error, (errno, strerror):
-            if udpsock:
-                udpsock.close()
-                udpsock = False
-            if DEBUG: print >> sys.stderr, "NATCheck:", "Could not open socket: %s" % (strerror)
+        if DEBUG: print >> sys.stderr, "NATCheck:", 'Starting natcheck client on %s %s %s' % (in_port, stun1, stun2)
 
         performed_nat_type_notification = False
-        if udpsock:
-            udpsock.settimeout(5)
 
-            # Check what kind of NAT the peer is behind
-            NatType, publicIP, publicPort, privateIP, privatePort = self.natcheck(udpsock, privateIP, privatePort, stun1, stun2)
-            self.nat_type = NatType[1]
+        # Check what kind of NAT the peer is behind
+        nat_type, ex_ip, ex_port, in_ip = self.natcheck(in_port, stun1, stun2)
+        self.nat_type = nat_type[1]
 
-            # notify any callbacks interested in the nat_type only
-            self._perform_nat_type_notification()
-            performed_nat_type_notification = True
+        # notify any callbacks interested in the nat_type only
+        self._perform_nat_type_notification()
+        performed_nat_type_notification = True
 
-            udpsock.close()
-            # If there is any callback interested, check the UDP timeout of the NAT the peer is behind
-            if  len(self.natcheck_reply_callbacks):
-                if NatType[0] != 0:
-                    for pingback in pingback_servers:
-                        if DEBUG: print >> sys.stderr, "NatCheck: pingback is:", pingback
-                        self.nat_timeout = self.timeout_check(pingback)
-                        if self.nat_timeout != -1: break
-                    if DEBUG: print >> sys.stderr, "NATCheck: Nat UDP timeout is: ", str(self.nat_timeout)
 
-                self.nat_params = [NatType[1], NatType[0], self.nat_timeout, publicIP, int(publicPort), privateIP, privatePort]
-                if DEBUG: print >> sys.stderr, "NATCheck:", str(self.nat_params)
+        # If there is any callback interested, check the UDP timeout of the NAT the peer is behind
+        if len(self.natcheck_reply_callbacks):
 
-                # notify any callbacks interested in sending a natcheck_reply message
-                for reply_callback in self.natcheck_reply_callbacks:
-                    reply_callback(self.nat_params)
-                self.natcheck_reply_callbacks = []
+            if nat_type[0] > 0:
+                for pingback in pingback_servers:
+                    if DEBUG: print >> sys.stderr, "NatCheck: pingback is:", pingback
+                    self.nat_timeout = self.timeout_check(pingback)
+                    if self.nat_timeout != -1: break
+                if DEBUG: print >> sys.stderr, "NATCheck: Nat UDP timeout is: ", str(self.nat_timeout)
+
+            self.nat_params = [nat_type[1], nat_type[0], self.nat_timeout, ex_ip, int(ex_port), in_ip, in_port]
+            if DEBUG: print >> sys.stderr, "NATCheck:", str(self.nat_params)
+
+            # notify any callbacks interested in sending a natcheck_reply message
+            for reply_callback in self.natcheck_reply_callbacks:
+                reply_callback(self.nat_params)
+            self.natcheck_reply_callbacks = []
 
         if not performed_nat_type_notification:
             self._perform_nat_type_notification()

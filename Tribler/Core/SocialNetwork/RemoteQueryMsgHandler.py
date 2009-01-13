@@ -226,6 +226,15 @@ class RemoteQueryMsgHandler:
     def process_query(self, permid, d, selversion):
         q = d['q'][len('SIMPLE '):]
         q = dunno2unicode(q)
+     
+        # Filter against bad input
+        if not q.isalnum():
+            newq = u''
+            for i in range(0,len(q)):
+                if q[i].isalnum():
+                    newq += q[i]
+            q = newq
+        
         # Format: 'SIMPLE '+string of space separated keywords
         # In the future we could support full SQL queries:
         # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE

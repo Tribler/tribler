@@ -495,7 +495,7 @@ def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
             length = files[i]['length']
             filename = pathlist2filename(path)
             
-            if filename in selectedfiles and length > 0:
+            if length > 0 and (not selectedfiles or (selectedfiles and filename in selectedfiles)):
                 range = (offset2piece(total,piecesize), offset2piece(total + length,piecesize),filename)
                 filepieceranges.append(range)
             total += length

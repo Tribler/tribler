@@ -1075,10 +1075,10 @@ class SessionConfigInterface:
         """
         self.sessconfig['nat_detect'] = value
     
-    def set_puncturing_private_port(self, puncturing_private_port):
-        """ The listening port of the puncturing client.
-        @param puncturing_private_port integer. """
-        self.sessconfig['puncturing_private_port'] = puncturing_private_port
+    def set_puncturing_internal_port(self, puncturing_internal_port):
+        """ The listening port of the puncturing module.
+        @param puncturing_internal_port integer. """
+        self.sessconfig['puncturing_internal_port'] = puncturing_internal_port
 
     def set_stun_servers(self, stun_servers):
         """ The addresses of the STUN servers (at least 2)
@@ -1090,11 +1090,6 @@ class SessionConfigInterface:
         @param pingback_servers List of (hostname/ip,port) tuples. """
         self.sessconfig['pingback_servers'] = pingback_servers
 
-    def set_puncturing_coordinators(self, puncturing_coordinators):
-        """ The address of the puncturing coordinators (at least 1)
-        @param puncturing_coordinators List of (hostname/ip,port) tuples. """
-        self.sessconfig['puncturing_coordinators'] = puncturing_coordinators
-
     # Puncturing servers information retrieval
     def get_nat_detect(self):
         """ Whether to try to detect the type of Network Address Translator
@@ -1103,10 +1098,10 @@ class SessionConfigInterface:
         """
         return self.sessconfig['nat_detect']
     
-    def get_puncturing_private_port(self):
-        """ Returns the listening port of the puncturing client.
+    def get_puncturing_internal_port(self):
+        """ Returns the listening port of the puncturing module.
         @return integer. """
-        return self.sessconfig['puncturing_private_port']
+        return self.sessconfig['puncturing_internal_port']
 
     def get_stun_servers(self):
         """ Returns the addresses of the STUN servers.
@@ -1117,11 +1112,6 @@ class SessionConfigInterface:
         """ Returns the addresses of the pingback servers.
         @return List of (hostname/ip,port) tuples. """
         return self.sessconfig['pingback_servers']
-
-    def get_puncturing_coordinators(self):
-        """ Returns the address of the puncturing coordinators.
-        @return List of (hostname/ip,port) tuples. """
-        return self.sessconfig['puncturing_coordinators']
 
     #
     # Crawler

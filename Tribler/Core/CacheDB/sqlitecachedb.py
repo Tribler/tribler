@@ -45,8 +45,11 @@ def init(config, db_exception_handler = None):
     config_dir = config['state_dir']
     install_dir = config['install_dir']
     CREATE_SQL_FILE = os.path.join(install_dir,CREATE_SQL_FILE_POSTFIX)
-    sqlitedb = SQLiteCacheDB.getInstance(db_exception_handler)   
-    sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
+    sqlitedb = SQLiteCacheDB.getInstance(db_exception_handler)
+    if config['superpeer']:
+        sqlite_db_path = ':memory:'
+    else:   
+        sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
     bsddb_path = os.path.join(config_dir, BSDDB_DIR_NAME)
     icon_dir = os.path.abspath(config['peer_icon_path'])
     sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE, bsddb_path,current_db_version=CURRENT_MAIN_DB_VERSION)  # the first place to create db in Tribler
@@ -157,6 +160,7 @@ class SQLiteCacheDBBase:
         self.status_table = None
         self.category_table = None
         self.src_table = None
+        self.applied_pragma_sync_norm = False
         
     def __del__(self):
         self.close()
@@ -201,10 +205,9 @@ class SQLiteCacheDBBase:
         @busytimeout       Set the maximum time, in milliseconds, that SQLite will wait if the database is locked. 
         """
 
-        #print >>sys.stderr,"sqlcachedb: openDB",dbfile_path
-
         # already opened a db in this thread, reuse it
         thread_name = threading.currentThread().getName()
+        #print >>sys.stderr,"sqlcachedb: openDB",dbfile_path,thread_name
         if thread_name in self.cursor_table:
             #assert dbfile_path == None or self.class_variables['db_path'] == dbfile_path
             return self.cursor_table[thread_name]
@@ -221,6 +224,20 @@ class SQLiteCacheDBBase:
 
         cur = con.cursor()
         self.cursor_table[thread_name] = cur
+        
+        if not self.applied_pragma_sync_norm:
+            # http://www.sqlite.org/pragma.html
+            # When synchronous is NORMAL, the SQLite database engine will still
+            # pause at the most critical moments, but less often than in FULL 
+            # mode. There is a very small (though non-zero) chance that a power
+            # failure at just the wrong time could corrupt the database in 
+            # NORMAL mode. But in practice, you are more likely to suffer a 
+            # catastrophic disk failure or some other unrecoverable hardware 
+            # fault.
+            #
+            self.applied_pragma_sync_norm = True 
+            cur.execute("PRAGMA synchronous = NORMAL;")
+            
         return cur
     
     def createDBTable(self, sql_create_table, dbfile_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
@@ -257,14 +274,14 @@ class SQLiteCacheDBBase:
 
             # verify db path identity
             class_db_path = self.class_variables['db_path']
-            if sqlite_filepath == None:     # reuse the opened db file?
-                if class_db_path != None:   # yes, reuse it
+            if sqlite_filepath is None:     # reuse the opened db file?
+                if class_db_path is not None:   # yes, reuse it
                     # reuse the busytimeout
                     return self.openDB(class_db_path, self.class_variables['busytimeout'])
                 else:   # no db file opened
                     raise Exception, "You must specify the path of database file when open it at the first time"
             else:
-                if class_db_path == None:   # the first time to open db path, store it
+                if class_db_path is None:   # the first time to open db path, store it
 
                     if bsddb_dirpath != None and os.path.isdir(bsddb_dirpath) and not os.path.exists(sqlite_filepath):
                         self.convertFromBsd(bsddb_dirpath, sqlite_filepath, create_sql_filename)    # only one chance to convert from bsddb
@@ -323,6 +340,8 @@ class SQLiteCacheDBBase:
                 if sqlite_db_version == NULL or int(sqlite_db_version)<1:
                     raise NotImplementedError
         except:
+            print_exc()
+            
             if os.path.isfile(dbfile_path):
                 self.close(clean=True)
                 os.remove(dbfile_path)

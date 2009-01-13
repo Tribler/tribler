@@ -2,115 +2,92 @@
 # see LICENSE.txt for license information
 
 from socket import *
-from types import StringType, ListType, TupleType, DictType, IntType
-import random
 import sys
-import time
+import thread
+import threading
 
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
 
 DEBUG = False
 
-def pingback(udpsock, pingbacksrvr):
 
-    udpsock.settimeout(200)
+to = -1 # timeout default value
+lck = threading.Lock()
+evnt = threading.Event()
 
-    while 1:
 
-        reply = None
+# Sending pings to the pingback server and waiting for a reply
+def pingback(ping, pingbacksrvr):
+
+    global to, lck, evnt
+
+    # Set up the socket
+    udpsock = socket(AF_INET, SOCK_DGRAM)
+    udpsock.connect(pingbacksrvr)
+    udpsock.settimeout(ping+10)
+    
+    if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "-> ping"
+
+    # Send the ping to the server specifying the delay of the reply
+    pingMsg = (str("ping:"+str(ping)))
+    udpsock.send(pingMsg)
+    udpsock.send(pingMsg)
+    udpsock.send(pingMsg)
+
+    # Wait for reply from the server
+    while True:
+
         rcvaddr = None
 
         try:
-            reply, rcvaddr = udpsock.recvfrom(1024)
+            reply = udpsock.recv(1024)
 
-        except timeout:
+        except timeout: # No reply from the server: timeout passed
 
             if udpsock:
                 udpsock.close()
 
-            if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "UDP connection to the pingback server has timed out"
+            if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "UDP connection to the pingback server has timed out for ping", ping
+
+            lck.acquire()
+            evnt.set()
+            evnt.clear()
+            lck.release()
             break
 
+        if DEBUG: print >> sys.stderr, pingbacksrvr
+        if DEBUG: print >> sys.stderr, rcvaddr
+
         if reply:
-            data = bdecode(reply)
+            data = reply.split(':')
+            if DEBUG: print >> sys.stderr, data, "received from the pingback server"
 
-            if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "<-", data
+            if data[0] == "pong":
+                if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "<-", data[0], "after", data[1], "seconds"
+                to = ping
+                if int(data[1])==145:
+                    lck.acquire()
+                    evnt.set()
+                    evnt.clear()
+                    lck.release()
+                return
 
-            if data == "ping":
-                if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "-> pong"
-                udpsock.sendto(bencode("pong"), pingbacksrvr)
+        return
 
 
 # Main method of the library: launches nat-timeout discovery algorithm
-def timeout_check(permid, pingbacksrvr):
+def GetTimeout(pingbacksrvr):
+    """
+    Returns the NAT timeout for UDP traffic
+    """
+    
+    pings = [25, 35, 55, 85, 115, 145]
 
-    to = -1 # timeout
+    # Send pings and wait for replies
+    for ping in pings:
+        thread.start_new_thread(pingback, (ping, pingbacksrvr))
 
-    # Setup sockets
-    tcpsock = socket(AF_INET, SOCK_STREAM)
-    tcpsock.settimeout(600)
+    global evnt
+    evnt.wait()
 
-    try:
-        tcpsock.connect(pingbacksrvr)
-
-    except timeout:
-        if tcpsock:
-            tcpsock.close()
-
-        if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "TCP connection to the pingback server has timed out"
-        return to
-
-    except error, (errno, strerror):
-        if tcpsock:
-            tcpsock.close()
-
-        if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "Could not connect socket: %s" % (strerror)
-        return to
-
-    udpsock = socket(AF_INET, SOCK_DGRAM)
-
-    # Create and send message
-    myidData = ("GET_MY_TIMEOUT", permid)
-    myidMsg = bencode(myidData)
-    tcpsock.send(myidMsg)
-    time.sleep(1)
-    udpsock.sendto(myidMsg, pingbacksrvr)
-    pingback(udpsock, pingbacksrvr)
-
-    # Wait for response
-    try:
-        rcvMsg = tcpsock.recv(1024)
-
-    except timeout:
-        if tcpsock:
-            tcpsock.close()
-        if udpsock:
-            udpsock.close()
-
-        if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "TCP connection to the pingback server has timed out"
-        return to
-
-    if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", rcvMsg
-
-    try:
-        data = bdecode(rcvMsg)
-    except ValueError:
-        if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "bad encoded data"
-        udpsock.close()
-        tcpsock.close()
-        return to
-
-    if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", data
-    time.sleep(10)
-
-    udpsock.close()
-    tcpsock.close()
-
-    if type(data) is TupleType or type(data) is ListType and len(data) is 2:
-        if data[0] == "TIMEOUT":
-            if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "TIMEOUT response received"
-
-            if type(data[1]) is IntType:
-                to = data[1]
-
+    if DEBUG: print >> sys.stderr, "TIMEOUTCHECK: timeout is", to
     return to

@@ -603,7 +603,7 @@ class FriendshipMsgHandler:
             print_exc()
 
     def reschedule_connects(self):
-        """ This function is run peridocically and reconnects to peers when
+        """ This function is run periodically and reconnects to peers when
         messages meant for it are due to be retried
         """
         now = time()

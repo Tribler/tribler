@@ -1,11 +1,10 @@
-# JIE: DO I NEED TO REWRITE ALL THE DATABASE RELATED CODES?
-
 # Written by Jie Yang
 # see LICENSE.txt for license information
+#
 
 __fool_epydoc = 481
 """
-    BuddyCast2 epdemic protocol for p2p recommendation and semantic clustering
+    BuddyCast2 epidemic protocol for p2p recommendation and semantic clustering
     
 Algorithm in LaTeX format:
 
@@ -239,6 +238,9 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
                 str(len(prefxchg['random peers']))
     for b in prefxchg['random peers']:
         validPeer(b)
+        
+    # ARNOCOMMENT: missing test for 'collected torrents' field
+        
     return True
 
 
@@ -260,7 +262,7 @@ class BuddyCastFactory:
         self.max_peers = 2500   # was 2500
         self.ranonce = False # NIC: had the impression that BuddyCast can be tested more reliably if I wait until it has gone through buddycast_core.work() successfully once
         if self.superpeer:
-            print "Start as SuperPeer mode"
+            print >>sys.stderr,"bc: Starting in SuperPeer mode"
         
     def getInstance(*args, **kw):
         if BuddyCastFactory.__single is None:
@@ -532,9 +534,6 @@ class BuddyCastCore:
         crawler = Crawler.get_instance()
         self.crawler = crawler.am_crawler()
         
-        if self.superpeer:
-            from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
-            self.db_task_thread = TimedTaskQueue()  # used to delegate db tasks because superpeer has to repsonse very fast
                             
     def get_peer_info(self, target_permid, include_permid=True):
         if not target_permid:
@@ -1343,11 +1342,7 @@ class BuddyCastCore:
             #self.data_handler.addPeerPreferences(sender_permid, prefs)
         #self.data_handler.increaseBuddyCastTimes(sender_permid, commit=True)
         
-        if self.superpeer:
-            self.db_task_thread.add_task(lambda :
-                        self.data_handler.handleBCData(cache_db_data, cache_peer_data, sender_permid, max_tb_sim))
-        else:
-            self.data_handler.handleBCData(cache_db_data, cache_peer_data, sender_permid, max_tb_sim)
+        self.data_handler.handleBCData(cache_db_data, cache_peer_data, sender_permid, max_tb_sim)
         
     def removeFromConnList(self, peer_permid):
         removed = 0
@@ -1656,7 +1651,7 @@ class BuddyCastCore:
                       "peers in Cc. Times of bootstrapped", self.total_bootstrapped_time
                     buf = ""
                     for p in self.connection_candidates:
-                        buf += "bc: * cand:" + str(p) + "\n"
+                        buf += "bc: * cand:" + `p` + "\n"
                     buf += "\nbc: Remote Search Peer Candidates:\n"
                     for p in self.remote_search_peer_candidates:
                         buf += "bc: * remote: %d "%p[0] + self.get_peer_info(p[1]) + "\n"

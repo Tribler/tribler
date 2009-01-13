@@ -1,5 +1,8 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
+#
+# ARNOCOMMENT: outdated?
+
 import os
 import tempfile
 import unittest

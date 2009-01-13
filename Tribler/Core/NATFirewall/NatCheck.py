@@ -1,7 +1,7 @@
 # Written by Lucia D'Acunto
 # see LICENSE.txt for license information
 
-from socket import timeout
+from socket import *
 import sys
 
 DEBUG = False
@@ -11,8 +11,10 @@ def Test1(udpsock, serveraddr):
     The client sends a request to a server asking it to send the
     response back to the address and port the request came from
     """
-    retVal = {"Resp":False, "ExternalIP":None, "ExternalPort":None}
+
+    retVal = {"resp":False, "ex_ip":None, "ex_port":None}
     BUFSIZ = 1024
+    reply = ""
     request = "ping1"
 
     udpsock.sendto(request, serveraddr)
@@ -24,14 +26,16 @@ def Test1(udpsock, serveraddr):
 
     except ValueError, (strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
+        return retVal
     except error, (errno, strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
+        return retVal
 
-    publicIP, publicPort = reply.split(":")
+    ex_ip, ex_port = reply.split(":")
 
-    retVal["Resp"] = True
-    retVal["ExternalIP"] = publicIP
-    retVal["ExternalPort"] = publicPort
+    retVal["resp"] = True
+    retVal["ex_ip"] = ex_ip
+    retVal["ex_port"] = ex_port
 
     return retVal
 
@@ -41,7 +45,8 @@ def Test2(udpsock, serveraddr):
     different address and a different port on the address and port the
     request came from
     """
-    retVal = {"Resp":False}
+
+    retVal = {"resp":False}
     BUFSIZ = 1024
     request = "ping2"
 
@@ -53,10 +58,12 @@ def Test2(udpsock, serveraddr):
         return retVal
     except ValueError, (strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
+        return retVal
     except error, (errno, strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
+        return retVal
 
-    retVal["Resp"] = True
+    retVal["resp"] = True
 
     return retVal
 
@@ -66,8 +73,10 @@ def Test3(udpsock, serveraddr):
     address but from a different port on the address and port the
     request came from
     """
-    retVal = {"Resp":False, "ExternalIP":None, "ExternalPort":None}
+
+    retVal = {"resp":False, "ex_ip":None, "ex_port":None}
     BUFSIZ = 1024
+    reply = ""
     request = "ping3"
 
     udpsock.sendto(request, serveraddr)
@@ -78,36 +87,58 @@ def Test3(udpsock, serveraddr):
         return retVal
     except ValueError, (strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
+        return retVal
     except error, (errno, strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
+        return retVal
 
-    publicIP, publicPort = reply.split(":")
+    ex_ip, ex_port = reply.split(":")
 
-    retVal["Resp"] = True
-    retVal["ExternalIP"] = publicIP
-    retVal["ExternalPort"] = publicPort
+    retVal["resp"] = True
+    retVal["ex_ip"] = ex_ip
+    retVal["ex_port"] = ex_port
 
     return retVal
 
 # Returns information about the NAT the client is behind
-def GetNATType(udpsock, clientIP, clientPort, serveraddr1, serveraddr2):
+def GetNATType(in_port, serveraddr1, serveraddr2):
+    """
+    Returns the NAT type according to the STUN algorithm, as well as the external
+    address (ip, port) and the internal address of the host
+    """
+    
+    nat_type, ex_ip, ex_port, in_ip = [-1, "Unknown"], "0.0.0.0", "0", "0.0.0.0"
 
-    BUFSIZ = 1024
-    NatType, exIP, exPort = [-1, "Unknown"], "0.0.0.0", "0"
+    # Set up the socket
+    udpsock = socket(AF_INET, SOCK_DGRAM)
+    udpsock.settimeout(5)
+    try:
+        udpsock.bind(('',in_port))
+        udpsock.connect(serveraddr1)
+    except socket.error, err:
+        print >> sys.stderr, "Couldn't be a udp server on port %d : %s" % (in_port, err)
+        return (nat_type, ex_ip, ex_port, in_ip)
+
+    # Get the internal IP address
+    in_ip, trash = udpsock.getsockname()
+
+    """
+        EXECUTE THE STUN ALGORITHM
+    """
 
     # Do Test I
     ret = Test1(udpsock, serveraddr1)
 
     if DEBUG: print >> sys.stderr, "NATCheck:", "Test I reported: " + str(ret)
 
-    if ret["Resp"] == False:
-        NatType[1] = "Blocked"
+    if ret["resp"] == False:
+        nat_type[1] = "Blocked"
 
     else:
-        exIP = ret["ExternalIP"]
-        exPort = ret["ExternalPort"]
+        ex_ip = ret["ex_ip"]
+        ex_port = ret["ex_port"]
 
-        if ret["ExternalIP"] == clientIP: # No NAT: check for firewall
+        if ret["ex_ip"] == in_ip: # No NAT: check for firewall
 
             if DEBUG: print >> sys.stderr, "NATCheck:", "No NAT"
 
@@ -115,9 +146,9 @@ def GetNATType(udpsock, clientIP, clientPort, serveraddr1, serveraddr2):
             ret = Test2(udpsock, serveraddr1)
             if DEBUG: print >> sys.stderr, "NATCheck:", "Test II reported: " + str(ret)
 
-            if ret["Resp"] == True:
-                NatType[0] = 0
-                NatType[1] = "Open Internet"
+            if ret["resp"] == True:
+                nat_type[0] = 0
+                nat_type[1] = "Open Internet"
             else:
                 if DEBUG: print >> sys.stderr, "NATCheck:", "There is a Firewall"
 
@@ -125,12 +156,12 @@ def GetNATType(udpsock, clientIP, clientPort, serveraddr1, serveraddr2):
                 ret = Test3(udpsock, serveraddr1)
                 if DEBUG: print >> sys.stderr, "NATCheck:", "Test III reported: " + str(ret)
 
-                if ret["Resp"] == True:
-                    NatType[0] = 2
-                    NatType[1] = "Restricted Cone Firewall"
+                if ret["resp"] == True:
+                    nat_type[0] = 2
+                    nat_type[1] = "Restricted Cone Firewall"
                 else:
-                    NatType[0] = 3
-                    NatType[1] = "Port Restricted Cone Firewall"
+                    nat_type[0] = 3
+                    nat_type[1] = "Port Restricted Cone Firewall"
 
         else: # There is a NAT
             if DEBUG: print >> sys.stderr, "NATCheck:", "There is a NAT"
@@ -138,29 +169,30 @@ def GetNATType(udpsock, clientIP, clientPort, serveraddr1, serveraddr2):
             # Do Test II
             ret = Test2(udpsock, serveraddr1)
             if DEBUG: print >> sys.stderr, "NATCheck:", "Test II reported: " + str(ret)
-            if ret["Resp"] == True:
-                NatType[0] = 1
-                NatType[1] = "Full Cone NAT"
+            if ret["resp"] == True:
+                nat_type[0] = 1
+                nat_type[1] = "Full Cone NAT"
             else:
                 #Do Test I using a different echo server
                 ret = Test1(udpsock, serveraddr2)
                 if DEBUG: print >> sys.stderr, "NATCheck:", "Test I reported: " + str(ret)
 
-                if exIP == ret["ExternalIP"] and exPort == ret["ExternalPort"]: # Public address is constant: consistent translation
+                if ex_ip == ret["ex_ip"] and ex_port == ret["ex_port"]: # Public address is constant: consistent translation
 
                     # Do Test III
                     ret = Test3(udpsock, serveraddr1)
                     if DEBUG: print >> sys.stderr, "NATCheck:", "Test III reported: " + str(ret)
 
-                    if ret["Resp"] == True:
-                        NatType[0] = 2
-                        NatType[1] = "Restricted Cone NAT"
+                    if ret["resp"] == True:
+                        nat_type[0] = 2
+                        nat_type[1] = "Restricted Cone NAT"
                     else:
-                        NatType[0] = 3
-                        NatType[1] = "Port Restricted Cone NAT"
+                        nat_type[0] = 3
+                        nat_type[1] = "Port Restricted Cone NAT"
 
                 else:
-                    NatType[0] = -1
-                    NatType[1] = "Symmetric NAT"
+                    nat_type[0] = -1
+                    nat_type[1] = "Symmetric NAT"
 
-    return (NatType, exIP, exPort)
+    udpsock.close()
+    return (nat_type, ex_ip, ex_port, in_ip)

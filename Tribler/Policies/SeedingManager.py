@@ -85,10 +85,10 @@ class SeedingManager:
             # If seeding stop both to g2g and t4t
             # then stop seeding 
             if self.t4t_stop and self.g2g_stop:
-                ds.get_download().stop()
+                self.ds.get_download().stop()
                 
                 if DEBUG:
-                     print >>sys.stderr,"Stop seedings: ",ds.get_download().get_dest_files()
+                     print >>sys.stderr,"Stop seedings: ",self.ds.get_download().get_dest_files()
             
             return g2g_r
             
@@ -97,10 +97,10 @@ class SeedingManager:
             self.t4t_stop = t4t_r
             
             if self.t4t_stop and self.g2g_stop:
-                ds.get_download().stop()
+                self.ds.get_download().stop()
                 
                 if DEBUG:
-                     print >>sys.stderr,"Stop seedings: ",ds.get_download().get_dest_files()
+                     print >>sys.stderr,"Stop seedings: ",self.ds.get_download().get_dest_files()
             
             
             return t4t_r

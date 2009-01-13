@@ -79,10 +79,9 @@ sessdefaults['stop_collecting_threshold'] = 200
 sessdefaults['coopdlconfig'] = None
 sessdefaults['family_filter'] = True
 sessdefaults['nat_detect'] = True
-sessdefaults['puncturing_private_port'] = 6700
+sessdefaults['puncturing_internal_port'] = 6700
 sessdefaults['stun_servers'] = [('stun1.tribler.org',6701),('stun2.tribler.org',6702)]
-sessdefaults['pingback_servers'] = [('pingback.tribler.org',6702),('pingback2.tribler.org',6702)]
-sessdefaults['puncturing_coordinators'] = [('puncturing.tribler.org',6703)]
+sessdefaults['pingback_servers'] = [('pingback.tribler.org',6703),('pingback2.tribler.org',6703)]
 sessdefaults['live_aux_seeders'] = []
 sessdefaults['mainline_dht'] = True
 
