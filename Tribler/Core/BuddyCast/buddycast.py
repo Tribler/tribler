@@ -1772,6 +1772,7 @@ class DataHandler:
         self.torrent_db = launchmany.torrent_db
         self.mypref_db = launchmany.mypref_db
         self.pref_db = launchmany.pref_db
+        self.term_db = launchmany.term_db
         self.friend_db = launchmany.friend_db
         self.myfriends = Set() # FIXME: implement friends
         self.myprefs = []    # torrent ids

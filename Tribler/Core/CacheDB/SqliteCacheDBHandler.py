@@ -19,7 +19,7 @@ import threading
 import base64
 from random import randint, sample
 from sets import Set
-
+import math
 
 from maxflow import Network
 from math import atan, pi
@@ -37,6 +37,9 @@ ALPHA = float(1)/30000
 
 DEBUG = False
 SHOW_ERROR = False
+
+MAX_KEYWORDS_STORED = 5
+MAX_KEYWORD_LENGTH = 50
 
 def show_permid_shorter(permid):
     if not permid:
@@ -861,13 +864,16 @@ class PreferenceDBHandler(BasicDBHandler):
         # this is a measure against buddycast sending millions of terms for the client to store
         # on average, I would expect the number of unique terms to be n to 2*n for n torrents
         # here, we draw the line if it is 20*n
-        max_avg_search_terms_per_torrent = 20 
-        if len(foreign_termid2terms)>max_avg_search_terms_per_torrent*len(torrentdata):
+        max_avg_search_terms_per_torrent = 20
+        if len(foreign_termid2terms)>MAX_KEYWORDS_STORED*len(torrentdata): 
             if DEBUG:
                 print >>sys.stderr, "peer %d sends %d search terms for %d torrents " + \
                                     "(more than avg %d unique terms per torrent), aborting" % \
                                     (peer_id, len(foreign_termid2terms), len(torrentdata), max_avg_search_terms_per_torrent)
             return
+        
+        # insert all unknown terms NOW so we can rebuild the index at once
+        self.term_db.termid2terms.bulkInsertTerms(terms, foreign_termid2terms.values())         
         
         # get local term ids for terms.
         foreign2local = dict([(foreign_termid, termdb.getTermID(foreign_term))
@@ -906,8 +912,11 @@ class PreferenceDBHandler(BasicDBHandler):
                             reranking_strategy=reranking_strategy)
             
             # insert Search
-            term_ids = [foreign2local[str(foreign)] for foreign in search_terms]            
-            searchdb.storeKeywordsByID(peer_id, torrent_id, term_ids, commit=commit)
+            term_ids = [foreign2local[str(foreign)] for foreign in search_terms]
+            searchdb.storeKeywordsByID(peer_id, torrent_id, term_ids, commit=False)
+            if commit:
+                searchdb.commit()
+                searchdb.storeKeywordsByID(peer_id, torrent_id, term_ids, commit=commit)
             
         
     def getAllEntries(self):
@@ -3148,37 +3157,86 @@ class TermDBHandler(BasicDBHandler):
         TermDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()        
         BasicDBHandler.__init__(self,db, 'Term') ## self, db, 'Term'
+        
+        
+    def getNumTerms(self):
+        """returns number of terms stored"""
+        return self.getOne("count(*)")
+    
+    def bulkInsertTerms(self, terms, commit=True):
+        for term in terms:
+            term_id = self.getTermIDNoInsert(term)
+            if term_id:
+                continue
+            try:
+                self.insertTerm(term, commit=False) # this HAS to commit, otherwise last_insert_row_id() won't work. 
+                # if you want to avoid committing too often, use bulkInsertTerm
+            except UnicodeDecodeError:
+                if DEBUG:
+                    print >> sys.stderr, "could not ascii-encode term %s, returning id -1" % term.lower()
+                return -1
+        if commit:         
+            self.commit()
+            
+            
+    def getTermIDNoInsert(self, term):
+        if len(term)>MAX_KEYWORD_LENGTH:
+            term = term[0:MAX_KEYWORD_LENGTH]        
+        try:
+            term_id = self.getOne('term_id', term=term.lower())
+        except UnicodeDecodeError:
+            if DEBUG:
+                print >> sys.stderr, "could not ascii-encode term %s, returning id -1" % term.lower()
+            return -1
+        return term_id
+        
             
     def getTermID(self, term):
         """returns the ID of term in table Term; creates a new entry if necessary"""
-        #print >>sys.stderr, "getTermid: %s" % term
-        term_id = self.getOne('term_id', term=term.lower())
+        term_id = self.getTermIDNoInsert(term)
         if term_id:
             return term_id
-        self.insertTerm(term.lower(), commit=True)
-        return self.getTermID(term)
+        try:
+            self.insertTerm(term, commit=True) # this HAS to commit, otherwise last_insert_row_id() won't work. 
+            # if you want to avoid committing too often, use bulkInsertTerm
+        except UnicodeDecodeError:
+            if DEBUG:
+                print >> sys.stderr, "could not ascii-encode term %s, returning id -1" % term.lower()
+            return -1         
+        new_id = self.getOne("last_insert_rowid()")
+        return new_id
+        
     
     def insertTerm(self, term, commit=True):
         """creates a new entry for term in table Term"""
+        if len(term)>MAX_KEYWORD_LENGTH:
+            term = term[0:MAX_KEYWORD_LENGTH]
         self._db.insert(self.table_name, commit=commit, term=term)
     
     def getTerm(self, term_id):
         """returns the term for a given term_id"""
+        if term_id==-1:
+            return ""
         return self.getOne('term', term_id=term_id)
     
     def getTermsStartingWith(self, beginning):
         """returns all terms starting with beginning"""
-        return [x[0] 
-                for x 
-                in self.getAll('term', 
-                               'term like \'%s%%\'' % 
-                                 beginning.lower().replace('\'',''))] 
-        # should be ordered by number of times term has been seen      
-        # should we cache this information somewhere?
-        # I don't think so; we only have to compute it for the candidates, and showing those only makes sense when you have enough letters that you don't get 100 candidates, so one migt compute those few in real-time
-        # then again...
-
-        # also include family filter
+        
+        max_terms_returned = 10
+        
+        try:
+            return [x[0] 
+                    for x 
+                    in self.getAll('term', 
+                                   'term like \'%s%%\'' % 
+                                     beginning.lower().replace('\'',''),
+                                    order_by="times_seen DESC",
+                                    limit=max_terms_returned)]
+        except UnicodeDecodeError:
+            if DEBUG:
+                print >> sys.stderr, "term %s could not be completed because it's not ascii" % beginning
+            return []        
+        # TODO include family filter
     
     def getAllEntries(self):
         """use with caution,- for testing purposes"""
@@ -3217,6 +3275,10 @@ class SearchDBHandler(BasicDBHandler):
         sql_insert_search = """
 INSERT INTO Search (peer_id, torrent_id, term_id, term_order) values (?, ?, ?, ?)
 """
+        
+        if len(term_ids)>MAX_KEYWORDS_STORED:
+            term_ids= term_ids[0:MAX_KEYWORDS_STORED]
+
         # TODO before we insert, we should delete all potentially existing entries
         # with these exact values
         # otherwise, some strange attacks might become possible
@@ -3228,11 +3290,18 @@ INSERT INTO Search (peer_id, torrent_id, term_id, term_order) values (?, ?, ?, ?
                   in zip(term_ids, range(len(term_ids)))]
         self._db.executemany(sql_insert_search, values, commit=commit)        
         
+        # update term popularity
+        sql_update_term_popularity= """
+UPDATE Term SET times_seen = times_seen+1 WHERE term_id=?        
+"""        
+        self._db.executemany(sql_update_term_popularity, [[term_id] for term_id in term_ids], commit=commit)        
+        
+        
     def storeKeywords(self, peer_id, torrent_id, terms, commit=True):
         """creates a single entry in Search with peer_id and torrent_id for every term in terms"""
+        terms = [term.strip() for term in terms if len(term.strip())>0]
         term_db = TermDBHandler.getInstance()
-        term_ids = Set([term_db.getTermID(term) for term in terms]) 
-        # make it a set so we can assume each user/torrent/term triple to exist only once
+        term_ids = [term_db.getTermID(term) for term in set(terms)]
         self.storeKeywordsByID(peer_id, torrent_id, term_ids, commit)
 
     def getAllEntries(self):
@@ -3270,18 +3339,18 @@ INSERT INTO Search (peer_id, torrent_id, term_id, term_order) values (?, ?, ?, ?
         idf normalization ensures that returned values are meaningful across several keywords 
         """
         
-        terms_per_torrent = self.getNumTermsPerTorrent(term_id)
+        terms_per_torrent = self.getNumTermsPerTorrent(torrent_id)
         if terms_per_torrent==0:
             return 0
         
-        torrents_per_term = self.getNumTorrentsPerTerm(torrent_id)
+        torrents_per_term = self.getNumTorrentsPerTerm(term_id)
         if torrents_per_term == 0:
             return 0
         
         coocc = self.getNumTorrentTermCooccurrences(term_id, torrent_id)
         
         tf = coocc/float(terms_per_torrent)
-        idf = 1/math.log(torrents_per_term)
+        idf = 1.0/math.log(torrents_per_term+1)
         
         return tf*idf
     

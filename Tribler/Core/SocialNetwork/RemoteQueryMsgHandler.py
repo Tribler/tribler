@@ -12,10 +12,13 @@ import sys
 from time import time
 from sets import Set
 from traceback import print_stack, print_exc
+import datetime
+import time as T
 
 from M2Crypto import Rand
 
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
@@ -54,6 +57,7 @@ class RemoteQueryMsgHandler:
         self.query_ids2rec = {}    # ARNOCOMMENT: TODO: purge old entries...
         self.overlay_log = None
         self.registered = False
+        self.logfile = None 
 
     def getInstance(*args, **kw):
         if RemoteQueryMsgHandler.__single is None:
@@ -217,7 +221,20 @@ class RemoteQueryMsgHandler:
         
         return True
 
-
+    def setLogFile(self, logfile):
+        self.logfile = open(logfile, "a") 
+   
+   
+    def log(self, permid, decoded_message):        
+        lt = T.localtime(T.time())
+        timestamp = "%04d-%02d-%02d %02d:%02d:%02d" % (lt[0], lt[1], lt[2], lt[3], lt[4], lt[5])
+        ip = self.peer_db.getPeer(permid, "ip")
+        #ip = "x.y.z.1"
+        s = "%s\t%s\t%s\t%s\n"% (timestamp, bin2str(permid), ip, decoded_message)
+        
+        print dunno2unicode(s)
+        self.logfile.write(dunno2unicode(s)) # bin2str(
+        self.logfile.flush()
     
     
     #
@@ -226,6 +243,9 @@ class RemoteQueryMsgHandler:
     def process_query(self, permid, d, selversion):
         q = d['q'][len('SIMPLE '):]
         q = dunno2unicode(q)
+        # log incoming query, if logfile is set
+        if self.logfile:
+            self.log(permid, q)        
      
         # Filter against bad input
         if not q.isalnum():

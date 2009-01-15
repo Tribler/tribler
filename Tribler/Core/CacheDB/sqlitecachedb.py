@@ -856,13 +856,16 @@ CREATE TABLE Search (
                      term_order INTEGER DEFAULT 0
                      );
 CREATE INDEX idx_search_term ON Search (term_id);
-CREATE INDEX idx_search_torrent ON Search (torrent_id);                     
+CREATE INDEX idx_search_torrent ON Search (torrent_id);
+
+
 CREATE TABLE Term (
-                    term_id INTEGER DEFAULT 0,
-                    term VARCHAR(255),
-                    PRIMARY KEY (term_id)
+                    term_id INTEGER PRIMARY KEY AUTOINCREMENT DEFAULT 0,
+                    term VARCHAR(255) NOT NULL,
+                    times_seen INTEGER DEFAULT 0 NOT NULL
                     );
-CREATE INDEX idx_terms_term ON Term(term);        
+CREATE INDEX idx_terms_term ON Term(term);  
+     
 """       
             
             self.execute_write(sql, commit=False)
