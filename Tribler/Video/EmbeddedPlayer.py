@@ -103,7 +103,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.utility = utility
 
         #self.SetBackgroundColour(wx.WHITE)
-        self.SetBackgroundColour(wx.BLACK)
+        self.SetBackgroundColour((216,233,240))
         mainbox = wx.BoxSizer(wx.VERTICAL)
 
 
@@ -260,7 +260,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.vlcwrap.sound_set_volume(self.oldvolume)
             self.volumeicon.setToggled(False)
         else:
-            self.oldvolume = self.vlwrap.sound_get_volume()
+            self.oldvolume = self.vlcwrap.sound_get_volume()
             self.vlcwrap.sound_set_volume(0.0) # mute sound
             self.volumeicon.setToggled(True)
         
@@ -273,7 +273,7 @@ class EmbeddedPlayerPanel(wx.Panel):
     def SetVolume(self, evt = None):
         if DEBUG:
             print >> sys.stderr, "embedplay: SetVolume:",self.volume.GetValue()
-        self.vlwrap.sound_set_volume(float(self.volume.GetValue()) / 100)
+        self.vlcwrap.sound_set_volume(float(self.volume.GetValue()) / 100)
         # reset mute
         if self.volumeicon.isToggled():
             self.volumeicon.setToggled(False)
@@ -388,7 +388,7 @@ class VLCLogoWindow(wx.Window):
     def __init__(self, parent, size, vlcwrap, logopath):
         wx.Window.__init__(self, parent, -1, size=size)
         self.SetMinSize(size)
-        self.SetBackgroundColour(wx.BLACK)
+        self.SetBackgroundColour((216,233,240))
         
         self.vlcwrap = vlcwrap
 
@@ -438,8 +438,8 @@ class VLCLogoWindow(wx.Window):
         halfx -= self.logo.GetWidth()/2
         halfy -= self.logo.GetHeight()/2
 
-        dc.SetPen(wx.Pen("#BLACK",0))
-        dc.SetBrush(wx.Brush("BLACK"))
+        dc.SetPen(wx.Pen(wx.Colour(216,233,240),0))
+        dc.SetBrush(wx.Brush(wx.Colour(216,233,240)))
         if sys.platform == 'linux2':
             dc.DrawRectangle(x,y,maxw,maxh)
         dc.DrawBitmap(self.logo,halfx,halfy,True)

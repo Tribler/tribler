@@ -43,6 +43,7 @@ try:
 except:
     pass
 import wx
+import wx.animate
 from wx import xrc
 #import hotshot
 
@@ -82,6 +83,9 @@ from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 import Tribler.Core.CacheDB.friends as friends 
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
+
+from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
+from Tribler.Video.EmbeddedPlayer import *
 
 import pdb
 
@@ -206,6 +210,7 @@ class ABCApp(wx.App):
             self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
             self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode,closeextplayercallback=self.OnClosingVideoFrameOrExtPlayer)
 
+
             notification_init( self.utility )
 
             #
@@ -217,6 +222,7 @@ class ABCApp(wx.App):
             self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
+
             self.guiUtility.frame = self.frame
 
             self.frame.set_wxapp(self)
@@ -306,25 +312,33 @@ class ABCApp(wx.App):
             self.frame.help = xrc.XRCCTRL(self.frame,"help")
             self.frame.searching = xrc.XRCCTRL(self.frame,"searching")
             self.frame.search_results = xrc.XRCCTRL(self.frame,"search_results")
+            self.frame.search_results.Bind(wx.EVT_LEFT_UP, self.OnSearchResultsPressed)
+            self.frame.settings = xrc.XRCCTRL(self.frame,"settings")
+            self.frame.my_files = xrc.XRCCTRL(self.frame,"my_files")
+            self.frame.seperator = xrc.XRCCTRL(self.frame,"seperator")
+            self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
+            #self.frame.preLoader = xrc.XRCCTRL(self.frame,"preloader")
 
-
-
-            #self.frame.top_shade0 = xrc.XRCCTRL(self.frame,"top_shade0")
-            #self.frame.top_shade0.createBackgroundImage()
-            #self.frame.top_shade = xrc.XRCCTRL(self.frame,"top_shade")
-            #self.frame.top_shade.createBackgroundImage()
-            #self.frame.top_shade2 = xrc.XRCCTRL(self.frame,"top_shade2")
-            #self.frame.top_shade2.createBackgroundImage()
+            # animated gif for search results
+            ag_fname = "Tribler/Main/vwxGUI/images/5.0/search.gif"
+            self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
+            #self.frame.ag.SetUseWindowBackgroundColour(False)
             
-            self.frame.tribler_logo2.Hide()
-            self.frame.standardOverview.Hide()
-            self.frame.standardDetails.Hide()
-            self.frame.pageTitlePanel.Hide()
-            self.frame.pageTitle.Hide()
-            self.frame.sharing_reputation.Hide()
-            self.frame.srgradient.Hide()
-            self.frame.help.Hide()
-            self.frame.sr_indicator.Hide()
+
+            # videopanel
+            self.frame.videopanel = xrc.XRCCTRL(self.frame,"videopanel")
+            logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler_small.png')
+            self.frame.videopanel = EmbeddedPlayerPanel(self.frame.videopanel, self.utility,self.videoplayer.get_vlcwrap(), logopath)
+
+            self.frame.familyfilter = xrc.XRCCTRL(self.frame,"familyfilter")
+            
+
+            hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel,self.frame.pageTitle,self.frame.sharing_reputation,self.frame.srgradient,self.frame.help,self.frame.sr_indicator,self.frame.videopanel,self.frame.familyfilter,self.frame.pagerPanel]
+
+
+            for name in hide_names:
+                name.Hide()
+
 
 
 
@@ -372,6 +386,10 @@ class ABCApp(wx.App):
 
         return True
 
+    def OnSearchResultsPressed(self, event):
+        self.guiUtility.OnResultsClicked()
+
+
     def helpClick(self,event=None):
         title = self.utility.lang.get('sharing_reputation_information_title')
         msg = self.utility.lang.get('sharing_reputation_information_message')
@@ -391,7 +409,7 @@ class ABCApp(wx.App):
         if keycode == wx.WXK_RETURN and self.frame.search.GetValue().strip() != '': 
             if FIRST:
                 FIRST=False
-                self.frame.top_image.Hide()
+                #self.frame.top_image.Hide()
                 
                 self.frame.pageTitlePanel.Show()
                 self.frame.tribler_logo2.Show()
@@ -412,12 +430,7 @@ class ABCApp(wx.App):
                 self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
 
 
-
-
-                #sizer = self.frame.top_shade.GetContainingSizer()
-                #sizer.Remove(1)
-                #self.frame.top_shade.Destroy()
-                #self.frame.Layout() 
+                self.frame.Layout() 
 
                 self.frame.top_bg.createBackgroundImage()
                 self.frame.top_bg.Refresh()
@@ -426,6 +439,17 @@ class ABCApp(wx.App):
                 self.frame.srgradient.Show()
                 self.frame.sr_indicator.Show()
                 self.frame.standardOverview.Show()
+                self.frame.my_files.Show()
+                self.frame.settings.Show()
+                self.frame.seperator.Show()
+                self.frame.videopanel.Show()
+                self.frame.familyfilter.Show()
+                self.frame.pagerPanel.Show()
+                self.frame.ag.Play()
+                #self.frame.preLoader.Show()
+
+
+
                 self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
             
             self.guiUtility.standardFilesOverview()
@@ -440,7 +464,7 @@ class ABCApp(wx.App):
             if FIRST:
                 FIRST=False
 
-                self.frame.top_image.Hide()
+                #self.frame.top_image.Hide()
                 
                 self.frame.pageTitlePanel.Show()
                 self.frame.tribler_logo2.Show()
@@ -460,12 +484,6 @@ class ABCApp(wx.App):
 
                 self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
 
-                #sizer = self.frame.top_shade.GetContainingSizer()
-                #sizer.Remove(1)
-                #self.frame.top_shade.Destroy()
-                #self.frame.Layout() 
-
-
 
 
                 self.frame.top_bg.createBackgroundImage()
@@ -475,6 +493,15 @@ class ABCApp(wx.App):
                 self.frame.srgradient.Show()
                 self.frame.sr_indicator.Show()
                 self.frame.standardOverview.Show()
+                self.frame.settings.Show()
+                self.frame.my_files.Show()
+                self.frame.seperator.Show()
+                self.frame.videopanel.Show()
+                self.frame.familyfilter.Show()
+                self.frame.pagerPanel.Show()
+                self.frame.ag.Play()
+                #self.frame.preLoader.Show()
+
                 self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
         
 
@@ -604,7 +631,7 @@ class ABCApp(wx.App):
         reputation = self.get_reputation()
         print >> sys.stderr , "Reputation" , reputation
         self.frame.hsizer.Remove(0)
-        self.frame.hsizer.Prepend(wx.Size(reputation*50+50,0),0,wx.LEFT,0)
+        self.frame.hsizer.Prepend(wx.Size(reputation*40+50,0),0,wx.LEFT,0)
         self.frame.hsizer.Layout()
 
     def update_reputation(self):

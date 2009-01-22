@@ -5,7 +5,7 @@ from font import *
 
 import wx, os, sys, os.path, math
 
-DEBUG = False
+DEBUG = True
 
 # font sizes
 if sys.platform == 'darwin':
@@ -77,7 +77,7 @@ class standardPager(wx.Panel):
 #        self.leftPages = ImagePanel(self)
 #        self.leftPages.SetBitmap(wx.Bitmap("prev2.gif",wx.BITMAP_TYPE_GIF))
 #        self.hSizer.Add(self.leftPages, 0, BORDER_EXPAND, 0)
-        self.left = tribler_topButton(self, name='prevpage')
+        self.left = tribler_topButton(self, name='prevpage2')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         ##self.left.setBackground(self.guiUtility.triblerRed)
         #self.hSizer.AddSpacer(wx.Size(25))
@@ -87,7 +87,7 @@ class standardPager(wx.Panel):
         self.refreshPageNumbers()
         
         
-        self.right = tribler_topButton(self, name='nextpage')
+        self.right = tribler_topButton(self, name='nextpage2')
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         ##self.right.setBackground(self.guiUtility.triblerRed)
         self.hSizer.AddSpacer(wx.Size(5))

@@ -25,7 +25,7 @@ import apsw
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
 CREATE_SQL_FILE = None
-CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'tribler_sdb_v1.sql')
+CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'tribler_sdb_v2.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 BSDDB_DIR_NAME = 'bsddb'

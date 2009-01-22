@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource version="2.3.0.1" xmlns="http://www.wxwidgets.org/wxxrc">
   <object class="wxFrame" name="MyFrame" subclass="Tribler.Main.vwxGUI.MainFrame.MainFrame">
-    <style>wxDEFAULT_FRAME_STYLE</style>
     <title></title>
+    <centered>1</centered>
     <pos>1,1</pos>
     <size>3,2</size>
     <bg>#d4d0c8</bg>
@@ -18,15 +18,9 @@
             <orient>wxVERTICAL</orient>
             <object class="sizeritem">
               <object class="wxPanel" name="">
-                <size>1200,1000</size>
+                <size>1024,768</size>
                 <object class="wxBoxSizer">
                   <orient>wxVERTICAL</orient>
-                  <object class="sizeritem">
-                    <object class="wxStaticBitmap" name="top_image">
-                      <bitmap>images/5.0/top_image.png</bitmap>
-                    </object>
-                    <option>0</option>
-                  </object>
                   <object class="sizeritem">
                     <object class="wxPanel" name="top_bg" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
                       <object class="wxBoxSizer">
@@ -99,10 +93,42 @@
                                   </object>
                                 </object>
                                 <object class="sizeritem">
-                                  <object class="wxStaticText" name="search_results">
-                                    <label></label>
-                                    <size>320,0</size>
-                                    <style>wxALIGN_RIGHT</style>
+                                  <object class="wxBoxSizer">
+                                    <orient>wxHORIZONTAL</orient>
+                                    <object class="sizeritem">
+                                      <object class="wxBoxSizer">
+                                        <orient>wxVERTICAL</orient>
+                                        <object class="spacer">
+                                          <size>0,3</size>
+                                        </object>
+                                        <object class="sizeritem">
+                                          <object class="wxPanel" name="familyfilter" subclass="Tribler.Main.vwxGUI.tribler_topButton.SwitchButton">
+                                            <size>92,11</size>
+                                          </object>
+                                          <option>0</option>
+                                        </object>
+                                      </object>
+                                    </object>
+                                    <object class="spacer">
+                                      <size>120,0</size>
+                                      <option>1</option>
+                                    </object>
+                                    <object class="sizeritem">
+                                      <object class="wxStaticText" name="search_results">
+                                        <size>100,10</size>
+                                        <style></style>
+                                        <font>
+                                          <size>10</size>
+                                          <family>default</family>
+                                          <style>normal</style>
+                                          <weight>normal</weight>
+                                          <underlined>0</underlined>
+                                        </font>
+                                        <label></label>
+                                      </object>
+                                      <option>0</option>
+                                      <flag>wxALIGN_RIGHT</flag>
+                                    </object>
                                   </object>
                                 </object>
                               </object>
@@ -152,14 +178,14 @@
                                   <object class="wxBoxSizer">
                                     <orient>wxHORIZONTAL</orient>
                                     <object class="spacer">
-                                      <size>0,0</size>
+                                      <size>50,0</size>
                                     </object>
                                     <object class="sizeritem">
                                       <object class="wxStaticBitmap" name="sr_indicator">
                                         <bitmap>images/5.0/SRindicator.png</bitmap>
                                       </object>
                                       <flag>wxTOP</flag>
-                                      <border>-7</border>
+                                      <border>-17</border>
                                     </object>
                                   </object>
                                 </object>
@@ -169,6 +195,61 @@
                           </object>
                           <option>1</option>
                           <flag>wxEXPAND</flag>
+                        </object>
+                        <object class="spacer">
+                          <size>7,0</size>
+                        </object>
+                        <object class="sizeritem">
+                          <object class="wxBoxSizer">
+                            <orient>wxVERTICAL</orient>
+                            <object class="spacer">
+                              <size>0,20</size>
+                            </object>
+                            <object class="sizeritem">
+                              <object class="wxPanel" name="settings" subclass="Tribler.Main.vwxGUI.tribler_topButton.SwitchButton">
+                                <size>43,11</size>
+                                <bg>#FFFFFF</bg>
+                              </object>
+                              <flag>wxFIXED_MINSIZE</flag>
+                            </object>
+                          </object>
+                        </object>
+                        <object class="spacer">
+                          <size>7,0</size>
+                        </object>
+                        <object class="sizeritem">
+                          <object class="wxBoxSizer">
+                            <orient>wxVERTICAL</orient>
+                            <object class="spacer">
+                              <size>0,20</size>
+                            </object>
+                            <object class="sizeritem">
+                              <object class="wxStaticBitmap" name="seperator">
+                                <bitmap>images/5.0/seperator.png</bitmap>
+                              </object>
+                            </object>
+                          </object>
+                        </object>
+                        <object class="spacer">
+                          <size>7,0</size>
+                        </object>
+                        <object class="sizeritem">
+                          <object class="wxBoxSizer">
+                            <orient>wxVERTICAL</orient>
+                            <object class="spacer">
+                              <size>0,20</size>
+                            </object>
+                            <object class="sizeritem">
+                              <object class="wxPanel" name="my_files" subclass="Tribler.Main.vwxGUI.tribler_topButton.SwitchButton">
+                                <size>43,11</size>
+                                <bg>#FFFFFF</bg>
+                              </object>
+                              <flag>wxFIXED_MINSIZE</flag>
+                            </object>
+                          </object>
+                        </object>
+                        <object class="spacer">
+                          <size>7,0</size>
                         </object>
                         <object class="sizeritem">
                           <object class="wxStaticBitmap" name="tribler_logo2">
@@ -183,17 +264,18 @@
                           <size>10,0</size>
                         </object>
                       </object>
-                      <size>1100,90</size>
+                      <size>1000,90</size>
                       <bg>#FFFFFF</bg>
                     </object>
+                    <option>0</option>
                     <flag>wxLEFT|wxRIGHT|wxFIXED_MINSIZE</flag>
                     <border>10</border>
-                    <minsize>1171,90</minsize>
+                    <minsize>1000,90</minsize>
                   </object>
                   <object class="sizeritem">
                     <flag>wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                     <border>4</border>
-                    <option>0</option>
+                    <option>1</option>
                     <object class="wxBoxSizer">
                       <orient>wxHORIZONTAL</orient>
                       <object class="sizeritem">
@@ -229,7 +311,7 @@
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                            <flag>wxFIXED_MINSIZE</flag>
                             <border>3</border>
                             <option>0</option>
                             <object class="wxPanel" name="filterStandard" subclass="Tribler.Main.vwxGUI.filterStandard.filterStandard">
@@ -263,19 +345,98 @@
                             <option>1</option>
                             <object class="wxPanel" name="standardDetails" subclass="Tribler.Main.vwxGUI.standardDetails.standardDetails">
                               <pos>709,172</pos>
-                              <size>260,326</size>
+                              <size>0,0</size>
                             </object>
                           </object>
                         </object>
+                        <option>1</option>
+                        <flag>wxEXPAND</flag>
+                      </object>
+                      <object class="sizeritem">
+                        <object class="wxBoxSizer">
+                          <orient>wxVERTICAL</orient>
+                          <object class="sizeritem">
+                            <object class="wxBoxSizer">
+                              <orient>wxHORIZONTAL</orient>
+                              <object class="sizeritem">
+                                <object class="wxBoxSizer">
+                                  <orient>wxVERTICAL</orient>
+                                  <object class="spacer">
+                                    <size>0,10</size>
+                                  </object>
+                                  <object class="sizeritem">
+                                    <object class="wxPanel" name="videopanel">
+                                      <size>360,300</size>
+                                      <bg>#FFFFFF</bg>
+                                    </object>
+                                    <minsize>360,300</minsize>
+                                  </object>
+                                </object>
+                                <option>1</option>
+                                <flag>wxEXPAND</flag>
+                              </object>
+                            </object>
+                            <option>1</option>
+                            <flag>wxEXPAND</flag>
+                          </object>
+                        </object>
+                        <option>0</option>
+                        <flag>wxEXPAND</flag>
+                      </object>
+                      <object class="spacer">
+                        <size>0,0</size>
+                        <flag>wxRIGHT</flag>
+                        <border>-15</border>
                       </object>
                     </object>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxBoxSizer">
+                      <orient>wxHORIZONTAL</orient>
+                      <object class="spacer">
+                        <size>10,0</size>
+                      </object>
+                      <object class="sizeritem">
+                        <object class="wxPanel" name="pagerPanel">
+                          <size>1000,20</size>
+                          <bg>#D8D8D8</bg>
+                          <object class="wxBoxSizer">
+                            <orient>wxHORIZONTAL</orient>
+                            <object class="spacer">
+                              <size>450,28</size>
+                              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                              <border>3</border>
+                              <option>0</option>
+                            </object>
+                            <object class="sizeritem">
+                              <flag>wxTOP|wxBOTTOM|wxEXPAND|wxFIXED_MINSIZE</flag>
+                              <border>2</border>
+                              <option>0</option>
+                              <object class="wxPanel" name="standardPager" subclass="Tribler.Main.vwxGUI.standardPager.standardPager">
+                                <pos>370,460</pos>
+                                <size>297,20</size>
+                              </object>
+                            </object>
+                            <object class="spacer">
+                              <size>8,28</size>
+                              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                              <border>0</border>
+                              <option>0</option>
+                            </object>
+                          </object>
+                        </object>
+                        <flag>wxFIXED_MINSIZE</flag>
+                        <minsize>1000,20</minsize>
+                      </object>
+                    </object>
+                    <option>0</option>
                   </object>
                 </object>
                 <bg>#FFFFFF</bg>
               </object>
               <option>1</option>
               <flag>wxALIGN_CENTRE_HORIZONTAL</flag>
-              <minsize>1200,1000</minsize>
+              <minsize>1024,768</minsize>
             </object>
           </object>
           <option>1</option>

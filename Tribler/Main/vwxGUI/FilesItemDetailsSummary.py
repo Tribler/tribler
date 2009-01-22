@@ -4,11 +4,11 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.TextButton import *
 #from Tribler.vwxGUI.TextButton import TextButton
-from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
+##from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Core.Utilities.unicode import bin2unicode
 
-from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
+##from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -18,7 +18,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import *
-from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
+##from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
 
@@ -30,7 +30,7 @@ class FilesItemDetailsSummary(bgPanel):
     def __init__(self, parent, torrentHash, torrent, web2data = None):
         wx.Panel.__init__(self, parent, -1)
         self.guiUtility = GUIUtility.getInstance()
-        self.metadatahandler = MetadataHandler.getInstance()
+##        self.metadatahandler = MetadataHandler.getInstance()
 #        self.thumbSummary = thumbSummary
 
         self.guiUtility = GUIUtility.getInstance()
@@ -84,24 +84,38 @@ class FilesItemDetailsSummary(bgPanel):
 
         ## text information
 
-        self.Seeders = wx.StaticText(self,-1,"Seeders:",wx.Point(0,0),wx.Size(125,22))     
-        self.Seeders.SetMinSize((125,14))
-        self.triblerStyles.setDarkText(self.Seeders)
+        ##self.Seeders = wx.StaticText(self,-1,"Seeders:",wx.Point(0,0),wx.Size(125,22))     
+        ##self.Seeders.SetMinSize((125,14))
+        ##self.triblerStyles.setDarkText(self.Seeders)
 
-        self.NumSeeders = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22))     
-        self.NumSeeders.SetMinSize((125,14))
-        self.triblerStyles.setDarkText(self.NumSeeders)
-        self.NumSeeders.SetLabel('%s' % self.torrent['num_seeders'])
+        ##self.NumSeeders = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22))     
+        ##self.NumSeeders.SetMinSize((125,14))
+        ##self.triblerStyles.setDarkText(self.NumSeeders)
+        ##self.NumSeeders.SetLabel('%s' % self.torrent['num_seeders'])
         
 
-        self.Leechers = wx.StaticText(self,-1,"Leechers:",wx.Point(0,0),wx.Size(125,22))     
-        self.Leechers.SetMinSize((125,14))
-        self.triblerStyles.setDarkText(self.Leechers)
+        ##self.Leechers = wx.StaticText(self,-1,"Leechers:",wx.Point(0,0),wx.Size(125,22))     
+        ##self.Leechers.SetMinSize((125,14))
+        ##self.triblerStyles.setDarkText(self.Leechers)
 
-        self.NumLeechers = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22))     
-        self.NumLeechers.SetMinSize((125,14))
-        self.triblerStyles.setDarkText(self.NumLeechers)
-        self.NumLeechers.SetLabel('%s' % self.torrent['num_leechers'])
+        ##self.NumLeechers = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22))     
+        ##self.NumLeechers.SetMinSize((125,14))
+        ##self.triblerStyles.setDarkText(self.NumLeechers)
+        ##self.NumLeechers.SetLabel('%s' % self.torrent['num_leechers'])
+
+        self.Popularity = wx.StaticText(self,-1,"Popularity:",wx.Point(0,0),wx.Size(125,22))     
+        self.Popularity.SetMinSize((125,14))
+        self.triblerStyles.setDarkText(self.Popularity)    
+
+        self.Popularity_info = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22))     
+        self.Popularity_info.SetMinSize((125,14))
+        self.triblerStyles.setDarkText(self.Popularity_info)
+        pop = self.torrent['num_seeders'] + self.torrent['num_leechers']    
+        if pop > 0:
+            self.Popularity_info.SetLabel('%s' %(pop))
+        else: 
+            self.Popularity_info.SetLabel('unknown')
+
 
         self.TriblerSources = wx.StaticText(self,-1,"Tribler sources:",wx.Point(0,0),wx.Size(125,22))     
         self.TriblerSources.SetMinSize((125,14))
@@ -114,7 +128,7 @@ class FilesItemDetailsSummary(bgPanel):
         self.CreationDate_info = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22))     
         self.CreationDate_info.SetMinSize((125,14))
         self.triblerStyles.setDarkText(self.CreationDate_info)
-        #self.CreationDate_info.SetLabel(friendly_time(self.torrent['creation_date']))
+        self.CreationDate_info.SetLabel(friendly_time(self.torrent['creation_date']))
 
         self.ModeratorName = wx.StaticText(self,-1,"Moderator name:",wx.Point(0,0),wx.Size(125,22))     
         self.ModeratorName.SetMinSize((125,14))
@@ -143,17 +157,16 @@ class FilesItemDetailsSummary(bgPanel):
         self.guiUtility.real = self.real
 
 
-        # check for moderation
-        if self.infohash is not None and self.mcdb.hasModeration(bin2str(self.infohash)):
-            moderation = self.mcdb.getModeration(bin2str(self.infohash))
-            mod_name = moderation[1]
-        else:
-            mod_name = "Not Moderated"
+         #check for moderation
+        #if self.infohash is not None and self.mcdb.hasModeration(bin2str(self.infohash)):
+        #    moderation = self.mcdb.getModeration(bin2str(self.infohash))
+        #    mod_name = moderation[1]
+        #else:
+        #    mod_name = "Not Moderated"
             # disable fake and real buttons
-            self.fake.setState(False)
-            self.real.setState(False)
- 
-        self.ModeratorName_info.SetLabel(mod_name)
+        #    self.fake.setState(False)
+        #    self.real.setState(False)
+        #self.ModeratorName_info.SetLabel(mod_name)
 
         
         
@@ -166,16 +179,18 @@ class FilesItemDetailsSummary(bgPanel):
 
         self.vSizer.Add([0,10], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
 
-        self.hSizer3 = wx.BoxSizer(wx.HORIZONTAL)
-        self.hSizer3.Add(self.Seeders,0,wx.FIXED_MINSIZE,5)
-        self.hSizer3.Add(self.NumSeeders,0,wx.FIXED_MINSIZE,5)
-        self.vSizer.Add(self.hSizer3,0,wx.LEFT|wx.FIXED_MINSIZE,5)
+        ##self.hSizer3 = wx.BoxSizer(wx.HORIZONTAL)
+        ##self.hSizer3.Add(self.Seeders,0,wx.FIXED_MINSIZE,5)
+        ##self.hSizer3.Add(self.NumSeeders,0,wx.FIXED_MINSIZE,5)
+        ##self.vSizer.Add(self.hSizer3,0,wx.LEFT|wx.FIXED_MINSIZE,5)
 
-        self.vSizer.Add([0,2], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
+        ##self.vSizer.Add([0,2], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
 
         self.hSizer4 = wx.BoxSizer(wx.HORIZONTAL)
-        self.hSizer4.Add(self.Leechers,0,wx.FIXED_MINSIZE,5)
-        self.hSizer4.Add(self.NumLeechers,0,wx.FIXED_MINSIZE,5)
+        ##self.hSizer4.Add(self.Leechers,0,wx.FIXED_MINSIZE,5)
+        ##self.hSizer4.Add(self.NumLeechers,0,wx.FIXED_MINSIZE,5)
+        self.hSizer4.Add(self.Popularity,0,wx.FIXED_MINSIZE,5)
+        self.hSizer4.Add(self.Popularity_info,0,wx.FIXED_MINSIZE,5)
         self.vSizer.Add(self.hSizer4,0,wx.LEFT|wx.FIXED_MINSIZE,5)
 
         self.vSizer.Add([0,2], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
@@ -199,11 +214,17 @@ class FilesItemDetailsSummary(bgPanel):
 
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)               
 
-        self.hSizer.Add([100,10], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 1)
+        self.hSizer.Add([20,10], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 1)
 
-        ##self.download = tribler_topButton(self, -1, name='download')
-        ##self.download.SetMinSize((20,20))
-        ##self.download.SetSize((20,20))
+        ##self.save = wx.StaticText(self,-1,"save",wx.Point(0,0),wx.Size(50,22))     
+        ##self.save.SetMinSize((50,14))
+        ##self.save.SetForegroundColour(wx.RED)
+
+
+
+        self.download = tribler_topButton(self, -1, name='download')
+        self.download.SetMinSize((20,20))
+        self.download.SetSize((20,20))
 
         ##self.select_files = tribler_topButton(self, -1, name='select_files')
         ##self.select_files.SetMinSize((148,16))
@@ -217,16 +238,28 @@ class FilesItemDetailsSummary(bgPanel):
         ##self.edit.SetMinSize((40,16))
         ##self.edit.SetSize((40,16))
 
-        self.video_small =  wx.Panel(self)
-        self.video_small.SetMinSize((193,140))
-        self.video_small.SetSize((193,140))
+        ##self.video_small =  wx.Panel(self)
+        ##self.video_small.SetMinSize((193,140))
+        ##self.video_small.SetSize((193,140))
 
         # set videoplayer to this panel
         self.videoplayer = VideoPlayer.getInstance()
         #self.videoplayer.videoframe.set_parent_panel(self.video_small)
 
+        ##self.hSizerDownload = wx.BoxSizer(wx.HORIZONTAL)
+        ##self.hSizerDownload.Add([0,0], 0, wx.FIXED_MINSIZE, 0)
+        ##self.hSizerDownload.Add(self.save,0,wx.FIXED_MINSIZE,0)
+        ##self.hSizerDownload.Add(self.download,0,wx.FIXED_MINSIZE,0)
 
-        ##self.hSizer.Add(self.download,0,wx.RIGHT|wx.FIXED_MINSIZE,4)
+        ##self.vSizerDownload = wx.BoxSizer(wx.VERTICAL)
+        ##self.vSizerDownload.Add([0,50], 0, wx.FIXED_MINSIZE, 0)
+        ##self.vSizerDownload.Add(self.hSizerDownload, 0, wx.FIXED_MINSIZE, 4)
+
+
+
+
+        ##self.hSizer.Add(self.vSizerDownload,0,wx.RIGHT|wx.FIXED_MINSIZE,4)
+
         ##self.hSizer.Add(self.select_files,0,wx.RIGHT|wx.FIXED_MINSIZE,4)
         ##self.hSizer.Add(self.view_related_files,0,wx.RIGHT|wx.FIXED_MINSIZE,4)
 
@@ -240,7 +273,8 @@ class FilesItemDetailsSummary(bgPanel):
         ##self.hSizer.Add([100,10], 0, wx.EXPAND|wx.FIXED_MINSIZE, 1)
 
 
-        self.play_big = tribler_topButton(self, -1, name='playbig')
+        self.play_big = SwitchButton(self, -1, name='playbig')
+        #self.play_big.Bind(wx.EVT_LEFT_UP, self.playbig_clicked)
 
 
         self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
@@ -249,7 +283,9 @@ class FilesItemDetailsSummary(bgPanel):
                 
 
         self.vSizer3 = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer3.Add(self.video_small, 0, wx.FIXED_MINSIZE, 4)
+        self.vSizer3.Add([0,67], 0, wx.FIXED_MINSIZE, 0)
+        self.vSizer3.Add(self.download, 0, wx.FIXED_MINSIZE, 4)
+
 
 
 
@@ -263,11 +299,17 @@ class FilesItemDetailsSummary(bgPanel):
         self.hSizer0.Add(self.vSizer2, 0 , wx.FIXED_MINSIZE , 4)
         self.hSizer0.Add([10,0], 0, wx.FIXED_MINSIZE, 0)
         self.hSizer0.Add(self.vSizer3, 0 , wx.FIXED_MINSIZE , 4)
-        self.hSizer0.Add([20,10], 0, wx.FIXED_MINSIZE, 0)
+        self.hSizer0.Add([50,10], 0, wx.FIXED_MINSIZE, 0)
 
         self.SetSizer(self.hSizer0)
         self.SetAutoLayout(1);  
         self.Layout()
+
+    def playbig_clicked(self,event):
+        self.play_big.setToggled()
+        self.guiUtility.buttonClicked(event)
+
+
         
     def setDataLib(self):
         filelist = self.guiUtility.filesList(self.data, self.metadatahandler)
@@ -378,27 +420,27 @@ class LibraryItemDetailsSummary(wx.Panel):
     def __init__(self, parent, torrentHash, web2data = None):
         wx.Panel.__init__(self, parent, -1)
         self.guiUtility = GUIUtility.getInstance()
-        self.metadatahandler = MetadataHandler.getInstance()
+##        self.metadatahandler = MetadataHandler.getInstance()
 #        self.thumbSummary = thumbSummary
 
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility   
 
-        self.data_manager = TorrentDataManager.getInstance(self.utility)
-        self.data = {} #keeps gui elements for each mode
+        ##self.data_manager = TorrentDataManager.getInstance(self.utility)
+        ##self.data = {} #keeps gui elements for each mode
         
-        if torrentHash != None:        
-            selectedTorrent = self.data_manager.getTorrents([torrentHash])            
-            if selectedTorrent:
-                self.data = selectedTorrent[0]
-        elif web2data:
-            self.data= web2data 
+        ##if torrentHash != None:        
+        ##    selectedTorrent = self.data_manager.getTorrents([torrentHash])            
+        ##    if selectedTorrent:
+        ##        self.data = selectedTorrent[0]
+        ##elif web2data:
+        ##    self.data= web2data 
                 
 #        self.filesItemPanel = filesItemPanel.FilesItemPanel
 #        self.thumbnailViewer = filesItemPanel.ThumbnailViewer
         self.addComponents()
         
-        self.setDataNoLib()
+        ##self.setDataNoLib()
 #        if self.downloading:
 #            self.setDataLib()
 #        elif not self.downloading:
@@ -412,8 +454,9 @@ class LibraryItemDetailsSummary(wx.Panel):
 #        
 #        self.vSizer = wx.BoxSizer(wx.VERTICAL)  
 #        self.hSizer.Add(self.vSizer, 0, wx.TOP, 25) 
-        
-        self.downloading = self.data and self.data.get('myDownloadHistory')
+ 
+        self.downloading = True ## added       
+        ##self.downloading = self.data and self.data.get('myDownloadHistory')
         
         if self.downloading:
             

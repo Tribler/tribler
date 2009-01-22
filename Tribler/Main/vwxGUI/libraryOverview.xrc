@@ -2,65 +2,25 @@
 <resource version="2.3.0.1" xmlns="http://www.wxwidgets.org/wxxrc">
   <object class="wxPanel" name="libraryOverview">
     <pos>0,0</pos>
-    <size>625,430</size>
-    <bg>#666666</bg>
+    <size>677,485</size>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="spacer">
-        <size>660,0</size>
+        <size>660,1</size>
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
       </object>
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="libraryGrid" subclass="Tribler.Main.vwxGUI.standardGrid.libraryGrid">
           <pos>0,0</pos>
-          <size>20,20</size>
-        </object>
-      </object>
-      <object class="sizeritem">
-        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>3</border>
-        <option>0</option>
-        <object class="wxBoxSizer">
-          <orient>wxHORIZONTAL</orient>
-          <object class="spacer">
-            <size>25,28</size>
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-            <border>3</border>
-            <option>1</option>
-          </object>
-          <object class="sizeritem">
-            <flag>wxTOP</flag>
-            <border>5</border>
-            <option>1</option>
-            <object class="wxPanel" name="standardPager" subclass="Tribler.Main.vwxGUI.standardPager.standardPager">
-              <pos>307,391</pos>
-              <size>307,23</size>
-            </object>
-          </object>
-          <object class="spacer">
-            <size>8,28</size>
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-            <border>0</border>
-            <option>0</option>
-          </object>
-        </object>
-      </object>
-      <object class="sizeritem">
-        <flag>wxTOP|wxRIGHT|wxFIXED_MINSIZE</flag>
-        <border>6</border>
-        <option>0</option>
-        <object class="wxPanel" name="infoIcon1" subclass="Tribler.Main.vwxGUI.bgPanel.ImagePanel">
-          <tooltip>In progress and finished downloads</tooltip>
-          <hidden>1</hidden>
-          <pos>0,420</pos>
-          <size>8,8</size>
+          <size>675,409</size>
+          <bg>#FFFFFF</bg>
         </object>
       </object>
     </object>
+    <bg>#FFFFFF</bg>
   </object>
 </resource>

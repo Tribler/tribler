@@ -3,9 +3,9 @@ from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButto
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.TextButton import *
-#from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
+##from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 #from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
-#from Tribler.Overlay.MetadataHandler import MetadataHandler
+##from Tribler.Overlay.MetadataHandler import MetadataHandler
 
 
 

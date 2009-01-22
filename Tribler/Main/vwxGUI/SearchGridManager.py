@@ -392,7 +392,7 @@ class TorrentSearchGridManager:
                         print >>sys.stderr,"TorrentSearchManager: web2: requestMore diff",pagesize
                     self.dod.requestMore(pagesize)
                     
-                data = self.dod.getDataSafe()
+                data = self.dod.getData()
                 if DEBUG:
                     print >>sys.stderr,"TorrentSearchManager: getHitsInCat: web2: Got total",len(data)
                 numResults = 0

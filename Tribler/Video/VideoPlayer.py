@@ -18,7 +18,6 @@ from Tribler.Video.utils import win32_retrieve_video_play_command,win32_retrieve
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 
-
 DEBUG = True
 
 USE_VLC_RAW_INTERFACE = True
@@ -33,6 +32,7 @@ class VideoPlayer:
             raise RuntimeError, "VideoPlayer is singleton"
         VideoPlayer.__single = self
         self.videoframe = None
+        self.videopanel = None ## added
         self.extprogress = None
         self.vod_download = None
         self.playbackmode = None
@@ -96,7 +96,7 @@ class VideoPlayer:
         self.videoframe = videoframe
 
 
-    def play_file(self,dest):
+    def play_file(self,dest,videopanel): 
         """ Play video file from disk """
         if DEBUG:
             print >>sys.stderr,"videoplay: Playing file from disk",dest
@@ -106,8 +106,12 @@ class VideoPlayer:
         
         if DEBUG:
             print >>sys.stderr,"videoplay: play_file: cmd is",cmd
+ 
+        self.videopanel = videopanel
+        self.videopanel.Load(cmd)
+        self.videopanel.Play()
         
-        self.launch_video_player(cmd)
+        ## self.launch_video_player(cmd)
 
     def play_file_via_httpserv(self,dest):
         """ Play a file via our internal HTTP server. Needed when the user
@@ -227,7 +231,7 @@ class VideoPlayer:
             self.videoframe.hide_videoframe()
 
 
-    def play(self,ds):
+    def play(self,ds,videopanel):
         """ Used by Tribler Main """
         self.determine_playbackmode()
         
@@ -273,11 +277,13 @@ class VideoPlayer:
         flag = self.playbackmode == PLAYBACKMODE_INTERNAL and not self.is_ascii_filename(selectedoutfilename)
         
         if complete:
+            print >> sys.stderr, 'complete'
             if flag:
                 self.play_file_via_httpserv(selectedoutfilename)
             else:
-                self.play_file(selectedoutfilename)
+                self.play_file(selectedoutfilename,videopanel) ## added videopanel
         else:
+            print >> sys.stderr, 'not complete'
             self.play_vod(ds,selectedinfilename)
 
 

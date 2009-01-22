@@ -38,6 +38,9 @@ from cStringIO import StringIO
 import urllib
 import webbrowser
 
+from safeguiupdate import DelayedInvocation,FlaglessDelayedInvocation ## added
+
+
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 import Tribler.Main.vwxGUI.font as font
@@ -67,7 +70,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 
-DEBUG = False
+DEBUG = True
 
 
 ################################################################
@@ -92,7 +95,7 @@ class FileDropTarget(wx.FileDropTarget):
 
 
 # Custom class loaded by XRC
-class MainFrame(wx.Frame):
+class MainFrame(wx.Frame, DelayedInvocation):
     def __init__(self, *args):
         self.firewallStatus = None
         self.utility = None
@@ -140,6 +143,7 @@ class MainFrame(wx.Frame):
         #wx.Frame.__init__(self, None, ID, title, position, size, style = style)
         
         self.doneflag = Event()
+        #DelayedInvocation.__init__(self) ## added
 
         dragdroplist = FileDropTarget(self)
         self.SetDropTarget(dragdroplist)
@@ -240,25 +244,9 @@ class MainFrame(wx.Frame):
 
         # Init video player
         self.videoFrame = None
-        feasible = return_feasible_playback_modes(self.utility.getPath())
-        if PLAYBACKMODE_INTERNAL in feasible:
-            # This means vlc is available
-            videoplayer = VideoPlayer.getInstance()
-            
-            iconpath = os.path.join(self.utility.getPath(),'Tribler','Images','tribler.ico')
-            logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler.png')
-            self.videoFrame = PlayerFrame(self,'Tribler Video',iconpath,videoplayer.get_vlcwrap(),logopath)
-
-            videoplayer.set_videoframe(self.videoFrame)
-        else:
-            videoplayer = VideoPlayer.getInstance()
-##            videoplayer.set_parentwindow(self)
-
-        iconpath = os.path.join(self.utility.getPath(),'Tribler','Images','tribler.ico')
-        self.friendsmgr = FriendshipManager(self.utility,iconpath)
-        
         sys.stdout.write('GUI Complete.\n')
 
+        ##self.standardOverview.Show(True)
         self.Show(True)
         
         
@@ -290,7 +278,7 @@ class MainFrame(wx.Frame):
             torrentfilename = self.params[0]
             self.startDownload(torrentfilename,cmdline=True)
 
-    def startDownload(self,torrentfilename,destdir=None,tdef = None, cmdline = False, clicklog=None):
+    def startDownload_old(self,torrentfilename,destdir=None,tdef = None, cmdline = False, clicklog=None,name=None):
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef,cmdline
@@ -305,6 +293,7 @@ class MainFrame(wx.Frame):
             videofiles = tdef.get_files(exts=videoextdefaults)
             
             if tdef.get_live() or (cmdline and len(videofiles) > 0):
+                print >> sys.stderr , 'Start and play mode'
                 videoplayer = VideoPlayer.getInstance()
                 return videoplayer.start_and_play(tdef,dscfg)
             else:
@@ -313,7 +302,16 @@ class MainFrame(wx.Frame):
                 if vod_download:
                     print >> sys.stderr,'Jelle impl'
                     videoplayer = VideoPlayer.getInstance()
-                    videoplayer.videoframe.show_videoframe()
+                    videoplayer.videoframe.videopanel = self.guiUtility.frame.videopanel
+                    #videoplayer.videoframe.Hide()
+
+                    #wx.CallAfter(videoplayer.play_file,dscfg.get_dest_dir() + '/' + name) ## to remove
+                    ##(prefix,ext) = os.path.splitext(dscfg.get_dest_dir() + '/' + name)
+                    ##[mimetype,cmd] = videoplayer.get_video_player(ext,dscfg.get_dest_dir() + '/' + name)
+
+                    ##videoplayer.videoframe.videopanel.Load(cmd)
+                    ##videoplayer.videoframe.videopanel.PlayPause()
+
 
                     def callback(ds):
                         print >> sys.stderr, 'Jelle callback'
@@ -324,7 +322,7 @@ class MainFrame(wx.Frame):
                 # store result because we want to store clicklog data right after download was started, then return result
                 mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
                 # mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
-                return result 
+                return result  
 
         except DuplicateDownloadException:
             # show nice warning dialog
@@ -338,6 +336,44 @@ class MainFrame(wx.Frame):
         except Exception,e:
             print_exc()
             self.onWarning(e)
+
+
+    def startDownload(self,torrentfilename,destdir=None,tdef = None, cmdline = False, clicklog=None,name=None):
+        
+        if DEBUG:
+            print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef,cmdline
+        try:
+            if tdef is None:
+                tdef = TorrentDef.load(torrentfilename)
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            dscfg = defaultDLConfig.copy()
+            if destdir is not None:
+                dscfg.set_dest_dir(destdir)
+        
+            videofiles = tdef.get_files(exts=videoextdefaults)
+            
+            result = self.utility.session.start_download(tdef,dscfg)
+
+            # store result because we want to store clicklog data right after download was started, then return result
+            mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+            # mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
+            return result  
+
+        except DuplicateDownloadException:
+            # show nice warning dialog
+            dlg = wx.MessageDialog(None,
+                                   self.utility.lang.get('duplicate_download_msg'),
+                                   self.utility.lang.get('duplicate_download_title'),
+                                   wx.OK|wx.ICON_INFORMATION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+
+        except Exception,e:
+            print_exc()
+            self.onWarning(e)
+
+
+
 
         
     def checkVersion(self):
@@ -461,7 +497,6 @@ class MainFrame(wx.Frame):
         # I switch back, I don't get an event. As a result the GUIupdate
         # remains turned off. The wxWidgets wiki on the TaskBarIcon suggests
         # catching the onSize event. 
-        
         if DEBUG:
             if event is not None:
                 print  >> sys.stderr,"main: onSize:",self.GetSize()

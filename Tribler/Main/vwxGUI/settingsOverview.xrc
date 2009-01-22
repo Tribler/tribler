@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resource>
+  <object class="wxPanel" name="settingsOverview" subclass="Tribler.Main.vwxGUI.settingsOverviewPanel.SettingsOverviewPanel">
+    <pos>0,0</pos>
+    <size>1000,760</size>
+    <bg>#FFFFFF</bg>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="spacer">
+        <size>0,20</size>
+      </object>
+      <object class="sizeritem">
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="spacer">
+            <size>50,0</size>
+          </object>
+          <object class="sizeritem">
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <object class="wxStaticText" name="profileTitle">
+                  <label>Profile</label>
+                  <font>
+                    <size>10</size>
+                    <family>swiss</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Sans</face>
+                    <encoding>UTF-8</encoding>
+                  </font>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,10</size>
+              </object>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>15</border>
+                    <option>0</option>
+                    <object class="wxPanel" name="thumb" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
+                      <pos>18,84</pos>
+                      <size>80,80</size>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="st227c">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>nickname:</label>
+                          <pos>110,70</pos>
+                          <size>89,23</size>
+                          <font>
+                            <size>9</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>normal</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
+                        </object>
+                      </object>
+                      <object class="spacer">
+                        <size>89,17</size>
+                        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>1</option>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>0</option>
+                        <object class="wxPanel" name="edit" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                          <pos>110,130</pos>
+                          <size>37,16</size>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>1</option>
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxLEFT|wxBOTTOM|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>2</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="myNameField">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>_</label>
+                          <pos>201,66</pos>
+                          <size>99,18</size>
+                          <font>
+                            <size>9</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>bold</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,10</size>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <size>100,0</size>
+          </object>
+          <object class="sizeritem">
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <object class="wxStaticText" name="sharingTitle">
+                  <label>Sharing Rates</label>
+                  <font>
+                    <size>10</size>
+                    <family>swiss</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Sans</face>
+                    <encoding>UTF-8</encoding>
+                  </font>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,10</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>20,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText" name="uploadText">
+                      <label>Max upload rate</label>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,0</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>20,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxTextCtrl" name="uploadCtrl">
+                      <size>50,20</size>
+                      <style>wxTE_RIGHT</style>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>3,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText">
+                      <label>KB/s</label>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>5,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxPanel" name="zeroUp" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                      <size>23,16</size>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>3,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxPanel" name="fiftyUp" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                      <size>23,16</size>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>3,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxPanel" name="hundredUp" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                      <size>28,16</size>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>3,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxPanel" name="unlimitedUp" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                      <size>62,16</size>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,10</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>20,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText" name="downloadText">
+                      <label>Max download rate</label>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>20,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxTextCtrl" name="downloadCtrl">
+                      <size>50,20</size>
+                      <style>wxTE_RIGHT</style>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>3,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText">
+                      <label>KB/s</label>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>5,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxPanel" name="zeroDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                      <size>23,16</size>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>3,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxPanel" name="fiftyDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                      <size>23,16</size>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>3,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxPanel" name="hundredDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                      <size>28,16</size>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>3,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxPanel" name="unlimitedDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                      <size>62,16</size>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <size>100,0</size>
+          </object>
+          <object class="sizeritem">
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <object class="wxStaticText" name="portTitle">
+                  <label>Port Settings</label>
+                  <font>
+                    <size>10</size>
+                    <family>swiss</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Sans</face>
+                    <encoding>UTF-8</encoding>
+                  </font>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,10</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxStaticBox" name="portValue">
+                  <label>7762</label>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <size>0,70</size>
+      </object>
+      <object class="sizeritem">
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="spacer">
+            <size>50,0</size>
+          </object>
+          <object class="sizeritem">
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <object class="wxStaticText" name="privacyTitle">
+                  <label>Privacy</label>
+                  <font>
+                    <size>10</size>
+                    <family>swiss</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Sans</face>
+                    <encoding>UTF-8</encoding>
+                  </font>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,10</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>10,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText" name="privacyDetails">
+                      <label>Share information about your files, with</label>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,0</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>10,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxRadioButton">
+                      <label>No one</label>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>5,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxRadioButton">
+                      <label>Your friends</label>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>5,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxRadioButton">
+                      <label>Everyone</label>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <size>130,0</size>
+          </object>
+          <object class="sizeritem">
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <object class="wxStaticText" name="cacheText">
+                  <label>Disk Cache</label>
+                  <font>
+                    <size>10</size>
+                    <family>swiss</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Sans</face>
+                    <encoding>UTF-8</encoding>
+                  </font>
+                </object>
+                <border>0</border>
+              </object>
+              <object class="spacer">
+                <size>0,10</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>10,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText" name="cacheDescription">
+                      <label>Max size allocation for cache</label>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,0</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>10,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxSlider" name="cacheSlider">
+                      <value>10</value>
+                      <min></min>
+                      <max>100</max>
+                      <size>100,20</size>
+                      <tickfreq>1</tickfreq>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>3,0</size>
+                  </object>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,10</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>10,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText" name="diskLocationText">
+                      <label>Disk Location</label>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,0</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>10,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxTextCtrl" name="diskLocationCtrl">
+                      <size>200,20</size>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>3,0</size>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

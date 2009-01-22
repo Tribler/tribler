@@ -396,6 +396,9 @@ class standardGrid(wx.Panel):
         self.panels = []
         self.viewmode = viewmode
         self.guiUtility = GUIUtility.getInstance()
+
+        self.guiUtility.standardGrid = self
+ 
         self.utility = self.guiUtility.utility
         self.gridManager = GridManager(self, self.utility)
         pre = wx.PrePanel()
@@ -434,7 +437,7 @@ class standardGrid(wx.Panel):
         # Do all init here
 
         #self.SetSize((500,500))
-        self.SetBackgroundColour(wx.BLACK)
+        self.SetBackgroundColour(wx.WHITE)
         
         #self.cols = 5
         
@@ -665,7 +668,6 @@ class standardGrid(wx.Panel):
         else:
             columnHeaderHeight = self.topMargin
             
-        
         if size[1] < 50 or self.subPanelHeight == 0:
             self.currentRows = 0
             self.items = 0
@@ -788,6 +790,48 @@ class standardGrid(wx.Panel):
             # I sometimes get UnicodeErrors here somewhere
             print_exc()
 
+
+    def deselectAll(self):
+        """Deselect all torrentPanels"""
+        
+        try:
+            #print 'standardGrid: update selection'
+            if not self.hasDetailPanel():
+                return
+            
+#            title = None
+            
+            id = self.detailPanel.getIdentifier()
+            
+            #print "standardGrid: updateSelection: detailsPanel has id",id,self.detailPanel
+                
+            number = 0
+            rowIndex = 0
+            for row in self.panels:
+                colIndex = 0
+                for pan in row:
+                    try:
+                        panel_id = pan.getIdentifier()
+                        #print "standardGrid: updateSelection: panel has id",`panel_id`
+                    except:
+                        panel_id = None
+                        
+                    #if panel_id is None or repr(panel_id) != repr(id):
+                    print >> sys.stderr , 'item deselected2'
+                    pan.deselect(rowIndex,colIndex)#number = number)
+                    number += 1
+                    colIndex += 1
+                rowIndex += 1
+            self.Layout()
+        except:
+            # I sometimes get UnicodeErrors here somewhere
+            print_exc()
+
+
+
+
+
+
     def hasDetailPanel(self):
         if self.detailPanel:
             return True
@@ -907,7 +951,7 @@ class filesGrid(standardGrid):
 #        columns = 5
 #        self.subPanelHeight = 108 # This will be update after first refresh
         columns = (5, 1)
-        subPanelHeight = (5*22, 22)
+        subPanelHeight = (5*22, 35)
         standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
         
     def getSubPanel(self, keyfun):
@@ -935,7 +979,7 @@ class friendsGrid(standardGrid):
 class libraryGrid(standardGrid):
     def __init__(self):
         columns = (1,1)
-        subPanelHeight = (22, 22) # This will be update after first refresh
+        subPanelHeight = (22, 35) # This will be update after first refresh
         standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal', viewmode='list')
             
     def getSubPanel(self, keyfun):

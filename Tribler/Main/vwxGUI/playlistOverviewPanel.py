@@ -5,11 +5,11 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 #from Tribler.CacheDB.CacheDBHandler import MyDBHandler
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager
+##from Tribler.Main.Dialogs.MugshotManager import MugshotManager
 #from Tribler.Dialogs.socnetmyinfo import MyInfoWizard
 #from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 #from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
-from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
+##from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Core.Utilities.unicode import bin2unicode
 #from Tribler.vwxGUI.filesItemPanel import *
@@ -20,7 +20,7 @@ from Tribler.Core.Utilities.unicode import *
 #from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
 #from Tribler.vwxGUI.standardDetails import *
 from Tribler.Main.vwxGUI.standardPager import *
-from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
+##from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Main.vwxGUI.standardGrid import *
 #from time import time
 import urllib

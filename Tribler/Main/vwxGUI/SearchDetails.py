@@ -31,7 +31,7 @@ class SearchDetailsPanel(wx.Panel):
         self.textPanel.SetSizer(sizer)
         self.textPanel.SetAutoLayout(1)
         self.textPanel.SetForegroundColour(wx.WHITE)        
-        self.textPanel.SetBackgroundColour(wx.Colour(255,255,255))        
+        self.textPanel.SetBackgroundColour(wx.Colour(155,255,255))        
         self.text.SetSize((100, 15))
         self.hSizer.Add(self.textPanel, 1, wx.TOP|wx.EXPAND, 3)
         self.vSizer.Add(self.hSizer, 1, wx.TOP|wx.EXPAND, 3)
@@ -52,7 +52,7 @@ class SearchDetailsPanel(wx.Panel):
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
         self.SetMinSize((-1, 40))
-        self.SetBackgroundColour(wx.Colour(255,255,255))
+        self.SetBackgroundColour(wx.Colour(155,255,255))
         self.vSizer.Layout()
         self.Layout()
         self.searchBusy = True #??

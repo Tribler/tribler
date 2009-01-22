@@ -73,6 +73,7 @@ class LibraryItemPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1)
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
+        self.videopanel = self.guiUtility.frame.videopanel
         self.parent = parent
         if self.parent.GetName() == 'libraryGrid':
             self.listItem = (self.parent.viewmode == 'list')
@@ -100,6 +101,7 @@ class LibraryItemPanel(wx.Panel):
         self.oldCategoryLabel = None
         self.name = name
         self.torrentDetailsFrame = None
+        self.first = True
         
         self.addComponents()
             
@@ -123,79 +125,58 @@ class LibraryItemPanel(wx.Panel):
         
         self.Show(False)
 
+        self.SetMinSize((660,22))
+
         self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
+
+
+        self.hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(220,2),wx.LI_HORIZONTAL)
+        self.hLine.SetForegroundColour((255,0,0))
+        self.vSizerOverall.Add(self.hLine, 0, wx.FIXED_MINSIZE|wx.EXPAND, 1) ##           
+
+
+        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.vSizerOverall.Add(self.hSizer, 0 , wx.EXPAND, 0)
+
+        self.SetBackgroundColour(wx.WHITE)
+
         
         # Add Spacer
         self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
         
         
         # Add thumb
-        self.thumb = ThumbnailViewer(self, 'libraryMode')
-        self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize(libraryModeThumbSize)
-        self.hSizer.Add(self.thumb, 0, wx.ALL, 2)
+        #self.thumb = ThumbnailViewer(self, 'libraryMode')
+        #self.thumb.setBackground(wx.BLACK)
+        #self.thumb.SetSize(libraryModeThumbSize)
+        #self.thumb.Hide()
+        #self.hSizer.Add(self.thumb, 0, wx.ALL, 2)
         
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(120,14))        
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(200,14))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((120,14))
-        self.hSizer.Add(self.title,1,wx.TOP,3)
+        self.title.SetMinSize((200,14))
+        self.hSizer.Add(self.title,0,wx.TOP,3)
         
-    
-##        self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
-##        self.vSizerTitle.Add (self.title, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
-##        self.vSizerTitle.Add (self.speedSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)                           
-##        self.hSizer.Add(self.vSizerTitle, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)     
-        
-        
-        # V Line
-        self.addLine()
-        # Add Gauge/progressbar
-        #self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
+        self.hSizer.Add([20,0],0,wx.FIXED_MINSIZE,0)        
 
-        self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(100,5))
-        
-        # >> Drawn in progressbar
-        #self.pbLabel = wx.StaticText(self,-1,"12% |ETA:10min30",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                                
-        #self.pbSizer.Add(self.pbLabel,0,wx.TOP|wx.FIXED_MINSIZE,3)        
-        # <<        
-
-        # Text under progressbar
-        self.percentage = wx.StaticText(self,-1,"?%")
-        self.percentage.SetForegroundColour(self.triblerGrey)
-        self.percentage.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.eta = wx.StaticText(self,-1,"?")
-        self.eta.SetForegroundColour(self.triblerGrey)
-        self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))                
-        self.fileProgressSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.fileProgressSizer.Add(self.percentage, 1, wx.EXPAND, 0)
-        self.fileProgressSizer.Add(self.eta, 0, wx.EXPAND|wx.ALIGN_RIGHT, 0)
-        
-        self.pbMessage = wx.BoxSizer(wx.VERTICAL)
-        self.pbMessage.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)
-        self.pbMessage.Add(self.fileProgressSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
-        self.hSizer.Add(self.pbMessage, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 2)         
-        
-        # pause/stop button
-        self.pause = SwitchButton(self, -1, wx.Point(542,3), wx.Size(16,16),name='pause' )
-        self.hSizer.Add(self.pause,0,wx.TOP|wx.FIXED_MINSIZE,2)        
-        
-        # V Line
-        self.addLine()
+ 
+        self.library_play = None
 
         # Up/Down text speed
 #        self.downSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='downSpeed')
 #        self.downSpeed.setBackground(wx.WHITE)
 #        self.downSpeed.SetToolTipString(self.utility.lang.get('down'))
-        self.speedDown2 = wx.StaticText(self,-1,"down: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
+        self.speedDown2 = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
         self.speedDown2.SetForegroundColour(self.triblerGrey)        
         self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.speedDown2.SetMinSize((70,12))        
 #        self.upSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='upSpeed')
 #        self.upSpeed.setBackground(wx.WHITE)
 #        self.upSpeed.SetToolTipString(self.utility.lang.get('up'))
-        self.speedUp2   = wx.StaticText(self,-1,"up: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                        
+        self.speedUp2   = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                        
         self.speedUp2.SetForegroundColour(self.triblerGrey)
         self.speedUp2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.speedUp2.SetMinSize((70,12))
@@ -204,14 +185,67 @@ class LibraryItemPanel(wx.Panel):
 #        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
         self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 4)
         # V Line
-        self.addLine()
+        ## self.addLine()
         
 #        self.hSizer.Add(self.upSpeed, 0, wx.LEFT|wx.TOP, 2)                  
 #        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
-        self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 4)         
+        self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 4)   
+
+ 
+        # estimated time left
+        self.eta = wx.StaticText(self,-1,"   ?")
+        self.eta.SetForegroundColour(self.triblerGrey)
+        self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))                
+        self.hSizer.Add(self.eta, 0, wx.FIXED_MINSIZE, 0)
+
+
+
+        self.hSizer.Add([30,0],0,wx.FIXED_MINSIZE,0)        
+
+
+    
+##        self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
+##        self.vSizerTitle.Add (self.title, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
+##        self.vSizerTitle.Add (self.speedSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)                           
+##        self.hSizer.Add(self.vSizerTitle, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)     
+        
+        
+        # V Line
+        ## self.addLine()
+        # Add Gauge/progressbar
+        #self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
+
+        self.pb = ProgressBar(self,pos=wx.Point(450,0),size=wx.Size(60,5))
+        self.pb.SetMinSize((100,5))        
+
+        self.pbSizer = wx.BoxSizer(wx.VERTICAL)
+        self.pbSizer.Add([0,5],0,wx.FIXED_MINSIZE,0)        
+        self.pbSizer.Add(self.pb,0,wx.FIXED_MINSIZE,0)        
+        
+
+        # Percentage
+        self.percentage = wx.StaticText(self,-1,"?%",wx.Point(800,0),wx.Size(40,14))
+        self.percentage.SetForegroundColour(self.triblerGrey)
+        self.percentage.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+       
+
+        self.hSizer.Add(self.pbSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 0) 
+        self.hSizer.Add([15,0],0,wx.FIXED_MINSIZE,0)        
+        self.hSizer.Add(self.percentage, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 0)         
+        
+        # pause/stop button
+        #self.pause = SwitchButton(self, -1, wx.Point(542,3), wx.Size(16,16),name='pause' )
+        #self.hSizer.Add(self.pause,0,wx.TOP|wx.FIXED_MINSIZE,2)        
+        
+        # V Line
+        ## self.addLine()
+
+        self.hSizer.Add([50,0],0,wx.FIXED_MINSIZE,0)        
+      
+
         
         # V Line                
-        self.addLine()
+        ## self.addLine()
                 
         # Status Icon
 ##        self.statusIcon = ImagePanel(self, -1, name="LibStatus_boosting")        
@@ -220,23 +254,50 @@ class LibraryItemPanel(wx.Panel):
 ##        self.hSizer.Add(self.statusIcon, 0, wx.TOP|wx.RIGHT|wx.EXPAND, 2)
         
         # Status message
-        self.statusField = wx.StaticText(self, -1,'', wx.Point(),wx.Size())
-        self.statusField.SetForegroundColour(self.triblerGrey)        
-        self.statusField.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.statusField.SetMinSize((60,12))
+        ##self.statusField = wx.StaticText(self, -1,'', wx.Point(),wx.Size())
+        ##self.statusField.SetForegroundColour(self.triblerGrey)        
+        ##self.statusField.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        ##self.statusField.SetMinSize((60,12))
 #        self.statusField.SetMinSize((125,12))
-        self.hSizer.Add(self.statusField, 1, wx.TOP, 4)
+        ##self.hSizer.Add(self.statusField, 0, wx.TOP, 4)
+
+        ##self.hSizer.Add([20,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
         
         # V Line
-        self.addLine()
+        ## self.addLine()
 
         # Boost button
-        self.boost = SwitchButton(self, name="boost")
-        self.boost.setBackground(wx.WHITE)
-        self.boost.SetSize((50,16))
-        self.boost.setEnabled(False)
-        self.hSizer.Add(self.boost, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
-        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
+        ##self.boost = SwitchButton(self, name="boost")
+        ##self.boost.setBackground(wx.WHITE)
+        ##self.boost.SetSize((50,16))
+        ##self.boost.setEnabled(False)
+        ##self.hSizer.Add(self.boost, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
+        ##self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
+
+        # Play Fast
+        ##self.playFast = SwitchButton(self, name="playFast")
+        ##self.playFast.setBackground(wx.WHITE)
+        ##self.playFast.SetSize((39,16))
+        ##self.playFast.setEnabled(False)
+        ##self.hSizer.Add(self.playFast, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
+        ##self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)   
+
+        # Play
+        ##self.playsmall = SwitchButton(self, name="playsmall") ## before libraryPlay
+        ##self.playsmall.setBackground(wx.WHITE)
+        ##self.playsmall.SetSize((16,16))
+        ##self.playsmall.setEnabled(True)
+        ##self.hSizer.Add(self.playsmall, 1, wx.TOP|wx.ALIGN_RIGHT, 2)          
+
+        ##self.hSizerSummary = wx.BoxSizer(wx.HORIZONTAL) ##
+        ##self.vSizerOverall.Add(self.hSizerSummary, 1, wx.FIXED_MINSIZE|wx.EXPAND, 0) ##           
+
+        self.library_play = tribler_topButton(self, name="library_play") ## before libraryPlay
+        self.library_play.setBackground(wx.WHITE)
+        self.library_play.SetMinSize((17,17))
+        self.library_play.SetSize((17,17))
+        self.hSizer.Add(self.library_play, 0, wx.TOP|wx.ALIGN_RIGHT, 2)   
+        
        
             
         # Add Refresh        
@@ -298,6 +359,9 @@ class LibraryItemPanel(wx.Panel):
         
         #print_stack()
         #print >>sys.stderr,"lip: setData called"       
+
+        #if torrent == None and self.library_play is not None:
+        #    self.library_play.Destroy()
         
         if threading.currentThread().getName() != "MainThread":
             print >>sys.stderr,"lip: setData called by nonMainThread!",threading.currentThread().getName()
@@ -342,8 +406,17 @@ class LibraryItemPanel(wx.Panel):
             self.speedDown2.SetLabel(self.utility.speed_format(dls)) 
             self.speedUp2.SetLabel(self.utility.speed_format(uls))
             
-            finished = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
-            print >> sys.stderr, '%s %s %s' % (`ds.get_download().get_def().get_name()`, ds.get_progress(), dlstatus_strings[ds.get_status()])
+
+            #if self.library_play is not None:
+            #    self.library_play.Destroy()
+
+
+
+            finished = ds.get_progress() == 1.0 ## or ds.get_status() == DLSTATUS_SEEDING
+            if not finished and self.library_play is not None:
+                self.library_play.Hide()
+
+            ## print >> sys.stderr, '%s %s %s' % (`ds.get_download().get_def().get_name()`, ds.get_progress(), dlstatus_strings[ds.get_status()])
             if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                 print >> sys.stderr, "ERROR IS",ds.get_error()
             progress = (ds.get_progress() or 0.0) * 100.0
@@ -357,9 +430,9 @@ class LibraryItemPanel(wx.Panel):
             self.eta.SetLabel(eta)
             self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
             # status is mapped with >Utility/constants.py
-            if status == STATUS_QUEUE :  
+            ##if status == STATUS_QUEUE :  
                 #print 'queue'
-                pass
+                ##pass
     ##            elif status == STATUS_STOP or status == STATUS_PAUSE :  
     ##                self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
     ##            elif status == STATUS_ACTIVE:  
@@ -378,17 +451,17 @@ class LibraryItemPanel(wx.Panel):
     ##                  "seeding"         : "LibSatus_seeding.png"}
     
             
-            if finished and ds.get_status() == DLSTATUS_STOPPED:
-                status = self.utility.lang.get('completed')
-            else:
-                statusshort = dlstatus_strings[ds.get_status()]
-                status = self.utility.lang.get(statusshort)
+            ##if finished and ds.get_status() == DLSTATUS_STOPPED:
+            ##    status = self.utility.lang.get('completed')
+            ##else:
+            ##    statusshort = dlstatus_strings[ds.get_status()]
+            ##    status = self.utility.lang.get(statusshort)
                 
-            if ds.get_coopdl_coordinator() is not None:
-                status += ", helping" 
+            ##if ds.get_coopdl_coordinator() is not None:
+            ##    status += ", helping" 
                 
-            self.statusField.SetLabel(status)
-            self.statusField.SetToolTipString(self.statusField.GetLabel())
+            ##self.statusField.SetLabel(status)
+            ##self.statusField.SetToolTipString(self.statusField.GetLabel())
                 
             #status = abctorrent.status.getStatus()
 #            print "--tb-------------------------------"
@@ -464,17 +537,21 @@ class LibraryItemPanel(wx.Panel):
                 self.pb.reset(colour=0) # Show has having none
                 self.pb.Refresh()
                 
+            ##self.playsmall.setToggled(True)
+ 
+            ##self.playerPlay.setEnabled(True)
+            #self.playerPlay.setEnabled(showPlayButton or self.playable)            
+            #self.playerPlay.setToggled(self.playable, tooltip = {"disabled" : self.utility.lang.get('playerDisabled'), "enabled" : self.utility.lang.get('playerEnabled')})
             
-            self.playerPlay.setEnabled(showPlayButton or self.playable)            
-            self.playerPlay.setToggled(self.playable, tooltip = {"disabled" : self.utility.lang.get('playerDisabled'), "enabled" : self.utility.lang.get('playerEnabled')})
-            
-            self.playFast.setEnabled(showPlayFast)
-            self.playFast.setToggled(not switchable, tooltip = {"disabled" : self.utility.lang.get('playFastDisabled'), "enabled" : self.utility.lang.get('playFastEnabled')})
+            ##self.playFast.setEnabled(True)
+            #self.playFast.setEnabled(showPlayFast)
+            #self.playFast.setToggled(not switchable, tooltip = {"disabled" : self.utility.lang.get('playFastDisabled'), "enabled" : self.utility.lang.get('playFastEnabled')})
 
-            self.boost.setEnabled(showBoost)
-            self.boost.setToggled(self.is_boosted_or_boosting(), tooltip = {"disabled" : self.utility.lang.get('boostDisabled'), "enabled" : self.utility.lang.get('boostEnabled')})
+            ##self.boost.setEnabled(True)
+            #self.boost.setEnabled(showBoost)
+            #self.boost.setToggled(self.is_boosted_or_boosting(), tooltip = {"disabled" : self.utility.lang.get('boostDisabled'), "enabled" : self.utility.lang.get('boostEnabled')})
             
-            self.pause.setToggled(ds.get_status() == DLSTATUS_STOPPED or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
+            ##self.pause.setToggled(ds.get_status() == DLSTATUS_STOPPED or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
                         
                 
         elif torrent: # inactive torrent
@@ -490,18 +567,18 @@ class LibraryItemPanel(wx.Panel):
                 self.playFast.setEnabled(False)
                 self.boost.setEnabled(False)
             
-            self.pause.setEnabled(True)
-            self.pause.setToggled(True)
-            if torrent.get('progress') == 100.0:
+            ##self.pause.setEnabled(True)
+            ##self.pause.setToggled(True)
+            ##if torrent.get('progress') == 100.0:
 ##                self.playerPlay.setEnabled(True)
 ##                self.playerPlay.setToggled(True, tooltip = {"disabled" : self.utility.lang.get('playerDisabled'), "enabled" : self.utility.lang.get('playerEnabled')})
-                self.statusField.SetLabel(self.utility.lang.get('completed'))
-            else:
+                ##self.statusField.SetLabel(self.utility.lang.get('completed'))
+            ##else:
 ##                self.playerPlay.setEnabled(False)
-                self.statusField.SetLabel(self.utility.lang.get('stop'))
+            ##    self.statusField.SetLabel(self.utility.lang.get('stop'))
             
-            if not self.listItem:
-                self.statusField.SetToolTipString(self.statusField.GetLabel())
+            ##if not self.listItem:
+            ##    self.statusField.SetToolTipString(self.statusField.GetLabel())
                 
             self.eta.SetLabel('')
             
@@ -523,9 +600,9 @@ class LibraryItemPanel(wx.Panel):
             self.title.SetToolTipString(torrent['name'])
 
             # Only reload thumb when changing torrent displayed
-            if torrent['infohash'] != oldinfohash:
+            ##if torrent['infohash'] != oldinfohash:
                 #print >>sys.stderr,"REFRESH THUMBNAIL",`torrent['name']`
-                self.thumb.setTorrent(torrent)
+                ##self.thumb.setTorrent(torrent)
         
         else:
             self.title.SetLabel('')
@@ -540,7 +617,7 @@ class LibraryItemPanel(wx.Panel):
     def select(self, rowIndex, colIndex, ignore1, ignore2, ignore3):
         self.selected = True        
         colour = self.triblerStyles.selected(5)
-        self.thumb.setSelected(True)
+        ##self.thumb.setSelected(True)
         self.title.SetBackgroundColour(colour)
 #        self.percentage.SetBackgroundColour(colour)
 #        self.eta.SetBackgroundColour(colour)
@@ -553,8 +630,8 @@ class LibraryItemPanel(wx.Panel):
 #            self.playFast.setBackground(colour)
 #            self.boost.setBackground(colour)
 ##        self.playerPlay.setBackground(colour)        
-        if self.listItem:
-            self.toggleLibraryItemDetailsSummary(True)            
+        ##if self.listItem:
+        ##    self.toggleLibraryItemDetailsSummary(True)            
             
         
         self.guiUtility.standardOverview.selectedTorrent = self.data['infohash']
@@ -569,7 +646,7 @@ class LibraryItemPanel(wx.Panel):
         else:
             colour = self.triblerStyles.selected(2)            
             
-        self.thumb.setSelected(False)
+        ##self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
 #        self.percentage.SetBackgroundColour(colour)
 #        self.eta.SetBackgroundColour(colour)
@@ -583,8 +660,8 @@ class LibraryItemPanel(wx.Panel):
 #            self.playFast.setBackground(colour)
 #            self.boost.setBackground(colour)
 ##        self.playerPlay.setBackground(colour)
-        if self.listItem:
-            self.toggleLibraryItemDetailsSummary(False)
+        ##if self.listItem:
+        ##    self.toggleLibraryItemDetailsSummary(False)
             
         
         self.Refresh()
@@ -663,7 +740,7 @@ class LibraryItemPanel(wx.Panel):
             elif name == 'boost':
                 self.show_boost(ds)
                     
-            elif name == 'libraryPlay':
+            elif name == 'library_play':
                 if self.playable:
                     self.play(ds)
         else: # no abctorrent
@@ -794,7 +871,7 @@ class LibraryItemPanel(wx.Panel):
             self.dlhelperframe.Show()
                 
     def play(self,ds):
-        self._get_videoplayer(exclude=ds).play(ds)
+        self._get_videoplayer(exclude=ds).play(ds,self.videopanel)
     
     def switch_to_standard_dlmode(self,ABCTorrentTemp): 
         self._get_videoplayer().vod_back_to_standard_dlmode(ABCTorrentTemp) 
@@ -845,7 +922,7 @@ class LibraryItemPanel(wx.Panel):
 
         if visible and not self.summary:           
             self.summary = LibraryItemDetailsSummary(self, torrentHash = self.data['infohash'])
-            self.triblerStyles.setLightText(self.summary)
+            self.summary.SetBackgroundColour(wx.WHITE)
             self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
             self.SetMinSize((-1,100)) 
                 

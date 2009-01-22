@@ -34,7 +34,7 @@ import web2
 from font import *
 
 
-OVERVIEW_MODES = ['startpageMode', 'statsMode', 'filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode',
+OVERVIEW_MODES = ['startpageMode','basicMode', 'statsMode', 'resultsMode', 'filesMode', 'settingsMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode',
                   'messageMode', 'libraryMode', 'itemdetailsMode', 'fileDetailsMode','playlistMode', 'personDetailsMode', 'playlistMode']
 # font sizes
 if sys.platform == 'darwin':
@@ -50,7 +50,7 @@ else:
     FS_SIMILARITY = 10
     FS_HEARTRANK = 7
 
-DEBUG = False
+DEBUG = True
 
 class standardOverview(wx.Panel):
     """
@@ -112,6 +112,9 @@ class standardOverview(wx.Panel):
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.hSizer)
+        self.SetAutoLayout(1)
+        self.Layout()
+
                     
     def standardOverviewResize(self, event=None):
 #        self.SetAutoLayout(0) 
@@ -149,6 +152,12 @@ class standardOverview(wx.Panel):
         self.oldpanel = self.currentPanel   
         
         self.currentPanel = self.loadPanel()
+
+        print >> sys.stderr , 'self.oldpanel' , self.oldpanel
+        print >> sys.stderr , 'self.currentPanel' , self.currentPanel
+
+
+
         assert self.currentPanel, "standardOverview: Panel could not be loaded"
         #self.currentPanel.GetSizer().Layout()
         #self.currentPanel.Enable(True)
@@ -163,8 +172,8 @@ class standardOverview(wx.Panel):
 
         assert len(self.hSizer.GetChildren()) == 0, 'Error: standardOverview self.hSizer has old-panel and gets new panel added (2 panel bug). Old panels are: %s' % self.hSizer.GetChildren()
             
-        if self.oldpanel != self.currentPanel: 
-            self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)   
+        #if self.oldpanel != self.currentPanel: 
+        #    self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)   
         
         nameCP = self.currentPanel.GetName()
         if nameCP == 'profileOverview' or nameCP == 'fileDetailsOverview' or nameCP == 'personDetailsOverview' or nameCP == 'statsOverview': 
@@ -175,8 +184,10 @@ class standardOverview(wx.Panel):
 #            print 'heightCP = %s' % heightCP
             self.SetSize((-1, heightCP))        
             self.SetMinSize((500,sizeCP[1]))
+        elif nameCP == 'settingsOverview':
+            self.SetMinSize((900,500))
         else:
-            self.SetMinSize((800,500)) ## before (10,400)
+            self.SetMinSize((600,500)) ## before (10,400)
 
         self.hSizer.Layout()
         
@@ -190,30 +201,34 @@ class standardOverview(wx.Panel):
 
         wx.CallAfter(self.guiUtility.scrollWindow.FitInside)
 #        self.guiUtility.scrollWindow.FitInside()        
-        
-    def loadPanel(self):        
+
+    def setPager(self, pager): ## added
+        if DEBUG:
+            print >>sys.stderr,'standardOverview: setPager called: %s' % pager
+        self.standardPager = pager
+
+    def lloadPanel(self):        
         currentPanel = self.data[self.mode].get('panel',None)
 
         modeString = self.mode[:-4]
         if DEBUG:
-            print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
-        # create the panel for the first click. panel could be one of the [file,person,friend,library,profile,rss]
-        if not currentPanel:    
-            xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
+            print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString
+        if not currentPanel:
+            xrcResource = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI', modeString+'Overview.xrc')
             panelName = modeString+'Overview'
             try:
                 currentPanel = grid = pager = None
                 res = xrc.XmlResource(xrcResource)
                 # create panel
                 currentPanel = res.LoadPanel(self, panelName)
-                grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')    
-                pager = xrc.XRCCTRL(currentPanel, 'standardPager')    # Jie:not really used for profile, rss and library?
+                grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')                
+                pager = xrc.XRCCTRL(currentPanel, 'standardPager')
                 search = xrc.XRCCTRL(currentPanel, 'searchField')
                 filter = xrc.XRCCTRL(currentPanel, modeString+'Filter')
                 if not currentPanel:
                     raise Exception('standardOverview: Could not find panel, grid or pager')
                     #load dummy panel
-                    dummyFile = os.path.join(self.guiUtility.vwxGUI_path, 'dummyOverview.xrc')
+                    dummyFile = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI', 'dummyOverview.xrc')
                     dummy_res = xrc.XmlResource(dummyFile)
                     currentPanel = dummy_res.LoadPanel(self, 'dummyOverview')
                     grid = xrc.XRCCTRL(currentPanel, 'dummyGrid')
@@ -274,11 +289,171 @@ class standardOverview(wx.Panel):
                     rssurlctrl.SetValue(txt)                
                     self.data[self.mode]['rssurlctrl'] = rssurlctrl
                     
-                if self.mode == 'startpageMode':    
+                if self.mode == 'basicMode':    
                     # header styling
 #                    self.data['status']['downSpeed']
                     
 #                    self.data[mode][name] = xrcElement
+                    self.searchCentre = xrc.XRCCTRL(currentPanel, 'searchFieldCentre')
+                    ##self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popVideosPanel'))
+                    ##self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popVideos'))
+                    ##self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popChannelsPanel'))
+                    ##self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popChannels'))
+#                    self.triblerStyles.titleBar(self.data['status']['Downloading']) 
+#                    self.triblerStyles.titleBar(self.data['status']['down_White']) 
+#                    self.triblerStyles.titleBar(self.data['status']['downSpeed']) 
+#                    self.triblerStyles.titleBar(self.data['status']['up_White'])                 
+#                    self.triblerStyles.titleBar(self.data['status']['upSpeed']) 
+#                    # content styling
+#                    self.triblerStyles.setDarkText(self.data['status']['download1']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['percent1']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['download2']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['percent2']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['download3']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['percent3']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['download4']) 
+#                    self.triblerStyles.setDarkText(self.data['status']['percent4']) 
+        
+            except:
+                if DEBUG:
+                    print >>sys.stderr,'standardOverview: Error: Could not load panel, grid and pager for mode %s' % self.mode
+                    print >>sys.stderr,'standardOverview: Tried panel: %s=%s, grid: %s=%s, pager: %s=%s' % (panelName, currentPanel, modeString+'Grid', grid, 'standardPager', pager)
+                print_exc()                
+        
+        
+        if self.mode in ['filesMode', 'personsMode']:
+            grid = self.data[self.mode].get('grid') 
+            if self.guiUtility.gridViewMode != grid.viewmode :
+                grid.onViewModeChange(mode=self.guiUtility.gridViewMode)
+                
+                  
+                
+        if self.mode == 'fileDetailsMode':
+            print 'tb > fileDetailsMode'
+            self.data[self.mode]['panel'].setData(self.selectedTorrent)
+            
+        if self.mode == 'playlistMode':
+            print 'tb > playlistMode'
+            self.data[self.mode]['panel'].setData(self.selectedTorrent)
+        
+        if self.mode == 'personDetailsMode':
+            self.data[self.mode]['panel'].setData(self.selectedPeer)
+
+        return currentPanel
+
+
+
+
+        
+    def loadPanel(self):        
+        currentPanel = self.data[self.mode].get('panel',None)
+        print >> sys.stderr, 'currentPanel' , currentPanel
+        modeString = self.mode[:-4]
+        print >> sys.stderr, 'modestring' , modeString
+        if DEBUG:
+            print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
+
+        xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
+        panelName = modeString+'Overview'
+        res = xrc.XmlResource(xrcResource)
+        currentPanel = res.LoadPanel(self, panelName)
+        grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')    
+        pager = xrc.XRCCTRL(self.guiUtility.frame, 'standardPager')    # Jie:not really used for profile, rss and library?
+            
+        self.data[self.mode]['panel'] = currentPanel
+        self.data[self.mode]['grid'] = grid
+        self.data[self.mode]['pager'] = pager
+
+        if pager is not None:                            
+            pager.setGrid(grid)
+
+
+
+        # create the panel for the first click. panel could be one of the [file,person,friend,library,profile,rss]
+        if not currentPanel:
+            #xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
+            #panelName = modeString+'Overview'
+            try:
+                #currentPanel = grid = pager = None
+                #res = xrc.XmlResource(xrcResource)
+                # create panel
+                #currentPanel = res.LoadPanel(self, panelName)
+                #grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')    
+                #pager = xrc.XRCCTRL(self.guiUtility.frame, 'standardPager')    # Jie:not really used for profile, rss and library?
+                search = xrc.XRCCTRL(currentPanel, 'searchField')
+                filter = xrc.XRCCTRL(currentPanel, modeString+'Filter')
+                if not currentPanel:
+                    raise Exception('standardOverview: Could not find panel, grid or pager')
+                    #load dummy panel
+                    dummyFile = os.path.join(self.guiUtility.vwxGUI_path, 'dummyOverview.xrc')
+                    dummy_res = xrc.XmlResource(dummyFile)
+                    currentPanel = dummy_res.LoadPanel(self, 'dummyOverview')
+                    grid = xrc.XRCCTRL(currentPanel, 'dummyGrid')
+                    pager = xrc.XRCCTRL(currentPanel, 'standardPager')
+                if not currentPanel: # or not grid or not pager:
+                    raise Exception('standardOverview: Could not find panel, grid or pager')
+                
+                # Save paneldata in self.data
+                self.data[self.mode]['panel'] = currentPanel
+                #self.data[self.mode]['grid'] = grid
+                #self.data[self.mode]['pager'] = pager
+                self.data[self.mode]['search'] = search
+                self.data[self.mode]['filter'] = filter
+                
+                #search.Bind(wx.EVT_COMMAND_TEXT_ENTER, self.OnSearchKeyDown)
+                if search is not None:
+                    search.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSearchKeyDown)
+                    if modeString == "files":
+                        web2on = self.utility.config.Read('enableweb2search',"boolean")
+                        if web2on:
+                            txt = self.utility.lang.get('filesdefaultsearchweb2txt')
+                        else:
+                            txt = self.utility.lang.get('filesdefaultsearchtxt')
+                        search.SetValue(txt)
+                        search.Bind(wx.EVT_MOUSE_EVENTS, self.guiUtility.OnSearchMouseAction)
+                
+                if pager is not None:                            
+                    pager.setGrid(grid)
+                
+                if self.mode in ['filesMode', 'personsMode']: 
+                    print ''
+                   
+#                    print 'self.mode = %s' % self.mode  
+#                    print currentPanel         
+##                    self.standardOverview.data['filesMode'].get('grid')
+##                    currentViewMode = currentPanel.grid.viewmode             
+##                    currentPanel.viewModeSelect = xrc.XRCCTRL(currentPanel, 'modeItems')
+###                    overviewSizeSelect = xrc.XRCCTRL(currentPanel, 'numberItems')                    
+                    # set default values
+                    
+#                    self.mode.viewModeSelect = viewModeSelect
+
+#                    currentPanel.viewModeSelect.Select(1) #SetValue('thumbnails')
+                    ##overviewSizeSelect.Select(0) #SetValue('auto')
+                    #viewModeSelect.Bind(wx.EVT_COMBOBOX, grid.onViewModeChange)
+#                    currentPanel.viewModeSelect.Bind(wx.EVT_CHOICE, grid.onViewModeChange(mode = 'filesMode'))
+                    #overviewSizeSelect.Bind(wx.EVT_COMBOBOX, grid.onSizeChange)
+                    ##overviewSizeSelect.Bind(wx.EVT_CHOICE, grid.onSizeChange)
+                    
+                    
+                    
+                    
+                if self.mode == 'subscriptionsMode':
+                    rssurlctrl = xrc.XRCCTRL(currentPanel,'pasteUrl')
+                    rssurlctrl.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSubscribeKeyDown)
+                    rssurlctrl.Bind(wx.EVT_LEFT_UP, self.guiUtility.OnSubscribeMouseAction)
+                    txt = self.utility.lang.get('rssurldefaulttxt')
+                    rssurlctrl.SetValue(txt)                
+                    self.data[self.mode]['rssurlctrl'] = rssurlctrl
+                    
+                if self.mode == 'basicMode':    
+                    # header styling
+#                    self.data['status']['downSpeed']
+                    
+#                    self.data[mode][name] = xrcElement
+
+
+                    self.searchCentre = xrc.XRCCTRL(currentPanel, 'searchFieldCentre')
                     self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popVideosPanel'))
                     self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popVideos'))
                     self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popChannelsPanel'))
@@ -370,6 +545,8 @@ class standardOverview(wx.Panel):
                 print >>sys.stderr,'standardOverview: Error, could not return firstItem, data=%s' % data
             return None
         
+
+
     def filterChanged(self, filterState):
         """ filterState is GridState object """
         if DEBUG:
@@ -389,9 +566,10 @@ class standardOverview(wx.Panel):
         #    print >> sys.stderr, 'standardOverview: ********************** VALID LIBRARY Filterstate:', filterState
             
         if filterState and filterState.isValid():
-            if self.mode in ('filesMode', 'personsMode', 'libraryMode', 'friendsMode'):
+            if self.mode in ('filesMode', 'personsMode', 'libraryMode', 'friendsMode','settingsMode'):
                 #self.loadTorrentData(filterState[0], filterState[1])
                 self.data[filterState.db]['grid'].gridManager.set_state(filterState)
+                pass
             elif self.mode in ('subscriptionsMode'):
                 self.loadSubscriptionData()
                 self.refreshData()
@@ -507,7 +685,8 @@ class standardOverview(wx.Panel):
             self.results[stype] = num # FIXME different remote search overwrite eachother
         
         total = sum([v for v in self.results.values() if v != -1])
-        
+        #if total > 30:
+        #    finished = True
         if keywords:
             if type(keywords) == list:
                 self.keywords = " ".join(keywords)
@@ -516,15 +695,22 @@ class standardOverview(wx.Panel):
 
         if finished:  
             msg = self.guiUtility.utility.lang.get('finished_search') % (self.keywords, total)
-            self.searchFinished(set_message=False)
+            self.guiUtility.stopSearch()
+            #self.searchFinished(set_message=False)
         else:
             msg = self.guiUtility.utility.lang.get('going_search') % (total)
 
-        self.search_results.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.BOLD,True,FONTFACE))
-        self.search_results.SetForegroundColour((255,0,0))
-        self.search_results.SetLabel(msg)    
-
-
+        self.search_results.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,True,FONTFACE))
+        if self.mode not in ['filesMode']:
+            self.search_results.SetForegroundColour(wx.RED)
+        else:
+            self.search_results.SetForegroundColour(wx.BLACK)
+ 
+        if self.mode in ['filesMode']:
+            self.search_results.SetLabel(msg)    
+        else:
+            self.search_results.SetLabel('Return to Results')    
+  
         
     def growWithGrid(self):
         gridHeight = self.data[self.mode]['grid'].GetSize()[1]

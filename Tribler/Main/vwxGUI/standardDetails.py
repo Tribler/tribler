@@ -116,6 +116,8 @@ class standardDetails(wx.Panel):
         self.modeElements = {}
         for elem in DETAILS_MODES:
             self.modeElements[elem] = []
+        self.modeElements['settingsMode'] = ['profileTitle']
+
         self.modeElements['filesMode'] = ['titleField', 'simTitlesField', 'popularityField1', 'options', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 
@@ -1632,7 +1634,39 @@ class standardDetails(wx.Panel):
 #    def isEnabled(self):
 #        return self.enabled
 
+
     def download(self, torrent = None, dest = None, secret = False, force = False):
+
+        if torrent is None:
+            torrent = self.item
+
+        # torrent_dir
+        torrent_dir = self.utility.session.get_torrent_collecting_dir()
+
+        # torrent_file_name
+        if 'torrent_file_name' not in torrent:
+            torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
+        torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
+
+        clicklog={"keywords": self.guiUtility.torrentsearch_manager.searchkeywords[self.mode]}
+        if "click_position" in torrent:
+            clicklog["click_position"] = torrent["click_position"]
+
+        # name
+        if torrent.get('name'):
+            name = torrent['name']
+        else:
+            name = showInfoHash(torrent['infohash'])
+
+        self.utility.frame.startDownload(torrent_filename,destdir=dest,clicklog=clicklog,name=name) ## remove name=name
+
+
+
+
+
+
+
+    def download_old(self, torrent = None, dest = None, secret = False, force = False):
         if torrent is None:
             torrent = self.item
             
@@ -1682,8 +1716,6 @@ class standardDetails(wx.Panel):
             name = torrent['name']
         else:
             name = showInfoHash(torrent['infohash'])
-        #start_download = self.utility.lang.get('start_downloading')
-        #str = name + "?"
         
         print >>sys.stderr,"standardDetails: download: Preparing to start:",`name`
         
@@ -1696,7 +1728,7 @@ class standardDetails(wx.Panel):
             
             # Api download
             d = self.utility.frame.startDownload(torrent_filename,destdir=dest,
-                                                 clicklog=clicklog)
+                                                 clicklog=clicklog,name=name) ## remove name=name
             if d:
                 if secret:
                     self.torrent_db.setSecret(torrent['infohash'], secret)

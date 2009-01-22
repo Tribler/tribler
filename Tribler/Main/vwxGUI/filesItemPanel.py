@@ -41,14 +41,17 @@ AUTOMODERATION_SAVE_WEBSEARCH_IMAGE_TO_TORRENT = False
 # font sizes
 if sys.platform == 'darwin':
     FS_FILETITLE = 10
+    FS_FILETITLE_SEL = 12 # size of title in expanded torrent
     FS_SIMILARITY = 10
     FS_HEARTRANK = 8
 elif sys.platform == 'linux2':
     FS_FILETITLE = 8
+    FS_FILETITLE_SEL = 10 
     FS_SIMILARITY = 7
     FS_HEARTRANK = 7
 else:
     FS_FILETITLE = 8
+    FS_FILETITLE_SEL = 10 
     FS_SIMILARITY = 10
     FS_HEARTRANK = 7
     
@@ -147,6 +150,13 @@ class FilesItemPanel(wx.Panel):
             self.SetMinSize((660,22))
 
             self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)	##
+
+            self.hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(220,2),wx.LI_HORIZONTAL)
+            self.hLine.SetForegroundColour((255,0,0))
+            self.vSizerOverall.Add(self.hLine, 0, wx.FIXED_MINSIZE|wx.EXPAND, 1) ##           
+
+
+
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
             
             
@@ -163,7 +173,7 @@ class FilesItemPanel(wx.Panel):
             self.title.SetBackgroundColour(wx.WHITE)
             self.title.SetForegroundColour(wx.BLACK)
             self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.title.SetMinSize((500,14))
+            self.title.SetMinSize((400,14))
             self.hSizer.Add(self.title, 0,wx.TOP|wx.BOTTOM, 3)     
             #self.hSizer.Add([5,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3) 
             # V Line
@@ -224,7 +234,7 @@ class FilesItemPanel(wx.Panel):
             ##self.vLine5 = self.addLine() 
             # Add Taste Heart
             self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
-            self.vSizer2.Add([60,2],0,wx.EXPAND|wx.FIXED_MINSIZE,3)            
+            self.vSizer2.Add([30,2],0,wx.EXPAND|wx.FIXED_MINSIZE,3)            
             self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)
             ##self.tasteHeart = TasteHeart.TasteHeart(self, -1, wx.DefaultPosition, wx.Size(14,14),name='TasteHeart')
             ##self.hSizer2.Add(self.tasteHeart, 0, wx.TOP, 0)            
@@ -242,13 +252,16 @@ class FilesItemPanel(wx.Panel):
             # Add Source Icon
             ##self.sourceIcon = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='bcicon')
             ##self.sourceIcon.setBackground(wx.WHITE)
-            #self.sourceIcon.SetToolTipString(self.utility.lang.get('---'))          
+            ##self.sourceIcon.SetToolTipString(self.utility.lang.get('---'))          
             ##self.hSizer.Add(self.sourceIcon, 0, wx.TOP, 2)
-            self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+            self.hSizer.Add([10,5],0,wx.FIXED_MINSIZE,3)
 
             self.hSizerSummary = wx.BoxSizer(wx.HORIZONTAL) ##
             self.vSizerOverall.Add(self.hSizerSummary, 1, wx.FIXED_MINSIZE|wx.EXPAND, 0) ##           
  
+
+
+
             
             self.SetSizer(self.vSizerOverall); ## self.hSizer
             
@@ -366,7 +379,7 @@ class FilesItemPanel(wx.Panel):
 
                 self.hSizer.Add(self.popularity, 0, wx.TOP, 2)
 
-                
+                self.hLine.Show()
 
 ##                popularity_text = 'I'
 
@@ -470,6 +483,7 @@ class FilesItemPanel(wx.Panel):
             colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)        
         self.title.SetBackgroundColour(colour)
+        self.title.SetFont(wx.Font(FS_FILETITLE_SEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
         
         
         if self.listItem:
@@ -493,7 +507,8 @@ class FilesItemPanel(wx.Panel):
     def deselect(self, rowIndex, colIndex):
         self.selected = False
         #colour = self.guiUtility.unselectedColour
-
+        self.hLine.Show()
+        self.vSizerOverall.Layout()
         downloading = self.data and self.data.get('myDownloadHistory')
         if rowIndex % 2 == 0 or not self.listItem:
             if downloading:
@@ -509,6 +524,8 @@ class FilesItemPanel(wx.Panel):
             
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
+        self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+
         
         if self.listItem:
             self.SetBackgroundColour(colour)
@@ -581,7 +598,8 @@ class FilesItemPanel(wx.Panel):
         si = self.iconsManager.getSourceIcon(source)
         if self.listItem:
             self.sourceIcon.setBitmap(si)
-            self.sourceIcon.Hide() ## Show
+            self.sourceIcon.createBackgroundImage()
+            self.sourceIcon.Show() ## Show
         else:
             self.thumb.setSourceIcon(si)
 
@@ -594,7 +612,7 @@ class FilesItemPanel(wx.Panel):
                 self.summary = FilesItemDetailsSummary(self, torrentHash = None, torrent = self.data, web2data = self.data)
             ##self.triblerStyles.setLightText(self.summary)
             self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
-            self.SetMinSize((-1,175))
+            self.SetMinSize((-1,150))
         elif visible and self.summary:
             pass
             ## self.guiUtility.standardDetails.setDownloadbutton(torrent=self.data, item = self.summary.download)
@@ -608,7 +626,7 @@ class FilesItemPanel(wx.Panel):
             # the Thumb should be destoryed seperately because it has a different parent.
             ##if not self.summary.downloading:
                 ##wx.CallAfter(self.summary.thumbSummary.Destroy)
-
+            #self.hLine.Show()
             wx.CallAfter(self.summary.DestroyChildren)
             wx.CallAfter(self.summary.Destroy)
             self.summary = None

@@ -17,53 +17,8 @@
         <option>1</option>
         <object class="wxPanel" name="filesGrid" subclass="Tribler.Main.vwxGUI.standardGrid.filesGrid">
           <pos>0,1</pos>
-          <size>675,309</size>
-          <bg>#000000</bg>
-        </object>
-      </object>
-      <object class="spacer">
-        <size>0,50</size>
-      </object>
-      <object class="sizeritem">
-        <object class="wxPanel">
-          <object class="wxBoxSizer">
-            <orient>wxHORIZONTAL</orient>
-            <object class="spacer">
-              <size>450,28</size>
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>0</option>
-            </object>
-            <object class="sizeritem">
-              <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>5</border>
-              <option>0</option>
-              <object class="wxPanel" name="standardPager" subclass="Tribler.Main.vwxGUI.standardPager.standardPager">
-                <pos>370,460</pos>
-                <size>297,23</size>
-                <bg>#FF0000</bg>
-              </object>
-            </object>
-            <object class="spacer">
-              <size>8,28</size>
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>0</border>
-              <option>0</option>
-            </object>
-          </object>
-          <bg>#D8D8D8</bg>
-        </object>
-        <flag>wxEXPAND</flag>
-      </object>
-      <object class="sizeritem">
-        <flag>wxTOP|wxLEFT|wxRIGHT|wxFIXED_MINSIZE</flag>
-        <border>6</border>
-        <option>0</option>
-        <object class="wxPanel" name="infoIconC" subclass="Tribler.Main.vwxGUI.bgPanel.ImagePanel">
+          <size>675,409</size>
           <bg>#FFFFFF</bg>
-          <tooltip>Files received from other Tribler users, thus showing what is available in the Tribler network \n(automatic process)</tooltip>
-          <pos>6,7</pos>
-          <size>8,8</size>
         </object>
       </object>
     </object>

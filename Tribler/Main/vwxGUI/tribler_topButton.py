@@ -246,7 +246,7 @@ class tribler_topButton(wx.Panel):
                             place = (rects[0][2], rects[0][3])
                     if DEBUG:
                         print "(button %s) Place subbitmap: %s" % (self.GetName(), str(place))
-                    ##self.joinImage(image, subImage, place[0], place[1])
+                    self.joinImage(image, subImage, place[0], place[1])
                 if DEBUG:
                     print '(button %s) Result img size: %s' % (self.GetName(), str(image.GetSize()))
                 return image.ConvertToBitmap()

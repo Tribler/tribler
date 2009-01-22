@@ -44,6 +44,11 @@ from Tribler.Main.Utility.constants import *
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ModerationCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
+from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
+from Tribler.Video.EmbeddedPlayer import *
+
+
+
 DEBUG = True
 
 class GUIUtility:
@@ -73,9 +78,14 @@ class GUIUtility:
 
         # videoplayer
         self.videoplayer = None
-        self.video_small = None
+        self.videoplayer = VideoPlayer.getInstance()
 
+        # current GUI page
+        self.guiPage = None
 
+        # standardGrid
+        self.standardGrid = None
+ 
 
         # Arno: 2008-04-16: I want to keep this for searching, as an extension
         # of the standardGrid.GridManager
@@ -168,7 +178,7 @@ class GUIUtility:
         elif name == "addAsFriend" or name == 'deleteFriend':
             self.standardDetails.addAsFriend()
 
-        elif name in ('download', 'download1', 'playbig'):
+        elif name in ('download', 'download1'): 
             self.standardDetails.download()
         elif name == 'addFriend':
             #print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
@@ -238,7 +248,19 @@ class GUIUtility:
             self.clearSearch()
                         
             wx.CallAfter(self.standardOverview.toggleSearchDetailsPanel, False)
-        elif name == 'familyFilterOn' or name == 'familyFilterOff':
+        elif name == 'familyfilter':
+            catobj = Category.getInstance()
+            ff_enabled = not catobj.family_filter_enabled()
+            print 'Setting family filter to: %s' % ff_enabled
+            catobj.set_family_filter(ff_enabled)
+            self.familyButton.setToggled()
+#            obj.setToggled(ff_enabled)
+            for filtername in ['filesFilter', 'libraryFilter']:
+                filterCombo = xrc.XRCCTRL(self.frame, filtername)
+                if filterCombo:
+                    filterCombo.refresh()
+
+        elif name == 'familyFilterOn' or name == 'familyFilterOff': ## not used anymore
             if ((self.familyButtonOn.isToggled() and name == 'familyFilterOff') or
                 (self.familyButtonOff.isToggled() and name == 'familyFilterOn')):
 
@@ -312,8 +334,81 @@ class GUIUtility:
             moderation = self.mcdb.getModeration(bin2str(self.torrenthash))
             self.mcdb.forwardModerator(bin2str(moderation[0]))
 
-            #print >> sys.stderr , "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" , bin2str(self.torrenthash)    
+            #print >> sys.stderr , "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" , bin2str(self.torrenthash) 
+
+
+        elif name == 'basic':
+            if self.guiPage != 'basic':
+                self.guiPage = 'basic' 
+                if self.frame.settings.isToggled():
+                    self.frame.settings.setToggled()
+                self.standardGrid.deselectAll()
+                self.standardGrid.clearAllData()
+                self.frame.videopanel.Hide()
+                self.basicOverview()
+
+
+
+        elif name == 'settings':
+            if self.guiPage != 'settings':
+                self.guiPage = 'settings' 
+                self.frame.ag.Hide()
+                self.frame.settings.setToggled()
+                if self.frame.my_files.isToggled():
+                    self.frame.my_files.setToggled()
+                if self.standardGrid:
+                    self.standardGrid.deselectAll()
+                    self.standardGrid.clearAllData()
+
+                self.frame.videopanel.Hide()
+
+                self.frame.pagerPanel.Hide()
+                self.settingsOverview()
+                self.frame.search_results.SetLabel('Return to Results')
+                self.frame.search_results.SetForegroundColour(wx.RED)
+                self.frame.Layout()
+
+
+
+        elif name == 'my_files':
+            if self.guiPage != 'my_files':
+                self.guiPage = 'my_files' 
+                self.frame.ag.Hide()
+                self.frame.my_files.setToggled()
+                if self.frame.settings.isToggled():
+                    self.frame.settings.setToggled()
+                if self.standardGrid:
+                    self.standardGrid.deselectAll()
+                    self.standardGrid.clearAllData()
+
+                self.frame.videopanel.Show()
+
+                self.standardLibraryOverview()
+                self.frame.search_results.SetLabel('Return to Results')
+                self.frame.search_results.SetForegroundColour(wx.RED)
+                self.frame.top_bg.Layout()
+                self.frame.pagerPanel.Show()
+
+
+        elif name == 'edit':
+            self.standardOverview.currentPanel.sendClick(event)
+            self.detailsTabClicked(name) 
+
  
+        elif name == 'playbig':
+            pass
+             
+
+        elif name == 'playybig':
+
+            (prefix,ext) = os.path.splitext("~/Desktop/videos/vcd.mpg")
+            [mimetype,cmd] = self.videoplayer.get_video_player(ext,"~/Desktop/videos/vcd.mpg")
+
+            #self.videoplayer.play_url(self.torrent['url'])
+
+            self.frame.videopanel.Load(cmd)
+            self.frame.videopanel.PlayPause()
+
 
         elif DEBUG:
             print >> sys.stderr, 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
@@ -354,10 +449,41 @@ class GUIUtility:
 #        elif DEBUG:
 #            print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
     
+    def OnResultsClicked(self):
+        if self.guiPage == None:
+            self.guiPage = 'search_results'
+        if self.guiPage != 'search_results':
+            self.guiPage = 'search_results'
+            self.frame.ag.Show() 
+            self.frame.settings.setToggled()
+            if self.frame.my_files.isToggled():
+                self.frame.my_files.setToggled()
+            self.standardGrid.deselectAll()
+            self.standardGrid.clearAllData()
+            self.standardFilesOverview()
+            self.frame.videopanel.Show()
+            self.frame.search_results.SetForegroundColour(wx.BLACK)
+            if self.frame.settings.isToggled():
+                self.frame.settings.setToggled()
+            if self.frame.my_files.isToggled():
+                self.frame.my_files.setToggled()
+            self.frame.pagerPanel.Show()
+        
+
+
+
     def standardStartpage(self, filters = ['','']):
         self.frame.pageTitle.SetLabel('START PAGE')               
         filesDetailsList = []
-        self.standardOverview.setMode('startpageMode')        
+        self.standardOverview.setMode('startpageMode')
+        ##self.frame.files_friends.Hide()
+        ##self.frame.ag.Hide()
+        ##self.frame.go.Hide()
+        ##self.frame.search.Hide()
+        ##self.standardOverview.searchCentre.SetFocus()
+        ##self.standardOverview.searchCentre.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDow)
+        ##self.standardOverview.Refresh()
+         
 #        self.standardOverview.filterChanged(filters)
 #        self.standardDetails.setMode('fileDetails') 
 
@@ -373,7 +499,8 @@ class GUIUtility:
         #if filters:
         #    filters[1] = 'seeder'
         #if not gridState or not gridState.isValid():
-        gridState = GridState('filesMode', 'all', 'num_seeders')
+        gridState = GridState('filesMode', 'all', 'rameezmetric')
+
         self.standardOverview.filterChanged(gridState)
         try:
             if self.standardDetails:
@@ -381,6 +508,10 @@ class GUIUtility:
         except:
             pass
         
+
+
+    def settingsOverview(self):
+        self.standardOverview.setMode('settingsMode')
         
         
         
@@ -416,11 +547,11 @@ class GUIUtility:
 
         
     def standardLibraryOverview(self, filters = None): 
-        self.frame.pageTitle.SetLabel('DOWNLOADS')      
+        #self.frame.pageTitle.SetLabel('DOWNLOADS')      
         self.standardOverview.setMode('libraryMode')
-        gridState = self.standardOverview.getFilter().getState()
-        if not gridState or not gridState.isValid():
-            gridState = GridState('libraryMode', 'all', 'name')
+        #gridState = self.standardOverview.getFilter().getState()
+        #if not gridState or not gridState.isValid():
+        gridState = GridState('libraryMode', 'all', 'name')
         self.standardOverview.filterChanged(gridState)
         
         self.standardDetails.setMode('libraryMode')
@@ -475,7 +606,10 @@ class GUIUtility:
         "Called by standardOverview when ready with init"
         self.standardOverview = standardOverview
 #        self.standardFilesOverview(filters = ['all', 'seeder'])
+
+
         self.standardStartpage()
+        
         wx.CallAfter(self.refreshOnResize)
         
         # Preselect mainButtonFiles
@@ -489,13 +623,13 @@ class GUIUtility:
         self.filterStandard.Hide() ## hide the standardOverview at startup
 
         # Init family filter        
-        #self.familyButtonOn = xrc.XRCCTRL(self.frame, 'familyFilterOn')
-        #self.familyButtonOff = xrc.XRCCTRL(self.frame, 'familyFilterOff')
+        self.familyButton = xrc.XRCCTRL(self.frame, 'familyfilter')
+        
+        # Family filter on by default
+        self.familyButton.setToggled()
         catobj = Category.getInstance()
-        #if catobj.family_filter_enabled():
-            #self.familyButtonOn.setToggled(True)
-        #else:    
-            #self.familyButtonOff.setToggled(True)
+        catobj.set_family_filter(True)
+
         
         self.rqmh = RemoteQueryMsgHandler.getInstance()
         self.rqmh.register2(self.data_manager)
@@ -569,15 +703,15 @@ class GUIUtility:
         try:
             if DEBUG:
                 print >>sys.stderr,'GuiUtility: explicit refresh'
-            ##self.mainSizer.FitInside(self.frame)
-            ##self.standardDetails.Refresh()
-            ##self.frame.topBackgroundRight.Refresh()
-            ##self.frame.topBackgroundRight.GetSizer().Layout()
-            #self.frame.topBackgroundRight.GetContainingSizer().Layout()
-            ##self.updateSizeOfStandardOverview()
-            ##self.standardDetails.Layout()
-            ##self.standardDetail.GetContainingSizer.Layout()
-            ##self.standardOverview.Refresh()
+            self.mainSizer.FitInside(self.frame)
+            self.standardDetails.Refresh()
+            self.frame.topBackgroundRight.Refresh()
+            self.frame.topBackgroundRight.GetSizer().Layout()
+            self.frame.topBackgroundRight.GetContainingSizer().Layout()
+            self.updateSizeOfStandardOverview()
+            self.standardDetails.Layout()
+            self.standardDetail.GetContainingSizer.Layout()
+            self.standardOverview.Refresh()
             
         except:
             pass # When resize is done before panels are loaded: no refresh
@@ -674,7 +808,15 @@ class GUIUtility:
         input = sf.GetValue().strip()
         if input == '':
             return
-        self.standardOverview.toggleSearchDetailsPanel(True)
+
+        ##sizer = self.frame.search.GetContainingSizer()
+        ##self.frame.go.setToggled(True)
+        ##self.frame.go.SetMinSize((61,24))
+        ##sizer.Layout()
+        ##self.frame.top_bg.Refresh()
+        ##self.frame.top_bg.Update()
+
+        #self.standardOverview.toggleSearchDetailsPanel(True)
         if self.standardOverview.mode in ["filesMode", "libraryMode"]:
             self.searchFiles(self.standardOverview.mode, input)
         elif self.standardOverview.mode in ["personsMode", 'friendsMode']:
@@ -730,6 +872,11 @@ class GUIUtility:
         wx.CallAfter(self.torrentsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
 
     def stopSearch(self):
+        self.frame.go.setToggled(False)
+        self.frame.top_bg.createBackgroundImage()
+        self.frame.top_bg.Refresh()
+        self.frame.top_bg.Update()
+        self.frame.search.SetFocus()
         mode = self.standardOverview.getMode() 
         if mode == 'filesMode' or mode == 'libraryMode':
             self.torrentsearch_manager.stopSearch()
