@@ -45,7 +45,6 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-import Tribler.Main.vwxGUI.updateXRC as updateXRC
 from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar

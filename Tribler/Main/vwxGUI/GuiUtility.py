@@ -24,7 +24,6 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 
 
 from bgPanel import *
-import updateXRC
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog, InviteFriendsDialog
 
 from Tribler.Subscriptions.rss_client import TorrentFeedThread

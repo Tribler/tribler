@@ -100,12 +100,6 @@ def filterincludes( l, f ):
 
     return [(x,y) for (x,y) in l if f(y[0])]
 
-# ----- update .xrc files
-
-from Tribler.Main.vwxGUI.updateXRC import main as updateXRC
-
-updateXRC( [os.path.abspath(os.path.dirname(sys.argv[0]))+"/Main/vwxGUI"] )
-
 # ----- build the app bundle
 
 mainfile = os.path.join(LIBRARYNAME,'Main','tribler.py')
