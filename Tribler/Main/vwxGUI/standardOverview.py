@@ -14,8 +14,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc,print_stack
 from Tribler.Main.vwxGUI.fileDetailsOverviewPanel import fileDetailsOverviewPanel
 from Tribler.Main.vwxGUI.personDetailsOverviewPanel import personDetailsOverviewPanel
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
-
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
 from Tribler.Main.vwxGUI.standardGrid import GridState

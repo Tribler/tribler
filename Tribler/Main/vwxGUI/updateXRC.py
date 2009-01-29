@@ -1,6 +1,8 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke 
+# see LICENSE.txt for license information
 import sys, re, os, os.path
 
-DEBUG = False
+DEBUG = True
 ENABLED = True
 
 def changeFile(filename):
@@ -9,10 +11,11 @@ def changeFile(filename):
     f_in.close()
     
     olddata = data
-
-    # Define all used custom classes here and the related wxPython classes. They will be replaced by the regexp.
+    
+    # Define all used custom classes here and the related wxPython classes. 
+    # They will be replaced by the regexp.
     # (customClassName, wxClassName, filename for import)
-    customDir = 'Tribler.vwxGUI.'
+    customDir = 'Tribler.Main.vwxGUI.'
     customClasses = [('bgPanel', 'wxPanel', customDir+'bgPanel'), 
                      ('ImagePanel', 'wxPanel', customDir+'bgPanel'),
                      ('tribler_topButton', 'wxPanel', customDir+'tribler_topButton'),                     
@@ -74,13 +77,14 @@ def changeFile(filename):
                         ('playlistOverview', customDir+'playlistOverviewPanel.playlistOverviewPanel'),
                         ('personDetailsOverview', customDir+'personDetailsOverviewPanel.personDetailsOverviewPanel'),
                         ('playerDocked', customDir+'playerDockedPanel.playerDockedPanel'),
-                        ('MyFrame', 'tribler.ABCFrame')] # no customDir, abc_vwx.py is in root dir
-    
+                        ('MyFrame', 'Tribler.Main.vwxGUI.MainFrame.MainFrame')] # no customDir, abc_vwx.py is in root dir
     
     for (customClass, wxClass, customFile) in customClasses:
+        # Arno: remove last > to update classname
         data = re.sub('<object class="%s" name="([^"]+)">' % customClass, u'<object class="%s" name="\\1" subclass="%s.%s">' % (wxClass, customFile, customClass), data )
     
     for (objectName, subClass) in customSubClasses:
+        # Arno: remove last > to update classname
         data = re.sub('<object class="([^"]+)" name="%s">' % objectName, u'<object class="\\1" name="%s" subclass="%s">' % (objectName, subClass), data )
     
     data = re.sub('<bg>\d</bg>', u'<bg>#000000</bg>', data)
@@ -94,7 +98,7 @@ def changeFile(filename):
         f_out.write(data)
         f_out.close()
         return 'changed'
-    return 'no changes'
+    return 'kept'
     
 def main(args):
     # find all xrc files in this dir
@@ -108,6 +112,9 @@ def main(args):
     except:
         dir = '.'
     xrcs = []
+    
+    print '---------- updating dir',dir
+    
     for filename in os.listdir(dir):
         if filename.lower().endswith('.xrc'):
             xrcs.append(filename)
@@ -129,4 +136,5 @@ def main(args):
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main(sys.argv[1:])
+

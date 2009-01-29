@@ -186,11 +186,6 @@ class ABCApp(wx.App):
             
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
             
-            # Singleton for management of user's mugshots (i.e. icons/display pictures)
-            #self.mm = MugshotManager.getInstance()
-            
-            #self.mm.register(self.utility.getConfigPath(),self.utility.getPath())
-            
             # H4x0r a bit
             set_tasteheart_bitmaps(self.utility.getPath())
             set_perfBar_bitmaps(self.utility.getPath())
@@ -200,8 +195,8 @@ class ABCApp(wx.App):
 
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
-            #self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
-            #self.i2is.start()
+            self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
+            self.i2is.start()
 
             self.triblerStyles = TriblerStyles.getInstance()
             
@@ -217,7 +212,6 @@ class ABCApp(wx.App):
             #
             # Read and create GUI from .xrc files
             #
-            #self.frame = ABCFrame(-1, self.params, self.utility)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
             updateXRC.main([os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI')])
             self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
@@ -296,7 +290,7 @@ class ABCApp(wx.App):
             
             #self.frame.Refresh()
             #self.frame.Layout()
-            self.frame.Show()
+            self.frame.Show(True)
             
             self.frame.search_icon = xrc.XRCCTRL(self.frame, "search_icon")
             self.frame.tribler_logo2 = xrc.XRCCTRL(self.frame, "tribler_logo2")
@@ -321,7 +315,7 @@ class ABCApp(wx.App):
             #self.frame.preLoader = xrc.XRCCTRL(self.frame,"preloader")
 
             # animated gif for search results
-            ag_fname = "Tribler/Main/vwxGUI/images/5.0/search.gif"
+            ag_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','search.gif')
             self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
             #self.frame.ag.SetUseWindowBackgroundColour(False)
             

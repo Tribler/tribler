@@ -3,26 +3,12 @@ import wx.xrc as xrc
 import random
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-#from Tribler.vwxGUI.tribler_topButton import tribler_topButton
-#from Tribler.CacheDB.CacheDBHandler import MyDBHandler
-##from Tribler.Main.Dialogs.MugshotManager import MugshotManager
-#from Tribler.Dialogs.socnetmyinfo import MyInfoWizard
-#from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
-#from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
-##from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Core.Utilities.unicode import bin2unicode
-#from Tribler.vwxGUI.filesItemPanel import *
 from Tribler.Main.vwxGUI.filesItemPanel import FilesItemPanel
-#from Tribler.Dialogs.MugshotManager import MugshotManager
-#from Tribler.unicode import bin2unicode
 from Tribler.Core.Utilities.unicode import *
-#from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
-#from Tribler.vwxGUI.standardDetails import *
 from Tribler.Main.vwxGUI.standardPager import *
-##from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Main.vwxGUI.standardGrid import *
-#from time import time
 import urllib
 
 DEBUG = False
@@ -41,7 +27,6 @@ class playlistOverviewPanel(wx.Panel):
         self.data = {} #data related to profile information, to be used in details panel
         
 
-#        self.mm = MugshotManager.getInstance() 
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility        
         self.data_manager = TorrentDataManager.getInstance(self.utility)
@@ -74,9 +59,6 @@ class playlistOverviewPanel(wx.Panel):
         return True
     
     def _PostInit(self):
-#        self.bartercast_db = BarterCastDBHandler()
-#        self.mydb = MyPreferenceDBHandler()
-       
 #        self.setData()
         self.initDone = True
         

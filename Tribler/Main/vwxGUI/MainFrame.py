@@ -135,7 +135,7 @@ class MainFrame(wx.Frame, DelayedInvocation):
         
         self.SetSize(size)
         self.SetPosition(position)
-        self.SetTitle("Tribler 5.0") # # # (before title)
+        self.SetTitle(title)
         tt = self.GetToolTip()
         if tt is not None:
             tt.SetTip('')
@@ -251,7 +251,7 @@ class MainFrame(wx.Frame, DelayedInvocation):
         
         
         # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb
-#        bartercastdb = BarterCastDBHandler.getInstance()
+#        bartercastdb = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
 #        mypermid = bartercastdb.my_permid
 #        
 #        if DEBUG:

@@ -26,10 +26,6 @@ import TasteHeart
 from font import *
 
 
-from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
-#from Tribler.Main.Dialogs.MugshotManager import MugshotManager ## no longer used
-#from Tribler.Main.Dialogs.GUIServer import GUIServer ## no longer used
-
 from Tribler.Main.vwxGUI.FilesItemDetailsSummary import FilesItemDetailsSummary
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
@@ -103,10 +99,8 @@ class FilesItemPanel(wx.Panel):
 
         
         self.name = name
-        self.metadatahandler = MetadataHandler.getInstance()
         self.ThumbnailViewer = ThumbnailViewer
         self.guiUtility.thumbnailViewer = ThumbnailViewer
-        self.metadatahandler = MetadataHandler.getInstance()
         self.vSizer2 = None
         
 

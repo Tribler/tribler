@@ -18,7 +18,7 @@ from olconn import OLConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
-from Tribler.Core.CacheDB.MugshotManager import MugshotManager,ICON_MAX_SIZE
+from Tribler.Core.SocialNetwork.OverlapMsgHandler import ICON_MAX_SIZE
 
 DEBUG=True
 

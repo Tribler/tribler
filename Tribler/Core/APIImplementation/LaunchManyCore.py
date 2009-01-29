@@ -39,7 +39,6 @@ from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Tribler.Core.CacheDB.MugshotManager import MugshotManager
 from Tribler.Video.utils import win32_retrieve_video_play_command
 
 
@@ -156,10 +155,6 @@ class TriblerLaunchMany(Thread):
             self.seedingstats_db = SeedingStatsDBHandler.getInstance()
             self.seedingstatssettings_db = SeedingStatsSettingsDBHandler.getInstance()
             self.friendship_statistics_db = FriendshipStatisticsDBHandler().getInstance()
-            
-            #self.mm = MugshotManager.getInstance()
-            #self.mm.register(config)
-            #self.peer_db.setMugshotManager(self.mm)
         else:
             config['overlay'] = 0    # turn overlay off
             config['torrent_checking'] = 0

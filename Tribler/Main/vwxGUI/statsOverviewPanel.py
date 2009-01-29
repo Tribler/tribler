@@ -6,7 +6,6 @@ import random
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.Core.CacheDB.CacheDBHandler import MyDBHandler
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
@@ -150,29 +149,8 @@ class statsOverviewPanel(wx.Panel):
         
         
     def OnShow(self, evt):
-#        print "<mluc> in onshow in profileOverviewPanel"
-#        if evt.show:
-#            print "<mluc> profileOverviewPanel is visible"
-#            self.timer.Start() #restarts the timer
-#        else:
-#            print "<mluc> profileOverviewPanel is visible"
             pass
-        #wx.CallAfter(self.reloadData())
 
-#    def getNameMugshot(self):
-#        my_db = MyDBHandler()
-#        self.myname = my_db.get('name', '')
-#        mypermid = my_db.getMyPermid()
-#        mm = MugshotManager.getInstance()
-#        self.mugshot = mm.load_wxBitmap(mypermid)
-#        if self.mugshot is None:
-#            print "profileOverviewPanel: Bitmap for mypermid not found"
-#            self.mugshot = mm.get_default('personsMode','DEFAULT_THUMB')
-        
-#    def showNameMugshot(self):
-#        self.getGuiElement('myNameField').SetLabel(self.myname)
-#        thumbpanel = self.getGuiElement('thumb')
-#        thumbpanel.setBitmap(self.mugshot)
         
     def sendClick(self, event):
         source = event.GetEventObject()

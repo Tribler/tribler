@@ -15,7 +15,6 @@ from sets import Set
 from Tribler.Core.Utilities.utilities import show_permid_shorter, validIP, validPort, validPermid, validName
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import *
-from Tribler.Core.CacheDB.MugshotManager import MugshotManager # move to peerDBHandler
 
 DEBUG = False
 
@@ -233,8 +232,8 @@ class PeerDBHandler(BasicDBHandler):
         self.friends_db_handler = FriendDBHandler.getInstance()
         self.pref_db_handler = PreferenceDBHandler(db_dir=db_dir)
         self.ip_db = IP2PermIDDB.getInstance(db_dir=db_dir)
-        self.mm = MugshotManager.getInstance()
-        self.mm.register(config)
+        #self.mm = Mugshot Manager.getInstance()
+        #self.mm.register(config)
         self.dbs = [self.peer_db, self.ip_db]
     
     __single = None    

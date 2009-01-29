@@ -4,11 +4,8 @@ import random
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
-from Tribler.Core.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
-from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
-from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Core.Utilities.unicode import bin2unicode
 #from Tribler.vwxGUI.filesItemPanel import *
@@ -39,7 +36,6 @@ class fileDetailsOverviewPanel(wx.Panel):
         self.data = {} #data related to profile information, to be used in details panel
         
 
-        #self.mm = MugshotManager.getInstance() 
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility        
         self.moderationState = False;
@@ -88,10 +84,6 @@ class fileDetailsOverviewPanel(wx.Panel):
         return True
     
     def _PostInit(self):
-        self.bartercast_db = BarterCastDBHandler()
-        self.mydb = MyPreferenceDBHandler()
-       
-       
         self.initDone = True
         
         

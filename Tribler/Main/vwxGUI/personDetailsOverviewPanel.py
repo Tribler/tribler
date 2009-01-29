@@ -4,11 +4,8 @@ import random
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
-from Tribler.Core.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
-from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
-from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.filesItemPanel import *
 #from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
@@ -77,9 +74,6 @@ class personDetailsOverviewPanel(wx.Panel):
     
     def _PostInit(self):
         self.addComponents()
-        self.bartercast_db = BarterCastDBHandler()
-        self.mydb = MyPreferenceDBHandler()
-        self.mm = MugshotManager.getInstance()
         self.initDone = True
         
         

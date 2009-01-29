@@ -8,13 +8,14 @@ from traceback import print_exc
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
-from Tribler.Core.CacheDB.MugshotManager import ICON_MAX_SIZE
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Utilities.unicode import str2unicode
 
 DEBUG = False
 
 MIN_OVERLAP_WAIT = 12.0*3600.0 # half a day in seconds
+
+ICON_MAX_SIZE = 10*1024
 
 class OverlapMsgHandler:
     

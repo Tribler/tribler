@@ -7,7 +7,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TextButton import *
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
 
@@ -131,7 +130,6 @@ class LeftMenu(wx.Panel,FlaglessDelayedInvocation):
         
 class MenuItem:
     def __init__(self, parent, addItem, name, sublist = [] ):
-        self.mm = MugshotManager.getInstance()
         self.parent = parent
         self.addItem = addItem
         self.name= name
