@@ -59,7 +59,6 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-import Tribler.Main.vwxGUI.updateXRC as updateXRC
 from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
@@ -213,7 +212,6 @@ class ABCApp(wx.App):
             # Read and create GUI from .xrc files
             #
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
-            updateXRC.main([os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI')])
             self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
