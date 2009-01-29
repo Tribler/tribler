@@ -421,7 +421,7 @@ class Crawler:
         if self._initiator_deadlines:
             while self._initiator_deadlines:
                 deadline, frequency, initiator_callback, permid, selversion = self._initiator_deadlines[0]
-                if now > deadline + DEADLINE_OFFSET:
+                if now > deadline + FREQUENCY_FLEXIBILITY:
                     try:
                         initiator_callback(permid, selversion, lambda message_id, payload, frequency=frequency, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
                     except Exception:
@@ -446,7 +446,7 @@ class Crawler:
                         print >>sys.stderr, "crawler: dialback to crawler established", dns, show_permid_short(permid)
 
             for message_id, (deadline, permid) in self._dialback_deadlines.items():
-                if now > deadline + DEADLINE_OFFSET:
+                if now > deadline + FREQUENCY_FLEXIBILITY:
                     self._overlay_bridge.connect(permid, _after_connect)
                     del self._dialback_deadlines[message_id]
 
