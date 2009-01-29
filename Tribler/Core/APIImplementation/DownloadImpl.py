@@ -534,6 +534,8 @@ class DownloadImpl:
                 mimetype = 'video/avi'
             elif ext == '.mpegts':
                 mimetype = 'video/mp2t'
+            elif ext == '.mkv':
+                mimetype = 'video/x-matroska'
             else:
                 mimetype = 'video/mpeg'
         return mimetype

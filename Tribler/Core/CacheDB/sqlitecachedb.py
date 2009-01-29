@@ -25,7 +25,7 @@ import apsw
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
 CREATE_SQL_FILE = None
-CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'tribler_sdb_v2.sql')
+CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'tribler_sdb_v1.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 BSDDB_DIR_NAME = 'bsddb'
@@ -52,6 +52,9 @@ def init(config, db_exception_handler = None):
         sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
     bsddb_path = os.path.join(config_dir, BSDDB_DIR_NAME)
     icon_dir = os.path.abspath(config['peer_icon_path'])
+    
+    print >>sys.stderr,"cachedb: init: SQL FILE",sqlite_db_path
+    
     sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE, bsddb_path,current_db_version=CURRENT_MAIN_DB_VERSION)  # the first place to create db in Tribler
     return sqlitedb
         

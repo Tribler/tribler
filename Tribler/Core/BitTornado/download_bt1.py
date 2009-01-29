@@ -479,9 +479,9 @@ class BT1Download:
                 vodeventfunc( self.videoinfo, VODEVENT_START, {
                     "complete":  True,
                     "filename":  self.videoinfo["outpath"],
-                    "mimetype":  None,
+                    "mimetype":  self.videoinfo["mimetype"],
                     "stream":    None,
-                    "length":      self.videostatus.selected_movie["size"],
+                    "length":    self.videostatus.selected_movie["size"],
                 } )
             else:
                 if DEBUG:

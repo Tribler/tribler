@@ -47,6 +47,7 @@ def state_callback(ds):
 
 
 scfg = SessionStartupConfig()
+scfg.set_megacache( False )
 scfg.set_overlay( False )
 
 s = Session( scfg )

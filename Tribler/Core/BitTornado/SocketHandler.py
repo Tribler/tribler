@@ -13,7 +13,7 @@ from time import sleep
 from clock import clock
 import sys
 from random import shuffle, randrange
-from traceback import print_exc
+from traceback import print_exc,print_stack
 
 from threading import currentThread
 

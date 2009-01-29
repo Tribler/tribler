@@ -230,8 +230,7 @@ class AuthStreamWrapper:
         return self.last_rtstamp
     
     def seek(self,pos,whence=None):
-        if pos != 0:
-            raise ValueError("authstream does not support seek")
+        raise ValueError("authstream does not support seek")
         
     def close(self):
         self.inputstream.close()

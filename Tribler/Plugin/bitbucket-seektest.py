@@ -11,11 +11,15 @@ DEBUG = True
 RATE=32768
 
 def vod_event_callback(d,event,params):
+    
+    f = open("start.avi","wb")
+    
     if event == "start":
         stream = params["stream"]
 
         grandtotal = 0L
         st = time.time()
+        wcount = 0
         while True:
             global RATE
             total = 0
@@ -23,12 +27,26 @@ def vod_event_callback(d,event,params):
                 data = stream.read(int(RATE))
                 total += len(data)
                 
+                f.write(data)
+                wcount += 1
+                
             grandtotal += total
             et = time.time()
-            diff = et - st
+            diff = et - st + 0.0000001 # to avoid diff by 0
             grandrate = float(grandtotal) / diff
             print >>sys.stderr,"bitbucket: grandrate",grandrate,"~",RATE
             time.sleep(1.0)
+            
+            print >>sys.stderr,"bitbucket: wcount",wcount 
+            if wcount == 20:
+                f.close()
+                f = open("seek.avi","wb")
+                print >>sys.stderr,"bitbucket: SEEKING!"
+                stream.seek(0)
+            if wcount == 40:
+                f.close()
+                print >>sys.stderr,"bitbucket: DONE!"
+                return
 
 def state_callback(ds):
     try:

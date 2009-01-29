@@ -11,6 +11,7 @@ from threading import Thread
 from sets import Set
 import time
 import collections
+import os
 
 import SocketServer
 import BaseHTTPServer
@@ -174,6 +175,9 @@ class MovieOnDemandTransporter(MovieTransport):
             print >>sys.stderr,"vod: trans: Want",self.max_prebuf_packets,"pieces for prebuffering"
 
         self.nreceived = 0
+        
+        print >>sys.stderr,"vod: trans: Setting MIME type to",self.videoinfo['mimetype']
+        
         self.set_mimetype(self.videoinfo['mimetype'])
 
         # some statistics
@@ -188,7 +192,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.curpiece = ""
         self.curpiece_pos = 0
         self.outbuf = []
-        self.last_pop = None # time of last pop
+        #self.last_pop = None # time of last pop
         self.reset_bitrate_prediction()
 
         self.lasttime=0
@@ -724,6 +728,8 @@ class MovieOnDemandTransporter(MovieTransport):
     #
     # MovieTransport interface
     #
+    # WARNING: these methods will be called by other threads than NetworkThread!
+    #
     def size( self ):
         if self.videostatus.get_wraparound():
             return None
@@ -770,7 +776,21 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def start( self, bytepos = 0, force = False ):
         """ Initialise to start playing at position `bytepos'. """
-
+        # ARNOTODO: we don't use start(bytepos != 0) at the moment. See if we 
+        # should. Also see if we need the read numbytes here, or that it
+        # is better handled at a higher layer. For live it is currently
+        # done at a higher level, see VariableReadAuthStreamWrapper because
+        # we have to strip the signature. Hence the self.curpiece buffer here
+        # is superfluous. Get rid off it or check if 
+        #
+        #    curpiece[0:piecelen]
+        #
+        # returns curpiece if piecelen has length piecelen == optimize for
+        # piecesized case.
+        #
+        # For VOD seeking we may use the numbytes facility to seek to byte offsets
+        # not just piece offsets.
+        #
         vs = self.videostatus
 
         if vs.playing and not force:
@@ -806,13 +826,23 @@ class MovieOnDemandTransporter(MovieTransport):
             self.curpiece_pos = offset
             self.set_pos( piece )
             self.outbuf = []
-            self.last_pop = time.time()
+            #self.last_pop = time.time()
             self.reset_bitrate_prediction()
             vs.playing = True
             self.playbackrate = Measure( 60 )
         finally:
             self.data_ready.release()
 
+        # ARNOTODO: start is called by non-NetworkThreads, these following methods
+        # are usually called by NetworkThread.
+        #
+        # We now know that this won't be called until notify_playable() so
+        # perhaps this can be removed?
+        #
+        # CAREFUL: if we use start() for seeking... that's OK. User won't be
+        # able to seek before he got his hands on the stream, so after 
+        # notify_playable()
+        
         # See what we can do right now
         self.update_prebuffering()
         self.refill_buffer()
@@ -830,7 +860,7 @@ class MovieOnDemandTransporter(MovieTransport):
         # clear buffer and notify possible readers
         self.data_ready.acquire()
         self.outbuf = []
-        self.last_pop = None
+        #self.last_pop = None
         vs.prebuffering = False
         self.data_ready.notify()
         self.data_ready.release()
@@ -904,6 +934,49 @@ class MovieOnDemandTransporter(MovieTransport):
 
         return vs.playback_pos == vs.last_piece+1 and self.curpiece_pos >= len(self.curpiece)
 
+    def seek(self,pos,whence=None):
+        """ Seek to the given position, a number in bytes relative to both
+        the "whence" reference point and the file being played.
+        
+        We currently actually seek at byte level, via the start() method.
+        We support all forms of seeking, including seeking past the current
+        playback pos. Note this may imply needing to prebuffer again or 
+        being paused.
+        
+        vs.playback_pos in NetworkThread domain. Does data_ready lock cover 
+        that? Nope. However, this doesn't appear to be respected in any
+        of the MovieTransport methods, check all.
+        
+        Check
+        * When seeking reset other buffering, e.g. read()'s self.curpiece
+           and higher layers.
+        
+        """
+        vs = self.videostatus
+        length = self.size()
+
+        # lock before changing startpos or any other playing variable
+        self.data_ready.acquire()
+        try:
+            if vs.live_streaming:
+                raise ValueError("seeking not possible for live")
+            if whence == os.SEEK_SET:
+                abspos = pos
+            elif whence == os.SEEK_END:
+                if pos > 0:
+                    raise ValueError("seeking beyond end of stream")
+                else:
+                    abspos = size+pos
+            else: # SEEK_CUR
+                raise ValueError("seeking does not currently support SEEK_CUR")
+            
+            self.stop()
+            self.start(pos)
+        finally:
+            self.data_ready.release()
+
+
+
     def get_mimetype(self):
         return self.mimetype
 
@@ -968,8 +1041,6 @@ class MovieOnDemandTransporter(MovieTransport):
             return False
 
         return True
-
-        
 
 
     def update_bitrate_prediction(self,i,piece):
@@ -1216,7 +1287,7 @@ class MovieOnDemandTransporter(MovieTransport):
                 if not vs.dropping and forcedrop:
                     print >>sys.stderr,"vod: trans: DROPPING INVALID PIECE #%s, even though we shouldn't drop anything." % piece
                 if vs.dropping or forcedrop:
-                    if time.time() >= self.piece_due( piece ) or buffer_underrun():
+                    if time.time() >= self.piece_due( piece ) or buffer_underrun() or forcedrop:
                         # piece is too late or we have an empty buffer (and future data to play, otherwise we would have paused) -- drop packet
                         drop( piece )
                     else:
@@ -1259,7 +1330,7 @@ class MovieOnDemandTransporter(MovieTransport):
             piece = self.outbuf.pop( 0 ) # nr,data pair
             self.playbackrate.update_rate( len(piece[1]) )
 
-        self.last_pop = time.time()
+        #self.last_pop = time.time()
 
         self.data_ready.release()
 
@@ -1270,6 +1341,9 @@ class MovieOnDemandTransporter(MovieTransport):
         return piece
 
     def notify_playable(self):
+        """ Tell user he can play the media, 
+        cf. Tribler.Core.DownloadConfig.set_vod_event_callback()
+        """
         #if self.bufferinfo:
         #    self.bufferinfo.set_playable()
         #self.progressinf.bufferinfo_updated_callback()
@@ -1309,6 +1383,10 @@ class MovieOnDemandTransporter(MovieTransport):
             "length":      self.size(),
         } )
 
+
+    #
+    # Methods for DownloadState to extract status info of VOD mode.
+    #
     def get_stats(self):
         """ Returns accumulated statistics. The piece data is cleared after this call to save memory. """
         """ Called by network thread """
@@ -1339,7 +1417,11 @@ class MovieOnDemandTransporter(MovieTransport):
     def get_duration(self):
         return 1.0 * self.videostatus.selected_movie["size"] / self.videostatus.bitrate
 
+    #
+    # Live streaming
+    #
     def live_invalidate_piece_globally(self, piece):
+        """ Make piece disappear from this peer's view of BT world """
         #print >>sys.stderr,"vod: trans: live_invalidate",piece
                  
         self.piecepicker.invalidate_piece(piece)

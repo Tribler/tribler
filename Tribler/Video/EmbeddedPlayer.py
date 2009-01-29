@@ -98,14 +98,12 @@ class EmbeddedPlayerPanel(wx.Panel):
     as Play/Pause buttons and Volume Control.
     """
 
-    def __init__(self, parent, utility, vlcwrap, logopath):
+    def __init__(self, parent, utility, vlcwrap, logopath, fg=wx.WHITE, bg=wx.BLACK):
         wx.Panel.__init__(self, parent, -1)
         self.utility = utility
 
-        #self.SetBackgroundColour(wx.WHITE)
-        self.SetBackgroundColour((216,233,240))
+        self.SetBackgroundColour(bg)
         mainbox = wx.BoxSizer(wx.VERTICAL)
-
 
         if vlcwrap is None:
             size = (320,64)
@@ -117,7 +115,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         # Arno: until we figure out how to show in-playback prebuffering info
         self.statuslabel = wx.StaticText(self, -1, 'Loading player...' )
-        self.statuslabel.SetForegroundColour(wx.WHITE)
+        self.statuslabel.SetForegroundColour(fg)
 
         if vlcwrap is not None:
             ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
@@ -385,10 +383,11 @@ class VLCLogoWindow(wx.Window):
     "Loading: bla.video" message when VLC is not playing.
     """
     
-    def __init__(self, parent, size, vlcwrap, logopath):
+    def __init__(self, parent, size, vlcwrap, logopath, fg=wx.WHITE, bg=wx.BLACK):
         wx.Window.__init__(self, parent, -1, size=size)
         self.SetMinSize(size)
-        self.SetBackgroundColour((216,233,240))
+        self.SetBackgroundColour(bg)
+        self.bg = bg
         
         self.vlcwrap = vlcwrap
 
@@ -438,8 +437,8 @@ class VLCLogoWindow(wx.Window):
         halfx -= self.logo.GetWidth()/2
         halfy -= self.logo.GetHeight()/2
 
-        dc.SetPen(wx.Pen(wx.Colour(216,233,240),0))
-        dc.SetBrush(wx.Brush(wx.Colour(216,233,240)))
+        dc.SetPen(wx.Pen(self.bg,0))
+        dc.SetBrush(wx.Brush(self.bg))
         if sys.platform == 'linux2':
             dc.DrawRectangle(x,y,maxw,maxh)
         dc.DrawBitmap(self.logo,halfx,halfy,True)

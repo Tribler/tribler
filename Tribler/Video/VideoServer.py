@@ -1,7 +1,6 @@
 # Written by Jan David Mol, Arno Bakker
 # see LICENSE.txt for license information
 #
-# TODO: Allow only 1 GET request
 
 import os,sys,string,time
 import socket
@@ -12,7 +11,7 @@ import thread
 from threading import RLock,Thread,currentThread
 from traceback import print_exc
 
-DEBUG = False
+DEBUG = True
         
 
 class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
@@ -32,7 +31,7 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
 
         self.lock = RLock()        
         
-        self.streaminfo = None
+        self.urlpath2streaminfo = {}
         
         self.errorcallback = None
         self.statuscallback = None
@@ -54,15 +53,22 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         self.errorcallback = errorcallback
         self.statuscallback = statuscallback
 
-    def set_inputstream(self,streaminfo):
+    def set_inputstream(self,streaminfo,urlpath):
         self.lock.acquire()
-        self.streaminfo = streaminfo
+        self.urlpath2streaminfo[urlpath] = streaminfo
         self.lock.release()
         
-    def get_inputstream(self):
+    def get_inputstream(self,urlpath):
         self.lock.acquire()
         try:
-            return self.streaminfo
+            return self.urlpath2streaminfo[urlpath]
+        finally:
+            self.lock.release()
+
+    def del_inputstream(self,urlpath):
+        self.lock.acquire()
+        try:
+            del self.urlpath2streaminfo[urlpath]
         finally:
             self.lock.release()
 
@@ -91,7 +97,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 
             #if self.server.statuscallback is not None:
             #    self.server.statuscallback("Player ready - Attempting to load file...")
-            streaminfo = self.server.get_inputstream()
+            streaminfo = self.server.get_inputstream(self.path)
             if streaminfo is None:
                 if DEBUG:
                     print >>sys.stderr,"videoserv: do_GET: No data to serve request"
@@ -106,12 +112,6 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     blocksize = 65536
             print >>sys.stderr,"videoserv: MIME type is",mimetype,"length",length,"blocksize",blocksize
     
-            # h4x0r until we merge patches from player-release-0.0 branch
-            if mimetype is None and length is None:
-                mimetype = 'video/mp2t'
-            elif mimetype is None:
-                mimetype = 'video/mpeg'
-                
             #mimetype = 'application/x-mms-framed'
             #mimetype = 'video/H264'
                 
@@ -126,7 +126,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 type, seek = string.split(range,'=')
                 firstbyte, lastbyte = string.split(seek,'-')
         
-            stream.seek( int(firstbyte) )
+            if firstbyte != 0:
+                stream.seek( int(firstbyte) )
     
             self.send_response(200)
             self.send_header("Content-Type", mimetype)
@@ -195,7 +196,7 @@ class VideoRawVLCServer:
 
         self.lock = RLock()
         self.oldsid = None
-        self.streaminfos = {}
+        self.sid2streaminfo = {}
         
         
         self.lastsid = None # workaround bug? in raw inf
@@ -213,7 +214,7 @@ class VideoRawVLCServer:
         self.lock.acquire()
         try:
             print >>sys.stderr,"VLCRawServer: setting sid",sid
-            self.streaminfos[sid] = streaminfo
+            self.sid2streaminfo[sid] = streaminfo
             
             # workaround
             self.lastsid = sid
@@ -225,7 +226,7 @@ class VideoRawVLCServer:
         # TODO: locking?
         self.lock.acquire()
         try:
-            return self.streaminfos[sid]
+            return self.sid2streaminfo[sid]
         finally:
             self.lock.release()
 
@@ -241,8 +242,8 @@ class VideoRawVLCServer:
             
             if self.oldsid is not None and self.oldsid != sid:
                 # Switched streams, garbage collect old
-                oldstream = self.streaminfos[self.oldsid]['stream']
-                del self.streaminfos[self.oldsid]
+                oldstream = self.sid2streaminfo[self.oldsid]['stream']
+                del self.sid2streaminfo[self.oldsid]
                 self.oldsid = sid
                 try:
                     oldstream.close()

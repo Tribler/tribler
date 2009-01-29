@@ -76,6 +76,7 @@ from Tribler.Web2.util.update import Web2Updater
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
+from Tribler.Utilities.LinuxSingleInstanceChecker import *
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 
@@ -328,7 +329,7 @@ class ABCApp(wx.App):
             # videopanel
             self.frame.videopanel = xrc.XRCCTRL(self.frame,"videopanel")
             logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler_small.png')
-            self.frame.videopanel = EmbeddedPlayerPanel(self.frame.videopanel, self.utility,self.videoplayer.get_vlcwrap(), logopath)
+            self.frame.videopanel = EmbeddedPlayerPanel(self.frame.videopanel, self.utility,self.videoplayer.get_vlcwrap(), logopath, fg=wx.WHITE, bg=(216,233,240))
 
             self.frame.familyfilter = xrc.XRCCTRL(self.frame,"familyfilter")
             
@@ -870,12 +871,14 @@ class ABCApp(wx.App):
             self.guiUtility.standardLibraryOverview()
  
  
-    def i2icallback(self,cmd,param):
+    def i2icallback(self,ic,cmd):
         """ Called by Instance2Instance thread """
         
-        print >>sys.stderr,"main: Another instance called us with cmd",cmd,"param",param
+        print >>sys.stderr,"main: Another instance called us with cmd",cmd
+        ic.close()
         
-        if cmd == 'START':
+        if cmd.startswith('START '):
+            param = cmd[len('START '):]
             torrentfilename = None
             if param.startswith('http:'):
                 # Retrieve from web 
@@ -894,21 +897,6 @@ class ABCApp(wx.App):
             wx.CallAfter(start_download_lambda)
     
         
-class DummySingleInstanceChecker:
-    
-    def __init__(self,basename):
-        pass
-
-    def IsAnotherRunning(self):
-        "Uses pgrep to find other tribler.py processes"
-        # If no pgrep available, it will always start tribler
-        progressInfo = commands.getoutput('pgrep -fl "tribler\.py" | grep -v pgrep')
-        numProcesses = len(progressInfo.split('\n'))
-        if DEBUG:
-            print 'ProgressInfo: %s, num: %d' % (progressInfo, numProcesses)
-        return False
-                
-        
 ##############################################################
 #
 # Main Program Start Here
@@ -921,18 +909,14 @@ def run(params = None):
     if len(sys.argv) > 1:
         params = sys.argv[1:]
     try:
-            
         # Create single instance semaphore
         # Arno: On Linux and wxPython-2.8.1.1 the SingleInstanceChecker appears
         # to mess up stderr, i.e., I get IOErrors when writing to it via print_exc()
         #
-        #if sys.platform != 'linux2':
-        single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
-        
-        print >>sys.stderr,"single_instance_checker.IsAnotherRunning()",single_instance_checker.IsAnotherRunning()
-        
-        #else:
-        #    single_instance_checker = DummySingleInstanceChecker("tribler-")
+        if sys.platform != 'linux2':
+            single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
+        else:
+            single_instance_checker = LinuxSingleInstanceChecker("tribler")
     
         if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
             #Send  torrent info to abc single instance

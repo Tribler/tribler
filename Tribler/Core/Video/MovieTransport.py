@@ -34,54 +34,6 @@ class MovieTransport:
         pass
 
  
-class MovieFileTransport(MovieTransport):
-    
-    def __init__(self,videofilename,mimetype,enckey=None):
-        self.videofilename = videofilename
-        self.mimetype = mimetype
-        self.enckey = enckey
-        self.doneflag = False
-        self.userpos = 0
-
-    def start( self, bytepos = 0 ):
-        """ Initialise to start playing at position `bytepos'. """
-        self.userpos = bytepos
-        self.file = open(self.videofilename,"rb")
-        if self.userpos != 0:
-            self.file.seek(self.userpos,0)
-        
-    def size(self ):
-        statinfo = os.stat(self.videofilename)
-        return statinfo.st_size
-
-    def read(self):
-        diff = self.userpos % BLOCKSIZE
-        if diff != 0:
-            self.file.seek(-diff,1)
-        data = self.file.read(BLOCKSIZE)
-        if len(data) != BLOCKSIZE:
-            self.doneflag = True
-            if len(data)==0:
-                return None
-        if self.enckey is not None:
-            ret = read(data,self.enckey)
-        else:
-            ret = data
-            
-        self.userpos += len(data)-diff
-        return ret[diff:]
-
-    def stop(self):
-        """ Playback is stopped. """
-        self.file.close()
-
-    def done(self):
-        return self.doneflag
-    
-    def get_mimetype(self):
-        return self.mimetype
-
-
 class MovieTransportStreamWrapper:
     """ Provide a file-like interface """
     def __init__(self,mt):
@@ -101,9 +53,10 @@ class MovieTransportStreamWrapper:
         self.done = self.mt.done()
         return data
 
-    def seek(self,pos,whence=None):
+    def seek(self,pos,whence=os.SEEK_SET):
         # TODO: shift play_pos in PiecePicking + interpret whence
-        pass
+        print >>sys.stderr,"MovieTransportStreamWrapper: seek() CALLED",pos,"whence",whence
+        self.mt.seek(pos,whence=whence)
     
     def close(self):
         self.mt.stop()

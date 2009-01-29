@@ -1,5 +1,3 @@
-
-
 # Written by Bram Cohen, Pawel Garbacki and Arno Bakker
 # see LICENSE.txt for license information
 

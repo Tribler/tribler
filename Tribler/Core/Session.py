@@ -157,12 +157,13 @@ class Session(SessionRuntimeConfig):
             self.sessconfig['crawler_file'] = os.path.join(self.sessconfig['install_dir'], LIBRARYNAME,'Core','Statistics','crawler.txt')
 
         # 5. download_help_dir
-        if self.sessconfig['download_help_dir'] is None:
-            self.sessconfig['download_help_dir'] = os.path.join(get_default_dest_dir(),DESTDIR_COOPDOWNLOAD)
-        # Jelle: under linux, default_dest_dir can be /tmp. Then download_help_dir can be deleted inbetween
-        # sessions.
-        if not os.path.isdir(self.sessconfig['download_help_dir']):
-            os.makedirs(self.sessconfig['download_help_dir'])
+        if self.sessconfig['overlay'] and self.sessconfig['download_help']:
+            if self.sessconfig['download_help_dir'] is None:
+                self.sessconfig['download_help_dir'] = os.path.join(get_default_dest_dir(),DESTDIR_COOPDOWNLOAD)
+            # Jelle: under linux, default_dest_dir can be /tmp. Then download_help_dir can be deleted inbetween
+            # sessions.
+            if not os.path.isdir(self.sessconfig['download_help_dir']):
+                os.makedirs(self.sessconfig['download_help_dir'])
 
         # 6. peer_icon_path
         if self.sessconfig['peer_icon_path'] is None:

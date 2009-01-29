@@ -193,8 +193,9 @@ class VideoPlayer:
                 self.launch_video_player(url)
         else:
             # External player, play stream via internal HTTP server
-            self.videohttpserv.set_inputstream(streaminfo)
-            url = self.create_url(self.videohttpserv,'/')
+            path = '/'
+            self.videohttpserv.set_inputstream(streaminfo,path)
+            url = self.create_url(self.videohttpserv,path)
 
             [mimetype,cmd] = self.get_video_player(None,url,mimetype=streaminfo['mimetype'])
             self.launch_video_player(cmd)
