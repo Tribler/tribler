@@ -19,6 +19,9 @@ import random
 import binascii
 from traceback import print_exc
 
+import win32event
+import win32api
+
 try:
     import wxversion
     wxversion.select('2.8')
@@ -60,7 +63,12 @@ class BackgroundApp(BaseApp):
         # and resume it to the new user.
         #
         self.dusers = {}   
-        
+
+        # If the BG Process is started by the plug-in notify it with an event
+        startupEvent = win32event.CreateEvent( None, 0, 0, 'startupEvent' )
+        win32event.SetEvent( startupEvent )
+        win32api.CloseHandle( startupEvent ) # TODO : is it possible to avoid importing win32api just to close an handler?
+
     def OnInit(self):
         try:
             # Do common initialization
