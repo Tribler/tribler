@@ -498,9 +498,11 @@ class MiscPanel(ABCOptionPanel):
                 self.utility.languages[config.Read('languagename')] = filename
 
     def onRecategorize(self, event=None):
-        catobj = Category.getInstance()
-        torrentdata = self.utility.guiUtility.data_manager.data
-        catobj.reSortAll(torrentdata)
+        #catobj = Category.getInstance()
+        #torrentdata = self.utility.guiUtility.data_manager.data
+        #catobj.reSortAll(torrentdata)
+        # Arno: need to fix Category to make this work again.
+        pass
 
 ################################################################
 #

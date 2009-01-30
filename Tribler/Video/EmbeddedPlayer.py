@@ -110,7 +110,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         else:
             size = (320,240) 
         
-        self.vlcwin = VLCLogoWindow(self,size,vlcwrap,logopath)
+        self.vlcwin = VLCLogoWindow(self,size,vlcwrap,logopath, fg=fg, bg=bg)
         self.vlcwrap = vlcwrap
 
         # Arno: until we figure out how to show in-playback prebuffering info

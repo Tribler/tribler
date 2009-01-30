@@ -486,6 +486,8 @@ class Session(SessionRuntimeConfig):
         NTFY_BARTERCAST -> BartercastDBHandler
         NTFY_SEARCH -> SearchDBHandler
         NTFY_TERM -> TermDBHandler
+        NTFY_MODERATIONCAST -> ModerationCastDBHandler
+        NTFY_VOTECAST -> VotecastDBHandler
         </pre>
         """ 
         # Called by any thread
@@ -509,6 +511,10 @@ class Session(SessionRuntimeConfig):
                 return self.lm.seedingstats_db
             elif subject == NTFY_SEEDINGSTATSSETTINGS:
                 return self.lm.seedingstatssettings_db
+            elif subject == NTFY_MODERATIONCAST:
+                return self.lm.modcast_db
+            elif subject == NTFY_VOTECAST:
+                return self.lm.votecast_db
             elif subject == NTFY_SEARCH:
                 return self.lm.search_db
             elif subject == NTFY_TERM:

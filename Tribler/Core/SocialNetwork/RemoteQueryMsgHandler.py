@@ -79,9 +79,6 @@ class RemoteQueryMsgHandler:
             self.overlay_log = OverlayLogger.getInstance(log)
         self.registered = True
 
-    def register2(self,data_manager):
-        self.data_manager = data_manager    
-
     #
     # Incoming messages
     # 

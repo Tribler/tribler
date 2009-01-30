@@ -674,6 +674,7 @@ class MainFrame(wx.Frame, DelayedInvocation):
 
     def onReachable(self,event=None):
         """ Called by GUI thread """
+        self.guiUtility.set_reachable()
         if self.firewallStatus is not None:
             self.firewallStatus.setToggled(True)
             tt = self.firewallStatus.GetToolTip()

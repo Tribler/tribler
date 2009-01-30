@@ -18,21 +18,17 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
-
 
 class FilesItemDetailsSummary(bgPanel):
     
     def __init__(self, parent, torrentHash, torrent, web2data = None):
         wx.Panel.__init__(self, parent, -1)
         self.guiUtility = GUIUtility.getInstance()
-##        self.metadatahandler = MetadataHandler.getInstance()
-#        self.thumbSummary = thumbSummary
 
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility   
-        self.mcdb = ModerationCastDBHandler.getInstance()
-        self.vcdb = VoteCastDBHandler.getInstance()
+        self.mcdb = self.utility.session.open_dbhandler(NTFY_MODERATIONCAST)
+        self.vcdb = self.utility.session.open_dbhandler(NTFY_VOTECAST)
 
         self.session = self.utility.session
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
@@ -41,24 +37,8 @@ class FilesItemDetailsSummary(bgPanel):
         self.infohash = torrentHash
         self.torrent = torrent
 
-        ##self.data_manager = TorrentDataManager.getInstance(self.utility) ## None
-        ##self.data = {} #keeps gui elements for each mode
-        
-        ##if torrentHash != None:        
-            ##selectedTorrent = self.data_manager.getTorrents([torrentHash])            
-            ##if selectedTorrent:
-                ##self.data = selectedTorrent[0]
-        ##elif web2data:
-            ##self.data= web2data 
-                
-#        self.filesItemPanel = filesItemPanel.FilesItemPanel
-#        self.thumbnailViewer = filesItemPanel.ThumbnailViewer
         self.addComponents()
 
-        ##if self.downloading:
-            ##self.setDataLib()
-        ##elif not self.downloading:
-            ##self.setDataNoLib()
 
         self.tile = True
         self.backgroundColour = wx.Colour(102,102,102)
@@ -145,12 +125,12 @@ class FilesItemDetailsSummary(bgPanel):
         self.fake = TestButton(self, -1, name='fake')
         self.fake.SetMinSize((35,16))
         self.fake.SetSize((35,16))
-        self.guiUtility.fake = self.fake
+        self.guiUtility.fakeButton = self.fake
 
         self.real = TestButton(self, -1, name='real')
         self.real.SetMinSize((35,16))
         self.real.SetSize((35,16))
-        self.guiUtility.real = self.real
+        self.guiUtility.realButton = self.real
 
 
          #check for moderation
@@ -308,8 +288,7 @@ class FilesItemDetailsSummary(bgPanel):
 
         
     def setDataLib(self):
-        filelist = self.guiUtility.filesList(self.data, self.metadatahandler)
-#        self.filesList(self.data, self.metadatahandler)
+        filelist = self.guiUtility.filesList(self.data)
         print 'tb > filelist = %s' % filelist
         
             
@@ -328,8 +307,8 @@ class FilesItemDetailsSummary(bgPanel):
 
             
 #            # check here if there are more than one file in the torrent is > playlist
-            (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
-            torrent_filename = os.path.join(torrent_dir, torrent_name)
+            torrent_dir = self.utility.session.get_torrent_collecting_dir()
+            torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
             metadata = self.utility.getMetainfo(torrent_filename)
             
             if metadata:
@@ -416,31 +395,11 @@ class LibraryItemDetailsSummary(wx.Panel):
     def __init__(self, parent, torrentHash, web2data = None):
         wx.Panel.__init__(self, parent, -1)
         self.guiUtility = GUIUtility.getInstance()
-##        self.metadatahandler = MetadataHandler.getInstance()
-#        self.thumbSummary = thumbSummary
 
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility   
 
-        ##self.data_manager = TorrentDataManager.getInstance(self.utility)
-        ##self.data = {} #keeps gui elements for each mode
-        
-        ##if torrentHash != None:        
-        ##    selectedTorrent = self.data_manager.getTorrents([torrentHash])            
-        ##    if selectedTorrent:
-        ##        self.data = selectedTorrent[0]
-        ##elif web2data:
-        ##    self.data= web2data 
-                
-#        self.filesItemPanel = filesItemPanel.FilesItemPanel
-#        self.thumbnailViewer = filesItemPanel.ThumbnailViewer
         self.addComponents()
-        
-        ##self.setDataNoLib()
-#        if self.downloading:
-#            self.setDataLib()
-#        elif not self.downloading:
-#            self.setDataNoLib()
         
         
     def addComponents(self):
@@ -699,8 +658,7 @@ class LibraryItemDetailsSummary(wx.Panel):
         self.Layout()
         
     def setDataLib(self):
-        filelist = self.guiUtility.filesList(self.data, self.metadatahandler)
-#        self.filesList(self.data, self.metadatahandler)
+        filelist = self.guiUtility.filesList(self.data)
         print 'tb > filelist = %s' % filelist
         
             
@@ -719,8 +677,8 @@ class LibraryItemDetailsSummary(wx.Panel):
 
 
             # check here if there are more than one file in the torrent is > playlist
-            (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
-            torrent_filename = os.path.join(torrent_dir, torrent_name)
+            torrent_dir = self.utility.session.get_torrent_collecting_dir()
+            torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
             metadata = self.utility.getMetainfo(torrent_filename)
             
             if metadata:

@@ -33,7 +33,7 @@ class Category:
         filename = os.path.join(install_dir,LIBRARYNAME, 'Category', category_file)
         Category.__single = self
         self.utility = None
-        #self.torrent_db = TorrentDBHandler.getInstance()
+        #self.torrent_db = TorrentDBHandler.getInstance() # Arno, 2009-01-30: apparently unused
         try:
             self.category_info = getCategoryInfo(filename)
             self.category_info.sort(rankcmp)

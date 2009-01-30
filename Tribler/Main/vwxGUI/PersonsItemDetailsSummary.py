@@ -10,10 +10,7 @@ class PersonsItemDetailsSummary(wx.Panel):
     def __init__(self, parent, mode):
         wx.Panel.__init__(self, parent, -1)
         self.guiUtility = GUIUtility.getInstance()
-#        self.metadatahandler = MetadataHandler.getInstance()
-#        self.thumbSummary = thumbSummary
         self.utility = self.guiUtility.utility 
-        self.data_manager = None # TorrentDataManager.getInstance(self.utility)
         
         self.mode = mode
         self.addComponents()

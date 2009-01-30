@@ -28,7 +28,6 @@ from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *
-from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 
 DEBUG = False
 

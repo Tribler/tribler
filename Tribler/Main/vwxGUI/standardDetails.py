@@ -18,9 +18,6 @@ from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
-# LAYERVIOLATION
-from Tribler.Core.Overlay.MetadataHandler import get_filename
-
 from Tribler.Main.Utility.constants import COL_PROGRESS
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -33,7 +30,7 @@ from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 
-# LAYERVIOLATION
+# Sort of LAYERVIOLATION. It's a meta DBHandler actually.
 from Tribler.Core.CacheDB.CacheDBHandler import GUIDBHandler
 from Tribler.Core.CacheDB.EditDist import editDist
 
@@ -1642,10 +1639,6 @@ class standardDetails(wx.Panel):
 
         # torrent_dir
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
-
-        # torrent_file_name
-        if 'torrent_file_name' not in torrent:
-            torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
 
         clicklog={"keywords": self.guiUtility.torrentsearch_manager.searchkeywords[self.mode]}

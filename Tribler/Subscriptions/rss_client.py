@@ -232,7 +232,7 @@ class TorrentFeedThread(Thread):
         f.close()
 
         # Arno: hack, make sure these torrents are always good so they show up
-        # in TorrentDBHandler.getTorrents()
+        # in Torrent DBHandler.getTorrents()
         extra_info = {'status':'good'}
         self.torrent_db.addExternalTorrent(filename,source=source,extra_info=extra_info)
 

@@ -6,7 +6,7 @@
 ## (here) and correct.
 ##
 
-version_id = '4.5.2'
+version_id = '5.0'
 product_name = 'Tribler'
 version_short = 'Tribler-' + version_id
 

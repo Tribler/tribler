@@ -41,7 +41,6 @@ TRIBLER_TORRENT_EXT = ".tribe"
 # subjects
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
-NTFY_YOUTUBE = 'youtube'
 NTFY_PREFERENCES = 'preferences'
 NTFY_SUPERPEERS = 'superpeers' # use NTFY_PEERS !!
 NTFY_FRIENDS = 'friends'       # use NTFY_PEERS !!
@@ -50,12 +49,13 @@ NTFY_BARTERCAST = 'bartercast' # currently not observable
 NTFY_MYINFO = 'myinfo'
 NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
-NTFY_SEARCH = 'search'
+NTFY_MODERATIONCAST = 'moderationcast'
+NTFY_VOTECAST = 'votecast'
+NTFY_SEARCH = 'search' # BuddyCast 4
 NTFY_TERM= 'term'
 
 
 # non data handler subjects
-NTFY_DOWNLOADS = 'downloads'   # a torrent download was added/removed/changed
 NTFY_ACTIVITIES = 'activities' # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'   # the Session is reachable from the Internet
 

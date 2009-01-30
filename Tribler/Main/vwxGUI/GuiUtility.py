@@ -10,37 +10,20 @@ import webbrowser
 from sets import Set
 from webbrowser import open_new
 
-
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
+from Tribler.Core.Utilities.unicode import dunno2unicode
+
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
-
-
-from Tribler.Core.Utilities.unicode import dunno2unicode
-
-
-
-from bgPanel import *
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog, InviteFriendsDialog
-
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
-from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
-from Tribler.Category.Category import Category
-
-#from Tribler.vwxGUI.LeftMenu import LeftMenu
-#from Tribler.vwxGUI.filesFilter import filesFilter
-
+from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager,PeerSearchGridManager
 from Tribler.Main.Utility.constants import *
 
-
-
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import ModerationCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
@@ -66,17 +49,15 @@ class GUIUtility:
         self.frame = None
         self.selectedMainButton = None
         self.standardOverview = None
-        self.data_manager = None
+        self.reachable = False
 
-        self.torrenthash = None
-
-        self.mcdb = ModerationCastDBHandler.getInstance()
-
-        self.fake = None
-        self.real = None
+        # Moderation cast
+        self.moderatedinfohash = None
+        self.modcast_db = None 
+        self.fakeButton = None
+        self.realButton = None
 
         # videoplayer
-        self.videoplayer = None
         self.videoplayer = VideoPlayer.getInstance()
 
         # current GUI page
@@ -92,7 +73,6 @@ class GUIUtility:
         self.peersearch_manager = PeerSearchGridManager.getInstance(self)
         
         self.guiOpen = Event()
-        
         
        
         self.gridViewMode = 'thumbnails' 
@@ -120,6 +100,9 @@ class GUIUtility:
             GUIUtility(*args, **kw)
         return GUIUtility.__single
     getInstance = staticmethod(getInstance)
+
+    def open_dbs(self):
+        self.modcast_db = self.utility.session.open_dbhandler(NTFY_MODERATIONCAST)
         
     def buttonClicked(self, event):
         "One of the buttons in the GUI has been clicked"
@@ -322,18 +305,14 @@ class GUIUtility:
                 #                self.frame.Refresh()
 
         elif name == 'fake':    
-            self.real.setState(False) # disabled real button
-            moderation = self.mcdb.getModeration(bin2str(self.torrenthash))
-            self.mcdb.blockModerator(bin2str(moderation[0]))
-            #print >> sys.stderr , "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" , bin2str(self.torrenthash)    
-            
+            self.realButton.setState(False) # disabled real button
+            moderation = self.modcast_db.getModeration(bin2str(self.moderatedinfohash))
+            self.modcast_db.blockModerator(bin2str(moderation[0]))
 
         elif name == 'real':    
-            self.fake.setState(False) # disable fake button
-            moderation = self.mcdb.getModeration(bin2str(self.torrenthash))
-            self.mcdb.forwardModerator(bin2str(moderation[0]))
-
-            #print >> sys.stderr , "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" , bin2str(self.torrenthash) 
+            self.fakeButton.setState(False) # disable fake button
+            moderation = self.modcast_db.getModeration(bin2str(self.moderatedinfohash))
+            self.modcast_db.forwardModerator(bin2str(moderation[0]))
 
 
         elif name == 'basic':
@@ -555,14 +534,6 @@ class GUIUtility:
         
         self.standardDetails.setMode('libraryMode')
         
-    def playlistOverview(self, filters = None): 
-        self.frame.pageTitle.SetLabel('DOWNLOADS')      
-        self.standardOverview.setMode('playlistMode')
-#        if filters != ['','']:
-#        self.standardOverview.filterChanged(filters, setgui = True)
-#        self.standardDetails.setMode('libraryMode')
-        
-        
     def standardSubscriptionsOverview(self):
         self.frame.pageTitle.SetLabel('SUBSCRIPTIONS')       
         self.standardOverview.setMode('subscriptionsMode')
@@ -629,10 +600,6 @@ class GUIUtility:
         catobj = Category.getInstance()
         catobj.set_family_filter(True)
 
-        
-        self.rqmh = RemoteQueryMsgHandler.getInstance()
-        self.rqmh.register2(self.data_manager)
-        #self.getSearchField =  ABCApp.getSearchfield.getInstance()
         
     def initFilterStandard(self, filterStandard):
         self.filterStandard = filterStandard
@@ -995,8 +962,10 @@ class GUIUtility:
        return self.standardOverview.getSearchField(mode=mode)
    
     def isReachable(self):
-       #reachability flag / port forwarding enabled / accessible from the internet
-       return DialbackMsgHandler.getInstance().isConnectable()
+        return self.reachable
+   
+    def set_reachable(self):
+        self.reachable = True
    
    
     def onChangeViewModus(self):
@@ -1158,7 +1127,7 @@ class GUIUtility:
         dialog.Destroy()
         event.Skip()
         
-    def filesList(self, torrent, metadatahandler):
+    def filesList(self, torrent):
         # tb > code is copied from Tribler > vwxGUI > tribler>List.py [FilesList]
         # Get the file(s)data for this torrent
 
@@ -1173,8 +1142,8 @@ class GUIUtility:
                 self.onListResize(None)
                 return {}
     
-            (torrent_dir,torrent_name) = metadatahandler.get_std_torrent_dir_name(torrent)
-            torrent_filename = os.path.join(torrent_dir, torrent_name)
+            torrent_dir = self.utility.session.get_torrent_collecting_dir()
+            torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
             if not os.path.exists(torrent_filename):
                 if DEBUG:    
                     print >>sys.stderr,"tribler_List: Torrent: %s does not exist" % torrent_filename

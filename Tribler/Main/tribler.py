@@ -278,7 +278,7 @@ class ABCApp(wx.App):
             
             # Make sure self.utility.frame is set
             self.startAPI()
-           
+            self.guiUtility.open_dbs()
             
             self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
             # -------- search -------
@@ -622,7 +622,7 @@ class ABCApp(wx.App):
     def set_reputation(self):
         """ set the reputation in the GUI"""
         reputation = self.get_reputation()
-        print >> sys.stderr , "Reputation" , reputation
+        print >> sys.stderr , "main: My Reputation",reputation
         self.frame.hsizer.Remove(0)
         self.frame.hsizer.Prepend(wx.Size(reputation*40+50,0),0,wx.LEFT,0)
         self.frame.hsizer.Layout()

@@ -12,8 +12,6 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 from traceback import print_exc,print_stack
-from Tribler.Main.vwxGUI.fileDetailsOverviewPanel import fileDetailsOverviewPanel
-from Tribler.Main.vwxGUI.personDetailsOverviewPanel import personDetailsOverviewPanel
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
 from Tribler.Main.vwxGUI.standardGrid import GridState
@@ -174,7 +172,7 @@ class standardOverview(wx.Panel):
         #    self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)   
         
         nameCP = self.currentPanel.GetName()
-        if nameCP == 'profileOverview' or nameCP == 'fileDetailsOverview' or nameCP == 'personDetailsOverview' or nameCP == 'statsOverview': 
+        if nameCP == 'profileOverview': 
             sizeCP = self.currentPanel.GetSize()
             sizeFrame = self.Parent.GetSize()
             

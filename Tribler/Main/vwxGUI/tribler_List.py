@@ -63,7 +63,7 @@ class FilesList(tribler_List):
             self.Bind(wx.EVT_SIZE, self.onListResize)
         self.initReady = True
 
-    def setData(self, torrent, metadatahandler=None):
+    def setData(self, torrent):
         # Get the file(s)data for this torrent
         if not self.initReady:
             self._PostInit()
@@ -184,7 +184,7 @@ class T4TSeedingList(tribler_List):
         self.initReady = False
         tribler_List.__init__(self)
     
-    def setData(self, dslist, metadatahandler=None):
+    def setData(self, dslist):
         # Get the file(s)data for this torrent
         if not self.initReady:
             self._PostInit()
@@ -246,7 +246,7 @@ class G2GSeedingList(tribler_List):
         self.initReady = False
         tribler_List.__init__(self)
     
-    def setData(self, dslist, metadatahandler=None):
+    def setData(self, dslist):
         # Get the file(s)data for this torrent
         if not self.initReady:
             self._PostInit()

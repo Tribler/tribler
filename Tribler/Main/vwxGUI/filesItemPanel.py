@@ -600,7 +600,7 @@ class FilesItemPanel(wx.Panel):
     def toggleFilesItemDetailsSummary(self, visible):
         if visible and not self.summary:            
             if not self.data.get('web2'):                
-                self.guiUtility.torrenthash = self.data['infohash']
+                self.guiUtility.moderatedinfohash = self.data['infohash']
                 self.summary = FilesItemDetailsSummary(self, torrentHash = self.data['infohash'], torrent = self.data)
             else:
                 self.summary = FilesItemDetailsSummary(self, torrentHash = None, torrent = self.data, web2data = self.data)

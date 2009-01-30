@@ -117,8 +117,6 @@ class LeftMenu(wx.Panel,FlaglessDelayedInvocation):
             self.guiUtility.standardProfileOverview()
         elif name == 'All Downloads':
             self.guiUtility.standardLibraryOverview()
-        elif name == 'Highspeed':
-            self.guiUtility.playlistOverview()
         elif name == 'All Friends':
             self.guiUtility.standardFriendsOverview()
         elif name == 'All Subscriptions':
