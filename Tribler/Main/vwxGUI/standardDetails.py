@@ -1632,7 +1632,7 @@ class standardDetails(wx.Panel):
 #        return self.enabled
 
 
-    def download(self, torrent = None, dest = None, secret = False, force = False):
+    def download_old(self, torrent = None, dest = None, secret = False, force = False):
 
         if torrent is None:
             torrent = self.item
@@ -1659,7 +1659,7 @@ class standardDetails(wx.Panel):
 
 
 
-    def download_old(self, torrent = None, dest = None, secret = False, force = False):
+    def download(self, torrent = None, dest = None, secret = False, force = False):
         if torrent is None:
             torrent = self.item
             

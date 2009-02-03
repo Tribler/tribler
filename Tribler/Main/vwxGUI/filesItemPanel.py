@@ -114,7 +114,7 @@ class FilesItemPanel(wx.Panel):
         
         self.SetBackgroundColour(self.unselectedColour)
        
-        
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction) ## added
         
         if not self.listItem:
             
@@ -145,9 +145,16 @@ class FilesItemPanel(wx.Panel):
 
             self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)	##
 
-            self.hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(220,2),wx.LI_HORIZONTAL)
-            self.hLine.SetForegroundColour((255,0,0))
-            self.vSizerOverall.Add(self.hLine, 0, wx.FIXED_MINSIZE|wx.EXPAND, 1) ##           
+
+            self.line_file = wx.Image("Tribler/Main/vwxGUI/images/5.0/line3.png", wx.BITMAP_TYPE_ANY)            
+
+            self.hLine = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.line_file))
+
+
+
+            #self.hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(220,2),wx.LI_HORIZONTAL)
+            #self.hLine.SetBackgroundColour((255,0,0))
+            self.vSizerOverall.Add(self.hLine, 0, wx.FIXED_MINSIZE|wx.EXPAND, 0) ##           
 
 
 
@@ -275,13 +282,9 @@ class FilesItemPanel(wx.Panel):
             #window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)  
             
     def getColumns(self):
-        return [{'sort':'name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename')},
-                {'sort':'length', 'title':'size', 'width':75, 'tip':self.utility.lang.get('C_filesize')},
-                {'sort':'creation_date', 'title':'creation date','width':100, 'tip':self.utility.lang.get('C_creationdate')},
-                {'sort':'num_seeders', 'pic':'upSmall','title':'se', 'width':57, 'tip':self.utility.lang.get('C_uploaders')},
-                {'sort':'num_leechers', 'pic':'downSmall','title':'le', 'width':47, 'tip':self.utility.lang.get('C_downloaders')},
-                {'sort':'relevance', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommfiles')},
-                {'sort':'source_id', 'title':'-', 'width':26, 'tip':self.utility.lang.get('C_source')}
+        return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':395,'tip':self.utility.lang.get('C_filename')},
+                {'sort':'length', 'title':'Size', 'width':132, 'tip':self.utility.lang.get('C_filesize')},
+                {'sort':'popularity', 'title':'Popularity', 'width':120, 'tip':self.utility.lang.get('C_popularity')}
                 ]
 
                  
@@ -552,7 +555,43 @@ class FilesItemPanel(wx.Panel):
             
             
         
-    def mouseAction(self, event):        
+    def mouseAction(self, event):   
+
+        event.Skip()
+        colour = wx.Colour(216,233,240)
+
+        if self.data is None:
+            colour = self.guiUtility.unselectedColour
+
+        elif event.Entering() and self.data is not None:
+            colour = self.guiUtility.selectedColour
+    
+        elif event.Leaving() and self.selected == False:
+            if sys.platform == 'win32':
+                position = event.GetPosition()
+                for i in xrange(2):
+                    position[i]+=event.GetEventObject().GetPosition()[i]
+                    position[i]-=self.GetPosition()[i]
+                size = self.GetSize()
+        
+                if position[0]<0 or position[0]>=size[0] or position[1]<0 or position[1]>=size[1]:
+                    colour = self.guiUtility.unselectedColour
+            else:
+                colour = self.guiUtility.unselectedColour
+
+
+        self.SetBackgroundColour(colour)
+            
+
+        #if event.Entering():
+        #    self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
+        #elif event.Leaving() and self.selected == False:
+        #    self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+
+
+
+
+
         #self.SetFocus()
         if self.data and (event.LeftUp() or event.RightDown()):
             # torrent data is sent to guiUtility > standardDetails.setData
@@ -560,7 +599,8 @@ class FilesItemPanel(wx.Panel):
             
         if event.RightDown():
             self.rightMouseButton(event)
-            
+
+           
 
     def rightMouseButton(self, event):       
         menu = self.guiUtility.OnRightMouseAction(event)

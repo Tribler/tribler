@@ -46,7 +46,7 @@ else:
     FS_SIMILARITY = 10
     FS_HEARTRANK = 7
 
-DEBUG = True
+DEBUG = False
 
 class standardOverview(wx.Panel):
     """

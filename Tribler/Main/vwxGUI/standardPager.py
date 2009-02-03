@@ -44,6 +44,7 @@ class standardPager(wx.Panel):
         self.Update()
         
         
+        
     def initPager(self, numPages=10):
         
        
@@ -54,7 +55,8 @@ class standardPager(wx.Panel):
         self.totalItems = 0
         self.itemsPerPage = 0
         self.currentDots = [None, None]
-        
+        self.pagerColour = wx.Colour(230,230,230)
+
         self.pageNumbers = []
         self.utility = self.guiUtility.utility
         self.addComponents()
@@ -63,7 +65,7 @@ class standardPager(wx.Panel):
    
     def addComponents(self):
         self.Show(False)
-        self.SetBackgroundColour((216,216,216))
+        self.SetBackgroundColour(self.pagerColour)
         self.normalFont = wx.Font(FS_ITEMNORMAL,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE) # was Arial
         self.boldFont  = wx.Font(FS_ITEMNORMAL,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE) # was Arial
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -198,7 +200,7 @@ class standardPager(wx.Panel):
     def getDefaultTextField(self, t=""):
         text = StaticText(self, -1, t)
         text.SetForegroundColour((255,51,0))
-        text.SetBackgroundColour((216,216,216))
+        text.SetBackgroundColour(self.pagerColour)
         return text
 
 

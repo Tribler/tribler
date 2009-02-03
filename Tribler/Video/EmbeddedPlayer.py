@@ -13,10 +13,11 @@ from threading import currentThread,Event, Thread
 from traceback import print_stack,print_exc
 import random
 
-from Tribler.__init__ import LIBRARYNAME
+from Tribler.__init__ import LIBRARYNAME, ICONNAME
 from Tribler.Video.defs import *
 from Tribler.Video.Progress import ProgressBar, ProgressSlider, VolumeSlider
 from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
+
 
 DEBUG = False
 
@@ -102,8 +103,13 @@ class EmbeddedPlayerPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1)
         self.utility = utility
 
-        self.SetBackgroundColour(bg)
+         
+        self.SetBackgroundColour(wx.WHITE)
+
         mainbox = wx.BoxSizer(wx.VERTICAL)
+
+
+        self.volume = 0.48
 
         if vlcwrap is None:
             size = (320,64)
@@ -114,8 +120,9 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.vlcwrap = vlcwrap
 
         # Arno: until we figure out how to show in-playback prebuffering info
-        self.statuslabel = wx.StaticText(self, -1, 'Loading player...' )
-        self.statuslabel.SetForegroundColour(fg)
+
+        ##self.statuslabel = wx.StaticText(self, -1, 'Loading player...' )
+        ##self.statuslabel.SetForegroundColour(wx.BLACK)
 
         if vlcwrap is not None:
             ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
@@ -128,32 +135,59 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.oldvolume = None
             
                             
-            self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME, 'Images'), 'pause', 'play')
+            self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'pause', 'play')
             self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
     
             self.volumebox = wx.BoxSizer(wx.HORIZONTAL)
-            self.volumeicon = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME, 'Images'), 'volume', 'mute')   
-            self.volumeicon.Bind(wx.EVT_LEFT_UP, self.Mute)
-            self.volume = VolumeSlider(self, self.utility)
-            self.volume.SetRange(0, 100)
-            self.volumebox.Add(self.volumeicon, 0, wx.ALIGN_CENTER_VERTICAL)
-            self.volumebox.Add(self.volume, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+            ##self.volumeicon = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'volume', 'mute')   
+            ##self.volumeicon.Bind(wx.EVT_LEFT_UP, self.Mute)
+            ##self.volume = VolumeSlider(self, self.utility)
+            ##self.volume.SetRange(0, 100)
+            ##self.volumebox.Add(self.volumeicon, 0, wx.ALIGN_CENTER_VERTICAL)
+            ##self.volumebox.Add(self.volume, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+
+            self.vol1 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol1')
+            self.vol1.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+
+            self.vol2 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol2')
+            self.vol2.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+
+            self.vol3 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol3')
+            self.vol3.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+
+            self.vol4 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol4')
+            self.vol4.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+
+            self.vol5 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol5')
+            self.vol5.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+
+            self.vol6 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol6')
+            self.vol6.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+
+            self.volumebox.Add(self.vol1, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+            self.volumebox.Add(self.vol2, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+            self.volumebox.Add(self.vol3, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+            self.volumebox.Add(self.vol4, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+            self.volumebox.Add(self.vol5, 0, wx.ALIGN_CENTER_VERTICAL, 0)            
+            self.volumebox.Add(self.vol6, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+
     
-            self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME, 'Images'), 'fullScreen')
+            self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'fullScreen')
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
     
-            self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME, 'Images'), 'saveDisabled', 'save')   
-            self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
-            self.save_callback = lambda:None
+            ##self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'saveDisabled', 'save')   
+            ##self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
+            ##self.save_callback = lambda:None
             
             ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
+            ctrlsizer.Add([5,0],0,wx.FIXED_MINSIZE,0)
+            ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
             ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
             ctrlsizer.Add(self.volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
-            ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
-            ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
+            ##ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
         
         mainbox.Add(self.vlcwin, 1, wx.EXPAND, 1)
-        mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
+        ##mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
         if vlcwrap is not None:
             mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)
@@ -163,6 +197,53 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.update = False
         self.timer = None
         
+    def mouseAction(self,event):
+   
+        ##event.Skip()     
+        if event.LeftDown():
+            if event.GetEventObject().GetImageName() == 'vol1':
+                self.volume = 0.16
+            if event.GetEventObject().GetImageName() == 'vol2':
+                self.volume = 0.32
+            if event.GetEventObject().GetImageName() == 'vol3':
+                self.volume = 0.48
+            if event.GetEventObject().GetImageName() == 'vol4':
+                self.volume = 0.64
+            if event.GetEventObject().GetImageName() == 'vol5':
+                self.volume = 0.80
+            if event.GetEventObject().GetImageName() == 'vol6':
+                self.volume = 1.00
+            self.updateVol(self.volume) 
+        elif event.Entering():
+            if event.GetEventObject().GetImageName() == 'vol1':
+                volume = 0.16
+            if event.GetEventObject().GetImageName() == 'vol2':
+                volume = 0.32
+            if event.GetEventObject().GetImageName() == 'vol3':
+                volume = 0.48
+            if event.GetEventObject().GetImageName() == 'vol4':
+                volume = 0.64
+            if event.GetEventObject().GetImageName() == 'vol5':
+                volume = 0.80
+            if event.GetEventObject().GetImageName() == 'vol6':
+                volume = 1.00
+            self.updateVol(volume) 
+        elif event.Leaving():
+            self.updateVol(self.volume) 
+
+
+    def updateVol(self,volume):
+        self.vol1.setSelected(volume >= 0.16)
+        self.vol2.setSelected(volume >= 0.32)
+        self.vol3.setSelected(volume >= 0.48)
+        self.vol4.setSelected(volume >= 0.64)
+        self.vol5.setSelected(volume >= 0.80)
+        self.vol6.setSelected(volume >= 1.00)
+            
+
+
+
+
     def Load(self,url,streaminfo = None):
         if DEBUG:
             print >>sys.stderr,"embedplay: Load:",url,streaminfo,currentThread().getName()
@@ -171,7 +252,7 @@ class EmbeddedPlayerPanel(wx.Panel):
            self.slider.DisableDragging()
         else:
            self.slider.EnableDragging()
-        self.SetPlayerStatus('')
+        ##self.SetPlayerStatus('')
 
         # Arno, 2008-10-17: If we don't do this VLC gets the wrong playlist somehow
         #self.vlcwrap.stop()
@@ -268,13 +349,13 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.save_callback()
             
     
-    def SetVolume(self, evt = None):
+    def SetVolume(self, volume, evt = None):
         if DEBUG:
             print >> sys.stderr, "embedplay: SetVolume:",self.volume.GetValue()
-        self.vlcwrap.sound_set_volume(float(self.volume.GetValue()) / 100)
+        self.vlcwrap.sound_set_volume(volume)  ## float(self.volume.GetValue()) / 100
         # reset mute
-        if self.volumeicon.isToggled():
-            self.volumeicon.setToggled(False)
+        ##if self.volumeicon.isToggled():
+        ##    self.volumeicon.setToggled(False)
 
     def Stop(self):
         if DEBUG:
@@ -353,8 +434,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.fsbtn.Disable()
 
     def UpdateSlider(self, evt):
-        if not self.volumeicon.isToggled():
-            self.volume.SetValue(int(self.vlcwrap.sound_get_volume() * 100))
+        ##if not self.volumeicon.isToggled():
+        ##    self.volume.SetValue(int(self.vlcwrap.sound_get_volume() * 100))
 
         if self.update and self.GetState() != MEDIASTATE_STOPPED:
             len = self.vlcwrap.get_stream_information_length()

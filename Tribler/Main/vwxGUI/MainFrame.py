@@ -352,7 +352,7 @@ class MainFrame(wx.Frame, DelayedInvocation):
             videofiles = tdef.get_files(exts=videoextdefaults)
             
             result = self.utility.session.start_download(tdef,dscfg)
-
+            self.guiUtility.frame.newFile.SetLabel('New File added')
             # store result because we want to store clicklog data right after download was started, then return result
             mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
             # mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)

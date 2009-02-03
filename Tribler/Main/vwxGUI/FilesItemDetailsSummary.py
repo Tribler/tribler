@@ -26,6 +26,7 @@ class FilesItemDetailsSummary(bgPanel):
         self.guiUtility = GUIUtility.getInstance()
 
         self.guiUtility = GUIUtility.getInstance()
+        self.videopanel = self.guiUtility.frame.videopanel ##
         self.utility = self.guiUtility.utility   
         self.mcdb = self.utility.session.open_dbhandler(NTFY_MODERATIONCAST)
         self.vcdb = self.utility.session.open_dbhandler(NTFY_VOTECAST)
@@ -133,16 +134,16 @@ class FilesItemDetailsSummary(bgPanel):
         self.guiUtility.realButton = self.real
 
 
-         #check for moderation
-        #if self.infohash is not None and self.mcdb.hasModeration(bin2str(self.infohash)):
-        #    moderation = self.mcdb.getModeration(bin2str(self.infohash))
-        #    mod_name = moderation[1]
-        #else:
-        #    mod_name = "Not Moderated"
+        #check for moderation
+        if self.infohash is not None and self.mcdb.hasModeration(bin2str(self.infohash)):
+            moderation = self.mcdb.getModeration(bin2str(self.infohash))
+            mod_name = moderation[1]
+        else:
+            mod_name = "Not Moderated"
             # disable fake and real buttons
-        #    self.fake.setState(False)
-        #    self.real.setState(False)
-        #self.ModeratorName_info.SetLabel(mod_name)
+            self.fake.setState(False)
+            self.real.setState(False)
+        self.ModeratorName_info.SetLabel(mod_name)
 
         
         
@@ -250,7 +251,7 @@ class FilesItemDetailsSummary(bgPanel):
 
 
         self.play_big = SwitchButton(self, -1, name='playbig')
-        #self.play_big.Bind(wx.EVT_LEFT_UP, self.playbig_clicked)
+        self.play_big.Bind(wx.EVT_LEFT_UP, self.playbig_clicked)
 
 
         self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
@@ -281,9 +282,43 @@ class FilesItemDetailsSummary(bgPanel):
         self.SetAutoLayout(1);  
         self.Layout()
 
+
+
+
+
     def playbig_clicked(self,event):
-        self.play_big.setToggled()
-        self.guiUtility.buttonClicked(event)
+        ds = self.torrent.get('ds')
+        ##self.play_big.setToggled()
+        ##self.guiUtility.buttonClicked(event)
+        self.play(ds)
+
+    def play(self,ds):
+        self._get_videoplayer(exclude=ds).play(ds,self.videopanel)
+
+    def _get_videoplayer(self, exclude=None):
+        """
+        Returns the VideoPlayer instance and ensures that it knows if
+        there are other downloads running.
+        """
+
+        # 22/08/08 Boudewijn: The videoplayer has to know if there are
+        # downloads running.
+        ##other_downloads = False
+        ##for ds in self.parent.gridManager.dslist:
+        ##    if ds is not exclude and ds.get_status() not in (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR):
+        ##        other_downloads = True
+        ##        break
+
+        videoplayer = VideoPlayer.getInstance()
+        videoplayer.set_other_downloads(False)
+        return videoplayer
+
+
+
+
+
+
+
 
 
         

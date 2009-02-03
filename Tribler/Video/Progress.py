@@ -5,7 +5,7 @@ import wx,time
 import sys,os
 
 
-from Tribler.__init__ import LIBRARYNAME
+from Tribler.__init__ import LIBRARYNAME, ICONNAME
 
 class BufferInfo:
     """ Arno: WARNING: the self.tricolore member is read by the MainThread and 
@@ -115,13 +115,13 @@ class ProgressBar(wx.Control):
     #def __init__(self, parent, colours = ["#cfcfcf","#d7ffd7","#00ff00"], *args, **kwargs ):
     #def __init__(self, parent, colours = ["#cfcfcf","#fde72d","#00ff00"], *args, **kwargs ):
     #def __init__(self, parent, colours = ["#ffffff","#fde72d","#00ff00"], *args, **kwargs ):
-    def __init__(self, parent, colours = ["#ffffff","#CBCBCB","#ff3300"], *args, **kwargs ):
+    def __init__(self, parent, colours = ["#ffffff","#92cddf","#006dc0"], *args, **kwargs ): ## "#ffffff","#CBCBCB","#ff3300"
         self.colours = colours
         self.pens    = [wx.Pen(c,0) for c in self.colours]
         self.brushes = [wx.Brush(c) for c in self.colours]
         self.reset()
 
-        style = wx.SIMPLE_BORDER
+        style = wx.NO_BORDER
         wx.Control.__init__(self, parent, -1, style=style)
         self.SetMaxSize((-1,6))
         self.SetMinSize((1,6))
@@ -212,10 +212,10 @@ class ProgressSlider(wx.Panel):
         self.SetMinSize((1,25))
         self.SetBackgroundColour(wx.WHITE)
         self.utility = utility
-        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Images','background.png'))
-        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Images','sliderDot.png'))
+        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), ICONNAME,'Images','background.png')) ## LIBRARYNAME
+        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), ICONNAME,'Images','sliderDot.png')) ## LIBRARYNAME
         self.sliderPosition = None
-        self.rectHeight = 5
+        self.rectHeight = 2
         self.rectBorderColour = wx.LIGHT_GREY
         self.textWidth = 70
         self.margin = 10
@@ -415,10 +415,10 @@ class VolumeSlider(wx.Panel):
         self.SetMinSize((150,25))
         self.SetBackgroundColour(wx.WHITE)
         self.utility = utility
-        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Images','background.png'))
-        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Images','sliderVolume.png'))
+        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), ICONNAME,'Images','background.png')) ## LIBRARYNAME
+        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), ICONNAME,'Images','sliderVolume.png')) ## LIBRARYNAME
         self.sliderPosition = None
-        self.rectHeight = 5
+        self.rectHeight = 2
         self.rectBorderColour = wx.LIGHT_GREY
         self.margin = 10
         self.cursorsize = [4,19]

@@ -212,6 +212,14 @@
                               </object>
                               <flag>wxFIXED_MINSIZE</flag>
                             </object>
+                            <object class="spacer">
+                              <size>0,10</size>
+                            </object>
+                            <object class="sizeritem">
+                              <object class="wxStaticBitmap" name="iconSaved">
+                                <bitmap>images/5.0/iconSaved.png</bitmap>
+                              </object>
+                            </object>
                           </object>
                         </object>
                         <object class="spacer">
@@ -246,6 +254,9 @@
                               </object>
                               <flag>wxFIXED_MINSIZE</flag>
                             </object>
+                            <object class="spacer">
+                              <size>0,0</size>
+                            </object>
                           </object>
                         </object>
                         <object class="spacer">
@@ -253,9 +264,8 @@
                         </object>
                         <object class="sizeritem">
                           <object class="wxStaticBitmap" name="tribler_logo2">
-                            <bitmap>images/logo4video.png</bitmap>
+                            <bitmap>images/logo4video2.png</bitmap>
                             <pos>10,-7</pos>
-                            <size>40,60</size>
                           </object>
                           <option>0</option>
                           <flag></flag>
@@ -317,18 +327,18 @@
                             <object class="wxPanel" name="filterStandard" subclass="Tribler.Main.vwxGUI.filterStandard.filterStandard">
                               <pos>172,119</pos>
                               <size>523,70</size>
-                              <bg>#333333</bg>
+                              <bg>#FFFFFF</bg>
                             </object>
                             <minsize>523,70</minsize>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                            <option>1</option>
                             <object class="wxPanel" name="standardOverview" subclass="Tribler.Main.vwxGUI.standardOverview.standardOverview">
                               <pos>230,224</pos>
                               <size>523,559</size>
                               <bg>#FFFFFF</bg>
                             </object>
+                            <option>1</option>
+                            <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                             <border>10</border>
                           </object>
                         </object>
@@ -398,12 +408,12 @@
                       </object>
                       <object class="sizeritem">
                         <object class="wxPanel" name="pagerPanel">
-                          <size>1000,20</size>
-                          <bg>#D8D8D8</bg>
+                          <size>650,20</size>
+                          <bg>#E6E6E6</bg>
                           <object class="wxBoxSizer">
                             <orient>wxHORIZONTAL</orient>
                             <object class="spacer">
-                              <size>450,28</size>
+                              <size>270,28</size>
                               <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                               <border>3</border>
                               <option>0</option>
@@ -426,7 +436,7 @@
                           </object>
                         </object>
                         <flag>wxFIXED_MINSIZE</flag>
-                        <minsize>1000,20</minsize>
+                        <minsize>650,20</minsize>
                       </object>
                     </object>
                     <option>0</option>

@@ -121,17 +121,25 @@ class LibraryItemPanel(wx.Panel):
 
         self.triblerStyles = TriblerStyles.getInstance()
     def addComponents(self):
-        
+
+
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)        
         self.Show(False)
 
         self.SetMinSize((660,22))
 
         self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
+       
+
+        self.line_file = wx.Image("Tribler/Main/vwxGUI/images/5.0/line3.png", wx.BITMAP_TYPE_ANY)            
+
+        self.hLine = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.line_file))
 
 
-        self.hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(220,2),wx.LI_HORIZONTAL)
-        self.hLine.SetForegroundColour((255,0,0))
-        self.vSizerOverall.Add(self.hLine, 0, wx.FIXED_MINSIZE|wx.EXPAND, 1) ##           
+
+        #self.hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(220,2),wx.LI_HORIZONTAL)
+        #self.hLine.SetBackgroundColour((255,0,0))
+        self.vSizerOverall.Add(self.hLine, 0, wx.FIXED_MINSIZE|wx.EXPAND, 0) ##           
 
 
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -185,7 +193,7 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 4)
         # V Line
         ## self.addLine()
-        
+        self.hSizer.Add([15,0],0,wx.FIXED_MINSIZE,0)
 #        self.hSizer.Add(self.upSpeed, 0, wx.LEFT|wx.TOP, 2)                  
 #        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
         self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 4)   
@@ -196,10 +204,18 @@ class LibraryItemPanel(wx.Panel):
         self.eta.SetForegroundColour(self.triblerGrey)
         self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))                
         self.hSizer.Add(self.eta, 0, wx.FIXED_MINSIZE, 0)
+ 
+        # remove from library button
+        self.remove = tribler_topButton(self, name="remove")
+        self.remove.setBackground(wx.WHITE)
+        self.remove.SetMinSize((17,17))
+        self.remove.SetSize((17,17))
+        self.hSizer.Add(self.remove, 0, wx.TOP|wx.ALIGN_RIGHT, 2) 
 
 
 
-        self.hSizer.Add([30,0],0,wx.FIXED_MINSIZE,0)        
+
+        self.hSizer.Add([38,0],0,wx.FIXED_MINSIZE,0)        
 
 
     
@@ -239,7 +255,7 @@ class LibraryItemPanel(wx.Panel):
         # V Line
         ## self.addLine()
 
-        self.hSizer.Add([50,0],0,wx.FIXED_MINSIZE,0)        
+        self.hSizer.Add([15,0],0,wx.FIXED_MINSIZE,0)        
       
 
         
@@ -295,7 +311,8 @@ class LibraryItemPanel(wx.Panel):
         self.library_play.setBackground(wx.WHITE)
         self.library_play.SetMinSize((17,17))
         self.library_play.SetSize((17,17))
-        self.hSizer.Add(self.library_play, 0, wx.TOP|wx.ALIGN_RIGHT, 2)   
+        self.hSizer.Add(self.library_play, 0, wx.TOP|wx.ALIGN_RIGHT, 2) 
+        self.library_play.Hide()  
         
        
             
@@ -319,13 +336,10 @@ class LibraryItemPanel(wx.Panel):
 
             
     def getColumns(self):
-        return [{'sort':'', 'title':'', 'width':40,'tip':'', 'component':'comboboxFilter'},
-                {'sort':'name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
-                {'sort':'progress', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('C_progress')},
-                {'sort':'??','dummy':True, 'pic':'downSpeedColumn','title':'down', 'width':70, 'tip':self.utility.lang.get('C_downspeed')},
-                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'up','width':70, 'tip':self.utility.lang.get('C_upspeed')},                
-                {'sort':'latest', 'dummy':True, 'title':'status', 'weight':1, 'tip':self.utility.lang.get('C_message')},
-                {'sort':'??', 'title':'info', 'dummy':True, 'width':111, 'tip':self.utility.lang.get('C_info')}
+        return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':234,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
+                {'sort':'??','dummy':True, 'pic':'downSpeedColumn','title':'Download', 'width':78, 'tip':self.utility.lang.get('C_downspeed')},
+                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'Upload','width':114, 'tip':self.utility.lang.get('C_upspeed')}, 
+                {'sort':'progress', 'title':'Completion', 'width':120, 'tip':self.utility.lang.get('C_progress')}               
                 ]     
                   
     def refreshData(self):
@@ -681,8 +695,9 @@ class LibraryItemPanel(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
 
+
         event.Skip()
-        
+
         if not self.data:
             return
         

@@ -29,7 +29,7 @@ class tribler_topButton(wx.Panel):
             self.PostCreate(pre) 
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
         else:
-            self.backgroundColor = ((216,216,216))
+            self.backgroundColor = ((230,230,230))
             wx.Panel.__init__(self, *args, **kw) 
             self._PostInit()     
         
@@ -435,7 +435,7 @@ class PlayerSwitchButton(tribler_topButton):
     def __init__(self, imagedir, filename):
         self.initDone = False
         self.enabled = True
-        self.backgroundColor = wx.Colour(102,102,102) 
+        self.backgroundColor = wx.Colour(wx.WHITE) 
         wx.Panel.__init__(self, *args, **kw) 
         self.selected = False
         self.tooltip = None

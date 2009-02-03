@@ -21,11 +21,12 @@ class PlayerButton(wx.Panel):
     def init(self):
         self.initDone = False
         self.enabled = True
-        self.backgroundColor = wx.Colour(102,102,102) 
+        self.backgroundColor = wx.WHITE
         wx.Panel.__init__(self, self.parent) 
         self.selected = False
         self.tooltip = None
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+        
         
         self.searchBitmaps()
         self.createBackgroundImage()
@@ -42,6 +43,10 @@ class PlayerButton(wx.Panel):
         self.initDone = True
         self.Refresh(True)
         self.Update()
+
+
+    def GetImageName(self):
+        return self.imagename
         
         
     def searchBitmaps(self):
@@ -290,4 +295,12 @@ class PlayerSwitchButton(PlayerButton):
         
     def isToggled(self):
         return self.toggled
+
+
+
+##class VolumeButton(PlayerButton):
+
+
+
+
     

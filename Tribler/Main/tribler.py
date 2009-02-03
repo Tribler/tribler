@@ -212,7 +212,7 @@ class ABCApp(wx.App):
             # Read and create GUI from .xrc files
             #
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
-            self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
+            self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame2.xrc'))
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
 
@@ -307,9 +307,13 @@ class ABCApp(wx.App):
             self.frame.search_results = xrc.XRCCTRL(self.frame,"search_results")
             self.frame.search_results.Bind(wx.EVT_LEFT_UP, self.OnSearchResultsPressed)
             self.frame.settings = xrc.XRCCTRL(self.frame,"settings")
+            self.frame.settings.Bind(wx.EVT_LEFT_UP, self.viewSettings)
             self.frame.my_files = xrc.XRCCTRL(self.frame,"my_files")
+            self.frame.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
+
             self.frame.seperator = xrc.XRCCTRL(self.frame,"seperator")
             self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
+            self.frame.newFile = xrc.XRCCTRL(self.frame,"newFile")
             #self.frame.preLoader = xrc.XRCCTRL(self.frame,"preloader")
 
             # animated gif for search results
@@ -323,8 +327,9 @@ class ABCApp(wx.App):
             logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler_small.png')
             self.frame.videopanel = EmbeddedPlayerPanel(self.frame.videopanel, self.utility,self.videoplayer.get_vlcwrap(), logopath, fg=wx.WHITE, bg=(216,233,240))
 
+            # family filter
             self.frame.familyfilter = xrc.XRCCTRL(self.frame,"familyfilter")
-            
+            self.frame.familyfilter.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
 
             hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel,self.frame.pageTitle,self.frame.sharing_reputation,self.frame.srgradient,self.frame.help,self.frame.sr_indicator,self.frame.videopanel,self.frame.familyfilter,self.frame.pagerPanel]
 
@@ -332,9 +337,9 @@ class ABCApp(wx.App):
             for name in hide_names:
                 name.Hide()
 
+            self.frame.top_bg.createBackgroundImage()
 
-
-
+           
             self.setDBStats()
             
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
@@ -391,6 +396,16 @@ class ABCApp(wx.App):
         result = dlg.ShowModal()
         dlg.Destroy()
 
+    def viewSettings(self,event):
+        self.guiUtility.settingsOverview()
+
+    def viewLibrary(self,event):
+        self.guiUtility.standardLibraryOverview()
+
+    def toggleFamilyFilter(self,event):
+        self.guiUtility.toggleFamilyFilter()
+
+
     
     def OnSearchKeyDown(self,event): # # #
 
@@ -438,13 +453,23 @@ class ABCApp(wx.App):
                 self.frame.videopanel.Show()
                 self.frame.familyfilter.Show()
                 self.frame.pagerPanel.Show()
+                self.frame.ag.Show() 
                 self.frame.ag.Play()
-                #self.frame.preLoader.Show()
-
-
 
                 self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
+           
             
+            self.frame.videopanel.Show()
+            self.frame.pagerPanel.Show()
+
+            #self.frame.settings.setToggled(False)
+            #self.frame.my_files.setToggled(False)
+
+
+            self.frame.settings.SetForegroundColour((255,51,0))
+            self.frame.my_files.SetForegroundColour((255,51,0))
+
+            self.guiUtility.guiPage = 'search_results'
             self.guiUtility.standardFilesOverview()
             self.guiUtility.dosearch()
         else:
@@ -492,12 +517,15 @@ class ABCApp(wx.App):
                 self.frame.videopanel.Show()
                 self.frame.familyfilter.Show()
                 self.frame.pagerPanel.Show()
+                self.frame.ag.Show() 
                 self.frame.ag.Play()
-                #self.frame.preLoader.Show()
 
                 self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
         
-
+            self.frame.videopanel.Show()
+            self.frame.pagerPanel.Show()
+            self.frame.settings.setToggled(False)
+            self.frame.my_files.setToggled(False)
             self.guiUtility.standardFilesOverview()
             self.guiUtility.dosearch()
         

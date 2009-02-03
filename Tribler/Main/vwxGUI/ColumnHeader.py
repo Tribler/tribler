@@ -47,7 +47,7 @@ class ColumnHeader(wx.Panel):
                 self.hSizer.Add(self.icon, 0, wx.TOP,1 )
             if title:
                 if not picture:
-                    self.hSizer.Add([15,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+                    self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
                 self.text = wx.StaticText(self, -1, title)
                 self.triblerStyles.setDarkText(self.text)
                 self.hSizer.Add(self.text, 1, wx.TOP, 3)            
@@ -67,14 +67,14 @@ class ColumnHeader(wx.Panel):
             for c in self.GetChildren():
                 wl.append(c)
             for element in wl:
-                element.Bind(wx.EVT_LEFT_UP, self.clicked)
-                element.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+                ##element.Bind(wx.EVT_LEFT_UP, self.clicked)
+                ##element.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
                 element.SetToolTipString(tip)
         
         elif self.component == 'comboboxFilter':            
             self.sortIcon = None
-            self.filesFilter = filesFilter(self)
-            self.hSizer.Add(self.filesFilter, 1, wx.BOTTOM, 0)      
+            #self.filesFilter = filesFilter(self)
+            #self.hSizer.Add(self.filesFilter, 1, wx.BOTTOM, 0)      
             
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(True)

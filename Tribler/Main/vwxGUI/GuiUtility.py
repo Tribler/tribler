@@ -80,13 +80,13 @@ class GUIUtility:
 #        self.LeftMenu = LeftMenu()
 #        self.standardOverview = standardOverview()
         
-        self.selectedColour = wx.Colour(216,233,240) ## before 155,200,187
-        self.unselectedColour = wx.Colour(255,255,255) ## before 102,102,102      
-        self.unselectedColour2 = wx.Colour(255,255,255) ## before 230,230,230       
+        self.selectedColour = wx.Colour(216,233,240) ## 155,200,187
+        self.unselectedColour = wx.Colour(255,255,255) ## 102,102,102      
+        self.unselectedColour2 = wx.Colour(255,255,255) ## 230,230,230       
         self.unselectedColourDownload = wx.Colour(198,226,147)        
         self.unselectedColour2Download = wx.Colour(190,209,139)
         self.selectedColourDownload = wx.Colour(145,173,78)
-        self.selectedColourPending = wx.Colour(208,251,244)
+        self.selectedColourPending = wx.Colour(216,233,240)  ## 208,251,244
         self.triblerRed = wx.Colour(255, 51, 0)
         self.bgColour = wx.Colour(102,102,102)
         self.darkTextColour = wx.Colour(51,51,51)
@@ -315,6 +315,11 @@ class GUIUtility:
             self.modcast_db.forwardModerator(bin2str(moderation[0]))
 
 
+
+        elif name == 'remove':
+            self.onDeleteTorrentFromLibrary()
+
+
         elif name == 'basic':
             if self.guiPage != 'basic':
                 self.guiPage = 'basic' 
@@ -331,19 +336,23 @@ class GUIUtility:
             if self.guiPage != 'settings':
                 self.guiPage = 'settings' 
                 self.frame.ag.Hide()
-                self.frame.settings.setToggled()
-                if self.frame.my_files.isToggled():
-                    self.frame.my_files.setToggled()
-                if self.standardGrid:
-                    self.standardGrid.deselectAll()
-                    self.standardGrid.clearAllData()
+                self.frame.settings.SetForegroundColour((216,233,240))
+                self.frame.my_files.SetForegroundColour((255,51,0))
+
+                #self.frame.settings.setToggled()
+                #if self.frame.my_files.isToggled():
+                #    self.frame.my_files.setToggled()
+                #if self.standardGrid:
+                #    self.standardGrid.deselectAll()
+                #    self.standardGrid.clearAllData()
 
                 self.frame.videopanel.Hide()
 
                 self.frame.pagerPanel.Hide()
                 self.settingsOverview()
-                self.frame.search_results.SetLabel('Return to Results')
-                self.frame.search_results.SetForegroundColour(wx.RED)
+                if self.frame.search_results.GetLabel() != '':
+                    self.frame.search_results.SetLabel('Return to Results')
+                    self.frame.search_results.SetForegroundColour(wx.RED)
                 self.frame.Layout()
 
 
@@ -352,18 +361,22 @@ class GUIUtility:
             if self.guiPage != 'my_files':
                 self.guiPage = 'my_files' 
                 self.frame.ag.Hide()
-                self.frame.my_files.setToggled()
-                if self.frame.settings.isToggled():
-                    self.frame.settings.setToggled()
-                if self.standardGrid:
-                    self.standardGrid.deselectAll()
-                    self.standardGrid.clearAllData()
+                self.frame.my_files.SetForegroundColour((216,233,240))
+                self.frame.settings.SetForegroundColour((255,51,0))
+
+                #self.frame.my_files.setToggled()
+                #if self.frame.settings.isToggled():
+                #    self.frame.settings.setToggled()
+                #if self.standardGrid:
+                #    self.standardGrid.deselectAll()
+                #    self.standardGrid.clearAllData()
 
                 self.frame.videopanel.Show()
 
                 self.standardLibraryOverview()
-                self.frame.search_results.SetLabel('Return to Results')
-                self.frame.search_results.SetForegroundColour(wx.RED)
+                if self.frame.search_results.GetLabel() != '':
+                    self.frame.search_results.SetLabel('Return to Results')
+                    self.frame.search_results.SetForegroundColour(wx.RED)
                 self.frame.top_bg.Layout()
                 self.frame.pagerPanel.Show()
 
@@ -433,19 +446,40 @@ class GUIUtility:
         if self.guiPage != 'search_results':
             self.guiPage = 'search_results'
             self.frame.ag.Show() 
-            self.frame.settings.setToggled()
-            if self.frame.my_files.isToggled():
-                self.frame.my_files.setToggled()
-            self.standardGrid.deselectAll()
-            self.standardGrid.clearAllData()
+
+            #self.standardGrid.deselectAll()
+            #self.standardGrid.clearAllData()
+
             self.standardFilesOverview()
             self.frame.videopanel.Show()
+
             self.frame.search_results.SetForegroundColour(wx.BLACK)
-            if self.frame.settings.isToggled():
-                self.frame.settings.setToggled()
-            if self.frame.my_files.isToggled():
-                self.frame.my_files.setToggled()
+
+            self.frame.settings.SetForegroundColour((255,51,0))
+            self.frame.my_files.SetForegroundColour((255,51,0))
+
+            #if self.frame.settings.isToggled():
+            #    self.frame.settings.setToggled()
+            #if self.frame.my_files.isToggled():
+            #    self.frame.my_files.setToggled()
+
             self.frame.pagerPanel.Show()
+        
+
+    def toggleFamilyFilter(self):
+        catobj = Category.getInstance()
+        ff_enabled = not catobj.family_filter_enabled()
+        print 'Setting family filter to: %s' % ff_enabled
+        catobj.set_family_filter(ff_enabled)
+        if ff_enabled:
+            self.frame.familyfilter.SetLabel('Family Filter:ON')
+        else:
+            self.frame.familyfilter.SetLabel('Family Filter:OFF')
+        #obj.setToggled(ff_enabled)
+        for filtername in ['filesFilter', 'libraryFilter']:
+            filterCombo = xrc.XRCCTRL(self.frame, filtername)
+            if filterCombo:
+                filterCombo.refresh()
         
 
 
@@ -489,7 +523,24 @@ class GUIUtility:
 
 
     def settingsOverview(self):
-        self.standardOverview.setMode('settingsMode')
+        if self.guiPage != 'settings':
+            self.guiPage = 'settings' 
+            self.frame.ag.Hide()
+            self.frame.settings.SetForegroundColour((0,105,156))
+            self.frame.my_files.SetForegroundColour((255,51,0))
+
+            #if self.standardGrid:
+            #    self.standardGrid.deselectAll()
+            #    self.standardGrid.clearAllData()
+
+            self.frame.videopanel.Hide()
+
+            self.frame.pagerPanel.Hide()
+            if self.frame.search_results.GetLabel() != '':
+                self.frame.search_results.SetLabel('Return to Results')
+                self.frame.search_results.SetForegroundColour(wx.RED)
+            self.frame.Layout()
+            self.standardOverview.setMode('settingsMode')
         
         
         
@@ -525,12 +576,30 @@ class GUIUtility:
 
         
     def standardLibraryOverview(self, filters = None): 
-        #self.frame.pageTitle.SetLabel('DOWNLOADS')      
-        self.standardOverview.setMode('libraryMode')
-        #gridState = self.standardOverview.getFilter().getState()
-        #if not gridState or not gridState.isValid():
-        gridState = GridState('libraryMode', 'all', 'name')
-        self.standardOverview.filterChanged(gridState)
+        if self.guiPage != 'my_files':
+            self.guiPage = 'my_files' 
+            self.frame.ag.Hide()
+            self.frame.my_files.SetForegroundColour((0,105,156))
+            self.frame.settings.SetForegroundColour((255,51,0))
+
+            #if self.standardGrid:
+            #    self.standardGrid.deselectAll()
+            #    self.standardGrid.clearAllData()
+
+            self.frame.videopanel.Show()
+
+            if self.frame.search_results.GetLabel() != '':
+                self.frame.search_results.SetLabel('Return to Results')
+                self.frame.search_results.SetForegroundColour(wx.RED)
+            self.frame.top_bg.Layout()
+            self.frame.pagerPanel.Show()
+
+            #self.frame.pageTitle.SetLabel('DOWNLOADS')      
+            self.standardOverview.setMode('libraryMode')
+            #gridState = self.standardOverview.getFilter().getState()
+            #if not gridState or not gridState.isValid():
+            gridState = GridState('libraryMode', 'all', 'name')
+            self.standardOverview.filterChanged(gridState)
         
         self.standardDetails.setMode('libraryMode')
         
@@ -579,7 +648,7 @@ class GUIUtility:
 
 
         self.standardStartpage()
-        
+        self.standardOverview.Show(True)
         wx.CallAfter(self.refreshOnResize)
         
         # Preselect mainButtonFiles
@@ -593,10 +662,10 @@ class GUIUtility:
         self.filterStandard.Hide() ## hide the standardOverview at startup
 
         # Init family filter        
-        self.familyButton = xrc.XRCCTRL(self.frame, 'familyfilter')
+        ##self.familyButton = xrc.XRCCTRL(self.frame, 'familyfilter')
         
         # Family filter on by default
-        self.familyButton.setToggled()
+        ##self.familyButton.setToggled()
         catobj = Category.getInstance()
         catobj.set_family_filter(True)
 

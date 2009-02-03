@@ -1358,6 +1358,7 @@ help             = "Current sharing reputation : %s"
 # FILES
 C_filename    	= "Name of the file"
 C_filesize		= "Total size"
+C_popularity    = "Popularity of the file"
 C_creationdate	= "Creation date"
 C_uploaders		= "Number of uploaders (seeders)"
 C_downloaders 	= "Number of downloaders (leechers)"

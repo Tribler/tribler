@@ -159,9 +159,9 @@ class TriblerStyles:
          # 2: selected + BG colour Pictues in column
          
          if state == 1:
-             colour = wx.Colour(52,52,52) ## 128,128,128
+             colour = wx.Colour(230,230,230) 
          if state == 2:
-             colour = wx.Colour(52,52,52) ## 153,153,153
+             colour = wx.Colour(230,230,230) 
          
          return colour
              
