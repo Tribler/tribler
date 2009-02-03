@@ -99,13 +99,22 @@
                                       <object class="wxBoxSizer">
                                         <orient>wxVERTICAL</orient>
                                         <object class="spacer">
-                                          <size>0,3</size>
+                                          <size>0,0</size>
                                         </object>
                                         <object class="sizeritem">
-                                          <object class="wxPanel" name="familyfilter" subclass="Tribler.Main.vwxGUI.tribler_topButton.SwitchButton">
-                                            <size>92,11</size>
+                                          <object class="wxStaticText" name="familyfilter">
+                                            <label>Family Filter:ON</label>
+                                            <size>100,15</size>
+                                            <font>
+                                              <size>8</size>
+                                              <family>swiss</family>
+                                              <style>normal</style>
+                                              <weight>normal</weight>
+                                              <underlined>0</underlined>
+                                              <face>Sans</face>
+                                              <encoding>UTF-8</encoding>
+                                            </font>
                                           </object>
-                                          <option>0</option>
                                         </object>
                                       </object>
                                     </object>
@@ -206,18 +215,28 @@
                               <size>0,20</size>
                             </object>
                             <object class="sizeritem">
-                              <object class="wxPanel" name="settings" subclass="Tribler.Main.vwxGUI.tribler_topButton.SwitchButton">
-                                <size>43,11</size>
-                                <bg>#FFFFFF</bg>
+                              <object class="wxStaticText" name="settings">
+                                <label>Settings</label>
+                                <size>50,15</size>
+                                <fg>#FF3300</fg>
+                                <font>
+                                  <size>8</size>
+                                  <family>swiss</family>
+                                  <style>normal</style>
+                                  <weight>normal</weight>
+                                  <underlined>0</underlined>
+                                  <face>Sans</face>
+                                  <encoding>UTF-8</encoding>
+                                </font>
                               </object>
-                              <flag>wxFIXED_MINSIZE</flag>
                             </object>
                             <object class="spacer">
-                              <size>0,10</size>
+                              <size>0,0</size>
                             </object>
                             <object class="sizeritem">
-                              <object class="wxStaticBitmap" name="iconSaved">
-                                <bitmap>images/5.0/iconSaved.png</bitmap>
+                              <object class="wxStaticText" name="newFile">
+                                <label></label>
+                                <fg>#FF0000</fg>
                               </object>
                             </object>
                           </object>
@@ -248,11 +267,20 @@
                               <size>0,20</size>
                             </object>
                             <object class="sizeritem">
-                              <object class="wxPanel" name="my_files" subclass="Tribler.Main.vwxGUI.tribler_topButton.SwitchButton">
-                                <size>43,11</size>
-                                <bg>#FFFFFF</bg>
+                              <object class="wxStaticText" name="my_files">
+                                <label>My Files</label>
+                                <size>50,15</size>
+                                <fg>#FF3300</fg>
+                                <font>
+                                  <size>8</size>
+                                  <family>swiss</family>
+                                  <style>normal</style>
+                                  <weight>normal</weight>
+                                  <underlined>0</underlined>
+                                  <face>Sans</face>
+                                  <encoding>UTF-8</encoding>
+                                </font>
                               </object>
-                              <flag>wxFIXED_MINSIZE</flag>
                             </object>
                             <object class="spacer">
                               <size>0,0</size>
