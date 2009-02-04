@@ -212,7 +212,7 @@ class ABCApp(wx.App):
             # Read and create GUI from .xrc files
             #
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
-            self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame2.xrc'))
+            self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
 
