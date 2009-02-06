@@ -77,7 +77,6 @@ class GUIUtility:
        
         self.gridViewMode = 'thumbnails' 
         self.thumbnailViewer = None
-#        self.LeftMenu = LeftMenu()
 #        self.standardOverview = standardOverview()
         
         self.selectedColour = wx.Colour(216,233,240) ## 155,200,187
@@ -257,30 +256,6 @@ class GUIUtility:
                     filterCombo = xrc.XRCCTRL(self.frame, filtername)
                     if filterCombo:
                         filterCombo.refresh()
-
-        elif name == 'hideLeft':            
-            if self.frame.LeftMenu.IsShown():               
-                self.frame.LeftMenu.Hide() 
-                self.frame.hideLeft.setToggled()
-            else:
-                self.frame.LeftMenu.Show() 
-                self.frame.hideLeft.setToggled()
-
-            self.standardOverview.GetParent().Layout()
-            self.frame.Refresh()
-            
-        elif name == 'hideRight':            
-            if self.standardDetails.IsShown():
-                self.standardDetails.Hide() 
-                self.frame.playerDockedPanel.Hide()
-                self.frame.hideRight.setToggled()                
-            else:
-                self.standardDetails.Show() 
-                self.frame.playerDockedPanel.Show()
-                self.frame.hideRight.setToggled()
-
-            self.standardOverview.GetParent().Layout()
-            self.frame.Refresh()
 
         elif name == 'playAdd' or name == 'play' or name == 'playAdd1' or name == 'play1':   
             playableFiles = self.standardOverview.data['fileDetailsMode']['panel'].selectedFiles[:]

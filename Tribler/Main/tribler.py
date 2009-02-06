@@ -113,9 +113,15 @@ class ABCApp(wx.App):
         
         try:
             ubuntu = False
+            if sys.platform == "linux2":
+                f = open("/etc/issue","rb")
+                data = f.read(100)
+                f.close()
+                if data.find("Ubuntu 8.10") != -1:
+                    ubuntu = True
+                    
             if not redirectstderrout and ubuntu:
-                # On Ubuntu 8.10 not redirecting output fails
-                #wx.App.__init__(self, redirect=True ,filename='/tmp/tribler-stderrout.log')
+                # On Ubuntu 8.10 not redirecting output causes the program to quit
                 wx.App.__init__(self, redirect=True)
             else:
                 wx.App.__init__(self, redirectstderrout)
@@ -576,8 +582,6 @@ class ABCApp(wx.App):
         # 22/08/08 boudewijn: convert abc.conf to SessionConfig
         self.utility.convert__presession_4_1__4_2(self.sconfig)
         
-        
-
         s = Session(self.sconfig)
         #pdb.set_trace()
         self.utility.session = s

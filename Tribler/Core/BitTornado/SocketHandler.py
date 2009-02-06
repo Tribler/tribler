@@ -17,8 +17,6 @@ from traceback import print_exc,print_stack
 
 from threading import currentThread
 
-# from BT1.StreamCheck import StreamCheck
-# import inspect
 try:
     True
 except:

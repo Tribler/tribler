@@ -1328,7 +1328,7 @@ class VideoPanel(ABCOptionPanel):
         qvalue = self.quote_path(value)
         self.player.SetValue(qvalue)
 
-        value = Read('videoanalyserpath')
+        value = self.utility.session.get_video_analyser_path()
         qvalue = self.quote_path(value)
         self.analyser.SetValue(qvalue)
 
@@ -1339,7 +1339,7 @@ class VideoPanel(ABCOptionPanel):
         mode = self.playback_indices[value]
         self.utility.config.Write('videoplaybackmode',mode)
 
-        for key,widget,mainmsg in [('videoplayerpath',self.player,self.utility.lang.get('videoplayernotfound')),('videoanalyserpath',self.analyser,self.utility.lang.get('videoanalysernotfound'))]:
+        for key,widget,mainmsg in [('videoplayerpath',self.player,self.utility.lang.get('videoplayernotfound'))]:
             qvalue = widget.GetValue()
             value = self.unquote_path(qvalue)
             if not os.access(value,os.F_OK):
@@ -1348,6 +1348,30 @@ class VideoPanel(ABCOptionPanel):
             if DEBUG:
                 print >>sys.stderr,"abcoptions: VideoPanel: Writing",key,value
             self.utility.config.Write(key,value)
+
+        # videoanalyserpath is a config parameter of the Session
+        vapath = None
+        for key,widget,mainmsg in[('videoanalyserpath',self.analyser,self.utility.lang.get('videoanalysernotfound'))]:
+            qvalue = widget.GetValue()
+            value = self.unquote_path(qvalue)
+            vapath = value
+            if not os.access(value,os.F_OK):
+                self.onError(mainmsg,value)
+                return
+
+        # Save SessConfig
+        state_dir = self.utility.session.get_state_dir()
+        cfgfilename = Session.get_default_config_filename(state_dir)
+        scfg = SessionStartupConfig.load(cfgfilename)
+        
+        for target in [scfg,self.utility.session]:
+            try:
+                target.set_video_analyser_path(vapath)
+            except:
+                print_exc()
+
+        scfg.save(cfgfilename)
+
 
 
     def unquote_path(self,value):

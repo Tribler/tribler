@@ -145,8 +145,6 @@ class standardDetails(wx.Panel):
                             'profileDetails_Download': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','takeMeThere1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere2'],
                             #'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc1','descriptionField2','howToImprove1','descriptionField3','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0']}
                             'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0'],
-
-                            'profileDetails_statsTopSharers':['descriptionField0', 'downloadedNumberT', 'uploadedNumberT'],
                             'uploadTab_details': ['t4t_peers', 'g2g_peers']}
 
         
@@ -402,7 +400,6 @@ class standardDetails(wx.Panel):
                 self.getAlternativeTabPanel('profileDetails_Persons', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 self.getAlternativeTabPanel('profileDetails_Download', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 self.getAlternativeTabPanel('profileDetails_Presence', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel                
-#                self.getAlternativeTabPanel('profileDetails_statsTopSharers', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel                
         return currentPanel
     
     def loadStatusPanel(self):
@@ -1010,13 +1007,6 @@ class standardDetails(wx.Panel):
                     text2 = text2 % update_url
                 self.getGuiObj('descriptionField4', tab = 'profileDetails_Presence').SetLabel(text1)
                 self.getGuiObj('descriptionField5', tab = 'profileDetails_Presence').SetLabel(text2)
-            # --------------------------------------------------------------------------------------------------------------------------------------------------------
-            # --- Top N List of sharers
-#            elif self.currentPanel == self.getGuiObj('profileDetails_statsTopSharers'):
-#                tab = 'profileDetails_statsTopSharers'
-#                self.topNListText(tab)
-#                self.refreshStandardDetailsHeight()
-                
             else:
                 tab = "error"
             if tab != "error":

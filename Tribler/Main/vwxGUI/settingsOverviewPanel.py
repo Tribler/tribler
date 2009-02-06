@@ -48,7 +48,7 @@ class SettingsOverviewPanel(wx.Panel):
         return True
     
     def _PostInit(self):
-        #print >>sys.stderr,"profileOverviewPanel: in _PostInit"
+        #print >>sys.stderr,"settingsOverviewPanel: in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         
@@ -64,7 +64,7 @@ class SettingsOverviewPanel(wx.Panel):
         for element in self.elementsName:
             xrcElement = xrc.XRCCTRL(self, element)
             if not xrcElement:
-                print 'profileOverviewPanel: Error: Could not identify xrc element:',element
+                print 'settingsOverviewPanel: Error: Could not identify xrc element:',element
             self.elements[element] = xrcElement
 
         self.getNameMugshot()
@@ -85,12 +85,12 @@ class SettingsOverviewPanel(wx.Panel):
         wx.CallAfter(self.Refresh)
         
     def OnShow(self, evt):
-#        print "<mluc> in onshow in profileOverviewPanel"
+#        print "<mluc> in onshow in settingsOverviewPanel"
 #        if evt.show:
-#            print "<mluc> profileOverviewPanel is visible"
+#            print "<mluc> settingsOverviewPanel is visible"
 #            self.timer.Start() #restarts the timer
 #        else:
-#            print "<mluc> profileOverviewPanel is visible"
+#            print "<mluc> settingsOverviewPanel is visible"
             pass
         #wx.CallAfter(self.reloadData)
 
@@ -118,7 +118,7 @@ class SettingsOverviewPanel(wx.Panel):
 
     def getGuiElement(self, name):
         if not self.elements.has_key(name) or not self.elements[name]:
-#            print "[profileOverviewPanel] gui element %s not available" % name
+#            print "[settingsOverviewPanel] gui element %s not available" % name
             return None
         return self.elements[name]
     
@@ -127,12 +127,12 @@ class SettingsOverviewPanel(wx.Panel):
     def reloadData(self, event=None):
         """updates the fields in the panel with new data if it has changed"""
 
-        #print >>sys.stderr,"profileOverviewPanel: reloadData, shown is",self.IsShown()
+        #print >>sys.stderr,"settingsOverviewPanel: reloadData, shown is",self.IsShown()
 
         if not self.IsShown(): #should not update data if not shown
             return
             
-        #print "<mluc> profileOverviewPanel in reloadData"
+        #print "<mluc> settingsOverviewPanel in reloadData"
         
         # 28/07/08 boudewijn: the reloadData method is called every
         # twice when first displayed and every 5 seconds
@@ -304,7 +304,7 @@ class SettingsOverviewPanel(wx.Panel):
 
 
     def seldomReloadData(self):
-        #print >>sys.stderr,"profileOverviewPanel: seldomReloadData!!!!!!" 
+        #print >>sys.stderr,"settingsOverviewPanel: seldomReloadData!!!!!!" 
         
         if self.bartercast_db is None:
             up = 'n/a'

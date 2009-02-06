@@ -727,7 +727,7 @@ class MainFrame(wx.Frame, DelayedInvocation):
             text = unicode( prefix+u' '+msg)
             
         #if DEBUG:
-        print  >> sys.stderr,"main: Setting activity",`text`,"EOT"
+        print  >> sys.stderr,"main: Setting activity",`text`
         #self.messageField.SetLabel(text)
 
     def set_player_status(self,s):
