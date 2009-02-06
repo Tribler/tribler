@@ -38,9 +38,6 @@ from cStringIO import StringIO
 import urllib
 import webbrowser
 
-from safeguiupdate import DelayedInvocation,FlaglessDelayedInvocation ## added
-
-
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 import Tribler.Main.vwxGUI.font as font
@@ -94,7 +91,7 @@ class FileDropTarget(wx.FileDropTarget):
 
 
 # Custom class loaded by XRC
-class MainFrame(wx.Frame, DelayedInvocation):
+class MainFrame(wx.Frame):
     def __init__(self, *args):
         self.firewallStatus = None
         self.utility = None
@@ -142,7 +139,6 @@ class MainFrame(wx.Frame, DelayedInvocation):
         #wx.Frame.__init__(self, None, ID, title, position, size, style = style)
         
         self.doneflag = Event()
-        #DelayedInvocation.__init__(self) ## added
 
         dragdroplist = FileDropTarget(self)
         self.SetDropTarget(dragdroplist)
