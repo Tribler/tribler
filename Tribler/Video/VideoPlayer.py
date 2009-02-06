@@ -1,14 +1,15 @@
 # Written by Arnfo Bakker
 # see LICENSE.txt for license information
-import sys
-import os
-import wx
-import re
-import urllib
+from errno import ECONNRESET
 from threading import currentThread,Event
 from traceback import print_exc,print_stack
+import inspect
+import os
+import re
+import sys
+import urllib
 import urlparse
-from errno import ECONNRESET
+import wx
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoServer import VideoHTTPServer,VideoRawVLCServer
@@ -187,7 +188,7 @@ class VideoPlayer:
                 self.launch_video_player(None,streaminfo=streaminfo)
             else:
                 # Play via internal HTTP server
-                self.videohttpserv.set_inputstream(streaminfo)
+                self.videohttpserv.set_inputstream(streaminfo,'/')
                 url = self.create_url(self.videohttpserv,'/')
 
                 self.launch_video_player(url)
@@ -817,6 +818,12 @@ def return_feasible_playback_modes(syspath):
     l = []
     try:
         import vlc
+
+        if USE_VLC_RAW_INTERFACE:
+            # check if the special raw interface is available
+            if not inspect.ismethod(vlc.MediaControl.set_raw_callbacks):
+                raise Exception("Incorrect vlc plugin. This does not provide the set_raw_callbacks method")
+
         vlcpath = os.path.join(syspath,"vlc")
         if sys.platform == 'win32':
             if os.path.isdir(vlcpath):

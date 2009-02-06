@@ -33,4 +33,6 @@ class UtilityStub:
     def Read(self,key):
         if key == 'language_file':
             return os.path.join(self.installdir,LIBRARYNAME,'Lang','english.lang')
+        elif key == 'videoplayerpath':
+            return 'vlc'
         return None
