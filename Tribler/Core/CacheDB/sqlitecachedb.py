@@ -24,12 +24,13 @@ import apsw
 #assert apsw_version >= support_version, "Required APSW Version >= %d.%d.%d."%support_version + " But your version is %d.%d.%d.\n"%apsw_version + \
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
+CURRENT_MAIN_DB_VERSION = 2
+
 CREATE_SQL_FILE = None
-CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'tribler_sdb_v1.sql')
+CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'tribler_sdb_v'+str(CURRENT_MAIN_DB_VERSION)+'.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 BSDDB_DIR_NAME = 'bsddb'
-CURRENT_MAIN_DB_VERSION = 2
 DEFAULT_BUSY_TIMEOUT = 10000
 MAX_SQL_BATCHED_TO_TRANSACTION = 1000   # don't change it unless carefully tested. A transaction with 1000 batched updates took 1.5 seconds
 NULL = None
@@ -848,6 +849,51 @@ class SQLiteCacheDBV2(SQLiteCacheDBBase):
         # bring database up to version 2, if necessary        
         if fromver < 2:
             sql = """
+-- Patch for Moderation and VoteCast
+            
+CREATE TABLE ModerationCast (
+mod_id text,
+mod_name text,
+infohash text not NULL,
+time_stamp integer,
+media_type text,
+quality text,
+tags text,
+signature integer
+);
+
+CREATE INDEX moderationcast_idx
+ON ModerationCast
+(mod_id);
+
+----------------------------------------
+
+CREATE TABLE Moderators (
+mod_id integer,
+status integer,
+time_stamp integer
+);
+
+CREATE UNIQUE INDEX moderators_idx
+ON Moderators
+(mod_id);
+
+----------------------------------------
+
+CREATE TABLE VoteCast (
+mod_id text,
+voter_id integer,
+vote text,
+time_stamp integer
+);
+
+CREATE UNIQUE INDEX votecast_idx
+ON VoteCast
+(mod_id, voter_id);
+
+
+-- Patch for BuddyCast 4
+
 ALTER TABLE MyPreference ADD COLUMN click_position INTEGER DEFAULT -1;
 ALTER TABLE MyPreference ADD COLUMN reranking_strategy INTEGER DEFAULT -1;
 ALTER TABLE Preference ADD COLUMN click_position INTEGER DEFAULT -1;
@@ -868,7 +914,7 @@ CREATE TABLE Term (
                     times_seen INTEGER DEFAULT 0 NOT NULL
                     );
 CREATE INDEX idx_terms_term ON Term(term);  
-     
+    
 """       
             
             self.execute_write(sql, commit=False)
@@ -876,6 +922,7 @@ CREATE INDEX idx_terms_term ON Term(term);
             # regardless of later, potentially failing updates
             self.writeDBVersion(2, commit=False)
             self.commit()
+
 
 class SQLiteCacheDB(SQLiteCacheDBV2):
     __single = None    # used for multithreaded singletons pattern

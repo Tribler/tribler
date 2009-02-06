@@ -1,11 +1,17 @@
 -- Tribler SQLite Database
--- Version: 2
+-- Version: 2rc3
+--
+-- History:
+--   v1: Published as part of Tribler 4.5
+-- 
+-- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
+--
 
 BEGIN TRANSACTION create_table;
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS BarterCast (
+CREATE TABLE BarterCast (
   peer_id_from  integer,
   peer_id_to    integer,
   downloaded    numeric,
@@ -14,13 +20,13 @@ CREATE TABLE IF NOT EXISTS BarterCast (
   value         numeric
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS bartercast_idx
+CREATE UNIQUE INDEX bartercast_idx
   ON BarterCast
   (peer_id_from, peer_id_to);
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS Category (
+CREATE TABLE Category (
   category_id    integer PRIMARY KEY NOT NULL,
   name           text NOT NULL,
   description    text
@@ -28,23 +34,26 @@ CREATE TABLE IF NOT EXISTS Category (
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS MyInfo (
+CREATE TABLE MyInfo (
   entry  PRIMARY KEY,
   value  text
 );
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS MyPreference (
+CREATE TABLE MyPreference (
   torrent_id     integer PRIMARY KEY NOT NULL,
   destination_path text NOT NULL,
   progress       numeric,
-  creation_time  integer NOT NULL
+  creation_time  integer NOT NULL,
+  -- V2: Patch for BuddyCast 4
+  click_position INTEGER DEFAULT -1,
+  reranking_strategy INTEGER DEFAULT -1
 );
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS Peer (
+CREATE TABLE Peer (
   peer_id              integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   permid               text NOT NULL,
   name                 text,
@@ -66,60 +75,63 @@ CREATE TABLE IF NOT EXISTS Peer (
   num_queries          integer
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS permid_idx
+CREATE UNIQUE INDEX permid_idx
   ON Peer
   (permid);
 
-CREATE INDEX IF NOT EXISTS Peer_name_idx
+CREATE INDEX Peer_name_idx
   ON Peer
   (name);
 
-CREATE INDEX IF NOT EXISTS Peer_ip_idx
+CREATE INDEX Peer_ip_idx
   ON Peer
   (ip);
 
-CREATE INDEX IF NOT EXISTS Peer_similarity_idx
+CREATE INDEX Peer_similarity_idx
   ON Peer
   (similarity);
 
-CREATE INDEX IF NOT EXISTS Peer_last_seen_idx
+CREATE INDEX Peer_last_seen_idx
   ON Peer
   (last_seen);
 
-CREATE INDEX IF NOT EXISTS Peer_last_connected_idx
+CREATE INDEX Peer_last_connected_idx
   ON Peer
   (last_connected);
 
-CREATE INDEX IF NOT EXISTS Peer_num_peers_idx
+CREATE INDEX Peer_num_peers_idx
   ON Peer
   (num_peers);
 
-CREATE INDEX IF NOT EXISTS Peer_num_torrents_idx
+CREATE INDEX Peer_num_torrents_idx
   ON Peer
   (num_torrents);
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS Preference (
+CREATE TABLE Preference (
   peer_id     integer NOT NULL,
-  torrent_id  integer NOT NULL
+  torrent_id  integer NOT NULL,
+  -- V2: Patch for BuddyCast 4
+  click_position INTEGER DEFAULT -1,
+  reranking_strategy INTEGER DEFAULT -1
 );
 
-CREATE INDEX IF NOT EXISTS Preference_peer_id_idx
+CREATE INDEX Preference_peer_id_idx
   ON Preference
   (peer_id);
 
-CREATE INDEX IF NOT EXISTS Preference_torrent_id_idx
+CREATE INDEX Preference_torrent_id_idx
   ON Preference
   (torrent_id);
 
-CREATE UNIQUE INDEX IF NOT EXISTS pref_idx
+CREATE UNIQUE INDEX pref_idx
   ON Preference
   (peer_id, torrent_id);
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS Torrent (
+CREATE TABLE Torrent (
   torrent_id       integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   infohash		   text NOT NULL,
   name             text,
@@ -139,49 +151,49 @@ CREATE TABLE IF NOT EXISTS Torrent (
   comment          text
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS infohash_idx
+CREATE UNIQUE INDEX infohash_idx
   ON Torrent
   (infohash);
 
-CREATE INDEX IF NOT EXISTS Torrent_length_idx
+CREATE INDEX Torrent_length_idx
   ON Torrent
   (length);
 
-CREATE INDEX IF NOT EXISTS Torrent_creation_date_idx
+CREATE INDEX Torrent_creation_date_idx
   ON Torrent
   (creation_date);
 
-CREATE INDEX IF NOT EXISTS Torrent_relevance_idx
+CREATE INDEX Torrent_relevance_idx
   ON Torrent
   (relevance);
 
-CREATE INDEX IF NOT EXISTS Torrent_num_seeders_idx
+CREATE INDEX Torrent_num_seeders_idx
   ON Torrent
   (num_seeders);
 
-CREATE INDEX IF NOT EXISTS Torrent_num_leechers_idx
+CREATE INDEX Torrent_num_leechers_idx
   ON Torrent
   (num_leechers);
 
-CREATE INDEX IF NOT EXISTS Torrent_name_idx 
+CREATE INDEX Torrent_name_idx 
   ON Torrent
   (name);
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS TorrentSource (
+CREATE TABLE TorrentSource (
   source_id    integer PRIMARY KEY NOT NULL,
   name         text NOT NULL,
   description  text
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS torrent_source_idx
+CREATE UNIQUE INDEX torrent_source_idx
   ON TorrentSource
   (name);
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS TorrentStatus (
+CREATE TABLE TorrentStatus (
   status_id    integer PRIMARY KEY NOT NULL,
   name         text NOT NULL,
   description  text
@@ -189,7 +201,7 @@ CREATE TABLE IF NOT EXISTS TorrentStatus (
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS TorrentTracker (
+CREATE TABLE TorrentTracker (
   torrent_id   integer NOT NULL,
   tracker      text NOT NULL,
   announce_tier    integer,
@@ -198,13 +210,22 @@ CREATE TABLE IF NOT EXISTS TorrentTracker (
   last_check       numeric
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS torrent_tracker_idx
+CREATE UNIQUE INDEX torrent_tracker_idx
   ON TorrentTracker
   (torrent_id, tracker);
-
+  
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS ModerationCast (
+CREATE VIEW SuperPeer AS SELECT * FROM Peer WHERE superpeer=1;
+
+CREATE VIEW Friend AS SELECT * FROM Peer WHERE friend=1;
+
+CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
+
+
+-- V2: Patch for Moderation and VoteCast
+            
+CREATE TABLE ModerationCast (
 mod_id text,
 mod_name text,
 infohash text not NULL,
@@ -215,42 +236,55 @@ tags text,
 signature integer
 );
 
-CREATE INDEX IF NOT EXISTS moderationcast_idx
+CREATE INDEX moderationcast_idx
 ON ModerationCast
 (mod_id);
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS Moderators (
+CREATE TABLE Moderators (
 mod_id integer,
 status integer,
 time_stamp integer
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS moderators_idx
+CREATE UNIQUE INDEX moderators_idx
 ON Moderators
 (mod_id);
 
 ----------------------------------------
 
-CREATE TABLE IF NOT EXISTS VoteCast (
+CREATE TABLE VoteCast (
 mod_id text,
 voter_id integer,
 vote text,
 time_stamp integer
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS votecast_idx
+CREATE UNIQUE INDEX votecast_idx
 ON VoteCast
 (mod_id, voter_id);
 
-----------------------------------------
 
-CREATE VIEW IF NOT EXISTS SuperPeer AS SELECT * FROM Peer WHERE superpeer=1;
+-- V2: Patch for BuddyCast 4
 
-CREATE VIEW IF NOT EXISTS Friend AS SELECT * FROM Peer WHERE friend=1;
+CREATE TABLE Search (
+                     peer_id INTEGER DEFAULT 0,
+                     torrent_id INTEGER DEFAULT 0,
+                     term_id INTEGER DEFAULT 0,
+                     term_order INTEGER DEFAULT 0
+                     );
+CREATE INDEX idx_search_term ON Search (term_id);
+CREATE INDEX idx_search_torrent ON Search (torrent_id);
 
-CREATE VIEW IF NOT EXISTS CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
+CREATE TABLE Term (
+                    term_id INTEGER PRIMARY KEY AUTOINCREMENT DEFAULT 0,
+                    term VARCHAR(255) NOT NULL,
+                    times_seen INTEGER DEFAULT 0 NOT NULL
+                    );
+CREATE INDEX idx_terms_term ON Term(term);  
+
+
 
 COMMIT TRANSACTION create_table;
 
@@ -258,22 +292,22 @@ COMMIT TRANSACTION create_table;
 
 BEGIN TRANSACTION init_values;
 
-INSERT OR IGNORE INTO Category VALUES (1, 'Video', 'Video Files');
-INSERT OR IGNORE INTO Category VALUES (2, 'VideoClips', 'Video Clips');
-INSERT OR IGNORE INTO Category VALUES (3, 'Audio', 'Audio');
-INSERT OR IGNORE INTO Category VALUES (4, 'Compressed', 'Compressed');
-INSERT OR IGNORE INTO Category VALUES (5, 'Document', 'Documents');
-INSERT OR IGNORE INTO Category VALUES (6, 'Picture', 'Pictures');
-INSERT OR IGNORE INTO Category VALUES (7, 'xxx', 'XXX');
-INSERT OR IGNORE INTO Category VALUES (8, 'other', 'Other');
+INSERT INTO Category VALUES (1, 'Video', 'Video Files');
+INSERT INTO Category VALUES (2, 'VideoClips', 'Video Clips');
+INSERT INTO Category VALUES (3, 'Audio', 'Audio');
+INSERT INTO Category VALUES (4, 'Compressed', 'Compressed');
+INSERT INTO Category VALUES (5, 'Document', 'Documents');
+INSERT INTO Category VALUES (6, 'Picture', 'Pictures');
+INSERT INTO Category VALUES (7, 'xxx', 'XXX');
+INSERT INTO Category VALUES (8, 'other', 'Other');
 
-INSERT OR IGNORE INTO TorrentStatus VALUES (0, 'unknown', NULL);
-INSERT OR IGNORE INTO TorrentStatus VALUES (1, 'good', NULL);
-INSERT OR IGNORE INTO TorrentStatus VALUES (2, 'dead', NULL);
+INSERT INTO TorrentStatus VALUES (0, 'unknown', NULL);
+INSERT INTO TorrentStatus VALUES (1, 'good', NULL);
+INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 
-INSERT OR IGNORE INTO TorrentSource VALUES (0, '', 'Unknown');
-INSERT OR IGNORE INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
+INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
+INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT OR REPLACE INTO MyInfo VALUES ('version', 2);
+INSERT INTO MyInfo VALUES ('version', 2);
 
 COMMIT TRANSACTION init_values;
