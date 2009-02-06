@@ -821,9 +821,8 @@ def return_feasible_playback_modes(syspath):
 
         if USE_VLC_RAW_INTERFACE:
             # check if the special raw interface is available
-            if not inspect.ismethod(vlc.MediaControl.set_raw_callbacks):
+            if not inspect.ismethoddescriptor(vlc.MediaControl.set_raw_callbacks):
                 raise Exception("Incorrect vlc plugin. This does not provide the set_raw_callbacks method")
-
         vlcpath = os.path.join(syspath,"vlc")
         if sys.platform == 'win32':
             if os.path.isdir(vlcpath):
@@ -831,8 +830,7 @@ def return_feasible_playback_modes(syspath):
         else:
             l.append(PLAYBACKMODE_INTERNAL)
     except Exception:
-        #print_exc(file=sys.stderr)
-        pass
+        print_exc()
     
     if sys.platform == 'win32':
         l.append(PLAYBACKMODE_EXTERNAL_MIME)
