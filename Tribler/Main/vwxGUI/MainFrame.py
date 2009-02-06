@@ -278,6 +278,7 @@ class MainFrame(wx.Frame, DelayedInvocation):
             self.startDownload(torrentfilename,cmdline=True)
 
     def startDownload_old(self,torrentfilename,destdir=None,tdef = None, cmdline = False, clicklog=None,name=None):
+        # ARNO50: why was this decommissioned?
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef,cmdline
@@ -726,7 +727,7 @@ class MainFrame(wx.Frame, DelayedInvocation):
             text = unicode( prefix+u' '+msg)
             
         #if DEBUG:
-        #    print  >> sys.stderr,"main: Setting activity",`text`,"EOT"
+        print  >> sys.stderr,"main: Setting activity",`text`,"EOT"
         #self.messageField.SetLabel(text)
 
     def set_player_status(self,s):

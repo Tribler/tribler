@@ -5,7 +5,7 @@ import wx.xrc as xrc
 
 from traceback import print_stack,print_exc
 
-DEBUG = False
+DEBUG = True
 
 class ImagePanelBasic(wx.Panel):
     """
@@ -77,7 +77,7 @@ class ImagePanelBasic(wx.Panel):
         if os.path.isfile(self.bitmapPath):
             self.setBitmap(wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY))
         elif DEBUG:
-            print 'bgPanel: Could not load image: %s' % self.bitmapPath
+            print >>sys.stderr,'bgPanel: Could not load image: %s' % self.bitmapPath
 
 ##        try:
             # These unnamed things popup on LibraryView
@@ -142,7 +142,7 @@ class bgPanel(ImagePanelBasic):
     def __init__(self, *args, **kw):
         tile = True     
         ImagePanelBasic.__init__(self, tile, *args, **kw)
-        
+
 class ImagePanel(ImagePanelBasic):
     def __init__(self, *args, **kw):
         tile = False

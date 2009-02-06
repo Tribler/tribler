@@ -54,35 +54,31 @@ from cStringIO import StringIO
 import urllib
 import webbrowser
 
-from Tribler.Main.vwxGUI.MainFrame import MainFrame
-from Tribler.Main.Utility.utility import Utility
-from Tribler.Main.Utility.constants import * #IGNORE:W0611
+
 import Tribler.Main.vwxGUI.font as font
+from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
+from Tribler.Main.vwxGUI.MainFrame import MainFrame
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
-from Tribler.Main.vwxGUI.font import *
-
 from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
-
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
+from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
+from Tribler.Main.Utility.utility import Utility
+from Tribler.Main.Utility.constants import *
+
 from Tribler.Category.Category import Category
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
-from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Web2.util.update import Web2Updater
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
-from Tribler.Core.Utilities.utilities import show_permid_short
-from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 
 from Tribler.Core.API import *
-from Tribler.Core.Utilities.utilities import show_permid
+from Tribler.Core.Utilities.utilities import show_permid_short
 import Tribler.Core.CacheDB.friends as friends 
-from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.EmbeddedPlayer import *
@@ -194,7 +190,8 @@ class ABCApp(wx.App):
 
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
-            self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
+            self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
+            self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2iconnhandler) 
             self.i2is.start()
 
             self.triblerStyles = TriblerStyles.getInstance()
@@ -234,9 +231,9 @@ class ABCApp(wx.App):
 #            numfileslabel = xrc.XRCCTRL(self.frame, "files")
             self.frame.messageField = xrc.XRCCTRL(self.frame, "messageField")
             #self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
-            self.frame.search = xrc.XRCCTRL(self.frame, 'searchField')
+            self.frame.search = xrc.XRCCTRL(self.frame, 'top_search').searchField
             self.frame.search.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDown)
-            self.frame.go = xrc.XRCCTRL(self.frame, 'go')
+            self.frame.go = xrc.XRCCTRL(self.frame, 'top_search').go
             self.frame.go.Bind(wx.EVT_LEFT_UP, self.OnGoKeyPressed)
 
 
@@ -291,34 +288,35 @@ class ABCApp(wx.App):
             self.frame.Show(True)
             
             self.frame.search_icon = xrc.XRCCTRL(self.frame, "search_icon")
-            self.frame.tribler_logo2 = xrc.XRCCTRL(self.frame, "tribler_logo2")
             self.frame.files_friends = xrc.XRCCTRL(self.frame, "files_friends")
             self.frame.top_image = xrc.XRCCTRL(self.frame, "top_image")
-            self.frame.sharing_reputation = xrc.XRCCTRL(self.frame, "sharing_reputation")
-            self.frame.srgradient = xrc.XRCCTRL(self.frame, "srgradient")
-            self.frame.help = xrc.XRCCTRL(self.frame, "help")
+            
+            self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_search")
+            self.frame.sharing_reputation = xrc.XRCCTRL(self.frame, "top_search").sharing_reputation
+            self.frame.srgradient = xrc.XRCCTRL(self.frame, "top_search").srgradient
+            self.frame.help = xrc.XRCCTRL(self.frame,"top_search").help
             self.frame.help.Bind(wx.EVT_LEFT_UP, self.helpClick)
-            self.frame.sr_indicator = xrc.XRCCTRL(self.frame, "sr_indicator")
-            self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
-            self.frame.black_spacer = xrc.XRCCTRL(self.frame, "black_spacer")
-            self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_bg")
-            self.frame.help = xrc.XRCCTRL(self.frame,"help")
-            self.frame.searching = xrc.XRCCTRL(self.frame,"searching")
-            self.frame.search_results = xrc.XRCCTRL(self.frame,"search_results")
+            self.frame.sr_indicator = xrc.XRCCTRL(self.frame, "top_search").sr_indicator
+            self.frame.black_spacer = xrc.XRCCTRL(self.frame, "top_search").black_spacer
+            #self.frame.searching = xrc.XRCCTRL(self.frame,"top_search").searching
+            self.frame.search_results = xrc.XRCCTRL(self.frame,"top_search").search_results
             self.frame.search_results.Bind(wx.EVT_LEFT_UP, self.OnSearchResultsPressed)
-            self.frame.settings = xrc.XRCCTRL(self.frame,"settings")
+            self.frame.settings = xrc.XRCCTRL(self.frame,"top_search").settings
             self.frame.settings.Bind(wx.EVT_LEFT_UP, self.viewSettings)
-            self.frame.my_files = xrc.XRCCTRL(self.frame,"my_files")
+            self.frame.my_files = xrc.XRCCTRL(self.frame,"top_search").my_files
             self.frame.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
-
-            self.frame.seperator = xrc.XRCCTRL(self.frame,"seperator")
+            self.frame.seperator = xrc.XRCCTRL(self.frame,"top_search").seperator
+            self.frame.newFile = xrc.XRCCTRL(self.frame,"top_search").newFile
+            self.frame.tribler_logo2 = xrc.XRCCTRL(self.frame, "top_search").tribler_logo2
+            
             self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
-            self.frame.newFile = xrc.XRCCTRL(self.frame,"newFile")
+            self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
             #self.frame.preLoader = xrc.XRCCTRL(self.frame,"preloader")
 
             # animated gif for search results
             ag_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','search.gif')
-            self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
+            #self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
+            self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.go, -1, ag_fname, pos=(0,0))
             #self.frame.ag.SetUseWindowBackgroundColour(False)
             
 
@@ -328,11 +326,10 @@ class ABCApp(wx.App):
             self.frame.videopanel = EmbeddedPlayerPanel(self.frame.videopanel, self.utility,self.videoplayer.get_vlcwrap(), logopath, fg=wx.WHITE, bg=(216,233,240))
 
             # family filter
-            self.frame.familyfilter = xrc.XRCCTRL(self.frame,"familyfilter")
+            self.frame.familyfilter = xrc.XRCCTRL(self.frame,"top_search").familyfilter
             self.frame.familyfilter.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
 
-            hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel,self.frame.pageTitle,self.frame.sharing_reputation,self.frame.srgradient,self.frame.help,self.frame.sr_indicator,self.frame.videopanel,self.frame.familyfilter,self.frame.pagerPanel]
-
+            hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.sharing_reputation,self.frame.srgradient,self.frame.help,self.frame.sr_indicator,self.frame.videopanel,self.frame.familyfilter,self.frame.pagerPanel]
 
             for name in hide_names:
                 name.Hide()
@@ -364,9 +361,9 @@ class ABCApp(wx.App):
                 print_exc()
             
             # Must be after ABCLaunchMany is created
-            self.torrentfeed = TorrentFeedThread.getInstance()
-            self.torrentfeed.register(self.utility)
-            self.torrentfeed.start()
+            #self.torrentfeed = TorrentFeedThread.getInstance()
+            #self.torrentfeed.register(self.utility)
+            #self.torrentfeed.start()
             
             #print "DIM",wx.GetDisplaySize()
             #print "MM",wx.GetDisplaySizeMM()
@@ -475,6 +472,8 @@ class ABCApp(wx.App):
         else:
             event.Skip()     
 
+    # ARNO50: Errr..... code reuse?
+
     def OnGoKeyPressed(self,event): # # #
 
         global FIRST
@@ -496,6 +495,7 @@ class ABCApp(wx.App):
 
                 self.frame.hsizer = self.frame.sr_indicator.GetContainingSizer()               
 
+                # ARNO50: why not make bc_db a member variable?
                 bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
                 reputation = bc_db.getMyReputation()
                 self.utility.session.close_dbhandler(bc_db)
@@ -643,7 +643,7 @@ class ABCApp(wx.App):
         """ get the current reputation score"""
         bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
         reputation = bc_db.getMyReputation()
-        self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
+        self.frame.help.SetToolTipString(self.utility.lang.get('help') % (reputation))
         self.utility.session.close_dbhandler(bc_db)
         return reputation
 
@@ -848,15 +848,13 @@ class ABCApp(wx.App):
         print_exc()
         dlg.Destroy()
 
-    def MacOpenFile(self,filename):
-        self.utility.queue.addtorrents.AddTorrentFromFile(filename)
 
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
         
         friends.done(self.utility.session)
         
-        self.torrentfeed.shutdown()
+        #self.torrentfeed.shutdown()
 
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
@@ -891,7 +889,7 @@ class ABCApp(wx.App):
             self.guiUtility.standardLibraryOverview()
  
  
-    def i2icallback(self,ic,cmd):
+    def i2ithread_readlinecallback(self,ic,cmd):
         """ Called by Instance2Instance thread """
         
         print >>sys.stderr,"main: Another instance called us with cmd",cmd

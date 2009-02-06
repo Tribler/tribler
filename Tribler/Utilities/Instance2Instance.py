@@ -191,8 +191,6 @@ class InstanceConnection:
                 data = self.remain[idx:]+'\r\n'
                 self.remain = ''
         
-        print >>sys.stderr,"HALLO",`data`
-        
         for i in range(0,len(data)):
             if not self.rflag:
                 if data[i]=='\r':
