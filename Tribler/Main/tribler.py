@@ -61,7 +61,6 @@ from Tribler.Main.vwxGUI.MainFrame import MainFrame
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
-from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
 from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init

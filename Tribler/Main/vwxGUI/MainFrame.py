@@ -44,7 +44,6 @@ import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
-from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
 from Tribler.Main.vwxGUI.FriendshipManager import FriendshipManager
 from Tribler.Main.vwxGUI.font import *
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
