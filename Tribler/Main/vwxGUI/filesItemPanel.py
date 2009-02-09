@@ -646,7 +646,7 @@ class FilesItemPanel(wx.Panel):
                 self.summary = FilesItemDetailsSummary(self, torrentHash = None, torrent = self.data, web2data = self.data)
             ##self.triblerStyles.setLightText(self.summary)
             self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
-            self.SetMinSize((-1,150))
+            self.SetMinSize((-1,100))
         elif visible and self.summary:
             pass
             ## self.guiUtility.standardDetails.setDownloadbutton(torrent=self.data, item = self.summary.download)

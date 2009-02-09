@@ -68,6 +68,9 @@
                     </object>
                     <flag>wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
                   </object>
+                  <object class="spacer">
+                    <size>5,0</size>
+                  </object>
                 </object>
               </object>
               <object class="sizeritem">
@@ -211,12 +214,6 @@
           <object class="spacer">
             <size>0,0</size>
           </object>
-          <object class="sizeritem">
-            <object class="wxStaticText" name="newFile">
-              <label></label>
-              <fg>#FF0000</fg>
-            </object>
-          </object>
         </object>
       </object>
       <object class="spacer">
@@ -261,7 +258,12 @@
             </object>
           </object>
           <object class="spacer">
-            <size>0,0</size>
+            <size>0,5</size>
+          </object>
+          <object class="sizeritem">
+            <object class="wxStaticBitmap" name="iconSaved">
+              <bitmap>images/5.0/iconSaved.png</bitmap>
+            </object>
           </object>
         </object>
       </object>

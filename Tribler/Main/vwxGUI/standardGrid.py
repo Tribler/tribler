@@ -672,7 +672,7 @@ class standardGrid(wx.Panel):
             self.currentRows = 0
             self.items = 0
         else:            
-            self.currentRows = (size[1] - columnHeaderHeight) / self.subPanelHeight 
+            self.currentRows = (size[1] - columnHeaderHeight - 79) / self.subPanelHeight 
             if DEBUG:
                 print >> sys.stderr, 'standardGrid: Height: %d, single panel is %d, so %d rows' % (size[1], self.subPanelHeight, self.currentRows)
             self.items = self.cols * self.currentRows
@@ -951,7 +951,7 @@ class filesGrid(standardGrid):
 #        columns = 5
 #        self.subPanelHeight = 108 # This will be update after first refresh
         columns = (5, 1)
-        subPanelHeight = (5*22, 35)
+        subPanelHeight = (5*22, 22)
         standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
         
     def getSubPanel(self, keyfun):
@@ -979,7 +979,7 @@ class friendsGrid(standardGrid):
 class libraryGrid(standardGrid):
     def __init__(self):
         columns = (1,1)
-        subPanelHeight = (22, 35) # This will be update after first refresh
+        subPanelHeight = (22, 22) # This will be update after first refresh
         standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal', viewmode='list')
             
     def getSubPanel(self, keyfun):

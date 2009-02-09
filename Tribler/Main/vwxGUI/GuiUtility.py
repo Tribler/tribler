@@ -420,7 +420,7 @@ class GUIUtility:
             self.guiPage = 'search_results'
         if self.guiPage != 'search_results':
             self.guiPage = 'search_results'
-            self.frame.ag.Show() 
+            self.frame.top_bg.ag.Show() 
 
             #self.standardGrid.deselectAll()
             #self.standardGrid.clearAllData()
@@ -428,10 +428,10 @@ class GUIUtility:
             self.standardFilesOverview()
             self.frame.videopanel.Show()
 
-            self.frame.search_results.SetForegroundColour(wx.BLACK)
+            self.frame.top_bg.search_results.SetForegroundColour(wx.BLACK)
 
-            self.frame.settings.SetForegroundColour((255,51,0))
-            self.frame.my_files.SetForegroundColour((255,51,0))
+            self.frame.top_bg.settings.SetForegroundColour((255,51,0))
+            self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
 
             #if self.frame.settings.isToggled():
             #    self.frame.settings.setToggled()
@@ -500,9 +500,9 @@ class GUIUtility:
     def settingsOverview(self):
         if self.guiPage != 'settings':
             self.guiPage = 'settings' 
-            self.frame.ag.Hide()
-            self.frame.settings.SetForegroundColour((0,105,156))
-            self.frame.my_files.SetForegroundColour((255,51,0))
+            self.frame.top_bg.ag.Hide()
+            self.frame.top_bg.settings.SetForegroundColour((0,105,156))
+            self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
 
             #if self.standardGrid:
             #    self.standardGrid.deselectAll()
@@ -511,9 +511,9 @@ class GUIUtility:
             self.frame.videopanel.Hide()
 
             self.frame.pagerPanel.Hide()
-            if self.frame.search_results.GetLabel() != '':
-                self.frame.search_results.SetLabel('Return to Results')
-                self.frame.search_results.SetForegroundColour(wx.RED)
+            if self.frame.top_bg.search_results.GetLabel() != '':
+                self.frame.top_bg.search_results.SetLabel('Return to Results')
+                self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
             self.frame.Layout()
             self.standardOverview.setMode('settingsMode')
         
@@ -553,9 +553,9 @@ class GUIUtility:
     def standardLibraryOverview(self, filters = None): 
         if self.guiPage != 'my_files':
             self.guiPage = 'my_files' 
-            self.frame.ag.Hide()
-            self.frame.my_files.SetForegroundColour((0,105,156))
-            self.frame.settings.SetForegroundColour((255,51,0))
+            self.frame.top_bg.ag.Hide()
+            self.frame.top_bg.my_files.SetForegroundColour((0,105,156))
+            self.frame.top_bg.settings.SetForegroundColour((255,51,0))
 
             #if self.standardGrid:
             #    self.standardGrid.deselectAll()
@@ -563,9 +563,9 @@ class GUIUtility:
 
             self.frame.videopanel.Show()
 
-            if self.frame.search_results.GetLabel() != '':
-                self.frame.search_results.SetLabel('Return to Results')
-                self.frame.search_results.SetForegroundColour(wx.RED)
+            if self.frame.top_bg.search_results.GetLabel() != '':
+                self.frame.top_bg.search_results.SetLabel('Return to Results')
+                self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
             self.frame.top_bg.Layout()
             self.frame.pagerPanel.Show()
 
@@ -811,7 +811,7 @@ class GUIUtility:
         return self.utility.session.get_nat_type(callback=callback)
 
     def dosearch(self):
-        sf = self.frame.search
+        sf = self.frame.top_bg.searchField
         #sf = self.standardOverview.getSearchField()
         if sf is None:
             return
@@ -862,7 +862,7 @@ class GUIUtility:
                 if num_remote_queries > 0:
                     self.utility.session.query_connected_peers(q,self.sesscb_got_remote_hits,num_remote_queries)
                      
-                    self.standardOverview.setSearchFeedback('remote', False, 0, wantkeywords,self.frame.search_results)
+                    self.standardOverview.setSearchFeedback('remote', False, 0, wantkeywords,self.frame.top_bg.search_results)
                     
             #
             # Query YouTube, etc.

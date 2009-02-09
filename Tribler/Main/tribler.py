@@ -89,7 +89,7 @@ I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878
 
 DEBUG = False
-ALLOW_MULTIPLE = False
+ALLOW_MULTIPLE = True
 FIRST = True    
 
 ##############################################################
@@ -218,6 +218,8 @@ class ABCApp(wx.App):
             self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
+            wx.Yield()
+
 
             self.guiUtility.frame = self.frame
 
@@ -237,10 +239,10 @@ class ABCApp(wx.App):
 #            numfileslabel = xrc.XRCCTRL(self.frame, "files")
             self.frame.messageField = xrc.XRCCTRL(self.frame, "messageField")
             #self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
-            self.frame.search = xrc.XRCCTRL(self.frame, 'top_search').searchField
-            self.frame.search.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDown)
-            self.frame.go = xrc.XRCCTRL(self.frame, 'top_search').go
-            self.frame.go.Bind(wx.EVT_LEFT_UP, self.OnGoKeyPressed)
+            ##self.frame.search = xrc.XRCCTRL(self.frame, 'top_search').searchField
+            ##self.frame.search.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDown)
+            ##self.frame.go = xrc.XRCCTRL(self.frame, 'top_search').go
+            ##self.frame.go.Bind(wx.EVT_LEFT_UP, self.OnGoKeyPressed)
 
 
             self.frame.pageTitle = xrc.XRCCTRL(self.frame, "pageTitle")
@@ -298,32 +300,28 @@ class ABCApp(wx.App):
             self.frame.top_image = xrc.XRCCTRL(self.frame, "top_image")
             
             self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_search")
-            self.frame.sharing_reputation = xrc.XRCCTRL(self.frame, "top_search").sharing_reputation
-            self.frame.srgradient = xrc.XRCCTRL(self.frame, "top_search").srgradient
-            self.frame.help = xrc.XRCCTRL(self.frame,"top_search").help
-            self.frame.help.Bind(wx.EVT_LEFT_UP, self.helpClick)
-            self.frame.sr_indicator = xrc.XRCCTRL(self.frame, "top_search").sr_indicator
-            self.frame.black_spacer = xrc.XRCCTRL(self.frame, "top_search").black_spacer
+            ##self.frame.sharing_reputation = xrc.XRCCTRL(self.frame, "top_search").sharing_reputation
+            ##self.frame.srgradient = xrc.XRCCTRL(self.frame, "top_search").srgradient
+            ##self.frame.help = xrc.XRCCTRL(self.frame,"top_search").help
+            ##self.frame.help.Bind(wx.EVT_LEFT_UP, self.helpClick)
+            ##self.frame.sr_indicator = xrc.XRCCTRL(self.frame, "top_search").sr_indicator
+            ##self.frame.black_spacer = xrc.XRCCTRL(self.frame, "top_search").black_spacer
             #self.frame.searching = xrc.XRCCTRL(self.frame,"top_search").searching
-            self.frame.search_results = xrc.XRCCTRL(self.frame,"top_search").search_results
-            self.frame.search_results.Bind(wx.EVT_LEFT_UP, self.OnSearchResultsPressed)
-            self.frame.settings = xrc.XRCCTRL(self.frame,"top_search").settings
-            self.frame.settings.Bind(wx.EVT_LEFT_UP, self.viewSettings)
-            self.frame.my_files = xrc.XRCCTRL(self.frame,"top_search").my_files
-            self.frame.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
-            self.frame.seperator = xrc.XRCCTRL(self.frame,"top_search").seperator
-            self.frame.newFile = xrc.XRCCTRL(self.frame,"top_search").newFile
-            self.frame.tribler_logo2 = xrc.XRCCTRL(self.frame, "top_search").tribler_logo2
+            ##self.frame.search_results = xrc.XRCCTRL(self.frame,"top_search").search_results
+            ##self.frame.search_results.Bind(wx.EVT_LEFT_UP, self.OnSearchResultsPressed)
+            ##self.frame.settings = xrc.XRCCTRL(self.frame,"top_search").settings
+            ##self.frame.settings.Bind(wx.EVT_LEFT_UP, self.viewSettings)
+            ##self.frame.my_files = xrc.XRCCTRL(self.frame,"top_search").my_files
+            ##self.frame.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
+            ##self.frame.seperator = xrc.XRCCTRL(self.frame,"top_search").seperator
+            ##self.frame.newFile = xrc.XRCCTRL(self.frame,"top_search").newFile
+            ##self.frame.tribler_logo2 = xrc.XRCCTRL(self.frame, "top_search").tribler_logo2
             
             self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
             self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
             #self.frame.preLoader = xrc.XRCCTRL(self.frame,"preloader")
 
-            # animated gif for search results
-            ag_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','search.gif')
-            #self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
-            self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.go, -1, ag_fname, pos=(0,0))
-            #self.frame.ag.SetUseWindowBackgroundColour(False)
+
             
 
             # videopanel
@@ -332,10 +330,10 @@ class ABCApp(wx.App):
             self.frame.videopanel = EmbeddedPlayerPanel(self.frame.videopanel, self.utility,self.videoplayer.get_vlcwrap(), logopath, fg=wx.WHITE, bg=(216,233,240))
 
             # family filter
-            self.frame.familyfilter = xrc.XRCCTRL(self.frame,"top_search").familyfilter
-            self.frame.familyfilter.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
+            ##self.frame.familyfilter = xrc.XRCCTRL(self.frame,"top_search").familyfilter
+            ##self.frame.familyfilter.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
 
-            hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.sharing_reputation,self.frame.srgradient,self.frame.help,self.frame.sr_indicator,self.frame.videopanel,self.frame.familyfilter,self.frame.pagerPanel]
+            hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.videopanel,self.frame.pagerPanel]
 
             for name in hide_names:
                 name.Hide()
@@ -410,7 +408,7 @@ class ABCApp(wx.App):
 
 
     
-    def OnSearchKeyDown(self,event): # # #
+    def OnSearchKeyDown(self,event):
 
         global FIRST
         

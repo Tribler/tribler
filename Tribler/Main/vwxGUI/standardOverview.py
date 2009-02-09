@@ -80,7 +80,7 @@ class standardOverview(wx.Panel):
       
         self.triblerStyles = TriblerStyles.getInstance()
 
-        self.search_results = self.guiUtility.frame.search_results
+        self.search_results = self.guiUtility.frame.top_bg.search_results
         self.results = {}
         
 #        self.SetBackgroundColour((255,255,90))

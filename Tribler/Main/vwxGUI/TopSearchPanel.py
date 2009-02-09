@@ -13,14 +13,21 @@ import os
 # end wx.Glade
 
 from bgPanel import bgPanel
+from tribler_topButton import *
 from GuiUtility import GUIUtility
+from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
+
+FIRST=True
+
 
 class TopSearchPanel(bgPanel):
     def __init__(self, *args, **kwds):
+        print >> sys.stderr , "init"
         bgPanel.__init__(self,*args,**kwds)
         self.guiUtility = GUIUtility.getInstance()
         self.installdir = self.guiUtility.utility.getPath()
+        self.utility = Utility(self.installdir)
       
     def Bitmap(self,path,type):
         namelist = path.split("/")
@@ -28,6 +35,7 @@ class TopSearchPanel(bgPanel):
         return wx.Bitmap(path,type)
         
     def OnCreate(self,event):
+        print >> sys.stderr , "Oncreate"
         bgPanel.OnCreate(self,event)
    
 # MAINLY GENERATED BELOW, replace wxStaticBitmap, etc. with wx.StaticBitmap 
@@ -42,7 +50,7 @@ class TopSearchPanel(bgPanel):
         self.black_spacer = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/black_spacer.png", wx.BITMAP_TYPE_ANY))
         self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
         self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
-        self.go = wx.Panel(self, -1)
+        self.go = tribler_topButton(self,-1,name = 'go')
         self.familyfilter = wx.StaticText(self, -1, "Family Filter:ON")
         self.search_results = wx.StaticText(self, -1, "")
         self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
@@ -50,7 +58,6 @@ class TopSearchPanel(bgPanel):
         self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY))
         self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRindicator.png", wx.BITMAP_TYPE_ANY))
         self.settings = wx.StaticText(self, -1, "Settings")
-        self.newFile = wx.StaticText(self, -1, "")
         self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY))
         self.my_files = wx.StaticText(self, -1, "My Files")
         self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
@@ -58,6 +65,49 @@ class TopSearchPanel(bgPanel):
         self.__set_properties()
         self.__do_layout()
         # end wx.Glade
+
+
+
+        # animated gif for search results
+        ag_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','search.gif')
+        #self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
+        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname, pos=(0,0))
+        #self.frame.ag.SetUseWindowBackgroundColour(False)
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        vsizer.AddSpacer(wx.Size(0,5))
+        vsizer.Add(self.ag,0,wx.FIXED_MINSIZE,0)
+        hsizer = self.go.GetContainingSizer()
+        hsizer.Add(vsizer,0,wx.FIXED_MINSIZE,0)                  
+
+
+
+        hide_names = [self.ag]
+        for name in hide_names:
+            name.Hide()
+
+
+        self.frame=self.guiUtility.frame
+
+        # binding events  
+        self.searchField.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDown)
+        self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
+        self.search_results.Bind(wx.EVT_LEFT_UP, self.OnSearchResultsPressed)
+        self.settings.Bind(wx.EVT_LEFT_UP, self.viewSettings)
+        self.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def __set_properties(self):
         # begin wx.Glade: MyPanel.__set_properties
@@ -76,7 +126,6 @@ class TopSearchPanel(bgPanel):
         self.settings.SetMinSize((50,15))
         self.settings.SetForegroundColour(wx.Colour(255, 51, 0))
         self.settings.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.newFile.SetForegroundColour(wx.Colour(255, 0, 0))
         self.my_files.SetMinSize((50,15))
         self.my_files.SetForegroundColour(wx.Colour(255, 51, 0))
         self.my_files.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
@@ -104,6 +153,7 @@ class TopSearchPanel(bgPanel):
         object_4.Add(self.searchField, 0, wx.LEFT, -2)
         object_4.Add((2, 0), 0, 0, 0)
         object_4.Add(self.go, 0, 0, 0)
+        object_4.Add((2,0), 0, 0, 0)
         object_3.Add(object_4, 0, 0, 0)
         object_6.Add((0, 0), 0, 0, 0)
         object_6.Add(self.familyfilter, 0, 0, 0)
@@ -130,7 +180,6 @@ class TopSearchPanel(bgPanel):
         object_10.Add((0, 20), 0, 0, 0)
         object_10.Add(self.settings, 0, 0, 0)
         object_10.Add((0, 0), 0, 0, 0)
-        object_10.Add(self.newFile, 0, 0, 0)
         object_1.Add(object_10, 0, 0, 0)
         object_1.Add((7, 0), 0, 0, 0)
         object_11.Add((0, 20), 0, 0, 0)
@@ -144,9 +193,97 @@ class TopSearchPanel(bgPanel):
         object_1.Add((7, 0), 0, 0, 0)
         object_1.Add(self.tribler_logo2, 0, 0, 0)
         object_1.Add((10, 0), 0, 0, 0)
-        self.SetSizerAndFit(object_1)
+        self.SetSizer(object_1)
         # end wx.Glade
 
 # end of class MyPanel
 
+    def OnSearchKeyDown(self,event):
+
+        global FIRST
+
+        if event.GetEventObject().GetName() == 'text':        
+            keycode = event.GetKeyCode()
+        else:
+            keycode = None
+        
+        if self.searchField.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'go'): 
+            if FIRST:
+                FIRST=False
+                               
+                self.frame.pageTitlePanel.Show()
+                self.tribler_logo2.Show()
+
+                self.sharing_reputation.Show()
+                self.help.Show()
+                
+                self.black_spacer.Hide()
+
+                self.frame.top_bg.Hide()
+
+                self.frame.hsizer = self.sr_indicator.GetContainingSizer()               
+
+                ##bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+                ##reputation = bc_db.getMyReputation()
+                ##self.utility.session.close_dbhandler(bc_db)
+
+                ##self.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
+
+
+                self.frame.Layout() 
+
+                self.frame.top_bg.createBackgroundImage()
+                self.frame.top_bg.Refresh()
+                self.frame.top_bg.Update()
+                self.frame.top_bg.Show()
+                self.srgradient.Show()
+                self.sr_indicator.Show()
+                self.frame.standardOverview.Show()
+                self.my_files.Show()
+                self.settings.Show()
+                self.seperator.Show()
+                self.frame.videopanel.Show()
+                self.familyfilter.Show()
+                self.frame.pagerPanel.Show()
+                self.ag.Show() 
+                self.ag.Play()
+
+                ##self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
+           
+            
+            self.frame.videopanel.Show()
+            self.frame.pagerPanel.Show()
+
+            #self.frame.settings.setToggled(False)
+            #self.frame.my_files.setToggled(False)
+
+
+            self.settings.SetForegroundColour((255,51,0))
+            self.my_files.SetForegroundColour((255,51,0))
+
+            self.guiUtility.guiPage = 'search_results'
+            self.guiUtility.standardFilesOverview()
+            self.guiUtility.dosearch()
+        else:
+            event.Skip()     
+    def OnSearchResultsPressed(self, event):
+        self.guiUtility.OnResultsClicked()
+
+
+    def helpClick(self,event=None):
+        title = self.utility.lang.get('sharing_reputation_information_title')
+        msg = self.utility.lang.get('sharing_reputation_information_message')
+            
+        dlg = wx.MessageDialog(None, msg, title, wx.OK|wx.ICON_INFORMATION)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+
+    def viewSettings(self,event):
+        self.guiUtility.settingsOverview()
+
+    def viewLibrary(self,event):
+        self.guiUtility.standardLibraryOverview()
+
+    def toggleFamilyFilter(self,event):
+        self.guiUtility.toggleFamilyFilter()
 

@@ -94,9 +94,9 @@ class FilesItemDetailsSummary(bgPanel):
             self.Popularity_info.SetLabel('unknown')
 
 
-        self.TriblerSources = wx.StaticText(self,-1,"Tribler sources:",wx.Point(0,0),wx.Size(125,22))     
-        self.TriblerSources.SetMinSize((125,14))
-        self.triblerStyles.setDarkText(self.TriblerSources)
+        ##self.TriblerSources = wx.StaticText(self,-1,"Tribler sources:",wx.Point(0,0),wx.Size(125,22))     
+        ##self.TriblerSources.SetMinSize((125,14))
+        ##self.triblerStyles.setDarkText(self.TriblerSources)
 
         self.CreationDate = wx.StaticText(self,-1,"Creation date:",wx.Point(0,0),wx.Size(125,22))     
         self.CreationDate.SetMinSize((125,14))
@@ -170,9 +170,9 @@ class FilesItemDetailsSummary(bgPanel):
         self.hSizer4.Add(self.Popularity_info,0,wx.FIXED_MINSIZE,5)
         self.vSizer.Add(self.hSizer4,0,wx.LEFT|wx.FIXED_MINSIZE,5)
 
-        self.vSizer.Add([0,2], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
-        self.vSizer.Add(self.TriblerSources,0,wx.LEFT|wx.FIXED_MINSIZE,5)
-        self.vSizer.Add([0,2], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
+        ##self.vSizer.Add([0,2], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
+        ##self.vSizer.Add(self.TriblerSources,0,wx.LEFT|wx.FIXED_MINSIZE,5)
+        ##self.vSizer.Add([0,2], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
 
         self.hSizer5 = wx.BoxSizer(wx.HORIZONTAL)
         self.hSizer5.Add(self.CreationDate,0,wx.FIXED_MINSIZE,5)
@@ -180,7 +180,7 @@ class FilesItemDetailsSummary(bgPanel):
         self.vSizer.Add(self.hSizer5,0,wx.LEFT|wx.FIXED_MINSIZE,5)
 
 
-        self.vSizer.Add([0,20], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
+        ##self.vSizer.Add([0,20], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
         self.vSizer.Add(self.hSizer2,0,wx.LEFT|wx.FIXED_MINSIZE,5)
         self.vSizer.Add([0,2], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
 
@@ -255,12 +255,12 @@ class FilesItemDetailsSummary(bgPanel):
 
 
         self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer2.Add([0,50], 0, wx.FIXED_MINSIZE, 0)
+        self.vSizer2.Add([0,20], 0, wx.FIXED_MINSIZE, 0)
         self.vSizer2.Add(self.play_big, 0, wx.FIXED_MINSIZE, 4)
                 
 
         self.vSizer3 = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer3.Add([0,67], 0, wx.FIXED_MINSIZE, 0)
+        self.vSizer3.Add([0,37], 0, wx.FIXED_MINSIZE, 0)
         self.vSizer3.Add(self.download, 0, wx.FIXED_MINSIZE, 4)
 
 
