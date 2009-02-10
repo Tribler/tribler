@@ -516,7 +516,9 @@ class GUIUtility:
                 self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
             self.frame.Layout()
             self.standardOverview.setMode('settingsMode')
-        
+            if self.standardOverview.firewallStatus.initDone == True:
+                self.standardOverview.firewallStatus.setToggled(True)
+         
         
         
     def standardPersonsOverview(self):
@@ -846,7 +848,7 @@ class GUIUtility:
         #print "******** gui uti searchFiles", wantkeywords
         gridstate = GridState(self.standardOverview.mode, 'all', 'rameezmetric')
         self.standardOverview.filterChanged(gridstate)
-
+        
 
         if mode == 'filesMode':
             #
@@ -870,6 +872,8 @@ class GUIUtility:
             web2on = self.utility.config.Read('enableweb2search',"boolean")
             if mode == 'filesMode' and web2on:
                 self.torrentsearch_manager.searchWeb2(60) # 3 pages, TODO: calc from grid size
+
+        
 
 
     def sesscb_got_remote_hits(self,permid,query,hits):
@@ -973,6 +977,7 @@ class GUIUtility:
         self.standardOverview.refreshData()
 
     def firewallStatusClick(self,event=None):
+        
         if self.isReachable():
             title = self.utility.lang.get('tribler_information')
             type = wx.ICON_INFORMATION
@@ -1006,6 +1011,7 @@ class GUIUtility:
        return self.standardOverview.getSearchField(mode=mode)
    
     def isReachable(self):
+        #return DialbackMsgHandler.getInstance().isConnectable()
         return self.reachable
    
     def set_reachable(self):

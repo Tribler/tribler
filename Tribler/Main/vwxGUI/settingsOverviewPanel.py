@@ -51,7 +51,8 @@ class SettingsOverviewPanel(wx.Panel):
         #print >>sys.stderr,"settingsOverviewPanel: in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
-        
+
+        self.firewallStatus = xrc.XRCCTRL(self,"firewallStatus")        
         self.utility = self.guiUtility.utility
         # All mainthread, no need to close
         self.torrent_db = self.guiUtility.utility.session.open_dbhandler(NTFY_TORRENTS)
@@ -70,18 +71,27 @@ class SettingsOverviewPanel(wx.Panel):
         self.getNameMugshot()
                     
         self.getGuiElement('myNameField').SetLabel('')
+
+
+        # firewall status 
+        ##if self.guiUtility.isReachable():
+        ##    print >> sys.stderr, self.guiUtility.isReachable()
+        ##    self.firewallStatus.setToggled(True)
+        ##    self.firewallStatus.Refresh()
+        ##    print >> sys.stderr , "OK"
+          
+        ##else:
+        ##    self.firewallStatus.setToggled(False)
+        ##self.Refresh()
+
+
         self.initDone = True
         
 #        self.Update()
 #        self.initData()
         self.timer = None
         self.Bind(wx.EVT_SHOW, self.OnShow)
-
-        self.newversion = False
-        self.checkNewVersion()
-        self.seldomReloadData()
          
-        wx.CallAfter(self.reloadData)
         wx.CallAfter(self.Refresh)
         
     def OnShow(self, evt):
@@ -303,20 +313,6 @@ class SettingsOverviewPanel(wx.Panel):
             self.timer.Start(RELOAD_DELAY)
 
 
-    def seldomReloadData(self):
-        #print >>sys.stderr,"settingsOverviewPanel: seldomReloadData!!!!!!" 
-        
-        if self.bartercast_db is None:
-            up = 'n/a'
-            down = 'n/a'
-        else:
-            topinfo = self.bartercast_db.getTopNPeers(0, local_only = True)
-            up = self.utility.size_format(topinfo.get('total_up'))
-            down = self.utility.size_format(topinfo.get('total_down'))
-
-        self.barterup = up
-        self.barterdown = down
-
 
     def OnMyInfoWizard(self, event = None):
         wizard = MyInfoWizard(self)
@@ -328,79 +324,4 @@ class SettingsOverviewPanel(wx.Panel):
         self.getNameMugshot()
         self.showNameMugshot()
 
-    def checkNewVersion(self):
-        # delegate to GUIServer
-        guiserver = GUITaskQueue.getInstance()
-        guiserver.add_task(self.guiserver_checkVersion,0)
-        
-    def guiserver_checkVersion(self):
-        self.guiserver_DoCheckVersion()
-        wx.CallAfter(self.setVersion)
-        
-    def setVersion(self):
-        self.reloadData()
-        
-    def guiserver_DoCheckVersion(self):
-        """check for new version on the website
-        saves compare result between version on site and the 
-        one the user has, that means a value of -1,0,1, or -2 if there was an 
-        error connecting; and url for new version
-        the checking is done once each day day the client runs
-        returns True if anything changed, False otherwise"""
-        
-        # TODO: make sure there is no concurrency on the self.* fields
-        
-        if self.last_version_check_time!=-1 and time() - self.last_version_check_time < 86400:
-            return False#check for a new version once a day
-        self.last_version_check_time = time()
-        bChanged = False
-        my_version = self.utility.getVersion()
-        try:
-            curr_status = urllib.urlopen('http://tribler.org/version').readlines()
-            line1 = curr_status[0]
-            if len(curr_status) > 1:
-                new_url = curr_status[1].strip()
-                if self.update_url!=new_url:
-                    self.update_url = new_url
-                    bChanged = True
-            _curr_status = line1.split()
-            new_version = _curr_status[0]
-            if new_version != self.new_version:
-                self.new_version = new_version
-                bChanged = True
-            result = self.compareVersions(self.new_version, my_version)
-            if result != self.check_result:
-                self.check_result = result
-                bChanged = True
-        except:
-            print_exc()
-            if self.check_result!=-2:
-                self.check_result = -2
-                bChanged = True
-        return bChanged
-        
-    def compareVersions(self, curr_version, my_version):
-        """compares two version strings, copied from Dialogs.aboutme.py
-        changed the return value: 1 for newer version on the website,
-        0 for same version, -1 for newer version on the client"""
-        curr = curr_version.split('.')
-        my = my_version.split('.')
-        if len(my) >= len(curr):
-            nversion = len(my)
-        else:
-            nversion = len(curr)
-        for i in range(nversion):
-            if i < len(my):
-                my_v = int(my[i])
-            else:
-                my_v = 0
-            if i < len(curr):
-                curr_v = int(curr[i])
-            else:
-                curr_v = 0
-            if curr_v > my_v:
-                return 1
-            elif curr_v < my_v:
-                return -1
-        return 0 
-
+ 

@@ -255,7 +255,7 @@ class ABCApp(wx.App):
             #self.advancedFiltering = xrc.XRCCTRL(self.frame, "advancedFiltering")
             self.frame.standardDetails = xrc.XRCCTRL(self.frame, "standardDetails")
             self.frame.standardOverview = xrc.XRCCTRL(self.frame, "standardOverview")
- 
+            self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
          
             #self.triblerStyles.titleBar(self.frame.pageTitle)
             #self.triblerStyles.titleBar(self.frame.pageTitlePanel)
@@ -339,7 +339,16 @@ class ABCApp(wx.App):
 
             self.frame.top_bg.createBackgroundImage()
 
-           
+
+            # reputation
+            self.frame.hsizer = self.frame.top_bg.sr_indicator.GetContainingSizer()               
+            bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+            reputation = bc_db.getMyReputation()
+            self.utility.session.close_dbhandler(bc_db)
+            self.frame.top_bg.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
+            self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
+
+          
             self.setDBStats()
             
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
@@ -383,6 +392,8 @@ class ABCApp(wx.App):
             return False
 
         return True
+
+
 
     def OnSearchResultsPressed(self, event):
         self.guiUtility.OnResultsClicked()
@@ -644,7 +655,7 @@ class ABCApp(wx.App):
         """ get the current reputation score"""
         bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
         reputation = bc_db.getMyReputation()
-        self.frame.help.SetToolTipString(self.utility.lang.get('help') % (reputation))
+        self.frame.top_bg.help.SetToolTipString(self.utility.lang.get('help') % (reputation))
         self.utility.session.close_dbhandler(bc_db)
         return reputation
 

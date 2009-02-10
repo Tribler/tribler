@@ -671,11 +671,11 @@ class MainFrame(wx.Frame):
     def onReachable(self,event=None):
         """ Called by GUI thread """
         self.guiUtility.set_reachable()
-        if self.firewallStatus is not None:
-            self.firewallStatus.setToggled(True)
-            tt = self.firewallStatus.GetToolTip()
-            if tt is not None:
-                tt.SetTip(self.utility.lang.get('reachable_tooltip'))
+        #if self.top_bg.firewallStatus is not None:
+        #    self.top_bg.firewallStatus.setToggled(True)
+        #    tt = self.top_bg.firewallStatus.GetToolTip()
+        #    if tt is not None:
+        #        tt.SetTip(self.utility.lang.get('reachable_tooltip'))
 
     def setActivity(self,type,msg=u'',arg2=None):
         

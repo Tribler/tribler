@@ -7,7 +7,7 @@ from time import time
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
-DEBUG = False
+DEBUG = True
 
 class tribler_topButton(wx.Panel):
     """
@@ -60,6 +60,7 @@ class tribler_topButton(wx.Panel):
 #        print >> sys.stderr, self.Name
 #        print >> sys.stderr, 'size'
 #        print >> sys.stderr, self.Size
+
         
         self.initDone = True
         self.Refresh(True)
@@ -83,7 +84,6 @@ class tribler_topButton(wx.Panel):
         for img in self.bitmapPath:
             if os.path.isfile(img):
                 self.bitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
-                i+=1
             elif DEBUG:
                 print 'Could not find image: %s' % img
 
@@ -131,7 +131,6 @@ class tribler_topButton(wx.Panel):
         if self.bitmaps[0]:
             wx.EVT_PAINT(self, self.OnPaint)
             self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
-                
     
     def OnErase(self, event):
         pass
@@ -365,7 +364,7 @@ class SwitchButton(tribler_topButton):
         # get the image directory
         self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
 
-
+        
         
         # find a file with same name as this panel
         self.bitmapPath = [os.path.join(self.imagedir, self.GetName()+'.png'), 
@@ -374,14 +373,16 @@ class SwitchButton(tribler_topButton):
                         os.path.join(self.imagedir, self.GetName()+'Enabled_clicked.png')
                         ]
         
+        
         i = 0
         for img in self.bitmapPath:
             if os.path.isfile(img):
                 self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
                 i+=1
             elif DEBUG:
-                print 'Could not find image: %s' % img
+                print >> sys.stderr, "Could not find image: %s" % img
  
+
 
 ##        i = 0
 ##        for img in self.bitmapPath:
@@ -395,6 +396,7 @@ class SwitchButton(tribler_topButton):
 ##            except:
 ##                print_exc()
                 
+                
 
         if self.toggled:
             self.bitmaps = self.allBitmaps[2:]
@@ -402,9 +404,9 @@ class SwitchButton(tribler_topButton):
             self.bitmaps = self.allBitmaps[:2]
         #print >> sys.stderr, 'Switchbutton (%s) bitmaps: %s' % (self.Name, self.allBitmaps)
                 
-    def setToggled(self, b = None, tooltip = { "enabled": "", "disabled": ""}):
-        if b is None:
-            b = not self.toggled
+    def setToggled(self, b, tooltip = { "enabled": "", "disabled": ""}): ## b = None
+        ## if b is None:
+        ##    b = not self.toggled
         self.toggled = b
 
         if not self.initDone:

@@ -303,7 +303,7 @@
             <object class="wxBoxSizer">
               <orient>wxVERTICAL</orient>
               <object class="sizeritem">
-                <object class="wxStaticText" name="portTitle">
+                <object class="wxStaticText" name="firewallTitle">
                   <label>Port Settings</label>
                   <font>
                     <size>10</size>
@@ -316,12 +316,27 @@
                   </font>
                 </object>
               </object>
-              <object class="spacer">
-                <size>0,10</size>
-              </object>
               <object class="sizeritem">
-                <object class="wxStaticBox" name="portValue">
-                  <label>7762</label>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>0,10</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText" name="firewallText">
+                      <label>7762</label>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxPanel" name="firewallStatus" subclass="Tribler.Main.vwxGUI.tribler_topButton.SwitchButton">
+                      <size>33,32</size>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText" name="firewallStatusText">
+                      <label></label>
+                    </object>
+                  </object>
                 </object>
               </object>
             </object>

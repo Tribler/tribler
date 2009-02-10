@@ -71,7 +71,7 @@ class TopSearchPanel(bgPanel):
         # animated gif for search results
         ag_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','search.gif')
         #self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
-        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname, pos=(0,0))
+        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
         #self.frame.ag.SetUseWindowBackgroundColour(False)
         vsizer = wx.BoxSizer(wx.VERTICAL)
         vsizer.AddSpacer(wx.Size(0,5))
@@ -94,16 +94,7 @@ class TopSearchPanel(bgPanel):
         self.search_results.Bind(wx.EVT_LEFT_UP, self.OnSearchResultsPressed)
         self.settings.Bind(wx.EVT_LEFT_UP, self.viewSettings)
         self.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
-
-
-
-
-
-
-
-
-
-
+        self.help.Bind(wx.EVT_LEFT_UP, self.helpClick)
 
 
 
@@ -223,13 +214,6 @@ class TopSearchPanel(bgPanel):
 
                 self.frame.hsizer = self.sr_indicator.GetContainingSizer()               
 
-                ##bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-                ##reputation = bc_db.getMyReputation()
-                ##self.utility.session.close_dbhandler(bc_db)
-
-                ##self.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
-
-
                 self.frame.Layout() 
 
                 self.frame.top_bg.createBackgroundImage()
@@ -248,14 +232,11 @@ class TopSearchPanel(bgPanel):
                 self.ag.Show() 
                 self.ag.Play()
 
-                ##self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
            
             
             self.frame.videopanel.Show()
             self.frame.pagerPanel.Show()
 
-            #self.frame.settings.setToggled(False)
-            #self.frame.my_files.setToggled(False)
 
 
             self.settings.SetForegroundColour((255,51,0))

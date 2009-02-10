@@ -79,21 +79,21 @@ class standardPager(wx.Panel):
 #        self.leftPages = ImagePanel(self)
 #        self.leftPages.SetBitmap(wx.Bitmap("prev2.gif",wx.BITMAP_TYPE_GIF))
 #        self.hSizer.Add(self.leftPages, 0, BORDER_EXPAND, 0)
-        self.left = tribler_topButton(self, name='prevpage2')
+        self.left = tribler_topButton(self, name='prevpage')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         ##self.left.setBackground(self.guiUtility.triblerRed)
         #self.hSizer.AddSpacer(wx.Size(25))
-        self.hSizer.Add(self.left, 0, wx.TOP, 5)
+        self.hSizer.Add(self.left, 0, wx.TOP, 0)
         
         #page numbers
         self.refreshPageNumbers()
         
         
-        self.right = tribler_topButton(self, name='nextpage2')
+        self.right = tribler_topButton(self, name='nextpage')
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         ##self.right.setBackground(self.guiUtility.triblerRed)
-        self.hSizer.AddSpacer(wx.Size(5))
-        self.hSizer.Add(self.right, 0, wx.TOP, 5)
+        self.hSizer.AddSpacer(wx.Size(10))
+        self.hSizer.Add(self.right, 0, wx.TOP, 0)
        
         
         self.SetSizer(self.hSizer);self.SetAutoLayout(1);self.Layout();
@@ -135,7 +135,7 @@ class standardPager(wx.Panel):
                 text = self.getDefaultTextField()
                 text.Bind(wx.EVT_LEFT_UP, self.mouseAction)
                 self.pageNumbers.append(text)
-                self.hSizer.Insert(len(self.pageNumbers), text, 0, wx.TOP|wx.LEFT|wx.RIGHT, 4)
+                self.hSizer.Insert(len(self.pageNumbers), text, 0, wx.TOP|wx.LEFT|wx.RIGHT, 2)
 
             refresh = True
         elif number < currentPageNumber:
@@ -184,15 +184,17 @@ class standardPager(wx.Panel):
         # Put right numbers in statictexts
         page = begin
         for panel in self.pageNumbers:
-            panel.SetLabel(str(page+1))
+            panel.SetLabel(' ' + str(page+1) + ' ')
             if page == current:
                 
                 panel.SetFont(self.boldFont)
-                panel.SetForegroundColour((0,110,149))
+                panel.SetForegroundColour(wx.WHITE) ## 0,110,149
+                panel.SetBackgroundColour((0,110,149))
 
             else:
                 panel.SetFont(self.normalFont)
                 panel.SetForegroundColour((255,51,0))
+                panel.SetBackgroundColour(self.pagerColour)
 
             page+=1
         

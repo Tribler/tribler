@@ -363,6 +363,17 @@ class standardOverview(wx.Panel):
         if pager is not None:                            
             pager.setGrid(grid)
 
+        if self.mode == 'settingsMode':
+            self.firewallStatus = xrc.XRCCTRL(currentPanel,'firewallStatus')
+            
+            ##if self.guiUtility.isReachable():
+            ##    self.firewallStatus.setToggled(True)
+            ##    self.firewallStatus.Refresh()
+            ##    print >> sys.stderr , "OK"
+            ##else:
+            ##    self.firewallStatus.setToggled(False)
+            ##self.Refresh()
+
 
 
         # create the panel for the first click. panel could be one of the [file,person,friend,library,profile,rss]
@@ -468,6 +479,7 @@ class standardOverview(wx.Panel):
 #                    self.triblerStyles.setDarkText(self.data['status']['percent3']) 
 #                    self.triblerStyles.setDarkText(self.data['status']['download4']) 
 #                    self.triblerStyles.setDarkText(self.data['status']['percent4']) 
+
         
             except:
                 if DEBUG:
