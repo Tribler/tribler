@@ -599,22 +599,27 @@ class ABCApp(wx.App):
         
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
-        if DEBUG: print >>sys.stderr,"main: Stats:"
+        if DEBUG: 
+            print >>sys.stderr,"main: Stats:"
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
+            
+            # ARNO50: Apply status displaying from SwarmPlayer 
             
             for ds in dslist:
                 print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error(),ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
             
             # Pass DownloadStates to libaryView
             try:
-                # Jelle: libraryMode only exists after user clicked button
                 if self.guiUtility.standardOverview is not None:
                     mode = self.guiUtility.standardOverview.mode 
-                    if mode == 'libraryMode' or mode == 'friendsMode':
-                        # Also pass dslist to friendsView, for coopdl boosting info
-                        modedata = self.guiUtility.standardOverview.data[mode]
-                        gm = modedata['grid'].gridManager
+                    #if mode == 'libraryMode' or mode == 'friendsMode':
+                    # Also pass dslist to friendsView, for coopdl boosting info
+                    # Arno, 2009-02-11: We also need it in filesMode now.
+                    modedata = self.guiUtility.standardOverview.data[mode]
+                    grid = modedata['grid']
+                    if grid is not None:
+                        gm = grid.gridManager
                         gm.download_state_gui_callback(dslist)
             except KeyError:
                 # Apparently libraryMode only has has a 'grid' key when visible

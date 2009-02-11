@@ -168,8 +168,8 @@ class GridManager(object):
             else:
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
                 
-            if state.db == 'libraryMode':
-                data = self.addDownloadStates(data)
+            #if state.db == 'libraryMode':
+            data = self.addDownloadStates(data)
         elif state.db in ('personsMode', 'friendsMode'):
             if state.db == 'friendsMode':
                 state.category = 'friend'
@@ -345,6 +345,7 @@ class GridManager(object):
             infohash = ds.get_download().get_def().get_infohash()
             for torrent in liblist:
                 if torrent['infohash'] == infohash:
+                    print >>sys.stderr,"standardGrid: addDownloadStates: adding ds for",`ds.get_download().get_def().get_name()`
                     torrent['ds'] = ds
                     break
         return liblist
@@ -375,6 +376,10 @@ class GridManager(object):
             return self.peersearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE
         else:
             return False
+        
+        
+    def get_dslist(self):
+        return self.dslist
         
 class standardGrid(wx.Panel):
     """

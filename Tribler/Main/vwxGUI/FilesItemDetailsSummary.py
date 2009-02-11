@@ -23,7 +23,6 @@ class FilesItemDetailsSummary(bgPanel):
     
     def __init__(self, parent, torrentHash, torrent, web2data = None):
         wx.Panel.__init__(self, parent, -1)
-        self.guiUtility = GUIUtility.getInstance()
 
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility   
@@ -44,6 +43,9 @@ class FilesItemDetailsSummary(bgPanel):
         self.backgroundColour = wx.Colour(102,102,102)
         self.searchBitmap('blue_long.png')
         self.createBackgroundImage()
+
+
+        self.gridmgr = parent.parent.getGridManager()
 
         self.Refresh(True)
         self.Update()
@@ -302,29 +304,15 @@ class FilesItemDetailsSummary(bgPanel):
         Returns the VideoPlayer instance and ensures that it knows if
         there are other downloads running.
         """
-
-        # ARNO50; CHECK
-
-        # 22/08/08 Boudewijn: The videoplayer has to know if there are
-        # downloads running.
-        ##other_downloads = False
-        ##for ds in self.parent.gridManager.dslist:
-        ##    if ds is not exclude and ds.get_status() not in (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR):
-        ##        other_downloads = True
-        ##        break
-        
+        other_downloads = False
+        for ds in self.gridmgr.get_dslist():
+            if ds is not exclude and ds.get_status() not in (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR):
+                other_downloads = True
+                break
         
         videoplayer = VideoPlayer.getInstance()
-        videoplayer.set_other_downloads(False)
+        videoplayer.set_other_downloads(other_downloads)
         return videoplayer
-
-
-
-
-
-
-
-
 
         
     def setDataLib(self):
