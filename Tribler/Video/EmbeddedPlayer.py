@@ -53,8 +53,8 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         # Arno: until we figure out how to show in-playback prebuffering info
 
-        ##self.statuslabel = wx.StaticText(self, -1, 'Loading player...' )
-        ##self.statuslabel.SetForegroundColour(wx.BLACK)
+        self.statuslabel = wx.StaticText(self, -1, '' )
+        self.statuslabel.SetForegroundColour(wx.BLACK)
 
         if vlcwrap is not None:
             ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
@@ -119,7 +119,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             ##ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
         
         mainbox.Add(self.vlcwin, 1, wx.EXPAND, 1)
-        ##mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
+        mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
         if vlcwrap is not None:
             mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)

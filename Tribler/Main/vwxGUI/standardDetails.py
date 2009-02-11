@@ -2035,7 +2035,7 @@ class standardDetails(wx.Panel):
         self.Refresh()
         
         if DEBUG:
-            print 'StandardDetails: setting size of stand.details to: %s' % str(size)
+            print 'StandardDetails: setting height of stand.details to: %s' % str(newHeight)
             
     def topNListText(self, tab):
         

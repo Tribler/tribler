@@ -602,6 +602,10 @@ class ABCApp(wx.App):
         if DEBUG: print >>sys.stderr,"main: Stats:"
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
+            
+            for ds in dslist:
+                print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error(),ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+            
             # Pass DownloadStates to libaryView
             try:
                 # Jelle: libraryMode only exists after user clicked button

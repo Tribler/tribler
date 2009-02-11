@@ -11,7 +11,7 @@ try:
 except ImportError:
     UnicodeType = None
 
-from traceback import print_exc
+from traceback import print_exc,print_stack
 import sys
 
 DEBUG = False
@@ -301,6 +301,8 @@ def bencode(x):
         encode_func[type(x)](x, r)
     except:
         print >>sys.stderr,"bencode: *** error *** could not encode type %s (value: %s)" % (type(x), x)
+        print_stack()
+        
         print_exc()
         assert 0
     try:
