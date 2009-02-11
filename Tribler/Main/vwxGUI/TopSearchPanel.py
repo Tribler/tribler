@@ -60,6 +60,9 @@ class TopSearchPanel(bgPanel):
 
 
     def OnSearchKeyDown(self,event):
+        
+        print >>sys.stderr,"TopSearchPanel: OnSearchKeyDown"
+        
         if event.GetEventObject().GetName() == 'text':        
             keycode = event.GetKeyCode()
         else:

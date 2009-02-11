@@ -286,8 +286,10 @@ class MainFrame(wx.Frame):
             else:
                 print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                 result = self.utility.session.start_download(tdef,dscfg)
-                
-            self.guiUtility.frame.newFile.SetLabel('New File added')
+             
+            # ARNO50: Richard will look at this   
+            #newFile = self.guiUtility.frame.top_bg.newFile
+            #newFile.SetLabel('New File added')
             # store result because we want to store clicklog data right after download was started, then return result
             #mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
             # mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)

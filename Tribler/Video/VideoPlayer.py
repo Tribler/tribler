@@ -21,7 +21,7 @@ from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 
 DEBUG = True
 
-USE_VLC_RAW_INTERFACE = False
+USE_VLC_RAW_INTERFACE = True
 
 
 class VideoPlayer:

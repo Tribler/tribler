@@ -98,6 +98,8 @@ class standardOverview(wx.Panel):
         
 #        self.guiUtility.frame.Bind(wx.EVT_SIZE, self.standardOverviewResize())
 #        self.Bind(wx.EVT_SIZE, self.standardOverviewResize)
+
+        print >>sys.stderr,"standardOverview: __init__: Setting GUIUtil"
         self.guiUtility.initStandardOverview(self)    # show file panel
         #self.toggleLoadingDetailsPanel(True)
         

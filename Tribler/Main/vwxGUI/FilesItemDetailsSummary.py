@@ -290,7 +290,7 @@ class FilesItemDetailsSummary(bgPanel):
         ##self.play_big.setToggled()
         ##self.guiUtility.buttonClicked(event)
         if ds is None:
-            self.standardDetails.download(vodmode=True)
+            self.guiUtility.standardDetails.download(vodmode=True)
         else:
             self.play(ds)
 

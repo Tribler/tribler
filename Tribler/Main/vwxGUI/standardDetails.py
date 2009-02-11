@@ -36,7 +36,7 @@ from Tribler.Core.CacheDB.EditDist import editDist
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'fileDetailsMode','subscriptionsMode', 'messageMode']
 
-DEBUG = False
+DEBUG = True
 
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing

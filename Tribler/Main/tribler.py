@@ -279,6 +279,7 @@ class ABCApp(wx.App):
             # Make sure self.utility.frame is set
             self.startAPI()
             self.guiUtility.open_dbs()
+            ##self.guiUtility.initStandardOverview(self.frame.standardOverview)
             
             self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
             self.frame.search_icon = xrc.XRCCTRL(self.frame, "search_icon")
