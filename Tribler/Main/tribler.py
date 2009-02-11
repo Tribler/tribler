@@ -332,7 +332,7 @@ class ABCApp(wx.App):
 
 
             # reputation
-            self.guiserver.add_task(self.guiservthread_update_reputation, 5.0)
+            self.guiserver.add_task(self.guiservthread_update_reputation, .2)
           
             self.setDBStats()
             
