@@ -1649,7 +1649,7 @@ class standardDetails(wx.Panel):
 
 
 
-    def download(self, torrent = None, dest = None, secret = False, force = False):
+    def download(self, torrent = None, dest = None, secret = False, force = False, vodmode = False):
         if torrent is None:
             torrent = self.item
             
@@ -1665,7 +1665,6 @@ class standardDetails(wx.Panel):
         if torrent.get('web2'):
             if DEBUG:
                 print >>sys.stderr,"standardDetails: download: Playing WEB2 video: " + torrent['url']
-            #self.videoplayer.parentwindow.swapin_videopanel(torrent['url'])
             self.videoplayer.play_url(torrent['url'])
             self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
             return True
@@ -1711,7 +1710,7 @@ class standardDetails(wx.Panel):
             
             # Api download
             d = self.utility.frame.startDownload(torrent_filename,destdir=dest,
-                                                 clicklog=clicklog,name=name) ## remove name=name
+                                                 clicklog=clicklog,name=name,vodmode=vodmode) ## remove name=name
             if d:
                 if secret:
                     self.torrent_db.setSecret(torrent['infohash'], secret)

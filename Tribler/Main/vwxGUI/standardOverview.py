@@ -17,6 +17,7 @@ from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
 from Tribler.Main.vwxGUI.standardGrid import GridState
 from Tribler.Main.Utility.constants import *
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
@@ -75,8 +76,6 @@ class standardOverview(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.categorykey = None
-        self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-        self.mypreference_db = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
       
         self.triblerStyles = TriblerStyles.getInstance()
 
@@ -735,14 +734,17 @@ class standardOverview(wx.Panel):
         
     def removeTorrentFromLibrary(self, torrent):
         infohash = torrent['infohash']
+        guiserver = GUITaskQueue.getInstance()
+        
+        mypreference_db = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+        # LAYERVIOLATION LAYERVIOLATION
+        # ARNO50: Implement this via Notifier: we remove from DB, BuddyCast
+        # listens to notifies.
         from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
         bc = BuddyCastFactory.getInstance()
         if bc.registered:
-            # schedule it to overlay to avoid delay in GUI
-            bc.overlay_bridge.add_task(lambda:self.mypreference_db.deletePreference(infohash))
             bc.overlay_bridge.add_task(lambda:bc.delMyPref(infohash))
-        else:
-            self.mypreference_db.deletePreference(infohash)
+        mypreference_db.deletePreference(infohash)
         
     def toggleLoadingDetailsPanel(self, visible):
         loadingDetails = self.data[self.mode].get('loadingDetailsPanel')

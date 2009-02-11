@@ -27,7 +27,6 @@ from Tribler.Main.Utility.constants import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
-from Tribler.Video.EmbeddedPlayer import *
 
 
 
@@ -302,7 +301,7 @@ class GUIUtility:
                     self.frame.settings.setToggled()
                 self.standardGrid.deselectAll()
                 self.standardGrid.clearAllData()
-                self.frame.videopanel.Hide()
+                self.frame.videoframe.hide_videoframe()
                 self.basicOverview()
 
 
@@ -321,7 +320,7 @@ class GUIUtility:
                 #    self.standardGrid.deselectAll()
                 #    self.standardGrid.clearAllData()
 
-                self.frame.videopanel.Hide()
+                self.frame.videoframe.hide_videoframe()
 
                 self.frame.pagerPanel.Hide()
                 self.settingsOverview()
@@ -346,7 +345,7 @@ class GUIUtility:
                 #    self.standardGrid.deselectAll()
                 #    self.standardGrid.clearAllData()
 
-                self.frame.videopanel.Show()
+                self.frame.videoframe.show_videoframe()
 
                 self.standardLibraryOverview()
                 if self.frame.search_results.GetLabel() != '':
@@ -364,18 +363,6 @@ class GUIUtility:
         elif name == 'playbig':
             pass
              
-
-        elif name == 'playybig':
-
-            (prefix,ext) = os.path.splitext("~/Desktop/videos/vcd.mpg")
-            [mimetype,cmd] = self.videoplayer.get_video_player(ext,"~/Desktop/videos/vcd.mpg")
-
-            #self.videoplayer.play_url(self.torrent['url'])
-
-            self.frame.videopanel.Load(cmd)
-            self.frame.videopanel.PlayPause()
-
-
         elif DEBUG:
             print >> sys.stderr, 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
@@ -426,7 +413,7 @@ class GUIUtility:
             #self.standardGrid.clearAllData()
 
             self.standardFilesOverview()
-            self.frame.videopanel.Show()
+            self.frame.videoframe.show_videoframe()
 
             self.frame.top_bg.search_results.SetForegroundColour(wx.BLACK)
 
@@ -508,7 +495,7 @@ class GUIUtility:
             #    self.standardGrid.deselectAll()
             #    self.standardGrid.clearAllData()
 
-            self.frame.videopanel.Hide()
+            self.frame.videoframe.hide_videoframe()
 
             self.frame.pagerPanel.Hide()
             if self.frame.top_bg.search_results.GetLabel() != '':
@@ -563,7 +550,7 @@ class GUIUtility:
             #    self.standardGrid.deselectAll()
             #    self.standardGrid.clearAllData()
 
-            self.frame.videopanel.Show()
+            self.frame.videoframe.show_videoframe()
 
             if self.frame.top_bg.search_results.GetLabel() != '':
                 self.frame.top_bg.search_results.SetLabel('Return to Results')

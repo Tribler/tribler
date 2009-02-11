@@ -36,29 +36,21 @@ import time
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
 import urllib
-import webbrowser
 
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
-from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
-from Tribler.Main.vwxGUI.FriendshipManager import FriendshipManager
-from Tribler.Main.vwxGUI.font import *
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon 
 from Tribler.Main.notification import init as notification_init
-from Tribler.Category.Category import Category
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
-from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
-from Tribler.Video.VideoServer import VideoHTTPServer
-from Tribler.Video.EmbeddedPlayer import VideoFrame
-from Tribler.Web2.util.update import Web2Updater
-from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
-from Tribler.Utilities.Instance2Instance import *
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
+from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Video.VideoFrame import VideoFrame
 from Tribler.Video.utils import videoextdefaults
+
+from Tribler.Category.Category import Category
+from Tribler.Web2.util.update import Web2Updater
 
 
 from Tribler.Core.simpledefs import *
@@ -272,8 +264,8 @@ class MainFrame(wx.Frame):
             torrentfilename = self.params[0]
             self.startDownload(torrentfilename,cmdline=True)
 
-    def startDownload_old(self,torrentfilename,destdir=None,tdef = None, cmdline = False, clicklog=None,name=None):
-        # ARNO50: why was this decommissioned?
+
+    def startDownload(self,torrentfilename,destdir=None,tdef = None, cmdline = False, clicklog=None,name=None,vodmode=False):
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef,cmdline
@@ -286,71 +278,18 @@ class MainFrame(wx.Frame):
                 dscfg.set_dest_dir(destdir)
         
             videofiles = tdef.get_files(exts=videoextdefaults)
-            
-            if tdef.get_live() or (cmdline and len(videofiles) > 0):
-                print >> sys.stderr , 'Start and play mode'
+
+            if vodmode or tdef.get_live() or (cmdline and len(videofiles) > 0):
+                print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
                 videoplayer = VideoPlayer.getInstance()
-                return videoplayer.start_and_play(tdef,dscfg)
+                result = videoplayer.start_and_play(tdef,dscfg)
             else:
+                print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                 result = self.utility.session.start_download(tdef,dscfg)
-                vod_download = True # temp Jelle
-                if vod_download:
-                    print >> sys.stderr,'Jelle impl'
-                    videoplayer = VideoPlayer.getInstance()
-                    videoplayer.videoframe.videopanel = self.guiUtility.frame.videopanel
-                    #videoplayer.videoframe.Hide()
-
-                    #wx.CallAfter(videoplayer.play_file,dscfg.get_dest_dir() + '/' + name) ## to remove
-                    ##(prefix,ext) = os.path.splitext(dscfg.get_dest_dir() + '/' + name)
-                    ##[mimetype,cmd] = videoplayer.get_video_player(ext,dscfg.get_dest_dir() + '/' + name)
-
-                    ##videoplayer.videoframe.videopanel.Load(cmd)
-                    ##videoplayer.videoframe.videopanel.PlayPause()
-
-
-                    def callback(ds):
-                        print >> sys.stderr, 'Jelle callback'
-                        wx.CallAfter(videoplayer.play, ds)
-                        return -1, False
                 
-                    result.set_state_callback(callback)
-                # store result because we want to store clicklog data right after download was started, then return result
-                mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-                # mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
-                return result  
-
-        except DuplicateDownloadException:
-            # show nice warning dialog
-            dlg = wx.MessageDialog(None,
-                                   self.utility.lang.get('duplicate_download_msg'),
-                                   self.utility.lang.get('duplicate_download_title'),
-                                   wx.OK|wx.ICON_INFORMATION)
-            result = dlg.ShowModal()
-            dlg.Destroy()
-
-        except Exception,e:
-            print_exc()
-            self.onWarning(e)
-
-
-    def startDownload(self,torrentfilename,destdir=None,tdef = None, cmdline = False, clicklog=None,name=None):
-        
-        if DEBUG:
-            print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef,cmdline
-        try:
-            if tdef is None:
-                tdef = TorrentDef.load(torrentfilename)
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            dscfg = defaultDLConfig.copy()
-            if destdir is not None:
-                dscfg.set_dest_dir(destdir)
-        
-            videofiles = tdef.get_files(exts=videoextdefaults)
-            
-            result = self.utility.session.start_download(tdef,dscfg)
             self.guiUtility.frame.newFile.SetLabel('New File added')
             # store result because we want to store clicklog data right after download was started, then return result
-            mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+            #mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
             # mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
             return result  
 
@@ -392,7 +331,7 @@ class MainFrame(wx.Frame):
                 self.upgradeCallback()
             
             # Also check new version of web2definitions for youtube etc. search
-            Web2Updater(self.utility).checkUpdate()
+            ##Web2Updater(self.utility).checkUpdate()
         except Exception,e:
             print >> sys.stderr, "Tribler: Version check failed", time.ctime(time.time()), str(e)
             #print_exc()

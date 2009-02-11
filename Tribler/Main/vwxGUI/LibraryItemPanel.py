@@ -72,7 +72,6 @@ class LibraryItemPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1)
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
-        self.videopanel = self.guiUtility.frame.videopanel
         self.parent = parent
         if self.parent.GetName() == 'libraryGrid':
             self.listItem = (self.parent.viewmode == 'list')
@@ -885,7 +884,7 @@ class LibraryItemPanel(wx.Panel):
             self.dlhelperframe.Show()
                 
     def play(self,ds):
-        self._get_videoplayer(exclude=ds).play(ds,self.videopanel)
+        self._get_videoplayer(exclude=ds).play(ds)
     
     def switch_to_standard_dlmode(self,ABCTorrentTemp): 
         self._get_videoplayer().vod_back_to_standard_dlmode(ABCTorrentTemp) 

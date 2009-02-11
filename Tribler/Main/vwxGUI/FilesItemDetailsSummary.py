@@ -26,7 +26,6 @@ class FilesItemDetailsSummary(bgPanel):
         self.guiUtility = GUIUtility.getInstance()
 
         self.guiUtility = GUIUtility.getInstance()
-        self.videopanel = self.guiUtility.frame.videopanel ##
         self.utility = self.guiUtility.utility   
         self.mcdb = self.utility.session.open_dbhandler(NTFY_MODERATIONCAST)
         self.vcdb = self.utility.session.open_dbhandler(NTFY_VOTECAST)
@@ -220,7 +219,7 @@ class FilesItemDetailsSummary(bgPanel):
         ##self.video_small.SetSize((193,140))
 
         # set videoplayer to this panel
-        self.videoplayer = VideoPlayer.getInstance()
+        #self.videoplayer = VideoPlayer.getInstance()
         #self.videoplayer.videoframe.set_parent_panel(self.video_small)
 
         ##self.hSizerDownload = wx.BoxSizer(wx.HORIZONTAL)
@@ -290,16 +289,21 @@ class FilesItemDetailsSummary(bgPanel):
         ds = self.torrent.get('ds')
         ##self.play_big.setToggled()
         ##self.guiUtility.buttonClicked(event)
-        self.play(ds)
+        if ds is None:
+            self.standardDetails.download(vodmode=True)
+        else:
+            self.play(ds)
 
     def play(self,ds):
-        self._get_videoplayer(exclude=ds).play(ds,self.videopanel)
+        self._get_videoplayer(exclude=ds).play(ds)
 
     def _get_videoplayer(self, exclude=None):
         """
         Returns the VideoPlayer instance and ensures that it knows if
         there are other downloads running.
         """
+
+        # ARNO50; CHECK
 
         # 22/08/08 Boudewijn: The videoplayer has to know if there are
         # downloads running.
@@ -308,7 +312,8 @@ class FilesItemDetailsSummary(bgPanel):
         ##    if ds is not exclude and ds.get_status() not in (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR):
         ##        other_downloads = True
         ##        break
-
+        
+        
         videoplayer = VideoPlayer.getInstance()
         videoplayer.set_other_downloads(False)
         return videoplayer

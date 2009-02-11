@@ -8,6 +8,7 @@
 import sys
 import wx
 import os
+from traceback import print_exc
 
 # begin wx.Glade: extracode
 # end wx.Glade
@@ -18,8 +19,6 @@ from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
 
-FIRST=True
-
 
 class TopSearchPanel(bgPanel):
     def __init__(self, *args, **kwds):
@@ -28,46 +27,13 @@ class TopSearchPanel(bgPanel):
         self.guiUtility = GUIUtility.getInstance()
         self.installdir = self.guiUtility.utility.getPath()
         self.utility = Utility(self.installdir)
+        self.frame = None
+        self.first = True
       
-    def Bitmap(self,path,type):
-        namelist = path.split("/")
-        path = os.path.join(self.installdir,LIBRARYNAME,"Main","vwxGUI",*namelist)
-        return wx.Bitmap(path,type)
-        
-    def OnCreate(self,event):
-        print >> sys.stderr , "Oncreate"
-        bgPanel.OnCreate(self,event)
-   
-# MAINLY GENERATED BELOW, replace wxStaticBitmap, etc. with wx.StaticBitmap 
-# and replace wx.BitMap with self.Bitmap
-#
-# What makes this code (either as Python or as XRC fail is the last statement:
-#       self.SetSizer(object_1)
-# should be
-#       self.SetSizerAndFit(object_1)
-# ----------------------------------------------------------------------------------------          
-        
-        self.black_spacer = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/black_spacer.png", wx.BITMAP_TYPE_ANY))
-        self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
-        self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
-        self.go = tribler_topButton(self,-1,name = 'go')
-        self.familyfilter = wx.StaticText(self, -1, "Family Filter:ON")
-        self.search_results = wx.StaticText(self, -1, "")
-        self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
-        self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient.png", wx.BITMAP_TYPE_ANY))
-        self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY))
-        self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRindicator.png", wx.BITMAP_TYPE_ANY))
-        self.settings = wx.StaticText(self, -1, "Settings")
-        self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY))
-        self.my_files = wx.StaticText(self, -1, "My Files")
-        self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
+    def set_frame(self,frame):
+        self.frame = frame
 
-        self.__set_properties()
-        self.__do_layout()
-        # end wx.Glade
-
-
-
+    def custom_init(self):
         # animated gif for search results
         ag_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','search.gif')
         #self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
@@ -79,14 +45,9 @@ class TopSearchPanel(bgPanel):
         hsizer = self.go.GetContainingSizer()
         hsizer.Add(vsizer,0,wx.FIXED_MINSIZE,0)                  
 
-
-
         hide_names = [self.ag]
         for name in hide_names:
             name.Hide()
-
-
-        self.frame=self.guiUtility.frame
 
         # binding events  
         self.searchField.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDown)
@@ -97,6 +58,130 @@ class TopSearchPanel(bgPanel):
         self.help.Bind(wx.EVT_LEFT_UP, self.helpClick)
 
 
+
+    def OnSearchKeyDown(self,event):
+        if event.GetEventObject().GetName() == 'text':        
+            keycode = event.GetKeyCode()
+        else:
+            keycode = None
+        
+        if self.searchField.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'go'): 
+            if self.first:
+                self.first=False
+                               
+                self.frame.pageTitlePanel.Show()
+                self.tribler_logo2.Show()
+
+                self.sharing_reputation.Show()
+                self.help.Show()
+                
+                self.black_spacer.Hide()
+
+                self.Hide()
+
+                self.frame.hsizer = self.sr_indicator.GetContainingSizer()               
+
+                self.frame.Layout() 
+
+                self.createBackgroundImage()
+                self.Refresh()
+                self.Update()
+                self.Show()
+                self.srgradient.Show()
+                self.sr_indicator.Show()
+                self.frame.standardOverview.Show()
+                self.my_files.Show()
+                self.settings.Show()
+                self.seperator.Show()
+                self.frame.videoframe.show_videoframe()
+                self.familyfilter.Show()
+                self.frame.pagerPanel.Show()
+                self.ag.Show() 
+                self.ag.Play()
+
+           
+
+            self.frame.videoframe.show_videoframe()            
+            self.frame.pagerPanel.Show()
+
+
+
+            self.settings.SetForegroundColour((255,51,0))
+            self.my_files.SetForegroundColour((255,51,0))
+
+            self.guiUtility.guiPage = 'search_results'
+            self.guiUtility.standardFilesOverview()
+            self.guiUtility.dosearch()
+        else:
+            event.Skip()     
+
+    def OnSearchResultsPressed(self, event):
+        self.guiUtility.OnResultsClicked()
+
+
+    def helpClick(self,event=None):
+        title = self.utility.lang.get('sharing_reputation_information_title')
+        msg = self.utility.lang.get('sharing_reputation_information_message')
+            
+        dlg = wx.MessageDialog(None, msg, title, wx.OK|wx.ICON_INFORMATION)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+
+    def viewSettings(self,event):
+        self.guiUtility.settingsOverview()
+
+    def viewLibrary(self,event):
+        self.guiUtility.standardLibraryOverview()
+
+    def toggleFamilyFilter(self,event):
+        self.guiUtility.toggleFamilyFilter()
+
+
+    
+      
+    def Bitmap(self,path,type):
+        namelist = path.split("/")
+        path = os.path.join(self.installdir,LIBRARYNAME,"Main","vwxGUI",*namelist)
+        return wx.Bitmap(path,type)
+        
+    def OnCreate(self,event):
+        print >> sys.stderr , "Oncreate"
+        try:
+            bgPanel.OnCreate(self,event)
+    
+       
+    # MAINLY GENERATED BELOW, replace wxStaticBitmap, etc. with wx.StaticBitmap 
+    # and replace wx.BitMap with self.Bitmap
+    #
+    # What makes this code (either as Python or as XRC fail is the last statement:
+    #       self.SetSizer(object_1)
+    # should be
+    #       self.SetSizerAndFit(object_1)
+    # ----------------------------------------------------------------------------------------          
+            
+            self.black_spacer = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/black_spacer.png", wx.BITMAP_TYPE_ANY))
+            self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
+            self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
+            self.go = tribler_topButton(self,-1,name = 'go')
+            self.familyfilter = wx.StaticText(self, -1, "Family Filter:ON")
+            self.search_results = wx.StaticText(self, -1, "")
+            self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
+            self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient.png", wx.BITMAP_TYPE_ANY))
+            self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY))
+            self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRindicator.png", wx.BITMAP_TYPE_ANY))
+            self.settings = wx.StaticText(self, -1, "Settings")
+            self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY))
+            self.my_files = wx.StaticText(self, -1, "My Files")
+            self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
+    
+            self.__set_properties()
+            self.__do_layout()
+            # end wx.Glade
+    
+            # OUR CODE
+            self.custom_init()
+        except:
+            print_exc()
 
 
 
@@ -184,87 +269,13 @@ class TopSearchPanel(bgPanel):
         object_1.Add((7, 0), 0, 0, 0)
         object_1.Add(self.tribler_logo2, 0, 0, 0)
         object_1.Add((10, 0), 0, 0, 0)
-        self.SetSizer(object_1)
+        
+        # OUR CODE  ARNO50: Check diff in defs
+        if sys.platform == 'win32':
+            self.SetSizerAndFit(object_1)
+        else:
+            self.SetSizer(object_1)
         # end wx.Glade
 
 # end of class MyPanel
-
-    def OnSearchKeyDown(self,event):
-
-        global FIRST
-
-        if event.GetEventObject().GetName() == 'text':        
-            keycode = event.GetKeyCode()
-        else:
-            keycode = None
-        
-        if self.searchField.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'go'): 
-            if FIRST:
-                FIRST=False
-                               
-                self.frame.pageTitlePanel.Show()
-                self.tribler_logo2.Show()
-
-                self.sharing_reputation.Show()
-                self.help.Show()
-                
-                self.black_spacer.Hide()
-
-                self.frame.top_bg.Hide()
-
-                self.frame.hsizer = self.sr_indicator.GetContainingSizer()               
-
-                self.frame.Layout() 
-
-                self.frame.top_bg.createBackgroundImage()
-                self.frame.top_bg.Refresh()
-                self.frame.top_bg.Update()
-                self.frame.top_bg.Show()
-                self.srgradient.Show()
-                self.sr_indicator.Show()
-                self.frame.standardOverview.Show()
-                self.my_files.Show()
-                self.settings.Show()
-                self.seperator.Show()
-                self.frame.videopanel.Show()
-                self.familyfilter.Show()
-                self.frame.pagerPanel.Show()
-                self.ag.Show() 
-                self.ag.Play()
-
-           
-            
-            self.frame.videopanel.Show()
-            self.frame.pagerPanel.Show()
-
-
-
-            self.settings.SetForegroundColour((255,51,0))
-            self.my_files.SetForegroundColour((255,51,0))
-
-            self.guiUtility.guiPage = 'search_results'
-            self.guiUtility.standardFilesOverview()
-            self.guiUtility.dosearch()
-        else:
-            event.Skip()     
-    def OnSearchResultsPressed(self, event):
-        self.guiUtility.OnResultsClicked()
-
-
-    def helpClick(self,event=None):
-        title = self.utility.lang.get('sharing_reputation_information_title')
-        msg = self.utility.lang.get('sharing_reputation_information_message')
-            
-        dlg = wx.MessageDialog(None, msg, title, wx.OK|wx.ICON_INFORMATION)
-        result = dlg.ShowModal()
-        dlg.Destroy()
-
-    def viewSettings(self,event):
-        self.guiUtility.settingsOverview()
-
-    def viewLibrary(self,event):
-        self.guiUtility.standardLibraryOverview()
-
-    def toggleFamilyFilter(self,event):
-        self.guiUtility.toggleFamilyFilter()
 

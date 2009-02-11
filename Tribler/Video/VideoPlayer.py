@@ -33,7 +33,6 @@ class VideoPlayer:
             raise RuntimeError, "VideoPlayer is singleton"
         VideoPlayer.__single = self
         self.videoframe = None
-        self.videopanel = None ## added
         self.extprogress = None
         self.vod_download = None
         self.playbackmode = None
@@ -97,7 +96,7 @@ class VideoPlayer:
         self.videoframe = videoframe
 
 
-    def play_file(self,dest,videopanel): 
+    def play_file(self,dest): 
         """ Play video file from disk """
         if DEBUG:
             print >>sys.stderr,"videoplay: Playing file from disk",dest
@@ -108,11 +107,7 @@ class VideoPlayer:
         if DEBUG:
             print >>sys.stderr,"videoplay: play_file: cmd is",cmd
  
-        self.videopanel = videopanel
-        self.videopanel.Load(cmd)
-        self.videopanel.Play()
-        
-        ## self.launch_video_player(cmd)
+        self.launch_video_player(cmd)
 
     def play_file_via_httpserv(self,dest):
         """ Play a file via our internal HTTP server. Needed when the user
@@ -233,7 +228,7 @@ class VideoPlayer:
             self.videoframe.hide_videoframe()
 
 
-    def play(self,ds,videopanel):
+    def play(self,ds):
         """ Used by Tribler Main """
         self.determine_playbackmode()
         
@@ -283,7 +278,7 @@ class VideoPlayer:
             if flag:
                 self.play_file_via_httpserv(selectedoutfilename)
             else:
-                self.play_file(selectedoutfilename,videopanel) ## added videopanel
+                self.play_file(selectedoutfilename)
         else:
             print >> sys.stderr, 'not complete'
             self.play_vod(ds,selectedinfilename)

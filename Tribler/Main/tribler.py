@@ -80,7 +80,7 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 import Tribler.Core.CacheDB.friends as friends 
 
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
-from Tribler.Video.EmbeddedPlayer import *
+from Tribler.Video.VideoFrame import VideoDummyFrame
 
 import pdb
 
@@ -207,7 +207,6 @@ class ABCApp(wx.App):
             self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
             self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode,closeextplayercallback=self.OnClosingVideoFrameOrExtPlayer)
 
-
             notification_init( self.utility )
 
             #
@@ -217,9 +216,6 @@ class ABCApp(wx.App):
             self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
-            wx.Yield()
-
-
             self.guiUtility.frame = self.frame
 
             self.frame.set_wxapp(self)
@@ -285,20 +281,12 @@ class ABCApp(wx.App):
             self.guiUtility.open_dbs()
             
             self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
-            # -------- search -------
-            
-            
-            #-------------------------
-            
-            #self.frame.Refresh()
-            #self.frame.Layout()
-            self.frame.Show(True)
-            
             self.frame.search_icon = xrc.XRCCTRL(self.frame, "search_icon")
             self.frame.files_friends = xrc.XRCCTRL(self.frame, "files_friends")
             self.frame.top_image = xrc.XRCCTRL(self.frame, "top_image")
             
             self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_search")
+            self.frame.top_bg.set_frame(self.frame)
             ##self.frame.sharing_reputation = xrc.XRCCTRL(self.frame, "top_search").sharing_reputation
             ##self.frame.srgradient = xrc.XRCCTRL(self.frame, "top_search").srgradient
             ##self.frame.help = xrc.XRCCTRL(self.frame,"top_search").help
@@ -324,18 +312,21 @@ class ABCApp(wx.App):
             
 
             # videopanel
-            self.frame.videopanel = xrc.XRCCTRL(self.frame,"videopanel")
+            self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
             logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler_small.png')
-            self.frame.videopanel = EmbeddedPlayerPanel(self.frame.videopanel, self.utility,self.videoplayer.get_vlcwrap(), logopath, fg=wx.WHITE, bg=(216,233,240))
+            
+            self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,self.videoplayer.get_vlcwrap(),logopath)
+            self.videoplayer.set_videoframe(self.frame.videoframe)
 
             # family filter
             ##self.frame.familyfilter = xrc.XRCCTRL(self.frame,"top_search").familyfilter
             ##self.frame.familyfilter.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
 
-            hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.videopanel,self.frame.pagerPanel]
+            hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel]
 
             for name in hide_names:
                 name.Hide()
+            self.frame.videoframe.hide_videoframe()
 
             self.frame.top_bg.createBackgroundImage()
 
@@ -379,6 +370,10 @@ class ABCApp(wx.App):
             
             #print "DIM",wx.GetDisplaySize()
             #print "MM",wx.GetDisplaySizeMM()
+
+            #self.frame.Refresh()
+            #self.frame.Layout()
+            self.frame.Show(True)
 
             wx.CallAfter(self.startWithRightView)
             # Delay this so GUI has time to paint
@@ -461,7 +456,7 @@ class ABCApp(wx.App):
                 self.frame.my_files.Show()
                 self.frame.settings.Show()
                 self.frame.seperator.Show()
-                self.frame.videopanel.Show()
+                self.frame.videoframe.show_videoframe()
                 self.frame.familyfilter.Show()
                 self.frame.pagerPanel.Show()
                 self.frame.ag.Show() 
@@ -470,7 +465,7 @@ class ABCApp(wx.App):
                 self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
            
             
-            self.frame.videopanel.Show()
+            self.frame.videoframe.show_videoframe()
             self.frame.pagerPanel.Show()
 
             #self.frame.settings.setToggled(False)
@@ -528,7 +523,7 @@ class ABCApp(wx.App):
                 self.frame.settings.Show()
                 self.frame.my_files.Show()
                 self.frame.seperator.Show()
-                self.frame.videopanel.Show()
+                self.frame.videoframe.show_videoframe()
                 self.frame.familyfilter.Show()
                 self.frame.pagerPanel.Show()
                 self.frame.ag.Show() 
@@ -536,7 +531,7 @@ class ABCApp(wx.App):
 
                 self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
         
-            self.frame.videopanel.Show()
+            self.frame.videoframe.show_videoframe()
             self.frame.pagerPanel.Show()
             self.frame.settings.setToggled(False)
             self.frame.my_files.setToggled(False)
