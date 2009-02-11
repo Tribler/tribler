@@ -332,12 +332,7 @@ class ABCApp(wx.App):
 
 
             # reputation
-            bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-            reputation = bc_db.getMyReputation()
-            self.utility.session.close_dbhandler(bc_db)
-            self.frame.top_bg.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
             self.guiserver.add_task(self.guiservthread_update_reputation, 5.0)
-
           
             self.setDBStats()
             
@@ -579,7 +574,6 @@ class ABCApp(wx.App):
         """ get the current reputation score"""
         bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
         reputation = bc_db.getMyReputation()
-        self.frame.top_bg.help.SetToolTipString(self.utility.lang.get('help') % (reputation))
         self.utility.session.close_dbhandler(bc_db)
         return reputation
 
@@ -587,6 +581,8 @@ class ABCApp(wx.App):
         """ set the reputation in the GUI"""
         reputation = self.get_reputation()
         print >> sys.stderr , "main: My Reputation",reputation
+        
+        self.frame.top_bg.help.SetToolTipString(self.utility.lang.get('help') % (reputation))
         self.frame.hsizer = self.frame.top_bg.sr_indicator.GetContainingSizer()
         self.frame.hsizer.Remove(0)
         self.frame.hsizer.Prepend(wx.Size(reputation*40+50,0),0,wx.LEFT,0)
