@@ -146,44 +146,39 @@ class TopSearchPanel(bgPanel):
         
     def OnCreate(self,event):
         print >> sys.stderr , "Oncreate"
-        try:
-            bgPanel.OnCreate(self,event)
-    
-       
-    # MAINLY GENERATED BELOW, replace wxStaticBitmap, etc. with wx.StaticBitmap 
-    # and replace wx.BitMap with self.Bitmap
-    #
-    # What makes this code (either as Python or as XRC fail is the last statement:
-    #       self.SetSizer(object_1)
-    # should be
-    #       self.SetSizerAndFit(object_1)
-    # ----------------------------------------------------------------------------------------          
-            
-            self.black_spacer = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/black_spacer.png", wx.BITMAP_TYPE_ANY))
-            self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
-            self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
-            self.go = tribler_topButton(self,-1,name = 'go')
-            self.familyfilter = wx.StaticText(self, -1, "Family Filter:ON")
-            self.search_results = wx.StaticText(self, -1, "")
-            self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
-            self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient.png", wx.BITMAP_TYPE_ANY))
-            self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY))
-            self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRindicator.png", wx.BITMAP_TYPE_ANY))
-            self.settings = wx.StaticText(self, -1, "Settings")
-            self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY))
-            self.my_files = wx.StaticText(self, -1, "My Files")
-            self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
-    
-            self.__set_properties()
-            self.__do_layout()
-            # end wx.Glade
-    
-            # OUR CODE
-            self.custom_init()
-        except:
-            print_exc()
+        bgPanel.OnCreate(self,event)
 
+   
+# MAINLY GENERATED BELOW, replace wxStaticBitmap, etc. with wx.StaticBitmap 
+# and replace wx.BitMap with self.Bitmap
+#
+# What makes this code (either as Python or as XRC fail is the last statement:
+#       self.SetSizer(object_1)
+# should be
+#       self.SetSizerAndFit(object_1)
+# ----------------------------------------------------------------------------------------          
+        
+        self.black_spacer = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/black_spacer.png", wx.BITMAP_TYPE_ANY))
+        self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
+        self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
+        self.go = tribler_topButton(self,-1,name = 'go')
+        self.familyfilter = wx.StaticText(self, -1, "Family Filter:ON")
+        self.search_results = wx.StaticText(self, -1, "")
+        self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
+        self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient.png", wx.BITMAP_TYPE_ANY))
+        self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY))
+        self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRindicator.png", wx.BITMAP_TYPE_ANY))
+        self.settings = wx.StaticText(self, -1, "Settings")
+        self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY))
+        self.my_files = wx.StaticText(self, -1, "My Files")
+        self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
 
+        self.__set_properties()
+        self.__do_layout()
+        # end wx.Glade
+
+        # OUR CODE
+        self.custom_init()
 
     def __set_properties(self):
         # begin wx.Glade: MyPanel.__set_properties

@@ -332,12 +332,11 @@ class ABCApp(wx.App):
 
 
             # reputation
-            self.frame.hsizer = self.frame.top_bg.sr_indicator.GetContainingSizer()               
             bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
             reputation = bc_db.getMyReputation()
             self.utility.session.close_dbhandler(bc_db)
             self.frame.top_bg.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
-            self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
+            self.guiserver.add_task(self.guiservthread_update_reputation, 5.0)
 
           
             self.setDBStats()
@@ -411,76 +410,6 @@ class ABCApp(wx.App):
     def toggleFamilyFilter(self,event):
         self.guiUtility.toggleFamilyFilter()
 
-
-    
-    def OnSearchKeyDown(self,event):
-
-        global FIRST
-        
-        keycode = event.GetKeyCode()
-        #if event.CmdDown():
-        #print "OnSearchKeyDown: keycode",keycode
-        if keycode == wx.WXK_RETURN and self.frame.search.GetValue().strip() != '': 
-            if FIRST:
-                FIRST=False
-                #self.frame.top_image.Hide()
-                
-                self.frame.pageTitlePanel.Show()
-                self.frame.tribler_logo2.Show()
-
-                self.frame.sharing_reputation.Show()
-                self.frame.help.Show()
-                
-                self.frame.black_spacer.Hide()
-
-                self.frame.top_bg.Hide()
-
-                self.frame.hsizer = self.frame.sr_indicator.GetContainingSizer()               
-
-                bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-                reputation = bc_db.getMyReputation()
-                self.utility.session.close_dbhandler(bc_db)
-
-                self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
-
-
-                self.frame.Layout() 
-
-                self.frame.top_bg.createBackgroundImage()
-                self.frame.top_bg.Refresh()
-                self.frame.top_bg.Update()
-                self.frame.top_bg.Show()
-                self.frame.srgradient.Show()
-                self.frame.sr_indicator.Show()
-                self.frame.standardOverview.Show()
-                self.frame.my_files.Show()
-                self.frame.settings.Show()
-                self.frame.seperator.Show()
-                self.frame.videoframe.show_videoframe()
-                self.frame.familyfilter.Show()
-                self.frame.pagerPanel.Show()
-                self.frame.ag.Show() 
-                self.frame.ag.Play()
-
-                self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
-           
-            
-            self.frame.videoframe.show_videoframe()
-            self.frame.pagerPanel.Show()
-
-            #self.frame.settings.setToggled(False)
-            #self.frame.my_files.setToggled(False)
-
-
-            self.frame.settings.SetForegroundColour((255,51,0))
-            self.frame.my_files.SetForegroundColour((255,51,0))
-
-            self.guiUtility.guiPage = 'search_results'
-            self.guiUtility.standardFilesOverview()
-            self.guiUtility.dosearch()
-        else:
-            event.Skip()     
-
     # ARNO50: Errr..... code reuse?
 
     def OnGoKeyPressed(self,event): # # #
@@ -529,7 +458,7 @@ class ABCApp(wx.App):
                 self.frame.ag.Show() 
                 self.frame.ag.Play()
 
-                self.guiserver.add_task(lambda:wx.CallAfter(self.update_reputation), 5.0)
+                self.guiserver.add_task(self.guiservthread_update_reputation, 5.0)
         
             self.frame.videoframe.show_videoframe()
             self.frame.pagerPanel.Show()
@@ -658,14 +587,15 @@ class ABCApp(wx.App):
         """ set the reputation in the GUI"""
         reputation = self.get_reputation()
         print >> sys.stderr , "main: My Reputation",reputation
+        self.frame.hsizer = self.frame.top_bg.sr_indicator.GetContainingSizer()
         self.frame.hsizer.Remove(0)
         self.frame.hsizer.Prepend(wx.Size(reputation*40+50,0),0,wx.LEFT,0)
         self.frame.hsizer.Layout()
 
-    def update_reputation(self):
+    def guiservthread_update_reputation(self):
         """ update the reputation"""
         wx.CallAfter(self.set_reputation)
-        self.guiserver.add_task(self.update_reputation,10.0) 
+        self.guiserver.add_task(self.guiservthread_update_reputation,10.0) 
 
 
 
