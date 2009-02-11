@@ -21,7 +21,7 @@ from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 
 DEBUG = True
 
-if sys.platform == "linux2:
+if sys.platform == "linux2":
     USE_VLC_RAW_INTERFACE = False
 else:
     USE_VLC_RAW_INTERFACE = True
