@@ -131,20 +131,20 @@ class standardOverview(wx.Panel):
         self.SetAutoLayout(1)
         self.Layout()
         
-    def setMode(self, mode):
+    def setMode(self, mode, refreshGrid=True):
         # switch to another view, 
         # mode is one of the [filesMode, personsMode, friendsMode, profileMode, libraryMode, subscriptionsMode]
         if self.mode != mode or mode == 'fileDetailsMode' or mode == 'playlistMode':
             #self.stopWeb2Search()
             self.mode = mode
-            self.refreshMode()
+            self.refreshMode(refreshGrid=refreshGrid)
             
     def getMode(self):
         return self.mode
         
         self.guiUtility.filterStandard.SetData(self.mode)
             
-    def refreshMode(self):
+    def refreshMode(self,refreshGrid=True):
         # load xrc
         self.oldpanel = self.currentPanel   
         
@@ -159,7 +159,7 @@ class standardOverview(wx.Panel):
         #self.currentPanel.GetSizer().Layout()
         #self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
-        if self.data[self.mode].get('grid'):
+        if self.data[self.mode].get('grid') and refreshGrid:
             self.data[self.mode]['grid'].gridManager.reactivate()
         
         if self.oldpanel and self.oldpanel != self.currentPanel:

@@ -466,13 +466,13 @@ class LibraryItemDetailsSummary(wx.Panel):
             
             # Add thumb
             
-            self.thumbSummary = self.guiUtility.thumbnailViewer(self.Parent, 'libraryItemSummary')
-            self.thumbSummary.SetSize((125,70))
+            #self.thumbSummary = self.guiUtility.thumbnailViewer(self.Parent, 'libraryItemSummary')
+            #self.thumbSummary.SetSize((125,70))
 #            self.thumb = ThumbnailViewer(self, 'libraryMode')
-            self.thumbSummary.setBackground(wx.BLACK)
+            #self.thumbSummary.setBackground(wx.BLACK)
     #        self.thumb.SetSize(libraryModeThumbSize)
 #            self.thumb.SetSize((125,70))
-            self.vSizer1.Add(self.thumbSummary, 0, wx.TOP, 25)
+            #self.vSizer1.Add(self.thumbSummary, 0, wx.TOP, 25)
             
             # Status message
             self.statusField = wx.StaticText(self, -1,'-0-', wx.Point(),wx.Size())
@@ -699,7 +699,7 @@ class LibraryItemDetailsSummary(wx.Panel):
         #------------- DESCRIPTION --------------
         descrtxt = ''
         flag = False
-        self.thumbSummary.setTorrent(self.Parent.data)
+        ##self.thumbSummary.setTorrent(self.Parent.data)
         if not torrent.get('web2'):
 #            print 'tb > self.Parent.data = %s' % self.Parent.data
 

@@ -336,27 +336,7 @@ class GUIUtility:
         elif name == 'my_files':
             if self.guiPage != 'my_files':
                 self.guiPage = 'my_files' 
-                self.frame.ag.Hide()
-                self.frame.my_files.SetForegroundColour((216,233,240))
-                self.frame.settings.SetForegroundColour((255,51,0))
-
-                #self.frame.my_files.setToggled()
-                #if self.frame.settings.isToggled():
-                #    self.frame.settings.setToggled()
-                #if self.standardGrid:
-                #    self.standardGrid.deselectAll()
-                #    self.standardGrid.clearAllData()
-
-                self.frame.videoframe.show_videoframe()
-
                 self.standardLibraryOverview()
-                if self.frame.search_results.GetLabel() != '':
-                    self.frame.search_results.SetLabel('Return to Results')
-                    self.frame.search_results.SetForegroundColour(wx.RED)
-                self.frame.top_bg.Layout()
-                
-                self.frame.pagerPanel.Show()
-
 
         elif name == 'edit':
             self.standardOverview.currentPanel.sendClick(event)
@@ -553,8 +533,6 @@ class GUIUtility:
             #    self.standardGrid.deselectAll()
             #    self.standardGrid.clearAllData()
 
-            self.frame.videoframe.show_videoframe()
-
             if self.frame.top_bg.search_results.GetLabel() != '':
                 self.frame.top_bg.search_results.SetLabel('Return to Results')
                 self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
@@ -562,11 +540,13 @@ class GUIUtility:
             self.frame.pagerPanel.Show()
 
             #self.frame.pageTitle.SetLabel('DOWNLOADS')      
-            self.standardOverview.setMode('libraryMode')
+            self.standardOverview.setMode('libraryMode',refreshGrid=False)
             #gridState = self.standardOverview.getFilter().getState()
             #if not gridState or not gridState.isValid():
             gridState = GridState('libraryMode', 'all', 'name')
             self.standardOverview.filterChanged(gridState)
+
+            wx.CallAfter(self.frame.videoframe.show_videoframe)
         
         self.standardDetails.setMode('libraryMode')
         

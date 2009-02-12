@@ -515,59 +515,14 @@ class LibraryItemPanel(wx.Panel):
         self.Layout()
         self.Refresh()
         self.GetContainingSizer().Layout()
-        #self.parent.Refresh()
+        self.parent.Refresh()
         
     def select(self, rowIndex, colIndex, ignore1, ignore2, ignore3):
         self.selected = True        
-        colour = self.triblerStyles.selected(5)
-        ##self.thumb.setSelected(True)
-        self.title.SetBackgroundColour(colour)
-#        self.percentage.SetBackgroundColour(colour)
-#        self.eta.SetBackgroundColour(colour)
-#        if not self.listItem:
-#            self.upSpeed.setBackground(colour)
-#            self.speedUp2.SetBackgroundColour(colour)
-#            self.downSpeed.setBackground(colour)
-#            self.speedDown2.SetBackgroundColour(colour)
-#            self.statusField.SetBackgroundColour(colour)
-#            self.playFast.setBackground(colour)
-#            self.boost.setBackground(colour)
-##        self.playerPlay.setBackground(colour)        
-        ##if self.listItem:
-        ##    self.toggleLibraryItemDetailsSummary(True)            
-            
-        
         self.guiUtility.standardOverview.selectedTorrent = self.data['infohash']
-        self.Refresh()
-
-        
         
     def deselect(self, rowIndex, colIndex):
         self.selected = False
-        if rowIndex % 2 == 0:
-            colour = self.triblerStyles.selected(2)
-        else:
-            colour = self.triblerStyles.selected(2)            
-            
-        ##self.thumb.setSelected(False)
-        self.title.SetBackgroundColour(colour)
-#        self.percentage.SetBackgroundColour(colour)
-#        self.eta.SetBackgroundColour(colour)
-#        
-#        if not self.listItem:
-#            self.upSpeed.setBackground(colour)
-#            self.speedUp2.SetBackgroundColour(colour)
-#            self.downSpeed.setBackground(colour)
-#            self.speedDown2.SetBackgroundColour(colour)
-#            self.statusField.SetBackgroundColour(colour)
-#            self.playFast.setBackground(colour)
-#            self.boost.setBackground(colour)
-##        self.playerPlay.setBackground(colour)
-        ##if self.listItem:
-        ##    self.toggleLibraryItemDetailsSummary(False)
-            
-        
-        self.Refresh()
         
     def keyTyped(self, event):
         if self.selected:
@@ -582,8 +537,8 @@ class LibraryItemPanel(wx.Panel):
         event.Skip()
         
     def mouseAction(self, event):
-        if DEBUG:
-            print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
+        #if DEBUG:
+        #    print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
 
         event.Skip()
 
@@ -605,12 +560,8 @@ class LibraryItemPanel(wx.Panel):
         except:
             pass
             
-        print >>sys.stderr,"lip: mouseAction: ENABLED"
             
         if self.data.get('ds'):
-                
-            print >>sys.stderr,"lip: mouseAction: got ds"
-                
             ds = self.data.get('ds')
 #            if name == 'deleteLibraryitem':
 #                removeFiles = False

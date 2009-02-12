@@ -124,11 +124,12 @@ class FilesItemPanel(wx.Panel):
             self.hSizer.Add([7,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             
             self.vSizer = wx.BoxSizer(wx.VERTICAL)
+            
             # Add thumb
-            self.thumb = ThumbnailViewer(self, 'filesMode')
-            self.thumb.setBackground(wx.BLACK)
-            self.thumb.SetSize((125,70))
-            self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
+            #self.thumb = ThumbnailViewer(self, 'filesMode')
+            #self.thumb.setBackground(wx.BLACK)
+            #self.thumb.SetSize((125,70))
+            #self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
 
             self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22))    # 
             self.title.SetBackgroundColour(wx.WHITE)
@@ -165,10 +166,10 @@ class FilesItemPanel(wx.Panel):
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.vSizerOverall.Add(self.hSizer, 0, wx.FIXED|wx.EXPAND, 0)	##
 
-            self.thumb = ThumbnailViewer(self, 'filesMode')
-            self.thumb.setBackground(wx.BLACK)
-            self.thumb.SetSize((32,18))
-            self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
+            #self.thumb = ThumbnailViewer(self, 'filesMode')
+            #self.thumb.setBackground(wx.BLACK)
+            #self.thumb.SetSize((32,18))
+            #self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
             # Add title
             self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,18))        
             self.title.SetBackgroundColour(wx.WHITE)
@@ -295,7 +296,7 @@ class FilesItemPanel(wx.Panel):
                 stat = 'None'
             else:
                 stat = torrent.keys() # torrent['myDownloadHistory']]
-            #print >>sys.stderr,"fip: setData:",stat
+            print >>sys.stderr,"fip: setData:",stat
         
         self.data = torrent
         
@@ -310,7 +311,7 @@ class FilesItemPanel(wx.Panel):
             torrent = {}
 
 
-        self.thumb.setTorrent(torrent)
+        #self.thumb.setTorrent(torrent)
 
         if torrent.get('name'):
             title = torrent['name'][:self.titleLength]
@@ -326,112 +327,9 @@ class FilesItemPanel(wx.Panel):
                 else:
                     self.fileSize.SetLabel(self.utility.size_format(torrent['length']))
                 
-##                if torrent.get('creation_date'):
-##                    self.creationDate.SetLabel(friendly_time(torrent['creation_date']))
-##                else:
-##                    self.creationDate.SetLabel('')
-                    
-##                self.creationDate.Enable(True)
-##                if torrent['num_seeders'] >= 0:
-##                    self.seedersNumber.SetLabel('%s' % torrent['num_seeders'])
-##                    self.leechersNumber.SetLabel('%s' % torrent['num_leechers'])
-##                else:
-##                    self.seedersNumber.SetLabel('?')
-##                    self.leechersNumber.SetLabel('?')
-
-                total = torrent['num_seeders']+torrent['num_leechers']
-
-                popularity_file = "Tribler/Main/vwxGUI/images/popularity"
-
-                if total > 18000:  
-                    popularity_file+='10'
-                elif total > 16000:  
-                    popularity_file+='9'
-                elif total > 14000:  
-                    popularity_file+='8'
-                elif total > 12000:  
-                    popularity_file+='7'
-                elif total > 10000:  
-                    popularity_file+='6'
-                elif total > 8000:  
-                    popularity_file+='5'
-                elif total > 6000:  
-                    popularity_file+='4'
-                elif total > 4000:  
-                    popularity_file+='3'
-                elif total > 2000:  
-                    popularity_file+='2'
-                else:  
-                    popularity_file+='1'
-
-                popularity_file+='.png'
-
-                if self.popularity is not None:
-                    self.popularity.Destroy()
-
-                #self.popularity = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(49,12),name=popularity_file)
-                self.popularity_image = wx.Image(popularity_file, wx.BITMAP_TYPE_ANY)            
-
-                self.popularity = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.popularity_image))
-
-                self.hSizer.Add(self.popularity, 0, wx.TOP, 2)
-
                 self.hLine.Show()
-
-##                popularity_text = 'I'
-
-##                for i in xrange(total/1000):
-##                    popularity_text += 'I'
-##                if total > 20000:
-##                    popularity_text = 'IIIIIIIIIIIIIIIIIIII'
-
-                   
-
-##                self.popularity.SetLabel(popularity_text)
-
-                    
-                # -- tasteheart --        
-##                rank = torrent.get('simRank', -1)
-##                recommField = self.taste            
-##                if rank!=-1:
-                    ##print '--tb-- there is taste'
-##                    print rank
-##                    if rank == 1:
-##                        self.tasteHeart.SetToolTipString("%d" % rank + "st of top 20 of all discovered files")
-##                        recommField.SetLabel("%d" % rank + "st")
-##                    elif rank == 2:
-##                        self.tasteHeart.SetToolTipString("%d" % rank + "nd of top 20 of all discovered files")
-##                        recommField.SetLabel("%d" % rank + "nd")                        
-##                    elif rank == 3:
-##                        self.tasteHeart.SetToolTipString("%d" % rank + "rd of top 20 of all discovered files")
-##                        recommField.SetLabel("%d" % rank + "rd")
-##                    else:
-##                        self.tasteHeart.SetToolTipString("%d" % rank + "th of top 20 of all discovered files")
-##                        recommField.SetLabel("%d" % rank + "th")
-##                    self.tasteHeart.Show()
-##                    self.tasteHeart.setRank(rank)
-                    #self.taste.SetLabel('')
-                ##else:
-                    ##self.taste.SetLabel('')
-                    ##self.tasteHeart.Hide()
-                    # -- END tasteheart --
-                
-##                self.leechers.Show()
-##                self.seeders.Show()
-    #            self.tasteHeart.Show()
-    
-                
-                ##self.vLine1.Show()
-                ##self.vLine2.Show()
-                ##self.vLine3.Show()
-                ##self.vLine4.Show()
-                ##self.vLine5.Show()
-                ##self.vLine6.Show()
-                # -- END if list VIEW --
-            
-    
         else:
-            self.thumb.Hide()
+            #self.thumb.Hide()
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
@@ -447,7 +345,7 @@ class FilesItemPanel(wx.Panel):
                 
             
         self.Layout()
-        self.Refresh()
+        #self.Refresh()
         #self.parent.Refresh()
         
     def addLine(self):
@@ -478,7 +376,7 @@ class FilesItemPanel(wx.Panel):
             colour = self.guiUtility.selectedColourPending
         else:
             colour = self.guiUtility.selectedColour
-        self.thumb.setSelected(True)        
+        #self.thumb.setSelected(True)        
         self.title.SetBackgroundColour(colour)
         self.title.SetFont(wx.Font(FS_FILETITLE_SEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
         
@@ -519,7 +417,7 @@ class FilesItemPanel(wx.Panel):
                 colour = self.guiUtility.unselectedColour2
         
             
-        self.thumb.setSelected(False)
+        #self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
         self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
 
@@ -612,30 +510,6 @@ class FilesItemPanel(wx.Panel):
         
     def getIdentifier(self):
         return self.data['infohash']
-
-    def setSourceIcon(self, torrent):
-        desc = torrent.get('description', '')
-        if torrent.has_key('query_permid'):
-            source = 'remote'
-        elif torrent.get('web2'):
-            if desc.lower().find('youtube') != -1:
-                source = 'youtube'
-            elif desc.lower().find('liveleak') != -1:
-                source = 'liveleak'
-            else:
-                source = ''
-        elif self.listItem:
-            source = 'tribler'
-        else:
-            source = ''
-            
-        si = self.iconsManager.getSourceIcon(source)
-        if self.listItem:
-            self.sourceIcon.setBitmap(si)
-            self.sourceIcon.createBackgroundImage()
-            self.sourceIcon.Show() ## Show
-        else:
-            self.thumb.setSourceIcon(si)
 
     def toggleFilesItemDetailsSummary(self, visible):
         if visible and not self.summary:            

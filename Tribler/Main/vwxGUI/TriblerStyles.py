@@ -148,7 +148,7 @@ class TriblerStyles:
          if state == 3:
              colour = wx.Colour(80,70,70) 
          if state == 4:
-             colour = wx.Colour(115,115,110)
+             colour = wx.Colour(255,255,255)
          if state == 5:
              colour = wx.Colour(170,80,70)
              

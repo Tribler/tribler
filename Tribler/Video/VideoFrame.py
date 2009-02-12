@@ -55,7 +55,7 @@ class VideoFrame(wx.Frame,VideoBaseFrame):
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
     def create_videopanel(self,vlcwrap, logopath):
-        self.showingvideo = False
+        self.showingframe = False
         self.videopanel = EmbeddedPlayerPanel(self, self.utility, vlcwrap, logopath)
         self.Hide()
 
@@ -64,8 +64,8 @@ class VideoFrame(wx.Frame,VideoBaseFrame):
             print >>sys.stderr,"videoframe: Swap IN videopanel"
             
         if self.videopanel is not None:
-            if not self.showingvideo:
-                self.showingvideo = True
+            if not self.showingframe:
+                self.showingframe = True
                 self.Show()
                 
             self.Raise()
@@ -85,8 +85,8 @@ class VideoFrame(wx.Frame,VideoBaseFrame):
 
         if self.videopanel is not None:
             self.videopanel.Reset()
-            if self.showingvideo:
-                self.showingvideo = False
+            if self.showingframe:
+                self.showingframe = False
                 self.Hide()
 
     def get_videopanel(self):
@@ -116,13 +116,13 @@ class VideoDummyFrame(VideoBaseFrame):
 
     def create_videopanel(self,vlcwrap, logopath):
         # ARNO50: Uses 5.0 colours
-        self.showingvideo = False
+        self.showingframe = False
         self.videopanel = EmbeddedPlayerPanel(self.parent,self.utility,vlcwrap,logopath,fg=wx.WHITE,bg=(216,233,240))
         self.videopanel.Hide()
 
     def show_videoframe(self):
-        if not self.showingvideo:
-            self.showingvideo = True
+        if not self.showingframe:
+            self.showingframe = True
             self.videopanel.Show()
                 
         # H4x0r: We need to tell the VLC wrapper a XID of a
@@ -133,9 +133,8 @@ class VideoDummyFrame(VideoBaseFrame):
         wx.CallAfter(self.videopanel.TellLVCWrapWindow4Playback)
     
     def hide_videoframe(self):
-
-        if self.showingvideo:
-            self.showingvideo = False
+        if self.showingframe:
+            self.showingframe = False
             self.videopanel.Hide()
 
     def show_videoframe(self):
