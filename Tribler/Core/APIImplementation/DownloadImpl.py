@@ -16,10 +16,7 @@ from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 
-# LAYERVIOLATION
-from Tribler.Video.utils import win32_retrieve_video_play_command
-
-DEBUG = True
+DEBUG = False
 
 class DownloadImpl:
     
@@ -310,15 +307,8 @@ class DownloadImpl:
             infohash = self.tdef.get_infohash() 
             pstate = self.network_get_persistent_state()
             if self.sd is not None:
-                
-                print >>sys.stderr,"DownloadImpl: network_stop: BEFORE shtudown",`self`
-                try:
-                    pstate['engineresumedata'] = self.sd.shutdown()
-                    self.sd = None
-                    print >>sys.stderr,"DownloadImpl: network_stop: AFTER NONE",`self`
-                except:
-                    print_exc()
-                
+                pstate['engineresumedata'] = self.sd.shutdown()
+                self.sd = None
                 self.pstate_for_restart = pstate
             
             # Offload the removal of the content and other disk cleanup to another thread
