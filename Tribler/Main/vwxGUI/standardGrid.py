@@ -161,9 +161,17 @@ class GridManager(object):
         if state.db in ('filesMode', 'libraryMode'):
             
             # Arno: state.db should be NTFY_ according to GridState...
-            if self.torrentsearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE:
-                total_items = 0
-                data = []
+            if state.db == 'libraryMode':
+            
+                total_items = self.get_number_torrents(state)   # read from cache
+                sortcol = state.sort
+                if sortcol == "rameezmetric":
+                    sortcol = None
+                data = self.torrent_db.getTorrents(category_name = state.category, 
+                                                       sort = sortcol,
+                                                       range = range,
+                                                       library = (state.db == 'libraryMode'),
+                                                       reverse = state.reverse)
             else:
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
                 
