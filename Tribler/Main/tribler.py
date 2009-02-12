@@ -607,7 +607,8 @@ class ABCApp(wx.App):
             # ARNO50: Apply status displaying from SwarmPlayer 
             
             for ds in dslist:
-                print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error(),ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                savename = `ds.get_download().get_def().get_name()`
+                print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),savename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
             
             # Pass DownloadStates to libaryView
             try:

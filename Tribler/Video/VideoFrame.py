@@ -8,9 +8,6 @@ from Tribler.Video.EmbeddedPlayer import EmbeddedPlayerPanel
 
 class VideoBaseFrame:
 
-    def create_videopanel(self,vlcwrap, logopath):
-        pass
-    
     def show_videoframe(self):
         pass
     
@@ -25,6 +22,10 @@ class VideoBaseFrame:
 
     def OnCloseWindow(self, event = None):
         pass
+
+    def get_window(self):
+        pass
+
 
 
 class VideoFrame(wx.Frame,VideoBaseFrame):
@@ -94,8 +95,13 @@ class VideoFrame(wx.Frame,VideoBaseFrame):
     def delete_videopanel(self):
         self.videopanel = None
 
+    def get_window(self):
+        return self
+
+
     def OnCloseWindow(self, event = None):
         self.hide_videoframe()        
+
                  
 
 class VideoDummyFrame(VideoBaseFrame):
@@ -124,4 +130,6 @@ class VideoDummyFrame(VideoBaseFrame):
     def delete_videopanel(self):
         self.videopanel = None
 
+    def get_window(self):
+        return self.parent
 

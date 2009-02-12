@@ -64,7 +64,7 @@ class GridManager(object):
         
         # Jie's hacks to avoid DB concurrency, REMOVE ASAP!!!!!!!!!!!!
         # ARNOCOMMENT
-        self.refresh_rate = 1.5   # how often to refresh the GUI in seconds
+        #self.refresh_rate = 1.5   # how often to refresh the GUI in seconds
         
         self.cache_numbers = {}
         self.cache_ntorrent_interval = 1
@@ -80,7 +80,8 @@ class GridManager(object):
         """
         Refresh the data of the grid
         """
-        
+        print >>sys.stderr,"standardGrid: refresh"
+        #print_stack()
         #print >>sys.stderr,"standardGrid: refresh",update_observer,"ready",self.grid.initReady,"state",self.state
         
         
@@ -207,7 +208,7 @@ class GridManager(object):
             self.session.add_observer(self.item_network_callback, notify_constant,
                                       [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CONNECTION])
         
-        if self.state.db == 'libraryMode':
+        if self.state.db == 'libraryMode' or self.state.db == 'filesMode':
             if not self.download_states_callback_set:
                 self.download_states_callback_set = True
         
@@ -266,10 +267,10 @@ class GridManager(object):
             #print >> sys.stderr, 'Grid refresh because search item added!!!============================='
             wx.CallAfter(self.refresh)
         elif self.isRelevantItem(subject, objectID):
-            task_id = str(subject) + str(int(time()/self.refresh_rate))
-            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
+            ##task_id = str(subject) + str(int(time()/self.refresh_rate))
+            ##self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
             # that's important to add the task 3 seconds later, to ensure the task will be executed at proper time  
-            #self.refresh()
+            self.refresh()
     
     def itemUpdated(self,subject, objectID, args):
         # Both in torrent grid and peergrid, changed items can make new items appear on the screen
@@ -280,18 +281,16 @@ class GridManager(object):
         
         #if (self._objectOnPage(subject, objectID)
         if self.torrentsearch_manager.getSearchMode(self.state.db) == SEARCHMODE_NONE:
-            task_id = str(subject) + str(int(time()/self.refresh_rate))
-            
+            ##task_id = str(subject) + str(int(time()/self.refresh_rate))
             #print >>sys.stderr,"standardGrid: itemUpdated",subject,`objectID`,`args`
-            
-            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
-            #self.refresh()
+            ##self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
+            self.refresh()
     
     def itemDeleted(self,subject, objectID, args):
         if self._objectOnPage(subject, objectID):
-            task_id = str(subject) + str(int(time()/self.refresh_rate))
-            self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
-            #self.refresh()
+            ##task_id = str(subject) + str(int(time()/self.refresh_rate))
+            ##self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
+            self.refresh()
     
     def download_state_gui_callback(self, dslist):
         """
@@ -305,7 +304,10 @@ class GridManager(object):
                     break
         else:
             # friendsMode
-            self.refresh()
+            # self.refresh()
+            # We don't refresh on filesMode, but do need to add DownloadStates
+            # for the Play button to work.
+            self.addDownloadStates(self.data)
         
     def _objectOnPage(self, subject, objectID):
         if subject == NTFY_PEERS:
@@ -345,7 +347,8 @@ class GridManager(object):
             infohash = ds.get_download().get_def().get_infohash()
             for torrent in liblist:
                 if torrent['infohash'] == infohash:
-                    print >>sys.stderr,"standardGrid: addDownloadStates: adding ds for",`ds.get_download().get_def().get_name()`
+                    if DEBUG:
+                        print >>sys.stderr,"standardGrid: addDownloadStates: adding ds for",`ds.get_download().get_def().get_name()`
                     torrent['ds'] = ds
                     break
         return liblist
@@ -547,17 +550,17 @@ class standardGrid(wx.Panel):
             #datalength = len(dataList)
         
         if type(dataList) == list or dataList is None:
-            if DEBUG:
-                print >>sys.stderr,'grid.setData: list'
+            #if DEBUG:
+            #    print >>sys.stderr,'grid.setData: list'
             self.data = dataList
      
         if not self.initReady:
             return
                 
         self.refreshPanels()
-        if DEBUG:
-            print >>sys.stderr,'standardGrid: <mluc>start columns:',\
-                self.cols,'rows:',self.currentRows,'items:',self.items
+        #if DEBUG:
+        #    print >>sys.stderr,'standardGrid: <mluc>start columns:',\
+        #        self.cols,'rows:',self.currentRows,'items:',self.items
 
         self.Layout()
         

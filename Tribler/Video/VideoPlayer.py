@@ -322,6 +322,7 @@ class VideoPlayer:
             
             if othertorrents == OTHERTORRENTS_STOP or othertorrents == OTHERTORRENTS_STOP_RESTART:
                 for d2 in activetorrents:
+                    # also stop d, we're restarting in VOD mode.
                     d2.stop()
             else:
                 d.stop()
@@ -420,7 +421,7 @@ class VideoPlayer:
             self.set_player_status("")
 
     def ask_user_to_select_video(self,videofiles):
-        dlg = VideoChooser(self.videoframe,self.utility,videofiles,title='Tribler',expl='Select which file to play')
+        dlg = VideoChooser(self.videoframe.get_window(),self.utility,videofiles,title='Tribler',expl='Select which file to play')
         result = dlg.ShowModal()
         if result == wx.ID_OK:
             index = dlg.getChosenIndex()
@@ -447,7 +448,7 @@ class VideoPlayer:
             # If it's the only download and live, don't warn.
             return
         
-        dlg = VODWarningDialog(self.videoframe,self.utility,ds,infilename,self.other_downloads,islive)
+        dlg = VODWarningDialog(self.videoframe.get_window(),self.utility,ds,infilename,self.other_downloads,islive)
         result = dlg.ShowModal()
         othertorrents = dlg.get_othertorrents()
         dlg.Destroy()

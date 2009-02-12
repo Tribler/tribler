@@ -6,9 +6,11 @@ from traceback import print_exc,print_stack
 from copy import deepcopy
 from wx.lib.stattext import GenStaticText as StaticText
 
-from Tribler.Core.simpledefs import *
+from Tribler.Core.API import *
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.Utilities.utilities import *
+# LAYERVIOLATION
+from Tribler.Core.Overlay.MetadataHandler import get_filename
 
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *
@@ -90,9 +92,7 @@ class LibraryItemPanel(wx.Panel):
         self.data = None
         self.status = None
         self.rightMouse = None
-        self.datacopy = None
         self.titleLength = 106 # num characters
-        self.vodMode = False
         self.selected = False
         self.warningMode = False
         self.summary = None
@@ -167,9 +167,6 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.title,0,wx.TOP,3)
         
         self.hSizer.Add([20,0],0,wx.FIXED_MINSIZE,0)        
-
- 
-        self.library_play = None
 
         # Up/Down text speed
 #        self.downSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='downSpeed')
@@ -379,8 +376,6 @@ class LibraryItemPanel(wx.Panel):
             print >>sys.stderr,"lip: setData called by nonMainThread!",threading.currentThread().getName()
             print_stack()
 
-        self.vodMode = False
-        
         if self.data is None:
             oldinfohash = None
         else:
@@ -396,8 +391,6 @@ class LibraryItemPanel(wx.Panel):
             for child in self.GetChildren():
                 child.Show()
             
-
-        
         if torrent.get('ds'):
             #print '%s is an active torrent' % torrent['name']
             ds = torrent['ds']
@@ -425,8 +418,8 @@ class LibraryItemPanel(wx.Panel):
 
 
             finished = ds.get_progress() == 1.0 ## or ds.get_status() == DLSTATUS_SEEDING
-            if not finished and self.library_play is not None:
-                self.library_play.Hide()
+            ##if not finished and self.library_play is not None:
+            ##    self.library_play.Hide()
 
             ## print >> sys.stderr, '%s %s %s' % (`ds.get_download().get_def().get_name()`, ds.get_progress(), dlstatus_strings[ds.get_status()])
             if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
@@ -441,100 +434,17 @@ class LibraryItemPanel(wx.Panel):
                 eta = ''
             self.eta.SetLabel(eta)
             self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
-            # status is mapped with >Utility/constants.py
-            ##if status == STATUS_QUEUE :  
-                #print 'queue'
-                ##pass
-    ##            elif status == STATUS_STOP or status == STATUS_PAUSE :  
-    ##                self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
-    ##            elif status == STATUS_ACTIVE:  
-    ##                self.statusIcon.searchBitmap(name = statusLibrary["downloading"])
-    ##            elif status == STATUS_HASHCHECK:  
-    ##                print 'hash check'
-    ##            elif status == STATUS_SUPERSEED :  
-    ##                self.statusIcon.searchBitmap(name = statusLibrary["seeding"])
-    ##            elif status == STATUS_FINISHED :  
-    ##                self.statusIcon.searchBitmap(name = statusLibrary["completed"])
-                    
-    ##statusLibrary  = {"downloading"     : "LibStatus_boosting.png",
-    ##                  "stopped"         : "LibStatus_stopped.png",
-    ##                  "boosting"        : "LibStatus_boosting.png",
-    ##                  "completed"       : "LibStatus_completed.png",
-    ##                  "seeding"         : "LibSatus_seeding.png"}
-    
-            
-            ##if finished and ds.get_status() == DLSTATUS_STOPPED:
-            ##    status = self.utility.lang.get('completed')
-            ##else:
-            ##    statusshort = dlstatus_strings[ds.get_status()]
-            ##    status = self.utility.lang.get(statusshort)
-                
-            ##if ds.get_coopdl_coordinator() is not None:
-            ##    status += ", helping" 
-                
-            ##self.statusField.SetLabel(status)
-            ##self.statusField.SetToolTipString(self.statusField.GetLabel())
-                
-            #status = abctorrent.status.getStatus()
-#            print "--tb-------------------------------"
-#            print status
-            # status is mapped with >Utility/constants.py
-            #if status == STATUS_QUEUE :  
-                #print 'queue'
-            #    pass
-##            elif status == STATUS_STOP or status == STATUS_PAUSE :  
-##                self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
-##            elif status == STATUS_ACTIVE:  
-##                self.statusIcon.searchBitmap(name = statusLibrary["downloading"])
-##            elif status == STATUS_HASHCHECK:  
-##                print 'hash check'
-##            elif status == STATUS_SUPERSEED :  
-##                self.statusIcon.searchBitmap(name = statusLibrary["seeding"])
-##            elif status == STATUS_FINISHED :  
-##                self.statusIcon.searchBitmap(name = statusLibrary["completed"])
-                
-##statusLibrary  = {"downloading"     : "LibStatus_boosting.png",
-##                  "stopped"         : "LibStatus_stopped.png",
-##                  "boosting"        : "LibStatus_boosting.png",
-##                  "completed"       : "LibStatus_completed.png",
-##                  "seeding"         : "LibSatus_seeding.png"}
-
                             
-            switchable = False
-            self.playable = False
             havedigest = None
-            showBoost = False
-            showPlayFast = False            
             showPlayButton = False
-            #statustxt = abctorrent.status.getStatusText()
 
             active = ds.get_status() in (DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING)
             
-            initstates = [self.utility.lang.get('checkingdata'), 
-                           self.utility.lang.get('allocatingspace'), 
-                           self.utility.lang.get('movingdata'),
-                           self.utility.lang.get('waiting')]
-            
-            if not ds.get_status() in (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,\
-                                        DLSTATUS_HASHCHECKING):
-                showBoost = active and (not finished) and (ds.get_coopdl_coordinator() is None)
-                if showBoost and not ds.is_vod():
-                    showPlayFast = True
-                
-                if ds.is_vod():
-                    self.vodMode = True
-                    #progressinf = abctorrent.get_progressinf()
-                    #havedigest2 = progressinf.get_bufferinfo()
-                    self.playable = ds.get_vod_playable()
-                    switchable = False
-                    showPlayButton = True
-                else:
-                    isVideo = bool(ds.get_download().get_def().get_files(exts=videoextdefaults))
-                    self.playable = finished and isVideo
-                    if not self.playable:
-                        switchable = True
+            startable = not ds.get_status() in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR]
+            if startable:
+                isVideo = bool(ds.get_download().get_def().get_files(exts=videoextdefaults))
+                showPlayButton = isVideo
                 havedigest = ds.get_pieces_complete()
-            
                 
             if havedigest:
                 self.pb.set_pieces(havedigest)
@@ -549,22 +459,7 @@ class LibraryItemPanel(wx.Panel):
                 self.pb.reset(colour=0) # Show has having none
                 self.pb.Refresh()
                 
-            ##self.playsmall.setToggled(True)
- 
-            ##self.playerPlay.setEnabled(True)
-            #self.playerPlay.setEnabled(showPlayButton or self.playable)            
-            #self.playerPlay.setToggled(self.playable, tooltip = {"disabled" : self.utility.lang.get('playerDisabled'), "enabled" : self.utility.lang.get('playerEnabled')})
-            
-            ##self.playFast.setEnabled(True)
-            #self.playFast.setEnabled(showPlayFast)
-            #self.playFast.setToggled(not switchable, tooltip = {"disabled" : self.utility.lang.get('playFastDisabled'), "enabled" : self.utility.lang.get('playFastEnabled')})
-
-            ##self.boost.setEnabled(True)
-            #self.boost.setEnabled(showBoost)
-            #self.boost.setToggled(self.is_boosted_or_boosting(), tooltip = {"disabled" : self.utility.lang.get('boostDisabled'), "enabled" : self.utility.lang.get('boostEnabled')})
-            
-            ##self.pause.setToggled(ds.get_status() == DLSTATUS_STOPPED or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
-                        
+            self.library_play.setEnabled(showPlayButton)            
                 
         elif torrent: # inactive torrent
             
@@ -574,24 +469,23 @@ class LibraryItemPanel(wx.Panel):
                 self.speedDown2.SetLabel('--')
                 self.upSpeed.Hide()            
                 self.speedUp2.SetLabel('--')
-                
-                # Only show playbutton
-                self.playFast.setEnabled(False)
-                self.boost.setEnabled(False)
+                self.library_play.setEnabled(False)
+            else:
+                showPlayButton = False 
+                try:
+                    torrent_dir = self.utility.session.get_torrent_collecting_dir()
+                    if 'torrent_file_name' not in torrent:
+                        torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
+                    torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
+    
+                    if os.path.isfile(torrent_filename):
+                        tdef = TorrentDef.load(torrent_filename)
+                        isVideo = bool(tdef.get_files(exts=videoextdefaults))
+                        showPlayButton = isVideo
+                except:
+                    print_exc()
+                self.library_play.setEnabled(showPlayButton)
             
-            ##self.pause.setEnabled(True)
-            ##self.pause.setToggled(True)
-            ##if torrent.get('progress') == 100.0:
-##                self.playerPlay.setEnabled(True)
-##                self.playerPlay.setToggled(True, tooltip = {"disabled" : self.utility.lang.get('playerDisabled'), "enabled" : self.utility.lang.get('playerEnabled')})
-                ##self.statusField.SetLabel(self.utility.lang.get('completed'))
-            ##else:
-##                self.playerPlay.setEnabled(False)
-            ##    self.statusField.SetLabel(self.utility.lang.get('stop'))
-            
-            ##if not self.listItem:
-            ##    self.statusField.SetToolTipString(self.statusField.GetLabel())
-                
             self.eta.SetLabel('')
             
             if torrent.get('progress') != None:                
@@ -604,22 +498,23 @@ class LibraryItemPanel(wx.Panel):
             self.pb.Show()
             self.pb.Refresh()
             
-        if torrent.get('name'):
-            title = torrent['name'][:self.titleLength]
-            self.title.Show()
-            self.title.SetLabel(title)
-            self.title.Wrap(self.title.GetSize()[0])
-            self.title.SetToolTipString(torrent['name'])
-
-            # Only reload thumb when changing torrent displayed
-            ##if torrent['infohash'] != oldinfohash:
-                #print >>sys.stderr,"REFRESH THUMBNAIL",`torrent['name']`
-                ##self.thumb.setTorrent(torrent)
-        
-        else:
-            self.title.SetLabel('')
-            self.title.SetToolTipString('')
-            self.title.Hide()
+        if torrent and oldinfohash != self.data['infohash']:
+            if torrent.get('name'):
+                title = torrent['name'][:self.titleLength]
+                self.title.Show()
+                self.title.SetLabel(title)
+                self.title.Wrap(self.title.GetSize()[0])
+                self.title.SetToolTipString(torrent['name'])
+    
+                # Only reload thumb when changing torrent displayed
+                ##if torrent['infohash'] != oldinfohash:
+                    #print >>sys.stderr,"REFRESH THUMBNAIL",`torrent['name']`
+                    ##self.thumb.setTorrent(torrent)
+            
+            else:
+                self.title.SetLabel('')
+                self.title.SetToolTipString('')
+                self.title.Hide()
                
         self.Layout()
         self.Refresh()
@@ -741,21 +636,9 @@ class LibraryItemPanel(wx.Panel):
                     if stopd == playd:
                         videoplayer.close()
                     
-            elif name == 'playFast':
-                if not self.vodMode:
-                    self.vodMode = True
-                    self.switch_to_vod(ds)
-                else:
-                    self.switch_to_standard_dlmode(ds)
-                    self.vodMode = False
-                self.playFast.setToggled(self.vodMode)
-                
-            elif name == 'boost':
-                self.show_boost(ds)
-                    
             elif name == 'library_play':
-                if self.playable:
-                    self.play(ds)
+                self.play(ds)
+                
         else: # no abctorrent
             if name == 'pause':
                  #playbutton
@@ -783,7 +666,7 @@ class LibraryItemPanel(wx.Panel):
                     # Start torrent again
                     if DEBUG:
                         print >>sys.stderr,'lip: starting torrent %s with data in dir %s' % (repr(self.data['name']), dest_dir)
-                    self.guiUtility.standardDetails.download(self.data, dest = dest_dir, force = True)
+                    self.guiUtility.standardDetails.download(self.data, dest = dest_dir, force = True, vodmode = True)
                     
                 elif DEBUG:
                     print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('name'))

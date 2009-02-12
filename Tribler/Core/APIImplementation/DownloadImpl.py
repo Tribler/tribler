@@ -19,7 +19,7 @@ from Tribler.Core.Utilities.unicode import metainfoname2unicode
 # LAYERVIOLATION
 from Tribler.Video.utils import win32_retrieve_video_play_command
 
-DEBUG = False
+DEBUG = True
 
 class DownloadImpl:
     
@@ -214,7 +214,7 @@ class DownloadImpl:
         """ Called by network thread """
         self.dllock.acquire()
         try:
-            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,self.session.lm.get_ext_ip,listenport,vapath,vodfileindex,self.set_error,pstate,lmvodeventcallback)
+            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,self.session.lm.get_ext_ip,listenport,vapath,vodfileindex,self.set_error,pstate,lmvodeventcallback,self.session.lm.hashcheck_done)
             sd = self.sd
             exc = self.error
             if lmcallback is not None:
@@ -310,8 +310,15 @@ class DownloadImpl:
             infohash = self.tdef.get_infohash() 
             pstate = self.network_get_persistent_state()
             if self.sd is not None:
-                pstate['engineresumedata'] = self.sd.shutdown()
-                self.sd = None
+                
+                print >>sys.stderr,"DownloadImpl: network_stop: BEFORE shtudown",`self`
+                try:
+                    pstate['engineresumedata'] = self.sd.shutdown()
+                    self.sd = None
+                    print >>sys.stderr,"DownloadImpl: network_stop: AFTER NONE",`self`
+                except:
+                    print_exc()
+                
                 self.pstate_for_restart = pstate
             
             # Offload the removal of the content and other disk cleanup to another thread
@@ -350,6 +357,9 @@ class DownloadImpl:
                 self.error = None # assume fatal error is reproducible
                 # h4xor: restart using earlier loaded resumedata
                 self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=self.pstate_for_restart,lmvodeventcallback=self.session.lm.network_vod_event_callback)
+            elif DEBUG:
+                print >>sys.stderr,"DownloadImpl: network_restart: SingleDownload already running",`self`
+
             # No exception if already started, for convenience
         finally:
             self.dllock.release()

@@ -28,14 +28,14 @@ DEBUG = False
 class SingleDownload:
     """ This class is accessed solely by the network thread """
     
-    def __init__(self,infohash,metainfo,kvconfig,multihandler,get_extip_func,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate,lmvodeventcallback):
+    def __init__(self,infohash,metainfo,kvconfig,multihandler,get_extip_func,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate,lmvodeventcallback,lmhashcheckcompletecallback):
         
         self.dow = None
         self.set_error_func = set_error_func
         self.videoinfo = None
         self.videostatus = None
         self.lmvodeventcallback = lmvodeventcallback
-        self.lmhashcheckcompletecallback = None
+        self.lmhashcheckcompletecallback = lmhashcheckcompletecallback
         self.logmsgs = []
         self._hashcheckfunc = None
         self._getstatsfunc = None
@@ -120,11 +120,12 @@ class SingleDownload:
 
     def perform_hashcheck(self,complete_callback):
         """ Called by any thread """
-        if DEBUG:
-            print >>sys.stderr,"SingleDownload: perform_hashcheck()"
+        #if DEBUG:
+        print >>sys.stderr,"SingleDownload: perform_hashcheck()",self.videoinfo
         try:
             """ Schedules actually hashcheck on network thread """
             self._getstatsfunc = SPECIAL_VALUE # signal we're hashchecking
+            # Already set, should be same
             self.lmhashcheckcompletecallback = complete_callback
             self._hashcheckfunc(self.lmhashcheckcompletecallback)
         except Exception,e:
@@ -225,9 +226,10 @@ class SingleDownload:
             if DEBUG:
                 print >>sys.stderr,"SingleDownload: stopped dow"
                 
-        if self._getstatsfunc == SPECIAL_VALUE:
-            # Hashchecking while being shutdown, signal LaunchMany
+        if self._getstatsfunc is None or self._getstatsfunc == SPECIAL_VALUE:
+            # Hashchecking or waiting for while being shutdown, signal LaunchMany
             # so it can schedule a new one.
+            print >>sys.stderr,"SingleDownload: TELLING HASHCHEK WE STOPPING"
             self.lmhashcheckcompletecallback(success=False)
         return resumedata
 

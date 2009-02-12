@@ -293,21 +293,16 @@ class TorrentSearchGridManager:
                     if flag:
                         continue
 
-                    # TODO: select best result?
                     if not (newval['infohash'] in self.remoteHits): 
                         self.remoteHits[newval['infohash']] = newval
-                        #numResults +=1
+                        numResults +=1
                         #if numResults % 5 == 0:
                         #self.refreshGrid()
                     
-                if mode == 'filesMode' and self.standardOverview.getSearchBusy():
+                if numResults > 0 and mode == 'filesMode' and self.standardOverview.getSearchBusy():
                     self.refreshGrid()
                     if DEBUG:
                         print >>sys.stderr,'Refresh grid after new remote torrent hits came in'
-                #    if self.notifyView(value, 'add'):
-                #        numResults +=1
-                #self.standardOverview.setSearchFeedback('remote', False, numResults, self.searchkeywords[mode])
-                    
                 return True
             elif DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got hits for",kws,"but current search is for",self.searchkeywords[mode]
@@ -319,13 +314,10 @@ class TorrentSearchGridManager:
     def refreshGrid(self):
         if self.gridmgr is not None:
             self.gridmgr.refresh()
+
+
+
             
-
-    def notifyView(self,value,cmd):
-        if DEBUG:
-            print >>sys.stderr,"TorrentSearchGridManager: notfyView",cmd,`value`
-        pass
-
     #
     # Move to Web2SearchGridManager
     #
