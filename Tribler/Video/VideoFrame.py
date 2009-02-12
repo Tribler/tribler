@@ -116,7 +116,27 @@ class VideoDummyFrame(VideoBaseFrame):
 
     def create_videopanel(self,vlcwrap, logopath):
         # ARNO50: Uses 5.0 colours
+        self.showingvideo = False
         self.videopanel = EmbeddedPlayerPanel(self.parent,self.utility,vlcwrap,logopath,fg=wx.WHITE,bg=(216,233,240))
+        self.videopanel.Hide()
+
+    def show_videoframe(self):
+        if not self.showingvideo:
+            self.showingvideo = True
+            self.videopanel.Show()
+                
+        # H4x0r: We need to tell the VLC wrapper a XID of a
+        # window to paint in. Apparently on win32 the XID is only
+        # known when the window is shown. We give it the command
+        # to show here, so shortly after it should be shown.
+        #
+        wx.CallAfter(self.videopanel.TellLVCWrapWindow4Playback)
+    
+    def hide_videoframe(self):
+
+        if self.showingvideo:
+            self.showingvideo = False
+            self.videopanel.Hide()
 
     def show_videoframe(self):
         self.videopanel.Show()
