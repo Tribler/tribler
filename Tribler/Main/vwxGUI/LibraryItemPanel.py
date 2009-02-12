@@ -582,9 +582,8 @@ class LibraryItemPanel(wx.Panel):
         event.Skip()
         
     def mouseAction(self, event):
-        #if DEBUG:
-        print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
-
+        if DEBUG:
+            print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
 
         event.Skip()
 

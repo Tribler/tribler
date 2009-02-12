@@ -360,8 +360,8 @@ class GridManager(object):
             infohash = ds.get_download().get_def().get_infohash()
             for torrent in liblist:
                 if torrent['infohash'] == infohash:
-                    if DEBUG:
-                        print >>sys.stderr,"standardGrid: addDownloadStates: adding ds for",`ds.get_download().get_def().get_name()`
+                    #if DEBUG:
+                    #    print >>sys.stderr,"standardGrid: addDownloadStates: adding ds for",`ds.get_download().get_def().get_name()`
                     torrent['ds'] = ds
                     break
         return liblist
