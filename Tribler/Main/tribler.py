@@ -82,6 +82,8 @@ import Tribler.Core.CacheDB.friends as friends
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoFrame import VideoDummyFrame
 
+from Tribler.Player.swarmplayer import get_status_msgs
+
 import pdb
 
 I2I_LISTENPORT = 57891
@@ -108,7 +110,8 @@ class ABCApp(wx.App):
         self.update_freq = 0    # how often to update #peers/#torrents
 
         self.guiserver = GUITaskQueue.getInstance()
-
+        self.said_start_playback = False
+        self.decodeprogress = 0
         
         try:
             ubuntu = False
@@ -603,12 +606,27 @@ class ABCApp(wx.App):
             print >>sys.stderr,"main: Stats:"
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
+            playds = None
+            d = self.videoplayer.get_vod_download()
+            for ds in dslist:
+                if ds.get_download() == d:
+                    playds = ds
+                    break
             
-            # ARNO50: Apply status displaying from SwarmPlayer 
+            # Apply status displaying from SwarmPlayer
+            if playds:
+                videoplayer_mediastate = self.videoplayer.get_state()
+                [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(playds,videoplayer_mediastate,"Tribler",self.said_start_playback,self.decodeprogress)
+                # Update status msg and progress bar
+                if topmsg != '':
+                    text = topmsg
+                else:
+                    text = msg
+                self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
             
             for ds in dslist:
-                savename = `ds.get_download().get_def().get_name()`
-                print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),savename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                safename = `ds.get_download().get_def().get_name()`
+                print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
             
             # Pass DownloadStates to libaryView
             try:

@@ -119,9 +119,9 @@ class EmbeddedPlayerPanel(wx.Panel):
             ##ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
         
         mainbox.Add(self.vlcwin, 1, wx.EXPAND, 1)
-        mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
         if vlcwrap is not None:
             mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
+        mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
         self.SetSizerAndFit(mainbox)
         
         self.playtimer = None
@@ -302,10 +302,11 @@ class EmbeddedPlayerPanel(wx.Panel):
     def GetState(self):
         """ Returns the state of VLC as summarized by Fabian: 
         MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED """
-        if DEBUG:
-            print >>sys.stderr,"embedplay: GetState"
             
         status = self.vlcwrap.get_stream_information_status()
+
+        #if DEBUG:
+        print >>sys.stderr,"embedplay: GetState",status
         
         import vlc
         if status == vlc.PlayingStatus:

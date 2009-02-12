@@ -334,8 +334,8 @@ class TorrentSearchGridManager:
         
     def tthread_gotWeb2Hit(self,item):
         """ Called by Web2DBSearchThread*s* """
-        if DEBUG:
-            print >>sys.stderr,"TorrentSearchGridManager: tthread_gotWeb2Hit",`item['content_name']`
+        #if DEBUG:
+        print >>sys.stderr,"TorrentSearchGridManager: tthread_gotWeb2Hit",`item['content_name']`
 
         wx.CallAfter(self.refreshGrid)
         

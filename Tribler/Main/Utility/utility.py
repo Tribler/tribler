@@ -160,7 +160,7 @@ class Utility:
             # VideoPanel
             'videoplaybackmode':'0',
             # Misc
-            'enableweb2search':'1',
+            'enableweb2search':'0',
             'torrentassociationwarned':'0',
             # GUI
             'window_width': '1024', 

@@ -44,7 +44,7 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 
 from Tribler.Video.defs import * 
 from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser  
-from Tribler.Video.EmbeddedPlayer import VideoFrame
+from Tribler.Video.VideoFrame import VideoFrame
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
 from Tribler.Utilities.Instance2Instance import Instance2InstanceClient
@@ -286,104 +286,9 @@ class PlayerApp(BaseApp):
         videoplayer_mediastate = self.videoplayer.get_state()
         #print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
         
-        logmsgs = ds.get_log_messages()
-        logmsg = None
-        if len(logmsgs) > 0:
-            print >>sys.stderr,"main: Log",logmsgs[0]
-            logmsg = logmsgs[-1][1]
-            
-        preprogress = ds.get_vod_prebuffering_progress()
-        playable = ds.get_vod_playable()
-        t = ds.get_vod_playable_after()
-        
-        #print >>sys.stderr,"main: playble",playable,"preprog",preprogress
-        print >>sys.stderr,"main: ETA is",t,"secs"
-        if t > float(2 ** 30):
-            intime = "inf"
-        elif t == 0.0:
-            intime = "now"
-        else:
-            h, t = divmod(t, 60.0*60.0)
-            m, s = divmod(t, 60.0)
-            if h == 0.0:
-                if m == 0.0:
-                    intime = "%ds" % (s)
-                else:
-                    intime = "%dm:%02ds" % (m,s)
-            else:
-                intime = "%dh:%02dm:%02ds" % (h,m,s)
-                
-        #print >>sys.stderr,"main: VODStats",preprogress,playable,"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-
-        if ds.get_status() == DLSTATUS_HASHCHECKING:
-            genprogress = ds.get_progress()
-            pstr = str(int(genprogress*100))
-            msg = "Checking already downloaded parts "+pstr+"% done"
-        elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-            msg = 'Error playing: '+str(ds.get_error())
-        elif playable:
-            if not self.said_start_playback:
-                msg = "Starting playback..."
-                
-            if videoplayer_mediastate == MEDIASTATE_STOPPED and self.said_start_playback:
-                if totalhelping == 0:
-                    topmsg = u"Please leave the "+self.appname+" running, this will help other "+self.appname+" users to download faster."
-                else:
-                    topmsg = u"Helping "+str(totalhelping)+" "+self.appname+" users to download. Please leave it running in the background."
-                    
-                # Display this on status line
-                # TODO: Show balloon in systray when closing window to indicate things continue there
-                msg = ''
-                
-                # Display helping info on "content name" line.
-                self.videoplayer.set_content_name(topmsg)
-            elif videoplayer_mediastate == MEDIASTATE_PLAYING:
-                self.said_start_playback = True
-                # It may take a while for VLC to actually start displaying
-                # video, as it is trying to tune in to the stream (finding
-                # I-Frame). Display some info to show that:
-                #
-                cname = ds.get_download().get_def().get_name_as_unicode()
-                topmsg = u'Decoding: '+cname+' '+str(self.decodeprogress)+' s'
-                self.decodeprogress += 1
-                msg = ''
-                # Display tuning in info on "content name" line.
-                self.videoplayer.set_content_name(topmsg)
-            elif videoplayer_mediastate == MEDIASTATE_PAUSED:
-                msg = "Buffering... " + str(int(100.0*preprogress))+"%"
-            else:
-                msg = ''
-                
-        elif preprogress != 1.0:
-            pstr = str(int(preprogress*100))
-            npeers = ds.get_num_peers()
-            npeerstr = str(npeers)
-            if npeers == 0 and logmsg is not None:
-                msg = logmsg
-            else:
-                msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
-                
-            try:
-                d = ds.get_download()
-                tdef = d.get_def()
-                videofiles = d.get_selected_files()
-                if len(videofiles) == 0:
-                    videofile = None
-                else:
-                    videofile = videofiles[0]
-                if tdef.get_bitrate(videofile) is None:
-                    msg += '. This video may not play properly because its bitrate is unknown.'
-            except:
-                print_exc()
-        else:
-            msg = "Waiting for sufficient download speed... "+intime
-            
-        global ONSCREENDEBUG
-        if msg == '' and ONSCREENDEBUG:
-            uptxt = "up %.1f" % (totalspeed[UPLOAD])
-            downtxt = " down %.1f" % (totalspeed[DOWNLOAD])
-            peertxt = " peer %d" % (totalhelping)
-            msg = uptxt + downtxt + peertxt
+        [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(ds,videoplayer_mediastate,appname,self.said_start_playback,self.decodeprogress)
+        # Display helping info on "content name" line.
+        self.videoplayer.set_content_name(topmsg)
 
         # Update status msg and progress bar
         self.videoplayer.set_player_status_and_progress(msg,ds.get_pieces_complete())
@@ -462,6 +367,110 @@ class PlayerApp(BaseApp):
             else:
                 shutil.copyfile(dest_file[1], path)
     
+
+
+def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress):
+
+    topmsg = ''
+    msg = ''
+    
+    logmsgs = ds.get_log_messages()
+    logmsg = None
+    if len(logmsgs) > 0:
+        print >>sys.stderr,"main: Log",logmsgs[0]
+        logmsg = logmsgs[-1][1]
+        
+    preprogress = ds.get_vod_prebuffering_progress()
+    playable = ds.get_vod_playable()
+    t = ds.get_vod_playable_after()
+    
+    #print >>sys.stderr,"main: playble",playable,"preprog",preprogress
+    print >>sys.stderr,"main: ETA is",t,"secs"
+    if t > float(2 ** 30):
+        intime = "inf"
+    elif t == 0.0:
+        intime = "now"
+    else:
+        h, t = divmod(t, 60.0*60.0)
+        m, s = divmod(t, 60.0)
+        if h == 0.0:
+            if m == 0.0:
+                intime = "%ds" % (s)
+            else:
+                intime = "%dm:%02ds" % (m,s)
+        else:
+            intime = "%dh:%02dm:%02ds" % (h,m,s)
+            
+    #print >>sys.stderr,"main: VODStats",preprogress,playable,"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+
+    if ds.get_status() == DLSTATUS_HASHCHECKING:
+        genprogress = ds.get_progress()
+        pstr = str(int(genprogress*100))
+        msg = "Checking already downloaded parts "+pstr+"% done"
+    elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+        msg = 'Error playing: '+str(ds.get_error())
+    elif playable:
+        if not said_start_playback:
+            msg = "Starting playback..."
+            
+        if videoplayer_mediastate == MEDIASTATE_STOPPED and said_start_playback:
+            if totalhelping == 0:
+                topmsg = u"Please leave the "+appname+" running, this will help other "+appname+" users to download faster."
+            else:
+                topmsg = u"Helping "+str(totalhelping)+" "+appname+" users to download. Please leave it running in the background."
+                
+            # Display this on status line
+            # TODO: Show balloon in systray when closing window to indicate things continue there
+            msg = ''
+            
+        elif videoplayer_mediastate == MEDIASTATE_PLAYING:
+            said_start_playback = True
+            # It may take a while for VLC to actually start displaying
+            # video, as it is trying to tune in to the stream (finding
+            # I-Frame). Display some info to show that:
+            #
+            cname = ds.get_download().get_def().get_name_as_unicode()
+            topmsg = u'Decoding: '+cname+' '+str(decodeprogress)+' s'
+            decodeprogress += 1
+            msg = ''
+        elif videoplayer_mediastate == MEDIASTATE_PAUSED:
+            msg = "Buffering... " + str(int(100.0*preprogress))+"%"
+        else:
+            msg = ''
+            
+    elif preprogress != 1.0:
+        pstr = str(int(preprogress*100))
+        npeers = ds.get_num_peers()
+        npeerstr = str(npeers)
+        if npeers == 0 and logmsg is not None:
+            msg = logmsg
+        else:
+            msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
+            
+        try:
+            d = ds.get_download()
+            tdef = d.get_def()
+            videofiles = d.get_selected_files()
+            if len(videofiles) == 0:
+                videofile = None
+            else:
+                videofile = videofiles[0]
+            if tdef.get_bitrate(videofile) is None:
+                msg += '. This video may not play properly because its bitrate is unknown.'
+        except:
+            print_exc()
+    else:
+        msg = "Waiting for sufficient download speed... "+intime
+        
+    global ONSCREENDEBUG
+    if msg == '' and ONSCREENDEBUG:
+        uptxt = "up %.1f" % (totalspeed[UPLOAD])
+        downtxt = " down %.1f" % (totalspeed[DOWNLOAD])
+        peertxt = " peer %d" % (totalhelping)
+        msg = uptxt + downtxt + peertxt
+
+    return [topmsg,msg,said_start_playback,decodeprogress]
+
 
 
 class PlayerFrame(VideoFrame):

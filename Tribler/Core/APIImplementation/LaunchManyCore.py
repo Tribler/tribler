@@ -420,14 +420,6 @@ class TriblerLaunchMany(Thread):
         Called by network thread """
         if success:
             self.sdownloadtohashcheck.hashcheck_done()
-            
-        try:
-            for sd in self.hashcheck_queue:
-                print >>sys.stderr,"lm: Waiting for hashcheck",`sd.videoinfo`
-            print >>sys.stderr,"lm: EOLIST"
-        except:
-            print_exc()
-            
         if self.hashcheck_queue:
             self.dequeue_and_start_hashcheck()
         else:

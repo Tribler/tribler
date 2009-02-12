@@ -306,7 +306,10 @@ class VideoPlayer:
                 if self.playbackmode == PLAYBACKMODE_INTERNAL:
                     self.videoframe.get_videopanel().Reset()
             
-            [proceed,othertorrents] = self.warn_user(ds,infilename)
+            #[proceed,othertorrents] = self.warn_user(ds,infilename)
+            proceed = True
+            othertorrents = OTHERTORRENTS_STOP_RESTART
+            
             if not proceed:
                 # User bailing out
                 return

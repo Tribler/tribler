@@ -81,7 +81,7 @@ class GridManager(object):
         Refresh the data of the grid
         """
         print >>sys.stderr,"standardGrid: refresh"
-        #print_stack()
+        print_stack()
         #print >>sys.stderr,"standardGrid: refresh",update_observer,"ready",self.grid.initReady,"state",self.state
         
         
@@ -202,11 +202,12 @@ class GridManager(object):
         return self.total_items == 0 or (0 < len(self.data) < self.grid.items)
     
     def setObserver(self):
-        self.session.remove_observer(self.item_network_callback)
-        for notify_constant in ntfy_mappings[self.state.db]:
-            #print >> sys.stderr, 'gridmgr: For %s we added %s' % (self.state.db, notify_constant)
-            self.session.add_observer(self.item_network_callback, notify_constant,
-                                      [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CONNECTION])
+        # Arno: filesMode now shows search results, not interested in incoming torrents anymore
+        #self.session.remove_observer(self.item_network_callback)
+        #for notify_constant in ntfy_mappings[self.state.db]:
+        #    #print >> sys.stderr, 'gridmgr: For %s we added %s' % (self.state.db, notify_constant)
+        #    self.session.add_observer(self.item_network_callback, notify_constant,
+        #                              [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CONNECTION])
         
         if self.state.db == 'libraryMode' or self.state.db == 'filesMode':
             if not self.download_states_callback_set:

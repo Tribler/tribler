@@ -856,9 +856,9 @@ class GUIUtility:
             #
             # Query YouTube, etc.
             #
-            web2on = self.utility.config.Read('enableweb2search',"boolean")
-            if mode == 'filesMode' and web2on:
-                self.torrentsearch_manager.searchWeb2(60) # 3 pages, TODO: calc from grid size
+            #web2on = self.utility.config.Read('enableweb2search',"boolean")
+            #if mode == 'filesMode' and web2on:
+            #    self.torrentsearch_manager.searchWeb2(60) # 3 pages, TODO: calc from grid size
 
         
 

@@ -1678,7 +1678,7 @@ class standardDetails(wx.Panel):
                 self.utility.session.download_torrentfile_from_peer(torrent['query_permid'],torrent['infohash'],sesscb_got_requested_torrent_lambda)
                 
                 # Show pending colour
-                wx.CallAfter(self.guiUtility.standardOverview.refreshGridManager)
+                self.guiUtility.standardOverview.refreshGridManager()
             except:
                 print_exc()                        
             

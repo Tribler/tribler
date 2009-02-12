@@ -19,6 +19,7 @@ from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
 
+DEBUG = False
 
 class TopSearchPanel(bgPanel):
     def __init__(self, *args, **kwds):
@@ -60,8 +61,8 @@ class TopSearchPanel(bgPanel):
 
 
     def OnSearchKeyDown(self,event):
-        
-        print >>sys.stderr,"TopSearchPanel: OnSearchKeyDown"
+        if DEBUG:
+            print >>sys.stderr,"TopSearchPanel: OnSearchKeyDown"
         
         if event.GetEventObject().GetName() == 'text':        
             keycode = event.GetKeyCode()
@@ -80,41 +81,37 @@ class TopSearchPanel(bgPanel):
                 
                 self.black_spacer.Hide()
 
-                self.Hide()
+                ##self.Hide()
 
                 self.frame.hsizer = self.sr_indicator.GetContainingSizer()               
 
                 self.frame.Layout() 
 
                 self.createBackgroundImage()
-                self.Refresh()
-                self.Update()
-                self.Show()
+                ##self.Refresh()
+                ##self.Update()
+                ##self.Show()
                 self.srgradient.Show()
                 self.sr_indicator.Show()
                 self.frame.standardOverview.Show()
-                self.my_files.Show()
-                self.settings.Show()
+                ##self.my_files.Show()
+                ##self.settings.Show()
                 self.seperator.Show()
-                self.frame.videoframe.show_videoframe()
                 self.familyfilter.Show()
-                self.frame.pagerPanel.Show()
                 self.ag.Show() 
                 self.ag.Play()
 
-           
-
             self.frame.videoframe.show_videoframe()            
             self.frame.pagerPanel.Show()
-
-
 
             self.settings.SetForegroundColour((255,51,0))
             self.my_files.SetForegroundColour((255,51,0))
 
             self.guiUtility.guiPage = 'search_results'
             self.guiUtility.standardFilesOverview()
-            self.guiUtility.dosearch()
+            
+            # Arno: delay actual search so the painting is faster.
+            wx.CallAfter(self.guiUtility.dosearch)
         else:
             event.Skip()     
 
@@ -148,9 +145,10 @@ class TopSearchPanel(bgPanel):
         return wx.Bitmap(path,type)
         
     def OnCreate(self,event):
-        print >> sys.stderr , "Oncreate"
+        if DEBUG:
+            print >>sys.stderr,"TopSearchPanel: OnCreate"
+            
         bgPanel.OnCreate(self,event)
-
    
 # MAINLY GENERATED BELOW, replace wxStaticBitmap, etc. with wx.StaticBitmap 
 # and replace wx.BitMap with self.Bitmap
