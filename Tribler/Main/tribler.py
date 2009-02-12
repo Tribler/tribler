@@ -79,6 +79,7 @@ from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid_short
 import Tribler.Core.CacheDB.friends as friends 
 
+from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoFrame import VideoDummyFrame
 
@@ -619,7 +620,20 @@ class ABCApp(wx.App):
                 [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(playds,videoplayer_mediastate,"Tribler",self.said_start_playback,self.decodeprogress)
                 # Update status msg and progress bar
                 if topmsg != '':
-                    text = topmsg
+                    
+                    if videoplayer_mediastate == MEDIASTATE_PLAYING:
+                        # In SwarmPlayer we would display "Decoding: N secs" 
+                        # when VLC was playing but the video was not yet
+                        # being displayed (because VLC was looking for an
+                        # I-frame). We would display it in the area where
+                        # VLC would paint if it was ready to display.
+                        # Hence, our text would be overwritten when the
+                        # video was ready. We write the status text to
+                        # its own area here, so trick doesn't work.
+                        # For now: just hide.
+                        text = msg
+                    else:
+                        text = topmsg
                 else:
                     text = msg
                 self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())

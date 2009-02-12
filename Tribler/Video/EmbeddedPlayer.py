@@ -305,8 +305,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             
         status = self.vlcwrap.get_stream_information_status()
 
-        #if DEBUG:
-        print >>sys.stderr,"embedplay: GetState",status
+        if DEBUG:
+            print >>sys.stderr,"embedplay: GetState",status
         
         import vlc
         if status == vlc.PlayingStatus:

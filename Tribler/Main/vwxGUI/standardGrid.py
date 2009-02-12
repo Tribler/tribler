@@ -81,7 +81,7 @@ class GridManager(object):
         Refresh the data of the grid
         """
         print >>sys.stderr,"standardGrid: refresh"
-        print_stack()
+        #print_stack()
         #print >>sys.stderr,"standardGrid: refresh",update_observer,"ready",self.grid.initReady,"state",self.state
         
         
@@ -102,6 +102,9 @@ class GridManager(object):
         self.grid.setData(self.data)
         if DEBUG:
             print >> sys.stderr, 'GridManager: state: %s gave %d results' % (self.state, len(self.data))
+            for torrent in self.data:
+                print >>sys.stderr,"GridManager: elem name is",`torrent['name']`
+        
         
     def set_page(self, page):
         if page != self.page:
@@ -159,13 +162,8 @@ class GridManager(object):
             
             # Arno: state.db should be NTFY_ according to GridState...
             if self.torrentsearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE:
-            
-                total_items = self.get_number_torrents(state)   # read from cache
-                data = self.torrent_db.getTorrents(category_name = state.category, 
-                                                       sort = state.sort,
-                                                       range = range,
-                                                       library = (state.db == 'libraryMode'),
-                                                       reverse = state.reverse)
+                total_items = 0
+                data = []
             else:
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
                 
