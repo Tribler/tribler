@@ -246,8 +246,8 @@ class TorrentSearchGridManager:
     def gotRemoteHits(self,permid,kws,answers,mode):
         """ Called by GUIUtil when hits come in. """
         try:
-            if DEBUG:
-                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers)
+            #if DEBUG:
+            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers)
             
             # Always store the results, only display when in filesMode
             # We got some replies. First check if they are for the current query
@@ -298,14 +298,14 @@ class TorrentSearchGridManager:
                         numResults +=1
                         #if numResults % 5 == 0:
                         #self.refreshGrid()
-                    
-                if numResults > 0 and mode == 'filesMode' and self.standardOverview.getSearchBusy():
+             
+                if numResults > 0 and mode == 'filesMode': #  and self.standardOverview.getSearchBusy():
                     self.refreshGrid()
                     if DEBUG:
                         print >>sys.stderr,'Refresh grid after new remote torrent hits came in'
                 return True
             elif DEBUG:
-                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got hits for",kws,"but current search is for",self.searchkeywords[mode]
+                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords[mode]
             return False
         except:
             print_exc()
@@ -313,9 +313,8 @@ class TorrentSearchGridManager:
         
     def refreshGrid(self):
         if self.gridmgr is not None:
+            print >>sys.stderr,"TorrentSearchGridManager: refreshGrid: gridmgr refresh"
             self.gridmgr.refresh()
-
-
 
             
     #

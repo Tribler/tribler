@@ -80,7 +80,7 @@ class GridManager(object):
         """
         Refresh the data of the grid
         """
-        print >>sys.stderr,"standardGrid: refresh"
+        print >>sys.stderr,"standardGrid: refresh",self.grid.initReady
         #print_stack()
         #print >>sys.stderr,"standardGrid: refresh",update_observer,"ready",self.grid.initReady,"state",self.state
         

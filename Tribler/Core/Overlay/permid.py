@@ -154,23 +154,23 @@ def verify_response(randomA,randomB,peeridB,pubA,sigA):
 
 # External functions
 
-def create_torrent_signature(response,keypairfilename):
+def create_torrent_signature(metainfo,keypairfilename):
     keypair = EC.load_key(keypairfilename)
-    bresponse = bencode(response)
-    digester = sha(bresponse[:])
+    bmetainfo = bencode(metainfo)
+    digester = sha(bmetainfo[:])
     digest = digester.digest()
     sigstr = keypair.sign_dsa_asn1(digest)
-    response['signature'] = sigstr
-    response['signer'] = str(keypair.pub().get_der())
+    metainfo['signature'] = sigstr
+    metainfo['signer'] = str(keypair.pub().get_der())
     
-def verify_torrent_signature(response):
-    r = deepcopy(response)
+def verify_torrent_signature(metainfo):
+    r = deepcopy(metainfo)
     signature = r['signature']
     signer = r['signer']
     del r['signature']
     del r['signer']
-    bresponse = bencode(r)
-    digester = sha(bresponse[:])
+    bmetainfo = bencode(r)
+    digester = sha(bmetainfo[:])
     digest = digester.digest()
     return do_verify_torrent_signature(digest,signature,signer)
 

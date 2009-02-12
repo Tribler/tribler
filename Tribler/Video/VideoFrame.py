@@ -121,6 +121,14 @@ class VideoDummyFrame(VideoBaseFrame):
     def show_videoframe(self):
         self.videopanel.Show()
 
+        # H4x0r: We need to tell the VLC wrapper a XID of a
+        # window to paint in. Apparently on win32 the XID is only
+        # known when the window is shown. We give it the command
+        # to show here, so shortly after it should be shown.
+        #
+        wx.CallAfter(self.videopanel.TellLVCWrapWindow4Playback)
+
+
     def hide_videoframe(self):
         self.videopanel.Hide()
 
