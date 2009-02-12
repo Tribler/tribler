@@ -31,7 +31,7 @@ from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *
 
-DEBUG = False
+DEBUG = True
 
 [ID_MENU_1418,ID_MENU_1419,ID_MENU_1420] = 1418,1419,1420
 
@@ -100,6 +100,7 @@ class LibraryItemPanel(wx.Panel):
         self.name = name
         self.torrentDetailsFrame = None
         self.first = True
+        self.containsvideo = None # None means unknown, True=yes, False=no ;o)
         
         self.addComponents()
             
@@ -390,6 +391,9 @@ class LibraryItemPanel(wx.Panel):
         else:
             for child in self.GetChildren():
                 child.Show()
+        
+        if torrent and oldinfohash != self.data['infohash']:
+            self.containsvideo = None
             
         if torrent.get('ds'):
             #print '%s is an active torrent' % torrent['name']
@@ -471,20 +475,12 @@ class LibraryItemPanel(wx.Panel):
                 self.speedUp2.SetLabel('--')
                 self.library_play.setEnabled(False)
             else:
-                showPlayButton = False 
-                try:
-                    torrent_dir = self.utility.session.get_torrent_collecting_dir()
-                    if 'torrent_file_name' not in torrent:
-                        torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
-                    torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
-    
-                    if os.path.isfile(torrent_filename):
-                        tdef = TorrentDef.load(torrent_filename)
-                        isVideo = bool(tdef.get_files(exts=videoextdefaults))
-                        showPlayButton = isVideo
-                except:
-                    print_exc()
-                self.library_play.setEnabled(showPlayButton)
+                if self.containsvideo is None:
+                    self.async_check_torrentfile_contains_video(torrent)
+                if self.containsvideo is not None:
+                    self.library_play.setEnabled(self.containsvideo)
+                else:
+                    self.library_play.setEnabled(False)
             
             self.eta.SetLabel('')
             
@@ -586,8 +582,8 @@ class LibraryItemPanel(wx.Panel):
         event.Skip()
         
     def mouseAction(self, event):
-        if DEBUG:
-            print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
+        #if DEBUG:
+        print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
 
 
         event.Skip()
@@ -610,7 +606,11 @@ class LibraryItemPanel(wx.Panel):
         except:
             pass
             
+        print >>sys.stderr,"lip: mouseAction: ENABLED"
+            
         if self.data.get('ds'):
+                
+            print >>sys.stderr,"lip: mouseAction: got ds"
                 
             ds = self.data.get('ds')
 #            if name == 'deleteLibraryitem':
@@ -640,6 +640,9 @@ class LibraryItemPanel(wx.Panel):
                 self.play(ds)
                 
         else: # no abctorrent
+            
+            print >>sys.stderr,"lip: mouseAction: No ds"
+            
             if name == 'pause':
                  #playbutton
                  dest_dir = self.data.get('destdir')
@@ -659,9 +662,14 @@ class LibraryItemPanel(wx.Panel):
                  
                  elif DEBUG:
                      print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('name'))
-            elif name == 'libraryPlay':
+                     
+            elif name == 'library_play':
                 # Todo: make non-abctorrent files playable.
                 dest_dir = self.data.get('destdir')
+                
+                if dest_dir is None: # workaround for testing
+                    dest_dir = get_default_dest_dir()
+                
                 if  dest_dir is not None:
                     # Start torrent again
                     if DEBUG:
@@ -687,52 +695,6 @@ class LibraryItemPanel(wx.Panel):
         if menu is not None:
             self.PopupMenu(menu, (-1,-1))        
         
-        #--tb--
-#        rightMouse = wx.Menu()        
-#
-#        self.utility.makePopup(rightMouse, self.onOpenFileDest, 'ropenfiledest')
-#        self.utility.makePopup(rightMouse, self.onOpenDest, 'ropendest')
-#        rightMouse.AppendSeparator()        
-#        self.utility.makePopup(rightMouse, self.onModerate, 'rModerate')              
-#        self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
-#        #if secret:
-#        self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
-#        #else:
-#        self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
-#        rightMouse.AppendSeparator()
-#        self.utility.makePopup(rightMouse, None, 'rLibraryOptions')
-#        self.utility.makePopup(rightMouse, None, 'rRemoveFromList')
-#        self.utility.makePopup(rightMouse, None, 'rRemoveFromListAndHD')  
-        
-
-##        #Add the priority submenu if this is a multi-file torrent
-##        if not self.torrent.files.isFile():
-##            prioritymenu = self.makePriorityMenu()
-##            if prioritymenu is not None:
-##                menu.AppendMenu(-1, self.utility.lang.get('rpriosetting'), prioritymenu)
-##
-##         Popup the menu.  If an item is selected then its handler
-##         will be called before PopupMenu returns.
-##        if event is None:
-##             use the position of the first selected item (key event)
-##            position = self.GetItemPosition(s[0])
-##        else:
-##             use the cursor position (mouse event)
-##            position = event.GetPoint()
-
-        #position = event.GetPoint()
-#        self.PopupMenu(rightMouse, (-1,-1))
-
-
-    
-       
-#    def doubleClicked(self, event):
-#        # open torrent details frame
-#        abctorrent = self.data.get('abctorrent')
-#        if abctorrent:
-#            abctorrent.dialogs.advancedDetails()
-#            
-#        event.Skip()
         
     def getIdentifier(self):
         if self.data:
@@ -767,6 +729,9 @@ class LibraryItemPanel(wx.Panel):
             self.dlhelperframe.Show()
                 
     def play(self,ds):
+        
+        print >>sys.stderr,"lip: play"
+        
         self._get_videoplayer(exclude=ds).play(ds)
     
     def switch_to_standard_dlmode(self,ABCTorrentTemp): 
@@ -844,3 +809,56 @@ class LibraryItemPanel(wx.Panel):
             dc.DrawText('online', 38, 64)
             self.title.Hide()
 
+
+    def async_check_torrentfile_contains_video(self,torrent):
+        if 'torrent_file_name' in torrent and torrent['torrent_file_name'] != '':
+            torrent_dir = self.utility.session.get_torrent_collecting_dir()
+            torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
+            
+            if DEBUG:
+                print "lip: Scheduling read videofiles from",`torrent['name']`,"from",torrent_filename
+            
+            def loadMetaDataNow():
+                try:
+                    self.guiservthread_loadMetadata(torrent,torrent_filename)
+                except wx.PyDeadObjectError:
+                    pass
+                
+            try:
+                self.GetParent().guiserver.add_task(loadMetaDataNow,0)
+            except wx.PyDeadObjectError:
+                # ARNO: TODO: The FileItemPanels that use this ThumbnailViewer now get deleted, and thus
+                # also the ThumbnailViewer objects. Or at least the C++ part of them. As a result we
+                # can no longer schedule these loadMetadata callbacks on the GUITaskQueue thread. 
+                #
+                # At the moment, the wx code protects us, and throws an exception that the C++ part
+                # of the ThumbnailViewer object is gone. But we should clean this up. 
+                pass
+        else:
+            self.containsvideo = False
+        
+    def guiservthread_loadMetadata(self, torrent,torrent_filename):
+        """ Called by separate non-GUI thread """
+        
+        isVideo = False 
+        try:
+            if os.path.isfile(torrent_filename):
+                # ARNO50: TODO optimize
+                print >>sys.stderr,"lip: Reading",torrent_filename,"to see if contains video"
+                tdef = TorrentDef.load(torrent_filename)
+                isVideo = bool(tdef.get_files(exts=videoextdefaults))
+        except:
+            print_exc()
+            
+        if torrent['infohash'] == self.data['infohash']:
+            self.containsvideo = isVideo
+            wx.CallAfter(self.metadata_loaded,torrent,None)
+
+             
+    def metadata_loaded(self,torrent,metadata):
+        """ Called by GUI thread """
+        try:
+            if torrent['infohash'] == self.data['infohash']:
+                self.library_play.setEnabled(self.containsvideo)
+        except wx.PyDeadObjectError:
+            pass

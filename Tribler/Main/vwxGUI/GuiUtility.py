@@ -120,6 +120,8 @@ class GUIUtility:
         
         if DEBUG:
             print >>sys.stderr,'GUIUtil: Button clicked %s' % name
+            print_stack()
+        
         
         if name == 'moreFileInfo':
             self.standardFileDetailsOverview()
@@ -352,6 +354,7 @@ class GUIUtility:
                     self.frame.search_results.SetLabel('Return to Results')
                     self.frame.search_results.SetForegroundColour(wx.RED)
                 self.frame.top_bg.Layout()
+                
                 self.frame.pagerPanel.Show()
 
 

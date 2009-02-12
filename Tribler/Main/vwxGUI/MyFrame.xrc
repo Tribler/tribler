@@ -184,8 +184,6 @@
                             </object>
                           </object>
                         </object>
-                        <flag>wxFIXED_MINSIZE</flag>
-                        <minsize>667,20</minsize>
                       </object>
                     </object>
                     <option>0</option>

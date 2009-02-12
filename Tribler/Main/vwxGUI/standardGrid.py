@@ -101,9 +101,9 @@ class GridManager(object):
         #print >> sys.stderr, 'GridManager: Data length: %d/%d' % (len(self.data), self.total_items)
         self.grid.setData(self.data)
         if DEBUG:
-            print >> sys.stderr, 'GridManager: state: %s gave %d results' % (self.state, len(self.data))
-            for torrent in self.data:
-                print >>sys.stderr,"GridManager: elem name is",`torrent['name']`
+            print >> sys.stderr, 'GridManager: state: %s gave %d results, out of total %d' % (self.state, len(self.data), self.total_items)
+            #for torrent in self.data:
+            #    print >>sys.stderr,"GridManager: elem name is",`torrent['name']`
         
         
     def set_page(self, page):
@@ -117,7 +117,11 @@ class GridManager(object):
     def get_number_torrents(self, state):
         # cache the numbers to avoid loading db, which is a heavy operation
         category_name = state.category
+        
+        ## ARNO50: TEST 
         library = (state.db == 'libraryMode')
+        #library = False
+        
         key = (category_name, library)
 
         now = time()
@@ -170,7 +174,9 @@ class GridManager(object):
                 data = self.torrent_db.getTorrents(category_name = state.category, 
                                                        sort = sortcol,
                                                        range = range,
+                                                       ## ARNO50: TEST
                                                        library = (state.db == 'libraryMode'),
+                                                       #library = False,
                                                        reverse = state.reverse)
             else:
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
@@ -608,7 +614,10 @@ class standardGrid(wx.Panel):
         "Refresh TorrentPanels with correct data and refresh pagerPanel"
         if self.getStandardPager():
             self.standardPager.refresh()
+        # Paint pager before contents
+        wx.CallAfter(self.refreshPanelsStage2)    
         
+    def refreshPanelsStage2(self):
         if self.data is None:
             self.clearAllData()
         else:

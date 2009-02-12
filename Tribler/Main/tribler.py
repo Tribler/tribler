@@ -231,54 +231,12 @@ class ABCApp(wx.App):
             self.guiUtility.scrollWindow.SetScrollbars(1,1,1024,768)
             self.guiUtility.scrollWindow.SetScrollRate(15,15)
             self.frame.mainButtonPersons = xrc.XRCCTRL(self.frame, "mainButtonPersons")
-
-#            self.frame.numberPersons = xrc.XRCCTRL(self.frame, "numberPersons")
-#            numperslabel = xrc.XRCCTRL(self.frame, "persons")
-#            self.frame.numberFiles = xrc.XRCCTRL(self.frame, "numberFiles")
-#            numfileslabel = xrc.XRCCTRL(self.frame, "files")
             self.frame.messageField = xrc.XRCCTRL(self.frame, "messageField")
-            #self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
-            ##self.frame.search = xrc.XRCCTRL(self.frame, 'top_search').searchField
-            ##self.frame.search.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDown)
-            ##self.frame.go = xrc.XRCCTRL(self.frame, 'top_search').go
-            ##self.frame.go.Bind(wx.EVT_LEFT_UP, self.OnGoKeyPressed)
-
-
             self.frame.pageTitle = xrc.XRCCTRL(self.frame, "pageTitle")
             self.frame.pageTitlePanel = xrc.XRCCTRL(self.frame, "pageTitlePanel")
-            #self.frame.leftMenuHeader = xrc.XRCCTRL(self.frame, "leftMenuHeader")
-            #self.frame.rightMenuHeader = xrc.XRCCTRL(self.frame, "rightMenuHeader")
-            #self.frame.LeftMenu = xrc.XRCCTRL(self.frame, "LeftMenu")
-            #self.frame.hideLeft = xrc.XRCCTRL(self.frame, "hideLeft")
-            #self.frame.hideRight = xrc.XRCCTRL(self.frame, "hideRight")
-            #self.frame.playerDockedPanel = xrc.XRCCTRL(self.frame, "playerDockedPanel")
-            #self.advancedFiltering = xrc.XRCCTRL(self.frame, "advancedFiltering")
             self.frame.standardDetails = xrc.XRCCTRL(self.frame, "standardDetails")
             self.frame.standardOverview = xrc.XRCCTRL(self.frame, "standardOverview")
             self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
-         
-            #self.triblerStyles.titleBar(self.frame.pageTitle)
-            #self.triblerStyles.titleBar(self.frame.pageTitlePanel)
-            #self.triblerStyles.titleBar(self.frame.leftMenuHeader)
-            #self.triblerStyles.titleBar(self.frame.rightMenuHeader)
-            
-            #tt = self.frame.firewallStatus.GetToolTip()
-            #if tt is not None:
-                #tt.SetTip(self.utility.lang.get('unknownreac_tooltip'))
-            
-            #if sys.platform == "linux2":
-#                self.frame.numberPersons.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-#                self.frame.numberFiles.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-                #self.frame.messageField.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-#                numperslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-#                numfileslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-
-            #self.menubar = MainMenuBar(self.frame,self.utility)
-
-
-
-
-            
             
             # Make sure self.utility.frame is set
             self.startAPI()
@@ -292,29 +250,8 @@ class ABCApp(wx.App):
             
             self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_search")
             self.frame.top_bg.set_frame(self.frame)
-            ##self.frame.sharing_reputation = xrc.XRCCTRL(self.frame, "top_search").sharing_reputation
-            ##self.frame.srgradient = xrc.XRCCTRL(self.frame, "top_search").srgradient
-            ##self.frame.help = xrc.XRCCTRL(self.frame,"top_search").help
-            ##self.frame.help.Bind(wx.EVT_LEFT_UP, self.helpClick)
-            ##self.frame.sr_indicator = xrc.XRCCTRL(self.frame, "top_search").sr_indicator
-            ##self.frame.black_spacer = xrc.XRCCTRL(self.frame, "top_search").black_spacer
-            #self.frame.searching = xrc.XRCCTRL(self.frame,"top_search").searching
-            ##self.frame.search_results = xrc.XRCCTRL(self.frame,"top_search").search_results
-            ##self.frame.search_results.Bind(wx.EVT_LEFT_UP, self.OnSearchResultsPressed)
-            ##self.frame.settings = xrc.XRCCTRL(self.frame,"top_search").settings
-            ##self.frame.settings.Bind(wx.EVT_LEFT_UP, self.viewSettings)
-            ##self.frame.my_files = xrc.XRCCTRL(self.frame,"top_search").my_files
-            ##self.frame.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
-            ##self.frame.seperator = xrc.XRCCTRL(self.frame,"top_search").seperator
-            ##self.frame.newFile = xrc.XRCCTRL(self.frame,"top_search").newFile
-            ##self.frame.tribler_logo2 = xrc.XRCCTRL(self.frame, "top_search").tribler_logo2
-            
             self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
             self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
-            #self.frame.preLoader = xrc.XRCCTRL(self.frame,"preloader")
-
-
-            
 
             # videopanel
             self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
@@ -322,10 +259,6 @@ class ABCApp(wx.App):
             
             self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,self.videoplayer.get_vlcwrap(),logopath)
             self.videoplayer.set_videoframe(self.frame.videoframe)
-
-            # family filter
-            ##self.frame.familyfilter = xrc.XRCCTRL(self.frame,"top_search").familyfilter
-            ##self.frame.familyfilter.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
 
             hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel]
 
@@ -432,15 +365,6 @@ class ABCApp(wx.App):
                 self.frame.top_bg.Hide()
 
                 self.frame.hsizer = self.frame.sr_indicator.GetContainingSizer()               
-
-                # ARNO50: why not make bc_db a member variable?
-                bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-                reputation = bc_db.getMyReputation()
-                self.utility.session.close_dbhandler(bc_db)
-
-                self.frame.help.SetToolTipString(self.guiUtility.utility.lang.get('help') % (reputation))
-
-
 
                 self.frame.top_bg.createBackgroundImage()
                 self.frame.top_bg.Refresh(True)

@@ -174,11 +174,6 @@ class standardPager(wx.Panel):
             self.currentDots[0] = None
             refresh = True
             
-        
-        if refresh:
-            self.hSizer.Layout()
-            self.Refresh()
-            self.Show(True)
             
         #print '%d statictexts' % (len(self.pageNumbers))
         # Put right numbers in statictexts
@@ -197,6 +192,11 @@ class standardPager(wx.Panel):
                 panel.SetBackgroundColour(self.pagerColour)
 
             page+=1
+
+        if refresh:
+            self.hSizer.Layout()
+            self.Refresh()
+            self.Show(True)
         
         
     def getDefaultTextField(self, t=""):
@@ -237,8 +237,6 @@ class standardPager(wx.Panel):
         else:
             self.totalPages = int(math.ceil(self.totalItems/float(self.itemsPerPage)))
 
-            
-        
         #self.number.SetLabel('%d %s%s / %d %s%s' % (self.totalItems, self.utility.lang.get('item'), getPlural(self.totalItems), self.totalPages, self.utility.lang.get('page'), getPlural(self.totalPages)))
         
         if self.currentPage >= self.totalPages:
