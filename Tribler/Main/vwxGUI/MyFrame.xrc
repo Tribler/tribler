@@ -173,8 +173,9 @@
                               <option>0</option>
                               <object class="wxPanel" name="standardPager" subclass="Tribler.Main.vwxGUI.standardPager.standardPager">
                                 <pos>370,460</pos>
-                                <size>297,20</size>
+                                <size>382,20</size>
                               </object>
+                              <minsize>382,20</minsize>
                             </object>
                             <object class="spacer">
                               <size>8,28</size>

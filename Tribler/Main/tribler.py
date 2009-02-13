@@ -529,6 +529,10 @@ class ABCApp(wx.App):
         """ Called by MainThread  """
         if DEBUG: 
             print >>sys.stderr,"main: Stats:"
+            
+        torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
+        print >>sys.stderr,"main: Total torrents found",torrentdb.size()    
+            
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
             playds = None

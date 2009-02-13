@@ -96,7 +96,9 @@ class standardPager(wx.Panel):
         self.hSizer.Add(self.right, 0, wx.TOP, 0)
        
         
-        self.SetSizer(self.hSizer);self.SetAutoLayout(1);self.Layout();
+        self.SetSizer(self.hSizer)
+        self.SetAutoLayout(1)
+        self.Layout()
         self.Refresh()
         self.Show()
         
