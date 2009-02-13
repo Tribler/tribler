@@ -260,7 +260,16 @@ class ABCApp(wx.App):
             self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,self.videoplayer.get_vlcwrap(),logopath)
             self.videoplayer.set_videoframe(self.frame.videoframe)
 
-            hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel]
+            if sys.platform == "linux2":
+                # On Linux the _PostInit does not get called if the thing
+                # is not shown. We need the _PostInit to be called to set
+                # the GUIUtility.standardOverview, etc. member variables.
+                #
+                wx.CallAfter(self.frame.standardOverview.Hide)
+                wx.CallAfter(self.frame.standardDetails.Hide)
+                hide_names = [self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel]
+            else:
+                hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel]
 
             for name in hide_names:
                 name.Hide()
