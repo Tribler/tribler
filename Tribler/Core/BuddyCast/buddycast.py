@@ -317,9 +317,9 @@ class BuddyCastFactory:
             # if any. So when you change this time, make sure it allows for UPnP to
             # do its thing, or add explicit coordination between UPnP and BC.
             # See BitTornado/launchmany.py
-            self.overlay_bridge.add_task(self.data_handler.postInit, 1)
-            self.overlay_bridge.add_task(self.doBuddyCast, 2)
-            self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers, 5)
+            self.overlay_bridge.add_task(self.data_handler.postInit, 0)
+            self.overlay_bridge.add_task(self.doBuddyCast, 1)
+            self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers, 3)
             
             print >> sys.stderr, "BuddyCast starts up", currentThread().getName()
         

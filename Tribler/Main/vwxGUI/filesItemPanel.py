@@ -327,6 +327,48 @@ class FilesItemPanel(wx.Panel):
                 else:
                     self.fileSize.SetLabel(self.utility.size_format(torrent['length']))
                 
+                # Show Popularity of torrent a sequence of bars
+                total = torrent['num_seeders']+torrent['num_leechers']
+                
+                popularity_file = os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","popularity")
+
+                if total > 18000:  
+                    popularity_file+='10'
+                elif total > 16000:  
+                    popularity_file+='9'
+                elif total > 14000:  
+                    popularity_file+='8'
+                elif total > 12000:  
+                    popularity_file+='7'
+                elif total > 10000:  
+                    popularity_file+='6'
+                elif total > 8000:  
+                    popularity_file+='5'
+                elif total > 6000:  
+                    popularity_file+='4'
+                elif total > 4000:  
+                    popularity_file+='3'
+                elif total > 2000:  
+                    popularity_file+='2'
+                else:  
+                    popularity_file+='1'
+
+                popularity_file+='.png'
+
+                if self.popularity is not None:
+                    self.popularity.Destroy()
+
+                #self.popularity = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(49,12),name=popularity_file)
+                self.popularity_image = wx.Image(popularity_file, wx.BITMAP_TYPE_ANY)            
+
+                self.popularity = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.popularity_image))
+
+                self.hSizer.Add(self.popularity, 0, wx.TOP, 2)
+
+                self.hLine.Show()
+
+                
+                
                 self.hLine.Show()
         else:
             #self.thumb.Hide()
