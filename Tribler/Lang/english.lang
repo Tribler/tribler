@@ -1033,7 +1033,7 @@ upgradeabc = "Your software is outdated. Would you like to visit http://tribler.
 upgradeabctitle = "Update to Tribler "
 mainpage = "Tribler Main Page"
 sharing_reputation_information_title = "Sharing reputation information"
-sharing_reputation_information_message = "This progress bar views your sharing reputation. The better your sharing ratio the higher your sharing reputation."
+sharing_reputation_information_message = "This progress bar shows your sharing reputation. The better your sharing ratio the higher your sharing reputation."
 
 #############
 #Make Torrent

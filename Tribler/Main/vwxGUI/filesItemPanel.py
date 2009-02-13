@@ -72,7 +72,7 @@ class FilesItemPanel(wx.Panel):
         self.parent = parent
         self.data = None
         self.datacopy = {}
-        self.titleLength = 137 # num characters
+        self.titleLength = 64 # num characters
         self.triblerGrey = wx.Colour(200,200,200) ## 128,128,128
         self.selected = False
         self.warningMode = False

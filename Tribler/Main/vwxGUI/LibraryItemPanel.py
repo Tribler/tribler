@@ -92,7 +92,7 @@ class LibraryItemPanel(wx.Panel):
         self.data = None
         self.status = None
         self.rightMouse = None
-        self.titleLength = 106 # num characters
+        self.titleLength = 40 # num characters
         self.selected = False
         self.warningMode = False
         self.summary = None
@@ -670,65 +670,12 @@ class LibraryItemPanel(wx.Panel):
         videoplayer.set_other_downloads(other_downloads)
         return videoplayer
         
-    def switch_to_vod(self,ds):
-        self._get_videoplayer(exclude=ds).play(ds)
-      
-    def show_boost(self, ds):
-        if ds is not None:
-            self.dlhelperframe = DownloadHelperFrame(self,self.utility,ds)
-            self.dlhelperframe.Show()
-                
     def play(self,ds):
         
         print >>sys.stderr,"lip: play"
         
         self._get_videoplayer(exclude=ds).play(ds)
     
-    def switch_to_standard_dlmode(self,ABCTorrentTemp): 
-        self._get_videoplayer().vod_back_to_standard_dlmode(ABCTorrentTemp) 
-        
-    def is_boosted_or_boosting(self): 
-        if self.data is None: 
-            return False 
-        ds = self.data.get('ds') 
-        return ds and (len(ds.get_coopdl_helpers()) > 0 or ds.get_coopdl_coordinator() is not None)
-             
-    def abcTorrentShutdown(self, infohash):
-        """
-        The abctorrent related to this panel was shutdown
-        """
-        if self.data.get('infohash') == infohash and self.data.get('abctorrent'):
-            if DEBUG:
-                print >>sys.stderr,'lip: abcTorrentShutdown with right infohash'
-            
-            abctorrent = self.data.get('abctorrent')
-            progresstxt = abctorrent.getColumnText(COL_PROGRESS)
-            progress = float(progresstxt[:-1])
-            # store the progress of this torrent
-            newdata = {'progress':progress, 'destdir':abctorrent.files.dest}
-            self.data.update(newdata)
-            
-            if DEBUG:
-                print >>sys.stderr,'lip: Save destination?: %s and progress: %f' % (`self.data['destdir']`, self.data['progress'])
-            # only save new data (progression and destdir, no other data or torrent
-            self.utility.torrent_db.updateTorrent(infohash, **newdata)
-            # Now delete the abctorrent object reference
-            del self.data['abctorrent']
-
-    
-    def abctorrentFinished(self, infohash):
-        """
-        The download just finished. Call standardOverview to resort.
-        """
-        
-        if self.data.get('infohash') == infohash:
-            standardOverview = self.guiUtility.standardOverview
-            if standardOverview.mode == 'libraryMode':
-                standardOverview.filterChanged(None)
-                #print 'filterChanged()called'
-
-                
-                
     def toggleLibraryItemDetailsSummary(self, visible):
 
         if visible and not self.summary:           
