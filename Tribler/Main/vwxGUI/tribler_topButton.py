@@ -19,7 +19,7 @@ class tribler_topButton(wx.Panel):
     __bitmapCache = {}
 
     def __init__(self, *args, **kw):
-#        print "<mluc> tribler_topButton in init"
+#        print >>sys.stderr,"<mluc> tribler_topButton in init"
         self.initDone = False
         self.enabled = True
         if len(args) == 0: 
@@ -34,14 +34,14 @@ class tribler_topButton(wx.Panel):
             self._PostInit()     
         
     def OnCreate(self, event):
-#        print "<mluc> tribler_topButton in OnCreate"
+#        print >>sys.stderr,"<mluc> tribler_topButton in OnCreate"
         self.Unbind(wx.EVT_WINDOW_CREATE)
         wx.CallAfter(self._PostInit)
         event.Skip()
         return True
     
     def _PostInit(self):
-#        print "<mluc> tribler_topButton in _PostInit"
+#        print >>sys.stderr,"<mluc> tribler_topButton in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
@@ -85,7 +85,6 @@ class tribler_topButton(wx.Panel):
                   print >>sys.stderr,"TopButton: Could not find image:",img
             try:
                 if img in tribler_topButton.__bitmapCache:
-                    print >>sys.stderr,"REUSING IMG",self.GetName()
                     self.bitmaps[i] = tribler_topButton.__bitmapCache[img]
                 else:
                     self.bitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
@@ -102,7 +101,7 @@ class tribler_topButton(wx.Panel):
     def switchTo(self, normalBitmap, selectedBitmap=None):
         if self.old_bitmaps is not None:
             if DEBUG:
-                print "tribler_TopButton: First should switchBack..."
+                print >>sys.stderr,"tribler_TopButton: First should switchBack..."
         else:
             #save the initial bitmaps
             self.old_bitmaps = self.bitmaps
@@ -117,7 +116,7 @@ class tribler_topButton(wx.Panel):
             self.Refresh()
         else:
             if DEBUG:
-                print "Nothing to switch back to..."
+                print >>sys.stderr,"TopButton: Nothing to switch back to..."
         
         
     def createBackgroundImage(self):
@@ -214,12 +213,12 @@ class tribler_topButton(wx.Panel):
             images = []
             if len(rects) > 1:
                 if DEBUG:
-                    print "(button %s) Result: %s" % (self.GetName(), rects)
+                    print >>sys.stderr,"TopButton: (button %s) Result: %s" % (self.GetName(), rects)
                 image = wx.EmptyImage(rect[2], rect[3])
                 for r in rects:    
                     rect = wx.Rect(r[0], r[1], r[2], r[3])
                     if DEBUG:
-                        print '(button %s) Trying to get rect: %s from bitmap: %s' % (self.GetName(), rect, bitmap.GetSize())
+                        print >>sys.stderr,'TopButton: (button %s) Trying to get rect: %s from bitmap: %s' % (self.GetName(), rect, bitmap.GetSize())
                     subBitmap = bitmap.GetSubBitmap(rect)
                     subImage = subBitmap.ConvertToImage()
                     if len(rects) == 2:
@@ -237,10 +236,10 @@ class tribler_topButton(wx.Panel):
                         elif r == rects[3]:
                             place = (rects[0][2], rects[0][3])
                     if DEBUG:
-                        print "(button %s) Place subbitmap: %s" % (self.GetName(), str(place))
+                        print >>sys.stderr,"TopButton: (button %s) Place subbitmap: %s" % (self.GetName(), str(place))
                     self.joinImage(image, subImage, place[0], place[1])
                 if DEBUG:
-                    print '(button %s) Result img size: %s' % (self.GetName(), str(image.GetSize()))
+                    print >>sys.stderr,'TopButton: (button %s) Result img size: %s' % (self.GetName(), str(image.GetSize()))
                 return image.ConvertToBitmap()
             else:
                 return bitmap.GetSubBitmap(wx.Rect(rect[0], rect[1], rect[2], rect[3]))
@@ -366,30 +365,19 @@ class SwitchButton(tribler_topButton):
                         os.path.join(self.imagedir, self.GetName()+'Enabled_clicked.png')
                         ]
         
-        
         i = 0
         for img in self.bitmapPath:
-            if os.path.isfile(img):
-                self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
-                i+=1
-            elif DEBUG:
-                print >> sys.stderr, "Could not find image: %s" % img
- 
-
-
-##        i = 0
-##        for img in self.bitmapPath:
-##            try:
-##                if img in SwitchButton.__bitmapCache:
-##                    self.allBitmaps[i] = SwitchButton.__bitmapCache[img]
-##                else:
-##                    self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
-##                    SwitchButton.__bitmapCache[img] = self.allBitmaps[i] 
-##                i+=1
-##            except:
-##                print_exc()
-                
-                
+            if not os.path.isfile(img):
+                print >>sys.stderr,"SwitchButton: Could not find image:",img
+            try:
+                if img in SwitchButton.__bitmapCache:
+                    self.allBitmaps[i] = SwitchButton.__bitmapCache[img]
+                else:
+                    self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+                    SwitchButton.__bitmapCache[img] = self.allBitmaps[i] 
+            except:
+                print_exc()
+            i+=1
 
         if self.toggled:
             self.bitmaps = self.allBitmaps[2:]
