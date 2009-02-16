@@ -79,27 +79,20 @@ class tribler_topButton(wx.Panel):
         self.bitmapPath = [os.path.join(self.imagedir, self.GetName()+'.png'), 
                         os.path.join(self.imagedir, self.GetName()+'_clicked.png')]
 
-
         i = 0
         for img in self.bitmapPath:
-            if os.path.isfile(img):
-                self.bitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
-            elif DEBUG:
-                print 'Could not find image: %s' % img
-
-        
-##        i = 0
-##        for img in self.bitmapPath:
-##            try:
-##                if img in tribler_topButton.__bitmapCache:
-##                    self.bitmaps[i] = tribler_topButton.__bitmapCache[img]
-##                else:
-##                    self.bitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
-##                    tribler_topButton.__bitmapCache[img] = self.bitmaps[i] 
-##                i+=1
-##          except:
-##                print_exc()
-         
+            if not os.path.isfile(img):
+                  print >>sys.stderr,"TopButton: Could not find image:",img
+            try:
+                if img in tribler_topButton.__bitmapCache:
+                    print >>sys.stderr,"REUSING IMG",self.GetName()
+                    self.bitmaps[i] = tribler_topButton.__bitmapCache[img]
+                else:
+                    self.bitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+                    tribler_topButton.__bitmapCache[img] = self.bitmaps[i] 
+            except:
+                print_exc()
+            i+=1         
            
     def setBitmaps(self, normalBitmap, selectedBitmap=None):
         # This function does not protect you as switch* do.
@@ -296,8 +289,8 @@ class tribler_topButton(wx.Panel):
 
 class TestButton(tribler_topButton):
 
+    # Somehow can't inherit these
     __bitmapCache = {}
-    
 
 
     def OnPaint(self, evt):

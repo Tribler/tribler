@@ -448,14 +448,21 @@ class VLCLogoWindow(wx.Window):
         x,y,maxw,maxh = self.GetClientRect()
         halfx = (maxw-x)/2
         halfy = (maxh-y)/2
-        halfx -= self.logo.GetWidth()/2
-        halfy -= self.logo.GetHeight()/2
+        if self.logo is None:
+            halfx = 10
+            halfy = 10
+            lheight = 20
+        else:
+            halfx -= self.logo.GetWidth()/2
+            halfy -= self.logo.GetHeight()/2
+            lheight = self.logo.GetHeight()
 
         dc.SetPen(wx.Pen(self.bg,0))
         dc.SetBrush(wx.Brush(self.bg))
         if sys.platform == 'linux2':
             dc.DrawRectangle(x,y,maxw,maxh)
-        dc.DrawBitmap(self.logo,halfx,halfy,True)
+        if self.logo is not None:
+            dc.DrawBitmap(self.logo,halfx,halfy,True)
         #logox = max(0,maxw-self.logo.GetWidth()-30)
         #dc.DrawBitmap(self.logo,logox,20,True)
 
@@ -463,7 +470,7 @@ class VLCLogoWindow(wx.Window):
         dc.SetTextBackground(wx.BLACK)
         
         lineoffset = 120
-        txty = halfy+self.logo.GetHeight()+lineoffset
+        txty = halfy+lheight+lineoffset
         if txty > maxh:
             txty = 0
         if self.contentname is not None:

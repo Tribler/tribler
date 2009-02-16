@@ -108,7 +108,7 @@ class FilesItemDetailsSummary(bgPanel):
         self.triblerStyles.setDarkText(self.CreationDate_info)
         self.CreationDate_info.SetLabel(friendly_time(self.torrent['creation_date']))
 
-        self.ModeratorName = wx.StaticText(self,-1,"Moderator name:",wx.Point(0,0),wx.Size(125,22))     
+        self.ModeratorName = wx.StaticText(self,-1,"Moderator name: ",wx.Point(0,0),wx.Size(125,22))     
         self.ModeratorName.SetMinSize((125,14))
         self.triblerStyles.setLightText(self.ModeratorName)
 

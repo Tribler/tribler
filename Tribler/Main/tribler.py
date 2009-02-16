@@ -228,8 +228,8 @@ class ABCApp(wx.App):
             self.guiUtility.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
             self.guiUtility.mainSizer = self.guiUtility.scrollWindow.GetSizer()
             self.frame.topBackgroundRight = xrc.XRCCTRL(self.frame, "topBG3")
-            self.guiUtility.scrollWindow.SetScrollbars(1,1,1024,768)
-            self.guiUtility.scrollWindow.SetScrollRate(15,15)
+            #self.guiUtility.scrollWindow.SetScrollbars(1,1,1100,683)
+            #self.guiUtility.scrollWindow.SetScrollRate(15,15)
             self.frame.mainButtonPersons = xrc.XRCCTRL(self.frame, "mainButtonPersons")
             self.frame.messageField = xrc.XRCCTRL(self.frame, "messageField")
             self.frame.pageTitle = xrc.XRCCTRL(self.frame, "pageTitle")
@@ -255,8 +255,8 @@ class ABCApp(wx.App):
 
             # videopanel
             self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
-            logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler_small.png')
-            
+            #logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler_small.png')
+            logopath = None
             self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,self.videoplayer.get_vlcwrap(),logopath)
             self.videoplayer.set_videoframe(self.frame.videoframe)
 

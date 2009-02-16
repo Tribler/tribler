@@ -131,7 +131,8 @@ class LibraryItemPanel(wx.Panel):
         self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
        
 
-        self.line_file = wx.Image("Tribler/Main/vwxGUI/images/5.0/line3.png", wx.BITMAP_TYPE_ANY)            
+        imgpath = os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0","line3.png")
+        self.line_file = wx.Image(imgpath, wx.BITMAP_TYPE_ANY)            
 
         self.hLine = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.line_file))
 
@@ -450,11 +451,11 @@ class LibraryItemPanel(wx.Panel):
                 showPlayButton = isVideo
                 havedigest = ds.get_pieces_complete()
                 
-            if havedigest:
-                self.pb.set_pieces(havedigest)
-                self.pb.Refresh()
-            elif finished:
+            if finished:
                 self.pb.reset(colour=2) # Show as complete
+                self.pb.Refresh()
+            elif havedigest:
+                self.pb.set_pieces(havedigest)
                 self.pb.Refresh()
             elif progress > 0:
                 self.pb.reset(colour=1) # Show as having some

@@ -147,7 +147,8 @@ class FilesItemPanel(wx.Panel):
             self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)	##
 
 
-            self.line_file = wx.Image("Tribler/Main/vwxGUI/images/5.0/line3.png", wx.BITMAP_TYPE_ANY)            
+            imgpath = os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0","line3.png")
+            self.line_file = wx.Image(imgpath, wx.BITMAP_TYPE_ANY)            
 
             self.hLine = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.line_file))
 

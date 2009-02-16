@@ -229,7 +229,6 @@ class SingleDownload:
         if self._getstatsfunc is None or self._getstatsfunc == SPECIAL_VALUE:
             # Hashchecking or waiting for while being shutdown, signal LaunchMany
             # so it can schedule a new one.
-            print >>sys.stderr,"SingleDownload: TELLING HASHCHEK WE STOPPING"
             self.lmhashcheckcompletecallback(success=False)
         return resumedata
 
