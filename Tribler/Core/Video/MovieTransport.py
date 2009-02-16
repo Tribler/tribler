@@ -39,18 +39,17 @@ class MovieTransportStreamWrapper:
     def __init__(self,mt):
         self.mt = mt
         self.started = False
-        self.done = False
 
     def read(self,numbytes=None):
-        if self.done:
-            return ''
         if not self.started:
             self.mt.start(0)
+            self.started = True
+        if self.mt.done():
+            return ''
         data = self.mt.read(numbytes)
         if data is None:
             print >>sys.stderr,"MovieTransportStreamWrapper: mt read returns None"
             data = ''
-        self.done = self.mt.done()
         return data
 
     def seek(self,pos,whence=os.SEEK_SET):

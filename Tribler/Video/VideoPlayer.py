@@ -310,9 +310,9 @@ class VideoPlayer:
                 if self.playbackmode == PLAYBACKMODE_INTERNAL:
                     self.videoframe.get_videopanel().Reset()
             
-            #[proceed,othertorrents] = self.warn_user(ds,infilename)
+            #[proceed,othertorrentspolicy] = self.warn_user(ds,infilename)
             proceed = True
-            othertorrents = OTHERTORRENTS_STOP_RESTART
+            othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
             
             if not proceed:
                 # User bailing out
@@ -321,25 +321,7 @@ class VideoPlayer:
             if DEBUG:
                 print >>sys.stderr,"videoplay: Enabling VOD on torrent",`d.get_def().get_name()`
 
-            activetorrents = self.utility.session.get_downloads()
-            
-            if DEBUG:
-                for d2 in activetorrents:
-                    print >>sys.stderr,"videoplay: other torrents: Currently active is",`d2.get_def().get_name()`
-            
-            if othertorrents == OTHERTORRENTS_STOP or othertorrents == OTHERTORRENTS_STOP_RESTART:
-                for d2 in activetorrents:
-                    # also stop d, we're restarting in VOD mode.
-                    d2.stop()
-            else:
-                d.stop()
-                
-            if othertorrents == OTHERTORRENTS_STOP_RESTART:
-                if d in activetorrents:
-                    activetorrents.remove(d)
-                # TODO: REACTIVATE TORRENTS WHEN DONE. 
-                # ABCTorrentTemp.set_previously_active_torrents(activetorrents)
-                self.set_vod_postponed_downloads(activetorrents)
+            self.manage_other_downloads(othertorrentspolicy,targetd = d)
 
             # Restart download
             d.set_video_event_callback(self.sesscb_vod_event_callback)
@@ -349,6 +331,39 @@ class VideoPlayer:
             print >>sys.stderr,"main: Restarting existing Download",`ds.get_download().get_def().get_infohash()`
             self.set_vod_download(d)
             d.restart()
+
+
+    def manage_other_downloads(self,othertorrentspolicy, targetd = None):
+        activetorrents = self.utility.session.get_downloads()
+        
+        if DEBUG:
+            for d2 in activetorrents:
+                print >>sys.stderr,"videoplay: other torrents: Currently active is",`d2.get_def().get_name()`
+
+        # Filter out live torrents, they are always removed. They stay in
+        # myPreferenceDB so can be restarted.
+        newactivetorrents = []
+        for d2 in activetorrents:
+            if d2.get_def().get_live():
+                self.utility.session.remove_download(d2)
+                #d2.stop()
+            else:
+                newactivetorrents.append(d2)
+
+        
+        if othertorrentspolicy == OTHERTORRENTS_STOP or othertorrentspolicy == OTHERTORRENTS_STOP_RESTART:
+            for d2 in newactivetorrents:
+                # also stop targetd, we're restarting in VOD mode.
+                d2.stop()
+        elif targetd:
+            targetd.stop()
+            
+        if othertorrentspolicy == OTHERTORRENTS_STOP_RESTART:
+            if targetd in newactivetorrents:
+                newactivetorrents.remove(targetd)
+            # TODO: REACTIVATE TORRENTS WHEN DONE. 
+            # ABCTorrentTemp.set_previously_active_torrents(newactivetorrents)
+            self.set_vod_postponed_downloads(newactivetorrents)
 
 
     def start_and_play(self,tdef,dscfg):
@@ -368,21 +383,8 @@ class VideoPlayer:
         else:
             selectedinfilename = tdef.get_name()
             
-        othertorrents = OTHERTORRENTS_STOP_RESTART
-        activetorrents = self.utility.session.get_downloads()
-        
-        #print >>sys.stderr,"videoplay: other torrents: Currently active are",len(activetorrents)
-        
-        if DEBUG:
-            for d2 in activetorrents:
-                print >>sys.stderr,"videoplay: other torrents: Currently active is",`d2.get_def().get_name()`
-        
-        if othertorrents == OTHERTORRENTS_STOP or othertorrents == OTHERTORRENTS_STOP_RESTART:
-            for d2 in activetorrents:
-                d2.stop()
-            
-        if othertorrents == OTHERTORRENTS_STOP_RESTART:
-            self.set_vod_postponed_downloads(activetorrents)
+        othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
+        self.manage_other_downloads(othertorrentspolicy,targetd = None)
 
         # Restart download
         dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
@@ -457,9 +459,9 @@ class VideoPlayer:
         
         dlg = VODWarningDialog(self.videoframe.get_window(),self.utility,ds,infilename,self.other_downloads,islive)
         result = dlg.ShowModal()
-        othertorrents = dlg.get_othertorrents()
+        othertorrentspolicy = dlg.get_othertorrents_policy()
         dlg.Destroy()
-        return [result == wx.ID_OK,othertorrents]
+        return [result == wx.ID_OK,othertorrentspolicy]
 
     def create_url(self,videoserver,upath):
         schemeserv = 'http://127.0.0.1:'+str(videoserver.get_port())
@@ -617,8 +619,6 @@ class VideoPlayer:
 
     def determine_playbackmode(self):
         feasible = return_feasible_playback_modes(self.utility.getPath())
-
-	print >>sys.stderr,"videoplay: determine_playbackmode: feas",feasible,"pref",self.preferredplaybackmode
         if self.preferredplaybackmode in feasible:
             self.playbackmode = self.preferredplaybackmode
         else:
@@ -767,7 +767,7 @@ class VODWarningDialog(wx.Dialog):
             self.others_chooser=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), otherslist)
             self.others_chooser.SetSelection(OTHERTORRENTS_STOP_RESTART)
 
-            othersbox.Add(wx.StaticText(self, -1, self.utility.lang.get('vodwhataboutothertorrents')), 1, wx.ALIGN_CENTER_VERTICAL)
+            othersbox.Add(wx.StaticText(self, -1, self.utility.lang.get('vodwhataboutothertorrentspolicy')), 1, wx.ALIGN_CENTER_VERTICAL)
             othersbox.Add(self.others_chooser)
             sizer.Add(othersbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         else:
@@ -785,7 +785,7 @@ class VODWarningDialog(wx.Dialog):
 
         self.SetSizerAndFit(sizer)
 
-    def get_othertorrents(self):
+    def get_othertorrents_policypolicy(self):
         if self.others_chooser:
             idx = self.others_chooser.GetSelection()
         else:

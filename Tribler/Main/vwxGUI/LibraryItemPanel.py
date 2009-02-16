@@ -198,10 +198,10 @@ class LibraryItemPanel(wx.Panel):
 
  
         # estimated time left
-        self.eta = wx.StaticText(self,-1,"   ?")
-        self.eta.SetForegroundColour(self.triblerGrey)
-        self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))                
-        self.hSizer.Add(self.eta, 0, wx.FIXED_MINSIZE, 0)
+        #self.eta = wx.StaticText(self,-1,"   ?")
+        #self.eta.SetForegroundColour(self.triblerGrey)
+        #self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))                
+        #self.hSizer.Add(self.eta, 0, wx.FIXED_MINSIZE, 0)
  
         # remove from library button
         self.remove = tribler_topButton(self, name="remove")
@@ -437,8 +437,8 @@ class LibraryItemPanel(wx.Panel):
             eta = self.utility.eta_value(ds.get_eta(), truncate=2)
             if eta == '' or eta.find('unknown') != -1 or finished:
                 eta = ''
-            self.eta.SetLabel(eta)
-            self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
+            #self.eta.SetLabel(eta)
+            #self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
                             
             havedigest = None
             showPlayButton = False
@@ -483,7 +483,7 @@ class LibraryItemPanel(wx.Panel):
                 else:
                     self.library_play.setEnabled(False)
             
-            self.eta.SetLabel('')
+            #self.eta.SetLabel('')
             
             if torrent.get('progress') != None:                
                 self.percentage.SetLabel('%0.1f%%' % torrent['progress'])
@@ -524,31 +524,6 @@ class LibraryItemPanel(wx.Panel):
         
     def deselect(self, rowIndex, colIndex):
         self.selected = False
-
-        self.hLine.Show()
-        if rowIndex % 2 == 0:
-            colour = self.triblerStyles.selected(2)
-        else:
-            colour = self.triblerStyles.selected(2)            
-            
-        ##self.thumb.setSelected(False)
-        self.title.SetBackgroundColour(colour)
-#        self.percentage.SetBackgroundColour(colour)
-#        self.eta.SetBackgroundColour(colour)
-#        
-#        if not self.listItem:
-#            self.upSpeed.setBackground(colour)
-#            self.speedUp2.SetBackgroundColour(colour)
-#            self.downSpeed.setBackground(colour)
-#            self.speedDown2.SetBackgroundColour(colour)
-#            self.statusField.SetBackgroundColour(colour)
-#            self.playFast.setBackground(colour)
-#            self.boost.setBackground(colour)
-##        self.playerPlay.setBackground(colour)
-        ##if self.listItem:
-        ##    self.toggleLibraryItemDetailsSummary(False)
-            
-
         
     def keyTyped(self, event):
         if self.selected:

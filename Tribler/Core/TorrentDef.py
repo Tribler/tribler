@@ -665,7 +665,7 @@ class TorrentDef(Serializable,Copyable):
         we assume this is a single-file torrent.
         
         @param file (Optional) the file in the torrent to retrieve the bitrate of.
-        @return The bitrate in bytes per second.
+        @return The bitrate in bytes per second or None.
         """ 
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first

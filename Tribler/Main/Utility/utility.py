@@ -44,13 +44,13 @@ from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 #
 ################################################################
 class Utility:
-    def __init__(self, abcpath):
+    def __init__(self, abcpath, configpath):
         
         self.version = version_id
         self.abcpath = abcpath
 
         # Find the directory to save config files, etc.
-        self.setupConfigPath()
+        self.dir_root = configpath
         moveOldConfigFiles(self)
 
         self.setupConfig()
@@ -125,10 +125,6 @@ class Utility:
 #    def getNumFiles(self):
 #        return self.torrent_db.getNumMetadataAndLive()#, self.torrent_db.size()
 #===============================================================================
-        
-    def setupConfigPath(self):
-        configdir = ConfigDir()
-        self.dir_root = configdir.dir_root        
         
     def getConfigPath(self):
         # TODO: python 2.3.x has a bug with os.access and unicode

@@ -101,6 +101,10 @@ class ConfigDir:
         self._normal_init(config_ext)
 
     def _normal_init(self,config_ext):
+        
+        print_stack()
+        
+        
         if not os.path.isdir(self.dir_root):
             os.mkdir(self.dir_root, 0700)    # exception if failed
 

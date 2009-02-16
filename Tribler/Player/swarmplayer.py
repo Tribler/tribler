@@ -286,7 +286,7 @@ class PlayerApp(BaseApp):
         videoplayer_mediastate = self.videoplayer.get_state()
         #print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
         
-        [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(ds,videoplayer_mediastate,appname,self.said_start_playback,self.decodeprogress)
+        [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(ds,videoplayer_mediastate,appname,self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
         # Display helping info on "content name" line.
         self.videoplayer.set_content_name(topmsg)
 
@@ -369,7 +369,7 @@ class PlayerApp(BaseApp):
     
 
 
-def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress):
+def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
 
     topmsg = ''
     msg = ''
@@ -451,10 +451,10 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             d = ds.get_download()
             tdef = d.get_def()
             videofiles = d.get_selected_files()
-            if len(videofiles) == 0:
-                videofile = None
-            else:
+            if len(videofiles) > 1:
                 videofile = videofiles[0]
+            else:
+                videofile = None
             if tdef.get_bitrate(videofile) is None:
                 msg += '. This video may not play properly because its bitrate is unknown.'
         except:

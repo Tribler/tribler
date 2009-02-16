@@ -26,8 +26,8 @@ class TopSearchPanel(bgPanel):
         print >> sys.stderr , "init"
         bgPanel.__init__(self,*args,**kwds)
         self.guiUtility = GUIUtility.getInstance()
-        self.installdir = self.guiUtility.utility.getPath()
-        self.utility = Utility(self.installdir)
+        self.utility = self.guiUtility.utility 
+        self.installdir = self.utility.getPath()
         self.frame = None
         self.first = True
       

@@ -254,7 +254,7 @@ class VideoRawVLCServer:
             #print >>sys.stderr,"rawread: sid",sid,"n",buflen
             data = streaminfo['stream'].read(buflen)
             size = len(data)
-            #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: read from stream", size
+            #print >>sys.stderr,"rawread: sid",sid,"GOT",size
             if size == 0:
                 return 0
             else:

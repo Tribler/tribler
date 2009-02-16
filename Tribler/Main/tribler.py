@@ -133,7 +133,7 @@ class ABCApp(wx.App):
         
     def OnInit(self):
         try:
-            self.utility = Utility(self.installdir)
+            self.utility = Utility(self.installdir,Session.get_default_state_dir())
             self.utility.app = self
 
             #self.postinitstarted = False
@@ -556,6 +556,13 @@ class ABCApp(wx.App):
             
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
+            # Print stats on Console
+            for ds in dslist:
+                safename = `ds.get_download().get_def().get_name()`
+                print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                #print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
+
+            # Find State of currently playing video
             playds = None
             d = self.videoplayer.get_vod_download()
             for ds in dslist:
@@ -566,11 +573,13 @@ class ABCApp(wx.App):
             # Apply status displaying from SwarmPlayer
             if playds:
                 videoplayer_mediastate = self.videoplayer.get_state()
-                [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(playds,videoplayer_mediastate,"Tribler",self.said_start_playback,self.decodeprogress)
+                totalhelping = 0
+                totalspeed = {UPLOAD:0.0,DOWNLOAD:0.0}
+                [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(playds,videoplayer_mediastate,"Tribler",self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
                 # Update status msg and progress bar
                 if topmsg != '':
                     
-                    if videoplayer_mediastate == MEDIASTATE_PLAYING:
+                    if videoplayer_mediastate == MEDIASTATE_PLAYING or (videoplayer_mediastate == MEDIASTATE_STOPPED and self.said_start_playback):
                         # In SwarmPlayer we would display "Decoding: N secs" 
                         # when VLC was playing but the video was not yet
                         # being displayed (because VLC was looking for an
@@ -586,14 +595,6 @@ class ABCApp(wx.App):
                 else:
                     text = msg
                 self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
-            
-            # Print stats on Console
-            for ds in dslist:
-                safename = `ds.get_download().get_def().get_name()`
-                if DEBUG:
-                    safename = `ds.get_download().get_def().get_name()`
-                    print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
-                #print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
             
             # Pass DownloadStates to libaryView
             try:

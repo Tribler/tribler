@@ -243,6 +243,9 @@ class MetadataHandler:
                        'metadata':torrent_data}
             if selversion >= OLPROTO_VER_FOURTH:
                 data = self.torrent_db.getTorrent(infohash)
+                if data is None:
+                    # DB inconsistency
+                    return 0
                 nleechers = data.get('leecher', -1)
                 nseeders = data.get('seeder', -1)
                 last_check_ago = int(time()) - data.get('last_check_time', 0)    # relative time

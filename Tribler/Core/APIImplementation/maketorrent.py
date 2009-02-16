@@ -475,7 +475,7 @@ def get_bitrate_from_metainfo(file,metainfo):
             
         raise ValueError("File not found in torrent")
     else:
-        raise ValueError("File not found in single-file torrent")
+        raise ValueError("File not found in single-file torrent: "+file)
 
 
 def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
