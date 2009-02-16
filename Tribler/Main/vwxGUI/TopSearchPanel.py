@@ -98,8 +98,15 @@ class TopSearchPanel(bgPanel):
                 ##self.settings.Show()
                 self.seperator.Show()
                 self.familyfilter.Show()
-                self.ag.Show() 
-                self.ag.Play()
+                
+            self.ag.Show() 
+            self.ag.Play()
+                
+            # Timer to stop animation after 10 seconds. No results will come 
+            # in after that.
+            self.agtimer = wx.Timer(self)
+            self.Bind(wx.EVT_TIMER, self.OnAGTimer)
+            self.agtimer.Start(10000,True) 
 
             self.frame.videoframe.show_videoframe()            
             self.frame.pagerPanel.Show()
@@ -117,6 +124,10 @@ class TopSearchPanel(bgPanel):
 
     def OnSearchResultsPressed(self, event):
         self.guiUtility.OnResultsClicked()
+
+    def OnAGTimer(self,event):
+        self.ag.Stop()
+        self.ag.Hide()
 
 
     def helpClick(self,event=None):

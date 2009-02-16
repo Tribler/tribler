@@ -354,7 +354,8 @@ class GUIUtility:
             self.guiPage = 'search_results'
         if self.guiPage != 'search_results':
             self.guiPage = 'search_results'
-            self.frame.top_bg.ag.Show() 
+            if self.frame.top_bg.ag.IsPlaying():
+                self.frame.top_bg.ag.Show() 
 
             #self.standardGrid.deselectAll()
             #self.standardGrid.clearAllData()

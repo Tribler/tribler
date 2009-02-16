@@ -363,55 +363,6 @@ class ABCApp(wx.App):
     def toggleFamilyFilter(self,event):
         self.guiUtility.toggleFamilyFilter()
 
-    # ARNO50: Errr..... code reuse?
-
-    def OnGoKeyPressed(self,event): # # #
-
-        global FIRST
-        if self.frame.search.GetValue().strip() != '':
-            if FIRST:
-                FIRST=False
-
-                #self.frame.top_image.Hide()
-                
-                self.frame.pageTitlePanel.Show()
-                self.frame.tribler_logo2.Show()
-
-                self.frame.sharing_reputation.Show()
-                self.frame.help.Show()
-                    
-                self.frame.black_spacer.Hide()
-
-                self.frame.top_bg.Hide()
-
-                self.frame.hsizer = self.frame.sr_indicator.GetContainingSizer()               
-
-                self.frame.top_bg.createBackgroundImage()
-                self.frame.top_bg.Refresh(True)
-                self.frame.top_bg.Update()
-                self.frame.top_bg.Show()    
-                self.frame.srgradient.Show()
-                self.frame.sr_indicator.Show()
-                self.frame.standardOverview.Show()
-                self.frame.settings.Show()
-                self.frame.my_files.Show()
-                self.frame.seperator.Show()
-                self.frame.videoframe.show_videoframe()
-                self.frame.familyfilter.Show()
-                self.frame.pagerPanel.Show()
-                self.frame.ag.Show() 
-                self.frame.ag.Play()
-
-                self.guiserver.add_task(self.guiservthread_update_reputation, 5.0)
-        
-            self.frame.videoframe.show_videoframe()
-            self.frame.pagerPanel.Show()
-            self.frame.settings.setToggled(False)
-            self.frame.my_files.setToggled(False)
-            self.guiUtility.standardFilesOverview()
-            self.guiUtility.dosearch()
-        
-
 
     def startAPI(self):
         

@@ -22,7 +22,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
 
-DEBUG = False
+DEBUG = True
 
 ntfy_mappings = {'filesMode':[NTFY_MYPREFERENCES, NTFY_TORRENTS],
                  'personsMode':[NTFY_PEERS],
