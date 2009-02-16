@@ -319,9 +319,14 @@ class BuddyCastFactory:
             # See BitTornado/launchmany.py
             self.overlay_bridge.add_task(self.data_handler.postInit, 0)
             self.overlay_bridge.add_task(self.doBuddyCast, 0.5)
-            self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers,1.5)
+            # Arno: HYPOTHESIS: if set to small, we'll only ask superpeers at clean start.
+            if self.data_handler.torrent_db.size() > 0:
+                waitt = 1.0
+            else:
+                waitt = 3.0
+            self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers,waitt)
             
-            print >> sys.stderr, "BuddyCast starts up", currentThread().getName()
+            print >> sys.stderr, "BuddyCast starts up",waitt
         
     def doBuddyCast(self):
         if not self.running:
@@ -1280,6 +1285,9 @@ class BuddyCastCore:
         # include sender itself
         bc_data = [buddycast_data] + tbs + rps 
         for peer in bc_data:
+            
+            #print >>sys.stderr,"bc: Learned about peer",peer['ip']
+            
             peer_permid = peer['permid']
             if peer_permid == self.permid:
                 continue 

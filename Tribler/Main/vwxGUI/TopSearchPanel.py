@@ -144,11 +144,11 @@ class TopSearchPanel(bgPanel):
         path = os.path.join(self.installdir,LIBRARYNAME,"Main","vwxGUI",*namelist)
         return wx.Bitmap(path,type)
         
-    def OnCreate(self,event):
+    def _PostInit(self):
         if DEBUG:
             print >>sys.stderr,"TopSearchPanel: OnCreate"
             
-        bgPanel.OnCreate(self,event)
+        bgPanel._PostInit(self)
    
 # MAINLY GENERATED BELOW, replace wxStaticBitmap, etc. with wx.StaticBitmap 
 # and replace wx.BitMap with self.Bitmap

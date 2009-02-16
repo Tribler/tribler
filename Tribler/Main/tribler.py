@@ -549,7 +549,8 @@ class ABCApp(wx.App):
             print >>sys.stderr,"main: Stats:"
             
         torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-        print >>sys.stderr,"main: Total torrents found",torrentdb.size()    
+        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
+        print >>sys.stderr,"main: Total torrents found",torrentdb.size(),"peers",peerdb.size()    
             
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
