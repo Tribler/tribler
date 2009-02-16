@@ -280,6 +280,8 @@ class ABCApp(wx.App):
             else:
                 hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel]
 
+
+
             for name in hide_names:
                 name.Hide()
             self.frame.videoframe.hide_videoframe()
@@ -588,7 +590,9 @@ class ABCApp(wx.App):
             # Print stats on Console
             for ds in dslist:
                 safename = `ds.get_download().get_def().get_name()`
-                print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                if DEBUG:
+                    safename = `ds.get_download().get_def().get_name()`
+                    print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
                 #print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
             
             # Pass DownloadStates to libaryView

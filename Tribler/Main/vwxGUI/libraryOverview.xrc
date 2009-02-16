@@ -2,7 +2,7 @@
 <resource version="2.3.0.1" xmlns="http://www.wxwidgets.org/wxxrc">
   <object class="wxPanel" name="libraryOverview">
     <pos>0,0</pos>
-    <size>677,485</size>
+    <size>677,500</size>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="spacer">
@@ -13,10 +13,10 @@
       </object>
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <option>1</option>
+        <option>0</option>
         <object class="wxPanel" name="libraryGrid" subclass="Tribler.Main.vwxGUI.standardGrid.libraryGrid">
           <pos>0,0</pos>
-          <size>675,409</size>
+          <size>675,500</size>
           <bg>#FFFFFF</bg>
         </object>
       </object>

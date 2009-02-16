@@ -82,7 +82,6 @@ class VideoFrame(wx.Frame,VideoBaseFrame):
     def hide_videoframe(self):
         if DEBUG:
             print >>sys.stderr,"videoframe: Swap OUT videopanel"
-
         if self.videopanel is not None:
             self.videopanel.Reset()
             if self.showingframe:

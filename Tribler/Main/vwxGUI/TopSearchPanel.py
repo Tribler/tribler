@@ -57,7 +57,7 @@ class TopSearchPanel(bgPanel):
         self.settings.Bind(wx.EVT_LEFT_UP, self.viewSettings)
         self.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
         self.help.Bind(wx.EVT_LEFT_UP, self.helpClick)
-
+        self.familyfilter.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
 
 
     def OnSearchKeyDown(self,event):

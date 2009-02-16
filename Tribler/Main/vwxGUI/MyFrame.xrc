@@ -100,11 +100,11 @@
                           <orient>wxVERTICAL</orient>
                           <object class="sizeritem">
                             <flag>wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                            <border>5</border>
-                            <option>1</option>
+                            <option>0</option>
                             <object class="wxPanel" name="standardDetails" subclass="Tribler.Main.vwxGUI.standardDetails.standardDetails">
                               <pos>709,172</pos>
                               <size>0,0</size>
+                              <bg>#FFFFFF</bg>
                             </object>
                           </object>
                         </object>
@@ -173,9 +173,9 @@
                               <option>0</option>
                               <object class="wxPanel" name="standardPager" subclass="Tribler.Main.vwxGUI.standardPager.standardPager">
                                 <pos>370,460</pos>
-                                <size>382,20</size>
+                                <size>297,20</size>
                               </object>
-                              <minsize>382,20</minsize>
+                              <minsize>297,20</minsize>
                             </object>
                             <object class="spacer">
                               <size>8,28</size>
@@ -185,6 +185,8 @@
                             </object>
                           </object>
                         </object>
+                        <flag>wxFIXED_MINSIZE</flag>
+                        <minsize>667,20</minsize>
                       </object>
                     </object>
                     <option>0</option>

@@ -524,6 +524,31 @@ class LibraryItemPanel(wx.Panel):
         
     def deselect(self, rowIndex, colIndex):
         self.selected = False
+
+        self.hLine.Show()
+        if rowIndex % 2 == 0:
+            colour = self.triblerStyles.selected(2)
+        else:
+            colour = self.triblerStyles.selected(2)            
+            
+        ##self.thumb.setSelected(False)
+        self.title.SetBackgroundColour(colour)
+#        self.percentage.SetBackgroundColour(colour)
+#        self.eta.SetBackgroundColour(colour)
+#        
+#        if not self.listItem:
+#            self.upSpeed.setBackground(colour)
+#            self.speedUp2.SetBackgroundColour(colour)
+#            self.downSpeed.setBackground(colour)
+#            self.speedDown2.SetBackgroundColour(colour)
+#            self.statusField.SetBackgroundColour(colour)
+#            self.playFast.setBackground(colour)
+#            self.boost.setBackground(colour)
+##        self.playerPlay.setBackground(colour)
+        ##if self.listItem:
+        ##    self.toggleLibraryItemDetailsSummary(False)
+            
+
         
     def keyTyped(self, event):
         if self.selected:

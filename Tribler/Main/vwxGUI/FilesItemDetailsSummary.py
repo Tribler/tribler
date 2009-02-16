@@ -135,7 +135,7 @@ class FilesItemDetailsSummary(bgPanel):
         self.guiUtility.realButton = self.real
 
 
-        #check for moderation
+        # check for moderation
         if self.infohash is not None and self.mcdb.hasModeration(bin2str(self.infohash)):
             moderation = self.mcdb.getModeration(bin2str(self.infohash))
             mod_name = moderation[1]

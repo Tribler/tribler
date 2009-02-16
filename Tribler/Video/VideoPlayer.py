@@ -21,6 +21,7 @@ from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 
 DEBUG = True
 
+
 if sys.platform == "linux2":
     USE_VLC_RAW_INTERFACE = False
 else:
@@ -201,6 +202,9 @@ class VideoPlayer:
 
 
     def launch_video_player(self,cmd,streaminfo=None):
+
+	print >>sys.stderr,"videoplay: launch_video: mode",self.playbackmode,"cmd",cmd
+
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
 
             if streaminfo is None:
@@ -613,6 +617,8 @@ class VideoPlayer:
 
     def determine_playbackmode(self):
         feasible = return_feasible_playback_modes(self.utility.getPath())
+
+	print >>sys.stderr,"videoplay: determine_playbackmode: feas",feasible,"pref",self.preferredplaybackmode
         if self.preferredplaybackmode in feasible:
             self.playbackmode = self.preferredplaybackmode
         else:

@@ -320,10 +320,7 @@ class TestButton(tribler_topButton):
 
 
     def setState(self,state):
-        if state == False:
-            self.enabled = False
-        else:
-            self.enabled = True
+        self.enabled = state
         self.Refresh()
 
 ##    def mouseAction(self, event):

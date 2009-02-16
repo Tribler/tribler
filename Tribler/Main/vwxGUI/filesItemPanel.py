@@ -167,10 +167,10 @@ class FilesItemPanel(wx.Panel):
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.vSizerOverall.Add(self.hSizer, 0, wx.FIXED|wx.EXPAND, 0)	##
 
-            #self.thumb = ThumbnailViewer(self, 'filesMode')
-            #self.thumb.setBackground(wx.BLACK)
-            #self.thumb.SetSize((32,18))
-            #self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
+            self.thumb = ThumbnailViewer(self, 'filesMode')
+            self.thumb.setBackground(wx.BLACK)
+            self.thumb.SetSize((32,18))
+            self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
             # Add title
             self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,18))        
             self.title.SetBackgroundColour(wx.WHITE)
@@ -311,6 +311,7 @@ class FilesItemPanel(wx.Panel):
         if not torrent:
             torrent = {}
 
+        self.thumb.Hide() ## should not be shown
 
         #self.thumb.setTorrent(torrent)
 

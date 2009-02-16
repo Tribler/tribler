@@ -298,55 +298,17 @@ class GUIUtility:
             self.onDeleteTorrentFromLibrary()
 
 
-        elif name == 'basic':
-            if self.guiPage != 'basic':
-                self.guiPage = 'basic' 
-                if self.frame.settings.isToggled():
-                    self.frame.settings.setToggled()
-                self.standardGrid.deselectAll()
-                self.standardGrid.clearAllData()
-                self.frame.videoframe.hide_videoframe()
-                self.basicOverview()
-
-
-
         elif name == 'settings':
-            if self.guiPage != 'settings':
-                self.guiPage = 'settings' 
-                self.frame.ag.Hide()
-                self.frame.settings.SetForegroundColour((216,233,240))
-                self.frame.my_files.SetForegroundColour((255,51,0))
-
-                #self.frame.settings.setToggled()
-                #if self.frame.my_files.isToggled():
-                #    self.frame.my_files.setToggled()
-                #if self.standardGrid:
-                #    self.standardGrid.deselectAll()
-                #    self.standardGrid.clearAllData()
-
-                self.frame.videoframe.hide_videoframe()
-
-                self.frame.pagerPanel.Hide()
-                self.settingsOverview()
-                if self.frame.search_results.GetLabel() != '':
-                    self.frame.search_results.SetLabel('Return to Results')
-                    self.frame.search_results.SetForegroundColour(wx.RED)
-                self.frame.Layout()
-
+            self.settingsOverview()
 
 
         elif name == 'my_files':
-            if self.guiPage != 'my_files':
-                self.guiPage = 'my_files' 
-                self.standardLibraryOverview()
+            self.standardLibraryOverview()
 
         elif name == 'edit':
             self.standardOverview.currentPanel.sendClick(event)
             self.detailsTabClicked(name) 
 
- 
-        elif name == 'playbig':
-            pass
              
         elif DEBUG:
             print >> sys.stderr, 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
@@ -399,6 +361,8 @@ class GUIUtility:
 
             self.standardFilesOverview()
             self.frame.videoframe.show_videoframe()
+            self.frame.videoparentpanel.Show()            
+
 
             self.frame.top_bg.search_results.SetForegroundColour(wx.BLACK)
 
@@ -419,9 +383,9 @@ class GUIUtility:
         print 'Setting family filter to: %s' % ff_enabled
         catobj.set_family_filter(ff_enabled)
         if ff_enabled:
-            self.frame.familyfilter.SetLabel('Family Filter:ON')
+            self.frame.top_bg.familyfilter.SetLabel('Family Filter:ON')
         else:
-            self.frame.familyfilter.SetLabel('Family Filter:OFF')
+            self.frame.top_bg.familyfilter.SetLabel('Family Filter:OFF')
         #obj.setToggled(ff_enabled)
         for filtername in ['filesFilter', 'libraryFilter']:
             filterCombo = xrc.XRCCTRL(self.frame, filtername)
@@ -481,6 +445,7 @@ class GUIUtility:
             #    self.standardGrid.clearAllData()
 
             self.frame.videoframe.hide_videoframe()
+            self.frame.videoparentpanel.Hide()            
 
             self.frame.pagerPanel.Hide()
             if self.frame.top_bg.search_results.GetLabel() != '':
@@ -488,8 +453,8 @@ class GUIUtility:
                 self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
             self.frame.Layout()
             self.standardOverview.setMode('settingsMode')
-            if self.standardOverview.firewallStatus.initDone == True:
-                self.standardOverview.firewallStatus.setToggled(True)
+            #if self.standardOverview.firewallStatus.initDone == True:
+            #    self.standardOverview.firewallStatus.setToggled(True)
          
         
         
@@ -534,6 +499,11 @@ class GUIUtility:
             #if self.standardGrid:
             #    self.standardGrid.deselectAll()
             #    self.standardGrid.clearAllData()
+
+
+            self.frame.videoframe.show_videoframe()
+            self.frame.videoparentpanel.Show()
+
 
             if self.frame.top_bg.search_results.GetLabel() != '':
                 self.frame.top_bg.search_results.SetLabel('Return to Results')
