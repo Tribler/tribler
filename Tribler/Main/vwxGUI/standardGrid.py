@@ -614,10 +614,7 @@ class standardGrid(wx.Panel):
         "Refresh TorrentPanels with correct data and refresh pagerPanel"
         if self.getStandardPager():
             self.standardPager.refresh()
-        # Paint pager before contents
-        wx.CallAfter(self.refreshPanelsStage2)    
-        
-    def refreshPanelsStage2(self):
+
         if self.data is None:
             self.clearAllData()
         else:
