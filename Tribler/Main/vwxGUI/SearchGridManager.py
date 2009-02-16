@@ -18,7 +18,7 @@ except ImportError:
     print_exc()
     
 
-DEBUG = False
+DEBUG = True
 
 SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
@@ -235,10 +235,12 @@ class TorrentSearchGridManager:
             for remoteItem in catResults:
                 known = False
                 for item in self.hits:
+                    #print >> sys.stderr,"TorrentSearchGridManager: remote: Should we add",`remoteItem['name']`
                     if item['infohash'] == remoteItem['infohash']:
                         known = True
                         break
                 if not known:
+                    #print >> sys.stderr,"TorrentSearchGridManager: remote: Adding",`remoteItem['name']`
                     self.hits.append(remoteItem)
                     numResults+=1
             self.standardOverview.setSearchFeedback('remote', self.stopped, numResults, self.searchkeywords[mode])
@@ -247,7 +249,7 @@ class TorrentSearchGridManager:
         """ Called by GUIUtil when hits come in. """
         try:
             #if DEBUG:
-            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers)
+            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"for",kws
             
             # Always store the results, only display when in filesMode
             # We got some replies. First check if they are for the current query
@@ -257,6 +259,8 @@ class TorrentSearchGridManager:
                 for key,value in answers.iteritems():
                     
                     if self.torrent_db.hasTorrent(key):
+                        if DEBUG:
+                            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: Ignoring hit for",`value['content_name']`,"already got it"
                         continue # do not show results we have ourselves
                     
                     # Convert answer fields as per 
@@ -302,7 +306,7 @@ class TorrentSearchGridManager:
                 if numResults > 0 and mode == 'filesMode': #  and self.standardOverview.getSearchBusy():
                     self.refreshGrid()
                     if DEBUG:
-                        print >>sys.stderr,'Refresh grid after new remote torrent hits came in'
+                        print >>sys.stderr,'TorrentSearchGridManager: gotRemoteHits: Refresh grid after new remote torrent hits came in'
                 return True
             elif DEBUG:
                 print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords[mode]

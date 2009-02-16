@@ -69,8 +69,8 @@ class SettingsOverviewPanel(wx.Panel):
             self.elements[element] = xrcElement
 
         self.getNameMugshot()
-                    
-        self.getGuiElement('myNameField').SetLabel('')
+        self.showNameMugshot()
+        #self.getGuiElement('myNameField').SetLabel('')
 
 
         # firewall status 

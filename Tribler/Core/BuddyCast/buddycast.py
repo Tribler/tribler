@@ -318,8 +318,8 @@ class BuddyCastFactory:
             # do its thing, or add explicit coordination between UPnP and BC.
             # See BitTornado/launchmany.py
             self.overlay_bridge.add_task(self.data_handler.postInit, 0)
-            self.overlay_bridge.add_task(self.doBuddyCast, 1)
-            self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers, 3)
+            self.overlay_bridge.add_task(self.doBuddyCast, 0.5)
+            self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers,1.5)
             
             print >> sys.stderr, "BuddyCast starts up", currentThread().getName()
         

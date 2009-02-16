@@ -21,15 +21,6 @@
               <object class="sizeritem">
                 <object class="wxStaticText" name="profileTitle">
                   <label>Profile</label>
-                  <font>
-                    <size>10</size>
-                    <family>swiss</family>
-                    <style>normal</style>
-                    <weight>bold</weight>
-                    <underlined>0</underlined>
-                    <face>Sans</face>
-                    <encoding>UTF-8</encoding>
-                  </font>
                 </object>
               </object>
               <object class="spacer">
@@ -65,14 +56,6 @@
                           <label>nickname:</label>
                           <pos>110,70</pos>
                           <size>89,23</size>
-                          <font>
-                            <size>9</size>
-                            <family>modern</family>
-                            <style>normal</style>
-                            <weight>normal</weight>
-                            <underlined>0</underlined>
-                            <face>Verdana</face>
-                          </font>
                         </object>
                       </object>
                       <object class="spacer">
@@ -107,14 +90,6 @@
                           <label>_</label>
                           <pos>201,66</pos>
                           <size>99,18</size>
-                          <font>
-                            <size>9</size>
-                            <family>modern</family>
-                            <style>normal</style>
-                            <weight>bold</weight>
-                            <underlined>0</underlined>
-                            <face>Verdana</face>
-                          </font>
                         </object>
                       </object>
                     </object>
@@ -135,15 +110,6 @@
               <object class="sizeritem">
                 <object class="wxStaticText" name="sharingTitle">
                   <label>Sharing Rates</label>
-                  <font>
-                    <size>10</size>
-                    <family>swiss</family>
-                    <style>normal</style>
-                    <weight>bold</weight>
-                    <underlined>0</underlined>
-                    <face>Sans</face>
-                    <encoding>UTF-8</encoding>
-                  </font>
                 </object>
               </object>
               <object class="spacer">
@@ -305,15 +271,6 @@
               <object class="sizeritem">
                 <object class="wxStaticText" name="firewallTitle">
                   <label>Port Settings</label>
-                  <font>
-                    <size>10</size>
-                    <family>swiss</family>
-                    <style>normal</style>
-                    <weight>bold</weight>
-                    <underlined>0</underlined>
-                    <face>Sans</face>
-                    <encoding>UTF-8</encoding>
-                  </font>
                 </object>
               </object>
               <object class="sizeritem">
@@ -358,15 +315,6 @@
               <object class="sizeritem">
                 <object class="wxStaticText" name="privacyTitle">
                   <label>Privacy</label>
-                  <font>
-                    <size>10</size>
-                    <family>swiss</family>
-                    <style>normal</style>
-                    <weight>bold</weight>
-                    <underlined>0</underlined>
-                    <face>Sans</face>
-                    <encoding>UTF-8</encoding>
-                  </font>
                 </object>
               </object>
               <object class="spacer">
@@ -428,15 +376,6 @@
               <object class="sizeritem">
                 <object class="wxStaticText" name="cacheText">
                   <label>Disk Cache</label>
-                  <font>
-                    <size>10</size>
-                    <family>swiss</family>
-                    <style>normal</style>
-                    <weight>bold</weight>
-                    <underlined>0</underlined>
-                    <face>Sans</face>
-                    <encoding>UTF-8</encoding>
-                  </font>
                 </object>
                 <border>0</border>
               </object>
