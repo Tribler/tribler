@@ -283,6 +283,8 @@ class GUIUtility:
         elif name == 'fake':    
             self.realButton.setState(False) # disabled real button
             moderation = self.modcast_db.getModeration(bin2str(self.moderatedinfohash))
+            # ARNO50: Please turn DB records into dicts. Not doing this makes
+            # the whole code DB schema dependent!
             self.modcast_db.blockModerator(bin2str(moderation[0]))
 
         elif name == 'real':    

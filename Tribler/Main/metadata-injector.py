@@ -14,7 +14,6 @@ import tempfile
 import time
 
 from Tribler.Core.API import *
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import ModerationCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
@@ -62,7 +61,7 @@ def main():
 
     if opt.rss:
         buddycast_factory = BuddyCastFactory.getInstance()
-        moderation_cast_db = ModerationCastDBHandler.getInstance()
+        moderation_cast_db = session.open_dbhandler(NTFY_MODERATIONCAST)
         overlay_apps = OverlayApps.getInstance()
         torrent_feed_thread = TorrentFeedThread.getInstance()
 
@@ -86,7 +85,6 @@ def main():
                 print >>sys.stderr, "Creating moderation"
 
             moderation = {}
-            moderation['mod_name'] = session.get_nickname()
             moderation['infohash'] = bin2str(infohash)
 
             moderation_cast_db.addOwnModeration(moderation)

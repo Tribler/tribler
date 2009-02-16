@@ -242,6 +242,15 @@ class ABCApp(wx.App):
             self.startAPI()
             self.guiUtility.open_dbs()
             ##self.guiUtility.initStandardOverview(self.frame.standardOverview)
+
+            # ARNO50: TEST: add mod for Gopher
+            """
+            moderation_cast_db = self.utility.session.open_dbhandler(NTFY_MODERATIONCAST)
+            moderation = {}
+            from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+            moderation['infohash'] = bin2str('\xbd\x0c\x86\xf9\xe4JE\x0e\xff\xff\x16\xedF01*<| \xe9')
+            moderation_cast_db.addOwnModeration(moderation)
+            """
             
             self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
             self.frame.search_icon = xrc.XRCCTRL(self.frame, "search_icon")
@@ -575,9 +584,11 @@ class ABCApp(wx.App):
                     text = msg
                 self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
             
+            # Print stats on Console
             for ds in dslist:
                 safename = `ds.get_download().get_def().get_name()`
                 print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
             
             # Pass DownloadStates to libaryView
             try:

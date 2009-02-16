@@ -2548,8 +2548,8 @@ class ModerationCastDBHandler(BasicDBHandler):
         assert mod.has_key('infohash')
         assert validInfohash(mod['infohash'])
         
-        moderation = {}
         moderation = mod
+        moderation['mod_name'] = self.session.get_nickname()
         #Add current time as a timestamp
         moderation['time_stamp'] = now()
         moderation['mod_id'] = bin2str(self.my_permid)
@@ -2796,7 +2796,7 @@ class ModerationCastDBHandler(BasicDBHandler):
         r = verify_data(plaintext, permid, blob)
         if not r:
             if DEBUG:
-                print "Invalid signature >>>>>>"
+                print >>sys.stderr,"modcastdb: Invalid signature >>>>>>"
         return r
     
     

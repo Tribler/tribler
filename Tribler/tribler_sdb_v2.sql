@@ -233,7 +233,7 @@ time_stamp integer,
 media_type text,
 quality text,
 tags text,
-signature integer
+signature text
 );
 
 CREATE INDEX moderationcast_idx
