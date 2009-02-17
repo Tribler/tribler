@@ -183,7 +183,8 @@ class GridManager(object):
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
                 
             #if state.db == 'libraryMode':
-            data = self.addDownloadStates(data)
+            if data is not None:
+                data = self.addDownloadStates(data)
         elif state.db in ('personsMode', 'friendsMode'):
             if state.db == 'friendsMode':
                 state.category = 'friend'

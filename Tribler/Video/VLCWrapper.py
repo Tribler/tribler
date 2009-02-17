@@ -5,6 +5,7 @@ import sys
 import os
 import time
 import random
+from threading import currentThread
 
 import vlc
 
@@ -23,6 +24,13 @@ DEBUG = True
 
 VLC_MAXVOLUME = 200
 
+
+def check_threading():
+    if currentThread().getName() != "MainThread":
+        print >>sys.stderr,"VLCWrapper: Thread violation!"
+        print_stack()
+        
+
 class VLCWrapper:
     """ Wrapper around the MediaControl API, to hide some of its quirks,
     like the Position() objects, and to hide the VideoRawVLCServer from users.
@@ -32,6 +40,7 @@ class VLCWrapper:
     """
 
     def __init__(self,installdir):
+        check_threading()
         self.installdir = installdir
         self.media = self.get_vlc_mediactrl()
         self.videorawserv = VideoRawVLCServer.getInstance()
@@ -41,6 +50,7 @@ class VLCWrapper:
         GetHandle() returns a valid xid. See
         http://mailman.videolan.org/pipermail/vlc-devel/2006-September/025895.html
         """
+        check_threading()
         xid = wxwindow.GetHandle()
         if xid == 0:
             if DEBUG:
@@ -55,6 +65,7 @@ class VLCWrapper:
         self.media.set_visual(xid)
     
     def get_vlc_mediactrl(self):
+        check_threading()
         if sys.platform == 'win32':
             oldcwd = os.getcwd()
             os.chdir(os.path.join(self.installdir,'vlc'))
@@ -105,7 +116,7 @@ class VLCWrapper:
         return media
     
     def load(self,url,streaminfo=None):
-        
+        check_threading()
         print >>sys.stderr,"VLCWrapper: load:",url,streaminfo
         
         #self.media.exit()
@@ -143,6 +154,7 @@ class VLCWrapper:
 
 
     def start(self,abspos=0):
+        check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: start: list is",self.media.playlist_get_list()
         pos = vlc.Position()
@@ -152,25 +164,30 @@ class VLCWrapper:
         self.media.start(pos)
 
     def stop(self):
+        check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: stop"
         self.media.stop()
 
     def pause(self):
+        check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: pause"
         self.media.pause()
 
     def get_stream_information_status(self):
-        """ Returns the state of VLC. """ 
+        """ Returns the state of VLC. """
+        check_threading() 
         return self.media.get_stream_information()["status"]
 
     def get_stream_information_length(self):
-        """ Returns the length in bytes of current item playing """ 
+        """ Returns the length in bytes of current item playing """
+        check_threading() 
         return self.media.get_stream_information()["length"]
 
     def get_media_position(self):
-        """ Returns absolute position in bytes of current item playing """ 
+        """ Returns absolute position in bytes of current item playing """
+        check_threading() 
         return self.media.get_media_position(vlc.AbsolutePosition, vlc.MediaTime).value
 
     def set_media_position(self, where):
@@ -178,6 +195,7 @@ class VLCWrapper:
         get_media_position()s then do not always return the right value.
         TODO: seek mode
         """
+        check_threading()
         pos = vlc.Position() 
         pos.origin = vlc.AbsolutePosition
         pos.key = vlc.MediaTime
@@ -188,6 +206,7 @@ class VLCWrapper:
 
     def sound_set_volume(self, frac):
         """ frac is float 0..1 """
+        check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: sound_set_volume"
         vol = int(frac * VLC_MAXVOLUME)
@@ -195,11 +214,13 @@ class VLCWrapper:
 
     def sound_get_volume(self):
         """ returns a float 0..1 """
+        check_threading()
         vol = self.media.sound_get_volume()
         return float(vol) / VLC_MAXVOLUME
 
     def set_fullscreen(self,b):
         """ b is Boolean """
+        check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper set_fullscreen"
         if b:
@@ -208,16 +229,19 @@ class VLCWrapper:
             self.media.set_fullscreen(0)
 
     def playlist_get_list(self):
+        check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: playlist_get_list"
         return self.media.playlist_get_list()
 
     def playlist_clear(self):
+        check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: playlist_clear"
         self.media.playlist_clear()
 
     def exit(self):
+        check_threading()
         """ Use with care, Ivaylo's raw interface seems to have issues with
         calling this. So we don't
         """

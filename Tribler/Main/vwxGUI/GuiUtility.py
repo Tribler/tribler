@@ -120,7 +120,7 @@ class GUIUtility:
         
         if DEBUG:
             print >>sys.stderr,'GUIUtil: Button clicked %s' % name
-            print_stack()
+            #print_stack()
         
         
         if name == 'moreFileInfo':
@@ -490,7 +490,9 @@ class GUIUtility:
         self.standardDetails.setMode('profileMode')
 
         
-    def standardLibraryOverview(self, filters = None): 
+    def standardLibraryOverview(self, filters = None, refresh=False):
+        
+        setmode = refresh
         if self.guiPage != 'my_files':
             self.guiPage = 'my_files' 
             self.frame.top_bg.ag.Hide()
@@ -511,9 +513,12 @@ class GUIUtility:
                 self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
             self.frame.top_bg.Layout()
             self.frame.pagerPanel.Show()
-
+            
+            setmode = True
+            
+        if setmode:
             #self.frame.pageTitle.SetLabel('DOWNLOADS')      
-            self.standardOverview.setMode('libraryMode',refreshGrid=False)
+            self.standardOverview.setMode('libraryMode',refreshGrid=refresh)
             #gridState = self.standardOverview.getFilter().getState()
             #if not gridState or not gridState.isValid():
             gridState = GridState('libraryMode', 'all', 'name')

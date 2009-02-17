@@ -814,7 +814,7 @@ class ABCApp(wx.App):
             # ARNO50: New: start in VOD mode
             def start_asked_download():
                 self.frame.startDownload(torrentfilename,vodmode=True)
-                self.guiUtility.standardLibraryOverview()
+                self.guiUtility.standardLibraryOverview(refresh=True)
             
             wx.CallAfter(start_asked_download)
     

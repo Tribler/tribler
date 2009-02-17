@@ -104,7 +104,6 @@ class VideoPlayer:
         """ Play video file from disk """
         if DEBUG:
             print >>sys.stderr,"videoplay: Playing file from disk",dest
-        print_stack()
 
         (prefix,ext) = os.path.splitext(dest)
         [mimetype,cmd] = self.get_video_player(ext,dest)
