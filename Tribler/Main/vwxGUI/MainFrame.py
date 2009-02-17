@@ -68,15 +68,15 @@ DEBUG = True
 #
 ################################################################
 class FileDropTarget(wx.FileDropTarget): 
-    def __init__(self, abcframe):
+    def __init__(self, frame):
         # Initialize the wsFileDropTarget Object 
         wx.FileDropTarget.__init__(self) 
         # Store the Object Reference for dropped files 
-        self.abcframe = abcframe
+        self.frame = frame
       
     def OnDropFiles(self, x, y, filenames):
         for filename in filenames:
-            self.abcframe.startDownload(filename)
+            self.frame.startDownload(filename)
         return True
 
 
@@ -290,9 +290,12 @@ class MainFrame(wx.Frame):
             # ARNO50: Richard will look at this   
             #newFile = self.guiUtility.frame.top_bg.newFile
             #newFile.SetLabel('New File added')
-            # store result because we want to store clicklog data right after download was started, then return result
-            #mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-            # mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
+            
+            # store result because we want to store clicklog data right after 
+            # download was started, then return result
+            
+            mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+            mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
             return result  
 
         except DuplicateDownloadException:
