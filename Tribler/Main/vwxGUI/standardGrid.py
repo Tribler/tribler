@@ -101,7 +101,7 @@ class GridManager(object):
         #print >> sys.stderr, 'GridManager: Data length: %d/%d' % (len(self.data), self.total_items)
         self.grid.setData(self.data)
         if DEBUG:
-            #print >> sys.stderr, 'GridManager: state: %s' % (self.state)
+            print >> sys.stderr, 'GridManager: state: %s' % (self.state)
             print >> sys.stderr, 'GridManager: state: gave %d results, out of total %d' % (len(self.data), self.total_items)
             #for torrent in self.data:
             #    print >>sys.stderr,"GridManager: elem name is",`torrent['name']`
@@ -171,7 +171,7 @@ class GridManager(object):
                 total_items = self.get_number_torrents(state)   # read from cache
                 sortcol = state.sort
                 if sortcol == "rameezmetric":
-                    sortcol = None
+                    sortcol = "name"
                 data = self.torrent_db.getTorrents(category_name = state.category, 
                                                        sort = sortcol,
                                                        range = range,

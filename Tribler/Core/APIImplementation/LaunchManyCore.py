@@ -272,31 +272,32 @@ class TriblerLaunchMany(Thread):
             infohash = d.get_def().get_infohash()
             self.downloads[infohash] = d
             d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_event_callback)
-            
-            def add_torrent_to_db():
-                if self.torrent_db != None and self.mypref_db != None:
-                    raw_filename = tdef.get_name_as_unicode()
-                    infohash = tdef.get_infohash()
-                    save_name = get_readable_torrent_name(infohash, raw_filename)
-                    #print >> sys.stderr, '******* add_torrent_to_db', save_name, self.session.sessconfig
-                    torrent_dir = self.session.sessconfig['torrent_collecting_dir']
-                    save_path = os.path.join(torrent_dir, save_name)
-                    if not os.path.exists(save_path):    # save the torrent to the common torrent dir
-                        tdef.save(save_path)
-                        
-                    # hack, make sure these torrents are always good so they show up
-                    # in TorrentDBHandler.getTorrents()
-                    extra_info = {'status':'good'}
-                    self.torrent_db.addExternalTorrent(save_path, source='',extra_info=extra_info)
-                    dest_path = d.get_dest_dir()    
-                    # TODO: if user renamed the dest_path for single-file-torrent
-                    data = {'destination_path':dest_path}
-                    self.mypref_db.addMyPreference(infohash, data)
+
+            if self.torrent_db != None and self.mypref_db != None:
+                raw_filename = tdef.get_name_as_unicode()
+                infohash = tdef.get_infohash()
+                save_name = get_readable_torrent_name(infohash, raw_filename)
+                #print >> sys.stderr, 'tlm: add', save_name, self.session.sessconfig
+                torrent_dir = self.session.sessconfig['torrent_collecting_dir']
+                save_path = os.path.join(torrent_dir, save_name)
+                if not os.path.exists(save_path):    # save the torrent to the common torrent dir
+                    tdef.save(save_path)
+                    
+                # hack, make sure these torrents are always good so they show up
+                # in TorrentDBHandler.getTorrents()
+                extra_info = {'status':'good'}
+                self.torrent_db.addExternalTorrent(save_path, source='',extra_info=extra_info)
+                dest_path = d.get_dest_dir()    
+                # TODO: if user renamed the dest_path for single-file-torrent
+                data = {'destination_path':dest_path}
+                self.mypref_db.addMyPreference(infohash, data)
+
+            # All calls to BuddyCast must be delegated to overlay thread
+            if self.torrent_db is not None:
+                def add_mypref_to_buddycast():
                     if self.overlay_apps and self.overlay_apps.buddycast and self.overlay_apps.buddycast.started:
                         self.overlay_apps.buddycast.addMyPref(infohash)
-
-            if self.torrent_db is not None:
-                self.overlay_bridge.add_task(add_torrent_to_db, 0)
+                self.overlay_bridge.add_task(add_mypref_to_buddycast, 0)
             
             return d
         finally:

@@ -77,7 +77,7 @@ from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid_short
-import Tribler.Core.CacheDB.friends as friends 
+#import Tribler.Core.CacheDB.friends as friends 
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
@@ -463,7 +463,7 @@ class ABCApp(wx.App):
         s.set_download_states_callback(self.sesscb_states_callback)
         
         # Load friends from friends.txt
-        friends.init(s)
+        #friends.init(s)
 
         # Schedule task for checkpointing Session, to avoid hash checks after
         # crashes.

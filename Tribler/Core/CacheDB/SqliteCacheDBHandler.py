@@ -1411,7 +1411,7 @@ class TorrentDBHandler(BasicDBHandler):
             
         """
         
-        #print >> sys.stderr, 'getTorrents(%s, %s, %s, %s, %s)' % (category_name, range, library, sort, reverse)
+        #print >> sys.stderr, 'TorrentDBHandler: getTorrents(%s, %s, %s, %s, %s)' % (category_name, range, library, sort, reverse)
         s = time()
         
         value_name = deepcopy(self.value_name)
@@ -1460,7 +1460,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         mypref_stats = self.mypref_db.getMyPrefStats()
         
-        #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS ###################",len(res_list)
+        #print >>sys.stderr,"TorrentDBHandler: getTorrents: getAll returned ###################",len(res_list)
         
         torrent_list = self.valuelist2torrentlist(value_name,res_list,ranks,mypref_stats)
         del res_list
