@@ -23,7 +23,8 @@ DEBUG = False
 
 class TopSearchPanel(bgPanel):
     def __init__(self, *args, **kwds):
-        print >> sys.stderr , "init"
+        if DEBUG:
+            print >> sys.stderr , "TopSearchPanel: __init__"
         bgPanel.__init__(self,*args,**kwds)
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility 

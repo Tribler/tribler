@@ -428,7 +428,7 @@ class LibraryItemPanel(wx.Panel):
 
             ## print >> sys.stderr, '%s %s %s' % (`ds.get_download().get_def().get_name()`, ds.get_progress(), dlstatus_strings[ds.get_status()])
             if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                print >> sys.stderr, "ERROR IS",ds.get_error()
+                print >> sys.stderr, "lip: STOPPED_ON_ERROR IS",ds.get_error()
             progress = (ds.get_progress() or 0.0) * 100.0
             #print >> sys.stderr, '****** libraryitempanel:', torrent['torrent_id'], progress
             self.updateProgress(torrent['infohash'], progress)
@@ -445,7 +445,8 @@ class LibraryItemPanel(wx.Panel):
 
             active = ds.get_status() in (DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING)
             
-            startable = not ds.get_status() in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR]
+            # Allow STOPPED_ON_ERROR, sometimes transient
+            startable = not ds.get_status() in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
             if startable:
                 isVideo = bool(ds.get_download().get_def().get_files(exts=videoextdefaults))
                 showPlayButton = isVideo

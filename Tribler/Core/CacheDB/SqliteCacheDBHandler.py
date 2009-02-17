@@ -2438,9 +2438,9 @@ class ModerationCastDBHandler(BasicDBHandler):
             db = SQLiteCacheDB.getInstance()
             #BasicDBHandler.__init__(self, db, 'BarterCast')
             BasicDBHandler.__init__(self,db,'ModerationCast')
-            print >> sys.stderr, "moderation core made" 
+            print >> sys.stderr, "modcast: DB made" 
         except: 
-            print >> sys.stderr, "couldn't make the table"
+            print >> sys.stderr, "modcast: couldn't create DB table"
         self.peer_db = PeerDBHandler.getInstance()
  
         if DEBUG:
@@ -2824,14 +2824,14 @@ class VoteCastDBHandler(BasicDBHandler):
         try:
             db = SQLiteCacheDB.getInstance()
             BasicDBHandler.__init__(self,db,'VoteCast')
-            print >> sys.stderr, "vote core made" 
+            print >> sys.stderr, "votecast: DB made" 
         except: 
-            print >> sys.stderr, "couldn't make the table"
+            print >> sys.stderr, "votecast: couldn't make the table"
         
         self.peer_db = PeerDBHandler.getInstance()
         self.moderationcast_db = ModerationCastDBHandler.getInstance()
         if DEBUG:
-            print >> sys.stderr, "VOTECAST: MyPermid is ", self.my_permid
+            print >> sys.stderr, "votecast: My permid is",`self.my_permid`
     
     def registerSession(self, session):
         self.session = session
