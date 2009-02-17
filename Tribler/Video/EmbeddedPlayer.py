@@ -186,8 +186,8 @@ class EmbeddedPlayerPanel(wx.Panel):
            self.slider.EnableDragging()
         ##self.SetPlayerStatus('')
 
-        # Arno, 2008-10-17: If we don't do this VLC gets the wrong playlist somehow
-        #self.vlcwrap.stop()
+        # Arno, 2009-02-17: If we don't do this VLC gets the wrong playlist somehow
+        self.vlcwrap.stop()
         self.vlcwrap.playlist_clear()
              
         self.vlcwrap.load(url,streaminfo=streaminfo)

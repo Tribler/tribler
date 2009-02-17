@@ -1622,33 +1622,6 @@ class standardDetails(wx.Panel):
 #        return self.enabled
 
 
-    def download_old(self, torrent = None, dest = None, secret = False, force = False):
-
-        if torrent is None:
-            torrent = self.item
-
-        # torrent_dir
-        torrent_dir = self.utility.session.get_torrent_collecting_dir()
-        torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
-
-        clicklog={"keywords": self.guiUtility.torrentsearch_manager.searchkeywords[self.mode]}
-        if "click_position" in torrent:
-            clicklog["click_position"] = torrent["click_position"]
-
-        # name
-        if torrent.get('name'):
-            name = torrent['name']
-        else:
-            name = showInfoHash(torrent['infohash'])
-
-        self.utility.frame.startDownload(torrent_filename,destdir=dest,clicklog=clicklog,name=name) ## remove name=name
-
-
-
-
-
-
-
     def download(self, torrent = None, dest = None, secret = False, force = False, vodmode = False):
         if torrent is None:
             torrent = self.item
@@ -1683,7 +1656,7 @@ class standardDetails(wx.Panel):
                 print_exc()                        
             
             #self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
-            print >> sys.stderr, torrent, torrent.keys()
+            #print >> sys.stderr, torrent, torrent.keys()
             return True
 
         torrent_dir = self.utility.session.get_torrent_collecting_dir()

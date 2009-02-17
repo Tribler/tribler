@@ -99,7 +99,7 @@ class standardOverview(wx.Panel):
 #        self.guiUtility.frame.Bind(wx.EVT_SIZE, self.standardOverviewResize())
 #        self.Bind(wx.EVT_SIZE, self.standardOverviewResize)
 
-        print >>sys.stderr,"standardOverview: __init__: Setting GUIUtil"
+        #print >>sys.stderr,"standardOverview: __init__: Setting GUIUtil"
         self.guiUtility.initStandardOverview(self)    # show file panel
         #self.toggleLoadingDetailsPanel(True)
         
@@ -150,9 +150,8 @@ class standardOverview(wx.Panel):
         
         self.currentPanel = self.loadPanel()
 
-        print >> sys.stderr , 'self.oldpanel' , self.oldpanel
-        print >> sys.stderr , 'self.currentPanel' , self.currentPanel
-
+        #print >> sys.stderr , 'standardOverview: self.oldpanel' , self.oldpanel
+        #print >> sys.stderr , 'standardOverview: self.currentPanel' , self.currentPanel
 
 
         assert self.currentPanel, "standardOverview: Panel could not be loaded"
@@ -208,9 +207,9 @@ class standardOverview(wx.Panel):
         
     def loadPanel(self):        
         currentPanel = self.data[self.mode].get('panel',None)
-        print >> sys.stderr, 'currentPanel' , currentPanel
+        #print >> sys.stderr, 'standardOverview: currentPanel' , currentPanel
         modeString = self.mode[:-4]
-        print >> sys.stderr, 'modestring' , modeString
+        #print >> sys.stderr, 'standardOverview: modestring' , modeString
         if DEBUG:
             print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
 

@@ -294,8 +294,10 @@ class MainFrame(wx.Frame):
             # store result because we want to store clicklog data right after 
             # download was started, then return result
             
-            mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-            mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
+            # TODO: Torrents passed on command line.
+            if clicklog is not None:
+                mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+                mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
             return result  
 
         except DuplicateDownloadException:
@@ -310,7 +312,7 @@ class MainFrame(wx.Frame):
         except Exception,e:
             print_exc()
             self.onWarning(e)
-
+        return None
 
 
 
@@ -666,7 +668,7 @@ class MainFrame(wx.Frame):
             text = unicode( prefix+u' '+msg)
             
         #if DEBUG:
-        print  >> sys.stderr,"main: Setting activity",`text`
+        print  >> sys.stderr,"main: Activity",`text`
         #self.messageField.SetLabel(text)
 
     def set_player_status(self,s):

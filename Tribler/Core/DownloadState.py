@@ -227,7 +227,10 @@ class DownloadState(Serializable):
         completed.
         @return A float (0..1) """
         if self.stats is None:
-            return 0.0
+            if self.status == DLSTATUS_STOPPED and self.progress == 1.0:
+                return 1.0
+            else:
+                return 0.0
         else:
             return self.stats['vod_prebuf_frac']
     

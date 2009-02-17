@@ -23,7 +23,7 @@ from Tribler.Core.Video.VideoStatus import VideoStatus
 
 SPECIAL_VALUE = 481
 
-DEBUG = False
+DEBUG = True
 
 class SingleDownload:
     """ This class is accessed solely by the network thread """
@@ -120,8 +120,8 @@ class SingleDownload:
 
     def perform_hashcheck(self,complete_callback):
         """ Called by any thread """
-        #if DEBUG:
-        print >>sys.stderr,"SingleDownload: perform_hashcheck()",self.videoinfo
+        if DEBUG:
+            print >>sys.stderr,"SingleDownload: perform_hashcheck()" # ,self.videoinfo
         try:
             """ Schedules actually hashcheck on network thread """
             self._getstatsfunc = SPECIAL_VALUE # signal we're hashchecking
@@ -223,8 +223,8 @@ class SingleDownload:
             self.dlrawserver.shutdown()
             resumedata = self.dow.shutdown()
             self.dow = None
-            if DEBUG:
-                print >>sys.stderr,"SingleDownload: stopped dow"
+            #if DEBUG:
+            #    print >>sys.stderr,"SingleDownload: stopped dow"
                 
         if self._getstatsfunc is None or self._getstatsfunc == SPECIAL_VALUE:
             # Hashchecking or waiting for while being shutdown, signal LaunchMany

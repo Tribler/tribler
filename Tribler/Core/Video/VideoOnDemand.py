@@ -1,8 +1,8 @@
 # Written by Jan David Mol, Arno Bakker
 # see LICENSE.txt for license information
 
+import sys
 from math import ceil
-from sys import stdout
 from threading import Lock,Condition,Event,RLock,currentThread
 from traceback import print_exc,print_stack
 from select import select
@@ -12,6 +12,11 @@ from sets import Set
 import time
 import collections
 import os
+
+if sys.version.startswith("2.4"):
+    os.SEEK_SET = 0
+    os.SEEK_CUR = 1
+    os.SEEK_END = 2
 
 import SocketServer
 import BaseHTTPServer
@@ -1355,7 +1360,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.prebufprogress = 1.0
         self.playable = True
         
-        print >>sys.stderr,"vod: trans: notify_playable: Calling usercallback to tell it we're ready to play",self.videoinfo['usercallback']
+        #print >>sys.stderr,"vod: trans: notify_playable: Calling usercallback to tell it we're ready to play",self.videoinfo['usercallback']
         
         # MIME type determined normally in LaunchManyCore.network_vod_event_callback
         # However, allow for recognition by videoanalyser
@@ -1374,7 +1379,7 @@ class MovieOnDemandTransporter(MovieTransport):
             filename = None 
             
         # Call user callback
-        print >>sys.stderr,"vod: trans: notify_playable: calling:",self.vodeventfunc
+        #print >>sys.stderr,"vod: trans: notify_playable: calling:",self.vodeventfunc
         self.vodeventfunc( self.videoinfo, VODEVENT_START, {
             "complete":  complete,
             "filename":  filename,

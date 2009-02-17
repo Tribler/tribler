@@ -503,7 +503,7 @@ class ABCApp(wx.App):
             
         torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-        print >>sys.stderr,"main: Total torrents found",torrentdb.size(),"peers",peerdb.size()    
+        print >>sys.stderr,"main: Stats: Total torrents found",torrentdb.size(),"peers",peerdb.size()    
             
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
@@ -547,6 +547,9 @@ class ABCApp(wx.App):
                         text = topmsg
                 else:
                     text = msg
+                    
+                #print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
+                    
                 self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
             
             # Pass DownloadStates to libaryView
@@ -767,7 +770,6 @@ class ABCApp(wx.App):
         return self.utility.getConfigPath()
 
     def startWithRightView(self):
-        print "ok !!!"
         if self.params[0] != "":
             self.guiUtility.standardLibraryOverview()
  
@@ -784,7 +786,7 @@ class ABCApp(wx.App):
             if param.startswith('http:'):
                 # Retrieve from web 
                 f = tempfile.NamedTemporaryFile()
-                n = urllib2.urlopen(url)
+                n = urllib2.urlopen(param)
                 data = n.read()
                 f.write(data)
                 f.close()
@@ -794,8 +796,12 @@ class ABCApp(wx.App):
                 torrentfilename = param
                 
             # Switch to GUI thread
-            start_download_lambda = lambda:self.frame.startDownload(torrentfilename)
-            wx.CallAfter(start_download_lambda)
+            # ARNO50: New: start in VOD mode
+            def start_asked_download():
+                self.frame.startDownload(torrentfilename,vodmode=True)
+                self.guiUtility.standardLibraryOverview()
+            
+            wx.CallAfter(start_asked_download)
     
         
 ##############################################################

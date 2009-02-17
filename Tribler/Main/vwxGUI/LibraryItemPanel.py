@@ -592,9 +592,7 @@ class LibraryItemPanel(wx.Panel):
                 self.play(ds)
                 
         else: # no abctorrent
-            
-            print >>sys.stderr,"lip: mouseAction: No ds"
-            
+            #print >>sys.stderr,"lip: mouseAction: No ds"
             if name == 'pause':
                  #playbutton
                  dest_dir = self.data.get('destdir')

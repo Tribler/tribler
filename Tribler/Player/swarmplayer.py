@@ -385,7 +385,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     t = ds.get_vod_playable_after()
     
     #print >>sys.stderr,"main: playble",playable,"preprog",preprogress
-    print >>sys.stderr,"main: ETA is",t,"secs"
+    #print >>sys.stderr,"main: ETA is",t,"secs"
     if t > float(2 ** 30):
         intime = "inf"
     elif t == 0.0:
@@ -409,6 +409,8 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
         msg = "Checking already downloaded parts "+pstr+"% done"
     elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
         msg = 'Error playing: '+str(ds.get_error())
+    elif ds.get_progress() == 1.0:
+        msg = ''
     elif playable:
         if not said_start_playback:
             msg = "Starting playback..."

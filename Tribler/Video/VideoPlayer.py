@@ -104,6 +104,7 @@ class VideoPlayer:
         """ Play video file from disk """
         if DEBUG:
             print >>sys.stderr,"videoplay: Playing file from disk",dest
+        print_stack()
 
         (prefix,ext) = os.path.splitext(dest)
         [mimetype,cmd] = self.get_video_player(ext,dest)
@@ -286,6 +287,10 @@ class VideoPlayer:
                 self.play_file_via_httpserv(selectedoutfilename)
             else:
                 self.play_file(selectedoutfilename)
+            
+            self.manage_others_when_playing_from_file(d)
+            # Fake it, to get DL status reporting for right Download
+            self.set_vod_download(d)
         else:
             print >> sys.stderr, 'not complete'
             self.play_vod(ds,selectedinfilename)
@@ -365,6 +370,22 @@ class VideoPlayer:
             # ABCTorrentTemp.set_previously_active_torrents(newactivetorrents)
             self.set_vod_postponed_downloads(newactivetorrents)
 
+    def manage_others_when_playing_from_file(self,targetd):
+        """ When playing from file, make sure all other Downloads are no
+        longer in VOD mode, so they won't interrupt the playback.
+        """
+        activetorrents = self.utility.session.get_downloads()
+        for d in activetorrents:
+            if d.get_mode() == DLMODE_VOD:
+                if d.get_def().get_live():
+                    #print >>sys.stderr,"videoplay: manage_when_file_play: Removing live",`d.get_def().get_name()`
+                    self.utility.session.remove_download(d)
+                else:
+                    #print >>sys.stderr,"videoplay: manage_when_file_play: Restarting in NORMAL mode",`d.get_def().get_name()`
+                    d.stop()
+                    d.set_mode(DLMODE_NORMAL)
+                    d.restart()
+
 
     def start_and_play(self,tdef,dscfg):
         """ Called by GUI thread when Tribler started with live or video torrent on cmdline """
@@ -401,13 +422,13 @@ class VideoPlayer:
          
         Called by Session thread """
         
-        print >>sys.stderr,"VideoPlayer: sesscb_vod_event_callback called",currentThread().getName(),"###########################################################"
+        print >>sys.stderr,"videoplay: sesscb_vod_event_callback called",currentThread().getName(),"###########################################################"
         wx.CallAfter(self.gui_vod_event_callback,d,event,params)
 
     def gui_vod_event_callback(self,d,event,params):
         """ Also called by SwarmPlayer """
 
-        print >>sys.stderr,"VideoPlayer: gui_vod_event:",event
+        print >>sys.stderr,"videoplay: gui_vod_event:",event
         if event == VODEVENT_START:
             filename = params["filename"]
             mimetype = params["mimetype"]
@@ -641,7 +662,7 @@ class VideoPlayer:
         wx.CallAfter(self.videohttpserver_error_guicallback,e,url)
         
     def videohttpserver_error_guicallback(self,e,url):
-        print >>sys.stderr,"VideoPlayer: Video HTTP server reported error",str(e)
+        print >>sys.stderr,"videoplay: Video HTTP server reported error",str(e)
         # if e[0] == ECONNRESET and self.closeextplayercallback is not None:
         if self.closeextplayercallback is not None:
             self.closeextplayercallback()

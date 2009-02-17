@@ -101,7 +101,8 @@ class GridManager(object):
         #print >> sys.stderr, 'GridManager: Data length: %d/%d' % (len(self.data), self.total_items)
         self.grid.setData(self.data)
         if DEBUG:
-            print >> sys.stderr, 'GridManager: state: %s gave %d results, out of total %d' % (self.state, len(self.data), self.total_items)
+            #print >> sys.stderr, 'GridManager: state: %s' % (self.state)
+            print >> sys.stderr, 'GridManager: state: gave %d results, out of total %d' % (len(self.data), self.total_items)
             #for torrent in self.data:
             #    print >>sys.stderr,"GridManager: elem name is",`torrent['name']`
         

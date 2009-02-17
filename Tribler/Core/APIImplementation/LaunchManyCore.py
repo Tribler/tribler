@@ -39,19 +39,16 @@ from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Tribler.Video.utils import win32_retrieve_video_play_command
-
-
-from Tribler.Core.CacheDB.CacheDBHandler import *
 import Tribler.Core.CacheDB.cachedb as cachedb
-from Tribler.Core.Utilities.utilities import show_permid_short
-from Tribler.Core.RequestPolicy import *
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.Core.osutils import get_readable_torrent_name
-from Tribler.Category.Category import Category
-
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
 from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import *
 from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import *
+from Tribler.Core.Utilities.utilities import show_permid_short
+from Tribler.Core.RequestPolicy import *
+from Tribler.Core.osutils import get_readable_torrent_name
+from Tribler.Category.Category import Category
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+
 
 SPECIAL_VALUE=481
 
