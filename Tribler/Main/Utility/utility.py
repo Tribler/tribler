@@ -14,7 +14,6 @@ from traceback import print_exc
 from wx.lib import masked
 
 from Tribler.Lang.lang import Lang
-from Tribler.Core.BitTornado.ConfigDir import ConfigDir
 from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.Core.defaults import dldefaults as BTDefaults
 from Tribler.Core.defaults import dldefaults,DEFAULTPORT

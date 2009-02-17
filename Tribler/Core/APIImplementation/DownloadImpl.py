@@ -437,7 +437,11 @@ class DownloadImpl:
         self.dllock.acquire()
         try:
             pstate = self.network_get_persistent_state() 
-            pstate['engineresumedata'] = self.sd.checkpoint()
+            if self.sd is None:
+                resdata = None
+            else:
+                resdata = self.sd.checkpoint()
+            pstate['engineresumedata'] = resdata
             return (self.tdef.get_infohash(),pstate)
         finally:
             self.dllock.release()

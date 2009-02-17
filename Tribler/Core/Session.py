@@ -575,7 +575,7 @@ class Session(SessionRuntimeConfig):
     def checkpoint(self):
         """ Saves the internal session state to the Session's state dir. """
         #Called by any thread
-        self.checkpoint_shutdown(stop=False)
+        self.checkpoint_shutdown(stop=False,checkpoint=True,gracetime=None,hacksessconfcheckpoint=False)
     
     def shutdown(self,checkpoint=True,gracetime=2.0,hacksessconfcheckpoint=True):
         """ Checkpoints the session and closes it, stopping the download engine.

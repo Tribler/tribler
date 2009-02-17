@@ -89,10 +89,10 @@ import pdb
 
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878
+SESSION_CHECKPOINT_INTERVAL = 1800.0 # seconds
 
 DEBUG = False
-ALLOW_MULTIPLE = True
-FIRST = True    
+ALLOW_MULTIPLE = False
 
 ##############################################################
 #
@@ -464,6 +464,12 @@ class ABCApp(wx.App):
         
         # Load friends from friends.txt
         friends.init(s)
+
+        # Schedule task for checkpointing Session, to avoid hash checks after
+        # crashes.
+        #
+        self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
+
         
     def sesscb_states_callback(self,dslist):
         """ Called by SessionThread """
@@ -657,6 +663,15 @@ class ABCApp(wx.App):
             self.utility.session.load_checkpoint(initialdlstatus=DLSTATUS_STOPPED)
         else:
             self.utility.session.load_checkpoint()
+
+    def guiservthread_checkpoint_timer(self):
+        """ Periodically checkpoint Session """
+        try:
+            print >>sys.stderr,"main: Checkpointing Session"
+            self.utility.session.checkpoint()
+            self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
+        except:
+            print_exc()
 
 
     def sesscb_ntfy_dbstats(self,subject,changeType,objectID,*args):

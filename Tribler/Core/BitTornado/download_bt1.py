@@ -22,7 +22,6 @@ from RateMeasure import RateMeasure
 from CurrentRateMeasure import Measure
 from BT1.PiecePicker import PiecePicker
 from BT1.Statistics import Statistics
-from ConfigDir import ConfigDir
 from bencode import bencode, bdecode
 from sha import sha
 from os import path, makedirs, listdir
@@ -62,7 +61,7 @@ DEBUG = False
 class BT1Download:    
     def __init__(self, statusfunc, finfunc, errorfunc, excfunc, logerrorfunc, doneflag, 
                  config, response, infohash, id, rawserver, get_extip_func, port,
-                 videoanalyserpath, appdataobj = None):
+                 videoanalyserpath):
         self.statusfunc = statusfunc
         self.finfunc = finfunc
         self.errorfunc = errorfunc
@@ -111,15 +110,6 @@ class BT1Download:
         self.voddownload = None
 
         self.selector_enabled = config['selector_enabled']
-        if appdataobj:
-            self.appdataobj = appdataobj
-        elif self.selector_enabled:
-            if config.has_key('config_path'):
-                self.appdataobj = ConfigDir(dir_root = config['config_path'])
-            else:
-                self.appdataobj = ConfigDir()
-            self.appdataobj.deleteOldCacheData( config['expire_cache_data'],
-                                                [self.infohash] )
 
         self.excflag = self.rawserver.get_exception_flag()
         self.failed = False
@@ -342,7 +332,7 @@ class BT1Download:
             
         if self.selector_enabled:
             self.fileselector = FileSelector(self.files, self.info['piece length'], 
-                                             self.appdataobj.getPieceDir(self.infohash), 
+                                             None, 
                                              self.storage, self.storagewrapper, 
                                              self.rawserver.add_task, 
                                              self._failed)
@@ -354,10 +344,6 @@ class BT1Download:
         if old_style:
             return self.storagewrapper.old_style_init()
         return self.storagewrapper.initialize
-
-
-    def getCachedTorrentData(self):
-        return self.appdataobj.getTorrentData(self.infohash)
 
 
     def _make_upload(self, connection, ratelimiter, totalup):
@@ -469,7 +455,6 @@ class BT1Download:
             self.fileselector.tie_in(self.picker, self._cancelfunc, self._reqmorefunc)
             if self.priority:
                 self.fileselector.set_priorities_now(self.priority)
-            self.appdataobj.deleteTorrentData(self.infohash)
                                 # erase old data once you've started modifying it
 
         if self.play_video:

@@ -141,7 +141,7 @@ dldefaults['download_slice_size'] = 2 ** 14
 dldefaults['upload_unit_size'] = 1460
 dldefaults['request_backlog'] = 10
 dldefaults['max_message_length'] = 2 ** 23
-dldefaults['selector_enabled'] = 0  # whether to enable the file selector and fast resume function. Arno, 2009-01-29: was on, turned off, used depracated functions.
+dldefaults['selector_enabled'] = 1  # whether to enable the file selector and fast resume function. Arno, 2009-02-9: Must be on for checkpoints to work. 
 dldefaults['expire_cache_data'] = 10 # the number of days after which you wish to expire old cache data (0 = disabled)
 dldefaults['priority'] = []  # a list of file priorities separated by commas, must be one per file, 0 = highest, 1 = normal, 2 = lowest, -1 = download disabled'
 dldefaults['saveas'] = None # Set to get_default_destdir()
