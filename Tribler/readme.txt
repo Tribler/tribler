@@ -20,14 +20,14 @@ Alternatively, look for our unofficial M2Crypto version 0.15-ab1 on the
 Tribler website.
 
 So make sure you have
-        Python >= 2.4 
+    Python >= 2.4 
 	OpenSSL >= 0.9.8
 	swig >= 1.3.25
 	wxPython >= 2.8 UNICODE (i.e., use --enable-unicode to build)
 	M2Crypto >= 0.16
-        pywin32 >= Build 208 (Windows only, for e.g. UPnP support)
+    pywin32 >= Build 208 (Windows only, for e.g. UPnP support)
 	vlc >= 0.8.6a and its python bindings (for internal video player)
-        python-apsw >= 3.6.x
+    python-apsw >= 3.6.x
 
 Note that Tribler only works with wxPython UNICODE, not ANSI. With small
 adjustments it probably also works with wxPython 2.6.  Python 2.4 is prefered,
@@ -41,14 +41,14 @@ INSTALLING ON LINUX
  
 1. Unpack the M2Crypto library, build and install:
 
-        python2.4 setup.py build
-	    python2.4 setup.py install 
+        python setup.py build
+	    python setup.py install 
 		
    When you've installed OpenSSL 0.9.8 in a non-standard directory, you must
    edit setup.py to point to this location. To install M2Crypto in another
    directory, use 
    
-   	python2.4 setup.py install --prefix=/arno/pkgs/m2crypto-dev
+   	python setup.py install --prefix=/arno/pkgs/m2crypto-dev
 
    In that case you'll need to set the PYTHONPATH environment variable
    to point to that directory. PYTHONPATH can also be used to point
@@ -62,7 +62,7 @@ INSTALLING ON LINUX
 
     PYTHONPATH=$PYTHONPATH:.
     export PYTHONPATH
-	python2.4 Tribler/Main/tribler.py
+	python Tribler/Main/tribler.py
 	
    from the source directory. 
    
@@ -82,11 +82,23 @@ disappeared. So the procedure is simply:
 
 4. Download and install M2Crypto for Python 2.4 
 
-5. Download and uncompress Tribler source codes 
+5. Download and install APSW for Python 2.4
 
-6. Run 
+6. Download and install pywin32 for Python 2.4
+
+7. Download and uncompress Tribler source codes 
+
+8. (optional) To play videos inside a Tribler window (rather than having it
+   launch an external player) you'll need our VideoLAN Client (VLC) binary 
+   distribution, available from: 
+      http://svn.tribler.org/vlc/tags/vlc-0.8.6h-raw-Jul2008-win32-py2.5-bin/
+   Download the vlc.pyd and vlc directory and put them in the same directory
+   as the Tribler sources. For our VLC you'll need Python 2.5. 
+
+9. Run 
 	C:\Python24\python2.4.exe Tribler\Main\tribler.py
    from the source code directory.
+
 
 ***** Only if you need to use an older Python, read on ****
 
@@ -136,8 +148,6 @@ Tips if you want to compile M2Crypto yourself using Microsoft Visual Studio
    (In some cases python still doesn't find the swig.exe binary. In that case
    copy it to the current directory.)
 
-
-  
 3. Sometimes swig can't find its libraries, use the SWIG_LIB environment 
    variable:
   
@@ -170,7 +180,7 @@ below. Be warned, however, because the
 OpenSSL problem resurfaces there, and you need to recompile py2exe yourself,
 as detailed in the above links to the pycrypto mailing list.
 
-Arno Bakker, Jie Yang, 2007-04-19
+Arno Bakker, Jie Yang, 2009-02-18
 
 
 
