@@ -753,7 +753,7 @@ class ABCApp(wx.App):
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
         
-        friends.done(self.utility.session)
+        #friends.done(self.utility.session)
         
         #self.torrentfeed.shutdown()
 
