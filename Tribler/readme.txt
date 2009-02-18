@@ -1,6 +1,6 @@
-			Tribler
-	"The fastest way of social file sharing"
- 	========================================
+                        Tribler
+        "The fastest way of social file sharing"
+         ========================================
 
 Please visit: http://www.tribler.org/
 
@@ -42,28 +42,28 @@ INSTALLING ON LINUX
 1. Unpack the M2Crypto library, build and install:
 
         python setup.py build
-	    python setup.py install 
-		
+        python setup.py install 
+                
    When you've installed OpenSSL 0.9.8 in a non-standard directory, you must
    edit setup.py to point to this location. To install M2Crypto in another
    directory, use 
    
-   	python setup.py install --prefix=/arno/pkgs/m2crypto-dev
+        python setup.py install --prefix=/arno/pkgs/m2crypto-dev
 
    In that case you'll need to set the PYTHONPATH environment variable
    to point to that directory. PYTHONPATH can also be used to point
    to the UNICODE version of wxPython when multiple versions are installed.
    E.g. 
-	PYTHONPATH=/arno/pkgs/python-2.4.3/lib/python2.4/site-packages/wx-2.8-gtk2-unicode/
+        PYTHONPATH=/arno/pkgs/python-2.4.3/lib/python2.4/site-packages/wx-2.8-gtk2-unicode/
 
 2. Unpack the main source code
 
 3. Tribler can now be started by running
 
-    PYTHONPATH=$PYTHONPATH:.
-    export PYTHONPATH
-	python Tribler/Main/tribler.py
-	
+        PYTHONPATH=$PYTHONPATH:.
+        export PYTHONPATH
+        python Tribler/Main/tribler.py
+        
    from the source directory. 
    
 
@@ -96,7 +96,7 @@ disappeared. So the procedure is simply:
    as the Tribler sources. For our VLC you'll need Python 2.5. 
 
 9. Run 
-	C:\Python24\python2.4.exe Tribler\Main\tribler.py
+        C:\Python24\python2.4.exe Tribler\Main\tribler.py
    from the source code directory.
 
 
@@ -124,13 +124,13 @@ on how to install that yourself.
 4. Download and install OpenSSL in e.g. C:\OpenSSL
 
 5. Download our pre-built python2.4.exe from 
-	http://www.tribler.org/win/python2.4.exe
+        http://www.tribler.org/win/python2.4.exe
    and save it to C:\Python24\python2.4.exe
 
 5. Download and uncompress Tribler source codes 
 
 6. Run 
-	C:\Python24\python2.4.exe abc.py
+        C:\Python24\python2.4.exe abc.py
    from the source code directory.
 
 
@@ -143,7 +143,7 @@ Tips if you want to compile M2Crypto yourself using Microsoft Visual Studio
 
 2. Make sure swig.exe is in your PATH:
   
-  	set PATH=%PATH%;"C:\Program Files\swig"
+          set PATH=%PATH%;"C:\Program Files\swig"
 
    (In some cases python still doesn't find the swig.exe binary. In that case
    copy it to the current directory.)
@@ -151,7 +151,7 @@ Tips if you want to compile M2Crypto yourself using Microsoft Visual Studio
 3. Sometimes swig can't find its libraries, use the SWIG_LIB environment 
    variable:
   
-  	set SWIG_LIB=C:\PROGRA~1\swig\lib
+          set SWIG_LIB=C:\PROGRA~1\swig\lib
   
 4. Edit M2Crypto's setup.py such that c:\\pkg is replaced with c:\\
    (it will now look for OpenSSL in C:\OpenSSL instead of C:\pkgs\OpenSSL)
@@ -159,8 +159,8 @@ Tips if you want to compile M2Crypto yourself using Microsoft Visual Studio
 5. Copy libeay32.lib and ssleay32.lib from C:\OpenSSL\lib\VC to the
    root of the M2Crypto source dir.
    
-   	C:\M2Crypto> copy C:\OpenSSL\lib\VC\*.lib .
-	
+           C:\M2Crypto> copy C:\OpenSSL\lib\VC\*.lib .
+        
    Newer OpenSSL's have different versions of the libraries. In that case, 
    use the *MD.lib ones, and edit setup.py to link to the MD versions.
 
@@ -168,7 +168,7 @@ Tips if you want to compile M2Crypto yourself using Microsoft Visual Studio
 6. Now run
 
         C:\Python24\python2.4 setup.py build
-	    C:\Python24\python2.4 setup.py install 
+        C:\Python24\python2.4 setup.py install 
 
    (In some cases, python won't find the __m2crypto.pyd installed. In that
    case copy it from \python25\lib\site-packages\M2Crypto\__m2crypto.pyd to 
@@ -226,3 +226,4 @@ BUILD TIPS
   OpenSSL install, you'll have to edit Python-src/setup.py to include the
   right install dir in ssl_incs  and ssl_libs. As of M2Crypto-0.17 setup.py
   understands a --openssl=/ssldir parameter.
+
