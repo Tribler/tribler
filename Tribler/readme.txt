@@ -21,13 +21,13 @@ Tribler website.
 
 So make sure you have
     Python >= 2.4 
-	OpenSSL >= 0.9.8
-	swig >= 1.3.25
-	wxPython >= 2.8 UNICODE (i.e., use --enable-unicode to build)
-	M2Crypto >= 0.16
+    OpenSSL >= 0.9.8
+    swig >= 1.3.25
+    wxPython >= 2.8 UNICODE (i.e., use --enable-unicode to build)
+    M2Crypto >= 0.16
+    APSW aka. python-apsw >= 3.6.x (Python wrappers for SQLite database)
     pywin32 >= Build 208 (Windows only, for e.g. UPnP support)
-	vlc >= 0.8.6a and its python bindings (for internal video player)
-    python-apsw >= 3.6.x
+    vlc >= 0.8.6a and its python bindings (optional, for internal video player)
 
 Note that Tribler only works with wxPython UNICODE, not ANSI. With small
 adjustments it probably also works with wxPython 2.6.  Python 2.4 is prefered,
