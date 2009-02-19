@@ -1730,7 +1730,7 @@ class standardDetails(wx.Panel):
         querytorrent['torrent_file_name'] = filename
         self.setBelongsToMyDowloadHistory(querytorrent, True)
         
-        wx.CallAfter(self.download,querytorrent,force=True)
+        wx.CallAfter(self.download,querytorrent,force=True,vodmode=True)
         wx.CallAfter(self.guiUtility.standardOverview.refreshGridManager)
 
     def setBelongsToMyDowloadHistory(self,torrent, b):

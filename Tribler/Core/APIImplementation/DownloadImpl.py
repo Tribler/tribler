@@ -312,6 +312,15 @@ class DownloadImpl:
                 pstate['engineresumedata'] = self.sd.shutdown()
                 self.sd = None
                 self.pstate_for_restart = pstate
+            else:
+                # This method is also called at Session shutdown, where one may
+                # choose to checkpoint its Download. If the Download was 
+                # stopped before, pstate_for_restart contains its resumedata.
+                # and that should be written into the checkpoint.
+                #
+                if self.pstate_for_restart is not None:
+                    print >>sys.stderr,"DownloadImpl: network_stop: REUSING PREVIOUSLY SAVED RESUME DATA FOR CHECKPOINT"
+                    pstate = self.pstate_for_restart 
             
             # Offload the removal of the content and other disk cleanup to another thread
             if removestate:
