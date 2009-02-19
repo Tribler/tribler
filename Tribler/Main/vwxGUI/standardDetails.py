@@ -1626,6 +1626,9 @@ class standardDetails(wx.Panel):
         if torrent is None:
             torrent = self.item
             
+            
+        print_stack()
+        
 #        if self.GetName() == 'download':
 
         force = True
@@ -1647,7 +1650,7 @@ class standardDetails(wx.Panel):
                 print >>sys.stderr,"standardDetails: download: User selected query result for download"
             try:
                 torrent['query_torrent_was_requested'] = True
-                sesscb_got_requested_torrent_lambda = lambda infohash,metadata,filename:self.sesscb_got_requested_torrent(torrent,infohash,metadata,filename)
+                sesscb_got_requested_torrent_lambda = lambda infohash,metadata,filename:self.sesscb_got_requested_torrent(torrent,infohash,metadata,filename,vodmode)
                 self.utility.session.download_torrentfile_from_peer(torrent['query_permid'],torrent['infohash'],sesscb_got_requested_torrent_lambda)
                 
                 # Show pending colour
@@ -1716,11 +1719,12 @@ class standardDetails(wx.Panel):
             else:
                 return False
 
-    def sesscb_got_requested_torrent(self,querytorrent,infohash,metadata,filename):
+    def sesscb_got_requested_torrent(self,querytorrent,infohash,metadata,filename,vodmode):
         """ The torrent file requested from another peer came in.
         @param querytorrent The original torrent record as shown on the screen
         @param infohash The infohash of the torrent file.
         @param metadata The contents of the torrent file (still bencoded)
+        @param vodmode Whether to download in VOD mode (lambda added)
         """
         # Called by SessionCallback thread
         print >>sys.stderr,"standardDetails: sesscb_got_requested_torrent:",`infohash`
@@ -1730,7 +1734,7 @@ class standardDetails(wx.Panel):
         querytorrent['torrent_file_name'] = filename
         self.setBelongsToMyDowloadHistory(querytorrent, True)
         
-        wx.CallAfter(self.download,querytorrent,force=True,vodmode=True)
+        wx.CallAfter(self.download,querytorrent,force=True,vodmode=vodmode)
         wx.CallAfter(self.guiUtility.standardOverview.refreshGridManager)
 
     def setBelongsToMyDowloadHistory(self,torrent, b):
