@@ -243,7 +243,7 @@ class ABCApp(wx.App):
             self.guiUtility.open_dbs()
             ##self.guiUtility.initStandardOverview(self.frame.standardOverview)
 
-            # ARNO50: TEST: add mod for Gopher
+            # TEST: add mod for Gopher
             """
             moderation_cast_db = self.utility.session.open_dbhandler(NTFY_MODERATIONCAST)
             moderation = {}
@@ -811,7 +811,7 @@ class ABCApp(wx.App):
                 torrentfilename = param
                 
             # Switch to GUI thread
-            # ARNO50: New: start in VOD mode
+            # New for 5.0: Start in VOD mode
             def start_asked_download():
                 self.frame.startDownload(torrentfilename,vodmode=True)
                 self.guiUtility.standardLibraryOverview(refresh=True)

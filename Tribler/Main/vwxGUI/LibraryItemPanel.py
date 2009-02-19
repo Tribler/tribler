@@ -740,8 +740,8 @@ class LibraryItemPanel(wx.Panel):
         isVideo = False 
         try:
             if os.path.isfile(torrent_filename):
-                # ARNO50: TODO optimize
-                print >>sys.stderr,"lip: Reading",torrent_filename,"to see if contains video"
+                if DEBUG:
+                    print >>sys.stderr,"lip: Reading",torrent_filename,"to see if contains video"
                 tdef = TorrentDef.load(torrent_filename)
                 isVideo = bool(tdef.get_files(exts=videoextdefaults))
         except:

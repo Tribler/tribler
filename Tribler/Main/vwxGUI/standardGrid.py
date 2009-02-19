@@ -119,12 +119,8 @@ class GridManager(object):
         # cache the numbers to avoid loading db, which is a heavy operation
         category_name = state.category
         
-        ## ARNO50: TEST 
         library = (state.db == 'libraryMode')
-        #library = False
-        
         key = (category_name, library)
-
         now = time()
         
         if (key not in self.cache_numbers or
@@ -175,9 +171,7 @@ class GridManager(object):
                 data = self.torrent_db.getTorrents(category_name = state.category, 
                                                        sort = sortcol,
                                                        range = range,
-                                                       ## ARNO50: TEST
                                                        library = (state.db == 'libraryMode'),
-                                                       #library = False,
                                                        reverse = state.reverse)
             else:
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)

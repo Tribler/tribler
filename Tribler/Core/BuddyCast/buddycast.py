@@ -169,7 +169,7 @@ from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE
 from Tribler.Core.Utilities.utilities import show_permid_short, show_permid,validPermid,validIP,validPort,validInfohash,readableBuddyCastMsg, hostname_or_ip2ip
 from Tribler.Core.Utilities.unicode import dunno2unicode
-from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND
+from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND, NTFY_MYPREFERENCES, NTFY_INSERT, NTFY_DELETE
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
@@ -1805,6 +1805,10 @@ class DataHandler:
         self.num_peers_ui = None
         self.num_torrents_ui = None
         self.cached_updates = {'peer':{},'torrent':{}}
+
+        # Subscribe BC to updates to MyPreferences, such that we can add/remove
+        # them from our download history that we send to other peers.
+        self.launchmany.session.add_observer(self.sesscb_ntfy_myprefs,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_DELETE])
             
     def commit(self):
         self.peer_db.commit()
@@ -2003,6 +2007,21 @@ class DataHandler:
         if tids:
             self.cacheSimUpdates('torrent', tids, delay, batch, update_interval)
 
+
+    def sesscb_ntfy_myprefs(self,subject,changeType,objectID,*args):
+        """ Called by SessionCallback thread """
+        if DEBUG:
+            print >>sys.stderr,"bc: sesscb_ntfy_myprefs:",subject,changeType,`objectID`
+        if subject == NTFY_MYPREFERENCES:
+            infohash = objectID
+            if changeType == NTFY_INSERT:
+                op_my_pref_lambda = lambda:self.addMyPref(infohash)
+            elif changeType == NTFY_DELETE:
+                op_my_pref_lambda = lambda:self.delMyPref(infohash)
+            # Execute on OverlayThread
+            self.overlay_bridge.add_task(op_my_pref_lambda, 0)
+
+
     def addMyPref(self, infohash):
         infohash_str=bin2str(infohash)
         torrentdata = self.torrent_db.getOne(('secret', 'torrent_id'), infohash=infohash_str)
@@ -2013,7 +2032,7 @@ class DataHandler:
         torrent_id = torrentdata[1]
         if secret:
             if DEBUG:
-                print >> sys.stderr, 'Omitting secret download: %s' % torrentdata.get('info', {}).get('name', 'unknown')
+                print >> sys.stderr, 'bc: Omitting secret download: %s' % torrentdata.get('info', {}).get('name', 'unknown')
             return # do not buddycast secret downloads
         
         if torrent_id not in self.myprefs:
@@ -2024,7 +2043,6 @@ class DataHandler:
             #self.total_pref_changed += self.update_i2i_threshold
             
     def delMyPref(self, infohash):
-        """ Arno: unused at the moment """
         torrent_id = self.torrent_db.getTorrentID(infohash)
         if torrent_id in self.myprefs:
             self.myprefs.remove(torrent_id)
@@ -2041,24 +2059,6 @@ class DataHandler:
             self.buddycast_core.addRemoteSearchPeer(*tuple(p))
         pass
     
-#===============================================================================
-#    def getAllPeerPermids(self, cached_peers=True):
-#        """ Get a number of peers from self.peers """
-# 
-#        if cached_peers:    # use the cached peers
-#            peerids = self.peers.keys()
-#            permids = self.peer_db.getPeerList(peerids)
-#        else:
-#            permids = self.peer_db.getPeerList()
-#        return permids
-#===============================================================================
-    
-#    def remove_overhead_peers(self, peers2del):
-#        for peer in peers2del:
-#            self.peer_db.deletePeer(peer, updateFlag=False)     # friends will not be deleted
-    
-#    def getPeers(self, peer_list, keys):
-#        return self.peer_db.getPeers(peer_list, keys)
         
     def updatePeerPref(self, peer_permid, cur_prefs):
         peer_id = self.getPeerID(peer_permid)

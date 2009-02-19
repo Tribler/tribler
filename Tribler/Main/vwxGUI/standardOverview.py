@@ -602,14 +602,10 @@ class standardOverview(wx.Panel):
         guiserver = GUITaskQueue.getInstance()
         
         mypreference_db = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-        # LAYERVIOLATION LAYERVIOLATION
-        # ARNO50: Implement this via Notifier: we remove from DB, BuddyCast
-        # listens to notifies.
-        from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-        bc = BuddyCastFactory.getInstance()
-        if bc.registered:
-            bc.overlay_bridge.add_task(lambda:bc.delMyPref(infohash))
         mypreference_db.deletePreference(infohash)
+        # BuddyCast is now notified of this removal from our
+        # preferences via the Notifier mechanism. See BC.sesscb_ntfy_myprefs()
+
         
     def toggleLoadingDetailsPanel(self, visible):
         loadingDetails = self.data[self.mode].get('loadingDetailsPanel')

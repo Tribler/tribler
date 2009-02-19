@@ -291,14 +291,8 @@ class TriblerLaunchMany(Thread):
                 # TODO: if user renamed the dest_path for single-file-torrent
                 data = {'destination_path':dest_path}
                 self.mypref_db.addMyPreference(infohash, data)
-
-            # All calls to BuddyCast must be delegated to overlay thread
-            if self.torrent_db is not None:
-                def add_mypref_to_buddycast():
-                    if self.overlay_apps and self.overlay_apps.buddycast and self.overlay_apps.buddycast.started:
-                        self.overlay_apps.buddycast.addMyPref(infohash)
-                self.overlay_bridge.add_task(add_mypref_to_buddycast, 0)
-            
+                # BuddyCast is now notified of this new Download in our
+                # preferences via the Notifier mechanism. See BC.sesscb_ntfy_myprefs()
             return d
         finally:
             self.sesslock.release()

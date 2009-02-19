@@ -159,7 +159,7 @@ class Utility:
             'torrentassociationwarned':'0',
             # GUI
             'window_width': '1024', 
-            'window_height': '768', 
+            'window_height': '670', 
             'detailwindow_width': '800', 
             'detailwindow_height': '500', 
             'prefwindow_width': '1000', 

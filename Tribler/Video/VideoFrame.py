@@ -114,7 +114,7 @@ class VideoDummyFrame(VideoBaseFrame):
         self.create_videopanel(vlcwrap,logopath)
 
     def create_videopanel(self,vlcwrap, logopath):
-        # ARNO50: Uses 5.0 colours
+        # Use 5.0 colours
         self.showingframe = False
         self.videopanel = EmbeddedPlayerPanel(self.parent,self.utility,vlcwrap,logopath,fg=wx.WHITE,bg=(216,233,240))
         self.videopanel.Hide()
