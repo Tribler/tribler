@@ -66,6 +66,12 @@ class GUIUtility:
         self.standardGrid = None
  
 
+        # port number
+        self.port_number = None
+
+
+
+
         # Arno: 2008-04-16: I want to keep this for searching, as an extension
         # of the standardGrid.GridManager
         self.torrentsearch_manager = TorrentSearchGridManager.getInstance(self)
@@ -349,6 +355,14 @@ class GUIUtility:
 #        elif DEBUG:
 #            print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
     
+    def set_port_number(self, port_number):
+        self.port_number = port_number
+
+    def get_port_number(self):
+        return self.port_number
+
+
+
     def OnResultsClicked(self):
         if self.guiPage == None:
             self.guiPage = 'search_results'

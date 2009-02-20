@@ -83,7 +83,8 @@ class standardOverview(wx.Panel):
         self.results = {}
         
 #        self.SetBackgroundColour((255,255,90))
-        
+  
+        self.firewallStatus = None
         
 #        self.Bind(wx.EVT_SIZE, self.standardOverviewResize)
         self.mode = None        
@@ -204,7 +205,38 @@ class standardOverview(wx.Panel):
         self.standardPager = pager
 
 
+    def set_session(self, session):
+        self.session = None
+        self.session = session
+        print >> sys.stderr, "SESSION SET"
+
+
+
+    def onReachable(self,event=None):
+        """ Called by GUI thread """
+        self.guiUtility.set_reachable()
+        if self.firewallStatus is not None:
+            print >> sys.stderr , "AAAAA"
+            self.firewallStatus.setSelected(2)
+            self.firewallStatusText.SetLabel('Port is working')
+            tt = self.firewallStatus.GetToolTip()
+            if tt is not None:
+                tt.SetTip(self.utility.lang.get('reachable_tooltip'))
+
+
+    # change port number in settings panel
+    def OnPortChange(self, event):
+        keycode = event.GetKeyCode()
+
+        if keycode == wx.WXK_RETURN:
+            print >> sys.stderr , self.session
+            self.session.set_listen_port(self.portValue.GetValue())
+            self.guiUtility.set_port_number(self.portValue.GetValue()) 
+        else:
+            event.Skip()     
+
         
+
     def loadPanel(self):        
         currentPanel = self.data[self.mode].get('panel',None)
         #print >> sys.stderr, 'standardOverview: currentPanel' , currentPanel
@@ -229,14 +261,18 @@ class standardOverview(wx.Panel):
 
         if self.mode == 'settingsMode':
             self.firewallStatus = xrc.XRCCTRL(currentPanel,'firewallStatus')
+            self.firewallStatusText = xrc.XRCCTRL(currentPanel,'firewallStatusText')
+            self.portValue = xrc.XRCCTRL(currentPanel,'firewallValue')
+            self.portValue.Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
+
             
-            ##if self.guiUtility.isReachable():
-            ##    self.firewallStatus.setToggled(True)
-            ##    self.firewallStatus.Refresh()
-            ##    print >> sys.stderr , "OK"
-            ##else:
-            ##    self.firewallStatus.setToggled(False)
-            ##self.Refresh()
+        ##    if self.guiUtility.isReachable():
+        ##        self.firewallStatus.setToggled(True)
+        ##        self.firewallStatus.Refresh()
+        ##        print >> sys.stderr , "OK"
+        ##    else:
+        ##        self.firewallStatus.setToggled(False)
+        ##    self.Refresh()
 
 
 

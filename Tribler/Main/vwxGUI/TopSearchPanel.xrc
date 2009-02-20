@@ -179,6 +179,60 @@
                   </object>
                 </object>
               </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <object class="wxStaticBitmap" name="left">
+                      <bitmap>images/5.0/left.png</bitmap>
+                      <bg>#FFFFFF</bg>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>0,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText" name="total_down">
+                      <label>300KB Down</label>
+                      <font>
+                        <size>6</size>
+                        <family>swiss</family>
+                        <style>normal</style>
+                        <weight>normal</weight>
+                        <underlined>0</underlined>
+                        <face>Sans</face>
+                        <encoding>UTF-8</encoding>
+                      </font>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>20,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText" name="total_up">
+                      <label>40KB Up</label>
+                      <font>
+                        <size>6</size>
+                        <family>swiss</family>
+                        <style>normal</style>
+                        <weight>normal</weight>
+                        <underlined>0</underlined>
+                        <face>Sans</face>
+                        <encoding>UTF-8</encoding>
+                      </font>
+                    </object>
+                  </object>
+                  <object class="spacer">
+                    <size>0,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticBitmap" name="right">
+                      <bitmap>images/5.0/right.png</bitmap>
+                      <bg>#FFFFFF</bg>
+                    </object>
+                  </object>
+                </object>
+              </object>
             </object>
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
           </object>

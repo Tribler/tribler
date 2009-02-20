@@ -284,7 +284,196 @@ class tribler_topButton(wx.Panel):
         if (self.mouseOver or self.selected) and self.bitmaps[1]:
             dc.DrawBitmap(self.bitmaps[1], 0,0, True)
         
+class firewallButton(tribler_topButton):
+    """
+    Button with three states corresponding to the firewall status: 
+    - reachable     (self.selected = 2)
+    - connecting    (self.selected = 1)
+    - not reachable (self.selected = 0)
+    """
 
+    __bitmapCache = {}
+
+   
+    def _PostInit(self):
+#        print >>sys.stderr,"<mluc> tribler_topButton in _PostInit"
+        # Do all init here
+        self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+        self.Bind(wx.EVT_LEFT_UP, self.ClickedButton)
+        self.selected = 1
+        self.tooltip = None
+        self.old_bitmaps = None #bitmaps that were initially loaded on the button with searchBitmaps function, and now have been changed to some provisory ones using switchTo
+        self.searchBitmaps()
+        self.createBackgroundImage()
+        
+        #<mluc> on mac, the button doesn't get a size
+        #if self.bitmaps[0] and self.GetSize()==(0,0):
+        if self.bitmaps[0]:
+            self.SetSize(self.bitmaps[0].GetSize())
+#        print >> sys.stderr, self.Name
+#        print >> sys.stderr, 'size'
+#        print >> sys.stderr, self.Size
+
+        
+        self.initDone = True
+        self.Refresh(True)
+        self.Update()
+        
+        
+    def searchBitmaps(self):
+        self.bitmaps = [None, None, None]
+        self.parentBitmap = None
+        self.mouseOver = False
+                
+        # get the image directory
+        self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
+       
+        # find a file with same name as this panel
+        self.bitmapPath = [os.path.join(self.imagedir, self.GetName()+'_state1.png'), 
+                        os.path.join(self.imagedir, self.GetName()+'_state2.png'),
+                       os.path.join(self.imagedir, self.GetName()+'_state3.png')]
+
+        i = 0
+        for img in self.bitmapPath:
+            if not os.path.isfile(img):
+                  print >>sys.stderr,"TopButton: Could not find image:",img
+            try:
+                if img in firewallButton.__bitmapCache:
+                    self.bitmaps[i] = firewallButton.__bitmapCache[img]
+                else:
+                    self.bitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+                    firewallButton.__bitmapCache[img] = self.bitmaps[i] 
+            except:
+                print_exc()
+            i+=1         
+           
+        
+    def setSelected(self, sel):
+        self.selected = sel
+        self.Refresh()
+        
+    def getSelected(self):
+        return self.selected
+        
+    def mouseAction(self, event):
+        pass
+
+                
+    def getParentBitmap(self):
+        try:
+            parent = self.GetParent()
+            bitmap = parent.bitmap
+            #print bitmap
+        except:
+            return None
+        
+        if bitmap:
+            location = self.GetPosition()
+            #location[0] -= parent.GetPosition()[0]
+            #location[1] -= parent.GetPosition()[1]
+            #if DEBUG:
+            #    print '(button %s) Mypos: %s, Parentpos: %s' % (self.GetName(), self.GetPosition(), parent.GetPosition())
+            rect = [location[0], location[1], self.GetClientSize()[0], self.GetClientSize()[1]]
+            #if DEBUG:
+            #    print '(button %s) Slicing rect(%d,%d) size(%s) from parent image size(%s)' % (self.GetName(), location[0], location[1], str(self.GetClientSize()), str(bitmap.GetSize()))
+            bitmap = self.getBitmapSlice(bitmap, rect)
+            return bitmap
+        else:
+            return None
+    
+    def joinImage(self, im1,im2,offsetx=0,offsety=0):
+        "Draw im2 on im1"
+        stopx = im2.GetWidth()
+        if stopx > (im1.GetWidth()-offsetx):
+            stopx = im1.GetWidth()-offsetx
+        stopy = im2.GetHeight()
+        if stopy > (im1.GetHeight()-offsety):
+            stopy = im1.GetHeight()-offsety
+        if stopx>0 and stopy>0:
+            for x in range(0,stopx):
+                for y in range(0,stopy):
+                    rgb2 = (im2.GetRed(x,y),im2.GetGreen(x,y),im2.GetBlue(x,y))
+                    if rgb2 !=(255,0,255):
+                        im1.SetRGB(x+offsetx,y+offsety,rgb2[0],rgb2[1],rgb2[2])
+        return im1
+ 
+    def getBitmapSlice(self, bitmap, rect):
+        try:
+            #print rect
+            bitmapSize = bitmap.GetSize()
+            rect[0] %= bitmapSize[0]
+            rect[1] %= bitmapSize[1]
+            rects = [rect]
+            if rect[0]+rect[2] > bitmapSize[0]:
+                rect1 = (rect[0], rect[1], bitmapSize[0]-rect[0], rect[3])
+                rect2 = (0, rect[1], rect[0]+rect[2] - bitmapSize[0], rect[3])
+                rects = [rect1, rect2]
+            if rect[1]+ rect[3] > bitmapSize[1]:
+                rects2 = []
+                for r in rects:
+                    r1 = (r[0], r[1], r[2], bitmapSize[1] - r[3])
+                    r2 = (r[0], 0, r[2], r[1]+r[3] - bitmapSize[1])
+                    rects2.append(r1)
+                    rects2.append(r2)
+                rects = rects2
+            images = []
+            if len(rects) > 1:
+                if DEBUG:
+                    print >>sys.stderr,"TopButton: (button %s) Result: %s" % (self.GetName(), rects)
+                image = wx.EmptyImage(rect[2], rect[3])
+                for r in rects:    
+                    rect = wx.Rect(r[0], r[1], r[2], r[3])
+                    if DEBUG:
+                        print >>sys.stderr,'TopButton: (button %s) Trying to get rect: %s from bitmap: %s' % (self.GetName(), rect, bitmap.GetSize())
+                    subBitmap = bitmap.GetSubBitmap(rect)
+                    subImage = subBitmap.ConvertToImage()
+                    if len(rects) == 2:
+                        if r == rects[0]:
+                            place = (0,0)
+                        elif r == rects[1]:
+                            place = (rects[0][2], 0)
+                    elif len(rects) == 4:
+                        if r == rects[0]:
+                            place = (0,0)
+                        elif r == rects[1]:
+                            place = (0, rects[0][3])
+                        elif r == rects[2]:
+                            place = (rects[0][2],0)
+                        elif r == rects[3]:
+                            place = (rects[0][2], rects[0][3])
+                    if DEBUG:
+                        print >>sys.stderr,"TopButton: (button %s) Place subbitmap: %s" % (self.GetName(), str(place))
+                    self.joinImage(image, subImage, place[0], place[1])
+                if DEBUG:
+                    print >>sys.stderr,'TopButton: (button %s) Result img size: %s' % (self.GetName(), str(image.GetSize()))
+                return image.ConvertToBitmap()
+            else:
+                return bitmap.GetSubBitmap(wx.Rect(rect[0], rect[1], rect[2], rect[3]))
+        except:
+            if DEBUG:
+                print_exc()
+            return None
+                                            
+       
+    def OnPaint(self, evt):
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.backgroundColor))
+        dc.Clear()
+        
+        if self.parentBitmap:
+            dc.DrawBitmap(self.parentBitmap, 0,0, True)
+        else:
+            self.parentBitmap = self.getParentBitmap()
+            if self.parentBitmap:
+                dc.DrawBitmap(self.parentBitmap, 0,0, True)
+        
+        if not self.enabled:
+            return
+        
+        dc.DrawBitmap(self.bitmaps[self.selected], 0,0, True)
+        
 
 class TestButton(tribler_topButton):
 

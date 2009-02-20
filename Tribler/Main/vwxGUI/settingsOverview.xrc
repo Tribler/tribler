@@ -21,6 +21,15 @@
               <object class="sizeritem">
                 <object class="wxStaticText" name="profileTitle">
                   <label>Profile</label>
+                  <font>
+                    <size>10</size>
+                    <family>swiss</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Sans</face>
+                    <encoding>UTF-8</encoding>
+                  </font>
                 </object>
               </object>
               <object class="spacer">
@@ -110,6 +119,15 @@
               <object class="sizeritem">
                 <object class="wxStaticText" name="sharingTitle">
                   <label>Sharing Rates</label>
+                  <font>
+                    <size>10</size>
+                    <family>swiss</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Sans</face>
+                    <encoding>UTF-8</encoding>
+                  </font>
                 </object>
               </object>
               <object class="spacer">
@@ -271,6 +289,15 @@
               <object class="sizeritem">
                 <object class="wxStaticText" name="firewallTitle">
                   <label>Port Settings</label>
+                  <font>
+                    <size>10</size>
+                    <family>swiss</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Sans</face>
+                    <encoding>UTF-8</encoding>
+                  </font>
                 </object>
               </object>
               <object class="sizeritem">
@@ -280,18 +307,44 @@
                     <size>0,10</size>
                   </object>
                   <object class="sizeritem">
-                    <object class="wxStaticText" name="firewallText">
-                      <label>7762</label>
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="spacer">
+                        <size>0,5</size>
+                      </object>
+                      <object class="sizeritem">
+                        <object class="wxTextCtrl" name="firewallValue">
+                          <value></value>
+                          <size>50,25</size>
+                          <style>wxTE_PROCESS_ENTER</style>
+                          <font>
+                            <size>10</size>
+                            <family>default</family>
+                            <style>normal</style>
+                            <weight>normal</weight>
+                            <underlined>0</underlined>
+                          </font>
+                          <focused>1</focused>
+                        </object>
+                      </object>
                     </object>
                   </object>
                   <object class="sizeritem">
-                    <object class="wxPanel" name="firewallStatus" subclass="Tribler.Main.vwxGUI.tribler_topButton.SwitchButton">
+                    <object class="wxPanel" name="firewallStatus" subclass="Tribler.Main.vwxGUI.tribler_topButton.firewallButton">
                       <size>33,32</size>
                     </object>
                   </object>
                   <object class="sizeritem">
-                    <object class="wxStaticText" name="firewallStatusText">
-                      <label></label>
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="spacer">
+                        <size>0,10</size>
+                      </object>
+                      <object class="sizeritem">
+                        <object class="wxStaticText" name="firewallStatusText">
+                          <label>Connecting ...</label>
+                        </object>
+                      </object>
                     </object>
                   </object>
                 </object>
@@ -313,69 +366,17 @@
             <object class="wxBoxSizer">
               <orient>wxVERTICAL</orient>
               <object class="sizeritem">
-                <object class="wxStaticText" name="privacyTitle">
-                  <label>Privacy</label>
-                </object>
-              </object>
-              <object class="spacer">
-                <size>0,10</size>
-              </object>
-              <object class="sizeritem">
-                <object class="wxBoxSizer">
-                  <orient>wxHORIZONTAL</orient>
-                  <object class="spacer">
-                    <size>10,0</size>
-                  </object>
-                  <object class="sizeritem">
-                    <object class="wxStaticText" name="privacyDetails">
-                      <label>Share information about your files, with</label>
-                    </object>
-                  </object>
-                </object>
-              </object>
-              <object class="spacer">
-                <size>0,0</size>
-              </object>
-              <object class="sizeritem">
-                <object class="wxBoxSizer">
-                  <orient>wxHORIZONTAL</orient>
-                  <object class="spacer">
-                    <size>10,0</size>
-                  </object>
-                  <object class="sizeritem">
-                    <object class="wxRadioButton">
-                      <label>No one</label>
-                    </object>
-                  </object>
-                  <object class="spacer">
-                    <size>5,0</size>
-                  </object>
-                  <object class="sizeritem">
-                    <object class="wxRadioButton">
-                      <label>Your friends</label>
-                    </object>
-                  </object>
-                  <object class="spacer">
-                    <size>5,0</size>
-                  </object>
-                  <object class="sizeritem">
-                    <object class="wxRadioButton">
-                      <label>Everyone</label>
-                    </object>
-                  </object>
-                </object>
-              </object>
-            </object>
-          </object>
-          <object class="spacer">
-            <size>130,0</size>
-          </object>
-          <object class="sizeritem">
-            <object class="wxBoxSizer">
-              <orient>wxVERTICAL</orient>
-              <object class="sizeritem">
                 <object class="wxStaticText" name="cacheText">
                   <label>Disk Cache</label>
+                  <font>
+                    <size>10</size>
+                    <family>swiss</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Sans</face>
+                    <encoding>UTF-8</encoding>
+                  </font>
                 </object>
                 <border>0</border>
               </object>

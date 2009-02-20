@@ -27,6 +27,7 @@ class SessionConfigInterface:
         @param sessconfig Optional dictionary used internally 
         to make this a copy constructor.
         """
+
         if sessconfig is not None: # copy constructor
             self.sessconfig = sessconfig
             return
@@ -54,6 +55,8 @@ class SessionConfigInterface:
             self.sessconfig['videoanalyserpath'] = ffmpegpath
 
         self.sessconfig['ipv6_binds_v4'] = autodetect_socket_style()
+
+
 
     def set_state_dir(self,statedir):
         """ Set the directory to store the Session's state in.

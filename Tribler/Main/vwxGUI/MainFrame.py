@@ -85,8 +85,7 @@ class FileDropTarget(wx.FileDropTarget):
 class MainFrame(wx.Frame):
     def __init__(self, *args):
         self.firewallStatus = None
-        self.utility = None
-        self.category = None
+
         if len(args) == 0:
             pre = wx.PreFrame()
             # the Create step is done by XRC.
@@ -127,7 +126,7 @@ class MainFrame(wx.Frame):
         if tt is not None:
             tt.SetTip('')
         
-        #wx.Frame.__init__(self, None, ID, title, position, size, style = style)
+        #wx.Frame.__init__(self, None, -1, title, position, size, style = style)
         
         self.doneflag = Event()
 
@@ -452,7 +451,7 @@ class MainFrame(wx.Frame):
 
         # Refresh subscreens
         self.refreshNeeded = True
-        self.guiUtility.refreshOnResize()
+        #self.guiUtility.refreshOnResize()
         
     def onIdle(self, event = None):
         """
@@ -617,11 +616,12 @@ class MainFrame(wx.Frame):
     def onReachable(self,event=None):
         """ Called by GUI thread """
         self.guiUtility.set_reachable()
-        #if self.top_bg.firewallStatus is not None:
-        #    self.top_bg.firewallStatus.setToggled(True)
-        #    tt = self.top_bg.firewallStatus.GetToolTip()
-        #    if tt is not None:
-        #        tt.SetTip(self.utility.lang.get('reachable_tooltip'))
+        if self.top_bg.firewallStatus is not None:
+            print >> sys.stderr , "AAAAA"
+            self.top_bg.firewallStatus.setSelected(2)
+            tt = self.top_bg.firewallStatus.GetToolTip()
+            if tt is not None:
+                tt.SetTip(self.utility.lang.get('reachable_tooltip'))
 
     def setActivity(self,type,msg=u'',arg2=None):
         

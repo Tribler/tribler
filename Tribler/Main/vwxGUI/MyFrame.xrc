@@ -9,7 +9,7 @@
     <object class="wxScrolledWindow" name="level0">
       <style>wxVSCROLL|wxHSCROLL|wxCLIP_CHILDREN</style>
       <pos>0,0</pos>
-      <size>1024,670</size>
+      <size>1100,683</size>
       <bg>#FFFFFF</bg>
       <object class="wxBoxSizer">
         <orient>wxHORIZONTAL</orient>

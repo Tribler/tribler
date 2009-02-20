@@ -9,6 +9,7 @@ from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Core.simpledefs import *
+from Tribler.Core.SessionConfig import SessionConfigInterface
 from time import time
 from traceback import print_exc,print_stack
 import urllib
@@ -19,7 +20,7 @@ class SettingsOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
         self.initDone = False
-        self.elementsName = ['myNameField', 'thumb', 'edit']
+        self.elementsName = ['myNameField', 'thumb', 'edit','firewallValue']
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         self.mypref = None
@@ -73,17 +74,11 @@ class SettingsOverviewPanel(wx.Panel):
         #self.getGuiElement('myNameField').SetLabel('')
 
 
-        # firewall status 
-        ##if self.guiUtility.isReachable():
-        ##    print >> sys.stderr, self.guiUtility.isReachable()
-        ##    self.firewallStatus.setToggled(True)
-        ##    self.firewallStatus.Refresh()
-        ##    print >> sys.stderr , "OK"
-          
-        ##else:
-        ##    self.firewallStatus.setToggled(False)
-        ##self.Refresh()
+        #self.elements['firewallValue'].Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
 
+
+
+        self.showPort()
 
         self.initDone = True
         
@@ -124,6 +119,18 @@ class SettingsOverviewPanel(wx.Panel):
         source_name = source.GetName()
         if source_name == "edit":
             self.OnMyInfoWizard(event)
+
+
+    def showPort(self):
+        self.elements['firewallValue'].SetValue(str(self.guiUtility.get_port_number()))
+
+
+    def OnPortChange(self, event):
+        keycode = event.GetKeyCode()
+
+        if keycode == wx.WXK_RETURN:
+            pass
+
 
 
     def getGuiElement(self, name):

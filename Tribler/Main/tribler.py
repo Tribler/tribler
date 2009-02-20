@@ -410,6 +410,8 @@ class ABCApp(wx.App):
         self.utility.convert__presession_4_1__4_2(self.sconfig)
         
         s = Session(self.sconfig)
+        self.frame.standardOverview.set_session(s)
+
         #pdb.set_trace()
         self.utility.session = s
 
@@ -418,6 +420,14 @@ class ABCApp(wx.App):
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_friends,NTFY_PEERS,[NTFY_UPDATE])
+
+
+        # set port number in GuiUtility
+        if DEBUG:
+            print >> sys.stderr, 'LISTEN PORT :' , s.get_listen_port()
+        port = s.get_listen_port()
+        self.guiUtility.set_port_number(port)
+
 
         # Load the default DownloadStartupConfig
         dlcfgfilename = get_default_dscfg_filename(s)
@@ -483,12 +493,48 @@ class ABCApp(wx.App):
         self.utility.session.close_dbhandler(bc_db)
         return reputation
 
+    def get_total_down(self):
+        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+        return bc_db.total_down
+
+    def get_total_up(self):
+        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+        return bc_db.total_up
+
+
     def set_reputation(self):
         """ set the reputation in the GUI"""
         reputation = self.get_reputation()
         print >> sys.stderr , "main: My Reputation",reputation
         
         self.frame.top_bg.help.SetToolTipString(self.utility.lang.get('help') % (reputation))
+
+        d = int(self.get_total_down())
+        if d < 1000:
+            s = '%dB Down' % d         
+        elif d < 1000000:
+            s = '%dKB Down' % (d//1000L)         
+        elif d < 1000000000:
+            s = '%dMB Down' % (d//1000000L)
+        else:
+            s = '%dGB Down' % (d//1000000000L)
+
+        self.frame.top_bg.total_down.SetLabel(s)
+
+
+        u = self.get_total_up()
+        if u < 1000:
+            s = '%dB Up' % u         
+        elif d < 1000000:
+            s = '%dKB Up' % (u//1000L)         
+        elif d < 1000000000:
+            s = '%dMB Up' % (u//1000000L)
+        else:
+            s = '%dGB Up' % (u//1000000000L)
+
+        self.frame.top_bg.total_up.SetLabel(s)
+
+
         self.frame.hsizer = self.frame.top_bg.sr_indicator.GetContainingSizer()
         self.frame.hsizer.Remove(0)
         self.frame.hsizer.Prepend(wx.Size(reputation*40+50,0),0,wx.LEFT,0)
@@ -516,7 +562,7 @@ class ABCApp(wx.App):
             # Print stats on Console
             for ds in dslist:
                 safename = `ds.get_download().get_def().get_name()`
-                print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                #print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
                 #print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                 if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                     print >>sys.stderr,"main: Error:",`ds.get_error()`
@@ -708,7 +754,7 @@ class ABCApp(wx.App):
         wx.CallAfter(self.frame.setActivity,objectID,*args)
     
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
-        wx.CallAfter(self.frame.onReachable)
+        wx.CallAfter(self.frame.standardOverview.onReachable)
 
 
     def sesscb_ntfy_friends(self,subject,changeType,objectID,*args):

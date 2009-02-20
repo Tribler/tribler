@@ -103,6 +103,9 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.volumebox.Add(self.vol5, 0, wx.ALIGN_CENTER_VERTICAL, 0)            
             self.volumebox.Add(self.vol6, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
+            
+            self.updateVol(self.volume)
+
     
             self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'fullScreen')
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)

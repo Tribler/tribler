@@ -47,7 +47,7 @@ class TopSearchPanel(bgPanel):
         hsizer = self.go.GetContainingSizer()
         hsizer.Add(vsizer,0,wx.FIXED_MINSIZE,0)                  
 
-        hide_names = [self.ag]
+        hide_names = [self.ag,self.newFile]
         for name in hide_names:
             name.Hide()
 
@@ -182,9 +182,15 @@ class TopSearchPanel(bgPanel):
         self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY))
         self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRindicator.png", wx.BITMAP_TYPE_ANY))
         self.settings = wx.StaticText(self, -1, "Settings")
+        self.newFile = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/iconSaved.png", wx.BITMAP_TYPE_ANY))
         self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY))
         self.my_files = wx.StaticText(self, -1, "My Files")
         self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
+        self.left = wx.StaticBitmap(self,-1, self.Bitmap("images/5.0/left.png", wx.BITMAP_TYPE_ANY))
+        self.right = wx.StaticBitmap(self,-1, self.Bitmap("images/5.0/right.png", wx.BITMAP_TYPE_ANY))
+        self.total_down = wx.StaticText(self, -1, "")
+        self.total_up = wx.StaticText(self, -1, "")
+        
 
         self.__set_properties()
         self.__do_layout()
@@ -213,7 +219,11 @@ class TopSearchPanel(bgPanel):
         self.my_files.SetMinSize((50,15))
         self.my_files.SetForegroundColour(wx.Colour(255, 51, 0))
         self.my_files.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.total_down.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.total_up.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+
         # end wx.Glade
+
 
     def __do_layout(self):
         # begin wx.Glade: MyPanel.__do_layout
@@ -229,6 +239,7 @@ class TopSearchPanel(bgPanel):
         object_5 = wx.BoxSizer(wx.HORIZONTAL)
         object_6 = wx.BoxSizer(wx.VERTICAL)
         object_4 = wx.BoxSizer(wx.HORIZONTAL)
+        object_13 = wx.BoxSizer(wx.HORIZONTAL)
         object_1.Add((10, 0), 0, 0, 0)
         object_1.Add(self.black_spacer, 0, 0, 0)
         object_3.Add((0, 20), 0, 0, 0)
@@ -258,6 +269,7 @@ class TopSearchPanel(bgPanel):
         object_9.Add((50, 0), 0, 0, 0)
         object_9.Add(self.sr_indicator, 0, wx.TOP, -17)
         object_7.Add(object_9, 0, 0, 0)
+        object_7.Add(object_13, 0, 0, 0)
         object_2.Add(object_7, 0, wx.EXPAND, 0)
         object_1.Add(object_2, 1, wx.EXPAND, 0)
         object_1.Add((7, 0), 0, 0, 0)
@@ -273,10 +285,18 @@ class TopSearchPanel(bgPanel):
         object_12.Add((0, 20), 0, 0, 0)
         object_12.Add(self.my_files, 0, 0, 0)
         object_12.Add((0, 0), 0, 0, 0)
+        object_12.Add(self.newFile, 0, 0, 0)
         object_1.Add(object_12, 0, 0, 0)
         object_1.Add((7, 0), 0, 0, 0)
         object_1.Add(self.tribler_logo2, 0, 0, 0)
         object_1.Add((10, 0), 0, 0, 0)
+        object_13.Add(self.left, 0, 0, 0)
+        object_13.Add((0, 0), 0, 0, 0)
+        object_13.Add(self.total_down, 0, 0, 0)
+        object_13.Add((20, 0), 0, 0, 0)
+        object_13.Add(self.total_up, 0, 0, 0)
+        object_13.Add((0, 0), 0, 0, 0)
+        object_13.Add(self.right, 0, 0, 0)
         
         # OUR CODE  ARNO50: Check diff in defs
         if sys.platform == 'win32':
