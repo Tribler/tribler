@@ -343,22 +343,27 @@ class TorrentSearchGridManager:
         wx.CallAfter(self.refreshGrid)
         
     def web2tonewdb(self,value):
-        newval = {}
-        newval['infohash'] = value['infohash']
-        newval['name'] = value['content_name']
-        newval['status'] = value['status']
-        newval['description'] = value['description']
-        newval['tags'] = value['tags']
-        newval['url'] = value['url']
-        newval['num_leechers'] = value['leecher']
-        newval['num_seeders'] = value['views']
-        newval['creation_date'] = value['date']
-        newval['views'] = value['views']
-        newval['web2'] = value['web2']
-        newval['length'] = value['length']
-        if 'preview' in value: # Apparently not always present
-            newval['preview'] = value['preview']
-        return newval
+        try:
+            # Added protection against missing values
+            newval = {}
+            newval['infohash'] = value['infohash']
+            newval['name'] = value['content_name']
+            newval['status'] = value.get('status','unknown')
+            newval['description'] = value.get('description','')
+            newval['tags'] = value.get('tags',[])
+            newval['url'] = value.get('url','')
+            newval['num_leechers'] = value.get('leecher',1)
+            newval['num_seeders'] = value.get('views',1)
+            newval['creation_date'] = value.get('date','')
+            newval['views'] = value.get('views',0)
+            newval['web2'] = value.get('web2',True)
+            newval['length'] = value.get('length',1)
+            if 'preview' in value: # Apparently not always present
+                newval['preview'] = value['preview']
+            return newval
+        except:
+            print_exc()
+            return None
 
     def addStoredWeb2Results(self,mode,categorykey,range):
         web2on = self.guiUtility.utility.config.Read('enableweb2search',"boolean")
@@ -396,6 +401,8 @@ class TorrentSearchGridManager:
                     # Translate to NEWDB/FileItemPanel format, doing this in 
                     # web2/video/genericsearch.py breaks something
                     newval = self.web2tonewdb(value)
+                    if newval is None:
+                        continue
 
                     known = False
                     for item in self.hits:

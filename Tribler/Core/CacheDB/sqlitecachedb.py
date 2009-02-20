@@ -518,7 +518,7 @@ class SQLiteCacheDBBase:
                     sleep(pow(2.0,tries+2)/100.0)
                     self.commit_retry_if_busy_or_rollback(e2,tries+1)
                 else:
-                    self.rollback(cur, tries)
+                    self.rollback(tries)
                     raise Exception,e2
         else:
             self.rollback(tries)

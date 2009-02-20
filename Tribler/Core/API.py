@@ -4,9 +4,12 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.2rc2, Jan 13, 2009. Import this to use the API """
+""" Tribler Core API v1.0.2rc3, Feb 20, 2009. Import this to use the API """
 
 # History:
+#
+# 1.0.2rc3   Added: Session.has_shutdown() which tells whether it is already
+#            safe to quit the process the Session was running in.
 #
 # 1.0.2rc2   Removed: [s/g]et_puncturing_coordinators in SessionConfig.
 #            Bugfix: [s/g]et_puncturing_private_port in SessionConfig renamed to

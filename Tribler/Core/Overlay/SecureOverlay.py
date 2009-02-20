@@ -33,8 +33,8 @@ OLPROTO_VER_THIRD  = 3  # Second public release, >= 3.6.0, Dialback, BuddyCast2
 OLPROTO_VER_FOURTH = 4  # Third public release, >= 3.7.0, BuddyCast3
 OLPROTO_VER_FIFTH = 5   # Fourth public release, >= 4.0.0, SOCIAL_OVERLAP
 OLPROTO_VER_SIXTH = 6   # Fifth public release, >= 4.1.0, extra BC fields, remote query
-OLPROTO_VER_SEVENTH = 7 # Seventh public release, >= 4.5.0, supports CRAWLER_REQUEST and CRAWLER_REPLY messages
-OLPROTO_VER_EIGHTH = 8  # Eight public release, >= 5.0, supporting buddycast with clicklog info.
+OLPROTO_VER_SEVENTH = 7 # Sixth public release, >= 4.5.0, supports CRAWLER_REQUEST and CRAWLER_REPLY messages
+OLPROTO_VER_EIGHTH = 8  # Seventh public release, >= 5.0, supporting BuddyCast with clicklog info.
 
 
 

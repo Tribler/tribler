@@ -319,8 +319,14 @@ class DownloadImpl:
                 # and that should be written into the checkpoint.
                 #
                 if self.pstate_for_restart is not None:
-                    print >>sys.stderr,"DownloadImpl: network_stop: REUSING PREVIOUSLY SAVED RESUME DATA FOR CHECKPOINT"
-                    pstate = self.pstate_for_restart 
+                    if DEBUG:
+                        print >>sys.stderr,"DownloadImpl: network_stop: Reusing previously saved engineresume data for checkpoint"
+                    # Don't copy full pstate_for_restart, as the torrent
+                    # may have gone from e.g. HASHCHECK at startup to STOPPED
+                    # now, at shutdown. In other words, it was never active
+                    # in this session and the pstate_for_restart still says 
+                    # HASHCHECK.
+                    pstate['engineresumedata'] = self.pstate_for_restart['engineresumedata'] 
             
             # Offload the removal of the content and other disk cleanup to another thread
             if removestate:

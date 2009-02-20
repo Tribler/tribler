@@ -204,7 +204,7 @@ class TorrentDef(Serializable,Copyable):
         or None. In the latter case there is no source authentication. The other
         current legal value is an instance of ECDSALiveSourceAuthConfig. When
         using this method, a sequence number, real-time timestamp and an ECDSA
-        signature of 64 bytesis put in each piece. As a result, the content in
+        signature of 64 bytes is put in each piece. As a result, the content in
         each packet is get_piece_length()-81, so that this into account when
         selecting the bitrate.
         
@@ -563,7 +563,7 @@ class TorrentDef(Serializable,Copyable):
             newlen = int(length + add)
 
                 
-            print >>sys.stderr,"CHECK INFO LENGTH",secs,newlen
+            #print >>sys.stderr,"CHECK INFO LENGTH",secs,newlen
 
             d = self.input['files'][0]
             d['length'] = newlen

@@ -586,6 +586,14 @@ class Session(SessionRuntimeConfig):
         self.lm.early_shutdown()
         self.checkpoint_shutdown(stop=True,checkpoint=checkpoint,gracetime=gracetime,hacksessconfcheckpoint=hacksessconfcheckpoint)
         self.uch.shutdown()
+    
+    def has_shutdown(self):
+        """ Whether the Session has completely shutdown, i.e., its internal
+        threads are finished and it is safe to quit the process the Session
+        is running in.
+        @return A Boolean.
+        """
+        return self.lm.sessdoneflag.isSet()
         
     def get_downloads_pstate_dir(self):
         """ Returns the directory in which to checkpoint the Downloads in this

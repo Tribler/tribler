@@ -806,6 +806,11 @@ class ABCApp(wx.App):
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
         self.utility.session.shutdown(hacksessconfcheckpoint=False) 
+
+        while not self.utility.session.has_shutdown():
+            print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown"
+            sleep(1)
+            
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker

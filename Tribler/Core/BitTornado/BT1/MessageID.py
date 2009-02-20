@@ -117,14 +117,7 @@ FRIENDSHIP = chr(234)
 
 FriendshipMessages = [FRIENDSHIP]
 
-# Do NAT check and report
-# DO_NAT_CHECK = chr(234)
-# NAT_CHECK_REPLY = chr(233)
-
 ####### FREE ID = 233
-
-
-# NatCheckMessages = [DO_NAT_CHECK, NAT_CHECK_REPLY]
 
 # Generic Crawler messages
 CRAWLER_REQUEST = chr(232)
@@ -172,8 +165,6 @@ message_map = {
     QUERY:"QUERY",
     QUERY_REPLY:"QUERY_REPLY",
     BARTERCAST:"BARTERCAST",
-#     DO_NAT_CHECK:"DO_NAT_CHECK",
-#     NAT_CHECK_REPLY:"NAT_CHECK_REPLY",
     G2G_PIECE_XFER: "G2G_PIECE_XFER",
     FRIENDSHIP:"FRIENDSHIP",
 

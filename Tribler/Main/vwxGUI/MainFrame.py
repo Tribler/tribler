@@ -85,6 +85,7 @@ class FileDropTarget(wx.FileDropTarget):
 class MainFrame(wx.Frame):
     def __init__(self, *args):
         self.firewallStatus = None
+        self.utility = None
 
         if len(args) == 0:
             pre = wx.PreFrame()

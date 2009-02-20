@@ -3,7 +3,7 @@
 
 import sys
 import os
-import time
+from time import time,sleep
 import copy
 import sha
 import pickle
@@ -494,7 +494,7 @@ class TriblerLaunchMany(Thread):
                 if pstate['engineresumedata'] is None:
                     print >>sys.stderr,"tlm: load_checkpoint: resumedata None"
                 else:
-                    print >>sys.stderr,"tlm: load_checkpoint: resumedata",len(pstate['engineresumedata'])
+                    print >>sys.stderr,"tlm: load_checkpoint: resumedata len",len(pstate['engineresumedata'])
             
             tdef = TorrentDef.load_from_dict(pstate['metainfo'])
             
@@ -525,7 +525,6 @@ class TriblerLaunchMany(Thread):
     def network_checkpoint_callback(self,dllist,stop,checkpoint,gracetime):
         """ Called by network thread """
         if checkpoint:
-            psdict = {}
             for d in dllist:
                 # Tell all downloads to stop, and save their persistent state
                 # in a infohash -> pstate dict which is then passed to the user
@@ -537,16 +536,14 @@ class TriblerLaunchMany(Thread):
                     (infohash,pstate) = d.network_stop(False,False)
                 else:
                     (infohash,pstate) = d.network_checkpoint()
-                psdict[infohash] = pstate
-    
-            try:
-                for infohash,pstate in psdict.iteritems():
+                    
+                try:
                     self.save_download_pstate(infohash,pstate)
-            except Exception,e:
-                self.rawserver_nonfatalerrorfunc(e)
+                except Exception,e:
+                    self.rawserver_nonfatalerrorfunc(e)
     
         if stop:
-            self.shutdown(gracetime=gracetime)
+            self.network_shutdown(gracetime=gracetime)
             
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start
@@ -558,7 +555,7 @@ class TriblerLaunchMany(Thread):
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
         
             
-    def shutdown(self,gracetime=2.0):
+    def network_shutdown(self,gracetime=2.0):
         
         # Detect if megacache is enabled
         if self.peer_db is not None:
@@ -573,7 +570,7 @@ class TriblerLaunchMany(Thread):
             diff = now - self.shutdownstarttime
             if diff < gracetime:
                 print >>sys.stderr,"tlm: shutdown: sleeping for early shutdown tasks",gracetime-diff
-                time.sleep(gracetime-diff) 
+                sleep(gracetime-diff) 
                 ts = enumerate()
                 print >>sys.stderr,"tlm: Number of threads still running",len(ts)
                 for t in ts:

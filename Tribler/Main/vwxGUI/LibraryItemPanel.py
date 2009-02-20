@@ -415,20 +415,13 @@ class LibraryItemPanel(wx.Panel):
             uls = ds.get_current_speed(UPLOAD)*1024
             self.speedDown2.SetLabel(self.utility.speed_format(dls)) 
             self.speedUp2.SetLabel(self.utility.speed_format(uls))
+
+            if DEBUG:
+                print >> sys.stderr, '%s %s %s' % (`ds.get_download().get_def().get_name()`, ds.get_progress(), dlstatus_strings[ds.get_status()])
+                if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+                    print >> sys.stderr, "ERROR IS",ds.get_error()
             
-
-            #if self.library_play is not None:
-            #    self.library_play.Destroy()
-
-
-
-            finished = ds.get_progress() == 1.0 ## or ds.get_status() == DLSTATUS_SEEDING
-            ##if not finished and self.library_play is not None:
-            ##    self.library_play.Hide()
-
-            ## print >> sys.stderr, '%s %s %s' % (`ds.get_download().get_def().get_name()`, ds.get_progress(), dlstatus_strings[ds.get_status()])
-            if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                print >> sys.stderr, "lip: STOPPED_ON_ERROR IS",ds.get_error()
+            finished = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
             progress = (ds.get_progress() or 0.0) * 100.0
             #print >> sys.stderr, '****** libraryitempanel:', torrent['torrent_id'], progress
             self.updateProgress(torrent['infohash'], progress)
