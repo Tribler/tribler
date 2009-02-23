@@ -31,6 +31,10 @@ CHANNEL_TIMEOUT = 60 * 60
 # will be allowed before the actual frequency deadline
 FREQUENCY_FLEXIBILITY = 5
 
+# Do not attempt to re-initiate communication after more than x
+# connection failures
+MAX_ALLOWED_FAILURES = 26
+
 class Crawler:
     __singleton = None
 
@@ -52,13 +56,15 @@ class Crawler:
         # the handlers are called when either a CRAWL_REQUEST or CRAWL_REPLY message is received
         self._message_handlers = {}
 
-        # _crawl_initiators is a list with (initiator-callback, frequency)
-        # the initiators are called when a new connection is received
+        # _crawl_initiators is a list with (initiator-callback,
+        # frequency, accept_frequency) tuples the initiators are called
+        # when a new connection is received
         self._crawl_initiators = []
 
-        # _initiator_dealines contains (deadline, frequency, initiator-callback, permid, selversion)
-        # deadlines register information on when to call the crawl
-        # initiators again for a specific permid
+        # _initiator_dealines contains [deadline, frequency,
+        # accept_frequency, initiator-callback, permid, selversion,
+        # failure-counter] deadlines register information on when to
+        # call the crawl initiators again for a specific permid
         self._initiator_deadlines = []
         
         # _dialback_deadlines contains message_id:(deadline, permid) pairs
@@ -79,8 +85,26 @@ class Crawler:
         # start checking for ancient channels
         self._check_channels()
 
-    def register_crawl_initiator(self, initiator_callback, frequency=3600):
-        self._crawl_initiators.append((initiator_callback, frequency))
+    def register_crawl_initiator(self, initiator_callback, frequency=3600, accept_frequency=None):
+        """
+        Register a callback that is called each time a new connection
+        is made and subsequently each FREQUENCY seconds.
+
+        ACCEPT_FREQUENCY defaults to FREQUENCY and indicates the
+        minimum seconds that must expire before a crawler request
+        message is accepted.
+
+        Giving FREQUENCY = 10 and ACCEPT_FREQUENCY = 0 will call
+        INITIATOR_CALLBACK every 10 seconds and will let the receiving
+        peers accept allways.
+
+        Giving FREQUENCY = 10 and ACCEPT_FREQUENCY = 20 will call
+        INITIATOR_CALLBACK every 10 seconds and will cause frequency
+        errors 50% of the time.
+        """
+        if accept_frequency is None:
+            accept_frequency = frequency
+        self._crawl_initiators.append((initiator_callback, frequency, accept_frequency))
 
     def register_message_handler(self, id_, request_callback, reply_callback):
         self._message_handlers[id_] = (request_callback, reply_callback, 0)
@@ -130,6 +154,31 @@ class Crawler:
             if not self._channels[permid]:
                 del self._channels[permid]
 
+    def _post_connection_attempt(self, permid, success):
+        """
+        This method is called after a succesfull or failed connection
+        attempt
+        """
+        if success:
+            # reset all failure counters for this permid
+            for tup in (tup for tup in self._initiator_deadlines if tup[4] == permid):
+                tup[6] = 0
+
+        else:
+            def increase_failure_counter(tup):
+                if tup[4] == permid:
+                    if tup[6] > MAX_ALLOWED_FAILURES:
+                        # remove from self._initiator_deadlines
+                        return False
+                    else:
+                        # increase counter but leave in self._initiator_deadlines
+                        tup[6] += 1
+                        return True
+                else:
+                    return True
+
+            self._initiator_deadlines = filter(increase_failure_counter, self._initiator_deadlines)
+
     def send_request(self, permid, message_id, payload, frequency=3600, callback=None):
         """
         This method ensures that a connection to PERMID exists before sending the message
@@ -138,6 +187,7 @@ class Crawler:
         channel_id = self._acquire_channel_id(permid)
 
         def _after_connect(exc, dns, permid, selversion):
+            _post_connection_attempt(permid, not exc)
             if exc:
                 # could not connect.
                 if DEBUG: print >>sys.stderr, "crawler: could not connect", dns, show_permid_short(permid), exc
@@ -252,6 +302,7 @@ class Crawler:
         This method ensures that a connection to PERMID exists before sending the message
         """
         def _after_connect(exc, dns, permid, selversion):
+            _post_connection_attempt(permid, not exc)
             if exc:
                 # could not connect.
                 if DEBUG: print >>sys.stderr, "crawler: could not connect", dns, show_permid_short(permid), exc
@@ -394,14 +445,14 @@ class Crawler:
             # verify that we do not already have deadlines for this permid
             already_known = False
             for tup in self._initiator_deadlines:
-                if tup[3] == permid:
+                if tup[4] == permid:
                     already_known = True
                     break
 
             if not already_known:
                 if DEBUG: print >>sys.stderr, "crawler: new overlay connection", show_permid_short(permid)
-                for initiator_callback, frequency in self._crawl_initiators:
-                    self._initiator_deadlines.append([0, frequency, initiator_callback, permid, selversion])
+                for initiator_callback, frequency, accept_frequency in self._crawl_initiators:
+                    self._initiator_deadlines.append([0, frequency, accept_frequency, initiator_callback, permid, selversion, 0])
 
                 self._initiator_deadlines.sort()
 
@@ -419,16 +470,16 @@ class Crawler:
 
         # crawler side deadlines...
         if self._initiator_deadlines:
-            while self._initiator_deadlines:
-                deadline, frequency, initiator_callback, permid, selversion = self._initiator_deadlines[0]
+            for tup in self._initiator_deadlines:
+                deadline, frequency, accept_frequency, initiator_callback, permid, selversion, failure_counter = tup
                 if now > deadline + FREQUENCY_FLEXIBILITY:
                     try:
-                        initiator_callback(permid, selversion, lambda message_id, payload, frequency=frequency, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
+                        initiator_callback(permid, selversion, lambda message_id, payload, frequency=accept_frequency, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
                     except Exception:
                         print_exc()
 
                     # set new deadline
-                    self._initiator_deadlines[0][0] = now + frequency
+                    tup[0] = now + frequency
                 else:
                     break
 
