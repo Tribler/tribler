@@ -505,7 +505,8 @@ class ABCApp(wx.App):
     def set_reputation(self):
         """ set the reputation in the GUI"""
         reputation = self.get_reputation()
-        print >> sys.stderr , "main: My Reputation",reputation
+        if DEBUG:
+            print >> sys.stderr , "main: My Reputation",reputation
         
         self.frame.top_bg.help.SetToolTipString(self.utility.lang.get('help') % (reputation))
 
@@ -555,7 +556,8 @@ class ABCApp(wx.App):
             
         torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-        print >>sys.stderr,"main: Stats: Total torrents found",torrentdb.size(),"peers",peerdb.size()    
+        if DEBUG:
+            print >>sys.stderr,"main: Stats: Total torrents found",torrentdb.size(),"peers",peerdb.size()    
             
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:

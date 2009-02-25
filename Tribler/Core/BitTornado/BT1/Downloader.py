@@ -22,6 +22,95 @@ except:
 DEBUG = False
 EXPIRE_TIME = 60 * 60
 
+if __debug__:
+    _ident_letters = {}
+    _ident_letter_pool = None
+    def get_ident_letter(download):
+        if not download.ip in _ident_letters:
+            if not _ident_letter_pool:
+                global _ident_letter_pool
+                _ident_letter_pool = [chr(c) for c in range(ord("a"), ord("z")+1)] + [chr(c) for c in range(ord("A"), ord("Z")+1)]
+            _ident_letters[download.ip] = _ident_letter_pool.pop(0)
+        return _ident_letters[download.ip]
+
+    def print_chunks(downloader, pieces, before=(), after=(), compact=True):
+        """
+        Print a line summery indicating completed/outstanding/non-requested chunks
+
+        When COMPACT is True one character will represent one piece.
+        #   --> downloaded
+        -   --> no outstanding requests
+        1-9 --> the number of outstanding requests (max 9)
+
+        When COMPACT is False one character will requests one chunk.
+        #   --> downloaded
+        -   --> no outstanding requests
+        a-z --> requested at peer with that character (also capitals, duplicates may occur)
+        1-9 --> requested multipile times (at n peers)
+        """
+        if pieces:
+            do_I_have = downloader.storage.do_I_have
+            do_I_have_requests = downloader.storage.do_I_have_requests
+            inactive_requests = downloader.storage.inactive_requests
+            piece_size = downloader.storage.piece_length
+            chunk_size = downloader.storage.request_size
+            chunks_per_piece = int(piece_size / chunk_size)
+
+            if compact:
+                request_map = {}
+                for download in downloader.downloads:
+                    for piece, begin, length in download.active_requests:
+                        if not piece in request_map:
+                            request_map[piece] = 0
+                        request_map[piece] += 1
+
+                def print_chunks_helper(piece_id):
+                    if do_I_have(piece_id): return "#"
+                    if do_I_have_requests(piece_id): return "-"
+                    if piece_id in request_map: return str(min(9, request_map[piece_id]))
+                    return "?"
+
+            else:
+                request_map = {}
+                for download in downloader.downloads:
+                    
+                    for piece, begin, length in download.active_requests:
+                        if not piece in request_map:
+                            request_map[piece] = ["-"] * chunks_per_piece
+                        index = int(begin/chunk_size)
+                        if request_map[piece][index] == "-":
+                            request_map[piece][index] = get_ident_letter(download)
+                        elif type(request_map[piece][index]) is str:
+                            request_map[piece][index] = 2
+                        else:
+                            request_map[piece][index] += 1
+                        request_map[piece][int(begin/chunk_size)] = get_ident_letter(download)
+
+                def print_chunks_helper(piece_id):
+                    if do_I_have(piece_id): return "#" * chunks_per_piece
+#                    if do_I_have_requests(piece_id): return "-" * chunks_per_piece
+                    if piece_id in request_map:
+                        if piece_id in inactive_requests and type(inactive_requests[piece_id]) is list:
+                            for begin, length in inactive_requests[piece_id]:
+                                request_map[piece_id][int(begin/chunk_size)] = " "
+                        return "".join([str(c) for c in request_map[piece_id]])
+                    return "-" * chunks_per_piece
+
+            if before:
+                s_before = before[0]
+            else:
+                s_before = ""
+
+            if after:
+                s_after = after[-1]
+            else:
+                s_after = ""
+
+            print >>sys.stderr, "Outstanding %s:%d:%d:%s [%s|%s|%s]" % (s_before, pieces[0], pieces[-1], s_after, "".join(map(print_chunks_helper, before)), "".join(map(print_chunks_helper, pieces)), "".join(map(print_chunks_helper, after)))
+
+        else:
+            print >>sys.stderr, "Outstanding 0:0 []"
+
 class PerIPStats:  
     def __init__(self, ip):
         self.numgood = 0
@@ -83,6 +172,17 @@ class SingleDownload(SingleDownloadHelperInterface):
 # 2fastbt_
         self.helper = downloader.picker.helper
 # _2fastbt
+
+        # boudewijn: VOD needs a download measurement that is not
+        # averaged over a 'long' period. downloader.max_rate_period is
+        # (by default) 20 seconds because this matches the unchoke
+        # policy.
+        self.short_term_measure = Measure(5)
+
+        # boudewijn: each download maintains a counter for the number
+        # of high priority piece requests that did not get any
+        # responce within x seconds.
+        self.bad_performance_counter = 0
 
     def _backlog(self, just_unchoked):
         self.backlog = int(min(
@@ -168,6 +268,10 @@ class SingleDownload(SingleDownloadHelperInterface):
     def got_piece(self, index, begin, hashlist, piece):
         """ Returns True if the piece is complete. """
 
+        if self.bad_performance_counter:
+            self.bad_performance_counter -= 1
+            if DEBUG: print >>sys.stderr, "decreased bad_performance_counter to", self.bad_performance_counter
+
         length = len(piece)
         #if DEBUG:
         #    print >> sys.stderr, 'Downloader: got piece of length %d' % length
@@ -182,10 +286,15 @@ class SingleDownload(SingleDownloadHelperInterface):
         self.last = clock()
         self.last2 = clock()
         self.measure.update_rate(length)
+        self.short_term_measure.update_rate(length)
         self.downloader.measurefunc(length)
         if not self.downloader.storage.piece_came_in(index, begin, hashlist, piece, self.guard):
             self.downloader.piece_flunked(index)
             return False
+
+        # boudewijn: we need more accurate (if possibly invalid)
+        # measurements on current download speed
+        self.downloader.picker.got_piece(index, begin, length)
 
         if self.downloader.storage.do_I_have(index):
             self.downloader.picker.complete(index)
@@ -255,9 +364,19 @@ class SingleDownload(SingleDownloadHelperInterface):
             # may stop, if they arrive to quickly
             if self.downloader.download_rate:
                 wait_period = self.downloader.chunksize / self.downloader.download_rate / 2.0
-                if DEBUG:
-                    print >>sys.stderr,"Downloader: waiting for %f s to call _request_more again" % wait_period
-                self.downloader.scheduler(self._request_more, wait_period)
+
+                # Boudewijn: when wait_period is 0.0 this will cause
+                # the the _request_more method to be scheduled
+                # multiple times (recursively), causing severe cpu
+                # problems.
+                #
+                # Therefore, only schedule _request_more to be called
+                # if the call will be made in the future. The minimal
+                # wait_period should be tweaked.
+                if wait_period > 1.0:
+                    if DEBUG:
+                        print >>sys.stderr,"Downloader: waiting for %f s to call _request_more again" % wait_period
+                    self.downloader.scheduler(self._request_more, wait_period)
                                           
             if not (self.active_requests or self.backlog):
                 self.downloader.queued_out[self] = 1
@@ -294,7 +413,7 @@ class SingleDownload(SingleDownloadHelperInterface):
                 if DEBUG:
                     print >>sys.stderr,"Downloader: new_request",interest,begin,length,"to",self.connection.connection.get_ip(),self.connection.connection.get_port()
                 
-                self.downloader.picker.requested(interest)
+                self.downloader.picker.requested(interest, begin, length)
                 self.active_requests.append((interest, begin, length))
                 self.connection.send_request(interest, begin, length)
                 self.downloader.chunk_requested(length)
@@ -333,7 +452,7 @@ class SingleDownload(SingleDownloadHelperInterface):
                     d.example_interest = interest
                     
         # Arno: LIVEWRAP: no endgame
-        if self.downloader.storage.is_endgame() and not self.downloader.picker.live_streaming:
+        if not self.downloader.endgamemode and self.downloader.storage.is_endgame() and not self.downloader.picker.live_streaming:
             self.downloader.start_endgame()
 
 
@@ -453,6 +572,9 @@ class SingleDownload(SingleDownloadHelperInterface):
     def get_rate(self):
         return self.measure.get_rate()
 
+    def get_short_term_rate(self):
+        return self.short_term_measure.get_rate()
+
     def is_snubbed(self):
 # 2fastbt_
         if not self.choked and clock() - self.last2 > self.downloader.snub_time and \
@@ -495,14 +617,27 @@ class Downloader:
         self.endgame_queued_pieces = []
         self.all_requests = []
         self.discarded = 0L
-#        self.download_rate = 25000  # 25K/s test rate
         self.download_rate = 0
+#        self.download_rate = 25000  # 25K/s test rate
         self.bytes_requested = 0
         self.last_time = clock()
         self.queued_out = {}
         self.requeueing = False
         self.paused = False
         self.scheduler = scheduler
+
+        # check periodicaly
+        self.scheduler(self.periodic_check, 1)
+
+    def periodic_check(self):
+        self.picker.check_outstanding_requests(self.downloads)
+
+        ds = [d for d in self.downloads if not d.choked]
+        shuffle(ds)
+        for d in ds:
+            d._request_more()
+
+        self.scheduler(self.periodic_check, 1)
 
     def set_download_rate(self, rate):
         self.download_rate = rate * 1000
@@ -652,6 +787,47 @@ class Downloader:
     def too_many_partials(self):
         return len(self.storage.dirty) > (len(self.downloads)/2)
 
+    def cancel_requests(self, requests, allowrerequest=True):
+
+        # todo: remove duplicates
+        slowpieces = [piece_id for piece_id, _, _ in requests]
+
+        if self.endgamemode:
+            if self.endgame_queued_pieces:
+                for piece_id, _, _ in requests:
+                    if not self.storage.do_I_have(piece_id):
+                        try:
+                            self.endgame_queued_pieces.remove(piece_id)
+                        except:
+                            pass
+            # remove the items in requests from self.all_requests
+            self.all_requests = [request for request in self.all_requests if not request in requests]
+
+        for download in self.downloads:
+            hit = False
+            for request in download.active_requests:
+                if request in requests:
+                    hit = True
+                    if DEBUG: print >>sys.stderr, "Downloader:cancel_requests: canceling", request, "on", download.ip
+                    download.connection.send_cancel(*request)
+                    if not self.endgamemode:
+                        self.storage.request_lost(*request)
+            if hit:
+                download.active_requests = [request for request in download.active_requests if not request in requests]
+                # Arno: VOD: all these peers were slow for their individually 
+                # assigned pieces. These pieces have high priority, so don't
+                # retrieve any of theses pieces from these slow peers, just
+                # give them something further in the future.
+                if allowrerequest:
+                    download._request_more()
+                else:
+                    # Arno: ALT is to just kick peer. Good option if we have lots (See Encryper.to_connect() queue
+                    #print >>sys.stderr,"Downloader: Kicking slow peer",d.ip
+                    #d.connection.close() # bye bye, zwaai zwaai
+                    download._request_more(slowpieces=slowpieces)
+
+            if not self.endgamemode and download.choked:
+                download._check_interests()
 
     def cancel_piece_download(self, pieces, allowrerequest=True):
         if self.endgamemode:

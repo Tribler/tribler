@@ -46,7 +46,7 @@ from Tribler.Player.systray import PlayerTaskBarIcon
 from Tribler.Player.Reporter import Reporter
 from Tribler.Player.UtilityStub import UtilityStub
 
-DEBUG = True
+DEBUG = False
 RATELIMITADSL = False
 
 DISKSPACE_LIMIT = 5L * 1024L * 1024L * 1024L  # 5 GB
@@ -357,9 +357,9 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         # No playing Downloads        
         if len(playing_dslist) == 0:
             return ([],0,0)
-        elif playermode == DLSTATUS_DOWNLOADING:
+        elif DEBUG and playermode == DLSTATUS_DOWNLOADING:
             for ds in playing_dslist:
-                print >>sys.stderr,"main: Stats: DL: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error(),ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                print >>sys.stderr,"main: Stats: DL: %s %.1f%% %s dl %.1f ul %.1f n %d" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error(),ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
 
         # If we're done playing we can now restart any previous downloads to 
         # seed them.

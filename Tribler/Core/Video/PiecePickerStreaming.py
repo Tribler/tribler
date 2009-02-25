@@ -9,11 +9,15 @@ from traceback import print_exc,print_stack
 
 from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker 
 
+if __debug__:
+    from Tribler.Core.BitTornado.BT1.Downloader import print_chunks
+
 # percent piece loss to emulate -- we just don't request this percentage of the pieces
 # only implemented for live streaming
 PIECELOSS = 0
 
 DEBUG = False
+DEBUG_CHUNKS = True
 DEBUGPP = False
 
 def rarest_first( has_dict, rarity_list, filter = lambda x: True ):
@@ -68,9 +72,6 @@ class PiecePickerStreaming(PiecePicker):
     #
     #   PiecePicker.complete              (by hash checker, for pieces received)
 
-    # size of high probability set, in seconds
-    HIGH_PROB_SETSIZE = 10
-
     # relative size of mid-priority set
     MU = 4
 
@@ -94,29 +95,29 @@ class PiecePickerStreaming(PiecePicker):
         # playback module
         self.transporter = None
 
-        # video speed in bytes/s
-        self.outstanding = {}
-        
-        # Piece timeout policy parameters
-        """
-        minprebufspeed = 10.0 # KB/s
-        self.PIECETIME = piecesize/(minprebufspeed*1024.0)
-        self.MAXDLTIME=2.0*self.PIECETIME 
-        self.MAXDLTIME_NONPREBUF=4.0*self.PIECETIME
-        """
-        # Works for 32KB pieces, like vuze.com
-        self.PIECETIME = 10.0
-        self.MAXDLTIME = 20.0
-        self.MAXDLTIME_NONPREBUF=30.0
+        # self.outstanding_requests contains (piece-id, begin,
+        # length):timestamp pairs for each outstanding request.
+        self.outstanding_requests = {}
 
-        """
-        # Dynamic
-        prebufsize = 1000000.0 # 1 MB
-        prebuftime = 60.0 # secs, prebuffering should finish in this time
-        prebufspeed = prebufsize/prebuftime
-        PIECETIME = float(piecesize)/prebufspeed # the amount of time a peer has to dl a piece
-        """
-
+        # The playing_delay and buffering_delay give three values
+        # (min, max, offeset) in seconds.
+        #
+        # The min tells how long before the cancel policy is allowed
+        # to kick in. We can not expect to receive a piece instantly,
+        # so we have to wait this time before having a download speed
+        # estimation.
+        #
+        # The max tells how long before we cancel the request. The
+        # request may also be canceled because the chunk will not be
+        # completed given the current download speed.
+        #
+        # The offset gives a grace period that is taken into account
+        # when choosing to cancel a request. For instance, when the
+        # peer download speed is to low to receive the chunk within 10
+        # seconds, a grace offset of 15 would ensure that the chunk is
+        # NOT canceled (usefull while buffering)
+        self.playing_delay = (5, 20, -0.5)
+        self.buffering_delay = (7.5, 30, 10)
         
     def set_transporter(self, transporter):
         self.transporter = transporter
@@ -190,16 +191,22 @@ class PiecePickerStreaming(PiecePicker):
     def lost_peer(self, connection):
         PiecePicker.lost_peer( self, connection )
 
+    def got_piece(self, *request):
+        if request in self.outstanding_requests:
+            del self.outstanding_requests[request]
+        if self.transporter:
+            self.transporter.got_piece(*request)
+
     def complete(self, piece):
         if DEBUG:
             print >>sys.stderr,"PiecePickerStreaming: complete:",piece
         PiecePicker.complete( self, piece )
         if self.transporter:
             self.transporter.complete( piece )
-        try:
-            del self.outstanding[piece]
-        except:
-            pass
+
+        for request in self.outstanding_requests.keys():
+            if request[0] == piece:
+                del self.outstanding_requests[request]
 
         # don't consider this piece anymore
         for d in self.peer_connections.itervalues():
@@ -315,58 +322,87 @@ class PiecePickerStreaming(PiecePicker):
             # found a piece -- return it if we are completing partials first
             # or if there is a cutoff
             if complete_first or (cutoff and len(self.interests) > self.cutoff):
-                self.register_piece(best)
                 return best
-
-        # Arno: Keep track of how long pieces are outstanding. If too slow,
-        # cancel the request and rerequest it from another peer.
-        now = time.time()
-        newoutstanding = {}
-        
-        cancelpieces = []
-        for (p,t) in self.outstanding.iteritems():
-            diff = t-now
-            if diff < self.PIECETIME:
-                # Peer failed to deliver intime
-                print >>sys.stderr,"PiecePickerStreaming: request too slow, due in",diff,p,"#"
-                cancelpieces.append(p)
-            else:
-                newoutstanding[p] = t
-        self.outstanding = newoutstanding
-
-        # Cancel all pieces that are too late
-        if len(cancelpieces) > 0:
-            self.downloader.cancel_piece_download(cancelpieces,allowrerequest=False)
 
         p = self.next_new(haves, wantfunc, complete_first, helper_con,willrequest=willrequest,connection=connection)
         if DEBUG:
             print >>sys.stderr,"PiecePickerStreaming: next_new returns",p
-
-        if p is not None:
-            self.register_piece(p)
         return p
 
-    def register_piece(self,p):
-        vs = self.videostatus
+    def check_outstanding_requests(self, downloads):
+        if not self.transporter:
+            return
+        
         now = time.time()
-        rawdue = self.transporter.piece_due(p)
-        diff = rawdue - now
-        f,t = vs.playback_pos, vs.normalize( vs.playback_pos + self.transporter.max_prebuf_packets )
-        if vs.prebuffering and vs.in_range( f, t, p ):
-            # not playing, prioritize prebuf
-            self.outstanding[p] = now+self.MAXDLTIME
-            #print >>sys.stderr,"PiecePickerStreaming: prebuf due soonest",p,"#"
-        elif diff > 1000000.0:
-            #print >>sys.stderr,"PiecePickerStreaming: prebuf due soon",p,"#"
-            self.outstanding[p] = now+self.MAXDLTIME_NONPREBUF
-        elif diff < self.PIECETIME: # need it fast
-            #print >>sys.stderr,"PiecePickerStreaming: due asap in",(rawdue-now),p,"#"
-            self.outstanding[p] = now+self.MAXDLTIME # otherwise we cancel it again right away
+        cancel_requests = []
+        in_high_range = self.videostatus.in_high_range
+        playing_mode = self.videostatus.playing and not self.videostatus.paused
+        piece_due = self.transporter.piece_due
+        
+        if playing_mode:
+            # playing mode
+            min_delay, max_delay, offset_delay = self.playing_delay
         else:
-            #print >>sys.stderr,"PiecePickerStreaming: due later in",(rawdue-now),p,"#"
-            self.outstanding[p] = rawdue
+            # buffering mode
+            min_delay, max_delay, offset_delay = self.buffering_delay
 
+        for download in downloads:
 
+            total_length = 0
+            download_rate = download.get_short_term_rate()
+            for piece_id, begin, length in download.active_requests:
+                # select policy for this piece
+                try:
+                    time_request = self.outstanding_requests[(piece_id, begin, length)]
+                except KeyError:
+                    continue
+                
+                # add the length of this chunk to the total of bytes
+                # that needs to be downloaded
+                total_length += length
+
+                # each request must be allowed at least some
+                # minimal time to be handled
+                if now < time_request + min_delay:
+                    continue
+
+                # high-priority pieces are eligable for
+                # cancelation. Others are not. They will eventually be
+                # eligable as they become important for playback.
+                if in_high_range(piece_id):
+                    if download_rate == 0:
+                        # we have not received anything in the last min_delay seconds
+                        if DEBUG: print >>sys.stderr, "PiecePickerStreaming: download not started yet for piece", piece_id, "chunk", begin, "on", download.ip
+                        cancel_requests.append((piece_id, begin, length))
+                        download.bad_performance_counter += 1
+
+                    else:
+                        if playing_mode:
+                            time_until_deadline = min(piece_due(piece_id), time_request + max_delay - now)
+                        else:
+                            time_until_deadline = time_request + max_delay - now
+                        time_until_download = total_length / download_rate
+
+                        # we have to cancel when the deadline can not be met
+                        if time_until_deadline < time_until_download - offset_delay:
+                            if DEBUG: print >>sys.stderr, "PiecePickerStreaming: download speed too slow for piece", piece_id, "chunk", begin, "on", download.ip, "Deadline in", time_until_deadline, "while estimated download in", time_until_download
+                            cancel_requests.append((piece_id, begin, length))
+                
+        # Cancel all requests that are too late
+        if cancel_requests:
+            try:
+                self.downloader.cancel_requests(cancel_requests, allowrerequest=False)
+            except:
+                print_exc()
+
+        if __debug__:
+            if DEBUG_CHUNKS:
+                print_chunks(self.downloader, list(self.videostatus.generate_high_range()), compact=False)
+
+    def requested(self, *request):
+        self.outstanding_requests[request] = time.time()
+        return PiecePicker.requested(self, *request)
+        
     def next_new(self, haves, wantfunc, complete_first, helper_con, willrequest=True, connection=None):
         """ Determine which piece to download next from a peer.
 
@@ -435,7 +471,6 @@ class PiecePickerStreaming(PiecePicker):
 
             return None
 
-
         def pick_rarest_small_range(f,t):
             #print >>sys.stderr,"choice small",f,t
             d = vs.dist_range(f,t)
@@ -475,7 +510,6 @@ class PiecePickerStreaming(PiecePicker):
 
             return None
 
-
         def pick_rarest(f,t): #BitTorrent already shuffles the self.interests for us
             for piecelist in self.interests:
                 for i in piecelist:
@@ -495,18 +529,31 @@ class PiecePickerStreaming(PiecePicker):
 
             return None
 
-        h = vs.time_to_pieces( self.HIGH_PROB_SETSIZE )
-
-        first,last = vs.download_range()
-        if vs.wraparound:
-            max_lookahead = vs.wraparound_delta
+        first, last = vs.download_range()
+        priority_first, priority_last = vs.get_high_range()
+        if priority_first != priority_last:
+            first = priority_first
+            highprob_cutoff = vs.normalize(priority_last + 1)
+            midprob_cutoff = vs.normalize(first + self.MU * vs.get_range_length(first, last))
         else:
-            max_lookahead = vs.last_piece - vs.playback_pos
+            highprob_cutoff = last
+            midprob_cutoff = vs.normalize(first + self.MU * vs.high_prob_min_pieces)
+        # h = vs.time_to_pieces( self.HIGH_PROB_SETSIZE )
+        # highprob_cutoff = vs.normalize(first + max(h, self.HIGH_PROB_MIN_PIECES))
+        # midprob_cutoff = vs.normalize(first + max(self.MU * h, self.HIGH_PROB_MIN_PIECES))
 
-        highprob_cutoff = vs.normalize( first + min( h, max_lookahead ) )
-        midprob_cutoff  = vs.normalize( first + min( h + self.MU * h, max_lookahead ) )
+        # print >>sys.stderr, "Prio %s:%s:%s" % (first, highprob_cutoff, midprob_cutoff), highprob_cutoff - first, midprob_cutoff - highprob_cutoff
 
-        if vs.prebuffering:
+        # first,last = vs.download_range()
+        # if vs.wraparound:
+        #     max_lookahead = vs.wraparound_delta
+        # else:
+        #     max_lookahead = vs.last_piece - vs.playback_pos
+
+        # highprob_cutoff = vs.normalize( first + min( h, max_lookahead ) )
+        # midprob_cutoff  = vs.normalize( first + min( h + self.MU * h, max_lookahead ) )
+
+        if vs.prebuffering and not connection.download.bad_performance_counter:
             f = first
             t = vs.normalize( first + self.transporter.max_prebuf_packets )
             choice = pick_rarest_small_range(f,t)
@@ -515,7 +562,7 @@ class PiecePickerStreaming(PiecePicker):
             choice = None
 
         if choice is None:
-            if vs.live_streaming:
+            if vs.live_streaming and not connection.download.bad_performance_counter:
                choice = pick_rarest_small_range( first, highprob_cutoff )
             else:
                choice = pick_first( first, highprob_cutoff )

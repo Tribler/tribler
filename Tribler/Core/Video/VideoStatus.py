@@ -31,6 +31,17 @@ class VideoStatus:
         self.videoinfo = videoinfo
         self.authparams = authparams
 
+        # size of high probability set, in seconds (piecepicker varies
+        # between the minmax values depending on network performance)
+        self.high_prob_min_time = 10
+        self.high_prob_min_time_limit = (10, 180)
+
+        # minimal size of high probability set, in pieces (piecepicker
+        # varies between the minmax values depending on network
+        # performance)
+        self.high_prob_min_pieces = 5
+        self.high_prob_min_pieces_limit = (5, 50)
+
         # ----- locate selected movie in fileinfo
         index = self.videoinfo['index']
         if index == -1:
@@ -248,7 +259,78 @@ class VideoStatus:
 
     def get_wraparound(self):
         return self.wraparound
-    
+
+    def increase_high_range(self, factor=1):
+        """
+        Increase the high priority range (effectively enlarging the buffer size)
+        """
+        assert factor > 0
+        self.high_prob_min_time += factor * self.high_prob_min_time_limit[0]
+        if self.high_prob_min_time > self.high_prob_min_time_limit[1]:
+            self.high_prob_min_time = self.high_prob_min_time_limit[1]
+        
+        self.high_prob_min_pieces += int(factor * self.high_prob_min_pieces_limit[0])
+        if self.high_prob_min_pieces > self.high_prob_min_pieces_limit[1]:
+            self.high_prob_min_pieces = self.high_prob_min_pieces_limit[1]
+
+        if DEBUG: print >>sys.stderr, "VideoStatus:increase_high_range", self.high_prob_min_time, "seconds or", self.high_prob_min_pieces, "pieces"
+
+    def decrease_high_range(self, factor=1):
+        """
+        Decrease the high priority range (effectively reducing the buffer size)
+        """
+        assert factor > 0
+        self.high_prob_min_time -= factor * self.high_prob_min_time_limit[0]
+        if self.high_prob_min_time < self.high_prob_min_time_limit[0]:
+            self.high_prob_min_time = self.high_prob_min_time_limit[0]
+        
+        self.high_prob_min_pieces -= int(factor * self.high_prob_min_pieces_limit[0])
+        if self.high_prob_min_pieces < self.high_prob_min_pieces_limit[0]:
+            self.high_prob_min_pieces = self.high_prob_min_pieces_limit[0]
+
+        if DEBUG: print >>sys.stderr, "VideoStatus:decrease_high_range", self.high_prob_min_time, "seconds or", self.high_prob_min_pieces, "pieces"
+
+    def set_high_range(self, seconds=None, pieces=None):
+        """
+        Set the minimum size of the high priority range. Can be given
+        in seconds of pieces.
+        """
+        if seconds: self.high_prob_min_time = seconds
+        if pieces: self.high_prob_min_pieces = pieces
+
+    def get_high_range(self):
+        """
+        Returns (first, last) tuple
+        """
+        first, _ = self.download_range()
+        number_of_pieces = self.time_to_pieces(self.high_prob_min_time)
+        last = min(self.last_piece, 1 + first + max(number_of_pieces, self.high_prob_min_pieces))
+        return first, last
+
+    def in_high_range(self, piece):
+        """
+        Returns True when PIECE is in the high priority range.
+        """
+        first, last = self.get_high_range()
+        return self.in_range(first, last, piece)
+
+    def get_range_length(self, first, last):
+        if self.wraparound and first > last:
+            return self.last_piece - first + \
+                   last - self.first_piece
+        else:
+            return last - first
+
+    def get_high_range_length(self):
+        first, last = self.get_high_range()
+        return self.get_range_length(first, last)
+
+    def generate_high_range(self):
+        """
+        Returns the high current high priority range in piece_ids
+        """
+        first, last = self.get_high_range()
+        return self.generate_range((first, last))
 
 def range2set(range,maxrange):    
     if range[0] <= range[1]:

@@ -117,8 +117,18 @@ class MovieOnDemandTransporter(MovieTransport):
             self.video_analyser_path='"'+videoanalyserpath+'"'
         else:
             self.video_analyser_path=videoanalyserpath
-        
-        self.downloadrate = Measure( 10 )
+
+        # boudewijn: because we now update the downloadrate for each
+        # received chunk instead of each piece we do not need to
+        # average the measurement over a 'long' period of time. Also,
+        # we only update the downloadrate for pieces that are in the
+        # high priority range giving us a better estimation on how
+        # likely the pieces will be available on time.
+        self.overall_rate = Measure(10)
+        self.high_range_rate = Measure(2)
+
+        # boudewijn: increase the initial minimum buffer size
+        # vs.increase_high_range()
 
         # buffer: a link to the piecepicker buffer
         self.has = self.piecepicker.has
@@ -474,14 +484,14 @@ class MovieOnDemandTransporter(MovieTransport):
         if received_piece:
             self.nreceived += 1
 
-        gotall = False
-        #if received_piece is None or received_piece < self.max_prebuf_packets:
-            # extract bitrate once we got the first max_prebuf_packets
-        f,t = vs.playback_pos, vs.normalize( vs.playback_pos + self.max_prebuf_packets )
-        prebufrange = vs.generate_range( (f, t) )
-        missing_pieces = filter( lambda i: not self.have_piece( i ), prebufrange)
+        high_range = vs.generate_high_range()
+        high_range_length = vs.get_high_range_length()
+        missing_pieces = filter(lambda i: not self.have_piece(i), high_range)
         gotall = not missing_pieces
-        self.prebufprogress = float(self.max_prebuf_packets-len(missing_pieces))/float(self.max_prebuf_packets)
+        if high_range_length:
+            self.prebufprogress = float(high_range_length - len(missing_pieces)) / high_range_length
+        else:
+            self.prebufprogress = 1.0
         
         if DEBUG:
             print >>sys.stderr,"vod: trans: Already got",(self.prebufprogress*100.0),"% of prebuffer"
@@ -567,6 +577,14 @@ class MovieOnDemandTransporter(MovieTransport):
                 self.start(force=True)
         """
 
+    def got_piece(self, piece_id, begin, length):
+        """
+        Called when a chunk has been downloaded. This information can
+        be used to estimate download speed.
+        """
+        if self.videostatus.in_high_range(piece_id):
+            self.high_range_rate.update_rate(length)
+            # if DEBUG: print >>sys.stderr, "vod: high priority rate:", self.high_range_rate.get_rate()
 
     def complete(self,piece,downloaded=True):
         """ Called when a movie piece has been downloaded or was available from the start (disk). """
@@ -582,7 +600,7 @@ class MovieOnDemandTransporter(MovieTransport):
         #    print >>sys.stderr,"vod: trans: Completed",piece
 
         if downloaded:
-            self.downloadrate.update_rate( vs.real_piecelen( piece ) )
+            self.overall_rate.update_rate( vs.real_piecelen( piece ) )
 
         if vs.in_download_range( piece ):
             self.pieces_in_buffer += 1
@@ -652,18 +670,32 @@ class MovieOnDemandTransporter(MovieTransport):
     
     def expected_download_time(self):
         """ Expected download time left. """
-
         vs = self.videostatus
-
         if vs.wraparound:
             return float(2 ** 31)
-       
+
         pieces_left = vs.last_piece - vs.playback_pos - self.pieces_in_buffer
         if pieces_left <= 0:
             return 0.0
 
-        expected_download_speed = self.downloadrate.rate
-        if expected_download_speed == 0:
+        # list all pieces from the high priority set that have not
+        # been completed
+        uncompleted_pieces = filter(self.storagewrapper.do_I_have, vs.generate_high_range())
+
+        # when all pieces in the high-range have been downloaded,
+        # we have an expected download time of zero
+        if not uncompleted_pieces:
+            return 0.0
+
+        # the download time estimator is very inacurate when we only
+        # have a few chunks left. therefore, we will put more emphesis
+        # on the overall_rate as the number of uncompleted_pieces does
+        # down.
+        total_length = vs.get_high_range_length()
+        uncompleted_length = len(uncompleted_pieces)
+        expected_download_speed = self.high_range_rate.get_rate() * (1 - float(uncompleted_length) / total_length) + \
+                                  self.overall_rate.get_rate() * uncompleted_length / total_length
+        if expected_download_speed < 0.1:
             return float(2 ** 31)
 
         return pieces_left * vs.piecelen / expected_download_speed
@@ -688,12 +720,13 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def expected_buffering_time(self):
         """ Expected time required for buffering. """
-
+        download_time = self.expected_download_time()
+        playback_time = self.expected_playback_time()
         #print >>sys.stderr,"EXPECT",self.expected_download_time(),self.expected_playback_time()
         # Infinite minus infinite is still infinite
-        if self.expected_download_time() > float(2 ** 30) and self.expected_playback_time() > float(2 ** 30):
+        if download_time > float(2 ** 30) and playback_time > float(2 ** 30):
             return float(2 ** 31)
-        return abs(self.expected_download_time() - self.expected_playback_time())
+        return abs(download_time - playback_time)
 
     def enough_buffer(self):
         """ Returns True if we can safely start playback without expecting to run out of
@@ -706,7 +739,7 @@ class MovieOnDemandTransporter(MovieTransport):
             # is too low.
             return True
 
-        return max(0.0,self.expected_download_time() - self.expected_playback_time() ) == 0.0
+        return max(0.0, self.expected_download_time() - self.expected_playback_time()) == 0.0
 
     def tick_second(self):
         self.rawserver.add_task( self.tick_second, 1.0 )
@@ -715,11 +748,9 @@ class MovieOnDemandTransporter(MovieTransport):
 
         # Adjust estimate every second, but don't display every second
         display = (int(time.time()) % 5) == 0
-        if DEBUG:
-            display = False
-        if display and DEBUG:
-            print >>sys.stderr,"vod: Estimated download time: %5ds [%7.2f Kbyte/s]" % (self.expected_download_time(),self.downloadrate.rate/1024)
-            #print >>sys.stderr,"vod: Estimated by",currentThread().getName()
+        if display:
+            print >>sys.stderr,"vod: Estimated download time: %5.1fs [priority: %7.2f Kbyte/s] [overall: %7.2f Kbyte/s]" % (self.expected_download_time(), self.high_range_rate.get_rate()/1024, self.overall_rate.get_rate()/1024)
+
         if vs.playing and round(self.playbackrate.rate) > self.MINPLAYBACKRATE and not vs.prebuffering:
             if self.doing_bitrate_est:
                 if display:
@@ -835,6 +866,10 @@ class MovieOnDemandTransporter(MovieTransport):
             self.reset_bitrate_prediction()
             vs.playing = True
             self.playbackrate = Measure( 60 )
+
+            # boudewijn: decrease the initial minimum buffer size
+            # vs.decrease_high_range()
+
         finally:
             self.data_ready.release()
 
@@ -1204,15 +1239,31 @@ class MovieOnDemandTransporter(MovieTransport):
                         else:
                             break
                     else:
-                        # progress
+                        # progress                                                                              
                         self.prebufprogress = 1.0
-                        # completed loop without breaking, so we have everything we need
+                        # completed loop without breaking, so we have everything we need                        
                         return True
-                    
-                    # progress
-                    self.prebufprogress = min(1.0,float(num_immediate_packets) / float(self.max_prebuf_packets))
 
+                    # progress                                                                                  
+                    self.prebufprogress = min(1.0,float(num_immediate_packets) / float(self.max_prebuf_packets))
+                    
                     return num_immediate_packets >= self.max_prebuf_packets
+
+                    # # ensure that the entire buffer has been filled
+                    # high_range = self.videostatus.get_high_range()
+                    # if not high_range:
+                    #     return True
+                    
+                    # received_pieces = filter(lambda i: self.have_piece(i), high_range)
+                    # self.prebufprogress = float(len(received_pieces)) / len(high_range)
+                    # if len(received_pieces) < len(high_range):
+                    #     return False
+
+                    # # ensure that the download is sustainable
+                    # pieces_left = filter(lambda i: not self.have_piece(i), vs.generate_range(vs.download_range()))
+                    # bytes_left = len(pieces_left) * vs.piecelen
+                    # time_left = bytes_left / self.overall_rate.get_rate()
+                    # return time_left < self.piece_due(vs.last_piece)
 
             sus = sustainable()
             if vs.pausable and not sus:
@@ -1220,6 +1271,9 @@ class MovieOnDemandTransporter(MovieTransport):
                     print >>sys.stderr,"vod: trans:                        BUFFER UNDERRUN -- PAUSING"
                 self.pause( autoresume = True )
                 self.autoresume( sustainable )
+
+                # boudewijn: increase the minimum buffer size
+                vs.increase_high_range()
 
                 self.data_ready.release()
                 return

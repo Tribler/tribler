@@ -37,6 +37,7 @@ KICK_OLD_CLIENTS=False
 DEBUG = False
 DEBUG_NORMAL_MSGS = False
 DEBUG_UT_PEX = False
+DEBUG_MESSAGE_HANDLING = False
 
 UNAUTH_PERMID_PERIOD = 3600
 
@@ -930,7 +931,8 @@ class Connecter:
         # EXTEND handshake will be sent just after BT handshake, 
         # before BITFIELD even
         
-        st = time.time()
+        if DEBUG_MESSAGE_HANDLING:
+            st = time.time()
 
         if False: #connection.get_ip().startswith("192"):
             print >>sys.stderr,"connecter: Got",getMessageName(t),connection.get_ip()
@@ -1110,10 +1112,11 @@ class Connecter:
         else:
             connection.close()
 
-        et = time.time()
-        diff = et - st
-        if diff > 0.1:
-            print >>sys.stderr,"connecter: $$$$$$$$$$$$",getMessageName(t),"took",diff
+        if DEBUG_MESSAGE_HANDLING:
+            et = time.time()
+            diff = et - st
+            if diff > 0.1:
+                print >>sys.stderr,"connecter: $$$$$$$$$$$$",getMessageName(t),"took",diff
 
 
     def got_extend_message(self,connection,c,message,ut_pex_enabled):

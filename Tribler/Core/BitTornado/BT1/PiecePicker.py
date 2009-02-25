@@ -127,6 +127,18 @@ class PiecePicker:
             self.pos_in_interests[interests[i]] = i
         self.interests.append(interests)
 
+    def got_piece(self, piece, begin, length):
+        """
+        Used by the streaming piece picker for additional information.
+        """
+        pass
+
+    def check_outstanding_requests(self, downloads):
+        """
+        Used by the streaming piece picker to cancel slow requests.
+        """
+        pass
+
     def got_have(self, piece, connection = None):
         """ A peer reports to have the given piece. """
 
@@ -286,7 +298,9 @@ class PiecePicker:
         self.seeds_connected -= 1
         self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected, 0)
 
-    def requested(self, piece):
+    # boudewijn: for VOD we need additional information. added BEGIN
+    # and LENGTH parameter
+    def requested(self, piece, begin=None, length=None):
         """ Given piece has been requested or a partial of it is on disk. """
         if piece not in self.started:
             self.started.append(piece)
@@ -323,7 +337,7 @@ class PiecePicker:
         self._remove_from_interests(piece)
 
 # 2fastbt_
-    def _next(self, haves, wantfunc, complete_first, helper_con, willrequest=True, connection=None ):
+    def _next(self, haves, wantfunc, complete_first, helper_con, willrequest=True, connection=None):
 # _2fastbt
         """ Determine which piece to download next from a peer.
 
@@ -418,10 +432,11 @@ class PiecePicker:
             return piece
         # Arno, 2008-05-20: 2fast code: if we got capacity to DL something,
         # ask coordinator what new pieces to dl for it.
-        if self.rate_predictor is None or not self.rate_predictor.has_capacity():
-            return None
-        else:
+        if self.rate_predictor and self.rate_predictor.has_capacity():
             return self._next(haves, wantfunc, complete_first, True, willrequest = willrequest, connection = connection)
+        else:
+            return None
+
 #        except:
 #            if DEBUG:
 #                print_exc()

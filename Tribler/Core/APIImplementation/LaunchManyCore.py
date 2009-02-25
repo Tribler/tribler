@@ -350,7 +350,7 @@ class TriblerLaunchMany(Thread):
         """ Called by network thread """
         if DEBUG:
             print >>sys.stderr,"TriblerLaunchmany: RawServer non fatal error func called",e
-            print_exc()
+        print_exc()
         # Could log this somewhere, or phase it out
 
     def _run(self):
