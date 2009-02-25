@@ -79,7 +79,7 @@ def tryConnect(coordinator):
     addr = None
     try:
         data, addr = udpsock.recvfrom(1024)
-    except timeout, (strerror):
+    except socket.timeout, (strerror):
         if DEBUG:
             print >> sys.stderr, "NatTraversal: timeout with coordinator"
         return "ERR"
@@ -101,7 +101,7 @@ def tryConnect(coordinator):
     #     try:
     #         data, addr = udpsock.recvfrom(1024)
 
-    #     except timeout, (strerror):
+    #     except socket.timeout, (strerror):
     #         if DEBUG:
     #             print >> sys.stderr, "NatTraversal: first timeout", strerror
     #             print >> sys.stderr, "NatTraversal: resend"
@@ -123,7 +123,7 @@ def tryConnect(coordinator):
     while True:
         try:
             data, addr = udpsock.recvfrom(1024)
-        except timeout, (strerror):
+        except socket.timeout, (strerror):
             if DEBUG:
                 print >> sys.stderr, "NatTraversal: first timeout", strerror
                 print >> sys.stderr, "NatTraversal: resend"
@@ -134,7 +134,7 @@ def tryConnect(coordinator):
 
             try:
                 data, addr = udpsock.recvfrom(1024)
-            except timeout, (strerror):
+            except socket.timeout, (strerror):
                 if DEBUG:
                     print >> sys.stderr, "NatTraversal: second timeout", strerror
 

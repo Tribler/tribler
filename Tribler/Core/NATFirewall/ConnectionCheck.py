@@ -110,9 +110,7 @@ class ConnectionCheck:
         Main method of the class: launches nat discovery algorithm
         """
         in_port = self.session.get_puncturing_internal_port()
-        #stun_servers = self.session.get_stun_servers()
-        #TODO: change stun servers
-        stun_servers = [('stun1.tribler.org',6701),('jip.cs.vu.nl',6702)] #TODO: to be removed
+        stun_servers = self.session.get_stun_servers()
         random.seed()
         random.shuffle(stun_servers)
         stun1 = stun_servers[1]
