@@ -23,7 +23,7 @@ from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandl
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler
-from Tribler.Core.NATFirewall.NatCheckMsgHandler import NatCheckClient
+from Tribler.Core.NATFirewall.ConnectionCheck import ConnectionCheck
 import Tribler.Core.Overlay.permid as permidmod
 
 DEBUG = False
@@ -763,7 +763,7 @@ class Session(SessionRuntimeConfig):
         # Called by any thread
         self.sesslock.acquire()
         try:
-            return NatCheckClient.getInstance(self).get_nat_type(callback=callback)
+            return ConnectionCheck.getInstance(self).get_nat_type(callback=callback)
         finally:
             self.sesslock.release()
 

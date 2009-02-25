@@ -144,6 +144,7 @@ class OverlayApps:
             natcheck_handler = NatCheckMsgHandler.getInstance()
             natcheck_handler.register(launchmany)
             crawler.register_message_handler(CRAWLER_NATCHECK, natcheck_handler.gotDoNatCheckMessage, natcheck_handler.gotNatCheckReplyMessage)
+            crawler.register_message_handler(CRAWLER_NATTRAVERSAL, natcheck_handler.gotUdpConnectRequest, natcheck_handler.gotUdpConnectReply)
 
             if crawler.am_crawler():
 
@@ -165,7 +166,7 @@ class OverlayApps:
 
                 if "natcheck" in sys.argv:
                     # allows access to nat-check statistics (Lucia)
-                    crawler.register_crawl_initiator(natcheck_handler.doNatCheck)
+                    crawler.register_crawl_initiator(natcheck_handler.doNatCheck, 1200)
 
         else:
             self.register_msg_handler([CRAWLER_REQUEST, CRAWLER_REPLY], self.handleDisabledMessage)

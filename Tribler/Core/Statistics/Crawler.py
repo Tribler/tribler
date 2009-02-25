@@ -16,7 +16,7 @@ from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 from Tribler.Core.Utilities.utilities import show_permid_short
 
-DEBUG = True
+DEBUG = False
 
 # when a message payload exceedes 32KB it is divided into multiple
 # messages
@@ -187,7 +187,7 @@ class Crawler:
         channel_id = self._acquire_channel_id(permid)
 
         def _after_connect(exc, dns, permid, selversion):
-            _post_connection_attempt(permid, not exc)
+            self._post_connection_attempt(permid, not exc)
             if exc:
                 # could not connect.
                 if DEBUG: print >>sys.stderr, "crawler: could not connect", dns, show_permid_short(permid), exc
@@ -302,7 +302,7 @@ class Crawler:
         This method ensures that a connection to PERMID exists before sending the message
         """
         def _after_connect(exc, dns, permid, selversion):
-            _post_connection_attempt(permid, not exc)
+            self._post_connection_attempt(permid, not exc)
             if exc:
                 # could not connect.
                 if DEBUG: print >>sys.stderr, "crawler: could not connect", dns, show_permid_short(permid), exc
