@@ -3,22 +3,22 @@
 
 from traceback import print_exc
 import datetime
-import random
 import sys
-import thread
-from time import strftime, sleep
+from time import strftime
 
-from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK
+from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK, CRAWLER_NATTRAVERSAL
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
-from Tribler.Core.NATFirewall.NatCheck import GetNATType
-from Tribler.Core.NATFirewall.TimeoutCheck import GetTimeout
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH, SecureOverlay
-from Tribler.Core.Statistics.Crawler import *
+from Tribler.Core.NATFirewall.ConnectionCheck import ConnectionCheck
+from Tribler.Core.NATFirewall.NatTraversal import tryConnect, coordinateHolePunching
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, SecureOverlay
+from Tribler.Core.Statistics.Crawler import Crawler
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from types import IntType, StringType, ListType
 from Tribler.Core.simpledefs import *
 
 DEBUG = False
+
+PEERLIST_LEN = 100
 
 class NatCheckMsgHandler:
 
@@ -31,11 +31,17 @@ class NatCheckMsgHandler:
         self.crawler_reply_callbacks = []
         self._secure_overlay = SecureOverlay.getInstance()
 
-        crawler = Crawler.get_instance()
-        if crawler.am_crawler():
+        self.crawler = Crawler.get_instance()
+        if self.crawler.am_crawler():
             self._file = open("natcheckcrawler.txt", "a")
             self._file.write("\n".join(("# " + "*" * 80, strftime("%Y/%m/%d %H:%M:%S"), "# Crawler started\n")))
             self._file.flush()
+            self._file2 = open("nattraversalcrawler.txt", "a")
+            self._file2.write("\n".join(("# " + "*" * 80, strftime("%Y/%m/%d %H:%M:%S"), "# Crawler started\n")))
+            self._file2.flush()
+            self.peerlist = []
+            self.holePunchingIP = gethostbyname(gethostname())
+
         else:
             self._file = None
 
@@ -58,14 +64,15 @@ class NatCheckMsgHandler:
         The nat-check initiator_callback
         """
 
-        # for older versions of Tribler: do nothing
-        if selversion < OLPROTO_VER_SEVENTH:
+        # for Tribler versions < 4.5.0 : do nothing
+        # TODO: change OLPROTO_VER_EIGHTH to OLPROTO_VER_SEVENTH
+        if selversion < OLPROTO_VER_EIGHTH:
             if DEBUG:
-                print >> sys.stderr, "NatCheckMsgHandler: older versions of Tribler: do nothing"
+                print >> sys.stderr, "NatCheckMsgHandler: Tribler version too old for NATCHECK: do nothing"
             return False
             
         if DEBUG:
-            print >> sys.stderr, "NatCheckMsgHandler: do NAT check"
+            print >> sys.stderr, "NatCheckMsgHandler: do NATCHECK"
             
         # send the message
         request_callback(CRAWLER_NATCHECK, "", callback=self.doNatCheckCallback)
@@ -99,8 +106,8 @@ class NatCheckMsgHandler:
         try:
             if DEBUG:
                 print >>sys.stderr,"NatCheckMsgHandler: start_nat_type_detect()"
-            nat_check_client = NatCheckClient.getInstance(self.session)
-            nat_check_client.try_start(self.natthreadcb_natCheckReplyCallback)
+            conn_check = ConnectionCheck.getInstance(self.session)
+            conn_check.try_start(self.natthreadcb_natCheckReplyCallback)
         except:
             print_exc()
             return False
@@ -180,6 +187,27 @@ class NatCheckMsgHandler:
                                         ":".join([str(x) for x in recv_data]),
                                         "\n")))
             self._file.flush()
+
+            # for Tribler versions < 5.0 : do nothing
+            if selversion < OLPROTO_VER_EIGHTH:
+                if DEBUG:
+                    print >> sys.stderr, "NatCheckMsgHandler: Tribler version too old for NATTRAVERSAL: do nothing"
+                return True
+                
+            if DEBUG:
+                print >> sys.stderr, "NatCheckMsgHandler: do NATTRAVERSAL"
+
+            # Save peer in peerlist
+            if len(self.peerlist) == PEERLIST_LEN:
+                del self.peerlist[0]
+            self.peerlist.append([permid,recv_data[1],recv_data[2]])
+            if DEBUG:
+                print >> sys.stderr, "NatCheckMsgHandler: peerlist length is: ", len(self.peerlist)
+
+            # Try to perform hole punching
+            if len(self.peerlist) >= 2:
+                self.tryHolePunching()
+
         return True
 
     def validNatCheckReplyMsg(self, ncr_data):
@@ -216,155 +244,139 @@ class NatCheckMsgHandler:
             raise RuntimeError, "NatCheckMsgHandler: received data is not valid. The seventh element in the list must be an integer."
             return False
 
-class NatCheckClient:
+    def tryHolePunching(self):
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: first element in peerlist", self.peerlist[len(self.peerlist)-1]
+            print >> sys.stderr, "NatCheckMsgHandler: second element in peerlist", self.peerlist[len(self.peerlist)-2]
 
-    __single = None
+        holePunchingPort = random.randrange(10000, 10500, 1)
+        holePunchingAddr = (self.holePunchingIP, holePunchingPort)
+        
+        peer1 = self.peerlist[len(self.peerlist)-1]
+        peer2 = self.peerlist[len(self.peerlist)-2]
 
-    def __init__(self, session):
-        if NatCheckClient.__single:
-            raise RuntimeError, "NatCheckClient is singleton"
-        NatCheckClient.__single = self
-        self._lock = thread.allocate_lock()
-        self._running = False
-        self.session = session
-        self.permid = self.session.get_permid()
-        self.nat_type = None
-        self.nat_timeout = -1
-        self._nat_callbacks = [] # list with callback functions that want to know the nat_type
-        self.natcheck_reply_callbacks = [] # list with callback functions that want to send a natcheck_reply message
+        self.udpConnect(peer1[0], holePunchingAddr)
+        self.udpConnect(peer2[0], holePunchingAddr)
 
-    @staticmethod
-    def getInstance(*args, **kw):
-        if NatCheckClient.__single is None:
-            NatCheckClient(*args, **kw)
-        return NatCheckClient.__single
+        # Register peerinfo on file
+        self._file2.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),
+                                    "REQUEST",
+                                    show_permid(peer1[0]),
+                                    str(peer1[1]),
+                                    str(peer1[2]),
+                                    str(self._secure_overlay.get_dns_from_peerdb(peer1[0])),
+                                    show_permid(peer2[0]),
+                                    str(peer2[1]),
+                                    str(peer2[2]),
+                                    str(self._secure_overlay.get_dns_from_peerdb(peer2[0])),
+                                    "\n")))
+        self._file2.flush()
 
-    def try_start(self, reply_callback = None):
+        thread.start_new_thread(coordinateHolePunching, (peer1, peer2, holePunchingAddr))
 
-        if reply_callback: self.natcheck_reply_callbacks.append(reply_callback)
-        acquire = self._lock.acquire
-        release = self._lock.release
+    def udpConnect(self, permid, holePunchingAddr):
 
-        acquire()
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: request UDP connection"
+
+        mh_data = holePunchingAddr[0] + ":" + str(holePunchingAddr[1])
+
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: udpConnect message is", mh_data
+
         try:
+            mh_msg = bencode(mh_data)
+        except:
+            print_exc()
+            if DEBUG: print >> sys.stderr, "NatCheckMsgHandler: error mh_data:", mh_data
+            return False
+
+        # send the message
+        self.crawler.send_request(permid, CRAWLER_NATTRAVERSAL, mh_msg, frequency=0, callback=self.udpConnectCallback)
+
+    def udpConnectCallback(self, exc, permid):
+
+        if exc is not None:
             if DEBUG:
-                if self._running:
-                    print >>sys.stderr, "natcheckmsghandler: the thread is already running"
-                else:
-                    print >>sys.stderr, "natcheckmsghandler: starting the thread"
-            
-            if not self._running:
-                thread.start_new_thread(self.run, ())
+                print >> sys.stderr, "NATTRAVERSAL_REQUEST failed to", show_permid_short(permid), exc
 
-                while True:
-                    release()
-                    sleep(0)
-                    acquire()
-                    if self._running:
-                        break
-        finally:
-            release()
+            # Register peerinfo on file
+            self._file2.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),
+                                    "REQUEST FAILED",
+                                    show_permid(permid),
+                                    str(self._secure_overlay.get_dns_from_peerdb(permid)),
+                                    "\n")))
+            return False
 
-    def run(self):
-        self._lock.acquire()
-        self._running = True
-        self._lock.release()
+        if DEBUG:
+            print >> sys.stderr, "NATTRAVERSAL_REQUEST was sent to", show_permid_short(permid), exc
+        return True
+        
+    def gotUdpConnectRequest(self, permid, selversion, channel_id, mh_msg, reply_callback):
+
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: gotUdpConnectRequest from", show_permid_short(permid)
 
         try:
-            self.nat_discovery()
+            mh_data = bdecode(mh_msg)
+        except:
+            print_exc()
+            print >> sys.stderr, "NatCheckMsgHandler: bad encoded data:", mh_msg
+            return False
 
-        finally:
-            self._lock.acquire()
-            self._running = False
-            self._lock.release()
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: gotUdpConnectRequest is", mh_data
 
-    def timeout_check(self, pingback):
-        """
-        Find out NAT timeout
-        """
-        return GetTimeout(pingback)
+        
+        host, port = mh_data.split(":")
+        coordinator = (host, int(port))
 
-    def natcheck(self, in_port, server1, server2):
-        """
-        Find out NAT type and public address and port
-        """        
-        nat_type, ex_ip, ex_port, in_ip = GetNATType(in_port, server1, server2)
-        if DEBUG: print >> sys.stderr, "NATCheck:", "NAT Type: " + nat_type[1]
-        if DEBUG: print >> sys.stderr, "NATCheck:", "Public Address: " + ex_ip + ":" + str(ex_port)
-        if DEBUG: print >> sys.stderr, "NATCheck:", "Private Address: " + in_ip + ":" + str(in_port)
-        return nat_type, ex_ip, ex_port, in_ip
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: coordinator address is", coordinator
 
-    def get_nat_type(self, callback=None):
-        """
-        When a callback parameter is supplied it will always be
-        called. When the NAT-type is already known the callback will
-        be made instantly. Otherwise, the callback will be made when
-        the NAT discovery has finished.
-        """
-        if self.nat_type:
-            if callback:
-                callback(self.nat_type)
-            return self.nat_type
-        else:
-            if callback:
-                self._nat_callbacks.append(callback)
-            self.try_start()
-            return "Unknown NAT/Firewall"
+        mhr_data = tryConnect(coordinator)
 
-    def _perform_nat_type_notification(self):
-        nat_type = self.get_nat_type()
-        callbacks = self._nat_callbacks
-        self._nat_callbacks = []
+        # Report back to coordinator
+        try:
+            mhr_msg = bencode(mhr_data)
+        except:
+            print_exc()
+            print >> sys.stderr, "NatCheckMsgHandler: error in encoding data:", mhr_data
+            return False
 
-        for callback in callbacks:
-            try:
-                callback(nat_type)
-            except:
-                pass
+        reply_callback(mhr_msg, callback=self.udpConnectReplySendCallback)
 
-    def nat_discovery(self):
-        """
-        Main method of the class: launches nat discovery algorithm
-        """
-        in_port = self.session.get_puncturing_internal_port()
-        stun_servers = self.session.get_stun_servers()
-        random.seed()
-        random.shuffle(stun_servers)
-        stun1 = stun_servers[1]
-        stun2 = stun_servers[0]
-        pingback_servers = self.session.get_pingback_servers()
-        random.shuffle(pingback_servers)
+    def udpConnectReplySendCallback(self, exc, permid):
 
-        if DEBUG: print >> sys.stderr, "NATCheck:", 'Starting natcheck client on %s %s %s' % (in_port, stun1, stun2)
+        if DEBUG:
+            print >> sys.stderr, "NATTRAVERSAL_REPLY was sent to", show_permid_short(permid), exc
+        if exc is not None:
+            return False
+        return True
 
-        performed_nat_type_notification = False
+        
+    def gotUdpConnectReply(self, permid, selversion, channel_id, error, mhr_msg, request_callback):
 
-        # Check what kind of NAT the peer is behind
-        nat_type, ex_ip, ex_port, in_ip = self.natcheck(in_port, stun1, stun2)
-        self.nat_type = nat_type[1]
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: gotMakeHoleReplyMessage"
 
-        # notify any callbacks interested in the nat_type only
-        self._perform_nat_type_notification()
-        performed_nat_type_notification = True
+        try:
+            mhr_data = bdecode(mhr_msg)
+        except:
+            print_exc()
+            print >> sys.stderr, "NatCheckMsgHandler: bad encoded data:", mhr_msg
+            return False
 
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: message is", mhr_data
 
-        # If there is any callback interested, check the UDP timeout of the NAT the peer is behind
-        if len(self.natcheck_reply_callbacks):
+        # Register peerinfo on file
+        self._file2.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),
+                                        "  REPLY",
+                                        show_permid(permid),
+                                        str(self._secure_overlay.get_dns_from_peerdb(permid)),
+                                        mhr_data,
+                                        "\n")))
+            
+        self._file2.flush()
 
-            if nat_type[0] > 0:
-                for pingback in pingback_servers:
-                    if DEBUG: print >> sys.stderr, "NatCheck: pingback is:", pingback
-                    self.nat_timeout = self.timeout_check(pingback)
-                    if self.nat_timeout != -1: break
-                if DEBUG: print >> sys.stderr, "NATCheck: Nat UDP timeout is: ", str(self.nat_timeout)
-
-            self.nat_params = [nat_type[1], nat_type[0], self.nat_timeout, ex_ip, int(ex_port), in_ip, in_port]
-            if DEBUG: print >> sys.stderr, "NATCheck:", str(self.nat_params)
-
-            # notify any callbacks interested in sending a natcheck_reply message
-            for reply_callback in self.natcheck_reply_callbacks:
-                reply_callback(self.nat_params)
-            self.natcheck_reply_callbacks = []
-
-        if not performed_nat_type_notification:
-            self._perform_nat_type_notification()

@@ -114,13 +114,15 @@ def GetNATType(in_port, serveraddr1, serveraddr2):
     udpsock.settimeout(5)
     try:
         udpsock.bind(('',in_port))
-        udpsock.connect(serveraddr1)
     except socket.error, err:
         print >> sys.stderr, "Couldn't be a udp server on port %d : %s" % (in_port, err)
         return (nat_type, ex_ip, ex_port, in_ip)
 
     # Get the internal IP address
-    in_ip, trash = udpsock.getsockname()
+    s = socket()
+    s.connect(('tribler.org',80))
+    in_ip = s.getsockname()[0]
+    del s
 
     """
         EXECUTE THE STUN ALGORITHM
