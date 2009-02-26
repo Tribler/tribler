@@ -4,6 +4,8 @@
 from traceback import print_exc
 import datetime
 import sys
+import socket
+import random
 from time import strftime
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK, CRAWLER_NATTRAVERSAL
@@ -40,7 +42,7 @@ class NatCheckMsgHandler:
             self._file2.write("\n".join(("# " + "*" * 80, strftime("%Y/%m/%d %H:%M:%S"), "# Crawler started\n")))
             self._file2.flush()
             self.peerlist = []
-            self.holePunchingIP = gethostbyname(gethostname())
+            self.holePunchingIP = socket.gethostbyname(socket.gethostname())
 
         else:
             self._file = None
