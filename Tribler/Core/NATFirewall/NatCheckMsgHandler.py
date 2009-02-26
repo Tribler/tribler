@@ -1,12 +1,13 @@
 # Written by Lucia D'Acunto
 # see LICENSE.txt for license information
 
+from time import strftime
 from traceback import print_exc
 import datetime
-import sys
-import socket
 import random
-from time import strftime
+import socket
+import sys
+import thread
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK, CRAWLER_NATTRAVERSAL
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
