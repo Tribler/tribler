@@ -284,12 +284,9 @@ class tribler_topButton(wx.Panel):
         if (self.mouseOver or self.selected) and self.bitmaps[1]:
             dc.DrawBitmap(self.bitmaps[1], 0,0, True)
         
-class firewallButton(tribler_topButton):
+class settingsButton(tribler_topButton):
     """
-    Button with three states corresponding to the firewall status: 
-    - reachable     (self.selected = 2)
-    - connecting    (self.selected = 1)
-    - not reachable (self.selected = 0)
+    Button with three states in the settings overview
     """
 
     __bitmapCache = {}
@@ -340,11 +337,11 @@ class firewallButton(tribler_topButton):
             if not os.path.isfile(img):
                   print >>sys.stderr,"TopButton: Could not find image:",img
             try:
-                if img in firewallButton.__bitmapCache:
-                    self.bitmaps[i] = firewallButton.__bitmapCache[img]
+                if img in settingsButton.__bitmapCache:
+                    self.bitmaps[i] = settingsButton.__bitmapCache[img]
                 else:
                     self.bitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
-                    firewallButton.__bitmapCache[img] = self.bitmaps[i] 
+                    settingsButton.__bitmapCache[img] = self.bitmaps[i] 
             except:
                 print_exc()
             i+=1         

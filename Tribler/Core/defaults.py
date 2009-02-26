@@ -18,7 +18,7 @@
 
 from simpledefs import *
 
-DEFAULTPORT=7762
+DEFAULTPORT=7760
 
 #
 # Session opts

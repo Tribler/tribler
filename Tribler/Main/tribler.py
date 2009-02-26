@@ -91,8 +91,8 @@ I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878
 SESSION_CHECKPOINT_INTERVAL = 1800.0 # seconds
 
-DEBUG = False
-ALLOW_MULTIPLE = False
+DEBUG = True
+ALLOW_MULTIPLE = True
 
 ##############################################################
 #
@@ -261,6 +261,13 @@ class ABCApp(wx.App):
             self.frame.top_bg.set_frame(self.frame)
             self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
             self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
+
+
+            # on linux pagerpanel needs a SetMinSize call
+            if sys.platform == "linux2":
+                self.frame.pagerPanel.SetMinSize((667,20))
+
+
 
             # videopanel
             self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
@@ -511,27 +518,45 @@ class ABCApp(wx.App):
         self.frame.top_bg.help.SetToolTipString(self.utility.lang.get('help') % (reputation))
 
         d = int(self.get_total_down())
-        if d < 1000:
-            s = '%dB Down' % d         
+ 
+        if d < 10:
+            s = '%dB Down   ' % d         
+        elif d < 100:
+            s = '%dB Down  ' % d         
+        elif d < 1000:
+            s = '%dB Down ' % d
+        elif d < 10000:
+            s = '%dKB Down  ' % (d//1000L)
+        elif d < 100000:
+            s = '%dKB Down ' % (d//1000L)
         elif d < 1000000:
-            s = '%dKB Down' % (d//1000L)         
+            s = '%dKB Down' % (d//1000L)
+        elif d < 10000000:
+            s = '%dMB Down  ' % (d//1000000L)
+        elif d < 100000000:
+            s = '%dMB Down ' % (d//1000000L)
         elif d < 1000000000:
             s = '%dMB Down' % (d//1000000L)
+        elif d < 10000000000:
+            s = '%dGB Down  ' % (d//1000000000L)
+        elif d < 100000000000:
+            s = '%dGB Down ' % (d//1000000000L)
         else:
             s = '%dGB Down' % (d//1000000000L)
-
+        
         self.frame.top_bg.total_down.SetLabel(s)
 
 
         u = self.get_total_up()
+
         if u < 1000:
-            s = '%dB Up' % u         
-        elif d < 1000000:
-            s = '%dKB Up' % (u//1000L)         
-        elif d < 1000000000:
-            s = '%dMB Up' % (u//1000000L)
+            s = '%4dB Up' % u
+        elif u < 1000000:
+            s = '%3dKB Up' % (u//1000L)
+        elif u < 1000000000:
+            s = '%3dMB Up' % (u//1000000L)
         else:
-            s = '%dGB Up' % (u//1000000000L)
+            s = '%3dGB Up' % (u//1000000000L)
 
         self.frame.top_bg.total_up.SetLabel(s)
 

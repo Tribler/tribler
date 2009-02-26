@@ -21,6 +21,8 @@ from Tribler.Core.Utilities.unicode import str2unicode
 from Tribler.Main.Utility.constants import *
 from Tribler.Core.SessionConfig import SessionStartupConfig
 
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+
 SERVICETYPES = []
 
 DEBUG = False
@@ -53,6 +55,8 @@ class MyInfoWizard(Wizard):
         self.Bind(EVT_WIZARD_PAGE_CHANGING,self.OnPageChanging)
         self.Bind(EVT_WIZARD_CANCEL,self.OnCancel)
         self.Bind(EVT_WIZARD_FINISHED,self.OnFinished)
+
+        self.guiUtility = GUIUtility.getInstance()
 
     def OnPageChanged(self,event=None):
         pass
@@ -87,6 +91,8 @@ class MyInfoWizard(Wizard):
         scfg.save(cfgfilename)
 
         self.parent.WizardFinished(self)
+
+        self.guiUtility.standardOverview.updateSaveIcon()
 
     def getFirstPage(self):
         return self.page1

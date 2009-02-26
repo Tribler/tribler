@@ -288,8 +288,8 @@ class MainFrame(wx.Frame):
                 result = self.utility.session.start_download(tdef,dscfg)
              
             # ARNO50: Richard will look at this   
-            #newFile = self.guiUtility.frame.top_bg.newFile
-            #newFile.SetLabel('New File added')
+            self.guiserver = GUITaskQueue.getInstance()
+            self.guiserver.add_task(lambda:wx.CallAfter(self.show_saved), 0.2)
             
             # store result because we want to store clicklog data right after 
             # download was started, then return result
@@ -315,6 +315,14 @@ class MainFrame(wx.Frame):
         return None
 
 
+    def show_saved(self):
+        self.guiUtility.frame.top_bg.Layout()
+        self.guiUtility.frame.top_bg.newFile.Show(True)
+        self.guiserver.add_task(lambda:wx.CallAfter(self.hide_saved), 5.0)
+
+
+    def hide_saved(self):
+        self.guiUtility.frame.top_bg.newFile.Show(False)
 
         
     def checkVersion(self):
@@ -614,15 +622,6 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
 
-    def onReachable(self,event=None):
-        """ Called by GUI thread """
-        self.guiUtility.set_reachable()
-        if self.top_bg.firewallStatus is not None:
-            print >> sys.stderr , "AAAAA"
-            self.top_bg.firewallStatus.setSelected(2)
-            tt = self.top_bg.firewallStatus.GetToolTip()
-            if tt is not None:
-                tt.SetTip(self.utility.lang.get('reachable_tooltip'))
 
     def setActivity(self,type,msg=u'',arg2=None):
         

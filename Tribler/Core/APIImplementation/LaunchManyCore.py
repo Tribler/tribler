@@ -52,7 +52,7 @@ from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 SPECIAL_VALUE=481
 
-DEBUG = False
+DEBUG = True
 PROFILE = False
 
 # Internal classes

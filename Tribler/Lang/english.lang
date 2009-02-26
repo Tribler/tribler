@@ -905,6 +905,7 @@ delete_dead_torrent = "Remove Torrent"
 ###
 
 reachable_tooltip	= "Others can reach you, i.e. you are not firewalled. This is good"
+connecting_tooltip      = "Your current firewall status is being checked ..."
 unknownreach_tooltip	= "Others cannot reach you. This is not good. Click to learn more."
 abbrev_loaded		= "L:"
 abbrev_running		= "R:"

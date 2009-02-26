@@ -162,39 +162,15 @@ class LibraryItemPanel(wx.Panel):
         #self.hSizer.Add(self.thumb, 0, wx.ALL, 2)
         
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(200,14))        
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(300,14))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((200,14))
+        self.title.SetMinSize((300,14))
         self.hSizer.Add(self.title,0,wx.TOP,3)
         
         self.hSizer.Add([20,0],0,wx.FIXED_MINSIZE,0)        
 
-        # Up/Down text speed
-#        self.downSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='downSpeed')
-#        self.downSpeed.setBackground(wx.WHITE)
-#        self.downSpeed.SetToolTipString(self.utility.lang.get('down'))
-        self.speedDown2 = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
-        self.speedDown2.SetForegroundColour(self.triblerGrey)        
-        self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.speedDown2.SetMinSize((70,12))        
-#        self.upSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='upSpeed')
-#        self.upSpeed.setBackground(wx.WHITE)
-#        self.upSpeed.SetToolTipString(self.utility.lang.get('up'))
-        self.speedUp2   = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                        
-        self.speedUp2.SetForegroundColour(self.triblerGrey)
-        self.speedUp2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.speedUp2.SetMinSize((70,12))
 
-#        self.hSizer.Add(self.downSpeed, 0, wx.TOP, 2)
-#        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
-        self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 4)
-        # V Line
-        ## self.addLine()
-        self.hSizer.Add([15,0],0,wx.FIXED_MINSIZE,0)
-#        self.hSizer.Add(self.upSpeed, 0, wx.LEFT|wx.TOP, 2)                  
-#        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
-        self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 4)   
 
  
         # estimated time left
@@ -216,17 +192,27 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add([38,0],0,wx.FIXED_MINSIZE,0)        
 
 
-    
-##        self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
-##        self.vSizerTitle.Add (self.title, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
-##        self.vSizerTitle.Add (self.speedSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)                           
-##        self.hSizer.Add(self.vSizerTitle, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)     
-        
-        
-        # V Line
-        ## self.addLine()
-        # Add Gauge/progressbar
-        #self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
+
+
+        self.speedDown2 = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(50,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
+        self.speedDown2.SetForegroundColour(wx.BLACK) ## self.triblerGrey    
+        self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.speedDown2.SetMinSize((50,12))        
+
+
+        self.speedUp2   = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(50,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                        
+        self.speedUp2.SetForegroundColour(wx.BLACK) ## self.triblerGrey
+        self.speedUp2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.speedUp2.SetMinSize((50,12))
+
+
+        self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 4)
+        self.hSizer.Add([18,0],0,wx.FIXED_MINSIZE,0)
+        self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 4)   
+
+
+        self.hSizer.Add([20,0],0,wx.FIXED_MINSIZE,0)
+       
 
         self.pb = ProgressBar(self,pos=wx.Point(450,0),size=wx.Size(60,5))
         self.pb.SetMinSize((100,5))        
@@ -243,7 +229,7 @@ class LibraryItemPanel(wx.Panel):
        
 
         self.hSizer.Add(self.pbSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 0) 
-        self.hSizer.Add([15,0],0,wx.FIXED_MINSIZE,0)        
+        self.hSizer.Add([9,0],0,wx.FIXED_MINSIZE,0)        
         self.hSizer.Add(self.percentage, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 0)         
         
         # pause/stop button
@@ -253,7 +239,7 @@ class LibraryItemPanel(wx.Panel):
         # V Line
         ## self.addLine()
 
-        self.hSizer.Add([15,0],0,wx.FIXED_MINSIZE,0)        
+        self.hSizer.Add([14,0],0,wx.FIXED_MINSIZE,0)        
       
 
         
@@ -334,9 +320,8 @@ class LibraryItemPanel(wx.Panel):
 
             
     def getColumns(self):
-        return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':234,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
-                {'sort':'??','dummy':True, 'pic':'downSpeedColumn','title':'Download', 'width':78, 'tip':self.utility.lang.get('C_downspeed')},
-                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'Upload','width':114, 'tip':self.utility.lang.get('C_upspeed')}, 
+        return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':370,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
+                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'Down &&&& Up Speed','width':130, 'tip':self.utility.lang.get('C_upspeed')}, 
                 {'sort':'progress', 'title':'Completion', 'width':120, 'tip':self.utility.lang.get('C_progress')}               
                 ]     
                   
@@ -517,6 +502,7 @@ class LibraryItemPanel(wx.Panel):
         self.guiUtility.standardOverview.selectedTorrent = self.data['infohash']
         
     def deselect(self, rowIndex, colIndex):
+        self.hLine.Show()
         self.selected = False
         
     def keyTyped(self, event):
@@ -536,6 +522,7 @@ class LibraryItemPanel(wx.Panel):
         #    print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
 
         event.Skip()
+
 
         if not self.data:
             return

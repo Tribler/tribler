@@ -62,7 +62,7 @@
                         <option>0</option>
                         <object class="wxStaticText" name="st227c">
                           <style>wxST_NO_AUTORESIZE</style>
-                          <label>nickname:</label>
+                          <label>Nickname:</label>
                           <pos>110,70</pos>
                           <size>89,23</size>
                         </object>
@@ -111,7 +111,7 @@
             </object>
           </object>
           <object class="spacer">
-            <size>100,0</size>
+            <size>45,0</size>
           </object>
           <object class="sizeritem">
             <object class="wxBoxSizer">
@@ -288,7 +288,7 @@
               <orient>wxVERTICAL</orient>
               <object class="sizeritem">
                 <object class="wxStaticText" name="firewallTitle">
-                  <label>Port Settings</label>
+                  <label>Port Number</label>
                   <font>
                     <size>10</size>
                     <family>swiss</family>
@@ -300,11 +300,14 @@
                   </font>
                 </object>
               </object>
+              <object class="spacer">
+                <size>0,10</size>
+              </object>
               <object class="sizeritem">
                 <object class="wxBoxSizer">
                   <orient>wxHORIZONTAL</orient>
                   <object class="spacer">
-                    <size>0,10</size>
+                    <size>20,0</size>
                   </object>
                   <object class="sizeritem">
                     <object class="wxBoxSizer">
@@ -315,7 +318,7 @@
                       <object class="sizeritem">
                         <object class="wxTextCtrl" name="firewallValue">
                           <value></value>
-                          <size>50,25</size>
+                          <size>50,20</size>
                           <style>wxTE_PROCESS_ENTER</style>
                           <font>
                             <size>10</size>
@@ -329,22 +332,54 @@
                       </object>
                     </object>
                   </object>
+                  <object class="spacer">
+                    <size>5,0</size>
+                  </object>
                   <object class="sizeritem">
-                    <object class="wxPanel" name="firewallStatus" subclass="Tribler.Main.vwxGUI.tribler_topButton.firewallButton">
+                    <object class="wxPanel" name="firewallStatus" subclass="Tribler.Main.vwxGUI.tribler_topButton.settingsButton">
                       <size>33,32</size>
                     </object>
+                  </object>
+                  <object class="spacer">
+                    <size>5,0</size>
                   </object>
                   <object class="sizeritem">
                     <object class="wxBoxSizer">
                       <orient>wxVERTICAL</orient>
                       <object class="spacer">
-                        <size>0,10</size>
+                        <size>0,7</size>
                       </object>
                       <object class="sizeritem">
                         <object class="wxStaticText" name="firewallStatusText">
                           <label>Connecting ...</label>
                         </object>
                       </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>0,5</size>
+              </object>
+              <object class="sizeritem">
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>20,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxStaticText" name="portChange">
+                      <label></label>
+                      <size>200,50</size>
+                      <font>
+                        <size>10</size>
+                        <family>swiss</family>
+                        <style>normal</style>
+                        <weight>bold</weight>
+                        <underlined>0</underlined>
+                        <face>Sans</face>
+                        <encoding>UTF-8</encoding>
+                      </font>
                     </object>
                   </object>
                 </object>
@@ -366,8 +401,8 @@
             <object class="wxBoxSizer">
               <orient>wxVERTICAL</orient>
               <object class="sizeritem">
-                <object class="wxStaticText" name="cacheText">
-                  <label>Disk Cache</label>
+                <object class="wxStaticText" name="fileText">
+                  <label>File Information</label>
                   <font>
                     <size>10</size>
                     <family>swiss</family>
@@ -377,46 +412,6 @@
                     <face>Sans</face>
                     <encoding>UTF-8</encoding>
                   </font>
-                </object>
-                <border>0</border>
-              </object>
-              <object class="spacer">
-                <size>0,10</size>
-              </object>
-              <object class="sizeritem">
-                <object class="wxBoxSizer">
-                  <orient>wxHORIZONTAL</orient>
-                  <object class="spacer">
-                    <size>10,0</size>
-                  </object>
-                  <object class="sizeritem">
-                    <object class="wxStaticText" name="cacheDescription">
-                      <label>Max size allocation for cache</label>
-                    </object>
-                  </object>
-                </object>
-              </object>
-              <object class="spacer">
-                <size>0,0</size>
-              </object>
-              <object class="sizeritem">
-                <object class="wxBoxSizer">
-                  <orient>wxHORIZONTAL</orient>
-                  <object class="spacer">
-                    <size>10,0</size>
-                  </object>
-                  <object class="sizeritem">
-                    <object class="wxSlider" name="cacheSlider">
-                      <value>10</value>
-                      <min></min>
-                      <max>100</max>
-                      <size>100,20</size>
-                      <tickfreq>1</tickfreq>
-                    </object>
-                  </object>
-                  <object class="spacer">
-                    <size>3,0</size>
-                  </object>
                 </object>
               </object>
               <object class="spacer">
@@ -454,6 +449,23 @@
                   </object>
                 </object>
               </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <size>0,0</size>
+      </object>
+      <object class="sizeritem">
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="spacer">
+            <size>400,0</size>
+          </object>
+          <object class="sizeritem">
+            <object class="wxStaticBitmap" name="iconSaved">
+              <bitmap>images/iconSaved_state3.png</bitmap>
+              <hidden>1</hidden>
             </object>
           </object>
         </object>

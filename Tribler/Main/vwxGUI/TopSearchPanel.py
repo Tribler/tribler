@@ -80,7 +80,7 @@ class TopSearchPanel(bgPanel):
                 self.sharing_reputation.Show()
                 self.help.Show()
                 
-                self.black_spacer.Hide()
+                ##self.black_spacer.Hide()
 
                 ##self.Hide()
 
@@ -109,8 +109,10 @@ class TopSearchPanel(bgPanel):
             self.Bind(wx.EVT_TIMER, self.OnAGTimer)
             self.agtimer.Start(10000,True) 
 
-            self.frame.videoframe.show_videoframe()            
-            self.frame.pagerPanel.Show()
+            self.frame.videoframe.show_videoframe()   
+            self.frame.videoparentpanel.Show()            
+         
+            wx.CallAfter(self.frame.pagerPanel.Show)
 
             self.settings.SetForegroundColour((255,51,0))
             self.my_files.SetForegroundColour((255,51,0))
@@ -171,7 +173,6 @@ class TopSearchPanel(bgPanel):
 #       self.SetSizerAndFit(object_1)
 # ----------------------------------------------------------------------------------------          
         
-        self.black_spacer = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/black_spacer.png", wx.BITMAP_TYPE_ANY))
         self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
         self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
         self.go = tribler_topButton(self,-1,name = 'go')
@@ -241,7 +242,6 @@ class TopSearchPanel(bgPanel):
         object_4 = wx.BoxSizer(wx.HORIZONTAL)
         object_13 = wx.BoxSizer(wx.HORIZONTAL)
         object_1.Add((10, 0), 0, 0, 0)
-        object_1.Add(self.black_spacer, 0, 0, 0)
         object_3.Add((0, 20), 0, 0, 0)
         object_3.Add(self.files_friends, 0, 0, 0)
         object_3.Add((0, 5), 0, 0, 0)
@@ -257,7 +257,7 @@ class TopSearchPanel(bgPanel):
         object_5.Add(self.search_results, 0, wx.ALIGN_RIGHT, 0)
         object_3.Add(object_5, 0, 0, 0)
         object_2.Add(object_3, 0, wx.EXPAND, 0)
-        object_2.Add((100, 0), 0, 0, 0)
+        object_2.Add((40, 0), 0, 0, 0)
         object_7.Add((0, 20), 0, 0, 0)
         object_7.Add(self.sharing_reputation, 0, 0, 0)
         object_7.Add((0, 5), 0, 0, 0)
@@ -293,7 +293,7 @@ class TopSearchPanel(bgPanel):
         object_13.Add(self.left, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
         object_13.Add(self.total_down, 0, 0, 0)
-        object_13.Add((20, 0), 0, 0, 0)
+        object_13.Add((2, 0), 0, 0, 0)
         object_13.Add(self.total_up, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
         object_13.Add(self.right, 0, 0, 0)

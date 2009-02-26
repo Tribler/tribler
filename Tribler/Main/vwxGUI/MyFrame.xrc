@@ -5,6 +5,7 @@
     <centered>1</centered>
     <pos>1,1</pos>
     <size>3,2</size>
+    <style>wxCAPTION|wxCLOSE_BOX|wxMINIMIZE_BOX</style>
     <bg>#d4d0c8</bg>
     <object class="wxScrolledWindow" name="level0">
       <style>wxVSCROLL|wxHSCROLL|wxCLIP_CHILDREN</style>

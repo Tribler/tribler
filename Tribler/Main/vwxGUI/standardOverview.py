@@ -214,9 +214,9 @@ class standardOverview(wx.Panel):
 
     def onReachable(self,event=None):
         """ Called by GUI thread """
-        self.guiUtility.set_reachable()
         if self.firewallStatus is not None:
             print >> sys.stderr , "AAAAA"
+            self.guiUtility.set_reachable()
             self.firewallStatus.setSelected(2)
             self.firewallStatusText.SetLabel('Port is working')
             tt = self.firewallStatus.GetToolTip()
@@ -229,11 +229,51 @@ class standardOverview(wx.Panel):
         keycode = event.GetKeyCode()
 
         if keycode == wx.WXK_RETURN:
-            print >> sys.stderr , self.session
-            self.session.set_listen_port(self.portValue.GetValue())
+            #self.session.set_listen_port(self.portValue.GetValue())
+            self.utility.config.Write('minport', self.portValue.GetValue())
+            self.utility.config.Flush()
             self.guiUtility.set_port_number(self.portValue.GetValue()) 
+
+            self.guiserver = GUITaskQueue.getInstance()
+            self.guiserver.add_task(lambda:wx.CallAfter(self.show_message), 0.0)
+            self.updateSaveIcon()
+
         else:
             event.Skip()     
+
+           
+
+
+    def show_message(self):
+        self.portChange.SetLabel('Your changes will occur \nthe next time you restart \nTribler.')
+        self.guiserver.add_task(lambda:wx.CallAfter(self.hide_message), 3.0)
+
+
+    def hide_message(self):
+        self.portChange.SetLabel('')
+
+
+
+
+    def updateSaveIcon(self):
+        self.guiserver = GUITaskQueue.getInstance()
+        self.guiserver.add_task(lambda:wx.CallAfter(self.showSaveIcon), 0.0)
+
+
+    def showSaveIcon(self):
+        wx.CallAfter(self.iconSaved.Show(True))
+        sizer = self.iconSaved.GetContainingSizer()
+        sizer.Layout()
+        self.guiserver.add_task(lambda:wx.CallAfter(self.hideSaveIcon), 3.0)
+ 
+
+    def hideSaveIcon(self):
+        self.iconSaved.Show(False)
+
+
+
+
+
 
         
 
@@ -264,6 +304,10 @@ class standardOverview(wx.Panel):
             self.firewallStatusText = xrc.XRCCTRL(currentPanel,'firewallStatusText')
             self.portValue = xrc.XRCCTRL(currentPanel,'firewallValue')
             self.portValue.Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
+            self.portChange = xrc.XRCCTRL(currentPanel, 'portChange')
+            self.iconSaved = xrc.XRCCTRL(currentPanel, 'iconSaved')
+
+                        
 
             
         ##    if self.guiUtility.isReachable():
@@ -353,33 +397,6 @@ class standardOverview(wx.Panel):
                     rssurlctrl.SetValue(txt)                
                     self.data[self.mode]['rssurlctrl'] = rssurlctrl
                     
-                if self.mode == 'basicMode':    
-                    # header styling
-#                    self.data['status']['downSpeed']
-                    
-#                    self.data[mode][name] = xrcElement
-
-
-                    self.searchCentre = xrc.XRCCTRL(currentPanel, 'searchFieldCentre')
-                    self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popVideosPanel'))
-                    self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popVideos'))
-                    self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popChannelsPanel'))
-                    self.triblerStyles.titleBar(xrc.XRCCTRL(currentPanel,'popChannels'))
-#                    self.triblerStyles.titleBar(self.data['status']['Downloading']) 
-#                    self.triblerStyles.titleBar(self.data['status']['down_White']) 
-#                    self.triblerStyles.titleBar(self.data['status']['downSpeed']) 
-#                    self.triblerStyles.titleBar(self.data['status']['up_White'])                 
-#                    self.triblerStyles.titleBar(self.data['status']['upSpeed']) 
-#                    # content styling
-#                    self.triblerStyles.setDarkText(self.data['status']['download1']) 
-#                    self.triblerStyles.setDarkText(self.data['status']['percent1']) 
-#                    self.triblerStyles.setDarkText(self.data['status']['download2']) 
-#                    self.triblerStyles.setDarkText(self.data['status']['percent2']) 
-#                    self.triblerStyles.setDarkText(self.data['status']['download3']) 
-#                    self.triblerStyles.setDarkText(self.data['status']['percent3']) 
-#                    self.triblerStyles.setDarkText(self.data['status']['download4']) 
-#                    self.triblerStyles.setDarkText(self.data['status']['percent4']) 
-
         
             except:
                 if DEBUG:

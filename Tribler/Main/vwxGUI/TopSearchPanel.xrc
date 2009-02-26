@@ -206,7 +206,7 @@
                     </object>
                   </object>
                   <object class="spacer">
-                    <size>20,0</size>
+                    <size>5,0</size>
                   </object>
                   <object class="sizeritem">
                     <object class="wxStaticText" name="total_up">

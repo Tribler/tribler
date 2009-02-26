@@ -304,6 +304,7 @@ class ConfigReader(ConfigParser):
             return False
         
         param = param.lower()
+
             
         if not self.has_section(section):
             self.add_section(section)

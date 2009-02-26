@@ -20,7 +20,7 @@ class SettingsOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
         self.initDone = False
-        self.elementsName = ['myNameField', 'thumb', 'edit','firewallValue']
+        self.elementsName = ['myNameField', 'thumb', 'edit','firewallValue','firewallStatus','uploadCtrl','downloadCtrl','zeroUp','fiftyUp','hundredUp','zeroDown','fiftyDown','hundredDown']
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         self.mypref = None
@@ -53,7 +53,9 @@ class SettingsOverviewPanel(wx.Panel):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
 
-        self.firewallStatus = xrc.XRCCTRL(self,"firewallStatus")        
+        self.firewallStatus = xrc.XRCCTRL(self,"firewallStatus")  
+
+      
         self.utility = self.guiUtility.utility
         # All mainthread, no need to close
         self.torrent_db = self.guiUtility.utility.session.open_dbhandler(NTFY_TORRENTS)
@@ -76,9 +78,19 @@ class SettingsOverviewPanel(wx.Panel):
 
         #self.elements['firewallValue'].Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
 
+        self.elements['zeroUp'].Bind(wx.EVT_LEFT_UP, self.zeroUp)
+        self.elements['fiftyUp'].Bind(wx.EVT_LEFT_UP, self.fiftyUp)
+        self.elements['hundredUp'].Bind(wx.EVT_LEFT_UP, self.hundredUp)
+        self.elements['zeroDown'].Bind(wx.EVT_LEFT_UP, self.zeroDown)
+        self.elements['fiftyDown'].Bind(wx.EVT_LEFT_UP, self.fiftyDown)
+        self.elements['hundredDown'].Bind(wx.EVT_LEFT_UP, self.hundredDown)
 
 
         self.showPort()
+       
+        self.showMaxDLRate()
+        self.showMaxULRate()
+
 
         self.initDone = True
         
@@ -125,11 +137,41 @@ class SettingsOverviewPanel(wx.Panel):
         self.elements['firewallValue'].SetValue(str(self.guiUtility.get_port_number()))
 
 
-    def OnPortChange(self, event):
-        keycode = event.GetKeyCode()
 
-        if keycode == wx.WXK_RETURN:
-            pass
+    def showMaxDLRate(self):
+        maxdownloadrate = self.guiUtility.utility.config.Read('maxdownloadrate', 'int') #kB/s
+        self.elements['downloadCtrl'].SetValue(str(maxdownloadrate))        
+
+
+
+    def showMaxULRate(self):
+        maxuploadrate = self.guiUtility.utility.config.Read('maxuploadrate', 'int') #kB/s
+        self.elements['uploadCtrl'].SetValue(str(maxuploadrate))        
+
+
+    def zeroUp(self, event):
+        self.elements['uploadCtrl'].SetValue('0') 
+        self.guiUtility.utility.config.Write('maxuploadrate', '0')
+
+    def fiftyUp(self, event):
+        self.elements['uploadCtrl'].SetValue('50')        
+        self.guiUtility.utility.config.Read('maxuploadrate', '50')
+
+    def hundredUp(self, event):
+        self.elements['uploadCtrl'].SetValue('100')        
+        self.guiUtility.utility.config.Read('maxuploadrate', '100')
+
+    def zeroDown(self, event):
+        self.elements['downloadCtrl'].SetValue('0')        
+        self.guiUtility.utility.config.Write('maxdownloadrate', '0')
+
+    def fiftyDown(self, event):
+        self.elements['downloadCtrl'].SetValue('50')        
+        self.guiUtility.utility.config.Write('maxdownloadrate', '50')
+
+    def hundredDown(self, event):
+        self.elements['downloadCtrl'].SetValue('100')        
+        self.guiUtility.utility.config.Write('maxdownloadrate', '100')
 
 
 

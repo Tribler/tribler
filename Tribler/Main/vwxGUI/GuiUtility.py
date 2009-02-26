@@ -240,7 +240,7 @@ class GUIUtility:
             catobj = Category.getInstance()
             ff_enabled = not catobj.family_filter_enabled()
             print 'Setting family filter to: %s' % ff_enabled
-            catobj.set_family_filter(ff_enabled)
+            ccatobj.set_family_filter(ff_enabled)
             self.familyButton.setToggled()
 #            obj.setToggled(ff_enabled)
             for filtername in ['filesFilter', 'libraryFilter']:
@@ -945,9 +945,9 @@ class GUIUtility:
             type = wx.ICON_INFORMATION
             msg = self.utility.lang.get('reachable_tooltip')
         else:
-            title = self.utility.lang.get('tribler_warning')
+            title = self.utility.lang.get('tribler_information')
             type = wx.ICON_WARNING
-            msg = self.utility.lang.get('tribler_unreachable_explanation')
+            msg = self.utility.lang.get('connecting_tooltip')
             
         dlg = wx.MessageDialog(None, msg, title, wx.OK|type)
         result = dlg.ShowModal()

@@ -340,6 +340,7 @@ class Category:
             if b is None:
                 b=old
             if self.utility is None:
+                print >> sys.stderr , "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP"
                 return
             self.utility.config.Write('family-filter', b)
             self.utility.config.Flush()

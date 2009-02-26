@@ -129,7 +129,7 @@ class ProgressBar(wx.Control):
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-        self.SetSize((100,6))
+        self.SetSize((60,6))
 
         self.progressinf = None
 
