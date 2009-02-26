@@ -23,7 +23,7 @@ from Tribler.Core.Video.VideoStatus import VideoStatus
 
 SPECIAL_VALUE = 481
 
-DEBUG = True
+DEBUG = False
 
 class SingleDownload:
     """ This class is accessed solely by the network thread """
@@ -163,7 +163,7 @@ class SingleDownload:
     def set_max_conns_to_initiate(self,nconns,callback):
         if self.dow is not None:
             if DEBUG:
-                print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
+                print >>sys.stderr,"SingleDownload: set_max_conns_to_initiate",`self.dow.response['info']['name']`,direct,speed
             self.dow.setInitiate(nconns,networkcalling=True)
         if callback is not None:
             callback(nconns)
@@ -172,7 +172,7 @@ class SingleDownload:
     def set_max_conns(self,nconns,callback):
         if self.dow is not None:
             if DEBUG:
-                print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
+                print >>sys.stderr,"SingleDownload: set_max_conns",`self.dow.response['info']['name']`,direct,speed
             self.dow.setMaxConns(nconns,networkcalling=True)
         if callback is not None:
             callback(nconns)
