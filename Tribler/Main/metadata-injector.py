@@ -19,6 +19,8 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Overlay.OverlayApps import OverlayApps
 
+from Tribler.Core.Overlay.permid import permid_for_user
+
 def main():
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir")
@@ -49,6 +51,7 @@ def main():
     sscfg.set_moderationcast_recent_forward_moderations_per_have(5)
     sscfg.set_moderationcast_random_forward_moderations_per_have(5)
     sscfg.set_moderationcast_upload_bandwidth_limit(256*1024)
+    sscfg.set_moderationcast_download_bandwidth_limit(1024*1024)
 
     sscfg.set_megacache(True)
     sscfg.set_overlay(True)
@@ -58,6 +61,8 @@ def main():
     sscfg.set_internal_tracker(False)
 
     session = Session(sscfg)
+    
+    print >>sys.stderr, "permid: ", permid_for_user(session.get_permid())    
 
     if opt.rss:
         buddycast_factory = BuddyCastFactory.getInstance()
@@ -93,6 +98,7 @@ def main():
 
         torrent_feed_thread.register(session)
         for rss in opt.rss.split(";"):
+            print >>sys.stderr, "Adding RSS: %s" % rss
             torrent_feed_thread.addURL(rss, on_torrent_callback=on_torrent_callback)
         torrent_feed_thread.start()
 
