@@ -166,7 +166,7 @@ import socket
 
 from Tribler.Core.simpledefs import BCCOLPOLICY_SIMPLE
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE
+from Tribler.Core.BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE, MODERATIONCAST_HAVE, MODERATIONCAST_REQUEST, MODERATIONCAST_REPLY, VOTECAST
 from Tribler.Core.Utilities.utilities import show_permid_short, show_permid,validPermid,validIP,validPort,validInfohash,readableBuddyCastMsg, hostname_or_ip2ip
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND, NTFY_MYPREFERENCES, NTFY_INSERT, NTFY_DELETE
@@ -181,6 +181,8 @@ from Tribler.Core.Statistics.Crawler import Crawler
 from threading import Event, currentThread
 
 from bartercast import BarterCastCore
+from moderationcast import ModerationCastCore
+from votecast import VoteCastCore
 
 DEBUG = False   # for errors
 debug = False   # for status
@@ -303,12 +305,18 @@ class BuddyCastFactory:
         
         # ARNOCOMMENT: get rid of this dnsindb / get_dns_from_peerdb abuse off SecureOverlay
         self.bartercast_core = BarterCastCore(self.data_handler, self.overlay_bridge, self.log, self.launchmany.secure_overlay.get_dns_from_peerdb)
+        
+        self.moderationcast_core = ModerationCastCore(self.data_handler, self.overlay_bridge, self.launchmany.session, self.getCurrrentInterval, self.log, self.launchmany.secure_overlay.get_dns_from_peerdb)    
+        self.votecast_core = VoteCastCore(self.data_handler, self.overlay_bridge, self.launchmany.session, self.getCurrrentInterval, self.log, self.launchmany.secure_overlay.get_dns_from_peerdb)
             
         self.buddycast_core = BuddyCastCore(self.overlay_bridge, self.launchmany, 
                self.data_handler, self.buddycast_interval, self.superpeer,
-               self.metadata_handler, self.torrent_collecting_solution, self.bartercast_core, self.log)
+               self.metadata_handler, self.torrent_collecting_solution, self.bartercast_core, self.moderationcast_core, self.votecast_core, self.log)
         
         self.data_handler.register_buddycast_core(self.buddycast_core)
+        
+        self.moderationcast_core.showAllModerations()
+        self.votecast_core.showAllVotes()
         
         if start:
             self.start_time = now()
@@ -394,6 +402,30 @@ class BuddyCastFactory:
                 return self.gotKeepAliveMessage(permid)
             else:
                 return False
+            
+        elif t == MODERATIONCAST_HAVE:
+            print >> sys.stderr, "Received moderationcast_have message"
+            if self.moderationcast_core != None:
+                return self.moderationcast_core.gotModerationCastHaveMessage(message[1:], permid, selversion)
+
+        elif t == MODERATIONCAST_REQUEST:
+            if DEBUG:
+                print >> sys.stderr, "Received moderation_request message"
+            if self.moderationcast_core != None:
+                return self.moderationcast_core.gotModerationCastRequestMessage(message[1:], permid, selversion)
+            
+        elif t == MODERATIONCAST_REPLY:
+            if DEBUG:
+                print >> sys.stderr, "Received moderation_reply message"
+            if self.moderationcast_core != None:
+                return self.moderationcast_core.gotModerationCastReplyMessage(message[1:], permid, selversion)
+
+        elif t == VOTECAST:
+            if DEBUG:
+                print >> sys.stderr, "bc: Received votecast message"
+            if self.votecast_core != None:
+                return self.votecast_core.gotVoteCastMessage(message[1:], permid, selversion)
+            
                 
         elif t == BARTERCAST:
             if DEBUG:
@@ -454,7 +486,7 @@ class BuddyCastCore:
     
     def __init__(self, overlay_bridge, launchmany, data_handler, 
                  buddycast_interval, superpeer, 
-                 metadata_handler, torrent_collecting_solution, bartercast_core, log=None):
+                 metadata_handler, torrent_collecting_solution, bartercast_core, moderationcast_core, votecast_core, log=None):
         self.overlay_bridge = overlay_bridge
         self.launchmany = launchmany
         self.data_handler = data_handler
@@ -534,6 +566,9 @@ class BuddyCastCore:
         # Bartercast
         self.bartercast_core = bartercast_core
         #self.bartercast_core.buddycast_core = self    
+
+        self.moderationcast_core = moderationcast_core
+        self.votecast_core = votecast_core
 
         # Crawler
         crawler = Crawler.get_instance()
@@ -909,6 +944,12 @@ class BuddyCastCore:
         # Bartercast
         if self.bartercast_core != None and active:
             self.bartercast_core.createAndSendBarterCastMessage(target_permid, selversion, active)
+
+        if self.moderationcast_core != None and active:
+            self.moderationcast_core.createAndSendModerationCastHaveMessage(target_permid, selversion)
+        
+        if self.votecast_core != None and active:
+            self.votecast_core.createAndSendVoteCastMessage(target_permid, selversion)
 
         if self.log:
             dns = self.dnsindb(target_permid)

@@ -19,7 +19,7 @@ from Tribler.Core.Overlay.permid import sign_data
 #from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVEN
 #MIN_VERSION = OLPROTO_VER_SEVEN
 
-from time import time
+from time import time, ctime
 from zlib import compress, decompress
 from base64 import decodestring
 from binascii import hexlify
@@ -28,7 +28,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, 
 from Tribler.Core.BuddyCast.moderationcast_util import *
 
 DEBUG_UI = False
-DEBUG = False    #Default debug
+DEBUG = True    #Default debug
 debug = True    #For send-errors and other low-level stuff
 
 AUTO_MODERATE = False    #Automatically moderate content, with bogus moderations
@@ -40,9 +40,7 @@ NO_RECENT_VOTES = 13
 from random import randint, sample, seed, random
 
 class VoteCastCore:
-    """ ModerationCastCore is responsible for sending and receiving:
-        MODERATIONCAST_HAVE, MODERATIONCAST_REQUEST, and MODERATIONCAST_REPLY-messages
-    """
+    """ VoteCastCore is responsible for sending and receiving VOTECAST-messages """
 
     ################################
     def __init__(self, data_handler, secure_overlay, session, buddycast_interval_function, log = '', dnsindb = None):
@@ -109,20 +107,19 @@ class VoteCastCore:
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
         
         
-        #print >> sys.stderr, "this is votecast symbol",VOTECAST
+        print >> sys.stderr, "Sending votecastmsg",voteCastMsgToString(votecast_data)
         data = VOTECAST+votecast_msg
         self.blockPeer(target_permid, self.send_block_list, self.block_interval)
-        self.secure_overlay.send(target_permid, data, self.voteCastSendCallback)
-        #self.blockPeer(target_permid, self.send_block_list, self.block_interval)
+        self.secure_overlay.send(target_permid, data, self.voteCastSendCallback)        
         
 
     ################################
     def createVoteCastMessage(self, target_permid):
-        """ Create a MODERATIONCAST_HAVE message """
+        """ Create a VOTECAST message """
 
         #Select latest own moderations
-        
-        info = self.votecastdb.recentVotes(NO_RECENT_VOTES)
+        print >> sys.stderr, "Creating votecastmsg..."
+        records = self.votecastdb.recentVotes(NO_RECENT_VOTES)
         
         #Add random own moderations
         size = NO_RANDOM_VOTES+NO_RECENT_VOTES
@@ -130,19 +127,17 @@ class VoteCastCore:
         #print >> sys.stderr, "random own >>>>>>>>>>> ", random_own
         
         for vote in random_own:
-            if len(info) == size:
+            if len(records) == size:
                 break
             #print >> sys.stderr, "votes information", vote
-            if vote not in info:
-                info.append(vote)
-        data = []
-        #Gather timestamp and size
-        for infohash in info:
-            
-            mod_id = infohash[0]
-            vote = infohash[1]
+            if vote not in records:
+                records.append(vote)
+        data = []        
+        for record in records:            
+            mod_id = record[0]
+            vote = record[1]
             data.append((mod_id, vote))
-        return info
+        return data
 
     
     ################################
@@ -159,7 +154,7 @@ class VoteCastCore:
     ################################
     def gotVoteCastMessage(self, recv_msg, sender_permid, selversion):
         if DEBUG:
-            print 'votecast: Received a HAVE msg from ', permid_for_user(sender_permid)
+            print >> sys.stderr,'votecast: Received a msg from ', permid_for_user(sender_permid)
 
         if not sender_permid or sender_permid == self.my_permid:
             if DEBUG:
@@ -184,24 +179,17 @@ class VoteCastCore:
             print >> sys.stderr, "votecast: warning, invalid bencoded data"
             return False
 
-        #print >> sys.stderr, "received this thing from the test", votecast_data
         # check message-structure
-        #if not validVoteCastMsg(votecast_data):
-            #print >> sys.stderr, "votecast: invalid votecast_message"
-        #else:
-        #DO CHECK FOR VALIDITY LATER RAMEEZ
+        if not validVoteCastMsg(votecast_data):
+            print >> sys.stderr, "votecast: invalid votecast_message"
+            return False
+        
         st = time()
         self.handleVoteCastMsg(sender_permid, votecast_data)
         et = time()
         diff = et - st
         if DEBUG:
-             print >>sys.stderr,"votecast: HANDLE took %.4f" % diff
-        
-
-        
-        
-        if DEBUG:
-            print "votecast", voteCastMsgToString(votecast_data)
+            print >>sys.stderr,"votecast: HANDLE took %.4f" % diff            
 
         #Log RECV_MSG of uncompressed message
         if self.log:
@@ -222,7 +210,7 @@ class VoteCastCore:
         ################################
     def handleVoteCastMsg(self, sender_permid, data):
         
-        #print >> sys.stderr, "Processing VOTECAST msg from: ", permid_for_user(sender_permid)
+        print >> sys.stderr, "Processing VOTECAST msg from: ", permid_for_user(sender_permid), "; data: ", repr(data)
     
         for value in data:
             vote = {}
@@ -230,21 +218,16 @@ class VoteCastCore:
             vote['mod_id'] = value[0]
             vote['voter_id'] = self.votecastdb.getPeerID(sender_permid)
             #print >> sys.stderr,"this is the peer id so it should be clear", vote['voter_id']
-            vote['vote'] = value[2] 
+            vote['vote'] = value[1] 
             self.votecastdb.addVote(vote)
             
         if DEBUG:
-            print "Processing MODERATIONCAST_REPLY msg from: ", permid_for_user(sender_permid), "DONE"
+            print >> sys.stderr,"Processing VOTECAST msg from: ", permid_for_user(sender_permid), "DONE; data:"
             
     ################################
     def replyVoteCast(self, target_permid, selversion):
-        """ Reply a moderationcast-have message """
+        """ Reply a VoteCast message """
 
-        #if not self.buddycast_core.isConnected(target_permid):
-            #print >> sys.stderr, 'moderationcast: lost connection while replying moderationcast', \
-                #"Round", self.buddycast_core.round
-            #return
-        #return 
         self.createAndSendVoteCastMessage(target_permid, selversion)
 
     ################################
@@ -266,7 +249,16 @@ class VoteCastCore:
         block_list[peer_permid] = unblock_time
         
         if DEBUG:
-            print >>sys.stderr,'votecast: %s Blocked peer %s'% (ctime(now()), self.votecastdb.getName(peer_permid))
+            print >>sys.stderr,'votecast: %s Blocked peer %s'% (ctime(now()), permid_for_user(peer_permid))
+            
+    def showAllVotes(self):
+        """ Currently this function is only for testing, to show all votes """
+        if DEBUG:
+            records = self.votecastdb.getAll()
+            print >>sys.stderr, "Existing votes..."
+            for record in records:
+                print >>sys.stderr, "    mod_id:",record[0],"; voter_id:", record[1], "; votes:",record[2],"; timestamp:", record[3]
+            print >>sys.stderr, "End of votes..."        
 
     
 

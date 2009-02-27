@@ -110,28 +110,26 @@ def validPermid(permid):
 
 def validSignature(moderation):
     """ Returns True iff the (signature, moderator) in moderation is correct for this moderation """
-    #check = verify_moderation_signature(moderation)
-    #print >> sys.stderr, "CHECKING THE GREAT TIME", check
-    
-    return True
+   
+    #return True
     #UNFREEZE LATER
-    blob = moderation['signature']
-    permid = moderation['mod_id']
+    print >>sys.stderr, "Checking signature of moderation:", repr(moderation)
+    blob = str2bin(moderation['signature'])
+    permid = str2bin(moderation['mod_id'])
     #Plaintext excludes signature:
     del moderation['signature']
     plaintext = bencode(moderation)
-    moderation['signature'] = blob
-    signature = verify_data(plaintext,str2bin(permid), (blob))
+    moderation['signature'] = bin2str(blob)
+    signature = verify_data(plaintext,permid, blob)
     
-    
-    
-    '''print >> sys.stderr,"plain text", plaintext
-    
+    print >> sys.stderr,"Checking signature of moderation after verify_data:", repr(moderation)    
 
-    r = verify_data(plaintext, str2bin(permid), blob)
+    r = verify_data(plaintext, permid, blob)
     if not r:
         print >>sys.stderr, "Invalid signature"
-    return r'''
+    else:
+        print >>sys.stderr, "Proper signature:", moderation['signature']
+    return r
 
 def now():
     """ Returns current-system-time in UTC, seconds since the epoch (type==int) """
@@ -397,155 +395,44 @@ def validModerationCastReplyMsg(data):
             return False
 
     return True
+
+def validVoteCastMsg(data):
+    """ Returns True if VoteCastMsg is valid, ie, be of type [(mod_id,vote) """
+    if data is None or not type(data) == ListType:
+        return False
+    
+    for record in data:
+        if not type(record[0]) == StringType:
+            return False
+        if not type(record[1]) == int:
+            return False
+        
+    
+    return True
+
+    
 #*************************************************
 
 def moderationCastHaveMsgToString(data):
     """ Pre:    data is a valid MODERATIONCAST_HAVE-message
         Post:   returns a string-representation of the MODERATIONCAST_HAVE-message
     """
-#    assert validModerationCastHaveMsg(data)
-#    r = "-----MODERATIONCAST_HAVE-----\n"
-#    r += "Infohash:\t\t\t\t Timestamp:\t\t\tSize:\n"
-#    for (infohash, timestamp, size) in data:
-#        r += hexlify(infohash)+' '+asctime(gmtime(timestamp))+'\t'+str(size)+'\n'
-#    r += "-----------------------------\n"
-#    return r
     return repr(data)
 
 def moderationCastRequestMsgToString(data):
     """ Pre:    data is a valid MODERATIONCAST_REQUEST-message
         Post:   returns a string-representation of the MODERATIONCAST_REQUEST-message
     """
-#    assert validModerationCastRequestMsg(data)
-#    r = "-----MODERATIONCAST_REQUEST-----\n"
-#    for infohash in data:
-#        r += hexlify(infohash)+'\n'
-#    r += "--------------------------------\n"
-#    return r
     return repr(data)
 
 def moderationCastReplyMsgToString(data):
     """ Pre:    data is a valid MODERATIONCAST_REPLY-message
         Post:   returns a string-representation of the MODERATIONCAST_REPLY-message
     """
-#    assert validModerationCastReplyMsg(data)
-#    r = "-----MODERATIONCAST_REPLY-----\n"
-#    r += "Infohash:\t\t\t\t Timestamp:\t\tModerator:\n"
-#    for moderation in data:
-#        infohash = hexlify(moderation['infohash'])
-#        timestamp = asctime(gmtime(moderation['timestamp']))
-#        moderator = show_permid_short(moderation['moderator'])
-#        r += infohash+' '+timestamp+'\t'+moderator+'\n'
-#    r += "------------------------------\n"
-#    return r
     return repr(data)
 
-import codecs
-class ISO639_3:
-    LIVING = 1                 #Living languages
-    EXTINCT = 1 << 1           #Extinct languages
-    ANCIENT = 1 << 2           #Ancient languages
-    HISTORIC = 1 << 3          #Historic languages
-    CONSTRUCTED = 1 << 4       #Constructed languages
-    INDIVIDUAL = 1 << 5        #Individual languages
-    MACRO = 1 << 6             #Macro language
-    SPECIAL = 1 << 7           #Special language
-    PART1 = 1 << 8             #Language that is also part of ISO639-1
-    ALL = LIVING | EXTINCT | ANCIENT | HISTORIC | CONSTRUCTED | INDIVIDUAL | MACRO | SPECIAL | PART1    #All languages
-
-    __single = None
-
-    def __init__(self, inputfile="iso-639-3_20070814.tab"):
-        if ISO639_3.__single:
-            raise RuntimeError, "ISO639_3 is singleton"
-        
-        try:
-            FILE = codecs.open(inputfile, 'r', 'utf-8')
-            data = FILE.read()
-            
-            #Change to internal structure:
-            self.data = {}
-            
-            lines = data.split('\r\n')
-            del data
-            for i in range(1, len(lines)):
-                (Id, Part2B, Part2T, Part1, Scope, Language_Type, Ref_Name) = lines[i].split('\t')
-                if len(Part2B) == 0:
-                    Part2B = None
-                if len(Part2T) == 0:
-                    Part2T = None
-                if len(Part1) == 0:
-                    Part1 = None
-                self.data[Id] = (Part2B, Part2T, Part1, Scope, Language_Type, Ref_Name)
-            
-            FILE.close()
-        except:
-            raise RuntimeError, "ISO639_3: Could not convert "+inputfile+" to internal datastructure"
-        
-        ISO639_3.__single = self
-
-    def getInstance(*args, **kw):
-        if ISO639_3.__single is None:
-            ISO639_3(*args, **kw)
-        return ISO639_3.__single
-    getInstance = staticmethod(getInstance)
-
-    def code2language(self, code):
-        assert type(code) == str or type(code) == unicode
-        if self.data.has_key(code):
-            (_, _, _, _, _, Ref_Name) = self.data[code]
-            return Ref_Name
-        else:
-            return None
-    
-    def language2code(self, language):
-        assert type(language) == str or type(language) == unicode
-        for code, value in self.data.iteritems():
-            (_, _, _, _, _, Ref_Name) = value
-            if Ref_Name == language:
-                return code
-        return False
-    
-    def part1code2code(self, part1code):
-        assert type(part1code) == str or type(part1code) == unicode
-        for code, value in self.data.iteritems():
-            (_, _, Part1, _, _, _) = value
-            if Part1 == part1code:
-                return code
-        return None
-    
-    def languages(self, types):
-        codes = self.codes(types)
-        return [self.data[code][5] for code in codes]
-    
-    def codes(self, types):
-        if types == ISO639_3.ALL:
-            return self.data.keys()
-        
-        r = []
-        
-        for code, value in self.data.iteritems():
-            (_, _, Part1, Scope, Language_Type, Ref_Name) = value
-            if types & ISO639_3.LIVING and Language_Type == u'L':
-                r.append(code)
-            elif types & ISO639_3.EXTINCT and Language_Type == u'E':
-                r.append(code)
-            elif types & ISO639_3.ANCIENT and Language_Type == u'A':
-                r.append(code)
-            elif types & ISO639_3.HISTORIC and Language_Type == u'H':
-                r.append(code)
-            elif types & ISO639_3.CONSTRUCTED and Language_Type == u'C':
-                r.append(code)
-            elif types & ISO639_3.INDIVIDUAL and Scope == u'I':
-                r.append(code)
-            elif types & ISO639_3.MACRO and Scope == u'M':
-                r.append(code)
-            elif types & ISO639_3.SPECIAL and Scope == u'S':
-                r.append(code)
-            elif types & ISO639_3.PART1 and Part1 is not None:
-                r.append(code)
-        
-        return r
+def voteCastMsgToString(data):
+    return repr(data)
 
 class BandwidthLimiter:
     """ BandwidthLimiter keeps track of the bandwidth used (upload or download) and can be used

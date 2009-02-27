@@ -18,8 +18,8 @@ from types import StringType, ListType, DictType
 from zlib import compress, decompress
 
 DEBUG_UI = False
-DEBUG = False    #Default debug
-debug = False    #For send-errors and other low-level stuff
+DEBUG = True    #Default debug
+debug = True    #For send-errors and other low-level stuff
 
 AUTO_MODERATE = False    #Automatically moderate content, with bogus moderations
 AUTO_MODERATE_INTERVAL = 1    #Number of seconds between creation of moderations
@@ -90,13 +90,13 @@ class ModerationCastCore:
             if dns:
                 ip,port = dns
                 MSG_ID = "MODERATIONCAST_HAVE"
-                msg = moderationCastReplyMsgToString(moderationcast_data)
+                msg = moderationCastHaveMsgToString(moderationcast_data)
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
         
         
         
         data = MODERATIONCAST_HAVE+moderationcast_msg
-        
+        print >>sys.stderr, "Sending Moderationcast Have Msg", moderationCastHaveMsgToString(moderationcast_data)
         self.secure_overlay.send(target_permid, data, self.moderationcastSendCallback)
         
     ################################
@@ -184,6 +184,7 @@ class ModerationCastCore:
             #Compress this message
             #moderationcast_msg = compress(moderationcast_msg)
             
+        print >>sys.stderr, "Sending Moderationcast Request Msg", moderationCastRequestMsgToString(moderationcast_data)
         # send the message
         data = MODERATIONCAST_REQUEST+moderationcast_msg
         #print >>sys.stderr,"the moderation cast request is", data
@@ -245,7 +246,7 @@ class ModerationCastCore:
         #if REPLY_COMPRESSION:
             #Compress this message
             #moderationcast_msg = compress(moderationcast_msg)
-        
+        print >>sys.stderr, "Sending Moderationcast Reply Msg", moderationCastReplyMsgToString(moderationcast_data)
         # send the message
         data = MODERATIONCAST_REPLY+moderationcast_msg
         self.secure_overlay.send(target_permid, data, self.moderationcastSendCallback)
@@ -266,7 +267,7 @@ class ModerationCastCore:
             moderation['mod_name'] = mod[1] 
             moderation['infohash'] = mod[2]
             moderation['time_stamp'] = mod[3]
-            moderation['signature'] = mod[4]
+            moderation['signature'] = mod[7]
             
             reply.append(moderation)
 
@@ -287,13 +288,24 @@ class ModerationCastCore:
     def gotModerationCastHaveMessage(self, recv_msg, sender_permid, selversion):
 
         if DEBUG:
-            print 'moderationcast: Received a HAVE msg from ', permid_for_user(sender_permid)
+            print >>sys.stderr,'moderationcast: Received a HAVE msg from ', permid_for_user(sender_permid)
 
         if not sender_permid or sender_permid == self.my_permid:
             return False
 
         if self.max_have_length > 0 and len(recv_msg) > self.max_have_length:
             return False
+        
+        #check if this moderator is a fraud
+        mod = self.moderationcastdb.getModerator(permid_for_user(sender_permid))
+        if mod is not None and len(mod)>0:
+            if mod[1]==-1:
+                print >>sys.stderr, "Sorry this moderator is a fraud one:", permid_for_user(sender_permid)
+                return False
+            else:
+                print >>sys.stderr, "This moderator is not a fraud one:", permid_for_user(sender_permid)
+        else:
+            print >>sys.stderr, "Never seen this moderator :", permid_for_user(sender_permid)
 
         active = self.blockHave.blocked(sender_permid)
 
@@ -316,7 +328,7 @@ class ModerationCastCore:
             return False
 
         if DEBUG:
-            print "MODERATIONCAST_HAVE", moderationCastHaveMsgToString(moderationcast_data)
+            print "Receiving MODERATIONCAST_HAVE", moderationCastHaveMsgToString(moderationcast_data)
 
         #Log RECV_MSG of uncompressed message
         if self.log:
@@ -340,7 +352,7 @@ class ModerationCastCore:
     def gotModerationCastRequestMessage(self, recv_msg, sender_permid, selversion):
         """ Received a MODERATIONCAST_REQUEST message and handle it. Reply if needed """
         if DEBUG:
-            print 'moderationcast: Received a REQUEST msg from ', permid_for_user(sender_permid)
+            print >>sys.stderr,'moderationcast: Received a REQUEST msg from ', permid_for_user(sender_permid)
 
         #Log download-bandwidth-usage
         #self.downloadLimiter.use(len(recv_msg))
@@ -373,7 +385,7 @@ class ModerationCastCore:
             return False
 
         if DEBUG:
-            print "MODERATIONCAST_REQUEST", moderationCastRequestMsgToString(moderationcast_data)
+            print "Receiving MODERATIONCAST_REQUEST", moderationCastRequestMsgToString(moderationcast_data)
 
         #Log RECV_MSG of uncompressed message
         if self.log:
@@ -409,10 +421,11 @@ class ModerationCastCore:
 
         # check message-structure
         if not validModerationCastReplyMsg(moderationcast_data):
+            print >>sys.stderr, "Received Invalid Moderationcast Reply Message"
             return False
 
         if DEBUG:
-            print "MODERATIONCAST_REPLY", moderationCastReplyMsgToString(moderationcast_data)
+            print >>sys.stderr, "Received MODERATIONCAST_REPLY", moderationCastReplyMsgToString(moderationcast_data)
 
         #Log RECV_MSG of uncompressed message
         if self.log:
@@ -453,3 +466,12 @@ class ModerationCastCore:
         self.createAndSendModerationCastHaveMessage(target_permid, selversion)
 
     ################################
+    
+    def showAllModerations(self):
+        """ Currently this function is only for testing, to show all moderations """
+        if DEBUG:
+            records = self.moderationcastdb.getAll()
+            print >>sys.stderr, "Existing moderations..."
+            for record in records:
+                print >>sys.stderr, "    modid:",record[0],"; modname:", record[1], "; infohash:",record[2],"; signature:", record[7]
+            print >>sys.stderr, "End of moderations..."
