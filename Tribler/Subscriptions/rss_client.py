@@ -30,6 +30,7 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 import re
 import urlparse
 from xml.dom.minidom import parseString
+from xml.parsers.expat import ExpatError
 from threading import Thread,RLock,Event
 import time
 import sha
@@ -39,7 +40,7 @@ from Tribler.Core.BitTornado.bencode import bdecode,bencode
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 
-DEBUG = False
+DEBUG = True #False
 
 class TorrentFeedThread(Thread):
     
@@ -66,7 +67,7 @@ class TorrentFeedThread(Thread):
             TorrentFeedThread(*args, **kw)
         return TorrentFeedThread.__single
     getInstance = staticmethod(getInstance)
-        
+    """    
     def register(self,utility):
         self.utility = utility
         self.intertorrentinterval = self.utility.config.Read("torrentcollectsleep","int")
@@ -91,6 +92,7 @@ class TorrentFeedThread(Thread):
     
         #self.addURL('http://www.vuze.com/syndication/browse/AZHOT/ALL/X/X/26/X/_/_/X/X/feed.xml')
         
+        
     def addURL(self,url,dowrite=True,status="active"):
         self.lock.acquire()
         if url not in self.urls:
@@ -98,6 +100,45 @@ class TorrentFeedThread(Thread):
             if status == "active":
                 feed = TorrentFeedReader(url,self.gethistfilename(url))
                 self.feeds.append(feed)
+                self.feeds_changed = True
+            if dowrite:
+                self.writefile()
+        self.lock.release()        
+    """
+    
+    def register(self,session):
+        self.session = session
+        self.torrent_dir = self.session.get_torrent_collecting_dir()
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        
+        filename = self.getfilename()
+        dirname = os.path.dirname(filename)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
+        try:
+            f = open(filename,"rb")
+            for line in f.readlines():
+                for key in ['active','inactive']:
+                    if line.startswith(key):
+                        url = line[len(key)+1:-2] # remove \r\n
+                        if DEBUG:
+                            print >>sys.stderr,"subscrip: Add from file URL",url,"EOU"
+                        self.addURL(url,dowrite=False,status=key)
+            f.close()        
+        except:
+            pass
+            #traceback.print_exc()
+    
+        #self.addURL('http://www.vuze.com/syndication/browse/AZHOT/ALL/X/X/26/X/_/_/X/X/feed.xml')
+    
+    def addURL(self, url, dowrite=True, status="active", on_torrent_callback=None):
+        self.lock.acquire()
+        if url not in self.urls:
+            self.urls[url] = status
+            if status == "active":
+                feed = TorrentFeedReader(url,self.gethistfilename(url))
+                self.feeds.append((feed, on_torrent_callback))
                 self.feeds_changed = True
             if dowrite:
                 self.writefile()
@@ -118,9 +159,14 @@ class TorrentFeedThread(Thread):
         # TODO: url2pathname or something that gives a readable filename
         h = sha.sha(url).hexdigest()
         return os.path.join(self.getdir(),h+'.txt')
-        
+    
+    """    
     def getdir(self):
         return os.path.join(self.utility.getConfigPath(),"subscriptions")
+    """
+    
+    def getdir(self):
+        return os.path.join(self.session.get_state_dir(),"subscriptions")
         
     def getURLs(self):
         return self.urls # doesn't need to be locked
@@ -164,7 +210,7 @@ class TorrentFeedThread(Thread):
 
             # feeds contains (rss_url, generator) pairs
             feeds = {}
-            for feed in cfeeds:
+            for feed, on_torrent_callback in cfeeds:
                 try:
                     sugestion_generator = feed.refresh()
                 except:
@@ -180,7 +226,10 @@ class TorrentFeedThread(Thread):
                     try:
                         title, urlopenobj = generator.next()
                         if not urlopenobj:
+                            print >>sys.stderr, "urlopenobj NONE: torrent not found", title
                             continue
+                        else:
+                            print >>sys.stderr, "urlopenobj : torrent found", title 
 
                         bdata = urlopenobj.read()
                         urlopenobj.close()
@@ -189,7 +238,15 @@ class TorrentFeedThread(Thread):
                         if 'info' in data:
                             infohash = sha.sha(bencode(data['info'])).digest()
                             if not self.torrent_db.hasTorrent(infohash):
+                                if DEBUG:
+                                    if "name" in data["info"]:
+                                        print >>sys.stderr, "Injecting", data["info"]["name"]
+                                    else:
+                                        print >>sys.stderr, "Injecting", title
                                 self.save_torrent(infohash, bdata, source=rss_url)
+                                if on_torrent_callback:
+                                    on_torrent_callback(rss_url, infohash, data)
+
 
                     except StopIteration:
                         # there are no more items in generator
@@ -197,10 +254,15 @@ class TorrentFeedThread(Thread):
 
                     except ValueError:
                         # the bdecode failed
+                        print >>sys.stderr, "Bdecode failed: ", rss_url
                         pass
+                    
+                    except ExpatError:
+                        print >>sys.stderr, "Invalid RSS: ", rss_url 
 
                     # sleep in between torrent retrievals
-                    time.sleep(self.intertorrentinterval)
+                    #time.sleep(self.intertorrentinterval)
+                    time.sleep(self.session.get_rss_check_frequency())
 
                     self.lock.acquire()
                     try:
@@ -210,7 +272,9 @@ class TorrentFeedThread(Thread):
                     finally:
                         self.lock.release()
 
-            for count in range(120):
+            # sleep for a relatively long time before downloading the
+            # rss feeds again
+            for count in range(int(self.session.get_rss_reload_frequency() / 10)):
                 self.lock.acquire()
                 try:
                     if self.feeds_changed:
@@ -293,7 +357,7 @@ class TorrentFeedReader:
             self.urls_already_seen.read()
             self.urls_already_seen.readed = True
         
-        feed_socket = urlOpenTimeout(self.feed_url,timeout=5)
+        feed_socket = urlOpenTimeout(self.feed_url,timeout=20)
         feed_xml = feed_socket.read()
         feed_socket.close()
 
@@ -312,7 +376,7 @@ class TorrentFeedReader:
         # <foobar src="frayja.com/torrent/2">Unused title</foobar>
         # <moomilk url="frayja.com/torrent/3">Unused title</moomilk>
         # </items>
-        for item in dom.getElementsByTagName("item") + dom.getElementsByTagName("entry"):
+        for item in dom.getElementsByTagName("item"): #+ dom.getElementsByTagName("entry"):
             title = None
             links = []
             child = item.firstChild
@@ -343,15 +407,15 @@ class TorrentFeedReader:
             try:
                 self.urls_already_seen.add(link)
                 if DEBUG:
-                    print >>sys.stderr,"subscrip: Opening",link
-                html_or_tor = urlOpenTimeout(link,timeout=5)
+                    print >>sys.stderr,"subscrip: Opening",title,link
+                html_or_tor = urlOpenTimeout(link,timeout=20)
                 found_torrent = False
                 tor_type = html_or_tor.headers.gettype()
                 if self.isTorrentType(tor_type):
                     torrent = html_or_tor
                     found_torrent = True
                     if DEBUG:
-                        print >>sys.stderr,"subscrip: Yielding",link
+                        print >>sys.stderr,"subscrip: torrent1: Yielding",link
                     yield title,torrent
                 elif False: # 'html' in tor_type:
                     html = html_or_tor.read()
@@ -366,7 +430,7 @@ class TorrentFeedReader:
                         #print url
                         try:
                             if DEBUG:
-                                print >>sys.stderr,"subscrip: Opening",url
+                                print >>sys.stderr,"subscrip: torrent2: Opening",url
                             torrent = urlOpenTimeout(url)
                             url_type = torrent.headers.gettype()
                             #print url_type
@@ -374,14 +438,18 @@ class TorrentFeedReader:
                                 #print "torrent found:",url
                                 found_torrent = True
                                 if DEBUG:
-                                    print >>sys.stderr,"subscrip: Yielding",url
+                                    print >>sys.stderr,"subscrip: torrent2: Yielding",url
                                 yield title,torrent
                                 break
                             else:
                                 #its not a torrent after all, but just some html link
+                                if DEBUG:
+                                    print >>sys.stderr, "%s not a torrent" % url
                                 pass
                         except:
                             #url didn't open
+                            if DEBUG:
+                                print >>sys.stderr, "%s did not open" % url
                             pass
                 if not found_torrent:
                     yield title,None
@@ -459,7 +527,7 @@ class URLHistory:
                         print >>sys.stderr,"subscrip: Cached url is",url
                     self.urls[url] = timestamp
                 elif DEBUG:
-                    print >>sys.stderr,"subscrip: Timed out cached url is",t,url
+                    print >>sys.stderr,"subscrip: Timed out cached url is %s" % url
         
     def write(self):
         try:
