@@ -2436,7 +2436,6 @@ class ModerationCastDBHandler(BasicDBHandler):
         ModerationCastDBHandler.__single = self
         try:
             db = SQLiteCacheDB.getInstance()
-            #BasicDBHandler.__init__(self, db, 'BarterCast')
             BasicDBHandler.__init__(self,db,'ModerationCast')
             print >> sys.stderr, "modcast: DB made" 
         except: 
@@ -2452,10 +2451,14 @@ class ModerationCastDBHandler(BasicDBHandler):
     
     def __len__(self):
         return sum([db._size() for db in self.dbs])
+    
+    def getAll(self):
+        sql = 'select * from ModerationCast'
+        records = self._db.fetchall(sql)
+        return records        
 
     def getAllModerations(self, permid):
         sql = 'select * from ModerationCast where mod_id==?'
-        
         records = self._db.fetchall(sql, (permid,))
         return records
     
@@ -2470,18 +2473,15 @@ class ModerationCastDBHandler(BasicDBHandler):
         """ Returns True iff there is a moderation for infohash infohash """
         sql = 'select mod_id from ModerationCast where infohash==?'
         item = self._db.fetchone(sql,(infohash,))
-        #print >> sys.stderr,"well well well",infohash," sdd",item
+        if DEBUG:
+            print >> sys.stderr,"MCDB: hasModeration: infohash:",infohash," ; item:",item
         if item is None:
             return False
         else:
             return True
-        
-        #return self.moderation_db.hasItem(infohash)
 
     def hasModerator(self, permid):
         """ Returns True iff there is a moderator for PermID permid in the moderatorDB """
-        #print >> sys.stderr, "this is the permid of meeeeeeeeeeeeee ", permid
-        #string = str(bin2str(permid))
         sql = "Select mod_id from Moderators where mod_id==?"
         args = permid
         
@@ -2502,7 +2502,7 @@ class ModerationCastDBHandler(BasicDBHandler):
         return item
 
     def getVotedModerators(self):
-        sql = 'select * from Moderators where status !=0'
+        sql = 'select * from Moderators where status != 0'
         item = self._db.fetchall(sql)
         return item
     
@@ -2526,6 +2526,7 @@ class ModerationCastDBHandler(BasicDBHandler):
             return len(moda['moderations'])-len(modb['moderations'])
         
         return withmod.sort(topSort)[0:top]
+    
     def updateModeration(self, moderation):
         assert type(moderation) == dict
         assert moderation.has_key('time_stamp') and validTimestamp(moderation['time_stamp'])
@@ -2534,13 +2535,10 @@ class ModerationCastDBHandler(BasicDBHandler):
         infohash = moderation['infohash']
         moderator = moderation['mod_id']
         if self.hasModerator(moderator) and moderator in self.getBlockedModeratorPermids():
-            print >> sys.stderr, "Got moderation from blocked moderator", show_permid_short(moderator)+", not using it!"
+            print >> sys.stderr, "Got moderation from blocked moderator", show_permid_short(moderator)+", hence we drop this moderation!"
             return
-        if self.hasModeration(infohash):
-            print >> sys.stderr, "so this is the problem with infohash",infohash
         
-        if not self.hasModeration(infohash) or self.getModeration(infohash)[3] < moderation['time_stamp']:
-            print >> sys.stderr, "did it come here"
+        if not self.hasModeration(infohash) or self.getModeration(infohash)[3] < moderation['time_stamp']:            
             self.addModeration(moderation)
         
     def addOwnModeration(self, mod, clone=False):
@@ -2562,11 +2560,11 @@ class ModerationCastDBHandler(BasicDBHandler):
         if self.hasModeration(moderation['infohash']):
             if self.getModeration(moderation['infohash'])[3] < moderation['time_stamp']:
                 self.deleteModeration(moderation['infohash'])
-                #print >> sys.stderr,"welcome to the family"
             else:
                 return
         
         self._db.insert(self.table_name, **moderation)
+        print >>sys.stderr, "Moderation inserted:", repr(moderation)
         
         if self.getModeratorPermids() is None or not self.hasModerator(moderation['mod_id']):
             new = {}
@@ -2575,19 +2573,16 @@ class ModerationCastDBHandler(BasicDBHandler):
             new['status'] = 0
             new['time_stamp'] = now()
             self._db.insert('Moderators', **new)
-        
+            print >>sys.stderr, "New Moderator inserted:", repr(new)
         
     def deleteModeration(self, infohash):
         sql = 'Delete From ModerationCast where infohash==?'
         self._db.execute_write(sql,(infohash,))
     
-    
     def deleteModerations(self, permid):
         sql = 'Delete From ModerationCast where mod_id==?'
         self._db.execute_write(sql,(permid,))
 
-        
-    
     def deleteModerator(self, permid):
         """ Deletes moderator with permid permid from database """
         sql = 'Delete From Moderators where mod_id==?'
@@ -2600,14 +2595,10 @@ class ModerationCastDBHandler(BasicDBHandler):
         if blocked:
             
             self.deleteModerations(permid)
-            
-            sql = 'Update Moderators set status = -1 where mod_id==?'
+            sql = 'Update Moderators set status = -1, time_stamp=' + str(now())  + ' where mod_id==?'            
             self._db.execute_write(sql,(permid,))
         else:
             self.forwardModerator(permid)
-
-
-        
 
     ################################
     def maxflow(self, peerid, max_distance = MAXFLOW_DISTANCE):
@@ -2617,7 +2608,6 @@ class ModerationCastDBHandler(BasicDBHandler):
         downflow = self.network.maxflow(self.my_peerid, peerid, max_distance)
 
         return (upflow, downflow) 
-
 
     ################################
     def getReputationByID(self, peerid, max_distance = MAXFLOW_DISTANCE, alpha = ALPHA):
@@ -2640,11 +2630,13 @@ class ModerationCastDBHandler(BasicDBHandler):
         rep = atan((self.total_up - self.total_down) * alpha)/(0.5 * pi)
         return rep   
 
-
-
     def forwardModerator(self, permid, forward=True):
-        sql = 'Update Moderators set status = 1 where mod_id==?'
+        if DEBUG:
+            print >>sys.stderr, "Before updating Moderator's status..", repr(self.getModerator(permid))
+        sql = 'Update Moderators set status = 1, time_stamp=' + str(now())  + ' where mod_id==?'
         self._db.execute_write(sql,(permid,))
+        if DEBUG:
+            print >>sys.stderr, "Updated Moderator's status..", repr(self.getModerator(permid))
 
     def getName(self, permid):
         
@@ -2846,6 +2838,13 @@ class VoteCastDBHandler(BasicDBHandler):
         records = self._db.fetchall(sql, (permid,))
         return records
     
+    def getAll(self):
+        sql = 'select * from VoteCast'
+        
+        records = self._db.fetchall(sql)
+        return records
+        
+    
     def getAverageVotes(self):
         moderators = self.moderationcast_db.getModeratorPermids()
         if len(moderators) == 0:
@@ -2932,10 +2931,9 @@ class VoteCastDBHandler(BasicDBHandler):
     def addVote(self, vote, clone=True):
         vote['time_stamp'] = now()
         if self.hasVote(vote['mod_id'],vote['voter_id']):
-            self.deleteVote(vote['mod_id'],vote['voter_id'])
-        #print >>  sys.stderr, "it shouldn't have >>>> ", vote
-        self._db.insert(self.table_name, **vote)
-        #print >> sys.stderr, "converting automatically????", self.getVote(vote['mod_id'], vote['voter_id'])
+            self.deleteVote(vote['mod_id'],vote['voter_id'])        
+        self._db.insert(self.table_name, **vote)        
+        print >> sys.stderr, "Vote added:",repr(vote)        
     
     def deleteVotes(self, permid):
         sql = 'Delete From VoteCast where mod_id==?'
@@ -2971,8 +2969,8 @@ class VoteCastDBHandler(BasicDBHandler):
         
         #Create a list of infohashes that we are willing to forward
         keys = self.moderationcast_db.getVotedModerators() 
-        for key in keys:
-            #print >> sys.stderr, "reasons i don't know ", key
+
+        for key in keys:            
             forwardable.append(key)
         
         forwardable.sort(self._compareFunction)
