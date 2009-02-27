@@ -57,6 +57,29 @@ PermIDMessages = [CHALLENGE, RESPONSE1, RESPONSE2]
 HASHPIECE = chr(250)
 
 ## Buddycast Extension
+"""
+{'preferences':[[infohash]],
+ #'permid': my permid,     # not used since 3.3.2
+ 'connectable': self connectability, # used since version > 3.5
+ 'name': my name,
+ 'ip':current ip,
+ 'port':current listening port,
+ 'taste_buddies':[{'preferences':[[infohash]],
+                   'permid':Permanent ID,
+                   'ip':the last known IP,
+                   'port':the last known listen port,
+                   'age':the age of this preference list in integer seconds
+                  }],
+ 'random_peers':[{'permid':Permanent ID,
+                  'ip':the last known IP,
+                  'port':the last known listen port,
+                  'age':the age of this preference list in integer seconds
+                 }]
+ 'npeers': Number of peers known to peer
+ 'nfiles': Number of files known to peer
+ 'ndls': Number of downloads by peer
+}
+"""      
 # payload is beencoded dict
 BUDDYCAST = chr(249)
 # empty payload
@@ -64,7 +87,13 @@ KEEP_ALIVE = chr(240)
 # Bartercast, payload is bencoded dict
 BARTERCAST = chr(236)
 
-BuddyCastMessages = [BARTERCAST, BUDDYCAST, KEEP_ALIVE]
+VOTECAST = chr(226)
+MODERATIONCAST_HAVE = chr(227)
+MODERATIONCAST_REQUEST = chr(228)
+MODERATIONCAST_REPLY = chr(229)
+
+#BuddyCastMessages = [BARTERCAST, BUDDYCAST, KEEP_ALIVE]
+BuddyCastMessages = [MODERATIONCAST_HAVE, MODERATIONCAST_REQUEST, MODERATIONCAST_REPLY, VOTECAST, BARTERCAST, BUDDYCAST, KEEP_ALIVE]
 
 # bencoded torrent_hash (Arno,2007-08-14: shouldn't be bencoded, but is)
 GET_METADATA = chr(248)
@@ -165,6 +194,10 @@ message_map = {
     SOCIAL_OVERLAP:"SOCIAL_OVERLAP",
     QUERY:"QUERY",
     QUERY_REPLY:"QUERY_REPLY",
+    MODERATIONCAST_HAVE:"MODERATIONCAST_HAVE",
+    MODERATIONCAST_REQUEST:"MODERATIONCAST_REQUEST",
+    MODERATIONCAST_REPLY:"MODERATIONCAST_REPLY",
+    VOTECAST:"VOTECAST",
     BARTERCAST:"BARTERCAST",
     G2G_PIECE_XFER: "G2G_PIECE_XFER",
     FRIENDSHIP:"FRIENDSHIP",
