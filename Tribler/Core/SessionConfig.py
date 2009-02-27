@@ -1129,6 +1129,71 @@ class SessionConfigInterface:
         """ Whether crawler messages are processed
         @return Boolean. """
         return self.sessconfig['crawler']
+    
+    #
+    # RSS feed settings
+    #
+    def set_rss_reload_frequency(self, frequency):
+        """ reload a rss source every n seconds """
+        self.sessconfig['rss_reload_frequency'] = frequency
+
+    def get_rss_reload_frequency(self):
+        """ Returns the reload frequency for a rss source """
+        return self.sessconfig['rss_reload_frequency']
+
+    def set_rss_check_frequency(self, frequency):
+        """ test a potential .torrent in a rss source every n seconds """
+        self.sessconfig['rss_check_frequency'] = frequency
+
+    def get_rss_check_frequency(self):
+        """ Returns the check frequency for a potential .torrent in a rss source """
+        return self.sessconfig['rss_check_frequency']
+
+    #
+    # ModerationCast
+    #
+    def set_moderationcast_recent_own_moderations_per_have(self, n):
+        self.sessconfig['moderationcast_recent_own_moderations_per_have'] = n
+
+    def get_moderationcast_recent_own_moderations_per_have(self):
+        return self.sessconfig['moderationcast_recent_own_moderations_per_have']
+
+    def set_moderationcast_random_own_moderations_per_have(self, n):
+        self.sessconfig['moderationcast_random_own_moderations_per_have'] = n
+
+    def get_moderationcast_random_own_moderations_per_have(self):
+        return self.sessconfig['moderationcast_random_own_moderations_per_have']
+
+    def set_moderationcast_recent_forward_moderations_per_have(self, n):
+        self.sessconfig['moderationcast_recent_forward_moderations_per_have'] = n
+
+    def get_moderationcast_recent_forward_moderations_per_have(self):
+        return self.sessconfig['moderationcast_recent_forward_moderations_per_have']
+    
+    def set_moderationcast_random_forward_moderations_per_have(self, n):
+        self.sessconfig['moderationcast_random_forward_moderations_per_have'] = n
+
+    def get_moderationcast_random_forward_moderations_per_have(self):
+        return self.sessconfig['moderationcast_random_forward_moderations_per_have']
+
+    def get_moderationcast_moderations_per_have(self):
+        return self.sessconfig['moderationcast_recent_own_moderations_per_have'] + \
+               self.sessconfig['moderationcast_random_own_moderations_per_have'] + \
+               self.sessconfig['moderationcast_recent_forward_moderations_per_have'] + \
+               self.sessconfig['moderationcast_random_forward_moderations_per_have']
+
+    def set_moderationcast_upload_bandwidth_limit(self, limit):
+        self.sessconfig['moderationcast_upload_bandwidth_limit'] = limit
+
+    def get_moderationcast_upload_bandwidth_limit(self):
+        return self.sessconfig['moderationcast_upload_bandwidth_limit']
+
+    def set_moderationcast_download_bandwidth_limit(self, limit):
+        self.sessconfig['moderationcast_download_bandwidth_limit'] = limit
+
+    def get_moderationcast_download_bandwidth_limit(self):
+        return self.sessconfig['moderationcast_download_bandwidth_limit']
+    
 
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  
