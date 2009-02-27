@@ -84,6 +84,14 @@ sessdefaults['stun_servers'] = [('stun1.tribler.org',6701),('stun2.tribler.org',
 sessdefaults['pingback_servers'] = [('pingback.tribler.org',6703),('pingback2.tribler.org',6703)]
 sessdefaults['live_aux_seeders'] = []
 sessdefaults['mainline_dht'] = True
+sessdefaults['rss_reload_frequency'] = 600      # reload a rss source every n seconds
+sessdefaults['rss_check_frequency'] = 15        # test a potential .torrent in a rss source every n seconds
+sessdefaults['moderationcast_recent_own_moderations_per_have'] = 13
+sessdefaults['moderationcast_random_own_moderations_per_have'] = 12
+sessdefaults['moderationcast_recent_forward_moderations_per_have'] = 13
+sessdefaults['moderationcast_random_forward_moderations_per_have'] = 12
+sessdefaults['moderationcast_upload_bandwidth_limit'] = 5*1024
+sessdefaults['moderationcast_download_bandwidth_limit'] = 20*1024
 
 trackerdefaults = {}
 trackerdefaults['tracker_url'] = None
