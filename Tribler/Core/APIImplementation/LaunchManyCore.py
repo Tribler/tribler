@@ -52,7 +52,7 @@ from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 SPECIAL_VALUE=481
 
-DEBUG = True
+DEBUG = False
 PROFILE = False
 
 # Internal classes
@@ -145,6 +145,7 @@ class TriblerLaunchMany(Thread):
             self.modcast_db = ModerationCastDBHandler.getInstance()
             self.modcast_db.registerSession(self.session)
             self.votecast_db = VoteCastDBHandler.getInstance()
+            self.votecast_db.registerSession(self.session)
             self.search_db      = SearchDBHandler.getInstance()
             self.term_db        = TermDBHandler.getInstance()
 
