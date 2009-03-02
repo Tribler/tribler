@@ -40,7 +40,7 @@ class DatabaseCrawler:
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
         if DEBUG: print >>sys.stderr, "databasecrawler: query_initiator", show_permid_short(permid)
-        request_callback(CRAWLER_DATABASE_QUERY, "SELECT 'peer_count', count(*) FROM Peer; SELECT 'torrent_count', count(*) FROM Torrent; SELECT 'moderations_count', count(*) FROM ModerationCast; SELECT 'self_votes_count', count(*) FROM Moderators where status!=0; SELECT 'collected_votes_count', count(*) FROM VoteCast", callback=self._after_request_callback)
+        request_callback(CRAWLER_DATABASE_QUERY, "SELECT 'peer_count', count(*) FROM Peer; SELECT 'torrent_count', count(*) FROM Torrent; SELECT 'moderations_count', count(*) FROM ModerationCast; SELECT 'positive_votes_count', count(*) FROM Moderators where status=1; SELECT 'negative_votes_count', count(*) FROM Moderators where status=-1", callback=self._after_request_callback)
 
     def _after_request_callback(self, exc, permid):
         """
