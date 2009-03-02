@@ -91,7 +91,7 @@ I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878
 SESSION_CHECKPOINT_INTERVAL = 1800.0 # seconds
 
-DEBUG = True
+DEBUG = False
 ALLOW_MULTIPLE = True
 
 ##############################################################

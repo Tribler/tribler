@@ -18,8 +18,8 @@ from types import StringType, ListType, DictType
 from zlib import compress, decompress
 
 DEBUG_UI = False
-DEBUG = True    #Default debug
-debug = True    #For send-errors and other low-level stuff
+DEBUG = False    #Default debug
+debug = False   #For send-errors and other low-level stuff
 
 AUTO_MODERATE = False    #Automatically moderate content, with bogus moderations
 AUTO_MODERATE_INTERVAL = 1    #Number of seconds between creation of moderations

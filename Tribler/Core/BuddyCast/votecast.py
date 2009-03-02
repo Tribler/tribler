@@ -28,8 +28,8 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, 
 from Tribler.Core.BuddyCast.moderationcast_util import *
 
 DEBUG_UI = False
-DEBUG = True    #Default debug
-debug = True    #For send-errors and other low-level stuff
+DEBUG = False    #Default debug
+debug = False    #For send-errors and other low-level stuff
 
 AUTO_MODERATE = False    #Automatically moderate content, with bogus moderations
 AUTO_MODERATE_INTERVAL = 1    #Number of seconds between creation of moderations
@@ -107,7 +107,7 @@ class VoteCastCore:
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
         
         
-        print >> sys.stderr, "Sending votecastmsg",voteCastMsgToString(votecast_data)
+        if DEBUG: print >> sys.stderr, "Sending votecastmsg",voteCastMsgToString(votecast_data)
         data = VOTECAST+votecast_msg
         self.blockPeer(target_permid, self.send_block_list, self.block_interval)
         self.secure_overlay.send(target_permid, data, self.voteCastSendCallback)        
@@ -118,7 +118,7 @@ class VoteCastCore:
         """ Create a VOTECAST message """
 
         #Select latest own moderations
-        print >> sys.stderr, "Creating votecastmsg..."
+        if DEBUG: print >> sys.stderr, "Creating votecastmsg..."
         records = self.votecastdb.recentVotes(NO_RECENT_VOTES)
         
         #Add random own moderations
@@ -142,13 +142,10 @@ class VoteCastCore:
     
     ################################
     def voteCastSendCallback(self, exc, target_permid, other=0):
-        if exc is None:
-            if DEBUG:
-
+        if DEBUG:
+            if exc is None:
                 print >> sys.stderr,"votecast: *** msg was sent successfully to peer", permid_for_user(target_permid)
-        else:
-            if DEBUG:
-
+            else:
                 print >> sys.stderr, "votecast: *** warning - error in sending msg to", permid_for_user(target_permid), exc
 
     ################################
