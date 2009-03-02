@@ -32,6 +32,8 @@ from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes
 
 DEBUG = True
 
+
+
 class GUIUtility:
     __single = None
     
@@ -49,6 +51,11 @@ class GUIUtility:
         self.selectedMainButton = None
         self.standardOverview = None
         self.reachable = False
+        self.DELETE_TORRENT_ASK = True
+        self.DELETE_TORRENT_ASK_OLD = True
+        self.DELETE_TORRENT_PREF = 1 # 1 : from Library
+                                     # 2 : from Library and Harddisk
+
 
         # Moderation cast
         self.moderatedinfohash = None
@@ -301,7 +308,36 @@ class GUIUtility:
 
 
         elif name == 'remove':
-            self.onDeleteTorrentFromLibrary()
+
+            if self.DELETE_TORRENT_ASK:
+                xrcResource = os.path.join(self.vwxGUI_path, 'deleteTorrent.xrc')
+                res = xrc.XmlResource(xrcResource)
+                self.dialogFrame = res.LoadFrame(None, "torrentDialog")
+ 
+                #self.dialogFrame.SetFocus()
+                self.dialogFrame.Centre()
+                self.dialogFrame.Show(True)
+
+                self.dialogFrame.Library = xrc.XRCCTRL(self.dialogFrame, "Library") 
+                self.dialogFrame.LibraryHardDisk = xrc.XRCCTRL(self.dialogFrame, "LibraryHardDisk") 
+                self.dialogFrame.Cancel = xrc.XRCCTRL(self.dialogFrame, "Cancel") 
+                self.dialogFrame.checkbox = xrc.XRCCTRL(self.dialogFrame, "checkBox")
+
+
+                self.dialogFrame.Library.Bind(wx.EVT_BUTTON, self.LibraryClicked)
+                self.dialogFrame.LibraryHardDisk.Bind(wx.EVT_BUTTON, self.HardDiskClicked)
+                self.dialogFrame.Cancel.Bind(wx.EVT_BUTTON, self.CancelClicked)
+                self.dialogFrame.checkbox.Bind(wx.EVT_CHECKBOX, self.checkboxClicked)
+
+
+
+            elif self.DELETE_TORRENT_PREF == 1: 
+               self.onDeleteTorrentFromLibrary()
+            else:
+               self.onDeleteTorrentFromDisk()
+
+
+ 
 
 
         elif name == 'settings':
@@ -355,6 +391,31 @@ class GUIUtility:
 #        elif DEBUG:
 #            print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
     
+
+    def LibraryClicked(self, event):
+        self.DELETE_TORRENT_ASK_OLD = self.DELETE_TORRENT_ASK
+        self.DELETE_TORRENT_PREF = 1
+        self.dialogFrame.Close()
+        self.standardOverview.Refresh()
+        wx.CallAfter(self.onDeleteTorrentFromLibrary)
+         
+    def HardDiskClicked(self, event):
+        self.DELETE_TORRENT_ASK_OLD = self.DELETE_TORRENT_ASK
+        self.DELETE_TORRENT_PREF = 2
+        self.dialogFrame.Close()
+        self.standardOverview.Refresh()
+        wx.CallAfter(self.onDeleteTorrentFromDisk)
+        
+
+    def CancelClicked(self, event):
+        self.DELETE_TORRENT_ASK = self.DELETE_TORRENT_ASK_OLD
+        self.dialogFrame.Close()
+        self.standardOverview.Refresh()
+
+    def checkboxClicked(self, event):
+        self.DELETE_TORRENT_ASK = not self.DELETE_TORRENT_ASK 
+
+
     def set_port_number(self, port_number):
         self.port_number = port_number
 
@@ -397,6 +458,7 @@ class GUIUtility:
         ff_enabled = not catobj.family_filter_enabled()
         print 'Setting family filter to: %s' % ff_enabled
         catobj.set_family_filter(ff_enabled)
+      
         if ff_enabled:
             self.frame.top_bg.familyfilter.SetLabel('Family Filter:ON')
         else:
@@ -603,10 +665,10 @@ class GUIUtility:
         # Init family filter        
         ##self.familyButton = xrc.XRCCTRL(self.frame, 'familyfilter')
         
-        # Family filter on by default
-        ##self.familyButton.setToggled()
+        # Family filter initialized from configuration file
         catobj = Category.getInstance()
-        catobj.set_family_filter(True)
+        print >> sys.stderr , "FAMILY FILTER :" , self.utility.config.Read('family_filter', "boolean")
+        #catobj.set_family_filter(self.utility.config.Read('family_filter', "boolean"))
 
         
     def initFilterStandard(self, filterStandard):

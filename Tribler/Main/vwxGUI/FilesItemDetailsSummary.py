@@ -119,41 +119,42 @@ class FilesItemDetailsSummary(bgPanel):
 
         ## hSizer2
         self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.Rate = wx.StaticText(self,-1,"Rate these file properties as ",wx.Point(0,0),wx.Size(160,22))
-        self.triblerStyles.setLightText(self.Rate)
-        self.Or = wx.StaticText(self,-1," or",wx.Point(0,0),wx.Size(25,22))
-        self.triblerStyles.setLightText(self.Or)
         
-        self.fake = TestButton(self, -1, name='fake')
-        self.fake.SetMinSize((35,16))
-        self.fake.SetSize((35,16))
-        self.guiUtility.fakeButton = self.fake
-
-        self.real = TestButton(self, -1, name='real')
-        self.real.SetMinSize((35,16))
-        self.real.SetSize((35,16))
-        self.guiUtility.realButton = self.real
 
 
         # check for moderation
         if self.infohash is not None and self.mcdb.hasModeration(bin2str(self.infohash)):
             moderation = self.mcdb.getModeration(bin2str(self.infohash))
             mod_name = moderation[1]
+
+            self.Rate = wx.StaticText(self,-1,"Rate these file properties as ",wx.Point(0,0),wx.Size(160,22))
+            self.triblerStyles.setLightText(self.Rate)
+            self.Or = wx.StaticText(self,-1," or",wx.Point(0,0),wx.Size(25,22))
+            self.triblerStyles.setLightText(self.Or)
+
+            self.fake = TestButton(self, -1, name='fake')
+            self.fake.SetMinSize((35,16))
+            self.fake.SetSize((35,16))
+            self.guiUtility.fakeButton = self.fake
+
+            self.real = TestButton(self, -1, name='real')
+            self.real.SetMinSize((35,16))
+            self.real.SetSize((35,16))
+            self.guiUtility.realButton = self.real
+
+            self.hSizer2.Add(self.Rate,0,wx.LEFT|wx.FIXED_MINSIZE,0)
+            self.hSizer2.Add(self.fake,0,wx.LEFT|wx.FIXED_MINSIZE,5)
+            self.hSizer2.Add(self.Or,0,wx.LEFT|wx.FIXED_MINSIZE,5)
+            self.hSizer2.Add(self.real,0,wx.LEFT|wx.FIXED_MINSIZE,5)
+
+
         else:
             mod_name = "Not Moderated"
             # disable fake and real buttons
-            self.fake.setState(False)
-            self.real.setState(False)
+            ##self.fake.setState(False)
+            ##self.real.setState(False)
+
         self.ModeratorName_info.SetLabel(mod_name)
-
-        
-        
-
-        self.hSizer2.Add(self.Rate,0,wx.LEFT|wx.FIXED_MINSIZE,0)
-        self.hSizer2.Add(self.fake,0,wx.LEFT|wx.FIXED_MINSIZE,5)
-        self.hSizer2.Add(self.Or,0,wx.LEFT|wx.FIXED_MINSIZE,5)
-        self.hSizer2.Add(self.real,0,wx.LEFT|wx.FIXED_MINSIZE,5)
-
 
         self.vSizer.Add([0,10], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
 
@@ -216,39 +217,8 @@ class FilesItemDetailsSummary(bgPanel):
         ##self.edit.SetMinSize((40,16))
         ##self.edit.SetSize((40,16))
 
-        ##self.video_small =  wx.Panel(self)
-        ##self.video_small.SetMinSize((193,140))
-        ##self.video_small.SetSize((193,140))
-
-        # set videoplayer to this panel
-        #self.videoplayer = VideoPlayer.getInstance()
-        #self.videoplayer.videoframe.set_parent_panel(self.video_small)
-
-        ##self.hSizerDownload = wx.BoxSizer(wx.HORIZONTAL)
-        ##self.hSizerDownload.Add([0,0], 0, wx.FIXED_MINSIZE, 0)
-        ##self.hSizerDownload.Add(self.save,0,wx.FIXED_MINSIZE,0)
-        ##self.hSizerDownload.Add(self.download,0,wx.FIXED_MINSIZE,0)
-
-        ##self.vSizerDownload = wx.BoxSizer(wx.VERTICAL)
-        ##self.vSizerDownload.Add([0,50], 0, wx.FIXED_MINSIZE, 0)
-        ##self.vSizerDownload.Add(self.hSizerDownload, 0, wx.FIXED_MINSIZE, 4)
-
-
-
-
-        ##self.hSizer.Add(self.vSizerDownload,0,wx.RIGHT|wx.FIXED_MINSIZE,4)
-
-        ##self.hSizer.Add(self.select_files,0,wx.RIGHT|wx.FIXED_MINSIZE,4)
-        ##self.hSizer.Add(self.view_related_files,0,wx.RIGHT|wx.FIXED_MINSIZE,4)
-
-        ##self.hSizer.Add([208,10], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 1)
-
-        ##self.hSizer.Add(self.edit,0,wx.RIGHT|wx.FIXED_MINSIZE,4)
 
         self.hSizer.Add(self.vSizer, 0, wx.FIXED_MINSIZE, 10)
-
-
-        ##self.hSizer.Add([100,10], 0, wx.EXPAND|wx.FIXED_MINSIZE, 1)
 
 
         self.play_big = SwitchButton(self, -1, name='playbig')

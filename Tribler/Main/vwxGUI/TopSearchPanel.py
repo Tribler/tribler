@@ -51,6 +51,16 @@ class TopSearchPanel(bgPanel):
         for name in hide_names:
             name.Hide()
 
+
+        # family filter
+        print >> sys.stderr , "FF" , self.utility.config.Read('family_filter', "boolean")
+        if self.utility.config.Read('family_filter', "boolean") == True:
+            self.familyfilter.SetLabel('Family Filter:ON')
+        else:
+            self.familyfilter.SetLabel('Family Filter:OFF')
+
+
+
         # binding events  
         self.searchField.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDown)
         self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
@@ -175,8 +185,8 @@ class TopSearchPanel(bgPanel):
         
         self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
         self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
-        self.go = tribler_topButton(self,-1,name = 'go')
-        self.familyfilter = wx.StaticText(self, -1, "Family Filter:ON")
+        self.go = tribler_topButton(self,-1,name = 'search')
+        self.familyfilter = wx.StaticText(self, -1, "Family Filter:")
         self.search_results = wx.StaticText(self, -1, "")
         self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
         self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient.png", wx.BITMAP_TYPE_ANY))
@@ -208,7 +218,7 @@ class TopSearchPanel(bgPanel):
         self.searchField.SetForegroundColour(wx.Colour(0, 0, 0))
         self.searchField.SetFont(wx.Font(10, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
         self.searchField.SetFocus()
-        self.go.SetMinSize((24,24))
+        self.go.SetMinSize((43,24))
         self.go.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.familyfilter.SetMinSize((100,15))
         self.familyfilter.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))

@@ -172,7 +172,7 @@ class Utility:
             'g2g_ratio': 75,
             'g2g_hours': 0,
             'g2g_mins': 30,
-            'family-filter': 1,
+            'family_filter': 1,
             'window_x': 0,
             'window_y': 0,
         }

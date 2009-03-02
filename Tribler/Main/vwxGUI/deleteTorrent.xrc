@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resource>
+  <object class="wxFrame" name="torrentDialog">
+    <title>Delete Torrent</title>
+    <size>360,170</size>
+    <style>wxDEFAULT_DIALOG_STYLE</style>
+    <object class="wxPanel">
+      <size>360,170</size>
+      <object class="wxBoxSizer">
+        <orient>wxVERTICAL</orient>
+        <object class="spacer">
+          <size>0,20</size>
+        </object>
+        <object class="sizeritem">
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="sizeritem">
+              <object class="wxStaticText" name="deleteTorrent">
+                <label>Delete torrent from library or from library and harddisk ?</label>
+                <size>370,50</size>
+              </object>
+            </object>
+          </object>
+        </object>
+        <object class="sizeritem">
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="sizeritem">
+              <object class="wxButton" name="Library">
+                <label>Library</label>
+              </object>
+            </object>
+            <object class="spacer">
+              <size>20,0</size>
+            </object>
+            <object class="sizeritem">
+              <object class="wxButton" name="LibraryHardDisk">
+                <label>Library And HardDisk</label>
+              </object>
+            </object>
+            <object class="spacer">
+              <size>20,0</size>
+            </object>
+            <object class="sizeritem">
+              <object class="wxButton" name="Cancel">
+                <label>Cancel</label>
+              </object>
+            </object>
+          </object>
+        </object>
+        <object class="spacer">
+          <size>0,20</size>
+        </object>
+        <object class="sizeritem">
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="spacer">
+              <size>0,0</size>
+            </object>
+            <object class="sizeritem">
+              <object class="wxCheckBox" name="checkBox">
+                <label>Do not show this message anymore</label>
+                <style>wxCHK_2STATE</style>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

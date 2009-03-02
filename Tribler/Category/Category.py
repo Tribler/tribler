@@ -325,11 +325,11 @@ class Category:
         """
         if self.utility is None:
             return False
-        state = self.utility.config.Read('family-filter')
-        if state in ('True', 'False'):
-            return state == 'True'
+        state = self.utility.config.Read('family_filter')
+        if state in ('1', '0'):
+            return state == '1'
         else:
-            self.utility.config.Write('family-filter', True)
+            self.utility.config.Write('family_filter', '1')
             self.utility.config.Flush()
             return True
     
@@ -339,10 +339,15 @@ class Category:
         if b != old or b is None: # update category data if initial call, or if state changes
             if b is None:
                 b=old
+                print >> sys.stderr , "PPPPPPPPPPPPPPP" , b
             if self.utility is None:
                 print >> sys.stderr , "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP"
                 return
-            self.utility.config.Write('family-filter', b)
+            print >> sys.stderr , b
+            if b:
+                self.utility.config.Write('family_filter', '1')
+            else:
+                self.utility.config.Write('family_filter', '0')
             self.utility.config.Flush()
             # change category data
             for category in self.category_info:

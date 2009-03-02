@@ -149,6 +149,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             if event.GetEventObject().GetImageName() == 'vol6':
                 self.volume = 1.00
             self.updateVol(self.volume) 
+            self.SetVolume(self.volume)
         elif event.Entering():
             if event.GetEventObject().GetImageName() == 'vol1':
                 volume = 0.16

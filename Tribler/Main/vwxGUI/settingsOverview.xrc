@@ -79,7 +79,7 @@
                         <option>0</option>
                         <object class="wxPanel" name="edit" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                           <pos>110,130</pos>
-                          <size>37,16</size>
+                          <size>36,24</size>
                         </object>
                       </object>
                     </object>
@@ -446,6 +446,19 @@
                   </object>
                   <object class="spacer">
                     <size>3,0</size>
+                  </object>
+                  <object class="sizeritem">
+                    <object class="wxBoxSizer">
+                      <orient>wxVERTICAL</orient>
+                      <object class="spacer">
+                        <size>0,2</size>
+                      </object>
+                      <object class="sizeritem">
+                        <object class="wxPanel" name="browse" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                          <size>55,16</size>
+                        </object>
+                      </object>
+                    </object>
                   </object>
                 </object>
               </object>
