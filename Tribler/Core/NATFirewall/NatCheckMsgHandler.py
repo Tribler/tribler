@@ -252,18 +252,21 @@ class NatCheckMsgHandler:
             print >> sys.stderr, "NatCheckMsgHandler: first element in peerlist", self.peerlist[len(self.peerlist)-1]
             print >> sys.stderr, "NatCheckMsgHandler: second element in peerlist", self.peerlist[len(self.peerlist)-2]
 
-        holePunchingPort = random.randrange(10000, 10500, 1)
+        holePunchingPort = random.randrange(3200, 4200, 1)
         holePunchingAddr = (self.holePunchingIP, holePunchingPort)
         
         peer1 = self.peerlist[len(self.peerlist)-1]
         peer2 = self.peerlist[len(self.peerlist)-2]
 
-        self.udpConnect(peer1[0], holePunchingAddr)
-        self.udpConnect(peer2[0], holePunchingAddr)
+        request_id = str(show_permid_short(peer1[0]) + show_permid_short(peer2[0]) + str(random.randrange(0, 1000, 1)))
+
+        self.udpConnect(peer1[0], request_id, holePunchingAddr)
+        self.udpConnect(peer2[0], request_id, holePunchingAddr)
 
         # Register peerinfo on file
         self._file2.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),
                                     "REQUEST",
+                                    request_id,
                                     show_permid(peer1[0]),
                                     str(peer1[1]),
                                     str(peer1[2]),
@@ -277,12 +280,12 @@ class NatCheckMsgHandler:
 
         thread.start_new_thread(coordinateHolePunching, (peer1, peer2, holePunchingAddr))
 
-    def udpConnect(self, permid, holePunchingAddr):
+    def udpConnect(self, permid, request_id, holePunchingAddr):
 
         if DEBUG:
             print >> sys.stderr, "NatCheckMsgHandler: request UDP connection"
 
-        mh_data = holePunchingAddr[0] + ":" + str(holePunchingAddr[1])
+        mh_data = request_id + ":" + holePunchingAddr[0] + ":" + str(holePunchingAddr[1])
 
         if DEBUG:
             print >> sys.stderr, "NatCheckMsgHandler: udpConnect message is", mh_data
@@ -296,6 +299,9 @@ class NatCheckMsgHandler:
 
         # send the message
         self.crawler.send_request(permid, CRAWLER_NATTRAVERSAL, mh_msg, frequency=0, callback=self.udpConnectCallback)
+
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: request for", show_permid_short(permid), "sent to crawler"
 
     def udpConnectCallback(self, exc, permid):
 
@@ -331,13 +337,19 @@ class NatCheckMsgHandler:
             print >> sys.stderr, "NatCheckMsgHandler: gotUdpConnectRequest is", mh_data
 
         
-        host, port = mh_data.split(":")
+        try:
+            request_id, host, port = mh_data.split(":")
+        except:
+            print_exc()
+            print >> sys.stderr, "NatCheckMsgHandler: error in received data:", mh_data
+            return False
+
         coordinator = (host, int(port))
 
         if DEBUG:
             print >> sys.stderr, "NatCheckMsgHandler: coordinator address is", coordinator
 
-        mhr_data = tryConnect(coordinator)
+        mhr_data = request_id + ":" + tryConnect(coordinator)
 
         # Report back to coordinator
         try:
@@ -373,12 +385,20 @@ class NatCheckMsgHandler:
         if DEBUG:
             print >> sys.stderr, "NatCheckMsgHandler: message is", mhr_data
 
+        try:
+            request_id, reply = mhr_data.split(":")
+        except:
+            print_exc()
+            print >> sys.stderr, "NatCheckMsgHandler: error in received data:", mhr_data
+            return False
+
         # Register peerinfo on file
         self._file2.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),
                                         "  REPLY",
+                                        request_id,
                                         show_permid(permid),
                                         str(self._secure_overlay.get_dns_from_peerdb(permid)),
-                                        mhr_data,
+                                        reply,
                                         "\n")))
             
         self._file2.flush()

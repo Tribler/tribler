@@ -57,7 +57,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 
-DEBUG = True
+DEBUG = False
 
 
 ################################################################
@@ -667,8 +667,8 @@ class MainFrame(wx.Frame):
         else:
             text = unicode( prefix+u' '+msg)
             
-        #if DEBUG:
-        print  >> sys.stderr,"main: Activity",`text`
+        if DEBUG:
+            print  >> sys.stderr,"main: Activity",`text`
         #self.messageField.SetLabel(text)
 
     def set_player_status(self,s):

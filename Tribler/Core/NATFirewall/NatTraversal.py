@@ -90,9 +90,14 @@ def tryConnect(coordinator):
         else:
             print >> sys.stderr, "NatTraversal: received", data, "from", addr
             
-    # host, port = data.split(":")
+    #success = False
+    #try:
+    #    host, port = data.split(":")
+    #except:
+    #    print_exc()
+    #    print >> sys.stderr, "NatCheckMsgHandler: error in received data:", data
+    #    return success
     # peer = (host, int(port))
-    # success = False
     # for i in range(3):
     #     udpsock.sendto("hello",peer)
     #     udpsock.sendto("hello",peer)
@@ -110,7 +115,13 @@ def tryConnect(coordinator):
     #         success = True
     #         break
 
-    host, port = data.split(":")
+    try:
+        host, port = data.split(":")
+    except:
+        print_exc()
+        print >> sys.stderr, "NatCheckMsgHandler: error in received data:", data
+        return "ERR"
+
     peer = (host, int(port))
     udpsock.sendto("hello",peer)
     udpsock.sendto("hello",peer)
