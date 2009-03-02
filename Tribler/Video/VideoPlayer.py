@@ -389,31 +389,28 @@ class VideoPlayer:
     def start_and_play(self,tdef,dscfg):
         """ Called by GUI thread when Tribler started with live or video torrent on cmdline """
 
+        selectedinfilename = None
         if not tdef.get_live():
             videofiles = tdef.get_files(exts=videoextdefaults)
-            if len(videofiles) > 1:
-                selectedinfilename = self.ask_user_to_select_video(videofiles)
-                if selectedinfilename is None:
-                    print >>sys.stderr,"main: User selected no video"
-                    return None
-            else:
+            if len(videofiles) == 1:
                 selectedinfilename = videofiles[0]
-    
-            dscfg.set_selected_files([selectedinfilename])
-        else:
-            selectedinfilename = tdef.get_name()
-            
-        othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
-        self.manage_other_downloads(othertorrentspolicy,targetd = None)
+            elif len(videofiles) > 1:
+                selectedinfilename = self.ask_user_to_select_video(videofiles)
 
-        # Restart download
-        dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
-        dscfg.set_video_events(self.get_supported_vod_events())
-        print >>sys.stderr,"videoplay: Starting new VOD/live Download",`tdef.get_name()`
-        
-        d = self.utility.session.start_download(tdef,dscfg)
-        self.set_vod_download(d)
-        return d
+        if selectedinfilename:
+            dscfg.set_selected_files([selectedinfilename])
+
+            othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
+            self.manage_other_downloads(othertorrentspolicy,targetd = None)
+
+            # Restart download
+            dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
+            dscfg.set_video_events(self.get_supported_vod_events())
+            print >>sys.stderr,"videoplay: Starting new VOD/live Download",`tdef.get_name()`
+
+            d = self.utility.session.start_download(tdef,dscfg)
+            self.set_vod_download(d)
+            return d
         
     
     def sesscb_vod_event_callback(self,d,event,params):

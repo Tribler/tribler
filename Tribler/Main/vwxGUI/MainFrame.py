@@ -283,21 +283,32 @@ class MainFrame(wx.Frame):
                 print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
                 videoplayer = VideoPlayer.getInstance()
                 result = videoplayer.start_and_play(tdef,dscfg)
+
+                # 02/03/09 boudewijn: feedback to the user when there
+                # are no playable files in the torrent
+                if not result:
+                    dlg = wx.MessageDialog(None,
+                                           self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
+                                           self.utility.lang.get("invalid_torrent_no_playable_files_title"),
+                                           wx.OK|wx.ICON_INFORMATION)
+                    dlg.ShowModal()
+                    dlg.Destroy()
             else:
                 print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                 result = self.utility.session.start_download(tdef,dscfg)
              
-            # ARNO50: Richard will look at this   
-            self.guiserver = GUITaskQueue.getInstance()
-            self.guiserver.add_task(lambda:wx.CallAfter(self.show_saved), 0.2)
+            if result:
+                # ARNO50: Richard will look at this   
+                self.guiserver = GUITaskQueue.getInstance()
+                self.guiserver.add_task(lambda:wx.CallAfter(self.show_saved), 0.2)
             
-            # store result because we want to store clicklog data right after 
-            # download was started, then return result
-            
-            # TODO: Torrents passed on command line.
+            # store result because we want to store clicklog data
+            # right after download was started, then return result
             if clicklog is not None:
                 mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
                 mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
+
+            # TODO: Torrents passed on command line.
             return result  
 
         except DuplicateDownloadException:

@@ -224,6 +224,11 @@ class FilesItemDetailsSummary(bgPanel):
         self.play_big = SwitchButton(self, -1, name='playbig')
         self.play_big.Bind(wx.EVT_LEFT_UP, self.playbig_clicked)
 
+        def is_playable_callback(torrent, playable):
+            self.play_big.Show(playable)
+
+        if not self.guiUtility.standardDetails.torrent_is_playable(callback=is_playable_callback):
+            self.play_big.Hide()
 
         self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
         self.vSizer2.Add([0,20], 0, wx.FIXED_MINSIZE, 0)
