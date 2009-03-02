@@ -250,8 +250,7 @@ def validUILanguage(language):
 
 def validDBModeration(moderation):
    
-    required = {'infohash':validInfohash, 'mod_id':validPermid, 'time_stamp':validTimestamp, 'signature':validSignature, 'size':validSize}
-    optional = {'thumbnail':validDBThumbnail, 'description':validDescription, 'subtitles':validDBSubtitles, 'tags':validTags, 'spoken_language':validLanguage}
+    required = {'infohash':validInfohash, 'mod_id':validPermid, 'time_stamp':validTimestamp, 'signature':validSignature, 'size':validSize}    
     
     #Check for DictType
     if type(moderation) != DictType:
@@ -267,25 +266,12 @@ def validDBModeration(moderation):
             print >> sys.stderr, "moderation has invalid required", key+"-value"
             return False
     
-    #Check optional-keys values
-    '''for key, check_function in optional.iteritems():
-        if moderation.has_key(key):
-            if not check_function(moderation[key]):
-                print >> sys.stderr, "moderation has invalid optional", key+"-value"
-                return False'''
-    
-    #Check for presence of other keys:
-    '''for key in moderation:
-        if key not in required and key not in optional:
-            print >> sys.stderr, "moderation has key:", key, "which isn't allowed!"
-            return False'''
-    
+   
     return True
 
 def validUIModeration(moderation):
    
     required = {'infohash':validInfohash, 'mod_id':validPermid, 'time_stamp':validTimestamp, 'signature':lambda x:True}
-    optional = {'thumbnail':validUIThumbnail, 'description':validDescription, 'subtitles':validUISubtitles, 'tags':validTags, 'spoken_language':validLanguage}
     
     #Check for DictType
     if type(moderation) != DictType:
@@ -299,19 +285,6 @@ def validUIModeration(moderation):
             return False
         if not check_function(moderation[key]):
             print >> sys.stderr, "moderation has invalid required", key+"-value"
-            return False
-    
-    #Check optional-keys values
-    for key, check_function in optional.iteritems():
-        if moderation.has_key(key):
-            if not check_function(moderation[key]):
-                print >> sys.stderr, "moderation has invalid optional", key+"-value"
-                return False
-    
-    #Check for presence of other keys:
-    for key in moderation:
-        if key not in required and key not in optional:
-            print >> sys.stderr, "moderation has key:", key, "which isn't allowed!"
             return False
     
     return True    
@@ -319,7 +292,6 @@ def validUIModeration(moderation):
 def validModeration(moderation):
     
     required = {'infohash':validInfohash, 'mod_id':validPermid, 'time_stamp':validTimestamp, 'signature':lambda x:validSignature(moderation)}
-    optional = {'thumbnail':validThumbnail, 'description':validDescription, 'subtitles':validSubtitles, 'tags':validTags, 'spoken_language':validLanguage}
     
     #Check for DictType
     if type(moderation) != DictType:
@@ -334,19 +306,6 @@ def validModeration(moderation):
         if not check_function(moderation[key]):
             print >> sys.stderr, "moderation has invalid required", key+"-value"
             return False
-    
-    #Check optional-keys values
-    '''for key, check_function in optional.iteritems():
-        if moderation.has_key(key):
-            if not check_function(moderation[key]):
-                print >> sys.stderr, "moderation has invalid optional", key+"-value"
-                return False
-    
-    #Check for presence of other keys:
-    for key in moderation:
-        if key not in required and key not in optional:
-            print >> sys.stderr, "moderation has key:", key, "which isn't allowed!"
-            return False'''
     
     return True
 
