@@ -477,12 +477,12 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             else:
                 videofile = None
             if tdef.get_bitrate(videofile) is None:
-                msg += '\nThis video may not play properly because its bitrate is unknown'
+                msg += '\nThis video may not play properly because its \nbitrate is unknown'
         except:
             print_exc()
     else:
         # msg = "Waiting for sufficient download speed... "+intime
-        msg = "Insufficient download speed... \n"+intime
+        msg = 'Insufficient download speed... \n' + intime
         
     global ONSCREENDEBUG
     if msg == '' and ONSCREENDEBUG:

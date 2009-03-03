@@ -90,23 +90,15 @@ class TopSearchPanel(bgPanel):
                 self.sharing_reputation.Show()
                 self.help.Show()
                 
-                ##self.black_spacer.Hide()
-
-                ##self.Hide()
 
                 self.frame.hsizer = self.sr_indicator.GetContainingSizer()               
 
                 self.frame.Layout() 
 
                 self.createBackgroundImage()
-                ##self.Refresh()
-                ##self.Update()
-                ##self.Show()
                 self.srgradient.Show()
                 self.sr_indicator.Show()
                 self.frame.standardOverview.Show()
-                ##self.my_files.Show()
-                ##self.settings.Show()
                 self.seperator.Show()
                 self.familyfilter.Show()
                 

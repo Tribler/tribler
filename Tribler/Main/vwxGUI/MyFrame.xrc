@@ -125,10 +125,10 @@
                                   </object>
                                   <object class="sizeritem">
                                     <object class="wxPanel" name="videopanel">
-                                      <size>360,300</size>
+                                      <size>360,350</size>
                                       <bg>#FFFFFF</bg>
                                     </object>
-                                    <minsize>360,300</minsize>
+                                    <minsize>360,350</minsize>
                                   </object>
                                 </object>
                                 <option>1</option>

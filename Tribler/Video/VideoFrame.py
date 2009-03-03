@@ -6,6 +6,10 @@ import sys
 
 from Tribler.Video.EmbeddedPlayer import EmbeddedPlayerPanel
 
+
+DEBUG = False
+
+
 class VideoBaseFrame:
 
     def show_videoframe(self):
