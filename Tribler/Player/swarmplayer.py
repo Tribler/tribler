@@ -372,10 +372,10 @@ class PlayerApp(BaseApp):
 def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
 
     ETA = ((sys.maxint, "Not playing for quite some time."),
-           (60 * 6, "Playing in less than 6 minutes."),
-           (60 * 3, "Playing in less than 3 minutes."),
-           (60, "Playing in less than a minute."),
-           (30, "Playing in a few seconds."))
+           (60 * 15, "Playing in less than 15 minutes."),
+           (60 * 10, "Playing in less than 10 minutes."),
+           (60 * 5, "Playing in less than 5 minutes."),
+           (30, "Playing in less than a minute."))
 
     # ETA = ((sys.maxint, "> 6 min."),
     #        (60 * 6, "< 6 min"),
@@ -482,7 +482,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             print_exc()
     else:
         # msg = "Waiting for sufficient download speed... "+intime
-        msg = 'Insufficient download speed... \n' + intime
+        msg = 'Waiting for sufficient download speed... \n' + intime
         
     global ONSCREENDEBUG
     if msg == '' and ONSCREENDEBUG:
