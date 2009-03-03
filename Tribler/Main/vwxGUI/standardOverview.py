@@ -205,13 +205,6 @@ class standardOverview(wx.Panel):
         self.standardPager = pager
 
 
-    def set_session(self, session):
-        self.session = None
-        self.session = session
-        print >> sys.stderr, "SESSION SET"
-
-
-
     def onReachable(self,event=None):
         """ Called by GUI thread """
         if self.firewallStatus is not None:
@@ -229,7 +222,7 @@ class standardOverview(wx.Panel):
         keycode = event.GetKeyCode()
 
         if keycode == wx.WXK_RETURN:
-            #self.session.set_listen_port(self.portValue.GetValue())
+            #self.utility.session.set_listen_port(self.portValue.GetValue())
             self.utility.config.Write('minport', self.portValue.GetValue())
             self.utility.config.Flush()
             self.guiUtility.set_port_number(self.portValue.GetValue()) 

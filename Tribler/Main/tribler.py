@@ -417,9 +417,6 @@ class ABCApp(wx.App):
         self.utility.convert__presession_4_1__4_2(self.sconfig)
         
         s = Session(self.sconfig)
-        self.frame.standardOverview.set_session(s)
-
-        #pdb.set_trace()
         self.utility.session = s
 
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])

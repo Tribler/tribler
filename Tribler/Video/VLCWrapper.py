@@ -5,16 +5,28 @@ import sys
 import os
 import time
 import random
+from traceback import print_exc
 from threading import currentThread
 
+
 import vlc
+
+#
+# With VLC 0.9.x came changes to the MediaControl API. In particular,
+# there is no longer a concept of a playlist. The VLCWrapper can now
+# deal with both versions of the API.
+#
+try:
+    vlc.Instance
+    VLC_MEDIACONTROL_API_VERSION = "0.2"
+except:
+    #print_exc()
+    VLC_MEDIACONTROL_API_VERSION = "0.1"
 
 from Tribler.Video.VideoServer import VideoRawVLCServer
 
 vlcstatusmap = {vlc.PlayingStatus:'vlc.PlayingStatus',
                 vlc.PauseStatus:'vlc.PauseStatus',
-                vlc.ForwardStatus:'vlc.ForwardStatus',
-                vlc.BackwardStatus:'vlc.BackwardStatus',
                 vlc.InitStatus:'vlc.InitStatus',
                 vlc.EndStatus:'vlc.EndStatus',
                 vlc.UndefinedStatus:'vlc.UndefinedStatus'}
@@ -100,7 +112,11 @@ class VLCWrapper:
         #params += ["--codec=mp4"]
         #
         params += ["--no-plugins-cache"]
-        params += ["--key-fullscreen", "Esc"] # must come last somehow on Win32
+        # must come last somehow on Win32
+        if VLC_MEDIACONTROL_API_VERSION == "0.2":
+            params += ["--key-toggle-fullscreen", "Esc"] 
+        else:
+            params += ["--key-fullscreen", "Esc"]
         
         if sys.platform == 'darwin':
             params += ["--plugin-path", "%s/macbinaries/vlc_plugins" % (
@@ -111,7 +127,7 @@ class VLCWrapper:
         media = vlc.MediaControl(params)
             
         if sys.platform == 'win32':
-                os.chdir(oldcwd)
+            os.chdir(oldcwd)
     
         return media
     
@@ -123,17 +139,14 @@ class VLCWrapper:
         #self.media = self.get_vlc_mediactrl()
         
         if streaminfo is not None:
-            # AAA
-            #sid = 0
-            sid = random.randint(0,sys.maxint)
-            
             """
             To prevent concurrency between the MainThread closing the 
             video window and the VLC Dummy-X thread making callbacks,
             the callbacks go to a stable object, the VideoRawVLCServer that
             persists during the lifetime of the player process.
             """
-            
+
+            sid = random.randint(0,sys.maxint)
             self.videorawserv.set_inputstream(streaminfo,sid)
                
             if DEBUG:
@@ -143,12 +156,13 @@ class VLCWrapper:
                 length = -1
             
             self.media.set_raw_callbacks(self.videorawserv.ReadDataCallback,self.videorawserv.SeekDataCallback,length,sid)
-            # AAA
-            #self.media.set_raw_callbacks(videoserv.ReadDataCallback,videoserv.SeekDataCallback,length)
         else:
             if DEBUG:
                 print >>sys.stderr,"VLCWrapper: load: calling playlist_add_item"
-            self.media.playlist_add_item(url)
+            if VLC_MEDIACONTROL_API_VERSION == "0.2":
+                self.media.set_mrl(url)
+            else:
+                self.media.playlist_add_item(url)
 
         #print >>sys.stderr,"VLCWrapper: load: after list is",self.media.playlist_get_list()
 
@@ -156,12 +170,16 @@ class VLCWrapper:
     def start(self,abspos=0):
         check_threading()
         if DEBUG:
-            print >>sys.stderr,"VLCWrapper: start: list is",self.media.playlist_get_list()
+            if VLC_MEDIACONTROL_API_VERSION == "0.2":
+                print >>sys.stderr,"VLCWrapper: start: item is",self.media.get_mrl()
+            else:
+                print >>sys.stderr,"VLCWrapper: start: list is",self.media.playlist_get_list()    
         pos = vlc.Position()
         pos.origin = vlc.AbsolutePosition
         pos.key = vlc.MediaTime
         pos.value = abspos
         self.media.start(pos)
+
 
     def stop(self):
         check_threading()
@@ -232,13 +250,21 @@ class VLCWrapper:
         check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: playlist_get_list"
-        return self.media.playlist_get_list()
+        if VLC_MEDIACONTROL_API_VERSION == "0.2":
+            return [self.media.get_mrl()]
+        else:
+            return self.media.playlist_get_list()
 
     def playlist_clear(self):
         check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: playlist_clear"
-        self.media.playlist_clear()
+
+        if VLC_MEDIACONTROL_API_VERSION == "0.2":
+            #raise RuntimeError("VLC MediaControlAPI 0.2 doesn't support playlist ops")
+            pass
+        else:
+            self.media.playlist_clear()
 
     def exit(self):
         check_threading()

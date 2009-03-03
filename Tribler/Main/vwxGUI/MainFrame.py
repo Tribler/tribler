@@ -560,6 +560,9 @@ class MainFrame(wx.Frame):
         self.utility.abcquitting = True
         self.GUIupdate = False
         
+        videoplayer = VideoPlayer.getInstance()
+        videoplayer.stop_playback()
+        
         self.guiUtility.guiOpen.clear()
 
         try:
