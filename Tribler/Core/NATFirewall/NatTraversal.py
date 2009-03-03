@@ -87,11 +87,12 @@ def tryConnect(coordinator):
                 print >> sys.stderr, "NatTraversal: timeout with coordinator"
             return "ERR"
 
-        if DEBUG:
-            if addr == coordinator:
+        if addr == coordinator:
+            if DEBUG:
                 print >> sys.stderr, "NatTraversal: received", data, "from coordinator"
-                break
-            else:
+            break
+
+        if DEBUG:
                 print >> sys.stderr, "NatTraversal: received", data, "from", addr
             
     #success = False
