@@ -27,8 +27,8 @@ if __debug__:
     _ident_letter_pool = None
     def get_ident_letter(download):
         if not download.ip in _ident_letters:
+            global _ident_letter_pool
             if not _ident_letter_pool:
-                global _ident_letter_pool
                 _ident_letter_pool = [chr(c) for c in range(ord("a"), ord("z")+1)] + [chr(c) for c in range(ord("A"), ord("Z")+1)]
             _ident_letters[download.ip] = _ident_letter_pool.pop(0)
         return _ident_letters[download.ip]
