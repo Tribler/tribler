@@ -371,6 +371,18 @@ class PlayerApp(BaseApp):
 
 def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
 
+    ETA = ((sys.maxint, "Not playing for quite some time."),
+           (60 * 6, "Playing in less than 6 minutes."),
+           (60 * 3, "Playing in less than 3 minutes."),
+           (60, "Playing in less than a minute."),
+           (30, "Playing in a few seconds."))
+
+    # ETA = ((sys.maxint, "> 6 min."),
+    #        (60 * 6, "< 6 min"),
+    #        (60 * 3, "< 3 min"),
+    #        (60, "< 60 sec"),
+    #        (30, "< 30 sec"))
+
     topmsg = ''
     msg = ''
     
@@ -383,23 +395,28 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     preprogress = ds.get_vod_prebuffering_progress()
     playable = ds.get_vod_playable()
     t = ds.get_vod_playable_after()
+
+    for eta_time, eta_msg in ETA:
+        if t >= eta_time:
+            break
+        intime = eta_msg
     
     #print >>sys.stderr,"main: playble",playable,"preprog",preprogress
     #print >>sys.stderr,"main: ETA is",t,"secs"
-    if t > float(2 ** 30):
-        intime = "inf"
-    elif t == 0.0:
-        intime = "now"
-    else:
-        h, t = divmod(t, 60.0*60.0)
-        m, s = divmod(t, 60.0)
-        if h == 0.0:
-            if m == 0.0:
-                intime = "%ds" % (s)
-            else:
-                intime = "%dm:%02ds" % (m,s)
-        else:
-            intime = "%dh:%02dm:%02ds" % (h,m,s)
+    # if t > float(2 ** 30):
+    #     intime = "inf"
+    # elif t == 0.0:
+    #     intime = "now"
+    # else:
+    #     h, t = divmod(t, 60.0*60.0)
+    #     m, s = divmod(t, 60.0)
+    #     if h == 0.0:
+    #         if m == 0.0:
+    #             intime = "%ds" % (s)
+    #         else:
+    #             intime = "%dm:%02ds" % (m,s)
+    #     else:
+    #         intime = "%dh:%02dm:%02ds" % (h,m,s)
             
     #print >>sys.stderr,"main: VODStats",preprogress,playable,"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 
@@ -436,7 +453,8 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             decodeprogress += 1
             msg = ''
         elif videoplayer_mediastate == MEDIASTATE_PAUSED:
-            msg = "Buffering... " + str(int(100.0*preprogress))+"%"
+            # msg = "Buffering... " + str(int(100.0*preprogress))+"%" 
+            msg = "Buffering... " + str(int(100.0*preprogress))+"%\n" + intime
         else:
             msg = ''
             
@@ -447,7 +465,8 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
         if npeers == 0 and logmsg is not None:
             msg = logmsg
         else:
-            msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
+            # msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
+            msg = "Prebuffering "+pstr+"% done (connected to '+npeerstr+' people)\n" + intime
             
         try:
             d = ds.get_download()
@@ -458,11 +477,12 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             else:
                 videofile = None
             if tdef.get_bitrate(videofile) is None:
-                msg += '. This video may not play properly because its bitrate is unknown.'
+                msg += '\nThis video may not play properly because its bitrate is unknown'
         except:
             print_exc()
     else:
-        msg = "Waiting for sufficient download speed... "+intime
+        # msg = "Waiting for sufficient download speed... "+intime
+        msg = "Insufficient download speed... \n"+intime
         
     global ONSCREENDEBUG
     if msg == '' and ONSCREENDEBUG:
