@@ -466,7 +466,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             msg = logmsg
         else:
             # msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
-            msg = "Prebuffering "+pstr+"% done (connected to '+npeerstr+' people)\n" + intime
+            msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" people)\n" + intime
             
         try:
             d = ds.get_download()
