@@ -12,6 +12,8 @@ from wx.lib.stattext import GenStaticText as StaticText
 
 import threading
 
+from Tribler.Core.Overlay.MetadataHandler import get_filename
+
 from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
@@ -33,10 +35,11 @@ from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 # Sort of LAYERVIOLATION. It's a meta DBHandler actually.
 from Tribler.Core.CacheDB.CacheDBHandler import GUIDBHandler
 from Tribler.Core.CacheDB.EditDist import editDist
+from Tribler.Video.utils import videoextdefaults
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'fileDetailsMode','subscriptionsMode', 'messageMode']
 
-DEBUG = True
+DEBUG = False
 
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing
@@ -1621,14 +1624,64 @@ class standardDetails(wx.Panel):
 #    def isEnabled(self):
 #        return self.enabled
 
+    def torrent_is_playable(self, torrent=None, default=True, callback=None):
+        """
+        TORRENT is a dictionary containing torrent information used to
+        display the entry on the UI. it is NOT the torrent file!
+
+        DEFAULT indicates the default value when we don't know if the
+        torrent is playable.
+
+        CALLBACK can be given to result the actual 'playable' value
+        for the torrent after some downloading/processing. The DEFAULT
+        value is returned in this case. Will only be called if
+        self.item == torrent
+        """
+        if torrent is None:
+            torrent = self.item
+
+        if 'torrent_file_name' not in torrent or not torrent['torrent_file_name']:
+            torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
+        torrent_dir = self.utility.session.get_torrent_collecting_dir()
+        torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
+
+        if os.path.isfile(torrent_filename):
+            tdef = TorrentDef.load(torrent_filename)
+            if tdef.get_files(exts=videoextdefaults):
+                if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable is playable"
+                return True
+            else:
+                if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable is NOT playable"
+                return False
+
+        elif callback:
+            # unknown, figure it out and return the information using
+            # a callback
+
+            if 'query_permid' in torrent and not torrent.get('myDownloadHistory'):
+                try:
+                    def got_requested_torrent(infohash, metadata, filename):
+                        if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable Downloaded a torrent"
+                        if torrent_filename.endswith(filename):
+                            playable = self.torrent_is_playable(torrent, default=default)
+                            if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable performing callback. is playable", playable
+                            callback(torrent, playable)
+                        
+                    torrent['query_torrent_was_requested'] = True
+                    self.utility.session.download_torrentfile_from_peer(torrent['query_permid'], torrent['infohash'], got_requested_torrent)
+
+                except:
+                    print_exc()                        
+            
+        if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
+        return default
+
 
     def download(self, torrent = None, dest = None, secret = False, force = False, vodmode = False):
         if torrent is None:
             torrent = self.item
             
             
-        print_stack()
-        
 #        if self.GetName() == 'download':
 
         force = True
