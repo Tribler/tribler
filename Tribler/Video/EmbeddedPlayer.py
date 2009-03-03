@@ -113,9 +113,9 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'fullScreen')
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
     
-            ##self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'saveDisabled', 'save')   
-            ##self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
-            ##self.save_callback = lambda:None
+            self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'saveDisabled', 'save')   
+            self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
+            self.save_callback = lambda:None
             
             ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
             ctrlsizer.Add([5,0],0,wx.FIXED_MINSIZE,0)

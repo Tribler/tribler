@@ -286,7 +286,7 @@ class PlayerApp(BaseApp):
         videoplayer_mediastate = self.videoplayer.get_state()
         #print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
         
-        [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(ds,videoplayer_mediastate,appname,self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
+        [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(ds,videoplayer_mediastate,self.appname,self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
         # Display helping info on "content name" line.
         self.videoplayer.set_content_name(topmsg)
 
