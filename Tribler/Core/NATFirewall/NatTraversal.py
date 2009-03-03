@@ -1,10 +1,11 @@
 from time import strftime
+from traceback import print_exc
 import datetime
 import select
 import socket
 import sys
 
-DEBUG = False
+DEBUG = True
 
 def coordinateHolePunching(peer1, peer2, holePunchingAddr):
 
@@ -74,21 +75,24 @@ def tryConnect(coordinator):
     if DEBUG:
         print >> sys.stderr, "NatTraversal: sending ping to ", coordinator
 
-    # Wait for response
-    data = None
-    addr = None
-    try:
-        data, addr = udpsock.recvfrom(1024)
-    except socket.timeout, (strerror):
-        if DEBUG:
-            print >> sys.stderr, "NatTraversal: timeout with coordinator"
-        return "ERR"
+    # Wait for response from the coordinator
 
-    if DEBUG:
-        if addr == coordinator:
-            print >> sys.stderr, "NatTraversal: received", data, "from coordinator"
-        else:
-            print >> sys.stderr, "NatTraversal: received", data, "from", addr
+    while True:
+        data = None
+        addr = None
+        try:
+            data, addr = udpsock.recvfrom(1024)
+        except socket.timeout, (strerror):
+            if DEBUG:
+                print >> sys.stderr, "NatTraversal: timeout with coordinator"
+            return "ERR"
+
+        if DEBUG:
+            if addr == coordinator:
+                print >> sys.stderr, "NatTraversal: received", data, "from coordinator"
+                break
+            else:
+                print >> sys.stderr, "NatTraversal: received", data, "from", addr
             
     #success = False
     #try:
