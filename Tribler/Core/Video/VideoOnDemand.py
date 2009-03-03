@@ -128,7 +128,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.high_range_rate = Measure(2)
 
         # boudewijn: increase the initial minimum buffer size
-        # vs.increase_high_range()
+        vs.increase_high_range()
 
         # buffer: a link to the piecepicker buffer
         self.has = self.piecepicker.has
@@ -489,7 +489,7 @@ class MovieOnDemandTransporter(MovieTransport):
         missing_pieces = filter(lambda i: not self.have_piece(i), high_range)
         gotall = not missing_pieces
         if high_range_length:
-            self.prebufprogress = float(high_range_length - len(missing_pieces)) / high_range_length
+            self.prebufprogress = min(1, float(high_range_length - len(missing_pieces)) / max(1, high_range_length))
         else:
             self.prebufprogress = 1.0
         
@@ -868,7 +868,7 @@ class MovieOnDemandTransporter(MovieTransport):
             self.playbackrate = Measure( 60 )
 
             # boudewijn: decrease the initial minimum buffer size
-            # vs.decrease_high_range()
+            vs.decrease_high_range()
 
         finally:
             self.data_ready.release()
@@ -1182,8 +1182,11 @@ class MovieOnDemandTransporter(MovieTransport):
     def max_buffer_size( self ):
         vs = self.videostatus
 
+        # boudewijn: 1/4 MB, bitrate, or 2 pieces (wichever is higher)
+        return max(256*1024, vs.piecelen * 2, self.BUFFER_TIME * vs.bitrate)
+
         # Arno: 1/2 MB or based on bitrate if that is above 5 Mbps
-        return max( 0*512*1024, self.BUFFER_TIME * vs.bitrate )
+        # return max( 0*512*1024, self.BUFFER_TIME * vs.bitrate )
 
     def refill_buffer( self ):
         """ Push pieces into the player FIFO when needed and able. This counts as playing
@@ -1216,6 +1219,7 @@ class MovieOnDemandTransporter(MovieTransport):
             return self.outbuflen == 0 and self.start_playback and now - self.start_playback["local_ts"] > 1.0
 
         if buffer_underrun():
+
             if vs.dropping: # live
                 def sustainable():
                     # buffer underrun -- check for available pieces
@@ -1232,10 +1236,31 @@ class MovieOnDemandTransporter(MovieTransport):
                     return num_future_pieces * vs.piecelen >= goal
             else: # vod
                 def sustainable():
+                    # num_immediate_packets = 0
+                    # for piece in vs.generate_range( vs.download_range() ):
+                    #     if self.has[piece]:
+                    #         num_immediate_packets += 1
+                    #     else:
+                    #         break
+                    # else:
+                    #     # progress                                                                              
+                    #     self.prebufprogress = 1.0
+                    #     # completed loop without breaking, so we have everything we need                        
+                    #     return True
+                    #
+                    # # progress                                                                                  
+                    # self.prebufprogress = min(1.0,float(num_immediate_packets) / float(self.max_prebuf_packets))
+                    #
+                    # return num_immediate_packets >= self.max_prebuf_packets
+
                     num_immediate_packets = 0
-                    for piece in vs.generate_range( vs.download_range() ):
+                    high_range_length = vs.get_high_range_length()
+                    for piece in vs.generate_range(vs.download_range()): 
                         if self.has[piece]:
                             num_immediate_packets += 1
+
+                            if num_immediate_packets >= high_range_length:
+                                break
                         else:
                             break
                     else:
@@ -1245,25 +1270,9 @@ class MovieOnDemandTransporter(MovieTransport):
                         return True
 
                     # progress                                                                                  
-                    self.prebufprogress = min(1.0,float(num_immediate_packets) / float(self.max_prebuf_packets))
-                    
-                    return num_immediate_packets >= self.max_prebuf_packets
-
-                    # # ensure that the entire buffer has been filled
-                    # high_range = self.videostatus.get_high_range()
-                    # if not high_range:
-                    #     return True
-                    
-                    # received_pieces = filter(lambda i: self.have_piece(i), high_range)
-                    # self.prebufprogress = float(len(received_pieces)) / len(high_range)
-                    # if len(received_pieces) < len(high_range):
-                    #     return False
-
-                    # # ensure that the download is sustainable
-                    # pieces_left = filter(lambda i: not self.have_piece(i), vs.generate_range(vs.download_range()))
-                    # bytes_left = len(pieces_left) * vs.piecelen
-                    # time_left = bytes_left / self.overall_rate.get_rate()
-                    # return time_left < self.piece_due(vs.last_piece)
+                    self.prebufprogress = min(1.0, float(num_immediate_packets) / max(1, high_range_length))
+                  
+                    return num_immediate_packets >= high_range_length
 
             sus = sustainable()
             if vs.pausable and not sus:
