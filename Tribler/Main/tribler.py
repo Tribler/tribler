@@ -713,6 +713,7 @@ class ABCApp(wx.App):
         self.videoplayer.set_vod_postponed_downloads([]) # restart only once
         for d in restartdlist:
             if d in currdlist:
+                d.set_mode(DLMODE_NORMAL)
                 d.restart()
 
 
