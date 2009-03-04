@@ -28,7 +28,6 @@
                     <weight>bold</weight>
                     <underlined>0</underlined>
                     <face>Sans</face>
-                    <encoding>UTF-8</encoding>
                   </font>
                 </object>
               </object>
@@ -126,7 +125,6 @@
                     <weight>bold</weight>
                     <underlined>0</underlined>
                     <face>Sans</face>
-                    <encoding>UTF-8</encoding>
                   </font>
                 </object>
               </object>
@@ -296,7 +294,6 @@
                     <weight>bold</weight>
                     <underlined>0</underlined>
                     <face>Sans</face>
-                    <encoding>UTF-8</encoding>
                   </font>
                 </object>
               </object>
@@ -378,7 +375,6 @@
                         <weight>bold</weight>
                         <underlined>0</underlined>
                         <face>Sans</face>
-                        <encoding>UTF-8</encoding>
                       </font>
                     </object>
                   </object>
@@ -410,7 +406,6 @@
                     <weight>bold</weight>
                     <underlined>0</underlined>
                     <face>Sans</face>
-                    <encoding>UTF-8</encoding>
                   </font>
                 </object>
               </object>
@@ -425,7 +420,7 @@
                   </object>
                   <object class="sizeritem">
                     <object class="wxStaticText" name="diskLocationText">
-                      <label>Disk Location</label>
+                      <label>Save files to</label>
                     </object>
                   </object>
                 </object>

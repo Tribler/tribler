@@ -136,22 +136,6 @@ class MainFrame(wx.Frame):
 
         self.tbicon = None
 
-        # Arno: see ABCPanel
-        #self.abc_sb = ABCStatusBar(self,self.utility)
-        #self.SetStatusBar(self.abc_sb)
-
-        """
-        # Add status bar
-        statbarbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.sb_buttons = ABCStatusButtons(self,self.utility)
-        statbarbox.Add(self.sb_buttons, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
-        self.abc_sb = ABCStatusBar(self,self.utility)
-        statbarbox.Add(self.abc_sb, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
-        #colSizer.Add(statbarbox, 0, wx.ALL|wx.EXPAND, 0)
-        self.SetStatusBar(statbarbox)
-        """
-        
-        
         try:
             self.SetIcon(self.utility.icon)
         except:
@@ -159,44 +143,9 @@ class MainFrame(wx.Frame):
 
         # Don't update GUI as often when iconized
         self.GUIupdate = True
-
-        # Start the scheduler before creating the ListCtrl
-        #self.utility.queue  = ABCScheduler(self.utility)
-        #self.window = ABCPanel(self)
-        #self.abc_sb = self.window.abc_sb
-        
-        
         self.oldframe = None
-        #self.oldframe = ABCOldFrame(-1, self.params, self.utility)
-        #self.oldframe.Refresh()
-        #self.oldframe.Layout()
-        #self.oldframe.Show(True)
-        
         self.window = self.GetChildren()[0]
         self.window.utility = self.utility
-        
-        """
-        self.list = ABCList(self.window)
-        self.list.Show(False)
-        self.utility.list = self.list
-        print self.window.GetName()
-        self.window.list = self.list
-        self.utility.window = self.window
-        """
-        #self.window.sb_buttons = ABCStatusButtons(self,self.utility)
-        
-        #self.utility.window.postponedevents = []
-        
-        # Menu Options
-        ############################
-        #menuBar = ABCMenuBar(self)
-        #if sys.platform == "darwin":
-        #    wx.App.SetMacExitMenuItemId(wx.ID_CLOSE)
-        #self.SetMenuBar(menuBar)
-        
-        #self.tb = ABCToolBar(self) # new Tribler gui has no toolbar
-        #self.SetToolBar(self.tb)
-        
         self.buddyFrame = None
         self.fileFrame = None
         self.buddyFrame_page = 0

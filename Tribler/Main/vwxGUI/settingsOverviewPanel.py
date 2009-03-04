@@ -3,16 +3,18 @@
 import wx
 import wx.xrc as xrc
 import random, sys
+from time import time
+from traceback import print_exc,print_stack
+import urllib
+
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.simpledefs import *
 from Tribler.Core.SessionConfig import SessionConfigInterface
-from time import time
-from traceback import print_exc,print_stack
-import urllib
 
 RELOAD_DELAY = 60 * 1000 # milliseconds
 
@@ -20,7 +22,7 @@ class SettingsOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
         self.initDone = False
-        self.elementsName = ['myNameField', 'thumb', 'edit','firewallValue','firewallStatus','uploadCtrl','downloadCtrl','zeroUp','fiftyUp','hundredUp','zeroDown','fiftyDown','hundredDown']
+        self.elementsName = ['myNameField', 'thumb', 'edit','firewallValue','firewallStatus','uploadCtrl','downloadCtrl','zeroUp','fiftyUp','hundredUp','zeroDown','fiftyDown','hundredDown','diskLocationCtrl']
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         self.mypref = None
@@ -52,6 +54,7 @@ class SettingsOverviewPanel(wx.Panel):
         #print >>sys.stderr,"settingsOverviewPanel: in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
+        self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
         self.firewallStatus = xrc.XRCCTRL(self,"firewallStatus")  
 
@@ -91,6 +94,7 @@ class SettingsOverviewPanel(wx.Panel):
         self.showMaxDLRate()
         self.showMaxULRate()
 
+        self.showDiskLocation() # sic
 
         self.initDone = True
         
@@ -147,6 +151,12 @@ class SettingsOverviewPanel(wx.Panel):
     def showMaxULRate(self):
         maxuploadrate = self.guiUtility.utility.config.Read('maxuploadrate', 'int') #kB/s
         self.elements['uploadCtrl'].SetValue(str(maxuploadrate))        
+
+
+    def showDiskLocation(self):
+        print >>sys.stderr,"settingsOverviewPanel: SETTING DEFAULT DEST DIR"
+        path = self.defaultDLConfig.get_dest_dir()
+        self.elements['diskLocationCtrl'].SetValue(path)
 
 
     def zeroUp(self, event):
