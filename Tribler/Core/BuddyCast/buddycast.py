@@ -916,8 +916,7 @@ class BuddyCastCore:
                     
     def createAndSendBuddyCastMessage(self, target_permid, selversion, active):
         
-        
-        
+        #print >>sys.stderr,"bc: SENDING BC to",show_permid_short(target_permid)
         
         buddycast_data = self.createBuddyCastMessage(target_permid, selversion)
         if debug:

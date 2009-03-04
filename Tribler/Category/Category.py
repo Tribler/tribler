@@ -339,9 +339,7 @@ class Category:
         if b != old or b is None: # update category data if initial call, or if state changes
             if b is None:
                 b=old
-                print >> sys.stderr , "PPPPPPPPPPPPPPP" , b
             if self.utility is None:
-                print >> sys.stderr , "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP"
                 return
             print >> sys.stderr , b
             if b:

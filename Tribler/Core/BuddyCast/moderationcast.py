@@ -55,10 +55,6 @@ class ModerationCastCore:
         #Blocklist (to keep track of sent HAVE-messages)
         self.blockHave = BlockList(BLOCK_HAVE_TIME)
         
-        #BandwidthLimiters (to limit the used upload- and download-bandwith)
-        self.uploadLimiter = SustainableBandwidthLimiter(session.get_moderationcast_upload_bandwidth_limit())
-        self.downloadLimiter = SustainableBandwidthLimiter(session.get_moderationcast_download_bandwidth_limit())
-
         #Debug-interface
         if DEBUG_UI:
             from moderationcast_test import ModerationCastTest
@@ -81,6 +77,9 @@ class ModerationCastCore:
     def createAndSendModerationCastHaveMessage(self, target_permid, selversion):
         
         moderationcast_data = self.createModerationCastHaveMessage(target_permid)
+        # ARNO50: TODO: don't send empty msgs. Need to change the arch for this.
+        #if len(moderationcast_data) == 0:
+        #    return
         moderationcast_msg = bencode(moderationcast_data)
         
         self.blockHave.add(target_permid)

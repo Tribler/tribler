@@ -66,10 +66,6 @@ class VoteCastCore:
         #Blocklist (to keep track of sent HAVE-messages)
         #self.blockHave = BlockList(BLOCK_HAVE_TIME)
         
-        #BandwidthLimiters (to limit the used upload- and download-bandwith)
-        self.uploadLimiter = SustainableBandwidthLimiter(session.get_moderationcast_upload_bandwidth_limit())
-        self.downloadLimiter = SustainableBandwidthLimiter(session.get_moderationcast_download_bandwidth_limit())
-
         #Debug-interface
         if DEBUG_UI:
             from moderationcast_test import ModerationCastTest
@@ -91,6 +87,9 @@ class VoteCastCore:
     ################################
     def createAndSendVoteCastMessage(self, target_permid, selversion):
         votecast_data = self.createVoteCastMessage(target_permid)
+        # ARNO50: TODO: don't send empty msgs. Need to change the arch for this.
+        #if len(votecast_data) == 0:
+        #    return
         
         #print >> sys.stderr, "And this is vote message"
         

@@ -77,8 +77,6 @@ from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Overlay.permid import verify_data
 from os.path import exists, isfile
 from M2Crypto import Rand,EC,EVP
-#For BlockList
-import thread
 
 #For image
 from mimetypes import guess_type
@@ -393,137 +391,12 @@ def moderationCastReplyMsgToString(data):
 def voteCastMsgToString(data):
     return repr(data)
 
-class BandwidthLimiter:
-    """ BandwidthLimiter keeps track of the bandwidth used (upload or download) and can be used
-        to limit the bandwidth a process uses.
-        BandwidthLimiter can handle multi-threading.
-    """
-    def __init__(self, bandwidth_limit, interval_size=60):
-        """ Pre: bandwidth_limit >= 0 and interval_size > 0
-            Post: Returns a BandwidthLimiter instance that has a bandwidth limit of bandwidth_limit
-                  units per second and averages over interval_size seconds.
-        """
-        assert bandwidth_limit >= 0
-        assert interval_size > 0
-        self.limit = bandwidth_limit
-        self.interval_size = interval_size
-        self.usage = []
-        self._lock = thread.allocate_lock()
-    
-    def use(self, size, t=None):
-        """ Pre: size >= 0
-            Post: Fact of using size units at time t is noted
-        """
-        if t == None:
-            t = time()
-        assert size >= 0
-        self._lock.acquire()
-        
-        self.usage.append( (size, t) )
-        #clean old usage
-        usage = [(size, t) for (size, t) in self.usage if t + self.interval_size >= time()]
-        self.usage = usage
-        
-        self._lock.release()
-    
-    def getAvailableSize(self):
-        """ Returns the available size within the current interval [now-interval_size, now] """
-        self._lock.acquire()
-        
-        stoptime = time()
-        starttime = stoptime-self.interval_size
-        used = sum([size for (size, t) in self.usage if t >= starttime and t <= stoptime])
-        result = (stoptime - starttime) * self.limit - used
-        
-        self._lock.release()
-        
-        return result
-    
-    def getBandwidthUsed(self):
-        """ Returns the bandwith used within the current interval [now-interval_size, now] """
-        self._lock.acquire()
-        
-        stoptime = time()
-        starttime = stoptime-self.interval_size
-        used = sum([size for (size, t) in self.usage if t >= starttime and t <= stoptime])
-        result = used / (stoptime - starttime)
-        
-        self._lock.release()
-        
-        return result
-
-class SustainableBandwidthLimiter(BandwidthLimiter):
-    """ SustainableBandwidthLimiter is a subclass of BandwidthLimiter that can be used to distribute
-        the bandwidth more evenly between requests. In this subclass the getAvailableSize-method is
-        overwritten to return a number of units based on the requests in the past minute.
-    """
-    def __init__(self, bandwidth_limit, interval_size=60, minimum_size=50*1024):
-        """ Pre: bandwidth_limit >= 0 and interval_size > 0 and
-                 minimum_size > 0 and minimum_size <= bandwidth_limit * interval_size
-            Post: Returns a SustainableBandwidthLimiter-object with given parameters
-        """
-        BandwidthLimiter.__init__(self, bandwidth_limit, interval_size)
-        assert minimum_size >= 0
-        assert minimum_size <= bandwidth_limit * interval_size
-        self.minimum_size = minimum_size
-        self.requests = []
-        self._lock2 = thread.allocate_lock()
-    
-    def getAvailableSize(self):
-        """ Returns the number of units reserved to a request-allocation, with a minimum of self.minimum_size,
-            or 0 if the mimimum_size cannot be allocated anymore.
-        """
-        #Check to see if there is enough bandwidth left:
-        self._lock2.acquire()
-        
-        #Interval
-        stoptime = time()
-        starttime = stoptime-self.interval_size
-        
-        #Update requests (calls to getAvailableSize())
-        self.requests.append(stoptime)
-        requests = [t for t in self.requests if t >= starttime and t <= stoptime]
-        self.requests = requests
-        
-        available = BandwidthLimiter.getAvailableSize(self)
-        if available <= self.minimum_size:
-            self._lock2.release()
-            return 0
-        
-        tries_in_interval = max(len(self.requests), 1)
-        
-        self._lock2.release()
-        
-        #Return the number of units reserved to a request-allocation, with a minimum of self.minimum_size
-        return max(self.limit * self.interval_size / tries_in_interval, self.minimum_size)
-
-#class Image:
-#    def __init__(self, path):
-#        assert type(path) == str
-#        #Path
-#        self.path = path
-#        
-#        #Image
-#        self.image = wx.Image(path)
-#        
-#        #Binary
-#        FILE = open(path,"rb")
-#        self.binary = FILE.read()
-#        FILE.close()
-#
-#    def getData(self):
-#        return self.binary
-#
-#    def getImage(self):
-#        return self.image
-
 class BlockList:
     """ BlockList keeps track of a list of (hashable) items that are blocked for a certain time 
         The BlockList has a fixed block-time, after which the items are not blocked anymore,
         this time is set by the constructor-parameter blocktime
         By default, after addition of an item the BlockList will be cleaned (old items removed),
         however this can be done manually by calling clean()
-        BlockList can handle multi-threading
     """
     
     def __init__(self, blocktime, autoclean=True):
@@ -534,7 +407,6 @@ class BlockList:
         self._blocktime = blocktime
         self._data = {}
         self._autoclean = autoclean
-        self._lock = thread.allocate_lock()
         if DEBUG:
             print "BlockList("+str(blocktime)+", "+str(autoclean)+") created."
     
@@ -544,34 +416,24 @@ class BlockList:
         """
         assert self._hashable(item)    #Item must be hashable
         
-        self._lock.acquire()
-        
         self._data[item] = self._now()
         if self._autoclean:
             self._clean()
         
-        self._lock.release()
-
     def remove(self, item):
         """ Pre:    item is hashable
             Post:   Blocklist does not contain item
         """
         assert self._hashable(item)    #Item must be hashable
         
-        self._lock.acquire()
-        
         if item in self._data:
             del self.list[item]
-
-        self._lock.release()
 
     def blocked(self, item):
         """ Pre:    item is hashable
             Post:   Returns true iff the item is blocked
         """
         assert self._hashable(item)    #Item must be hashable
-        
-        self._lock.acquire()
         
         r = None
         if not item in self._data:
@@ -582,18 +444,13 @@ class BlockList:
             del self._data[item]
             r = False
 
-        self._lock.release()
         if DEBUG:
             print "BlockList returning:", str(r)
         return r
 
     def clean(self):
         """ Removes entries from the blocklist that have outlived their blocktime """
-        self._lock.acquire()
-        
         self._clean()
-
-        self._lock.release()
 
     def _clean(self):
         """ USE clean()!!! """
