@@ -113,6 +113,9 @@ class ABCApp(wx.App):
         self.guiserver = GUITaskQueue.getInstance()
         self.said_start_playback = False
         self.decodeprogress = 0
+
+        self.old_reputation = 0
+
         
         try:
             ubuntu = False
@@ -338,6 +341,13 @@ class ABCApp(wx.App):
             # Delay this so GUI has time to paint
             wx.CallAfter(self.loadSessionCheckpoint)
                         
+
+            #self.sr_indicator_left_image = wx.Image(os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0", "SRindicator_left.png", wx.BITMAP_TYPE_ANY))            
+            #self.sr_indicator_left = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.sr_indicator_left_image))
+
+            #self.sr_indicator_right_image = wx.Image(os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0", "SRindicator_right.png", wx.BITMAP_TYPE_ANY))            
+            #self.sr_indicator_right = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.sr_indicator_right_image))
+
             
         except Exception,e:
             print_exc()
@@ -560,8 +570,17 @@ class ABCApp(wx.App):
 
         self.frame.hsizer = self.frame.top_bg.sr_indicator.GetContainingSizer()
         self.frame.hsizer.Remove(0)
+        ##self.frame.hsizer.Remove(1)
         self.frame.hsizer.Prepend(wx.Size(reputation*40+50,0),0,wx.LEFT,0)
+        ##if reputation > self.old_reputation:
+        ##    self.frame.hsizer.Prepend(self.sr_indicator_right,1,wx.LEFT,0)
+        ##else:
+        ##    self.frame.hsizer.Prepend(self.sr_indicator_left,1,wx.LEFT,0)
+   
         self.frame.hsizer.Layout()
+ 
+        ##self.old_reputation = reputation
+
 
     def guiservthread_update_reputation(self):
         """ update the reputation"""

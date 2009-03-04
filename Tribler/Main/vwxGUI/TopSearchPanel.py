@@ -79,7 +79,7 @@ class TopSearchPanel(bgPanel):
             keycode = event.GetKeyCode()
         else:
             keycode = None
-        
+
         if self.searchField.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'go'): 
             if self.first:
                 self.first=False
@@ -199,7 +199,7 @@ class TopSearchPanel(bgPanel):
         self.familyfilter = wx.StaticText(self, -1, "Family Filter:")
         self.search_results = wx.StaticText(self, -1, "")
         self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
-        self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient.png", wx.BITMAP_TYPE_ANY))
+        self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient_new.png", wx.BITMAP_TYPE_ANY))
         self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY))
         self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRindicator.png", wx.BITMAP_TYPE_ANY))
         self.settings = wx.StaticText(self, -1, "Settings")
@@ -207,8 +207,8 @@ class TopSearchPanel(bgPanel):
         self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY))
         self.my_files = wx.StaticText(self, -1, "My Files")
         self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
-        self.left = wx.StaticBitmap(self,-1, self.Bitmap("images/5.0/left.png", wx.BITMAP_TYPE_ANY))
-        self.right = wx.StaticBitmap(self,-1, self.Bitmap("images/5.0/right.png", wx.BITMAP_TYPE_ANY))
+        ##self.left = wx.StaticBitmap(self,-1, self.Bitmap("images/5.0/left.png", wx.BITMAP_TYPE_ANY))
+        ##self.right = wx.StaticBitmap(self,-1, self.Bitmap("images/5.0/right.png", wx.BITMAP_TYPE_ANY))
         self.total_down = wx.StaticText(self, -1, "")
         self.total_up = wx.StaticText(self, -1, "")
         
@@ -228,7 +228,7 @@ class TopSearchPanel(bgPanel):
         self.searchField.SetForegroundColour(wx.Colour(0, 0, 0))
         self.searchField.SetFont(wx.Font(10, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
         self.searchField.SetFocus()
-        self.go.SetMinSize((43,24))
+        self.go.SetMinSize((50,24))
         self.go.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.familyfilter.SetMinSize((100,15))
         self.familyfilter.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
@@ -310,13 +310,13 @@ class TopSearchPanel(bgPanel):
         object_1.Add((7, 0), 0, 0, 0)
         object_1.Add(self.tribler_logo2, 0, 0, 0)
         object_1.Add((10, 0), 0, 0, 0)
-        object_13.Add(self.left, 0, 0, 0)
+        ##object_13.Add(self.left, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
         object_13.Add(self.total_down, 0, 0, 0)
-        object_13.Add((2, 0), 0, 0, 0)
+        object_13.Add((19, 0), 0, 0, 0)
         object_13.Add(self.total_up, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
-        object_13.Add(self.right, 0, 0, 0)
+        ##object_13.Add(self.right, 0, 0, 0)
         
         # OUR CODE  ARNO50: Check diff in defs
         if sys.platform == 'win32':

@@ -491,6 +491,8 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
         peertxt = " peer %d" % (totalhelping)
         msg = uptxt + downtxt + peertxt
 
+    msg = msg.replace('\n',' ')    
+
     return [topmsg,msg,said_start_playback,decodeprogress]
 
 

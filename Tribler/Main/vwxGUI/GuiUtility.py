@@ -186,6 +186,9 @@ class GUIUtility:
             #else:
             #    print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is None"
             
+        elif name == 'browse':
+            self.standardOverview.currentPanel.sendClick(event)
+
         elif (name == 'edit' or name == "top10Sharers" or name.startswith('bgPanel')) and obj.GetParent().GetName() == "profileOverview":
             self.standardOverview.currentPanel.sendClick(event)
             self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
@@ -221,13 +224,6 @@ class GUIUtility:
             if panel_name == "profileDetails_Download":
                 URL = 'http://www.tribler.org/'
                 webbrowser.open(URL)                
-        elif name == "search": # search files/persons button
-#            print 'search'
-            if DEBUG:
-                print >>sys.stderr,'GUIUtil: search button clicked'
-            
-            self.standardFilesOverview()
-            self.dosearch()
         elif name == 'subscribe':
             self.subscribe()
         elif name == 'firewallStatus':
@@ -309,34 +305,34 @@ class GUIUtility:
 
         elif name == 'remove':
 
-            if self.DELETE_TORRENT_ASK:
-                xrcResource = os.path.join(self.vwxGUI_path, 'deleteTorrent.xrc')
-                res = xrc.XmlResource(xrcResource)
-                self.dialogFrame = res.LoadFrame(None, "torrentDialog")
+            ##if self.DELETE_TORRENT_ASK:
+            ##    xrcResource = os.path.join(self.vwxGUI_path, 'deleteTorrent.xrc')
+            ##    res = xrc.XmlResource(xrcResource)
+            ##    self.dialogFrame = res.LoadFrame(None, "torrentDialog")
  
                 #self.dialogFrame.SetFocus()
-                self.dialogFrame.Centre()
-                self.dialogFrame.Show(True)
+            ##    self.dialogFrame.Centre()
+            ##    self.dialogFrame.Show(True)
 
-                self.dialogFrame.Library = xrc.XRCCTRL(self.dialogFrame, "Library") 
-                self.dialogFrame.LibraryHardDisk = xrc.XRCCTRL(self.dialogFrame, "LibraryHardDisk") 
-                self.dialogFrame.Cancel = xrc.XRCCTRL(self.dialogFrame, "Cancel") 
-                self.dialogFrame.checkbox = xrc.XRCCTRL(self.dialogFrame, "checkBox")
-
-
-                self.dialogFrame.Library.Bind(wx.EVT_BUTTON, self.LibraryClicked)
-                self.dialogFrame.LibraryHardDisk.Bind(wx.EVT_BUTTON, self.HardDiskClicked)
-                self.dialogFrame.Cancel.Bind(wx.EVT_BUTTON, self.CancelClicked)
-                self.dialogFrame.checkbox.Bind(wx.EVT_CHECKBOX, self.checkboxClicked)
+            ##    self.dialogFrame.Library = xrc.XRCCTRL(self.dialogFrame,c "Library") 
+            ##    self.dialogFrame.LibraryHardDisk = xrc.XRCCTRL(self.dialogFrame, "LibraryHardDisk") 
+            ##    self.dialogFrame.Cancel = xrc.XRCCTRL(self.dialogFrame, "Cancel") 
+            ##    self.dialogFrame.checkbox = xrc.XRCCTRL(self.dialogFrame, "checkBox")
 
 
+            ##    self.dialogFrame.Library.Bind(wx.EVT_BUTTON, self.LibraryClicked)
+            ##    self.dialogFrame.LibraryHardDisk.Bind(wx.EVT_BUTTON, self.HardDiskClicked)
+            ##    self.dialogFrame.Cancel.Bind(wx.EVT_BUTTON, self.CancelClicked)
+            ##    self.dialogFrame.checkbox.Bind(wx.EVT_CHECKBOX, self.checkboxClicked)
 
-            elif self.DELETE_TORRENT_PREF == 1: 
-               self.onDeleteTorrentFromLibrary()
-            else:
-               self.onDeleteTorrentFromDisk()
 
 
+            ##elif self.DELETE_TORRENT_PREF == 1: 
+            ##   self.onDeleteTorrentFromLibrary()
+            ##else:
+            ##   self.onDeleteTorrentFromDisk()
+
+            self.onDeleteTorrentFromDisk() # default behaviour for preview 1
  
 
 

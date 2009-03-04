@@ -34,6 +34,7 @@ DEBUG = False
 # Dialog with user's public info
 #
 ################################################################
+
 class MyInfoWizard(Wizard):
     
     def __init__(self,parent):

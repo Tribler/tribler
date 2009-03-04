@@ -54,7 +54,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Arno: until we figure out how to show in-playback prebuffering info
 
         self.statuslabel = wx.StaticText(self, -1, '')
-        self.statuslabel.SetMinSize((320,100))
+        self.statuslabel.Wrap(200)
+        self.statuslabel.SetSize((300,100))
         self.statuslabel.SetForegroundColour(wx.BLACK)
         self.statuslabel.SetBackgroundColour(wx.WHITE)
 
@@ -113,10 +114,12 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'fullScreen')
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
     
+
             self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'saveDisabled', 'save')   
             self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
             self.save_callback = lambda:None
-            
+            self.save_button.Hide()
+
             ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
             ctrlsizer.Add([5,0],0,wx.FIXED_MINSIZE,0)
             ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -127,7 +130,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         mainbox.Add(self.vlcwin, 0, 0, 1)
         if vlcwrap is not None:
             mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
-        mainbox.Add(self.statuslabel, 1, wx.EXPAND, 0)
+        mainbox.Add(self.statuslabel, 0, wx.EXPAND, 0)
         self.SetSizerAndFit(mainbox)
         
         self.playtimer = None
@@ -346,6 +349,7 @@ class EmbeddedPlayerPanel(wx.Panel):
     
     def SetPlayerStatus(self,s):
         self.statuslabel.SetLabel(s)
+
 
     def SetContentName(self,s):
         self.vlcwin.set_content_name(s)

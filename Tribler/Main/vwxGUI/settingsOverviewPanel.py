@@ -16,6 +16,9 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.simpledefs import *
 from Tribler.Core.SessionConfig import SessionConfigInterface
 
+from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
+
+
 RELOAD_DELAY = 60 * 1000 # milliseconds
 
 class SettingsOverviewPanel(wx.Panel):
@@ -54,7 +57,11 @@ class SettingsOverviewPanel(wx.Panel):
         #print >>sys.stderr,"settingsOverviewPanel: in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
+
+        self.standardOverview = self.guiUtility.standardOverview
+
         self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+
 
         self.firewallStatus = xrc.XRCCTRL(self,"firewallStatus")  
 
@@ -87,6 +94,12 @@ class SettingsOverviewPanel(wx.Panel):
         self.elements['zeroDown'].Bind(wx.EVT_LEFT_UP, self.zeroDown)
         self.elements['fiftyDown'].Bind(wx.EVT_LEFT_UP, self.fiftyDown)
         self.elements['hundredDown'].Bind(wx.EVT_LEFT_UP, self.hundredDown)
+
+
+        self.elements['uploadCtrl'].Bind(wx.EVT_KEY_DOWN, self.uploadCtrlEnter)
+        self.elements['downloadCtrl'].Bind(wx.EVT_KEY_DOWN, self.downloadCtrlEnter)
+        self.elements['diskLocationCtrl'].Bind(wx.EVT_KEY_DOWN, self.diskLocationCtrlEnter)
+
 
 
         self.showPort()
@@ -135,6 +148,8 @@ class SettingsOverviewPanel(wx.Panel):
         source_name = source.GetName()
         if source_name == "edit":
             self.OnMyInfoWizard(event)
+        elif source_name == "browse":
+            self.BrowseClicked(event)
 
 
     def showPort(self):
@@ -162,26 +177,63 @@ class SettingsOverviewPanel(wx.Panel):
     def zeroUp(self, event):
         self.elements['uploadCtrl'].SetValue('0') 
         self.guiUtility.utility.config.Write('maxuploadrate', '0')
+        self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
 
     def fiftyUp(self, event):
         self.elements['uploadCtrl'].SetValue('50')        
-        self.guiUtility.utility.config.Read('maxuploadrate', '50')
+        self.guiUtility.utility.config.Write('maxuploadrate', '50')
+        self.utility.ratelimiter.set_global_max_speed(UPLOAD, 50)
+
 
     def hundredUp(self, event):
         self.elements['uploadCtrl'].SetValue('100')        
-        self.guiUtility.utility.config.Read('maxuploadrate', '100')
+        self.guiUtility.utility.config.Write('maxuploadrate', '100')
+        self.utility.ratelimiter.set_global_max_speed(UPLOAD, 100)
+
 
     def zeroDown(self, event):
         self.elements['downloadCtrl'].SetValue('0')        
         self.guiUtility.utility.config.Write('maxdownloadrate', '0')
+        self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
 
     def fiftyDown(self, event):
         self.elements['downloadCtrl'].SetValue('50')        
         self.guiUtility.utility.config.Write('maxdownloadrate', '50')
+        self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 50)
+
 
     def hundredDown(self, event):
         self.elements['downloadCtrl'].SetValue('100')        
         self.guiUtility.utility.config.Write('maxdownloadrate', '100')
+        self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 100)
+
+
+    def uploadCtrlEnter(self, event):
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_RETURN and self.elements['uploadCtrl'].GetValue().strip() != '':
+            self.utility.ratelimiter.set_global_max_speed(UPLOAD,int(self.elements['uploadCtrl'].GetValue()))
+            self.standardOverview.updateSaveIcon()
+        else:
+            event.Skip()     
+
+     
+    def downloadCtrlEnter(self, event):
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_RETURN and self.elements['downloadCtrl'].GetValue().strip() != '':
+            self.utility.ratelimiter.set_global_max_speed(DOWNLOAD,int(self.elements['downloadCtrl'].GetValue()))
+            self.standardOverview.updateSaveIcon()
+        else:
+            event.Skip()     
+
+
+    def diskLocationCtrlEnter(self, event):
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_RETURN and self.elements['diskLocationCtrl'].GetValue().strip() != '':
+            self.defaultDLConfig.set_dest_dir(self.elements['diskLocationCtrl'].GetValue())
+            self.standardOverview.updateSaveIcon()
+        else:
+            event.Skip()     
+
 
 
 
@@ -371,6 +423,17 @@ class SettingsOverviewPanel(wx.Panel):
             self.Bind(wx.EVT_TIMER, self.reloadData, self.timer)
             self.timer.Start(RELOAD_DELAY)
 
+
+
+    def BrowseClicked(self, event = None):
+        dlg = wx.DirDialog(self,"Choose download directory", style = wx.DEFAULT_DIALOG_STYLE)
+        dlg.SetPath(self.defaultDLConfig.get_dest_dir())
+        if dlg.ShowModal() == wx.ID_OK:
+            self.defaultDLConfig.set_dest_dir(dlg.GetPath())
+            self.elements['diskLocationCtrl'].SetValue(dlg.GetPath())
+            self.standardOverview.updateSaveIcon()
+        else:
+            pass
 
 
     def OnMyInfoWizard(self, event = None):

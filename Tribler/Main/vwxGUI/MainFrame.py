@@ -57,7 +57,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 
-DEBUG = False
+DEBUG = True
 
 
 ################################################################
