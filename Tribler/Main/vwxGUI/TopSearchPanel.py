@@ -125,7 +125,25 @@ class TopSearchPanel(bgPanel):
             # Arno: delay actual search so the painting is faster.
             wx.CallAfter(self.guiUtility.dosearch)
         else:
-            event.Skip()     
+            if not keycode == wx.WXK_BACK:
+                try:
+                    wx.CallAfter(self.autocomplete) # Nic: to demonstrate how autocomplete might work
+                except:
+                    pass # don't break the input field if something with autocomplete goes awkward
+            event.Skip()     # Nic: not enough into wx to know if this should stay even though we're doing someething in here now
+            
+    def autocomplete(self):
+        """appends the most frequent completion according to
+           buddycast clicklog to the current input.
+           sets the appended characters to "selected" such that they are
+           automatically deleted as the user continues typing"""
+        input = self.searchField.GetValue()
+        if len(input)>1:
+            completion = self.guiUtility.complete(input)
+            if completion:
+                l = len(input)
+                self.searchField.SetValue(input + completion)
+                self.searchField.SetSelection(l,l+len(completion))
 
     def OnSearchResultsPressed(self, event):
         self.guiUtility.OnResultsClicked()

@@ -47,10 +47,14 @@ def init(config, db_exception_handler = None):
     install_dir = config['install_dir']
     CREATE_SQL_FILE = os.path.join(install_dir,CREATE_SQL_FILE_POSTFIX)
     sqlitedb = SQLiteCacheDB.getInstance(db_exception_handler)
+    
     if config['superpeer']:
         sqlite_db_path = ':memory:'
     else:   
         sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
+        
+    
+        
     bsddb_path = os.path.join(config_dir, BSDDB_DIR_NAME)
     icon_dir = os.path.abspath(config['peer_icon_path'])
     

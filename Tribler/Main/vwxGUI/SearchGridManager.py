@@ -9,6 +9,7 @@ from time import time
 
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager
+from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
 
 from math import sqrt
 try:
@@ -44,11 +45,15 @@ class TorrentSearchGridManager:
         # Jelle's word filter
         self.searchmgr = None
         self.torrent_db = None
+        self.pref_db = None # Nic: for rerankers
+        self.mypref_db = None
+        self.search_db = None
         # For asking for a refresh when remote results came in
         self.gridmgr = None
 
         self.standardOverview = None
         self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
+        self.rerankingStrategy = {'filesMode':DefaultTorrentReranker(), 'libraryMode':DefaultTorrentReranker}
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         
         self.category = Category.getInstance()
@@ -59,8 +64,11 @@ class TorrentSearchGridManager:
         return TorrentSearchGridManager.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self,torrent_db):
+    def register(self,torrent_db,pref_db,mypref_db,search_db):
         self.torrent_db = torrent_db
+        self.pref_db = pref_db
+        self.mypref_db = mypref_db
+        self.search_db = search_db
         self.searchmgr = SearchManager(torrent_db)
         
     def set_gridmgr(self,gridmgr):
@@ -82,6 +90,8 @@ class TorrentSearchGridManager:
         
         if not self.standardOverview:
             self.standardOverview = self.guiUtility.standardOverview
+            
+        
 
         # TODO: do all filtering in DB query
         def torrentFilter(torrent):
@@ -157,6 +167,16 @@ class TorrentSearchGridManager:
             # Sort on columns in list view
             cmpfunc = lambda a,b:torrent_cmp(a,b,sort)
             self.hits.sort(cmpfunc,reverse=reverse)
+            
+        # Nic: Ok this is somewhat diagonal to the previous sorting algorithms
+        # eventually, these should probably be combined
+        # since for now, however, my reranking is very tame (exchanging first and second place under certain circumstances)
+        # this should be fine...
+         
+        self.rerankingStrategy[mode] = getTorrentReranker()
+        self.hits = self.rerankingStrategy[mode].rerank(self.hits, self.searchkeywords[mode], self.torrent_db, 
+                                                        self.pref_db, self.mypref_db, self.search_db)
+        
             
         #print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time()-beginsort))
         return [len(self.hits),self.hits[begin:end]]

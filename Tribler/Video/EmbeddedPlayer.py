@@ -56,7 +56,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.statuslabel = wx.StaticText(self, -1, '')
         self.statuslabel.SetMinSize((320,100))
         self.statuslabel.SetForegroundColour(wx.BLACK)
-        self.statuslabel.SetBackgroundColour(wx.RED)
+        self.statuslabel.SetBackgroundColour(wx.WHITE)
 
 
         if vlcwrap is not None:

@@ -817,4 +817,4 @@ class Session(SessionRuntimeConfig):
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:
             self.sesslock.release()
-
+            

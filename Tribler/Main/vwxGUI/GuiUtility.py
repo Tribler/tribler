@@ -897,7 +897,13 @@ class GUIUtility:
             #if mode == 'filesMode' and web2on:
             #    self.torrentsearch_manager.searchWeb2(60) # 3 pages, TODO: calc from grid size
 
-        
+    def complete(self, input):
+        """autocompletes input"""
+        terms = input.split(" ")
+        completion = self.utility.session.open_dbhandler(NTFY_TERM).getTermsStartingWith(terms[-1], num=1)
+        if completion:
+            return completion[0][len(terms[-1]):]
+        return ""
 
 
     def sesscb_got_remote_hits(self,permid,query,hits):

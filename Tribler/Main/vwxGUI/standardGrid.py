@@ -45,6 +45,9 @@ class GridManager(object):
         self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.friend_db = self.session.open_dbhandler(NTFY_FRIENDS)
+        self.pref_db = self.session.open_dbhandler(NTFY_PREFERENCES)
+        self.mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES) 
+        self.search_db = self.session.open_dbhandler(NTFY_SEARCH) 
 
         self.state = None
         self.total_items = 0
@@ -56,7 +59,7 @@ class GridManager(object):
         self.dslist = []
         
         self.torrentsearch_manager = utility.guiUtility.torrentsearch_manager
-        self.torrentsearch_manager.register(self.torrent_db)
+        self.torrentsearch_manager.register(self.torrent_db, self.pref_db, self.mypref_db, self.search_db)
 
         self.peersearch_manager = utility.guiUtility.peersearch_manager
         self.peersearch_manager.register(self.peer_db,self.friend_db)

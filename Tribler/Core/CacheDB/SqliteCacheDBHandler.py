@@ -21,6 +21,7 @@ from random import randint, sample
 from sets import Set
 import math
 
+
 from maxflow import Network
 from math import atan, pi
 
@@ -30,6 +31,7 @@ from Notifier import Notifier
 from Tribler.Core.simpledefs import *
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.permid import sign_data, verify_data
+from Tribler.Category.Category import Category
 
 # maxflow constants
 MAXFLOW_DISTANCE = 2
@@ -768,8 +770,10 @@ class PreferenceDBHandler(BasicDBHandler):
         except Exception, msg:    # duplicated
             print_exc()
 
-    def addPreferences(self, peer_permid, prefs, is_torrent_id=False, commit=True, clicklog={}):
+    def addPreferences(self, peer_permid, prefs, is_torrent_id=False, commit=True):
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
+        # Nic: even though the peer sending its preferences may be older then 8, 
+        # buddycast.py will have taken care of this function receiving a list of dictionaries as prefs 
         
         peer_id = self._db.getPeerID(peer_permid)
         if peer_id is None:
@@ -777,17 +781,26 @@ class PreferenceDBHandler(BasicDBHandler):
             return
         
         if not is_torrent_id:
+            # Nic: do not know why this would be called, but let's handle it smoothly
             torrent_id_prefs = []
-            for infohash in prefs:
+            for pref in prefs:
+                if type(pref)==dict:
+                    infohash = pref[infohash]
+                else:
+                    infohash = pref # Nic: from wherever this might come, we even handle old list of infohashes style
                 torrent_id = self._db.getTorrentID(infohash)
                 if not torrent_id:
                     self._db.insertInfohash(infohash)
                     torrent_id = self._db.getTorrentID(infohash)
-                torrent_id_prefs.append((peer_id, torrent_id))
+                torrent_id_prefs.append((peer_id, torrent_id, -1, -1))
         else:
-            torrent_id_prefs = [(peer_id, tid) for tid in prefs]
+            torrent_id_prefs = [(peer_id, 
+                                 pref['torrent_id'], 
+                                 pref.get('position', -1), 
+                                 pref.get('reranking strategy', -1)) 
+                                for pref in prefs]
             
-        sql_insert_peer_torrent = "INSERT INTO Preference (peer_id, torrent_id) VALUES (?,?)"        
+        sql_insert_peer_torrent = "INSERT INTO Preference (peer_id, torrent_id, click_position, reranking_strategy) VALUES (?,?,?,?)"        
         if len(prefs) > 0:
             try:
                 self._db.executemany(sql_insert_peer_torrent, torrent_id_prefs, commit=commit)
@@ -795,137 +808,54 @@ class PreferenceDBHandler(BasicDBHandler):
                 print_exc()
                 print >> sys.stderr, 'dbhandler: addPreferences:', Exception, msg
                 
-        if clicklog:
-            if not clicklog=={}:
-                self.addClicklogToPreferences(peer_id, clicklog, commit=commit)
-                
-    def addClicklogToPreferences(self, peer_id, clicklog, commit=True):
-        """adds clicklog data to already-stored preferences.
-           we might in fact save some time by integrating the clicklog data into 
-           the INSERT INTO Preference loop in the addPreferences method.
-           For the time being, I however prefer leaving these as two steps
-           in a sort of "defensive" programming approach.
-           
-           clicklog, if not empty, is of the format 
-           
-             clicklog  =
-{
-  termid2terms:
-  {
-    "1": "ubuntu",
-    "2": "linux",
-    ...
-  },
- 
-  torrentdata:
-  {
-    "some_info_hash":
-      {
-        torrent_id: 0,
-        click_position: 1,
-        reranking_strategy: 2,
-        search_terms: [1,2]
-      },
-    ...
-   }
-}
-
-        this is basically the format described in addClicklogToPreferences,
-        but torrent_id has been added in buddycast.
-        if this has not happened, this may mean that the torrent has been already added earlier,
-        or that something is going wrong. in any case, we then ignore the corresponding entry
+        # now, store search terms
+        all_terms = Set([])
+        for pref in prefs:
+            newterms = Set(pref.get('search terms',[]))
+            all_terms = all_terms.union(newterms)        
         
-        note that term ids are ids of the remote client, so they have to be translated.
-        
-        this method concretely
-        * updates the Preference entries
-        * translates the term ids to local client's term ids (eventually creating new terms)
-        * adds connection between torrent and translated term ids in the Search DB
-        """
-        
-        #print >> sys.stderr, "got clicklog data!: %s " % clicklog 
-        
-        torrentdata = clicklog.get('torrentdata', None)
-        if not torrentdata:
-            if DEBUG:
-                print >>sys.stderr, "torrentdata is empty in buddycast clicklog data from peer %d" % peer_id
+        # Nic: maybe we haven't received a single key word, no need to loop again then
+        if len(all_terms)==0:
             return
-           
-        # get translations
-        foreign_termid2terms = clicklog.get('termid2terms', None)
-        termdb = TermDBHandler.getInstance()
-        searchdb = SearchDBHandler.getInstance()
-        if not foreign_termid2terms:
-            if DEBUG:
-                print >>sys.stderr, "termid2terms is empty in buddycast clicklog data from peer %d" % peer_id
-            return        
-        
-        # should the following go into some explicit validation part?
-        # this is a measure against buddycast sending millions of terms for the client to store
-        # on average, I would expect the number of unique terms to be n to 2*n for n torrents
-        # here, we draw the line if it is 20*n
-        max_avg_search_terms_per_torrent = 20
-        if len(foreign_termid2terms)>MAX_KEYWORDS_STORED*len(torrentdata): 
+             
+        if len(all_terms)>MAX_KEYWORDS_STORED*len(prefs): 
             if DEBUG:
                 print >>sys.stderr, "peer %d sends %d search terms for %d torrents " + \
                                     "(more than avg %d unique terms per torrent), aborting" % \
-                                    (peer_id, len(foreign_termid2terms), len(torrentdata), max_avg_search_terms_per_torrent)
-            return
-        
+                                    (peer_id, len(foreign_termid2terms), len(torrentdata), MAX_KEYWORDS_STORED)
+            return            
+           
+        termdb = TermDBHandler.getInstance()
+        searchdb = SearchDBHandler.getInstance()
+                
         # insert all unknown terms NOW so we can rebuild the index at once
-        self.term_db.termid2terms.bulkInsertTerms(terms, foreign_termid2terms.values())         
+        termdb.bulkInsertTerms(all_terms)         
         
         # get local term ids for terms.
-        foreign2local = dict([(foreign_termid, termdb.getTermID(foreign_term))
-                              for (foreign_termid, foreign_term)
-                              in foreign_termid2terms.items()])
+        foreign2local = dict([(foreign_term, termdb.getTermID(foreign_term))
+                              for foreign_term
+                              in all_terms])        
         
         # process torrent data
-        for (torrent_hash, torrent_entry) in torrentdata.items():
-            if not type(torrent_entry)==dict:
-                if DEBUG:
-                    print >> sys.stderr, "received non-dict torrent_entry in clicklog entry for torrent %s from peer %d" % \
-                                         (torrent_hash, peer_id)
+        for pref in prefs:
+            torrent_id = pref.get('torrent_id', None)
+            search_terms = pref.get('search terms', [])
+            
+            if search_terms==[]:
                 continue
-            
-            (torrent_id, click_position, reranking_strategy, search_terms) = \
-                [torrent_entry.get(key, None) 
-                 for key in ('torrent_id', 'click_position', 'reranking_strategy', 'search_terms')]
-            
-            print "(torrent_id, click_position, reranking_strategy, search_terms): %s" % [torrent_id, click_position, reranking_strategy, search_terms]
-            
             if not torrent_id:
-                print >> sys.stderr, "torrent_id not set, retrieving manually!"
-                torrent_id = TorrentDBHandler.getInstance().getTorrentID(infohash)
-            
-             
-            if (not torrent_id) or (not click_position) or (not reranking_strategy) or (not search_terms):
                 if DEBUG:
-                    print >>sys.stderr, "incomplete torrent entry received for torrent %s from peer %d" % \
-                                        (torrent_hash, peer_id)
+                    print >> sys.stderr, "torrent_id not set, retrieving manually!"
+                torrent_id = TorrentDBHandler.getInstance().getTorrentID(infohash)
                 
-            # update Preferences
-            self._db.update(self.table_name, 
-                            "torrent_id=%d" % torrent_id, 
-                            commit=commit, 
-                            click_position=click_position, 
-                            reranking_strategy=reranking_strategy)
-            
-            # insert Search
             term_ids = [foreign2local[str(foreign)] for foreign in search_terms]
             searchdb.storeKeywordsByID(peer_id, torrent_id, term_ids, commit=False)
-            if commit:
-                searchdb.commit()
-                searchdb.storeKeywordsByID(peer_id, torrent_id, term_ids, commit=commit)
-            
+        if commit:
+            searchdb.commit()
         
     def getAllEntries(self):
         """use with caution,- for testing purposes"""
         return self.getAll("rowid, peer_id, torrent_id, click_position,reranking_strategy", order_by="peer_id, torrent_id")
-           
-           
-
-
 
 
     def getRecentPeersPrefs(self, key, num=None):
@@ -935,6 +865,42 @@ class PreferenceDBHandler(BasicDBHandler):
              sql = sql[:-1] + " limit %d)"%num
         res = self._db.fetchall(sql)
         return res
+    
+    def getPositionScore(self, torrent_id, keywords):
+        """returns a tuple (num, positionScore) stating how many times the torrent id was found in preferences,
+           and the average position score, where each click at position i receives 1-(1/i) points"""
+           
+        if not keywords:
+            return (0,0)
+           
+        term_db = TermDBHandler.getInstance()
+        term_ids = [term_db.getTermID(keyword) for keyword in keywords]
+        s_term_ids = str(term_ids).replace("[","(").replace("]",")")
+        
+        # we're not really interested in the peer_id here,
+        # just make sure we don't count twice if we hit more than one keyword in a search
+        # ... one might treat keywords a bit more strictly here anyway (AND instead of OR)
+        sql = """
+SELECT DISTINCT Preference.peer_id, Preference.click_position 
+FROM Preference 
+INNER JOIN Search 
+ON 
+    Preference.torrent_id = Search.torrent_id 
+  AND 
+    Preference.peer_id = Search.peer_id 
+WHERE 
+    Search.term_id IN %s 
+  AND
+    Search.torrent_id = %s""" % (s_term_ids, torrent_id)
+        res = self._db.fetchall(sql)
+        scores = [1.0-1.0/float(click_position) 
+                  for (peer_id, click_position) 
+                  in res 
+                  if click_position>-1]
+        if len(scores)==0:
+            return (0,0)
+        score = float(sum(scores))/len(scores)
+        return (len(scores), score)
 
         
 class TorrentDBHandler(BasicDBHandler):
@@ -1763,12 +1729,14 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.status_table.update(self._db.getTorrentStatusTable())
         self.status_good = self.status_table['good']
         self.recent_preflist = None
+        self.recent_preflist_with_clicklog = None
         self.rlock = threading.RLock()
         
     def loadData(self):
         self.rlock.acquire()
         try:
             self.recent_preflist = self._getRecentLivePrefList()
+            self.recent_preflist_with_clicklog = self._getRecentLivePrefListWithClicklog()
         finally:
             self.rlock.release()
                 
@@ -1802,8 +1770,25 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return ct
         else:
             return None
+
+    def getRecentLivePrefListWithClicklog(self, listOfDicts, num=0):
+        """returns OL 8 style preference list: a list of lists, with each of the inner lists
+           containing infohash, search terms, click position, and reranking strategy"""
+           
+        if self.recent_preflist_with_clicklog is None:
+            self.rlock.acquire()
+            try:
+                if self.recent_preflist_with_clicklog is None:
+                    self.recent_preflist_with_clicklog = self._getRecentLivePrefListWithClicklog()
+            finally:
+                self.rlock.release()
+        if num > 0:
+            return self.recent_preflist_with_clicklog[:num]
+        else:
+            return self.recent_preflist_with_clicklog  
+
         
-    def getRecentLivePrefList(self, num=0):
+    def getRecentLivePrefList(self, listOfDicts, num=0):
         if self.recent_preflist is None:
             self.rlock.acquire()
             try:
@@ -1816,49 +1801,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             return self.recent_preflist
 
-    def getClickLog(self, mypref):
-        """ create a ClickLog data structure for the torrents
-            contained in mypref, with mypref being the 
-            result of a previous call to getRecentLivePrefList,
-            a list of info hashes in binary format
-            """
-            
-        #print >> sys.stderr, "getting clicklog!"
-            
-        termid2terms = {}
-        torrentdata = {}
-        searchdb = SearchDBHandler.getInstance()
-        termdb = TermDBHandler.getInstance()
-            
-        for infohash in mypref:
-            infohash_str = bin2str(infohash)
-            torrent_id = self._db.getTorrentID(infohash)
-
-            value_name = ('click_position','reranking_strategy')
-            where = 'torrent_id=%s' % torrent_id
-            res = self.getAll(value_name, where)
-            if res == None:
-                if DEBUG:
-                    print >> sys.stderr, "getClicklog: torrent_id %d: not found in MyPreferences, although passed on in mypref argument!" % torrent_id
-                continue 
-            click_position, reranking_strategy = res[0] 
-            search_terms = searchdb.getMyTorrentSearchTerms(torrent_id)
-            torrent_entry = {'click_position': click_position,
-                             'reranking_strategy': reranking_strategy,
-                             'search_terms': search_terms}
-            torrentdata[infohash] = torrent_entry # str(torrent_id) 
-            
-            #print "search_terms: %s" % search_terms
-            for search_term in search_terms:
-                if not search_term in termid2terms:
-                    termid2terms[str(search_term)] = termdb.getTerm(search_term)
-                    
-        clicklog = {'termid2terms': termid2terms,
-                'torrentdata': torrentdata}
-        
-        #print >> sys.stderr, "created clicklog: %s" % clicklog 
-            
-        return  clicklog
 
         
     def addClicklogToMyPreference(self, infohash, clicklog_data, commit=True):
@@ -1890,7 +1832,48 @@ class MyPreferenceDBHandler(BasicDBHandler):
                                        terms=clicklog_data['keywords'], 
                                        commit=commit)   
  
+
+
+
+            
+
+                    
         
+    def _getRecentLivePrefListWithClicklog(self, num=0):
+        """returns a list containing a list for each torrent: [infohash, [seach terms], click position, reranking strategy]"""
+        
+        sql = """
+        select infohash, click_position, reranking_strategy, m.torrent_id from MyPreference m, Torrent t 
+        where m.torrent_id == t.torrent_id 
+        and status_id == %d
+        order by creation_time desc
+        """ % self.status_good
+        
+        recent_preflist_with_clicklog = self._db.fetchall(sql)
+        if recent_preflist_with_clicklog is None:
+            recent_preflist_with_clicklog = []
+        else:
+            recent_preflist_with_clicklog = [[str2bin(t[0]),
+                                              t[3],   # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1], # click position
+                                              t[2]]  # reranking strategy
+                                             for t in recent_preflist_with_clicklog]
+
+        if num != 0:
+            recent_preflist_with_clicklog = recent_preflist_with_clicklog[:num]
+
+        # now that we only have those torrents left in which we are actually interested, 
+        # replace torrent id by user's search terms for torrent id
+        termdb = TermDBHandler.getInstance()
+        searchdb = SearchDBHandler.getInstance()
+        for pref in recent_preflist_with_clicklog:
+            torrent_id = pref[1]
+            search_terms = searchdb.getMyTorrentSearchTerms(torrent_id)
+            pref[1] = [termdb.getTerm(search_term) for search_term in search_terms]            
+
+        return recent_preflist_with_clicklog
+    
+    
     def _getRecentLivePrefList(self, num=0):    # num = 0: all files
         # get recent and live torrents
         sql = """
@@ -3217,24 +3200,37 @@ class TermDBHandler(BasicDBHandler):
             return ""
         return self.getOne('term', term_id=term_id)
     
-    def getTermsStartingWith(self, beginning):
-        """returns all terms starting with beginning"""
+    def getTermsStartingWith(self, beginning, num=10):
+        """returns num most frequently encountered terms starting with beginning"""
         
-        max_terms_returned = 10
-        
-        try:
-            return [x[0] 
-                    for x 
-                    in self.getAll('term', 
+        terms = []
+        offset = 0
+        catobj = Category.getInstance()
+        family_filter = catobj.family_filter_enabled()
+        while len(terms)<num:
+            
+            try:
+                term = self.getAll('term', 
                                    'term like \'%s%%\'' % 
-                                     beginning.lower().replace('\'',''),
-                                    order_by="times_seen DESC",
-                                    limit=max_terms_returned)]
-        except UnicodeDecodeError:
-            if DEBUG:
-                print >> sys.stderr, "term %s could not be completed because it's not ascii" % beginning
-            return []        
-        # TODO include family filter
+                                   beginning.lower().replace('\'',''),
+                                   order_by="times_seen DESC",
+                                   limit=1,
+                                   offset=offset)
+                offset += 1
+                if term:
+                    term=term[0][0]
+                else:
+                    return terms
+                if family_filter:
+                    if catobj.xxx_filter.foundXXXTerm(term):
+                        continue
+                terms.append(term)
+                
+            except UnicodeDecodeError:
+                if DEBUG:
+                    print >> sys.stderr, "term %s could not be completed because it's not ascii" % beginning
+                return []
+        return terms
     
     def getAllEntries(self):
         """use with caution,- for testing purposes"""
@@ -3299,7 +3295,7 @@ UPDATE Term SET times_seen = times_seen+1 WHERE term_id=?
         """creates a single entry in Search with peer_id and torrent_id for every term in terms"""
         terms = [term.strip() for term in terms if len(term.strip())>0]
         term_db = TermDBHandler.getInstance()
-        term_ids = [term_db.getTermID(term) for term in set(terms)]
+        term_ids = [term_db.getTermID(term) for term in terms]
         self.storeKeywordsByID(peer_id, torrent_id, term_ids, commit)
 
     def getAllEntries(self):

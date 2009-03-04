@@ -226,14 +226,24 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
     validPeer(prefxchg)
     if not (isinstance(prefxchg['name'], str) or isinstance(prefxchg['name'], unicode)):
         raise RuntimeError, "bc: invalid name type " + str(type(prefxchg['name']))
-    validPref(prefxchg['preferences'], nmyprefs)
+    
+    # Nic: create a validity check that doesn't have to know about the version
+    # just found out this function is not called anymore. well if it gets called one day, it should handle both
+    prefs = prefxchg['preferences']
+    if prefs:
+        if type(prefs[0])==list:
+            # list of lists: this is the new wire protocol. entry 0 of each list contains infohash
+            validPref([pref[0] for pref in prefs], nmyprefs)
+        else:
+            # old style
+            validPref(prefs, nmyprefs)
     
     if len(prefxchg['taste buddies']) > nbuddies:
         raise RuntimeError, "bc: length of prefxchg['taste buddies'] exceeds " + \
                 str(len(prefxchg['taste buddies']))
     for b in prefxchg['taste buddies']:
         validPeer(b)
-        #validPref(b['preferences'], nbuddyprefs)    # not used from version 4
+        #validPref(b['preferences'], nbuddyprefs)    # not used from version 4 
         
     if len(prefxchg['random peers']) > npeers:
         raise RuntimeError, "bc: length of random peers " + \
@@ -351,7 +361,7 @@ class BuddyCastFactory:
             
         # Do our thang.
         self.buddycast_core.work()
-        self.ranonce = True # NIC now we can start testing and stuff works better
+        self.ranonce = True # nic: now we can start testing and stuff works better
         
     def pauseBuddyCast(self):
         self.running = False
@@ -965,7 +975,7 @@ class BuddyCastCore:
                 
     def createBuddyCastMessage(self, target_permid, selversion, target_ip=None, target_port=None):
         """ Create a buddycast message for a target peer on selected protocol version """
-        # NIC: added manual target_ip, target_port parameters for testing
+        # Nic: added manual target_ip, target_port parameters for testing
         try:
             target_ip,target_port = self.dnsindb(target_permid)    
         except:
@@ -973,7 +983,7 @@ class BuddyCastCore:
                 raise # allow manual ips during unit-testing if dnsindb fails
         if not target_ip or not target_port:
             return {}
-        my_pref = self.data_handler.getMyLivePreferences(self.num_myprefs)       #[pref]
+        my_pref = self.data_handler.getMyLivePreferences(selversion, self.num_myprefs)       #[pref]
         taste_buddies = self.getTasteBuddies(self.num_tbs, self.num_tb_prefs, target_permid, target_ip, target_port, selversion)
         random_peers = self.getRandomPeers(self.num_rps, target_permid, target_ip, target_port, selversion)    #{peer:last_seen}
         buddycast_data = {'ip':self.ip,
@@ -999,9 +1009,6 @@ class BuddyCastCore:
             buddycast_data['npeers'] = npeers
             buddycast_data['nfiles'] = ntorrents
             buddycast_data['ndls'] = nmyprefs
-
-        if selversion >= OLPROTO_VER_EIGHTH:
-            buddycast_data["clicklog"] = self.data_handler.get_clicklog(my_pref)
             
             
         return buddycast_data
@@ -1167,6 +1174,8 @@ class BuddyCastCore:
             block_list.pop(peer_id)
             return False
         return True
+    
+        
             
     # ------ receive a buddycast message, for both active and passive thread ------ #
     def gotBuddyCastMessage(self, recv_msg, sender_permid, selversion):
@@ -1283,7 +1292,7 @@ class BuddyCastCore:
         #self.data_handler.checkUpdate()
         collected_infohashes = buddycast_data.get('collected torrents', [])
         if self.torrent_collecting and not self.superpeer:
-            collected_infohashes += buddycast_data.get('preferences', [])
+            collected_infohashes += self.getPreferenceHashes(buddycast_data)  
             self.torrent_collecting.trigger(sender_permid, selversion, collected_infohashes)
         
         if active:
@@ -1304,6 +1313,41 @@ class BuddyCastCore:
             print >> sys.stderr, '******************************** Yahoo! *************************************************************'
         
         return True
+
+
+    def createPreferenceDictionaryList(self, buddycast_data):
+        """as of OL 8, preferences are no longer lists of infohashes, but lists of lists containing 
+           infohashes and associated metadata. this method checks which overlay version has been used
+           and replaces either format by a list of dictionaries, such that the rest of the code can remain
+           version-agnostic and additional information like torrent ids can be stored along the way"""
+
+        try:
+            if buddycast_data['oversion'] == OLPROTO_VER_EIGHTH:
+                # create dictionary from list of lists
+                d = [dict({'infohash': pref[0],
+                           'search terms': pref[1],
+                           'position': pref[2],
+                           'reranking strategy': pref[3]}) 
+                     for pref in buddycast_data.get('preferences',[])]
+            else:
+                # create dictionary from list of info hashes, extended fields simply aren't set
+                d = [dict({'infohash': pref})
+                     for pref in buddycast_data.get('preferences',[])]
+                
+        except Exception, msg:
+            print_exc()
+            raise Exception, msg
+            return []
+            
+        return d
+ 
+                      
+           
+           
+    def getPreferenceHashes(self, buddycast_data):
+        """convenience function returning the infohashes from the preferences. 
+           returns a list of infohashes, i.e. replaces old calls to buddycast_data.get('preferences')"""
+        return [preference.get('infohash',"") for preference in buddycast_data.get('preferences', [])]   
         
     def handleBuddyCastMessage(self, sender_permid, buddycast_data, selversion):
         """ Handle received buddycast message 
@@ -1371,23 +1415,20 @@ class BuddyCastCore:
         if selversion >= OLPROTO_VER_SIXTH:
             stats = {'num_peers':buddycast_data['npeers'],'num_torrents':buddycast_data['nfiles'],'num_prefs':buddycast_data['ndls']}
             cache_db_data['peer'][sender_permid].update(stats)
-        
-        # if selversion >= OLPROTO_VER_EIGHTH:
-            cl = buddycast_data.get('clicklog',None)
-            if cl:
-                cache_db_data['clicklog'] = cl
-       
+               
         cache_db_data['peer'][sender_permid]['last_buddycast'] = _now
         
+        prefs = self.createPreferenceDictionaryList(buddycast_data)
+        buddycast_data['preferences'] = prefs # Nic: store this back into buddycast_data because it's used later on gotBuddyCastMessage again 
+        
         infohashes = Set(buddycast_data.get('collected torrents', []))
-        prefs = Set(buddycast_data.get('preferences', []))  # only accept sender's preference, to avoid pollution
-        infohashes = infohashes.union(prefs)
-
+        prefhashes = Set(self.getPreferenceHashes(buddycast_data))  # only accept sender's preference, to avoid pollution
+        infohashes = infohashes.union(prefhashes)
                 
         cache_db_data['infohash'] = infohashes
         #self.data_handler.addInfohashes(infohashes, commit=True)
         if prefs:
-            cache_db_data['pref'] = prefs
+            cache_db_data['pref'] = prefs 
             #self.data_handler.addPeerPreferences(sender_permid, prefs)
         #self.data_handler.increaseBuddyCastTimes(sender_permid, commit=True)
         
@@ -1874,15 +1915,6 @@ class DataHandler:
             return permid
         else:
             return self.peer_db.getPeerID(permid)
-
-    def get_clicklog(self, mypref):
-        """ Get clicklog data for selected preferences. 
-            Put this into a separate method to separate earlier and newer versions of protocol.
-            Created data also lives in separate entry of buddycast data dict
-            """
-            
-        return self.mypref_db.getClickLog(mypref)
-
     
     def getTorrentID(self, infohash):
         if isinstance(infohash, int) and infohash > 0:
@@ -2111,10 +2143,12 @@ class DataHandler:
             for torrent_id in overlap:
                 self.owners[torrent_id].add(peer_id)
     
-    def getMyLivePreferences(self, num=0):
+    def getMyLivePreferences(self, selversion, num=0):
         """ Get a number of my preferences. Get all if num==0 """
-        
-        return self.mypref_db.getRecentLivePrefList(num)
+        if selversion>=OLPROTO_VER_EIGHTH:
+            return self.mypref_db.getRecentLivePrefListWithClicklog(num)
+        else:
+            return self.mypref_db.getRecentLivePrefList(num)
         
     def getPeerSim(self, peer_permid, read_db=False, raw=False):
         if read_db:
@@ -2205,7 +2239,7 @@ class DataHandler:
         if commit:
             self.torrent_db.commit()
                 
-    def addPeerPreferences(self, peer_permid, prefs, commit=True, clicklog={}):
+    def addPeerPreferences(self, peer_permid, prefs, commit=True):
         """ add a peer's preferences to both cache and db """
         
         if peer_permid == self.permid:
@@ -2215,27 +2249,19 @@ class DataHandler:
         if not cur_prefs:
             cur_prefs = []
         prefs2add = []
-        infohash2torrentid = {} 
-        for infohash in prefs:
+        for pref in prefs:
+            infohash = pref['infohash'] # Nic: new dictionary format of OL 8 preferences
             torrent_id = self.torrent_db.getTorrentID(infohash)
             if not torrent_id:
                 print >> sys.stderr, "buddycast: DB Warning: infohash", bin2str(infohash), "should have been inserted into db, but was not found"
                 continue
-            # store torrent_id in clicklog data structure so we don't have to repeat lookup later on
-            if clicklog:
-                if 'torrentdata' in clicklog:
-                    if infohash in clicklog['torrentdata']:
-                        clicklog['torrentdata'][infohash]['torrent_id'] = torrent_id
-            infohash2torrentid[infohash] = torrent_id
-
+            pref['torrent_id'] = torrent_id
             if torrent_id not in cur_prefs:
-                prefs2add.append(torrent_id)
+                prefs2add.append(pref)
                 cur_prefs.append(torrent_id)
                 
-                
-                
         if len(prefs2add) > 0:
-            self.pref_db.addPreferences(peer_permid, prefs2add, is_torrent_id=True, commit=commit, clicklog=clicklog) # NIC I realize it's kind of ugly to put my new arguments behind the commit, but I'm trying to remain backwards compatible here
+            self.pref_db.addPreferences(peer_permid, prefs2add, is_torrent_id=True, commit=commit) 
             self.updatePeerPref(peer_permid, cur_prefs)
             self.nprefs += len(prefs2add)
             peer_id = self.getPeerID(peer_permid)
@@ -2401,18 +2427,21 @@ class DataHandler:
             if 'sim' in peer_data[permid]:
                 sim = peer_data[permid]['sim']
                 self.addRelativeSim(sender_permid, permid, sim, max_tb_sim)
+
+        #self.torrent_db._db.show_sql(1)
+        self.torrent_db.commit()
+        #self.torrent_db._db.show_sql(0)
+        
+        # Nic: moved this block *before* the call to addPeerPreferences because with the clicklog,
+        # this in fact writes to several different databases, so it's easier to tell it to commit
+        # right away. hope this is ok
                 
         if cache_db_data['pref']:
             self.addPeerPreferences(sender_permid, 
                                     cache_db_data['pref'], 
-                                    commit=False, 
-                                    clicklog=cache_db_data.get('clicklog',{}))
+                                    commit=True)
             
-        #self.torrent_db._db.show_sql(1)
-        self.torrent_db.commit()
-        #self.torrent_db._db.show_sql(0)
                 
             #print hash(k), peer_data[k]
         #cache_db_data['infohash']
         #cache_db_data['pref']
-        

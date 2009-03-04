@@ -1732,7 +1732,8 @@ class standardDetails(wx.Panel):
         
         if os.path.isfile(torrent_filename):
 
-            clicklog={"keywords": self.guiUtility.torrentsearch_manager.searchkeywords[self.mode]}
+            clicklog={'keywords': self.guiUtility.torrentsearch_manager.searchkeywords[self.mode],
+                      'reranking_strategy': self.guiUtility.torrentsearch_manager.rerankingStrategy[self.mode].getID()}
             if "click_position" in torrent:
                 clicklog["click_position"] = torrent["click_position"]
 
