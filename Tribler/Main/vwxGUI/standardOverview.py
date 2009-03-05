@@ -280,15 +280,14 @@ class standardOverview(wx.Panel):
 
         pager = xrc.XRCCTRL(self.guiUtility.frame, 'standardPager')    # Jie:not really used for profile, rss and library?
         if modeString == "startpage":
-            currentPanel = wx.Panel(self,-1)
+            # If we don't set size to 0,0, it will show on Linux
+            currentPanel = wx.Panel(self,-1,size=(0,0))
             pager = None
             grid = currentPanel
         elif modeString == "files": # AKA search results page
-            #parenpanel = wx.Panel(parent, -1)
             currentPanel = filesGrid(parent=self)
             grid = currentPanel
         elif modeString == "library":
-            #parenpanel = wx.Panel(parent, -1)
             currentPanel = libraryGrid(parent=self)
             grid = currentPanel
         elif modeString == "settings":
