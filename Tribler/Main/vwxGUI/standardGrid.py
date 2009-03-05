@@ -438,7 +438,7 @@ class standardGrid(wx.Panel):
         self.guiserver = GUITaskQueue.getInstance()
 
         if parent:
-            self.SetSize((675,580))
+            self.SetSize((675,500))
             self._PostInit()
             #self.Show()
         
