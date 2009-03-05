@@ -396,6 +396,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     playable = ds.get_vod_playable()
     t = ds.get_vod_playable_after()
 
+    intime = ETA[0][1]
     for eta_time, eta_msg in ETA:
         if t >= eta_time:
             break
@@ -454,7 +455,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             msg = ''
         elif videoplayer_mediastate == MEDIASTATE_PAUSED:
             # msg = "Buffering... " + str(int(100.0*preprogress))+"%" 
-            msg = "Buffering... " + str(int(100.0*preprogress))+"%\n" + intime
+            msg = "Buffering... " + str(int(100.0*preprogress))+"% " + intime
         else:
             msg = ''
             
@@ -466,7 +467,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             msg = logmsg
         else:
             # msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
-            msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" people)\n" + intime
+            msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" people). " + intime
             
         try:
             d = ds.get_download()
@@ -477,12 +478,12 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             else:
                 videofile = None
             if tdef.get_bitrate(videofile) is None:
-                msg += '\nThis video may not play properly because its \nbitrate is unknown'
+                msg += ' This video may not play properly because its bitrate is unknown'
         except:
             print_exc()
     else:
         # msg = "Waiting for sufficient download speed... "+intime
-        msg = 'Waiting for sufficient download speed... \n' + intime
+        msg = 'Waiting for sufficient download speed... ' + intime
         
     global ONSCREENDEBUG
     if msg == '' and ONSCREENDEBUG:
@@ -490,8 +491,6 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
         downtxt = " down %.1f" % (totalspeed[DOWNLOAD])
         peertxt = " peer %d" % (totalhelping)
         msg = uptxt + downtxt + peertxt
-
-    msg = msg.replace('\n',' ')    
 
     return [topmsg,msg,said_start_playback,decodeprogress]
 

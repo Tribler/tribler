@@ -9,12 +9,12 @@ import sys
 
 import os, shutil
 import time
-import traceback
+import random
 from time import sleep
 from tempfile import mkstemp
 from threading import currentThread,Event, Thread
 from traceback import print_stack,print_exc
-import random
+from textwrap import wrap
 
 from Tribler.__init__ import LIBRARYNAME, ICONNAME
 from Tribler.Video.defs import *
@@ -56,6 +56,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.statuslabel = wx.StaticText(self, -1, '')
         self.statuslabel.Wrap(200)
         self.statuslabel.SetSize((300,100))
+        self.statuslabel.SetMinSize((300,100))
         self.statuslabel.SetForegroundColour(wx.BLACK)
         self.statuslabel.SetBackgroundColour(wx.WHITE)
 
@@ -348,7 +349,11 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.UpdateProgressSlider(pieces_complete)
     
     def SetPlayerStatus(self,s):
-        self.statuslabel.SetLabel(s)
+        msg = "\n".join(wrap(s,64))
+        
+        print >>sys.stderr,"WRAPPED MESSAGE",msg,"EOW"
+        
+        self.statuslabel.SetLabel(msg)
 
 
     def SetContentName(self,s):
