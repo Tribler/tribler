@@ -660,8 +660,12 @@ class standardOverview(wx.Panel):
         infohash = torrent['infohash']
         guiserver = GUITaskQueue.getInstance()
         
-        mypreference_db = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-        mypreference_db.deletePreference(infohash)
+        # Johan, 2009-03-05: we need long download histories for good 
+        # semantic clustering.
+        
+        #mypreference_db = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+        #mypreference_db.deletePreference(infohash)
+        
         # BuddyCast is now notified of this removal from our
         # preferences via the Notifier mechanism. See BC.sesscb_ntfy_myprefs()
 

@@ -1,8 +1,9 @@
 # Written by Fabian van der Werf and Arno Bakker
 # see LICENSE.txt for license information
 #
-# ARNO50: Refactor EmbeddedPlayer into Tribler 5.0 and SwarmPlayer version
-#
+# EmbeddedPlayerPanel is the panel used in Tribler 5.0
+# EmbeddedPlayer4FramePanel is the panel used in the SwarmPlayer / 4.5
+# 
 
 import wx
 import sys
@@ -16,7 +17,7 @@ from threading import currentThread,Event, Thread
 from traceback import print_stack,print_exc
 from textwrap import wrap
 
-from Tribler.__init__ import LIBRARYNAME, ICONNAME
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Video.defs import *
 from Tribler.Video.Progress import ProgressBar, ProgressSlider, VolumeSlider
 from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
@@ -79,33 +80,33 @@ class EmbeddedPlayerPanel(wx.Panel):
 
 
                             
-            self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'pause', 'play')
+            self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'pause', 'play')
             self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
     
             self.volumebox = wx.BoxSizer(wx.HORIZONTAL)
-            ##self.volumeicon = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'volume', 'mute')   
+            ##self.volumeicon = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'volume', 'mute')   
             ##self.volumeicon.Bind(wx.EVT_LEFT_UP, self.Mute)
             ##self.volume = VolumeSlider(self, self.utility)
             ##self.volume.SetRange(0, 100)
             ##self.volumebox.Add(self.volumeicon, 0, wx.ALIGN_CENTER_VERTICAL)
             ##self.volumebox.Add(self.volume, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
-            self.vol1 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol1')
+            self.vol1 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol1')
             self.vol1.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
-            self.vol2 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol2')
+            self.vol2 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol2')
             self.vol2.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
-            self.vol3 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol3')
+            self.vol3 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol3')
             self.vol3.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
-            self.vol4 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol4')
+            self.vol4 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol4')
             self.vol4.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
-            self.vol5 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol5')
+            self.vol5 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol5')
             self.vol5.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
-            self.vol6 = PlayerButton(self,os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'vol6')
+            self.vol6 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol6')
             self.vol6.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
             self.volumebox.Add(self.vol1, 0, wx.ALIGN_CENTER_VERTICAL, 0)
@@ -119,11 +120,11 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.updateVol(self.volume)
 
     
-            self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'fullScreen')
+            self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'fullScreen')
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
     
 
-            self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'saveDisabled', 'save')   
+            self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'saveDisabled', 'save')   
             self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
             self.save_callback = lambda:None
             self.save_button.Hide()

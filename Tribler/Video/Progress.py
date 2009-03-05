@@ -5,7 +5,7 @@ import wx,time
 import sys,os
 
 
-from Tribler.__init__ import LIBRARYNAME, ICONNAME
+from Tribler.__init__ import LIBRARYNAME
 
 class BufferInfo:
     """ Arno: WARNING: the self.tricolore member is read by the MainThread and 
@@ -198,7 +198,7 @@ class ProgressBar(wx.Control):
         
 class ProgressSlider(wx.Panel):
     
-    def __init__(self, parent, utility, colours = ["#ffffff","#CBCBCB","#ff3300"], *args, **kwargs ):
+    def __init__(self, parent, utility, colours = ["#ffffff","#CBCBCB","#ff3300"], imgprefix= '', *args, **kwargs ):
         self.colours = colours
         #self.backgroundImage = wx.Image('')
         self.progress      = 0.0
@@ -212,8 +212,8 @@ class ProgressSlider(wx.Panel):
         self.SetMinSize((1,25))
         self.SetBackgroundColour(wx.WHITE)
         self.utility = utility
-        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), ICONNAME,'Images','background.png')) ## LIBRARYNAME
-        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), ICONNAME,'Images','sliderDot.png')) ## LIBRARYNAME
+        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Video','Images',imgprefix+'background.png')) ## LIBRARYNAME
+        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Video','Images',imgprefix+'sliderDot.png')) ## LIBRARYNAME
         self.sliderPosition = None
         self.rectHeight = 2
         self.rectBorderColour = wx.LIGHT_GREY
@@ -405,7 +405,7 @@ class ProgressSlider(wx.Panel):
   
 class VolumeSlider(wx.Panel):
     
-    def __init__(self, parent, utility):
+    def __init__(self, parent, utility, imgprefix=''):
         self.progress      = 0.0
         self.position = 0
         
@@ -415,8 +415,8 @@ class VolumeSlider(wx.Panel):
         self.SetMinSize((150,25))
         self.SetBackgroundColour(wx.WHITE)
         self.utility = utility
-        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), ICONNAME,'Images','background.png')) ## LIBRARYNAME
-        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), ICONNAME,'Images','sliderVolume.png')) ## LIBRARYNAME
+        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Video','Images',imgprefix+'background.png')) ## LIBRARYNAME
+        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Video','Images',imgprefix+'sliderVolume.png')) ## LIBRARYNAME
         self.sliderPosition = None
         self.rectHeight = 2
         self.rectBorderColour = wx.LIGHT_GREY

@@ -5,7 +5,7 @@ import wx
 import sys
 
 from Tribler.Video.EmbeddedPlayer import EmbeddedPlayerPanel
-
+from Tribler.Video.EmbeddedPlayer4Frame import EmbeddedPlayer4FramePanel
 
 DEBUG = False
 
@@ -60,7 +60,7 @@ class VideoFrame(wx.Frame,VideoBaseFrame):
 
     def create_videopanel(self,vlcwrap, logopath):
         self.showingframe = False
-        self.videopanel = EmbeddedPlayerPanel(self, self.utility, vlcwrap, logopath)
+        self.videopanel = EmbeddedPlayer4FramePanel(self, self.utility, vlcwrap, logopath)
         self.Hide()
 
     def show_videoframe(self):
