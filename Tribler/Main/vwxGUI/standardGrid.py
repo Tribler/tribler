@@ -82,10 +82,10 @@ class GridManager(object):
         
         
         #print >> sys.stderr, '**********==============********* refresh', self.grid.initReady
-        if not self.grid.initReady:
-            standardgrid_refresh_lambda = lambda:self.refresh(update_observer=update_observer)
-            wx.CallAfter(standardgrid_refresh_lambda)
-            return
+        #if not self.grid.initReady:
+        #    standardgrid_refresh_lambda = lambda:self.refresh(update_observer=update_observer)
+        #    wx.CallAfter(standardgrid_refresh_lambda)
+        #    return
 
         if self.state is None:
             return
