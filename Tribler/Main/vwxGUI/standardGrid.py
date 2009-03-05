@@ -388,7 +388,6 @@ class standardGrid(wx.Panel):
     of rows
     """
     def __init__(self, cols, subPanelHeight, orientation='horizontal', viewmode = 'list', parent = None, name="standardGrid"): ##
-        self.initReady = False
         self.data = None
         self.detailPanel = None
         self.orientation = orientation
@@ -408,11 +407,13 @@ class standardGrid(wx.Panel):
         self.utility = self.guiUtility.utility
         self.gridManager = GridManager(self, self.utility)
         if not parent:
+            self.initReady = False
             pre = wx.PrePanel()
             # the Create step is done by XRC.
             self.PostCreate(pre)
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
         else:
+            self.initReady = True
             wx.Panel.__init__(self,parent,-1,name=name)
         
         print >>sys.stderr,"standardGrid: __init__: viewmode is",self.viewmode
