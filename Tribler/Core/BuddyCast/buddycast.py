@@ -949,15 +949,17 @@ class BuddyCastCore:
             self.print_debug_info('Active', 17, target_permid)
         else:
             self.print_debug_info('Passive', 7, target_permid)
-
+        
         # Bartercast
         if self.bartercast_core != None and active:
             self.bartercast_core.createAndSendBarterCastMessage(target_permid, selversion, active)
-
-        if self.moderationcast_core != None and active:
+            
+        # As of March 5, 2009, it is decided that, irrespective of whether its active, we would be sending
+        # ModerationCastHave Message and VoteCast Message, only if there are any moderations and votes respectively
+        if self.moderationcast_core != None:
             self.moderationcast_core.createAndSendModerationCastHaveMessage(target_permid, selversion)
         
-        if self.votecast_core != None and active:
+        if self.votecast_core != None:
             self.votecast_core.createAndSendVoteCastMessage(target_permid, selversion)
 
         if self.log:

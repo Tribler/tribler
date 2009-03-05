@@ -60,11 +60,6 @@ class VoteCastCore:
         #Reference to buddycast-core, set by the buddycast-core (as it is created by the
         #buddycast-factory after calling this constructor).
         self.buddycast_core = None
-        self.send_block_list = {}
-        self.recv_block_list = {}
-        self.block_interval = 1*60*60   # block interval for a peer to vote   cast
-        #Blocklist (to keep track of sent HAVE-messages)
-        #self.blockHave = BlockList(BLOCK_HAVE_TIME)
         
         #Debug-interface
         if DEBUG_UI:
@@ -88,14 +83,12 @@ class VoteCastCore:
     def createAndSendVoteCastMessage(self, target_permid, selversion):
         votecast_data = self.createVoteCastMessage(target_permid)
         # ARNO50: TODO: don't send empty msgs. Need to change the arch for this.
-        #if len(votecast_data) == 0:
-        #    return
-        
-        #print >> sys.stderr, "And this is vote message"
+        if len(votecast_data) == 0:
+            if DEBUG:
+                print >>sys.stderr, "No votes there.. hence we do not send"            
+            return
         
         votecast_msg = bencode(votecast_data)
-        
-        #self.blockHave.add(target_permid)
          
         if self.log:
             dns = self.dnsindb(target_permid)
@@ -105,10 +98,8 @@ class VoteCastCore:
                 msg = voteCastReplyMsgToString(votecast_data)
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
         
-        
         if DEBUG: print >> sys.stderr, "Sending votecastmsg",voteCastMsgToString(votecast_data)
         data = VOTECAST+votecast_msg
-        self.blockPeer(target_permid, self.send_block_list, self.block_interval)
         self.secure_overlay.send(target_permid, data, self.voteCastSendCallback)        
         
 
@@ -165,8 +156,6 @@ class VoteCastCore:
                 print >> sys.stderr, "votecast: warning - got large voteCastHaveMsg", len(t)
             return False
 
-        #active = self.blockHave.blocked(sender_permid)
-
         votecast_data = {}
 
         try:
@@ -195,11 +184,7 @@ class VoteCastCore:
                 MSG_ID = "VOTECAST"
                 msg = voteCastMsgToString(votecast_data)
                 self.overlay_log('RECV_MSG', ip, port, show_permid(sender_permid), selversion, MSG_ID, msg)
-        #Send have-message, if we have not done so
-        #print >> sys.stderr, "should be twice right"
-        if not self.isBlocked(sender_permid, self.send_block_list):
-            self.replyVoteCast(sender_permid, selversion)
-        
+ 
         return True
 
     ################################
@@ -210,42 +195,13 @@ class VoteCastCore:
     
         for value in data:
             vote = {}
-            #print >> sys.stderr,"intention>>>>", value
             vote['mod_id'] = value[0]
             vote['voter_id'] = self.votecastdb.getPeerID(sender_permid)
-            #print >> sys.stderr,"this is the peer id so it should be clear", vote['voter_id']
             vote['vote'] = value[1] 
             self.votecastdb.addVote(vote)
             
         if DEBUG:
             print >> sys.stderr,"Processing VOTECAST msg from: ", permid_for_user(sender_permid), "DONE; data:"
-            
-    ################################
-    def replyVoteCast(self, target_permid, selversion):
-        """ Reply a VoteCast message """
-
-        self.createAndSendVoteCastMessage(target_permid, selversion)
-
-    ################################
-    def isBlocked(self, peer_permid, block_list):
-        if peer_permid not in block_list:
-            return False
-        unblock_time = block_list[peer_permid]
-        if now() >= unblock_time - self.network_delay:    # 30 seconds for network delay
-            block_list.pop(peer_permid)
-            return False
-        return True
-    
-    def blockPeer(self, peer_permid, block_list, block_interval=None):
-        """ Add a peer to a block list """
-
-        if block_interval is None:
-            block_interval = self.block_interval
-        unblock_time = now() + block_interval
-        block_list[peer_permid] = unblock_time
-        
-        if DEBUG:
-            print >>sys.stderr,'votecast: %s Blocked peer %s'% (ctime(now()), permid_for_user(peer_permid))
             
     def showAllVotes(self):
         """ Currently this function is only for testing, to show all votes """

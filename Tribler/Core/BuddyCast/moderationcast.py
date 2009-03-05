@@ -52,9 +52,6 @@ class ModerationCastCore:
         #buddycast-factory after calling this constructor).
         self.buddycast_core = None
         
-        #Blocklist (to keep track of sent HAVE-messages)
-        self.blockHave = BlockList(BLOCK_HAVE_TIME)
-        
         #Debug-interface
         if DEBUG_UI:
             from moderationcast_test import ModerationCastTest
@@ -78,11 +75,11 @@ class ModerationCastCore:
         
         moderationcast_data = self.createModerationCastHaveMessage(target_permid)
         # ARNO50: TODO: don't send empty msgs. Need to change the arch for this.
-        #if len(moderationcast_data) == 0:
-        #    return
+        if len(moderationcast_data) == 0:
+            if DEBUG:
+                print >>sys.stderr, "There are no moderations.. hence we do not send"
+            return
         moderationcast_msg = bencode(moderationcast_data)
-        
-        self.blockHave.add(target_permid)
          
         if self.log:
             dns = self.dnsindb(target_permid)
@@ -91,8 +88,6 @@ class ModerationCastCore:
                 MSG_ID = "MODERATIONCAST_HAVE"
                 msg = moderationCastHaveMsgToString(moderationcast_data)
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
-        
-        
         
         data = MODERATIONCAST_HAVE+moderationcast_msg
         print >>sys.stderr, "Sending Moderationcast Have Msg", moderationCastHaveMsgToString(moderationcast_data)
@@ -306,15 +301,12 @@ class ModerationCastCore:
         else:
             print >>sys.stderr, "Never seen this moderator :", permid_for_user(sender_permid)
 
-        active = self.blockHave.blocked(sender_permid)
-
         moderationcast_data = {}
 
         try:
             moderationcast_data = bdecode(recv_msg)
         except:
             if DEBUG:
-
                 print >> sys.stderr, "moderationcast: warning, invalid bencoded data"
             return False
 
@@ -322,12 +314,11 @@ class ModerationCastCore:
         # check message-structure
         if not validModerationCastHaveMsg(moderationcast_data):
             if DEBUG:
-
                 print >> sys.stderr, "moderationcast: invalid MODERATIONCAST_HAVE-message"
             return False
 
         if DEBUG:
-            print "Receiving MODERATIONCAST_HAVE", moderationCastHaveMsgToString(moderationcast_data)
+            print "Received MODERATIONCAST_HAVE", moderationCastHaveMsgToString(moderationcast_data)
 
         #Log RECV_MSG of uncompressed message
         if self.log:
@@ -340,10 +331,6 @@ class ModerationCastCore:
   
         #Reply have-message, with request message
         self.createAndSendModerationCastRequestMessage(sender_permid, moderationcast_data, selversion)
-        
-        #Send have-message, if we have not done so
-        if not active:
-            self.replyModerationCast(sender_permid, selversion)
         
         return True
 
@@ -372,19 +359,17 @@ class ModerationCastCore:
             moderationcast_data = bdecode(recv_msg)
         except:
             if DEBUG:
-
                 print >> sys.stderr, "moderationcast: warning, invalid bencoded data"
             return False
 
         # check message-structure
         if not validModerationCastRequestMsg(moderationcast_data):
             if DEBUG:
-
                 print >> sys.stderr, "moderationcast: invalid MODERATIONCAST_REQUEST-message"
             return False
 
         if DEBUG:
-            print "Receiving MODERATIONCAST_REQUEST", moderationCastRequestMsgToString(moderationcast_data)
+            print "Received MODERATIONCAST_REQUEST", moderationCastRequestMsgToString(moderationcast_data)
 
         #Log RECV_MSG of uncompressed message
         if self.log:
@@ -474,3 +459,10 @@ class ModerationCastCore:
             for record in records:
                 print >>sys.stderr, "    modid:",record[0],"; modname:", record[1], "; infohash:",record[2],"; signature:", record[7]
             print >>sys.stderr, "End of moderations..."
+            
+            records = self.moderationcastdb.getAllModerators()
+            print >>sys.stderr, "Existing moderators..."
+            for record in records:
+                print >>sys.stderr, "    modid:",record[0],"; status:", record[1], "; timestamp:",record[2]
+            print >>sys.stderr, "End of moderators..."
+            
