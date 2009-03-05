@@ -1400,7 +1400,7 @@ DLSTATUS_STOPPED_ON_ERROR = "stopped/error"
 duplicate_download_msg = "You are already downloading this torrent, see your library."
 duplicate_download_title = "Duplicate download"
 
-invalid_torrent_no_playable_files_msg = "You are attemting to play files from a torrent that does not contain any playable files."
+invalid_torrent_no_playable_files_msg = "You are attempting to play files from a torrent that does not contain any playable files."
 invalid_torrent_no_playable_files_title = "Invalid torrent"
 
 #

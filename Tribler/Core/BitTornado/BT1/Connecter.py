@@ -1040,8 +1040,8 @@ class Connecter:
                 return
             if DEBUG_NORMAL_MSGS: # or connection.get_ip().startswith("192"):
                 print >>sys.stderr,"connecter: Got PIECE(",i,") from",connection.get_ip()
-            if connection.get_ip().startswith("192"):
-                print >>sys.stderr,"@",
+            #if connection.get_ip().startswith("192"):
+            #    print >>sys.stderr,"@",
             try:
                 if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
                     self.got_piece(i)

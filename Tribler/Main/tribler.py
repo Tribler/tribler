@@ -655,7 +655,7 @@ class ABCApp(wx.App):
                     # Also pass dslist to friendsView, for coopdl boosting info
                     # Arno, 2009-02-11: We also need it in filesMode now.
                     modedata = self.guiUtility.standardOverview.data[mode]
-                    grid = modedata['grid']
+                    grid = modedata.get('grid')
                     if grid is not None:
                         gm = grid.gridManager
                         gm.download_state_gui_callback(dslist)

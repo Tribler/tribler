@@ -211,13 +211,14 @@ class MainFrame(wx.Frame):
     def startCMDLineTorrent(self):
         if self.params[0] != "":
             torrentfilename = self.params[0]
-            self.startDownload(torrentfilename,cmdline=True)
+            self.startDownload(torrentfilename,cmdline=True,vodmode=True)
+            self.guiUtility.standardLibraryOverview(refresh=True)
 
 
-    def startDownload(self,torrentfilename,destdir=None,tdef = None, cmdline = False, clicklog=None,name=None,vodmode=False):
+    def startDownload(self,torrentfilename,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False):
         
         if DEBUG:
-            print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef,cmdline
+            print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
         try:
             if tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
@@ -227,8 +228,10 @@ class MainFrame(wx.Frame):
                 dscfg.set_dest_dir(destdir)
         
             videofiles = tdef.get_files(exts=videoextdefaults)
+            if vodmode and len(videofiles) == 0:
+                vodmode = False
 
-            if vodmode or tdef.get_live() or (cmdline and len(videofiles) > 0):
+            if vodmode or tdef.get_live():
                 print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
                 videoplayer = VideoPlayer.getInstance()
                 result = videoplayer.start_and_play(tdef,dscfg)
@@ -237,15 +240,14 @@ class MainFrame(wx.Frame):
                 # are no playable files in the torrent
                 if not result:
                     dlg = wx.MessageDialog(None,
-                                           self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
-                                           self.utility.lang.get("invalid_torrent_no_playable_files_title"),
-                                           wx.OK|wx.ICON_INFORMATION)
+                               self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
+                               self.utility.lang.get("invalid_torrent_no_playable_files_title"),
+                               wx.OK|wx.ICON_INFORMATION)
                     dlg.ShowModal()
                     dlg.Destroy()
             else:
                 print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                 result = self.utility.session.start_download(tdef,dscfg)
-             
             if result:
                 # ARNO50: Richard will look at this   
                 self.guiserver = GUITaskQueue.getInstance()
@@ -257,7 +259,6 @@ class MainFrame(wx.Frame):
                 mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
                 mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
 
-            # TODO: Torrents passed on command line.
             return result  
 
         except DuplicateDownloadException:
@@ -268,6 +269,15 @@ class MainFrame(wx.Frame):
                                    wx.OK|wx.ICON_INFORMATION)
             result = dlg.ShowModal()
             dlg.Destroy()
+            
+            # If there is something on the cmdline, all other torrents start
+            # in STOPPED state. Restart
+            if cmdline:
+                dlist = self.utility.session.get_downloads()
+                for d in dlist:
+                    if d.get_def().get_infohash() == tdef.get_infohash():
+                        d.restart()
+                        break
 
         except Exception,e:
             print_exc()
