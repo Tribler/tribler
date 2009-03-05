@@ -688,11 +688,6 @@ class GUIUtility:
         self.standardDetails.refreshStatusPanel(True)         
         self.guiOpen.set()
         
-    def deleteTorrent(self, torrent):
-        if torrent.get('web2'):
-            return
-        self.torrentsearch_manager.deleteTorrent(torrent['infohash'],delete_file=True)
-    
     def deleteSubscription(self,subscrip):
         self.standardOverview.loadSubscriptionData()
         self.standardOverview.refreshData()
@@ -1164,6 +1159,7 @@ class GUIUtility:
             
         self.standardOverview.removeTorrentFromLibrary(item)
     
+
     def onAdvancedInfoInLibrary(self, event = None):
         # open torrent details frame
         item = self.standardDetails.getData()

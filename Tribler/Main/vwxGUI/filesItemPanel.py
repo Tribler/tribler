@@ -487,7 +487,7 @@ class FilesItemPanel(wx.Panel):
                 if self.data:
                     if DEBUG:
                         print >>sys.stderr,'fip: deleting'
-                    self.guiUtility.deleteTorrent(self.data)
+                    #self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         try:
             self.gridKeyTyped(event)

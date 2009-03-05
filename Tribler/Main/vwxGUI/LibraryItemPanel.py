@@ -315,7 +315,10 @@ class LibraryItemPanel(wx.Panel):
         for window in wl:
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             #window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
-            window.Bind(wx.EVT_KEY_UP, self.keyTyped)                         
+            # Arno, 2009-03-05: this binding persists, so even when results page
+            # is shown after libView, hitting the delete button generates
+            # an event in this class.
+            #window.Bind(wx.EVT_KEY_UP, self.keyTyped)                         
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
 
             
@@ -514,7 +517,7 @@ class LibraryItemPanel(wx.Panel):
                         print >>sys.stderr,'lib: deleting'
                     # Arno; 2007-05-11: TODO: use right method here, deleteTorrent does nothing at the 
                     # moment, see below for right method
-                    self.guiUtility.deleteTorrent(self.data)
+                    #self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
     def mouseAction(self, event):
