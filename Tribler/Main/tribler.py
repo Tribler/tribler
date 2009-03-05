@@ -464,11 +464,19 @@ class ABCApp(wx.App):
         # Create global rate limiter
         self.ratelimiter = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
         self.rateadjustcount = 0 
+
         maxup = self.utility.config.Read('maxuploadrate', "int")
+        if maxup == -1: # no upload
+            self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
+        else:
+            self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
+
+
         maxdown = self.utility.config.Read('maxdownloadrate', "int")
+        self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
+
+
         maxupseed = self.utility.config.Read('maxseeduploadrate', "int")
-        self.ratelimiter.set_global_max_speed(UPLOAD,maxup)
-        self.ratelimiter.set_global_max_speed(DOWNLOAD,maxdown)
         self.ratelimiter.set_global_max_seedupload_speed(maxupseed)
         self.utility.ratelimiter = self.ratelimiter
  

@@ -25,7 +25,7 @@ class SettingsOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
         self.initDone = False
-        self.elementsName = ['myNameField', 'thumb', 'edit','firewallValue','firewallStatus','uploadCtrl','downloadCtrl','zeroUp','fiftyUp','hundredUp','zeroDown','fiftyDown','hundredDown','diskLocationCtrl']
+        self.elementsName = ['myNameField', 'thumb', 'edit','firewallValue','firewallStatus','uploadCtrl','downloadCtrl','zeroUp','fiftyUp','hundredUp','unlimitedUp','tenDown','fiftyDown','hundredDown','unlimitedDown','diskLocationCtrl']
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         self.mypref = None
@@ -91,10 +91,12 @@ class SettingsOverviewPanel(wx.Panel):
         self.elements['zeroUp'].Bind(wx.EVT_LEFT_UP, self.zeroUp)
         self.elements['fiftyUp'].Bind(wx.EVT_LEFT_UP, self.fiftyUp)
         self.elements['hundredUp'].Bind(wx.EVT_LEFT_UP, self.hundredUp)
-        self.elements['zeroDown'].Bind(wx.EVT_LEFT_UP, self.zeroDown)
+        self.elements['unlimitedUp'].Bind(wx.EVT_LEFT_UP, self.unlimitedUp)
+
+        self.elements['tenDown'].Bind(wx.EVT_LEFT_UP, self.tenDown)
         self.elements['fiftyDown'].Bind(wx.EVT_LEFT_UP, self.fiftyDown)
         self.elements['hundredDown'].Bind(wx.EVT_LEFT_UP, self.hundredDown)
-
+        self.elements['unlimitedDown'].Bind(wx.EVT_LEFT_UP, self.unlimitedDown)
 
         self.elements['uploadCtrl'].Bind(wx.EVT_KEY_DOWN, self.uploadCtrlEnter)
         self.elements['downloadCtrl'].Bind(wx.EVT_KEY_DOWN, self.downloadCtrlEnter)
@@ -159,13 +161,21 @@ class SettingsOverviewPanel(wx.Panel):
 
     def showMaxDLRate(self):
         maxdownloadrate = self.guiUtility.utility.config.Read('maxdownloadrate', 'int') #kB/s
-        self.elements['downloadCtrl'].SetValue(str(maxdownloadrate))        
-
+        if maxdownloadrate == 0:
+            self.elements['downloadCtrl'].SetValue('inf')        
+        else:
+            self.elements['downloadCtrl'].SetValue(str(maxdownloadrate))        
 
 
     def showMaxULRate(self):
         maxuploadrate = self.guiUtility.utility.config.Read('maxuploadrate', 'int') #kB/s
-        self.elements['uploadCtrl'].SetValue(str(maxuploadrate))        
+        if maxuploadrate == -1:
+            self.elements['uploadCtrl'].SetValue('0')        
+        elif maxuploadrate == 0:
+            self.elements['uploadCtrl'].SetValue('inf')        
+        else:
+            self.elements['uploadCtrl'].SetValue(str(maxuploadrate))        
+
 
 
     def showDiskLocation(self):
@@ -176,8 +186,8 @@ class SettingsOverviewPanel(wx.Panel):
 
     def zeroUp(self, event):
         self.elements['uploadCtrl'].SetValue('0') 
-        self.guiUtility.utility.config.Write('maxuploadrate', '0')
-        self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
+        self.guiUtility.utility.config.Write('maxuploadrate', '-1')
+        self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
 
     def fiftyUp(self, event):
         self.elements['uploadCtrl'].SetValue('50')        
@@ -190,11 +200,16 @@ class SettingsOverviewPanel(wx.Panel):
         self.guiUtility.utility.config.Write('maxuploadrate', '100')
         self.utility.ratelimiter.set_global_max_speed(UPLOAD, 100)
 
+    def unlimitedUp(self, event):
+        self.elements['uploadCtrl'].SetValue('inf')        
+        self.guiUtility.utility.config.Write('maxuploadrate', '0')
+        self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
 
-    def zeroDown(self, event):
-        self.elements['downloadCtrl'].SetValue('0')        
-        self.guiUtility.utility.config.Write('maxdownloadrate', '0')
-        self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
+
+    def tenDown(self, event):
+        self.elements['downloadCtrl'].SetValue('10')        
+        self.guiUtility.utility.config.Write('maxdownloadrate', '10')
+        self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 10)
 
     def fiftyDown(self, event):
         self.elements['downloadCtrl'].SetValue('50')        
@@ -208,10 +223,27 @@ class SettingsOverviewPanel(wx.Panel):
         self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 100)
 
 
+    def unlimitedDown(self, event):
+        self.elements['downloadCtrl'].SetValue('inf')        
+        self.guiUtility.utility.config.Write('maxdownloadrate', '0')
+        self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
+
+
+
+
     def uploadCtrlEnter(self, event):
         keycode = event.GetKeyCode()
-        if keycode == wx.WXK_RETURN and self.elements['uploadCtrl'].GetValue().strip() != '':
-            self.utility.ratelimiter.set_global_max_speed(UPLOAD,int(self.elements['uploadCtrl'].GetValue()))
+        val = self.elements['uploadCtrl'].GetValue().strip()
+        if keycode == wx.WXK_RETURN and val != '':
+            if val == 'inf':
+                self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
+                self.guiUtility.utility.config.Write('maxuploadrate', '0')
+            elif val == '0':
+                self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0.0001)
+                self.guiUtility.utility.config.Write('maxuploadrate', '-1')
+            else:
+                self.utility.ratelimiter.set_global_max_speed(UPLOAD, val)
+                self.guiUtility.utility.config.Write('maxuploadrate', val)
             self.standardOverview.updateSaveIcon()
         else:
             event.Skip()     
@@ -219,9 +251,17 @@ class SettingsOverviewPanel(wx.Panel):
      
     def downloadCtrlEnter(self, event):
         keycode = event.GetKeyCode()
-        if keycode == wx.WXK_RETURN and self.elements['downloadCtrl'].GetValue().strip() != '':
-            self.utility.ratelimiter.set_global_max_speed(DOWNLOAD,int(self.elements['downloadCtrl'].GetValue()))
-            self.standardOverview.updateSaveIcon()
+        val = self.elements['downloadCtrl'].GetValue().strip()
+        if keycode == wx.WXK_RETURN and val != '':
+            if val == 'inf':
+                self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
+                self.guiUtility.utility.config.Write('maxdownloadrate', '0')
+                self.standardOverview.updateSaveIcon()
+            elif int(val) != 0:
+                self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, val)
+                self.guiUtility.utility.config.Write('maxdownloadrate', val)
+                self.standardOverview.updateSaveIcon()
+                
         else:
             event.Skip()     
 

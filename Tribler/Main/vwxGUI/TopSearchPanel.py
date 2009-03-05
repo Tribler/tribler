@@ -245,8 +245,8 @@ class TopSearchPanel(bgPanel):
         self.my_files.SetMinSize((50,15))
         self.my_files.SetForegroundColour(wx.Colour(255, 51, 0))
         self.my_files.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.total_down.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.total_up.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.total_down.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.total_up.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
         # end wx.Glade
 
@@ -318,7 +318,7 @@ class TopSearchPanel(bgPanel):
         ##object_13.Add(self.left, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
         object_13.Add(self.total_down, 0, 0, 0)
-        object_13.Add((19, 0), 0, 0, 0)
+        object_13.Add((8, 0), 0, 0, 0)
         object_13.Add(self.total_up, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
         ##object_13.Add(self.right, 0, 0, 0)

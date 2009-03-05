@@ -324,7 +324,7 @@ class LibraryItemPanel(wx.Panel):
             
     def getColumns(self):
         return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':370,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
-                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'Down && Up Speed','width':130, 'tip':self.utility.lang.get('C_upspeed')}, 
+                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'Down &&&& Up Speed','width':130, 'tip':self.utility.lang.get('C_downupspeed')}, 
                 {'sort':'progress', 'title':'Completion', 'width':120, 'tip':self.utility.lang.get('C_progress')}               
                 ]     
                   
@@ -489,6 +489,10 @@ class LibraryItemPanel(wx.Panel):
                 ##if torrent['infohash'] != oldinfohash:
                     #print >>sys.stderr,"REFRESH THUMBNAIL",`torrent['name']`
                     ##self.thumb.setTorrent(torrent)
+
+                self.remove.SetToolTipString(self.utility.lang.get('C_remove'))
+ 
+
             
             else:
                 self.title.SetLabel('')

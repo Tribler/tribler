@@ -21,6 +21,8 @@ from Tribler.Video.defs import *
 from Tribler.Video.Progress import ProgressBar, ProgressSlider, VolumeSlider
 from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
 
+from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
+
 
 DEBUG = False
 
@@ -71,6 +73,11 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.slider.SetValue(0)
             self.oldvolume = None
             
+
+            self.mute = tribler_topButton(self, name = 'mute')
+            self.mute.SetBackgroundColour(wx.WHITE)
+
+
                             
             self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), ICONNAME, 'Images'), 'pause', 'play')
             self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
@@ -125,6 +132,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             ctrlsizer.Add([5,0],0,wx.FIXED_MINSIZE,0)
             ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
             ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+            ctrlsizer.Add(self.mute, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
             ctrlsizer.Add(self.volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
             ##ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
         
