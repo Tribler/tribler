@@ -2483,6 +2483,12 @@ class ModerationCastDBHandler(BasicDBHandler):
         sql = 'select mod_id from Moderators'
         item = self._db.fetchall(sql)
         return item
+    
+    def getAllModerators(self):
+        sql = 'select * from Moderators'
+        item = self._db.fetchall(sql)
+        return item
+        
 
     def getVotedModerators(self):
         sql = 'select * from Moderators where status != 0'
