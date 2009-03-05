@@ -94,15 +94,17 @@ class ColumnHeader(wx.Panel):
         self.type = type
         if self.component == None:
             if type == 'up':
-                self.sortIcon.setBitmapFromFile(self.bitmapOrderUp)
                 self.setColour(self.selectedColour)
-                if not self.sortIcon.IsShown():
-                    self.sortIcon.Show()
+                if self.sortIcon:
+                    self.sortIcon.setBitmapFromFile(self.bitmapOrderUp)
+                    if not self.sortIcon.IsShown():
+                        self.sortIcon.Show()
             elif type == 'down':
-                self.sortIcon.setBitmapFromFile(self.bitmapOrderDown)
                 self.setColour(self.selectedColour)
-                if not self.sortIcon.IsShown():
-                    self.sortIcon.Show()
+                if self.sortIcon:
+                    self.sortIcon.setBitmapFromFile(self.bitmapOrderDown)
+                    if not self.sortIcon.IsShown():
+                        self.sortIcon.Show()
             else:
                 if self.sortIcon:
                     self.sortIcon.setBitmapFromFile(self.bitmapOrderDown)
