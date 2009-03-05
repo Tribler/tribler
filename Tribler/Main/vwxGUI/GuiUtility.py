@@ -294,12 +294,12 @@ class GUIUtility:
             moderation = self.modcast_db.getModeration(bin2str(self.moderatedinfohash))
             # ARNO50: Please turn DB records into dicts. Not doing this makes
             # the whole code DB schema dependent!
-            self.modcast_db.blockModerator(bin2str(moderation[0]))
+            self.modcast_db.blockModerator(moderation[0])
 
         elif name == 'real':    
             self.fakeButton.setState(False) # disable fake button
             moderation = self.modcast_db.getModeration(bin2str(self.moderatedinfohash))
-            self.modcast_db.forwardModerator(bin2str(moderation[0]))
+            self.modcast_db.forwardModerator(moderation[0])
 
 
 
