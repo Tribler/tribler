@@ -278,25 +278,25 @@ class standardOverview(wx.Panel):
         #if DEBUG:
         print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
 
-        #xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
-        #panelName = modeString+'Overview'
-        #res = xrc.XmlResource(xrcResource)
-        #currentPanel = res.LoadPanel(self, panelName)
-        
         pager = xrc.XRCCTRL(self.guiUtility.frame, 'standardPager')    # Jie:not really used for profile, rss and library?
-        if modeString == "files":
+        if modeString == "startpage":
+            currentPanel = wx.Panel(self,-1)
+            pager = None
+            grid = currentPanel
+        elif modeString == "files": # AKA search results page
             #parenpanel = wx.Panel(parent, -1)
             currentPanel = filesGrid(parent=self)
+            grid = currentPanel
         elif modeString == "library":
             #parenpanel = wx.Panel(parent, -1)
             currentPanel = libraryGrid(parent=self)
-        elif modeString == "startpage":
-            currentPanel = wx.Panel(self,-1)
-            pager = None
-            
-        grid = currentPanel
-        #grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')    
-        
+            grid = currentPanel
+        elif modeString == "settings":
+            xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
+            panelName = modeString+'Overview'
+            res = xrc.XmlResource(xrcResource)
+            currentPanel = res.LoadPanel(self, panelName)
+            grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')    
             
         self.data[self.mode]['panel'] = currentPanel
         if modeString != "startpage":
