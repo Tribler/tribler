@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resource version="2.3.0.1" xmlns="http://www.wxwidgets.org/wxxrc">
-  <object class="wxPanel" name="startpageOverview">
-    <pos>0,0</pos>
-    <size>1000,425</size>
-    <bg>#FFFFFF</bg>
-  </object>
-</resource>
