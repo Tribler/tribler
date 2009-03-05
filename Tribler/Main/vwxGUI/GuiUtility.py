@@ -656,7 +656,7 @@ class GUIUtility:
         # init thumb / list view
         self.gridViewMode = 'list'
         
-        self.filterStandard.Hide() ## hide the standardOverview at startup
+        #self.filterStandard.Hide() ## hide the standardOverview at startup
 
         # Init family filter        
         ##self.familyButton = xrc.XRCCTRL(self.frame, 'familyfilter')

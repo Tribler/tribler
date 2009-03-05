@@ -339,7 +339,7 @@ class BuddyCastFactory:
             self.overlay_bridge.add_task(self.doBuddyCast, 0.1)
             # Arno: HYPOTHESIS: if set to small, we'll only ask superpeers at clean start.
             if self.data_handler.torrent_db.size() > 0:
-                waitt = 0.5
+                waitt = 1.0
             else:
                 waitt = 3.0
             self.overlay_bridge.add_task(self.data_handler.initRemoteSearchPeers,waitt)

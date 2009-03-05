@@ -116,7 +116,7 @@ class TriblerStyles:
     
     def setDarkText(self, item, text=''):
         item.SetForegroundColour(wx.BLACK) ## color of 'name' 'creation date' etc 51,51,51
-        item.SetBackgroundColour(wx.Colour(52,52,52)) ## 102,102,102
+        item.SetBackgroundColour(wx.Colour(216,233,240)) ## 102,102,102
         item.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         
         if text != '':

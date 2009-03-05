@@ -43,7 +43,7 @@ target = {
 # gui panels to include (=those not found by py2exe from imports)
 includePanels=[
      "standardOverview","standardDetails","standardGrid","standardPager","standardFilter",
-     "TextButton","btn_DetailsHeader","tribler_List"]
+     "TextButton","btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"]
 
 #packages = ["Tribler.Core","encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]

@@ -101,6 +101,10 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler\Images"
  SetOutPath "$INSTDIR\Tribler\Images"
  File Tribler\Images\*.*
+ CreateDirectory "$INSTDIR\Tribler\Video"
+ CreateDirectory "$INSTDIR\Tribler\Video\Images"
+ SetOutPath "$INSTDIR\Tribler\Video\Images"
+ File Tribler\Video\Images\*.*
  CreateDirectory "$INSTDIR\Tribler\Lang"
  SetOutPath "$INSTDIR\Tribler\Lang"
  IfFileExists user.lang userlang
@@ -111,10 +115,13 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images"
+CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images\5.0"
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI"
  File Tribler\Main\vwxGUI\*.*
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images"
  File Tribler\Main\vwxGUI\images\*.*
+ SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images\5.0"
+ File Tribler\Main\vwxGUI\images\5.0\*.*
  ; Categories
  CreateDirectory "$INSTDIR\Tribler\Category"
  SetOutPath "$INSTDIR\Tribler\Category"

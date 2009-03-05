@@ -71,17 +71,6 @@
                             </object>
                           </object>
                           <object class="sizeritem">
-                            <flag>wxFIXED_MINSIZE</flag>
-                            <border>3</border>
-                            <option>0</option>
-                            <object class="wxPanel" name="filterStandard" subclass="Tribler.Main.vwxGUI.filterStandard.filterStandard">
-                              <pos>172,119</pos>
-                              <size>523,70</size>
-                              <bg>#FFFFFF</bg>
-                            </object>
-                            <minsize>523,70</minsize>
-                          </object>
-                          <object class="sizeritem">
                             <object class="wxPanel" name="standardOverview" subclass="Tribler.Main.vwxGUI.standardOverview.standardOverview">
                               <pos>230,224</pos>
                               <size>523,559</size>

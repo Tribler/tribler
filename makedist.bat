@@ -81,6 +81,9 @@ copy Tribler\Core\Statistics\*.sql dist\installdir\Tribler\Core\Statistics
 mkdir dist\installdir\Tribler\Images
 copy Tribler\Images\*.* dist\installdir\Tribler\Images
 copy Tribler\Main\Build\Win32\heading.bmp dist\installdir
+mkdir dist\installdir\Tribler\Video
+mkdir dist\installdir\Tribler\Video\Images
+copy Tribler\Video\Images\*.* dist\installdir\Tribler\Video\Images
 mkdir dist\installdir\Tribler\Lang
 copy Tribler\Lang\*.lang dist\installdir\Tribler\Lang
 
@@ -92,8 +95,10 @@ REM MainClient specific
 mkdir dist\installdir\Tribler\Main
 mkdir dist\installdir\Tribler\Main\vwxGUI
 mkdir dist\installdir\Tribler\Main\vwxGUI\images
+mkdir dist\installdir\Tribler\Main\vwxGUI\images\5.0
 copy Tribler\Main\vwxGUI\*.xrc dist\installdir\Tribler\Main\vwxGUI
 copy Tribler\Main\vwxGUI\images\*.* dist\installdir\Tribler\Main\vwxGUI\images
+copy Tribler\Main\vwxGUI\images\5.0\*.* dist\installdir\Tribler\Main\vwxGUI\images\5.0
 mkdir dist\installdir\Tribler\Category
 copy Tribler\Category\category.conf dist\installdir\Tribler\Category
 copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
