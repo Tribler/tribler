@@ -78,6 +78,7 @@ class ImagePanelBasic(wx.Panel):
             self.setBitmap(wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY))
         elif DEBUG:
             print >>sys.stderr,'bgPanel: Could not load image: %s' % self.bitmapPath
+            #print_stack()
 
 ##        try:
             # These unnamed things popup on LibraryView

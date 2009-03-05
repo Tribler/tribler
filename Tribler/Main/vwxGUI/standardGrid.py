@@ -4,7 +4,7 @@
 import os, sys, wx, math
 from traceback import print_exc,print_stack
 import wx.xrc as xrc
-from time import time
+from time import time,sleep
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
@@ -23,13 +23,6 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
 
 DEBUG = True
-
-ntfy_mappings = {'filesMode':[NTFY_MYPREFERENCES, NTFY_TORRENTS],
-                 'personsMode':[NTFY_PEERS],
-                 'friendsMode':[NTFY_PEERS],
-                 'libraryMode':[NTFY_MYPREFERENCES, NTFY_TORRENTS],
-                 
-                 }
 
 
 class GridManager(object):
@@ -213,13 +206,6 @@ class GridManager(object):
         return self.total_items == 0 or (0 < len(self.data) < self.grid.items)
     
     def setObserver(self):
-        # Arno: filesMode now shows search results, not interested in incoming torrents anymore
-        #self.session.remove_observer(self.item_network_callback)
-        #for notify_constant in ntfy_mappings[self.state.db]:
-        #    #print >> sys.stderr, 'gridmgr: For %s we added %s' % (self.state.db, notify_constant)
-        #    self.session.add_observer(self.item_network_callback, notify_constant,
-        #                              [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CONNECTION])
-        
         if self.state.db == 'libraryMode' or self.state.db == 'filesMode':
             if not self.download_states_callback_set:
                 self.download_states_callback_set = True
@@ -401,7 +387,7 @@ class standardGrid(wx.Panel):
     Panel which shows a grid with static number of columns and dynamic number
     of rows
     """
-    def __init__(self, cols, subPanelHeight, orientation='horizontal', viewmode = 'list'): ##
+    def __init__(self, cols, subPanelHeight, orientation='horizontal', viewmode = 'list', parent = None, name="standardGrid"): ##
         self.initReady = False
         self.data = None
         self.detailPanel = None
@@ -421,10 +407,15 @@ class standardGrid(wx.Panel):
  
         self.utility = self.guiUtility.utility
         self.gridManager = GridManager(self, self.utility)
-        pre = wx.PrePanel()
-        # the Create step is done by XRC.
-        self.PostCreate(pre)
-        self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+        if not parent:
+            pre = wx.PrePanel()
+            # the Create step is done by XRC.
+            self.PostCreate(pre)
+            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+        else:
+            wx.Panel.__init__(self,parent,-1,name=name)
+        
+        print >>sys.stderr,"standardGrid: __init__: viewmode is",self.viewmode
         
         if type(cols) == int:
             self.cols = cols
@@ -445,6 +436,11 @@ class standardGrid(wx.Panel):
         self.superpeer_db = self.utility.session.open_dbhandler(NTFY_SUPERPEERS)
         self.torrentfeed = TorrentFeedThread.getInstance()
         self.guiserver = GUITaskQueue.getInstance()
+
+        if parent:
+            self.SetSize((675,580))
+            self._PostInit()
+            #self.Show()
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
@@ -456,7 +452,6 @@ class standardGrid(wx.Panel):
     def _PostInit(self):
         # Do all init here
 
-        #self.SetSize((500,500))
         self.SetBackgroundColour(wx.WHITE)
         
         #self.cols = 5
@@ -805,6 +800,9 @@ class standardGrid(wx.Panel):
                     number += 1
                     colIndex += 1
                 rowIndex += 1
+                
+                
+            #print >>sys.stderr,"standardGrid: QQQQQQQQQQQQQQQQQQQQQQQQQQQ QUERY RESULTS DISPLAYED"
             self.Layout()
         except:
             # I sometimes get UnicodeErrors here somewhere
@@ -967,49 +965,22 @@ class standardGrid(wx.Panel):
     
     
 class filesGrid(standardGrid):
-    def __init__(self):
+    def __init__(self,parent=None):
 #        columns = 5
 #        self.subPanelHeight = 108 # This will be update after first refresh
         columns = (5, 1)
         subPanelHeight = (5*22, 22)
-        standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical',parent=parent,name="filesGrid")
         
     def getSubPanel(self, keyfun):
         return FilesItemPanel(self, keyfun)
 
-    
-class personsGrid(standardGrid):
-    def __init__(self):
-        columns = (6, 1)
-        subPanelHeight = (5*22, 22)
-        standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
-        
-    def getSubPanel(self, keyfun):
-        return PersonsItemPanel(self, keyfun)
-
-class friendsGrid(standardGrid):
-    def __init__(self):   
-        columns = (1,1)
-        subPanelHeight = (22,22) # This will be update after first refresh
-        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list')
-        
-    def getSubPanel(self, keyfun):
-        return FriendsItemPanel(self, keyfun)
-    
 class libraryGrid(standardGrid):
-    def __init__(self):
+    def __init__(self,parent=None):
         columns = (1,1)
         subPanelHeight = (22, 22) # This will be update after first refresh
-        standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal', viewmode='list')
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="libraryGrid")
             
     def getSubPanel(self, keyfun):
         return LibraryItemPanel(self, keyfun)
     
-class subscriptionsGrid(standardGrid):
-    def __init__(self):
-        columns = 1
-        subPanelHeight = 22 # This will be update after first refresh
-        standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
-        
-    def getSubPanel(self, keyfun):
-        return SubscriptionsItemPanel(self, keyfun)

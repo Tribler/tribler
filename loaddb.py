@@ -25,12 +25,12 @@ inttime = int(time.time())
 extra_info = {'leecher': 100,'seeder': 100,'last_check_time':inttime,'status':'good'}
 source = 'Manual'
 
-#filenames = ['route2.tstream','star2.tstream','gopher.torrent']
-#for filename in filenames:
-dir = "c:\\Documents and Settings\\Arno\\Desktop\\downloadjunk"
-filelist = os.listdir(dir)
-for basename in filelist:
-    filename = os.path.join(dir,basename)
+filenames = ['route2.tstream','star2.tstream','gopher.torrent']
+for filename in filenames:
+#dir = "c:\\Documents and Settings\\Arno\\Desktop\\downloadjunk"
+#filelist = os.listdir(dir)
+#for basename in filelist:
+#    filename = os.path.join(dir,basename)
     # Make this go on when a torrent fails to start
     try:
         f = open(filename,"rb")

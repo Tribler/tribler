@@ -82,7 +82,6 @@ class FilesItemPanel(wx.Panel):
 
         self.guiImagePath = os.path.join(self.guiUtility.utility.getPath(), 'Tribler', 'Main', 'vwxGUI', 'images') ##
         
- 
         if self.parent.GetName() == 'filesGrid':
             self.listItem = (self.parent.viewmode == 'list')
             self.guiserver = parent.guiserver

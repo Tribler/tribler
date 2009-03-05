@@ -39,6 +39,8 @@ class ColumnHeader(wx.Panel):
         self.icon = None
         self.title = title
 
+        print >>sys.stderr,"ColumnHeader: picture is",picture
+
         if self.component == None or self.component == 'comboboxSort':
             if picture:
                 self.icon = ImagePanel(self)
@@ -56,11 +58,14 @@ class ColumnHeader(wx.Panel):
             if picture == None and title == None:
                 raise Exception('No text nor an icon in columnheader')
             
-            self.sortIcon = ImagePanel(self)
-            self.sortIcon.setBackground(self.unselectedColour)
-            self.sortIcon.Hide()
-            self.hSizer.Add(self.sortIcon, 0, wx.TOP, 1)            
-            self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            if False:
+                self.sortIcon = ImagePanel(self)
+                self.sortIcon.setBackground(self.unselectedColour)
+                self.sortIcon.Hide()
+                self.hSizer.Add(self.sortIcon, 0, wx.TOP, 1)            
+                self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            else:
+                self.sortIcon = None
     
             # 2.8.4.2 return value of GetChildren changed
             wl = [self]
@@ -99,8 +104,9 @@ class ColumnHeader(wx.Panel):
                 if not self.sortIcon.IsShown():
                     self.sortIcon.Show()
             else:
-                self.sortIcon.setBitmapFromFile(self.bitmapOrderDown)
-                self.sortIcon.Hide()
+                if self.sortIcon:
+                    self.sortIcon.setBitmapFromFile(self.bitmapOrderDown)
+                    self.sortIcon.Hide()
                 self.setColour(self.unselectedColour)
         
         self.GetSizer().Layout()

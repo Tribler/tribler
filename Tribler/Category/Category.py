@@ -92,7 +92,7 @@ class Category:
 #                del data
                 return True
         if DEBUG:
-            print 'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)
+            print >>sys.stderr,'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)
         return False
         
     # recalculate category of all torrents, remove torrents from db if not existed
@@ -341,7 +341,7 @@ class Category:
                 b=old
             if self.utility is None:
                 return
-            print >> sys.stderr , b
+            #print >> sys.stderr , b
             if b:
                 self.utility.config.Write('family_filter', '1')
             else:

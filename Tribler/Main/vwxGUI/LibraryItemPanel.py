@@ -321,7 +321,7 @@ class LibraryItemPanel(wx.Panel):
             
     def getColumns(self):
         return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':370,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
-                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'Down &&&& Up Speed','width':130, 'tip':self.utility.lang.get('C_upspeed')}, 
+                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'Down && Up Speed','width':130, 'tip':self.utility.lang.get('C_upspeed')}, 
                 {'sort':'progress', 'title':'Completion', 'width':120, 'tip':self.utility.lang.get('C_progress')}               
                 ]     
                   

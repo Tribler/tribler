@@ -4,6 +4,11 @@
 # code for it using wxGlade (single python file mode), and copy the
 # relevant parts from it into this file, see "MAINLY GENERATED" line below.
 #
+# We need this procedure as there is a bug in wxPython 2.8.x on Win32 that
+# cause the painting/fitting of the panel to fail. All elements wind up in
+# the topleft corner. This is a wx bug as it also happens in XRCED when you
+# display the panel twice.
+#
 
 import sys
 import wx
@@ -53,8 +58,8 @@ class TopSearchPanel(bgPanel):
 
 
         # family filter
-        print >> sys.stderr , "FF" , self.utility.config.Read('family_filter', "boolean")
-        if self.utility.config.Read('family_filter', "boolean") == True:
+        #print >> sys.stderr , "FF" , self.utility.config.Read('family_filter', "boolean")
+        if self.utility.config.Read('family_filter', "boolean"):
             self.familyfilter.SetLabel('Family Filter:ON')
         else:
             self.familyfilter.SetLabel('Family Filter:OFF')

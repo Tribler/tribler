@@ -436,7 +436,7 @@
                   </object>
                   <object class="sizeritem">
                     <object class="wxTextCtrl" name="diskLocationCtrl">
-                      <size>200,20</size>
+                      <size>300,20</size>
                     </object>
                   </object>
                   <object class="spacer">

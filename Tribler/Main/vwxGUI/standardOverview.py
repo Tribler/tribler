@@ -14,7 +14,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc,print_stack
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
-from Tribler.Main.vwxGUI.standardGrid import GridState
+from Tribler.Main.vwxGUI.standardGrid import GridState,filesGrid,libraryGrid
 from Tribler.Main.Utility.constants import *
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -275,21 +275,35 @@ class standardOverview(wx.Panel):
         #print >> sys.stderr, 'standardOverview: currentPanel' , currentPanel
         modeString = self.mode[:-4]
         #print >> sys.stderr, 'standardOverview: modestring' , modeString
-        if DEBUG:
-            print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
+        #if DEBUG:
+        print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
 
-        xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
-        panelName = modeString+'Overview'
-        res = xrc.XmlResource(xrcResource)
-        currentPanel = res.LoadPanel(self, panelName)
-        grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')    
+        #xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
+        #panelName = modeString+'Overview'
+        #res = xrc.XmlResource(xrcResource)
+        #currentPanel = res.LoadPanel(self, panelName)
+        
         pager = xrc.XRCCTRL(self.guiUtility.frame, 'standardPager')    # Jie:not really used for profile, rss and library?
+        if modeString == "files":
+            #parenpanel = wx.Panel(parent, -1)
+            currentPanel = filesGrid(parent=self)
+        elif modeString == "library":
+            #parenpanel = wx.Panel(parent, -1)
+            currentPanel = libraryGrid(parent=self)
+        elif modeString == "startpage":
+            currentPanel = wx.Panel(self,-1)
+            pager = None
+            
+        grid = currentPanel
+        #grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')    
+        
             
         self.data[self.mode]['panel'] = currentPanel
-        self.data[self.mode]['grid'] = grid
-        self.data[self.mode]['pager'] = pager
+        if modeString != "startpage":
+            self.data[self.mode]['grid'] = grid
+            self.data[self.mode]['pager'] = pager
 
-        if pager is not None:                            
+        if pager is not None:                  
             pager.setGrid(grid)
 
         if self.mode == 'settingsMode':
