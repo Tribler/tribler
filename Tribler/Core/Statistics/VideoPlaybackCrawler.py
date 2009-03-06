@@ -140,10 +140,10 @@ class VideoPlaybackCrawler:
             self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), str(info), "\n")))
             self._file.flush()
 
-    def handle_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
+    def handle_info_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
         """
         <<Peer-side>>
-        Received a CRAWLER_VIDEOPLAYBACK_INFO_QUERY or a CRAWLER_VIDEOPLAYBACK_EVENT_QUERY request.
+        Received a CRAWLER_VIDEOPLAYBACK_INFO_QUERY request.
         @param permid The Crawler permid
         @param selversion The overlay protocol version
         @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
@@ -151,11 +151,36 @@ class VideoPlaybackCrawler:
         @param reply_callback Call this function once to send the reply: reply_callback(payload [, error=123])
         """
         if DEBUG:
-            print >> sys.stderr, "videoplaybackcrawler: handle_crawler_request", show_permid_short(permid), message
+            print >> sys.stderr, "videoplaybackcrawler: handle_info_crawler_request", show_permid_short(permid), message
 
         # execute the sql
         try:
-            cursor = self._sqlite_cache_db.execute_read(message)
+            cursor = self._info_db._db.execute_read(message)
+
+        except Exception, e:
+            reply_callback(str(e), error=1)
+        else:
+            if cursor:
+                reply_callback(cPickle.dumps(list(cursor), 2))
+            else:
+                reply_callback("error", error=2)
+
+    def handle_event_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
+        """
+        <<Peer-side>>
+        Received a CRAWLER_VIDEOPLAYBACK_EVENT_QUERY request.
+        @param permid The Crawler permid
+        @param selversion The overlay protocol version
+        @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
+        @param message The message payload
+        @param reply_callback Call this function once to send the reply: reply_callback(payload [, error=123])
+        """
+        if DEBUG:
+            print >> sys.stderr, "videoplaybackcrawler: handle_event_crawler_request", show_permid_short(permid), message
+
+        # execute the sql
+        try:
+            cursor = self._event_db._db.execute_read(message)
 
         except Exception, e:
             reply_callback(str(e), error=1)

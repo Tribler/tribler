@@ -97,11 +97,11 @@ class VideoPlaybackInfoDBHandler(BasicDBHandler):
         When UNIQUE we assume that KEY does not yet exist in the
         database. Otherwise a check is made.
         """
-        assert type(key) is str
-        assert type(piece_size) is int
-        assert type(num_pieces) is int
-        assert type(bitrate) is int
-        assert type(nat) is str
+        assert type(key) is str, type(key)
+        assert type(piece_size) is int, type(piece_size)
+        assert type(num_pieces) is int, type(num_pieces)
+        assert type(bitrate) in (int, float), type(bitrate)
+        assert type(nat) is str, type(nat)
         if DEBUG: print >>sys.stderr, "SqliteVideoPlaybackStatsCacheDB create_entry", key
         if unique:
             self._db.execute_write("INSERT INTO %s (key, timestamp, piece_size, num_pieces, bitrate, nat) VALUES ('%s', %s, %d, %d, %d, '%s')" % (self.table_name, key, time(), piece_size, num_pieces, bitrate, nat))
@@ -127,7 +127,7 @@ class VideoPlaybackInfoDBHandler(BasicDBHandler):
 
     def set_bitrate(self, key, bitrate):
         assert type(key) is str
-        assert type(bitrate) is int
+        assert type(bitrate) in (int, float)
         if DEBUG: print >>sys.stderr, "SqliteVideoPlaybackStatsCacheDB set_bitrate", key, bitrate
         self._db.execute_write("UPDATE %s SET bitrate = %d WHERE key = %s" % (self.table_name, bitrate, key))
 
