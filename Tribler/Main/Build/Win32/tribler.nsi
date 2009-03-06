@@ -81,6 +81,7 @@ Section "!Main EXE" SecMain
  File tribler.exe
  File ffmpeg.exe
  File /r vlc
+ File *.bat
  Delete "$INSTDIR\*.pyd"
  File *.pyd
  Delete "$INSTDIR\python*.dll"

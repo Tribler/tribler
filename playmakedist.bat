@@ -89,6 +89,8 @@ copy %LIBRARYNAME%\Lang\*.lang dist\installdir\%LIBRARYNAME%\Lang
 copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I
 
+copy reset*.bat dist\installdir
+
 cd dist\installdir
 
 :makeinstaller

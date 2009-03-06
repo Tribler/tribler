@@ -90,6 +90,8 @@ copy Tribler\Lang\*.lang dist\installdir\Tribler\Lang
 copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I
 
+copy reset*.bat dist\installdir
+
 REM MainClient specific
 
 mkdir dist\installdir\Tribler\Main
