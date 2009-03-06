@@ -22,7 +22,7 @@ from Tribler.Video.defs import *
 from Tribler.Video.Progress import ProgressBar, ProgressSlider, VolumeSlider
 from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
 
-from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
+from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -50,6 +50,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
 
         self.volume = 0.48
+        self.oldvolume = 0.48
 
         if vlcwrap is None:
             size = (320,64)
@@ -77,12 +78,10 @@ class EmbeddedPlayerPanel(wx.Panel):
             #self.slider.Bind(wx.EVT_SCROLL_THUMBTRACK, self.StopSliderUpdate)
             self.slider.SetRange(0,1)
             self.slider.SetValue(0)
-            self.oldvolume = None
             
 
-            self.mute = tribler_topButton(self, name = 'mute')
-            self.mute.SetBackgroundColour(wx.WHITE)
-            #self.mute.Bind(wx.EVT_LEFT_UP, self.MuteClicked)
+            self.mute = SwitchButton(self, name = 'mt')
+            self.mute.Bind(wx.EVT_LEFT_UP, self.MuteClicked)
 
                             
             self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'pause', 'play')
@@ -138,8 +137,10 @@ class EmbeddedPlayerPanel(wx.Panel):
             ctrlsizer.Add([5,0],0,wx.FIXED_MINSIZE,0)
             ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
             ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
-            ctrlsizer.Add(self.mute, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
             ctrlsizer.Add(self.volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+            ctrlsizer.Add(self.mute, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+            ctrlsizer.Add([5,0], 0, 0, 0)
+
             ##ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
         
         mainbox.Add(self.vlcwin, 0, 0, 1)
@@ -154,9 +155,9 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.timer = None
         
     def mouseAction(self,event):
-   
-        ##event.Skip()     
         if event.LeftDown():
+            if self.mute.isToggled(): # unmute
+                self.mute.setToggled(False)
             if event.GetEventObject().GetImageName() == 'vol1':
                 self.volume = 0.16
             if event.GetEventObject().GetImageName() == 'vol2':
@@ -169,6 +170,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.volume = 0.80
             if event.GetEventObject().GetImageName() == 'vol6':
                 self.volume = 1.00
+            self.oldvolume = self.volume
             self.updateVol(self.volume) 
             self.SetVolume(self.volume)
         elif event.Entering():
@@ -189,16 +191,24 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.updateVol(self.volume) 
 
 
-    def updateVol(self,volume):
+    def MuteClicked(self, event):
+        if self.mute.isToggled():
+            self.volume = self.oldvolume
+        else:
+            self.volume = 0
+        self.updateVol(self.volume) 
+        self.SetVolume(self.volume)
+        self.mute.setToggled(not self.mute.isToggled())
+
+
+
+    def updateVol(self,volume): # updates the volume bars in the gui
         self.vol1.setSelected(volume >= 0.16)
         self.vol2.setSelected(volume >= 0.32)
         self.vol3.setSelected(volume >= 0.48)
         self.vol4.setSelected(volume >= 0.64)
         self.vol5.setSelected(volume >= 0.80)
         self.vol6.setSelected(volume >= 1.00)
-            
-
-
 
 
     def Load(self,url,streaminfo = None):
