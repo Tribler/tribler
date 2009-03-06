@@ -304,7 +304,9 @@ class VideoStatus:
         """
         first, _ = self.download_range()
         number_of_pieces = self.time_to_pieces(self.high_prob_min_time)
-        last = min(self.last_piece, 1 + first + max(number_of_pieces, self.high_prob_min_pieces))
+        last = min(self.last_piece,                                              # last piece
+                   1 + first + max(number_of_pieces, self.high_prob_min_pieces), # based on time OR pieces
+                   1 + first + self.high_prob_min_pieces_limit[1])               # hard-coded buffer maximum
         return first, last
 
     def in_high_range(self, piece):

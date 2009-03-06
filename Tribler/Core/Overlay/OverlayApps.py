@@ -24,6 +24,7 @@ from Tribler.Core.Statistics.Crawler import Crawler
 from Tribler.Core.Statistics.DatabaseCrawler import DatabaseCrawler
 from Tribler.Core.Statistics.FriendshipCrawler import FriendshipCrawler
 from Tribler.Core.Statistics.SeedingStatsCrawler import SeedingStatsCrawler
+from Tribler.Core.Statistics.VideoPlaybackCrawler import VideoPlaybackCrawler
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
 
@@ -145,6 +146,9 @@ class OverlayApps:
             natcheck_handler.register(launchmany)
             crawler.register_message_handler(CRAWLER_NATCHECK, natcheck_handler.gotDoNatCheckMessage, natcheck_handler.gotNatCheckReplyMessage)
             crawler.register_message_handler(CRAWLER_NATTRAVERSAL, natcheck_handler.gotUdpConnectRequest, natcheck_handler.gotUdpConnectReply)
+            videoplayback_crawler = VideoPlaybackCrawler.get_instance()
+            crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_INFO_QUERY, videoplayback_crawler.handle_crawler_request, videoplayback_crawler.handle_info_crawler_reply)
+            crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, videoplayback_crawler.handle_crawler_request, videoplayback_crawler.handle_event_crawler_reply)
 
             if crawler.am_crawler():
 
@@ -153,8 +157,12 @@ class OverlayApps:
                 self.register_connection_handler(crawler.handle_connection)
 
                 if "database" in sys.argv:
-                    # allows access to tribler database
+                    # allows access to tribler database (boudewijn)
                     crawler.register_crawl_initiator(database_crawler.query_initiator)
+
+                if "videoplayback" in sys.argv:
+                    # allows access to video-playback statistics (boudewijn)
+                    crawler.register_crawl_initiator(videoplayback.query_info_initiator)
 
                 if "seedingstats" in sys.argv:
                     # allows access to seeding statistics (Boxun)

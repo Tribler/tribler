@@ -30,6 +30,7 @@ from Tribler.Core.Video.VideoStatus import VideoStatus
 from Tribler.Core.Video.PiecePickerStreaming import PiecePickerStreaming 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Video.LiveSourceAuth import ECDSAAuthenticator,AuthStreamWrapper,VariableReadAuthStreamWrapper
+from Tribler.Core.CacheDB.SqliteVideoPlaybackStatsCacheDB import VideoPlaybackEventDBHandler, VideoPlaybackInfoDBHandler
 
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
@@ -101,7 +102,24 @@ class MovieOnDemandTransporter(MovieTransport):
     # maximum delay between pops before we force a restart (seconds)
     MAX_POP_TIME = 60
 
+    _playback_info_db = VideoPlaybackInfoDBHandler.get_instance()
+    _playback_event_db = VideoPlaybackEventDBHandler.get_instance()
+
     def __init__(self,bt1download,videostatus,videoinfo,videoanalyserpath,vodeventfunc):
+
+        # dirty hack to get the Tribler Session
+        from Tribler.Core.Session import Session
+        session = Session.get_instance()
+            
+        # add an event to indicate that the user wants playback to
+        # start
+        def set_nat(nat):
+            self._playback_info_db.set_nat(self._playback_key, nat)
+        self._playback_key = str(random.random())
+        self._playback_info_db.create_entry(self._playback_key, piece_size=videostatus.piecelen, num_pieces=videostatus.movie_numpieces, bitrate=videostatus.bitrate, nat=session.get_nat_type(callback=set_nat))
+        self._playback_event_db.add_event(self._playback_key, "play", "init")
+
+        self._complete = False
         self.videoinfo = videoinfo
         self.bt1download = bt1download
         self.piecepicker = bt1download.picker
@@ -521,7 +539,10 @@ class MovieOnDemandTransporter(MovieTransport):
                     bitrate = (1*1024*1024/8) # 1mbps
                     if DEBUG:
                         print >>sys.stderr,"vod: trans: No bitrate info avail, wild guess: %.2f KByte/s" % (bitrate/1024)
+
                     vs.set_bitrate(bitrate)
+                    self._playback_info_db.set_bitrate(self._playback_key, bitrate)
+                    self._playback_event_db.add_event(self._playback_key, "ffmpeg", "bitrate %d" % bitrate)
             else:
                 if self.doing_bitrate_est:
                     # There was no playtime info in torrent, use what FFMPEG tells us
@@ -531,6 +552,8 @@ class MovieOnDemandTransporter(MovieTransport):
                         print >>sys.stderr,"vod: trans: Estimated bitrate: %.2f KByte/s" % (bitrate/1024)
 
                     vs.set_bitrate(bitrate)
+                    self._playback_info_db.set_bitrate(self._playback_key, bitrate)
+                    self._playback_event_db.add_event(self._playback_key, "ffmpeg", "bitrate %d" % bitrate)
 
             if width is not None and height is not None:
                 diff = False
@@ -588,6 +611,10 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def complete(self,piece,downloaded=True):
         """ Called when a movie piece has been downloaded or was available from the start (disk). """
+
+        if not self._complete and self.piecepicker.am_I_complete():
+            self._complete = True
+            self._playback_event_db.add_event(self._playback_key, "complete", "system")
 
         vs = self.videostatus
 
@@ -812,6 +839,8 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def start( self, bytepos = 0, force = False ):
         """ Initialise to start playing at position `bytepos'. """
+        self._playback_event_db.add_event(self._playback_key, "play", "system")
+
         # ARNOTODO: we don't use start(bytepos != 0) at the moment. See if we 
         # should. Also see if we need the read numbytes here, or that it
         # is better handled at a higher layer. For live it is currently
@@ -889,6 +918,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def stop( self ):
         """ Playback is stopped. """
+        self._playback_event_db.add_event(self._playback_key, "stop", "system")
 
         vs = self.videostatus
 
@@ -908,6 +938,7 @@ class MovieOnDemandTransporter(MovieTransport):
     def pause( self, autoresume = False ):
         """ Pause playback. If `autoresume' is set, playback is expected to be
         resumed automatically once enough data has arrived. """
+        self._playback_event_db.add_event(self._playback_key, "pause", "system")
 
         vs = self.videostatus
 
@@ -929,6 +960,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def resume( self ):
         """ Resume paused playback. """
+        self._playback_event_db.add_event(self._playback_key, "resume", "system")
 
         vs = self.videostatus
 

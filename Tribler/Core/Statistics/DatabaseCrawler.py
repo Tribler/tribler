@@ -27,7 +27,7 @@ class DatabaseCrawler:
         crawler = Crawler.get_instance()
         if crawler.am_crawler():
             self._file = open("databasecrawler.txt", "a")
-            self._file.write("\n".join(("# " + "*" * 80, "# Crawler started\n")))
+            self._file.write("".join(("# ", "*" * 80, "\n#", strftime("%Y/%m/%d %H:%M:%S"), " Crawler started\n")))
             self._file.flush()
         else:
             self._file = None
@@ -76,11 +76,9 @@ class DatabaseCrawler:
             else:
                 reply_callback("error", error=2)
 
-        return True
-
     def handle_crawler_reply(self, permid, selversion, channel_id, error, message, request_callback):
         """
-        Received a CRAWLER_DATABASE_QUERY request.
+        Received a CRAWLER_DATABASE_QUERY reply.
         @param permid The Crawler permid
         @param selversion The overlay protocol version
         @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
@@ -102,4 +100,3 @@ class DatabaseCrawler:
             self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  REPLY", show_permid(permid), str(error), str(cPickle.loads(message)), "\n")))
             self._file.flush()
 
-        return True

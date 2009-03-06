@@ -127,6 +127,9 @@ class TriblerLaunchMany(Thread):
             
             # initialize Friendship statistics database
             cachedb.init_friendship_stats(config, self.rawserver_fatalerrorfunc)
+
+            # initialize VideoPlayback statistics database
+            cachedb.init_videoplayback_stats(config, self.rawserver_fatalerrorfunc)
             
             self.my_db          = MyDBHandler.getInstance()
             self.peer_db        = PeerDBHandler.getInstance()
