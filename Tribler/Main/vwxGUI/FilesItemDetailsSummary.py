@@ -108,7 +108,7 @@ class FilesItemDetailsSummary(bgPanel):
         self.triblerStyles.setDarkText(self.CreationDate_info)
         self.CreationDate_info.SetLabel(friendly_time(self.torrent['creation_date']))
 
-        self.ModeratorName = wx.StaticText(self,-1,"Moderator name: ",wx.Point(0,0),wx.Size(125,22))     
+        self.ModeratorName = wx.StaticText(self,-1,"Moderated by: ",wx.Point(0,0),wx.Size(125,22))     
         self.ModeratorName.SetMinSize((125,14))
         self.triblerStyles.setLightText(self.ModeratorName)
 
@@ -149,7 +149,7 @@ class FilesItemDetailsSummary(bgPanel):
 
 
         else:
-            mod_name = "Not Moderated"
+            mod_name = "None"
             # disable fake and real buttons
             ##self.fake.setState(False)
             ##self.real.setState(False)
