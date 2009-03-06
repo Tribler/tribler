@@ -809,21 +809,26 @@ class PreferenceDBHandler(BasicDBHandler):
                 print >> sys.stderr, 'dbhandler: addPreferences:', Exception, msg
                 
         # now, store search terms
+        
+        # if maximum number of search terms is exceeded, abort storing them
+        # this may seem a bit radical, but since a legitimate buddycast message will not too many
+        # keywords, there is something fishy about this message anyway and imo the best option it
+        # to discard it completely.
+        nums_of_search_terms = [len(pref.get('search terms',[])) for pref in prefs]
+        if max(nums_of_search_terms)>MAX_KEYWORDS_STORED:
+            if DEBUG:
+                print >>sys.stderr, "peer %d exceeds max number %d of keywords per torrent, aborting storing keywords"  % \
+                                    (peer_id, MAX_KEYWORDS_STORED)
+            return  
+        
         all_terms = Set([])
         for pref in prefs:
             newterms = Set(pref.get('search terms',[]))
             all_terms = all_terms.union(newterms)        
         
-        # Nic: maybe we haven't received a single key word, no need to loop again then
+        # maybe we haven't received a single key word, no need to loop again over prefs then
         if len(all_terms)==0:
             return
-             
-        if len(all_terms)>MAX_KEYWORDS_STORED*len(prefs): 
-            if DEBUG:
-                print >>sys.stderr, "peer %d sends %d search terms for %d torrents " + \
-                                    "(more than avg %d unique terms per torrent), aborting" % \
-                                    (peer_id, len(foreign_termid2terms), len(torrentdata), MAX_KEYWORDS_STORED)
-            return            
            
         termdb = TermDBHandler.getInstance()
         searchdb = SearchDBHandler.getInstance()
@@ -832,7 +837,7 @@ class PreferenceDBHandler(BasicDBHandler):
         termdb.bulkInsertTerms(all_terms)         
         
         # get local term ids for terms.
-        foreign2local = dict([(foreign_term, termdb.getTermID(foreign_term))
+        foreign2local = dict([(str(foreign_term), termdb.getTermID(foreign_term))
                               for foreign_term
                               in all_terms])        
         
@@ -875,7 +880,7 @@ class PreferenceDBHandler(BasicDBHandler):
            
         term_db = TermDBHandler.getInstance()
         term_ids = [term_db.getTermID(keyword) for keyword in keywords]
-        s_term_ids = str(term_ids).replace("[","(").replace("]",")")
+        s_term_ids = str(term_ids).replace("[","(").replace("]",")").replace("L","")
         
         # we're not really interested in the peer_id here,
         # just make sure we don't count twice if we hit more than one keyword in a search
@@ -893,7 +898,7 @@ WHERE
   AND
     Search.torrent_id = %s""" % (s_term_ids, torrent_id)
         res = self._db.fetchall(sql)
-        scores = [1.0-1.0/float(click_position) 
+        scores = [1.0-1.0/float(click_position+1) 
                   for (peer_id, click_position) 
                   in res 
                   if click_position>-1]
@@ -3170,11 +3175,21 @@ class TermDBHandler(BasicDBHandler):
         if len(term)>MAX_KEYWORD_LENGTH:
             term = term[0:MAX_KEYWORD_LENGTH]        
         try:
-            term_id = self.getOne('term_id', term=term.lower())
+            term_id = self.getOne('term_id', term=bin2str(str(term).lower()))
         except UnicodeDecodeError:
             if DEBUG:
                 print >> sys.stderr, "could not ascii-encode term %s, returning id -1" % term.lower()
             return -1
+
+        # if not decodable, try undecoded. mostly to avoid error messages for testers with non-encoded strings in their db
+        if not term_id:
+            try:
+                term_id = self.getOne('term_id', term=str(term).lower())
+            except UnicodeDecodeError:
+                if DEBUG:
+                    print >> sys.stderr, "could not ascii-encode term %s, returning id -1" % term.lower()
+                    return -1
+        
         return term_id
         
             
@@ -3196,15 +3211,21 @@ class TermDBHandler(BasicDBHandler):
     
     def insertTerm(self, term, commit=True):
         """creates a new entry for term in table Term"""
+        term = str(term)
         if len(term)>MAX_KEYWORD_LENGTH:
             term = term[0:MAX_KEYWORD_LENGTH]
+        term = bin2str(term)
         self._db.insert(self.table_name, commit=commit, term=term)
     
     def getTerm(self, term_id):
         """returns the term for a given term_id"""
         if term_id==-1:
             return ""
-        return self.getOne('term', term_id=term_id)
+        term = self.getOne('term', term_id=term_id)
+        try:
+            return str2bin(term)
+        except:
+            return term
     
     def getTermsStartingWith(self, beginning, num=10):
         """returns num most frequently encountered terms starting with beginning"""
@@ -3213,23 +3234,35 @@ class TermDBHandler(BasicDBHandler):
         offset = 0
         catobj = Category.getInstance()
         family_filter = catobj.family_filter_enabled()
+        encodedbeginning = bin2str(str(beginning).lower().replace('\'',''))
+        # this is a bit ugly. since we're now storing string as base64, we cannot directly compare beginnings;
+        # base64('ob') is not equal to the beginning of base64('obama') because the last bytes may be filled up
+        # so we discard the last two bytes, get too many results, and check later on if these actually fit
+        if len(encodedbeginning)>2:
+            encodedbeginning = encodedbeginning[:-2]
         while len(terms)<num:
             
             try:
                 term = self.getAll('term', 
                                    'term like \'%s%%\'' % 
-                                   beginning.lower().replace('\'',''),
+                                   encodedbeginning,
                                    order_by="times_seen DESC",
                                    limit=1,
                                    offset=offset)
                 offset += 1
                 if term:
-                    term=term[0][0]
+                    try:
+                        term=str2bin(term[0][0])
+                    except:
+                        continue
                 else:
                     return terms
                 if family_filter:
                     if catobj.xxx_filter.foundXXXTerm(term):
                         continue
+
+                if not term[:len(beginning)]==beginning:
+                    continue
                 terms.append(term)
                 
             except UnicodeDecodeError:

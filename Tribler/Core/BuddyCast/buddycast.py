@@ -189,13 +189,15 @@ debug = False   # for status
 debugnic = True # for my temporary outputs
 unblock = 0
 
-# NIC: 10 KByte -- I set this to 1024 KByte.     
+# Nic: 10 KByte -- I set this to 1024 KByte.     
 # The term_id->term dictionary can become almost arbitrarily long
 # would be strange if buddycast stopped working once a user has done a lot of searches... 
 #
 # Arno, 2009-03-06: Too big: we don't want every peer to send out 1 MB messages 
 # every 15 secs. Set to 100K
-MAX_BUDDYCAST_LENGTH = 100*1024    
+#
+# Nic, 2009-03-06: Ok this was really old. 10k in fact is enough with the new constraints on clicklog data
+MAX_BUDDYCAST_LENGTH = 10*1024    
 
 REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in this version
 
@@ -1328,25 +1330,46 @@ class BuddyCastCore:
            and replaces either format by a list of dictionaries, such that the rest of the code can remain
            version-agnostic and additional information like torrent ids can be stored along the way"""
 
+        prefs = buddycast_data.get('preferences',[])
+        # assume at least one entry below here        
+        if len(prefs) == 0:
+            return []
+        d = []
+
         try:
+
+            if not type(prefs[0])==list:
+                # pre-OLPROTO_VER_EIGHTH
+                # create dictionary from list of info hashes, extended fields simply aren't set
+
+                d =  [dict({'infohash': pref}) for pref in prefs]
+
+                # we shouldn't receive these lists if the peer says he's OL 8.
+                # let's accept it but complain
+                if buddycast_data['oversion'] == OLPROTO_VER_EIGHTH:
+                    if DEBUG:
+                        print >> sys.stderr, 'buddycast: received OLPROTO_VER_EIGHTH buddycast data containing old style preferences. only ok if talking to an earlier non-release version'
+                return d
+
+            # if the single prefs entries are lists, we have a more modern wire format
+            # currently, there is only one possibility
             if buddycast_data['oversion'] == OLPROTO_VER_EIGHTH:
                 # create dictionary from list of lists
                 d = [dict({'infohash': pref[0],
                            'search terms': pref[1],
                            'position': pref[2],
                            'reranking strategy': pref[3]}) 
-                     for pref in buddycast_data.get('preferences',[])]
+                     for pref in prefs]
             else:
-                # create dictionary from list of info hashes, extended fields simply aren't set
-                d = [dict({'infohash': pref})
-                     for pref in buddycast_data.get('preferences',[])]
+                raise RuntimeError, 'buddycast: unknown preference protocol, pref entries are lists but oversion= %s:\n%s' % (buddycast_data['oversion'], prefs)
+
+            return d
                 
         except Exception, msg:
             print_exc()
             raise Exception, msg
-            return []
+            return d
             
-        return d
  
                       
            
