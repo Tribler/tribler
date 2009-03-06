@@ -189,9 +189,13 @@ debug = False   # for status
 debugnic = True # for my temporary outputs
 unblock = 0
 
-MAX_BUDDYCAST_LENGTH = 1024*1024   # NIC: 10 KByte -- I set this to 1024 KByte.     
-                                   # The term_id->term dictionary can become almost arbitrarily long
-                                   # would be strange if buddycast stopped working once a user has done a lot of searches... 
+# NIC: 10 KByte -- I set this to 1024 KByte.     
+# The term_id->term dictionary can become almost arbitrarily long
+# would be strange if buddycast stopped working once a user has done a lot of searches... 
+#
+# Arno, 2009-03-06: Too big: we don't want every peer to send out 1 MB messages 
+# every 15 secs. Set to 100K
+MAX_BUDDYCAST_LENGTH = 100*1024    
 
 REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in this version
 
