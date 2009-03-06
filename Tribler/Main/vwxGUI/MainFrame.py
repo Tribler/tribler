@@ -286,8 +286,9 @@ class MainFrame(wx.Frame):
 
 
     def show_saved(self):
-        self.guiUtility.frame.top_bg.Layout()
+
         self.guiUtility.frame.top_bg.newFile.Show(True)
+        self.guiUtility.frame.top_bg.Layout()
         self.guiserver.add_task(lambda:wx.CallAfter(self.hide_saved), 5.0)
 
 

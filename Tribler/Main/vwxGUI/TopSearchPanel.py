@@ -91,15 +91,10 @@ class TopSearchPanel(bgPanel):
                                
                 self.frame.pageTitlePanel.Show()
                 self.tribler_logo2.Show()
-
                 self.sharing_reputation.Show()
                 self.help.Show()
-                
-
                 self.frame.hsizer = self.sr_indicator.GetContainingSizer()               
-
                 self.frame.Layout() 
-
                 self.createBackgroundImage()
                 self.srgradient.Show()
                 self.sr_indicator.Show()

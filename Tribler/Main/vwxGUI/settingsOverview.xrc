@@ -78,7 +78,7 @@
                         <option>0</option>
                         <object class="wxPanel" name="edit" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                           <pos>110,130</pos>
-                          <size>36,24</size>
+                          <size>40,16</size>
                         </object>
                       </object>
                     </object>
@@ -241,7 +241,7 @@
                     <size>5,0</size>
                   </object>
                   <object class="sizeritem">
-                    <object class="wxPanel" name="zeroDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="tenDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                       <size>23,16</size>
                     </object>
                   </object>

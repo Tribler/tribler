@@ -25,6 +25,11 @@ from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
 
 
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.Utility.utility import Utility
+
+
+
 DEBUG = False
 
 
@@ -77,7 +82,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
             self.mute = tribler_topButton(self, name = 'mute')
             self.mute.SetBackgroundColour(wx.WHITE)
-
+            #self.mute.Bind(wx.EVT_LEFT_UP, self.MuteClicked)
 
                             
             self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'pause', 'play')
@@ -424,6 +429,11 @@ class VLCLogoWindow(wx.Window):
     
     def __init__(self, parent, size, vlcwrap, logopath, fg=wx.WHITE, bg=wx.BLACK):
         wx.Window.__init__(self, parent, -1, size=size)
+
+        self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility 
+
+
         self.SetMinSize(size)
         self.SetBackgroundColour(bg)
         self.bg = bg
@@ -437,6 +447,22 @@ class VLCLogoWindow(wx.Window):
         self.contentname = None
         self.contentbm = None
         self.Bind(wx.EVT_PAINT, self.OnPaint)
+
+
+
+        agVideo_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','video.gif')
+        self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, agVideo_fname, pos = (110,70))
+        self.agVideo.Hide()
+
+
+        #self.playbackText = wx.StaticText(self,-1,"Leave Tribler running\n for faster playback",wx.Point(30,140))
+        #self.playbackText.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
+        #self.playbackText.SetForegroundColour(wx.Colour(255,51,00))
+
+
+
+
+
 
         if self.vlcwrap is not None:
             wx.CallAfter(self.tell_vclwrap_window_for_playback)

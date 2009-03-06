@@ -272,7 +272,12 @@ class FilesItemDetailsSummary(bgPanel):
             self.play(ds)
 
     def play(self,ds):
+        #self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Show()
+        #self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Play()
+        #self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.Refresh()
+
         self._get_videoplayer(exclude=ds).play(ds)
+
 
     def _get_videoplayer(self, exclude=None):
         """
