@@ -44,13 +44,14 @@ class TopSearchPanel(bgPanel):
         # animated gif for search results
         ag_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','search.gif')
         #self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
-        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
+        self.ag = wx.animate.GIFAnimationCtrl(self.go.GetParent(), -1, ag_fname)
         #self.frame.ag.SetUseWindowBackgroundColour(False)
         vsizer = wx.BoxSizer(wx.VERTICAL)
         vsizer.AddSpacer(wx.Size(0,5))
         vsizer.Add(self.ag,0,wx.FIXED_MINSIZE,0)
         hsizer = self.go.GetContainingSizer()
-        hsizer.Add(vsizer,0,wx.FIXED_MINSIZE,0)                  
+        hsizer.Add(vsizer,0,wx.FIXED_MINSIZE,0)
+        hsizer.Layout()             
 
         hide_names = [self.ag,self.newFile]
         for name in hide_names:
@@ -243,6 +244,7 @@ class TopSearchPanel(bgPanel):
         self.total_down.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
         self.total_up.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
+
         # end wx.Glade
 
 
@@ -313,7 +315,7 @@ class TopSearchPanel(bgPanel):
         ##object_13.Add(self.left, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
         object_13.Add(self.total_down, 0, 0, 0)
-        object_13.Add((8, 0), 0, 0, 0)
+        object_13.Add((64, 0), 0, 0, 0)
         object_13.Add(self.total_up, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
         ##object_13.Add(self.right, 0, 0, 0)
