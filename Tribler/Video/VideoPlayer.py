@@ -202,9 +202,6 @@ class VideoPlayer:
 
 
     def launch_video_player(self,cmd,streaminfo=None):
-
-	print >>sys.stderr,"videoplay: launch_video: mode",self.playbackmode,"cmd",cmd
-
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
 
             if streaminfo is None:
@@ -247,6 +244,8 @@ class VideoPlayer:
             print >>sys.stderr,"main: No video files found! Let user select"
             # Let user choose any file
             videofiles = d.get_dest_files(exts=None)
+            
+        print >>sys.stderr,"videplay: play: videofiles",videofiles
             
         selectedinfilename = None
         selectedoutfilename= None
@@ -302,7 +301,7 @@ class VideoPlayer:
         tdef = d.get_def()
         # For multi-file torrent: when the user selects a different file, play that
         oldselectedfile = None
-        if not tdef.get_live() and ds.is_vod():
+        if not tdef.get_live() and ds.is_vod() and tdef.is_multifile_torrent():
             oldselectedfiles = d.get_selected_files()
             oldselectedfile = oldselectedfiles[0] # Should be just one
         
@@ -398,7 +397,8 @@ class VideoPlayer:
                 selectedinfilename = self.ask_user_to_select_video(videofiles)
 
         if selectedinfilename:
-            dscfg.set_selected_files([selectedinfilename])
+            if tdef.is_multifile_torrent():
+                dscfg.set_selected_files([selectedinfilename])
 
             othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
             self.manage_other_downloads(othertorrentspolicy,targetd = None)
