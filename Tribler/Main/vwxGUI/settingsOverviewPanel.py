@@ -179,7 +179,6 @@ class SettingsOverviewPanel(wx.Panel):
 
 
     def showDiskLocation(self):
-        print >>sys.stderr,"settingsOverviewPanel: SETTING DEFAULT DEST DIR"
         path = self.defaultDLConfig.get_dest_dir()
         self.elements['diskLocationCtrl'].SetValue(path)
 
