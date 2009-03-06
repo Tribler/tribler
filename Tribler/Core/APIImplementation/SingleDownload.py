@@ -184,15 +184,15 @@ class SingleDownload:
     def get_stats(self,getpeerlist):
         logmsgs = self.logmsgs[:] # copy
         coopdl_helpers = []
-        if self.dow.helper is None:
-            coopdl_coordinator = None
-        else:
-            coopdl_coordinator = self.dow.helper.get_coordinator_permid() 
-        if self.dow is not None and self.dow.coordinator is not None: 
-            # No coordinator when you're a helper
-            peerreclist = self.dow.coordinator.network_get_asked_helpers_copy()
-            for peerrec in peerreclist:
-                coopdl_helpers.append(peerrec['permid'])
+        coopdl_coordinator = None
+        if self.dow is not None:
+            if not self.dow.helper is None:
+                coopdl_coordinator = self.dow.helper.get_coordinator_permid() 
+            if self.dow.coordinator is not None: 
+                # No coordinator when you're a helper
+                peerreclist = self.dow.coordinator.network_get_asked_helpers_copy()
+                for peerrec in peerreclist:
+                    coopdl_helpers.append(peerrec['permid'])
         if self._getstatsfunc is None:
             return (DLSTATUS_WAITING4HASHCHECK,None,logmsgs,coopdl_helpers,coopdl_coordinator)
         elif self._getstatsfunc == SPECIAL_VALUE:

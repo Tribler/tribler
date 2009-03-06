@@ -371,17 +371,11 @@ class PlayerApp(BaseApp):
 
 def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
 
-    ETA = ((sys.maxint, "Not playing for quite some time."),
-           (60 * 15, "Playing in less than 15 minutes."),
+    intime = "Not playing for quite some time."
+    ETA = ((60 * 15, "Playing in less than 15 minutes."),
            (60 * 10, "Playing in less than 10 minutes."),
            (60 * 5, "Playing in less than 5 minutes."),
-           (30, "Playing in less than a minute."))
-
-    # ETA = ((sys.maxint, "> 6 min."),
-    #        (60 * 6, "< 6 min"),
-    #        (60 * 3, "< 3 min"),
-    #        (60, "< 60 sec"),
-    #        (30, "< 30 sec"))
+           (60, "Playing in less than a minute."))
 
     topmsg = ''
     msg = ''
@@ -398,7 +392,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
 
     intime = ETA[0][1]
     for eta_time, eta_msg in ETA:
-        if t >= eta_time:
+        if t > eta_time:
             break
         intime = eta_msg
     
