@@ -396,7 +396,7 @@ class VideoPlayer:
             elif len(videofiles) > 1:
                 selectedinfilename = self.ask_user_to_select_video(videofiles)
 
-        if selectedinfilename:
+        if selectedinfilename or tdef.get_live():
             if tdef.is_multifile_torrent():
                 dscfg.set_selected_files([selectedinfilename])
 
@@ -411,6 +411,8 @@ class VideoPlayer:
             d = self.utility.session.start_download(tdef,dscfg)
             self.set_vod_download(d)
             return d
+        else:
+            return None
         
     
     def sesscb_vod_event_callback(self,d,event,params):
