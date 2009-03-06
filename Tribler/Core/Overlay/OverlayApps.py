@@ -162,7 +162,7 @@ class OverlayApps:
 
                 if "videoplayback" in sys.argv:
                     # allows access to video-playback statistics (boudewijn)
-                    crawler.register_crawl_initiator(videoplayback.query_info_initiator)
+                    crawler.register_crawl_initiator(videoplayback_crawler.query_info_initiator)
 
                 if "seedingstats" in sys.argv:
                     # allows access to seeding statistics (Boxun)

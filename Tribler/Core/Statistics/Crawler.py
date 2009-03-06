@@ -239,59 +239,65 @@ class Crawler:
                                                    message_id,
                                                    chr(channel_id & 0xFF),
                                                    chr((frequency >> 8) & 0xFF) + chr(frequency & 0xFF),
-                                                   payload)), _after_send_request)
+                                                   str(payload))), _after_send_request)
         return channel_id
 
     def handle_request(self, permid, selversion, message):
         """
         Received CRAWLER_REQUEST message from OverlayApps
         """
-        if selversion >= OLPROTO_VER_SEVENTH and len(message) >= 5 and message[1] in self._message_handlers:
+        if selversion >= OLPROTO_VER_SEVENTH and len(message) >= 5:
+            if message[1] in self._message_handlers:
 
-            message_id = message[1]
-            channel_id = ord(message[2])
-            frequency = ord(message[3]) << 8 | ord(message[4])
-            now = time.time()
-            request_callback, reply_callback, last_request_timestamp = self._message_handlers[message_id]
+                message_id = message[1]
+                channel_id = ord(message[2])
+                frequency = ord(message[3]) << 8 | ord(message[4])
+                now = time.time()
+                request_callback, reply_callback, last_request_timestamp = self._message_handlers[message_id]
 
-            # frequency: we will report a requency error when we have
-            # received this request within FREQUENCY seconds
-            if last_request_timestamp + frequency < now + FREQUENCY_FLEXIBILITY:
+                # frequency: we will report a requency error when we have
+                # received this request within FREQUENCY seconds
+                if last_request_timestamp + frequency < now + FREQUENCY_FLEXIBILITY:
 
-                if permid in self._channels:
-                    channels = self._channels[permid]
+                    if permid in self._channels:
+                        channels = self._channels[permid]
+                    else:
+                        channels = {}
+                        self._channels[permid] = channels
+
+                    if channel_id in channels:
+                        # channel-id must be unused (this can occur when two
+                        # crawlers send requests to eachother)
+                        return False
+                    else:
+                        channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
+
+                    # store the new timestamp
+                    self._message_handlers[message_id] = (request_callback, reply_callback, now)
+
+                    # 20/10/08. Boudewijn: We will no longer disconnect
+                    # based on the return value from the message handler
+                    try:
+                        request_callback(permid, selversion, channel_id, message[5:], lambda payload="", error=0, callback=None:self.send_reply(permid, message_id, channel_id, payload, error=error, callback=callback))
+                    except:
+                        print_exc()
+
+                    # 11/11/08. Boudewijn: Because the client peers may
+                    # not always be connectable, the client peers will
+                    # actively seek to connect to -a- crawler after
+                    # frequency expires. 
+                    self._dialback_deadlines[message_id] = (now + frequency, permid)
+
+                    return True
+
                 else:
-                    channels = {}
-                    self._channels[permid] = channels
-
-                if channel_id in channels:
-                    # channel-id must be unused (this can occur when two
-                    # crawlers send requests to eachother)
-                    return False
-                else:
-                    channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
-
-                # store the new timestamp
-                self._message_handlers[message_id] = (request_callback, reply_callback, now)
-
-                # 20/10/08. Boudewijn: We will no longer disconnect
-                # based on the return value from the message handler
-                try:
-                    request_callback(permid, selversion, channel_id, message[5:], lambda payload="", error=0, callback=None:self.send_reply(permid, message_id, channel_id, payload, error=error, callback=callback))
-                except:
-                    print_exc()
-
-                # 11/11/08. Boudewijn: Because the client peers may
-                # not always be connectable, the client peers will
-                # actively seek to connect to -a- crawler after
-                # frequency expires. 
-                self._dialback_deadlines[message_id] = (now + frequency, permid)
-
-                return True
-
+                    # frequency error
+                    self.send_reply(permid, message_id, channel_id, "frequency error", error=254)
+                    return True
             else:
-                # frequency error
-                self.send_reply(permid, message_id, channel_id, "frequency error", error=254)
+                # invalid / unknown message. may be caused by a
+                # crawler sending newly introduced messages
+                self.send_reply(permid, message_id, channel_id, "unknown message", error=253)
                 return True
         else:
             # protocol version conflict or invalid message
@@ -323,7 +329,7 @@ class Crawler:
         @param message_id The message id
         @param channel_id The channel id. Used to match replies to requests
         @param payload The message content
-        @param error The error code. (0: no-error, 254: frequency-error, 255: reserved)
+        @param error The error code. (0: no-error, 253: unknown-message, 254: frequency-error, 255: reserved)
         @param callback Callable function/method is called when request is send with 2 paramaters (exc, permid)
         @return The message channel-id > 0 on success, and 0 on failure
         """
@@ -377,7 +383,7 @@ class Crawler:
                                                    chr(channel_id & 0xFF),
                                                    chr(parts_left & 0xFF),
                                                    chr(error & 0xFF),
-                                                   payload)), _after_send_reply)
+                                                   str(payload))), _after_send_reply)
         return channel_id
 
     def handle_reply(self, permid, selversion, message):
@@ -408,6 +414,10 @@ class Crawler:
                 else:
                     timestamp, payload = self._channels[permid].pop(channel_id)
                     if DEBUG:
+                        if error == 253:
+                            # unknown message error (probably because
+                            # the crawler is newer than the peer)
+                            print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(message), "bytes payload from", show_permid_short(permid), "indicating an unknown message error"
                         if error == 254:
                             # frequency error (we did this request recently)
                             print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(message), "bytes payload from", show_permid_short(permid), "indicating a frequency error"

@@ -27,7 +27,7 @@ class DatabaseCrawler:
         crawler = Crawler.get_instance()
         if crawler.am_crawler():
             self._file = open("databasecrawler.txt", "a")
-            self._file.write("".join(("# ", "*" * 80, "\n#", strftime("%Y/%m/%d %H:%M:%S"), " Crawler started\n")))
+            self._file.write("".join(("# ", "*" * 80, "\n# ", strftime("%Y/%m/%d %H:%M:%S"), " Crawler started\n")))
             self._file.flush()
         else:
             self._file = None

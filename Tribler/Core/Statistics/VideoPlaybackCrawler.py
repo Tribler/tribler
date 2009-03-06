@@ -9,7 +9,9 @@ from time import strftime
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_VIDEOPLAYBACK_INFO_QUERY, CRAWLER_VIDEOPLAYBACK_EVENT_QUERY
 from Tribler.Core.CacheDB.SqliteVideoPlaybackStatsCacheDB import VideoPlaybackEventDBHandler, VideoPlaybackInfoDBHandler
+from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from Tribler.Core.Statistics.Crawler import Crawler
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_EIGHTH
 
 DEBUG = False
 
@@ -36,7 +38,7 @@ class VideoPlaybackCrawler:
         crawler = Crawler.get_instance()
         if crawler.am_crawler():
             self._file = open("videoplaybackcrawler.txt", "a")
-            self._file.write("".join(("# ", "*" * 80, "\n#", strftime("%Y/%m/%d %H:%M:%S"), " Crawler started\n")))
+            self._file.write("".join(("# ", "*" * 80, "\n# ", strftime("%Y/%m/%d %H:%M:%S"), " Crawler started\n")))
             self._file.flush()
             self._info_db = None
             self._event_db = None
@@ -54,8 +56,11 @@ class VideoPlaybackCrawler:
         @param selversion The oberlay protocol version
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_initiator", show_permid_short(permid)
-        request_callback(CRAWLER_VIDEOPLAYBACK_QUERY, "SELECT 'timestamp', 'key', 'piece_size', 'nat' FROM 'playback_info'; DELETE FROM 'playback_info';", callback=self._after_info_request_callback)
+        if selversion >= OLPROTO_VER_EIGHTH:
+            if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_info_initiator", show_permid_short(permid)
+            request_callback(CRAWLER_VIDEOPLAYBACK_INFO_QUERY, "SELECT timestamp, key, piece_size, nat FROM playback_info", callback=self._after_info_request_callback)
+        else:
+            if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_info_initiator", show_permid_short(permid), "unsupported overlay version"
 
     def _after_info_request_callback(self, exc, permid):
         """
@@ -96,7 +101,7 @@ class VideoPlaybackCrawler:
 
             for timestamp, key, piece_size, nat in info:
                 # todo: optimize to not select key for each row
-                request_callback(CRAWLER_VIDEOPLAYBACK_QUERY, "SELECT timestamp, origin, event FROM 'playback_event' WHERE 'key' = '%s' ORDER BY ASC LIMIT 50; DELETE FROM 'playback_event' WHERE 'key' = '%s';" % (key, key), callback=self._after_event_request_callback)
+                request_callback(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, "SELECT timestamp, origin, event FROM playback_event WHERE key = '%s' ORDER BY timestamp ASC LIMIT 50; DELETE FROM playback_event WHERE key = '%s'; DELETE FROM playback_info WHERE key = '%s';" % (key, key, key), callback=self._after_info_request_callback)
 
     def _after_info_request_callback(self, exc, permid):
         """
@@ -106,7 +111,7 @@ class VideoPlaybackCrawler:
         """
         if not exc:
             if DEBUG: print >>sys.stderr, "videoplaybackcrawler: request send to", show_permid_short(permid)
-            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "EVENT REQUEST", show_permid(permid), "\n")))
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), " INFO REQUEST", show_permid(permid), "\n")))
             self._file.flush()
 
     def handle_event_crawler_reply(self, permid, selversion, channel_id, error, message, request_callback):
