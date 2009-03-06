@@ -462,7 +462,7 @@
         </object>
       </object>
       <object class="spacer">
-        <size>0,0</size>
+        <size>0,50</size>
       </object>
       <object class="sizeritem">
         <object class="wxBoxSizer">

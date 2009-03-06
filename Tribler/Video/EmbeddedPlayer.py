@@ -373,11 +373,13 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.UpdateProgressSlider(pieces_complete)
     
     def SetPlayerStatus(self,s):
-        if sys.platform == "win32":
-            w = 64
+        if sys.platform == 'win32':
+            msg = "\n".join(wrap(s,64))
         else:
-            w = 40
-        msg = "\n".join(wrap(s,w))
+            msg = "\n".join(wrap(s,48))
+        if DEBUG:
+            print >>sys.stderr,"WRAPPED MESSAGE",msg,"EOW"
+        
         self.statuslabel.SetLabel(msg)
 
 

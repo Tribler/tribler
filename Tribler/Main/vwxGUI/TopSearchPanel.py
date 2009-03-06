@@ -201,7 +201,7 @@ class TopSearchPanel(bgPanel):
         self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
         self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient_new.png", wx.BITMAP_TYPE_ANY))
         self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY))
-        self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRindicator.png", wx.BITMAP_TYPE_ANY))
+        self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRind.png", wx.BITMAP_TYPE_ANY))
         self.settings = wx.StaticText(self, -1, "Settings")
         self.newFile = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/iconSaved.png", wx.BITMAP_TYPE_ANY))
         self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY))

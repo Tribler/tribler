@@ -90,7 +90,7 @@ class FilesItemDetailsSummary(bgPanel):
         self.triblerStyles.setDarkText(self.Popularity_info)
         pop = self.torrent['num_seeders'] + self.torrent['num_leechers']    
         if pop > 0:
-            self.Popularity_info.SetLabel('%s' %(pop))
+            self.Popularity_info.SetLabel('%s people' %(pop))
         else: 
             self.Popularity_info.SetLabel('unknown')
 

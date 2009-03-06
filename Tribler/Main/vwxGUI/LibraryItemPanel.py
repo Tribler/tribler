@@ -323,10 +323,16 @@ class LibraryItemPanel(wx.Panel):
 
             
     def getColumns(self):
+        if sys.platform == 'win32':
+            title = 'Down && Up Speed'
+        else: 
+            title = 'Down &&&& Up Speed'
         return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':370,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
-                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'Down &&&& Up Speed','width':130, 'tip':self.utility.lang.get('C_downupspeed')}, 
+                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':title,'width':130, 'tip':self.utility.lang.get('C_downupspeed')}, 
                 {'sort':'progress', 'title':'Completion', 'width':120, 'tip':self.utility.lang.get('C_progress')}               
                 ]     
+
+
                   
     def refreshData(self):
         self.setData(self.data)
