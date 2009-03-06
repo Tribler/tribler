@@ -183,7 +183,7 @@ Section "Make Default For .tstream" SecDefaultTStream
    WriteRegBin HKCR tstream EditFlags 00000100
    WriteRegStr HKCR "tstream\shell" "" open
    WriteRegStr HKCR "tstream\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\Tribler\Images\swarmplayer.ico"
+   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\Tribler\Images\SwarmPlayerIcon.ico"
 SectionEnd
 
 

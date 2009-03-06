@@ -33,7 +33,7 @@ from Tribler.__init__ import LIBRARYNAME
 ################################################################
 
 mainfile = os.path.join(LIBRARYNAME,'Player','swarmplayer.py')
-progicofile = os.path.join(LIBRARYNAME,'Images','swarmplayer.ico')
+progicofile = os.path.join(LIBRARYNAME,'Images','SwarmPlayerIcon.ico')
 
 target_player = {
     "script": mainfile,

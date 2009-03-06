@@ -79,6 +79,9 @@ copy %LIBRARYNAME%\Core\Statistics\*.txt dist\installdir\%LIBRARYNAME%\Core\Stat
 copy %LIBRARYNAME%\Core\Statistics\*.sql dist\installdir\%LIBRARYNAME%\Core\Statistics
 mkdir dist\installdir\%LIBRARYNAME%\Images
 copy %LIBRARYNAME%\Images\*.* dist\installdir\%LIBRARYNAME%\Images
+mkdir dist\installdir\%LIBRARYNAME%\Video
+mkdir dist\installdir\%LIBRARYNAME%\Video\Images
+copy %LIBRARYNAME%\Video\Images\*.* dist\installdir\%LIBRARYNAME%\Video\Images
 copy %LIBRARYNAME%\Player\Build\Win32\heading.bmp dist\installdir
 mkdir dist\installdir\%LIBRARYNAME%\Lang
 copy %LIBRARYNAME%\Lang\*.lang dist\installdir\%LIBRARYNAME%\Lang

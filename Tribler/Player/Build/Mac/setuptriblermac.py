@@ -104,7 +104,7 @@ setup(
             [(LIBRARYNAME+"/Lang", [LIBRARYNAME+"/Lang/english.lang"]),
              LIBRARYNAME+"/binary-LICENSE.txt", 
              LIBRARYNAME+"/readme.txt",
-             LIBRARYNAME+"/Images/swarmplayer.ico",
+             LIBRARYNAME+"/Images/SwarmPlayerIcon.ico",
              LIBRARYNAME+"/Player/Build/Mac/TriblerDoc.icns",
            ]
            # add images

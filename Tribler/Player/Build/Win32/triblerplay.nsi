@@ -101,6 +101,10 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\${LIBRARYNAME}\Images"
  SetOutPath "$INSTDIR\${LIBRARYNAME}\Images"
  File ${LIBRARYNAME}\Images\*.*
+ CreateDirectory "$INSTDIR\${LIBRARYNAME}\Video"
+ CreateDirectory "$INSTDIR\${LIBRARYNAME}\Video\Images"
+ SetOutPath "$INSTDIR\${LIBRARYNAME}\Video\Images"
+ File ${LIBRARYNAME}\Video\Images\*.*
  CreateDirectory "$INSTDIR\${LIBRARYNAME}\Lang"
  SetOutPath "$INSTDIR\${LIBRARYNAME}\Lang"
  IfFileExists user.lang userlang
@@ -138,7 +142,7 @@ Section "Make Default For .tstream" SecDefaultTStream
    WriteRegBin HKCR tstream EditFlags 00000100
    WriteRegStr HKCR "tstream\shell" "" open
    WriteRegStr HKCR "tstream\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\${LIBRARYNAME}\Images\swarmplayer.ico"
+   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\${LIBRARYNAME}\Images\SwarmPlayerIcon.ico"
 SectionEnd
 
 Section /o "Make Default For .torrent" SecDefaultTorrent
