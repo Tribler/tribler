@@ -316,7 +316,7 @@ class TopSearchPanel(bgPanel):
         object_13.Add((0, 0), 0, 0, 0)
         object_13.Add(self.total_down, 0, 0, 0)
         # ARNO: our code
-        if sys.playform == "win32":
+        if sys.platform == "win32":
             object_13.Add((64, 0), 0, 0, 0)
         else:
             object_13.Add((8, 0), 0, 0, 0)
