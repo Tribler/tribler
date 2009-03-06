@@ -1,6 +1,13 @@
+# Written by Vincent Heinink and Rameez Rahman
+# see LICENSE.txt for license information
+#
 #Utilities for moderationcast (including databases)
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+#
+import sys
 from sha import sha
+
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+
 DEBUG = False
 
 # NO_RECENT_OWN_MODERATIONS_PER_HAVE = 13

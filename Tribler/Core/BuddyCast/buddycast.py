@@ -943,7 +943,7 @@ class BuddyCastCore:
         
         if debug:
             print >> sys.stderr, '****************--------------'*2
-            print >> sys.stderr, 'send buddycast message to', show_permid_short(target_permid), len(buddycast_msg)
+            print >> sys.stderr, 'sent buddycast message to', show_permid_short(target_permid), len(buddycast_msg)
         
         if active:
             self.print_debug_info('Active', 17, target_permid)
@@ -954,8 +954,10 @@ class BuddyCastCore:
         if self.bartercast_core != None and active:
             self.bartercast_core.createAndSendBarterCastMessage(target_permid, selversion, active)
             
-        # As of March 5, 2009, it is decided that, irrespective of whether its active, we would be sending
-        # ModerationCastHave Message and VoteCast Message, only if there are any moderations and votes respectively
+        # As of March 5, 2009, ModerationCastHave Messages and VoteCast Messages
+        # are sent in lock-step with BuddyCast. (only if there are any 
+        # moderations and/or votes to send.)
+        #
         if self.moderationcast_core != None:
             self.moderationcast_core.createAndSendModerationCastHaveMessage(target_permid, selversion)
         

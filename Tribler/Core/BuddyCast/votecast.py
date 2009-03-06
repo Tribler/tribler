@@ -1,29 +1,22 @@
-#Written By Rameez Rahman
-#from BitTornado.bencode import bencode, bdecode
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
-#from Tribler.Statistics.Logger import OverlayLogger
-from Tribler.Core.Statistics.Logger import OverlayLogger
-#from BitTornado.BT1.MessageID import MODERATIONCAST_HAVE, MODERATIONCAST_REQUEST, MODERATIONCAST_REPLY
-from Tribler.Core.BitTornado.BT1.MessageID import VOTECAST
-#from Tribler.Core.CacheDB.SynDBHandler import SynTorrentDBHandler
+# Written by Rameez Rahman
+# see LICENSE.txt for license information
+#
 
-#from Tribler.Core.CacheDB.CacheDBHandler import MyDBHandler
-from Tribler.Core.CacheDB.CacheDBHandler import VoteCastDBHandler
-from Tribler.Core.Utilities.utilities import *
-from Tribler.Core.Overlay.permid import permid_for_user
-
-from traceback import print_exc, print_stack
-from types import StringType, ListType, DictType
-
-from Tribler.Core.Overlay.permid import sign_data
-#from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVEN
-#MIN_VERSION = OLPROTO_VER_SEVEN
-
+import sys
 from time import time, ctime
 from zlib import compress, decompress
 from base64 import decodestring
 from binascii import hexlify
+from traceback import print_exc, print_stack
+from types import StringType, ListType, DictType
+from random import randint, sample, seed, random
 
+from Tribler.Core.BitTornado.bencode import bencode, bdecode
+from Tribler.Core.Statistics.Logger import OverlayLogger
+from Tribler.Core.BitTornado.BT1.MessageID import VOTECAST
+from Tribler.Core.CacheDB.CacheDBHandler import VoteCastDBHandler
+from Tribler.Core.Utilities.utilities import *
+from Tribler.Core.Overlay.permid import permid_for_user,sign_data
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.BuddyCast.moderationcast_util import *
 
@@ -37,7 +30,6 @@ AUTO_MODERATE_INTERVAL = 1    #Number of seconds between creation of moderations
 NO_RANDOM_VOTES = 12
 NO_RECENT_VOTES = 13
 
-from random import randint, sample, seed, random
 
 class VoteCastCore:
     """ VoteCastCore is responsible for sending and receiving VOTECAST-messages """
@@ -82,7 +74,6 @@ class VoteCastCore:
     ################################
     def createAndSendVoteCastMessage(self, target_permid, selversion):
         votecast_data = self.createVoteCastMessage(target_permid)
-        # ARNO50: TODO: don't send empty msgs. Need to change the arch for this.
         if len(votecast_data) == 0:
             if DEBUG:
                 print >>sys.stderr, "No votes there.. hence we do not send"            

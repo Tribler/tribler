@@ -1,4 +1,6 @@
-#Written By Vincent Heinink and Rameez Rahman
+# Written by Vincent Heinink and Rameez Rahman
+# see LICENSE.txt for license information
+#
 
 from Tribler.Core.BitTornado.BT1.MessageID import MODERATIONCAST_HAVE, MODERATIONCAST_REQUEST, MODERATIONCAST_REPLY
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
@@ -74,7 +76,6 @@ class ModerationCastCore:
     def createAndSendModerationCastHaveMessage(self, target_permid, selversion):
         
         moderationcast_data = self.createModerationCastHaveMessage(target_permid)
-        # ARNO50: TODO: don't send empty msgs. Need to change the arch for this.
         if len(moderationcast_data) == 0:
             if DEBUG:
                 print >>sys.stderr, "There are no moderations.. hence we do not send"
@@ -438,16 +439,6 @@ class ModerationCastCore:
         if DEBUG:
             print "Processing MODERATIONCAST_REPLY msg from: ", permid_for_user(sender_permid), "DONE"
             
-    ################################
-    def replyModerationCast(self, target_permid, selversion):
-        """ Reply a moderationcast-have message """
-
-        #if not self.buddycast_core.isConnected(target_permid):
-            #print >> sys.stderr, 'moderationcast: lost connection while replying moderationcast', \
-                #"Round", self.buddycast_core.round
-            #return
-        #return 
-        self.createAndSendModerationCastHaveMessage(target_permid, selversion)
 
     ################################
     
