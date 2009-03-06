@@ -126,27 +126,28 @@ class FilesItemDetailsSummary(bgPanel):
         if self.infohash is not None and self.mcdb.hasModeration(bin2str(self.infohash)):
             moderation = self.mcdb.getModeration(bin2str(self.infohash))
             mod_name = moderation[1]
-
-            self.Rate = wx.StaticText(self,-1,"Rate these file properties as ",wx.Point(0,0),wx.Size(160,22))
-            self.triblerStyles.setLightText(self.Rate)
-            self.Or = wx.StaticText(self,-1," or",wx.Point(0,0),wx.Size(25,22))
-            self.triblerStyles.setLightText(self.Or)
-
-            self.fake = TestButton(self, -1, name='fake')
-            self.fake.SetMinSize((35,16))
-            self.fake.SetSize((35,16))
-            self.guiUtility.fakeButton = self.fake
-
-            self.real = TestButton(self, -1, name='real')
-            self.real.SetMinSize((35,16))
-            self.real.SetSize((35,16))
-            self.guiUtility.realButton = self.real
-
-            self.hSizer2.Add(self.Rate,0,wx.LEFT|wx.FIXED_MINSIZE,0)
-            self.hSizer2.Add(self.fake,0,wx.LEFT|wx.FIXED_MINSIZE,5)
-            self.hSizer2.Add(self.Or,0,wx.LEFT|wx.FIXED_MINSIZE,5)
-            self.hSizer2.Add(self.real,0,wx.LEFT|wx.FIXED_MINSIZE,5)
-
+            
+            # If the moderator is himself, he should not be able to rate the file properties
+            if moderation[0] != bin2str(self.session.get_permid()):
+                self.Rate = wx.StaticText(self,-1,"Rate these file properties as ",wx.Point(0,0),wx.Size(160,22))
+                self.triblerStyles.setLightText(self.Rate)
+                self.Or = wx.StaticText(self,-1," or",wx.Point(0,0),wx.Size(25,22))
+                self.triblerStyles.setLightText(self.Or)
+    
+                self.fake = TestButton(self, -1, name='fake')
+                self.fake.SetMinSize((35,16))
+                self.fake.SetSize((35,16))
+                self.guiUtility.fakeButton = self.fake
+    
+                self.real = TestButton(self, -1, name='real')
+                self.real.SetMinSize((35,16))
+                self.real.SetSize((35,16))
+                self.guiUtility.realButton = self.real
+    
+                self.hSizer2.Add(self.Rate,0,wx.LEFT|wx.FIXED_MINSIZE,0)
+                self.hSizer2.Add(self.fake,0,wx.LEFT|wx.FIXED_MINSIZE,5)
+                self.hSizer2.Add(self.Or,0,wx.LEFT|wx.FIXED_MINSIZE,5)
+                self.hSizer2.Add(self.real,0,wx.LEFT|wx.FIXED_MINSIZE,5)
 
         else:
             mod_name = "None"
