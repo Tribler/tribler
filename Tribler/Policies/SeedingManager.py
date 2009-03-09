@@ -17,7 +17,7 @@ class GlobalSeedingManager:
         # Remove stoped seeds
         for curr in self.curr_seedings:
             if not curr.get_status() == DLSTATUS_SEEDING:
-                self.info_hahes.remove(curr.get_def().get_infohash())
+                self.info_hashes.remove(curr.get_def().get_infohash())
                 self.curr_seedings.remove(curr)
         
         if DEBUG:

@@ -345,45 +345,25 @@ class RemoteQueryMsgHandler:
             print >>sys.stderr,"rquery: QUERY_REPLY: no results found"
 
 
-    def test_send_query(self,query):
-        """ Called by GUI Thread """
-        add_remote_hits_func = lambda:self.add_remote_query_hits(query)
-        self.overlay_bridge.add_task(add_remote_hits_func,3)
-        
-    def add_remote_query_hits(self,query):
-        torrent = {}
-        torrent['content_name'] = 'Hallo 1'
-        torrent['length'] = 100000000
-        torrent['leecher'] = 200
-        torrent['seeder'] = 400
-        torrent['category'] = 'Video'
-        
-        torrent2 = {}
-        torrent2['content_name'] = 'Hallo 2'
-        torrent2['length'] = 7777777
-        torrent2['leecher'] = 678
-        torrent2['seeder'] = 123
-        torrent2['category'] = 'Audio'
-        
-        d = {}
-        ih = 'a'*20
-        ih2 = 'b'*20
-        d[ih] = torrent
-        d[ih2] = torrent2
-        kws = query.split()
-        permid = None
-        self.notify_of_remote_hits(permid,kws,d)
 
     def inc_peer_nqueries(self, permid):
-            peer = self.peer_db.getPeer(permid)
-            try:
-                if peer is not None:
-                    nqueries = peer['num_queries']
-                    if nqueries is None:
-                        nqueries = 0
-                    self.peer_db.updatePeer(permid, num_queries=nqueries+1)
-            except:
-                print_exc()
+        peer = self.peer_db.getPeer(permid)
+        try:
+            if peer is not None:
+                nqueries = peer['num_queries']
+                if nqueries is None:
+                    nqueries = 0
+                self.peer_db.updatePeer(permid, num_queries=nqueries+1)
+        except:
+            print_exc()
+
+    def get_peer_nqueries(self, permid):
+        peer = self.peer_db.getPeer(permid)
+        if peer is None:
+            return 0
+        else:
+            return peer['num_queries']
+
 
 def isValidQuery(d,selversion):
     if not isinstance(d,dict):

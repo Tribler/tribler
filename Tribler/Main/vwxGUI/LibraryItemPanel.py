@@ -25,7 +25,6 @@ from Tribler.Video.Progress import ProgressBar
 from Tribler.Video.utils import videoextdefaults
 from bgPanel import *
 from font import *
-from Tribler.Main.vwxGUI.FilesItemDetailsSummary import LibraryItemDetailsSummary
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
 from Tribler.Main.Utility.constants import * 
@@ -669,21 +668,6 @@ class LibraryItemPanel(wx.Panel):
         
         self._get_videoplayer(exclude=ds).play(ds)
     
-    def toggleLibraryItemDetailsSummary(self, visible):
-
-        if visible and not self.summary:           
-            self.summary = LibraryItemDetailsSummary(self, torrentHash = self.data['infohash'])
-            self.summary.SetBackgroundColour(wx.WHITE)
-            self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
-            self.SetMinSize((-1,100)) 
-                
-        elif self.summary and not visible:
-            self.summary.Hide()
-            self.summary.thumbSummary.Destroy()
-            self.summary.DestroyChildren() 
-            self.summary.Destroy()
-            self.summary = None
-            self.SetMinSize((-1,22))
             
     def OnPaint(self, evt):
         dc = wx.BufferedPaintDC(self)

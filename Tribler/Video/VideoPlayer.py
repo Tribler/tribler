@@ -131,7 +131,7 @@ class VideoPlayer:
         stats = os.stat(dest)
         length = stats.st_size
         streaminfo = {'mimetype':mimetype,'stream':stream,'length':length}
-        videoserv.set_inputstream(streaminfo)
+        videoserver.set_inputstream(streaminfo)
         
         self.launch_video_player(cmd)
 

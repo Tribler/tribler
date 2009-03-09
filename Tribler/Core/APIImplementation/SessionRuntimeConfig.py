@@ -72,7 +72,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
     def get_tracker_ip(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_ip(self)
+            return SessionConfigInterface.get_tracker_ip(self)
         finally:
             self.sesslock.release()
 
@@ -102,7 +102,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
     def get_autoclose_timeout(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_timeout(self)
+            return SessionConfigInterface.get_autoclose_timeout(self)
         finally:
             self.sesslock.release()
 
@@ -112,7 +112,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
     def get_autoclose_check_interval(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_timeout_check_interval(self)
+            return SessionConfigInterface.get_autoclose_check_interval(self)
         finally:
             self.sesslock.release()
 
@@ -122,7 +122,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
     def get_megacache(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_cache(self)
+            return SessionConfigInterface.get_megacache(self)
         finally:
             self.sesslock.release()
 
@@ -316,43 +316,23 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_dialback_active(self,value):
+    def set_social_networking(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
-    def get_dialback_active(self):
+    def get_social_networking(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_dialback_active(self)
+            return SessionConfigInterface.get_social_networking(self)
         finally:
             self.sesslock.release()
 
-    def set_dialback_trust_superpeers(self,value):
+    def set_remote_query(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
-    def get_dialback_trust_superpeers(self):
+    def get_remote_query(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_dialback_trust_superpeers(self)
-        finally:
-            self.sesslock.release()
-
-    def set_socnet(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_socnet(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_socnet(self)
-        finally:
-            self.sesslock.release()
-
-    def set_rquery(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_rquery(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_rquery(self)
+            return SessionConfigInterface.get_remote_query(self)
         finally:
             self.sesslock.release()
 
@@ -426,16 +406,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-
-    def set_videoplayerpath(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_videoplayerpath(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_videoplayerpath(self)
-        finally:
-            self.sesslock.release()
 
     def set_tracker_dfile(self,value):
         raise OperationNotPossibleAtRuntimeException()
@@ -872,10 +842,10 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def get_puncturing_private_port(self):
+    def get_puncturing_internal_port(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_puncturing_private_port(self)
+            return SessionConfigInterface.get_puncturing_internal_port(self)
         finally:
             self.sesslock.release()
 
@@ -890,13 +860,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.get_pingback_servers(self)
-        finally:
-            self.sesslock.release()
-
-    def get_puncturing_coordinators(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_puncturing_coordinators(self)
         finally:
             self.sesslock.release()
 

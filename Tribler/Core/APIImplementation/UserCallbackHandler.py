@@ -83,7 +83,6 @@ class UserCallbackHandler:
         self.sesslock.acquire()
         try:
             dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
-            trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
         finally:
             self.sesslock.release()
 

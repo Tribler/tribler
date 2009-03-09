@@ -653,7 +653,7 @@ class TriblerLaunchMany(Thread):
         """ Called by UPnP thread TODO: determine how to pass to API user 
             In principle this is a non fatal error. But it is one we wish to
             show to the user """
-        print >>sys.stderr,"UPnP mode "+str(upnp_type)+" request to firewall failed with error "+str(error_type)+" Try setting a different mode in Preferences. Listen port was "+str(listenport)+", protocol"+listenproto
+        print >>sys.stderr,"UPnP mode "+str(upnp_type)+" request to firewall failed with error "+str(error_type)+" Try setting a different mode in Preferences. Listen port was "+str(listenport)+", protocol"+listenproto,exc
 
     def upnp_got_ext_ip_callback(self,ip):
         """ Called by UPnP thread """

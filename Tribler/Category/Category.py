@@ -95,6 +95,7 @@ class Category:
             print >>sys.stderr,'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)
         return False
         
+    """        
     # recalculate category of all torrents, remove torrents from db if not existed
     def reSortAll(self, data, parent = None):
          
@@ -117,7 +118,7 @@ class Category:
             event.set()
             
             
-        self.invoker.invokeLater(makeDialog)
+        wx.CallAfter(makeDialog)
         
         # Wait for dialog to be ready
         event.wait()
@@ -130,7 +131,7 @@ class Category:
         for i in xrange(len(data)):
             count += 1
             if count % step == 0:
-                self.invoker.invokeLater(dlg.Update, [count])
+                wx.CallAfter(dlg.Update, [count])
             try:
                 # try alternative dir if bsddb doesnt match with current Tribler install
                 rec = data[i]
@@ -161,7 +162,9 @@ class Category:
             data[i]['category'] = category_belong    # should have updated self.data
             self.torrent_db.updateTorrent(data[i]['infohash'], updateFlag=False, category=category_belong)
         self.torrent_db.sync()
-        self.invoker.invokeLater(dlg.Destroy)   
+        wx.CallAfter(dlg.Destroy)   
+    """   
+   
     
     def getCategoryKeys(self):
         if self.category_info is None:

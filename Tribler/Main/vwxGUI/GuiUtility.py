@@ -953,7 +953,7 @@ class GUIUtility:
         #if event.CmdDown():
         #print "OnSearchKeyDown: keycode",keycode
         if keycode == wx.WXK_RETURN:
-            app.frame.Hide()
+            self.frame.Hide()
             self.standardFilesOverview()
             self.dosearch()
         else:
@@ -1199,55 +1199,6 @@ class GUIUtility:
         dialog.Destroy()
         event.Skip()
         
-    def filesList(self, torrent):
-        # tb > code is copied from Tribler > vwxGUI > tribler>List.py [FilesList]
-        # Get the file(s)data for this torrent
-
-            
-        if DEBUG:
-            print >>sys.stderr,'tribler_List: setData of FilesTabPanel called'
-        try:
-            
-            if torrent.get('web2') or 'query_permid' in torrent: # web2 or remote query result
-                self.filelist = []
-    #                self.DeleteAllItems()
-                self.onListResize(None)
-                return {}
-    
-            torrent_dir = self.utility.session.get_torrent_collecting_dir()
-            torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
-            if not os.path.exists(torrent_filename):
-                if DEBUG:    
-                    print >>sys.stderr,"tribler_List: Torrent: %s does not exist" % torrent_filename
-                return {}
-            
-            metadata = self.utility.getMetainfo(torrent_filename)
-            if not metadata:
-                return {}
-            info = metadata.get('info')
-            if not info:
-                return {}
-            
-            #print metadata.get('comment', 'no comment')
-                
-                
-            filedata = info.get('files')
-            if not filedata:
-                filelist = [(dunno2unicode(info.get('name')),self.utility.size_format(info.get('length')))]
-            else:
-                filelist = []
-                for f in filedata:
-                    filelist.append((dunno2unicode('/'.join(f.get('path'))), self.utility.size_format(f.get('length')) ))
-                filelist.sort()
-                
-            
-            return filelist
-            
-        except:
-            if DEBUG:
-                print >>sys.stderr,'tribler_List: error getting list of files in torrent'
-            print_exc()
-            return {}
        
     def getGuiElement(self, name):
         if not self.elements.has_key(name) or not self.elements[name]:

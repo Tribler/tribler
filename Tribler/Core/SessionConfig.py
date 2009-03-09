@@ -404,7 +404,6 @@ class SessionConfigInterface:
         @return Boolean. """
         return self.sessconfig['dialback']
 
-
     #
     # Tribler's social networking feature transmits a nickname and picture
     # to all Tribler peers it meets.
@@ -1065,6 +1064,7 @@ class SessionConfigInterface:
         if dlconfig is None:
             return None
         else:
+            from Tribler.Core.DownloadConfig import DownloadStartupConfig 
             return DownloadStartupConfig(dlconfig)
         
 

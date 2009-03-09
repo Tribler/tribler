@@ -5,6 +5,7 @@ import sys
 from traceback import print_exc,print_stack
 
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
+from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 
 DEBUG = False
 
@@ -430,7 +431,7 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
     def get_double_check_writes(self):
         self.dllock.acquire()
         try:
-            return DownloadConfigInterface.get_double_check(self)
+            return DownloadConfigInterface.get_double_check_writes(self)
         finally:
             self.dllock.release()
 
@@ -440,7 +441,7 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
     def get_triple_check_writes(self):
         self.dllock.acquire()
         try:
-            return DownloadConfigInterface.get_triple_check(self)
+            return DownloadConfigInterface.get_triple_check_writes(self)
         finally:
             self.dllock.release()
 

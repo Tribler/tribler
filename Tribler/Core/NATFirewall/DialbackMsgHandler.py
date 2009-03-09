@@ -142,7 +142,8 @@ class DialbackMsgHandler:
             # Also do this when the connection is not locally initiated.
             # That tells us that we're connectable, but it doesn't tell us
             # our external IP address.
-            self.olthread_attempt_request_dialback(permid)
+            if self.active:
+                self.olthread_attempt_request_dialback(permid)
         return True
             
     def olthread_attempt_request_dialback(self,permid):

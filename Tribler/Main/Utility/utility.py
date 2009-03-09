@@ -23,9 +23,7 @@ from Tribler.Core.BitTornado.parseargs import parseargs
 from Tribler.Core.BitTornado.zurllib import urlopen
 from Tribler.Core.BitTornado.__init__ import version_id
 
-#from ABC.Actions.actions import makeActionList
-
-if (sys.platform == 'win32'):
+if sys.platform == 'win32':
     from Tribler.Main.Utility.regchecker import RegChecker
 
 from Tribler.Utilities.configreader import ConfigReader

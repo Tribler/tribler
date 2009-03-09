@@ -51,8 +51,8 @@ from threading import Thread, Event,currentThread,enumerate
 from time import time, ctime, sleep
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
-import urllib
-import webbrowser
+import urllib2
+import tempfile
 
 
 import Tribler.Main.vwxGUI.font as font
@@ -85,7 +85,7 @@ from Tribler.Video.VideoFrame import VideoDummyFrame
 
 from Tribler.Player.swarmplayer import get_status_msgs
 
-import pdb
+#import pdb
 
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878

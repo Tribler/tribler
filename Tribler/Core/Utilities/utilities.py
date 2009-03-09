@@ -103,7 +103,7 @@ def validTorrentFile(metainfo):
     
     
     if 'info' not in metainfo:
-        raise ValueError('metainfo misses key '+key)
+        raise ValueError('metainfo misses key info')
     
     if 'announce' in metainfo and not isValidURL(metainfo['announce']):
         raise ValueError('announce URL bad')
@@ -206,7 +206,7 @@ def validTorrentFile(metainfo):
             raise ValueError('announce-list is not list, but '+`type(al)`)
         for tier in al:
             if type(tier) != ListType:
-                raise ValueErorr('announce-list tier is not list '+`tier`)
+                raise ValueError('announce-list tier is not list '+`tier`)
         # Jie: this limitation is not necessary
 #            for url in tier:
 #                if not isValidURL(url):

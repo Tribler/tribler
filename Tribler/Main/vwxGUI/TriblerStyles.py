@@ -64,7 +64,7 @@ class TriblerStyles:
         elif style == 'font':
             return wx.Font(FS_LEFTH1,FONTFAMILY,wx.NORMAL,wx.BOLD,False,FONTFACE)
         
-        return
+        return None
             
     def textButtonLeft(self, style=''):
 #        item = wx.BufferedPaintDC(self)
@@ -81,7 +81,7 @@ class TriblerStyles:
         elif style == 'fontAdd':
             return wx.Font(FS_FILETITLE,FONTFAMILY,wx.FONTSTYLE_ITALIC, wx.NORMAL,False,FONTFACE)
         
-        return
+        return None
 #        item.SetFont(
 #        item.Clear()
 #        item.DrawText(text, 2, 2)

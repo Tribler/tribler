@@ -61,7 +61,7 @@ class DownloadImpl:
             
             # See if internal tracker used
             itrackerurl = self.session.get_internal_tracker_url()
-            infohash = self.tdef.get_infohash()
+            #infohash = self.tdef.get_infohash()
             metainfo = self.tdef.get_metainfo()
             usingitracker = False
             
