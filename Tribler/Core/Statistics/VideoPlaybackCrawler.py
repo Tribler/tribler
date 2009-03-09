@@ -58,7 +58,11 @@ class VideoPlaybackCrawler:
         """
         if selversion >= OLPROTO_VER_EIGHTH:
             if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_info_initiator", show_permid_short(permid)
-            request_callback(CRAWLER_VIDEOPLAYBACK_INFO_QUERY, "SELECT timestamp, key, piece_size, nat FROM playback_info", callback=self._after_info_request_callback)
+            # boudewijn: order the result DESC! From the resulting
+            # list we will not remove the first entries from the
+            # database because this (being the last item added) may
+            # still be actively used.
+            request_callback(CRAWLER_VIDEOPLAYBACK_INFO_QUERY, "SELECT timestamp, key, piece_size, nat FROM playback_info ORDER BY timestamp DESC LIMIT 50", callback=self._after_info_request_callback)
         else:
             if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_info_initiator", show_permid_short(permid), "unsupported overlay version"
 
@@ -99,9 +103,23 @@ class VideoPlaybackCrawler:
             self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "   INFO REPLY", show_permid(permid), str(error), str(info), "\n")))
             self._file.flush()
 
+            i = 0
             for timestamp, key, piece_size, nat in info:
+                i += 1
+                # do not remove the first item. the list is ordered
+                # DESC so the first item is the last that is added to
+                # the database and we can't affored to remove it, as
+                # it may cause exceptions in the running playback.
+                if i == 1:
+                    sql = "SELECT timestamp, origin, event FROM playback_event WHERE key = '%s' ORDER BY timestamp ASC LIMIT 50" % key
+                else:
+                    sql = "SELECT timestamp, origin, event FROM playback_event WHERE key = '%s' ORDER BY timestamp ASC LIMIT 50; DELETE FROM playback_event WHERE key = '%s'; DELETE FROM playback_info WHERE key = '%s';" % (key, key, key)
+                    
                 # todo: optimize to not select key for each row
-                request_callback(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, "SELECT timestamp, origin, event FROM playback_event WHERE key = '%s' ORDER BY timestamp ASC LIMIT 50; DELETE FROM playback_event WHERE key = '%s'; DELETE FROM playback_info WHERE key = '%s';" % (key, key, key), callback=self._after_info_request_callback)
+                request_callback(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY,
+                                 sql,
+                                 callback=self._after_info_request_callback,
+                                 frequency=0)
 
     def _after_info_request_callback(self, exc, permid):
         """
