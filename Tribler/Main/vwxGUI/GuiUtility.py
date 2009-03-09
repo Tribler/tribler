@@ -44,7 +44,7 @@ class GUIUtility:
         # do other init
         self.xrcResource = None
         self.utility = utility
-        self.vwxGUI_path = os.path.join(utility.abcpath, 'Tribler', 'Main', 'vwxGUI')
+        self.vwxGUI_path = os.path.join(self.utility.getPath(), 'Tribler', 'Main', 'vwxGUI')
         self.utility.guiUtility = self
         self.params = params
         self.frame = None

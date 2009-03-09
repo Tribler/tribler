@@ -219,7 +219,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         return newd
 
 
-    def sesscb_vod_event_callback(self):
+    def sesscb_vod_event_callback(self,d,event,params):
         pass
         
     def get_supported_vod_events(self):
@@ -525,10 +525,6 @@ class BaseApp(wx.App,InstanceConnectionHandler):
     
     def clear_session_state(self):
         """ Try to fix apps by doing hard reset. Called from systray menu """
-        try:
-            self.videoplayer.stop_playback()
-        except:
-            print_exc()
         try:
             if self.s is not None:
                 dlist = self.s.get_downloads()

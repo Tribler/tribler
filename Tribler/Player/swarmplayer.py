@@ -25,6 +25,7 @@ import time
 import tempfile
 from traceback import print_exc
 from cStringIO import StringIO
+from threading import Thread
 
 if sys.platform == "darwin":
     # on Mac, we can only load VLC/OpenSSL libraries
@@ -245,7 +246,7 @@ class PlayerApp(BaseApp):
             if param.startswith('http:'):
                 # Retrieve from web 
                 f = tempfile.NamedTemporaryFile()
-                n = urlOpenTimeout(url)
+                n = urlOpenTimeout(param)
                 data = n.read()
                 f.write(data)
                 f.close()
@@ -366,7 +367,17 @@ class PlayerApp(BaseApp):
                     shutil.copyfile(dest_file[1], path)
             else:
                 shutil.copyfile(dest_file[1], path)
-    
+
+    # On Exit
+
+    def clear_session_state(self):
+        """ Try to fix apps by doing hard reset. Called from systray menu """
+        try:
+            self.videoplayer.stop_playback()
+        except:
+            print_exc()
+        BaseApp.clear_session_state(self)
+
 
 
 def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):

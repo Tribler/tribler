@@ -62,7 +62,8 @@ class Category:
     def init_from_main(self, utility):
         self.utility = utility
         self.set_family_filter(None) # init family filter to saved state
-        
+
+    """
     # check to see whether need to resort torrent file
     # return bool
     def checkResort(self, data_manager):
@@ -95,7 +96,6 @@ class Category:
             print >>sys.stderr,'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)
         return False
         
-    """        
     # recalculate category of all torrents, remove torrents from db if not existed
     def reSortAll(self, data, parent = None):
          
