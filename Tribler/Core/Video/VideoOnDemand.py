@@ -102,22 +102,29 @@ class MovieOnDemandTransporter(MovieTransport):
     # maximum delay between pops before we force a restart (seconds)
     MAX_POP_TIME = 60
 
-    _playback_info_db = VideoPlaybackInfoDBHandler.get_instance()
-    _playback_event_db = VideoPlaybackEventDBHandler.get_instance()
-
     def __init__(self,bt1download,videostatus,videoinfo,videoanalyserpath,vodeventfunc):
 
         # dirty hack to get the Tribler Session
         from Tribler.Core.Session import Session
         session = Session.get_instance()
-            
-        # add an event to indicate that the user wants playback to
-        # start
-        def set_nat(nat):
-            self._playback_info_db.set_nat(self._playback_key, nat)
-        self._playback_key = str(random.random())
-        self._playback_info_db.create_entry(self._playback_key, piece_size=videostatus.piecelen, num_pieces=videostatus.movie_numpieces, bitrate=videostatus.bitrate, nat=session.get_nat_type(callback=set_nat))
-        self._playback_event_db.add_event(self._playback_key, "play", "init")
+
+        if session.get_overlay():
+            # there is an overlay
+
+            self._playback_info_db = VideoPlaybackInfoDBHandler.get_instance()
+            self._playback_event_db = VideoPlaybackEventDBHandler.get_instance()
+
+            # add an event to indicate that the user wants playback to
+            # start
+            def set_nat(nat):
+                self._playback_info_db.set_nat(self._playback_key, nat)
+            self._playback_key = str(random.random())
+            self._playback_info_db.create_entry(self._playback_key, piece_size=videostatus.piecelen, num_pieces=videostatus.movie_numpieces, bitrate=videostatus.bitrate, nat=session.get_nat_type(callback=set_nat))
+            self._playback_event_db.add_event(self._playback_key, "play", "init")
+
+        else:
+            self._playback_info_db = None
+            self._playback_event_db = None
 
         self._complete = False
         self.videoinfo = videoinfo
