@@ -39,8 +39,6 @@ class ColumnHeader(wx.Panel):
         self.icon = None
         self.title = title
 
-        print >>sys.stderr,"ColumnHeader: picture is",picture
-
         if self.component == None or self.component == 'comboboxSort':
             if picture:
                 self.icon = ImagePanel(self)

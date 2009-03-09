@@ -1564,7 +1564,14 @@ class TorrentDBHandler(BasicDBHandler):
         where = 'C.torrent_id = T.torrent_id and announce_tier=1'        
         for i in range(len(kws)):
             kw = kws[i]
-            where += ' and name like "%'+kw+'%"'
+            # Strip special chars. Note that s.translate() does special stuff for Unicode, which we don't want
+            cleankw = ''
+            for i in range(0,len(kw)):
+                c = kw[i]
+                if c.isalnum():
+                    cleankw += c
+            
+            where += ' and name like "%'+cleankw+'%"'
 
         value_name = copy(self.value_name)
         if 'torrent_id' in value_name:
