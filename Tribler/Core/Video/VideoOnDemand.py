@@ -548,8 +548,8 @@ class MovieOnDemandTransporter(MovieTransport):
                         print >>sys.stderr,"vod: trans: No bitrate info avail, wild guess: %.2f KByte/s" % (bitrate/1024)
 
                     vs.set_bitrate(bitrate)
-                    self._playback_info_db.set_bitrate(self._playback_key, bitrate)
-                    self._playback_event_db.add_event(self._playback_key, "ffmpeg", "bitrate %d" % bitrate)
+                    if self._playback_info_db: self._playback_info_db.set_bitrate(self._playback_key, bitrate)
+                    if self._playback_event_db: self._playback_event_db.add_event(self._playback_key, "ffmpeg", "bitrate %d" % bitrate)
             else:
                 if self.doing_bitrate_est:
                     # There was no playtime info in torrent, use what FFMPEG tells us
@@ -559,8 +559,8 @@ class MovieOnDemandTransporter(MovieTransport):
                         print >>sys.stderr,"vod: trans: Estimated bitrate: %.2f KByte/s" % (bitrate/1024)
 
                     vs.set_bitrate(bitrate)
-                    self._playback_info_db.set_bitrate(self._playback_key, bitrate)
-                    self._playback_event_db.add_event(self._playback_key, "ffmpeg", "bitrate %d" % bitrate)
+                    if self._playback_info_db: self._playback_info_db.set_bitrate(self._playback_key, bitrate)
+                    if self._playback_event_db: self._playback_event_db.add_event(self._playback_key, "ffmpeg", "bitrate %d" % bitrate)
 
             if width is not None and height is not None:
                 diff = False
@@ -621,7 +621,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         if not self._complete and self.piecepicker.am_I_complete():
             self._complete = True
-            self._playback_event_db.add_event(self._playback_key, "complete", "system")
+            if self._playback_event_db: self._playback_event_db.add_event(self._playback_key, "complete", "system")
 
         vs = self.videostatus
 
@@ -846,7 +846,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def start( self, bytepos = 0, force = False ):
         """ Initialise to start playing at position `bytepos'. """
-        self._playback_event_db.add_event(self._playback_key, "play", "system")
+        if self._playback_event_db: self._playback_event_db.add_event(self._playback_key, "play", "system")
 
         # ARNOTODO: we don't use start(bytepos != 0) at the moment. See if we 
         # should. Also see if we need the read numbytes here, or that it
@@ -925,7 +925,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def stop( self ):
         """ Playback is stopped. """
-        self._playback_event_db.add_event(self._playback_key, "stop", "system")
+        if self._playback_event_db: self._playback_event_db.add_event(self._playback_key, "stop", "system")
 
         vs = self.videostatus
 
@@ -945,7 +945,7 @@ class MovieOnDemandTransporter(MovieTransport):
     def pause( self, autoresume = False ):
         """ Pause playback. If `autoresume' is set, playback is expected to be
         resumed automatically once enough data has arrived. """
-        self._playback_event_db.add_event(self._playback_key, "pause", "system")
+        if self._playback_event_db: self._playback_event_db.add_event(self._playback_key, "pause", "system")
 
         vs = self.videostatus
 
@@ -967,7 +967,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def resume( self ):
         """ Resume paused playback. """
-        self._playback_event_db.add_event(self._playback_key, "resume", "system")
+        if self._playback_event_db: self._playback_event_db.add_event(self._playback_key, "resume", "system")
 
         vs = self.videostatus
 
