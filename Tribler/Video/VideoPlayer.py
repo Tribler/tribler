@@ -442,14 +442,14 @@ class VideoPlayer:
                 
                 # Estimate duration. Video player (e.g. VLC) often can't tell
                 # when streaming.
-                file = None
-                if d.get_def().is_multifile_torrent():
-                    file = d.get_selected_files()[0]
-                bitrate = d.get_def().get_bitrate(file)
-                if bitrate is not None:
-                    estduration = float(length) / float(bitrate)
-                else:
-                    estduration = None
+                estduration = None
+                if not d.get_def().get_live():
+                    file = None
+                    if d.get_def().is_multifile_torrent():
+                        file = d.get_selected_files()[0]
+                    bitrate = d.get_def().get_bitrate(file)
+                    if bitrate is not None:
+                        estduration = float(length) / float(bitrate)
                     
                 streaminfo = {'mimetype':mimetype,'stream':stream,'length':length,'blocksize':blocksize,'estduration':estduration}
                 self.play_stream(streaminfo)

@@ -372,7 +372,6 @@ class MovieOnDemandTransporter(MovieTransport):
                 # video has just started -- watch from beginning
                 return True
 
-
         print >>sys.stderr,"vod: === HOOKING IN AT PIECE %d (based on have: %s) ===" % (maxnum,have)
         toinvalidateset = vs.set_live_startpos( maxnum )
         #print >>sys.stderr,"vod: invalidateset is",`toinvalidateset`
@@ -1038,7 +1037,10 @@ class MovieOnDemandTransporter(MovieTransport):
         self.data_ready.acquire()
         try:
             if vs.live_streaming:
-                raise ValueError("seeking not possible for live")
+                if pos == 0 and whence == os.SEEK_SET:
+                    print >>sys.stderr,"vod: seek: Ignoring seek in live"
+                else:
+                    raise ValueError("seeking not possible for live")
             if whence == os.SEEK_SET:
                 abspos = pos
             elif whence == os.SEEK_END:

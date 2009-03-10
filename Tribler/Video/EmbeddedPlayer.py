@@ -414,7 +414,10 @@ class EmbeddedPlayerPanel(wx.Panel):
         ##if not self.volumeicon.isToggled():
         ##    self.volume.SetValue(int(self.vlcwrap.sound_get_volume() * 100))
 
+        #print >>sys.stderr,"embedplay: CURRENT TIMEPOS",self.vlcwrap.get_media_position() 
+
         if self.update and self.GetState() != MEDIASTATE_STOPPED:
+            
             len = self.vlcwrap.get_stream_information_length()
             if len == -1 or len == 0:
                 if self.estduration is None:
@@ -448,8 +451,8 @@ class VLCLogoWindow(wx.Window):
     def __init__(self, parent, size, vlcwrap, logopath, fg=wx.WHITE, bg=wx.BLACK):
         wx.Window.__init__(self, parent, -1, size=size)
 
-        self.guiUtility = GUIUtility.getInstance()
-        self.utility = self.guiUtility.utility 
+        #self.guiUtility = GUIUtility.getInstance()
+        #self.utility = self.guiUtility.utility 
 
 
         self.SetMinSize(size)
@@ -468,9 +471,9 @@ class VLCLogoWindow(wx.Window):
 
 
 
-        agVideo_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','video.gif')
-        self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, agVideo_fname, pos = (110,70))
-        self.agVideo.Hide()
+        #agVideo_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','video.gif')
+        #self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, agVideo_fname, pos = (110,70))
+        #self.agVideo.Hide()
 
 
         #self.playbackText = wx.StaticText(self,-1,"Leave Tribler running\n for faster playback",wx.Point(30,140))
