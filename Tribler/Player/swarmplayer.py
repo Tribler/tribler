@@ -478,7 +478,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             d = ds.get_download()
             tdef = d.get_def()
             videofiles = d.get_selected_files()
-            if len(videofiles) > 1:
+            if len(videofiles) >= 1:
                 videofile = videofiles[0]
             else:
                 videofile = None

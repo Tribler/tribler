@@ -51,6 +51,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         self.volume = 0.48
         self.oldvolume = 0.48
+        self.estduration = None
 
         if vlcwrap is None:
             size = (320,64)
@@ -150,7 +151,6 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.SetSizerAndFit(mainbox)
         
         self.playtimer = None
-        self.bitrateset = False
         self.update = False
         self.timer = None
         
@@ -215,11 +215,13 @@ class EmbeddedPlayerPanel(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"embedplay: Load:",url,streaminfo,currentThread().getName()
         # Arno: hack: disable dragging when not playing from file.
-        if url.startswith('http:') or streaminfo is not None:
+        if url is None or url.startswith('http:'):
            self.slider.DisableDragging()
         else:
            self.slider.EnableDragging()
         ##self.SetPlayerStatus('')
+        if streaminfo is not None:
+            self.estduration = streaminfo.get('estduration',None)
 
         # Arno, 2009-02-17: If we don't do this VLC gets the wrong playlist somehow
         self.vlcwrap.stop()
@@ -332,7 +334,6 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.slider.SetValue(0)
         if self.timer is not None:
             self.timer.Stop()
-        self.bitrateset = False
 
     def GetState(self):
         """ Returns the state of VLC as summarized by Fabian: 
@@ -415,9 +416,13 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         if self.update and self.GetState() != MEDIASTATE_STOPPED:
             len = self.vlcwrap.get_stream_information_length()
-            if len == -1:
-                return
-            len /= 1000
+            if len == -1 or len == 0:
+                if self.estduration is None:
+                    return
+                else:
+                    len = int(self.estduration)
+            else:
+                len /= 1000
 
             cur = self.vlcwrap.get_media_position() / 1000
 

@@ -190,7 +190,7 @@ class VideoPlayer:
                 self.videohttpserv.set_inputstream(streaminfo,'/')
                 url = self.create_url(self.videohttpserv,'/')
 
-                self.launch_video_player(url)
+                self.launch_video_player(url,streaminfo=streaminfo)
         else:
             # External player, play stream via internal HTTP server
             path = '/'
@@ -204,9 +204,9 @@ class VideoPlayer:
     def launch_video_player(self,cmd,streaminfo=None):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
 
-            if streaminfo is None:
+            if cmd is not None:
                 # Play URL from network or disk
-                self.videoframe.get_videopanel().Load(cmd)
+                self.videoframe.get_videopanel().Load(cmd,streaminfo=streaminfo)
             else:
                 # Play using direct callbacks from the VLC C-code
                 self.videoframe.get_videopanel().Load('raw:',streaminfo=streaminfo)
@@ -388,6 +388,8 @@ class VideoPlayer:
     def start_and_play(self,tdef,dscfg):
         """ Called by GUI thread when Tribler started with live or video torrent on cmdline """
 
+        # ARNO50: > Preview1: TODO: make sure this works better when Download already existed.
+        
         selectedinfilename = None
         if not tdef.get_live():
             videofiles = tdef.get_files(exts=videoextdefaults)
@@ -437,8 +439,21 @@ class VideoPlayer:
                 self.play_file(filename)
             else:
                 blocksize = d.get_def().get_piece_length()
-                streaminfo = {'mimetype':mimetype,'stream':stream,'length':length,'blocksize':blocksize}
+                
+                # Estimate duration. Video player (e.g. VLC) often can't tell
+                # when streaming.
+                file = None
+                if d.get_def().is_multifile_torrent():
+                    file = d.get_selected_files()[0]
+                bitrate = d.get_def().get_bitrate(file)
+                if bitrate is not None:
+                    estduration = float(length) / float(bitrate)
+                else:
+                    estduration = None
+                    
+                streaminfo = {'mimetype':mimetype,'stream':stream,'length':length,'blocksize':blocksize,'estduration':estduration}
                 self.play_stream(streaminfo)
+                
         elif event == VODEVENT_PAUSE:
             if self.videoframe is not None: 
                 self.videoframe.get_videopanel().Pause()

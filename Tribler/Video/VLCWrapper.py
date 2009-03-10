@@ -138,7 +138,7 @@ class VLCWrapper:
         #self.media.exit()
         #self.media = self.get_vlc_mediactrl()
         
-        if streaminfo is not None:
+        if url is None:
             """
             To prevent concurrency between the MainThread closing the 
             video window and the VLC Dummy-X thread making callbacks,
