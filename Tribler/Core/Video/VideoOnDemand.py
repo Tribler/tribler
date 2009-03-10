@@ -143,6 +143,10 @@ class MovieOnDemandTransporter(MovieTransport):
         else:
             self.video_analyser_path=videoanalyserpath
 
+        # counter for the sustainable() call. Every X calls the
+        # buffer-percentage is updated.
+        self.sustainable_counter = sys.maxint
+
         # boudewijn: because we now update the downloadrate for each
         # received chunk instead of each piece we do not need to
         # average the measurement over a 'long' period of time. Also,
@@ -153,7 +157,8 @@ class MovieOnDemandTransporter(MovieTransport):
         self.high_range_rate = Measure(2)
 
         # boudewijn: increase the initial minimum buffer size
-        vs.increase_high_range()
+        if not vs.live_streaming:
+            vs.increase_high_range()
 
         # buffer: a link to the piecepicker buffer
         self.has = self.piecepicker.has
@@ -572,7 +577,11 @@ class MovieOnDemandTransporter(MovieTransport):
                     #self.user_setsize(self.videodim)
                     pass
 
-        if gotall and self.enough_buffer():
+        # 10/03/09 boudewijn: For VOD we will wait for the entire
+        # buffer to fill (gotall) before we start playback. For live
+        # this is unlikely to happen and we will therefore only wait
+        # until we estimate that we have enough_buffer.
+        if (gotall or vs.live_streaming) and self.enough_buffer():
             # enough buffer and could estimated bitrate - start streaming
             if DEBUG:
                 print >>sys.stderr,"vod: trans: Prebuffering done",currentThread().getName()
@@ -903,7 +912,8 @@ class MovieOnDemandTransporter(MovieTransport):
             self.playbackrate = Measure( 60 )
 
             # boudewijn: decrease the initial minimum buffer size
-            vs.decrease_high_range()
+            if not vs.live_streaming:
+                vs.decrease_high_range()
 
         finally:
             self.data_ready.release()
@@ -1294,26 +1304,36 @@ class MovieOnDemandTransporter(MovieTransport):
                     #
                     # return num_immediate_packets >= self.max_prebuf_packets
 
-                    num_immediate_packets = 0
-                    high_range_length = vs.get_high_range_length()
-                    for piece in vs.generate_range(vs.download_range()): 
-                        if self.has[piece]:
-                            num_immediate_packets += 1
+                    self.sustainable_counter += 1
+                    if self.sustainable_counter > 10:
+                        self.sustainable_counter = 0
+                        
+                        high_range_length = vs.get_high_range_length()
+                        have_length = len(filter(lambda n:self.has[n], vs.generate_high_range()))
 
-                            if num_immediate_packets >= high_range_length:
+                        # progress                                                                                  
+                        self.prebufprogress = min(1.0, float(have_length) / max(1, high_range_length))
+
+                        return have_length >= high_range_length
+
+                    else:
+                        num_immediate_packets = 0
+                        high_range_length = vs.get_high_range_length()
+                        # for piece in vs.generate_range(vs.download_range()): 
+                        for piece in vs.generate_high_range(): 
+                            if self.has[piece]:
+                                num_immediate_packets += 1
+                                if num_immediate_packets >= high_range_length:
+                                    break
+                            else:
                                 break
                         else:
-                            break
-                    else:
-                        # progress                                                                              
-                        self.prebufprogress = 1.0
-                        # completed loop without breaking, so we have everything we need                        
-                        return True
+                            # progress                                                                              
+                            self.prebufprogress = 1.0
+                            # completed loop without breaking, so we have everything we need                        
+                            return True
 
-                    # progress                                                                                  
-                    self.prebufprogress = min(1.0, float(num_immediate_packets) / max(1, high_range_length))
-                  
-                    return num_immediate_packets >= high_range_length
+                        return num_immediate_packets >= high_range_length
 
             sus = sustainable()
             if vs.pausable and not sus:

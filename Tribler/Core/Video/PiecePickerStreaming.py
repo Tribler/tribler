@@ -166,8 +166,8 @@ class PiecePickerStreaming(PiecePicker):
                 d["interesting"].pop(oldpos,0)
 
     def got_have(self, piece, connection=None):
-        if DEBUG:
-            print >>sys.stderr,"PiecePickerStreaming: got_have:",piece
+        # if DEBUG:
+        #     print >>sys.stderr,"PiecePickerStreaming: got_have:",piece
         self.maxhave = max(self.maxhave,piece)
         PiecePicker.got_have( self, piece, connection )
         if self.transporter:
@@ -198,8 +198,8 @@ class PiecePickerStreaming(PiecePicker):
             self.transporter.got_piece(*request)
 
     def complete(self, piece):
-        if DEBUG:
-            print >>sys.stderr,"PiecePickerStreaming: complete:",piece
+        # if DEBUG:
+        #     print >>sys.stderr,"PiecePickerStreaming: complete:",piece
         PiecePicker.complete( self, piece )
         if self.transporter:
             self.transporter.complete( piece )
@@ -325,8 +325,8 @@ class PiecePickerStreaming(PiecePicker):
                 return best
 
         p = self.next_new(haves, wantfunc, complete_first, helper_con,willrequest=willrequest,connection=connection)
-        if DEBUG:
-            print >>sys.stderr,"PiecePickerStreaming: next_new returns",p
+        # if DEBUG:
+        #     print >>sys.stderr,"PiecePickerStreaming: next_new returns",p
         return p
 
     def check_outstanding_requests(self, downloads):
@@ -553,7 +553,14 @@ class PiecePickerStreaming(PiecePicker):
         # highprob_cutoff = vs.normalize( first + min( h, max_lookahead ) )
         # midprob_cutoff  = vs.normalize( first + min( h + self.MU * h, max_lookahead ) )
 
-        if vs.prebuffering and not connection.download.bad_performance_counter:
+        if vs.live_streaming:
+            # for live playback consider peers to be bad when they miss the deadline 5 times
+            allow_based_on_performance = connection.download.bad_performance_counter < 5
+        else:
+            # for VOD playback consider peers to be bad when they miss the deadline 1 time
+            allow_based_on_performance = connection.download.bad_performance_counter < 1
+
+        if vs.prebuffering and allow_based_on_performance:
             f = first
             t = vs.normalize( first + self.transporter.max_prebuf_packets )
             choice = pick_rarest_small_range(f,t)
@@ -561,8 +568,8 @@ class PiecePickerStreaming(PiecePicker):
         else:
             choice = None
 
-        if choice is None:
-            if vs.live_streaming and not connection.download.bad_performance_counter:
+        if choice is None and allow_based_on_performance:
+            if vs.live_streaming:
                choice = pick_rarest_small_range( first, highprob_cutoff )
             else:
                choice = pick_first( first, highprob_cutoff )
