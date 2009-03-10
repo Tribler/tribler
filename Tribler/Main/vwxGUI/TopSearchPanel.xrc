@@ -134,10 +134,18 @@
                 <size>0,20</size>
               </object>
               <object class="sizeritem">
-                <object class="wxStaticBitmap" name="sharing_reputation">
-                  <bitmap>images/5.0/sharing_reputation.png</bitmap>
+                <object class="wxStaticText" name="sharing_reputation">
+                  <label>Sharing Reptutaion</label>
+                  <font>
+                    <size>8</size>
+                    <family>swiss</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Nimbus Sans L</face>
+                    <encoding>UTF-8</encoding>
+                  </font>
                 </object>
-                <option>0</option>
               </object>
               <object class="spacer">
                 <size>0,5</size>

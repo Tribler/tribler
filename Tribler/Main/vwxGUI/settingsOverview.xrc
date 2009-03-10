@@ -348,7 +348,7 @@
                       </object>
                       <object class="sizeritem">
                         <object class="wxStaticText" name="firewallStatusText">
-                          <label>Connecting ...</label>
+                          <label></label>
                         </object>
                       </object>
                     </object>

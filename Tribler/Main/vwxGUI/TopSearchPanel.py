@@ -24,7 +24,7 @@ from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
 
-DEBUG = False
+DEBUG = True
 
 class TopSearchPanel(bgPanel):
     def __init__(self, *args, **kwds):
@@ -75,6 +75,7 @@ class TopSearchPanel(bgPanel):
         self.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
         self.help.Bind(wx.EVT_LEFT_UP, self.helpClick)
         self.familyfilter.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
+        self.sr_msg.Bind(wx.EVT_LEFT_UP, self.sr_msgClick)
 
 
     def OnSearchKeyDown(self,event):
@@ -86,7 +87,7 @@ class TopSearchPanel(bgPanel):
         else:
             keycode = None
 
-        if self.searchField.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'go'): 
+        if self.searchField.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'search'): 
             if self.first:
                 self.first=False
                                
@@ -154,6 +155,20 @@ class TopSearchPanel(bgPanel):
         self.ag.Hide()
 
 
+    def sr_msgClick(self,event=None):
+        
+        if self.sr_msg.GetLabel() == 'Poor':
+            title = self.utility.lang.get('sharing_reputation_information_title')
+            msg = self.utility.lang.get('sharing_reputation_poor')
+            
+            dlg = wx.MessageDialog(None, msg, title, wx.OK|wx.ICON_WARNING)
+ 
+
+            result = dlg.ShowModal()
+            dlg.Destroy()
+
+
+
     def helpClick(self,event=None):
         title = self.utility.lang.get('sharing_reputation_information_title')
         msg = self.utility.lang.get('sharing_reputation_information_message')
@@ -161,6 +176,8 @@ class TopSearchPanel(bgPanel):
         dlg = wx.MessageDialog(None, msg, title, wx.OK|wx.ICON_INFORMATION)
         result = dlg.ShowModal()
         dlg.Destroy()
+
+
 
     def viewSettings(self,event):
         self.guiUtility.settingsOverview()
@@ -194,12 +211,15 @@ class TopSearchPanel(bgPanel):
 #       self.SetSizerAndFit(object_1)
 # ----------------------------------------------------------------------------------------          
         
-        self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
+        #self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
+        self.files_friends = wx.StaticText(self, -1, "Search Files") 
         self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
         self.go = tribler_topButton(self,-1,name = 'search')
         self.familyfilter = wx.StaticText(self, -1, "Family Filter:")
         self.search_results = wx.StaticText(self, -1, "")
-        self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
+        self.sharing_reputation = wx.StaticText(self, -1, "Sharing Reputation: ") 
+        self.sr_msg = wx.StaticText(self, -1, "") 
+        #self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
         self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient_new.png", wx.BITMAP_TYPE_ANY))
         self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY))
         self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRind.png", wx.BITMAP_TYPE_ANY))
@@ -243,6 +263,9 @@ class TopSearchPanel(bgPanel):
         self.my_files.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
         self.total_down.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
         self.total_up.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.sharing_reputation.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
+        self.sr_msg.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
+        self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
 
 
         # end wx.Glade
@@ -256,6 +279,7 @@ class TopSearchPanel(bgPanel):
         object_10 = wx.BoxSizer(wx.VERTICAL)
         object_2 = wx.BoxSizer(wx.HORIZONTAL)
         object_7 = wx.BoxSizer(wx.VERTICAL)
+        object_14 = wx.BoxSizer(wx.HORIZONTAL)
         object_9 = wx.BoxSizer(wx.HORIZONTAL)
         object_8 = wx.BoxSizer(wx.HORIZONTAL)
         object_3 = wx.BoxSizer(wx.VERTICAL)
@@ -281,7 +305,9 @@ class TopSearchPanel(bgPanel):
         object_2.Add(object_3, 0, wx.EXPAND, 0)
         object_2.Add((40, 0), 0, 0, 0)
         object_7.Add((0, 20), 0, 0, 0)
-        object_7.Add(self.sharing_reputation, 0, 0, 0)
+        object_7.Add(object_14, 0, 0, 0)
+        object_14.Add(self.sharing_reputation, 0, 0, 0)
+        object_14.Add(self.sr_msg, 0, 0, 0)
         object_7.Add((0, 5), 0, 0, 0)
         object_8.Add(self.srgradient, 0, 0, 0)
         object_8.Add((5, 0), 0, 0, 0)

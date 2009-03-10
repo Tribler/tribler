@@ -369,6 +369,26 @@ class Utility:
     def speed_format(self, s, truncate = 1, stopearly = None):
         return self.size_format(s, truncate, stopearly) + "/" + self.lang.get('l_second')
 
+    def speed_format_new(self, s):
+
+        if s < 102400:
+            text = '%2.1f KB/s' % (s/1024.0)
+        elif s < 1022797:
+            text = '%d KB/s' % (s//1024)
+        elif s < 104857600:
+            text = '%2.1f MB/s' % (s/1048576.0)
+        elif s < 1047527425L:
+            text = '%d MB/s' % (s//1048576)
+        elif s < 107374182400L:
+            text = '%2.1f GB/s' % (s/1073741824.0)
+        elif s < 1072668082177L:
+            text = '%d GB/s' % (s//1073741824)
+        else:
+            text = '%2.1f TB/s' % (s//1099511627776L)
+
+        return text
+
+
     def size_format(self, s, truncate = None, stopearly = None, applylabel = True, rawsize = False, showbytes = False, labelonly = False, textonly = False):
         size = 0.0
         label = ""

@@ -593,6 +593,30 @@ class SwitchButton(tribler_topButton):
         return self.toggled
     
 
+
+    def OnPaint(self, evt): # override
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.backgroundColor))
+        dc.Clear()
+        
+        if self.parentBitmap:
+            dc.DrawBitmap(self.parentBitmap, 0,0, True)
+        else:
+            self.parentBitmap = self.getParentBitmap()
+            if self.parentBitmap:
+                dc.DrawBitmap(self.parentBitmap, 0,0, True)
+        
+        if not self.enabled:
+            return
+        
+        if self.bitmaps[0]:
+            dc.DrawBitmap(self.bitmaps[0], 0,0, True)
+        if self.mouseOver and self.isToggled() and self.bitmaps[1]:
+            dc.DrawBitmap(self.bitmaps[1], 0,0, True)
+
+
+
+
 class PlayerSwitchButton(tribler_topButton):
 
     # Somehow can't inherit these

@@ -78,6 +78,10 @@ class GUIUtility:
 
 
 
+        # firewall
+        self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
+
+
 
         # Arno: 2008-04-16: I want to keep this for searching, as an extension
         # of the standardGrid.GridManager
@@ -997,15 +1001,20 @@ class GUIUtility:
         self.standardOverview.loadSubscriptionData()
         self.standardOverview.refreshData()
 
+    def set_firewall_restart(self,b):
+        self.firewall_restart = b
+
+
     def firewallStatusClick(self,event=None):
-        
-        if self.isReachable():
-            title = self.utility.lang.get('tribler_information')
+        title = self.utility.lang.get('tribler_information')
+        if self.firewall_restart:
+            type = wx.ICON_WARNING
+            msg = self.utility.lang.get('restart_tooltip')
+        elif self.isReachable():
             type = wx.ICON_INFORMATION
             msg = self.utility.lang.get('reachable_tooltip')
         else:
-            title = self.utility.lang.get('tribler_information')
-            type = wx.ICON_WARNING
+            type = wx.ICON_INFORMATION
             msg = self.utility.lang.get('connecting_tooltip')
             
         dlg = wx.MessageDialog(None, msg, title, wx.OK|type)

@@ -905,6 +905,7 @@ delete_dead_torrent = "Remove Torrent"
 ###
 
 reachable_tooltip	= "Others can reach you, i.e. you are not firewalled. This is good"
+restart_tooltip		= "Please restart Tribler for your changes to take place"
 connecting_tooltip      = "Your current firewall status is being checked ..."
 unknownreach_tooltip	= "Others cannot reach you. This is not good. Click to learn more."
 abbrev_loaded		= "L:"
@@ -1035,6 +1036,7 @@ upgradeabctitle = "Update to Tribler "
 mainpage = "Tribler Main Page"
 sharing_reputation_information_title = "Sharing reputation information"
 sharing_reputation_information_message = "This progress bar shows your sharing reputation. The better your sharing ratio the higher your sharing reputation."
+sharing_reputation_poor = "Your current sharing reputation is low! This could affect your download speed. Please leave tribler running to improve this."
 
 #############
 #Make Torrent

@@ -25,7 +25,7 @@ class SettingsOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
         self.initDone = False
-        self.elementsName = ['myNameField', 'thumb', 'edit','firewallValue','firewallStatus','uploadCtrl','downloadCtrl','zeroUp','fiftyUp','hundredUp','unlimitedUp','tenDown','fiftyDown','hundredDown','unlimitedDown','diskLocationCtrl']
+        self.elementsName = ['myNameField', 'thumb', 'edit','firewallValue','firewallStatusText','firewallStatus','uploadCtrl','downloadCtrl','zeroUp','fiftyUp','hundredUp','unlimitedUp','tenDown','fiftyDown','hundredDown','unlimitedDown','diskLocationCtrl']
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         self.mypref = None
@@ -105,6 +105,7 @@ class SettingsOverviewPanel(wx.Panel):
 
 
         self.showPort()
+
        
         self.showMaxDLRate()
         self.showMaxULRate()
@@ -121,13 +122,15 @@ class SettingsOverviewPanel(wx.Panel):
         wx.CallAfter(self.Refresh)
         
     def OnShow(self, evt):
+        self.updateFirewall()
+
 #        print "<mluc> in onshow in settingsOverviewPanel"
 #        if evt.show:
 #            print "<mluc> settingsOverviewPanel is visible"
 #            self.timer.Start() #restarts the timer
 #        else:
 #            print "<mluc> settingsOverviewPanel is visible"
-            pass
+        #pass
         #wx.CallAfter(self.reloadData)
 
     def getNameMugshot(self):
@@ -187,47 +190,54 @@ class SettingsOverviewPanel(wx.Panel):
         self.elements['uploadCtrl'].SetValue('0') 
         self.guiUtility.utility.config.Write('maxuploadrate', '-1')
         self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
+        self.standardOverview.updateSaveIcon()
+
 
     def fiftyUp(self, event):
         self.elements['uploadCtrl'].SetValue('50')        
         self.guiUtility.utility.config.Write('maxuploadrate', '50')
         self.utility.ratelimiter.set_global_max_speed(UPLOAD, 50)
+        self.standardOverview.updateSaveIcon()
 
 
     def hundredUp(self, event):
         self.elements['uploadCtrl'].SetValue('100')        
         self.guiUtility.utility.config.Write('maxuploadrate', '100')
         self.utility.ratelimiter.set_global_max_speed(UPLOAD, 100)
+        self.standardOverview.updateSaveIcon()
 
     def unlimitedUp(self, event):
         self.elements['uploadCtrl'].SetValue('inf')        
         self.guiUtility.utility.config.Write('maxuploadrate', '0')
         self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
+        self.standardOverview.updateSaveIcon()
 
 
     def tenDown(self, event):
         self.elements['downloadCtrl'].SetValue('10')        
         self.guiUtility.utility.config.Write('maxdownloadrate', '10')
         self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 10)
+        self.standardOverview.updateSaveIcon()
 
     def fiftyDown(self, event):
         self.elements['downloadCtrl'].SetValue('50')        
         self.guiUtility.utility.config.Write('maxdownloadrate', '50')
         self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 50)
+        self.standardOverview.updateSaveIcon()
 
 
     def hundredDown(self, event):
         self.elements['downloadCtrl'].SetValue('100')        
         self.guiUtility.utility.config.Write('maxdownloadrate', '100')
         self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 100)
+        self.standardOverview.updateSaveIcon()
 
 
     def unlimitedDown(self, event):
         self.elements['downloadCtrl'].SetValue('inf')        
         self.guiUtility.utility.config.Write('maxdownloadrate', '0')
         self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
-
-
+        self.standardOverview.updateSaveIcon()
 
 
     def uploadCtrlEnter(self, event):

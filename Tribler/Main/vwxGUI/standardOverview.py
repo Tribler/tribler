@@ -207,8 +207,7 @@ class standardOverview(wx.Panel):
 
     def onReachable(self,event=None):
         """ Called by GUI thread """
-        if self.firewallStatus is not None:
-            print >> sys.stderr , "AAAAA"
+        if self.firewallStatus is not None and self.firewallStatusText.GetLabel() != 'Restart Tribler':
             self.guiUtility.set_reachable()
             self.firewallStatus.setSelected(2)
             self.firewallStatusText.SetLabel('Port is working')
@@ -222,17 +221,37 @@ class standardOverview(wx.Panel):
         keycode = event.GetKeyCode()
 
         if keycode == wx.WXK_RETURN:
-            #self.utility.session.set_listen_port(self.portValue.GetValue())
             self.utility.config.Write('minport', self.portValue.GetValue())
             self.utility.config.Flush()
             self.guiUtility.set_port_number(self.portValue.GetValue()) 
-
+            self.guiUtility.set_firewall_restart(True) 
             self.guiserver = GUITaskQueue.getInstance()
             self.guiserver.add_task(lambda:wx.CallAfter(self.show_message), 0.0)
+            self.firewallStatus.setSelected(1)
+            self.firewallStatusText.SetLabel('Restart Tribler')
+            tt = self.firewallStatus.GetToolTip()
+            if tt is not None:
+                tt.SetTip(self.utility.lang.get('restart_tooltip'))
+
+
             self.updateSaveIcon()
 
         else:
             event.Skip()     
+
+
+
+    def updateFirewall(self):
+        if self.firewallStatus is not None:
+            if self.guiUtility.firewall_restart:
+                self.firewallStatus.setSelected(1)
+                self.firewallStatusText.SetLabel('Restart Tribler')
+            elif self.guiUtility.isReachable():
+                self.firewallStatus.setSelected(2)
+                self.firewallStatusText.SetLabel('Port is working')
+            else:
+                self.firewallStatus.setSelected(1)
+                self.firewallStatusText.SetLabel('Connecting ...')
 
            
 
@@ -262,10 +281,6 @@ class standardOverview(wx.Panel):
 
     def hideSaveIcon(self):
         self.iconSaved.Show(False)
-
-
-
-
 
 
         
@@ -312,6 +327,7 @@ class standardOverview(wx.Panel):
             self.portValue.Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
             self.portChange = xrc.XRCCTRL(currentPanel, 'portChange')
             self.iconSaved = xrc.XRCCTRL(currentPanel, 'iconSaved')
+            wx.CallAfter(self.updateFirewall)
 
                         
 

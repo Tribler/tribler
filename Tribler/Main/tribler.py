@@ -527,6 +527,19 @@ class ABCApp(wx.App):
     def set_reputation(self):
         """ set the reputation in the GUI"""
         reputation = self.get_reputation()
+        if reputation < -0.33:
+            self.frame.top_bg.sr_msg.SetLabel('Poor')
+            self.frame.top_bg.sr_msg.SetForegroundColour((255,51,0))
+        elif reputation < 0.33:
+            self.frame.top_bg.sr_msg.SetLabel('Average')
+            self.frame.top_bg.sr_msg.SetForegroundColour(wx.BLACK)
+        else:
+            self.frame.top_bg.sr_msg.SetLabel('Good')
+            self.frame.top_bg.sr_msg.SetForegroundColour((0,80,120))
+
+
+
+ 
         if DEBUG:
             print >> sys.stderr , "main: My Reputation",reputation
         
@@ -540,50 +553,94 @@ class ABCApp(wx.App):
             s = '%dB Down  ' % d         
         elif d < 1000:
             s = '%dB Down ' % d
-        elif d < 10000:
-            s = '%dKB Down  ' % (d//1000L)
-        elif d < 100000:
-            s = '%dKB Down ' % (d//1000L)
-        elif d < 1000000:
-            s = '%dKB Down' % (d//1000L)
-        elif d < 10000000:
-            s = '%dMB Down  ' % (d//1000000L)
-        elif d < 100000000:
-            s = '%dMB Down ' % (d//1000000L)
-        elif d < 1000000000:
-            s = '%dMB Down' % (d//1000000L)
-        elif d < 10000000000:
-            s = '%dGB Down  ' % (d//1000000000L)
-        elif d < 100000000000:
-            s = '%dGB Down ' % (d//1000000000L)
-        else:
-            s = '%dGB Down' % (d//1000000000L)
+        elif d < 1024:
+            s = '%1.1fKB Down' % (d/1024.0)
+        elif d < 10240:
+            s = '%dKB Down  ' % (d//1024)
+        elif d < 102400:
+            s = '%dKB Down ' % (d//1024)
+        elif d < 1022796:
+            s = '%dKB Down' % (d//1024)
+        elif d < 1048576:
+            s = '%1.1fMB Down' % (d//1048576.0)
+        elif d < 10485760:
+            s = '%dMB Down  ' % (d//1048576)
+        elif d < 104857600:
+            s = '%dMB Down ' % (d//1048576)
+        elif d < 1047527425:
+            s = '%dMB Down' % (d//1048576)
+        elif d < 1073741824:
+            s = '%1.1fGB Down' % (d//1073741824.0)
+        elif d < 10737418240:
+            s = '%dGB Down  ' % (d//1073741824)
+        elif d < 107374182400:
+            s = '%dGB Down ' % (d//1073741824)
+        else: 
+            s = '%dGB Down' % (d//1073741824)
+
+
+        #if d < 10:
+        #    s = '%dB Down   ' % d         
+        #elif d < 100:
+        #    s = '%dB Down  ' % d         
+        #elif d < 1000:
+        #    s = '%dB Down ' % d
+        #elif d < 10000:
+        #    s = '%dKB Down  ' % (d//1000L)
+        #elif d < 100000:
+        #    s = '%dKB Down ' % (d//1000L)
+        #elif d < 1000000:
+        #    s = '%dKB Down' % (d//1000L)
+        #elif d < 10000000:
+        #    s = '%dMB Down  ' % (d//1000000L)
+        #elif d < 100000000:
+        #    s = '%dMB Down ' % (d//1000000L)
+        #elif d < 1000000000:
+        #    s = '%dMB Down' % (d//1000000L)
+        #elif d < 10000000000:
+        #    s = '%dGB Down  ' % (d//1000000000L)
+        #elif d < 100000000000:
+        #    s = '%dGB Down ' % (d//1000000000L)
+        #else:
+        #    s = '%dGB Down' % (d//1000000000L)
         
         self.frame.top_bg.total_down.SetLabel(s)
 
 
         u = self.get_total_up()
 
+
         if u < 1000:
             s = '%4dB Up' % u
-        elif u < 1000000:
-            s = '%3dKB Up' % (u//1000L)
-        elif u < 1000000000:
-            s = '%3dMB Up' % (u//1000000L)
-        else:
-            s = '%3dGB Up' % (u//1000000000L)
+        elif u < 1024:
+            s = '%1.1fKB Up' % (u/1024.0)
+        elif u < 1022796:
+            s = '%3dKB Up' % (u//1024)
+        elif u < 1048576:
+            s = '%1.1fMB Up' % (u//1048576.0)
+        elif u < 1047527425:
+            s = '%3dMB Up' % (u//1048576)
+        elif u < 1073741824:
+            s = '%1.1fGB Up' % (u//1073741824.0)
+        else: 
+            s = '%3dGB Up' % (u//1073741824)
+
+
+        #if u < 1000:
+        #    s = '%4dB Up' % u
+        #elif u < 1000000:
+        #    s = '%3dKB Up' % (u//1000L)
+        #elif u < 1000000000:
+        #    s = '%3dMB Up' % (u//1000000L)
+        #else:
+        #    s = '%3dGB Up' % (u//1000000000L)
 
         self.frame.top_bg.total_up.SetLabel(s)
 
 
         self.frame.hsizer = self.frame.top_bg.sr_indicator.GetContainingSizer()
         self.frame.hsizer.Remove(0)
-        ##self.frame.hsizer.Remove(1)
         self.frame.hsizer.Prepend(wx.Size(reputation*40+50,0),0,wx.LEFT,0)
-        ##if reputation > self.old_reputation:
-        ##    self.frame.hsizer.Prepend(self.sr_indicator_right,1,wx.LEFT,0)
-        ##else:
-        ##    self.frame.hsizer.Prepend(self.sr_indicator_left,1,wx.LEFT,0)
    
         self.frame.hsizer.Layout()
  

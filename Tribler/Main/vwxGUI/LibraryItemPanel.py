@@ -150,7 +150,7 @@ class LibraryItemPanel(wx.Panel):
 
         
         # Add Spacer
-        self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
+        self.hSizer.Add([5,0],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
         
         
         # Add thumb
@@ -160,6 +160,20 @@ class LibraryItemPanel(wx.Panel):
         #self.thumb.Hide()
         #self.hSizer.Add(self.thumb, 0, wx.ALL, 2)
         
+
+        # add play button
+        self.library_play = tribler_topButton(self, name="library_play") ## before libraryPlay
+        self.library_play.setBackground(wx.WHITE)
+        self.library_play.SetMinSize((17,17))
+        self.library_play.SetSize((17,17))
+        self.hSizer.Add(self.library_play, 0, wx.TOP|wx.ALIGN_RIGHT, 2) 
+        self.library_play.Hide()  
+ 
+
+
+        self.hSizer.Add([5,0],0,wx.FIXED_MINSIZE,0)        
+
+
         # Add title
         self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(300,14))        
         self.title.SetBackgroundColour(wx.WHITE)
@@ -178,6 +192,9 @@ class LibraryItemPanel(wx.Panel):
         #self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))                
         #self.hSizer.Add(self.eta, 0, wx.FIXED_MINSIZE, 0)
  
+
+
+
         # remove from library button
         self.remove = tribler_topButton(self, name="remove")
         self.remove.setBackground(wx.WHITE)
@@ -186,27 +203,25 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.remove, 0, wx.TOP|wx.ALIGN_RIGHT, 2) 
 
 
-
-
-        self.hSizer.Add([38,0],0,wx.FIXED_MINSIZE,0)        
+        self.hSizer.Add([60,0],0,wx.FIXED_MINSIZE,0)        
 
 
 
 
-        self.speedDown2 = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(50,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
+        self.speedDown2 = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(45,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
         self.speedDown2.SetForegroundColour(wx.BLACK) ## self.triblerGrey    
         self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.speedDown2.SetMinSize((50,12))        
+        self.speedDown2.SetMinSize((45,12))        
 
 
-        self.speedUp2   = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(50,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                        
+        self.speedUp2   = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(45,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                        
         self.speedUp2.SetForegroundColour(wx.BLACK) ## self.triblerGrey
         self.speedUp2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.speedUp2.SetMinSize((50,12))
+        self.speedUp2.SetMinSize((45,12))
 
 
         self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 4)
-        self.hSizer.Add([18,0],0,wx.FIXED_MINSIZE,0)
+        self.hSizer.Add([18,0],0,0,0)
         self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 4)   
 
 
@@ -290,12 +305,6 @@ class LibraryItemPanel(wx.Panel):
         ##self.hSizerSummary = wx.BoxSizer(wx.HORIZONTAL) ##
         ##self.vSizerOverall.Add(self.hSizerSummary, 1, wx.FIXED_MINSIZE|wx.EXPAND, 0) ##           
 
-        self.library_play = tribler_topButton(self, name="library_play") ## before libraryPlay
-        self.library_play.setBackground(wx.WHITE)
-        self.library_play.SetMinSize((17,17))
-        self.library_play.SetSize((17,17))
-        self.hSizer.Add(self.library_play, 0, wx.TOP|wx.ALIGN_RIGHT, 2) 
-        self.library_play.Hide()  
         
        
             
@@ -326,7 +335,7 @@ class LibraryItemPanel(wx.Panel):
             title = 'Down && Up Speed'
         else: 
             title = 'Down &&&& Up Speed'
-        return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':370,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
+        return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':400,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
                 {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':title,'width':130, 'tip':self.utility.lang.get('C_downupspeed')}, 
                 {'sort':'progress', 'title':'Completion', 'width':120, 'tip':self.utility.lang.get('C_progress')}               
                 ]     
@@ -406,8 +415,9 @@ class LibraryItemPanel(wx.Panel):
             
             dls = ds.get_current_speed(DOWNLOAD)*1024 # speed_format needs byte/s
             uls = ds.get_current_speed(UPLOAD)*1024
-            self.speedDown2.SetLabel(self.utility.speed_format(dls)) 
-            self.speedUp2.SetLabel(self.utility.speed_format(uls))
+
+            self.speedDown2.SetLabel(self.utility.speed_format_new(dls)) 
+            self.speedUp2.SetLabel(self.utility.speed_format_new(uls))
 
             if DEBUG:
                 print >> sys.stderr, '%s %s %s' % (`ds.get_download().get_def().get_name()`, ds.get_progress(), dlstatus_strings[ds.get_status()])
@@ -448,7 +458,7 @@ class LibraryItemPanel(wx.Panel):
                 self.pb.reset(colour=1) # Show as having some
                 self.pb.Refresh()
             else:
-                self.pb.reset(colour=0) # Show has having none
+                self.pb.reset(colour=0) # Show as having none
                 self.pb.Refresh()
                 
             self.library_play.setEnabled(showPlayButton)            

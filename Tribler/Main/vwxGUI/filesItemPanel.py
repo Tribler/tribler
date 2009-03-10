@@ -155,16 +155,14 @@ class FilesItemPanel(wx.Panel):
 
             #self.hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(220,2),wx.LI_HORIZONTAL)
             #self.hLine.SetBackgroundColour((255,0,0))
-            self.vSizerOverall.Add(self.hLine, 0, wx.FIXED_MINSIZE|wx.EXPAND, 0) ##           
-
-
+            self.vSizerOverall.Add(self.hLine, 0, 0, 0) ##           
 
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
             
             
 
-            self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-            self.vSizerOverall.Add(self.hSizer, 0, wx.FIXED|wx.EXPAND, 0)	##
+            self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
+            self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND, 0)	##
 
             self.thumb = ThumbnailViewer(self, 'filesMode')
             self.thumb.setBackground(wx.BLACK)
@@ -256,15 +254,13 @@ class FilesItemPanel(wx.Panel):
             ##self.sourceIcon.setBackground(wx.WHITE)
             ##self.sourceIcon.SetToolTipString(self.utility.lang.get('---'))          
             ##self.hSizer.Add(self.sourceIcon, 0, wx.TOP, 2)
-            self.hSizer.Add([10,5],0,wx.FIXED_MINSIZE,3)
+            self.hSizer.Add([10,5],0,wx.FIXED_MINSIZE,0)
 
             self.hSizerSummary = wx.BoxSizer(wx.HORIZONTAL) ##
-            self.vSizerOverall.Add(self.hSizerSummary, 1, wx.FIXED_MINSIZE|wx.EXPAND, 0) ##           
+            self.vSizerOverall.Add(self.hSizerSummary, 0, wx.FIXED_MINSIZE|wx.EXPAND, 0) ##           
  
 
-
-
-            
+           
             self.SetSizer(self.vSizerOverall); ## self.hSizer
             
         self.SetAutoLayout(1);

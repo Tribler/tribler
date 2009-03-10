@@ -90,7 +90,10 @@ class FilesItemDetailsSummary(bgPanel):
         self.triblerStyles.setDarkText(self.Popularity_info)
         pop = self.torrent['num_seeders'] + self.torrent['num_leechers']    
         if pop > 0:
-            self.Popularity_info.SetLabel('%s people' %(pop))
+            if pop == 1:
+                self.Popularity_info.SetLabel('%s person' %(pop))
+            else: 
+                self.Popularity_info.SetLabel('%s people' %(pop))
         else: 
             self.Popularity_info.SetLabel('unknown')
 
@@ -223,13 +226,17 @@ class FilesItemDetailsSummary(bgPanel):
 
 
         self.play_big = SwitchButton(self, -1, name='playbig')
+        self.play_big.setToggled(True)
         self.play_big.Bind(wx.EVT_LEFT_UP, self.playbig_clicked)
 
         def is_playable_callback(torrent, playable):
+            print >> sys.stderr, "PLAYABLE : " , playable
             self.play_big.Show(playable)
 
         if not self.guiUtility.standardDetails.torrent_is_playable(callback=is_playable_callback):
-            self.play_big.Hide()
+
+            self.play_big.setToggled(False)
+            
 
         self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
         self.vSizer2.Add([0,20], 0, wx.FIXED_MINSIZE, 0)
@@ -264,13 +271,14 @@ class FilesItemDetailsSummary(bgPanel):
 
 
     def playbig_clicked(self,event):
-        ds = self.torrent.get('ds')
-        ##self.play_big.setToggled()
-        ##self.guiUtility.buttonClicked(event)
-        if ds is None:
-            self.guiUtility.standardDetails.download(vodmode=True)
-        else:
-            self.play(ds)
+        if self.play_big.isToggled():
+            ds = self.torrent.get('ds')
+            ##self.play_big.setToggled()
+            ##self.guiUtility.buttonClicked(event)
+            if ds is None:
+                self.guiUtility.standardDetails.download(vodmode=True)
+            else:
+                self.play(ds)
 
     def play(self,ds):
         #self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Show()
