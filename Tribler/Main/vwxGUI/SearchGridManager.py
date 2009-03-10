@@ -112,7 +112,7 @@ class TorrentSearchGridManager:
             
             okGood = torrent['status'] == 'good' or torrent.get('myDownloadHistory', False)
             
-            print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
+            #print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
             return okLibrary and okCategory and okGood
         
         # 1. Local search puts hits in self.hits

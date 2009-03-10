@@ -16,7 +16,7 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
+#from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog, InviteFriendsDialog
 from Tribler.Main.vwxGUI.bgPanel import *
@@ -977,6 +977,7 @@ class GUIUtility:
         event.Skip()
 
 
+    """
     def subscribe(self):
         rssurlctrl = self.standardOverview.getRSSUrlCtrl()
         url = rssurlctrl.GetValue()
@@ -1000,6 +1001,7 @@ class GUIUtility:
         torrentfeed.addURL(url)
         self.standardOverview.loadSubscriptionData()
         self.standardOverview.refreshData()
+    """
 
     def set_firewall_restart(self,b):
         self.firewall_restart = b

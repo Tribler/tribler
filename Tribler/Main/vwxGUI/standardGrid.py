@@ -19,7 +19,7 @@ from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
+#from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
 
 DEBUG = True
@@ -445,7 +445,7 @@ class standardGrid(wx.Panel):
                 raise Exception('unknown viewmode: %s' % self.viewmode)
                 
         self.superpeer_db = self.utility.session.open_dbhandler(NTFY_SUPERPEERS)
-        self.torrentfeed = TorrentFeedThread.getInstance()
+        #self.torrentfeed = TorrentFeedThread.getInstance()
         self.guiserver = GUITaskQueue.getInstance()
 
         if parent:

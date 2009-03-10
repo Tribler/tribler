@@ -24,7 +24,7 @@ from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
 
-DEBUG = True
+DEBUG = False
 
 class TopSearchPanel(bgPanel):
     def __init__(self, *args, **kwds):

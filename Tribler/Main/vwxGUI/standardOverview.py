@@ -16,7 +16,7 @@ from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
 from Tribler.Main.vwxGUI.standardGrid import GridState,filesGrid,libraryGrid
 from Tribler.Main.Utility.constants import *
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
+#from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
@@ -541,7 +541,7 @@ class standardOverview(wx.Panel):
             print >> sys.stderr, 'standardOverview: Invalid Filterstate:', filterState
             #print_stack()    
     
-
+    """
     def loadSubscriptionData(self):
         if DEBUG:
             print >> sys.stderr, 'load subscription data'
@@ -573,7 +573,7 @@ class standardOverview(wx.Panel):
             reclist.append(record)
         self.data[self.mode]['data'] = reclist
         self.data[self.mode]['grid'].setData(reclist)
-        
+    """    
    
    
     
