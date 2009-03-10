@@ -322,8 +322,9 @@ class BaseApp(wx.App,InstanceConnectionHandler):
 
         # When not playing, display stats for all Downloads and apply rate control.
         if playermode == DLSTATUS_SEEDING:
-            for ds in dslist:
-                print >>sys.stderr,"main: Stats: Seeding: %s %.1f%% %s" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error())
+            if DEBUG:
+                for ds in dslist:
+                    print >>sys.stderr,"main: Stats: Seeding: %s %.1f%% %s" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error())
             self.ratelimit_callback(dslist)
             
         # Calc total dl/ul speed and find DownloadStates for playing Downloads
@@ -331,7 +332,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         for ds in dslist:
             if ds.get_download() in self.downloads_in_vodmode:
                 playing_dslist.append(ds)
-            elif playermode == DLSTATUS_DOWNLOADING:
+            elif DEBUG and playermode == DLSTATUS_DOWNLOADING:
                 print >>sys.stderr,"main: Stats: Waiting: %s %.1f%% %s" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error())
             
             for dir in [UPLOAD,DOWNLOAD]:
