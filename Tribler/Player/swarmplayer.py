@@ -460,7 +460,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             msg = ''
         elif videoplayer_mediastate == MEDIASTATE_PAUSED:
             # msg = "Buffering... " + str(int(100.0*preprogress))+"%" 
-            msg = "Buffering... " + str(int(100.0*preprogress))+"% " + intime
+            msg = "Buffering... " + str(int(100.0*preprogress))+"%. " + intime
         else:
             msg = ''
             
@@ -470,8 +470,9 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
         npeerstr = str(npeers)
         if npeers == 0 and logmsg is not None:
             msg = logmsg
+        elif npeers == 1:
+            msg = "Prebuffering "+pstr+"% done (connected to 1 person). " + intime
         else:
-            # msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
             msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" people). " + intime
             
         try:
