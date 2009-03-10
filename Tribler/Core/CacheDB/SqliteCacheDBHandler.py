@@ -1350,6 +1350,7 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['progress'] = stats[tid][1]
                 torrent['destination_path'] = stats[tid][2]
                 
+                
         return torrent
 
     def getNumberTorrents(self, category_name = 'all', library = False):
@@ -1920,6 +1921,11 @@ class MyPreferenceDBHandler(BasicDBHandler):
         # keys in data: destination_path, progress, creation_time, torrent_id
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is None or self.hasMyPreference(infohash):
+            # Arno, 2009-03-09: Torrent already exists in myrefs.
+            # Hack for hiding from lib while keeping in myprefs.
+            # see standardOverview.removeTorrentFromLibrary()
+            #
+            self.updateDestDir(infohash,data.get('destination_path'),commit=commit)
             return False
         d = {}
         d['destination_path'] = data.get('destination_path')
@@ -1965,7 +1971,12 @@ class MyPreferenceDBHandler(BasicDBHandler):
         """use with caution,- for testing purposes"""
         return self.getAll("torrent_id, click_position, reranking_strategy", order_by="torrent_id")
 
-
+    def updateDestDir(self, infohash, destdir, commit=True):
+        torrent_id = self._db.getTorrentID(infohash)
+        if torrent_id is None:
+            return
+        self._db.update(self.table_name, 'torrent_id=%d'%torrent_id, commit=commit, destination_path=destdir)
+    
 
 #    def getAllTorrentCoccurrence(self):
 #        # should be placed in PreferenceDBHandler, but put here to be convenient for TorrentCollecting

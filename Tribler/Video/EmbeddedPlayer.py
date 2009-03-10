@@ -235,6 +235,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         if self.timer is None:
             self.timer = wx.Timer(self)
             self.Bind(wx.EVT_TIMER, self.UpdateSlider)
+            
         self.timer.Start(200)
         
     def StartPlay(self):
@@ -378,9 +379,6 @@ class EmbeddedPlayerPanel(wx.Panel):
             msg = "\n".join(wrap(s,64))
         else:
             msg = "\n".join(wrap(s,48))
-        if DEBUG:
-            print >>sys.stderr,"WRAPPED MESSAGE",msg,"EOW"
-        
         self.statuslabel.SetLabel(msg)
 
 
@@ -413,8 +411,6 @@ class EmbeddedPlayerPanel(wx.Panel):
     def UpdateSlider(self, evt):
         ##if not self.volumeicon.isToggled():
         ##    self.volume.SetValue(int(self.vlcwrap.sound_get_volume() * 100))
-
-        #print >>sys.stderr,"embedplay: CURRENT TIMEPOS",self.vlcwrap.get_media_position() 
 
         if self.update and self.GetState() != MEDIASTATE_STOPPED:
             

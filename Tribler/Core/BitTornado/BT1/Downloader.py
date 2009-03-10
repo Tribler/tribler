@@ -22,7 +22,7 @@ except:
 DEBUG = False
 EXPIRE_TIME = 60 * 60
 
-if __debug__:
+if DEBUG:
     _ident_letters = {}
     _ident_letter_pool = None
     def get_ident_letter(download):
@@ -110,6 +110,9 @@ if __debug__:
 
         else:
             print >>sys.stderr, "Outstanding 0:0 []"
+else:
+    def print_chunks(downloader, pieces, before=(), after=(), compact=True):
+        pass
 
 class PerIPStats:  
     def __init__(self, ip):

@@ -96,7 +96,7 @@ class TorrentSearchGridManager:
         # TODO: do all filtering in DB query
         def torrentFilter(torrent):
             library = (mode == 'libraryMode')
-            okLibrary = not library or torrent.get('myDownloadHistory', False)
+            okLibrary = not library or (torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != "")
             
             okCategory = False
             categories = torrent.get("category", [])

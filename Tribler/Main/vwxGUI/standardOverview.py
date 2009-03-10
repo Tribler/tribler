@@ -674,16 +674,24 @@ class standardOverview(wx.Panel):
         
     def removeTorrentFromLibrary(self, torrent):
         infohash = torrent['infohash']
-        guiserver = GUITaskQueue.getInstance()
         
         # Johan, 2009-03-05: we need long download histories for good 
         # semantic clustering.
         
-        #mypreference_db = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+        mypreference_db = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
+        # Arno, 2009-03-10: Not removing it from MyPref means it keeps showing
+        # up in the Library, even after removal :-( H4x0r this.
         #mypreference_db.deletePreference(infohash)
+        mypreference_db.updateDestDir(infohash,"")
         
         # BuddyCast is now notified of this removal from our
         # preferences via the Notifier mechanism. See BC.sesscb_ntfy_myprefs()
+
+        grid = self.getGrid()
+        if grid is not None:
+            gridmgr = grid.getGridManager()
+            if gridmgr is not None:
+                gridmgr.refresh()
 
         
     def toggleLoadingDetailsPanel(self, visible):

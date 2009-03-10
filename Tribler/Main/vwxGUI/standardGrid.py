@@ -169,6 +169,16 @@ class GridManager(object):
                                                        range = range,
                                                        library = (state.db == 'libraryMode'),
                                                        reverse = state.reverse)
+
+                # Arno, 2009-03-10: Not removing a torrent from MyPref when 
+                # deleting from the Library means it keeps showing up there,
+                # even after removal :-(
+                # Now if the destdir is empty we don't show it.
+                #
+                def myDownloadHistoryFilter(torrent):
+                    return torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != ""
+
+                data = filter(myDownloadHistoryFilter,data)
             else:
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
                 
