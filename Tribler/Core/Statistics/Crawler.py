@@ -73,10 +73,10 @@ class Crawler:
         self._dialback_deadlines = {}
 
         # _channels contains permid:buffer-dict pairs. Where
-        # buffer_dict contains channel-id:(timestamp, buffer)
-        # pairs. Where buffer is the payload from multipart messages
-        # that are received so far.
-        # channels are used to match outstanding replies to given requests
+        # buffer_dict contains channel-id:(timestamp, buffer,
+        # channel_data) pairs. Where buffer is the payload from
+        # multipart messages that are received so far. Channels are
+        # used to match outstanding replies to given requests
         self._channels = {}
 
         # start checking for expired deadlines
@@ -115,7 +115,13 @@ class Crawler:
         """
         return self._session.get_permid() in self._crawler_db.getCrawlers()
 
-    def _acquire_channel_id(self, permid):
+    def _acquire_channel_id(self, permid, channel_data):
+        """
+        Claim a unique one-byte id to match a request to a reply.
+
+        PERMID the peer to communicate with
+        CHANNEL_DATA optional data associated with this channel
+        """
         if permid in self._channels:
             channels = self._channels[permid]
         else:
@@ -127,7 +133,7 @@ class Crawler:
         attempt = 0
         while channel_id in channels:
             attempt += 1
-            if attempt > 128:
+            if attempt > 64:
                 channel_id = 0
                 break
             channel_id = random.randint(1, 255)
@@ -140,7 +146,7 @@ class Crawler:
 
         if channel_id:
             # create a buffer to receive the reply
-            channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
+            channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, "", channel_data]
 
         # print >>sys.stderr, "crawler: _acquire_channel_id:", show_permid_short(permid), len(channels), "channels used"
 
@@ -179,12 +185,21 @@ class Crawler:
 
             self._initiator_deadlines = filter(increase_failure_counter, self._initiator_deadlines)
 
-    def send_request(self, permid, message_id, payload, frequency=3600, callback=None):
+    def send_request(self, permid, message_id, payload, frequency=3600, callback=None, channel_data=None):
         """
-        This method ensures that a connection to PERMID exists before sending the message
+        This method ensures that a connection to PERMID exists before
+        sending the message
+
+        Returns the channel-id.
+
+        MESSAGE_ID is a one character crawler specific ID (defined in MessageID.py).
+        PAYLOAD is message specific sting.
+        FREQUENCY is an integer defining the time, in seconds, until a next message with MESSAGE_ID is accepted by the client-side crawler.
+        CALLBACK is either None or callable. Called with parameters EXC and PERMID. EXC is None for success or an Exception for failure.
+        CHANNEL_DATA can be anything related to this specific request. It is supplied with the handle-reply callback.
         """
         # reserve a new channel-id
-        channel_id = self._acquire_channel_id(permid)
+        channel_id = self._acquire_channel_id(permid, channel_data)
 
         def _after_connect(exc, dns, permid, selversion):
             self._post_connection_attempt(permid, not exc)
@@ -259,26 +274,20 @@ class Crawler:
                 # received this request within FREQUENCY seconds
                 if last_request_timestamp + frequency < now + FREQUENCY_FLEXIBILITY:
 
-                    if permid in self._channels:
-                        channels = self._channels[permid]
-                    else:
-                        channels = {}
-                        self._channels[permid] = channels
-
-                    if channel_id in channels:
-                        # channel-id must be unused (this can occur when two
-                        # crawlers send requests to eachother)
-                        return False
-                    else:
-                        channels[channel_id] = [time.time() + CHANNEL_TIMEOUT, ""]
+                    if not permid in self._channels:
+                        self._channels[permid] = {}
+                    self._channels[permid][channel_id] = [time.time() + CHANNEL_TIMEOUT, "", None]
 
                     # store the new timestamp
                     self._message_handlers[message_id] = (request_callback, reply_callback, now)
 
+                    def send_reply_helper(payload="", error=0, callback=None):
+                        return self.send_reply(permid, message_id, channel_id, payload, error=error, callback=callback)
+
                     # 20/10/08. Boudewijn: We will no longer disconnect
                     # based on the return value from the message handler
                     try:
-                        request_callback(permid, selversion, channel_id, message[5:], lambda payload="", error=0, callback=None:self.send_reply(permid, message_id, channel_id, payload, error=error, callback=callback))
+                        request_callback(permid, selversion, channel_id, message[5:], send_reply_helper)
                     except:
                         print_exc()
 
@@ -412,7 +421,7 @@ class Crawler:
                     # Can't do anything until all parts have been received
                     return True
                 else:
-                    timestamp, payload = self._channels[permid].pop(channel_id)
+                    timestamp, payload, channel_data = self._channels[permid].pop(channel_id)
                     if DEBUG:
                         if error == 253:
                             # unknown message error (probably because
@@ -426,11 +435,18 @@ class Crawler:
                     if not self._channels[permid]:
                         del self._channels[permid]
 
+                    def send_request_helper(message_id, payload, frequency=3600, callback=None, channel_data=None):
+                        return self.send_request(permid, message_id, payload, frequency=frequency, callback=callback, channel_data=channel_data)
+
                     # 20/10/08. Boudewijn: We will no longer
                     # disconnect based on the return value from the
                     # message handler
                     try:
-                        self._message_handlers[message_id][1](permid, selversion, channel_id, error, payload, lambda message_id, payload, frequency=3600, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
+                        # todo: update all code to always accept the channel_data parameter
+                        if channel_data:
+                            self._message_handlers[message_id][1](permid, selversion, channel_id, channel_data, error, payload, send_request_helper)
+                        else:
+                            self._message_handlers[message_id][1](permid, selversion, channel_id, error, payload, send_request_helper)
                     except:
                         print_exc()
                     return True
@@ -483,8 +499,12 @@ class Crawler:
             for tup in self._initiator_deadlines:
                 deadline, frequency, accept_frequency, initiator_callback, permid, selversion, failure_counter = tup
                 if now > deadline + FREQUENCY_FLEXIBILITY:
+                    def send_request_helper(message_id, payload, frequency=accept_frequency, callback=None, channel_data=None):
+                        return self.send_request(permid, message_id, payload, frequency=frequency, callback=callback, channel_data=channel_data)
+                    # 20/10/08. Boudewijn: We will no longer disconnect
+                    # based on the return value from the message handler
                     try:
-                        initiator_callback(permid, selversion, lambda message_id, payload, frequency=accept_frequency, callback=None:self.send_request(permid, message_id, payload, frequency=frequency, callback=callback))
+                        initiator_callback(permid, selversion, send_request_helper)
                     except Exception:
                         print_exc()
 
@@ -523,7 +543,7 @@ class Crawler:
         to_remove_permids = []
         for permid in self._channels:
             to_remove_channel_ids = []
-            for channel_id, (deadline, buffer_) in self._channels[permid].iteritems():
+            for channel_id, (deadline, _, _) in self._channels[permid].iteritems():
                 if now > deadline:
                     to_remove_channel_ids.append(channel_id)
             for channel_id in to_remove_channel_ids:

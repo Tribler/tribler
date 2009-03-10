@@ -62,7 +62,7 @@ class VideoPlaybackCrawler:
             # list we will not remove the first entries from the
             # database because this (being the last item added) may
             # still be actively used.
-            request_callback(CRAWLER_VIDEOPLAYBACK_INFO_QUERY, "SELECT timestamp, key, piece_size, nat FROM playback_info ORDER BY timestamp DESC LIMIT 50", callback=self._after_info_request_callback)
+            request_callback(CRAWLER_VIDEOPLAYBACK_INFO_QUERY, "SELECT key, timestamp, piece_size, num_pieces, bitrate, nat FROM playback_info ORDER BY timestamp DESC LIMIT 50", callback=self._after_info_request_callback)
         else:
             if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_info_initiator", show_permid_short(permid), "unsupported overlay version"
 
@@ -104,7 +104,7 @@ class VideoPlaybackCrawler:
             self._file.flush()
 
             i = 0
-            for timestamp, key, piece_size, nat in info:
+            for key, timestamp, piece_size, num_pieces, bitrate, nat in info:
                 i += 1
                 # do not remove the first item. the list is ordered
                 # DESC so the first item is the last that is added to
@@ -116,12 +116,9 @@ class VideoPlaybackCrawler:
                     sql = "SELECT timestamp, origin, event FROM playback_event WHERE key = '%s' ORDER BY timestamp ASC LIMIT 50; DELETE FROM playback_event WHERE key = '%s'; DELETE FROM playback_info WHERE key = '%s';" % (key, key, key)
                     
                 # todo: optimize to not select key for each row
-                request_callback(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY,
-                                 sql,
-                                 callback=self._after_info_request_callback,
-                                 frequency=0)
+                request_callback(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, sql, channel_data=key, callback=self._after_event_request_callback, frequency=0)
 
-    def _after_info_request_callback(self, exc, permid):
+    def _after_event_request_callback(self, exc, permid):
         """
         <<Crawler-side>>
         Called by the Crawler with the result of the request_callback
@@ -132,13 +129,14 @@ class VideoPlaybackCrawler:
             self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), " INFO REQUEST", show_permid(permid), "\n")))
             self._file.flush()
 
-    def handle_event_crawler_reply(self, permid, selversion, channel_id, error, message, request_callback):
+    def handle_event_crawler_reply(self, permid, selversion, channel_id, channel_data, error, message, request_callback):
         """
         <<Crawler-side>>
         Received a CRAWLER_VIDEOPLAYBACK_EVENT_QUERY reply.
         @param permid The Crawler permid
         @param selversion The overlay protocol version
         @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
+        @param channel_data Data associated with the request
         @param error The error value. 0 indicates success.
         @param message The message payload
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
@@ -147,7 +145,7 @@ class VideoPlaybackCrawler:
             if DEBUG:
                 print >> sys.stderr, "videoplaybackcrawler: handle_crawler_reply", error, message
 
-            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), message, "\n")))
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), channel_data, message, "\n")))
             self._file.flush()
 
         else:
@@ -155,7 +153,7 @@ class VideoPlaybackCrawler:
                 print >> sys.stderr, "videoplaybackcrawler: handle_crawler_reply", show_permid_short(permid), cPickle.loads(message)
 
             info = cPickle.loads(message)
-            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), str(info), "\n")))
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), channel_data, str(info), "\n")))
             self._file.flush()
 
     def handle_info_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
