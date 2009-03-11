@@ -22,7 +22,10 @@ except:
 DEBUG = False
 EXPIRE_TIME = 60 * 60
 
-if DEBUG:
+# only define the following functions in __debug__. And only import
+# them in this case. They are to expensive to have, and have no
+# purpose, outside debug mode.
+if __debug__:
     _ident_letters = {}
     _ident_letter_pool = None
     def get_ident_letter(download):
