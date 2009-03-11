@@ -282,20 +282,30 @@ class VariableReadAuthStreamWrapper:
 
     # Internal method
     def _readn(self,nwant):
-        """ read exactly nwant bytes from inputstream, block if unavail """
+        """ read *at most* nwant bytes from inputstream """
         
-        while len(self.buffer) < nwant:
+        if len(self.buffer) == 0:
             # Must read fixed size blocks from authwrapper
             data = self.inputstream.read(self.piecelen)
+            #print >>sys.stderr,"varread: Got",len(data),"want",nwant
             if len(data) == 0:
-                break
-            self.buffer += data
+                return data
+            self.buffer = data
+
+        lenb = len(self.buffer)
+        tosend = min(nwant,lenb)
             
-        # TODO: optimize: Inefficient, memory allocation and copying
-        pre = self.buffer[0:nwant]
-        post = self.buffer[nwant:]
+        if tosend == lenb:
+            #print >>sys.stderr,"varread: zero copy 2 lenb",lenb
+            pre = self.buffer
+            post = ''
+        else:
+            #print >>sys.stderr,"varread: copy",tosend,"lenb",lenb
+            pre = self.buffer[0:tosend]
+            post = self.buffer[tosend:]
+            
         self.buffer = post
-        #print >>sys.stderr,"var: Returning",len(pre),"data",pre
+        #print >>sys.stderr,"varread: Returning",len(pre)
         return pre
     
         
