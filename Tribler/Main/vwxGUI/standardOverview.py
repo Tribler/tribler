@@ -184,7 +184,7 @@ class standardOverview(wx.Panel):
         elif nameCP == 'settingsOverview':
             self.SetMinSize((900,500))
         else:
-            self.SetMinSize((600,500)) ## before (10,400)
+            self.SetMinSize((600,490)) 
 
         self.hSizer.Layout()
         

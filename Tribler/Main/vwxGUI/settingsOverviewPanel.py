@@ -165,7 +165,7 @@ class SettingsOverviewPanel(wx.Panel):
     def showMaxDLRate(self):
         maxdownloadrate = self.guiUtility.utility.config.Read('maxdownloadrate', 'int') #kB/s
         if maxdownloadrate == 0:
-            self.elements['downloadCtrl'].SetValue('inf')        
+            self.elements['downloadCtrl'].SetValue('unlimited')        
         else:
             self.elements['downloadCtrl'].SetValue(str(maxdownloadrate))        
 
@@ -175,7 +175,7 @@ class SettingsOverviewPanel(wx.Panel):
         if maxuploadrate == -1:
             self.elements['uploadCtrl'].SetValue('0')        
         elif maxuploadrate == 0:
-            self.elements['uploadCtrl'].SetValue('inf')        
+            self.elements['uploadCtrl'].SetValue('unlimited')        
         else:
             self.elements['uploadCtrl'].SetValue(str(maxuploadrate))        
 
@@ -207,7 +207,7 @@ class SettingsOverviewPanel(wx.Panel):
         self.standardOverview.updateSaveIcon()
 
     def unlimitedUp(self, event):
-        self.elements['uploadCtrl'].SetValue('inf')        
+        self.elements['uploadCtrl'].SetValue('unlimited')        
         self.guiUtility.utility.config.Write('maxuploadrate', '0')
         self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
         self.standardOverview.updateSaveIcon()
@@ -234,7 +234,7 @@ class SettingsOverviewPanel(wx.Panel):
 
 
     def unlimitedDown(self, event):
-        self.elements['downloadCtrl'].SetValue('inf')        
+        self.elements['downloadCtrl'].SetValue('unlimited')        
         self.guiUtility.utility.config.Write('maxdownloadrate', '0')
         self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
         self.standardOverview.updateSaveIcon()
@@ -244,7 +244,7 @@ class SettingsOverviewPanel(wx.Panel):
         keycode = event.GetKeyCode()
         val = self.elements['uploadCtrl'].GetValue().strip()
         if keycode == wx.WXK_RETURN and val != '':
-            if val == 'inf':
+            if val == 'unlimited':
                 self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
                 self.guiUtility.utility.config.Write('maxuploadrate', '0')
             elif val == '0':
@@ -262,7 +262,7 @@ class SettingsOverviewPanel(wx.Panel):
         keycode = event.GetKeyCode()
         val = self.elements['downloadCtrl'].GetValue().strip()
         if keycode == wx.WXK_RETURN and val != '':
-            if val == 'inf':
+            if val == 'unlimited':
                 self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
                 self.guiUtility.utility.config.Write('maxdownloadrate', '0')
                 self.standardOverview.updateSaveIcon()

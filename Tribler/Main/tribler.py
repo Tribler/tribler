@@ -268,7 +268,7 @@ class ABCApp(wx.App):
 
             # on linux pagerpanel needs a SetMinSize call
             if sys.platform == "linux2":
-                self.frame.pagerPanel.SetMinSize((667,20))
+                self.frame.pagerPanel.SetMinSize((669,20))
 
 
 

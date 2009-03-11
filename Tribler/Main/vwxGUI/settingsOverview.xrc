@@ -155,7 +155,7 @@
                   </object>
                   <object class="sizeritem">
                     <object class="wxTextCtrl" name="uploadCtrl">
-                      <size>50,20</size>
+                      <size>70,20</size>
                       <style>wxTE_RIGHT</style>
                     </object>
                   </object>
@@ -225,7 +225,7 @@
                   </object>
                   <object class="sizeritem">
                     <object class="wxTextCtrl" name="downloadCtrl">
-                      <size>50,20</size>
+                      <size>70,20</size>
                       <style>wxTE_RIGHT</style>
                     </object>
                   </object>

@@ -1353,7 +1353,7 @@ search_remote = "Tribler network (%d results)"
 searchStop       = "stop searching"
 searchStopEnabled= "stopped searching"
 searchClear      = "clear results and browse all discovered files"
-help             = "Current sharing reputation : %s"
+help             = "Current sharing reputation : %2.2f"
 
 ################
 #Tribler UI - Column headers Tribler 4.1.0

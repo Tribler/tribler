@@ -34,7 +34,7 @@
                   </object>
                   <object class="sizeritem">
                     <flag>wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                    <border>4</border>
+                    <border>0</border>
                     <option>0</option>
                     <object class="wxBoxSizer">
                       <orient>wxHORIZONTAL</orient>
@@ -146,7 +146,7 @@
                       </object>
                       <object class="sizeritem">
                         <object class="wxPanel" name="pagerPanel">
-                          <size>667,20</size>
+                          <size>669,20</size>
                           <bg>#E6E6E6</bg>
                           <object class="wxBoxSizer">
                             <orient>wxHORIZONTAL</orient>
@@ -167,16 +167,18 @@
                               <minsize>382,20</minsize>
                             </object>
                             <object class="spacer">
-                              <size>8,28</size>
+                              <size>10,28</size>
                               <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                               <border>0</border>
                               <option>0</option>
                             </object>
                           </object>
                         </object>
+                        <minsize>669,20</minsize>
                       </object>
                     </object>
                     <option>0</option>
+                    <flag>wxEXPAND</flag>
                   </object>
                 </object>
                 <bg>#FFFFFF</bg>
