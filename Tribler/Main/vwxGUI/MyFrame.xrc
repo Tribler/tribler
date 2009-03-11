@@ -119,6 +119,12 @@
                                     </object>
                                     <minsize>360,350</minsize>
                                   </object>
+                                  <object class="sizeritem">
+                                    <object class="wxStaticText" name="changePlay">
+                                      <label>Preparing to play :</label>
+                                      <hidden>1</hidden>
+                                    </object>
+                                  </object>
                                 </object>
                                 <option>1</option>
                                 <flag>wxEXPAND</flag>

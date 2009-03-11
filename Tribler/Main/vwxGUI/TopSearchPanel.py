@@ -266,7 +266,8 @@ class TopSearchPanel(bgPanel):
         self.sharing_reputation.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
         self.sr_msg.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
         self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
-
+        self.total_down.SetToolTipString('Total Download')
+        self.total_up.SetToolTipString('Total Upload')
 
         # end wx.Glade
 

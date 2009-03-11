@@ -272,7 +272,15 @@ class FilesItemDetailsSummary(bgPanel):
 
     def playbig_clicked(self,event):
         if self.play_big.isToggled():
+
             ds = self.torrent.get('ds')
+
+            self._get_videoplayer(exclude=ds).stop_playback() # stop current playback
+
+            self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Show()
+            self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Play()
+            self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.Refresh()
+
             ##self.play_big.setToggled()
             ##self.guiUtility.buttonClicked(event)
             if ds is None:
@@ -281,9 +289,6 @@ class FilesItemDetailsSummary(bgPanel):
                 self.play(ds)
 
     def play(self,ds):
-        #self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Show()
-        #self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Play()
-        #self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.Refresh()
 
         self._get_videoplayer(exclude=ds).play(ds)
 
