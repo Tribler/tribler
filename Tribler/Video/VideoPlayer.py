@@ -209,7 +209,7 @@ class VideoPlayer:
                 self.videoframe.get_videopanel().Load(cmd,streaminfo=streaminfo)
             else:
                 # Play using direct callbacks from the VLC C-code
-                self.videoframe.get_videopanel().Load('raw:',streaminfo=streaminfo)
+                self.videoframe.get_videopanel().Load(cmd,streaminfo=streaminfo)
 
             self.videoframe.show_videoframe()
             self.videoframe.get_videopanel().StartPlay()

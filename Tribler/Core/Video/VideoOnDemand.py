@@ -297,14 +297,14 @@ class MovieOnDemandTransporter(MovieTransport):
             numhaves = self.piecepicker.has 
             totalhaves = self.piecepicker.numgot
 
-            treshhold = 1
+            threshold = 1
         else:
             numseeds = self.piecepicker.seeds_connected
             numhaves = self.piecepicker.numhaves # excludes seeds
             totalhaves = self.piecepicker.totalcount # excludes seeds
 
             numconns = self.piecepicker.num_nonempty_neighbours()
-            treshhold = max( 1, numconns/2 )
+            threshold = max( 1, numconns/2 )
 
         # FUDGE: number of pieces we subtract from maximum known/have,
         # to start playback with some buffer present. We need enough
@@ -337,13 +337,13 @@ class MovieOnDemandTransporter(MovieTransport):
         maxnum = None
         for i in xrange(epiece,bpiece-1,-1):
             #if DEBUG:
-            #    if 0 < numhaves[i] < treshhold:
-            #        print >>sys.stderr,"vod: calc_live_offset: discarding piece %d as it is owned by only %d<%d neighbours" % (i,numhaves[i],treshhold)
+            #    if 0 < numhaves[i] < threshold:
+            #        print >>sys.stderr,"vod: calc_live_offset: discarding piece %d as it is owned by only %d<%d neighbours" % (i,numhaves[i],threshold)
 
-            if numhaves[i] >= treshhold:
+            if numhaves[i] >= threshold:
                 maxnum = i
                 if DEBUG:
-                    print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours" % (i,numhaves[i],treshhold)
+                    print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours" % (i,numhaves[i],threshold)
                 break
 
         if maxnum is None:
@@ -354,10 +354,10 @@ class MovieOnDemandTransporter(MovieTransport):
             delta_left = vs.wraparound_delta - (epiece-maxnum)
 
             for i in xrange( vs.first_piece+delta_left-1, vs.first_piece-1, -1 ):
-                if numhaves[i] >= treshhold:
+                if numhaves[i] >= threshold:
                     maxnum = i
                     if DEBUG:
-                        print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours" % (i,numhaves[i],treshhold)
+                        print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours" % (i,numhaves[i],threshold)
                     break
 
         # start watching from maximum piece number, adjusted by fudge.
@@ -376,6 +376,16 @@ class MovieOnDemandTransporter(MovieTransport):
             if maxnum == bpiece:
                 # video has just started -- watch from beginning
                 return True
+
+        # If we're connected to the source, and already hooked in,
+        # don't change the hooking point unless it is really far
+        oldstartpos = vs.get_live_startpos()
+        if not have and threshold == 1 and oldstartpos is not None:
+            diff = vs.dist_range(oldstartpos,maxnum)
+            print >>sys.stderr,"vod: calc_live_offset: m o",maxnum,oldstartpos,"diff",diff
+            if diff < 8:
+                return True    
+            
 
         print >>sys.stderr,"vod: === HOOKING IN AT PIECE %d (based on have: %s) ===" % (maxnum,have)
         toinvalidateset = vs.set_live_startpos( maxnum )
