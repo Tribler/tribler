@@ -1242,12 +1242,15 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def max_buffer_size( self ):
         vs = self.videostatus
+        if vs.dropping:
+            # live
+            # Arno: 1/2 MB or based on bitrate if that is above 5 Mbps
+            return max( 0*512*1024, self.BUFFER_TIME * vs.bitrate )
+        else:
+            # VOD
+            # boudewijn: 1/4 MB, bitrate, or 2 pieces (wichever is higher)
+            return max(256*1024, vs.piecelen * 2, self.BUFFER_TIME * vs.bitrate)
 
-        # boudewijn: 1/4 MB, bitrate, or 2 pieces (wichever is higher)
-        return max(256*1024, vs.piecelen * 2, self.BUFFER_TIME * vs.bitrate)
-
-        # Arno: 1/2 MB or based on bitrate if that is above 5 Mbps
-        # return max( 0*512*1024, self.BUFFER_TIME * vs.bitrate )
 
     def refill_buffer( self ):
         """ Push pieces into the player FIFO when needed and able. This counts as playing
