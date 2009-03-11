@@ -320,7 +320,7 @@ class TopSearchPanel(bgPanel):
         object_7.Add(object_13, 0, 0, 0)
         object_2.Add(object_7, 0, wx.EXPAND, 0)
         object_1.Add(object_2, 1, wx.EXPAND, 0)
-        object_1.Add((7, 0), 0, 0, 0)
+        object_1.Add((100, 0), 0, 0, 0)
         object_10.Add((0, 20), 0, 0, 0)
         object_10.Add(self.settings, 0, 0, 0)
         object_10.Add((0, 0), 0, 0, 0)
