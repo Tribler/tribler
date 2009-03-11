@@ -320,7 +320,11 @@ class TopSearchPanel(bgPanel):
         object_7.Add(object_13, 0, 0, 0)
         object_2.Add(object_7, 0, wx.EXPAND, 0)
         object_1.Add(object_2, 1, wx.EXPAND, 0)
-        object_1.Add((7, 0), 0, 0, 0) # Arno: set to 100 to get right view on win32
+        if sys.platform == 'win32':
+            space = 100
+        else:
+            space = 7
+        object_1.Add((space, 0), 0, 0, 0) # Arno: set to 100 to get right view on win32
         object_10.Add((0, 20), 0, 0, 0)
         object_10.Add(self.settings, 0, 0, 0)
         object_10.Add((0, 0), 0, 0, 0)
