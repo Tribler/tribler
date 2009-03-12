@@ -58,7 +58,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         else:
             size = (320,240) 
         
-        self.vlcwin = VLCLogoWindow(self,size,vlcwrap,logopath, fg=fg, bg=bg)
+        self.vlcwin = VLCLogoWindow(self,size,vlcwrap,logopath, fg=fg, bg=bg, animate = True)
         self.vlcwrap = vlcwrap
 
         # Arno: until we figure out how to show in-playback prebuffering info
@@ -444,11 +444,12 @@ class VLCLogoWindow(wx.Window):
     "Loading: bla.video" message when VLC is not playing.
     """
     
-    def __init__(self, parent, size, vlcwrap, logopath, fg=wx.WHITE, bg=wx.BLACK):
+    def __init__(self, parent, size, vlcwrap, logopath, fg=wx.WHITE, bg=wx.BLACK, animate = False):
         wx.Window.__init__(self, parent, -1, size=size)
 
-        self.guiUtility = GUIUtility.getInstance()
-        self.utility = self.guiUtility.utility 
+        if animate:
+            self.guiUtility = GUIUtility.getInstance() 
+            self.utility = self.guiUtility.utility 
 
 
         self.SetMinSize(size)
@@ -466,10 +467,10 @@ class VLCLogoWindow(wx.Window):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
 
 
-
-        agVideo_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','video.gif')
-        self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, agVideo_fname, pos = (110,70))
-        self.agVideo.Hide()
+        if animate:
+            agVideo_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','video.gif')
+            self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, agVideo_fname, pos = (110,70))
+            self.agVideo.Hide()
 
 
         #self.playbackText = wx.StaticText(self,-1,"Leave Tribler running\n for faster playback",wx.Point(30,140))
