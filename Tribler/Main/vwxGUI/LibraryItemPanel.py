@@ -675,6 +675,12 @@ class LibraryItemPanel(wx.Panel):
     def play(self,ds):
         
         print >>sys.stderr,"lip: play"
+
+        self._get_videoplayer(exclude=ds).stop_playback() # stop current playback
+
+        self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Show()
+        self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Play()
+        self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.Refresh()
         
         self._get_videoplayer(exclude=ds).play(ds)
     
