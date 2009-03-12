@@ -587,11 +587,12 @@ class MovieOnDemandTransporter(MovieTransport):
                     #self.user_setsize(self.videodim)
                     pass
 
-        # 10/03/09 boudewijn: For VOD we will wait for the entire
-        # buffer to fill (gotall) before we start playback. For live
-        # this is unlikely to happen and we will therefore only wait
-        # until we estimate that we have enough_buffer.
-        if (gotall or vs.live_streaming) and self.enough_buffer():
+        # # 10/03/09 boudewijn: For VOD we will wait for the entire
+        # # buffer to fill (gotall) before we start playback. For live
+        # # this is unlikely to happen and we will therefore only wait
+        # # until we estimate that we have enough_buffer.
+        # if (gotall or vs.live_streaming) and self.enough_buffer():
+        if gotall and self.enough_buffer():
             # enough buffer and could estimated bitrate - start streaming
             if DEBUG:
                 print >>sys.stderr,"vod: trans: Prebuffering done",currentThread().getName()
