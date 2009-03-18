@@ -174,7 +174,7 @@ class OverlayApps:
 
                 if "natcheck" in sys.argv:
                     # allows access to nat-check statistics (Lucia)
-                    crawler.register_crawl_initiator(natcheck_handler.doNatCheck, 1200)
+                    crawler.register_crawl_initiator(natcheck_handler.doNatCheck, 3600)
 
         else:
             self.register_msg_handler([CRAWLER_REQUEST, CRAWLER_REPLY], self.handleDisabledMessage)

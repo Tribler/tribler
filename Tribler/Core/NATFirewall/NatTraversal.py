@@ -5,7 +5,7 @@ import select
 import socket
 import sys
 
-DEBUG = True
+DEBUG = False
 
 def coordinateHolePunching(peer1, peer2, holePunchingAddr):
 
