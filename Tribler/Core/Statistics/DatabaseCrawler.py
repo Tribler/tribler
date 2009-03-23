@@ -5,6 +5,10 @@ import sys
 import cPickle
 from time import strftime
 
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH
+# OLPROTO_VER_SEVENTH --> Sixth public release, >= 4.5.0, supports CRAWLER_REQUEST and CRAWLER_REPLY messages
+# OLPROTO_VER_EIGHTH  --> Seventh public release, >= 5.0, supporting BuddyCast with clicklog info.
+
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_DATABASE_QUERY
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
@@ -40,7 +44,17 @@ class DatabaseCrawler:
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
         if DEBUG: print >>sys.stderr, "databasecrawler: query_initiator", show_permid_short(permid)
-        request_callback(CRAWLER_DATABASE_QUERY, "SELECT 'peer_count', count(*) FROM Peer; SELECT 'torrent_count', count(*) FROM Torrent; SELECT 'moderations_count', count(*) FROM ModerationCast; SELECT 'positive_votes_count', count(*) FROM Moderators where status=1; SELECT 'negative_votes_count', count(*) FROM Moderators where status=-1", callback=self._after_request_callback)
+        sql = []
+        if selversion >= OLPROTO_VER_SEVENTH:
+            sql.extend(("SELECT 'peer_count', count(*) FROM Peer",
+                        "SELECT 'torrent_count', count(*) FROM Torrent"))
+
+        if selversion >= OLPROTO_VER_EIGHTH:
+            sql.extend(("SELECT 'moderations_count', count(*) FROM ModerationCast",
+                        "SELECT 'positive_votes_count', count(*) FROM Moderators where status=1",
+                        "SELECT 'negative_votes_count', count(*) FROM Moderators where status=-1"))
+
+        request_callback(CRAWLER_DATABASE_QUERY, ";".join(sql), callback=self._after_request_callback)
 
     def _after_request_callback(self, exc, permid):
         """
