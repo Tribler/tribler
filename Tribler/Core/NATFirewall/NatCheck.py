@@ -1,7 +1,7 @@
 # Written by Lucia D'Acunto
 # see LICENSE.txt for license information
 
-from socket import *
+import socket
 import sys
 
 DEBUG = False
@@ -21,13 +21,14 @@ def Test1(udpsock, serveraddr):
 
     try:
         reply, rcvaddr = udpsock.recvfrom(BUFSIZ)
-    except timeout, (strerror):
+    except socket.timeout:
+        #if DEBUG: print >> sys.stderr, "NATCheck:", "Connection attempt to %s timed out" % (serveraddr,)
         return retVal
 
     except ValueError, (strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
         return retVal
-    except error, (errno, strerror):
+    except socket.error, (errno, strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
         return retVal
 
@@ -54,12 +55,13 @@ def Test2(udpsock, serveraddr):
 
     try:
         reply, rcvaddr = udpsock.recvfrom(BUFSIZ)
-    except timeout, (strerror):
+    except socket.timeout:        
+        #if DEBUG: print >> sys.stderr, "NATCheck:", "Connection attempt to %s timed out" % (serveraddr,)
         return retVal
     except ValueError, (strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
         return retVal
-    except error, (errno, strerror):
+    except socket.error, (errno, strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
         return retVal
 
@@ -83,12 +85,13 @@ def Test3(udpsock, serveraddr):
 
     try:
         reply, rcvaddr = udpsock.recvfrom(BUFSIZ)
-    except timeout, (strerror):
+    except socket.timeout:
+        #if DEBUG: print >> sys.stderr, "NATCheck:", "Connection attempt to %s timed out" % (serveraddr,)
         return retVal
     except ValueError, (strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
         return retVal
-    except error, (errno, strerror):
+    except socket.error, (errno, strerror):
         if DEBUG: print >> sys.stderr, "NATCheck:", "Could not receive data: %s" % (strerror)
         return retVal
 
@@ -106,23 +109,31 @@ def GetNATType(in_port, serveraddr1, serveraddr2):
     Returns the NAT type according to the STUN algorithm, as well as the external
     address (ip, port) and the internal address of the host
     """
+
+    serveraddr1 = ('stun1.tribler.org',6701)
+    serveraddr2 = ('stun2.tribler.org',6702)
     
     nat_type, ex_ip, ex_port, in_ip = [-1, "Unknown"], "0.0.0.0", "0", "0.0.0.0"
 
     # Set up the socket
-    udpsock = socket(AF_INET, SOCK_DGRAM)
+    udpsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udpsock.settimeout(5)
     try:
         udpsock.bind(('',in_port))
     except socket.error, err:
-        print >> sys.stderr, "Couldn't be a udp server on port %d : %s" % (in_port, err)
+        print >> sys.stderr, "Couldn't bind a udp socket on port %d : %s" % (in_port, err)
         return (nat_type, ex_ip, ex_port, in_ip)
-
-    # Get the internal IP address
-    s = socket()
-    s.connect(('tribler.org',80))
-    in_ip = s.getsockname()[0]
-    del s
+    try:
+        # Get the internal IP address
+        connectaddr = ('tribler.org',80)
+        s = socket.socket()
+        s.connect(connectaddr)
+        in_ip = s.getsockname()[0]
+        del s
+        if DEBUG: print >> sys.stderr, "NATCheck: getting the internal ip address by connecting to tribler.org:80", in_ip
+    except socket.error, err:
+        print >> sys.stderr, "Couldn't connect to %s:%i" % (connectaddr[0], connectaddr[1])
+        return (nat_type, ex_ip, ex_port, in_ip)
 
     """
         EXECUTE THE STUN ALGORITHM
