@@ -16,7 +16,7 @@ from Tribler.Core.NATFirewall.NatTraversal import tryConnect, coordinateHolePunc
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, SecureOverlay
 from Tribler.Core.Statistics.Crawler import Crawler
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
-from types import IntType, StringType, ListType
+from types import IntType, StringType, ListType, TupleType
 from Tribler.Core.simpledefs import *
 
 DEBUG = False
@@ -44,6 +44,7 @@ class NatCheckMsgHandler:
             self._file2.flush()
             self.peerlist = []
             self.holePunchingIP = socket.gethostbyname(socket.gethostname())
+            self.trav = {}
 
         else:
             self._file = None
@@ -68,8 +69,7 @@ class NatCheckMsgHandler:
         """
 
         # for Tribler versions < 4.5.0 : do nothing
-        # TODO: change OLPROTO_VER_EIGHTH to OLPROTO_VER_SEVENTH
-        if selversion < OLPROTO_VER_EIGHTH:
+        if selversion < OLPROTO_VER_SEVENTH:
             if DEBUG:
                 print >> sys.stderr, "NatCheckMsgHandler: Tribler version too old for NATCHECK: do nothing"
             return False
@@ -278,6 +278,7 @@ class NatCheckMsgHandler:
                                     "\n")))
         self._file2.flush()
 
+        self.trav[request_id] = (None, None)
         thread.start_new_thread(coordinateHolePunching, (peer1, peer2, holePunchingAddr))
 
     def udpConnect(self, permid, request_id, holePunchingAddr):
@@ -392,14 +393,34 @@ class NatCheckMsgHandler:
             print >> sys.stderr, "NatCheckMsgHandler: error in received data:", mhr_data
             return False
 
-        # Register peerinfo on file
-        self._file2.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),
-                                        "  REPLY",
-                                        request_id,
-                                        show_permid(permid),
-                                        str(self._secure_overlay.get_dns_from_peerdb(permid)),
-                                        reply,
-                                        "\n")))
-            
+        if DEBUG:
+            print >> sys.stderr, "NatCheckMsgHandler: request_id is", request_id
+
+        if request_id in self.trav:
+            if DEBUG:
+                print >> sys.stderr, "NatCheckMsgHandler: request_id is in the list"
+            peer, value = self.trav[request_id]
+            if peer == None: # first peer reply
+                if DEBUG:
+                    print >> sys.stderr, "NatCheckMsgHandler: first peer reply"
+                self.trav[request_id] = ( (permid, self._secure_overlay.get_dns_from_peerdb(permid)), reply )
+            elif type(peer) == TupleType: # second peer reply
+                if DEBUG:
+                    print >> sys.stderr, "NatCheckMsgHandler: second peer reply"
+                    
+                # Register peerinfo on file
+                self._file2.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),
+                                                    "  REPLY",
+                                                    request_id,
+                                                    show_permid(peer[0]),
+                                                    str(peer[1]),
+                                                    value,
+                                                    show_permid(permid),
+                                                    str(self._secure_overlay.get_dns_from_peerdb(permid)),
+                                                    reply,
+                                                    "\n")))
+
+                del self.trav[request_id]
+
         self._file2.flush()
 
