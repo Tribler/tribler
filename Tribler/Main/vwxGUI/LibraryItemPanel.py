@@ -30,7 +30,7 @@ from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *
 
-DEBUG = True
+DEBUG = False
 
 [ID_MENU_1418,ID_MENU_1419,ID_MENU_1420] = 1418,1419,1420
 
@@ -551,7 +551,9 @@ class LibraryItemPanel(wx.Panel):
         
         obj = event.GetEventObject()
         name = obj.GetName()
-        
+
+
+       
         self.SetFocus()
         if self.data:
             self.guiUtility.selectTorrent(self.data)
@@ -591,7 +593,33 @@ class LibraryItemPanel(wx.Panel):
                         videoplayer.close()
                     
             elif name == 'library_play':
-                self.play(ds)
+                self.guiUtility.standardDetails.setVideodata(self.guiUtility.standardDetails.getData())
+                self._get_videoplayer(exclude=ds).videoframe.get_videopanel().SetLoadingText(self.guiUtility.standardDetails.getVideodata()['name'])
+                if sys.platform == 'darwin':
+		    self._get_videoplayer(exclude=ds).videoframe.show_videoframe()
+		    self._get_videoplayer(exclude=ds).videoframe.get_videopanel().Refresh()
+		    self._get_videoplayer(exclude=ds).videoframe.get_videopanel().Layout()
+
+		self.play(ds)
+
+		
+		
+            elif name == 'remove':
+                from Tribler.Video.VideoPlayer import VideoPlayer
+                videoplayer = VideoPlayer.getInstance()
+                playd = videoplayer.get_vod_download()
+                removed = ds.get_download()
+                if playd == removed:
+                    self._get_videoplayer(exclude=ds).stop_playback()
+
+
+
+
+                #if self.guiUtility.standardDetails.getVideodata() is not None: 
+                #    if self.guiUtility.standardDetails.getVideodata()['name'] == self.guiUtility.standardDetails.getData()['name']:
+                #        self.guiUtility.standardDetails.setVideodata(None)
+                #        self._get_videoplayer(exclude=ds).stop_playback()
+
                 
         else: # no abctorrent
             #print >>sys.stderr,"lip: mouseAction: No ds"
@@ -629,8 +657,8 @@ class LibraryItemPanel(wx.Panel):
                     self.guiUtility.standardDetails.download(self.data, dest = dest_dir, force = True, vodmode = True)
                     
                 elif DEBUG:
-                    print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('name'))
-                
+                    print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('name')) 
+               
         if name == 'deleteLibraryitem':
             # delete works for active and inactive torrents
             self.guiUtility.onDeleteTorrentFromLibrary()

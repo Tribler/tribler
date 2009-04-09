@@ -25,11 +25,6 @@ from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.Utility.utility import Utility
-
-
-
 DEBUG = False
 
 
@@ -42,8 +37,7 @@ class EmbeddedPlayerPanel(wx.Panel):
     def __init__(self, parent, utility, vlcwrap, logopath, fg=wx.WHITE, bg=wx.BLACK):
         wx.Panel.__init__(self, parent, -1)
         self.utility = utility
-
-         
+        self.parent = parent ##
         self.SetBackgroundColour(wx.WHITE)
 
         mainbox = wx.BoxSizer(wx.VERTICAL)
@@ -65,10 +59,22 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         self.statuslabel = wx.StaticText(self, -1, '')
         self.statuslabel.Wrap(200)
-        self.statuslabel.SetSize((300,100))
-        self.statuslabel.SetMinSize((300,100))
+        if sys.platform == 'darwin':
+            self.statuslabel.SetSize((300,30))
+            self.statuslabel.SetMinSize((300,30))
+        else:
+            self.statuslabel.SetSize((300,100))
+            self.statuslabel.SetMinSize((300,100))
         self.statuslabel.SetForegroundColour(wx.BLACK)
         self.statuslabel.SetBackgroundColour(wx.WHITE)
+
+
+        #self.videoinfotext = wx.StaticText(self,-1,'')
+        #self.videoinfotext.SetSize((300,30))
+        #self.videoinfotext.SetMinSize((300,30))
+        #self.videoinfotext.SetForegroundColour(wx.BLACK)
+        #self.videoinfotext.SetBackgroundColour(wx.WHITE)
+
 
 
         if vlcwrap is not None:
@@ -126,7 +132,8 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     
             self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'fullScreen')
-            self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
+            if sys.platform != 'darwin':
+                self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
     
 
             self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'saveDisabled', 'save')   
@@ -143,11 +150,16 @@ class EmbeddedPlayerPanel(wx.Panel):
             ctrlsizer.Add([5,0], 0, 0, 0)
 
             ##ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
-        
-        mainbox.Add(self.vlcwin, 0, 0, 1)
+
+        if sys.platform == 'darwin':
+            mainbox.Add(self.vlcwin, 1, wx.EXPAND, 0)
+        else:
+            mainbox.Add(self.vlcwin, 0, 0, 0)
         if vlcwrap is not None:
-            mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
-        mainbox.Add(self.statuslabel, 0, wx.EXPAND, 0)
+            mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 0)
+        mainbox.Add(self.statuslabel, 0, 0, 0)
+        #mainbox.Add(self.videoinfotext, 0, 0, 0)
+
         self.SetSizerAndFit(mainbox)
         
         self.playtimer = None
@@ -250,15 +262,18 @@ class EmbeddedPlayerPanel(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"embedplay: Play pressed"
 
+        self.vlcwin.stop_animation()
+        
         if self.GetState() != MEDIASTATE_PLAYING:
             self.ppbtn.setToggled(False)
+            self.vlcwin.setloadingtext('')
             self.vlcwrap.start()
 
     def Pause(self, evt=None):
         """ Toggle between playing and pausing of current item """
         if DEBUG:
             print >>sys.stderr,"embedplay: Pause pressed"
-        
+
         if self.GetState() == MEDIASTATE_PLAYING:
             self.ppbtn.setToggled(True)
             self.vlcwrap.pause()
@@ -274,8 +289,10 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwrap.pause()
 
         else:
+            self.vlcwin.stop_animation()
             self.ppbtn.setToggled(False)
-            self.vlcwrap.start()
+            self.vlcwin.setloadingtext('')
+            self.vlcwrap.resume()
 
 
     def Seek(self, evt=None):
@@ -389,6 +406,11 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.vlcwin.set_content_image(wximg)
 
 
+    def SetLoadingText(self,text):
+        self.vlcwin.setloadingtext(text)
+
+
+
     #
     # Internal methods
     #
@@ -437,51 +459,70 @@ class EmbeddedPlayerPanel(wx.Panel):
         if self.vlcwrap is not None:
             self.vlcwin.tell_vclwrap_window_for_playback()
 
+    def ShowLoading(self):
+        self.vlcwin.show_loading()
 
-class VLCLogoWindow(wx.Window):
+
+class VLCLogoWindow(wx.Panel):
     """ A wx.Window to be passed to the vlc.MediaControl to draw the video
     in (normally). In addition, the class can display a logo, a thumbnail and a 
     "Loading: bla.video" message when VLC is not playing.
     """
     
-    def __init__(self, parent, size, vlcwrap, logopath, fg=wx.WHITE, bg=wx.BLACK, animate = False):
-        wx.Window.__init__(self, parent, -1, size=size)
-
-        if animate:
-            self.guiUtility = GUIUtility.getInstance() 
-            self.utility = self.guiUtility.utility 
-
-
+    def __init__(self, parent, size, vlcwrap, logopath, fg=wx.WHITE, bg=wx.BLACK, animate = False, position = (300,300)):
+        wx.Panel.__init__(self, parent, -1, size=size)
+        self.parent = parent ##
+    
         self.SetMinSize(size)
         self.SetBackgroundColour(bg)
         self.bg = bg
         
         self.vlcwrap = vlcwrap
-
-        if logopath is not None:
+        self.animation_running = False
+        
+        if logopath is not None and not animate:
             self.logo = wx.BitmapFromImage(wx.Image(logopath),-1)
         else:
             self.logo = None
         self.contentname = None
         self.contentbm = None
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-
-
+        #self.Bind(wx.EVT_PAINT, self.OnPaint)
+        if sys.platform == 'darwin':
+            self.hsizermain = wx.BoxSizer(wx.HORIZONTAL)
+	    self.vsizer = wx.BoxSizer(wx.VERTICAL)
+	    self.vsizer.Add((0,70),0,0,0)
         if animate:
-            agVideo_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','video.gif')
-            self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, agVideo_fname, pos = (110,70))
-            self.agVideo.Hide()
-
+            if sys.platform == 'darwin':
+                self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, logopath)
+            else:
+                self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, logopath, pos = (110,70))
+	    self.agVideo.Hide()
+	    if sys.platform == 'darwin':
+		self.vsizer.Add(self.agVideo,0,wx.ALIGN_CENTRE_HORIZONTAL,0)
+		self.vsizer.Add((0,10),0,0,0)
+        else:
+            self.agVideo = None
 
         #self.playbackText = wx.StaticText(self,-1,"Leave Tribler running\n for faster playback",wx.Point(30,140))
         #self.playbackText.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
         #self.playbackText.SetForegroundColour(wx.Colour(255,51,00))
+        if sys.platform == 'darwin':
+            self.loadingtext = wx.StaticText(self,-1,'')
+        else:
+            self.loadingtext = wx.StaticText(self,-1,'',wx.Point(0,200),wx.Size(320,30),style=wx.ALIGN_CENTRE)
+        if sys.platform == 'darwin':
+	    self.loadingtext.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
+        else:
+	    self.loadingtext.SetFont(wx.Font(10, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
+        self.loadingtext.SetForegroundColour(wx.WHITE)
 
-
-
-
-
-
+	if sys.platform == 'darwin':
+            self.vsizer.Add(self.loadingtext,1,wx.ALIGN_CENTRE_HORIZONTAL,0)
+	    self.hsizermain.Add(self.vsizer,1,wx.ALIGN_CENTRE_HORIZONTAL,0)
+            self.SetSizer(self.hsizermain)
+	    self.SetAutoLayout(1)
+            self.Layout()
+	    self.Refresh()
         if self.vlcwrap is not None:
             wx.CallAfter(self.tell_vclwrap_window_for_playback)
         
@@ -508,6 +549,30 @@ class VLCLogoWindow(wx.Window):
             self.contentbm = wx.BitmapFromImage(wximg,-1)
         else:
             self.contentbm = None
+
+    def is_animation_running(self):
+	return self.animation_running
+
+    def setloadingtext(self, text):
+        self.loadingtext.SetLabel(text)
+	self.Refresh()
+
+    def show_loading(self):
+        if self.agVideo:
+            self.agVideo.Show()
+            self.agVideo.Play()
+	    self.animation_running = True
+            self.Refresh()
+
+
+	    
+	    
+    def stop_animation(self):
+        if self.agVideo:
+            self.agVideo.Stop()
+            self.agVideo.Hide()
+            self.animation_running = False
+            self.Refresh()
 
     def OnPaint(self,evt):
         dc = wx.PaintDC(self)
@@ -575,7 +640,7 @@ class DelayTimer(wx.Timer):
             if DEBUG:
                 print >>sys.stderr,"embedplay: VLC has stopped playing previous video, starting it on new"
             self.Stop()
-            self.embedplay.PlayPause()
+            self.embedplay.Play()
         elif DEBUG:
             print >>sys.stderr,"embedplay: VLC is still playing old video"
 

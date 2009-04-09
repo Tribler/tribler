@@ -30,7 +30,7 @@ from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes
 
 
 
-DEBUG = True
+DEBUG = False
 
 
 
@@ -335,8 +335,9 @@ class GUIUtility:
             ##   self.onDeleteTorrentFromLibrary()
             ##else:
             ##   self.onDeleteTorrentFromDisk()
-
             self.onDeleteTorrentFromDisk() # default behaviour for preview 1
+            
+
  
 
 
@@ -436,15 +437,19 @@ class GUIUtility:
             #self.standardGrid.clearAllData()
 
             self.standardFilesOverview()
-            self.frame.videoframe.show_videoframe()
+            if sys.platform != 'darwin':
+                self.frame.videoframe.show_videoframe()
             self.frame.videoparentpanel.Show()            
 
+	    if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
+		self.frame.videoframe.videopanel.vlcwin.show_loading()
+	    
 
-            self.frame.top_bg.search_results.SetForegroundColour(wx.BLACK)
+            #self.frame.top_bg.search_results.SetColour(wx.BLACK)
 
             self.frame.top_bg.settings.SetForegroundColour((255,51,0))
             self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
-
+            #wx.CallAfter(self.frame.top_bg.Layout)
             #if self.frame.settings.isToggled():
             #    self.frame.settings.setToggled()
             #if self.frame.my_files.isToggled():
@@ -514,8 +519,19 @@ class GUIUtility:
         if self.guiPage != 'settings':
             self.guiPage = 'settings' 
             self.frame.top_bg.ag.Hide()
+            #if sys.platform == 'win32':
+            #    self.frame.top_bg.settings.SetColour((0,105,156))
+            #    self.frame.top_bg.my_files.SetColour((255,51,0))
+            #    self.frame.top_bg.Layout()
+            #    self.frame.top_bg.createBackgroundImage()
+                
+
+                
+            #else:
             self.frame.top_bg.settings.SetForegroundColour((0,105,156))
             self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
+            self.frame.top_bg.Refresh()
+
 
             #if self.standardGrid:
             #    self.standardGrid.deselectAll()
@@ -523,6 +539,9 @@ class GUIUtility:
 
             self.frame.videoframe.hide_videoframe()
             self.frame.videoparentpanel.Hide()            
+
+	    if sys.platform == 'darwin':
+                self.frame.videoframe.videopanel.vlcwin.stop_animation()
 
             self.frame.pagerPanel.Hide()
             if self.frame.top_bg.search_results.GetLabel() != '':
@@ -572,6 +591,11 @@ class GUIUtility:
         if self.guiPage != 'my_files':
             self.guiPage = 'my_files' 
             self.frame.top_bg.ag.Hide()
+            #if sys.platform == 'win32':
+            #    self.frame.top_bg.my_files.SetColour((0,105,156))
+            #    self.frame.top_bg.settings.SetColour((255,51,0))
+            #    self.frame.top_bg.Layout()
+            #else:                
             self.frame.top_bg.my_files.SetForegroundColour((0,105,156))
             self.frame.top_bg.settings.SetForegroundColour((255,51,0))
 
@@ -580,7 +604,8 @@ class GUIUtility:
             #    self.standardGrid.clearAllData()
 
 
-            self.frame.videoframe.show_videoframe()
+            if sys.platform != 'darwin':
+                self.frame.videoframe.show_videoframe()
             self.frame.videoparentpanel.Show()
 
 
@@ -588,6 +613,8 @@ class GUIUtility:
                 self.frame.top_bg.search_results.SetLabel('Return to Results')
                 self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
             self.frame.top_bg.Layout()
+            
+
             self.frame.pagerPanel.Show()
             
             setmode = True
@@ -600,8 +627,9 @@ class GUIUtility:
             gridState = GridState('libraryMode', 'all', 'name')
             self.standardOverview.filterChanged(gridState)
 
-            wx.CallAfter(self.frame.videoframe.show_videoframe)
-        
+            if sys.platform != 'darwin':
+                wx.CallAfter(self.frame.videoframe.show_videoframe)
+            
         self.standardDetails.setMode('libraryMode')
         
     def standardSubscriptionsOverview(self):
@@ -892,14 +920,15 @@ class GUIUtility:
             #if mode == 'filesMode' and web2on:
             #    self.torrentsearch_manager.searchWeb2(60) # 3 pages, TODO: calc from grid size
 
-    def complete(self, input):
-        """autocompletes input"""
-        terms = input.split(" ")
-        completion = self.utility.session.open_dbhandler(NTFY_TERM).getTermsStartingWith(terms[-1], num=1)
+    def complete(self, term):
+        """autocompletes term."""
+        completion = self.utility.session.open_dbhandler(NTFY_TERM).getTermsStartingWith(term, num=1)
         if completion:
-            return completion[0][len(terms[-1]):]
-        return ""
-
+            return completion[0][len(term):]
+        # boudewijn: may only return unicode compatible strings. While
+        # "" is unicode compatible it is better to return u"" to
+        # indicate that it must be unicode compatible.
+        return u""
 
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
@@ -1043,11 +1072,7 @@ class GUIUtility:
        return self.standardOverview.getSearchField(mode=mode)
    
     def isReachable(self):
-        #return DialbackMsgHandler.getInstance().isConnectable()
-        return self.reachable
-   
-    def set_reachable(self):
-        self.reachable = True
+        return self.utility.session.get_externally_reachable()
    
    
     def onChangeViewModus(self):

@@ -1,6 +1,7 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Lucian Musat 
 # see LICENSE.txt for license information
 
+import wx
 import wx.xrc as xrc
 from binascii import hexlify
 from time import sleep,time
@@ -106,8 +107,8 @@ class standardDetails(wx.Panel):
         self.addasfriendlast = 0
         
 
-        
-        
+        # videodata
+        self.videodata = None   
         
 
         self.addComponents()
@@ -289,6 +290,16 @@ class standardDetails(wx.Panel):
             """
             print_exc()
         
+
+    def getVideodata(self):
+        return self.videodata
+
+
+    def setVideodata(self, videodata):
+        self.videodata = videodata
+
+
+
     def loadPanel(self):
         currentPanel = self.data[self.mode].get('panel',None)
         modeString = self.mode[:-4]
@@ -1659,17 +1670,18 @@ class standardDetails(wx.Panel):
             # a callback
 
             if 'query_permid' in torrent and not torrent.get('myDownloadHistory'):
+                def got_requested_torrent(infohash, metadata, filename):
+                    if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable Downloaded a torrent"
+                    # test that we are still focussed on the same torrent
+                    if torrent_filename.endswith(filename) and self.item == torrent:
+                        # recursive call
+                        playable = self.torrent_is_playable(torrent, default=default)
+                        if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable performing callback. is playable", playable
+                        callback(torrent, playable)
+
                 try:
-                    def got_requested_torrent(infohash, metadata, filename):
-                        if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable Downloaded a torrent"
-                        if torrent_filename.endswith(filename):
-                            playable = self.torrent_is_playable(torrent, default=default)
-                            if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable performing callback. is playable", playable
-                            callback(torrent, playable)
-                        
                     torrent['query_torrent_was_requested'] = True
                     self.utility.session.download_torrentfile_from_peer(torrent['query_permid'], torrent['infohash'], got_requested_torrent)
-
                 except:
                     print_exc()                        
             
@@ -1705,6 +1717,11 @@ class standardDetails(wx.Panel):
                 torrent['query_torrent_was_requested'] = True
                 sesscb_got_requested_torrent_lambda = lambda infohash,metadata,filename:self.sesscb_got_requested_torrent(torrent,infohash,metadata,filename,vodmode)
                 self.utility.session.download_torrentfile_from_peer(torrent['query_permid'],torrent['infohash'],sesscb_got_requested_torrent_lambda)
+
+                # Show error if torrent file does not come in
+                tfdownload_timeout_lambda = lambda:self.guiserv_tfdownload_timeout(torrent)
+                guiserver = GUITaskQueue.getInstance()
+                guiserver.add_task(tfdownload_timeout_lambda,20)
                 
                 # Show pending colour
                 self.guiUtility.standardOverview.refreshGridManager()
@@ -1799,6 +1816,19 @@ class standardDetails(wx.Panel):
         # Currently no removal function.
         torrent['myDownloadHistory'] = True
 
+
+    def guiserv_tfdownload_timeout(self,torrent):
+        print >>sys.stderr,"standardDetails: tdownload_timeout: Did we receive",`torrent['name']`
+        dbrecord = self.torrent_db.getTorrent(torrent['infohash'])
+        d = self.getData()
+        if d is not None:
+            selinfohash = d.get('infohash',None)
+            if dbrecord is None and torrent['infohash'] == selinfohash:
+                print >>sys.stderr,"standardDetails: tdownload_timeout: Couldn't get torrent from peer",`torrent['name']`
+                wx.CallAfter(self.tfdownload_timeout_error)
+                
+    def tfdownload_timeout_error(self):
+        self.videoplayer.set_player_status("Error starting download. Could not get metadata from remote peer.")
 
     def setTorrentThumb(self, mode, torrent, thumbPanel, size = 'large'):
         

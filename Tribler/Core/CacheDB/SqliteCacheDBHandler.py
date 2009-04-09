@@ -79,10 +79,10 @@ class BasicDBHandler:
         self._db.commit()
         
     def getOne(self, value_name, where=None, conj='and', **kw):
-        return self._db.getOne(self.table_name, value_name, where, conj, **kw)
+        return self._db.getOne(self.table_name, value_name, where=where, conj=conj, **kw)
     
     def getAll(self, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj='and', **kw):
-        return self._db.getAll(self.table_name, value_name, where, group_by, having, order_by, limit, offset, conj, **kw)
+        return self._db.getAll(self.table_name, value_name, where=where, group_by=group_by, having=having, order_by=order_by, limit=limit, offset=offset, conj=conj, **kw)
     
             
 class MyDBHandler(BasicDBHandler):
@@ -723,7 +723,7 @@ class PreferenceDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self,db, 'Preference') ## self,db,'Preference'
             
     def _getTorrentOwnersID(self, torrent_id):
-        sql_get_torrent_owners_id = "SELECT peer_id FROM Preference WHERE torrent_id==?"
+        sql_get_torrent_owners_id = u"SELECT peer_id FROM Preference WHERE torrent_id==?"
         res = self._db.fetchall(sql_get_torrent_owners_id, (torrent_id,))
         return [t[0] for t in res]
     
@@ -734,11 +734,11 @@ class PreferenceDBHandler(BasicDBHandler):
             return []
         
         if not return_infohash:
-            sql_get_peer_prefs_id = "SELECT torrent_id FROM Preference WHERE peer_id==?"
+            sql_get_peer_prefs_id = u"SELECT torrent_id FROM Preference WHERE peer_id==?"
             res = self._db.fetchall(sql_get_peer_prefs_id, (peer_id,))
             return [t[0] for t in res]
         else:
-            sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id IN (SELECT torrent_id FROM Preference WHERE peer_id==?)"
+            sql_get_infohash = u"SELECT infohash FROM Torrent WHERE torrent_id IN (SELECT torrent_id FROM Preference WHERE peer_id==?)"
             res = self._db.fetchall(sql_get_infohash, (peer_id,))
             return [str2bin(t[0]) for t in res]
     
@@ -754,13 +754,13 @@ class PreferenceDBHandler(BasicDBHandler):
     def addPreference(self, permid, infohash, data={}, commit=True):           
         # This function should be replaced by addPeerPreferences 
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
-        # NIC did not change this function as it seems addPreference*s* is getting called
+        # Nicolas: did not change this function as it seems addPreference*s* is getting called
         peer_id = self._db.getPeerID(permid)
         if peer_id is None:
             print >> sys.stderr, 'PreferenceDBHandler: add preference of a peer which is not existed in Peer table', `permid`
             return
         
-        sql_insert_peer_torrent = "INSERT INTO Preference (peer_id, torrent_id) VALUES (?,?)"        
+        sql_insert_peer_torrent = u"INSERT INTO Preference (peer_id, torrent_id) VALUES (?,?)"        
         torrent_id = self._db.getTorrentID(infohash)
         if not torrent_id:
             self._db.insertInfohash(infohash)
@@ -769,38 +769,46 @@ class PreferenceDBHandler(BasicDBHandler):
             self._db.execute_write(sql_insert_peer_torrent, (peer_id, torrent_id), commit=commit)
         except Exception, msg:    # duplicated
             print_exc()
+            
+            
 
     def addPreferences(self, peer_permid, prefs, is_torrent_id=False, commit=True):
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
-        # Nic: even though the peer sending its preferences may be older then 8, 
-        # buddycast.py will have taken care of this function receiving a list of dictionaries as prefs 
+        #
+        # boudewijn: for buddycast version >= OLPROTO_VER_EIGTH the
+        # prefs list may contain both strings (indicating an infohash)
+        # or dictionaries (indicating an infohash with metadata)
         
         peer_id = self._db.getPeerID(peer_permid)
         if peer_id is None:
             print >> sys.stderr, 'PreferenceDBHandler: add preference of a peer which is not existed in Peer table', `peer_permid`
             return
+
+        prefs = [type(pref) is str and {"infohash":pref} or pref
+                 for pref
+                 in prefs]
         
-        if not is_torrent_id:
-            # Nic: do not know why this would be called, but let's handle it smoothly
+        if is_torrent_id:
+            torrent_id_prefs = [(peer_id, 
+                                 pref['torrent_id'], 
+                                 pref.get('position', -1), 
+                                 pref.get('reranking_strategy', -1)) 
+                                for pref in prefs]
+        else:
+            # Nicolas: do not know why this would be called, but let's handle it smoothly
             torrent_id_prefs = []
             for pref in prefs:
                 if type(pref)==dict:
-                    infohash = pref[infohash]
+                    infohash = pref["infohash"]
                 else:
-                    infohash = pref # Nic: from wherever this might come, we even handle old list of infohashes style
+                    infohash = pref # Nicolas: from wherever this might come, we even handle old list of infohashes style
                 torrent_id = self._db.getTorrentID(infohash)
                 if not torrent_id:
                     self._db.insertInfohash(infohash)
                     torrent_id = self._db.getTorrentID(infohash)
                 torrent_id_prefs.append((peer_id, torrent_id, -1, -1))
-        else:
-            torrent_id_prefs = [(peer_id, 
-                                 pref['torrent_id'], 
-                                 pref.get('position', -1), 
-                                 pref.get('reranking strategy', -1)) 
-                                for pref in prefs]
             
-        sql_insert_peer_torrent = "INSERT INTO Preference (peer_id, torrent_id, click_position, reranking_strategy) VALUES (?,?,?,?)"        
+        sql_insert_peer_torrent = u"INSERT INTO Preference (peer_id, torrent_id, click_position, reranking_strategy) VALUES (?,?,?,?)"        
         if len(prefs) > 0:
             try:
                 self._db.executemany(sql_insert_peer_torrent, torrent_id_prefs, commit=commit)
@@ -810,21 +818,31 @@ class PreferenceDBHandler(BasicDBHandler):
                 
         # now, store search terms
         
-        # if maximum number of search terms is exceeded, abort storing them
-        # this may seem a bit radical, but since a legitimate buddycast message will not too many
-        # keywords, there is something fishy about this message anyway and imo the best option it
-        # to discard it completely.
-        nums_of_search_terms = [len(pref.get('search terms',[])) for pref in prefs]
+        # Nicolas: if maximum number of search terms is exceeded, abort storing them.
+        # Although this may seem a bit strict, this means that something different than a genuine Tribler client
+        # is on the other side, so we might rather err on the side of caution here and simply let clicklog go.
+        nums_of_search_terms = [len(pref.get('search_terms',[])) for pref in prefs]
         if max(nums_of_search_terms)>MAX_KEYWORDS_STORED:
             if DEBUG:
                 print >>sys.stderr, "peer %d exceeds max number %d of keywords per torrent, aborting storing keywords"  % \
                                     (peer_id, MAX_KEYWORDS_STORED)
             return  
         
-        all_terms = Set([])
+        all_terms_unclean = Set([])
         for pref in prefs:
-            newterms = Set(pref.get('search terms',[]))
-            all_terms = all_terms.union(newterms)        
+            newterms = Set(pref.get('search_terms',[]))
+            all_terms_unclean = all_terms_unclean.union(newterms)        
+            
+        all_terms = [] 
+        for term in all_terms_unclean:
+            cleanterm = ''
+            for i in range(0,len(term)):
+                c = term[i]
+                if c.isalnum():
+                    cleanterm += c
+            if len(cleanterm)>0:
+                all_terms.append(cleanterm)
+
         
         # maybe we haven't received a single key word, no need to loop again over prefs then
         if len(all_terms)==0:
@@ -844,7 +862,7 @@ class PreferenceDBHandler(BasicDBHandler):
         # process torrent data
         for pref in prefs:
             torrent_id = pref.get('torrent_id', None)
-            search_terms = pref.get('search terms', [])
+            search_terms = pref.get('search_terms', [])
             
             if search_terms==[]:
                 continue
@@ -888,15 +906,15 @@ class PreferenceDBHandler(BasicDBHandler):
         sql = """
 SELECT DISTINCT Preference.peer_id, Preference.click_position 
 FROM Preference 
-INNER JOIN Search 
+INNER JOIN ClicklogSearch 
 ON 
-    Preference.torrent_id = Search.torrent_id 
+    Preference.torrent_id = ClicklogSearch.torrent_id 
   AND 
-    Preference.peer_id = Search.peer_id 
+    Preference.peer_id = ClicklogSearch.peer_id 
 WHERE 
-    Search.term_id IN %s 
+    ClicklogSearch.term_id IN %s 
   AND
-    Search.torrent_id = %s""" % (s_term_ids, torrent_id)
+    ClicklogSearch.torrent_id = %s""" % (s_term_ids, torrent_id)
         res = self._db.fetchall(sql)
         scores = [1.0-1.0/float(click_position+1) 
                   for (peer_id, click_position) 
@@ -1745,6 +1763,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.recent_preflist_with_clicklog = None
         self.rlock = threading.RLock()
         
+        
     def loadData(self):
         self.rlock.acquire()
         try:
@@ -1784,7 +1803,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             return None
 
-    def getRecentLivePrefListWithClicklog(self, listOfDicts, num=0):
+    def getRecentLivePrefListWithClicklog(self, num=0):
         """returns OL 8 style preference list: a list of lists, with each of the inner lists
            containing infohash, search terms, click position, and reranking strategy"""
            
@@ -1801,7 +1820,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return self.recent_preflist_with_clicklog  
 
         
-    def getRecentLivePrefList(self, listOfDicts, num=0):
+    def getRecentLivePrefList(self, num=0):
         if self.recent_preflist is None:
             self.rlock.acquire()
             try:
@@ -3166,133 +3185,78 @@ class TermDBHandler(BasicDBHandler):
             raise RuntimeError, "TermDBHandler is singleton"
         TermDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()        
-        BasicDBHandler.__init__(self,db, 'Term') ## self, db, 'Term'
+        BasicDBHandler.__init__(self,db, 'ClicklogTerm') 
         
         
     def getNumTerms(self):
         """returns number of terms stored"""
         return self.getOne("count(*)")
     
+ 
+    
     def bulkInsertTerms(self, terms, commit=True):
         for term in terms:
             term_id = self.getTermIDNoInsert(term)
-            if term_id:
-                continue
-            try:
+            if not term_id:
                 self.insertTerm(term, commit=False) # this HAS to commit, otherwise last_insert_row_id() won't work. 
-                # if you want to avoid committing too often, use bulkInsertTerm
-            except UnicodeDecodeError:
-                if DEBUG:
-                    print >> sys.stderr, "could not ascii-encode term %s, returning id -1" % term.lower()
-                return -1
+            # if you want to avoid committing too often, use bulkInsertTerm
         if commit:         
             self.commit()
             
-            
     def getTermIDNoInsert(self, term):
-        if len(term)>MAX_KEYWORD_LENGTH:
-            term = term[0:MAX_KEYWORD_LENGTH]        
-        try:
-            term_id = self.getOne('term_id', term=bin2str(str(term).lower()))
-        except UnicodeDecodeError:
-            if DEBUG:
-                print >> sys.stderr, "could not ascii-encode term %s, returning id -1" % term.lower()
-            return -1
-
-        # if not decodable, try undecoded. mostly to avoid error messages for testers with non-encoded strings in their db
-        if not term_id:
-            try:
-                term_id = self.getOne('term_id', term=str(term).lower())
-            except UnicodeDecodeError:
-                if DEBUG:
-                    print >> sys.stderr, "could not ascii-encode term %s, returning id -1" % term.lower()
-                    return -1
-        
-        return term_id
-        
+        return self.getOne('term_id', term=term[:MAX_KEYWORD_LENGTH].lower())
             
     def getTermID(self, term):
-        """returns the ID of term in table Term; creates a new entry if necessary"""
+        """returns the ID of term in table ClicklogTerm; creates a new entry if necessary"""
         term_id = self.getTermIDNoInsert(term)
         if term_id:
             return term_id
-        try:
+        else:
             self.insertTerm(term, commit=True) # this HAS to commit, otherwise last_insert_row_id() won't work. 
-            # if you want to avoid committing too often, use bulkInsertTerm
-        except UnicodeDecodeError:
-            if DEBUG:
-                print >> sys.stderr, "could not ascii-encode term %s, returning id -1" % term.lower()
-            return -1         
-        new_id = self.getOne("last_insert_rowid()")
-        return new_id
-        
+            return self.getOne("last_insert_rowid()")
     
     def insertTerm(self, term, commit=True):
         """creates a new entry for term in table Term"""
-        term = str(term)
-        if len(term)>MAX_KEYWORD_LENGTH:
-            term = term[0:MAX_KEYWORD_LENGTH]
-        term = bin2str(term)
-        self._db.insert(self.table_name, commit=commit, term=term)
+        self._db.insert(self.table_name, commit=commit, term=term[:MAX_KEYWORD_LENGTH])
     
     def getTerm(self, term_id):
         """returns the term for a given term_id"""
-        if term_id==-1:
-            return ""
-        term = self.getOne('term', term_id=term_id)
-        try:
-            return str2bin(term)
-        except:
-            return term
+        return self.getOne("term", term_id=term_id)
+        # if term_id==-1:
+        #     return ""
+        # term = self.getOne('term', term_id=term_id)
+        # try:
+        #     return str2bin(term)
+        # except:
+        #     return term
     
     def getTermsStartingWith(self, beginning, num=10):
         """returns num most frequently encountered terms starting with beginning"""
         
-        terms = []
-        offset = 0
-        catobj = Category.getInstance()
-        family_filter = catobj.family_filter_enabled()
-        encodedbeginning = bin2str(str(beginning).lower().replace('\'',''))
-        # this is a bit ugly. since we're now storing string as base64, we cannot directly compare beginnings;
-        # base64('ob') is not equal to the beginning of base64('obama') because the last bytes may be filled up
-        # so we discard the last two bytes, get too many results, and check later on if these actually fit
-        if len(encodedbeginning)>2:
-            encodedbeginning = encodedbeginning[:-2]
-        while len(terms)<num:
-            
-            try:
-                term = self.getAll('term', 
-                                   'term like \'%s%%\'' % 
-                                   encodedbeginning,
-                                   order_by="times_seen DESC",
-                                   limit=1,
-                                   offset=offset)
-                offset += 1
-                if term:
-                    try:
-                        term=str2bin(term[0][0])
-                    except:
-                        continue
-                else:
-                    return terms
-                if family_filter:
-                    if catobj.xxx_filter.foundXXXTerm(term):
-                        continue
+        # request twice the amount of hits because we need to apply
+        # the familiy filter...
+        terms = self.getAll('term', 
+                            term=("like", u"%s%%" % beginning),
+                            order_by="times_seen DESC",
+                            limit=num * 2)
 
-                if not term[:len(beginning)]==beginning:
-                    continue
-                terms.append(term)
-                
-            except UnicodeDecodeError:
-                if DEBUG:
-                    print >> sys.stderr, "term %s could not be completed because it's not ascii" % beginning
-                return []
-        return terms
+        if terms:
+            # terms is a list containing lists. We only want the first
+            # item of the inner lists.
+            terms = [term for (term,) in terms]
+
+            catobj = Category.getInstance()
+            if catobj.family_filter_enabled():
+                return filter(lambda term: not catobj.xxx_filter.foundXXXTerm(term), terms)[:num]
+            else:
+                return terms[:num]
+
+        else:
+            return []
     
     def getAllEntries(self):
         """use with caution,- for testing purposes"""
         return self.getAll("term_id, term", order_by="term_id")
-
     
     
 class SearchDBHandler(BasicDBHandler):
@@ -3317,15 +3281,13 @@ class SearchDBHandler(BasicDBHandler):
             raise RuntimeError, "SearchDBHandler is singleton"
         SearchDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self,db, 'Search') ## self,db,'Search'
+        BasicDBHandler.__init__(self,db, 'ClicklogSearch') ## self,db,'Search'
         
         
     ### write methods
     
     def storeKeywordsByID(self, peer_id, torrent_id, term_ids, commit=True):
-        sql_insert_search = """
-INSERT INTO Search (peer_id, torrent_id, term_id, term_order) values (?, ?, ?, ?)
-"""
+        sql_insert_search = u"INSERT INTO ClicklogSearch (peer_id, torrent_id, term_id, term_order) values (?, ?, ?, ?)"
         
         if len(term_ids)>MAX_KEYWORDS_STORED:
             term_ids= term_ids[0:MAX_KEYWORDS_STORED]
@@ -3342,11 +3304,8 @@ INSERT INTO Search (peer_id, torrent_id, term_id, term_order) values (?, ?, ?, ?
         self._db.executemany(sql_insert_search, values, commit=commit)        
         
         # update term popularity
-        sql_update_term_popularity= """
-UPDATE Term SET times_seen = times_seen+1 WHERE term_id=?        
-"""        
+        sql_update_term_popularity= u"UPDATE ClicklogTerm SET times_seen = times_seen+1 WHERE term_id=?"        
         self._db.executemany(sql_update_term_popularity, [[term_id] for term_id in term_ids], commit=commit)        
-        
         
     def storeKeywords(self, peer_id, torrent_id, terms, commit=True):
         """creates a single entry in Search with peer_id and torrent_id for every term in terms"""

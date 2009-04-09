@@ -65,7 +65,20 @@ INSTALLING ON LINUX
         python Tribler/Main/tribler.py
         
    from the source directory. 
+
+Optionally you can install the VLC python bindings. For Ubuntu Linux 8.10
+there is a simple procedure described next. For earlier Ubuntus please check
+
+       http://www.tribler.org/trac/wiki/VlcUbuntuHowto
    
+4. To install the VLC python bindings run the following commands:
+       sudo apt-get install libvlc-dev git-core python-dev
+       cd /tmp
+       git clone git://git.videolan.org/vlc.git
+       cd vlc/bindings/python/
+       python setup.py build  
+       sudo python setup.py install  
+
 
 INSTALLING ON WINDOWS
 ---------------------

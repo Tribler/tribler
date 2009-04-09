@@ -16,6 +16,7 @@ from random import shuffle
 from sha import sha
 from time import time
 from struct import pack, unpack
+import binascii
 
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
@@ -412,17 +413,43 @@ class Rerequester:
             self.trackerid = r.get('tracker id', self.trackerid)
             self.last = r.get('last', self.last)
     #        ps = len(r['peers']) + self.howmany()
-            p = r['peers']
             peers = []
-            if type(p) == type(''):
-                for x in xrange(0, len(p), 6):
-                    ip = '.'.join([str(ord(i)) for i in p[x:x+4]])
-                    port = (ord(p[x+4]) << 8) | ord(p[x+5])
-                    peers.append(((ip, port), 0)) # Arno: note: not just (ip,port)!!!
+            p = r.get('peers')
+            if p is not None:
+                if type(p) == type(''):
+                    for x in xrange(0, len(p), 6):
+                        ip = '.'.join([str(ord(i)) for i in p[x:x+4]])
+                        port = (ord(p[x+4]) << 8) | ord(p[x+5])
+                        peers.append(((ip, port), 0)) # Arno: note: not just (ip,port)!!!
+                else:
+                    for x in p:
+                        peers.append(((x['ip'].strip(), x['port']), x.get('peer id', 0)))
             else:
-                for x in p:
-                    peers.append(((x['ip'].strip(), x['port']), x.get('peer id', 0)))
-                    
+                # IPv6 Tracker Extension, http://www.bittorrent.org/beps/bep_0007.html
+                p = r.get('peers6')
+                if type(p) == type(''):
+                    for x in xrange(0, len(p), 18):
+                        #ip = '.'.join([str(ord(i)) for i in p[x:x+16]])
+                        hexip = binascii.b2a_hex(p[x:x+16])
+                        ip = ''
+                        for i in xrange(0,len(hexip),4):
+                            ip += hexip[i:i+4]
+                            if i+4 != len(hexip):
+                                ip += ':'
+                        port = (ord(p[x+16]) << 8) | ord(p[x+17])
+                        peers.append(((ip, port), 0)) # Arno: note: not just (ip,port)!!!
+                else:
+                    for x in p:
+                        peers.append(((x['ip'].strip(), x['port']), x.get('peer id', 0)))
+            
+            
+                # Arno, 2009-04-06: Need more effort to support IPv6, e.g.
+                # see SocketHandler.SingleSocket.get_ip(). The getsockname()
+                # + getpeername() calls should be make to accept IPv6 returns.
+                #
+                print >>sys.stderr,"Rerequester: Got IPv6 peer addresses, not yet supported, ignoring."
+                peers = []
+            
             if DEBUG:
                 print >>sys.stderr,"Rerequester: postrequest: Got peers",peers
             ps = len(peers) + self.howmany()

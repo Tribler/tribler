@@ -20,17 +20,18 @@ sconfig.set_torrent_collecting_dir(torrcolldir)
 s = Session(sconfig)
 
 torrent_db = s.open_dbhandler(NTFY_TORRENTS)
+mypref_db = s.open_dbhandler(NTFY_MYPREFERENCES)
 
 inttime = int(time.time())
 extra_info = {'leecher': 100,'seeder': 100,'last_check_time':inttime,'status':'good'}
 source = 'Manual'
 
-filenames = ['route2.tstream','star2.tstream','gopher.torrent']
-for filename in filenames:
-#dir = "c:\\Documents and Settings\\Arno\\Desktop\\downloadjunk"
-#filelist = os.listdir(dir)
-#for basename in filelist:
-#    filename = os.path.join(dir,basename)
+#filenames = ['ice-age.torrent','rock.torrent','gopher.torrent']
+#for filename in filenames:
+dir = "c:\\Documents and Settings\\Arno\\Desktop\\downloadjunk"
+filelist = os.listdir(dir)
+for basename in filelist:
+    filename = os.path.join(dir,basename)
     # Make this go on when a torrent fails to start
     try:
         f = open(filename,"rb")
@@ -55,6 +56,11 @@ for filename in filenames:
             print >>sys.stderr,"Error adding",filename
         else:
             print >>sys.stderr,"Added",filename
+            
+            data = {'destination_path':'bla.avi'}
+            mypref_db.addMyPreference(infohash, data)
+
+            
     except:
         print_exc()
 

@@ -3,6 +3,7 @@
 --
 -- History:
 --   v1: Published as part of Tribler 4.5
+--   v2: Published as part of Tribler 5.0
 -- 
 -- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
 --
@@ -268,21 +269,21 @@ ON VoteCast
 
 -- V2: Patch for BuddyCast 4
 
-CREATE TABLE Search (
+CREATE TABLE ClicklogSearch (
                      peer_id INTEGER DEFAULT 0,
                      torrent_id INTEGER DEFAULT 0,
                      term_id INTEGER DEFAULT 0,
                      term_order INTEGER DEFAULT 0
                      );
-CREATE INDEX idx_search_term ON Search (term_id);
-CREATE INDEX idx_search_torrent ON Search (torrent_id);
+CREATE INDEX idx_search_term ON ClicklogSearch (term_id);
+CREATE INDEX idx_search_torrent ON ClicklogSearch (torrent_id);
 
-CREATE TABLE Term (
+CREATE TABLE ClicklogTerm (
                     term_id INTEGER PRIMARY KEY AUTOINCREMENT DEFAULT 0,
                     term VARCHAR(255) NOT NULL,
                     times_seen INTEGER DEFAULT 0 NOT NULL
                     );
-CREATE INDEX idx_terms_term ON Term(term);  
+CREATE INDEX idx_terms_term ON ClicklogTerm(term);  
 
 
 

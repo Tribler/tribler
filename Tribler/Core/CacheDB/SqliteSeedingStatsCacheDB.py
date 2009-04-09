@@ -105,6 +105,9 @@ class SeedingStatsDBHandler(BasicDBHandler):
             ds = seedings[i]
             
             infohash = bin2str(ds.get_download().get_def().get_infohash())
+            
+            stats = ds.stats['stats']
+            ul = stats.upTotal
                 
             if i == len(seedings)-1:
                 commit = True
@@ -113,10 +116,18 @@ class SeedingStatsDBHandler(BasicDBHandler):
                 
             if res is not None:
                 # res is list of ONE tuple
-                self.updateSeedingStat(infohash, reputation, res[0][0], interval, commit)
+                #self.updateSeedingStat(infohash, reputation, res[0][0], interval, commit)
+                
+                # NAT/Firewall & Seeding Behavior
+                # Store upload amount instead peer reputation
+                self.updateSeedingStat(infohash, ul, res[0][0], interval, commit)
             else:
                 # Insert new record
-                self.insertSeedingStat(infohash, permID, reputation, interval, commit)
+                #self.insertSeedingStat(infohash, permID, reputation, interval, commit)
+                
+                # NAT/Firewall & Seeding Behavior
+                # Store upload amount instead peer reputation
+                self.insertSeedingStat(infohash, permID, ul, interval, commit)
             
     
     def existedInfoHash(self, infohash):

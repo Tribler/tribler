@@ -51,8 +51,8 @@ NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
 NTFY_MODERATIONCAST = 'moderationcast'
 NTFY_VOTECAST = 'votecast'
-NTFY_SEARCH = 'search' # BuddyCast 4
-NTFY_TERM= 'term'
+NTFY_SEARCH = 'clicklogsearch' # BuddyCast 4
+NTFY_TERM= 'clicklogterm'
 
 
 # non data handler subjects

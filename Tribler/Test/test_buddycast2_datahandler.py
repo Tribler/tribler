@@ -87,8 +87,14 @@ def init():
 
 class FakeSession:
     sessconfig = {}
-    def get_permid(self):
+    def get_permid(*args, **kargs):
         return base64.decodestring('MG0CAQEEHR/bQNvwga7Ury5+8vg/DTGgmMpGCz35Zs/2iz7coAcGBSuBBAAaoUADPgAEAL2I5yVc1+dWVEx3nbriRKJmOSlQePZ9LU7yYQoGABMvU1uGHvqnT9t+53eaCGziV12MZ1g2p0GLmZP9\n' )
+
+    def get_moderationcast_moderations_per_have(*args, **kargs):
+        return 100
+
+    def add_observer(*args, **kargs):
+        pass
 
 class FakeLauchMany:
     
@@ -109,7 +115,13 @@ class FakeLauchMany:
         self.secure_overlay = FakeSecureOverlay()
 #        torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
         self.listen_port = 1234
-        
+
+        self.modcast_db = ModerationCastDBHandler.getInstance()
+        self.modcast_db.registerSession(self.session)
+
+        self.votecast_db = VoteCastDBHandler.getInstance()
+        self.votecast_db.registerSession(self.session)
+
     def get_ext_ip(self):
         return None
     

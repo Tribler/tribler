@@ -189,14 +189,14 @@ debug = False   # for status
 debugnic = True # for my temporary outputs
 unblock = 0
 
-# Nic: 10 KByte -- I set this to 1024 KByte.     
+# Nicolas: 10 KByte -- I set this to 1024 KByte.     
 # The term_id->term dictionary can become almost arbitrarily long
 # would be strange if buddycast stopped working once a user has done a lot of searches... 
 #
 # Arno, 2009-03-06: Too big: we don't want every peer to send out 1 MB messages 
 # every 15 secs. Set to 100K
 #
-# Nic, 2009-03-06: Ok this was really old. 10k in fact is enough with the new constraints on clicklog data
+# Nicolas, 2009-03-06: Ok this was really old. 10k in fact is enough with the new constraints on clicklog data
 MAX_BUDDYCAST_LENGTH = 10*1024    
 
 REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in this version
@@ -233,7 +233,7 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
     if not (isinstance(prefxchg['name'], str) or isinstance(prefxchg['name'], unicode)):
         raise RuntimeError, "bc: invalid name type " + str(type(prefxchg['name']))
     
-    # Nic: create a validity check that doesn't have to know about the version
+    # Nicolas: create a validity check that doesn't have to know about the version
     # just found out this function is not called anymore. well if it gets called one day, it should handle both
     prefs = prefxchg['preferences']
     if prefs:
@@ -278,7 +278,7 @@ class BuddyCastFactory:
         self.data_handler = None
         self.started = False    # did call do_buddycast() at least once 
         self.max_peers = 2500   # was 2500
-        self.ranonce = False # NIC: had the impression that BuddyCast can be tested more reliably if I wait until it has gone through buddycast_core.work() successfully once
+        self.ranonce = False # Nicolas: had the impression that BuddyCast can be tested more reliably if I wait until it has gone through buddycast_core.work() successfully once
         if self.superpeer:
             print >>sys.stderr,"bc: Starting in SuperPeer mode"
         
@@ -367,7 +367,7 @@ class BuddyCastFactory:
             
         # Do our thang.
         self.buddycast_core.work()
-        self.ranonce = True # nic: now we can start testing and stuff works better
+        self.ranonce = True # Nicolas: now we can start testing and stuff works better
         
     def pauseBuddyCast(self):
         self.running = False
@@ -980,11 +980,11 @@ class BuddyCastCore:
                     MSG_ID = 'PASSIVE_BC'
                 msg = repr(readableBuddyCastMsg(buddycast_data))    # from utilities
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
-        return buddycast_data # NIC: for testing
+        return buddycast_data # Nicolas: for testing
                 
     def createBuddyCastMessage(self, target_permid, selversion, target_ip=None, target_port=None):
         """ Create a buddycast message for a target peer on selected protocol version """
-        # Nic: added manual target_ip, target_port parameters for testing
+        # Nicolas: added manual target_ip, target_port parameters for testing
         try:
             target_ip,target_port = self.dnsindb(target_permid)    
         except:
@@ -1356,9 +1356,9 @@ class BuddyCastCore:
             if buddycast_data['oversion'] == OLPROTO_VER_EIGHTH:
                 # create dictionary from list of lists
                 d = [dict({'infohash': pref[0],
-                           'search terms': pref[1],
+                           'search_terms': pref[1],
                            'position': pref[2],
-                           'reranking strategy': pref[3]}) 
+                           'reranking_strategy': pref[3]}) 
                      for pref in prefs]
             else:
                 raise RuntimeError, 'buddycast: unknown preference protocol, pref entries are lists but oversion= %s:\n%s' % (buddycast_data['oversion'], prefs)
@@ -1449,7 +1449,7 @@ class BuddyCastCore:
         cache_db_data['peer'][sender_permid]['last_buddycast'] = _now
         
         prefs = self.createPreferenceDictionaryList(buddycast_data)
-        buddycast_data['preferences'] = prefs # Nic: store this back into buddycast_data because it's used later on gotBuddyCastMessage again 
+        buddycast_data['preferences'] = prefs # Nicolas: store this back into buddycast_data because it's used later on gotBuddyCastMessage again 
         
         infohashes = Set(buddycast_data.get('collected torrents', []))
         prefhashes = Set(self.getPreferenceHashes(buddycast_data))  # only accept sender's preference, to avoid pollution
@@ -1892,7 +1892,7 @@ class DataHandler:
         self.torrent_db = launchmany.torrent_db
         self.mypref_db = launchmany.mypref_db
         self.pref_db = launchmany.pref_db
-        self.term_db = launchmany.term_db
+        # self.term_db = launchmany.term_db
         self.friend_db = launchmany.friend_db
         self.myfriends = Set() # FIXME: implement friends
         self.myprefs = []    # torrent ids
@@ -2280,7 +2280,7 @@ class DataHandler:
             cur_prefs = []
         prefs2add = []
         for pref in prefs:
-            infohash = pref['infohash'] # Nic: new dictionary format of OL 8 preferences
+            infohash = pref['infohash'] # Nicolas: new dictionary format of OL 8 preferences
             torrent_id = self.torrent_db.getTorrentID(infohash)
             if not torrent_id:
                 print >> sys.stderr, "buddycast: DB Warning: infohash", bin2str(infohash), "should have been inserted into db, but was not found"
@@ -2462,9 +2462,13 @@ class DataHandler:
         self.torrent_db.commit()
         #self.torrent_db._db.show_sql(0)
         
-        # Nic: moved this block *before* the call to addPeerPreferences because with the clicklog,
+        # Nicolas: moved this block *before* the call to addPeerPreferences because with the clicklog,
         # this in fact writes to several different databases, so it's easier to tell it to commit
         # right away. hope this is ok
+        
+        # Nicolas 2009-03-30: thing is that we need to create terms and their generated ids, forcing at least one commit in-between
+        # have to see later how this might be optimized. right now, there's three commits:
+        # before addPeerPreferences, after bulk_insert, and after storing clicklog data
                 
         if cache_db_data['pref']:
             self.addPeerPreferences(sender_permid, 

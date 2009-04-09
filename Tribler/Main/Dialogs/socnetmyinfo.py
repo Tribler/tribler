@@ -23,6 +23,7 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
+
 SERVICETYPES = []
 
 DEBUG = False
@@ -92,8 +93,6 @@ class MyInfoWizard(Wizard):
         scfg.save(cfgfilename)
 
         self.parent.WizardFinished(self)
-
-        self.guiUtility.standardOverview.updateSaveIcon()
 
     def getFirstPage(self):
         return self.page1

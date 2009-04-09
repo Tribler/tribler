@@ -38,16 +38,21 @@ class VideoFrame(wx.Frame,VideoBaseFrame):
     and the media controls such as Play/Pause buttons and Volume Control.
     """
     
-    def __init__(self,parent,title,iconpath,vlcwrap,logopath):
-        self.utility = parent.utility
+    def __init__(self,parent,utility,title,iconpath,vlcwrap,logopath): ## rm utility
+        self.parent = parent    
+        self.utility = utility ## parent.utility
         if title is None:
             title = self.utility.lang.get('tb_video_short')
         
         if vlcwrap is None:
             size = (800,150)
         else:
-            size = (800,520) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
+            if sys.platform == 'darwin':
+                size = (800,520)
+            else:
+                size = (800,520) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
         wx.Frame.__init__(self, None, -1, title, size=size) 
+        self.Centre()
         
         self.create_videopanel(vlcwrap,logopath)
 
@@ -103,9 +108,27 @@ class VideoFrame(wx.Frame,VideoBaseFrame):
 
 
     def OnCloseWindow(self, event = None):
-        self.hide_videoframe()        
+        if sys.platform == 'darwin':
+            #self.videopanel.Stop()
+            self.videopanel.Reset()
+                
+        self.hide_videoframe()
 
-                 
+
+        
+class VideoMacFrame(VideoFrame,VideoBaseFrame):
+    """ Provides a frame fr mac os x using the icons of the 5.0"""
+
+    def create_videopanel(self,vlcwrap, logopath):
+        self.showingframe = False
+        self.videopanel = EmbeddedPlayerPanel(self, self.utility, vlcwrap, logopath,fg=wx.WHITE,bg=(216,233,240))
+        self.videopanel.SetMinSize((320,320))
+        self.videopanel.SetSize((320,320))
+        self.Hide()
+
+
+
+
 
 class VideoDummyFrame(VideoBaseFrame):
     """ Provides a fake Frame around an EmbeddedPlayerPanel so the embedded player

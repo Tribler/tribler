@@ -38,7 +38,7 @@ def extract_db_files(file_dir, file_name):
         return False
     
     
-CREATE_SQL_FILE = os.path.join(BASE_DIR, 'tribler_sdb_v1.sql')
+CREATE_SQL_FILE = os.path.join(BASE_DIR, 'tribler_sdb_v2.sql')
 assert os.path.isfile(CREATE_SQL_FILE)
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = None

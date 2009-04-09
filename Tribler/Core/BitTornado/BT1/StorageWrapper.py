@@ -77,6 +77,7 @@ class StorageWrapper:
             piece_from_live_source_func = lambda i,d: None, 
             backfunc = None, 
             config = {}, unpauseflag = fakeflag(True)):
+        if DEBUG: print >>sys.stderr, "StorageWrapper: __init__: wrapped around", storage.files
         self.videoinfo = videoinfo
         self.storage = storage
         self.request_size = long(request_size)

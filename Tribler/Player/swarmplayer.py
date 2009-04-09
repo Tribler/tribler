@@ -504,7 +504,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
 
 class PlayerFrame(VideoFrame):
     def __init__(self,parent,appname):
-        VideoFrame.__init__(self,parent,appname+' '+PLAYER_VERSION,parent.iconpath,parent.videoplayer.get_vlcwrap(),parent.logopath)
+        VideoFrame.__init__(self,parent,parent.utility,appname+' '+PLAYER_VERSION,parent.iconpath,parent.videoplayer.get_vlcwrap(),parent.logopath)
         self.parent = parent
         self.closed = False
 

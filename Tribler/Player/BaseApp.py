@@ -90,7 +90,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
 
         
         # Start server for instance2instance communication
-        self.i2is = Instance2InstanceServer(self.i2iport,self) 
+        self.i2is = Instance2InstanceServer(self.i2iport,self,timeout=(24.0*3600.0)) 
 
 
         # The playerconfig contains all config parameters that are not

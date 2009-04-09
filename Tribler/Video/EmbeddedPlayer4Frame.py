@@ -162,7 +162,7 @@ class EmbeddedPlayer4FramePanel(wx.Panel):
 
         else:
             self.ppbtn.setToggled(False)
-            self.vlcwrap.start()
+            self.vlcwrap.resume()
 
 
     def Seek(self, evt=None):
@@ -209,7 +209,7 @@ class EmbeddedPlayer4FramePanel(wx.Panel):
     def SetVolume(self, evt = None):
         if DEBUG:
             print >> sys.stderr, "embedplay: SetVolume:",self.volume.GetValue()
-        self.vlwrap.sound_set_volume(float(self.volume.GetValue()) / 100)
+        self.vlcwrap.sound_set_volume(float(self.volume.GetValue()) / 100)
         # reset mute
         if self.volumeicon.isToggled():
             self.volumeicon.setToggled(False)
@@ -316,3 +316,7 @@ class EmbeddedPlayer4FramePanel(wx.Panel):
     def TellLVCWrapWindow4Playback(self):
         if self.vlcwrap is not None:
             self.vlcwin.tell_vclwrap_window_for_playback()
+
+    def ShowLoading(self):
+        pass
+    

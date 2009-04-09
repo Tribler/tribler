@@ -22,10 +22,16 @@ from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 DEBUG = True
 
 
-if sys.platform == "linux2":
+if sys.platform == "linux2" or sys.platform == "darwin":
     USE_VLC_RAW_INTERFACE = False
 else:
     USE_VLC_RAW_INTERFACE = True
+    
+    
+    
+    #import vlc
+    #print >> sys.stderr , "BLA\n"*20
+    #USE_VLC_RAW_INTERFACE = inspect.ismethoddescriptor(vlc.MediaControl.set_raw_callbacks):
 
 
 class VideoPlayer:
@@ -226,6 +232,10 @@ class VideoPlayer:
             if reset:
                 self.videoframe.get_videopanel().Reset()
 
+    def show_loading(self):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            self.videoframe.get_videopanel().ShowLoading()
+
     def close(self):
         """ Stop playback and close current video window """
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
@@ -241,11 +251,11 @@ class VideoPlayer:
         videofiles = d.get_dest_files(exts=videoextdefaults)
         
         if len(videofiles) == 0:
-            print >>sys.stderr,"main: No video files found! Let user select"
+            print >>sys.stderr,"videoplay: play: No video files found! Let user select"
             # Let user choose any file
             videofiles = d.get_dest_files(exts=None)
             
-        print >>sys.stderr,"videplay: play: videofiles",videofiles
+        print >>sys.stderr,"videoplay: play: videofiles",videofiles
             
         selectedinfilename = None
         selectedoutfilename= None
@@ -255,7 +265,7 @@ class VideoPlayer:
                 infilenames.append(infilename)
             selectedinfilename = self.ask_user_to_select_video(infilenames)
             if selectedinfilename is None:
-                print >>sys.stderr,"main: User selected no video"
+                print >>sys.stderr,"videoplay: play: User selected no video"
                 return
             for infilename,diskfilename in videofiles:
                 if infilename == selectedinfilename:
@@ -280,7 +290,7 @@ class VideoPlayer:
         flag = self.playbackmode == PLAYBACKMODE_INTERNAL and not self.is_ascii_filename(selectedoutfilename)
         
         if complete:
-            print >> sys.stderr, 'complete'
+            print >> sys.stderr, 'videoplay: play: complete'
             if flag:
                 self.play_file_via_httpserv(selectedoutfilename)
             else:
@@ -290,7 +300,7 @@ class VideoPlayer:
             # Fake it, to get DL status reporting for right Download
             self.set_vod_download(d)
         else:
-            print >> sys.stderr, 'not complete'
+            print >> sys.stderr, 'videoplay: play: not complete'
             self.play_vod(ds,selectedinfilename)
 
 
@@ -307,7 +317,10 @@ class VideoPlayer:
         
         # 1. (Re)Start torrent in VOD mode
         switchfile = (oldselectedfile is not None and oldselectedfile != infilename) 
+
+        print >> sys.stderr, ds.is_vod() , switchfile , tdef.get_live()
         if not ds.is_vod() or switchfile or tdef.get_live():
+
             
             if switchfile:
                 if self.playbackmode == PLAYBACKMODE_INTERNAL:
@@ -322,7 +335,7 @@ class VideoPlayer:
                 return
 
             if DEBUG:
-                print >>sys.stderr,"videoplay: Enabling VOD on torrent",`d.get_def().get_name()`
+                print >>sys.stderr,"videoplay: play_vod: Enabling VOD on torrent",`d.get_def().get_name()`
 
             self.manage_other_downloads(othertorrentspolicy,targetd = d)
 
@@ -331,7 +344,7 @@ class VideoPlayer:
             d.set_video_events(self.get_supported_vod_events())
             if d.get_def().is_multifile_torrent():
                 d.set_selected_files([infilename])
-            print >>sys.stderr,"main: Restarting existing Download",`ds.get_download().get_def().get_infohash()`
+            print >>sys.stderr,"videoplay: play_vod: Restarting existing Download",`ds.get_download().get_def().get_infohash()`
             self.set_vod_download(d)
             d.restart()
 
@@ -456,11 +469,11 @@ class VideoPlayer:
                 
         elif event == VODEVENT_PAUSE:
             if self.videoframe is not None: 
-                self.videoframe.get_videopanel().Pause()
+                self.videoframe.get_videopanel().PlayPause()
             self.set_player_status("Buffering...")
         elif event == VODEVENT_RESUME:
             if self.videoframe is not None:
-                self.videoframe.get_videopanel().Play()
+                self.videoframe.get_videopanel().PlayPause()
             self.set_player_status("")
 
     def ask_user_to_select_video(self,videofiles):

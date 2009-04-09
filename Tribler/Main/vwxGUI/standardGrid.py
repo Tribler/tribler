@@ -76,7 +76,8 @@ class GridManager(object):
         """
         Refresh the data of the grid
         """
-        print >>sys.stderr,"standardGrid: refresh",self.grid.initReady
+        if DEBUG:
+            print >>sys.stderr,"standardGrid: refresh",self.grid.initReady
         #print_stack()
         #print >>sys.stderr,"standardGrid: refresh",update_observer,"ready",self.grid.initReady,"state",self.state
         
@@ -170,6 +171,9 @@ class GridManager(object):
                                                        library = (state.db == 'libraryMode'),
                                                        reverse = state.reverse)
 
+
+                #print >> sys.stderr, "GridManager: _getData: DB returned",len(data)
+
                 # Arno, 2009-03-10: Not removing a torrent from MyPref when 
                 # deleting from the Library means it keeps showing up there,
                 # even after removal :-(
@@ -179,6 +183,9 @@ class GridManager(object):
                     return torrent.get('myDownloadHistory', False) and torrent.get('destdir',"") != ""
 
                 data = filter(myDownloadHistoryFilter,data)
+                
+                #print >> sys.stderr, "GridManager: _getData: filter returned",len(data)
+                
             else:
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
                 
@@ -645,8 +652,8 @@ class standardGrid(wx.Panel):
             return False
         
     def setPager(self, pager):
-        if DEBUG:
-            print >>sys.stderr,'standardGrid: setPager called: %s' % pager
+        #if DEBUG:
+        #   print >>sys.stderr,'standardGrid: setPager called: %s' % pager
         self.standardPager = pager
        
     def getSubPanel(self, keyfun=None):

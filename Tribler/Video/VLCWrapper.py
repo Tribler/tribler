@@ -8,7 +8,6 @@ import random
 from traceback import print_exc
 from threading import currentThread
 
-
 import vlc
 
 #
@@ -75,6 +74,7 @@ class VLCWrapper:
         if sys.platform == 'darwin':
             self.media.set_visual_macosx_type(vlc.DrawableControlRef)
         self.media.set_visual(xid)
+        
     
     def get_vlc_mediactrl(self):
         check_threading()
@@ -103,6 +103,23 @@ class VLCWrapper:
         #params += ["--timeshift-force"]
         # Arno: attempt to improve robustness
         params += ["--http-reconnect"]
+
+
+        # Arno, 2009-03-30: On my Vista Test Machine (no Aero) video playback 
+        # doesn't work with our VLC 0.8.6h. The Direct3D vout is chosen and 
+        # that gives a "Failed to create texture" error. Apparent solution is 
+        # to set vout to vout_directx (opengl and wingdi also work, but former 
+        # doesn't work on all tested content and the latter gives poor output 
+        # quality. On a machine with Aero this unfortunately causes it to
+        # switch the color scheme to Windows Vista Basic :-( Need Aero detection.
+        #
+        if sys.platform == "win32":
+             try:
+                 # 5 = XP, 6 = Vista
+                 if sys.getwindowsversion()[0] == 6:
+                     params += ["--vout","vout_directx"]
+             except:
+                 print_exc()
 
         # VLC wiki says: "apply[ing] deinterlacing even if the original is not
         # interlaced, is a really bad idea."
@@ -192,6 +209,13 @@ class VLCWrapper:
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: pause"
         self.media.pause()
+
+    def resume(self):
+        check_threading()
+        if DEBUG:
+            print >>sys.stderr,"VLCWrapper: resume"
+        self.media.resume()
+
 
     def get_stream_information_status(self):
         """ Returns the state of VLC. """

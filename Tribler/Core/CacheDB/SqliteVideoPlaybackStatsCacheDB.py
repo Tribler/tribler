@@ -129,7 +129,7 @@ class VideoPlaybackInfoDBHandler(BasicDBHandler):
         assert type(key) is str
         assert type(bitrate) in (int, float)
         if DEBUG: print >>sys.stderr, "SqliteVideoPlaybackStatsCacheDB set_bitrate", key, bitrate
-        self._db.execute_write("UPDATE %s SET bitrate = %d WHERE key = %s" % (self.table_name, bitrate, key))
+        self._db.execute_write("UPDATE %s SET bitrate = %d WHERE key = '%s'" % (self.table_name, bitrate, key))
 
     def set_nat(self, key, nat):
         assert type(key) is str

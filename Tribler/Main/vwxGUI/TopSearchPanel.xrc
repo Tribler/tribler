@@ -333,12 +333,20 @@
         <size>7,0</size>
       </object>
       <object class="sizeritem">
-        <object class="wxStaticBitmap" name="tribler_logo2">
-          <bitmap>images/logo4video2.png</bitmap>
-          <pos>10,-7</pos>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="spacer">
+            <size>0,3</size>
+          </object>
+          <object class="sizeritem">
+            <object class="wxStaticBitmap" name="tribler_logo2">
+              <bitmap>images/logo4video2.png</bitmap>
+              <pos>10,-7</pos>
+            </object>
+            <option>0</option>
+            <flag></flag>
+          </object>
         </object>
-        <option>0</option>
-        <flag></flag>
       </object>
       <object class="spacer">
         <size>10,0</size>

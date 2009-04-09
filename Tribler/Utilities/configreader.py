@@ -246,8 +246,9 @@ class ConfigReader(ConfigParser):
             # values from BitTornado/download_bt1.py defaults. I added that.
             if value is None:
                 if not DEBUG:
-                    sys.stderr.write("ConfigReader: Error while reading parameter, no def: (" + str(param) + ")\n")
-                    print_stack()
+                    pass
+                    # sys.stderr.write("ConfigReader: Error while reading parameter, no def: (" + str(param) + ")\n")
+                    # print_stack()
                     
                 for k,v,d in bt1_defaults:
                     if k == param:

@@ -24,6 +24,8 @@ from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandl
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler
 from Tribler.Core.NATFirewall.ConnectionCheck import ConnectionCheck
+from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+
 import Tribler.Core.Overlay.permid as permidmod
 
 DEBUG = False
@@ -339,6 +341,19 @@ class Session(SessionRuntimeConfig):
         # locking done by lm
         return self.lm.get_ext_ip()
         
+
+    def get_externally_reachable(self):
+        """" Returns whether the Session is externally reachable, i.e., its 
+          listen port is not firewalled. Use add_observer() with NTFY_REACHABLE
+          to register to the event of detecting reachablility. Note that due to
+          the use of UPnP a Session may become reachable some time after 
+          startup and due to the Dialback mechanism, this method may return 
+          False while the Session is actually already reachable. Note that True
+          doesn't mean the Session is reachable from the open Internet, could just
+          be from the local (otherwise firewalled) LAN.
+          @return A boolean. """
+        return DialbackMsgHandler.getInstance().isConnectable() 
+
 
     def get_current_startup_config_copy(self):
         """ Returns a SessionStartupConfig that is a copy of the current runtime 

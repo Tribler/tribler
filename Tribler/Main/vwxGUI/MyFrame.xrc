@@ -25,7 +25,6 @@
                   <object class="sizeritem">
                     <object class="wxPanel" name="top_search" subclass="Tribler.Main.vwxGUI.TopSearchPanel.TopSearchPanel">
                       <size>1000,90</size>
-                      <bg>#FFFFFF</bg>
                     </object>
                     <option>0</option>
                     <flag>wxLEFT|wxRIGHT|wxFIXED_MINSIZE</flag>
@@ -103,35 +102,14 @@
                       <object class="sizeritem">
                         <object class="wxBoxSizer">
                           <orient>wxVERTICAL</orient>
+                          <object class="spacer">
+                            <size>0,10</size>
+                          </object>
                           <object class="sizeritem">
-                            <object class="wxBoxSizer">
-                              <orient>wxHORIZONTAL</orient>
-                              <object class="sizeritem">
-                                <object class="wxBoxSizer">
-                                  <orient>wxVERTICAL</orient>
-                                  <object class="spacer">
-                                    <size>0,10</size>
-                                  </object>
-                                  <object class="sizeritem">
-                                    <object class="wxPanel" name="videopanel">
-                                      <size>360,350</size>
-                                      <bg>#FFFFFF</bg>
-                                    </object>
-                                    <minsize>360,350</minsize>
-                                  </object>
-                                  <object class="sizeritem">
-                                    <object class="wxStaticText" name="changePlay">
-                                      <label>Preparing to play :</label>
-                                      <hidden>1</hidden>
-                                    </object>
-                                  </object>
-                                </object>
-                                <option>1</option>
-                                <flag>wxEXPAND</flag>
-                              </object>
+                            <object class="wxPanel" name="videopanel">
+                              <size>360,500</size>
+                              <bg>#FFFFFF</bg>
                             </object>
-                            <option>1</option>
-                            <flag>wxEXPAND</flag>
                           </object>
                         </object>
                         <option>0</option>
@@ -180,7 +158,6 @@
                             </object>
                           </object>
                         </object>
-                        <minsize>669,20</minsize>
                       </object>
                     </object>
                     <option>0</option>

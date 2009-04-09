@@ -1,5 +1,5 @@
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
+from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from wx.lib.stattext import GenStaticText as StaticText
 from font import *
 
@@ -50,6 +50,8 @@ class standardPager(wx.Panel):
        
         self.beginPage = 0
         self.currentPage = 0
+        self.left = None
+        self.right = None
         self.numPages = numPages
         self.totalPages = 0
         self.totalItems = 0
@@ -79,7 +81,7 @@ class standardPager(wx.Panel):
 #        self.leftPages = ImagePanel(self)
 #        self.leftPages.SetBitmap(wx.Bitmap("prev2.gif",wx.BITMAP_TYPE_GIF))
 #        self.hSizer.Add(self.leftPages, 0, BORDER_EXPAND, 0)
-        self.left = tribler_topButton(self, name='prevpage')
+        self.left = SwitchButton(self, name='prevpage')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         ##self.left.setBackground(self.guiUtility.triblerRed)
         #self.hSizer.AddSpacer(wx.Size(25))
@@ -89,10 +91,11 @@ class standardPager(wx.Panel):
         self.refreshPageNumbers()
         
         
-        self.right = tribler_topButton(self, name='nextpage')
+        self.right = SwitchButton(self, name='nextpage')
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         ##self.right.setBackground(self.guiUtility.triblerRed)
-        self.hSizer.AddSpacer(wx.Size(10))
+        self.hSizer.AddSpacer(wx.Size(20))
+        self.hSizer.AddSpacer(wx.Size(20))
         self.hSizer.Add(self.right, 0, wx.TOP, 0)
        
         
@@ -137,7 +140,7 @@ class standardPager(wx.Panel):
                 text = self.getDefaultTextField()
                 text.Bind(wx.EVT_LEFT_UP, self.mouseAction)
                 self.pageNumbers.append(text)
-                self.hSizer.Insert(len(self.pageNumbers), text, 0, wx.TOP|wx.LEFT|wx.RIGHT, 2)
+                self.hSizer.Insert(len(self.pageNumbers)+1, text, 0, wx.TOP|wx.LEFT|wx.RIGHT, 2)
 
             refresh = True
         elif number < currentPageNumber:
@@ -149,32 +152,32 @@ class standardPager(wx.Panel):
             refresh = True
           
         # Manage dots before and after page numbers
-        if rightDots and not self.currentDots[1]:
-            dots = self.getDefaultTextField('...')
-            extra =  int(bool(self.currentDots[0]))
+        #if rightDots and not self.currentDots[1]:
+        #    dots = self.getDefaultTextField('...')
+        #    extra =  int(bool(self.currentDots[0]))
             
-            self.hSizer.Insert(len(self.pageNumbers)+1+extra, dots, 0, wx.LEFT|wx.RIGHT, 2)
-            self.currentDots[1] = dots
-            refresh = True
+        #    self.hSizer.Insert(len(self.pageNumbers)+2+extra, dots, 0, wx.LEFT|wx.RIGHT, 2)
+        #    self.currentDots[1] = dots
+        #    refresh = True
         
-        if not rightDots and self.currentDots[1]:
-            self.hSizer.Detach(self.currentDots[1])
-            self.currentDots[1].Destroy()
-            self.currentDots[1] = None
-            refresh = True
+        #if not rightDots and self.currentDots[1]:
+        #    self.hSizer.Detach(self.currentDots[1])
+        #    self.currentDots[1].Destroy()
+        #    self.currentDots[1] = None
+        #    refresh = True
         
-        if leftDots and not self.currentDots[0]:
-            dots = self.getDefaultTextField('...')
+        #if leftDots and not self.currentDots[0]:
+        #    dots = self.getDefaultTextField('...')
             
-            self.hSizer.Insert(1, dots, 0, wx.LEFT|wx.RIGHT, 2)
-            self.currentDots[0] = dots
-            refresh = True
+        #    self.hSizer.Insert(2, dots, 0, wx.LEFT|wx.RIGHT, 2)
+        #    self.currentDots[0] = dots
+        #    refresh = True
         
-        if not leftDots and self.currentDots[0]:
-            self.hSizer.Detach(self.currentDots[0])
-            self.currentDots[0].Destroy()
-            self.currentDots[0] = None
-            refresh = True
+        #if not leftDots and self.currentDots[0]:
+        #    self.hSizer.Detach(self.currentDots[0])
+        #    self.currentDots[0].Destroy()
+        #    self.currentDots[0] = None
+        #    refresh = True
             
             
         #print '%d statictexts' % (len(self.pageNumbers))
@@ -199,6 +202,14 @@ class standardPager(wx.Panel):
             self.hSizer.Layout()
             self.Refresh()
             self.Show(True)
+
+        if self.right is not None:
+            self.right.setToggled(self.currentPage != (self.totalPages - 1))
+        if self.left is not None:
+            self.left.setToggled(self.currentPage != 0)
+
+        
+        
         
         
     def getDefaultTextField(self, t=""):

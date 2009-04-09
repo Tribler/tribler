@@ -15,8 +15,8 @@ includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml
 
 # gui panels to include
 includePanels=[
-     "standardOverview","standardDetails","standardGrid","standardPager","standardFilter",
-     "TextButton","TextButtonLeft","TextButtonLeftH1","btn_DetailsHeader","tribler_List",
+     "standardOverview","standardDetails","standardGrid","standardPager",
+     "standardFilter","TextButton","btn_DetailsHeader","tribler_List",
      "TopSearchPanel","settingsOverviewPanel"]
 
 includeModules += ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
@@ -123,21 +123,9 @@ setup(
              LIBRARYNAME+"/readme.txt",
              LIBRARYNAME+"/Main/Build/Mac/TriblerDoc.icns",
            ]
-            [("Lang", ["Lang/english.lang"]),
-             "superpeer.txt",
-             "category.conf",
-             "web2definitions.conf",
-             "explicit_terms.filter",
-             "filter_terms.filter",
-             "binary-LICENSE.txt", 
-             "readme.txt",
-             "tribler.ico",
-             "torrenticon.ico",
-             "mac/TriblerDoc.icns",
-             ("lib", ["mac/build/lib/ffmpeg"],
-           )]
            # add images
            + includedir( LIBRARYNAME+"/Images" )
+           + includedir( LIBRARYNAME+"/Video/Images" )
            + includedir( LIBRARYNAME+"/Main/vwxGUI/images" )
 
            # add GUI elements

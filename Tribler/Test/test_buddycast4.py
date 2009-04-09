@@ -200,12 +200,12 @@ class TestBuddyCast(TestAsServer):
         
         if i==1:
             wanted_prefs = [[1,my_peer_id,1,1,2]]
-            wanted_terms = [[1,bin2str(str(u'linux'))], [2,bin2str(str(u'ubuntu'))]]
+            wanted_terms = [[1,str(u'linux')], [2,str(u'ubuntu')]]
             wanted_search = [[1,my_peer_id,'?',1,0],
                              [2,my_peer_id,'?',2,1]]
         elif i==2:
             wanted_prefs = [[1,my_peer_id,'?',1,2], [2,my_peer_id,torrent_id,2,2]]
-            wanted_terms = [[1,bin2str(str(u'linux'))], [2,bin2str(str(u'ubuntu'))]]
+            wanted_terms = [[1,str(u'linux')], [2,str(u'ubuntu')]]
             wanted_search = [[1,my_peer_id,'?',1,0],
                              [2,my_peer_id,'?',2,1],
                              [3,my_peer_id,'?',1,0],
@@ -213,7 +213,7 @@ class TestBuddyCast(TestAsServer):
             
         elif i==3:
             wanted_prefs = [[1,my_peer_id,'?',1,2], [2,my_peer_id,'?',2,2],[3,my_peer_id,torrent_id,5,2]]
-            wanted_terms = [[1,bin2str(str(u'linux'))], [2,bin2str(str(u'ubuntu'))], [3, bin2str(str(u'redhat'))]]
+            wanted_terms = [[1,str(u'linux')], [2,str(u'ubuntu')], [3, str(u'redhat')]]
             wanted_search = [[1,my_peer_id,'?',1,0],
                              [2,my_peer_id,'?',2,1],
                              [3,my_peer_id,'?',1,0],
@@ -247,7 +247,7 @@ class TestBuddyCast(TestAsServer):
         s.send(msg)
         resp = s.recv()
         
-        termid = term_db.getTermID(bin2str(str(u"linux")))
+        termid = term_db.getTermID(str(u"linux"))
         print >>sys.stderr, "TermID fuer Linux: %s" % termid
         #self.assert_(termid == 1)
         
@@ -257,6 +257,13 @@ class TestBuddyCast(TestAsServer):
         print >> sys.stderr, "terms starting with l: %s" % completedTerms  
         self.assert_(len(completedTerms)==1)
         self.assert_(str(u'linux') in completedTerms)
+        
+        term_db.insertTerm("asd#")
+        completedTerms = term_db.getTermsStartingWith("asd")
+        print >> sys.stderr, "terms starting with asd: %s" % completedTerms  
+        self.assert_(len(completedTerms)==1)
+        self.assert_(str(u'asd') in completedTerms)
+        
 
 
 

@@ -75,21 +75,42 @@ def check_peers(message):
             raise ValueError
         return
     peers = message.get('peers')
-    if type(peers) == ListType:
-        for p in peers:
-            if type(p) != DictType:
-                raise ValueError
-            if type(p.get('ip')) != StringType:
-                raise ValueError
-            port = p.get('port')
-            if type(port) not in ints or p <= 0:
-                raise ValueError
-            if p.has_key('peer id'):
-                id = p['peer id']
-                if type(id) != StringType or len(id) != 20:
+    if peers is not None:
+        if type(peers) == ListType:
+            for p in peers:
+                if type(p) != DictType:
                     raise ValueError
-    elif type(peers) != StringType or len(peers) % 6 != 0:
-        raise ValueError
+                if type(p.get('ip')) != StringType:
+                    raise ValueError
+                port = p.get('port')
+                if type(port) not in ints or p <= 0:
+                    raise ValueError
+                if p.has_key('peer id'):
+                    id = p['peer id']
+                    if type(id) != StringType or len(id) != 20:
+                        raise ValueError
+        elif type(peers) != StringType or len(peers) % 6 != 0:
+            raise ValueError
+        
+    # IPv6 Tracker extension. http://www.bittorrent.org/beps/bep_0007.html
+    peers6 = message.get('peers6')
+    if peers6 is not None:
+        if type(peers6) == ListType:
+            for p in peers6:
+                if type(p) != DictType:
+                    raise ValueError
+                if type(p.get('ip')) != StringType:
+                    raise ValueError
+                port = p.get('port')
+                if type(port) not in ints or p <= 0:
+                    raise ValueError
+                if p.has_key('peer id'):
+                    id = p['peer id']
+                    if type(id) != StringType or len(id) != 20:
+                        raise ValueError
+        elif type(peers6) != StringType or len(peers6) % 18 != 0:
+            raise ValueError 
+        
     interval = message.get('interval', 1)
     if type(interval) not in ints or interval <= 0:
         raise ValueError

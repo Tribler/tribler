@@ -19,7 +19,7 @@ except ImportError:
     print_exc()
     
 
-DEBUG = False
+DEBUG = True
 
 SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
@@ -53,7 +53,7 @@ class TorrentSearchGridManager:
 
         self.standardOverview = None
         self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
-        self.rerankingStrategy = {'filesMode':DefaultTorrentReranker(), 'libraryMode':DefaultTorrentReranker}
+        self.rerankingStrategy = {'filesMode':DefaultTorrentReranker(), 'libraryMode':DefaultTorrentReranker()}
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         
         self.category = Category.getInstance()

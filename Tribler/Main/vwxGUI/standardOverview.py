@@ -26,7 +26,6 @@ from Tribler.Core.Utilities.unicode import *
 
 from threading import Thread,currentThread
 from time import time
-import web2
 
 from font import *
 
@@ -208,7 +207,6 @@ class standardOverview(wx.Panel):
     def onReachable(self,event=None):
         """ Called by GUI thread """
         if self.firewallStatus is not None and self.firewallStatusText.GetLabel() != 'Restart Tribler':
-            self.guiUtility.set_reachable()
             self.firewallStatus.setSelected(2)
             self.firewallStatusText.SetLabel('Port is working')
             tt = self.firewallStatus.GetToolTip()
@@ -647,14 +645,14 @@ class standardOverview(wx.Panel):
         else:
             msg = self.guiUtility.utility.lang.get('going_search') % (total)
 
-        self.search_results.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,True,FONTFACE))
+        #self.search_results.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,True,FONTFACE))
         if self.mode not in ['filesMode']:
             self.search_results.SetForegroundColour(wx.RED)
         else:
             self.search_results.SetForegroundColour(wx.BLACK)
  
         if self.mode in ['filesMode']:
-            self.search_results.SetLabel(msg)    
+            self.search_results.SetLabel(msg)
         else:
             self.search_results.SetLabel('Return to Results')    
   

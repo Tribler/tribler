@@ -12,6 +12,7 @@ from sets import Set
 import time
 import collections
 import os
+import base64
 
 if sys.version.startswith("2.4"):
     os.SEEK_SET = 0
@@ -118,7 +119,7 @@ class MovieOnDemandTransporter(MovieTransport):
             # start
             def set_nat(nat):
                 self._playback_info_db.set_nat(self._playback_key, nat)
-            self._playback_key = str(random.random())
+            self._playback_key = base64.b64encode(os.urandom(20))
             self._playback_info_db.create_entry(self._playback_key, piece_size=videostatus.piecelen, num_pieces=videostatus.movie_numpieces, bitrate=videostatus.bitrate, nat=session.get_nat_type(callback=set_nat))
             self._playback_event_db.add_event(self._playback_key, "play", "init")
 

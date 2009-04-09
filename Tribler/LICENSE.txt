@@ -33,7 +33,7 @@ Richard Gwin has the following license:
 
     TRIBLER file-sharing library.
 
-    Copyright (c) 2005-2008, Delft University of Technology and Vrije 
+    Copyright (c) 2005-2009, Delft University of Technology and Vrije 
     Universiteit Amsterdam; All rights reserved.
 
     This library is free software; you can redistribute it and/or

@@ -369,7 +369,8 @@ class DialbackMsgHandler:
         self.btenginereach = True
 
     def isConnectable(self):
-        """ Called by overlay (BuddyCast) and network (Rerequester) thread """
+        """ Called by overlay (BuddyCast) and network (Rerequester) thread 
+        and now also any thread via Session.get_externally_reachable() """
 
         # network thread updating our state. Ignoring concurrency, as these
         # variables go from False to True once and stay there, or remain False

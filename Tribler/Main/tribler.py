@@ -37,11 +37,11 @@ import signal
 import commands
 import pickle
 
-try:
-    import wxversion
-    wxversion.select('2.8')
-except:
-    pass
+#try:
+#    import wxversion
+#    wxversion.select('2.8')
+#except:
+#    pass
 import wx
 import wx.animate
 from wx import xrc
@@ -69,7 +69,6 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import *
 
 from Tribler.Category.Category import Category
-from Tribler.Web2.util.update import Web2Updater
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
@@ -81,9 +80,7 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
-from Tribler.Video.VideoFrame import VideoDummyFrame
-
-from Tribler.Player.swarmplayer import get_status_msgs
+from Tribler.Video.VideoFrame import VideoDummyFrame, VideoFrame, VideoMacFrame
 
 #import pdb
 
@@ -212,7 +209,7 @@ class ABCApp(wx.App):
             # an internal or external video player.
             playbackmode = self.utility.config.Read('videoplaybackmode', "int")
             self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
-            self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode,closeextplayercallback=self.OnClosingVideoFrameOrExtPlayer)
+            self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode)
 
             notification_init( self.utility )
 
@@ -264,20 +261,39 @@ class ABCApp(wx.App):
             self.frame.top_bg.set_frame(self.frame)
             self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
             self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
+            self.frame.changePlay = xrc.XRCCTRL(self.frame, "changePlay")
 
 
             # on linux pagerpanel needs a SetMinSize call
             if sys.platform == "linux2":
-                self.frame.pagerPanel.SetMinSize((669,20))
+                self.frame.pagerPanel.SetMinSize((666,20))
+            elif sys.platform == 'darwin':
+                self.frame.pagerPanel.SetMinSize((674,21))
+            else:
+                self.frame.pagerPanel.SetMinSize((666,21))
 
 
 
             # videopanel
             self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
-            #logopath = os.path.join(self.utility.getPath(),'Tribler','Images','logoTribler_small.png')
-            logopath = None
-            self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,self.videoplayer.get_vlcwrap(),logopath)
-            self.videoplayer.set_videoframe(self.frame.videoframe)
+            if sys.platform == 'darwin':
+                self.frame.videoparentpanel.SetBackgroundColour((216,233,240))
+                self.frame.videoparentpanel.Hide()
+            if sys.platform == "linux2":
+                self.frame.videoparentpanel.SetMinSize((363,400))
+            elif sys.platform == 'win32':
+                self.frame.videoparentpanel.SetMinSize((363,400))
+            else:
+                self.frame.videoparentpanel.SetMinSize((350,240))
+
+
+            logopath = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','video.gif')
+            if sys.platform == 'darwin':
+                self.frame.videoframe = VideoMacFrame(self.frame.videoparentpanel,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'),self.videoplayer.get_vlcwrap(),logopath)
+                self.videoplayer.set_videoframe(self.frame.videoframe)
+            else:
+                self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,self.videoplayer.get_vlcwrap(),logopath)
+                self.videoplayer.set_videoframe(self.frame.videoframe)
 
             if sys.platform == "linux2":
                 # On Linux the _PostInit does not get called if the thing
@@ -296,7 +312,11 @@ class ABCApp(wx.App):
                 name.Hide()
             self.frame.videoframe.hide_videoframe()
 
-            self.frame.top_bg.createBackgroundImage()
+            if sys.platform != 'win32':
+                self.frame.top_bg.createBackgroundImage()
+		
+		
+	    self.frame.top_bg.Layout()
 
 
             # reputation
@@ -545,7 +565,7 @@ class ABCApp(wx.App):
         
         self.frame.top_bg.help.SetToolTipString(self.utility.lang.get('help') % (reputation))
 
-        d = int(self.get_total_down())
+        d = int(self.get_total_down()) * 1024.0
  
         if d < 10:
             s = '%dB Down   ' % d         
@@ -607,7 +627,7 @@ class ABCApp(wx.App):
         self.frame.top_bg.total_down.SetLabel(s)
 
 
-        u = self.get_total_up()
+        u = self.get_total_up() * 1024.0
 
 
         if u < 1000:
@@ -669,9 +689,9 @@ class ABCApp(wx.App):
         try:
             # Print stats on Console
             for ds in dslist:
-                safename = `ds.get_download().get_def().get_name()`
-                #print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
-                #print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
+                # safename = `ds.get_download().get_def().get_name()`
+                # print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                 if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                     print >>sys.stderr,"main: Error:",`ds.get_error()`
 
@@ -686,8 +706,14 @@ class ABCApp(wx.App):
             # Apply status displaying from SwarmPlayer
             if playds:
                 videoplayer_mediastate = self.videoplayer.get_state()
+
                 totalhelping = 0
                 totalspeed = {UPLOAD:0.0,DOWNLOAD:0.0}
+                for ds in dslist:
+                    totalspeed[UPLOAD] += ds.get_current_speed(UPLOAD)
+                    totalspeed[DOWNLOAD] += ds.get_current_speed(DOWNLOAD)
+                    totalhelping += ds.get_num_peers()
+
                 [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(playds,videoplayer_mediastate,"Tribler",self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
                 # Update status msg and progress bar
                 if topmsg != '':
@@ -805,6 +831,12 @@ class ABCApp(wx.App):
         vodd = self.videoplayer.get_vod_download()
         if vodd is not None:
             if vodd.get_def().get_live():
+                # Arno, 2009-03-27: Works poorly with VLC 0.9 without MPEGTS 
+                # patch. There VLC may close the HTTP connection and we interpret
+                # it as a window close (no window in 5.0) and stop live, thereby
+                # killing any future attempts. Should see how this works with
+                # MPEGTS patch put in.
+                #
                 print >>sys.stderr,"main: OnClosingVideoFrameOrExtPlayer: vodd is live, stopping",vodd.get_def().get_name_as_unicode()
                 vodd.stop()
             self.restart_other_downloads(self.utility.session.get_downloads())
@@ -978,6 +1010,133 @@ class ABCApp(wx.App):
             
             wx.CallAfter(start_asked_download)
     
+        
+
+def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
+
+    intime = "Not playing for quite some time."
+    ETA = ((60 * 15, "Playing in less than 15 minutes."),
+           (60 * 10, "Playing in less than 10 minutes."),
+           (60 * 5, "Playing in less than 5 minutes."),
+           (60, "Playing in less than a minute."))
+
+    topmsg = ''
+    msg = ''
+    
+    logmsgs = ds.get_log_messages()
+    logmsg = None
+    if len(logmsgs) > 0:
+        print >>sys.stderr,"main: Log",logmsgs[0]
+        logmsg = logmsgs[-1][1]
+        
+    preprogress = ds.get_vod_prebuffering_progress()
+    playable = ds.get_vod_playable()
+    t = ds.get_vod_playable_after()
+
+    intime = ETA[0][1]
+    for eta_time, eta_msg in ETA:
+        if t > eta_time:
+            break
+        intime = eta_msg
+    
+    #print >>sys.stderr,"main: playble",playable,"preprog",preprogress
+    #print >>sys.stderr,"main: ETA is",t,"secs"
+    # if t > float(2 ** 30):
+    #     intime = "inf"
+    # elif t == 0.0:
+    #     intime = "now"
+    # else:
+    #     h, t = divmod(t, 60.0*60.0)
+    #     m, s = divmod(t, 60.0)
+    #     if h == 0.0:
+    #         if m == 0.0:
+    #             intime = "%ds" % (s)
+    #         else:
+    #             intime = "%dm:%02ds" % (m,s)
+    #     else:
+    #         intime = "%dh:%02dm:%02ds" % (h,m,s)
+            
+    #print >>sys.stderr,"main: VODStats",preprogress,playable,"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+
+    if ds.get_status() == DLSTATUS_HASHCHECKING:
+        genprogress = ds.get_progress()
+        pstr = str(int(genprogress*100))
+        msg = "Checking already downloaded parts "+pstr+"% done"
+    elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+        msg = 'Error playing: '+str(ds.get_error())
+    elif ds.get_progress() == 1.0:
+        msg = ''
+    elif playable:
+        if not said_start_playback:
+            msg = "Starting playback..."
+            
+        if videoplayer_mediastate == MEDIASTATE_STOPPED and said_start_playback:
+            if totalhelping == 0:
+                topmsg = u"Please leave the "+appname+" running, this will help other "+appname+" users to download faster."
+            else:
+                topmsg = u"Helping "+str(totalhelping)+" "+appname+" users to download. Please leave it running in the background."
+                
+            # Display this on status line
+            # TODO: Show balloon in systray when closing window to indicate things continue there
+            msg = ''
+            
+        elif videoplayer_mediastate == MEDIASTATE_PLAYING:
+            said_start_playback = True
+            # It may take a while for VLC to actually start displaying
+            # video, as it is trying to tune in to the stream (finding
+            # I-Frame). Display some info to show that:
+            #
+            cname = ds.get_download().get_def().get_name_as_unicode()
+            topmsg = u'Decoding: '+cname+' '+str(decodeprogress)+' s'
+            decodeprogress += 1
+            msg = ''
+        elif videoplayer_mediastate == MEDIASTATE_PAUSED:
+            # msg = "Buffering... " + str(int(100.0*preprogress))+"%" 
+            msg = "Buffering... " + str(int(100.0*preprogress))+"%. " + intime
+        else:
+            msg = ''
+            
+    elif preprogress != 1.0:
+        pstr = str(int(preprogress*100))
+        npeers = ds.get_num_peers()
+        npeerstr = str(npeers)
+        if npeers == 0 and logmsg is not None:
+            msg = logmsg
+        elif npeers == 1:
+            msg = "Prebuffering "+pstr+"% done (connected to 1 person). " + intime
+        else:
+            msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" people). " + intime
+            
+        try:
+            d = ds.get_download()
+            tdef = d.get_def()
+            videofiles = d.get_selected_files()
+            if len(videofiles) >= 1:
+                videofile = videofiles[0]
+            else:
+                videofile = None
+            if tdef.get_bitrate(videofile) is None:
+                msg += ' This video may not play properly because its bitrate is unknown'
+        except:
+            print_exc()
+    else:
+        # msg = "Waiting for sufficient download speed... "+intime
+        msg = 'Waiting for sufficient download speed... ' + intime
+        
+    npeers = ds.get_num_peers()
+    if npeers == 1:
+        msg = "One person found, receiving %.1f KB/s" % totalspeed[DOWNLOAD]
+    else:
+        msg = "%d people found, receiving %.1f KB/s" % (npeers, totalspeed[DOWNLOAD])
+
+    if playable:
+        if videoplayer_mediastate == MEDIASTATE_PAUSED and not ds.get_status() == DLSTATUS_SEEDING:
+            msg = "Buffering... " + msg
+        else:
+            msg = ""
+
+    return [topmsg,msg,said_start_playback,decodeprogress]
+        
         
 ##############################################################
 #

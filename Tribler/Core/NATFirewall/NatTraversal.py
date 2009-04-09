@@ -156,7 +156,12 @@ def tryConnect(coordinator):
 
                 return "NO"
 
-        if addr == peer: # data received, check address
+        # data received, check address
+        if addr == peer: # peer is not symmetric NAT
+            break
+
+        if addr[0] == peer[0]: # peer has a symmetric NAT
+            peer = addr
             break
 
         

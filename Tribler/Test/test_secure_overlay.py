@@ -143,6 +143,7 @@ class TestSecureOverlay(unittest.TestCase):
         config['state_dir'] = self.config_path
         config['install_dir'] = os.path.join('..','..')
         config['peer_icon_path'] = os.path.join(self.config_path,'peer_icons')
+        config['superpeer'] = False
         sqlitecachedb.init(config, self.rawserver_fatalerrorfunc)
         
         secover1 = SecureOverlay.getInstance()

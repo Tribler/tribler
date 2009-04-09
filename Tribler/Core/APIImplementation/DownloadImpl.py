@@ -106,10 +106,8 @@ class DownloadImpl:
     
             # Things that only exist at runtime
             self.dlruntimeconfig= {}
-            # We want to remember the desired rates and the actual assigned quota
-            # rates by the RateManager
-            self.dlruntimeconfig['max_desired_upload_rate'] = self.dlconfig['max_upload_rate'] 
-            self.dlruntimeconfig['max_desired_download_rate'] = self.dlconfig['max_download_rate']
+            self.dlruntimeconfig['max_desired_upload_rate'] = 0
+            self.dlruntimeconfig['max_desired_download_rate'] = 0
     
             if DEBUG:
                 print >>sys.stderr,"DownloadImpl: setup: initialdlstatus",`self.tdef.get_name_as_unicode()`,initialdlstatus

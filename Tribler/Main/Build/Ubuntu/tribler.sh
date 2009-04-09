@@ -28,4 +28,4 @@ PYTHONPATH=/usr/share/tribler/:$WXPYTHON
 export PYTHONPATH
 
 cd /usr/share/tribler
-exec $PYTHON Tribler/Main/tribler.py "$@" > /tmp/$USER-tribler.log 2>&1
+exec $PYTHON -O Tribler/Main/tribler.py "$@" > /tmp/$USER-tribler.log 2>&1

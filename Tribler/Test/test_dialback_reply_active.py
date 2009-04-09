@@ -93,9 +93,10 @@ class TestDialbackReplyActive(TestAsServer):
         self.config.set_install_dir(self.install_path)
         
         srcfiles = []
-        srcfiles.append(os.path.join(LIBRARYNAME,"tribler_sdb_v1.sql"))
+        srcfiles.append(os.path.join(LIBRARYNAME,"tribler_sdb_v2.sql"))
         srcfiles.append(os.path.join(LIBRARYNAME,"Core","Statistics","tribler_seedingstats_sdb.sql"))
         srcfiles.append(os.path.join(LIBRARYNAME,"Core","Statistics","tribler_friendship_stats_sdb.sql"))
+        srcfiles.append(os.path.join(LIBRARYNAME,"Core","Statistics","tribler_videoplayback_stats.sql"))
         for srcfile in srcfiles:
             sfn = os.path.join('..','..',srcfile)
             dfn = os.path.join(self.install_path,srcfile)

@@ -1,13 +1,9 @@
 # written by Nicolas Neubauer
 # see LICENSE.txt for license information
 
-import sys, random
+import sys, random, time
 
 DEBUG = False
-
-def getTorrentReranker():
-    global _rerankers
-    return random.choice(_rerankers)
 
 class Reranker:
     def getID(self):
@@ -91,4 +87,11 @@ class SwapFirstTwoReranker(Reranker):
             
         return hits      
     
-_rerankers = [DefaultTorrentReranker(), SwapFirstTwoReranker()] 
+_rerankers = [DefaultTorrentReranker(), SwapFirstTwoReranker()]
+
+
+def getTorrentReranker():
+    global _rerankers
+    index = int(time.strftime("%H")) % (len(_rerankers))
+    return _rerankers[index]
+ 

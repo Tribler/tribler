@@ -560,25 +560,27 @@ class TriblerLaunchMany(Thread):
         
             
     def network_shutdown(self,gracetime=2.0):
-        
-        # Detect if megacache is enabled
-        if self.peer_db is not None:
-            db = SQLiteCacheDB.getInstance()
-            db.commit()
-        
-        mainlineDHT.deinit()
-        
-        # Some grace time for early shutdown tasks
-        if self.shutdownstarttime is not None:
-            now = time()
-            diff = now - self.shutdownstarttime
-            if diff < gracetime:
-                print >>sys.stderr,"tlm: shutdown: sleeping for early shutdown tasks",gracetime-diff
-                sleep(gracetime-diff) 
-                ts = enumerate()
-                print >>sys.stderr,"tlm: Number of threads still running",len(ts)
-                for t in ts:
-                    print >>sys.stderr,"tlm: Thread still running",t.getName(),"daemon",t.isDaemon()
+        try:
+            # Detect if megacache is enabled
+            if self.peer_db is not None:
+                db = SQLiteCacheDB.getInstance()
+                db.commit()
+            
+            mainlineDHT.deinit()
+            
+            # Some grace time for early shutdown tasks
+            if self.shutdownstarttime is not None:
+                now = time()
+                diff = now - self.shutdownstarttime
+                if diff < gracetime:
+                    print >>sys.stderr,"tlm: shutdown: sleeping for early shutdown tasks",gracetime-diff
+                    sleep(gracetime-diff) 
+                    ts = enumerate()
+                    print >>sys.stderr,"tlm: Number of threads still running",len(ts)
+                    for t in ts:
+                        print >>sys.stderr,"tlm: Thread still running",t.getName(),"daemon",t.isDaemon()
+        except:
+            print_exc()
         
         # Stop network thread
         self.sessdoneflag.set()

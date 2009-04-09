@@ -22,7 +22,7 @@ def Test1(udpsock, serveraddr):
     try:
         reply, rcvaddr = udpsock.recvfrom(BUFSIZ)
     except socket.timeout:
-        #if DEBUG: print >> sys.stderr, "NATCheck:", "Connection attempt to %s timed out" % (serveraddr,)
+        if DEBUG: print >> sys.stderr, "NATCheck:", "Connection attempt to %s timed out" % (serveraddr,)
         return retVal
 
     except ValueError, (strerror):

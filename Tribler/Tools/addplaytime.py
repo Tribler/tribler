@@ -19,9 +19,10 @@ for metainfo_name in argv[1:]:
     metainfo_file = open(metainfo_name, 'rb')
     metainfo = bdecode(metainfo_file.read())
     metainfo_file.close()
-    metainfo['playtime'] = '55:34'
+    #metainfo['playtime'] = '55:34'
     #metainfo['download'] = 'yes'
     #metainfo['videodim'] = '320x240'
+    metainfo['announce'] = 'http://127.0.0.1:6969/announce'
     metainfo_file = open(metainfo_name+'-dim', 'wb')
     b = bencode(metainfo)
     metainfo_file.write(b)

@@ -82,13 +82,13 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
             
-    def test_size(self):
+    def singtest_size(self):
         table_name = 'Peer'
         db = BasicDBHandler(self.sqlitedb,table_name)
         size = db.size()
         assert size == 3995,size
 
-    def test_getOne(self):
+    def singtest_getOne(self):
         table_name = 'Peer'
         db = BasicDBHandler(self.sqlitedb,table_name)
         
@@ -124,7 +124,7 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
         for i in range(len(values)):
             assert values[i] == results[i], (i, values[i], results[i])
         
-    def test_getAll(self):
+    def singtest_getAll(self):
         table_name = 'Peer'
         db = BasicDBHandler(self.sqlitedb,table_name)
         
@@ -170,12 +170,12 @@ class TestSqliteMyDBHandler(unittest.TestCase):
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
             
-    def test_get(self):
+    def singtest_get(self):
         db = MyDBHandler.getInstance()
         value = db.get('version')
-        assert value == '1', value
+        assert value == '2', value
         
-    def test_put(self):
+    def singtest_put(self):
         db = MyDBHandler.getInstance()
         new_ip = '127.0.0.1'
         db.put('ip', new_ip)
@@ -211,7 +211,7 @@ class TestSuperPeerDBHandler(unittest.TestCase):
         assert self.sp1 in sps
         assert self.sp2 in sps
         
-    def test_setSuperPeer(self):
+    def singtest_setSuperPeer(self):
         db = SuperPeerDBHandler.getInstance()
         
         sps = db.getSuperPeers()
@@ -237,7 +237,7 @@ class TestSuperPeerDBHandler(unittest.TestCase):
         assert self.sp1 in sps
         assert len(sps) == 8
         
-    def test_addExternalSuperPeer(self):
+    def singtest_addExternalSuperPeer(self):
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 'name':'fake peer x'}
         db = SuperPeerDBHandler.getInstance()
@@ -274,18 +274,18 @@ class TestFriendDBHandler(unittest.TestCase):
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
             
-    def test_size(self):
+    def singtest_size(self):
         db = FriendDBHandler.getInstance()
         size = db.size()
         assert size == 2, size
         
-    def test_getFriends(self):
+    def singtest_getFriends(self):
         db = FriendDBHandler.getInstance()
         friends = db.getFriends()
         assert self.sp1 not in friends
         assert self.fr1 in friends
         
-    def test_setFriendState(self):
+    def singtest_setFriendState(self):
         db = FriendDBHandler.getInstance()
         db.setFriendState(self.sp1)
         assert db.getFriendState(self.sp1)
@@ -311,7 +311,7 @@ class TestFriendDBHandler(unittest.TestCase):
         assert self.sp1 not in sps
         assert len(sps) == 2
         
-    def test_addExternalFriend(self):
+    def singtest_addExternalFriend(self):
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 'name':'fake peer x'}
         db = FriendDBHandler.getInstance()
@@ -351,7 +351,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
         
-    def test_getList(self):
+    def singtest_getList(self):
         db = PeerDBHandler.getInstance()
         sp1 = db.getPeer(self.sp1)
         sp2 = db.getPeer(self.sp2)
@@ -360,7 +360,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         assert sp1['port'] == 7007
         assert sp2['port'] == 7004
 
-    def test_getPeerSim(self):
+    def singtest_getPeerSim(self):
         db = PeerDBHandler.getInstance()
         permid_str = 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEACPJqLjmKeMNRwkCNKkPH51gjQ5e7u4s2vWv9I/AALXtpf+bFPtY8cyFv6OCzisYDo+brgqOxAtuNZwP'
         permid = str2bin(permid_str)
@@ -372,14 +372,14 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         sim = db.getPeerSim(permid)
         assert sim == 0
         
-    def test_getPeerList(self):
+    def singtest_getPeerList(self):
         db = PeerDBHandler.getInstance()
         peerlist = db.getPeerList()
         assert len(peerlist) == 3995
         peerlist.sort()
         assert bin2str(peerlist[345]) == 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEACxVRvG/Gr19EAPJru2Z5gjctEzv973/PJCQIua2ATMP6euq+Kf4gYpdKbsB/PWqJnfY/wSKPHHfIByV'
 
-    def test_getPeers(self):
+    def singtest_getPeers(self):
         db = PeerDBHandler.getInstance()
         peerlist = db.getPeerList()
         peerlist.sort()
@@ -390,7 +390,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         assert peers[1]['ip'] == '68.108.115.221'
         assert peers[3]['peer_id'] == 3
         
-    def test_addPeer(self):
+    def singtest_addPeer(self):
         db = PeerDBHandler.getInstance()
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 
@@ -457,14 +457,14 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         assert p == None
         assert db.size() == oldsize
 
-    def test_aa_hasPeer(self):
+    def singtest_aa_hasPeer(self):
         db = PeerDBHandler.getInstance()
         assert db.hasPeer(self.sp1)
         assert db.hasPeer(self.sp2)
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         assert not db.hasPeer(fake_permid_x)
         
-    def test_findPeers(self):
+    def singtest_findPeers(self):
         db = PeerDBHandler.getInstance()
         find_list = db.findPeers('ip', '130.161.211.199')
         assert len(find_list) == 3
@@ -477,7 +477,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         assert len(find_list) == 1 and find_list[0]['permid'] == self.sp1
         #assert len(find_list) == 3 and 901 in find_list
     
-    def test_updatePeer(self):
+    def singtest_updatePeer(self):
         db = PeerDBHandler.getInstance()
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 
@@ -503,7 +503,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         assert p == None
         assert db.size() == oldsize
 
-    def test_deletePeer(self):
+    def singtest_deletePeer(self):
         db = PeerDBHandler.getInstance()
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 
@@ -537,7 +537,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         db.deletePeer(fake_permid_x, force=True)
         assert db.size() == oldsize
         
-    def test_updateTimes(self):
+    def singtest_updateTimes(self):
         db = PeerDBHandler.getInstance()
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 
@@ -568,7 +568,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         db.deletePeer(fake_permid_x, force=True)
         assert not db.hasPeer(fake_permid_x)
         
-    def test_getPermIDByIP(self):
+    def singtest_getPermIDByIP(self):
         db = PeerDBHandler.getInstance()
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 
@@ -588,7 +588,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         assert not db.hasPeer(fake_permid_x)
         assert db.size() == oldsize
         
-    def test_loadPeers(self):
+    def singtest_loadPeers(self):
         db = PeerDBHandler.getInstance()
         peer_size = db.size()
         res = db.getGUIPeers()
@@ -608,7 +608,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
     
-    def test_getPrefList(self):
+    def singtest_getPrefList(self):
         db = PreferenceDBHandler.getInstance()
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         pl = db.getPrefList(fake_permid_x)
@@ -625,7 +625,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
             pl = db.getPrefList(str2bin(permid[pid]))
             assert len(pl) == truth[pid], [pid, len(pl)]
         
-    def test_addPreference(self):
+    def singtest_addPreference(self):
         db = PeerDBHandler.getInstance()
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 
@@ -696,7 +696,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         assert tid is None
         assert oldinfohash_size == db._db.size('Torrent'), [oldinfohash_size, db._db.size('Torrent')]
 
-    def test_addPeerPreferences(self):
+    def singtest_addPeerPreferences(self):
         db = PeerDBHandler.getInstance()
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 
@@ -777,7 +777,7 @@ class TestTorrentDBHandler(unittest.TestCase):
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
 
-    def tested_functions(self):
+    def singtested_functions(self):
         if SHOW_NOT_TESTED_FUNCTIONS:
             all_funcs = getFuncs2Test(TorrentDBHandler) 
             tested_funcs = [
@@ -804,7 +804,7 @@ class TestTorrentDBHandler(unittest.TestCase):
                 if func not in tested_funcs:
                     print "TestTorrentDBHandler: not test", func
                 
-#    def test_misc(self):
+#    def singtest_misc(self):
 #        db = TorrentDBHandler.getInstance()
         
     def _test_hasTorrent(self):
@@ -817,13 +817,13 @@ class TestTorrentDBHandler(unittest.TestCase):
         assert db.hasTorrent(fake_infoahsh) == False
         assert db.hasMetaData(fake_infoahsh) == False
         
-    def test_count(self):
+    def singtest_count(self):
         db = TorrentDBHandler.getInstance()
         start = time()
         num = db.getNumberTorrents()
         assert num == 4483
         
-    def test_loadTorrents(self):
+    def singtest_loadTorrents(self):
         db = TorrentDBHandler.getInstance()
         torrent_size = db._db.size('CollectedTorrent')
         db2 = MyPreferenceDBHandler.getInstance()
@@ -839,7 +839,7 @@ class TestTorrentDBHandler(unittest.TestCase):
         assert data['source'] in db.src_table.keys(), data['source']
         assert len(data['infohash']) == 20
                 
-    def test_add_update_delete_Torrent(self):
+    def singtest_add_update_delete_Torrent(self):
         self.addTorrent()
         self.updateTorrent()
         self.deleteTorrent()
@@ -979,12 +979,12 @@ class TestTorrentDBHandler(unittest.TestCase):
         my_infohash = str2bin(my_infohash_str_126)
         assert not db.deleteTorrent(my_infohash)
         
-    def test_getCollectedTorrentHashes(self):
+    def singtest_getCollectedTorrentHashes(self):
         db = TorrentDBHandler.getInstance()
         res = db.getNumberCollectedTorrents()
         assert res == 4848, res
         
-    def test_freeSpace(self):
+    def singtest_freeSpace(self):
         db = TorrentDBHandler.getInstance()
         old_res = db.getNumberCollectedTorrents()
         db.freeSpace(20)
@@ -1005,19 +1005,19 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
     def tearDown(self):
         SQLiteCacheDB.getInstance().close()
     
-    def test_getPrefList(self):
+    def singtest_getPrefList(self):
         db = MyPreferenceDBHandler.getInstance()
         pl = db.getMyPrefListInfohash()
         assert len(pl) == 12
         
-    def test_getCreationTime(self):
+    def singtest_getCreationTime(self):
         db = MyPreferenceDBHandler.getInstance()
         infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
         infohash = str2bin(infohash_str_126)
         ct = db.getCreationTime(infohash)
         assert ct == 1194966300, ct
         
-    def test_getRecentLivePrefList(self):
+    def singtest_getRecentLivePrefList(self):
         db = MyPreferenceDBHandler.getInstance()
         pl = db.getRecentLivePrefList()
         assert len(pl) == 11, (len(pl), pl)
@@ -1031,7 +1031,7 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         assert bin2str(pl[0]) == infohash_str_126
         assert bin2str(pl[1]) == infohash_str_1279
 
-    def test_hasMyPreference(self):
+    def singtest_hasMyPreference(self):
         infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
         infohash_str_1279 = 'R+grUhp884MnFkt6NuLnnauZFsc='
         db = MyPreferenceDBHandler.getInstance()
@@ -1040,7 +1040,7 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
         assert not db.hasMyPreference(fake_infoahsh)
             
-    def test_addMyPreference_deletePreference(self):
+    def singtest_addMyPreference_deletePreference(self):
         db = MyPreferenceDBHandler.getInstance()
         p = db.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
         torrent_id = p[0]
@@ -1068,7 +1068,7 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         p3 = db.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
         assert p3 == p, p3
         
-    def test_updateProgress(self):
+    def singtest_updateProgress(self):
         infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
         infohash = str2bin(infohash_str_126)
         db = MyPreferenceDBHandler.getInstance()
@@ -1078,38 +1078,38 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         p = db.getOne('progress', torrent_id=torrent_id)
         assert p == 3.14
 
-    def test_getMyPrefListInfohash(self):
+    def singtest_getMyPrefListInfohash(self):
         db = MyPreferenceDBHandler.getInstance()
         preflist = db.getMyPrefListInfohash()
         for p in preflist:
             assert len(p) == 20
         assert len(preflist) == 12
         
-    def test_getMyPrefStats(self):
+    def singtest_getMyPrefStats(self):
         db = MyPreferenceDBHandler.getInstance()
         res = db.getMyPrefStats()
         assert len(res)==12
         for k in res:
             data = res[k]
             assert len(data) == 3
-        
+
 def test_suite():
-    init()
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestSqliteBasicDBHandler))
-    suite.addTest(unittest.makeSuite(TestSqliteMyDBHandler))
-    suite.addTest(unittest.makeSuite(TestSuperPeerDBHandler))
-    suite.addTest(unittest.makeSuite(TestFriendDBHandler))
-    suite.addTest(unittest.makeSuite(TestSqlitePeerDBHandler))
-    suite.addTest(unittest.makeSuite(TestPreferenceDBHandler))
-    suite.addTest(unittest.makeSuite(TestTorrentDBHandler))
-    suite.addTest(unittest.makeSuite(TestMyPreferenceDBHandler))
+    # We should run the tests in a separate Python interpreter to prevent 
+    # problems with our singleton classes, e.g. PeerDB, etc.
+    if len(sys.argv) != 3:
+        print "Usage: python test_so.py <class name> <method name>"
+    else:
+        for class_ in unittest.TestCase.__subclasses__():
+            if class_.__name__ == sys.argv[1]:
+                init()
+                suite.addTest(class_(sys.argv[2]))
     return suite
 
 def main():
-    unittest.main(defaultTest='test_suite')
+    unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
     
     

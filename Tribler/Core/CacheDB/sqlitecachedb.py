@@ -39,6 +39,9 @@ SHOW_ALL_EXECUTE = False
 costs = []
 cost_reads = []
 
+class Warning(Exception):
+    pass
+
 def init(config, db_exception_handler = None):
     """ create sqlite database """
     global CREATE_SQL_FILE
@@ -60,7 +63,7 @@ def init(config, db_exception_handler = None):
     
     print >>sys.stderr,"cachedb: init: SQL FILE",sqlite_db_path
     
-    sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE, bsddb_path,current_db_version=CURRENT_MAIN_DB_VERSION)  # the first place to create db in Tribler
+    sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE, bsddb_path)  # the first place to create db in Tribler
     return sqlitedb
         
 def done(config_dir):
@@ -265,7 +268,7 @@ class SQLiteCacheDBBase:
                bsddb_dirpath = None, 
                busytimeout = DEFAULT_BUSY_TIMEOUT,
                check_version = True,
-               current_db_version = None):
+               current_db_version = CURRENT_MAIN_DB_VERSION):
         """ 
         Create and initialize a SQLite database given a sql script. 
         Only one db can be opened. If the given dbfile_path is different with the opened DB file, warn and exit
@@ -337,18 +340,22 @@ class SQLiteCacheDBBase:
                 update sqlite_db_version at last
                 commit
         """
-
         try:
             if not os.path.isfile(dbfile_path):
-                raise Exception
+                raise Warning("No existing database found. Attempting to creating a new database %s" % dbfile_path)
             
             cur = self.openDB(dbfile_path, busytimeout)
             if check_version:
                 sqlite_db_version = self.readDBVersion()
                 if sqlite_db_version == NULL or int(sqlite_db_version)<1:
                     raise NotImplementedError
-        except:
-            print_exc()
+        except Exception, exception:
+            if isinstance(exception, Warning):
+                # user friendly warning to log the creation of a new database
+                print >>sys.stderr, exception
+            else:
+                # user unfriendly exception message because something went wrong
+                print_exc()
             
             if os.path.isfile(dbfile_path):
                 self.close(clean=True)
@@ -390,7 +397,7 @@ class SQLiteCacheDBBase:
 
     def readDBVersion(self):
         cur = self.getCursor()
-        sql = "select value from MyInfo where entry='version'"
+        sql = u"select value from MyInfo where entry='version'"
         res = self.fetchone(sql)
         if res:
             find = list(res)
@@ -399,7 +406,7 @@ class SQLiteCacheDBBase:
             return None
     
     def writeDBVersion(self, version, commit=True):
-        sql = "UPDATE MyInfo SET value=? WHERE entry='version'"
+        sql = u"UPDATE MyInfo SET value=? WHERE entry='version'"
         self.execute_write(sql, [version], commit=commit)
     
     def show_sql(self, switch):
@@ -424,6 +431,7 @@ class SQLiteCacheDBBase:
                 return cur.execute(sql, args)
         except Exception, msg:
             print_exc()
+            print_stack()
             print >> sys.stderr, "cachedb: execute error:", Exception, msg 
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
@@ -555,32 +563,44 @@ class SQLiteCacheDBBase:
     def insertMany(self, table_name, values, keys=None, commit=True):
         """ values must be a list of tuples """
 
-        questions = '?,'*len(values[0])
+        questions = u'?,'*len(values[0])
         if keys is None:
-            sql = 'INSERT INTO %s VALUES (%s);'%(table_name, questions[:-1])
+            sql = u'INSERT INTO %s VALUES (%s);'%(table_name, questions[:-1])
         else:
-            sql = 'INSERT INTO %s %s VALUES (%s);'%(table_name, tuple(keys), questions[:-1])
+            sql = u'INSERT INTO %s %s VALUES (%s);'%(table_name, tuple(keys), questions[:-1])
         self.executemany(sql, values, commit=commit)
     
     def update(self, table_name, where=None, commit=True, **argv):
-        sql = 'UPDATE %s SET '%table_name
-        for k in argv.keys():
-            sql += '%s=?,'%k
+        sql = u'UPDATE %s SET '%table_name
+        arg = []
+        for k,v in argv.iteritems():
+            if type(v) is tuple:
+                sql += u'%s %s ?,' % (k, v[0])
+                arg.append(v[1])
+            else:
+                sql += u'%s=?,' % k
+                arg.append(v)
         sql = sql[:-1]
         if where != None:
-            sql += ' where %s'%where
-        self.execute_write(sql, argv.values(), commit)
+            sql += u' where %s'%where
+        self.execute_write(sql, arg, commit)
         
     def delete(self, table_name, commit=True, **argv):
-        sql = 'DELETE FROM %s WHERE '%table_name
-        for k in argv:
-            sql += '%s=? AND '%k
+        sql = u'DELETE FROM %s WHERE '%table_name
+        arg = []
+        for k,v in argv.iteritems():
+            if type(v) is tuple:
+                sql += u'%s %s ? AND ' % (k, v[0])
+                arg.append(v[1])
+            else:
+                sql += u'%s=? AND ' % k
+                arg.append(v)
         sql = sql[:-5]
         self.execute_write(sql, argv.values(), commit)
     
     # -------- Read Operations --------
     def size(self, table_name):
-        num_rec_sql = "SELECT count(*) FROM %s;"%table_name
+        num_rec_sql = u"SELECT count(*) FROM %s;"%table_name
         result = self.fetchone(num_rec_sql)
         return result
 
@@ -614,35 +634,42 @@ class SQLiteCacheDBBase:
         """
 
         if isinstance(value_name, tuple):
-            value_names = ",".join(value_name)
+            value_names = u",".join(value_name)
         elif isinstance(value_name, list):
-            value_names = ",".join(value_name)
+            value_names = u",".join(value_name)
         else:
             value_names = value_name
             
         if isinstance(table_name, tuple):
-            table_names = ",".join(table_name)
+            table_names = u",".join(table_name)
         elif isinstance(table_name, list):
-            table_names = ",".join(table_name)
+            table_names = u",".join(table_name)
         else:
             table_names = table_name
             
-        sql = 'select %s from %s'%(value_names, table_names)
-        
+        sql = u'select %s from %s'%(value_names, table_names)
+
         if where or kw:
-            sql += ' where '
+            sql += u' where '
         if where:
             sql += where
             if kw:
-                sql += ' %s '%conj
+                sql += u' %s '%conj
         if kw:
-            for k in kw:
-                sql += ' %s=? '%k
+            arg = []
+            for k,v in kw.iteritems():
+                if type(v) is tuple:
+                    operator = v[0]
+                    arg.append(v[1])
+                else:
+                    operator = "="
+                    arg.append(v)
+                sql += u' %s %s ? ' % (k, operator)
                 sql += conj
             sql = sql[:-len(conj)]
-            arg = kw.values()
         else:
             arg = None
+
         # print >> sys.stderr, 'SQL: %s %s' % (sql, arg)
         return self.fetchone(sql,arg)
     
@@ -652,46 +679,53 @@ class SQLiteCacheDBBase:
             group by is represented as group_by
         """
         if isinstance(value_name, tuple):
-            value_names = ",".join(value_name)
+            value_names = u",".join(value_name)
         elif isinstance(value_name, list):
-            value_names = ",".join(value_name)
+            value_names = u",".join(value_name)
         else:
             value_names = value_name
         
         if isinstance(table_name, tuple):
-            table_names = ",".join(table_name)
+            table_names = u",".join(table_name)
         elif isinstance(table_name, list):
-            table_names = ",".join(table_name)
+            table_names = u",".join(table_name)
         else:
             table_names = table_name
             
-        sql = 'select %s from %s'%(value_names, table_names)
+        sql = u'select %s from %s'%(value_names, table_names)
         
         if where or kw:
-            sql += ' where '
+            sql += u' where '
         if where:
             sql += where
             if kw:
-                sql += ' %s '%conj
+                sql += u' %s '%conj
         if kw:
-            for k in kw:
-                sql += ' %s=? '%k
+            arg = []
+            for k,v in kw.iteritems():
+                if type(v) is tuple:
+                    operator = v[0]
+                    arg.append(v[1])
+                else:
+                    operator = "="
+                    arg.append(v)
+
+                sql += u' %s %s ?' % (k, operator)
                 sql += conj
             sql = sql[:-len(conj)]
-            arg = kw.values()
         else:
             arg = None
         
         if group_by != None:
-            sql += ' group by ' + group_by
+            sql += u' group by ' + group_by
         if having != None:
-            sql += ' having ' + having
+            sql += u' having ' + having
         if order_by != None:
-            sql += ' order by ' + order_by    # you should add desc after order_by to reversely sort, i.e, 'last_seen desc' as order_by
+            sql += u' order by ' + order_by    # you should add desc after order_by to reversely sort, i.e, 'last_seen desc' as order_by
         if limit != None:
-            sql += ' limit %d'%limit
+            sql += u' limit %d'%limit
         if offset != None:
-            sql += ' offset %d'%offset
+            sql += u' offset %d'%offset
 
         try:
             return self.fetchall(sql, arg) or []
@@ -733,7 +767,7 @@ class SQLiteCacheDBBase:
         if peer_id != None:
             peer_existed = True
             if update:
-                where='peer_id=%d'%peer_id
+                where=u'peer_id=%d'%peer_id
                 self.update('Peer', where, commit=commit, **argv)
         else:
             self.insert('Peer', permid=bin2str(permid), commit=commit, **argv)
@@ -902,22 +936,22 @@ ALTER TABLE MyPreference ADD COLUMN click_position INTEGER DEFAULT -1;
 ALTER TABLE MyPreference ADD COLUMN reranking_strategy INTEGER DEFAULT -1;
 ALTER TABLE Preference ADD COLUMN click_position INTEGER DEFAULT -1;
 ALTER TABLE Preference ADD COLUMN reranking_strategy INTEGER DEFAULT -1;
-CREATE TABLE Search (
+CREATE TABLE ClicklogSearch (
                      peer_id INTEGER DEFAULT 0,
                      torrent_id INTEGER DEFAULT 0,
                      term_id INTEGER DEFAULT 0,
                      term_order INTEGER DEFAULT 0
                      );
-CREATE INDEX idx_search_term ON Search (term_id);
-CREATE INDEX idx_search_torrent ON Search (torrent_id);
+CREATE INDEX idx_search_term ON ClicklogSearch (term_id);
+CREATE INDEX idx_search_torrent ON ClicklogSearch (torrent_id);
 
 
-CREATE TABLE Term (
+CREATE TABLE ClicklogTerm (
                     term_id INTEGER PRIMARY KEY AUTOINCREMENT DEFAULT 0,
                     term VARCHAR(255) NOT NULL,
                     times_seen INTEGER DEFAULT 0 NOT NULL
                     );
-CREATE INDEX idx_terms_term ON Term(term);  
+CREATE INDEX idx_terms_term ON ClicklogTerm(term);  
     
 """       
             

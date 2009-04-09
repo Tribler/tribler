@@ -13,6 +13,7 @@
 import sys
 import wx
 import os
+import math
 from traceback import print_exc
 
 # begin wx.Glade: extracode
@@ -23,6 +24,41 @@ from tribler_topButton import *
 from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
+from NewStaticText import NewStaticText
+
+
+
+wx.SystemOptions_SetOption("msw.remap","1")
+
+
+
+# fonts
+if sys.platform == 'darwin': # mac os x
+    FONT_SIZE_SR_MSG=11	
+    FONT_SIZE_TOTAL_DOWN=9
+    FONT_SIZE_TOTAL_UP=9
+    FONT_SIZE_SETTINGS=10
+    FONT_SIZE_MY_FILES=10	
+    FONT_SIZE_FAMILY_FILTER=10
+    FONT_SIZE_FILES_FRIENDS=11
+    FONT_SIZE_SHARING_REPUTATION=11
+    FONT_SIZE_SEARCH_RESULTS=12
+    FONT_SIZE_SEARCH=14
+
+else:
+
+    FONT_SIZE_SR_MSG=8	
+    FONT_SIZE_TOTAL_DOWN=7
+    FONT_SIZE_TOTAL_UP=7
+    FONT_SIZE_SETTINGS=8
+    FONT_SIZE_MY_FILES=8	
+    FONT_SIZE_FAMILY_FILTER=8
+    FONT_SIZE_FILES_FRIENDS=8
+    FONT_SIZE_SHARING_REPUTATION=8
+    FONT_SIZE_SEARCH_RESULTS=8
+    FONT_SIZE_SEARCH=10
+
+
 
 DEBUG = False
 
@@ -42,16 +78,19 @@ class TopSearchPanel(bgPanel):
 
     def custom_init(self):
         # animated gif for search results
-        ag_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','search.gif')
-        #self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
-        self.ag = wx.animate.GIFAnimationCtrl(self.go.GetParent(), -1, ag_fname)
-        #self.frame.ag.SetUseWindowBackgroundColour(False)
-        vsizer = wx.BoxSizer(wx.VERTICAL)
-        vsizer.AddSpacer(wx.Size(0,5))
-        vsizer.Add(self.ag,0,wx.FIXED_MINSIZE,0)
-        hsizer = self.go.GetContainingSizer()
-        hsizer.Add(vsizer,0,wx.FIXED_MINSIZE,0)
-        hsizer.Layout()             
+	if sys.platform != 'darwin':
+
+            ag_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','search_new.gif')
+            #self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
+            self.ag = wx.animate.GIFAnimationCtrl(self.go.GetParent(), -1, ag_fname)
+	
+            #self.frame.ag.SetUseWindowBackgroundColour(False)
+            vsizer = wx.BoxSizer(wx.VERTICAL)
+            vsizer.AddSpacer(wx.Size(0,5))
+            vsizer.Add(self.ag,0, 0, 0)
+            hsizer = self.go.GetContainingSizer()
+            hsizer.Add(vsizer,0,0,0)
+            hsizer.Layout() 
 
         hide_names = [self.ag,self.newFile]
         for name in hide_names:
@@ -78,6 +117,18 @@ class TopSearchPanel(bgPanel):
         self.sr_msg.Bind(wx.EVT_LEFT_UP, self.sr_msgClick)
 
 
+	
+	
+        if sys.platform == 'linux2': # mouse over implementation for linux
+            self.settings.Bind(wx.EVT_MOUSE_EVENTS, self.OnSettings)
+            self.my_files.Bind(wx.EVT_MOUSE_EVENTS, self.OnLibrary)
+            self.Bind(wx.EVT_MOUSE_EVENTS, self.OnTopPanel)
+        else:
+            self.settings.Bind(wx.EVT_LEFT_UP, self.viewSettings)
+            self.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
+
+	    
+	    
     def OnSearchKeyDown(self,event):
         if DEBUG:
             print >>sys.stderr,"TopSearchPanel: OnSearchKeyDown"
@@ -87,7 +138,7 @@ class TopSearchPanel(bgPanel):
         else:
             keycode = None
 
-        if self.searchField.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'search'): 
+        if self.searchField.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'Search_new'): 
             if self.first:
                 self.first=False
                                
@@ -97,13 +148,14 @@ class TopSearchPanel(bgPanel):
                 self.help.Show()
                 self.frame.hsizer = self.sr_indicator.GetContainingSizer()               
                 self.frame.Layout() 
-                self.createBackgroundImage()
+                if sys.platform != 'win32':
+                    self.createBackgroundImage()
                 self.srgradient.Show()
                 self.sr_indicator.Show()
                 self.frame.standardOverview.Show()
                 self.seperator.Show()
                 self.familyfilter.Show()
-                
+                self.search_results.Show()
             self.ag.Show() 
             self.ag.Play()
                 
@@ -113,7 +165,8 @@ class TopSearchPanel(bgPanel):
             self.Bind(wx.EVT_TIMER, self.OnAGTimer)
             self.agtimer.Start(10000,True) 
 
-            self.frame.videoframe.show_videoframe()   
+            if sys.platform != 'darwin':
+                self.frame.videoframe.show_videoframe()   
             self.frame.videoparentpanel.Show()            
          
             wx.CallAfter(self.frame.pagerPanel.Show)
@@ -129,10 +182,10 @@ class TopSearchPanel(bgPanel):
         else:
             if not keycode == wx.WXK_BACK:
                 try:
-                    wx.CallAfter(self.autocomplete) # Nic: to demonstrate how autocomplete might work
+                    wx.CallAfter(self.autocomplete) 
                 except:
                     pass # don't break the input field if something with autocomplete goes awkward
-            event.Skip()     # Nic: not enough into wx to know if this should stay even though we're doing someething in here now
+            event.Skip() # Nicolas: not enough into wx to know if this should stay even though we're doing someething in here now
             
     def autocomplete(self):
         """appends the most frequent completion according to
@@ -140,8 +193,10 @@ class TopSearchPanel(bgPanel):
            sets the appended characters to "selected" such that they are
            automatically deleted as the user continues typing"""
         input = self.searchField.GetValue()
-        if len(input)>1:
-            completion = self.guiUtility.complete(input)
+        terms = input.split(" ")
+        # only autocomplete if the last term in the input contains more than one character
+        if len(terms[-1])>1:
+            completion = self.guiUtility.complete(terms[-1])
             if completion:
                 l = len(input)
                 self.searchField.SetValue(input + completion)
@@ -178,6 +233,26 @@ class TopSearchPanel(bgPanel):
         dlg.Destroy()
 
 
+    def OnSettings(self,event):
+        if event.LeftDown():
+            self.guiUtility.settingsOverview()
+        colour = wx.Colour(0,105,156)
+        self.settings.SetForegroundColour(colour)	
+
+
+    def OnLibrary(self,event):
+        if event.LeftDown():
+            self.guiUtility.standardLibraryOverview()
+        colour = wx.Colour(0,105,156)
+        self.my_files.SetForegroundColour(colour)	
+
+
+    def OnTopPanel(self, event):
+        if self.guiUtility.guiPage != 'settings':
+            self.settings.SetForegroundColour(wx.Colour(255,51,0))
+        if self.guiUtility.guiPage != 'my_files':
+            self.my_files.SetForegroundColour(wx.Colour(255,51,0))	
+
 
     def viewSettings(self,event):
         self.guiUtility.settingsOverview()
@@ -187,9 +262,7 @@ class TopSearchPanel(bgPanel):
 
     def toggleFamilyFilter(self,event):
         self.guiUtility.toggleFamilyFilter()
-
-
-    
+   
       
     def Bitmap(self,path,type):
         namelist = path.split("/")
@@ -212,31 +285,57 @@ class TopSearchPanel(bgPanel):
 # ----------------------------------------------------------------------------------------          
         
         #self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
+        #if sys.platform == 'win32':
+        #    self.files_friends = NewStaticText(self, "Search Files", wx.BLACK, wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
+        #else:
         self.files_friends = wx.StaticText(self, -1, "Search Files") 
         self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
-        self.go = tribler_topButton(self,-1,name = 'search')
+        self.go = tribler_topButton(self,-1,name = 'Search_new')
+        #if sys.platform == 'win32':
+        #    self.familyfilter = NewStaticText(self, "Family Filter:", wx.BLACK, wx.Font(FONT_SIZE_FAMILY_FILTER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        #else:            
         self.familyfilter = wx.StaticText(self, -1, "Family Filter:")
+        #if sys.platform == 'win32':
+        #    self.search_results = NewStaticText(self, "", wx.BLACK, wx.Font(FONT_SIZE_SEARCH_RESULTS, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "")) 
+        #else:
         self.search_results = wx.StaticText(self, -1, "")
+        #if sys.platform == 'win32':
+        #    self.sharing_reputation = NewStaticText(self, "Sharing Reputation: ", wx.BLACK, wx.Font(FONT_SIZE_SHARING_REPUTATION, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L")) 
+        #else:
         self.sharing_reputation = wx.StaticText(self, -1, "Sharing Reputation: ") 
         self.sr_msg = wx.StaticText(self, -1, "") 
         #self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation.png", wx.BITMAP_TYPE_ANY))
         self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient_new.png", wx.BITMAP_TYPE_ANY))
         self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY))
-        self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRind.png", wx.BITMAP_TYPE_ANY))
+        self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRind2.png", wx.BITMAP_TYPE_ANY))
+        #if sys.platform == 'win32':
+        #    self.settings = NewStaticText(self, "Settings", wx.Colour(255,51,0), wx.Font(FONT_SIZE_SETTINGS, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        #else:
         self.settings = wx.StaticText(self, -1, "Settings")
-        self.newFile = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/iconSaved.png", wx.BITMAP_TYPE_ANY))
-        self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY))
+        #if sys.platform == 'win32':
+        #    self.my_files = NewStaticText(self, "My Files", wx.Colour(255,51,0), wx.Font(FONT_SIZE_MY_FILES, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        #else:
         self.my_files = wx.StaticText(self, -1, "My Files")
+        self.newFile = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/iconSaved.png", wx.BITMAP_TYPE_ANY))
+        self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY)) 
         self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
         ##self.left = wx.StaticBitmap(self,-1, self.Bitmap("images/5.0/left.png", wx.BITMAP_TYPE_ANY))
         ##self.right = wx.StaticBitmap(self,-1, self.Bitmap("images/5.0/right.png", wx.BITMAP_TYPE_ANY))
         self.total_down = wx.StaticText(self, -1, "0B Down")
         self.total_up = wx.StaticText(self, -1, "0B Up")
-        
+
+	if sys.platform == 'darwin':
+            ag_fname = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','search_new.gif')
+            #self.frame.ag = wx.animate.GIFAnimationCtrl(self.frame.top_bg, -1, ag_fname, pos=(358, 38))
+            self.ag = wx.animate.GIFAnimationCtrl(self.go.GetParent(), -1, ag_fname)
 
         self.__set_properties()
+
+
         self.__do_layout()
         # end wx.Glade
+
+
 
         # OUR CODE
         self.custom_init()
@@ -247,25 +346,30 @@ class TopSearchPanel(bgPanel):
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.searchField.SetMinSize((320,23))
         self.searchField.SetForegroundColour(wx.Colour(0, 0, 0))
-        self.searchField.SetFont(wx.Font(10, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
+        self.searchField.SetFont(wx.Font(FONT_SIZE_SEARCH, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
         self.searchField.SetFocus()
         self.go.SetMinSize((50,24))
-        self.go.SetBackgroundColour(wx.Colour(255, 255, 255))
+        self.go.SetBackgroundColour((230,230,230))
+        self.go.Refresh()
         self.familyfilter.SetMinSize((100,15))
-        self.familyfilter.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.search_results.SetMinSize((100,10))
-        self.search_results.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
-        self.settings.SetMinSize((50,15))
+        self.familyfilter.SetFont(wx.Font(FONT_SIZE_FAMILY_FILTER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.search_results.SetMinSize((100,15))
+        self.search_results.SetFont(wx.Font(FONT_SIZE_SEARCH_RESULTS, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
+        self.settings.SetMinSize((47,15))
         self.settings.SetForegroundColour(wx.Colour(255, 51, 0))
-        self.settings.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.settings.SetFont(wx.Font(FONT_SIZE_SETTINGS, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
         self.my_files.SetMinSize((50,15))
         self.my_files.SetForegroundColour(wx.Colour(255, 51, 0))
-        self.my_files.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.total_down.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.total_up.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.sharing_reputation.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
-        self.sr_msg.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
-        self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
+        self.my_files.SetFont(wx.Font(FONT_SIZE_MY_FILES, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.total_down.SetFont(wx.Font(FONT_SIZE_TOTAL_DOWN, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.total_up.SetFont(wx.Font(FONT_SIZE_TOTAL_UP, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.sharing_reputation.SetFont(wx.Font(FONT_SIZE_SHARING_REPUTATION, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
+        #if sys.platform == 'win32':
+        #    self.sharing_reputation.SetMinSize((120,15))
+        self.sr_msg.SetFont(wx.Font(FONT_SIZE_SR_MSG, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
+        #if sys.platform == 'win32':
+        #    self.files_friends.SetMinSize((80,15))
+        self.files_friends.SetFont(wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
         self.total_down.SetToolTipString('Total Download')
         self.total_up.SetToolTipString('Total Upload')
 
@@ -288,23 +392,39 @@ class TopSearchPanel(bgPanel):
         object_6 = wx.BoxSizer(wx.VERTICAL)
         object_4 = wx.BoxSizer(wx.HORIZONTAL)
         object_13 = wx.BoxSizer(wx.HORIZONTAL)
-        object_1.Add((10, 0), 0, 0, 0)
+        object_15 = wx.BoxSizer(wx.VERTICAL)
+	object_16 = wx.BoxSizer(wx.VERTICAL)
+	object_1.Add((10, 0), 0, 0, 0)
         object_3.Add((0, 20), 0, 0, 0)
         object_3.Add(self.files_friends, 0, 0, 0)
         object_3.Add((0, 5), 0, 0, 0)
         object_4.Add(self.searchField, 0, wx.LEFT, -2)
-        object_4.Add((2, 0), 0, 0, 0)
+
+        if sys.platform == 'darwin':
+            object_4.Add((6, 0), 0, 0, 0)
+        else:
+            object_4.Add((2, 0), 0, 0, 0)
+
+
         object_4.Add(self.go, 0, 0, 0)
         object_4.Add((2,0), 0, 0, 0)
+	if sys.platform == 'darwin':
+            object_4.Add(self.ag, 0, 0, 0)
         object_3.Add(object_4, 0, 0, 0)
         object_6.Add((0, 0), 0, 0, 0)
         object_6.Add(self.familyfilter, 0, 0, 0)
         object_5.Add(object_6, 0, 0, 0)
         object_5.Add((120, 0), 1, 0, 0)
+	if sys.platform == 'darwin':
+            object_16.Add((0, 2), 0, 0, 0)
+        object_16.Add(self.search_results, 0, 0, 0)
         object_5.Add(self.search_results, 0, wx.ALIGN_RIGHT, 0)
         object_3.Add(object_5, 0, 0, 0)
         object_2.Add(object_3, 0, wx.EXPAND, 0)
-        object_2.Add((40, 0), 0, 0, 0)
+        if sys.platform == 'win32':
+            object_2.Add((56, 0), 0, 0, 0)
+        else:
+            object_2.Add((40, 0), 0, 0, 0)
         object_7.Add((0, 20), 0, 0, 0)
         object_7.Add(object_14, 0, 0, 0)
         object_14.Add(self.sharing_reputation, 0, 0, 0)
@@ -316,15 +436,23 @@ class TopSearchPanel(bgPanel):
         object_7.Add(object_8, 0, 0, 0)
         object_7.Add((0, 5), 0, 0, 0)
         object_9.Add((50, 0), 0, 0, 0)
-        object_9.Add(self.sr_indicator, 0, wx.TOP, -17)
+        object_9.Add(self.sr_indicator, 0, wx.TOP, -16)
         object_7.Add(object_9, 0, 0, 0)
         object_7.Add(object_13, 0, 0, 0)
         object_2.Add(object_7, 0, wx.EXPAND, 0)
+
+
+
+
         object_1.Add(object_2, 1, wx.EXPAND, 0)
+
         if sys.platform == 'win32':
-            space = 100
-        else:
+            space = 244
+        elif sys.platform == 'linux2':
             space = 7
+        else:
+            space = 270
+
         object_1.Add((space, 0), 0, 0, 0) # Arno: set to 100 to get right view on win32
         object_10.Add((0, 20), 0, 0, 0)
         object_10.Add(self.settings, 0, 0, 0)
@@ -341,18 +469,23 @@ class TopSearchPanel(bgPanel):
         object_12.Add(self.newFile, 0, 0, 0)
         object_1.Add(object_12, 0, 0, 0)
         object_1.Add((7, 0), 0, 0, 0)
-        object_1.Add(self.tribler_logo2, 0, 0, 0)
+        object_15.Add((0,3), 0, 0, 0)
+        object_15.Add(self.tribler_logo2, 0, 0, 0)
+        object_1.Add(object_15, 0, 0, 0)
         object_1.Add((10, 0), 0, 0, 0)
         ##object_13.Add(self.left, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
         object_13.Add(self.total_down, 0, 0, 0)
-        object_13.Add((8, 0), 0, 0, 0)
+        if sys.platform == 'darwin':
+            object_13.Add((14, 0), 0, 0, 0)
+	else:
+            object_13.Add((8, 0), 0, 0, 0)
         object_13.Add(self.total_up, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
         ##object_13.Add(self.right, 0, 0, 0)
         
         # OUR CODE  ARNO50: Check diff in defs
-        if sys.platform == 'win32':
+        if sys.platform != 'linux2':
             self.SetSizerAndFit(object_1)
         else:
             self.SetSizer(object_1)

@@ -849,7 +849,7 @@ class FriendshipMsgHandler:
             f = open(finalfilename,"rb")
             self.currmsgs = cPickle.load(f)
         except:
-            print_exc()
+            print >>sys.stderr, "friendship: could not read previous messages from", finalfilename
 
         # Increase # attempts till current time
         now = time()

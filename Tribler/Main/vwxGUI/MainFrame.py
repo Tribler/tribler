@@ -50,7 +50,6 @@ from Tribler.Video.VideoFrame import VideoFrame
 from Tribler.Video.utils import videoextdefaults
 
 from Tribler.Category.Category import Category
-from Tribler.Web2.util.update import Web2Updater
 
 
 from Tribler.Core.simpledefs import *
@@ -176,6 +175,11 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_SIZE, self.onSize)
         self.Bind(wx.EVT_MAXIMIZE, self.onSize)
         #self.Bind(wx.EVT_IDLE, self.onIdle)
+
+
+        # transparency
+        # self.SetTransparent(240)
+
 
         # Init video player
         self.videoFrame = None
@@ -559,7 +563,7 @@ class MainFrame(wx.Frame):
             for t in ts:
                 print >>sys.stderr,"mainframe: Thread still running",t.getName(),"daemon",t.isDaemon()
 
-        if not found:
+        if not found or sys.platform =="darwin":
             # On Linux with wx 2.8.7.1 this method gets sometimes called with
             # a CommandEvent instead of EVT_CLOSE, wx.EVT_QUERY_END_SESSION or
             # wx.EVT_END_SESSION

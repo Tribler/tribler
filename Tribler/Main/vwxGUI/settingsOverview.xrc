@@ -156,7 +156,7 @@
                   <object class="sizeritem">
                     <object class="wxTextCtrl" name="uploadCtrl">
                       <size>70,20</size>
-                      <style>wxTE_RIGHT</style>
+                      <style>wxTE_PROCESS_ENTER|wxTE_RIGHT</style>
                     </object>
                   </object>
                   <object class="spacer">
@@ -226,7 +226,7 @@
                   <object class="sizeritem">
                     <object class="wxTextCtrl" name="downloadCtrl">
                       <size>70,20</size>
-                      <style>wxTE_RIGHT</style>
+                      <style>wxTE_PROCESS_ENTER|wxTE_RIGHT</style>
                     </object>
                   </object>
                   <object class="spacer">
@@ -241,7 +241,7 @@
                     <size>5,0</size>
                   </object>
                   <object class="sizeritem">
-                    <object class="wxPanel" name="tenDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="seventyfiveDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                       <size>23,16</size>
                     </object>
                   </object>
@@ -249,7 +249,7 @@
                     <size>3,0</size>
                   </object>
                   <object class="sizeritem">
-                    <object class="wxPanel" name="fiftyDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="threehundredDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                       <size>23,16</size>
                     </object>
                   </object>
@@ -257,7 +257,7 @@
                     <size>3,0</size>
                   </object>
                   <object class="sizeritem">
-                    <object class="wxPanel" name="hundredDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="sixhundreddDown" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
                       <size>28,16</size>
                     </object>
                   </object>
@@ -437,6 +437,7 @@
                   <object class="sizeritem">
                     <object class="wxTextCtrl" name="diskLocationCtrl">
                       <size>300,20</size>
+                      <style>wxTE_PROCESS_ENTER</style>
                     </object>
                   </object>
                   <object class="spacer">

@@ -20,7 +20,7 @@ DEBUG = True
 
 class Instance2InstanceServer(Thread):
     
-    def __init__(self,i2iport,connhandler):
+    def __init__(self,i2iport,connhandler,timeout=300.0):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName('Instance2Instance'+self.getName())
@@ -31,8 +31,8 @@ class Instance2InstanceServer(Thread):
         self.i2idoneflag = Event()
         
         self.rawserver = RawServer(self.i2idoneflag,
-                                   60.0, 
-                                   300.0,
+                                   timeout/5.0, 
+                                   timeout,
                                    ipv6_enable = False,
                                    failfunc = self.rawserver_fatalerrorfunc,
                                    errorfunc = self.rawserver_nonfatalerrorfunc)

@@ -275,11 +275,9 @@ class FilesItemDetailsSummary(bgPanel):
 
             ds = self.torrent.get('ds')
 
-            self._get_videoplayer(exclude=ds).stop_playback() # stop current playback
-
-            self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Show()
-            self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.agVideo.Play()
-            self._get_videoplayer(exclude=ds).videoframe.get_videopanel().vlcwin.Refresh()
+            videoplayer = self._get_videoplayer(exclude=ds) 
+            videoplayer.stop_playback() # stop current playback
+            videoplayer.show_loading()
 
             ##self.play_big.setToggled()
             ##self.guiUtility.buttonClicked(event)
@@ -288,7 +286,15 @@ class FilesItemDetailsSummary(bgPanel):
             else:
                 self.play(ds)
 
+            self.guiUtility.standardDetails.setVideodata(self.guiUtility.standardDetails.getData())
+	    self._get_videoplayer(exclude=ds).videoframe.get_videopanel().SetLoadingText(self.guiUtility.standardDetails.getVideodata()['name'])
+            if sys.platform == 'darwin':
+		self._get_videoplayer(exclude=ds).videoframe.show_videoframe()
+		self._get_videoplayer(exclude=ds).videoframe.get_videopanel().Refresh()
+		self._get_videoplayer(exclude=ds).videoframe.get_videopanel().Layout()
+
     def play(self,ds):
+
 
         self._get_videoplayer(exclude=ds).play(ds)
 

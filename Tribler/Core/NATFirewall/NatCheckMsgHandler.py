@@ -69,6 +69,7 @@ class NatCheckMsgHandler:
         """
 
         # for Tribler versions < 4.5.0 : do nothing
+        # TODO: change OLPROTO_VER_EIGHTH to OLPROTO_VER_SEVENTH
         if selversion < OLPROTO_VER_SEVENTH:
             if DEBUG:
                 print >> sys.stderr, "NatCheckMsgHandler: Tribler version too old for NATCHECK: do nothing"
