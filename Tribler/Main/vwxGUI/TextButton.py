@@ -4,7 +4,7 @@
 import wx, os, sys
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
-from Tribler.Main.vwxGUI.IconsManager import IconsManager
+## from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.vwxGUI.TextEdit import TextEdit
 from font import *
 from traceback import print_exc

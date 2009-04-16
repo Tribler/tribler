@@ -6,10 +6,12 @@ import random, sys, os
 from time import time
 from traceback import print_exc,print_stack
 import urllib
+import cStringIO
+
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
-from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
+## from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
@@ -17,6 +19,12 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.SessionConfig import SessionConfigInterface
 
 from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
+
+
+
+ICON_MAX_DIM = 80
+SMALL_ICON_MAX_DIM = 32
+
 
 
 
@@ -477,5 +485,59 @@ class SettingsOverviewPanel(wx.Panel):
         self.showNameMugshot()
 
         self.saveAll()
+
+
+
+def data2wxImage(type,data,dim=ICON_MAX_DIM):
+    try:
+        if data is None:
+            return None
+        
+        mi = cStringIO.StringIO(data)
+        # St*pid wx says "No handler for image/bmp defined" while this
+        # is the image handler that is guaranteed to always be there,
+        # according to the docs :-(
+        if type == 'image/bmp':
+            im = wx.ImageFromStream(mi,wx.BITMAP_TYPE_BMP)
+        else:
+            im = wx.ImageFromStreamMime(mi,type)
+        
+        return im.Scale(dim,dim)
+    except:
+        print >> sys.stderr, 'data2wxImage called (%s, %s)' % (`type`,`dim`)
+        print_exc()
+        return None
+        
+
+def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
+    try:
+        im = data2wxImage(type,data,dim=dim)
+        if im is None:
+            bm = None
+        else:
+            bm = wx.BitmapFromImage(im,-1)
+            
+        return bm
+    except:
+        print >> sys.stderr, 'data2wxBitmap called (%s, %s)' % (`type`,`dim`)
+        print_exc()
+        return None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
  

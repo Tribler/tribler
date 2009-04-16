@@ -59,9 +59,9 @@ import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.MainFrame import MainFrame
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
-from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
-from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
+## from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
+## from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
+## from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
@@ -191,8 +191,8 @@ class ABCApp(wx.App):
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
             
             # H4x0r a bit
-            set_tasteheart_bitmaps(self.utility.getPath())
-            set_perfBar_bitmaps(self.utility.getPath())
+            ## set_tasteheart_bitmaps(self.utility.getPath())
+            ## set_perfBar_bitmaps(self.utility.getPath())
 
             cat = Category.getInstance(self.utility.getPath())
             cat.init_from_main(self.utility)

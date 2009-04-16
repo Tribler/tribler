@@ -717,7 +717,7 @@ class GUIUtility:
         self.standardDetails.setMode('filesMode', firstItem)        
 #        self.standardDetails.Hide()
         # init player here?    
-        self.standardDetails.refreshStatusPanel(True)         
+        ## self.standardDetails.refreshStatusPanel(True)         
         self.guiOpen.set()
         
     def deleteSubscription(self,subscrip):
@@ -812,18 +812,20 @@ class GUIUtility:
             
     def refreshTorrentStats(self,dslist):
         """ Called from ABCApp by MainThread to refresh statistics of downloading torrents"""
-        try:
-            if self.guiOpen.isSet():
-                self.standardDetails.refreshTorrentStats(dslist)
-        except:
-            print_exc()
+        pass
+        ##try:
+        ##    if self.guiOpen.isSet():
+        ##        self.standardDetails.refreshTorrentStats(dslist)
+        ##except:
+        ##    print_exc()
     
     def refreshUploadStats(self, dslist):
-        try:
-            if self.guiOpen.isSet():
-                self.standardDetails.refreshUploadStats(dslist)
-        except:
-            print_exc()
+        pass
+        ##try:
+        ##    if self.guiOpen.isSet():
+        ##        self.standardDetails.refreshUploadStats(dslist)
+        ##except:
+        ##    print_exc()
    
     def emailFriend(self, event):
         ip = self.utility.config.Read('bind')

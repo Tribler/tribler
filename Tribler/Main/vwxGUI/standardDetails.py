@@ -17,7 +17,7 @@ from Tribler.Core.Overlay.MetadataHandler import get_filename
 
 from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
+## from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
@@ -25,7 +25,7 @@ from Tribler.Main.Utility.constants import COL_PROGRESS
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.tribler_List import DLFilesList
-from Tribler.Main.vwxGUI.FriendsItemPanel import peer2status
+## from Tribler.Main.vwxGUI.FriendsItemPanel import peer2status
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import *
@@ -87,7 +87,7 @@ class standardDetails(wx.Panel):
         self.peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
         self.superpeer_db = self.utility.session.open_dbhandler(NTFY_SUPERPEERS)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
-        self.iconsManager = IconsManager.getInstance()
+        ## self.iconsManager = IconsManager.getInstance()
         #self.gui_db = GUIDBHandler.getInstance()
         self.playList = []
       
@@ -111,7 +111,7 @@ class standardDetails(wx.Panel):
         self.videodata = None   
         
 
-        self.addComponents()
+        ## self.addComponents()
         
         #self.Refresh()
         self.modeElements = {}
@@ -180,7 +180,7 @@ class standardDetails(wx.Panel):
             self.lastItemSelected[self.mode] = self.item
             self.mode = mode
             self.checkGraphTabVisible()
-            self.refreshMode()
+            ## self.refreshMode()
         if item:
             self.setData(item)
         elif self.lastItemSelected[self.mode]:
@@ -350,7 +350,8 @@ class standardDetails(wx.Panel):
                 self.getAlternativeTabPanel('uploadTab_details', parent=currentPanel).Hide()
 
                 if modeString == 'files':
-                    self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
+                    pass
+                    ## self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 """
                 if modeString == 'library':
                     graph_parent = self.getAlternativeTabPanel('Tab_graphs', parent=currentPanel)
@@ -518,180 +519,14 @@ class standardDetails(wx.Panel):
                 return #no valid torrent
             torrent = item
                         
-            titleField = self.getGuiObj('titleField')
+            ##titleField = self.getGuiObj('titleField')
             title = torrent.get('name')
             title = title[:77]
-            titleField.SetLabel(title)
-            titleField.Wrap(-1) # doesn't appear to work
+            ##titleField.SetLabel(title)
+            ##titleField.Wrap(-1) # doesn't appear to work
             
 #            self.setTorrentThumb(self.mode, torrent, self.getGuiObj('thumbField'))        
             
-            if self.getGuiObj('info_detailsTab').isSelected():
-                # The info tab is selected, show normal torrent info
-                
-#                self.setDownloadbutton(torrent)
-                
-                descriptionField = self.getGuiObj('descriptionField')
-
-                descrtxt = ''
-                flag = False
-                if not torrent.get('web2'):
-                    if 'metadata' in torrent:
-                        metadata = torrent['metadata']
-
-                        encoding = None
-                        if 'encoding' in metadata and metadata['encoding'].strip():
-                            encoding = metadata['encoding']
-
-                        flag = False
-                        for key in ['comment','comment-utf8','Description']: # reverse priority
-                            if key in metadata: # If vuze torrent
-                                tdescrtxt = metadata[key]
-                                if key == 'comment-utf8':
-                                    tencoding = 'utf_8'
-                                else:
-                                    tencoding = encoding
-                                descrtxt = bin2unicode(tdescrtxt,tencoding)
-                                flag = True
-                        if not flag:
-                            if 'source' in torrent:
-                                s = torrent['source']
-                                if s != '':
-                                    if s == 'BC':
-                                        s = 'Received from other user'
-                                    elif s == 'RQ':
-                                        s = 'Query result from other user'
-                                    descrtxt = "Source: "+s
-
-                                flag = True
-                else:
-                    descrtxt = torrent['description']
-                    flag = True
-                 
-                if not flag:
-                    if 'source' in torrent:
-                        s = torrent['source']
-                        if s == 'BC':
-                            s = 'Received from other user'
-                        elif s == 'RQ':
-                            s = 'Query result from other user'
-
-                        descrtxt = "Source: "+s
-
-                descriptionField.SetLabel(descrtxt)
-                descriptionField.Wrap(-1)        
-    
-                sizeField = self.getGuiObj('sizeField')
-                if not torrent.get('web2'):
-                    sizeField.SetLabel(self.utility.size_format(torrent['length']))
-                else:
-                    sizeField.SetLabel(torrent['length'])
-
-                creationField = self.getGuiObj('creationdateField')
-                if torrent.get('creation_date',0):
-                    creationField.SetLabel(friendly_time(torrent['creation_date']))
-                else:
-                    creationField.SetLabel('?')
-                    
-                if torrent.get('web2'):
-                    #view = self.getGuiObj('views')
-                    #view.Show()
-                    #pop = self.getGuiObj('popularity')
-                    #pop.Hide()
-                    #pop.GetParent().Layout()
-
-                    viewsField = self.getGuiObj('popularityField1')
-                    viewsField.SetLabel(str(torrent['views']) + " views")
-                    viewsField.SetToolTipString('')
-                    
-                    self.getGuiObj('popularityField2').Hide()
-                    self.getGuiObj('up').Hide()                    
-                    self.getGuiObj('down').Hide()
-                    self.getGuiObj('refresh').Hide()
-                    
-
-                    viewsField.GetParent().Layout()
-                    viewsField.SetSize((100,18))
-
-                else:
-
-                    self.getGuiObj('popularityField2').Show()
-                    self.getGuiObj('up').Show()
-                    self.getGuiObj('down').Show()
-                    self.getGuiObj('refresh').Show()
-
-                    if torrent.has_key('num_seeders'):
-                        seeders = torrent['num_seeders']
-                        seedersField = self.getGuiObj('popularityField1')
-                        leechersField = self.getGuiObj('popularityField2')
-                        
-                        if seeders > -1:
-                            seedersField.SetLabel('%d' % seeders)
-                            seedersField.SetToolTipString(self.utility.lang.get('seeder_tool') % seeders)
-                            self.getGuiObj('up').SetToolTipString(self.utility.lang.get('seeder_tool') % seeders)
-                            leechersField.SetLabel('%d' % torrent['num_leechers'])
-                            self.getGuiObj('down').SetToolTipString(self.utility.lang.get('leecher_tool') % torrent['num_leechers'])
-                            leechersField.SetToolTipString(self.utility.lang.get('leecher_tool') % torrent['num_leechers'])
-                            
-                        else:
-                            seedersField.SetLabel('?')
-                            seedersField.SetToolTipString('')
-                            leechersField.SetLabel('?')
-                            leechersField.SetToolTipString('')
-                            self.getGuiObj('up').SetToolTipString('')
-                            self.getGuiObj('down').SetToolTipString('')
-                            seedersField.SetSize((36,18))
-                            
-                        # TODO: last_check_time: no in Torrent schema: get from TorrentTracker 
-                        refreshString = '%s: %s' % (self.utility.lang.get('last_checked'), friendly_time(torrent.get('last_check_time')))
-                        self.getGuiObj('refresh').SetToolTipString(refreshString)
-                    seedersField.GetParent().Layout()
-                        
-                
-                # Call a function to retrieve similar torrent data
-                wx.CallAfter(self.fillSimLists, item)
-                #wx.CallAfter(self.fillSimTorrentsList, item['infohash'])
-                #wx.CallAfter(self.fillSimTitlesList, item)
-                # Show or hide download button in detailstab
-                if self.mode == 'filesMode':
-                        
-                    # Set tastheart and ranking
-                    rank = torrent.get('simRank', -1)
-                    self.getGuiObj('TasteHeart').setRank(rank)
-                    self.setRankToRecommendationField(rank)
-                
-            elif self.getGuiObj('files_detailsTab').isSelected():
-                tab = 'filesTab_files'
-                filesList = self.getGuiObj('includedFiles', tab = tab)
-                filesList.setData(torrent)
-                self.getGuiObj('filesField', tab = tab).SetLabel('%d' % filesList.getNumFiles())
-                # Remove download button for libraryview
-                self.setDownloadbutton(torrent, tab = tab)
-                
-                # Set tracker info
-                trackerField = self.getGuiObj('trackerField', tab = tab)
-                trackerField.Wrap(-1)
-                
-                # TODO: 'tracker': not in Torrent schema: get from TorrentTracker 
-                if torrent.has_key('tracker'):
-                    trackerString = torrent['tracker']
-                    short = getShortTrackerFormat(trackerString)
-                    trackerField.SetLabel(short)
-                    trackerField.SetToolTipString(trackerString)
-                else:
-                    trackerField.SetLabel('')
-                    trackerField.SetToolTipString('')
-                    
-            #elif self.getGuiObj('graphs_detailsTab').isSelected():
-            #    if DEBUG:
-            #        print "standardDetails: graph set data"
-            #    graph_panel = self.getGuiObj("Graph", "Tab_graphs")
-            #    if graph_panel is not None:
-            #        graph_panel.setData(item)
-            elif DEBUG:
-                print >> sys.stderr,'standardDetails: error: unknown tab selected'
-            
-                        
         elif self.mode in ['personsMode', 'friendsMode']:
             #check if this is a corresponding item from type point of view
 #            if item.get('permid') is None:

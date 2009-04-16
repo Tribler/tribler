@@ -9,7 +9,7 @@ from threading import Lock
 
 from Tribler.Core.Utilities.utilities import show_permid_short
 #from managefriends import createImageList
-from Tribler.Main.vwxGUI.IconsManager import IconsManager
+## from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Core.Utilities.utilities import show_permid_shorter
 from Tribler.Core.simpledefs import *
 

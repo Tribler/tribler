@@ -336,7 +336,7 @@ class LibraryItemPanel(wx.Panel):
         else: 
             title = 'Down &&&& Up Speed'
         return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':400,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
-                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':title,'width':130, 'tip':self.utility.lang.get('C_downupspeed')}, 
+                {'sort':'??', 'dummy':True,'title':title,'width':130, 'tip':self.utility.lang.get('C_downupspeed')}, 
                 {'sort':'progress', 'title':'Completion', 'width':120, 'tip':self.utility.lang.get('C_progress')}               
                 ]     
 

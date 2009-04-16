@@ -10,7 +10,7 @@ from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
-from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
+## from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Category.Category import Category

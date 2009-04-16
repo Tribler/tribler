@@ -12,10 +12,10 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.filesItemPanel import FilesItemPanel
 from Tribler.Main.vwxGUI.LibraryItemPanel import LibraryItemPanel
-from Tribler.Main.vwxGUI.PersonsItemPanel import PersonsItemPanel
-from Tribler.Main.vwxGUI.FriendsItemPanel import FriendsItemPanel
+## from Tribler.Main.vwxGUI.PersonsItemPanel import PersonsItemPanel
+## from Tribler.Main.vwxGUI.FriendsItemPanel import FriendsItemPanel
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
-from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
+## from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
