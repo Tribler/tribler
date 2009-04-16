@@ -13,7 +13,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 from traceback import print_exc,print_stack
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
-from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
+## from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
 from Tribler.Main.vwxGUI.standardGrid import GridState,filesGrid,libraryGrid
 from Tribler.Main.Utility.constants import *
 #from Tribler.Subscriptions.rss_client import TorrentFeedThread
