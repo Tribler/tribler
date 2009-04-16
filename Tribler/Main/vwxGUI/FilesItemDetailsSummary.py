@@ -2,7 +2,7 @@ import wx, os
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton, TestButton
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
-from Tribler.Main.vwxGUI.TextButton import *
+## from Tribler.Main.vwxGUI.TextButton import *
 from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Core.Utilities.unicode import bin2unicode
 
