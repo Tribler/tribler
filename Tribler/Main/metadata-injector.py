@@ -104,11 +104,11 @@ def main():
 
     # 22/10/08. Boudewijn: connect to a specific peer
     # connect to a specific peer using the overlay
-    def after_connect(*args):
-        print "CONNECTED", args
-    from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
-    overlay = SecureOverlay.getInstance()
-    overlay.connect_dns(("130.161.158.24", 7762), after_connect)
+    # def after_connect(*args):
+    #     print "CONNECTED", args
+    # from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
+    # overlay = SecureOverlay.getInstance()
+    # overlay.connect_dns(("130.161.158.24", 7762), after_connect)
 
     # condition variable would be prettier, but that don't listen to 
     # KeyboardInterrupt
