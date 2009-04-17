@@ -274,7 +274,7 @@ class ABCApp(wx.App):
             elif sys.platform == 'darwin':
                 self.frame.pagerPanel.SetMinSize((674,21))
             else:
-                self.frame.pagerPanel.SetMinSize((666,21))
+                self.frame.pagerPanel.SetMinSize((626,20))
 
 
 
@@ -308,7 +308,7 @@ class ABCApp(wx.App):
                 wx.CallAfter(self.frame.standardDetails.Hide)
                 hide_names = [self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel,self.frame.BL,self.frame.BR]
             else:
-                hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel,self.frame.BL.self.frame.BR]
+                hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel,self.frame.BL,self.frame.BR]
 
 
 
@@ -318,9 +318,8 @@ class ABCApp(wx.App):
 
             if sys.platform != 'win32':
                 self.frame.top_bg.createBackgroundImage()
-		
-		
-	    self.frame.top_bg.Layout()
+
+            self.frame.top_bg.Layout()
 
 
             # reputation
