@@ -129,6 +129,11 @@
                         <size>10,0</size>
                       </object>
                       <object class="sizeritem">
+                        <object class="wxStaticBitmap" name="BL">
+                          <bitmap>Tribler/Main/vwxGUI/images/5.0/wrapCorBL.png</bitmap>
+                        </object>
+                      </object>
+                      <object class="sizeritem">
                         <object class="wxPanel" name="pagerPanel">
                           <size>669,20</size>
                           <bg>#E6E6E6</bg>
@@ -159,9 +164,14 @@
                           </object>
                         </object>
                       </object>
+                      <object class="sizeritem">
+                        <object class="wxStaticBitmap" name="BR">
+                          <bitmap>Tribler/Main/vwxGUI/images/5.0/wrapCorBR.png</bitmap>
+                        </object>
+                      </object>
                     </object>
                     <option>0</option>
-                    <flag>wxEXPAND</flag>
+                    <flag>wxLEFT|wxRIGHT|wxEXPAND</flag>
                   </object>
                 </object>
                 <bg>#FFFFFF</bg>

@@ -262,11 +262,15 @@ class ABCApp(wx.App):
             self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
             self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
             self.frame.changePlay = xrc.XRCCTRL(self.frame, "changePlay")
+ 
+            self.frame.BL = xrc.XRCCTRL(self.frame, "BL")
+            self.frame.BR = xrc.XRCCTRL(self.frame, "BR")
+
 
 
             # on linux pagerpanel needs a SetMinSize call
             if sys.platform == "linux2":
-                self.frame.pagerPanel.SetMinSize((666,20))
+                self.frame.pagerPanel.SetMinSize((626,20))
             elif sys.platform == 'darwin':
                 self.frame.pagerPanel.SetMinSize((674,21))
             else:
@@ -302,9 +306,9 @@ class ABCApp(wx.App):
                 #
                 wx.CallAfter(self.frame.standardOverview.Hide)
                 wx.CallAfter(self.frame.standardDetails.Hide)
-                hide_names = [self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel]
+                hide_names = [self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel,self.frame.BL,self.frame.BR]
             else:
-                hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel]
+                hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel,self.frame.BL.self.frame.BR]
 
 
 

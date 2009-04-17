@@ -169,7 +169,7 @@ class TopSearchPanel(bgPanel):
                 self.frame.videoframe.show_videoframe()   
             self.frame.videoparentpanel.Show()            
          
-            wx.CallAfter(self.frame.pagerPanel.Show)
+            wx.CallAfter(self.guiUtility.showPager,True)                             
 
             self.settings.SetForegroundColour((255,51,0))
             self.my_files.SetForegroundColour((255,51,0))

@@ -455,7 +455,7 @@ class GUIUtility:
             #if self.frame.my_files.isToggled():
             #    self.frame.my_files.setToggled()
 
-            self.frame.pagerPanel.Show()
+            self.showPager(True)
         
 
     def toggleFamilyFilter(self):
@@ -543,7 +543,8 @@ class GUIUtility:
 	    if sys.platform == 'darwin':
                 self.frame.videoframe.videopanel.vlcwin.stop_animation()
 
-            self.frame.pagerPanel.Hide()
+            self.showPager(False)
+
             if self.frame.top_bg.search_results.GetLabel() != '':
                 self.frame.top_bg.search_results.SetLabel('Return to Results')
                 self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
@@ -552,6 +553,13 @@ class GUIUtility:
             #if self.standardOverview.firewallStatus.initDone == True:
             #    self.standardOverview.firewallStatus.setToggled(True)
          
+
+    def showPager(self, b):
+        self.frame.pagerPanel.Show(b)
+        self.frame.BL.Show(b)
+        self.frame.BR.Show(b)
+        
+
         
         
     def standardPersonsOverview(self):
@@ -615,7 +623,7 @@ class GUIUtility:
             self.frame.top_bg.Layout()
             
 
-            self.frame.pagerPanel.Show()
+            self.showPager(True)
             
             setmode = True
             
