@@ -44,14 +44,7 @@ def main():
     if opt.nickname: sscfg.set_nickname(opt.nickname)
 
     # override default configuration
-    sscfg.set_rss_reload_frequency(120)
     sscfg.set_rss_check_frequency(1)
-    sscfg.set_moderationcast_recent_own_moderations_per_have(25)
-    sscfg.set_moderationcast_random_own_moderations_per_have(25)
-    sscfg.set_moderationcast_recent_forward_moderations_per_have(5)
-    sscfg.set_moderationcast_random_forward_moderations_per_have(5)
-    sscfg.set_moderationcast_upload_bandwidth_limit(256*1024)
-    sscfg.set_moderationcast_download_bandwidth_limit(1024*1024)
 
     sscfg.set_megacache(True)
     sscfg.set_overlay(True)
