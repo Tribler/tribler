@@ -167,7 +167,10 @@ class TriblerLaunchMany(Thread):
             self.mypref_db      = None
             self.pref_db        = None
             self.superpeer_db   = None
+            self.crawler_db     = None
             self.seedingstats_db = None
+            self.seedingstatssettings_db = None
+            self.friendship_statistics_db = None
             self.friend_db      = None
             self.bartercast_db  = None
             self.mm = None
