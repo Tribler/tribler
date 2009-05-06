@@ -22,6 +22,8 @@
 # This must be done in the first python file that is started.
 #
 
+# modify the sys.stderr and sys.stdout for safe output
+import Tribler.Debug.console
 
 import os,sys
 import urllib
@@ -133,6 +135,8 @@ class ABCApp(wx.App):
         
     def OnInit(self):
         try:
+            print type(Session.get_default_state_dir()), repr(Session.get_default_state_dir())
+            print type(self.installdir), repr(self.installdir)
             self.utility = Utility(self.installdir,Session.get_default_state_dir())
             self.utility.app = self
 
@@ -1170,9 +1174,11 @@ def run(params = None):
         else:
             arg0 = sys.argv[0].lower()
             if arg0.endswith('.exe'):
-                installdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+                # supply a unicode string to ensure that the unicode filesystem API is used (applies to windows)
+                installdir = os.path.abspath(os.path.dirname(unicode(sys.argv[0])))
             else:
-                installdir = os.getcwd()  
+                # call the unicode specific getcwdu() otherwise homedirectories may crash
+                installdir = os.getcwdu()  
             # Arno: don't chdir to allow testing as other user from other dir.
             #os.chdir(installdir)
     

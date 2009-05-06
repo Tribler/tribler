@@ -124,8 +124,9 @@ class Utility:
 #===============================================================================
         
     def getConfigPath(self):
+        return self.dir_root
         # TODO: python 2.3.x has a bug with os.access and unicode
-        return self.dir_root.decode(sys.getfilesystemencoding())
+        #return self.dir_root.decode(sys.getfilesystemencoding())
                          
     def setupConfig(self):        
         defaults = {
@@ -316,7 +317,8 @@ class Utility:
         self.lastdir[operation] = dir
 
     def getPath(self):
-        return self.abcpath.decode(sys.getfilesystemencoding())
+        return self.abcpath
+        #return self.abcpath.decode(sys.getfilesystemencoding())
 
     def eta_value(self, n, truncate = 3):
         if n == -1:

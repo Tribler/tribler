@@ -561,7 +561,7 @@ class SuperPeerDBHandler(BasicDBHandler):
         superpeer_list = self.readSuperPeerList(filename)
         self.insertSuperPeers(superpeer_list, refresh)
 
-    def readSuperPeerList(self, filename=''):
+    def readSuperPeerList(self, filename=u''):
         """ read (superpeer_ip, superpeer_port, permid [, name]) lines from a text file """
         
         try:

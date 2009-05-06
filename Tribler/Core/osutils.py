@@ -28,10 +28,19 @@ except:
                 # a list of values indicating 1. free space for the user,
                 # 2. total space for the user and 3. total free space, so
                 # not a single value.
-                test = win32file.GetDiskFreeSpaceEx(".")
-                def getfreespace(path):          
-                    list = win32file.GetDiskFreeSpaceEx(path)
-                    return list[0]
+                win32file.GetDiskFreeSpaceEx(".")
+                def getfreespace(path):
+                    # Boudewijn: the win32file module is NOT unicode
+                    # safe! We will try directories further up the
+                    # directory tree in the hopes of getting a path on
+                    # the same disk without the unicode...
+                    while True:
+                        try:
+                            return win32file.GetDiskFreeSpaceEx(path)[0]
+                        except:
+                            path = os.path.split(path)[0]
+                            if not path:
+                                raise
             except:                
                 # Original Win95
                 # (2GB limit on partition size, so this should be
@@ -46,7 +55,7 @@ except:
             # (parse the output from the dir command)
             def getfreespace(path):
                 try:
-                    mystdin, mystdout = os.popen2("dir " + "\"" + path + "\"")
+                    mystdin, mystdout = os.popen2(u"dir " + u"\"" + path + u"\"")
                     
                     sizestring = "0"
                 

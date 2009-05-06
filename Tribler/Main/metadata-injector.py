@@ -4,6 +4,9 @@
 # network. currently we only support a single .torrent source: rss
 # feed.
 
+# modify the sys.stderr and sys.stdout for safe output
+import Tribler.Debug.console
+
 from traceback import print_exc
 import optparse
 import os

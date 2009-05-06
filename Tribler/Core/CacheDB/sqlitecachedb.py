@@ -342,7 +342,7 @@ class SQLiteCacheDBBase:
         """
         try:
             if not os.path.isfile(dbfile_path):
-                raise Warning("No existing database found. Attempting to creating a new database %s" % dbfile_path)
+                raise Warning("No existing database found. Attempting to creating a new database %s" % repr(dbfile_path))
             
             cur = self.openDB(dbfile_path, busytimeout)
             if check_version:
@@ -353,6 +353,7 @@ class SQLiteCacheDBBase:
             if isinstance(exception, Warning):
                 # user friendly warning to log the creation of a new database
                 print >>sys.stderr, exception
+
             else:
                 # user unfriendly exception message because something went wrong
                 print_exc()
@@ -1000,8 +1001,8 @@ if __name__ == '__main__':
     configure_dir = sys.argv[1]
     config = {}
     config['state_dir'] = configure_dir
-    config['install_dir'] = '.'
-    config['peer_icon_path'] = '.'
+    config['install_dir'] = u'.'
+    config['peer_icon_path'] = u'.'
     sqlite_test = init(config)
     sqlite_test.test()
 

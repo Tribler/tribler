@@ -22,6 +22,12 @@ from Tribler.Core.LiveSourceAuthConfig import LiveSourceAuthConfig
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.osutils import *
 
+# importing get_home_dir from Tribler.Core.Session causes an
+# ImportError...
+def get_home_dir():
+    from Tribler.Core.Session import get_home_dir as session_get_home_dir
+    return session_get_home_dir()
+
 class DownloadConfigInterface:
     """
     (key,value) pair config of per-torrent runtime parameters,
@@ -808,21 +814,18 @@ def get_default_dest_dir():
         If Desktop exists: Desktop\TriblerDownloads
         else: Home\TriblerDownloads
     </pre>
-    """ 
+    """
+    uhome = get_home_dir()
+
     if sys.platform == 'win32':
-        profiledir = os.path.expandvars('${USERPROFILE}')
-        uprofiledir = profiledir.decode(sys.getfilesystemencoding())
-        tempdir = os.path.join(uprofiledir,'Desktop','TriblerDownloads')
+        tempdir = os.path.join(uhome, 'Desktop', 'TriblerDownloads')
     elif sys.platform == 'darwin':
-        profiledir = os.path.expandvars('${HOME}')
-        uprofiledir = profiledir.decode(sys.getfilesystemencoding())
-        tempdir = os.path.join(uprofiledir,'Desktop','TriblerDownloads')
+        tempdir = os.path.join(uhome, 'Desktop', 'TriblerDownloads')
     else:
-        profiledir = os.path.expandvars('${HOME}')
-        uprofiledir = profiledir.decode(sys.getfilesystemencoding())
-        if os.path.exists(os.path.join(uprofiledir,'Desktop')):
-            tempdir = os.path.join(uprofiledir,'Desktop','TriblerDownloads')
+        tempdir = os.path.join(uhome, 'Desktop')
+        if not os.path.exists(tempdir):
+            tempdir = os.path.join(uhome, 'Desktop', 'TriblerDownloads')
         else:
-            tempdir = os.path.join(uprofiledir,'TriblerDownloads')
+            tempdir = os.path.join(uhome, 'TriblerDownloads')
     return tempdir
     
