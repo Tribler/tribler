@@ -18,18 +18,18 @@ import unittest
 import sys
 import socket
 import tempfile
-import sha
 import shutil
 import time
 from threading import Thread,currentThread
 from types import DictType, StringType
 from traceback import print_exc
+from M2Crypto import EC
 
 from btconn import BTConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import CHALLENGE,RESPONSE1,RESPONSE2
 import Tribler.Core.Overlay.permid as permid
-from M2Crypto import EC
+from Tribler.Core.Utilities.Crypto import sha
 
 DEBUG=False
 
@@ -174,7 +174,7 @@ class MyServer(Thread):
         resp1['B'] = hisid
         sig_list = [resp1['rA'],rB,hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp1['SA'] = sig_asn1
         return [resp1['rA'],self.create_response1_payload(resp1)]
@@ -198,7 +198,7 @@ class MyServer(Thread):
         # verify signature
         sig_list = [rB,rA,myid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         self.testcase.assert_(pubB.verify_dsa_asn1(sig_hash,SB))
         # Cannot resign the data with his keypair to double check. Signing
         # appears to yield different, supposedly valid sigs each time.
@@ -236,7 +236,7 @@ class MyServer(Thread):
         resp1['B'] = hisid
         sig_list = [resp1['rA'],rB,hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp1['SA'] = sig_asn1
         return [resp1['rA'],self.create_response1_payload(resp1)]
@@ -248,7 +248,7 @@ class MyServer(Thread):
         resp1['B'] = hisid
         sig_list = [resp1['rA'],rB,hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp1['SA'] = sig_asn1
         return [resp1['rA'],self.create_response1_payload(resp1)]
@@ -260,7 +260,7 @@ class MyServer(Thread):
         resp1['B'] = '\x00\x00\x00\x00\x00\x30\x00\x00'
         sig_list = [resp1['rA'],rB,hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp1['SA'] = sig_asn1
         return [resp1['rA'],self.create_response1_payload(resp1)]
@@ -272,7 +272,7 @@ class MyServer(Thread):
         resp1['B'] = hisid
         sig_list = [resp1['rA'],rB,hisid]
         sig_data = '\x00\x00\x00\x00\x00\x30\x00\x00'
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp1['SA'] = sig_asn1
         return [resp1['rA'],self.create_response1_payload(resp1)]
@@ -284,7 +284,7 @@ class MyServer(Thread):
         resp1['B'] = hisid
         sig_list = [resp1['rA'],'\x00\x00\x00\x00\x00\x30\x00\x00',hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp1['SA'] = sig_asn1
         return [resp1['rA'],self.create_response1_payload(resp1)]
@@ -296,7 +296,7 @@ class MyServer(Thread):
         resp1['B'] = hisid
         sig_list = [resp1['rA'],"wrong".zfill(random_size),hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp1['SA'] = sig_asn1
         return [resp1['rA'],self.create_response1_payload(resp1)]
@@ -309,7 +309,7 @@ class MyServer(Thread):
         resp1['B'] = hisid
         sig_list = [resp1['rA'],rB,hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.other_keypair.sign_dsa_asn1(sig_hash))
         resp1['SA'] = sig_asn1
         return [resp1['rA'],self.create_response1_payload(resp1)]

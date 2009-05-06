@@ -4,9 +4,22 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.2rc4, Apr 2, 2009. Import this to use the API """
+""" Tribler Core API v1.0.3, Apr 22, 2009. Import this to use the API """
 
 # History:
+#
+# 1.0.3    Released with Next-Share M16  
+#
+# 1.0.3rc1   Added: [s/g]et_multicast_local_peer_discovery() to Session API.
+#            Added: [s/g]et_moderation_cast_promote_own() to aggressively
+#            promote your own moderations (to be run by a moderator)
+#            Removed: [s/g]et_rss_*(). These were not Core/Session parameters.
+#            Removed: [s/g]et_moderationcast_upload/download_bandwidth_limit(), 
+#            no longer used.
+#
+# 1.0.2      Released with Tribler 5.0.0 Preview1
+#
+# 1.0.2rc5   Added: [s/g]et_moderationcast_*() to configure ModerationCast.
 #
 # 1.0.2rc4   Added: Session.get_externally_reachable() which tells whether the
 #            listen port is reachable from the Internet.

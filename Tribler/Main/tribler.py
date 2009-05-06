@@ -64,6 +64,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 ## from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 ## from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 ## from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
+from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame,VideoMacFrame
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
@@ -82,7 +83,7 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
-from Tribler.Video.VideoFrame import VideoDummyFrame, VideoFrame, VideoMacFrame
+
 
 #import pdb
 

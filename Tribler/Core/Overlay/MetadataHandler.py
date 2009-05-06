@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 import sys
 import os
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from time import time, ctime
 from traceback import print_exc, print_stack
 from sets import Set

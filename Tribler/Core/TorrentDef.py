@@ -5,18 +5,15 @@ import sys
 import os
 #import time
 import copy
-import sha
 import math
 from traceback import print_exc,print_stack
 from types import StringType,ListType,IntType,LongType
-
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
-
+from Tribler.Core.BitTornado.bencode import bencode,bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 from Tribler.Core.APIImplementation.miscutils import *
 
@@ -24,6 +21,7 @@ from Tribler.Core.Utilities.utilities import find_prog_in_PATH,validTorrentFile,
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.osutils import *
+from Tribler.Core.Utilities.Crypto import sha
 
 class TorrentDef(Serializable,Copyable):
     """
@@ -103,7 +101,7 @@ class TorrentDef(Serializable,Copyable):
         t = TorrentDef()
         t.metainfo = metainfo
         t.metainfo_valid = True
-        t.infohash = sha.sha(bencode(metainfo['info'])).digest()
+        t.infohash = sha(bencode(metainfo['info'])).digest()
         
         # copy stuff into self.input
         maketorrent.copy_metainfo_to_input(t.metainfo,t.input)
@@ -202,11 +200,18 @@ class TorrentDef(Serializable,Copyable):
         The authconfig is a subclass LiveSourceAuthConfig with the key 
         information required to allow authentication of packets from the source,
         or None. In the latter case there is no source authentication. The other
-        current legal value is an instance of ECDSALiveSourceAuthConfig. When
-        using this method, a sequence number, real-time timestamp and an ECDSA
-        signature of 64 bytes is put in each piece. As a result, the content in
-        each packet is get_piece_length()-81, so that this into account when
-        selecting the bitrate.
+        two legal values are:
+        <pre>
+        * An instance of ECDSALiveSourceAuthConfig. 
+        * An Instance of RSALiveSourceAuthConfig.
+        </pre>
+        When using the ECDSA method, a sequence number, real-time timestamp and 
+        an ECDSA signature of 64 bytes is put in each piece. As a result, the 
+        content in each packet is get_piece_length()-81, so that this into 
+        account when selecting the bitrate.
+        
+        When using the RSA method, a sequence number, real-time timestamp and
+        a RSA signature of keysize/8 bytes is put in each piece.
         
         The info from the authconfig is stored in the 'info' part of the 
         torrent file when finalized, so changing the authentication info changes

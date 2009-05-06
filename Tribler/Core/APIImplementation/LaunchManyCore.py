@@ -5,7 +5,6 @@ import sys
 import os
 from time import time,sleep
 import copy
-import sha
 import pickle
 import socket
 import binascii
@@ -31,7 +30,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
-from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
+from Tribler.Core.Overlay.SecureOverlay import SecureOverlay,OLPROTO_VER_CURRENT
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.OverlayApps import OverlayApps
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
@@ -49,6 +48,8 @@ from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Category.Category import Category
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
+
+from Tribler.Core.Multicast import Multicast
 
 SPECIAL_VALUE=481
 
@@ -193,6 +194,10 @@ class TriblerLaunchMany(Thread):
             # It's important we don't start listening to the network until
             # all higher protocol-handling layers are properly configured.
             self.overlay_bridge.start_listening()
+
+            if config['multicast_local_peer_discovery']:
+               self.setup_multicast_discovery()
+        
         else:
             self.secure_overlay = None
             self.overlay_apps = None
@@ -253,7 +258,7 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking_period = config['torrent_checking_period']
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
-        
+            
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """
@@ -350,13 +355,13 @@ class TriblerLaunchMany(Thread):
     def rawserver_fatalerrorfunc(self,e):
         """ Called by network thread """
         if DEBUG:
-            print >>sys.stderr,"TriblerLaunchMany: RawServer fatal error func called",e
+            print >>sys.stderr,"tlm: RawServer fatal error func called",e
         print_exc()
 
     def rawserver_nonfatalerrorfunc(self,e):
         """ Called by network thread """
         if DEBUG:
-            print >>sys.stderr,"TriblerLaunchmany: RawServer non fatal error func called",e
+            print >>sys.stderr,"tlm: RawServer non fatal error func called",e
         print_exc()
         # Could log this somewhere, or phase it out
 
@@ -366,6 +371,7 @@ class TriblerLaunchMany(Thread):
         try:
             try:
                 self.start_upnp()
+                self.start_multicast()
                 self.multihandler.listen_forever()
             except:
                 print_exc()    
@@ -526,7 +532,6 @@ class TriblerLaunchMany(Thread):
         
         network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop,checkpoint,gracetime)
         self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
-        # TODO: checkpoint overlayapps / friendship msg handler
 
         
     def network_checkpoint_callback(self,dllist,stop,checkpoint,gracetime):
@@ -550,7 +555,18 @@ class TriblerLaunchMany(Thread):
                     self.rawserver_nonfatalerrorfunc(e)
     
         if stop:
-            self.network_shutdown(gracetime=gracetime)
+            # Some grace time for early shutdown tasks
+            if self.shutdownstarttime is not None:
+                now = time()
+                diff = now - self.shutdownstarttime
+                if diff < gracetime:
+                    print >>sys.stderr,"tlm: shutdown: delaying for early shutdown tasks",gracetime-diff
+                    delay = gracetime-diff 
+                    network_shutdown_callback_lambda = lambda:self.network_shutdown()
+                    self.rawserver.add_task(network_shutdown_callback_lambda,delay)
+                    return
+            
+            self.network_shutdown()
             
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start
@@ -562,7 +578,7 @@ class TriblerLaunchMany(Thread):
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
         
             
-    def network_shutdown(self,gracetime=2.0):
+    def network_shutdown(self):
         try:
             # Detect if megacache is enabled
             if self.peer_db is not None:
@@ -571,17 +587,10 @@ class TriblerLaunchMany(Thread):
             
             mainlineDHT.deinit()
             
-            # Some grace time for early shutdown tasks
-            if self.shutdownstarttime is not None:
-                now = time()
-                diff = now - self.shutdownstarttime
-                if diff < gracetime:
-                    print >>sys.stderr,"tlm: shutdown: sleeping for early shutdown tasks",gracetime-diff
-                    sleep(gracetime-diff) 
-                    ts = enumerate()
-                    print >>sys.stderr,"tlm: Number of threads still running",len(ts)
-                    for t in ts:
-                        print >>sys.stderr,"tlm: Thread still running",t.getName(),"daemon",t.isDaemon()
+            ts = enumerate()
+            print >>sys.stderr,"tlm: Number of threads still running",len(ts)
+            for t in ts:
+                print >>sys.stderr,"tlm: Thread still running",t.getName(),"daemon",t.isDaemon()
         except:
             print_exc()
         
@@ -781,6 +790,36 @@ class TriblerLaunchMany(Thread):
         print >>sys.stderr,"tlm: h4x0r Resetting outgoing TCP connection rate limiter",incompletecounter.c,"==="
         incompletecounter.c = 0
 
+
+    def setup_multicast_discovery(self):
+    
+        # Set up local node discovery here
+        # TODO: Fetch these from system configuration
+        mc_config = {'permid':self.session.get_permid(),
+                     'multicast_ipv4_address':'224.0.1.43',
+                     'multicast_ipv6_address':'ff02::4124:1261:ffef',
+                     'multicast_port':'32109',
+                     'multicast_enabled':True,
+                     'multicast_ipv4_enabled':True,
+                     'multicast_ipv6_enabled':False,
+                     'multicast_announce':True}
+
+        self.mc_channel = Multicast(mc_config,self.overlay_bridge,self.listen_port,OLPROTO_VER_CURRENT,self.peer_db)
+        self.mc_channel.addAnnounceHandler(self.mc_channel.handleOVERLAYSWARMAnnounce)
+
+        self.mc_sock = self.mc_channel.getSocket()
+        self.rawserver.add_socket(self.mc_sock)
+
+    def start_multicast(self):
+        if not self.session.get_overlay() or not self.session.get_multicast_local_peer_discovery():
+            return
+        
+        self.rawserver.start_listening_udp(self.mc_sock, self.mc_channel)
+
+        print >>sys.stderr,"mcast: Sending node announcement"
+        params = [self.session.get_listen_port(), self.secure_overlay.olproto_ver_current]
+        self.mc_channel.sendAnnounce(params)
+        
         
 def singledownload_size_cmp(x,y):
     """ Method that compares 2 SingleDownload objects based on the size of the

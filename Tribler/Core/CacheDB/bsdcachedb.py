@@ -106,7 +106,7 @@ OwnerDB - (PeerDB, TorrentDB)
 import os, sys
 from time import time, ctime
 from random import random
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from copy import deepcopy
 from sets import Set
 from traceback import print_exc, print_stack

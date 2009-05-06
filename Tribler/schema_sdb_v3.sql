@@ -4,6 +4,7 @@
 -- History:
 --   v1: Published as part of Tribler 4.5
 --   v2: Published as part of Tribler 5.0
+--   v3: Published as part of Next-Share M16
 -- 
 -- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
 --
@@ -73,7 +74,9 @@ CREATE TABLE Peer (
   num_peers            integer,
   num_torrents         integer,
   num_prefs            integer,
-  num_queries          integer
+  num_queries          integer,
+  -- V3: Addition for local peer discovery
+  is_local	       integer DEFAULT 0
 );
 
 CREATE UNIQUE INDEX permid_idx
@@ -309,6 +312,6 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 2);
+INSERT INTO MyInfo VALUES ('version', 3);
 
 COMMIT TRANSACTION init_values;

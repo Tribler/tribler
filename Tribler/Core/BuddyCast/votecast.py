@@ -73,6 +73,7 @@ class VoteCastCore:
 
     ################################
     def createAndSendVoteCastMessage(self, target_permid, selversion):
+        """ Creates and sends a VOTECAST message """
         votecast_data = self.createVoteCastMessage(target_permid)
         if len(votecast_data) == 0:
             if DEBUG:
@@ -131,6 +132,7 @@ class VoteCastCore:
 
     ################################
     def gotVoteCastMessage(self, recv_msg, sender_permid, selversion):
+        """ Receives VoteCast message and handles it. """
         if DEBUG:
             print >> sys.stderr,'votecast: Received a msg from ', permid_for_user(sender_permid)
 
@@ -181,7 +183,7 @@ class VoteCastCore:
     ################################
         ################################
     def handleVoteCastMsg(self, sender_permid, data):
-        
+        """ Handles VoteCast message """
         print >> sys.stderr, "Processing VOTECAST msg from: ", permid_for_user(sender_permid), "; data: ", repr(data)
     
         for value in data:

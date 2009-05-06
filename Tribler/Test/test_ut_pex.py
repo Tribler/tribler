@@ -7,7 +7,7 @@ import os
 import sys
 import time
 import socket
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from traceback import print_exc
 from types import DictType,StringType,IntType
 

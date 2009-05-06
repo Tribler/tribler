@@ -6,7 +6,7 @@ import os
 import sys
 import time
 import socket
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from random import randint,shuffle
 from traceback import print_exc
 from types import StringType, ListType, DictType, IntType, BooleanType

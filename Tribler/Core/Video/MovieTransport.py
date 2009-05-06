@@ -5,10 +5,7 @@
 import os,sys,string,time
 from traceback import print_exc
 
-if sys.version.startswith("2.4"):
-    os.SEEK_SET = 0
-    os.SEEK_CUR = 1
-    os.SEEK_END = 2
+from Tribler.Core.osutils import *
 
 DEBUG = False
 

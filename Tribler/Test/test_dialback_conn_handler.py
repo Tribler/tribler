@@ -133,7 +133,8 @@ class TestReturnConnHandler(unittest.TestCase):
         print >> sys.stderr,"test: test_connect_dns_to_dead_peer"
         self.wanted = True
         self.peer1.dialback_connhand.connect_dns(("127.0.0.1", 22220),self.connect_dns_to_dead_peer_callback)
-        sleep(2) # let rawserver thread establish connection, which should fail
+        # Arno, 2009-04-23: was 2 secs, somehow the failed event comes in real slow now.
+        sleep(4) # let rawserver thread establish connection, which should fail
         self.assert_(len(self.peer1.dialback_connhand.iplport2oc) == 0)
 
     def connect_dns_to_dead_peer_callback(self,exc,dns):

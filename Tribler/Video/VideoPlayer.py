@@ -25,14 +25,8 @@ DEBUG = True
 if sys.platform == "linux2" or sys.platform == "darwin":
     USE_VLC_RAW_INTERFACE = False
 else:
-    USE_VLC_RAW_INTERFACE = True
+    USE_VLC_RAW_INTERFACE = False # for Next-Share
     
-    
-    
-    #import vlc
-    #print >> sys.stderr , "BLA\n"*20
-    #USE_VLC_RAW_INTERFACE = inspect.ismethoddescriptor(vlc.MediaControl.set_raw_callbacks):
-
 
 class VideoPlayer:
     

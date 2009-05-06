@@ -13,25 +13,21 @@ import time
 import collections
 import os
 import base64
-
-if sys.version.startswith("2.4"):
-    os.SEEK_SET = 0
-    os.SEEK_CUR = 1
-    os.SEEK_END = 2
-
 import SocketServer
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
 import os,sys,string,time
 import random,socket,thread,re
+
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker
 from Tribler.Core.Video.MovieTransport import MovieTransport,MovieTransportStreamWrapper
 from Tribler.Core.Video.VideoStatus import VideoStatus
 from Tribler.Core.Video.PiecePickerStreaming import PiecePickerStreaming 
 from Tribler.Core.simpledefs import *
-from Tribler.Core.Video.LiveSourceAuth import ECDSAAuthenticator,AuthStreamWrapper,VariableReadAuthStreamWrapper
+from Tribler.Core.Video.LiveSourceAuth import ECDSAAuthenticator,RSAAuthenticator,AuthStreamWrapper,VariableReadAuthStreamWrapper
 from Tribler.Core.CacheDB.SqliteVideoPlaybackStatsCacheDB import VideoPlaybackEventDBHandler, VideoPlaybackInfoDBHandler
+from Tribler.Core.osutils import *
 
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
@@ -251,9 +247,16 @@ class MovieOnDemandTransporter(MovieTransport):
         self.outbuflen = None
 
         # LIVESOURCEAUTH
-        if vs.live_streaming and vs.authparams['authmethod'] == LIVE_AUTHMETHOD_ECDSA:
-            self.authenticator = ECDSAAuthenticator(vs.first_piecelen,vs.movie_numpieces,pubkeypem=vs.authparams['pubkey'])
-            vs.sigsize = vs.piecelen - self.authenticator.get_content_blocksize()
+        if vs.live_streaming:
+            if vs.authparams['authmethod'] == LIVE_AUTHMETHOD_ECDSA:
+                self.authenticator = ECDSAAuthenticator(vs.first_piecelen,vs.movie_numpieces,pubkeypem=vs.authparams['pubkey'])
+                vs.sigsize = vs.piecelen - self.authenticator.get_content_blocksize()
+            elif vs.authparams['authmethod'] == LIVE_AUTHMETHOD_RSA:
+                self.authenticator = RSAAuthenticator(vs.first_piecelen,vs.movie_numpieces,pubkeypem=vs.authparams['pubkey'])
+                vs.sigsize = vs.piecelen - self.authenticator.get_content_blocksize()
+            else:
+                self.authenticator = None
+                vs.sigsize = 0
         else:
             self.authenticator = None
 
@@ -1034,7 +1037,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         return vs.playback_pos == vs.last_piece+1 and self.curpiece_pos >= len(self.curpiece)
 
-    def seek(self,pos,whence=None):
+    def seek(self,pos,whence=os.SEEK_SET):
         """ Seek to the given position, a number in bytes relative to both
         the "whence" reference point and the file being played.
         
@@ -1441,7 +1444,7 @@ class MovieOnDemandTransporter(MovieTransport):
                     break
                 else: # not dropping
                     if self.outbuflen == 0:
-                        print >>sys.stderr,"vod: trans: SHOULD NOT HAPPEN: missing piece but not dropping. should have paused. pausable=",vs.pausable
+                        print >>sys.stderr,"vod: trans: SHOULD NOT HAPPEN: missing piece but not dropping. should have paused. pausable=",vs.pausable,"player reading too fast looking for I-Frame?"
                     else:
                         if DEBUG:
                             print >>sys.stderr,"vod: trans: prebuffering done, but could not fill buffer."

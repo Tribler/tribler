@@ -5,7 +5,7 @@
 #
 
 
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 import sys, os
 from random import randint
 import binascii

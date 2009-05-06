@@ -26,6 +26,7 @@ python test_g2g.py
 python test_TimedTaskQueue.py
 python test_crawler.py
 python test_friendship_crawler.py
+python test_multicast.py
 
 ./test_sqlitecachedbhandler.sh
 ./test_secure_overlay.sh
@@ -35,6 +36,7 @@ python test_friendship_crawler.py
 ./test_dlhelp.sh
 ./test_buddycast_msg.sh
 ./test_buddycast2_datahandler.sh
+# See warning in test_friendship.py
 ./test_friendship.sh
 
 # Takes a long time, do at end

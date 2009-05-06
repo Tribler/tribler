@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from base64 import encodestring
 from copy import deepcopy
 import traceback,os

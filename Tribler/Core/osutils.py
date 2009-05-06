@@ -9,6 +9,11 @@ import sys
 import os
 import binascii
 
+if sys.version.startswith("2.4"):
+    os.SEEK_SET = 0
+    os.SEEK_CUR = 1
+    os.SEEK_END = 2
+
 try:
     # Unix
     from os import statvfs

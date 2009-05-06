@@ -45,11 +45,11 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 
 from Tribler.Video.defs import * 
 from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser  
-from Tribler.Video.VideoFrame import VideoFrame
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
 from Tribler.Utilities.Instance2Instance import Instance2InstanceClient
 
+from Tribler.Player.PlayerVideoFrame import VideoFrame
 from Tribler.Player.BaseApp import BaseApp
 
 DEBUG = True
@@ -314,8 +314,10 @@ class PlayerApp(BaseApp):
     #
     def save_video_copy(self):
         # Save a copy of playing download to other location
-        
-        d = self.downloads_in_vodmode[0] # only single playing Download at the moment in swarmplayer 
+
+        for d2 in self.downloads_in_vodmode:
+            # only single playing Download at the moment in swarmplayer
+            d = d2
         dest_files = d.get_dest_files()  
         dest_file = dest_files[0] # only single file at the moment in swarmplayer
         savethread_callback_lambda = lambda:self.savethread_callback(dest_file)

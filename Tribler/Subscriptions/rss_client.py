@@ -33,10 +33,10 @@ from xml.dom.minidom import parseString
 from xml.parsers.expat import ExpatError
 from threading import Thread,RLock,Event
 import time
-import sha
 
 from Tribler.Core.API import *
 from Tribler.Core.BitTornado.bencode import bdecode,bencode
+from Tribler.Core.Utilities.Crypto import sha
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 
@@ -106,8 +106,11 @@ class TorrentFeedThread(Thread):
         self.lock.release()        
     """
     
-    def register(self,session):
+    def register(self,session,reloadfrequency,checkfrequency):
         self.session = session
+        self.reloadfrequency = reloadfrequency
+        self.checkfrequency = checkfrequency
+        
         self.torrent_dir = self.session.get_torrent_collecting_dir()
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         
@@ -157,7 +160,7 @@ class TorrentFeedThread(Thread):
 
     def gethistfilename(self,url):
         # TODO: url2pathname or something that gives a readable filename
-        h = sha.sha(url).hexdigest()
+        h = sha(url).hexdigest()
         return os.path.join(self.getdir(),h+'.txt')
     
     """    
@@ -236,7 +239,7 @@ class TorrentFeedThread(Thread):
 
                         data = bdecode(bdata)
                         if 'info' in data:
-                            infohash = sha.sha(bencode(data['info'])).digest()
+                            infohash = sha(bencode(data['info'])).digest()
                             if not self.torrent_db.hasTorrent(infohash):
                                 if DEBUG:
                                     if "name" in data["info"]:
@@ -262,7 +265,7 @@ class TorrentFeedThread(Thread):
 
                     # sleep in between torrent retrievals
                     #time.sleep(self.intertorrentinterval)
-                    time.sleep(self.session.get_rss_check_frequency())
+                    time.sleep(self.checkfrequency)
 
                     self.lock.acquire()
                     try:
@@ -274,7 +277,7 @@ class TorrentFeedThread(Thread):
 
             # sleep for a relatively long time before downloading the
             # rss feeds again
-            for count in range(int(self.session.get_rss_reload_frequency() / 10)):
+            for count in range(int(self.reloadfrequency / 10)):
                 self.lock.acquire()
                 try:
                     if self.feeds_changed:

@@ -5,7 +5,6 @@ import sys
 import os
 import time
 import copy
-import sha
 import pickle
 import socket
 import binascii

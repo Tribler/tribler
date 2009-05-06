@@ -4,7 +4,7 @@
 import os
 import sys
 import base64
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from traceback import print_exc
 from shutil import copy2
 import wx

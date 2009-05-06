@@ -271,6 +271,7 @@ class BuddyCastFactory:
         BuddyCastFactory.__single = self 
         self.registered = False
         self.buddycast_core = None
+        self.moderationcast_core = None
         self.buddycast_interval = 15    # MOST IMPORTANT PARAMETER
         self.superpeer = superpeer
         self.log = log
@@ -485,6 +486,9 @@ class BuddyCastFactory:
                 
         if self.running or exc is not None:    # if not running, only close connection
             self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
+            
+        if self.moderationcast_core is not None:
+            self.moderationcast_core.handleConnection(exc,permid,selversion,locally_initiated)
     
     def addMyPref(self, torrent):
         """ Called by OverlayThread (as should be everything) """
@@ -1878,7 +1882,13 @@ class BuddyCastCore:
         else:
             _peers = self.remote_search_peer_candidates
         peers = [permid for last_seen,permid in _peers]
-        return peers
+
+        # Also add local peers (they should be cheap)
+        # TODO: How many peers?  Should these be part of the npeers?
+        local_peers = self.data_handler.getLocalPeerList(max_peers=5)
+        print >> sys.stderr, "bc: getRemoteSearchPeers: Selected %d local peers" % len(local_peers)
+        
+        return local_peers + peers
         
         
 class DataHandler:
@@ -1954,7 +1964,10 @@ class DataHandler:
     
     def getPeerPermid(self, peer_id):
         return self.peer_db.getPermid(peer_id)
-    
+
+    def getLocalPeerList(self, max_peers):
+        return self.peer_db.getLocalPeerList(max_peers)
+        
     def updatePort(self, port):
         self.my_db.put('port', port)
   

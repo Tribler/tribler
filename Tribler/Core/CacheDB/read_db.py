@@ -12,7 +12,7 @@ from cPickle import load, loads
 from sets import Set
 from base64 import encodestring, decodestring
 from time import gmtime, strftime
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 
 class DBReader:
     def __init__(self):

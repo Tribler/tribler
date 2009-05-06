@@ -2,12 +2,12 @@
 # see LICENSE.txt for license information
 
 import sys
-import sha
 
 from Tribler.Test.test_permid import TestPermIDs
 from btconn import BTConnection
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.Utilities.Crypto import sha
 
 DEBUG=False
 
@@ -62,7 +62,7 @@ class OLConnection:
         resp2['A'] = hisid
         sig_list = [rB,resp1_dict['rA'],hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp2['SB'] = sig_asn1
         return self.create_response2_payload(resp2)
@@ -84,7 +84,7 @@ class OLConnection:
         resp1['B'] = hisid
         sig_list = [resp1['rA'],rB,hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp1['SA'] = sig_asn1
         return [resp1['rA'],self.create_response1_payload(resp1)]

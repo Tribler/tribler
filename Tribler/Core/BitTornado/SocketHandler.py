@@ -550,5 +550,10 @@ class SocketHandler:
         del self.servers[serversocket.fileno()]
         
 
+    # Addition for multicast
+    def add_socket(self, socket):
+        self.servers[socket.fileno()] = socket
+        socket.setblocking(0)
+        
 def is_udp_socket(sock):
     return sock.getsockopt(socket.SOL_SOCKET,socket.SO_TYPE) == socket.SOCK_DGRAM

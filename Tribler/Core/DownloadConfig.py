@@ -2,11 +2,19 @@
 # see LICENSE.txt for license information
 """ Controls how a TorrentDef is downloaded (rate, where on disk, etc.) """
 
+#
+# WARNING: When extending this class:
+#
+# 1. Add a JavaDoc description for each method you add.
+# 2. Also add the methods to APIImplementation/DownloadRuntimeConfig.py  
+# 3. Document your changes in API.py
+#
+#
+
 import sys
 import os
 #import time
 import copy
-import sha
 import pickle
 import shutil
 from traceback import print_exc,print_stack

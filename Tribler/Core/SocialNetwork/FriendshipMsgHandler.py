@@ -33,7 +33,7 @@ from Tribler.Core.Utilities.utilities import *
 
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
 
-DEBUG = False
+DEBUG = True
 
 """
 State diagram:

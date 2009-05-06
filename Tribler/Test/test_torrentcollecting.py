@@ -19,7 +19,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PreferenceDBHandler, MyPreferenceDBHandler
 from Tribler.Core.BuddyCast.TorrentCollecting import SimpleTorrentCollecting
     
-CREATE_SQL_FILE = os.path.join(BASE_DIR, 'tribler_sdb_v1.sql')
+CREATE_SQL_FILE = os.path.join(BASE_DIR, 'schema_sdb_v1.sql')
 assert os.path.isfile(CREATE_SQL_FILE)
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = None

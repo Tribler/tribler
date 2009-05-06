@@ -23,7 +23,7 @@ from CurrentRateMeasure import Measure
 from BT1.PiecePicker import PiecePicker
 from BT1.Statistics import Statistics
 from bencode import bencode, bdecode
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from os import path, makedirs, listdir
 from parseargs import parseargs, formatDefinitions, defaultargs
 from socket import error as socketerror
@@ -37,7 +37,7 @@ from Tribler.Core.Merkle.merkle import create_fake_hashes
 from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 from Tribler.Core.Video.PiecePickerStreaming import PiecePickerVOD
 from Tribler.Core.Video.VideoOnDemand import MovieOnDemandTransporter
-from Tribler.Core.Video.VideoSource import VideoSourceTransporter,RateLimitedVideoSourceTransporter,PiecePickerSource,ECDSAAuthenticator
+from Tribler.Core.Video.VideoSource import VideoSourceTransporter,RateLimitedVideoSourceTransporter,PiecePickerSource
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename,savefilenames2finaldest
 
 # 2fastbt_

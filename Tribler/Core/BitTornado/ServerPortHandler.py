@@ -5,7 +5,7 @@ import sys
 from cStringIO import StringIO
 from binascii import b2a_hex, b2a_uu 
 #from RawServer import RawServer
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 try:
     True
 except:

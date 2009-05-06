@@ -24,10 +24,10 @@ import apsw
 #assert apsw_version >= support_version, "Required APSW Version >= %d.%d.%d."%support_version + " But your version is %d.%d.%d.\n"%apsw_version + \
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
-CURRENT_MAIN_DB_VERSION = 2
+CURRENT_MAIN_DB_VERSION = 3
 
 CREATE_SQL_FILE = None
-CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'tribler_sdb_v'+str(CURRENT_MAIN_DB_VERSION)+'.sql')
+CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v'+str(CURRENT_MAIN_DB_VERSION)+'.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 BSDDB_DIR_NAME = 'bsddb'
@@ -883,8 +883,9 @@ class SQLiteCacheDBBase:
         res2 = len(self.getAll('Peer', 'name', 'name is not NULL'))
         return (res1, res2)
     
-class SQLiteCacheDBV2(SQLiteCacheDBBase):
+class SQLiteCacheDBV3(SQLiteCacheDBBase):
     def updateDB(self, fromver, tover):
+
         # bring database up to version 2, if necessary        
         if fromver < 2:
             sql = """
@@ -957,13 +958,24 @@ CREATE INDEX idx_terms_term ON ClicklogTerm(term);
 """       
             
             self.execute_write(sql, commit=False)
-            # updating version stepwise so if this works, we store it
-            # regardless of later, potentially failing updates
-            self.writeDBVersion(2, commit=False)
-            self.commit()
+
+        
+        if fromver < 3:
+            sql = """
+-- Patch for Local Peer Discovery
+            
+ALTER TABLE Peer ADD COLUMN is_local integer DEFAULT 0;
+"""       
+            self.execute_write(sql, commit=False)
+            
+            
+        # updating version stepwise so if this works, we store it
+        # regardless of later, potentially failing updates
+        self.writeDBVersion(CURRENT_MAIN_DB_VERSION, commit=False)
+        self.commit()
 
 
-class SQLiteCacheDB(SQLiteCacheDBV2):
+class SQLiteCacheDB(SQLiteCacheDBV3):
     __single = None    # used for multithreaded singletons pattern
     lock = threading.RLock()
 

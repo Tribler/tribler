@@ -23,6 +23,8 @@ python test_g2g.py
 python test_TimedTaskQueue.py
 python test_crawler.py
 python test_friendship_crawler.py
+python test_multicast.py
+
 
 CALL test_secure_overlay.bat
 CALL test_dialback_reply_active.bat
@@ -31,6 +33,7 @@ CALL test_rquery_reply_active.bat
 CALL test_dlhelp.bat
 CALL test_buddycast_msg.bat 
 CALL test_buddycast2_datahandler.bat
+REM # See warning in test_friendship.py
 CALL test_friendship.bat
 
 REM Takes a long time, do at end

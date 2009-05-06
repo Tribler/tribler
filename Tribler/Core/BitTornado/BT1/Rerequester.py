@@ -13,7 +13,7 @@ from cStringIO import StringIO
 from traceback import print_exc,print_stack
 from socket import error, gethostbyname, inet_aton, inet_ntoa
 from random import shuffle
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from time import time
 from struct import pack, unpack
 import binascii

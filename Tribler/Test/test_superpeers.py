@@ -13,7 +13,7 @@ elif os.path.exists('LICENSE.txt'):
 from Tribler.Core.CacheDB.cachedb import SQLiteCacheDB
 from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler, PeerDBHandler
 
-CREATE_SQL_FILE = os.path.join(BASE_DIR, 'tribler_sdb_v2.sql')
+CREATE_SQL_FILE = os.path.join(BASE_DIR, 'schema_sdb_v3.sql')
 assert os.path.isfile(CREATE_SQL_FILE)
     
 

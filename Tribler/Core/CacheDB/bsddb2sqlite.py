@@ -7,7 +7,7 @@ from bsdcachedb import MyDB, PeerDB, TorrentDB, PreferenceDB, MyPreferenceDB, Ba
 from copy import deepcopy
 from time import time
 from sets import Set
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from base64 import encodestring, decodestring
 
 from Tribler.Core.BitTornado.bencode import bdecode
@@ -606,7 +606,7 @@ class Bsddb2Sqlite:
 
 if __name__ == '__main__':
     bsddb_dir = sys.argv[1]
-    bsddb2sqlite = Bsddb2Sqlite(bsddb_dir, 'tribler.sdb', '../../tribler_sdb_v1.sql')
+    bsddb2sqlite = Bsddb2Sqlite(bsddb_dir, 'tribler.sdb', '../../schema_sdb_v1.sql')
     start = time()
     peer_limit = torrent_limit = 0
     if len(sys.argv)>2:

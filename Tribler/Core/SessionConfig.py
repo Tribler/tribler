@@ -2,6 +2,15 @@
 # see LICENSE.txt for license information
 """ Controls the operation of a Session """
 
+#
+# WARNING: When extending this class:
+#
+# 1. Add a JavaDoc description for each method you add.
+# 2. Also add the methods to APIImplementation/SessionRuntimeConfig.py  
+# 3. Document your changes in API.py
+#
+#
+
 import sys
 import copy
 import pickle
@@ -1131,69 +1140,102 @@ class SessionConfigInterface:
         return self.sessconfig['crawler']
     
     #
-    # RSS feed settings
-    #
-    def set_rss_reload_frequency(self, frequency):
-        """ reload a rss source every n seconds """
-        self.sessconfig['rss_reload_frequency'] = frequency
-
-    def get_rss_reload_frequency(self):
-        """ Returns the reload frequency for a rss source """
-        return self.sessconfig['rss_reload_frequency']
-
-    def set_rss_check_frequency(self, frequency):
-        """ test a potential .torrent in a rss source every n seconds """
-        self.sessconfig['rss_check_frequency'] = frequency
-
-    def get_rss_check_frequency(self):
-        """ Returns the check frequency for a potential .torrent in a rss source """
-        return self.sessconfig['rss_check_frequency']
-
-    #
     # ModerationCast
     #
+    # Arno, 2009-04-16: these methods must be documented.
+    #
     def set_moderationcast_recent_own_moderations_per_have(self, n):
+        """ Sets the maximum number of recent own moderations that can be embedded
+         in a ModerationCast_Have message.
+        @param n Integer. """
         self.sessconfig['moderationcast_recent_own_moderations_per_have'] = n
 
     def get_moderationcast_recent_own_moderations_per_have(self):
+        """ Returns the maximum number of recent own moderations that can be embedded
+         in a ModerationCast_Have message.
+        @return Integer. """
         return self.sessconfig['moderationcast_recent_own_moderations_per_have']
 
     def set_moderationcast_random_own_moderations_per_have(self, n):
+        """ Sets the maximum number of random own moderations that can be embedded
+         in a ModerationCast_Have message.
+        @param n Integer. """
         self.sessconfig['moderationcast_random_own_moderations_per_have'] = n
 
     def get_moderationcast_random_own_moderations_per_have(self):
+        """ Returns the maximum number of random own moderations that can be embedded
+         in a ModerationCast_Have message.
+        @return Integer. """
         return self.sessconfig['moderationcast_random_own_moderations_per_have']
 
     def set_moderationcast_recent_forward_moderations_per_have(self, n):
+        """ Sets the maximum number of recent moderations from other moderators that can be 
+        fowarded in a ModerationCast_Have message.
+        @param n Integer. """
         self.sessconfig['moderationcast_recent_forward_moderations_per_have'] = n
 
     def get_moderationcast_recent_forward_moderations_per_have(self):
+        """ Returns the maximum number of recent moderations from other moderators that can 
+         be forwarded in a ModerationCast_Have message.
+        @return Integer. """
         return self.sessconfig['moderationcast_recent_forward_moderations_per_have']
     
     def set_moderationcast_random_forward_moderations_per_have(self, n):
+        """ Sets the maximum number of random moderations from other moderators that can be 
+        forwarded in a ModerationCast_Have message.
+        @param n Integer. """
         self.sessconfig['moderationcast_random_forward_moderations_per_have'] = n
 
     def get_moderationcast_random_forward_moderations_per_have(self):
+        """ Returns the maximum number of random moderations from other moderators that can be 
+        forwarded in ModerationCast_Have message.
+        @return Integer. """
         return self.sessconfig['moderationcast_random_forward_moderations_per_have']
 
     def get_moderationcast_moderations_per_have(self):
+        """ Returns the maximum number of moderations that can be embedded in 
+        ModerationCast_Have message.
+        @return Integer.
+        """
         return self.sessconfig['moderationcast_recent_own_moderations_per_have'] + \
                self.sessconfig['moderationcast_random_own_moderations_per_have'] + \
                self.sessconfig['moderationcast_recent_forward_moderations_per_have'] + \
                self.sessconfig['moderationcast_random_forward_moderations_per_have']
 
-    def set_moderationcast_upload_bandwidth_limit(self, limit):
-        self.sessconfig['moderationcast_upload_bandwidth_limit'] = limit
-
-    def get_moderationcast_upload_bandwidth_limit(self):
-        return self.sessconfig['moderationcast_upload_bandwidth_limit']
-
-    def set_moderationcast_download_bandwidth_limit(self, limit):
-        self.sessconfig['moderationcast_download_bandwidth_limit'] = limit
-
-    def get_moderationcast_download_bandwidth_limit(self):
-        return self.sessconfig['moderationcast_download_bandwidth_limit']
     
+    def set_moderationcast_promote_own(self,value):
+        """" Sets whether to promote your own moderations at every
+        overlay connection made.
+        @param value Boolean.
+        """
+        self.sessconfig['moderationcast_promote_own'] = value
+        
+    def get_moderationcast_promote_own(self):
+        """" Returns whether to promote your own moderations at every
+        overlay connection made.
+        @return Boolean.
+        """
+        return self.sessconfig['moderationcast_promote_own']
+
+
+    # 
+    # Local Peer Discovery using IP Multicast
+    #
+    def set_multicast_local_peer_discovery(self,value):
+        """ Set whether the Session tries to detect local peers
+        using a local IP multicast. Overlay swarm (set_overlay()) must
+        be enabled as well.
+        @param value Boolean
+        """
+        self.sessconfig['multicast_local_peer_discovery'] = value
+        
+    def get_multicast_local_peer_discovery(self):
+        """
+        Returns whether local peer discovery is enabled.
+        @return Boolean
+        """
+        return self.sessconfig['multicast_local_peer_discovery']
+
 
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  

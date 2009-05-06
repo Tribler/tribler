@@ -6,7 +6,7 @@ import unittest
 import os
 import sys
 import time
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from random import randint,shuffle
 from traceback import print_exc
 from types import StringType, IntType, ListType
@@ -147,6 +147,9 @@ class TestCrawler(TestAsServer):
             self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 0, 0, query)
 
             error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 0)
+            
+            
+            
             assert error == 1
             if DEBUG:
                 print >>sys.stderr, payload
@@ -157,10 +160,10 @@ class TestCrawler(TestAsServer):
     def subtest_invalid_frequency(self):
         """
         Send two valid requests shortly after each other. However,
-        indicate that the frequency should be largs. This should
+        indicate that the frequency should be large. This should
         result in a frequency error
         """
-        print >>sys.stderr, "-"*80, "\ntest: invalid_sql_query"
+        print >>sys.stderr, "-"*80, "\ntest: invalid_invalid_frequency"
 
         # make sure that the OLConnection IS in the crawler_db
         crawler_db = CrawlerDBHandler.getInstance()
@@ -175,13 +178,14 @@ class TestCrawler(TestAsServer):
         self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 1000, "SELECT * FROM peer")
         error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
         assert error == 254 # should give a frequency erro
-
+        s.close()
+        
         # try on a new connection
         s = OLConnection(self.my_keypair, "localhost", self.hisport)
         self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 1000, "SELECT * FROM peer")
         error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
-        assert error == 254 # should give a frequency erro
-
+        assert error == 254 # should give a frequency error
+ 
         time.sleep(1)
         s.close()
         
@@ -281,14 +285,17 @@ class TestCrawler(TestAsServer):
         #     1 byte: 4      Indicating success (0) or failure (non 0)
         #     n byte: 5...   Reply payload
 
+        if DEBUG:
+            print >>sys.stderr, "test_crawler: receive_crawler_reply: waiting for channel",channel_id
+
         parts = []
         while True:
             response  = sock.recv()
             if response:
                 if response[0] == CRAWLER_REPLY and response[1] == message_id and ord(response[2]) == channel_id:
-                    if DEBUG:
-                        print >>sys.stderr, "test_crawler: received", getMessageName(response[0:2]), "channel", channel_id, "parts left", ord(response[3])
                     parts.append(response[5:])
+                    if DEBUG:
+                        print >>sys.stderr, "test_crawler: received", getMessageName(response[0:2]), "channel", channel_id, "length", sum([len(part) for part in parts]), "parts left", ord(response[3])
 
                     if ord(response[3]):
                         # there are parts left

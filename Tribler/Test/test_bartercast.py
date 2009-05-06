@@ -5,7 +5,7 @@ import unittest
 import os
 import sys
 import time
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from random import randint,shuffle
 from traceback import print_exc
 from types import StringType, ListType, DictType

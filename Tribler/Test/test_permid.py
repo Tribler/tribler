@@ -9,7 +9,6 @@ import socket
 import tempfile
 import random
 import shutil
-import sha
 import time
 from binascii import b2a_hex
 from struct import pack,unpack
@@ -21,6 +20,7 @@ from Tribler.Test.test_as_server import TestAsServer
 from btconn import BTConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import CHALLENGE,RESPONSE1,RESPONSE2
+from Tribler.Core.Utilities.Crypto import sha
 from M2Crypto import EC
 
 DEBUG=False
@@ -103,7 +103,7 @@ class TestPermIDs(TestAsServer):
         resp2['A'] = hisid
         sig_list = [rB,resp1_dict['rA'],hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp2['SB'] = sig_asn1
         return self.create_response2_payload(resp2)
@@ -235,7 +235,7 @@ class TestPermIDs(TestAsServer):
         resp2['A'] = hisid
         sig_list = [rB,resp1_dict['rA'],hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp2['SB'] = sig_asn1
         return self.create_response2_payload(resp2)
@@ -246,7 +246,7 @@ class TestPermIDs(TestAsServer):
         resp2['A'] = '\x00\x00\x00\x00\x00\x30\x00\x00'
         sig_list = [rB,resp1_dict['rA'],hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp2['SB'] = sig_asn1
         return self.create_response2_payload(resp2)
@@ -256,7 +256,7 @@ class TestPermIDs(TestAsServer):
         resp2['certB'] = str(self.my_keypair.pub().get_der())
         resp2['A'] = hisid
         sig_data = '\x00\x00\x00\x00\x00\x30\x00\x00'
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp2['SB'] = sig_asn1
         return self.create_response2_payload(resp2)
@@ -267,7 +267,7 @@ class TestPermIDs(TestAsServer):
         resp2['A'] = hisid
         sig_list = ['\x00\x00\x00\x00\x00\x30\x00\x00',resp1_dict['rA'],hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp2['SB'] = sig_asn1
         return self.create_response2_payload(resp2)
@@ -278,7 +278,7 @@ class TestPermIDs(TestAsServer):
         resp2['A'] = hisid
         sig_list = [rB,'\x00\x00\x00\x00\x00\x30\x00\x00',hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp2['SB'] = sig_asn1
         return self.create_response2_payload(resp2)
@@ -289,7 +289,7 @@ class TestPermIDs(TestAsServer):
         resp2['A'] = hisid
         sig_list = ["wrong".zfill(random_size),resp1_dict['rA'],hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp2['SB'] = sig_asn1
         return self.create_response2_payload(resp2)
@@ -300,7 +300,7 @@ class TestPermIDs(TestAsServer):
         resp2['A'] = hisid
         sig_list = [rB,"wrong".zfill(random_size),hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.my_keypair.sign_dsa_asn1(sig_hash))
         resp2['SB'] = sig_asn1
         return self.create_response2_payload(resp2)
@@ -312,7 +312,7 @@ class TestPermIDs(TestAsServer):
         resp2['A'] = hisid
         sig_list = [rB,resp1_dict['rA'],hisid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         sig_asn1 = str(self.his_keypair.sign_dsa_asn1(sig_hash))
         resp2['SB'] = sig_asn1
         return self.create_response2_payload(resp2)
@@ -340,7 +340,7 @@ class TestPermIDs(TestAsServer):
         # verify signature
         sig_list = [rA,rB,myid]
         sig_data = bencode(sig_list)
-        sig_hash = sha.sha(sig_data).digest()
+        sig_hash = sha(sig_data).digest()
         self.assert_(pubA.verify_dsa_asn1(sig_hash,SA))
         # Cannot resign the data with his keypair to double check. Signing
         # appears to yield different, supposedly valid sigs each time.

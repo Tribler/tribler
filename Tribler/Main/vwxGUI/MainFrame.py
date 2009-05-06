@@ -46,7 +46,6 @@ from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from Tribler.Video.VideoPlayer import VideoPlayer
-from Tribler.Video.VideoFrame import VideoFrame
 from Tribler.Video.utils import videoextdefaults
 
 from Tribler.Category.Category import Category
@@ -662,33 +661,3 @@ class MainFrame(wx.Frame):
             self.wxapp.ExitMainLoop()
      
      
-class PlayerFrame(VideoFrame):
-    """
-    Wrapper around VideoFrame that allows us to catch the Close event. On
-    that event we should notify tribler such that it can stop any live torrents,
-    and restart others that may have been stopped.
-    """
-    def __init__(self,parent,title,iconpath,vlcwrap,logopath):
-        VideoFrame.__init__(self,parent,title,iconpath,vlcwrap,logopath)
-        self.parent = parent
-        self.closed = False
-        
-        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-    
-    def show_videoframe(self):
-        self.closed = False
-        VideoFrame.show_videoframe(self)
-    
-    def OnCloseWindow(self, event = None):
-        
-        print >>sys.stderr,"PlayerFrame: ON CLOSE WINDOW"
-        if not self.closed:
-            self.closed = True
-            VideoFrame.OnCloseWindow(self,event)
-            
-            if self.parent.wxapp is not None:
-                self.parent.wxapp.OnClosingVideoFrameOrExtPlayer()
-            
-        print >>sys.stderr,"PlayerFrame: Closing done"
-        
-

@@ -7,7 +7,7 @@ import socket
 import random
 from threading import Event, Semaphore
 from time import sleep
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from traceback import print_exc
 #from cStringIO import StringIO
 

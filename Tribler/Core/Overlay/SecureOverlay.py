@@ -75,6 +75,7 @@ class SecureOverlay:
         # ARNOCOMMENT: Remove this, DB should be fast enough. Don't want caches allover
         self.dns = safe_dict()
 
+       
     #
     # Interface for upper layer
     #
@@ -100,7 +101,7 @@ class SecureOverlay:
         self.myip = self.lm.get_ext_ip()
         self.myport = self.lm.session.get_listen_port()
         self.myid = create_my_peer_id(self.myport)
-        
+
     def resetSingleton(self):
         """ For testing purposes """
         SecureOverlay.__single = None 
@@ -148,6 +149,10 @@ class SecureOverlay:
         
         dns = self.get_dns_from_peerdb(permid)
         task = Task(self._connect,permid,dns,callback)
+
+        if DEBUG:
+            print >> sys.stderr,"secover: connect",show_permid_short(permid),"currently at",dns
+        
         self.rawserver.add_task(task.start, 0)
 
 
@@ -448,7 +453,7 @@ class SecureOverlay:
             print_exc()
             return False
 
-
+        
     def get_max_len(self):
         return self.max_len
     
@@ -480,7 +485,7 @@ class SecureOverlay:
                 ip = hostname_or_ip2ip(peer[0])
                 dns = (ip, int(peer[1]))
         return dns
-    
+ 
     def add_peer_to_db(self,permid,dns,selversion):
         """ add a connected peer to database """
         # Called by OverlayThread
@@ -497,7 +502,7 @@ class SecureOverlay:
         self.peer_db.addPeer(permid, peer_data, update_dns=True, update_connected=True, commit=True)
         #self.peer_db.updateTimes(permid, 'connected_times', 1, commit=True)
         
-        
+
     def update_peer_status(self,permid,authwasdone):
         """ update last_seen and last_connected in peer db when close """
         # Called by OverlayThread

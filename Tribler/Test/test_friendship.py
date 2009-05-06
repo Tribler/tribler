@@ -1,12 +1,23 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+#
+# WARNING:
+#
+# To run this test, please set
+# RESCHEDULE_INTERVAL = 6
+# RESEND_INTERVAL = 6
+#
+# In Tribler/Core/SocialNetwork/FriendshipMsgHandler.py
+#
+
+
 import unittest
 import os
 import sys
 import time
 import socket
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from random import randint,shuffle
 from traceback import print_exc
 from types import StringType, ListType, DictType, IntType, BooleanType
@@ -358,13 +369,14 @@ class TestFriendship(TestAsServer):
         """ 
             Test good FRIENDSHIP RESP message: 
             We send a FWD containing a positive RESP and see if Tribler
-            registers our denial. 
+            registers our confirmation. 
         """
         self.usercallbackexpected = False
         self.subtest_good_friendship_fwd_resp_desthim(FWD,fwd=RESP,mresp=1)
 
         frienddb = self.session.open_dbhandler(NTFY_FRIENDS)
         fs = frienddb.getFriendState(self.destpermid)
+        print >>sys.stderr,"FS AFTER IS",fs
         self.assert_(fs == FS_HE_INVITED)
 
 
@@ -465,7 +477,7 @@ class TestFriendship(TestAsServer):
         
 
     def subtest_good_friendship_fwd_fromhim(self,mtype,fwd=None,mresp=None):
-        print >>sys.stderr,"test: good FRIENDSHIP fwd from him",mtype,fwd
+        print >>sys.stderr,"test: Expecting good FRIENDSHIP fwd from him",mtype,fwd
 
         # He should try to forward the request to us, his friend
         try:

@@ -3,7 +3,7 @@
 
 import time
 import sys
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from types import DictType,IntType,LongType,ListType,StringType
 from random import shuffle
 from traceback import print_exc,print_stack

@@ -30,9 +30,9 @@ except:
 import wx
 
 from Tribler.Core.API import *
+from Tribler.Core.osutils import *
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
 from Tribler.Utilities.Instance2Instance import InstanceConnectionHandler,InstanceConnection
-
 from Tribler.Player.BaseApp import BaseApp
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Video.VideoServer import VideoHTTPServer

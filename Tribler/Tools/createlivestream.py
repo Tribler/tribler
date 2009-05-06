@@ -17,13 +17,15 @@ import Tribler.Core.BitTornado.parseargs as parseargs
 
 argsdef = [('name', '', 'name of the stream'),
            ('source', '-', 'source to stream (url, file or "-" to indicate stdin)'),
+           ('fileloop', False, 'if source is file, loop over it endlessly'),
            ('destdir', '.','dir to save torrent (and stream)'),
            ('bitrate', (512*1024)/8, 'bitrate of the streams in bytes'),
            ('piecesize', 32768, 'transport piece size'),
            ('duration', '1:00:00', 'duration of the stream in hh:mm:ss format'),
            ('nuploads', 7, 'the max number of peers to serve directly'),
            ('port', 7764, 'the TCP+UDP listen port'),
-           ('thumb', '', 'filename of image in JPEG format, preferably 171x96')]
+           ('thumb', '', 'filename of image in JPEG format, preferably 171x96'),
+           ('auth', 'RSA', 'Live-souce authentication method to use (ECDSA or RSA)')]
 
 
 def state_callback(ds):
@@ -41,6 +43,22 @@ def vod_ready_callback(d,mimetype,stream,filename):
 def get_usage(defs):
     return parseargs.formatDefinitions(defs,80)
     
+    
+class FileLoopStream:
+    
+    def __init__(self,stream):
+        self.stream = stream
+        
+    def read(self,nbytes=None):
+        data = self.stream.read(nbytes)
+        if len(data) == 0: # EOF
+            self.stream.seek(0)
+            data = self.stream.read(nbytes)
+        return data
+    
+    def close(self):
+        self.stream.close()
+
 
 if __name__ == "__main__":
 
@@ -73,12 +91,20 @@ if __name__ == "__main__":
 
     # LIVESOURCEAUTH
     authfilename = os.path.join(config['destdir'],config['name']+'.sauth')
-    try:
-        authcfg = ECDSALiveSourceAuthConfig.load(authfilename)
-    except:
-        print_exc()
-        authcfg = ECDSALiveSourceAuthConfig()
-        authcfg.save(authfilename)
+    if config['auth'] == 'RSA':
+        try:
+            authcfg = RSALiveSourceAuthConfig.load(authfilename)
+        except:
+            print_exc()
+            authcfg = RSALiveSourceAuthConfig()
+            authcfg.save(authfilename)
+    else:
+        try:
+            authcfg = ECDSALiveSourceAuthConfig.load(authfilename)
+        except:
+            print_exc()
+            authcfg = ECDSALiveSourceAuthConfig()
+            authcfg.save(authfilename)
 
     print >>sys.stderr,"main: Source auth pubkey",`str(authcfg.get_pubkey())`
 
@@ -124,7 +150,11 @@ if __name__ == "__main__":
         (child_out,source) = os.popen2( cmd, 'b' )
     else:
         # File source
-        source = open(config['source'],"rb")
+        stream = open(config['source'],"rb")
+        if config['fileloop']:
+            source = FileLoopStream(stream)
+        else:
+            source = stream
         dscfg.set_video_ratelimit(tdef.get_bitrate())
         
     dscfg.set_video_source(source,authcfg)

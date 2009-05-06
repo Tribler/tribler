@@ -14,9 +14,9 @@ from time import sleep
 from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker
 from Tribler.Core.Video.VideoStatus import VideoStatus
 from Tribler.Core.simpledefs import *
-from Tribler.Core.Video.LiveSourceAuth import NullAuthenticator,ECDSAAuthenticator
+from Tribler.Core.Video.LiveSourceAuth import NullAuthenticator,ECDSAAuthenticator,RSAAuthenticator
 
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 
 DEBUG = True
 
@@ -60,6 +60,8 @@ class VideoSourceTransporter:
         # LIVESOURCEAUTH
         if authconfig.get_method() == LIVE_AUTHMETHOD_ECDSA:
             self.authenticator = ECDSAAuthenticator(self.videostatus.piecelen,self.bt1download.len_pieces,keypair=authconfig.get_keypair())
+        elif authconfig.get_method() == LIVE_AUTHMETHOD_RSA:
+            self.authenticator = RSAAuthenticator(self.videostatus.piecelen,self.bt1download.len_pieces,keypair=authconfig.get_keypair())
         else:
             self.authenticator = NullAuthenticator(self.videostatus.piecelen,self.bt1download.len_pieces)
             
@@ -192,8 +194,13 @@ class VideoSourceTransporter:
 
         if DEBUG:
             print >>sys.stderr,"VideoSource: created piece #%d" % index
+            # ECDSA
             #print >>sys.stderr,"VideoSource: sig",`piece[-64:]`
             #print >>sys.stderr,"VideoSource: dig",sha(piece[:-64]).hexdigest()
+            # RSA, 768 bits
+            #print >>sys.stderr,"VideoSource: sig",`piece[-96:]`
+            #print >>sys.stderr,"VideoSource: dig",sha(piece[:-112]).hexdigest()
+
 
         # act as if the piece was requested and just came in
         # do this in chunks, as StorageWrapper expects to handle

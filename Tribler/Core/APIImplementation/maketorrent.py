@@ -8,7 +8,7 @@ import os
 import md5
 import zlib
 
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from copy import copy
 from threading import Event
 from time import time

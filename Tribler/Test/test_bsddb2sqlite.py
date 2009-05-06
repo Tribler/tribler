@@ -34,7 +34,7 @@ def extract_db_files(file_dir, file_name):
         return False
     
     
-CREATE_SQL_FILE = os.path.join(BASE_DIR, 'tribler_sdb_v1.sql')
+CREATE_SQL_FILE = os.path.join(BASE_DIR, 'schema_sdb_v1.sql')
 assert os.path.isfile(CREATE_SQL_FILE)
 FILES_DIR = os.path.join(BASE_DIR, 'Test/extend_db_dir/')
 STATE_FILE_NAME_PATH = os.path.join(FILES_DIR, 'tribler.sdb-journal')

@@ -6,7 +6,7 @@ from binascii import b2a_hex
 from socket import error as socketerror
 from urllib import quote
 from struct import unpack
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from time import time
 import random
 from sets import Set

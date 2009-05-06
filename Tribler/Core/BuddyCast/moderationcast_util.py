@@ -4,7 +4,6 @@
 #Utilities for moderationcast (including databases)
 #
 import sys
-from sha import sha
 
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 

@@ -1,18 +1,18 @@
-# Written by Bram Cohen
+# Written by Bram Cohen, Arno Bakker
 # see LICENSE.txt for license information
 
-from Tribler.Core.BitTornado.bitfield import Bitfield
-from sha import sha
-from Tribler.Core.BitTornado.clock import clock
 from traceback import print_exc
 from random import randrange
 from math import log,pow,floor
-from Tribler.Core.BitTornado.bencode import bencode
 from copy import deepcopy
 import pickle
 import traceback, sys
 
 from Tribler.Core.Merkle.merkle import MerkleTree
+from Tribler.Core.Utilities.Crypto import sha
+from Tribler.Core.BitTornado.bitfield import Bitfield
+from Tribler.Core.BitTornado.clock import clock
+from Tribler.Core.BitTornado.bencode import bencode
 
 try:
     True

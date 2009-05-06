@@ -21,7 +21,7 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Video.defs import *
 from Tribler.Video.Progress import ProgressSlider, VolumeSlider
 from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
-from Tribler.Video.EmbeddedPlayer import VLCLogoWindow,DelayTimer
+from Tribler.Video.VideoFrame import VLCLogoWindow,DelayTimer
 
 DEBUG = False
 
@@ -196,7 +196,7 @@ class EmbeddedPlayer4FramePanel(wx.Panel):
                 self.vlcwrap.sound_set_volume(self.oldvolume)
             self.volumeicon.setToggled(False)
         else:
-            self.oldvolume = self.vlwrap.sound_get_volume()
+            self.oldvolume = self.vlcwrap.sound_get_volume()
             self.vlcwrap.sound_set_volume(0.0) # mute sound
             self.volumeicon.setToggled(True)
         

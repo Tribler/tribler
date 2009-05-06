@@ -25,7 +25,15 @@ DOWNLOAD = 'down'
 DLMODE_NORMAL = 0
 DLMODE_VOD = 1
 
-PERSISTENTSTATE_CURRENTVERSION = 2
+PERSISTENTSTATE_CURRENTVERSION = 3
+"""
+V1 = SwarmPlayer 1.0.0
+V2 = Tribler 4.5.0: SessionConfig: Added NAT fields
+V3 = SessionConfig: Added multicast_local_peer_discovery, 
+     Removed rss_reload_frequency + rss_check_frequency.
+
+For details see API.py
+"""
 
 STATEDIR_ITRACKER_DIR = 'itracker'
 STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
@@ -116,6 +124,7 @@ COOPDL_ROLE_HELPER = 'helper'
 # Methods for authentication of the source in live streaming
 LIVE_AUTHMETHOD_NONE = "None"   # None
 LIVE_AUTHMETHOD_ECDSA = "ECDSA" # Elliptic Curve DSA signatures
+LIVE_AUTHMETHOD_RSA = "RSA" # RSA signatures
 
 # Video-On-Demand / live events
 VODEVENT_START = "start"

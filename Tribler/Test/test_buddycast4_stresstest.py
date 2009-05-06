@@ -6,7 +6,6 @@ import unittest
 import os
 import sys
 import time as T
-from sha import sha
 from random import randint,shuffle
 from traceback import print_exc
 from types import StringType, ListType, DictType
@@ -18,14 +17,11 @@ from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
-
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
-
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory, BuddyCastCore
-
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
 from Tribler.Core.simpledefs import *
-
+from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
 
 

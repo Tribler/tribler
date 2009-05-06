@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 from math import log,pow,floor
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 import sys
 
 DEBUG = False

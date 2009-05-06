@@ -8,7 +8,7 @@ import sys
 import time
 import socket
 import thread
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 from traceback import print_exc
 from types import DictType,StringType,IntType
 import BaseHTTPServer

@@ -863,3 +863,94 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
+    #
+    # Crawler
+    #
+    def set_crawler(self, value):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_crawler(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_crawler(self)
+        finally:
+            self.sesslock.release()
+    
+    #
+    # ModerationCast
+    #
+    def set_moderationcast_recent_own_moderations_per_have(self, n):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_moderationcast_recent_own_moderations_per_have(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_moderationcast_recent_own_moderations_per_have(self)
+        finally:
+            self.sesslock.release()
+
+
+    def set_moderationcast_random_own_moderations_per_have(self, n):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_moderationcast_random_own_moderations_per_have(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_moderationcast_random_own_moderations_per_have(self)
+        finally:
+            self.sesslock.release()
+
+    def set_moderationcast_recent_forward_moderations_per_have(self, n):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_moderationcast_recent_forward_moderations_per_have(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_moderationcast_recent_forward_moderations_per_have(self)
+        finally:
+            self.sesslock.release()
+
+    
+    def set_moderationcast_random_forward_moderations_per_have(self, n):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_moderationcast_random_forward_moderations_per_have(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_moderationcast_random_forward_moderations_per_have(self)
+        finally:
+            self.sesslock.release()
+
+
+    def get_moderationcast_moderations_per_have(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_moderationcast_moderations_per_have(self)
+        finally:
+            self.sesslock.release()
+
+    
+    def set_moderationcast_promote_own(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+        
+    def get_moderationcast_promote_own(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_moderationcast_promote_own(self)
+        finally:
+            self.sesslock.release()
+
+
+    # 
+    # Local Peer Discovery using IP Multicast
+    #
+    def set_multicast_local_peer_discovery(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+        
+    def get_multicast_local_peer_discovery(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_multicast_local_peer_discovery(self)
+        finally:
+            self.sesslock.release()
+

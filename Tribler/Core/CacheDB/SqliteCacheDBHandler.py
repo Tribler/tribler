@@ -11,7 +11,7 @@ from sets import Set
 from traceback import print_exc, print_stack
 from threading import currentThread
 from time import time
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 import sys
 import os
 import socket
@@ -194,7 +194,8 @@ class PeerDBHandler(BasicDBHandler):
 
     gui_value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'num_peers', 'num_torrents', 'num_prefs', 
-                      'connected_times', 'buddycast_times', 'last_connected')
+                      'connected_times', 'buddycast_times', 'last_connected',
+                      'is_local')
     
     def getInstance(*args, **kw):
         # Singleton pattern with double-checking
@@ -286,6 +287,15 @@ class PeerDBHandler(BasicDBHandler):
         
         return peers
     
+    def getLocalPeerList(self, max_peers): # return a list of peer_ids
+        """Return a list of peerids for local nodes, friends first, then random local nodes"""
+        
+        sql = 'select permid from Peer where is_local=1 ORDER BY friend DESC, random() limit %d'%max_peers
+        list = []
+        for row in self._db.fetchall(sql):
+            list.append(base64.b64decode(row[0]))
+        return list
+
     def addPeer(self, permid, value, update_dns=True, update_connected=False, commit=True):
         # add or update a peer
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
@@ -343,6 +353,13 @@ class PeerDBHandler(BasicDBHandler):
         for p in res:
             ret.append({'permid':str2bin(p[0])})
         return ret
+
+    def setPeerLocalFlag(self, permid, is_local, commit=True):
+        argv = {"is_local":int(is_local)}
+        updated = self._db.update(self.table_name, 'permid='+repr(bin2str(permid)), **argv)
+        if commit:
+            self.commit()
+        return updated
     
     def updatePeer(self, permid, commit=True, **argv):
         self._db.update(self.table_name, 'permid='+repr(bin2str(permid)), commit=commit, **argv)
@@ -420,7 +437,7 @@ class PeerDBHandler(BasicDBHandler):
         db keys: peer_id, permid, name, ip, port, thumbnail, oversion, 
                  similarity, friend, superpeer, last_seen, last_connected, 
                  last_buddycast, connected_times, buddycast_times, num_peers, 
-                 num_torrents, num_prefs, num_queries, 
+                 num_torrents, num_prefs, num_queries, is_local,
                  
         @in: get_online: boolean: if true, give peers a key 'online' if there is a connection now
         """
@@ -1495,7 +1512,7 @@ class TorrentDBHandler(BasicDBHandler):
             torrent_list.append(torrent)
         return  torrent_list
         
-    def getRanks(self,):
+    def getRanks(self):
         value_name = 'infohash'
         order_by = 'relevance desc'
         rankList_size = 20

@@ -1,0 +1,61 @@
+<html>
+<head><title>SwarmPlugin Page 1</title></head>
+
+<body>
+
+
+<h1>SwarmPlugin Page 1</h1>
+
+<object classid="clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921" codebase="http://downloads.videolan.org/pub/videolan/vlc/latest/win32/axvlc.cab"
+        width="380" height="320" id="vlc" events="True" target=''>
+<param name="Src" value="http://www.vuze.com/download/XUGIN6PEJJCQ5777C3WUMMBRFI6HYIHJ.torrent?referal=torrentfilelinkcdp&title=Gopher" />
+<param name="ShowDisplay" value="True" />
+<param name="Loop" value="False" />
+<param name="AutoPlay" value="True" />
+</object>
+
+
+<script language="Javascript">
+var vlc = document.getElementById("vlc");
+
+vlc.log.verbosity = 3;
+
+function debugonclick()
+{
+    newwindow2=window.open('','name','height=400,width=640,scrollbars=1,resizable=1');
+    var tmp = newwindow2.document;
+    tmp.write('<html><head><title>popup</title>');
+    tmp.write('</head><body><p>this is once again a popup.</p>');
+
+    tmp.write("Count "+document.vlc.log.messages.count);
+
+    var iter = document.vlc.log.messages.iterator();
+    while(iter.hasNext)
+    {
+        msg = iter.next();
+        tmp.write(msg.message+"<br>");
+    }
+
+    tmp.write('</body></html>');
+    tmp.close();
+
+}
+
+
+</script>
+
+
+
+<input type=button value="Play" onClick='document.vlc.playlist.play();'>
+<input type=button value="Pause" onClick='document.vlc.playlist.togglePause();'>
+<input type=button value="Stop" onclick='document.vlc.playlist.stop();'>
+<input type=button value="Debug" onclick='debugonclick();'>
+<br/>
+
+
+<hr>
+
+
+</body>
+</html>
+

@@ -34,7 +34,7 @@ class ModerationCastCore:
     """
 
     ################################
-    def __init__(self, data_handler, secure_overlay, session, buddycast_interval_function, log = '', dnsindb = None):
+    def __init__(self, data_handler, overlay_bridge, session, buddycast_interval_function, log = '', dnsindb = None):
         """ Returns an instance of this class
         """
         #Keep reference to interval-function of BuddycastFactory
@@ -42,7 +42,7 @@ class ModerationCastCore:
         self.data_handler = data_handler
         self.dnsindb = dnsindb
         self.log = log
-        self.secure_overlay = secure_overlay
+        self.overlay_bridge = overlay_bridge
         self.moderationcastdb = ModerationCastDBHandler.getInstance()
         self.my_permid = self.moderationcastdb.my_permid
         self.session = session
@@ -74,7 +74,7 @@ class ModerationCastCore:
 
     ################################
     def createAndSendModerationCastHaveMessage(self, target_permid, selversion):
-        
+        """ Creates a MODERATIONCAST_HAVE message and sends it."""
         moderationcast_data = self.createModerationCastHaveMessage(target_permid)
         if len(moderationcast_data) == 0:
             if DEBUG:
@@ -92,11 +92,11 @@ class ModerationCastCore:
         
         data = MODERATIONCAST_HAVE+moderationcast_msg
         print >>sys.stderr, "Sending Moderationcast Have Msg", moderationCastHaveMsgToString(moderationcast_data)
-        self.secure_overlay.send(target_permid, data, self.moderationcastSendCallback)
+        self.overlay_bridge.send(target_permid, data, self.moderationcastSendCallback)
         
     ################################
     def createModerationCastHaveMessage(self, target_permid):
-        """ Create a MODERATIONCAST_HAVE message """
+        """ Creates a MODERATIONCAST_HAVE message. """
 
         #Select latest own moderations
         size = self.session.get_moderationcast_recent_own_moderations_per_have()
@@ -144,17 +144,18 @@ class ModerationCastCore:
             data.append((hash, time))
 
         if DEBUG:
-            print >>sys.stderr, "moderationcast: Prepared", len(data), "moderations"
+            print >>sys.stderr, "modcast: Prepared", len(data), "moderations"
 
         return data
 
     ################################
     def createAndSendModerationCastRequestMessage(self, target_permid, have_message, selversion):
+        """ Creates a MODERATIONCAST_REQUEST message and sends it. """
+        
         # for older versions of Tribler (non-ModerationCast): do nothing
         #if selversion < MIN_VERSION:
             #return
-
-        # create a new MODERATIONCAST_REQUEST message
+        
         moderationcast_data = self.createModerationCastRequestMessage(target_permid, have_message)
 
         try:
@@ -186,11 +187,11 @@ class ModerationCastCore:
         #print >>sys.stderr,"the moderation cast request decoded is", bdecode(data)
         #self.uploadLimiter.use(len(data))            #Log upload-bandwidth usage
         #return
-        self.secure_overlay.send(target_permid, data, self.moderationcastSendCallback)
+        self.overlay_bridge.send(target_permid, data, self.moderationcastSendCallback)
 
     ################################
     def createModerationCastRequestMessage(self, target_permid, have_message):
-        """ Create a MODERATIONCAST_REQUEST message """
+        """ Creates a MODERATIONCAST_REQUEST message """
 
         #Select request set, such that it will not exceed download-bandwidth-limit and
         #only select moderations for which we have the torrent and not have a newer moderation
@@ -212,10 +213,11 @@ class ModerationCastCore:
 
     ################################
     def createAndSendModerationCastReplyMessage(self, target_permid, request_message, selversion):
+        """ Creates a MODERATIONCAST_REPLY message and sends it."""
+        
         # for older versions of Tribler (non-ModerationCast): do nothing
         #if selversion < MIN_VERSION:
             #return
-
 
         # create a new MODERATIONCAST_REQUEST message
         moderationcast_data = self.createModerationCastReplyMessage(target_permid, request_message)
@@ -244,11 +246,11 @@ class ModerationCastCore:
         print >>sys.stderr, "Sending Moderationcast Reply Msg", moderationCastReplyMsgToString(moderationcast_data)
         # send the message
         data = MODERATIONCAST_REPLY+moderationcast_msg
-        self.secure_overlay.send(target_permid, data, self.moderationcastSendCallback)
+        self.overlay_bridge.send(target_permid, data, self.moderationcastSendCallback)
 
     ################################
     def createModerationCastReplyMessage(self, target_permid, request_message):
-        """ Create a MODERATIONCAST_REPLY message """
+        """ Creates a MODERATIONCAST_REPLY message """
 
         #Select reply set, such that it will not exceed upload-bandwidth-limit:
         #limit_bytes = self.uploadLimiter.getAvailableSize()
@@ -273,17 +275,18 @@ class ModerationCastCore:
         if exc is None:
             if DEBUG:
 
-                print >> sys.stderr,"moderationcast: *** msg was sent successfully to peer", permid_for_user(target_permid)
+                print >> sys.stderr,"modcast: *** msg was sent successfully to peer", permid_for_user(target_permid)
         else:
             if DEBUG:
 
-                print >> sys.stderr, "moderationcast: *** warning - error in sending msg to", permid_for_user(target_permid), exc
+                print >> sys.stderr, "modcast: *** warning - error in sending msg to", permid_for_user(target_permid), exc
 
     ################################
     def gotModerationCastHaveMessage(self, recv_msg, sender_permid, selversion):
+        """ Receives a MODERATIONCAST_HAVE message and handles it."""
 
         if DEBUG:
-            print >>sys.stderr,'moderationcast: Received a HAVE msg from ', permid_for_user(sender_permid)
+            print >>sys.stderr,'modcast: Received a HAVE msg from ', permid_for_user(sender_permid)
 
         if not sender_permid or sender_permid == self.my_permid:
             return False
@@ -308,18 +311,18 @@ class ModerationCastCore:
             moderationcast_data = bdecode(recv_msg)
         except:
             if DEBUG:
-                print >> sys.stderr, "moderationcast: warning, invalid bencoded data"
+                print >> sys.stderr, "modcast: warning, invalid bencoded data"
             return False
 
         #print >> sys.stderr, "received this thing from the test", moderationcast_data
         # check message-structure
         if not validModerationCastHaveMsg(moderationcast_data):
             if DEBUG:
-                print >> sys.stderr, "moderationcast: invalid MODERATIONCAST_HAVE-message"
+                print >> sys.stderr, "modcast: invalid MODERATIONCAST_HAVE-message"
             return False
 
         if DEBUG:
-            print "Received MODERATIONCAST_HAVE", moderationCastHaveMsgToString(moderationcast_data)
+            print >>sys.stderr,"modcast: Received MODERATIONCAST_HAVE", moderationCastHaveMsgToString(moderationcast_data)
 
         #Log RECV_MSG of uncompressed message
         if self.log:
@@ -337,9 +340,9 @@ class ModerationCastCore:
 
     ################################
     def gotModerationCastRequestMessage(self, recv_msg, sender_permid, selversion):
-        """ Received a MODERATIONCAST_REQUEST message and handle it. Reply if needed """
+        """ Receives a MODERATIONCAST_REQUEST message and handles it. Reply if needed """
         if DEBUG:
-            print >>sys.stderr,'moderationcast: Received a REQUEST msg from ', permid_for_user(sender_permid)
+            print >>sys.stderr,'modcast: Received a REQUEST msg from ', permid_for_user(sender_permid)
 
         #Log download-bandwidth-usage
         #self.downloadLimiter.use(len(recv_msg))
@@ -360,17 +363,17 @@ class ModerationCastCore:
             moderationcast_data = bdecode(recv_msg)
         except:
             if DEBUG:
-                print >> sys.stderr, "moderationcast: warning, invalid bencoded data"
+                print >> sys.stderr, "modcast: warning, invalid bencoded data"
             return False
 
         # check message-structure
         if not validModerationCastRequestMsg(moderationcast_data):
             if DEBUG:
-                print >> sys.stderr, "moderationcast: invalid MODERATIONCAST_REQUEST-message"
+                print >> sys.stderr, "modcast: invalid MODERATIONCAST_REQUEST-message"
             return False
 
         if DEBUG:
-            print "Received MODERATIONCAST_REQUEST", moderationCastRequestMsgToString(moderationcast_data)
+            print >>sys.stderr,"modcast: Received MODERATIONCAST_REQUEST", moderationCastRequestMsgToString(moderationcast_data)
 
         #Log RECV_MSG of uncompressed message
         if self.log:
@@ -387,7 +390,7 @@ class ModerationCastCore:
 
     ################################
     def gotModerationCastReplyMessage(self, recv_msg, sender_permid, selversion):
-        """ Received a MODERATIONCAST_REPLY message and handle it."""
+        """ Receives a MODERATIONCAST_REPLY message and handles it """
 
         #Log download-bandwidth-usage
         #self.downloadLimiter.use(len(recv_msg))
@@ -428,16 +431,16 @@ class ModerationCastCore:
     
     ################################
     def handleModerationCastReplyMsg(self, sender_permid, data):
-        
+        """ Handles a MODERATIONCAST_REPLY message """
         if DEBUG:
-            print "Processing MODERATIONCAST_REPLY msg from: ", permid_for_user(sender_permid)
+            print >>sys.stderr,"modcast: Processing MODERATIONCAST_REPLY msg from: ", permid_for_user(sender_permid)
         
         for moderation in data:
             #print >> sys.stderr,"intention>>>>", moderation
             self.moderationcastdb.updateModeration(moderation)
             
         if DEBUG:
-            print "Processing MODERATIONCAST_REPLY msg from: ", permid_for_user(sender_permid), "DONE"
+            print >>sys.stderr,"modcast: Processing MODERATIONCAST_REPLY msg from: ", permid_for_user(sender_permid), "DONE"
             
 
     ################################
@@ -457,3 +460,13 @@ class ModerationCastCore:
                 print >>sys.stderr, "    modid:",record[0],"; status:", record[1], "; timestamp:",record[2]
             print >>sys.stderr, "End of moderators..."
             
+
+    def handleConnection(self,exc,permid,selversion,locally_initiated):
+        if exc is not None:
+            
+            if self.session.get_moderationcast_promote_own():
+                # Promote your own moderations to anybody you connect to.
+                print >>sys.stderr, "modcast: Force send to promote own moderations"
+                self.createAndSendModerationCastHaveMessage(permid,selversion)
+            
+                

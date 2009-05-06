@@ -5,7 +5,6 @@ import sys
 import os
 import time
 import copy
-import sha
 import socket
 from UserDict import DictMixin
 from threading import RLock,Condition,Event,Thread

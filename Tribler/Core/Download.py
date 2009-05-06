@@ -6,7 +6,6 @@ import sys
 import os
 #import time
 import copy
-import sha
 import pickle
 import shutil
 from traceback import print_exc,print_stack

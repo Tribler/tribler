@@ -7,12 +7,9 @@ from cStringIO import StringIO
 import struct
 import time
 
-from sha import sha
-
-
+from Tribler.Core.Utilities.Crypto import sha,RSA_pub_key_from_der
+from Tribler.Core.osutils import *
 from M2Crypto import EC
-from Tribler.Core.Overlay.permid import sign_data,verify_data_pubkeyobj
-
 
 DEBUG = False
 
@@ -105,7 +102,7 @@ class ECDSAAuthenticator(Authenticator):
         extra = struct.pack('>Qd', self.seqnum,rtstamp)
         self.seqnum += 1L
 
-        sig = sign_data(content,extra,self.keypair)
+        sig = ecdsa_sign_data(content,extra,self.keypair)
         # The sig returned is either 64 or 63 bytes long (62 also possible I 
         # guess). Therefore we transmit size as 1 bytes and fill to 64 bytes.
         lensig = chr(len(sig))
@@ -146,7 +143,7 @@ class ECDSAAuthenticator(Authenticator):
                 print >>sys.stderr,"ECDSAAuth: verify piece",index,"sig",`sig`
                 print >>sys.stderr,"ECDSAAuth: verify dig",sha(content).hexdigest()
         
-            ret = verify_data_pubkeyobj(content,extra,self.pubkey,sig)
+            ret = ecdsa_verify_data_pubkeyobj(content,extra,self.pubkey,sig)
             if ret:
                 (seqnum, rtstamp) = struct.unpack('>Qd',extra)
                 
@@ -188,18 +185,148 @@ class ECDSAAuthenticator(Authenticator):
         return struct.unpack('>Qd',extra)
 
     
-def sign_data(plaintext,extra,ec_keypair):
+def ecdsa_sign_data(plaintext,extra,ec_keypair):
     digester = sha(plaintext)
     digester.update(extra)
     digest = digester.digest()
     return ec_keypair.sign_dsa_asn1(digest)
     
-def verify_data_pubkeyobj(plaintext,extra,pubkey,blob):
+def ecdsa_verify_data_pubkeyobj(plaintext,extra,pubkey,blob):
     digester = sha(plaintext)
     digester.update(extra)
     digest = digester.digest()
     return pubkey.verify_dsa_asn1(digest,blob)
     
+
+
+
+class RSAAuthenticator(Authenticator):
+    """ Authenticator who places a RSA signature in the last part of a piece. 
+    In particular, the sig consists of:
+    - an 8 byte sequence number
+    - an 8 byte real-time timestamp
+    - a variable-length RSA signature, length equivalent to the keysize in bytes  
+    to give a total of 16+(keysize/8) bytes.
+    """
+    
+    SEQNUM_SIZE = 8
+    RTSTAMP_SIZE = 8
+    EXTRA_SIZE = SEQNUM_SIZE + RTSTAMP_SIZE
+    # put seqnum + rtstamp directly after content, so we calc the sig directly 
+    # from the received buffer.
+    def our_sigsize(self):
+        return self.EXTRA_SIZE+self.rsa_sigsize() 
+    
+    def rsa_sigsize(self):
+        return len(self.pubkey)/8
+    
+    def __init__(self,piecelen,npieces,keypair=None,pubkeypem=None):
+        Authenticator.__init__(self,piecelen,npieces)
+        self.keypair = keypair
+        if pubkeypem is not None:
+            #print >>sys.stderr,"ECDSAAuth: pubkeypem",`pubkeypem`
+            self.pubkey = RSA_pub_key_from_der(pubkeypem)
+        else:
+            self.pubkey = self.keypair
+        self.contentblocksize = piecelen-self.our_sigsize()
+        self.seqnum = 0L
+
+    def get_content_blocksize(self):
+        return self.contentblocksize
+    
+    def sign(self,content):
+        rtstamp = time.time()
+        #print >>sys.stderr,"ECDSAAuth: sign: ts %.5f s" % rtstamp
+        
+        extra = struct.pack('>Qd', self.seqnum,rtstamp)
+        self.seqnum += 1L
+
+        sig = rsa_sign_data(content,extra,self.keypair)
+        return [content,extra,sig]
+        
+    def verify(self,piece,index):
+        """ A piece is valid if:
+        - the signature is correct,
+        - the seqnum % npieces == piecenr.
+        - the seqnum is no older than self.seqnum - npieces
+        @param piece The piece data as received from peer
+        @param index The piece number as received from peer
+        @return Boolean
+        """
+        try:
+            # Can we do this without memcpy?
+            #print >>sys.stderr,"ECDSAAuth: verify",len(piece)
+            extra = piece[-self.our_sigsize():-self.our_sigsize()+self.EXTRA_SIZE]
+            sig = piece[-self.our_sigsize()+self.EXTRA_SIZE:]
+            content = piece[:-self.our_sigsize()]
+            #if DEBUG:
+            #    print >>sys.stderr,"RSAAuth: verify piece",index,"sig",`sig`
+            #    print >>sys.stderr,"RSAAuth: verify dig",sha(content).hexdigest()
+        
+            ret = rsa_verify_data_pubkeyobj(content,extra,self.pubkey,sig)
+            if ret:
+                (seqnum, rtstamp) = struct.unpack('>Qd',extra)
+                
+                if DEBUG:
+                    print >>sys.stderr,"RSAAuth: verify piece",index,"seq",seqnum,"ts %.5f s" % rtstamp
+                
+                mod = seqnum % self.get_npieces()
+                thres = self.seqnum - self.get_npieces()/2
+                if seqnum <= thres:
+                    print >>sys.stderr,"RSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"old seqnum",seqnum,"<<",self.seqnum
+                    return False
+                elif mod != index:
+                    print >>sys.stderr,"RSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"expected",mod
+                    return False 
+                else:
+                    self.seqnum = max(self.seqnum,seqnum)
+            else:
+                print >>sys.stderr,"RSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ piece",index,"failed sig"
+            
+            return ret
+        except:
+            print_exc()
+            return False 
+
+    def get_content(self,piece):
+        return piece[:-self.our_sigsize()]
+
+    # Extra fields
+    def get_seqnum(self,piece):
+        (seqnum, rtstamp) = self._decode_extra(piece)
+        return seqnum
+
+    def get_rtstamp(self,piece):
+        (seqnum, rtstamp) = self._decode_extra(piece)
+        return rtstamp
+        
+    def _decode_extra(self,piece):
+        extra = piece[-self.our_sigsize():-self.our_sigsize()+self.EXTRA_SIZE]
+        return struct.unpack('>Qd',extra)
+
+
+def rsa_sign_data(plaintext,extra,rsa_keypair):
+    digester = sha(plaintext)
+    digester.update(extra)
+    digest = digester.digest()
+    return rsa_keypair.sign(digest)
+    
+def rsa_verify_data_pubkeyobj(plaintext,extra,pubkey,sig):
+    digester = sha(plaintext)
+    digester.update(extra)
+    digest = digester.digest()
+    
+    # The type of sig is array.array() at this point (why?), M2Crypto RSA verify
+    # will complain if it is not a string or Unicode object. Check if this is a
+    # memcpy. 
+    s = sig.tostring()
+    return pubkey.verify(digest,s)
+
+
+
+
+
+
     
 class AuthStreamWrapper:
     """ Wrapper around the stream returned by VideoOnDemand/MovieOnDemandTransporter
@@ -229,8 +356,12 @@ class AuthStreamWrapper:
         """ Returns the time at which the last read piece was generated at the source. """
         return self.last_rtstamp
     
-    def seek(self,pos,whence=None):
-        raise ValueError("authstream does not support seek")
+    def seek(self,pos,whence=os.SEEK_SET):
+        if pos == 0 and whence == os.SEEK_SET:
+            print >>sys.stderr,"authstream: seek: Ignoring seek 0 in live"
+        else:
+            raise ValueError("authstream does not support seek")
+
         
     def close(self):
         self.inputstream.close()
@@ -274,7 +405,7 @@ class VariableReadAuthStreamWrapper:
         """ Returns the time at which the last read piece was generated at the source. """
         return self.inputstream.get_generation_time()
     
-    def seek(self,pos,whence=None):
+    def seek(self,pos,whence=os.SEEK_SET):
         return self.inputstream.seek(pos,whence=whence)
         
     def close(self):

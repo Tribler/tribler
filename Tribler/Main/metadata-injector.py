@@ -45,9 +45,9 @@ def main():
     if opt.statedir: sscfg.set_state_dir(os.path.realpath(opt.statedir))
     if opt.port: sscfg.set_listen_port(opt.port)
     if opt.nickname: sscfg.set_nickname(opt.nickname)
-
-    # override default configuration
-    sscfg.set_rss_check_frequency(1)
+    
+    # Agressively promote own moderations:
+    sscfg.set_moderationcast_promote_own(True)
 
     sscfg.set_megacache(True)
     sscfg.set_overlay(True)
@@ -61,20 +61,9 @@ def main():
     print >>sys.stderr, "permid: ", permid_for_user(session.get_permid())    
 
     if opt.rss:
-        buddycast_factory = BuddyCastFactory.getInstance()
+        
         moderation_cast_db = session.open_dbhandler(NTFY_MODERATIONCAST)
-        overlay_apps = OverlayApps.getInstance()
         torrent_feed_thread = TorrentFeedThread.getInstance()
-
-        def on_overlay_connection(exc, permid, selversion, locally_initiated):
-            """
-            An overlay connection is established or lost. Send
-            moderation is appropriate.
-            """
-            if not exc:
-                print >>sys.stderr, "Force send"
-                buddycast_factory.moderationcast_core.createAndSendModerationCastHaveMessage(permid, selversion)
-
         def on_torrent_callback(rss_url, infohash, torrent_data):
             """
             A torrent file is discovered through rss. Create a new
@@ -90,12 +79,16 @@ def main():
 
             moderation_cast_db.addOwnModeration(moderation)
 
-        overlay_apps.register_connection_handler(on_overlay_connection)
-
-        torrent_feed_thread.register(session)
+        torrent_feed_thread.register(session,120,1)
         for rss in opt.rss.split(";"):
             print >>sys.stderr, "Adding RSS: %s" % rss
             torrent_feed_thread.addURL(rss, on_torrent_callback=on_torrent_callback)
+
+
+        # set_moderationcast_promote_own() will ensure your moderations on
+        # the RSS feed items are sent to any peer you connect to on the
+        # overlay.
+
         torrent_feed_thread.start()
 
     # 22/10/08. Boudewijn: connect to a specific peer

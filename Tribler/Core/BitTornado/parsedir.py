@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 from bencode import bencode, bdecode
 from BT1.btformats import check_info
-from sha import sha
+from Tribler.Core.Utilities.Crypto import sha
 import sys, os
 from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 
