@@ -23,7 +23,7 @@ from Tribler.Main.Utility.constants import *
 from Tribler.Core.SessionConfig import SessionStartupConfig
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-
+from Tribler.Core.osutils import get_home_dir, get_picture_dir
 
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
@@ -140,17 +140,17 @@ class NameIconWizardPage(WizardPageSimple):
             im = IconsManager.getInstance()
             bm = im.get_default('personsMode','DEFAULT_THUMB')
 
-        if sys.platform != 'darwin':
+        if sys.platform == 'darwin':
+            path = get_home_dir()
+            self.iconbtn = wx.FilePickerCtrl(self, -1, path)
+            self.Bind(wx.EVT_FILEPICKER_CHANGED,self.OnIconSelected,id=self.iconbtn.GetId())
+            icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        else:
             self.iconbtn = wx.BitmapButton(self, -1, bm)
             icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
             #label = wx.StaticText(self, -1, self.utility.lang.get('obligiconformat'))
             #icon_box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
             self.Bind(wx.EVT_BUTTON, self.OnIconButton, self.iconbtn)
-        else:
-            path = os.path.expandvars('$HOME')
-            self.iconbtn = wx.FilePickerCtrl(self, -1, path)
-            self.Bind(wx.EVT_FILEPICKER_CHANGED,self.OnIconSelected,id=self.iconbtn.GetId())
-            icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         
         topbox.Add(icon_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
 
@@ -159,28 +159,14 @@ class NameIconWizardPage(WizardPageSimple):
         self.SetSizerAndFit(mainbox)
 
     def OnIconButton(self, evt):
-        try:
-            if sys.platform == 'win32':
-                # Arno goes win32, find location of "My Pictures"
-                # see http://www.mvps.org/access/api/api0054.htm
-                from win32com.shell import shell
-                pidl = shell.SHGetSpecialFolderLocation(0,0x27)
-                path = shell.SHGetPathFromIDList(pidl)
-            else:
-                path = os.path.expandvars('$HOME')
-        except Exception, msg:
-            path = ''
-            print_exc()
-            
         # open the image browser dialog
-        dlg = ib.ImageDialog(self, path)
+        dlg = ib.ImageDialog(self, get_picture_dir())
         dlg.Centre()
         if dlg.ShowModal() == wx.ID_OK:
             self.iconpath = dlg.GetFile()
             self.process_input()
         else:
             pass
-
         dlg.Destroy()
                     
 

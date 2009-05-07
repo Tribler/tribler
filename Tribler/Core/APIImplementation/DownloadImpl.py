@@ -536,7 +536,8 @@ class DownloadImpl:
         else:
             try:
                 import mimetypes
-                homedir = os.path.expandvars('${HOME}')
+                # homedir = os.path.expandvars('${HOME}')
+                homedir = get_home_dir()
                 homemapfile = os.path.join(homedir,'.mimetypes')
                 mapfiles = [homemapfile] + mimetypes.knownfiles
                 mimetypes.init(mapfiles)

@@ -1,6 +1,12 @@
 # Written by Arno Bakker, ABC authors
 # see LICENSE.txt for license information
-""" OS-independent utility functions """
+"""
+OS-independent utility functions
+
+get_home_dir()
+get_picture_dir()
+getfreespace(path)
+"""
     
 #
 # Multiple methods for getting free diskspace
@@ -8,6 +14,88 @@
 import sys
 import os
 import binascii
+
+if sys.platform == "win32":
+    try:
+        from win32com.shell import shell
+        def get_home_dir():
+            # http://www.mvps.org/access/api/api0054.htm
+            # CSIDL_APPDATA = &H1A
+            # C:\Documents and Settings\username\Application Data
+            return shell.SHGetSpecialFolderPath(0, 0x1a)
+
+        def get_picture_dir():
+            # http://www.mvps.org/access/api/api0054.htm
+            # CSIDL_APPDATA = &H27
+            # C:\Documents and Settings\username\My Documents\My Pictures
+            return shell.SHGetSpecialFolderPath(0, 0x27)
+
+    except ImportError:
+        def get_home_dir():
+            try:
+                # when there are special unicode characters in the username,
+                # the following will fail on python 2.4, 2.5, 2.x this will
+                # always succeed on python 3.x
+                return os.path.expanduser(u"~")
+            except Exception, e:
+                unicode_error = e
+
+            # non-unicode home
+            home = os.path.expanduser("~")
+            head, tail = os.path.split(home)
+
+            dirs = os.listdir(head)
+            udirs = os.listdir(unicode(head))
+
+            # the character set may be different, but the string length is
+            # still the same
+            islen = lambda dir: len(dir) == len(tail)
+            dirs = filter(islen, dirs)
+            udirs = filter(islen, udirs)
+            if len(dirs) == 1 and len(udirs) == 1:
+                return os.path.join(head, udirs[0])
+
+            # remove all dirs that are equal in unicode and non-unicode. we
+            # know that we don't need these dirs because the initial
+            # expandusers would not have failed on them
+            for dir in dirs[:]:
+                if dir in udirs:
+                    dirs.remove(dir)
+                    udirs.remove(dir)
+            if len(dirs) == 1 and len(udirs) == 1:
+                return os.path.join(head, udirs[0])
+
+            # assume that the user has write access in her own
+            # directory. therefore we can filter out any nnon-writable
+            # directories
+            writable_udir = [udir for udir in udirs if os.access(udir, ow.W_OK)]
+            if len(writable_udir) == 1:
+                return os.path.join(head, writable_udir[0])
+
+            # fallback: assume that the order of entries in dirs is the same
+            # as in udirs
+            for dir, udir in zip(dirs, udirs):
+                if dir == tail:
+                    return os.path.join(head, udir)
+
+            # failure
+            raise unicode_exception
+
+        def get_picture_dir():
+            return get_home_dir()
+            
+else:
+    # linux or darwin (mac)
+    def get_home_dir():
+        return os.path.expanduser(u"~")
+
+    def get_picture_dir():
+        home = get_home_dir()
+        desktop = os.path.join(home, "Desktop")
+        if os.exists(desktop):
+            return desktop
+        else:
+            return home
 
 if sys.version.startswith("2.4"):
     os.SEEK_SET = 0

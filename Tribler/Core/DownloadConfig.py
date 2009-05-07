@@ -28,13 +28,7 @@ from Tribler.Core.APIImplementation.miscutils import *
 from Tribler.Core.LiveSourceAuthConfig import LiveSourceAuthConfig
 
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
-from Tribler.Core.osutils import *
-
-# importing get_home_dir from Tribler.Core.Session causes an
-# ImportError...
-def get_home_dir():
-    from Tribler.Core.Session import get_home_dir as session_get_home_dir
-    return session_get_home_dir()
+from Tribler.Core.osutils import getfreespace, get_home_dir
 
 class DownloadConfigInterface:
     """
