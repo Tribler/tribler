@@ -9,6 +9,8 @@ from cStringIO import StringIO
 
 from M2Crypto import BIO,RSA,EVP
 
+USE_M2CRYPTO_SHA = False
+
 # Switch between using Python's builtin SHA1 function or M2Crypto/OpenSSL's
 # TODO: optimize such that less memory is allocated, e.g. reuse a single
 # sha() object instance (hard to do here centrally with multiple threads)
@@ -16,13 +18,13 @@ from M2Crypto import BIO,RSA,EVP
 
 # Arno. 2009-04-22: M2Crypto-0.19.1.win32-py2.5.exe by KeLLey causes Python
 # to quit when the sha class is called during hashchecking.
-if sys.platform == "win32":
-    USE_M2CRYPTO_SHA = False
-else:
-    USE_M2CRYPTO_SHA = True
+#
+# Boudewijn. 2009-05-08: EVP causes segfaults on linux aswell... Now
+# using the regular (and more cpu intensive) sha by
+# default. Offloading through EVP will only be done when the
+# USE_M2CRYPTO_SHA is True.
 
 if USE_M2CRYPTO_SHA:
-    
     class sha:
         def __init__(self,data=None):
             self.md = EVP.MessageDigest('sha1')
