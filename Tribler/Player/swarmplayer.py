@@ -19,6 +19,9 @@
 #
 # - See if we can use stream.seek() to optimize SwarmPlayer as well (see SwarmPlugin)
 
+# modify the sys.stderr and sys.stdout for safe output
+import Tribler.Debug.console
+
 import os
 import sys
 import time
