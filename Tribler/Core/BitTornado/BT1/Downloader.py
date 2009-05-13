@@ -272,7 +272,10 @@ class SingleDownload(SingleDownloadHelperInterface):
             self.connection.send_not_interested()
 
     def got_piece(self, index, begin, hashlist, piece):
-        """ Returns True if the piece is complete. """
+        """
+        Returns True if the piece is complete.
+        Note that in this case a -piece- means a chunk!
+        """
 
         if self.bad_performance_counter:
             self.bad_performance_counter -= 1
@@ -288,6 +291,7 @@ class SingleDownload(SingleDownloadHelperInterface):
             return False
         if self.downloader.endgamemode:
             self.downloader.all_requests.remove((index, begin, length))
+            if DEBUG: print >>sys.stderr, "Downloader: got_piece: removed one request from all_requests", len(self.downloader.all_requests), "remaining"
 
         self.last = clock()
         self.last2 = clock()
@@ -466,21 +470,26 @@ class SingleDownload(SingleDownloadHelperInterface):
 # 2fastbt_
         # do not download from coordinator
         if self.downloader.paused or self.connection.connection.is_coordinator_con():
-# _2fastbt
+            if DEBUG: print >>sys.stderr, "Downloader: fix_download_endgame: paused", self.downloader.paused, "or is_coordinator_con", self.connection.connection.is_coordinator_con()
             return
+# _2fastbt
+
         if len(self.active_requests) >= self._backlog(new_unchoke):
             if not (self.active_requests or self.backlog) and not self.choked:
                 self.downloader.queued_out[self] = 1
+            if DEBUG: print >>sys.stderr, "Downloader: fix_download_endgame: returned"
             return
 # 2fastbt_
         want = [a for a in self.downloader.all_requests if self.have[a[0]] and a not in self.active_requests and (self.helper is None or self.connection.connection.is_helper_con() or not self.helper.is_ignored(a[0]))]
 # _2fastbt
         if not (self.active_requests or want):
             self.send_not_interested()
+            if DEBUG: print >>sys.stderr, "Downloader: fix_download_endgame: not interested"
             return
         if want:
             self.send_interested()
         if self.choked:
+            if DEBUG: print >>sys.stderr, "Downloader: fix_download_endgame: choked"
             return
         shuffle(want)
         del want[self.backlog - len(self.active_requests):]
@@ -666,9 +675,9 @@ class Downloader:
         if -self.bytes_requested > 5*self.download_rate:
             self.bytes_requested = -5*self.download_rate
         ql = max(int(-self.bytes_requested/self.chunksize), 0)
-        if DEBUG:
-            print >> sys.stderr, 'Downloader: download_rate: %s, bytes_requested: %s, chunk: %s -> queue limit: %d' % \
-                (self.download_rate, self.bytes_requested, self.chunksize, ql)
+        # if DEBUG:
+        #     print >> sys.stderr, 'Downloader: download_rate: %s, bytes_requested: %s, chunk: %s -> queue limit: %d' % \
+        #         (self.download_rate, self.bytes_requested, self.chunksize, ql)
         return ql
 
     def chunk_requested(self, size):
@@ -724,11 +733,11 @@ class Downloader:
             self._reset_endgame()
 
     def _reset_endgame(self):            
+        if DEBUG: print >>sys.stderr, "Downloader: _reset_endgame"
         self.storage.reset_endgame(self.all_requests)
         self.endgamemode = False
         self.all_requests = []
         self.endgame_queued_pieces = []
-
 
     def add_disconnected_seed(self, id):
 #        if not self.disconnectedseeds.has_key(id):
@@ -806,8 +815,11 @@ class Downloader:
                             self.endgame_queued_pieces.remove(piece_id)
                         except:
                             pass
+
             # remove the items in requests from self.all_requests
-            self.all_requests = [request for request in self.all_requests if not request in requests]
+            if not allowrerequest:
+                self.all_requests = [request for request in self.all_requests if not request in requests]
+                if DEBUG: print >>sys.stderr, "Downloader: cancel_requests: all_requests", len(self.all_requests), "remaining"
 
         for download in self.downloads:
             hit = False
@@ -843,13 +855,21 @@ class Downloader:
                         self.endgame_queued_pieces.remove(piece)
                     except:
                         pass
-            new_all_requests = []
-            for index, nb, nl in self.all_requests:
-                if index in pieces:
-                    self.storage.request_lost(index, nb, nl)
-                else:
-                    new_all_requests.append((index, nb, nl))
-            self.all_requests = new_all_requests
+
+            if allowrerequest:
+                for index, nb, nl in self.all_requests:
+                    if index in pieces:
+                        self.storage.request_lost(index, nb, nl)
+
+            else:
+                new_all_requests = []
+                for index, nb, nl in self.all_requests:
+                    if index in pieces:
+                        self.storage.request_lost(index, nb, nl)
+                    else:
+                        new_all_requests.append((index, nb, nl))
+                self.all_requests = new_all_requests
+                if DEBUG: print >>sys.stderr, "Downloader: cancel_piece_download: all_requests", len(self.all_requests), "remaining"
 
         for d in self.downloads:
             hit = False
@@ -909,6 +929,7 @@ class Downloader:
                 self.all_requests.append(request)
         for d in self.downloads:
             d.fix_download_endgame()
+        if DEBUG: print >>sys.stderr, "Downloader: start_endgame: we have", len(self.all_requests), "requests remaining"
 
     def pause(self, flag):
         self.paused = flag

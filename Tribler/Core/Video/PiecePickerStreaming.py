@@ -391,7 +391,7 @@ class PiecePickerStreaming(PiecePicker):
         # Cancel all requests that are too late
         if cancel_requests:
             try:
-                self.downloader.cancel_requests(cancel_requests, allowrerequest=False)
+                self.downloader.cancel_requests(cancel_requests)
             except:
                 print_exc()
 
@@ -560,7 +560,7 @@ class PiecePickerStreaming(PiecePicker):
             # for VOD playback consider peers to be bad when they miss the deadline 1 time
             allow_based_on_performance = connection.download.bad_performance_counter < 1
 
-        if vs.prebuffering and allow_based_on_performance:
+        if vs.prebuffering:
             f = first
             t = vs.normalize( first + self.transporter.max_prebuf_packets )
             choice = pick_rarest_small_range(f,t)
@@ -568,12 +568,18 @@ class PiecePickerStreaming(PiecePicker):
         else:
             choice = None
 
-        if choice is None and allow_based_on_performance:
+        if choice is None:
             if vs.live_streaming:
                choice = pick_rarest_small_range( first, highprob_cutoff )
             else:
                choice = pick_first( first, highprob_cutoff )
             type = "high"
+
+        # it is possible that the performance of this peer prohibits
+        # us from selecting this piece...
+        if not allow_based_on_performance:
+            high_priority_choice = choice
+            choice = None
 
         if choice is None:
             choice = pick_rarest_small_range( highprob_cutoff, midprob_cutoff )
@@ -599,6 +605,33 @@ class PiecePickerStreaming(PiecePicker):
         if DEBUG:
             print >>sys.stderr,"vod: picked piece %s [type=%s] [%d,%d,%d,%d]" % (`choice`,type,first,highprob_cutoff,midprob_cutoff,last)
 
+        # 12/05/09, boudewijn: (1) The bad_performance_counter is
+        # incremented whenever a piece download failed and decremented
+        # whenever is succeeds. (2) A peer with a positive
+        # bad_performance_counter is only allowd to pick low-priority
+        # pieces. (Conclusion) When all low-priority pieces are
+        # downloaded the client hangs when one or more high-priority
+        # pieces are required and if all peers have a positive
+        # bad_performance_counter.
+        if choice is None and not allow_based_on_performance:
+            # ensure that there is another known peer with a
+            # non-positive bad_performance_counter that has the piece
+            # that we would pick from the high-priority set for this
+            # connection.
+
+            if high_priority_choice:
+                availability = 0
+                for download in self.downloader.downloads:
+                    if download.have[high_priority_choice] and not download.bad_performance_counter:
+                        availability += 1
+
+                if not availability:
+                    # no other connection has it... then ignore the
+                    # bad_performance_counter advice and attempt to
+                    # download it from this connection anyway
+                    if DEBUG: print >>sys.stderr, "vod: the bad_performance_counter says this is a bad peer... but we have nothing better... requesting piece", high_priority_choice, "regardless."
+                    choice = high_priority_choice
+
         return choice
 
     def is_valid_piece(self,piece):
@@ -614,5 +647,4 @@ class PiecePickerStreaming(PiecePicker):
         first,last = self.videostatus.download_range()
         return self.videostatus.generate_range((first,last))
             
-   
 PiecePickerVOD = PiecePickerStreaming
