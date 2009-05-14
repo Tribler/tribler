@@ -67,6 +67,11 @@ class VideoPlaybackInfoDBHandler(BasicDBHandler):
     Manages the playback_info table. This table contains one entry
     with info for each playback. This info contains things like:
     piecesize, nat/firewall status, etc.
+
+    The interface of this class should match that of
+    VideoPlaybackInfoReporter in Tribler.Player.Reporter which is used
+    to report the same information through HTTP callbacks when there
+    is no overlay network
     """
     
     __single = None    # used for multi-threaded singletons pattern
@@ -137,6 +142,12 @@ class VideoPlaybackInfoDBHandler(BasicDBHandler):
         if DEBUG: print >>sys.stderr, "SqliteVideoPlaybackStatsCacheDB set_nat", key, nat
         self._db.execute_write("UPDATE %s SET nat = '%s' WHERE key = '%s'" % (self.table_name, nat, key))
 
+    def flush(self):
+        """
+        Flush the statistics. This is not used for database-based logging
+        """
+        pass
+
 class VideoPlaybackEventDBHandler(BasicDBHandler):
     """
     Interface to add and retrieve events from the database.
@@ -144,6 +155,11 @@ class VideoPlaybackEventDBHandler(BasicDBHandler):
     Manages the playback_event table. This table may contain several
     entries for events that occur during playback such as when it was
     started and when it was paused.
+
+    The interface of this class should match that of
+    VideoPlaybackEventReporter in Tribler.Player.Reporter which is
+    used to report the same information through HTTP callbacks when
+    there is no overlay network
     """
 
     __single = None    # used for multi-threaded singletons pattern
@@ -173,4 +189,8 @@ class VideoPlaybackEventDBHandler(BasicDBHandler):
         if DEBUG: print >>sys.stderr, "SqliteVideoPlaybackStatsCacheDB add_event", key, event, origin
         self._db.execute_write("INSERT INTO %s (key, timestamp, event, origin) VALUES ('%s', %s, '%s', '%s')" % (self.table_name, key, time(), event, origin))
 
-        
+    def flush(self):
+        """
+        Flush the statistics. This is not used for database-based logging
+        """
+        pass
