@@ -3,6 +3,7 @@
 #
 # TODO: 
 # * Test suite
+# * Tracker support: how do they determine which files to seed.
 #
 # ISSUE: what if trackers have query parts? Is that officially/practically allowed?
 
@@ -18,7 +19,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.Crypto import sha
 
 
-DEBUG = False
+DEBUG = True
 
 
 def metainfo2p2purl(metainfo):
@@ -34,11 +35,16 @@ def metainfo2p2purl(metainfo):
             content = metainfo['azureus_properties']['Content']
             if 'Speed Bps' in content:
                 bitrate = content['Speed Bps']
+                   
+    if 'encoding' not in metainfo:
+        encoding = 'utf-8'
+    else:
+        encoding = metainfo['encoding']
                                                 
     urldict = {}
 
     urldict['s'] = p2purl_encode_nnumber(info['piece length'])
-    urldict['n'] = p2purl_encode_name2url(info['name'],metainfo['encoding'])
+    urldict['n'] = p2purl_encode_name2url(info['name'],encoding)
     if info.has_key('length'):
         urldict['l'] = p2purl_encode_nnumber(info['length'])
     else:
@@ -126,7 +132,7 @@ def p2purl2metainfo(url):
         swarmid = metainfo['info']['root hash']
 
     if DEBUG:
-        print >>sys.stderr,"p2purl2metainfo: parsed",`metainfo.keys()`
+        print >>sys.stderr,"p2purl2metainfo: parsed",`metainfo`
 
     
     return (metainfo,swarmid)

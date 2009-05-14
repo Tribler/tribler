@@ -104,6 +104,8 @@ class TorrentDef(Serializable,Copyable):
         t.metainfo_valid = True
         t.infohash = sha(bencode(metainfo['info'])).digest()
         
+        #print >>sys.stderr,"INFOHASH",`t.infohash`
+        
         # copy stuff into self.input
         maketorrent.copy_metainfo_to_input(t.metainfo,t.input)
 
@@ -124,10 +126,13 @@ class TorrentDef(Serializable,Copyable):
             
             # h4x0r: for testing with existing live streams: to get a live 
             # torrent file that is equiv we need this: 
+            
+            # LIVE: ENABLE, EXISTING MERKLE: DISABLE 
             #metainfo['info']['name.utf-8'] = metainfo['info']['name'] 
 
             t = TorrentDef._create(metainfo)
             
+            # LIVE,EXISTING MERKLE: DISABLE
             # for testing with existing live: comment this line away.
             t.infohash = swarmid
             

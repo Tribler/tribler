@@ -104,3 +104,5 @@ for metainfo_name in argv[1:]:
         print 'signaturecheck: %s' % res
     if metainfo.has_key('comment'):
         print 'comment.......: %s' % metainfo['comment']
+
+
