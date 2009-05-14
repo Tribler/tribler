@@ -819,7 +819,7 @@ class MovieOnDemandTransporter(MovieTransport):
         if vs.playing and round(self.playbackrate.rate) > self.MINPLAYBACKRATE and not vs.prebuffering:
             if self.doing_bitrate_est:
                 if display:
-                    print >>sys.stderr,"vod: Estimated playback time: %5ds [%7.2f Kbyte/s], doing estimate=%d" % (self.expected_playback_time(),self.playbackrate.rate/1024, self.ffmpeg_est_bitrate is None)
+                    print >>sys.stderr,"vod: Estimated playback time: %5.0fs [%7.2f Kbyte/s], doing estimate=%d" % (self.expected_playback_time(),self.playbackrate.rate/1024, self.ffmpeg_est_bitrate is None)
                 if self.ffmpeg_est_bitrate is None:
                     vs.set_bitrate( self.playbackrate.rate )
 

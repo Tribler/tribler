@@ -53,7 +53,6 @@ def RSA_pub_key_from_der(der):
     s += textwrap.fill(b,64)
     s += '\n'
     s += '-----END PUBLIC KEY-----\n'
-    print >>sys.stderr,"NEW",s
     bio = BIO.MemoryBuffer(s)
     return RSA.load_pub_key_bio(bio)
 

@@ -578,4 +578,3 @@ def get_files(metainfo,exts):
         if exts is None or ext in exts:
             videofiles.append(filename)
     return videofiles
-            

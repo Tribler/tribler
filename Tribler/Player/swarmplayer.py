@@ -156,7 +156,11 @@ class PlayerApp(BaseApp):
 
 
     def select_file_start_download(self,torrentfilename):
-        tdef = TorrentDef.load(torrentfilename)
+        
+        if torrentfilename.startswith("http") or torrentfilename.startswith(P2PURL_SCHEME):
+            tdef = TorrentDef.load_from_url(torrentfilename)
+        else: 
+            tdef = TorrentDef.load(torrentfilename)
         print >>sys.stderr,"main: Starting download, infohash is",`tdef.get_infohash()`
         
         # Select which video to play (if multiple)

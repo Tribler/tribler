@@ -15,6 +15,7 @@ from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
+import Tribler.Core.APIImplementation.makeurl as makeurl
 from Tribler.Core.APIImplementation.miscutils import *
 
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH,validTorrentFile,isValidURL
@@ -118,8 +119,22 @@ class TorrentDef(Serializable,Copyable):
         @return TorrentDef.
         """
         # Class method, no locking required
-        f = urlOpenTimeout(url)
-        return TorrentDef._read(f)
+        if url.startswith(P2PURL_SCHEME):
+            (metainfo,swarmid) = makeurl.p2purl2metainfo(url)
+            
+            # h4x0r: for testing with existing live streams: to get a live 
+            # torrent file that is equiv we need this: 
+            #metainfo['info']['name.utf-8'] = metainfo['info']['name'] 
+
+            t = TorrentDef._create(metainfo)
+            
+            # for testing with existing live: comment this line away.
+            t.infohash = swarmid
+            
+            return t
+        else:
+            f = urlOpenTimeout(url)
+            return TorrentDef._read(f)
     load_from_url = staticmethod(load_from_url)
 
 

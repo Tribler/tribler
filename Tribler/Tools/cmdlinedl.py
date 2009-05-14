@@ -20,7 +20,7 @@ from Tribler.Core.BitTornado.__init__ import version, report_email
 
 
 def usage():
-    print "Usage: python cmdlinedl.py [options] torrent_file"
+    print "Usage: python cmdlinedl.py [options] torrentfile_or_url"
     print "Options:"
     print "\t--port <port>"
     print "\t-p <port>\t\tuse <port> to listen for connections"
@@ -85,7 +85,7 @@ def main():
         print "Too many arguments"
         usage()
         sys.exit(2)
-    torrent_file = args[0]
+    torrentfile_or_url = args[0]
 
     print "Press Ctrl-C to stop the download"
 
@@ -105,7 +105,13 @@ def main():
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(output_dir);
 
-    tdef = TorrentDef.load(torrent_file)
+    if torrentfile_or_url.startswith("http") or torrentfile_or_url.startswith(P2PURL_SCHEME):
+        tdef = TorrentDef.load_from_url(torrentfile_or_url)
+    else: 
+        tdef = TorrentDef.load(torrentfile_or_url)
+    if tdef.get_live():
+        raise ValueError("cmdlinedl does not support live torrents")
+        
     d = s.start_download(tdef, dscfg)
     d.set_state_callback(state_callback, getpeerlist=False)
    
