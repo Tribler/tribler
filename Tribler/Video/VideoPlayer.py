@@ -1,4 +1,4 @@
-# Written by Arnfo Bakker
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 from errno import ECONNRESET
 from threading import currentThread,Event
