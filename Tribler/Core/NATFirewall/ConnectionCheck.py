@@ -20,7 +20,7 @@ class ConnectionCheck:
         self.session = session
         self.permid = self.session.get_permid()
         self.nat_type = None
-        self.nat_timeout = -1
+        self.nat_timeout = 0
         self._nat_callbacks = [] # list with callback functions that want to know the nat_type
         self.natcheck_reply_callbacks = [] # list with callback functions that want to send a natcheck_reply message
 
@@ -138,7 +138,7 @@ class ConnectionCheck:
                 for pingback in pingback_servers:
                     if DEBUG: print >> sys.stderr, "NatCheck: pingback is:", pingback
                     self.nat_timeout = self.timeout_check(pingback)
-                    if self.nat_timeout != -1: break
+                    if self.nat_timeout <= 0: break
                 if DEBUG: print >> sys.stderr, "NATCheck: Nat UDP timeout is: ", str(self.nat_timeout)
 
             self.nat_params = [nat_type[1], nat_type[0], self.nat_timeout, ex_ip, int(ex_port), in_ip, in_port]
