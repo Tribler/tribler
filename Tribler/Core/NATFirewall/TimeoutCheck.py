@@ -7,7 +7,7 @@ import thread
 import threading
 
 
-DEBUG = True
+DEBUG = False
 
 
 to = -1 # timeout default value

@@ -19,7 +19,7 @@ from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from types import IntType, StringType, ListType, TupleType
 from Tribler.Core.simpledefs import *
 
-DEBUG = True
+DEBUG = False
 
 PEERLIST_LEN = 100
 
