@@ -44,32 +44,6 @@
                         <object class="wxBoxSizer">
                           <orient>wxVERTICAL</orient>
                           <object class="sizeritem">
-                            <option>0</option>
-                            <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                            <object class="wxPanel" name="pageTitlePanel">
-                              <bitmap>images/triblerpanel_topcenter.png</bitmap>
-                              <pos>172,93</pos>
-                              <size>800,0</size>
-                              <bg>#FFFFFF</bg>
-                              <fg>#ffffff</fg>
-                              <object class="wxBoxSizer">
-                                <orient>wxHORIZONTAL</orient>
-                                <object class="sizeritem">
-                                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
-                                  <option>1</option>
-                                  <object class="wxStaticText" name="pageTitle">
-                                    <style>wxST_NO_AUTORESIZE</style>
-                                    <label>--</label>
-                                    <pos>10,10</pos>
-                                    <size>785,0</size>
-                                    <bg>#FFFFFF</bg>
-                                    <fg>#ffffff</fg>
-                                  </object>
-                                </object>
-                              </object>
-                            </object>
-                          </object>
-                          <object class="sizeritem">
                             <object class="wxPanel" name="standardOverview" subclass="Tribler.Main.vwxGUI.standardOverview.standardOverview">
                               <pos>230,224</pos>
                               <size>523,559</size>

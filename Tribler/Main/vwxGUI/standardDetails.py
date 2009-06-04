@@ -231,25 +231,26 @@ class standardDetails(wx.Panel):
         
 
     def refreshStatusPanel(self, show):
-        if show:
-            statusPanel = self.data['status'].get('panel')
-            if not statusPanel:
-                statusPanel = self.loadStatusPanel()
-                self.data['status']['panel'] = statusPanel
+        pass
+        ##if show:
+        ##    statusPanel = self.data['status'].get('panel')
+        ##    if not statusPanel:
+        ##        statusPanel = self.loadStatusPanel()
+        ##        self.data['status']['panel'] = statusPanel
             #statusPanel.Enable()
-            statusPanel.Show()
-            self.hSizer.Insert(1, statusPanel, 0, wx.TOP|wx.EXPAND, 6)
-            self.hSizer.Layout()
-        else:
-            # Remove statusPanel if necessary
-            if self.data['status'].get('panel'):
-                statusPanel = self.data['status']['panel']
-                try:
-                    self.hSizer.Detach(statusPanel)
-                    statusPanel.Hide()
-                    #statusPanel.Disable()
-                except:
-                    print_exc()
+        ##    statusPanel.Show()
+        ##    self.hSizer.Insert(1, statusPanel, 0, wx.TOP|wx.EXPAND, 6)
+        ##    self.hSizer.Layout()
+        ##else:
+        ##    # Remove statusPanel if necessary
+        ##    if self.data['status'].get('panel'):
+        ##        statusPanel = self.data['status']['panel']
+        ##        try:
+        ##            self.hSizer.Detach(statusPanel)
+        ##            statusPanel.Hide()
+        ##            #statusPanel.Disable()
+        ##        except:
+        ##            print_exc()
         
     def setListAspect2OneColumn(self, list_name):
         try:
@@ -1470,6 +1471,55 @@ class standardDetails(wx.Panel):
 #    def isEnabled(self):
 #        return self.enabled
 
+    def _download_torrentfile_from_peers(self, torrent, callback):
+        """
+        TORRENT is a dictionary containing torrent information used to
+        display the entry on the UI. it is NOT the torrent file!
+
+        CALLBACK is called when the torrent is downloaded. When no
+        torrent can be downloaded the callback is ignored
+        """
+        def success_callback(*args):
+            # empty the permids list to indicate that we are done
+            if DEBUG: print >>sys.stderr,"standardDetails: _download_torrentfile_from_peers: received .torrent from peer"
+            if state[0]:
+                state[0] = False
+                callback(*args)
+
+        def next_callback(timeout):
+            """
+            TIMEOUT: when TIMEOUT>=0 then will try another peer after TIMEOUT seconds.
+            """
+            if state[0] and state[1]:
+                if DEBUG: print >>sys.stderr,"standardDetails: _download_torrentfile_from_peers: trying to .torrent download from peer.",len(state[1])-1,"other peers to ask"
+                self.utility.session.download_torrentfile_from_peer(state[1].pop(0), torrent['infohash'], success_callback)
+                if timeout >= 0:
+                    next_callback_lambda = lambda:next_callback(timeout)
+                    guiserver.add_task(next_callback_lambda, timeout)
+
+        guiserver = GUITaskQueue.getInstance()
+        state = [True, torrent['query_permids'][:]]
+        torrent['query_torrent_was_requested'] = True
+
+        # The rules and policies below can be tweaked to increase
+        # performace. More parallel requests can be made, or the
+        # timeout to ask more people can be decreased. All at the
+        # expence of bandwith.
+        if torrent['torrent_size'] > 50 * 1024:
+            # this is a big torrent. to preserve bandwidth we will
+            # request sequentially with a large timeout
+            next_callback(3)
+            
+        elif 0 <= torrent['torrent_size'] <= 10 * 1024:
+            # this is a small torrent. bandwidth is not an issue so
+            # download in parallel
+            next_callback(-1)
+            next_callback(1)
+
+        else:
+            # medium and unknown torrent size. 
+            next_callback(1)
+
     def torrent_is_playable(self, torrent=None, default=True, callback=None):
         """
         TORRENT is a dictionary containing torrent information used to
@@ -1504,7 +1554,7 @@ class standardDetails(wx.Panel):
             # unknown, figure it out and return the information using
             # a callback
 
-            if 'query_permid' in torrent and not torrent.get('myDownloadHistory'):
+            if 'query_permids' in torrent and not torrent.get('myDownloadHistory'):
                 def got_requested_torrent(infohash, metadata, filename):
                     if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable Downloaded a torrent"
                     # test that we are still focussed on the same torrent
@@ -1513,12 +1563,7 @@ class standardDetails(wx.Panel):
                         playable = self.torrent_is_playable(torrent, default=default)
                         if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable performing callback. is playable", playable
                         callback(torrent, playable)
-
-                try:
-                    torrent['query_torrent_was_requested'] = True
-                    self.utility.session.download_torrentfile_from_peer(torrent['query_permid'], torrent['infohash'], got_requested_torrent)
-                except:
-                    print_exc()                        
+                self._download_torrentfile_from_peers(torrent, got_requested_torrent)
             
         if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
         return default
@@ -1545,23 +1590,17 @@ class standardDetails(wx.Panel):
             self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
             return True
 
-        if 'query_permid' in torrent and not torrent.get('myDownloadHistory'):
-            if DEBUG:
-                print >>sys.stderr,"standardDetails: download: User selected query result for download"
-            try:
-                torrent['query_torrent_was_requested'] = True
-                sesscb_got_requested_torrent_lambda = lambda infohash,metadata,filename:self.sesscb_got_requested_torrent(torrent,infohash,metadata,filename,vodmode)
-                self.utility.session.download_torrentfile_from_peer(torrent['query_permid'],torrent['infohash'],sesscb_got_requested_torrent_lambda)
+        if 'query_permids' in torrent and not torrent.get('myDownloadHistory'):
+            sesscb_got_requested_torrent_lambda = lambda infohash,metadata,filename:self.sesscb_got_requested_torrent(torrent,infohash,metadata,filename,vodmode)
+            self._download_torrentfile_from_peers(torrent, sesscb_got_requested_torrent_lambda)
 
-                # Show error if torrent file does not come in
-                tfdownload_timeout_lambda = lambda:self.guiserv_tfdownload_timeout(torrent)
-                guiserver = GUITaskQueue.getInstance()
-                guiserver.add_task(tfdownload_timeout_lambda,20)
-                
-                # Show pending colour
-                self.guiUtility.standardOverview.refreshGridManager()
-            except:
-                print_exc()                        
+            # Show error if torrent file does not come in
+            tfdownload_timeout_lambda = lambda:self.guiserv_tfdownload_timeout(torrent)
+            guiserver = GUITaskQueue.getInstance()
+            guiserver.add_task(tfdownload_timeout_lambda,20)
+            
+            # Show pending colour
+            self.guiUtility.standardOverview.refreshGridManager()
             
             #self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
             #print >> sys.stderr, torrent, torrent.keys()

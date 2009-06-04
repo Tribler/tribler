@@ -9,16 +9,7 @@ class SafePrintStream:
         self._stream = stream
 	
     def write(self, arg):
-        try:
-            self._stream.write(arg.encode("ASCII", "backslashreplace"))
-        except Exception, e:
-            try:
-                s = u"{%s}" % repr(arg)
-                self._stream.write(s)
-            except:
-                self._stream.write("BIG WOOPS\n")
-                self._stream.write(repr(e))
-                self._stream.write("\n")
+        self._stream.write(arg.encode("ASCII", "backslashreplace"))
         
     def flush(self):
         self._stream.flush()
@@ -39,5 +30,5 @@ class SafeLinePrintStream:
         self._parts = []
         self._stream.flush()
         
-sys.stderr = SafePrintStream(sys.stderr)
+sys.stderr = SafeLinePrintStream(sys.stderr)
 sys.stdout = sys.stderr

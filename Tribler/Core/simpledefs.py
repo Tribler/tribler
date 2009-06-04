@@ -84,6 +84,7 @@ NTFY_ACT_GOT_METADATA = 5
 NTFY_ACT_RECOMMEND = 6
 NTFY_ACT_DISK_FULL = 7
 NTFY_ACT_NEW_VERSION = 8
+NTFY_ACT_ACTIVE = 9
  
 # Disk-allocation policies for download, see DownloadConfig.set_alloc_type
 DISKALLOC_NORMAL = 'normal'              

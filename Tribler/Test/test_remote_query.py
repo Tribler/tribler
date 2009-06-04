@@ -33,6 +33,7 @@ class TestRemoteQuery(TestAsServer):
         TestAsServer.setUpPreSession(self)
         # Enable remote query
         self.config.set_remote_query(True)
+        self.config.set_torrent_collecting_dir(os.path.join(self.config_path, "tmp_torrent_collecting"))
 
     def setUpPostSession(self):
         """ override TestAsServer """
@@ -42,17 +43,18 @@ class TestRemoteQuery(TestAsServer):
         #self.hispermid = str(self.his_keypair.pub().get_der())
         
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        self.torrent_file_size = 42
         
         # Add two torrents that will match our query and one that shouldn't
-        torrent = self.get_default_torrent('Hallo S01E10')
+        torrent = self.get_default_torrent('sumfilename1','Hallo S01E10')
         dbrec= self.torrent_db.addExternalTorrent('sumfilename1',metadata=torrent)
         self.infohash1 = dbrec['infohash']
         
-        torrent = self.get_default_torrent('Hallo S02E01')
+        torrent = self.get_default_torrent('sumfilename2','Hallo S02E01')
         dbrec = self.torrent_db.addExternalTorrent('sumfilename2',metadata=torrent)
         self.infohash2 = dbrec['infohash']
 
-        torrent = self.get_default_torrent('Halo Demo')
+        torrent = self.get_default_torrent('sumfilename3','Halo Demo')
         self.torrent_db.addExternalTorrent('sumfilename3',metadata=torrent)
         
 
@@ -61,7 +63,7 @@ class TestRemoteQuery(TestAsServer):
         self.session.close_dbhandler(self.torrent_db)
       
 
-    def get_default_torrent(self,title):
+    def get_default_torrent(self,filename,title):
         metadata = {}
         metadata['announce'] = 'http://localhost:0/announce'
         metadata['announce-list'] = []
@@ -70,6 +72,7 @@ class TestRemoteQuery(TestAsServer):
         info['name'] = title
         info['length'] = 481
         metadata['info'] = info
+        open(os.path.join(self.config.get_torrent_collecting_dir(),filename),"w").write("f"*self.torrent_file_size)
         return bencode(metadata)
 
     def test_all(self):
@@ -139,6 +142,10 @@ class TestRemoteQuery(TestAsServer):
         var1 = k[0] == (self.infohash1) and k[1] == (self.infohash2)
         var2 = k[0] == (self.infohash2) and k[1] == (self.infohash1)
         self.assert_(var1 or var2)
+
+        # OLPROTO_VER_NINE must contain torrent_size
+        for infohash, torrent in d['a'].iteritems():
+            self.assert_(torrent['torrent_size'], self.torrent_file_size)
 
     def check_adict(self,d):
         self.assert_(type(d) == DictType)

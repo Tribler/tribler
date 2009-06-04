@@ -71,8 +71,8 @@ class SettingsOverviewPanel(wx.Panel):
 			     'unlimitedDown', \
 			     'diskLocationCtrl', \
                              'portChange', \
-                             'iconSaved']
-
+                             'iconSaved', \
+                             'Save']
 
 
         self.elements = {}
@@ -156,8 +156,10 @@ class SettingsOverviewPanel(wx.Panel):
         self.elements['uploadCtrl'].Bind(wx.EVT_KEY_DOWN, self.uploadCtrlEnter)
         self.elements['downloadCtrl'].Bind(wx.EVT_KEY_DOWN, self.downloadCtrlEnter)
 
-        self.elements['firewallValue'].Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
+        #self.elements['firewallValue'].Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
         self.elements['diskLocationCtrl'].Bind(wx.EVT_KEY_DOWN,self.diskLocationCtrlEnter)
+
+        self.elements['Save'].Bind(wx.EVT_LEFT_UP, self.saveAll)
 
      
 
@@ -177,7 +179,7 @@ class SettingsOverviewPanel(wx.Panel):
 #        self.Update()
 #        self.initData()
         self.timer = None
-         
+        
         wx.CallAfter(self.Refresh)
         
 
@@ -238,11 +240,7 @@ class SettingsOverviewPanel(wx.Panel):
 
     def diskLocationCtrlEnter(self, event):
         self.elements['diskLocationCtrl'].SetForegroundColour(wx.BLACK)
-        keycode = event.GetKeyCode()
-        if keycode == wx.WXK_RETURN:
-            self.saveAll()
-        else:
-            event.Skip()
+        event.Skip()
 
 
 
@@ -294,42 +292,42 @@ class SettingsOverviewPanel(wx.Panel):
     def zeroUp(self, event):
         self.resetUploadDownloadCtrlColour()
         self.elements['uploadCtrl'].SetValue('0') 
-        self.saveAll()
+        #self.saveAll()
 
     def fiftyUp(self, event):
         self.resetUploadDownloadCtrlColour()
         self.elements['uploadCtrl'].SetValue('50')        
-        self.saveAll()
+        #self.saveAll()
 
     def hundredUp(self, event):
         self.resetUploadDownloadCtrlColour()
         self.elements['uploadCtrl'].SetValue('100')        
-        self.saveAll()
+        #self.saveAll()
 
     def unlimitedUp(self, event):
         self.resetUploadDownloadCtrlColour()
         self.elements['uploadCtrl'].SetValue('unlimited')        
-        self.saveAll()
+        #self.saveAll()
 
     def seventyfiveDown(self, event):
         self.resetUploadDownloadCtrlColour()
         self.elements['downloadCtrl'].SetValue('75')        
-        self.saveAll()
+        #self.saveAll()
 
     def threehundredDown(self, event):
         self.resetUploadDownloadCtrlColour()
         self.elements['downloadCtrl'].SetValue('300')        
-        self.saveAll()
+        #self.saveAll()
 
     def sixhundreddDown(self, event):
         self.resetUploadDownloadCtrlColour()
         self.elements['downloadCtrl'].SetValue('600')        
-        self.saveAll()
+        #self.saveAll()
 
     def unlimitedDown(self, event):
         self.resetUploadDownloadCtrlColour()
         self.elements['downloadCtrl'].SetValue('unlimited')        
-        self.saveAll()
+        #self.saveAll()
 
 
 
@@ -342,20 +340,16 @@ class SettingsOverviewPanel(wx.Panel):
 
     def uploadCtrlEnter(self, event):
         self.elements['uploadCtrl'].SetForegroundColour(wx.BLACK)
-        keycode = event.GetKeyCode()
-        if keycode == wx.WXK_RETURN:
-            self.saveAll()
-        else:
-            event.Skip()     
+        if self.elements['uploadCtrl'].GetValue().strip() == 'unlimited':
+            self.elements['uploadCtrl'].SetValue('')
+        event.Skip()
 
      
     def downloadCtrlEnter(self, event):
         self.elements['downloadCtrl'].SetForegroundColour(wx.BLACK)
-        keycode = event.GetKeyCode()
-        if keycode == wx.WXK_RETURN:
-            self.saveAll()
-        else:
-            event.Skip()     
+        if self.elements['downloadCtrl'].GetValue().strip() == 'unlimited':
+            self.elements['downloadCtrl'].SetValue('')
+        event.Skip()
 
 
     def saveAll(self, download = True, upload = True, diskLocation = True, port = True):
@@ -437,20 +431,19 @@ class SettingsOverviewPanel(wx.Panel):
 
 
             # port number
-            if port:
-                if self.elements['firewallValue'].GetValue() != self.currentPortValue:
-                    self.currentPortValue = self.elements['firewallValue'].GetValue()
-                    self.utility.config.Write('minport', self.elements['firewallValue'].GetValue())
-                    self.utility.config.Flush()
-                    self.guiUtility.set_port_number(self.elements['firewallValue'].GetValue()) 
-                    self.guiUtility.set_firewall_restart(True) 
-                    self.guiserver = GUITaskQueue.getInstance()
-                    self.guiserver.add_task(lambda:wx.CallAfter(self.show_message), 0.0)
-                    self.elements['firewallStatus'].setSelected(1)
-                    self.elements['firewallStatusText'].SetLabel('Restart Tribler')
-                    tt = self.elements['firewallStatus'].GetToolTip()
-                    if tt is not None:
-                        tt.SetTip(self.utility.lang.get('restart_tooltip'))
+            if port and self.elements['firewallValue'].GetValue() != self.currentPortValue:
+                self.currentPortValue = self.elements['firewallValue'].GetValue()
+                self.utility.config.Write('minport', self.elements['firewallValue'].GetValue())
+                self.utility.config.Flush()
+                self.guiUtility.set_port_number(self.elements['firewallValue'].GetValue()) 
+                self.guiUtility.set_firewall_restart(True) 
+                self.guiserver = GUITaskQueue.getInstance()
+                self.guiserver.add_task(lambda:wx.CallAfter(self.show_message), 0.0)
+                self.elements['firewallStatus'].setSelected(1)
+                self.elements['firewallStatusText'].SetLabel('Restart Tribler')
+                tt = self.elements['firewallStatus'].GetToolTip()
+                if tt is not None:
+                    tt.SetTip(self.utility.lang.get('restart_tooltip'))
 
 
             self.updateSaveIcon()
@@ -464,7 +457,7 @@ class SettingsOverviewPanel(wx.Panel):
         if dlg.ShowModal() == wx.ID_OK:
             self.elements['diskLocationCtrl'].SetForegroundColour(wx.BLACK)
             self.elements['diskLocationCtrl'].SetValue(dlg.GetPath())
-            self.saveAll()
+            #self.saveAll()
         else:
             pass
 
@@ -484,7 +477,7 @@ class SettingsOverviewPanel(wx.Panel):
         self.getNameMugshot()
         self.showNameMugshot()
 
-        self.saveAll()
+        #self.saveAll()
 
 
 

@@ -24,7 +24,7 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         VideoHTTPServer.__single = self 
 
         self.port = port
-        BaseHTTPServer.HTTPServer.__init__( self, ("",self.port), SimpleServer )
+        BaseHTTPServer.HTTPServer.__init__( self, ("127.0.0.1",self.port), SimpleServer )
         self.daemon_threads = True
         self.allow_reuse_address = True
         #self.request_queue_size = 10

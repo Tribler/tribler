@@ -5,6 +5,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.standardFilter import filesFilter
 
+from font import *
 
 class ColumnHeader(wx.Panel):
     
@@ -42,11 +43,6 @@ class ColumnHeader(wx.Panel):
         self.text = None
         self.icon = None
         self.title = title
-
-
-
-
-
 
         if self.component == None or self.component == 'comboboxSort':
             if picture:
@@ -190,11 +186,11 @@ class ColumnHeaderBar(wx.Panel):
 
 
 
-        cornerTL_file = os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0","wrapCorTL.png")
-        self.cornerTL_image = wx.Image(cornerTL_file, wx.BITMAP_TYPE_ANY)            
-        self.cornerTL = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.cornerTL_image))
+        ##cornerTL_file = os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0","wrapCorTL.png")
+        ##self.cornerTL_image = wx.Image(cornerTL_file, wx.BITMAP_TYPE_ANY)            
+        ##self.cornerTL = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.cornerTL_image))
 
-        self.hSizer.Add(self.cornerTL,0,0,0)
+        ##self.hSizer.Add(self.cornerTL,0,0,0)
 
 
         

@@ -567,6 +567,7 @@ class TriblerLaunchMany(Thread):
                     return
             
             self.network_shutdown()
+
             
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start

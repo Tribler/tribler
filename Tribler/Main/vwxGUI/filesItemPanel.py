@@ -17,6 +17,7 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 import urllib
 import cStringIO
+import string
 
 from copy import deepcopy
 import cStringIO
@@ -141,7 +142,7 @@ class FilesItemPanel(wx.Panel):
             self.hSizer.Add([2,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.SetSizer(self.hSizer);
         else: # listitem
-            self.SetMinSize((660,22))
+            self.SetMinSize((660,30))
 
             self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)	##
 
@@ -162,7 +163,7 @@ class FilesItemPanel(wx.Panel):
             
 
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
-            self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND, 0)	##
+            self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND|wx.TOP, 5)	##
 
             self.thumb = ThumbnailViewer(self, 'filesMode')
             self.thumb.setBackground(wx.BLACK)
@@ -173,8 +174,8 @@ class FilesItemPanel(wx.Panel):
             self.title.SetBackgroundColour(wx.WHITE)
             self.title.SetForegroundColour(wx.BLACK)
             self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.title.SetMinSize((400,14))
-            self.hSizer.Add(self.title, 0,wx.TOP|wx.BOTTOM, 3)     
+            self.title.SetMinSize((400,18))
+            self.hSizer.Add(self.title, 0,wx.TOP|wx.BOTTOM, 0)     
             #self.hSizer.Add([5,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3) 
             # V Line
             ##self.vLine1 = self.addLine() 
@@ -316,10 +317,15 @@ class FilesItemPanel(wx.Panel):
 
         if torrent.get('name'):
             title = torrent['name'][:self.titleLength]
+            if sys.platform == 'win32':
+                title = string.replace(title,'&','&&')
+            #print >> sys.stderr , title
+            #print >> sys.stderr , title_new
             self.title.Enable(True)
             self.title.SetLabel(title)
-            self.title.Wrap(self.title.GetSize()[0])
-            self.title.SetToolTipString(torrent['name'])
+            if sys.platform != 'win32': # on windows causes a new line bug when title contains & symbol
+                self.title.Wrap(self.title.GetSize()[0])
+            self.title.SetToolTipString(title)
             ##self.setSourceIcon(torrent)
             if self.listItem:
                 self.fileSize.Enable(True)
@@ -363,7 +369,10 @@ class FilesItemPanel(wx.Panel):
                 self.popularity_image = wx.Image(popularity_file, wx.BITMAP_TYPE_ANY)            
 
                 self.popularity = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.popularity_image))
-
+                if torrent['num_seeders'] > 0 and torrent['num_leechers'] > 0:
+                    self.popularity.SetToolTipString('%s seeders\n%s leechers' % (torrent['num_seeders'], torrent['num_leechers']))
+                else:
+                    self.popularity.SetToolTipString('Poor')
                 self.hSizer.Add(self.popularity, 0, wx.TOP, 2)
 
                 self.hLine.Show()
@@ -541,8 +550,8 @@ class FilesItemPanel(wx.Panel):
             # torrent data is sent to guiUtility > standardDetails.setData
             self.guiUtility.selectTorrent(self.data)
             
-        if event.RightDown():
-            self.rightMouseButton(event)
+        ##if event.RightDown():
+        ##    self.rightMouseButton(event)
 
            
 
@@ -567,7 +576,7 @@ class FilesItemPanel(wx.Panel):
             ##self.triblerStyles.setLightText(self.summary)
             self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
             if sys.platform == 'win32':
-                self.SetMinSize((-1,98))
+                self.SetMinSize((-1,97))
             else:
                 self.SetMinSize((-1,100))                
         elif visible and self.summary:
@@ -587,7 +596,7 @@ class FilesItemPanel(wx.Panel):
             wx.CallAfter(self.summary.DestroyChildren)
             wx.CallAfter(self.summary.Destroy)
             self.summary = None
-            self.SetMinSize((-1,22))               
+            self.SetMinSize((-1,30))               
 
 
 

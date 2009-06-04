@@ -53,10 +53,18 @@ if sys.platform == 'darwin':
     FS_TITLE = 10
     FS_PERC = 9
     FS_SPEED = 9
+    FS_PAUSE = 9
+elif sys.platform == 'win32':
+    FS_TITLE = 8
+    FS_PERC = 6
+    FS_SPEED = 7
+    FS_PAUSE = 7
 else:
     FS_TITLE = 8
     FS_PERC = 7
     FS_SPEED = 7
+    FS_PAUSE = 7
+    
     
 statusLibrary  = {"downloading"     : "LibStatus_downloading.png",
                   "stopped"         : "LibStatus_stopped.png",
@@ -125,7 +133,7 @@ class LibraryItemPanel(wx.Panel):
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)        
         self.Show(False)
 
-        self.SetMinSize((660,22))
+        self.SetMinSize((660,30))
 
         self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
        
@@ -144,7 +152,7 @@ class LibraryItemPanel(wx.Panel):
 
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.vSizerOverall.Add(self.hSizer, 0 , wx.EXPAND, 0)
+        self.vSizerOverall.Add(self.hSizer, 0 , wx.EXPAND|wx.TOP, 5)
 
         self.SetBackgroundColour(wx.WHITE)
 
@@ -175,10 +183,10 @@ class LibraryItemPanel(wx.Panel):
 
 
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(300,14))        
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(250,14))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((300,14))
+        self.title.SetMinSize((250,14))
         self.hSizer.Add(self.title,0,wx.TOP,3)
         
         self.hSizer.Add([20,0],0,wx.FIXED_MINSIZE,0)        
@@ -187,11 +195,25 @@ class LibraryItemPanel(wx.Panel):
 
  
         # estimated time left
-        #self.eta = wx.StaticText(self,-1,"   ?")
-        #self.eta.SetForegroundColour(self.triblerGrey)
-        #self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))                
+        if sys.platform == 'win32':
+            self.eta = wx.StaticText(self,-1,"                ") 
+        else:
+            self.eta = wx.StaticText(self,-1,"    ")
+        self.eta.SetForegroundColour((150,150,150))
+        if sys.platform == 'win32':
+            self.eta.SetMinSize((120,14))
+        else:
+            self.eta.SetMinSize((50,14))
+        self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))                
         #self.hSizer.Add(self.eta, 0, wx.FIXED_MINSIZE, 0)
  
+
+        self.pause_resume = wx.StaticText(self,-1,"Pause",wx.Point(0,0),wx.Size(50,14))
+        self.pause_resume.SetForegroundColour((255,51,0)) 
+        self.pause_resume.SetFont(wx.Font(FS_PAUSE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.pause_resume.Bind(wx.EVT_LEFT_UP, self.pause_resume_clicked)
+
+        self.hSizer.Add(self.pause_resume, 0, wx.TOP,3)
 
 
 
@@ -202,39 +224,52 @@ class LibraryItemPanel(wx.Panel):
         self.remove.SetSize((17,17))
         self.hSizer.Add(self.remove, 0, wx.TOP|wx.ALIGN_RIGHT, 2) 
 
+        if sys.platform == 'win32':
+            self.hSizer.Add([40,0],0,wx.FIXED_MINSIZE,0)        
+        elif sys.platform == 'linux2':
+            self.hSizer.Add([55,0],0,wx.FIXED_MINSIZE,0)
+        else:
+            self.hSizer.Add([60,0],0,wx.FIXED_MINSIZE,0)
 
-        self.hSizer.Add([60,0],0,wx.FIXED_MINSIZE,0)        
 
-
-
-
-        self.speedDown2 = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(45,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
-        self.speedDown2.SetForegroundColour(wx.BLACK) ## self.triblerGrey    
+        if sys.platform == 'win32':
+            size = 55
+        elif sys.platform == 'linux2':
+            size = 45
+        else:
+            size = 45
+        self.speedDown2 = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(size,12), wx.ST_NO_AUTORESIZE)                                
+        self.speedDown2.SetForegroundColour(wx.BLACK) 
         self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.speedDown2.SetMinSize((45,12))        
+        self.speedDown2.SetMinSize((size,12))        
 
 
-        self.speedUp2   = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(45,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                        
-        self.speedUp2.SetForegroundColour(wx.BLACK) ## self.triblerGrey
+        self.speedUp2   = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(size,12), wx.ST_NO_AUTORESIZE)                        
+        self.speedUp2.SetForegroundColour(wx.BLACK) 
         self.speedUp2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.speedUp2.SetMinSize((45,12))
+        self.speedUp2.SetMinSize((size,12))
 
 
         self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 4)
         self.hSizer.Add([18,0],0,0,0)
         self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 4)   
 
-
-        self.hSizer.Add([20,0],0,wx.FIXED_MINSIZE,0)
-       
-
+        if sys.platform == 'linux2':
+            self.hSizer.Add([25,0],0,wx.FIXED_MINSIZE,0)
+        elif sys.platform == 'darwin':   
+            self.hSizer.Add([21,0],0,wx.FIXED_MINSIZE,0)
+        else:
+            self.hSizer.Add([30,0],0,wx.FIXED_MINSIZE,0)
         self.pb = ProgressBar(self,pos=wx.Point(450,0),size=wx.Size(60,5))
         self.pb.SetMinSize((100,5))        
 
         self.pbSizer = wx.BoxSizer(wx.VERTICAL)
-        self.pbSizer.Add([0,5],0,wx.FIXED_MINSIZE,0)        
+        self.pbSizer.Add([0,2],0,wx.FIXED_MINSIZE,0)        
         self.pbSizer.Add(self.pb,0,wx.FIXED_MINSIZE,0)        
-        
+        self.pbSizer.Add([0,2],0,wx.FIXED_MINSIZE,0)  
+        self.pbSizer.Add(self.eta,0,wx.FIXED_MINSIZE,0)  
+      
+                
 
         # Percentage
         self.percentage = wx.StaticText(self,-1,"?%",wx.Point(800,0),wx.Size(40,14))
@@ -336,10 +371,34 @@ class LibraryItemPanel(wx.Panel):
         else: 
             title = 'Down &&&& Up Speed'
         return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':400,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
-                {'sort':'??', 'dummy':True,'title':title,'width':130, 'tip':self.utility.lang.get('C_downupspeed')}, 
-                {'sort':'progress', 'title':'Completion', 'width':120, 'tip':self.utility.lang.get('C_progress')}               
+                {'sort':'??', 'dummy':True, 'title':title,'width':130, 'tip':self.utility.lang.get('C_downupspeed')}, 
+                {'sort':'progress', 'title':'Completion/ETA', 'width':120, 'tip':self.utility.lang.get('C_progress')}               
                 ]     
 
+    # pause or resume a download
+    def pause_resume_clicked(self, event):
+        if event.LeftUp():
+            if self.pause_resume.GetLabel() == 'Pause':
+                self.pauseDownload()
+            else:
+                self.resumeDownload()
+        else:
+            event.Skip()
+
+
+    def pauseDownload(self):
+        self.pause_resume.SetLabel('Resume')
+        if self.data.get('ds'):
+            ds = self.data.get('ds')
+            ds.get_download().stop()
+
+
+
+    def resumeDownload(self):
+        self.pause_resume.SetLabel('Pause')
+        if self.data.get('ds'):
+            ds = self.data.get('ds')
+            ds.get_download().restart()
 
                   
     def refreshData(self):
@@ -405,6 +464,14 @@ class LibraryItemPanel(wx.Panel):
             
             # Check if torrent just finished for resort
             #abctorrent.status.checkJustFinished()
+
+
+            if ds.get_status() == DLSTATUS_STOPPED:
+                self.pause_resume.SetLabel('Resume')
+
+            if ds.get_status() in (DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING):
+                self.pause_resume.SetLabel('Pause')
+
             
             #self.pb.setEnabled(True)
             self.pb.Show()
@@ -431,10 +498,12 @@ class LibraryItemPanel(wx.Panel):
             
             self.percentage.SetLabel('%.1f%%' % progress)
             eta = self.utility.eta_value(ds.get_eta(), truncate=2)
-            if eta == '' or eta.find('unknown') != -1 or finished:
+            if finished:
+                eta = "Finished"
+            elif eta == '' or eta.find('unknown') != -1:
                 eta = ''
-            #self.eta.SetLabel(eta)
-            #self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
+            self.eta.SetLabel(eta)
+            self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
                             
             havedigest = None
             showPlayButton = False
@@ -703,6 +772,8 @@ class LibraryItemPanel(wx.Panel):
     def play(self,ds):
         
         print >>sys.stderr,"lip: play"
+
+        self.pause_resume.SetLabel('Pause')
 
         self._get_videoplayer(exclude=ds).stop_playback() # stop current playback
 

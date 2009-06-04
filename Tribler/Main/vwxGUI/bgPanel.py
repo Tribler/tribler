@@ -44,6 +44,7 @@ class ImagePanelBasic(wx.Panel):
     
     def _PostInit(self):
         # Do all init here
+        ## if sys.platform == 'win32':
         if self.bitmap is None: #mluc: search for bitmap only if not already set; it may happen as the setBitmap might be called before the _PostInit
             self.searchBitmap()
         ##self.createBackgroundImage()
@@ -58,6 +59,8 @@ class ImagePanelBasic(wx.Panel):
         
     def setBackground(self, colour):
         self.backgroundColour = colour
+        self.bitmap = None
+        wx.EVT_PAINT(self, self.OnPaint)
         self.Refresh()
         
 
@@ -96,7 +99,10 @@ class ImagePanelBasic(wx.Panel):
 ##        except:
 ##            print_exc()
         
-    def createBackgroundImage(self):
+    def createBackgroundImage(self, bitmap = None):
+        if bitmap:
+            self.searchBitmap(bitmap)
+        
         wx.EVT_PAINT(self, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         

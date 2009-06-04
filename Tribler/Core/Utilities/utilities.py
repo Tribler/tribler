@@ -268,8 +268,12 @@ def show_permid_shorter(permid):
     s = encodestring(permid).replace("\n","")
     return s[-5:]
 
-def readableBuddyCastMsg(buddycast_data):
-    # convert msg to readable format
+def readableBuddyCastMsg(buddycast_data,selversion):
+    """ Convert msg to readable format.
+    As this copies the original dict, and just transforms it,
+    most added info is already present and therefore logged
+    correctly. Exception is the OLPROTO_VER_EIGHTH which
+    modified the preferences list. """
     prefxchg_msg = copy.deepcopy(buddycast_data)
     
     if prefxchg_msg.has_key('permid'):
@@ -280,11 +284,26 @@ def readableBuddyCastMsg(buddycast_data):
         prefxchg_msg.pop('port')
         
     name = repr(prefxchg_msg['name'])    # avoid coding error
-    prefs = []
+
     if prefxchg_msg['preferences']:
-        for pref in prefxchg_msg['preferences']:
-            prefs.append(show_permid(pref))
-    prefxchg_msg['preferences'] = prefs
+        prefs = []
+        if selversion < 8: # OLPROTO_VER_EIGHTH: Can't use constant due to recursive import
+            for pref in prefxchg_msg['preferences']:
+                prefs.append(show_permid(pref))
+        else:
+            for preftuple in prefxchg_msg['preferences']:
+                # Copy tuple and escape infohash
+                newlist = []
+                for i in range(0,len(preftuple)):
+                    if i == 0:
+                        val = show_permid(preftuple[i])
+                    else:
+                        val = preftuple[i]
+                    newlist.append(val)
+                prefs.append(newlist)
+                    
+        prefxchg_msg['preferences'] = prefs
+
         
     if prefxchg_msg.get('taste buddies', []):
         buddies = []

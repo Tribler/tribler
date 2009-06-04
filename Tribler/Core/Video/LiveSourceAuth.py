@@ -10,6 +10,7 @@ import time
 from Tribler.Core.Utilities.Crypto import sha,RSA_pub_key_from_der
 from Tribler.Core.osutils import *
 from M2Crypto import EC
+from Tribler.Core.osutils import *
 
 DEBUG = False
 
@@ -362,7 +363,6 @@ class AuthStreamWrapper:
         else:
             raise ValueError("authstream does not support seek")
 
-        
     def close(self):
         self.inputstream.close()
 

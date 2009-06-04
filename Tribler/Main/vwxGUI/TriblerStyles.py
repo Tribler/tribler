@@ -18,7 +18,7 @@ elif sys.platform == 'linux2':
 else:
     FS_LEFTH1 = 11
     FS_HEADER = 10
-    FS_FILETITLE = 8
+    FS_FILETITLE = 9
     FS_SIMILARITY = 10
     FS_HEARTRANK = 7
 

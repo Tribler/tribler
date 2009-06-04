@@ -351,7 +351,7 @@ class Session(SessionRuntimeConfig):
         
 
     def get_externally_reachable(self):
-        """" Returns whether the Session is externally reachable, i.e., its 
+        """ Returns whether the Session is externally reachable, i.e., its 
           listen port is not firewalled. Use add_observer() with NTFY_REACHABLE
           to register to the event of detecting reachablility. Note that due to
           the use of UPnP a Session may become reachable some time after 
@@ -658,6 +658,12 @@ class Session(SessionRuntimeConfig):
         * 'category': A list of category strings the torrent was classified into
           by the remote peer.
         </pre>
+
+        From Session API version 1.0.2 the following keys were added
+        to the torrentrecord:
+        <pre>
+        * 'torrent_size': The size of the .torrent file.
+        </pre>
         
         @param query A Unicode query string adhering to the above spec.
         @param usercallback A function adhering to the above spec.
@@ -698,8 +704,6 @@ class Session(SessionRuntimeConfig):
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:
             self.sesslock.release()
-
-
         
 
     #

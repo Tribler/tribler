@@ -8,6 +8,7 @@
 #
 #
 
+import os
 import sys
 from time import time
 from sets import Set
@@ -21,7 +22,7 @@ from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINE
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -77,6 +78,7 @@ class RemoteQueryMsgHandler:
         self.bc_fac = bc_fac # May be None
         if log:
             self.overlay_log = OverlayLogger.getInstance(log)
+        self.torrent_dir = os.path.abspath(self.config['torrent_collecting_dir'])
         self.registered = True
 
     #
@@ -257,8 +259,8 @@ class RemoteQueryMsgHandler:
         # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE
         kws = q.split()
         hits = self.search_manager.search(kws, maxhits=MAX_RESULTS)
-        
-        p = self.create_query_reply(d['id'],hits)
+
+        p = self.create_query_reply(d['id'],hits,selversion)
         m = QUERY_REPLY+p
 
         if self.overlay_log:
@@ -274,7 +276,9 @@ class RemoteQueryMsgHandler:
         self.inc_peer_nqueries(permid)
         
         
-    def create_query_reply(self,id,hits):
+    def create_query_reply(self,id,hits,selversion):
+        getsize = os.path.getsize
+        join = os.path.join
         d = {}
         d['id'] = id
         d2 = {}
@@ -289,6 +293,9 @@ class RemoteQueryMsgHandler:
             # Arno: TODO: sending category doesn't make sense as that's user-defined
             # leaving it now because of time constraints
             r['category'] = torrent['category']
+            if selversion >= OLPROTO_VER_NINE:
+                print os.listdir(self.torrent_dir)
+                r['torrent_size'] = getsize(join(self.torrent_dir, torrent['torrent_file_name']))
             d2[torrent['infohash']] = r
         d['a'] = d2
         return bencode(d)
@@ -391,7 +398,7 @@ def isValidQueryReply(d,selversion):
         if DEBUG:
             print >>sys.stderr,"rqmh: reply: a or id key not dict/str"
         return False
-    if not isValidHits(d['a']):
+    if not isValidHits(d['a'],selversion):
         return False
     if len(d) > 2: # no other keys
         if DEBUG:
@@ -399,26 +406,32 @@ def isValidQueryReply(d,selversion):
         return False
     return True
 
-def isValidHits(d):
+def isValidHits(d,selversion):
     if not isinstance(d,dict):
         return False
     for key in d.keys():
 #        if len(key) != 20:
 #            return False
         val = d[key]
-        if not isValidVal(val):
+        if not isValidVal(val,selversion):
             return False
     return True
 
-def isValidVal(d):
+def isValidVal(d,selversion):
     if not isinstance(d,dict):
         if DEBUG:
             print >>sys.stderr,"rqmh: reply: a: value not dict"
         return False
-    if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d):
-        if DEBUG:
-            print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
+    if selversion >= OLPROTO_VER_NINE:
+        if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d and 'torrent_size' in d):
+            if DEBUG:
+                print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
         return False
+    else:
+        if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d):
+            if DEBUG:
+                print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
+            return False
 #    if not (isinstance(d['content_name'],str) and isinstance(d['length'],int) and isinstance(d['leecher'],int) and isinstance(d['seeder'],int)):
 #        return False
 #    if len(d) > 4: # no other keys

@@ -994,6 +994,9 @@ class SQLiteCacheDB(SQLiteCacheDBV3):
     
     def __init__(self, *args, **kargs):
         # always use getInstance() to create this object
+        
+        # ARNOCOMMENT: why isn't the lock used on this read?!
+        
         if self.__single != None:
             raise RuntimeError, "SQLiteCacheDB is singleton"
         SQLiteCacheDBBase.__init__(self, *args, **kargs)

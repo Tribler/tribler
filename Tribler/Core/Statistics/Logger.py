@@ -1,11 +1,14 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
+#
+# Log version 3 = BuddyCast message V8
 
 import sys
 import os
 import time
 import socket
-from traceback import print_exc
+import threading
+from traceback import print_exc,print_stack
             
 DEBUG = False
 
@@ -37,7 +40,7 @@ class Logger:
       threshold (): message will not be logged if its output_level is bigger 
                      than this threshould
       file_name (): log file name
-      file_dir ('.'): diectory of log file. It can be absolute or relative path.
+      file_dir ('.'): directory of log file. It can be absolute or relative path.
       prefix (''): prefix of log file
       prefix_date (False): if it is True, insert 'YYYYMMDD-' between prefix 
                      and file_name, e.g., sp-20060302-buddycast.log given 
@@ -100,10 +103,12 @@ class Logger:
 
 class OverlayLogger:
     __single = None
+    __lock = threading.RLock()
     
     def __init__(self, file_name, file_dir = '.'):
         if OverlayLogger.__single:
-            raise RuntimeError, "OverlayLogger is singleton"
+            raise RuntimeError, "OverlayLogger is singleton2"
+        
         self.file_name = file_name
         self.file_dir = file_dir
         OverlayLogger.__single = self
@@ -111,9 +116,13 @@ class OverlayLogger:
         self.__call__ = self.log
 
     def getInstance(*args, **kw):
-        if OverlayLogger.__single is None:
-            OverlayLogger(*args, **kw)
-        return OverlayLogger.__single
+        OverlayLogger.__lock.acquire()
+        try:
+            if OverlayLogger.__single is None:
+                OverlayLogger(*args, **kw)
+            return OverlayLogger.__single
+        finally:
+            OverlayLogger.__lock.release()
     getInstance = staticmethod(getInstance)
     
     def log(self, *msgs):
@@ -185,7 +194,7 @@ class OverlayLogger:
         self.today = today
         hostname = socket.gethostname()
         logger = Logger(3, self.file_name, self.file_dir, hostname, True)
-        logger.log(3, '# Tribler Overlay Log Version 2', showtime=False)    # mention the log version at the first line
+        logger.log(3, '# Tribler Overlay Log Version 3', showtime=False)    # mention the log version at the first line
         logger.log(3, '# BUCA_STA: nRound   nPeer nPref nTorrent   ' + \
                    'nBlockSendList nBlockRecvList   ' + \
                    'nConnectionsInSecureOver nConnectionsInBuddyCast  ' + \

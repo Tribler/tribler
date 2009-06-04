@@ -182,8 +182,10 @@ class standardOverview(wx.Panel):
             self.SetMinSize((500,sizeCP[1]))
         elif nameCP == 'settingsOverview':
             self.SetMinSize((900,500))
-        else:
-            self.SetMinSize((600,490)) 
+        elif nameCP == 'libraryOverview':
+            self.SetMinSize((600,480)) 
+        else: # filesOverview
+            self.SetMinSize((600,476)) 
 
         self.hSizer.Layout()
         
@@ -322,7 +324,7 @@ class standardOverview(wx.Panel):
             self.firewallStatus = xrc.XRCCTRL(currentPanel,'firewallStatus')
             self.firewallStatusText = xrc.XRCCTRL(currentPanel,'firewallStatusText')
             self.portValue = xrc.XRCCTRL(currentPanel,'firewallValue')
-            self.portValue.Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
+        #    self.portValue.Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
             self.portChange = xrc.XRCCTRL(currentPanel, 'portChange')
             self.iconSaved = xrc.XRCCTRL(currentPanel, 'iconSaved')
             wx.CallAfter(self.updateFirewall)
@@ -630,8 +632,9 @@ class standardOverview(wx.Panel):
             self.results[stype] = num # FIXME different remote search overwrite eachother
         
         total = sum([v for v in self.results.values() if v != -1])
-        #if total > 30:
-        #    finished = True
+
+        wx.CallAfter(self.guiUtility.frame.standardPager.Show,(total > 0))
+        self.guiUtility.frame.pagerPanel.Refresh()
         if keywords:
             if type(keywords) == list:
                 self.keywords = " ".join(keywords)
@@ -652,10 +655,17 @@ class standardOverview(wx.Panel):
             self.search_results.SetForegroundColour(wx.BLACK)
  
         if self.mode in ['filesMode']:
-            self.search_results.SetLabel(msg)
+            if sys.platform == 'win32':
+                self.search_results.SetText(msg)
+                self.guiUtility.frame.top_bg.Refresh()
+            else:
+                #self.search_results.Refresh(eraseBackground=True)
+                self.search_results.SetLabel(msg)
         else:
-            self.search_results.SetLabel('Return to Results')    
-  
+            if sys.platform == 'win32':
+                self.search_results.SetText('Return to Results')    
+            else:
+                self.search_results.SetLabel('Return to Results')
         
     def growWithGrid(self):
         gridHeight = self.data[self.mode]['grid'].GetSize()[1]

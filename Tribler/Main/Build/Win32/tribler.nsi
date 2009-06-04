@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "5.0.0"
+!define VERSION "5.1.0"
 
 !include "MUI.nsh"
 

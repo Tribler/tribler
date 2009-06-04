@@ -611,8 +611,199 @@ class SwitchButton(tribler_topButton):
         
         if self.bitmaps[0]:
             dc.DrawBitmap(self.bitmaps[0], 0,0, True)
-        if self.mouseOver and self.isToggled() and self.bitmaps[1]:
+        if self.mouseOver and self.bitmaps[1]:
             dc.DrawBitmap(self.bitmaps[1], 0,0, True)
+
+
+class ClickButton(tribler_topButton):
+
+    # Somehow can't inherit these
+    __bitmapCache = {}
+
+    def __init__(self, *args, **kw):
+        self.initDone = False
+        self.enabled = True
+        self.blank = False
+        if len(args) == 0: 
+            self.backgroundColor = wx.WHITE
+            pre = wx.PrePanel() 
+            # the Create step is done by XRC. 
+            self.PostCreate(pre) 
+            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
+        else:
+            self.backgroundColor = ((230,230,230))
+            wx.Panel.__init__(self, *args, **kw) 
+            self._PostInit()     
+
+
+    
+    def searchBitmaps(self):
+        self.toggled = False
+        self.allBitmaps = [None, None, None]
+        self.parentBitmap = None
+        self.mouseOver = False
+                
+        # get the image directory
+        self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
+
+        self.Bind(wx.EVT_LEFT_UP, self.ClickedButton)
+        
+        # find a file with same name as this panel
+        self.bitmapPath = [os.path.join(self.imagedir, self.GetName()+'.png'), 
+                        os.path.join(self.imagedir, self.GetName()+'Enabled.png'),
+                        os.path.join(self.imagedir, self.GetName()+'Blank.png')
+                        ]
+        
+        i = 0
+        for img in self.bitmapPath:
+            if not os.path.isfile(img):
+                print >>sys.stderr,"ClickButton: Could not find image:",img
+            try:
+                if img in ClickButton.__bitmapCache:
+                    self.allBitmaps[i] = ClickButton.__bitmapCache[img]
+                else:
+                    self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+                    ClickButton.__bitmapCache[img] = self.allBitmaps[i] 
+            except:
+                print_exc()
+            i+=1
+        self.bitmaps = self.allBitmaps
+
+               
+    def setToggled(self, b, tooltip = { "enabled": "", "disabled": ""}):
+        self.toggled = b
+
+        if not self.initDone:
+            return
+        self.Refresh()
+        
+    def isToggled(self):
+        return self.toggled
+
+    def isBlank(self):
+        return self.blank
+
+    def setBlank(self, b):
+        self.blank = b
+        self.Refresh()
+
+        
+    def OnPaint(self, evt):
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.backgroundColor))
+        dc.Clear()
+        
+        if self.parentBitmap:
+            dc.DrawBitmap(self.parentBitmap, 0,0, True)
+        else:
+            self.parentBitmap = self.getParentBitmap()
+            if self.parentBitmap:
+                dc.DrawBitmap(self.parentBitmap, 0,0, True)
+        
+        if not self.enabled:
+            return
+        
+        if self.isBlank() and self.bitmaps[2]:
+            dc.DrawBitmap(self.bitmaps[2], 0,0, True)
+        elif self.isToggled() and self.bitmaps[1]:
+            dc.DrawBitmap(self.bitmaps[1], 0,0, True)
+        elif self.mouseOver and self.bitmaps[1]:
+            dc.DrawBitmap(self.bitmaps[1], 0,0, True)
+        else:
+            dc.DrawBitmap(self.bitmaps[0], 0,0, True)
+
+
+
+class SharingButton(tribler_topButton): # used under windows only
+
+    # Somehow can't inherit these
+    __bitmapCache = {}
+
+    def __init__(self, *args, **kw):
+        self.initDone = False
+        self.enabled = True
+        self.state = 1
+        if len(args) == 0: 
+            self.backgroundColor = wx.WHITE
+            pre = wx.PrePanel() 
+            # the Create step is done by XRC. 
+            self.PostCreate(pre) 
+            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
+        else:
+            self.backgroundColor = ((230,230,230))
+            wx.Panel.__init__(self, *args, **kw) 
+            self._PostInit()     
+
+
+    
+    def searchBitmaps(self):
+        self.toggled = False
+        self.allBitmaps = [None, None, None]
+        self.parentBitmap = None
+        self.mouseOver = False
+                
+        # get the image directory
+        self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
+
+        self.Bind(wx.EVT_LEFT_UP, self.ClickedButton)
+        
+        # find a file with same name as this panel
+        self.bitmapPath = [os.path.join(self.imagedir, self.GetName()+'_poor.png'), 
+                        os.path.join(self.imagedir, self.GetName()+'_average.png'),
+                        os.path.join(self.imagedir, self.GetName()+'_good.png')
+                        ]
+        
+        i = 0
+        for img in self.bitmapPath:
+            if not os.path.isfile(img):
+                print >>sys.stderr,"SharingButton: Could not find image:",img
+            try:
+                if img in SharingButton.__bitmapCache:
+                    self.allBitmaps[i] = SharingButton.__bitmapCache[img]
+                else:
+                    self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+                    SharingButton.__bitmapCache[img] = self.allBitmaps[i] 
+            except:
+                print_exc()
+            i+=1
+        self.bitmaps = self.allBitmaps
+
+               
+    def setState(self, b):
+        self.state = b
+
+        if not self.initDone:
+            return
+        self.Refresh()
+
+
+    def getState(self):
+        return self.state
+
+
+        
+    def OnPaint(self, evt):
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.backgroundColor))
+        dc.Clear()
+        
+        if self.parentBitmap:
+            dc.DrawBitmap(self.parentBitmap, 0,0, True)
+        else:
+            self.parentBitmap = self.getParentBitmap()
+            if self.parentBitmap:
+                dc.DrawBitmap(self.parentBitmap, 0,0, True)
+        
+        if not self.enabled:
+            return
+        
+        dc.DrawBitmap(self.bitmaps[self.state], 0,0, True)
+
+
+
+
+
+
 
 
 

@@ -354,7 +354,7 @@ class TorrentDef(Serializable,Copyable):
 
     def set_dht_nodes(self,nodes):
         """ Sets the DHT nodes required by the mainline DHT support,
-        See http://www.bittorrent.org/DHT_protocol.html
+        See http://www.bittorrent.org/beps/bep_0005.html
         @param nodes A list of [hostname,port] lists.
         """
         if self.readonly:

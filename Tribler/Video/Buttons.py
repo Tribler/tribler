@@ -50,7 +50,7 @@ class PlayerButton(wx.Panel):
         
         
     def searchBitmaps(self):
-        self.bitmaps = [None, None]
+        self.bitmaps = [None, None ,None]
         self.parentBitmap = None
         self.mouseOver = False
                 
@@ -60,7 +60,8 @@ class PlayerButton(wx.Panel):
         
         # find a file with same name as this panel
         self.bitmapPath = [os.path.join(self.imagedir, self.imagename+'.png'), 
-                           os.path.join(self.imagedir, self.imagename+'_hover.png')]
+                           os.path.join(self.imagedir, self.imagename+'_hover.png'),
+                           os.path.join(self.imagedir, self.imagename+'_dis.png')]
         
         i = 0
         for img in self.bitmapPath:
@@ -227,6 +228,13 @@ class PlayerButton(wx.Panel):
         
         if not self.enabled:
             return
+
+
+        if self.selected == 2:
+            dc.DrawBitmap(self.bitmaps[2], 0,0, True)
+            return
+
+
         if self.bitmaps[0]:
             dc.DrawBitmap(self.bitmaps[0], 0,0, True)
         if (self.mouseOver or self.selected) and self.bitmaps[1]:
@@ -244,7 +252,7 @@ class PlayerSwitchButton(PlayerButton):
         
     def searchBitmaps(self):
         self.toggled = False
-        self.allBitmaps = [None, None, None, None]
+        self.allBitmaps = [None, None, None, None, None, None]
         self.parentBitmap = None
         self.mouseOver = False
                 
@@ -256,8 +264,10 @@ class PlayerSwitchButton(PlayerButton):
         # find a file with same name as this panel
         self.bitmapPath = [os.path.join(self.imagedir, self.imagename+'.png'), 
                            os.path.join(self.imagedir, self.imagename+'_hover.png'),
+                           os.path.join(self.imagedir, self.imagename+'_dis.png'),
                            os.path.join(self.imagedir, self.imagename2+'.png'), 
-                           os.path.join(self.imagedir, self.imagename2+'_hover.png')
+                           os.path.join(self.imagedir, self.imagename2+'_hover.png'),
+                           os.path.join(self.imagedir, self.imagename2+'_dis.png')
                            ]
         
         i = 0
@@ -270,9 +280,9 @@ class PlayerSwitchButton(PlayerButton):
                 
 
         if self.toggled:
-            self.bitmaps = self.allBitmaps[2:]
+            self.bitmaps = self.allBitmaps[3:]
         else:
-            self.bitmaps = self.allBitmaps[:2]
+            self.bitmaps = self.allBitmaps[:3]
                 
     def setToggled(self, b, tooltip = { "enabled": "", "disabled": ""}):
         self.toggled = b
@@ -281,11 +291,11 @@ class PlayerSwitchButton(PlayerButton):
             return
 
         if b:
-            self.bitmaps=self.allBitmaps[2:]
+            self.bitmaps=self.allBitmaps[3:]
             if self.enabled:
                 self.SetToolTipString(tooltip["enabled"])
         else:
-            self.bitmaps=self.allBitmaps[:2]
+            self.bitmaps=self.allBitmaps[:3]
             if self.enabled:
                 self.SetToolTipString(tooltip["disabled"])
             

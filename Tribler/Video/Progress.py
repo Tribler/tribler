@@ -214,6 +214,7 @@ class ProgressSlider(wx.Panel):
         self.utility = utility
         self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Video','Images',imgprefix+'background.png')) ## LIBRARYNAME
         self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Video','Images',imgprefix+'sliderDot.png')) ## LIBRARYNAME
+        self.dotImage_dis = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME,'Video','Images',imgprefix+'sliderDot_dis.png')) ## LIBRARYNAME
         self.sliderPosition = None
         self.rectHeight = 2
         self.rectBorderColour = wx.LIGHT_GREY
@@ -222,6 +223,7 @@ class ProgressSlider(wx.Panel):
         self.doneColor = "#13bd00" # wx.RED 
         self.bufferColor = "#0b7100" # wx.GREEN
         self.sliderWidth = 0
+        self.selected = 2
         self.range = (0,1)
         self.dragging = False
         self.allowDragging = False
@@ -294,6 +296,11 @@ class ProgressSlider(wx.Panel):
         self.GetParent().Seek()
             
         
+    def setSelected(self, sel):
+        self.selected = sel
+        self.Refresh()
+
+
                 
         
     def setBufferFromPieces(self, pieces_complete):
@@ -333,6 +340,12 @@ class ProgressSlider(wx.Panel):
     def SetTimePosition(self, timepos, duration):
         self.timeposition = timepos
         self.videoLength = duration
+
+    def ResetTime(self):
+        self.videoLength = None
+        self.timeposition = None
+        self.Refresh()
+
         
     def formatTime(self, s):
         longformat = time.strftime('%d:%H:%M:%S', time.gmtime(s))
@@ -386,7 +399,10 @@ class ProgressSlider(wx.Panel):
             dc.DrawRectangle(position+self.margin,height/2-smallRectHeight/2, self.bufferlength, smallRectHeight)
             # draw circle
             dotSize = self.dotImage.GetSize()
-            dc.DrawBitmap(self.dotImage, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2, True)
+            if self.selected == 2:
+                dc.DrawBitmap(self.dotImage_dis, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2, True)
+            else:
+                dc.DrawBitmap(self.dotImage, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2, True)
         if width > 2*self.margin+self.textWidth:
             # Draw times
             font = self.GetFont()
@@ -398,11 +414,13 @@ class ProgressSlider(wx.Panel):
 
     def EnableDragging(self):
         self.allowDragging = True
+        self.setSelected(1)
         
     def DisableDragging(self):
         self.allowDragging = False
-  
-  
+        self.setSelected(2)
+
+ 
 class VolumeSlider(wx.Panel):
     
     def __init__(self, parent, utility, imgprefix=''):

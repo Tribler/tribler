@@ -19,7 +19,7 @@ except ImportError:
     print_exc()
     
 
-DEBUG = True
+DEBUG = False
 
 SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
@@ -299,8 +299,15 @@ class TorrentSearchGridManager:
                     newval['num_seeders'] = value['seeder']
                     newval['num_leechers'] = value['leecher']
 
+                    # OLPROTO_VER_NINE includes a torrent_size. Set to
+                    # -1 when not available.
+                    if 'torrent_size' in value:
+                        newval['torrent_size'] = value['torrent_size']
+                    else:
+                        newval['torrent_size'] = -1
+
                     # Extra fiedl: Set from which peer this info originates
-                    newval['query_permid'] = permid
+                    newval['query_permids'] = [permid]
                     if DEBUG:
                         print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: appending hit",`newval['name']`
                         #value['name'] = 'REMOTE '+value['name']
@@ -317,11 +324,17 @@ class TorrentSearchGridManager:
                     if flag:
                         continue
 
-                    if not (newval['infohash'] in self.remoteHits): 
+                    if newval['infohash'] in self.remoteHits:
+                        # merge this result with previous results
+                        oldval = self.remoteHits[newval['infohash']]
+                        for query_permid in newval['query_permids']:
+                            if not query_permid in oldval['query_permids']:
+                                oldval['query_permids'].append(query_permid)
+                    else:
                         self.remoteHits[newval['infohash']] = newval
                         numResults +=1
-                        #if numResults % 5 == 0:
-                        #self.refreshGrid()
+                        # if numResults % 5 == 0:
+                        # self.refreshGrid()
              
                 if numResults > 0 and mode == 'filesMode': #  and self.standardOverview.getSearchBusy():
                     self.refreshGrid()

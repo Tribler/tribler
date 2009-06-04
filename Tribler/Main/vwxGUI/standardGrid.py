@@ -22,7 +22,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 #from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
 
-DEBUG = True
+DEBUG = False
 
 
 class GridManager(object):
@@ -987,7 +987,7 @@ class filesGrid(standardGrid):
 #        columns = 5
 #        self.subPanelHeight = 108 # This will be update after first refresh
         columns = (5, 1)
-        subPanelHeight = (5*22, 22)
+        subPanelHeight = (5*22, 30)
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical',parent=parent,name="filesGrid")
         
     def getSubPanel(self, keyfun):
@@ -996,7 +996,7 @@ class filesGrid(standardGrid):
 class libraryGrid(standardGrid):
     def __init__(self,parent=None):
         columns = (1,1)
-        subPanelHeight = (22, 22) # This will be update after first refresh
+        subPanelHeight = (22, 30) # This will be update after first refresh
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="libraryGrid")
             
     def getSubPanel(self, keyfun):

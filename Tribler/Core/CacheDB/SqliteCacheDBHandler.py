@@ -1396,7 +1396,7 @@ class TorrentDBHandler(BasicDBHandler):
         if category_name != 'all':
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
         if library:
-            where += ' and torrent_id in (select torrent_id from MyPreference)'
+            where += ' and torrent_id in (select torrent_id from MyPreference where destination_path != "")'
         else:
             where += ' and status_id=%d ' % self.status_table['good']
             # add familyfilter
@@ -1429,7 +1429,7 @@ class TorrentDBHandler(BasicDBHandler):
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
         if library:
             if sort in value_name:
-                where += ' and C.torrent_id in (select torrent_id from MyPreference)'
+                where += ' and C.torrent_id in (select torrent_id from MyPreference where destination_path != "")'
             else:
                 value_name[0] = 'C.torrent_id'
                 where += ' and C.torrent_id = M.torrent_id and announce_tier=1'

@@ -82,11 +82,11 @@ class Lang:
             return self.expandEnter(self.cache[label])
     
         if (label == 'version'):
-            return version_id+' Preview1'
+            return version_id
         if (label == 'build'):
-            return "Build 11431"
+            return "Build 11763"
         if (label == 'build_date'):
-            return "Apr 29, 2009"
+            return "Jun 4, 2009"
 
         # see if it exists in 'user.lang'
         if tryuser:

@@ -56,15 +56,12 @@ from cStringIO import StringIO
 import urllib2
 import tempfile
 
-
 import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.MainFrame import MainFrame
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-## from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
-## from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
-## from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame,VideoMacFrame
+from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
@@ -124,6 +121,8 @@ class ABCApp(wx.App):
                 data = f.read(100)
                 f.close()
                 if data.find("Ubuntu 8.10") != -1:
+                    ubuntu = True
+                if data.find("Ubuntu 9.04") != -1:
                     ubuntu = True
                     
             if not redirectstderrout and ubuntu:
@@ -265,6 +264,7 @@ class ABCApp(wx.App):
             self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_search")
             self.frame.top_bg.set_frame(self.frame)
             self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
+            self.frame.standardPager = xrc.XRCCTRL(self.frame,"standardPager")
             self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
             self.frame.changePlay = xrc.XRCCTRL(self.frame, "changePlay")
  
@@ -293,7 +293,7 @@ class ABCApp(wx.App):
             elif sys.platform == 'win32':
                 self.frame.videoparentpanel.SetMinSize((363,400))
             else:
-                self.frame.videoparentpanel.SetMinSize((350,240))
+                self.frame.videoparentpanel.SetMinSize((355,240))
 
 
             logopath = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','video.gif')
@@ -311,18 +311,21 @@ class ABCApp(wx.App):
                 #
                 wx.CallAfter(self.frame.standardOverview.Hide)
                 wx.CallAfter(self.frame.standardDetails.Hide)
-                hide_names = [self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel,self.frame.BL,self.frame.BR]
+                hide_names = [self.frame.pagerPanel]
             else:
-                hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pageTitlePanel, self.frame.pageTitle,self.frame.pagerPanel,self.frame.BL,self.frame.BR]
-
+                hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pagerPanel]
 
 
             for name in hide_names:
                 name.Hide()
             self.frame.videoframe.hide_videoframe()
 
-            if sys.platform != 'win32':
-                self.frame.top_bg.createBackgroundImage()
+            self.frame.top_bg.createBackgroundImage()
+            ## self.frame.top_bg.setBackground((230,230,230))
+	    if sys.platform == 'win32':
+                wx.CallAfter(self.frame.top_bg.Refresh)
+                wx.CallAfter(self.frame.top_bg.Layout)
+                
 
             self.frame.top_bg.Layout()
 
@@ -428,6 +431,11 @@ class ABCApp(wx.App):
             torrcolldir = os.path.join(destdir,STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
             self.sconfig.set_nat_detect(True)
+            
+            
+            self.sconfig.set_overlay_log("bclog.txt")
+            
+            
             
             # rename old collected torrent directory
             try:
@@ -555,15 +563,18 @@ class ABCApp(wx.App):
     def set_reputation(self):
         """ set the reputation in the GUI"""
         reputation = self.get_reputation()
-        if reputation < -0.33:
-            self.frame.top_bg.sr_msg.SetLabel('Poor')
-            self.frame.top_bg.sr_msg.SetForegroundColour((255,51,0))
-        elif reputation < 0.33:
-            self.frame.top_bg.sr_msg.SetLabel('Average')
-            self.frame.top_bg.sr_msg.SetForegroundColour(wx.BLACK)
+        if sys.platform == 'win32':
+            self.frame.top_bg.updateReputation(reputation)
         else:
-            self.frame.top_bg.sr_msg.SetLabel('Good')
-            self.frame.top_bg.sr_msg.SetForegroundColour((0,80,120))
+            if reputation < -0.33:
+                self.frame.top_bg.sr_msg.SetLabel('Poor')
+                self.frame.top_bg.sr_msg.SetForegroundColour((255,51,0))
+            elif reputation < 0.33:
+                self.frame.top_bg.sr_msg.SetLabel('Average')
+                self.frame.top_bg.sr_msg.SetForegroundColour(wx.BLACK)
+            else:
+                self.frame.top_bg.sr_msg.SetLabel('Good')
+                self.frame.top_bg.sr_msg.SetForegroundColour((0,80,120))
 
 
 

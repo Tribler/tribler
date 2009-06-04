@@ -231,7 +231,7 @@ class FilesItemDetailsSummary(bgPanel):
 
         def is_playable_callback(torrent, playable):
             print >> sys.stderr, "PLAYABLE : " , playable
-            self.play_big.Show(playable)
+            self.play_big.setToggled(playable)
 
         if not self.guiUtility.standardDetails.torrent_is_playable(callback=is_playable_callback):
 

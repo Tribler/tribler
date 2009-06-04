@@ -55,7 +55,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 
-DEBUG = True
+DEBUG = False
 
 
 ################################################################
@@ -401,6 +401,9 @@ class MainFrame(wx.Frame):
             else:
                 print  >> sys.stderr,"main: onIconify event None"
         if event.Iconized():                                                                                                               
+            videoplayer = VideoPlayer.getInstance()
+            videoplayer.videoframe.get_videopanel().Pause() # when minimzed pause playback
+
             if (self.utility.config.Read('mintray', "int") > 0
                 and self.tbicon is not None):
                 self.tbicon.updateIcon(True)
@@ -409,6 +412,12 @@ class MainFrame(wx.Frame):
             # Don't update GUI while minimized
             self.setGUIupdate(False)
         else:
+            videoplayer = VideoPlayer.getInstance()
+            embed = videoplayer.videoframe.get_videopanel()
+            if embed.GetState() == MEDIASTATE_PAUSED:
+                embed.ppbtn.setToggled(False)
+                embed.vlcwin.setloadingtext('')
+                embed.vlcwrap.resume()
             self.setGUIupdate(True)
         if event is not None:
             event.Skip()
@@ -617,6 +626,13 @@ class MainFrame(wx.Frame):
         if type == NTFY_ACT_NONE:
             prefix = msg
             msg = u''
+        elif type == NTFY_ACT_ACTIVE:
+            prefix = u""
+            if msg == "no network":
+                text = "%s\nLast activity: %.1f seconds ago" % (msg, arg2)
+                self.SetTitle(text)
+                print  >> sys.stderr,"main: Activity",`text`
+                
         elif type == NTFY_ACT_UPNP:
             prefix = self.utility.lang.get('act_upnp')
         elif type == NTFY_ACT_REACHABLE:
@@ -659,5 +675,6 @@ class MainFrame(wx.Frame):
     def quit(self):
         if self.wxapp is not None:
             self.wxapp.ExitMainLoop()
+
      
      

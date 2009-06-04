@@ -48,7 +48,7 @@ class BarterCastCore:
         self.overlay_bridge.add_task(self.refreshTopN, REFRESH_TOPN_INTERVAL)
         
         if self.log:
-            self.overlay_log = OverlayLogger(self.log)
+            self.overlay_log = OverlayLogger.getInstance(self.log)
             
         if LOG:
             self.logfile = '/Users/michel/packages/bartercast_dataset/bartercast42.log'

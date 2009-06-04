@@ -2,7 +2,7 @@ import wx
  
 class NewStaticText(wx.StaticText):
     def __init__(self, parent, label, colour, font):
-        wx.StaticText.__init__(self, parent, -1)
+        wx.Panel.__init__(self, parent, -1)
         self.parent = parent
         self.label = label
         self.font = font
@@ -15,10 +15,11 @@ class NewStaticText(wx.StaticText):
         x, y = self.GetPositionTuple()
         dc = wx.PaintDC(self)
         l, h = dc.GetTextExtent(self.label)
-        #self.SetSize((l, h))
+        self.SetSize((l, h))
+        dc = wx.PaintDC(self)
         dc2 = wx.BufferedPaintDC(self.parent)
         dc.Blit(0, 0, l, h, dc2, x, y)
-        ##dc.SetTextBackground(wx.NullColour)
+        dc.SetTextBackground(wx.NullColour)
         dc.SetTextForeground(self.colour)
         ##dc.SetBackgroundMode(wx.TRANSPARENT)
         ##dc.SetBrush(wx.Brush((0,0,0),wx.TRANSPARENT))
@@ -33,6 +34,8 @@ class NewStaticText(wx.StaticText):
 
     def SetText(self, text):
         self.label = text
+        #self.Refresh()
+        
         wx.EVT_PAINT(self,self.OnPaint)
 
 

@@ -9,7 +9,7 @@ from StringIO import StringIO
 
 DEBUG=False
 
-current_version = 8 # NIC: increased version number for clicklog stuff
+current_version = 9 
 lowest_version = 2
 
 protocol_name = "BitTorrent protocol"

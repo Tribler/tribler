@@ -29,7 +29,7 @@ All code written by Jie Yang, Pawel Garbacki, Jun Wang, Arno Bakker,
 Jan David Mol, Qin Chen, Yuan Yuan, Jelle Roozenburg, Freek Zindel,
 Fabian van der Werf, Lucian Musat, Michel Meulpolder, Maarten ten Brinke,
 Ali Abbas, Boxun Zhang, Lucia d' Acunto, Rameez Rahman, Boudewijn Schoon,
-Richard Gwin has the following license:
+Richard Gwin, Diego Rabaioli, Riccardo Petrocco has the following license:
 
     TRIBLER file-sharing library.
 
@@ -70,6 +70,52 @@ The research leading to this library has received funding from:
    under contract no 035249.
  - The European Community's Seventh Framework Programme in the P2P-Next project
    under grant agreement no 216217.
+
+-------------------------------------------------------------------------------
+
+    BuddyCast4 content-recommendation library.
+
+    The research leading to this library has received funding from the
+    European Community's Seventh Framework Programme [FP7/2007-2011] 
+    in the Petamedia project under grant agreement no. 216444
+
+    The following library modules are Copyright (c) 2008-2009,
+    Delft University of Technology and Technische Universität Berlin; 
+    All rights reserved.
+
+      BaseLib/Core/BuddyCast/buddycast.py
+
+    The following library modules are Copyright (c) 2008-2009,
+    Technische Universität Berlin; 
+    All rights reserved.
+
+      BaseLib/Core/Search/Reranking.py
+      BaseLib/Test/test_buddycast4.py
+      BaseLib/Test/test_buddycast4_stresstest.py
+      
+    All library modules are free software, unless stated otherwise; you can 
+    redistribute them and/or modify them under the terms of the GNU Lesser 
+    General Public License as published by the Free Software Foundation; in 
+    particular, version 2.1 of the License.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+    Delft University of Technology
+    Postbus 5
+    2600 AA Delft
+    The Netherlands
+    
+    Technische Universität Berlin
+    Strasse des 17. Juni 135
+    10623 Berlin
+    Germany
 
 -------------------------------------------------------------------------------
 

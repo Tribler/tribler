@@ -321,7 +321,6 @@ class PlayerApp(BaseApp):
     #
     def save_video_copy(self):
         # Save a copy of playing download to other location
-
         for d2 in self.downloads_in_vodmode:
             # only single playing Download at the moment in swarmplayer
             d = d2

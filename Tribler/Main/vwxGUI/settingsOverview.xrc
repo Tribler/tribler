@@ -469,7 +469,23 @@
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
           <object class="spacer">
-            <size>400,0</size>
+            <size>419,0</size>
+          </object>
+          <object class="sizeritem">
+            <object class="wxPanel" name="Save" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+              <size>62,32</size>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <size>0,30</size>
+      </object>
+      <object class="sizeritem">
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="spacer">
+            <size>390,0</size>
           </object>
           <object class="sizeritem">
             <object class="wxStaticBitmap" name="iconSaved">

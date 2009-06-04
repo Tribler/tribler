@@ -62,7 +62,7 @@ class ModerationCastCore:
         #Extend logging with ModerationCAST-messages and status
         if self.log:
             self.overlay_log = OverlayLogger.getInstance(self.log)
-            self.dnsindb = self.data_handler.get_dns_from_peerdb
+            ##self.dnsindb = self.data_handler.get_dns_from_peerdb # Arno, 2009-05-15: Don't see why this must be diff. Don't exist anymore anyway
             
         if AUTO_MODERATE:
             assert AUTO_MODERATE_INTERVAL > 0

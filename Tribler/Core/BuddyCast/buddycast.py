@@ -982,7 +982,7 @@ class BuddyCastCore:
                     MSG_ID = 'ACTIVE_BC'
                 else:
                     MSG_ID = 'PASSIVE_BC'
-                msg = repr(readableBuddyCastMsg(buddycast_data))    # from utilities
+                msg = repr(readableBuddyCastMsg(buddycast_data,selversion))    # from utilities
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
         return buddycast_data # Nicolas: for testing
                 
@@ -1271,7 +1271,7 @@ class BuddyCastCore:
                     MSG_ID = 'ACTIVE_BC'
                 else:
                     MSG_ID = 'PASSIVE_BC'
-                msg = repr(readableBuddyCastMsg(buddycast_data))    # from utilities
+                msg = repr(readableBuddyCastMsg(buddycast_data,selversion))    # from utilities
                 self.overlay_log('RECV_MSG', sender_ip, sender_port, show_permid(sender_permid), selversion, MSG_ID, msg)
             
             # store discovered peers/preferences/torrents to cache and db
@@ -1350,14 +1350,14 @@ class BuddyCastCore:
 
                 # we shouldn't receive these lists if the peer says he's OL 8.
                 # let's accept it but complain
-                if buddycast_data['oversion'] == OLPROTO_VER_EIGHTH:
+                if buddycast_data['oversion'] >= OLPROTO_VER_EIGHTH:
                     if DEBUG:
                         print >> sys.stderr, 'buddycast: received OLPROTO_VER_EIGHTH buddycast data containing old style preferences. only ok if talking to an earlier non-release version'
                 return d
 
             # if the single prefs entries are lists, we have a more modern wire format
             # currently, there is only one possibility
-            if buddycast_data['oversion'] == OLPROTO_VER_EIGHTH:
+            if buddycast_data['oversion'] >= OLPROTO_VER_EIGHTH:
                 # create dictionary from list of lists
                 d = [dict({'infohash': pref[0],
                            'search_terms': pref[1],

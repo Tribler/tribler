@@ -35,11 +35,12 @@ OLPROTO_VER_FIFTH = 5   # Fourth public release, >= 4.0.0, SOCIAL_OVERLAP
 OLPROTO_VER_SIXTH = 6   # Fifth public release, >= 4.1.0, extra BC fields, remote query
 OLPROTO_VER_SEVENTH = 7 # Sixth public release, >= 4.5.0, supports CRAWLER_REQUEST and CRAWLER_REPLY messages
 OLPROTO_VER_EIGHTH = 8  # Seventh public release, >= 5.0, supporting BuddyCast with clicklog info.
-
+OLPROTO_VER_NINE = 9    # Eighth public release, >= 5.1, additional torrent_size in remote search query reply (this code is submitted to the branches/release5.0-p1 repository and will be merges in due time)
+OLPROTO_VER_TEN = 10    # Nineth public release, >= 5.X, simplified the VOD statistics (this code is submitted to the branches/trial-m18 repository and will be merged in due time)
 
 
 # Overlay-swarm protocol version numbers
-OLPROTO_VER_CURRENT = OLPROTO_VER_EIGHTH
+OLPROTO_VER_CURRENT = OLPROTO_VER_NINE
 
 OLPROTO_VER_LOWEST = OLPROTO_VER_SECOND
 SupportedVersions = range(OLPROTO_VER_LOWEST, OLPROTO_VER_CURRENT+1)
@@ -101,6 +102,7 @@ class SecureOverlay:
         self.myip = self.lm.get_ext_ip()
         self.myport = self.lm.session.get_listen_port()
         self.myid = create_my_peer_id(self.myport)
+        self.last_activity = time()
 
     def resetSingleton(self):
         """ For testing purposes """
@@ -108,6 +110,21 @@ class SecureOverlay:
 
     def start_listening(self):
         self.overlay_rawserver.start_listening(self)
+        self.overlay_rawserver.add_task(self.monitor_activity, 2)
+
+    def monitor_activity(self):
+        """
+        periodically notify the network status
+        """
+        diff = time() - self.last_activity
+        if diff > 120 + 1:
+            # 120 is set as the check_period for buddycast until a
+            # KEEP_ALIVE message is send
+            msg = "no network"
+        else:
+            msg = "network active"
+        self.lm.set_activity(NTFY_ACT_ACTIVE, msg, diff)
+        self.overlay_rawserver.add_task(self.monitor_activity, 2)
 
     def connect_dns(self,dns,callback):
         """ Connects to the indicated endpoint and determines the permid 
@@ -336,6 +353,7 @@ class SecureOverlay:
         """ incoming connection (never used) """
         if DEBUG:
             print >> sys.stderr,"secover: external_connection_made",singsock.get_ip(),singsock.get_port()
+        self.last_activity = time()
         oc = OverlayConnection(self,singsock,self.rawserver)
         singsock.set_handler(oc)
 
@@ -378,6 +396,8 @@ class SecureOverlay:
             self.cleanup_admin_and_callbacks(oc,Exception('closing because auth listen port not as expected'))
             return False
 
+        self.last_activity = time()
+
         ret = True
         iplport = ip_and_port2str(oc.get_ip(),oc.get_auth_listen_port())
         known = iplport in self.iplport2oc
@@ -399,7 +419,7 @@ class SecureOverlay:
                 hisdns = (oc.get_ip(),oc.get_auth_listen_port())
             else:
                 hisdns = None
-            
+
             #if DEBUG:
             #    print >>sys.stderr,"secover: userconnhandler is",self.userconnhandler
             
@@ -430,6 +450,7 @@ class SecureOverlay:
         if DEBUG:
             print >> sys.stderr,"secover: got_message",getMessageName(message[0]),\
                             "v"+str(selversion)
+        self.last_activity = time()
         if self.usermsghandler is None:
             if DEBUG:
                 print >> sys.stderr,"secover: User receive callback not set"
