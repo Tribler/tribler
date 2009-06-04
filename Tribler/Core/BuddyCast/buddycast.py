@@ -1886,7 +1886,8 @@ class BuddyCastCore:
         # Also add local peers (they should be cheap)
         # TODO: How many peers?  Should these be part of the npeers?
         local_peers = self.data_handler.getLocalPeerList(max_peers=5)
-        print >> sys.stderr, "bc: getRemoteSearchPeers: Selected %d local peers" % len(local_peers)
+        if DEBUG:
+            print >> sys.stderr, "bc: getRemoteSearchPeers: Selected %d local peers" % len(local_peers)
         
         return local_peers + peers
         

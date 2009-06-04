@@ -432,11 +432,6 @@ class ABCApp(wx.App):
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
             self.sconfig.set_nat_detect(True)
             
-            
-            self.sconfig.set_overlay_log("bclog.txt")
-            
-            
-            
             # rename old collected torrent directory
             try:
                 if not os.path.exists(destdir):

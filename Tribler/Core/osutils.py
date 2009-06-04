@@ -92,7 +92,7 @@ else:
     def get_picture_dir():
         home = get_home_dir()
         desktop = os.path.join(home, "Desktop")
-        if os.exists(desktop):
+        if os.path.exists(desktop):
             return desktop
         else:
             return home

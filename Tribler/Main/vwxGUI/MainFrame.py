@@ -45,6 +45,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon 
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
+from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.utils import videoextdefaults
 

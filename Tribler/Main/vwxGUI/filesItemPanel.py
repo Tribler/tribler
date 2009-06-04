@@ -11,7 +11,6 @@ from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButto
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Main.Utility.utility import getMetainfo, similarTorrent, copyTorrent
-## from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage
 
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
@@ -91,7 +90,6 @@ class FilesItemPanel(wx.Panel):
             self.guiserver = GUIServer.getInstance()
 
         self.addComponents()
-        ## self.iconsManager = IconsManager.getInstance()
         self.Show()
         self.Refresh()
         self.Layout()
@@ -635,7 +633,6 @@ class ThumbnailViewer(wx.Panel):
         self.border = None
         self.downloading = False
         self.categoryIcon = None
-        ## self.iconsManager = IconsManager.getInstance()
 
     
     def setTorrent(self, torrent):

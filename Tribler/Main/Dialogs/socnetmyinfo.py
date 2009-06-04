@@ -16,7 +16,7 @@ import wx.lib.imagebrowser as ib
 # it don't work. This explicit import seems to:
 from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
 
-## from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap, ICON_MAX_DIM
+from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Core.Utilities.unicode import str2unicode
 #from common import CommonTriblerList
 from Tribler.Main.Utility.constants import *
@@ -24,13 +24,6 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.osutils import get_home_dir, get_picture_dir
-
-ICON_MAX_DIM = 80
-SMALL_ICON_MAX_DIM = 32
-
-
-
-SERVICETYPES = []
 
 DEBUG = False
 
@@ -261,48 +254,5 @@ class RWIDsWizardPage(WizardPageSimple):
 
     def add(self,service,id):
         self.rwidlist.add(service,id)
-
-
-
-
-
-
-def data2wxImage(type,data,dim=ICON_MAX_DIM):
-    try:
-        if data is None:
-            return None
-        
-        mi = cStringIO.StringIO(data)
-        # St*pid wx says "No handler for image/bmp defined" while this
-        # is the image handler that is guaranteed to always be there,
-        # according to the docs :-(
-        if type == 'image/bmp':
-            im = wx.ImageFromStream(mi,wx.BITMAP_TYPE_BMP)
-        else:
-            im = wx.ImageFromStreamMime(mi,type)
-        
-        return im.Scale(dim,dim)
-    except:
-        print >> sys.stderr, 'data2wxImage called (%s, %s)' % (`type`,`dim`)
-        print_exc()
-        return None
-        
-
-def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
-    try:
-        im = data2wxImage(type,data,dim=dim)
-        if im is None:
-            bm = None
-        else:
-            bm = wx.BitmapFromImage(im,-1)
-            
-        return bm
-    except:
-        print >> sys.stderr, 'data2wxBitmap called (%s, %s)' % (`type`,`dim`)
-        print_exc()
-        return None
-
-
-
 
 

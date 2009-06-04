@@ -17,7 +17,6 @@ from Tribler.Core.Overlay.MetadataHandler import get_filename
 
 from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-## from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
@@ -87,7 +86,6 @@ class standardDetails(wx.Panel):
         self.peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
         self.superpeer_db = self.utility.session.open_dbhandler(NTFY_SUPERPEERS)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
-        ## self.iconsManager = IconsManager.getInstance()
         #self.gui_db = GUIDBHandler.getInstance()
         self.playList = []
       
