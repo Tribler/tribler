@@ -1433,8 +1433,8 @@ class ABCTree(wx.TreeCtrl):
        
         self.root = self.AddRoot("Preferences")
 
-	self.tribler = self.AppendItem(self.root, self.utility.lang.get('triblersetting'))
-	self.video = self.AppendItem(self.root, self.utility.lang.get('videosetting'))
+        self.tribler = self.AppendItem(self.root, self.utility.lang.get('triblersetting'))
+        self.video = self.AppendItem(self.root, self.utility.lang.get('videosetting'))
         self.ratelimits = self.AppendItem(self.root, self.utility.lang.get('ratelimits'))
         self.seedingoptions = self.AppendItem(self.root, self.utility.lang.get('seedoptions'))
         #self.queuesetting = self.AppendItem(self.root, self.utility.lang.get('queuesetting'))

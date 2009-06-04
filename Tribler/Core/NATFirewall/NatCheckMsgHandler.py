@@ -87,8 +87,8 @@ class NatCheckMsgHandler:
 
         if exc is not None:
             return False
-	    if DEBUG:
-	        print >> sys.stderr, "NATCHECK_REQUEST was sent to", show_permid_short(permid), exc
+            if DEBUG:
+                print >> sys.stderr, "NATCHECK_REQUEST was sent to", show_permid_short(permid), exc
 
         # Register peerinfo on file
         self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"),

@@ -34,7 +34,6 @@ class VideoBaseFrame:
 # See Tribler/Player/PlayerVideoFrame.py for the SwarmPlayer / 4.5
 
 
-
 class VLCLogoWindow(wx.Panel):
     """ A wx.Window to be passed to the vlc.MediaControl to draw the video
     in (normally). In addition, the class can display a logo, a thumbnail and a 
@@ -48,10 +47,11 @@ class VLCLogoWindow(wx.Panel):
         self.SetMinSize(size)
         self.SetBackgroundColour(bg)
         self.bg = bg
-        
         self.vlcwrap = vlcwrap
         self.animation_running = False
-        
+       
+        self.Bind(wx.EVT_KEY_UP, self.keyDown)
+
         if logopath is not None and not animate:
             self.logo = wx.BitmapFromImage(wx.Image(logopath),-1)
         else:
@@ -97,7 +97,6 @@ class VLCLogoWindow(wx.Panel):
             self.Refresh()
         if self.vlcwrap is not None:
             wx.CallAfter(self.tell_vclwrap_window_for_playback)
-
         
     def tell_vclwrap_window_for_playback(self):
         """ This method must be called after the VLCLogoWindow has been
@@ -137,6 +136,8 @@ class VLCLogoWindow(wx.Panel):
             self.animation_running = True
             self.Refresh()
 
+
+        
         
     def stop_animation(self):
         if self.agVideo:
@@ -193,6 +194,14 @@ class VLCLogoWindow(wx.Panel):
         dc.EndDrawing()
         if evt is not None:
             evt.Skip(True)
+
+
+    def keyDown(self, event):
+        Level = event.StopPropagation()
+        event.ResumePropagation(10)
+
+        event.Skip()
+        self.gg()
 
 
 

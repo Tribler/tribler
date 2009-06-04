@@ -502,7 +502,7 @@ class ThreadedDBSearch(observer.Subject):
         self.__wanted += num
         
         if DEBUG:
-	        print >>sys.stderr,"web2: db: ThreadedDBSearch: getMore",num,"stop",self.__stop.isSet()
+            print >>sys.stderr,"web2: db: ThreadedDBSearch: getMore",num,"stop",self.__stop.isSet()
         
         self.__sleeplock.notifyAll()
         self.__sleeplock.release()

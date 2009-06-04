@@ -94,18 +94,18 @@ if __name__ == "__main__":
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(config['destdir'])
     dscfg.set_live_aux_seeders( [
-	    # servers: 
-	    ("130.161.211.232",8764), # ss1
-	    ("130.161.211.233",8764), # ss2
-	    ("130.161.211.234",8764), # ss3
-	    ("193.29.139.222",8764), # peer2peer.colo.mediadesign.nl, old ip
-	    ("83.96.143.114",8764), # peer2peer.colo.mediadesign.nl, new ip
-	    ("130.37.198.236",8764), # jip
+            # servers: 
+            ("130.161.211.232",8764), # ss1
+            ("130.161.211.233",8764), # ss2
+            ("130.161.211.234",8764), # ss3
+            ("193.29.139.222",8764), # peer2peer.colo.mediadesign.nl, old ip
+            ("83.96.143.114",8764), # peer2peer.colo.mediadesign.nl, new ip
+            ("130.37.198.236",8764), # jip
 
-	    # machines to verify the video stream:
-	    ("130.161.159.89",8620), # jd's laptop 
-	    ("130.161.159.210",8620), # arno's st interface
-	    ] )
+            # machines to verify the video stream:
+            ("130.161.159.89",8620), # jd's laptop 
+            ("130.161.159.210",8620), # arno's st interface
+            ] )
     if config['source'] == '-':
         # Arno: doesn't appear to work on Linux
         source = sys.stdin

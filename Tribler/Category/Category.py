@@ -168,7 +168,7 @@ class Category:
     
     def getCategoryKeys(self):
         if self.category_info is None:
-	   	    return []
+            return []
         keys = []
         keys.append("All")
         keys.append("other")

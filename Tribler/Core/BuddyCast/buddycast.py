@@ -315,9 +315,9 @@ class BuddyCastFactory:
             self.overlay_bridge.add_task(self.olthread_register, 0)
 
     def olthread_register(self, start=True):
-    	if debug:
-	        print >> sys.stderr, "bc: OlThread Register", currentThread().getName()
-	        
+        if debug:
+            print >> sys.stderr, "bc: OlThread Register", currentThread().getName()
+                
         self.data_handler = DataHandler(self.launchmany, self.overlay_bridge, max_num_peers=self.max_peers) 
         
         # ARNOCOMMENT: get rid of this dnsindb / get_dns_from_peerdb abuse off SecureOverlay

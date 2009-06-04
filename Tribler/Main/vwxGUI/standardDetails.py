@@ -1608,8 +1608,8 @@ class standardDetails(wx.Panel):
 
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
         if DEBUG:
-	        print >> sys.stderr, 'standardDetails: download: got torrent to download', 'torrent_file_name' in torrent, torrent_dir, torrent['torrent_file_name'] 
-	        
+            print >> sys.stderr, 'standardDetails: download: got torrent to download', 'torrent_file_name' in torrent, torrent_dir, torrent['torrent_file_name'] 
+        
         if 'torrent_file_name' not in torrent:
             torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])

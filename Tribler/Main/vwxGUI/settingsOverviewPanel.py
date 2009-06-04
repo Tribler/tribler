@@ -40,7 +40,7 @@ else:
     FONT_SIZE_SHARING_TITLE=10    
     FONT_SIZE_FIREWALL_TITLE=10    
     FONT_SIZE_FILE_TEXT=10    
-		
+
 
 
 
@@ -50,26 +50,26 @@ class SettingsOverviewPanel(wx.Panel):
 #        print "<mluc> tribler_topButton in init"
         self.initDone = False
         self.elementsName = ['profileTitle', \
-	                     'sharingTitle', \
-			     'firewallTitle', \
-			     'fileText', \
-	                     'myNameField', \
-	                     'thumb', \
-			     'edit', \
-			     'firewallValue', \
-			     'firewallStatusText', \
-			     'firewallStatus', \
-			     'uploadCtrl', \
-			     'downloadCtrl', \
-			     'zeroUp', \
-			     'fiftyUp', \
-			     'hundredUp', \
-			     'unlimitedUp', \
-			     'seventyfiveDown', \
-			     'threehundredDown', \
-			     'sixhundreddDown', \
-			     'unlimitedDown', \
-			     'diskLocationCtrl', \
+                             'sharingTitle', \
+                             'firewallTitle', \
+                             'fileText', \
+                             'myNameField', \
+                             'thumb', \
+                             'edit', \
+                             'firewallValue', \
+                             'firewallStatusText', \
+                             'firewallStatus', \
+                             'uploadCtrl', \
+                             'downloadCtrl', \
+                             'zeroUp', \
+                             'fiftyUp', \
+                             'hundredUp', \
+                             'unlimitedUp', \
+                             'seventyfiveDown', \
+                             'threehundredDown', \
+                             'sixhundreddDown', \
+                             'unlimitedDown', \
+                             'diskLocationCtrl', \
                              'portChange', \
                              'iconSaved', \
                              'Save']
@@ -138,10 +138,10 @@ class SettingsOverviewPanel(wx.Panel):
 
 
         #set fonts
-    	self.elements['profileTitle'].SetFont(wx.Font(FONT_SIZE_PROFILE_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
-    	self.elements['sharingTitle'].SetFont(wx.Font(FONT_SIZE_SHARING_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
-    	self.elements['firewallTitle'].SetFont(wx.Font(FONT_SIZE_FIREWALL_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
-    	self.elements['fileText'].SetFont(wx.Font(FONT_SIZE_FILE_TEXT, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
+        self.elements['profileTitle'].SetFont(wx.Font(FONT_SIZE_PROFILE_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
+        self.elements['sharingTitle'].SetFont(wx.Font(FONT_SIZE_SHARING_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
+        self.elements['firewallTitle'].SetFont(wx.Font(FONT_SIZE_FIREWALL_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
+        self.elements['fileText'].SetFont(wx.Font(FONT_SIZE_FILE_TEXT, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
 
         self.elements['zeroUp'].Bind(wx.EVT_LEFT_UP, self.zeroUp)
         self.elements['fiftyUp'].Bind(wx.EVT_LEFT_UP, self.fiftyUp)

@@ -665,14 +665,13 @@ class LibraryItemPanel(wx.Panel):
                 self.guiUtility.standardDetails.setVideodata(self.guiUtility.standardDetails.getData())
                 self._get_videoplayer(exclude=ds).videoframe.get_videopanel().SetLoadingText(self.guiUtility.standardDetails.getVideodata()['name'])
                 if sys.platform == 'darwin':
-		    self._get_videoplayer(exclude=ds).videoframe.show_videoframe()
-		    self._get_videoplayer(exclude=ds).videoframe.get_videopanel().Refresh()
-		    self._get_videoplayer(exclude=ds).videoframe.get_videopanel().Layout()
+                    self._get_videoplayer(exclude=ds).videoframe.show_videoframe()
+                    self._get_videoplayer(exclude=ds).videoframe.get_videopanel().Refresh()
+                    self._get_videoplayer(exclude=ds).videoframe.get_videopanel().Layout()
 
-		self.play(ds)
-
-		
-		
+                self.play(ds)
+                
+                
             elif name == 'remove':
                 from Tribler.Video.VideoPlayer import VideoPlayer
                 videoplayer = VideoPlayer.getInstance()

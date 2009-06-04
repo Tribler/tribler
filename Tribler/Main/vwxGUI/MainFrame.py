@@ -208,7 +208,7 @@ class MainFrame(wx.Frame):
         
         self.checkVersion()
 
-		# If the user passed a torrentfile on the cmdline, load it.
+        # If the user passed a torrentfile on the cmdline, load it.
         wx.CallAfter(self.startCMDLineTorrent)
         
     def startCMDLineTorrent(self):

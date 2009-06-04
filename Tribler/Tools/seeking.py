@@ -29,8 +29,8 @@ def vod_event_callback(d,event,params):
 
         if startTime and FIRST_ITERATION:
             
-	    if DEBUG:
-	        print >>sys.stderr, "main: Seeking", startTime, estduration
+            if DEBUG:
+                print >>sys.stderr, "main: Seeking", startTime, estduration
             
             file = None
             blocksize = d.get_def().get_piece_length()
@@ -77,18 +77,18 @@ def vod_event_callback(d,event,params):
                 print >>sys.stderr,"main: VOD ready callback: reading",len(data)
             if len(data) == 0 or data == prev_data:
                 if DEBUG:
-		    print >>sys.stderr, "main: Same data replicated: we reached the end of the stream"
-		break
+                    print >>sys.stderr, "main: Same data replicated: we reached the end of the stream"
+                break
             f.write(data)
             currentSize += len(data)
-	    prev_data = data
+            prev_data = data
         
         
         # Stop the download
         if STOP_AFTER:
             d.stop()
             
-	if QUIT:
+        if QUIT:
             QUIT_NOW = True
 
         f.close()
@@ -101,9 +101,9 @@ def vod_event_callback(d,event,params):
 def state_callback(ds):
     try:
         d = ds.get_download()
-	p = "%.0f %%" % (100.0*ds.get_progress())
-	dl = "dl %.0f" % (ds.get_current_speed(DOWNLOAD))
-	ul = "ul %.0f" % (ds.get_current_speed(UPLOAD))
+        p = "%.0f %%" % (100.0*ds.get_progress())
+        dl = "dl %.0f" % (ds.get_current_speed(DOWNLOAD))
+        ul = "ul %.0f" % (ds.get_current_speed(UPLOAD))
         print >>sys.stderr,dlstatus_strings[ds.get_status() ],p,dl,ul,"====="
     except:
         print_exc()

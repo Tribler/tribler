@@ -322,7 +322,7 @@ class ABCApp(wx.App):
 
             self.frame.top_bg.createBackgroundImage()
             ## self.frame.top_bg.setBackground((230,230,230))
-	    if sys.platform == 'win32':
+            if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)
                 wx.CallAfter(self.frame.top_bg.Layout)
                 

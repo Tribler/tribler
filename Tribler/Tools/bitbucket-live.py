@@ -35,9 +35,9 @@ def vod_event_callback(d,event,params):
 def state_callback(ds):
     try:
         d = ds.get_download()
-	p = "%.0f %%" % (100.0*ds.get_progress())
-	dl = "dl %.0f" % (ds.get_current_speed(DOWNLOAD))
-	ul = "ul %.0f" % (ds.get_current_speed(UPLOAD))
+        p = "%.0f %%" % (100.0*ds.get_progress())
+        dl = "dl %.0f" % (ds.get_current_speed(DOWNLOAD))
+        ul = "ul %.0f" % (ds.get_current_speed(UPLOAD))
         print >>sys.stderr,dlstatus_strings[ds.get_status() ],p,dl,ul,"====="
     except:
         print_exc()

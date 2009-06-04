@@ -34,12 +34,12 @@ DEBUG = False
 
 # fonts
 if sys.platform == 'darwin': # mac os x
-    FONT_SIZE_SR_MSG=11	
+    FONT_SIZE_SR_MSG=11
     FONT_SIZE_TOTAL_DOWN=9
     FONT_SIZE_TOTAL_UP=9
     FONT_SIZE_RESULTS=10
     FONT_SIZE_SETTINGS=10
-    FONT_SIZE_MY_FILES=10	
+    FONT_SIZE_MY_FILES=10
     FONT_SIZE_FAMILY_FILTER=10
     FONT_SIZE_FILES_FRIENDS=11
     FONT_SIZE_SHARING_REPUTATION=11
@@ -48,12 +48,12 @@ if sys.platform == 'darwin': # mac os x
 
 else:
 
-    FONT_SIZE_SR_MSG=8	
+    FONT_SIZE_SR_MSG=8
     FONT_SIZE_TOTAL_DOWN=7
     FONT_SIZE_TOTAL_UP=7
     FONT_SIZE_RESULTS=8
     FONT_SIZE_SETTINGS=8
-    FONT_SIZE_MY_FILES=8	
+    FONT_SIZE_MY_FILES=8
     FONT_SIZE_FAMILY_FILTER=8
     FONT_SIZE_FILES_FRIENDS=8
     FONT_SIZE_SHARING_REPUTATION=8
@@ -468,9 +468,9 @@ class GUIUtility:
                 self.frame.videoframe.show_videoframe()
             self.frame.videoparentpanel.Show()            
 
-	    if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
-		self.frame.videoframe.videopanel.vlcwin.show_loading()
-	    
+            if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
+                self.frame.videoframe.videopanel.vlcwin.show_loading()
+            
 
             #self.frame.top_bg.search_results.SetColour(wx.BLACK)
 
@@ -539,9 +539,9 @@ class GUIUtility:
                 self.frame.videoframe.show_videoframe()
             self.frame.videoparentpanel.Show()            
 
-	    if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
-		self.frame.videoframe.videopanel.vlcwin.show_loading()
-	    
+            if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
+                self.frame.videoframe.videopanel.vlcwin.show_loading()
+            
 
             #self.frame.top_bg.search_results.SetColour(wx.BLACK)
 
@@ -576,7 +576,7 @@ class GUIUtility:
             self.guiPage = 'settings' 
             if sys.platform == 'darwin':
                 self.frame.top_bg.ag.Stop() # only calling Hide() on mac isnt sufficient 
-	    self.frame.top_bg.ag.Hide()
+            self.frame.top_bg.ag.Hide()
             if sys.platform == 'win32':
                 self.frame.top_bg.Layout()
                 
@@ -591,7 +591,7 @@ class GUIUtility:
             self.frame.videoframe.hide_videoframe()
             self.frame.videoparentpanel.Hide()            
 
-	    if sys.platform == 'darwin':
+            if sys.platform == 'darwin':
                 self.frame.videoframe.videopanel.vlcwin.stop_animation()
 
             self.showPager(False)
@@ -652,7 +652,7 @@ class GUIUtility:
             self.guiPage = 'my_files' 
             if sys.platform == 'darwin':
                 self.frame.top_bg.ag.Stop()
-	    self.frame.top_bg.ag.Hide()
+            self.frame.top_bg.ag.Hide()
             self.frame.top_bg.results.SetForegroundColour((255,51,0))
             self.frame.top_bg.settings.SetForegroundColour((255,51,0))
             self.frame.top_bg.my_files.SetForegroundColour((0,105,156))

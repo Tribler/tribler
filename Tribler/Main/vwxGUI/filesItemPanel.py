@@ -144,7 +144,7 @@ class FilesItemPanel(wx.Panel):
         else: # listitem
             self.SetMinSize((660,30))
 
-            self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)	##
+            self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)##
 
 
             imgpath = os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0","line3.png")
@@ -163,7 +163,7 @@ class FilesItemPanel(wx.Panel):
             
 
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
-            self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND|wx.TOP, 5)	##
+            self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND|wx.TOP, 5)##
 
             self.thumb = ThumbnailViewer(self, 'filesMode')
             self.thumb.setBackground(wx.BLACK)

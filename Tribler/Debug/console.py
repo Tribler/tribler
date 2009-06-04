@@ -7,7 +7,7 @@ import sys
 class SafePrintStream:
     def __init__(self, stream):
         self._stream = stream
-	
+
     def write(self, arg):
         self._stream.write(arg.encode("ASCII", "backslashreplace"))
         
@@ -18,7 +18,7 @@ class SafeLinePrintStream:
     def __init__(self, stream):
         self._stream = stream
         self._parts = []
-	
+
     def write(self, arg):
         self._parts.append(arg.encode("ASCII", "backslashreplace"))
         if arg == "\n":
@@ -32,3 +32,4 @@ class SafeLinePrintStream:
         
 sys.stderr = SafeLinePrintStream(sys.stderr)
 sys.stdout = sys.stderr
+

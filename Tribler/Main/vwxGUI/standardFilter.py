@@ -105,7 +105,7 @@ class standardFilter(wx.Panel):
                               dict_state.get('category'),
                               None)
             if DEBUG:
-	            print >> sys.stderr,'standardFilter: %s returns %s' % (self.__class__.__name__, self.state)
+                print >> sys.stderr,'standardFilter: %s returns %s' % (self.__class__.__name__, self.state)
             self.guiUtility.standardOverview.filterChanged(self.state)
         except:
             if DEBUG:
