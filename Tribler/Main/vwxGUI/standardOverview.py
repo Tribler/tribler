@@ -105,7 +105,6 @@ class standardOverview(wx.Panel):
         
         #print >> sys.stderr, '[StartUpDebug]----------- standardOverview is in postinit ----------', currentThread().getName(), '\n\n'
         
-        
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.hSizer)
