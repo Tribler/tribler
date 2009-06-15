@@ -278,6 +278,7 @@ class PlayerApp(BaseApp):
     #
     def gui_states_callback(self,dslist,haspeerlist):
         """ Override BaseApp """
+        
         (playing_dslist,totalhelping,totalspeed) = BaseApp.gui_states_callback(self,dslist,haspeerlist)
         
         # Don't display stats if there is no video frame to show them on.

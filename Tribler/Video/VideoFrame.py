@@ -201,7 +201,6 @@ class VLCLogoWindow(wx.Panel):
         event.ResumePropagation(10)
 
         event.Skip()
-        self.gg()
 
 
 

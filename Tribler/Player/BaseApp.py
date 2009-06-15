@@ -286,9 +286,17 @@ class BaseApp(wx.App,InstanceConnectionHandler):
     #
     def sesscb_states_callback(self,dslist):
         """ Called by Session thread """
-        # Arno: delegate to GUI thread. This makes some things (especially
-        #access control to self.videoFrame easier
-        #self.gui_states_callback(dslist)
+        
+        if True:
+            for ds in dslist:
+                d = ds.get_download()
+                print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
+                    (d.get_def().get_name(), \
+                     dlstatus_strings[ds.get_status()], \
+                     ds.get_progress() * 100, \
+                     ds.get_error(), \
+                     ds.get_current_speed(UPLOAD), \
+                     ds.get_current_speed(DOWNLOAD))
         
         # Arno: we want the prebuf stats every second, and we want the
         # detailed peerlist, needed for research stats. Getting them every
@@ -297,7 +305,10 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         self.getpeerlistcount += 1
         getpeerlist = (self.getpeerlistcount % 10) == 0
         haspeerlist =  (self.getpeerlistcount % 10) == 1
-        
+
+        # Arno: delegate to GUI thread. This makes some things (especially
+        #access control to self.videoFrame easier
+        #self.gui_states_callback(dslist)
         wx.CallAfter(self.gui_states_callback,dslist,haspeerlist)
         
         #print >>sys.stderr,"main: SessStats:",self.getpeerlistcount,getpeerlist,haspeerlist
