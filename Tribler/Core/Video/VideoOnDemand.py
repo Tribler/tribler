@@ -9,7 +9,6 @@ from select import select
 from tempfile import mkstemp
 from threading import Thread
 from sets import Set
-import time
 import collections
 import os
 import base64
@@ -1487,11 +1486,28 @@ class MovieOnDemandTransporter(MovieTransport):
 
         #self.last_pop = time.time()
 
+        lenoutbuf = len(self.outbuf)
+
         self.data_ready.release()
 
         if piece:
             self.stat_pieces.set( piece[0], "toplayer", time.time() )
             self.stat_pieces.complete( piece[0] )
+
+        # 23/06/09 Boudewijn: because of vlc buffering the self.outbuf
+        # almost always gets emptied. This results in periodic (every
+        # few seconds) pause signals to VLC. 
+        #
+        # To 'solve' this we delay the delivery to VLC based on the
+        # current buffer size. More delay when there is less data
+        # available. 
+        if lenoutbuf < 10:
+            if lenoutbuf > 0:
+                delay = min(0.2, 5 * 0.1 / lenoutbuf)
+            else:
+                delay = 0.2
+            if DEBUG: print >>sys.stderr, "Vod: Delaying pop to VLC by", delay, "seconds"
+            time.sleep(delay)
 
         return piece
 
