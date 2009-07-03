@@ -22,7 +22,9 @@ EXPIRE_TIME = 60 * 60
 # only define the following functions in __debug__. And only import
 # them in this case. They are to expensive to have, and have no
 # purpose, outside debug mode.
-if __debug__:
+#
+# Arno, 2009-06-15: Win32 binary versions have __debug__ True apparently, workaround.
+if DEBUG:
     _ident_letters = {}
     _ident_letter_pool = None
     def get_ident_letter(download):

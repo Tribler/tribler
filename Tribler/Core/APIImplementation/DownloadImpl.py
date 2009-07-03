@@ -204,6 +204,10 @@ class DownloadImpl:
             
         print >>sys.stderr,"Download: create_engine_wrapper: vodfileindex",`vodfileindex` 
 
+
+        if True: # DEBUG
+            print >>sys.stderr,"Download: create_engine_wrapper:",`vodfileindex`
+
         # Delegate creation of engine wrapper to network thread
         network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcreatedcallback,pstate,lmvodeventcallback)
         self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,0) 

@@ -43,7 +43,7 @@ from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDiv
 from Tribler.Utilities.Instance2Instance import *
 
 from Tribler.Player.systray import PlayerTaskBarIcon
-from Tribler.Player.Reporter import Reporter
+# from Tribler.Player.Reporter import Reporter
 from Tribler.Player.UtilityStub import UtilityStub
 
 DEBUG = False
@@ -123,7 +123,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         self.s = Session(self.sconfig)
         self.s.set_download_states_callback(self.sesscb_states_callback)
 
-        self.reporter = Reporter( self.sconfig )
+        # self.reporter = Reporter( self.sconfig )
 
         if RATELIMITADSL:
             self.ratelimiter = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
@@ -286,8 +286,9 @@ class BaseApp(wx.App,InstanceConnectionHandler):
     #
     def sesscb_states_callback(self,dslist):
         """ Called by Session thread """
-        
-        if True:
+
+        # Display some stats
+        if (int(time.time()) % 5) == 0:
             for ds in dslist:
                 d = ds.get_download()
                 print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
@@ -351,12 +352,12 @@ class BaseApp(wx.App,InstanceConnectionHandler):
             totalhelping += ds.get_num_peers()
 
         # Report statistics on all downloads to research server, every 10 secs
-        if haspeerlist:
-            try:
-                for ds in dslist:
-                    self.reporter.report_stat(ds)
-            except:
-                print_exc()
+        # if haspeerlist:
+        #     try:
+        #         for ds in dslist:
+        #             self.reporter.report_stat(ds)
+        #     except:
+        #         print_exc()
 
         # Set systray icon tooltip. This has limited size on Win32!
         txt = self.appname+'\n\n'

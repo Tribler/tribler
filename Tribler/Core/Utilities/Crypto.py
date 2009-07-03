@@ -16,26 +16,37 @@ USE_M2CRYPTO_SHA = False
 # sha() object instance (hard to do here centrally with multiple threads)
 #
 
-# Arno. 2009-04-22: M2Crypto-0.19.1.win32-py2.5.exe by KeLLey causes Python
-# to quit when the sha class is called during hashchecking.
+# Arno, 2009-06-23: The OpenSSL calls used by M2Crypto's MessageDigest have 
+# different behaviour than the Python sha class ones. In particular, OpenSSL
+# needs to make special calls to incrementally digest data (i.e., update();
+# digest();update();digest(). M2Crypto's MessageDigest doesn't make these 
+# special calls. Due to bad programming, it will actually Segmentation
+# Fault when this usage occurs. And this usage occurs during hashchecking 
+# (so when using VOD repeatedly, not during live), see StorageWrapper.
 #
-# Boudewijn. 2009-05-08: EVP causes segfaults on linux aswell... Now
-# using the regular (and more cpu intensive) sha by
-# default. Offloading through EVP will only be done when the
-# USE_M2CRYPTO_SHA is True.
+# We'll need to patch M2Crypto to work around this. In the meanwhile, I
+# disable the offloading to OpenSSL for all platforms.
+#
+USE_M2CRYPTO_SHA = False
+
 
 if USE_M2CRYPTO_SHA:
     class sha:
         def __init__(self,data=None):
+            self.hash = None
             self.md = EVP.MessageDigest('sha1')
             if data is not None:
                 self.md.update(data)
             
         def update(self,data):
+            if self.hash:
+                raise ValueError("sha: Cannot update after calling digest (OpenSSL limitation)")
             self.md.update(data)
 
         def digest(self):
-            return self.md.final()
+            if not self.hash:
+                self.hash = self.md.final() 
+            return self.hash 
         
         def hexdigest(self):
             d = self.digest()

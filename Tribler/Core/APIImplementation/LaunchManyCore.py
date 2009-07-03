@@ -547,7 +547,7 @@ class TriblerLaunchMany(Thread):
         if stop:
             # Some grace time for early shutdown tasks
             if self.shutdownstarttime is not None:
-                now = time.time()
+                now = time()
                 diff = now - self.shutdownstarttime
                 if diff < gracetime:
                     print >>sys.stderr,"tlm: shutdown: delaying for early shutdown tasks",gracetime-diff
@@ -565,7 +565,7 @@ class TriblerLaunchMany(Thread):
         to checkpointing, etc.
         """
         if self.overlay_apps is not None:
-            self.shutdownstarttime = time.time()
+            self.shutdownstarttime = time()
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
         
             

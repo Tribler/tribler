@@ -9,5 +9,8 @@ from distutils.core import setup
 from Tribler.__init__ import LIBRARYNAME
 mainfile = os.path.join(LIBRARYNAME,'Plugin','BackgroundProcess.py')
 
-setup(console=[mainfile]) 
+# Arno: 2009-06-09: changed from console= to make sure py2exe writes
+# a BackgroundProcess.exe.log
+#
+setup(windows=[mainfile]) 
 

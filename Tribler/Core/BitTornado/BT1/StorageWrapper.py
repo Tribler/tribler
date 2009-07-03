@@ -1055,7 +1055,7 @@ class StorageWrapper:
         self.blocked_holes = []
 
 
-    '''
+    """
     Pickled data format:
 
     d['pieces'] = either a string containing a bitfield of complete pieces,
@@ -1081,7 +1081,7 @@ class StorageWrapper:
     d['merkletree'] = pickle.dumps(self.merkletree)
                     if we're using a Merkle torrent the Merkle tree, otherwise
                     there is no 'merkletree' in the dictionary.
-    '''
+    """
     def pickle(self):
         if self.have.complete():
             if self.merkle_torrent:

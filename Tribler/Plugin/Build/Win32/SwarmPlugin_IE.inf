@@ -1,0 +1,26 @@
+; Version number and signature of INF file.
+; Written by Diego Andres Rabaioli
+; see LICENSE.txt for license information
+;
+[version]
+  signature="$CHICAGO$"
+  AdvancedINF=2.0
+
+[Add.Code]
+  axvlc.dll=axvlc.dll
+  SwarmPlugin_1.0.0.exe=SwarmPlugin_IE_1.0.0.exe
+
+[axvlc.dll]
+  FileVersion=1,0,0,0
+  clsid={1800B8AF-4E33-43C0-AFC7-894433C13538}
+  RegisterServer=no
+  Hook=runinstaller
+
+[SwarmPlugin_1.0.0.exe]
+  FileVersion=1,0,0,0
+  file-win32-x86=http://trial.p2p-next.org/Beta/SwarmPlugin_IE_1.0.0.exe
+
+[runinstaller]
+  run=%EXTRACT_DIR%\SwarmPlugin_IE_1.0.0.exe
+
+

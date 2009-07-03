@@ -33,7 +33,7 @@ class PlayerTaskBarIcon(wx.TaskBarIcon):
         return menu
         
     def OnOptions(self,event=None):
-        print >>sys.stderr,"PlayerTaskBarIcon: OnOptions"
+        #print >>sys.stderr,"PlayerTaskBarIcon: OnOptions"
         dlg = PlayerOptionsDialog(self.wxapp,self.icons)
         ret = dlg.ShowModal()
         #print >>sys.stderr,"PlayerTaskBarIcon: Dialog returned",ret
@@ -69,7 +69,7 @@ class PlayerOptionsDialog(wx.Dialog):
         
         aboutbox = wx.BoxSizer(wx.VERTICAL)
         aboutlabel1 = wx.StaticText(self, -1, 'SwarmPlayer is a product of the Tribler team.')
-        aboutlabel2 = wx.StaticText(self, -1, 'Visit us at www.tribler.org!')
+        aboutlabel2 = wx.StaticText(self, -1, 'Visit us at www.p2p-next.org!')
         aboutbox.Add(aboutlabel1, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 5)
         aboutbox.Add(aboutlabel2, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 5)
         

@@ -3,7 +3,6 @@ set PYTHONPATH=..\..
 
 python test_sqlitecachedb.py
 REM python test_friend.py # Arno, 2008-10-17: need to convert to new DB structure
-python test_sqlitecachedbhandler.py
 REM python test_bsddb2sqlite.py # Arno, 2008-11-26: Alea jacta est.
 python test_superpeers.py 
 REM python test_buddycast.py # currently not working due to missing DataHandler functions, 2008-10-17
@@ -26,6 +25,7 @@ python test_friendship_crawler.py
 python test_multicast.py
 
 
+CALL test_sqlitecachedbhandler.bat
 CALL test_secure_overlay.bat
 CALL test_dialback_reply_active.bat
 CALL test_dialback_conn_handler.bat

@@ -118,7 +118,8 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
         assert name == 'Thomas-PC' and ip == '68.108.115.221' and lbt == 1193379432, (name, ip, lbt)
         
         values = db.getOne('*', peer_id=1)
-        results = (1, u'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr', u'Thomas-PC', u'68.108.115.221', 6881, None, 2, 12.537961593122299, 0, 0, 1194966306, 1193379769, 1193379432, 1, 1, 0, 0, 0, 0)
+        results = (1, u'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr', u'Thomas-PC', u'68.108.115.221', 6881, None, 2, 12.537961593122299, 0, 0, 1194966306, 1193379769, 1193379432, 1, 1, 0, 0, 0, 0, 0)
+        
         for i in range(len(values)):
             assert values[i] == results[i], (i, values[i], results[i])
         
@@ -171,7 +172,7 @@ class TestSqliteMyDBHandler(unittest.TestCase):
     def singtest_get(self):
         db = MyDBHandler.getInstance()
         value = db.get('version')
-        assert value == '2', value
+        assert value == '3', value
         
     def singtest_put(self):
         db = MyDBHandler.getInstance()

@@ -365,7 +365,11 @@ class Crawler:
                 if callback:
                     callback(exc, permid)
 
-            parts_left = int(len(payload) / MAX_PAYLOAD_LENGTH)
+            # 03/06/09 boudewijn: parts_left may be no larger than 255
+            # because we only use one byte to store the 'parts
+            # left'. This does not mean that there can't be more than
+            # 255 parts!
+            parts_left = min(255, int(len(payload) / MAX_PAYLOAD_LENGTH))
             payload = payload[:MAX_PAYLOAD_LENGTH]
 
         else:

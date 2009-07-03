@@ -4,24 +4,9 @@ BEGIN TRANSACTION create_table;
 
 ----------------------------------------
 
-CREATE TABLE playback_info (
-  key                   text PRIMARY KEY NOT NULL,
-  timestamp             real NOT NULL,
-  piece_size            integer,
-  num_pieces            integer,
-  bitrate               integer,
-  nat                   text
-);
-
-CREATE INDEX playback_info_idx 
-  ON playback_info (timestamp);
-
-----------------------------------------
-
 CREATE TABLE playback_event (
   key                   text NOT NULL,
   timestamp             real NOT NULL,
-  origin                text NOT NULL,
   event                 text NOT NULL
 );  
 
@@ -44,6 +29,7 @@ COMMIT TRANSACTION create_table;
 BEGIN TRANSACTION init_values;
 
 -- Version 1: Initial version, published in Tribler 5.0.0
-INSERT INTO MyInfo VALUES ('version', 1);
+-- Version 2: Simplified the database. Now everything is an event. Published in Tribler 5.1.0
+INSERT INTO MyInfo VALUES ('version', 2);
 
 COMMIT TRANSACTION init_values;

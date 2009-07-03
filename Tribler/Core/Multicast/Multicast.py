@@ -652,7 +652,7 @@ class Multicast:
         return (avg, min, max)
 
     def add_peer_to_db(self,permid,dns,selversion):    
-        now = int(time())
+        now = int(time.time())
         peer_data = {'permid':permid, 'ip':dns[0], 'port':dns[1], 'oversion':selversion, 'last_seen':now, 'last_connected':now}
         self.peer_db.addPeer(permid, peer_data, update_dns=True, update_connected=True, commit=True)
         

@@ -1,4 +1,4 @@
-# Written by Jan David Mol
+# Written by Jan David Mol, Boudewijn Schoon
 # see LICENSE.txt for license information
 
 # Collects statistics about a download/VOD session, and sends it
@@ -10,12 +10,21 @@ import threading
 from random import shuffle
 from time import time
 from traceback import print_exc
+from Tribler.Core.Session import Session
 
 PHONEHOME = False
-VIDEOPLAYBACK_REPORT = True
+USE_LIVING_LAB_REPORTING = False
+
 DEBUG = False
 
+if USE_LIVING_LAB_REPORTING:
+    from Tribler.Player.Status.Status import get_status_holder
+    from Tribler.Player.Status.LivingLabReporter import LivingLabOnChangeReporter
+
+
 class Reporter:
+    """ Old Reporter class used for July 2008 trial. See below for new """
+    
     def __init__( self, sconfig ):
         self.sconfig = sconfig
 
@@ -167,7 +176,7 @@ class Reporter:
 
 class VideoPlaybackReporter:
     """
-    Periodically report information to a central server
+    Periodically report information to a central server (either TUD or ULANC)
     """
     __single = None    # used for multi-threaded singletons pattern
     lock = thread.allocate_lock()
@@ -192,14 +201,11 @@ class VideoPlaybackReporter:
         self._thread_lock = thread.allocate_lock()
         self._thread_flush = threading.Event()
 
-        # the info table. one entry for each started playback
-        self._info = {}
-
         # the event table. one entry for each VOD event
         self._event = []
 
         # enable or disable reporting to the http server
-        self._enable_reporting = True
+        self._enable_reporting = PHONEHOME
 
         if self._enable_reporting:
             thread.start_new_thread(self._reporting_thread, ())
@@ -226,23 +232,36 @@ class VideoPlaybackReporter:
         # send (most of the time this list will be empty, except when
         # reports could not be delivered)
         reports = []
-        
-        # there are several urls available where reports can be
-        # send. one should be picked randomly each time.
 
-        # when a report is successfull it will stay with the same
-        # reporter. when a report is unsuccessfull (could not connect)
-        # it will cycle through reporters.
-        report_urls = [[0, 0, "http://reporter1.tribler.org/swarmplayer.py"],
-                       [0, 0, "http://reporter2.tribler.org/swarmplayer.py"],
-                       [0, 0, "http://reporter3.tribler.org/swarmplayer.py"],
-                       [0, 0, "http://reporter4.tribler.org/swarmplayer.py"],
-                       [0, 0, "http://reporter5.tribler.org/swarmplayer.py"],
-                       [0, 0, "http://reporter6.tribler.org/swarmplayer.py"],
-                       [0, 0, "http://reporter7.tribler.org/swarmplayer.py"],
-                       [0, 0, "http://reporter8.tribler.org/swarmplayer.py"],
-                       [0, 0, "http://reporter9.tribler.org/swarmplayer.py"]]
-        shuffle(report_urls)
+        # local copy of the self._event when it is being reported
+        event = None
+        
+        if USE_LIVING_LAB_REPORTING:
+            # the m18 trial statistics are gathered at the 'living lab'
+            session = Session.get_instance()
+            living_lab_reporter = LivingLabOnChangeReporter("vod-stats-reporter")
+            living_lab_reporter.set_permid(session.get_permid())
+            status_holder = get_status_holder("vod-stats")
+            status_holder.add_reporter(living_lab_reporter)
+            status_element = status_holder.create_status_element("event", "A list containing timestamped VOD playback events", initial_value=[])
+
+        else:
+            # there are several urls available where reports can be
+            # send. one should be picked randomly each time.
+            #
+            # when a report is successfull it will stay with the same
+            # reporter. when a report is unsuccessfull (could not
+            # connect) it will cycle through reporters.
+            report_urls = [[0, 0, "http://reporter1.tribler.org/swarmplayer.py"],
+                           [0, 0, "http://reporter2.tribler.org/swarmplayer.py"],
+                           [0, 0, "http://reporter3.tribler.org/swarmplayer.py"],
+                           [0, 0, "http://reporter4.tribler.org/swarmplayer.py"],
+                           [0, 0, "http://reporter5.tribler.org/swarmplayer.py"],
+                           [0, 0, "http://reporter6.tribler.org/swarmplayer.py"],
+                           [0, 0, "http://reporter7.tribler.org/swarmplayer.py"],
+                           [0, 0, "http://reporter8.tribler.org/swarmplayer.py"],
+                           [0, 0, "http://reporter9.tribler.org/swarmplayer.py"]]
+            shuffle(report_urls)
 
         while True:
             # sleep in betreen reports. will send a report immediately
@@ -253,71 +272,101 @@ class VideoPlaybackReporter:
             # create report
             self._thread_lock.acquire()
             try:
-                if not (self._info or self._event):
-                    # we have nothing to report... sleep
-                    timeout = retry_delay
-                    info = None
-                    event = None
-                else:
+                if self._event:
                     # copy between threads while locked
-                    info = self._info
                     event = self._event
 
-                    self._info = {}
                     self._event = []
                     self._last_report = time()
+                else:
+                    # we have nothing to report... sleep
+                    timeout = retry_delay
+                    event = None
 
             finally:
                 self._thread_lock.release()
 
-            # add new report
-            if info or event:
-                if len(event) < 10:
-                    # uncompressed
-                    report = {"version":"1",
-                              "info":info,
-                              "event":event}
+            if USE_LIVING_LAB_REPORTING:
+                if event:
+                    try:
+                        if status_element.set_value(event):
+                            # Living lab's doesn't support dynamic reporting.
+                            # We use 60 seconds by default
+                            timeout = 60
+                        else:
+                            # something went wrong...
+                            retry_delay *= 2
+                            timeout = retry_delay
+                    except:
+                        # error contacting server
+                        print_exc(file=sys.stderr)
+                        retry_delay *= 2
+                        timeout = retry_delay
+
+            else:
+                # add new report
+                if event:
+                    if len(event) < 10:
+                        # uncompressed
+                        report = {"version":"3",
+                                  "created":time(),
+                                  "event":event}
+                    else:
+                        # compress
+                        report = {"version":"4",
+                                  "created":time(),
+                                  "event":urllib.quote(zlib.compress(repr(event), 9))}
+
+                    reports.append(urllib.urlencode(report))
+
+                if not reports:
+                    timeout = retry_delay
+                    continue
+
+                reporter = report_urls[0]
+
+                if DEBUG: print >>sys.stderr, "VideoPlaybackReporter: attempting to report,", len(reports[0]), "bytes to", reporter[2]
+                try:
+                    sock = urllib.urlopen(reporter[2], reports[0])
+                    result = sock.read()
+                    sock.close()
+
+                    # all ok? then remove the report
+                    del reports[0]
+
+                    # increase the 'good-report' counter, no need to re-order
+                    reporter[1] += 1
+                except:
+                    # error contacting server
+                    print_exc(file=sys.stderr)
+                    retry_delay *= 2
+
+                    # increase the 'bad-report' counter and order by failures
+                    reporter[0] += 1
+                    report_urls.sort(lambda x,y:cmp(x[0], y[0]))
+                    continue
+
+                if result.isdigit():
+                    result = int(result)
+                    if result == 0:
+                        # remote server is not recording, so don't bother
+                        # sending events
+                        if DEBUG: print >>sys.stderr, "VideoPlaybackReporter: received -zero- from the HTTP server. Reporting disabled"
+                        self._thread_lock.acquire()
+                        self._enable_reporting = False
+                        self._thread_lock.release()
+
+                        # close thread
+                        return
+
+                    else:
+                        # I choose not to reset the retry_delay because
+                        # swarmplayer sessions tend to be short. And the
+                        # if there are connection failures I want as few
+                        # retries as possible
+                        if DEBUG: print >>sys.stderr, "VideoPlaybackReporter: report successfull. Next report in", result, "seconds"
+                        timeout = result
                 else:
-                    # compress
-                    report = {"version":"2",
-                              "info":urllib.quote(zlib.compress(repr(info), 9)),
-                              "event":urllib.quote(zlib.compress(repr(event), 9))}
-
-                reports.append(urllib.urlencode(report))
-
-            if not reports:
-                timeout = retry_delay
-                continue
-        
-            reporter = report_urls[0]
-                
-            if DEBUG: print >>sys.stderr, "VideoPlaybackReporter: attempting to report,", len(reports[0]), "bytes to", reporter[2]
-            try:
-                sock = urllib.urlopen(reporter[2], reports[0])
-                result = sock.read()
-                sock.close()
-
-                # all ok? then remove the report
-                del reports[0]
-
-                # increase the 'good-report' counter, no need to re-order
-                reporter[1] += 1
-            except:
-                # error contacting server
-                print_exc(file=sys.stderr)
-                retry_delay *= 2
-
-                # increase the 'bad-report' counter and order by failures
-                reporter[0] += 1
-                report_urls.sort(lambda x,y:cmp(x[0], y[0]))
-                continue
-
-            if result.isdigit():
-                result = int(result)
-                if result == 0:
-                    # remote server is not recording, so don't bother
-                    # sending info
-                    if DEBUG: print >>sys.stderr, "VideoPlaybackReporter: received -zero- from the HTTP server. Reporting disabled"
                     self._thread_lock.acquire()
                     self._enable_reporting = False
                     self._thread_lock.release()
@@ -325,115 +374,20 @@ class VideoPlaybackReporter:
                     # close thread
                     return
 
-                else:
-                    # I choose not to reset the retry_delay because
-                    # swarmplayer sessions tend to be short. And the
-                    # if there are connection failures I want as few
-                    # retries as possible
-                    if DEBUG: print >>sys.stderr, "VideoPlaybackReporter: report successfull. Next report in", result, "seconds"
-                    timeout = result
-            else:
-                self._thread_lock.acquire()
-                self._enable_reporting = False
-                self._thread_lock.release()
-
-                # close thread
-                return
-
-    def create_entry(self, key, piece_size=0, num_pieces=0, bitrate=0, nat="", unique=False):
-        """
-        Create an entry that can be updated using subsequent
-        set_... calls.
-
-        When UNIQUE we assume that KEY does not yet exist in the
-        database. Otherwise a check is made.
-        """
-        assert type(key) is str, type(key)
-        assert type(piece_size) is int, type(piece_size)
-        assert type(num_pieces) is int, type(num_pieces)
-        assert type(bitrate) in (int, float), type(bitrate)
-        assert type(nat) is str, type(nat)
-        self._thread_lock.acquire()
-        try:
-            if not self._enable_reporting:
-                return True
-            if DEBUG: print >>sys.stderr, "VideoPlaybackReporter create_entry", key
-            if unique or not key in self._info:
-                self._info[key] = {"timestamp":time(), "piece_size":piece_size, "num_pieces":num_pieces, "bitrate":bitrate, "nat":nat}
-                return True
-            else:
-                return False
-        finally:
-            self._thread_lock.release()
-            
-    def set_piecesize(self, key, piece_size):
-        assert type(key) is str
-        assert type(piece_size) is int
-        self._thread_lock.acquire()
-        try:
-            if not self._enable_reporting:
-                return True
-            if not key in self._info:
-                self._info[key] = {}
-            if DEBUG: print >>sys.stderr, "VideoPlaybackReporter set_piecesize", key, piece_size
-            self._info[key]["piece_size"] = piece_size
-        finally:
-            self._thread_lock.release()
-
-    def set_num_pieces(self, key, num_pieces):
-        assert type(key) is str
-        assert type(num_pieces) is int
-        self._thread_lock.acquire()
-        try:
-            if not self._enable_reporting:
-                return True
-            if not key in self._info:
-                self._info[key] = {}
-            if DEBUG: print >>sys.stderr, "VideoPlaybackReporter set_num_pieces", key, num_pieces
-            self._info[key]["num_pieces"] = num_pieces
-        finally:
-            self._thread_lock.release()
-
-    def set_bitrate(self, key, bitrate):
-        assert type(key) is str
-        assert type(bitrate) in (int, float)
-        self._thread_lock.acquire()
-        try:
-            if not self._enable_reporting:
-                return True
-            if not key in self._info:
-                self._info[key] = {}
-            if DEBUG: print >>sys.stderr, "VideoPlaybackReporter set_bitrate", key, bitrate
-            self._info[key]["bitrate"] = bitrate
-        finally:
-            self._thread_lock.release()
-
-    def set_nat(self, key, nat):
-        assert type(key) is str
-        assert type(nat) is str
-        self._thread_lock.acquire()
-        try:
-            if not self._enable_reporting:
-                return True
-            if not key in self._info:
-                self._info[key] = {}
-            if DEBUG: print >>sys.stderr, "VideoPlaybackReporter set_nat", key, nat
-            self._info[key]["nat"] = nat
-        finally:
-            self._thread_lock.release()
-
-    def add_event(self, key, event, origin):
+    def add_event(self, key, event):
         assert type(key) is str
         assert type(event) is str
-        assert type(origin) is str
-        self._thread_lock.acquire()
-        try:
-            if not self._enable_reporting:
-                return True
-            if DEBUG: print >>sys.stderr, "VideoPlaybackReporter: add_event", key, event, origin
-            self._event.append({"key":key, "timestamp":time(), "event":event, "origin":origin})
-        finally:
-            self._thread_lock.release()
+        if self._enable_reporting:
+            self._thread_lock.acquire()
+            try:
+                # check self._enable_reporting again since this is
+                # variable is shared between threads
+                if not self._enable_reporting:
+                    return True
+                if DEBUG: print >>sys.stderr, "VideoPlaybackReporter: add_event", key, event
+                self._event.append({"key":key, "timestamp":time(), "event":event})
+            finally:
+                self._thread_lock.release()
 
     def flush(self):
         """
@@ -441,36 +395,5 @@ class VideoPlaybackReporter:
         (regardless of what the reporting frequency that the http
         server told us)
         """
-        self._thread_flush.set()
-
-class VideoPlaybackInfoReporter(VideoPlaybackReporter):
-    """
-    Interface to add info from VOD statistics
-
-    Manages the virtual playback_info table. This table contains one
-    entry with info for each playback. This info contains things like:
-    piecesize, nat/firewall status, etc.
-
-    The interface of this class should match that of
-    VideoPlaybackInfoDBHandler in
-    Tribler.Core.CacheDB.SqliteVideoPlaybackStatsCacheDB which is used
-    to report the same information through HTTP callbacks when there
-    is no overlay network
-    """
-    pass
-
-class VideoPlaybackEventReporter(VideoPlaybackReporter):
-    """
-    Interface to add and retrieve events from the database.
-
-    Manages the virtual playback_event table. This table may contain
-    several entries for events that occur during playback such as when
-    it was started and when it was paused.
-
-    The interface of this class should match that of
-    VideoPlaybackEventDBHandler in
-    Tribler.Core.CacheDB.SqliteVideoPlaybackStatsCacheDB which is used
-    to report the same information through HTTP callbacks when there
-    is no overlay network
-    """
-    pass 
+        if self._enable_reporting:
+            self._thread_flush.set()

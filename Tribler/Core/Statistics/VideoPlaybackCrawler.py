@@ -2,16 +2,17 @@
 Crawling the VideoPlayback statistics database
 """
 
-import sys
-import cPickle
-import threading
 from time import strftime
+import cPickle
+import sys
+import threading
+import zlib
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_VIDEOPLAYBACK_INFO_QUERY, CRAWLER_VIDEOPLAYBACK_EVENT_QUERY
-from Tribler.Core.CacheDB.SqliteVideoPlaybackStatsCacheDB import VideoPlaybackEventDBHandler, VideoPlaybackInfoDBHandler
-from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
-from Tribler.Core.Statistics.Crawler import Crawler
+from Tribler.Core.CacheDB.SqliteVideoPlaybackStatsCacheDB import VideoPlaybackDBHandler
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_EIGHTH
+from Tribler.Core.Statistics.Crawler import Crawler
+from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 
 DEBUG = False
 
@@ -40,15 +41,13 @@ class VideoPlaybackCrawler:
             self._file = open("videoplaybackcrawler.txt", "a")
             self._file.write("".join(("# ", "*" * 80, "\n# ", strftime("%Y/%m/%d %H:%M:%S"), " Crawler started\n")))
             self._file.flush()
-            self._info_db = None
             self._event_db = None
 
         else:
             self._file = None
-            self._info_db = VideoPlaybackInfoDBHandler.get_instance()
-            self._event_db = VideoPlaybackEventDBHandler.get_instance()
+            self._event_db = VideoPlaybackDBHandler.get_instance()
 
-    def query_info_initiator(self, permid, selversion, request_callback):
+    def query_initiator(self, permid, selversion, request_callback):
         """
         <<Crawler-side>>
         Established a new connection. Send a CRAWLER_VIDEOPLAYBACK_INFO_QUERY request.
@@ -56,13 +55,22 @@ class VideoPlaybackCrawler:
         @param selversion The oberlay protocol version
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        if selversion >= OLPROTO_VER_EIGHTH:
-            if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_info_initiator", show_permid_short(permid)
+        if selversion >= OLPROTO_VER_TEN:
+            if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_initiator", show_permid_short(permid), "version", selversion
+            # Overlay version 10 provided a simplification in the VOD
+            # stats collecting. We now have only one database table:
+            # playback_event that has only 3 columns: key, timestamp,
+            # and event.
+            request_callback(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, "SELECT key, timestamp, event FROM playback_event; DELETE FROM playback_event;", callback=self._after_event_request_callback)
+            
+        elif selversion >= OLPROTO_VER_EIGHTH:
+            if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_initiator", show_permid_short(permid), "version", selversion
             # boudewijn: order the result DESC! From the resulting
             # list we will not remove the first entries from the
             # database because this (being the last item added) may
             # still be actively used.
             request_callback(CRAWLER_VIDEOPLAYBACK_INFO_QUERY, "SELECT key, timestamp, piece_size, num_pieces, bitrate, nat FROM playback_info ORDER BY timestamp DESC LIMIT 50", callback=self._after_info_request_callback)
+
         else:
             if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_info_initiator", show_permid_short(permid), "unsupported overlay version"
 
@@ -148,38 +156,22 @@ class VideoPlaybackCrawler:
             self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), channel_data, message, "\n")))
             self._file.flush()
 
-        else:
+        elif selversion >= OLPROTO_VER_TEN:
+            # Overlay version 10 sends the reply pickled and zipped
+            if DEBUG:
+                print >> sys.stderr, "videoplaybackcrawler: handle_crawler_reply", show_permid_short(permid), len(message), "bytes zipped"
+
+            info = cPickle.loads(zlib.decompress(message))
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), channel_data, str(info), "\n")))
+            self._file.flush()
+            
+        elif selversion >= OLPROTO_VER_EIGHTH:
             if DEBUG:
                 print >> sys.stderr, "videoplaybackcrawler: handle_crawler_reply", show_permid_short(permid), cPickle.loads(message)
 
             info = cPickle.loads(message)
             self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), channel_data, str(info), "\n")))
             self._file.flush()
-
-    def handle_info_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
-        """
-        <<Peer-side>>
-        Received a CRAWLER_VIDEOPLAYBACK_INFO_QUERY request.
-        @param permid The Crawler permid
-        @param selversion The overlay protocol version
-        @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
-        @param message The message payload
-        @param reply_callback Call this function once to send the reply: reply_callback(payload [, error=123])
-        """
-        if DEBUG:
-            print >> sys.stderr, "videoplaybackcrawler: handle_info_crawler_request", show_permid_short(permid), message
-
-        # execute the sql
-        try:
-            cursor = self._info_db._db.execute_read(message)
-
-        except Exception, e:
-            reply_callback(str(e), error=1)
-        else:
-            if cursor:
-                reply_callback(cPickle.dumps(list(cursor), 2))
-            else:
-                reply_callback("error", error=2)
 
     def handle_event_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
         """
@@ -202,7 +194,7 @@ class VideoPlaybackCrawler:
             reply_callback(str(e), error=1)
         else:
             if cursor:
-                reply_callback(cPickle.dumps(list(cursor), 2))
+                reply_callback(zlib.compress(cPickle.dumps(list(cursor), 2), 9))
             else:
                 reply_callback("error", error=2)
 

@@ -14,7 +14,7 @@ from traceback import print_exc
 from threading import Thread, Event
 from Tribler.Core.BitTornado.RawServer import RawServer
 
-DEBUG = True
+DEBUG = False
 
 class Instance2InstanceServer(Thread):
     
@@ -169,8 +169,8 @@ class InstanceConnection:
     def data_came_in(self,data):
         """ Read \r\n ended lines from data and call readlinecallback(self,line) """
         
-        if DEBUG:
-            print >>sys.stderr,"i2is: ic: data_came_in",`data`,len(data),"proto",self.proto
+        #if DEBUG:
+        print >>sys.stderr,"i2is: ic: data_came_in",`data`,len(data),"proto",self.proto
         
         if self.proto == 0:
             if data[0] == '\x00':
