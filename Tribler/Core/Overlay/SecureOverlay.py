@@ -35,12 +35,12 @@ OLPROTO_VER_FIFTH = 5   # Fourth public release, >= 4.0.0, SOCIAL_OVERLAP
 OLPROTO_VER_SIXTH = 6   # Fifth public release, >= 4.1.0, extra BC fields, remote query
 OLPROTO_VER_SEVENTH = 7 # Sixth public release, >= 4.5.0, supports CRAWLER_REQUEST and CRAWLER_REPLY messages
 OLPROTO_VER_EIGHTH = 8  # Seventh public release, >= 5.0, supporting BuddyCast with clicklog info.
-OLPROTO_VER_NINE = 9    # Eighth public release, >= 5.1, additional torrent_size in remote search query reply (this code is submitted to the branches/release5.0-p1 repository and will be merges in due time)
-OLPROTO_VER_TEN = 10    # Nineth public release, >= 5.X, simplified the VOD statistics (this code is submitted to the branches/trial-m18 repository and will be merged in due time)
+OLPROTO_VER_NINETH = 9    # Eighth public release, >= 5.1, additional torrent_size in remote search query reply (this code is submitted to the branches/release5.0-p1 repository and will be merges in due time)
+OLPROTO_VER_X = 10    # Nineth public release, >= 5.X, simplified the VOD statistics (this code is submitted to the branches/trial-m18 repository and will be merged in due time)
 
 
 # Overlay-swarm protocol version numbers
-OLPROTO_VER_CURRENT = OLPROTO_VER_NINE
+OLPROTO_VER_CURRENT = OLPROTO_VER_NINETH
 
 OLPROTO_VER_LOWEST = OLPROTO_VER_SECOND
 SupportedVersions = range(OLPROTO_VER_LOWEST, OLPROTO_VER_CURRENT+1)

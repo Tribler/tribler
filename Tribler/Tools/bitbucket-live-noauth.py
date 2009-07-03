@@ -11,7 +11,7 @@ DEBUG = True
 RATE=32768
 
 def vod_event_callback(d,event,params):
-    if event == "start":
+    if event == VODEVENT_START:
         stream = params["stream"]
 
         grandtotal = 0L

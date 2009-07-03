@@ -143,7 +143,7 @@ class TestRemoteQuery(TestAsServer):
         var2 = k[0] == (self.infohash2) and k[1] == (self.infohash1)
         self.assert_(var1 or var2)
 
-        # OLPROTO_VER_NINE must contain torrent_size
+        # OLPROTO_VER_NINETH must contain torrent_size
         for infohash, torrent in d['a'].iteritems():
             self.assert_(torrent['torrent_size'], self.torrent_file_size)
 

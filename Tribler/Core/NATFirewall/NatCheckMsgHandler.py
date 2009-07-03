@@ -13,7 +13,7 @@ from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_NATCHECK, CRAWLER_NATT
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.NATFirewall.ConnectionCheck import ConnectionCheck
 from Tribler.Core.NATFirewall.NatTraversal import tryConnect, coordinateHolePunching
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_EIGHTH, OLPROTO_VER_NINE, SecureOverlay
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_EIGHTH, OLPROTO_VER_NINETH, SecureOverlay
 from Tribler.Core.Statistics.Crawler import Crawler
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from types import IntType, StringType, ListType, TupleType
@@ -70,7 +70,7 @@ class NatCheckMsgHandler:
 
         # for Tribler versions < 4.5.0 : do nothing
         # TODO: change OLPROTO_VER_EIGHTH to OLPROTO_VER_SEVENTH
-        if selversion < OLPROTO_VER_NINE:
+        if selversion < OLPROTO_VER_NINETH:
             if DEBUG:
                 print >> sys.stderr, "NatCheckMsgHandler: Tribler version too old for NATCHECK: do nothing"
             return False
@@ -193,7 +193,7 @@ class NatCheckMsgHandler:
             self._file.flush()
 
             # for Tribler versions < 5.0 : do nothing
-            if selversion < OLPROTO_VER_NINE:
+            if selversion < OLPROTO_VER_NINETH:
                 if DEBUG:
                     print >> sys.stderr, "NatCheckMsgHandler: Tribler version too old for NATTRAVERSAL: do nothing"
                 return True

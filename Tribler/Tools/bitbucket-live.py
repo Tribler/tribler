@@ -8,7 +8,7 @@ DEBUG = True
 
 
 def vod_event_callback(d,event,params):
-    if event == "start":
+    if event == VODEVENT_START:
         stream = params["stream"]
 
         epoch_server = None

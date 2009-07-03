@@ -299,7 +299,7 @@ class TorrentSearchGridManager:
                     newval['num_seeders'] = value['seeder']
                     newval['num_leechers'] = value['leecher']
 
-                    # OLPROTO_VER_NINE includes a torrent_size. Set to
+                    # OLPROTO_VER_NINETH includes a torrent_size. Set to
                     # -1 when not available.
                     if 'torrent_size' in value:
                         newval['torrent_size'] = value['torrent_size']
