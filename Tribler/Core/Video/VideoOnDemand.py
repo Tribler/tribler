@@ -15,7 +15,6 @@ import re
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 from Tribler.Core.Video.MovieTransport import MovieTransport,MovieTransportStreamWrapper
 from Tribler.Core.simpledefs import *
-from Tribler.Core.Video.LiveSourceAuth import ECDSAAuthenticator,RSAAuthenticator,AuthStreamWrapper,VariableReadAuthStreamWrapper
 from Tribler.Core.osutils import *
 
 # pull all video data as if a video player was attached
@@ -212,7 +211,8 @@ class MovieOnDemandTransporter(MovieTransport):
 
         self.nreceived = 0
         
-        print >>sys.stderr,"vod: trans: Setting MIME type to",self.videoinfo['mimetype']
+        if DEBUG:
+            print >>sys.stderr,"vod: trans: Setting MIME type to",self.videoinfo['mimetype']
         
         self.set_mimetype(self.videoinfo['mimetype'])
 
@@ -242,6 +242,8 @@ class MovieOnDemandTransporter(MovieTransport):
 
         # LIVESOURCEAUTH
         if vs.live_streaming:
+            from Tribler.Core.Video.LiveSourceAuth import ECDSAAuthenticator,RSAAuthenticator
+
             if vs.authparams['authmethod'] == LIVE_AUTHMETHOD_ECDSA:
                 self.authenticator = ECDSAAuthenticator(vs.first_piecelen,vs.movie_numpieces,pubkeypem=vs.authparams['pubkey'])
                 vs.sigsize = vs.piecelen - self.authenticator.get_content_blocksize()
@@ -803,7 +805,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         # Adjust estimate every second, but don't display every second
         display = False # (int(time.time()) % 5) == 0
-        if display:
+        if DEBUG: # display
             print >>sys.stderr,"vod: Estimated download time: %5.1fs [priority: %7.2f Kbyte/s] [overall: %7.2f Kbyte/s]" % (self.expected_download_time(), self.high_range_rate.get_rate()/1024, self.overall_rate.get_rate()/1024)
 
         if vs.playing and round(self.playbackrate.rate) > self.MINPLAYBACKRATE and not vs.prebuffering:
@@ -912,7 +914,8 @@ class MovieOnDemandTransporter(MovieTransport):
                     piece  = vs.first_piece + newbytepos / vs.piecelen + 1
                     offset = newbytepos % vs.piecelen
 
-            print >>sys.stderr,"vod: trans: === START at offset %d (piece %d) (forced: %s) ===" % (bytepos,piece,force)
+            if DEBUG:
+                print >>sys.stderr,"vod: trans: === START at offset %d (piece %d) (forced: %s) ===" % (bytepos,piece,force)
 
             # Initialise all playing variables
             self.curpiece = "" # piece currently being popped
@@ -950,7 +953,8 @@ class MovieOnDemandTransporter(MovieTransport):
         self._playback_stats.add_event(self._playback_key, "stop")
 
         vs = self.videostatus
-        print >>sys.stderr,"vod: trans: === STOP  = player closed conn === "
+        if DEBUG:
+            print >>sys.stderr,"vod: trans: === STOP  = player closed conn === "
         if not vs.playing:
             return
         vs.playing = False
@@ -1530,6 +1534,8 @@ class MovieOnDemandTransporter(MovieTransport):
         else:
             stream = MovieTransportStreamWrapper(self)
             if self.videostatus.live_streaming and self.videostatus.authparams['authmethod'] != LIVE_AUTHMETHOD_NONE:
+                from Tribler.Core.Video.LiveSourceAuth import AuthStreamWrapper,VariableReadAuthStreamWrapper
+
                 intermedstream = AuthStreamWrapper(stream,self.authenticator)
                 endstream = VariableReadAuthStreamWrapper(intermedstream,self.authenticator.get_piece_length()) 
             else:

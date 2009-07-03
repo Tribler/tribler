@@ -9,7 +9,14 @@ from urllib import quote
 from threading import Thread
 from Tribler.Core.BitTornado.__init__ import product_name,version_short
 # 2fastbt_
-from Tribler.Core.CoopDownload.Helper import SingleDownloadHelperInterface
+try:
+    from Tribler.Core.CoopDownload.Helper import SingleDownloadHelperInterface
+except ImportError:
+    class SingleDownloadHelperInterface:
+        
+        def __init__(self):
+            pass
+
 # _2fastbt
 
 try:

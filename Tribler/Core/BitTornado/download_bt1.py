@@ -1,6 +1,7 @@
 # Written by Bram Cohen and Pawel Garbacki
 # see LICENSE.txt for license information
 
+import sys
 import os
 from zurllib import urlopen
 from urlparse import urlparse
@@ -31,24 +32,15 @@ from random import seed
 from threading import Event
 from clock import clock
 import re
+from traceback import print_exc,print_stack
 
-from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT, VODEVENT_START
+from Tribler.Core.simpledefs import *
 from Tribler.Core.Merkle.merkle import create_fake_hashes
 from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 from Tribler.Core.Video.PiecePickerStreaming import PiecePickerVOD
 from Tribler.Core.Video.VideoOnDemand import MovieOnDemandTransporter
-from Tribler.Core.Video.VideoSource import VideoSourceTransporter,RateLimitedVideoSourceTransporter,PiecePickerSource
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename,savefilenames2finaldest
 
-# 2fastbt_
-from Tribler.Core.CoopDownload.Coordinator import Coordinator
-from Tribler.Core.CoopDownload.Helper import Helper
-from Tribler.Core.CoopDownload.RatePredictor import ExpSmoothRatePredictor
-import sys
-from traceback import print_exc,print_stack
-# _2fastbt
-
-from Tribler.Core.simpledefs import *
 
 try:
     True
@@ -122,24 +114,31 @@ class BT1Download:
             self.coordinator = None
             self.rate_predictor = None
             
-            if DEBUG:
-                print >>sys.stderr,"BT1Download: coopdl_role is",self.config['coopdl_role'],`self.config['coopdl_coordinator_permid']`
-            
-            if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR:
-                self.coordinator = Coordinator(self.infohash, self.len_pieces)
-            #if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR or self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
-            # Arno, 2008-05-20: removed Helper when coordinator, shouldn't need it.
-            # Reason to remove it is because it messes up PiecePicking: when a 
-            # helper, it calls _next() again after it returned None, probably
-            # to provoke a RESERVE_PIECE request to the coordinator.
-            # This change passes test_dlhelp.py
-            #
-            if self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
-                self.helper = Helper(self.infohash, self.len_pieces, self.config['coopdl_coordinator_permid'], coordinator = self.coordinator)
-                self.config['coopdl_role'] = ''
-                self.config['coopdl_coordinator_permid'] = ''
+            if self.config['download_help']:
+                if DEBUG:
+                    print >>sys.stderr,"BT1Download: coopdl_role is",self.config['coopdl_role'],`self.config['coopdl_coordinator_permid']`
+                
+                if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR:
+                    from Tribler.Core.CoopDownload.Coordinator import Coordinator
+                    
+                    self.coordinator = Coordinator(self.infohash, self.len_pieces)
+                #if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR or self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
+                # Arno, 2008-05-20: removed Helper when coordinator, shouldn't need it.
+                # Reason to remove it is because it messes up PiecePicking: when a 
+                # helper, it calls _next() again after it returned None, probably
+                # to provoke a RESERVE_PIECE request to the coordinator.
+                # This change passes test_dlhelp.py
+                #
+                if self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
+                    from Tribler.Core.CoopDownload.Helper import Helper
+                    
+                    self.helper = Helper(self.infohash, self.len_pieces, self.config['coopdl_coordinator_permid'], coordinator = self.coordinator)
+                    self.config['coopdl_role'] = ''
+                    self.config['coopdl_coordinator_permid'] = ''
 
             if self.am_video_source:
+                from Tribler.Core.Video.VideoSource import PiecePickerSource
+
                 self.picker = PiecePickerSource(self.len_pieces, config['rarest_first_cutoff'], 
                              config['rarest_first_priority_cutoff'], helper = self.helper)
             elif self.play_video:
@@ -436,6 +435,8 @@ class BT1Download:
             self.encoder_ban(ip)
 
         if self.helper is not None:
+            from Tribler.Core.CoopDownload.RatePredictor import ExpSmoothRatePredictor
+
             self.helper.set_encoder(self.encoder)
             self.rate_predictor = ExpSmoothRatePredictor(self.rawserver, 
                 self.downmeasure, self.config['max_download_rate'])
@@ -476,6 +477,8 @@ class BT1Download:
             print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"
 
         if self.am_video_source:
+            from Tribler.Core.Video.VideoSource import VideoSourceTransporter,RateLimitedVideoSourceTransporter
+
             if DEBUG:
                 print >>sys.stderr,"BT1Download: startEngine: Acting as VideoSource"
             if self.config['video_ratelimit']:

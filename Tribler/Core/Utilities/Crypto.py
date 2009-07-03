@@ -7,10 +7,6 @@ import textwrap
 import binascii
 from cStringIO import StringIO
 
-from M2Crypto import BIO,RSA,EVP
-
-USE_M2CRYPTO_SHA = False
-
 # Switch between using Python's builtin SHA1 function or M2Crypto/OpenSSL's
 # TODO: optimize such that less memory is allocated, e.g. reuse a single
 # sha() object instance (hard to do here centrally with multiple threads)
@@ -31,6 +27,8 @@ USE_M2CRYPTO_SHA = False
 
 
 if USE_M2CRYPTO_SHA:
+    from M2Crypto import EVP    
+
     class sha:
         def __init__(self,data=None):
             self.hash = None
@@ -59,6 +57,8 @@ else:
 # M2Crypto has no functions to read a pubkey in DER
 #
 def RSA_pub_key_from_der(der):
+    from M2Crypto import RSA,BIO
+
     s = '-----BEGIN PUBLIC KEY-----\n'
     b = base64.standard_b64encode(der)
     s += textwrap.fill(b,64)
@@ -101,6 +101,10 @@ def RSA_keypair_to_pub_key_in_der(keypair):
     #pkey = EVP.PKey()
     #pkey.assign_rsa(keypair)
     #return pkey.as_der()
+    #
+    #
+    from M2Crypto import RSA,BIO
+
     bio = BIO.MemoryBuffer()
     keypair.save_pub_key_bio(bio)
     pem = bio.read_all()

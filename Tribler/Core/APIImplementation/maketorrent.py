@@ -17,7 +17,6 @@ from types import LongType
 from Tribler.Core.BitTornado.bencode import bencode
 from Tribler.Core.BitTornado.BT1.btformats import check_info
 from Tribler.Core.Merkle.merkle import MerkleTree
-from Tribler.Core.Overlay.permid import create_torrent_signature
 from Tribler.Core.Utilities.unicode import str2unicode,bin2unicode
 from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs,offset2piece
 from Tribler.Core.osutils import fix_filebasename
@@ -95,6 +94,8 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
         metainfo['azureus_properties'] = cdict
 
     if input['torrentsigkeypairfilename'] is not None:
+        from Tribler.Core.Overlay.permid import create_torrent_signature
+
         create_torrent_signature(metainfo,input['torrentsigkeypairfilename'])
 
     infohash = sha(bencode(info)).digest()

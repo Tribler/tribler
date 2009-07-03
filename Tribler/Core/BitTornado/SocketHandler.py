@@ -420,9 +420,14 @@ class SocketHandler:
                         if DEBUG:
                             print >> sys.stderr,"SocketHandler: Got connection from",newsock.getpeername()
                         if not self.btengine_said_reachable:
-                            from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-                            dmh = DialbackMsgHandler.getInstance()
-                            dmh.network_btengine_reachable_callback()
+                            try:
+                                from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+                                dmh = DialbackMsgHandler.getInstance()
+                                dmh.network_btengine_reachable_callback()
+                            except ImportError:
+                                if DEBUG:
+                                    print_exc()
+                                pass
                             self.btengine_said_reachable = True
                             
                         newsock.setblocking(0)

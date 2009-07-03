@@ -5,11 +5,8 @@ import sys
 from traceback import print_exc
 
 from Tribler.Core.exceptions import *
-
 from Tribler.Core.SessionConfig import SessionConfigInterface
-from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
-from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
-from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
+
 
 class SessionRuntimeConfig(SessionConfigInterface):
     """
@@ -149,6 +146,8 @@ class SessionRuntimeConfig(SessionConfigInterface):
     def set_start_recommender(self,value):
         self.sesslock.acquire()
         try:
+            from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+            
             SessionConfigInterface.set_start_recommender(self,value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_start_recommender(value)
@@ -157,6 +156,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
     def olthread_set_start_recommender(self,value):
+        from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
         bcfac = BuddyCastFactory.getInstance()
         if value:
             bcfac.restartBuddyCast()
@@ -235,6 +235,8 @@ class SessionRuntimeConfig(SessionConfigInterface):
     def set_torrent_collecting_max_torrents(self,value):
         self.sesslock.acquire()
         try:
+            from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+            
             SessionConfigInterface.set_torrent_collecting_max_torrents(self,value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_torrent_collecting_max_torrents(value)
@@ -243,6 +245,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
     def olthread_set_torrent_collecting_max_torrents(self,value):
+        from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
         mh = MetadataHandler.getInstance()
         mh.set_overflow(value)
         mh.delayed_check_overflow(2)
@@ -268,6 +271,8 @@ class SessionRuntimeConfig(SessionConfigInterface):
     def set_torrent_collecting_rate(self,value):
         self.sesslock.acquire()
         try:
+            from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+            
             SessionConfigInterface.set_torrent_collecting_rate(self,value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_torrent_collecting_rate(value)
@@ -276,6 +281,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
     def olthread_set_torrent_collecting_rate(self,value):
+        from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
         mh = MetadataHandler.getInstance()
         mh.set_rate(value)
 
@@ -339,6 +345,8 @@ class SessionRuntimeConfig(SessionConfigInterface):
     def set_stop_collecting_threshold(self,value):
         self.sesslock.acquire()
         try:
+            from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+            
             SessionConfigInterface.set_stop_collecting_threshold(self,value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_stop_collecting_threshold(value)
@@ -347,6 +355,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
     def olthread_set_stop_collecting_threshold(self,value):
+        from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
         mh = MetadataHandler.getInstance()
         mh.set_min_free_space(value)
         mh.delayed_check_free_space(2)

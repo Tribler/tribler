@@ -18,7 +18,6 @@ from time import time
 from struct import pack, unpack
 import binascii
 
-from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
 
 try:
@@ -375,6 +374,8 @@ class Rerequester:
         if DEBUG:
             print >>sys.stderr,"Rerequester: _dht_rerequest",`self.infohash`
         if 'dialback' in self.config and self.config['dialback']:
+            from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+            
             if DialbackMsgHandler.getInstance().isConnectable():
                 self.dht.getPeersAndAnnounce(self.infohash, self.port, self._dht_got_peers)
         else:

@@ -6,7 +6,14 @@ from Tribler.Core.BitTornado.bitfield import Bitfield
 from random import shuffle
 from Tribler.Core.BitTornado.clock import clock
 # 2fastbt_
-from Tribler.Core.CoopDownload.Helper import SingleDownloadHelperInterface
+try:
+    from Tribler.Core.CoopDownload.Helper import SingleDownloadHelperInterface
+except ImportError:
+    class SingleDownloadHelperInterface:
+        
+        def __init__(self):
+            pass
+        
 
 import sys
 
@@ -24,6 +31,7 @@ EXPIRE_TIME = 60 * 60
 # purpose, outside debug mode.
 #
 # Arno, 2009-06-15: Win32 binary versions have __debug__ True apparently, workaround.
+#
 if DEBUG:
     _ident_letters = {}
     _ident_letter_pool = None
@@ -341,7 +349,7 @@ class SingleDownload(SingleDownloadHelperInterface):
 # 2fastbt_
         if DEBUG:
             print >>sys.stderr,"Downloader: _request_more()"
-        if self.is_frozen_by_helper():
+        if self.helper is not None and self.is_frozen_by_helper():
             if DEBUG:
                 print >>sys.stderr,"Downloader: _request_more: blocked, returning"
             return

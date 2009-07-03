@@ -14,19 +14,20 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.Base import *
 from Tribler.Core.SessionConfig import *
-import Tribler.Core.Overlay.permid
 from Tribler.Core.DownloadConfig import get_default_dest_dir
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeConfig
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
-from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
-from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
-from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler
-from Tribler.Core.NATFirewall.ConnectionCheck import ConnectionCheck
-from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.osutils import get_home_dir
-import Tribler.Core.Overlay.permid as permidmod
+GOTM2CRYPTO=False
+try:
+    import M2Crypto
+    import Tribler.Core.Overlay.permid as permidmod
+    GOTM2CRYPTO=True
+except ImportError:
+    pass
+
 
 DEBUG = False
 
@@ -153,30 +154,30 @@ class Session(SessionRuntimeConfig):
         # Let user handle that, he's got default_state_dir, etc.
 
         # Core init
-        permidmod.init()
+        #print >>sys.stderr,'Session: __init__ config is', self.sessconfig
 
-        #print 'Session: __init__ config is', self.sessconfig
-        
-        #
-        # Set params that depend on state_dir
-        #
-        # 1. keypair
-        #
-        pairfilename = os.path.join(self.sessconfig['state_dir'],'ec.pem')
-        if self.sessconfig['eckeypairfilename'] is None:
-            self.sessconfig['eckeypairfilename'] = pairfilename
+        if GOTM2CRYPTO:
+            permidmod.init()
+
+            #
+            # Set params that depend on state_dir
+            #
+            # 1. keypair
+            #
+            pairfilename = os.path.join(self.sessconfig['state_dir'],'ec.pem')
+            if self.sessconfig['eckeypairfilename'] is None:
+                self.sessconfig['eckeypairfilename'] = pairfilename
             
-        if os.access(self.sessconfig['eckeypairfilename'],os.F_OK):
-            # May throw exceptions
-            self.keypair = permidmod.read_keypair(self.sessconfig['eckeypairfilename'])
-        else:
-            self.keypair = permidmod.generate_keypair()
+            if os.access(self.sessconfig['eckeypairfilename'],os.F_OK):
+                # May throw exceptions
+                self.keypair = permidmod.read_keypair(self.sessconfig['eckeypairfilename'])
+            else:
+                self.keypair = permidmod.generate_keypair()
 
-            # Save keypair
-            pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
-            permidmod.save_keypair(self.keypair,pairfilename)
-            permidmod.save_pub_key(self.keypair,pubfilename)
-
+                # Save keypair
+                pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
+                permidmod.save_keypair(self.keypair,pairfilename)
+                permidmod.save_pub_key(self.keypair,pubfilename)
         
         # 2. Downloads persistent state dir
         dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
@@ -405,7 +406,11 @@ class Session(SessionRuntimeConfig):
           doesn't mean the Session is reachable from the open Internet, could just
           be from the local (otherwise firewalled) LAN.
           @return A boolean. """
-        return DialbackMsgHandler.getInstance().isConnectable() 
+
+        # Arno, LICHT: make it throw exception when used in LITE versie.
+        from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+        
+        return DialbackMsgHandler.getInstance().isConnectable()
 
 
     def get_current_startup_config_copy(self):
@@ -719,6 +724,8 @@ class Session(SessionRuntimeConfig):
                 if not query.startswith('SIMPLE '):
                     raise ValueError('Query does not start with SIMPLE')
                 
+                from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
+                
                 rqmh = RemoteQueryMsgHandler.getInstance()
                 rqmh.send_query(query,usercallback,max_peers_to_query=max_peers_to_query)
             else:
@@ -743,6 +750,8 @@ class Session(SessionRuntimeConfig):
         self.sesslock.acquire()
         try:
             if self.sessconfig['overlay']:
+                from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+                
                 rtorrent_handler = RemoteTorrentHandler.getInstance()
                 rtorrent_handler.download_torrent(permid,infohash,usercallback)
             else:
@@ -835,6 +844,8 @@ class Session(SessionRuntimeConfig):
         # Called by any thread
         self.sesslock.acquire()
         try:
+            from Tribler.Core.NATFirewall.ConnectionCheck import ConnectionCheck
+            
             return ConnectionCheck.getInstance(self).get_nat_type(callback=callback)
         finally:
             self.sesslock.release()
@@ -856,6 +867,8 @@ class Session(SessionRuntimeConfig):
             if self.sessconfig['overlay']:
                 if mtype == F_FORWARD_MSG:
                     raise ValueError("User cannot send FORWARD messages directly")
+                
+                from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler
                 
                 fmh = FriendshipMsgHandler.getInstance()
                 params = {}
@@ -883,6 +896,8 @@ class Session(SessionRuntimeConfig):
         self.sesslock.acquire()
         try:
             if self.sessconfig['overlay']:
+                from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler
+                
                 fmh = FriendshipMsgHandler.getInstance()
                 fmh.register_usercallback(usercallback)
             else:

@@ -6,6 +6,7 @@ import os
 import pickle
 import socket
 import binascii
+import time as timemod
 from threading import Event,Thread,enumerate
 from traceback import print_exc
 
@@ -13,8 +14,6 @@ from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
 from Tribler.Core.BitTornado.BT1.track import Tracker
 from Tribler.Core.BitTornado.HTTPHandler import HTTPHandler,DummyHTTPHandler
-
-
 from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.Download import Download
@@ -22,25 +21,10 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
-from Tribler.Core.Overlay.SecureOverlay import SecureOverlay,OLPROTO_VER_CURRENT
-from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
-from Tribler.Core.Overlay.OverlayApps import OverlayApps
-from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
-from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-import Tribler.Core.CacheDB.cachedb as cachedb
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
-from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import *
-from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import *
-from Tribler.Core.RequestPolicy import *
 from Tribler.Core.osutils import get_readable_torrent_name
-from Tribler.Category.Category import Category
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
-
-from Tribler.Core.Multicast import Multicast
 
 SPECIAL_VALUE=481
 
@@ -100,12 +84,17 @@ class TriblerLaunchMany(Thread):
         if DEBUG:
             print >>sys.stderr,"tlm: Got listen port", self.listen_port
         
-        self.overlay_bridge = OverlayThreadingBridge.getInstance()
         self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
         self.shutdownstarttime = None
          
         # do_cache -> do_overlay -> (do_buddycast, do_download_help)
         if config['megacache']:
+            import Tribler.Core.CacheDB.cachedb as cachedb
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyDBHandler, PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, BarterCastDBHandler, ModerationCastDBHandler, VoteCastDBHandler, SearchDBHandler,TermDBHandler, CrawlerDBHandler      
+            from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import SeedingStatsDBHandler, SeedingStatsSettingsDBHandler
+            from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
+            from Tribler.Category.Category import Category
+            
             # init cache db
             if config['nickname'] == '__default_name__':
                 config['nickname']  = socket.gethostname()
@@ -168,6 +157,11 @@ class TriblerLaunchMany(Thread):
             self.mm = None
 
         if config['overlay']:
+            from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
+            from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+            from Tribler.Core.Overlay.OverlayApps import OverlayApps
+            from Tribler.Core.RequestPolicy import FriendsCoopDLOtherRQueryQuotumCrawlerAllowAllRequestPolicy
+            
             self.secure_overlay = SecureOverlay.getInstance()
             self.secure_overlay.register(self, config['overlay_max_message_length'])
             
@@ -179,6 +173,9 @@ class TriblerLaunchMany(Thread):
             
             # For the new DB layer we need to run all overlay apps in a
             # separate thread instead of the NetworkThread as before.
+            
+            self.overlay_bridge = OverlayThreadingBridge.getInstance()
+            
             self.overlay_bridge.register_bridge(self.secure_overlay,self.overlay_apps)
             
             self.overlay_apps.register(self.overlay_bridge,self.session,self,config,policy)
@@ -196,10 +193,16 @@ class TriblerLaunchMany(Thread):
             config['download_help'] = 0
             config['socnet'] = 0
             config['rquery'] = 0
-            
-            # Minimal to allow yourip external-IP address detection
-            some_dialback_handler = DialbackMsgHandler.getInstance()
-            some_dialback_handler.register_yourip(self)
+
+            try:
+                # Minimal to allow yourip external-IP address detection
+                from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+                some_dialback_handler = DialbackMsgHandler.getInstance()
+                some_dialback_handler.register_yourip(self)
+            except:
+                if DEBUG:
+                    print_exc()
+                pass
             
 
         if config['megacache'] or config['overlay']:
@@ -212,6 +215,8 @@ class TriblerLaunchMany(Thread):
             # core. 
              
             # Some author: First Category instantiation requires install_dir, so do it now
+            from Tribler.Category.Category import Category
+
             Category.getInstance(config['install_dir'])
 
         # Internal tracker
@@ -243,6 +248,8 @@ class TriblerLaunchMany(Thread):
             
             if config['mainline_dht']:
                 # Create torrent-liveliness checker based on DHT
+                from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
+                
                 c = mainlineDHTChecker.getInstance()
                 c.register(mainlineDHT.dht)
             
@@ -547,7 +554,7 @@ class TriblerLaunchMany(Thread):
         if stop:
             # Some grace time for early shutdown tasks
             if self.shutdownstarttime is not None:
-                now = time()
+                now = timemod.time()
                 diff = now - self.shutdownstarttime
                 if diff < gracetime:
                     print >>sys.stderr,"tlm: shutdown: delaying for early shutdown tasks",gracetime-diff
@@ -565,7 +572,7 @@ class TriblerLaunchMany(Thread):
         to checkpointing, etc.
         """
         if self.overlay_apps is not None:
-            self.shutdownstarttime = time()
+            self.shutdownstarttime = timemod.time()
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
         
             
@@ -573,6 +580,8 @@ class TriblerLaunchMany(Thread):
         try:
             # Detect if megacache is enabled
             if self.peer_db is not None:
+                from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+                
                 db = SQLiteCacheDB.getInstance()
                 db.commit()
             
@@ -754,6 +763,8 @@ class TriblerLaunchMany(Thread):
         self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         #        print "torrent_checking start"
         try:
+            from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+            
             t = TorrentChecking()
             t.start()
         except Exception, e:
@@ -783,7 +794,6 @@ class TriblerLaunchMany(Thread):
 
 
     def setup_multicast_discovery(self):
-    
         # Set up local node discovery here
         # TODO: Fetch these from system configuration
         mc_config = {'permid':self.session.get_permid(),
@@ -794,6 +804,9 @@ class TriblerLaunchMany(Thread):
                      'multicast_ipv4_enabled':True,
                      'multicast_ipv6_enabled':False,
                      'multicast_announce':True}
+
+        from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_CURRENT
+        from Tribler.Core.Multicast import Multicast
 
         self.mc_channel = Multicast(mc_config,self.overlay_bridge,self.listen_port,OLPROTO_VER_CURRENT,self.peer_db)
         self.mc_channel.addAnnounceHandler(self.mc_channel.handleOVERLAYSWARMAnnounce)

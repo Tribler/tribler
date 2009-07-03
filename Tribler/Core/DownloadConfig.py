@@ -23,7 +23,6 @@ from Tribler.Core.defaults import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
 from Tribler.Core.APIImplementation.miscutils import *
-from Tribler.Core.LiveSourceAuthConfig import LiveSourceAuthConfig
 
 from Tribler.Core.osutils import getfreespace, get_home_dir
 
@@ -146,6 +145,8 @@ class DownloadConfigInterface:
         """
         self.dlconfig['video_source'] = videosource
         if authconfig is None:
+            from Tribler.Core.LiveSourceAuthConfig import LiveSourceAuthConfig
+
             authconfig = LiveSourceAuthConfig(LIVE_AUTHMETHOD_NONE)
         self.dlconfig['video_source_authconfig'] = authconfig
 

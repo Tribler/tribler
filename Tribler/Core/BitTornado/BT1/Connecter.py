@@ -16,12 +16,9 @@ from Tribler.Core.BitTornado.clock import clock
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.__init__ import version_short,decodePeerID,TRIBLER_PEERID_LETTER
 from Tribler.Core.BitTornado.BT1.convert import tobinary,toint
-from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge 
 
 from MessageID import *
 
-from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, BarterCastDBHandler
-from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Core.DecentralizedTracking.ut_pex import *
 from Tribler.Core.BitTornado.BT1.track import compact_ip,decompact_ip
 
@@ -369,9 +366,15 @@ class Connection:
         if 'yourip' in d:
             try:
                 yourip = decompact_ip(d['yourip'])
-                from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-                dmh = DialbackMsgHandler.getInstance()
-                dmh.network_btengine_extend_yourip(yourip)
+
+                try:
+                    from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+                    dmh = DialbackMsgHandler.getInstance()
+                    dmh.network_btengine_extend_yourip(yourip)
+                except:
+                    if DEBUG:
+                        print_exc()
+                    pass
                 
                 if 'same_nat_try_internal' in self.connecter.config and self.connecter.config['same_nat_try_internal']:
                     if 'ipv4' in d:
@@ -563,6 +566,8 @@ class Connection:
         if DEBUG:
             print >>sys.stderr,"connecter: Initiating overlay connection"
         if not self.initiated_overlay:
+            from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
+            
             self.initiated_overlay = True
             so = SecureOverlay.getInstance()
             so.connect_dns(self.connection.dns,self.network_connect_dns_callback)
@@ -764,6 +769,8 @@ class Connecter:
 
         # BarterCast
         if config['overlay']:
+            from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+            
             self.overlay_bridge = OverlayThreadingBridge.getInstance()
         else:
             self.overlay_bridge = None
@@ -1207,6 +1214,8 @@ class Connecter:
 def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
     """ Called by OverlayThread to store information about the peer to
     whom the connection was just closed in the (slow) databases. """
+    
+    from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, BarterCastDBHandler
     
     peerdb = PeerDBHandler.getInstance()
     bartercastdb = BarterCastDBHandler.getInstance()

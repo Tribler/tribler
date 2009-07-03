@@ -16,8 +16,6 @@ from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 
-from Tribler.Video.utils import win32_retrieve_video_play_command
-
 DEBUG = False
 
 class DownloadImpl:
@@ -534,11 +532,15 @@ class DownloadImpl:
         if sys.platform == 'win32':
             # TODO: Use Python's mailcap facility on Linux to find player
             try:
+                from Tribler.Video.utils import win32_retrieve_video_play_command
+
                 [mimetype,playcmd] = win32_retrieve_video_play_command(ext,file)
                 if DEBUG:
                     print >>sys.stderr,"DownloadImpl: Win32 reg said MIME type is",mimetype
             except:
-                print_exc()
+                if DEBUG:
+                    print_exc()
+                pass
         else:
             try:
                 import mimetypes

@@ -80,6 +80,14 @@ from Tribler.Core.Download import *
 from Tribler.Core.DownloadConfig import *
 from Tribler.Core.DownloadState import *
 from Tribler.Core.exceptions import *
-from Tribler.Core.RequestPolicy import *
+try:
+    from Tribler.Core.RequestPolicy import *
+except ImportError:
+    pass
 from Tribler.Core.TorrentDef import *
-from Tribler.Core.LiveSourceAuthConfig import *
+try:
+    import M2Crypto
+    from Tribler.Core.LiveSourceAuthConfig import *
+except ImportError:
+    pass
+
