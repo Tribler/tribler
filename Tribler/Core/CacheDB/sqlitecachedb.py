@@ -24,7 +24,7 @@ import apsw
 #assert apsw_version >= support_version, "Required APSW Version >= %d.%d.%d."%support_version + " But your version is %d.%d.%d.\n"%apsw_version + \
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
-CURRENT_MAIN_DB_VERSION = 3
+CURRENT_MAIN_DB_VERSION = 4
 
 CREATE_SQL_FILE = None
 CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v'+str(CURRENT_MAIN_DB_VERSION)+'.sql')
@@ -261,6 +261,7 @@ class SQLiteCacheDBBase:
                            Default = 10000 milliseconds   
         """
         cur = self.openDB(dbfile_path, busytimeout)
+        print dbfile_path
         cur.execute(sql_create_table)  # it is suggested to include begin & commit in the script
 
     def initDB(self, sqlite_filepath,
@@ -882,8 +883,9 @@ class SQLiteCacheDBBase:
         res1 = self.getAll('Category', '*')
         res2 = len(self.getAll('Peer', 'name', 'name is not NULL'))
         return (res1, res2)
-    
-class SQLiteCacheDBV3(SQLiteCacheDBBase):
+
+
+class SQLiteCacheDBV4(SQLiteCacheDBBase):
     def updateDB(self, fromver, tover):
 
         # bring database up to version 2, if necessary        
@@ -967,6 +969,43 @@ CREATE INDEX idx_terms_term ON ClicklogTerm(term);
 ALTER TABLE Peer ADD COLUMN is_local integer DEFAULT 0;
 """       
             self.execute_write(sql, commit=False)
+
+        if fromver < 4:
+            sql="""
+--- patch for BuddyCast 5 : Creation of Popularity table and relevant stuff
+
+CREATE TABLE Popularity (
+                         torrent_id INTEGER,
+                         peer_id INTEGER,
+                         msg_receive_time NUMERIC,
+                         size_calc_age NUMERIC,
+                         num_seeders INTEGER DEFAULT 0,
+                         num_leechers INTEGER DEFAULT 0,
+                         num_of_sources INTEGER DEFAULT 0
+                     );
+
+CREATE INDEX Message_receive_time_idx 
+  ON Popularity 
+   (msg_receive_time);
+
+CREATE INDEX Size_calc_age_idx 
+  ON Popularity 
+   (size_calc_age);
+
+CREATE INDEX Number_of_seeders_idx 
+  ON Popularity 
+   (num_seeders);
+
+CREATE INDEX Number_of_leechers_idx 
+  ON Popularity 
+   (num_leechers);
+
+CREATE UNIQUE INDEX Popularity_idx
+  ON Popularity
+   (torrent_id, peer_id, msg_receive_time);
+
+"""
+            self.execute_write(sql, commit=False)
             
             
         # updating version stepwise so if this works, we store it
@@ -975,7 +1014,8 @@ ALTER TABLE Peer ADD COLUMN is_local integer DEFAULT 0;
         self.commit()
 
 
-class SQLiteCacheDB(SQLiteCacheDBV3):
+
+class SQLiteCacheDB(SQLiteCacheDBV4):
     __single = None    # used for multithreaded singletons pattern
     lock = threading.RLock()
 

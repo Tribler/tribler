@@ -171,7 +171,7 @@ from Tribler.Core.Utilities.utilities import show_permid_short, show_permid,vali
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND, NTFY_MYPREFERENCES, NTFY_INSERT, NTFY_DELETE
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_ELEVENTH , OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from similarity import P2PSim, P2PSimSorted, P2PSimLM
 from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollecting
@@ -317,7 +317,7 @@ class BuddyCastFactory:
     def olthread_register(self, start=True):
         if debug:
             print >> sys.stderr, "bc: OlThread Register", currentThread().getName()
-                
+            
         self.data_handler = DataHandler(self.launchmany, self.overlay_bridge, max_num_peers=self.max_peers) 
         
         # ARNOCOMMENT: get rid of this dnsindb / get_dns_from_peerdb abuse off SecureOverlay
@@ -501,7 +501,7 @@ class BuddyCastFactory:
     
     
 class BuddyCastCore:
-    
+     
     TESTASSERVER = False # for unit testing
     
     def __init__(self, overlay_bridge, launchmany, data_handler, 
@@ -596,6 +596,7 @@ class BuddyCastCore:
         
                             
     def get_peer_info(self, target_permid, include_permid=True):
+        
         if not target_permid:
             return ' None '
         dns = self.dnsindb(target_permid)
@@ -927,6 +928,7 @@ class BuddyCastCore:
     def createAndSendBuddyCastMessage(self, target_permid, selversion, active):
         
         #print >>sys.stderr,"bc: SENDING BC to",show_permid_short(target_permid)
+        #target_permid ="""MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAGbSaE3xVUvdMYGkj+x/mE24f/f4ZId7kNPVkALbAa2bQNjCKRDSPt+oE1nzr7It/CfxvCTK+sjOYAjr""" 
         
         buddycast_data = self.createBuddyCastMessage(target_permid, selversion)
         if debug:
@@ -989,6 +991,7 @@ class BuddyCastCore:
     def createBuddyCastMessage(self, target_permid, selversion, target_ip=None, target_port=None):
         """ Create a buddycast message for a target peer on selected protocol version """
         # Nicolas: added manual target_ip, target_port parameters for testing
+        ## Test 
         try:
             target_ip,target_port = self.dnsindb(target_permid)    
         except:
@@ -996,7 +999,12 @@ class BuddyCastCore:
                 raise # allow manual ips during unit-testing if dnsindb fails
         if not target_ip or not target_port:
             return {}
+        
         my_pref = self.data_handler.getMyLivePreferences(selversion, self.num_myprefs)       #[pref]
+        
+        if debug:
+             print >> sys.stderr, " bc:Amended preference list is:", str(my_pref)
+            
         taste_buddies = self.getTasteBuddies(self.num_tbs, self.num_tb_prefs, target_permid, target_ip, target_port, selversion)
         random_peers = self.getRandomPeers(self.num_rps, target_permid, target_ip, target_port, selversion)    #{peer:last_seen}
         buddycast_data = {'ip':self.ip,
@@ -1012,7 +1020,8 @@ class BuddyCastCore:
             buddycast_data['connectable'] = connectable
         
         if selversion >= OLPROTO_VER_FOURTH:
-            recent_collect = self.metadata_handler.getRecentlyCollectedTorrents(self.max_collected_torrents)
+            recent_collect = self.metadata_handler.getRecentlyCollectedTorrents(self.max_collected_torrents, selversion)
+                            
             buddycast_data['collected torrents'] = recent_collect
         
         if selversion >= OLPROTO_VER_SIXTH:
@@ -1203,6 +1212,7 @@ class BuddyCastCore:
             return False
         
         blocked = self.isBlocked(sender_permid, self.recv_block_list)
+
         if blocked:
             if DEBUG:
                 print >> sys.stderr, "bc: warning - got BuddyCastMsg from a recv blocked peer", \
@@ -1224,7 +1234,6 @@ class BuddyCastCore:
 
         active = self.isBlocked(sender_permid, self.send_block_list)
         
-        
         if active:
             self.print_debug_info('Active', 18, sender_permid)
         else:
@@ -1244,6 +1253,7 @@ class BuddyCastCore:
                     "Round", self.round   # ipv6
                 return False            
             buddycast_data.update({'permid':sender_permid})
+
             try:    # check buddycast message
                 validBuddyCastData(buddycast_data, 0, 
                                    self.num_tbs, self.num_rps, self.num_tb_prefs)    # RCP 2            
@@ -1256,7 +1266,6 @@ class BuddyCastCore:
                     print >> sys.stderr, "bc: warning, got invalid BuddyCastMsg:", errmsg, \
                     "Round", self.round   # ipv6
                 return False
-           
            
             # update sender's ip and port in buddycast
             dns = self.dnsindb(sender_permid)
@@ -1304,6 +1313,7 @@ class BuddyCastCore:
         # update torrent collecting module
         #self.data_handler.checkUpdate()
         collected_infohashes = buddycast_data.get('collected torrents', [])
+            
         if self.torrent_collecting and not self.superpeer:
             collected_infohashes += self.getPreferenceHashes(buddycast_data)  
             self.torrent_collecting.trigger(sender_permid, selversion, collected_infohashes)
@@ -1364,6 +1374,21 @@ class BuddyCastCore:
                            'position': pref[2],
                            'reranking_strategy': pref[3]}) 
                      for pref in prefs]
+            elif buddycast_data['oversion'] == OLPROTO_VER_ELEVENTH:
+                # Rahim: This part extracts swarm size info from the BC message 
+                # and then returns it in the result list.
+                # create dictionary from list of lists
+                d = [dict({'infohash': pref[0],
+                           'search_terms': pref[1],
+                           'position': pref[2],
+                           'reranking_strategy': pref[3],
+                           'num_seeders':pref[4],
+                           'num_leechers':pref[5],
+                           'calc_age':pref[6],
+                           'num_sources_seen':pref[7]}) 
+                     for pref in prefs]
+                                 
+                
             else:
                 raise RuntimeError, 'buddycast: unknown preference protocol, pref entries are lists but oversion= %s:\n%s' % (buddycast_data['oversion'], prefs)
 
@@ -1375,14 +1400,11 @@ class BuddyCastCore:
             return d
             
  
-                      
-           
-           
     def getPreferenceHashes(self, buddycast_data):
         """convenience function returning the infohashes from the preferences. 
            returns a list of infohashes, i.e. replaces old calls to buddycast_data.get('preferences')"""
-        return [preference.get('infohash',"") for preference in buddycast_data.get('preferences', [])]   
-        
+        return [preference.get('infohash',"") for preference in buddycast_data.get('preferences', [])] 
+    
     def handleBuddyCastMessage(self, sender_permid, buddycast_data, selversion):
         """ Handle received buddycast message 
             Add peers, torrents and preferences into database and update last seen
@@ -1392,7 +1414,7 @@ class BuddyCastCore:
         
         _now = now()
         
-        cache_db_data = {'peer':{},'infohash':Set(),'pref':[]}  # peer, updates / pref, pairs
+        cache_db_data = {'peer':{},'infohash':Set(),'pref':[], 'coll':[]}  # peer, updates / pref, pairs, Rahim: coll for colleected torrents
         cache_peer_data = {}
         
         tbs = buddycast_data.pop('taste buddies')
@@ -1453,20 +1475,72 @@ class BuddyCastCore:
         cache_db_data['peer'][sender_permid]['last_buddycast'] = _now
         
         prefs = self.createPreferenceDictionaryList(buddycast_data)
-        buddycast_data['preferences'] = prefs # Nicolas: store this back into buddycast_data because it's used later on gotBuddyCastMessage again 
         
-        infohashes = Set(buddycast_data.get('collected torrents', []))
+        #Rahim: Since overlay version 11 , the collected torrents contain 
+        # swarm size info. The code below handles it and changes list of list 
+        # to a list of dictionary, same as preference.
+        #
+        if selversion >= OLPROTO_VER_ELEVENTH: 
+            collecteds = self.createCollectedDictionaryList(buddycast_data, selversion)
+            buddycast_data['collected torrents'] = collecteds
+            infohashes = Set(self.getCollectedHashes(buddycast_data, selversion))
+        else: 
+            infohashes = Set(buddycast_data.get('collected torrents', []))           
+        
+        # Nicolas: store this back into buddycast_data because it's used later on gotBuddyCastMessage again
+        buddycast_data['preferences'] = prefs  
         prefhashes = Set(self.getPreferenceHashes(buddycast_data))  # only accept sender's preference, to avoid pollution
         infohashes = infohashes.union(prefhashes)
                 
         cache_db_data['infohash'] = infohashes
-        #self.data_handler.addInfohashes(infohashes, commit=True)
         if prefs:
             cache_db_data['pref'] = prefs 
-            #self.data_handler.addPeerPreferences(sender_permid, prefs)
-        #self.data_handler.increaseBuddyCastTimes(sender_permid, commit=True)
         
-        self.data_handler.handleBCData(cache_db_data, cache_peer_data, sender_permid, max_tb_sim)
+
+        if selversion >= OLPROTO_VER_ELEVENTH:
+            if collecteds:
+                cache_db_data['coll'] = collecteds
+
+        
+        self.data_handler.handleBCData(cache_db_data, cache_peer_data, sender_permid, max_tb_sim, selversion, _now)
+    
+    def getCollectedHashes(self, buddycast_data, selversion):
+        """
+        @author: Rahim
+        @param buddycast_data: A dictionary structure that contains received buddycast message.
+        @param selversion: The selected budducast versiopn between peers.
+        @return: The infohash of the collected torrents is returned as a list.
+        """  
+        return [collected.get('infohash',"") for collected in buddycast_data.get('collected torrents', [])] 
+        
+        
+    def createCollectedDictionaryList(self, buddycast_data, selversion):
+        """
+        Processes the list of the collected torrents and then returns back a list of dictionaries.
+        @author: Rahim
+        @param buddycast_data: Received BC message.
+        @param selversion: Version of the agreed OL protocol.
+        @return: List of dictionaries. Each item in the dictionary is like :
+        """
+        collecteds = buddycast_data.get('collected torrents',[])
+              
+        if len(collecteds) == 0:
+            return []
+        d = []
+
+        try:
+           d = [dict({'infohash': coll[0],
+                      'num_seeders': coll[1],
+                      'num_leechers': coll[2],
+                      'calc_age': coll[3],
+                      'num_sources_seen':coll[4]}) 
+                     for coll in collecteds]
+                                 
+           return d
+        except Exception, msg:
+            print_exc()
+            raise Exception, msg
+            return d
         
     def removeFromConnList(self, peer_permid):
         removed = 0
@@ -2189,8 +2263,13 @@ class DataHandler:
     
     def getMyLivePreferences(self, selversion, num=0):
         """ Get a number of my preferences. Get all if num==0 """
-        if selversion>=OLPROTO_VER_EIGHTH:
+        #Rahim
+        if selversion >= OLPROTO_VER_ELEVENTH:
+            return self.mypref_db.getRecentLivePrefListOL10(num) # return a list of preferences with clicklog and swarm size info.
+        
+        elif selversion>=OLPROTO_VER_EIGHTH:
             return self.mypref_db.getRecentLivePrefListWithClicklog(num)
+        
         else:
             return self.mypref_db.getRecentLivePrefList(num)
         
@@ -2283,7 +2362,7 @@ class DataHandler:
         if commit:
             self.torrent_db.commit()
                 
-    def addPeerPreferences(self, peer_permid, prefs, commit=True):
+    def addPeerPreferences(self, peer_permid, prefs, selversion, recvTime, commit=True):
         """ add a peer's preferences to both cache and db """
         
         if peer_permid == self.permid:
@@ -2293,6 +2372,14 @@ class DataHandler:
         if not cur_prefs:
             cur_prefs = []
         prefs2add = []
+        #Rahim: It is possible that, a peer receive info about same torrent in
+        # different round. New torrents are handled by adding them to prefs2add 
+        # list and adding them. If the peer receive same torrent for more than 
+        # one time, the current version will ignore it. But the swarm size is 
+        # dynamic so the next torrents may have different swarm size info. So 
+        # we should handle them as well.
+        #
+        pops2update = [] # a new list that will contain already available torrents.  
         for pref in prefs:
             infohash = pref['infohash'] # Nicolas: new dictionary format of OL 8 preferences
             torrent_id = self.torrent_db.getTorrentID(infohash)
@@ -2303,13 +2390,20 @@ class DataHandler:
             if torrent_id not in cur_prefs:
                 prefs2add.append(pref)
                 cur_prefs.append(torrent_id)
+            elif selversion >= OLPROTO_VER_ELEVENTH:
+                pops2update.append(pref) # already available preference is appended to this list.
+                
                 
         if len(prefs2add) > 0:
-            self.pref_db.addPreferences(peer_permid, prefs2add, is_torrent_id=True, commit=commit) 
+            self.pref_db.addPreferences(peer_permid, prefs2add, recvTime, is_torrent_id=True, commit=commit) 
             self.updatePeerPref(peer_permid, cur_prefs)
             self.nprefs += len(prefs2add)
             peer_id = self.getPeerID(peer_permid)
             self.updateSimilarity(peer_id, commit=commit)
+            
+        if len(pops2update)>0:
+            self.pref_db.addPopularityRecord(peer_permid, pops2update, selversion, recvTime, is_torrent_id=True, commit=commit)
+            
             
     def updateSimilarity(self, peer_id, update_db=True, commit=True):
         """ update a peer's similarity """
@@ -2386,7 +2480,7 @@ class DataHandler:
 #    def setNumTorrentsFromUI(self, num):    # not thread safe
 #        self.num_torrents_ui = num
     
-    def handleBCData(self, cache_db_data, cache_peer_data, sender_permid, max_tb_sim):
+    def handleBCData(self, cache_db_data, cache_peer_data, sender_permid, max_tb_sim, selversion, recvTime):
         #self.data_handler.addPeer(peer_permid, last_seen, new_peer_data, commit=True)    # new peer
         #self.data_handler.increaseBuddyCastTimes(sender_permid, commit=True)
         #self.data_handler.addInfohashes(infohashes, commit=True)
@@ -2486,9 +2580,13 @@ class DataHandler:
                 
         if cache_db_data['pref']:
             self.addPeerPreferences(sender_permid, 
-                                    cache_db_data['pref'], 
+                                    cache_db_data['pref'], selversion, recvTime, 
                                     commit=True)
             
+        if cache_db_data['coll']:
+            self.addPeerPreferences(sender_permid, 
+                                    cache_db_data['coll'], selversion, recvTime, 
+                                    commit=True)
                 
             #print hash(k), peer_data[k]
         #cache_db_data['infohash']

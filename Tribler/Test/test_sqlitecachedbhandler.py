@@ -15,7 +15,7 @@ elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
     
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, MyDBHandler, BasicDBHandler, PeerDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, MyDBHandler, BasicDBHandler, PeerDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, PopularityDBHandler
 from Tribler.Category.Category import Category
 
 def extract_db_files(file_dir, file_name):
@@ -766,7 +766,189 @@ class TestPreferenceDBHandler(unittest.TestCase):
         assert tid is None
         assert oldinfohash_size == db._db.size('Torrent'), [oldinfohash_size, db._db.size('Torrent')]
 
+###--------------------------------------------------------------------------------------------------------------------------    
+class TestPopularityDBHandler(unittest.TestCase):
+    
+    def setUp(self):
+        db_path = TRIBLER_DB_PATH
+        db = SQLiteCacheDB.getInstance()
+        db.openDB(db_path, busytimeout=BUSYTIMEOUT)
         
+    def tearDown(self):
+        SQLiteCacheDB.getInstance().close()
+        
+    def singtest_addPopularity(self):
+        print "Testing addPopularity module...\n"
+        pop_db = PopularityDBHandler.getInstance()
+
+#torrent_id, peer_id, recv_time, calc_age=sys.maxint, num_seeders=-1, num_leechers=-1, num_sources=-1
+        oldpop_size = pop_db.size()
+        pop_db.addPopularity(2,1,1241787491,78,25,456,5)        
+        pop_db.addPopularity(2,1,1241787490,7028,2,45,15)
+        pop_db.addPopularity(50000,1,1241787495,78,25,4546456,5)
+        assert pop_db.size() == oldpop_size + 3
+###--------------------------------------------------------------------------------------------------------------------------    
+
+    def singtest_storePeerPopularity(self):
+        print "Testing storePeerPopularity module...\n"
+        
+        pop_db = PopularityDBHandler.getInstance()
+        oldpop_size = pop_db.size()
+        #(torrent_id, recv_time, calc_age, num_seeders, num_leechers, num_sources)
+        tList=[(10,123456,1000,5,18,8),
+               (11,123457,1001,52,28,5),
+               (12,123458,1002,53,38,8),
+               (12,123459,1003,55,58,9),
+               (12,123451,1004,57,68,12),
+               (12,1234,100,57,68,12)]
+        tList=[]
+        pop_db.storePeerPopularity(100, tList)
+        
+        pop_db.addPopularity(12,1,895,78,25,4546456,5)        
+        pop_db.addPopularity(12,18,300000,78,25,4546456,5)
+        pop_db.addPopularity(12,1,1895,8,25,4546456,5)        
+        pop_db.addPopularity(13,18,200,8978,25,4546456,5)
+        pop_db.addPopularity(50000,1,85554544,78,25,4546456,5)
+        
+        #assert pop_db.size() == oldpop_size + 5
+
+###--------------------------------------------------------------------------------------------------------------------------        
+    def singtest_countTorrentPopularityRec(self):
+        print "Testing countTorrentPopularity module...\n"
+        
+        pop_db = PopularityDBHandler.getInstance()
+        
+        tList=[(10,123456,1000,5,18,8),
+               (10,123457,1001,52,28,5),
+               (12,123458,2002,53,38,8),
+               (12,123459,1003,55,58,9),
+               (12,123451,4004,57,68,12),
+               (17,123451,1004,57,68,12),
+               (19,123451,1004,57,68,12)]
+        
+        pop_db.storePeerPopularity(100, tList)
+        
+        result = pop_db.countTorrentPopularityRec(10, int(time()))
+        print "(num_records, oldest_record) = ( %d, %d)" % (result[0], result[1])
+
+###--------------------------------------------------------------------------------------------------------------------------        
+    def singtest_countTorrentPeerPopularityRec(self):
+        print "Testing countTorrentPeerPopularity module...\n"
+        
+        pop_db = PopularityDBHandler.getInstance()
+        
+        tList=[(10,123456,1000,5,18,8),
+               (10,123457,1001,52,28,5),
+               (12,123458,1002,53,38,8),
+               (12,123459,6003,55,58,9),
+               (12,123451,3004,57,68,12),
+               (17,123451,1004,57,68,12),
+               (19,123451,1004,57,68,12)]
+        
+        pop_db.storePeerPopularity(100, tList)
+        result = pop_db.countTorrentPeerPopularityRec(12, 100, int(time()))
+        print "(num_records, oldest_record) = ( %d, %d)" % (result[0], result[1])    
+        
+        pop_db.addPopularity(2,1,85554544,78,25,4546456,5)        
+        pop_db.addPopularity(1,1,855545442,78,25,4546456,5)
+        pop_db.addPopularity(1,1,85554523,78,25,4546456,5)
+        pop_db.addPopularity(50000,1,85554544,78,25,4546456,5)
+        result = pop_db.countTorrentPeerPopularityRec(1, 1, int(time()))
+        print "(num_records, oldest_record) = ( %d, %d)" % (result[0], result[1])    
+        
+###--------------------------------------------------------------------------------------------------------------------------    
+    def singtest_deleteOldTorrentRecords(self):
+        print "Testing deleteOldTorrentRecords module...\n"
+        
+        pop_db = PopularityDBHandler.getInstance()
+        
+        tList=[(10,123456,1000,5,18,8),
+               (10,123457,1001,52,28,5),
+               (12,123458,1002,53,38,8),
+               (12,123459,1003,55,58,9),
+               (12,123451,1004,57,68,12),
+               (17,123451,1004,57,68,12),
+               (19,123451,1004,57,68,12)]
+        pop_db.storePeerPopularity(100, tList)
+
+        pop_db.addPopularity(2,1,85554544,78,25,4546456,5)        
+        pop_db.addPopularity(1,1,855545442,788,25,4546456,5)
+        pop_db.addPopularity(1,1,85554523,78,25,4546456,5)
+        pop_db.addPopularity(50000,1,85554544,78,25,4546456,5)
+        
+        result = pop_db.countTorrentPopularityRec(1, int(time()))
+        print "Before delete: (num_records, oldest_record) = ( %d, %d)" % (result[0], result[1])
+        
+        pop_db.deleteOldTorrentRecords(1,1,int(time()))
+        
+        result = pop_db.countTorrentPopularityRec(1, int(time()))
+        print "After delete: (num_records, oldest_record) = ( %d, %d)" % (result[0], result[1])
+        
+###--------------------------------------------------------------------------------------------------------------------------    
+    def singtest_deleteOldTorrentPeerRecords(self):
+        print "Testing deleteOldTorrentRecords module...\n"
+        
+        pop_db = PopularityDBHandler.getInstance()
+        
+        tList=[(10,123456,1000,5,18,8),
+               (10,123457,1001,52,28,5),
+               (12,123458,1002,53,38,8),
+               (12,123459,1003,55,58,9),
+               (12,123451,1004,57,68,12),
+               (17,123451,1004,57,68,12),
+               (19,123451,1004,57,68,12)]
+        pop_db.storePeerPopularity(100, tList)
+
+        pop_db.addPopularity(12,1,85554544,78,25,4546456,5)        
+        pop_db.addPopularity(12,13,855545442,78,25,4546456,5)
+        pop_db.addPopularity(1,1,85554523,78,25,4546456,5)
+        pop_db.addPopularity(50000,1,85554544,78,25,4546456,5)
+        
+        result = pop_db.countTorrentPeerPopularityRec(12,100, int(time()))
+        print "Before delete: (num_records, oldest_record) = ( %d, %d)" % (result[0], result[1])
+        
+        pop_db.deleteOldTorrentPeerRecords(12,100,4, int(time()))
+        
+        result = pop_db.countTorrentPeerPopularityRec(12,100, int(time()))
+        print "After delete: (num_records, oldest_record) = ( %d, %d)" % (result[0], result[1])        
+
+##--------------------------------------------------------------------------------------------------------------------------    
+    def singtest_getPopularityList(self):
+        print "Testing getPopularityList module...\n"
+         
+        pop_db = PopularityDBHandler.getInstance()
+        
+        tList=[(10,123456,1000,5,18,8),
+               (10,123457,1001,52,28,5),
+               (12,123458,1002,53,38,8),
+               (12,123459,1003,55,58,9),
+               (12,1619999,1004,57,68,12),
+               (17,123460,1004,57,68,12),
+               (19,123451,1004,57,68,12)]
+        
+        pop_db.storePeerPopularity(100, tList)
+        pop_db.addPopularity(12,1,1194958935,78,25,2194958935,5)        
+        pop_db.addPopularity(12,13,855545442,78,25,4546456,5)
+        pop_db.addPopularity(1,1,85554523,78,25,4546456,5)
+        pop_db.addPopularity(50000,1,85554544,78,25,4546456,5)  
+              
+        print pop_db.getPopularityList(peer_id=100)
+        print pop_db.getPopularityList(peer_id=100, torrent_id=12)  
+        print pop_db.getPopularityList(torrent_id=12)  
+        print pop_db.getPopularityList(recv_time_lbound=123457)  
+        print pop_db.getPopularityList(peer_id=100, torrent_id=12, recv_time_ubound=123458,recv_time_lbound=123457)
+        print pop_db.getPopularityList()
+     
+    def singtest_calculateSwarmSize(self):
+        print "Testing calculate swarm size module...\n"
+        pop_db = PopularityDBHandler.getInstance()
+        self.singtest_getPopularityList() 
+        #tempList =[2726, 2059, 899999, 42918, 4269, 4065]
+        tempList =[12,17, 4847, 4816, 4783, 2627]
+        print "swarm size:\n"
+        print pop_db.calculateSwarmSize(tempList, "TorrentIds")
+         
+##--------------------------------------------------------------------------------------------------------------------------    
 class TestTorrentDBHandler(unittest.TestCase):
 
     def setUp(self):

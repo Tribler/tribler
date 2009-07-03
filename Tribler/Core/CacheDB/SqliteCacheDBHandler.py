@@ -43,6 +43,11 @@ SHOW_ERROR = False
 MAX_KEYWORDS_STORED = 5
 MAX_KEYWORD_LENGTH = 50
 
+#Rahim:
+MAX_POPULARITY_REC_PER_TORRENT = 5 # maximum number of records in popularity table for each torrent
+MAX_POPULARITY_REC_PER_TORRENT_PEER = 3 # maximum number of records per each combination of torrent and peer
+
+
 def show_permid_shorter(permid):
     if not permid:
         return 'None'
@@ -341,7 +346,8 @@ class PeerDBHandler(BasicDBHandler):
             
     def hasPeer(self, permid):
         return self._db.hasPeer(permid)
-
+    
+    
     def findPeers(self, key, value):    
         # only used by Connecter
         if key == 'permid':
@@ -789,13 +795,11 @@ class PreferenceDBHandler(BasicDBHandler):
             
             
 
-    def addPreferences(self, peer_permid, prefs, is_torrent_id=False, commit=True):
+    def addPreferences(self, peer_permid, prefs, recvTime, is_torrent_id=False, commit=True):
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
-        #
         # boudewijn: for buddycast version >= OLPROTO_VER_EIGTH the
         # prefs list may contain both strings (indicating an infohash)
         # or dictionaries (indicating an infohash with metadata)
-        
         peer_id = self._db.getPeerID(peer_permid)
         if peer_id is None:
             print >> sys.stderr, 'PreferenceDBHandler: add preference of a peer which is not existed in Peer table', `peer_permid`
@@ -804,16 +808,39 @@ class PreferenceDBHandler(BasicDBHandler):
         prefs = [type(pref) is str and {"infohash":pref} or pref
                  for pref
                  in prefs]
-        
+        torrent_id_swarm_size =[]
+        torrent_id_prefs =[]
         if is_torrent_id:
-            torrent_id_prefs = [(peer_id, 
+            for pref in prefs:
+                torrent_id_prefs.append((peer_id, 
                                  pref['torrent_id'], 
                                  pref.get('position', -1), 
                                  pref.get('reranking_strategy', -1)) 
-                                for pref in prefs]
+                                )
+                #Rahim : Since overlay version 11 swarm size information is 
+                # appended and should be added to the database . The code below 
+                # does this. torrent_id, recv_time, calc_age, num_seeders, 
+                # num_leechers, num_sources
+                #
+                #torrent_id_swarm_size =[]
+                if pref.get('calc_age') is not None:
+                    tempAge= pref.get('calc_age')
+                    tempSeeders = pref.get('num_seeders')
+                    tempLeechers = pref.get('num_leechers') 
+                    if tempAge > 0 and tempSeeders >= 0 and tempLeechers >= 0:
+                        torrent_id_swarm_size.append([pref['torrent_id'],
+                                         recvTime, 
+                                         tempAge,  
+                                         tempSeeders, 
+                                         tempLeechers,
+                                         pref.get('num_sources_seen', -1)])# -1 means invalud value 
         else:
-            # Nicolas: do not know why this would be called, but let's handle it smoothly
+            # Nicolas: do not know why this would be called, but let's handle 
+            # it smoothly
             torrent_id_prefs = []
+            #Rahim: I also don't know when this part is run, I just follow the 
+            # way that Nicolas has done.
+            #torrent_id_swarm_size = []
             for pref in prefs:
                 if type(pref)==dict:
                     infohash = pref["infohash"]
@@ -824,11 +851,17 @@ class PreferenceDBHandler(BasicDBHandler):
                     self._db.insertInfohash(infohash)
                     torrent_id = self._db.getTorrentID(infohash)
                 torrent_id_prefs.append((peer_id, torrent_id, -1, -1))
+                #Rahim: Amended for handling and adding swarm size info.
+                #torrent_id_swarm_size.append((torrent_id, recvTime,0, -1, -1, -1))
+                
             
         sql_insert_peer_torrent = u"INSERT INTO Preference (peer_id, torrent_id, click_position, reranking_strategy) VALUES (?,?,?,?)"        
         if len(prefs) > 0:
             try:
                 self._db.executemany(sql_insert_peer_torrent, torrent_id_prefs, commit=commit)
+                popularity_db = PopularityDBHandler.getInstance()
+                if len(torrent_id_swarm_size) > 0:
+                    popularity_db.storePeerPopularity(peer_id, torrent_id_swarm_size, commit=commit)
             except Exception, msg:    # duplicated
                 print_exc()
                 print >> sys.stderr, 'dbhandler: addPreferences:', Exception, msg
@@ -859,8 +892,6 @@ class PreferenceDBHandler(BasicDBHandler):
                     cleanterm += c
             if len(cleanterm)>0:
                 all_terms.append(cleanterm)
-
-        
         # maybe we haven't received a single key word, no need to loop again over prefs then
         if len(all_terms)==0:
             return
@@ -892,7 +923,65 @@ class PreferenceDBHandler(BasicDBHandler):
             searchdb.storeKeywordsByID(peer_id, torrent_id, term_ids, commit=False)
         if commit:
             searchdb.commit()
+    
+    def addPopularityRecord(self, peer_permid, pops, selversion, recvTime, is_torrent_id=False, commit=True):
+        """
+        """       
+       
+        peer_id = self._db.getPeerID(peer_permid)
+        if peer_id is None:
+            print >> sys.stderr, 'PreferenceDBHandler: update preference of a peer which is not existed in Peer table', `peer_permid`
+            return
+
+        pops = [type(pop) is str and {"infohash":pop} or pop
+                 for pop
+                 in pops]
         
+        
+        if is_torrent_id:
+            #Rahim : Since overlay version 11 swarm size information is 
+            # appended and should be added to the database . The codes below 
+            # does this. torrent_id, recv_time, calc_age, num_seeders, 
+            # num_leechers, num_sources
+            #
+            torrent_id_swarm_size =[]
+            for pop in pops:
+                if pop is not None:
+                    tempAge = pop.get('calc_age')
+                    tempSeeders = pop.get('num_seeders')
+                    tempLeechers = pop.get('num_leechers')
+                    if tempAge > 0 and tempSeeders >= 0 and tempLeechers >= 0:
+                        torrent_id_swarm_size.append( [pop['torrent_id'],
+                                     recvTime, 
+                                     tempAge,  
+                                     tempSeeders,
+                                     tempLeechers,
+                                     pop.get('num_sources_seen', -1)]# -1 means invalud value 
+                                     )
+        else:
+            torrent_id_swarm_size = []
+            for pop in pops:
+                if type(pop)==dict:
+                    infohash = pop["infohash"]
+                else:
+                    # Nicolas: from wherever this might come, we even handle 
+                    # old list of infohashes style
+                    infohash = pop 
+                torrent_id = self._db.getTorrentID(infohash)
+                if not torrent_id:
+                    self._db.insertInfohash(infohash)
+                    torrent_id = self._db.getTorrentID(infohash)
+                #Rahim: Amended for handling and adding swarm size info.
+                #torrent_id_swarm_size.append((torrent_id, timeNow,0, -1, -1, -1))
+        
+        if len(torrent_id_swarm_size) > 0:
+            try:
+                popularity_db = PopularityDBHandler.getInstance()
+                popularity_db.storePeerPopularity(peer_id, torrent_id_swarm_size, commit=commit)
+            except Exception, msg:    
+                print_exc()
+                print >> sys.stderr, 'dbhandler: updatePreferences:', Exception, msg 
+            
     def getAllEntries(self):
         """use with caution,- for testing purposes"""
         return self.getAll("rowid, peer_id, torrent_id, click_position,reranking_strategy", order_by="peer_id, torrent_id")
@@ -1339,10 +1428,54 @@ class TorrentDBHandler(BasicDBHandler):
             if tier > 0:
                 sql += " AND announce_tier<=%d"%tier
             return self._db.fetchall(sql)
+        
+    def getSwarmInfo(self, torrent_id):
+        """
+        returns info about swarm size from Torrent and TorrentTracker tables.
+        @author: Rahim
+        @param torrentId: The index of the torrent.
+        @return: A tuple of the form:(torrent_id, num_seeders, num_leechers, num_sources_seen, last_check)
+        """
+        if torrent_id is not None:
+            sql = """SELECT  tr.torrent_id, tr.num_seeders, tr.num_leechers, tt.last_check 
+            FROM TorrentTracker tt, Torrent tr  WHERE tr.torrent_id=tt.torrent_id AND tr.torrent_id==%d"""%torrent_id
+            sql +=" order by tt.last_check DESC limit 1"
+            sizeInfo = self._db.fetchall(sql)
+            
+            sql1= """SELECT COUNT(*) FROM Preference WHERE torrent_id=%d"""%torrent_id
+            mySeenSources = self._db.fetchone(sql1)
+            num_seeders  = sizeInfo[0][1]
+            num_leechers = sizeInfo[0][2]
+            last_check = sizeInfo[0][3]
+            
+            return [(torrent_id, num_seeders, num_leechers, last_check, mySeenSources, sizeInfo)]
+        else:
+            return [()]  
+            
     
+    def getLargestSourcesSeen(self, torrent_id, timeNow, freshness=-1):
+        """
+        Returns the largest number of the sources that have seen the torrent.
+        @author: Rahim
+        @param torrent_id: the id of the torrent.
+        @param freshness: A parameter that filters old records. The assumption is that those popularity reports that are
+        older than a rate are not reliable
+        @return: The largest number of the torrents that have seen the torrent.
+        """
+        
+        if freshness == -1:
+            sql2 = """SELECT MAX(num_of_sources) FROM Popularity WHERE torrent_id=%d"""%torrent_id
+        else:
+            latestValidTime = timeNow - freshness
+            sql2 = """SELECT MAX(num_of_sources) FROM Popularity WHERE torrent_id=%d AND msg_receive_time > %d"""%(torrent_id, latestValidTime) 
+        
+        othersSeenSources = self._db.fetchone(sql2)
+        if othersSeenSources is None:
+            othersSeenSources =0
+        return othersSeenSources 
+        
     def getTorrentDir(self):
         return self.torrent_dir
-    
     
     def getTorrent(self, infohash, keys=None, include_mypref=True):
         # to do: replace keys like source -> source_id and status-> status_id ??
@@ -1627,7 +1760,8 @@ class TorrentDBHandler(BasicDBHandler):
             
 
     def selectTorrentToCollect(self, permid, candidate_list=None):
-        """ select a torrent to collect from a given candidate list
+        """ 
+        select a torrent to collect from a given candidate list
         If candidate_list is not present or None, all torrents of 
         this peer will be used for sampling.
         Return: the infohashed of selected torrent
@@ -1778,7 +1912,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.status_good = self.status_table['good']
         self.recent_preflist = None
         self.recent_preflist_with_clicklog = None
+        self.recent_preflist_with_swarmsize = None
         self.rlock = threading.RLock()
+        
+        self.popularity_db = PopularityDBHandler.getInstance()
         
         
     def loadData(self):
@@ -1836,6 +1973,27 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             return self.recent_preflist_with_clicklog  
 
+    def getRecentLivePrefListOL10(self, num=0):
+        """
+        Returns OL 10 style preference list. It contains all infor from previous versions like clickLog info and some
+        additional info related to swarm size.
+        @author: Rahim
+        @param num: if num be equal to zero the lenghth of the return list is unlimited, otherwise it's maximum lenght will be num.
+        @return: a list of lists. Each inner list is like:
+        [previous info , num_seeders, num_leechers, swarm_size_calc_age, number_of_sources]
+        """
+        if self.recent_preflist_with_swarmsize is None:
+            self.rlock.acquire()
+            try:
+                #if self.recent_preflist_with_swarmsize is None:
+                self.recent_preflist_with_swarmsize = self._getRecentLivePrefListOL10()
+            finally:
+                self.rlock.release()
+        if num > 0:
+            return self.recent_preflist_with_swarmsize[:num]
+        else:
+            return self.recent_preflist_with_swarmsize  
+        
         
     def getRecentLivePrefList(self, num=0):
         if self.recent_preflist is None:
@@ -1881,11 +2039,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
                                        terms=clicklog_data['keywords'], 
                                        commit=commit)   
  
-
-
-
-            
-
                     
         
     def _getRecentLivePrefListWithClicklog(self, num=0):
@@ -1923,6 +2076,59 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return recent_preflist_with_clicklog
     
     
+    def _getRecentLivePrefListOL10(self, num=0): 
+        """
+        first calls the previous method to get a list of torrents and related info from MyPreference db 
+        (_getRecentLivePrefListWithClicklog) and then appendes it with swarm size info or ( num_seeders, num_leechers, calc_age, num_seeders).
+        @author: Rahim
+        @param num: if num=0 it returns all items otherwise it restricts the return result to num.
+        @return: a list that each item conatins below info:
+        [infohash, [seach terms], click position, reranking strategy, num_seeders, num_leechers, calc_age, num_of_sources] 
+        """
+        
+        sql = """
+        select infohash, click_position, reranking_strategy, m.torrent_id from MyPreference m, Torrent t 
+        where m.torrent_id == t.torrent_id 
+        and status_id == %d
+        order by creation_time desc
+        """ % self.status_good
+        
+        recent_preflist_with_swarmsize = self._db.fetchall(sql)
+        if recent_preflist_with_swarmsize is None:
+            recent_preflist_with_swarmsize = []
+        else:
+            recent_preflist_with_swarmsize = [[str2bin(t[0]),
+                                              t[3],   # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1], # click position
+                                              t[2]]  # reranking strategy
+                                             for t in recent_preflist_with_swarmsize]
+
+        if num != 0:
+            recent_preflist_with_swarmsize = recent_preflist_with_swarmsize[:num]
+
+        # now that we only have those torrents left in which we are actually interested, 
+        # replace torrent id by user's search terms for torrent id
+        termdb = TermDBHandler.getInstance()
+        searchdb = SearchDBHandler.getInstance()
+        tempTorrentList = []
+        for pref in recent_preflist_with_swarmsize:
+            torrent_id = pref[1]
+            tempTorrentList.append(torrent_id)
+            search_terms = searchdb.getMyTorrentSearchTerms(torrent_id)
+            pref[1] = [termdb.getTerm(search_term) for search_term in search_terms]            
+        
+        
+        #Step 3: appending swarm size info to the end of the inner lists
+        swarmSizeInfoList= self.popularity_db.calculateSwarmSize(tempTorrentList, 'TorrentIds', toBC=True) # returns a list of items [torrent_id, num_seeders, num_leechers, num_sources_seen]
+
+        index = 0
+        for  index in range(0,len(swarmSizeInfoList)):
+            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][1]) # number of seeders
+            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][2])# number of leechers
+            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][3])  # age of the report 
+            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][4]) # number of sources seen this torrent 
+        return recent_preflist_with_swarmsize
+        
     def _getRecentLivePrefList(self, num=0):    # num = 0: all files
         # get recent and live torrents
         sql = """
@@ -3179,6 +3385,313 @@ class GUIDBHandler:
         return torrent_db_handler.category.get_family_filter_sql(torrent_db_handler._getCategoryID, table_name=table_name)
 
 
+class PopularityDBHandler(BasicDBHandler):
+    '''
+    @author: Rahim    04-2009
+    This class handles access to Popularity tables that is used for 
+    keeping swarm size info, received through BuddyCast messages.
+    '''
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if PopularityDBHandler.__single is None:
+            PopularityDBHandler.lock.acquire()   
+            try:
+                if PopularityDBHandler.__single is None:
+                    PopularityDBHandler(*args, **kw)
+            finally:
+                PopularityDBHandler.lock.release()
+        return PopularityDBHandler.__single
+    getInstance = staticmethod(getInstance)
+
+    def __init__(self):
+        if PopularityDBHandler.__single is not None:
+            raise RuntimeError, "PopularityDBHandler is singleton"
+        PopularityDBHandler.__single = self
+        db = SQLiteCacheDB.getInstance()        
+        BasicDBHandler.__init__(self,db, 'Popularity')
+        
+        # define local handlers to access Peer and Torrent tables.
+        self.peer_db = PeerDBHandler.getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
+        
+    ###--------------------------------------------------------------------------------------------------------------------------
+        
+    def calculateSwarmSize(self, torrentList, content, toBC=True):
+        """
+        This method gets a list of torrent_ids and then calculat the size of the swarm for those torrents.
+        @author: Rahim
+        @param torrentList: A list of torrent_id.
+        @param content: If it be 'infohash' , the content of the torrentList is infohsh of torrents. If it be 'torrentIds', the content is a list 
+        of torrent_id.
+        @param toBc: This flag determines that whether the returned result will be used to create a new BC message or not. The difference is that nodes 
+        just send first hand information to each other. The prevent speard of contamination if one of the nodes receive incorrent value from sender. 
+        The main difference in the flow of the process is that, if toBC be set to False, this fucntion will look for the most recenct report inside 
+        both Popularity and Torrent table, otherwise it will just use torrent table.
+        @return: returns a list with the same size az input and each items is composed of below items:
+                  (torrent_id, num_seeders, num_leechers, num_of_sources)
+        """
+        if content=='Infohash':
+            torrentList = [self.torrent_db.getTorrentID(infohash) for infohash in torrentList ]
+        elif content=='TorrentIds':
+            pass
+        else:
+            return []
+        
+        trackerSizeList =[]
+        popularityList=[]
+        for torrentId in torrentList:
+            trackerSizeList.append(self.torrent_db.getSwarmInfo(torrentId))
+            if not toBC:
+                popularityList.append(self.getPopularityList(torrent_id=torrentId))
+        result =[]
+        timeNow=int(time())
+        
+        averagePeerUpTime = 2 * 60 * 60  # we suppose that the average uptime is roughly two hours.
+        listIndex = 0
+        for id in torrentList:
+            result.append([id, -1, -1, -1, -1])  # (torrent_id, calc_age, num_seeders, num_leechers, num_sources_seen)
+            if not toBC and len(popularityList[listIndex]) > 0 :
+                #if popularityList[listIndex][0] is not None:
+                latest = self.getLatestPopularityReport(popularityList[listIndex], timeNow)
+                result[listIndex][1] = latest[4]  # num_seeders
+                result[listIndex][2] = latest[5]  # num_leechers
+                result[listIndex][3] = timeNow - latest[2]+latest[3]  # age of the report
+                result[listIndex][4] = latest[6]   # num_sources
+                    # print latest
+                if len(trackerSizeList[listIndex]) > 0:
+                    #if trackerSizeList[listIndex][0] is not None:
+                    temp=trackerSizeList[listIndex][0]
+                    tempAge = timeNow - temp[3]
+                    if tempAge < result[listIndex][3]:
+                        result[listIndex][1] = temp[1] #num_seeders
+                        result[listIndex][2] = temp[2] #num_leechers
+                        result[listIndex][3] = tempAge # Age of the tracker asking 
+                        othersSeenSources = self.torrent_db.getLargestSourcesSeen(id, timeNow, averagePeerUpTime)
+                        result[listIndex][4] = max(temp[4], othersSeenSources) # num_sources
+
+            elif len(trackerSizeList[listIndex]) > 0:
+                #if trackerSizeList[listIndex][0] is not None:
+               temp=trackerSizeList[listIndex][0]
+               result[listIndex][1] = temp[1] #num seeders
+               result[listIndex][2] = temp[2] #num leechers
+               result[listIndex][3] = timeNow - temp[3] # age of check
+               result[listIndex][4] = temp[4] # num_sources
+            listIndex +=1
+                    
+        return result
+    
+    def getLatestPopularityReport(self, reportList, timeNow):
+       
+        """
+        gets a list of list and then returns on of the them that has highest value in the specified index.
+        @author: Rahim    
+        @param reportList: A list that contains popularity report for specified torrent. The first item contains torrent_id.
+        @param index: The index of item that comparision is done based on it.
+        @param timeNow: Indictes local time of the node that runs this process.
+       
+        """
+        if len(reportList) ==0:
+            return []
+       
+        result=reportList.pop(0)
+        listLength = len(reportList)
+        
+        for i in range(0,listLength):
+            if (timeNow - reportList[i][2] + reportList[i][3])  < (timeNow - result[2] + result[3]): #it selects the youngest report
+                result = reportList[i]
+       
+        return result
+       
+        
+    ###--------------------------------------------------------------------------------------------------------------------------         
+    def checkPeerValidity(self, peer_id):
+        '''
+        checks whether the peer_id is valid or not, in other word it is in the Peer table or not?
+        @param peer_id: the id of the peer to be checked.
+        @return: True if the peer_is is valid, False if not.
+        '''
+        if self.peer_db.getPermid(peer_id) is None:
+            return False
+        else: 
+            return True  
+    ###--------------------------------------------------------------------------------------------------------------------------            
+    def checkTorrentValidity(self, torrent_id):
+        '''
+        checks whether the torrent_id is valid or not, in other word it is in the Torrent table or not?
+        @param torrent_id: the id of the torrent to be checked.
+        @return: True if the torrent_is is valid, False if not.
+        '''        
+        if self.torrent_db.getInfohash(torrent_id) is None:
+            return False
+        else:
+            return True
+    ###--------------------------------------------------------------------------------------------------------------------------        
+    def addPopularity(self, torrent_id, peer_id, recv_time, calc_age=sys.maxint, num_seeders=-1, num_leechers=-1, num_sources=-1, validatePeerId=False, validateTorrentId=False,
+                       checkNumRecConstraint=True, commit=True):
+        '''
+        Addes a new popularity record to the popularity table.
+        @param torrent_id: The id of the torrent that is added to the table.
+        @param peer_id: The id of the peer that is added to the table.
+        @param recv_time: The time that peer has received the message.
+        @param num_seeders: Number of seeders reportd by the remote peer.
+        @param num_leechers: Number of leechers reported by the remote peer.
+        @param num_sources: Number of the Tribler sources that have seen this torrent, reported by the remote peer.
+        @param calc_age: The time that the remote peer has calculated( or message send time) the swarm size.
+        @param validateTorrent: If set to True check validity of the Torrent otherwise no.
+        @param validatePeer: If set to True check validity of the Peer otherwise no.
+        '''
+        if validatePeerId: # checks whether the peer is valid or not
+            if not self.checkPeerValidity(peer_id):
+                return None
+        if validateTorrentId: #checks whether the torrent is valid or not
+            if not self.checkTorrentValidity(torrent_id):
+                return None
+
+        
+        
+        sql_insert_new_populairty = u"""INSERT INTO Popularity (torrent_id, peer_id, msg_receive_time, size_calc_age, num_seeders,
+                                        num_leechers, num_of_sources) VALUES (?,?,?,?,?,?,?)"""
+        try:
+            self._db.execute_write(sql_insert_new_populairty, (torrent_id, peer_id, recv_time, calc_age, num_seeders, num_leechers, num_sources), commit=commit)
+        except Exception, msg:    
+            print_exc() 
+        
+        timeNow = int(time())
+        if checkNumRecConstraint: # Removes old records. The number of records should not exceed defined limitations.
+ 
+            availableRecsT = self.countTorrentPopularityRec(torrent_id, timeNow)
+            if availableRecsT[0] > MAX_POPULARITY_REC_PER_TORRENT:
+                self.deleteOldTorrentRecords(torrent_id, availableRecsT[0] - MAX_POPULARITY_REC_PER_TORRENT, timeNow, commit=commit)
+    
+    
+            availableRecsTP = self.countTorrentPeerPopularityRec(torrent_id, peer_id, timeNow)
+            if availableRecsTP[0] > MAX_POPULARITY_REC_PER_TORRENT_PEER:
+                self.deleteOldTorrentPeerRecords(torrent_id,peer_id, availableRecsTP[0] - MAX_POPULARITY_REC_PER_TORRENT_PEER, timeNow, commit=commit)
+    
+    ###--------------------------------------------------------------------------------------------------------------------------            
+    def storePeerPopularity(self, peer_id, popularityList, validatePeerId=False, validateTorrentId=False, commit=True):
+        '''
+        Insert all popularity info received through BuddyCast message. popularityList is a tuple of 
+        @param peer_id: The id of the popularity info sender.
+        @param popularityList: A list of tuple (torrent_id, recv_time, calc_age, num_seeders, num_leechers, num_sources), usually received through BuddyCast message.
+        '''
+        if validatePeerId:
+           if not self.checkPeerValidity(peer_id):
+               return None
+        
+        for item in popularityList[:-1]:
+           self.addPopularity(item[0], peer_id, item[1], item[2], item[3], item[4], item[5], validateTorrentId=validateTorrentId, commit=False)
+        
+        if len(popularityList)>0:
+            item = popularityList[-1]
+            self.addPopularity(item[0], peer_id, item[1], item[2], item[3], item[4], item[5], validateTorrentId=validateTorrentId, commit=commit)
+    ###--------------------------------------------------------------------------------------------------------------------------        
+    def countTorrentPopularityRec(self, torrent_id, timeNow):
+        '''
+        This method counts the number of logged popularity for the input torrrent.
+        @param torrent_id: the id of the torrent
+        @return: (number_of_records, oldest_record_time)
+        '''     
+        
+        count_sql = "SELECT count(*) FROM Popularity WHERE torrent_id=?" 
+        num_of_popularity = self._db.fetchone(count_sql,(torrent_id, ))
+                    
+        if num_of_popularity > 0:
+            sql_oldest_record = "SELECT size_calc_age FROM Popularity WHERE torrent_id=? ORDER BY ( ? - msg_receive_time+size_calc_age) DESC LIMIT ?"
+            oldest_record_age = self._db.fetchone(sql_oldest_record, (torrent_id, timeNow, 1))
+            return (num_of_popularity, oldest_record_age)
+        else:
+            if DEBUG:
+                print >> sys.stderr, "The torrent with the id ", torrent_id, " does not have any popularity record."
+            return (0 , sys.maxint) 
+    ###--------------------------------------------------------------------------------------------------------------------------        
+    def countTorrentPeerPopularityRec(self, torrent_id, peer_id, timeNow):
+        '''
+        counts the number of popularity records done for the input torrent_id by the input peer_id.
+        @param torrent_id: the id of the torrent.
+        @param peer_id: the id of the peer.
+        @return: (number_of_records, oldest_record_time) with same torrent_id and peer_id as input.
+        '''
+        count_sql = "SELECT count(*) FROM Popularity WHERE torrent_id=? AND peer_id=?" 
+        num_of_popularity = self._db.fetchone(count_sql,(torrent_id, peer_id))
+        
+        if num_of_popularity > 0:
+            sql_oldest_record = "SELECT size_calc_age FROM Popularity WHERE torrent_id=? AND peer_id=? ORDER BY ( ? - msg_receive_time+size_calc_age) DESC LIMIT ?"
+            oldest_record_age = self._db.fetchone(sql_oldest_record, (torrent_id, peer_id, timeNow, 1))
+            return (num_of_popularity, oldest_record_age)
+        else:
+            if DEBUG:
+                print >> sys.stderr, "The peer with the id ", peer_id, "has not reported any thing about the torrent: ", torrent_id
+            return (0 , sys.maxint) 
+    ###--------------------------------------------------------------------------------------------------------------------------     
+    def deleteOldTorrentRecords(self, torrent_id, num_rec_to_delete, timeNow, commit=True):
+         '''
+         Deletes the oldest num_rec_to_del popularity records about the torrect_id from popularity table.
+         @param torrent_id: the id of the torrent.
+         @param num_rec_to_delete: Number of the oldest records that should be removed from the table.
+         '''
+         
+         sql_delete = u""" DELETE FROM Popularity WHERE torrent_id=? AND size_calc_age IN 
+                           (SELECT size_calc_age FROM Popularity WHERE torrent_id=? 
+                           ORDER BY (? - msg_receive_time+size_calc_age) DESC LIMIT ?)"""
+         
+         self._db.execute_write(sql_delete, (torrent_id, torrent_id, timeNow, num_rec_to_delete), commit=commit)
+
+    ###--------------------------------------------------------------------------------------------------------------------------
+    def deleteOldTorrentPeerRecords(self, torrent_id, peer_id, num_rec_to_delete, timeNow, commit=True):
+         '''
+         Deletes the oldest num_rec_to_del popularity records about the torrect_id repported by peer_id from popularity table.
+         @param torrent_id: the id of the torrent.
+         @param peer_id: the id of the popularity sender.
+         @param num_rec_to_delete: Number of the oldest records that should be removed from the table.
+         '''
+         
+         sql_delete = u""" DELETE FROM Popularity where torrent_id=? AND peer_id=? AND size_calc_age IN 
+                           (SELECT size_calc_age FROM popularity WHERE torrent_id=? AND peer_id=?
+                           ORDER BY (? - msg_receive_time+size_calc_age) DESC LIMIT ?)"""
+         
+         self._db.execute_write(sql_delete, (torrent_id, peer_id,torrent_id, peer_id,timeNow, num_rec_to_delete), commit=commit)
+         
+    ###--------------------------------------------------------------------------------------------------------------------------
+    def getPopularityList(self, torrent_id=None, peer_id=None , recv_time_lbound=0, recv_time_ubound=sys.maxint):
+         '''
+         Returns a list of the records from the Popularity table, by using input parameters.
+         @param torremt_id: The id of the torrent.
+         @param peer_id: The id of the peer.
+         @param recv_time_lbound: Lower bound for the message receive time. Default value is 0.
+         @param recv_time_ubound: Upper bound for the message receive time. Default value is 0x10000000L
+         @return: A list of tuple (torrent_id, recv_time, calc_age, num_seeders, num_leechers, num_sources)
+         '''
+         sql_getPopList=" SELECT * FROM Popularity"
+         
+         if (torrent_id is not None) or (peer_id is not None) or (not recv_time_lbound==0) or (not recv_time_ubound==sys.maxint):
+             sql_getPopList += " WHERE "
+         
+         if torrent_id is not None:
+             sql_getPopList += "torrent_id = %s" % torrent_id 
+             if (peer_id is not None) or (not recv_time_lbound==0) or (not recv_time_ubound==sys.maxint):
+                 sql_getPopList += " AND "
+         
+         if peer_id is not None:
+             sql_getPopList += "peer_id = %d" % peer_id 
+             if (not recv_time_lbound==0) or (not recv_time_ubound==sys.maxint):
+                 sql_getPopList += " AND "
+             
+         if not recv_time_lbound==0:
+             sql_getPopList += "msg_receive_time >= %d" % recv_time_lbound
+             if not recv_time_ubound==sys.maxint: 
+                 sql_getPopList += " AND " 
+         
+         if not recv_time_ubound==sys.maxint:
+             sql_getPopList += "msg_receive_time <= %d" % recv_time_ubound 
+          
+         print sql_getPopList 
+         popularityList = self._db.fetchall(sql_getPopList)
+         
+         return popularityList 
 
 class TermDBHandler(BasicDBHandler):
     
@@ -3456,6 +3969,3 @@ def ranksfind(ranks,key):
     except:
         return -1
     
-
-
-

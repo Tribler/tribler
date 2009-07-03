@@ -5,6 +5,7 @@
 --   v1: Published as part of Tribler 4.5
 --   v2: Published as part of Tribler 5.0
 --   v3: Published as part of Next-Share M16
+--   v4: Published as part of Tribler 5.2
 -- 
 -- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
 --
@@ -290,6 +291,44 @@ CREATE INDEX idx_terms_term ON ClicklogTerm(term);
 
 
 
+
+
+--v4: Path for BuddyCast 5. Adding Popularity table
+
+CREATE TABLE Popularity (
+                         torrent_id INTEGER,
+                         peer_id INTEGER,
+                         msg_receive_time NUMERIC,
+                         size_calc_age NUMERIC,
+                         num_seeders INTEGER DEFAULT 0,
+                         num_leechers INTEGER DEFAULT 0,
+                         num_of_sources INTEGER DEFAULT 0
+                     );
+
+CREATE INDEX Message_receive_time_idx 
+  ON Popularity 
+   (msg_receive_time);
+
+CREATE INDEX Size_calc_age_idx 
+  ON Popularity 
+   (size_calc_age);
+
+CREATE INDEX Number_of_seeders_idx 
+  ON Popularity 
+   (num_seeders);
+
+CREATE INDEX Number_of_leechers_idx 
+  ON Popularity 
+   (num_leechers);
+
+CREATE UNIQUE INDEX Popularity_idx
+  ON Popularity
+   (torrent_id, peer_id, msg_receive_time);
+
+
+
+
+
 COMMIT TRANSACTION create_table;
 
 ----------------------------------------
@@ -312,6 +351,6 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 3);
+INSERT INTO MyInfo VALUES ('version', 4);
 
 COMMIT TRANSACTION init_values;

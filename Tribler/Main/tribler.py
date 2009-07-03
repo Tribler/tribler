@@ -135,8 +135,6 @@ class ABCApp(wx.App):
         
     def OnInit(self):
         try:
-            print type(Session.get_default_state_dir()), repr(Session.get_default_state_dir())
-            print type(self.installdir), repr(self.installdir)
             self.utility = Utility(self.installdir,Session.get_default_state_dir())
             self.utility.app = self
 

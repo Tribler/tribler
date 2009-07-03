@@ -10,12 +10,13 @@ from sets import Set
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.Utilities.utilities import isValidInfohash, show_permid_short, sort_dictlist, bin2str
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTH, OLPROTO_VER_ELEVENTH 
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.simpledefs import *
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.osutils import getfreespace,get_readable_torrent_name
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import PopularityDBHandler
 from threading import currentThread
 
 DEBUG = False
@@ -56,6 +57,7 @@ class MetadataHandler:
         self.avg_torrent_size = 25*(2**10)
         self.initialized = False
         self.registered = False
+        self.popularity_db = PopularityDBHandler.getInstance()
 
 
     def getInstance(*args, **kw):
@@ -558,8 +560,35 @@ class MetadataHandler:
             self.next_upload_time = int(time()) + idel
             self.overlay_bridge.add_task(self.checking_upload_queue, idel)
 
-    def getRecentlyCollectedTorrents(self, num):
-        if not self.initialized:
-            return []
-        return self.recently_collected_torrents[-1*num:]    # get the last ones
+    def getRecentlyCollectedTorrents(self, num, selversion):
+        """
+        This method returns a list of collected torrents. It is called by the 
+        method hat creates BC message.
+        @change: changed by Rahim. Since overlay version 10, the returned list should contain the swarm size info for the torrents.
+        @param num: Maximum length of result list. If num=0 it means that the returned list is unlimited.
+        @param selversion: Version of the overlay protocol that two communication nodes agreed on.
+        """
+        if selversion >= OLPROTO_VER_ELEVENTH: ## Amended list with swarm size info is returned. 
+            if not self.initialized:
+                return []
+            else: 
+                collectedList=self.recently_collected_torrents[-1*num:] # this is list of infohashs
+                if len(collectedList) >0:
+                    swarmSizeList= self.popularity_db.calculateSwarmSize(collectedList, content='Infohash' , toBC=True)
+                for index in range(0,len(collectedList)):
+                    collectedList[index]=[collectedList[index]]
+                    collectedList[index].append(swarmSizeList[index][1]) # appends number of seeders
+                    collectedList[index].append(swarmSizeList[index][2]) # appends number of leechers
+                    collectedList[index].append(swarmSizeList[index][3]) # appends current time 
+                    collectedList[index].append(swarmSizeList[index][4]) # appends 
+                return collectedList;
+                
+        else:
+            if not self.initialized:
+                return []
+            return self.recently_collected_torrents[-1*num:]    # get the last ones
+
+            
+
+
 
