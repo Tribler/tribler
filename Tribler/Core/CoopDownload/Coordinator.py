@@ -18,11 +18,11 @@ MAX_ROUNDS = 137
 
 
 class Coordinator:
-        
+
     def __init__(self, infohash, num_pieces):
         self.reserved_pieces = [False] * num_pieces
         self.infohash = infohash # readonly so no locking on this
-        
+
         self.lock = Lock()
         self.asked_helpers = [] # protected by lock
         # optimization
@@ -59,12 +59,12 @@ class Coordinator:
         except Exception,e:
             print_exc()
             print >> sys.stderr,"helpcoord: Exception while requesting help",e
-        self.lock.release()            
+        self.lock.release()
 
     def network_send_request_help(self,permidlist):
         olthread_send_request_help_lambda = lambda:self.olthread_send_request_help(permidlist)
         self.overlay_bridge.add_task(olthread_send_request_help_lambda,0)
-        
+
     def olthread_send_request_help(self,permidlist):
         for permid in permidlist:
             if DEBUG:
@@ -132,7 +132,7 @@ class Coordinator:
             permidlist = []
             for peer in tostop_helpers:
                 permidlist.append(peer['permid'])
-    
+
             self.network_send_stop_help(permidlist)
             self.asked_helpers = tokeep_helpers
         finally:
@@ -145,7 +145,7 @@ class Coordinator:
     def network_send_stop_help(self,permidlist):
         olthread_send_stop_help_lambda = lambda:self.olthread_send_stop_help(permidlist)
         self.overlay_bridge.add_task(olthread_send_stop_help_lambda,0)
-        
+
     def olthread_send_stop_help(self,permidlist):
         for permid in permidlist:
             if DEBUG:
@@ -164,7 +164,6 @@ class Coordinator:
         if exc is not None:
             if DEBUG:
                 print >> sys.stderr,"dlhelp: STOP_DOWNLOAD_HELP: error sending to",show_permid_short(permid),exc
-            pass
 
 
     def network_get_asked_helpers_copy(self):
@@ -204,7 +203,7 @@ class Coordinator:
     def network_got_reserve_pieces(self,permid,pieces,all_or_nothing,selversion):
         self.lock.acquire()
         try:
-            reserved_pieces = self.network_reserve_pieces(pieces, all_or_nothing)
+            reserved_pieces = self._network_reserve_pieces(pieces, all_or_nothing)
             for peer in self.asked_helpers:
                 if peer['permid'] == permid:
                     peer['round'] = (peer['round'] + 1) % MAX_ROUNDS
@@ -214,7 +213,7 @@ class Coordinator:
         finally:
             self.lock.release()
 
-    def network_reserve_pieces(self, pieces, all_or_nothing = False):
+    def _network_reserve_pieces(self, pieces, all_or_nothing = False):
         try:
             new_reserved = []
             for piece in pieces:
@@ -241,22 +240,20 @@ class Coordinator:
     def network_send_pieces_reserved(self, permid, pieces, selversion):
         olthread_send_pieces_reserved_lambda = lambda:self.olthread_send_pieces_reserved(permid,pieces,selversion)
         self.overlay_bridge.add_task(olthread_send_pieces_reserved_lambda,0)
-        
+
     def olthread_send_pieces_reserved(self, permid, pieces, selversion):
         ## Create message according to protocol version
         payload = self.infohash + bencode(pieces)
         # Optimization: we know we're connected
         self.overlay_bridge.send(permid, PIECES_RESERVED + payload,self.olthread_pieces_reserved_send_callback)
-    
+
     def olthread_pieces_reserved_send_callback(self,exc,permid):
         if exc is not None:
             if DEBUG:
                 print >> sys.stderr,"dlhelp: PIECES_RESERVED: error sending to",show_permid_short(permid),exc
-            pass
         else:
             if DEBUG:
                 print >> sys.stderr,"dlhelp: PIECES_RESERVED: Successfully sent to",show_permid_short(permid)
-            pass
 
 
     #
@@ -274,4 +271,3 @@ class Coordinator:
             return False
         finally:
             self.lock.release()
-            

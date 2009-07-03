@@ -140,7 +140,7 @@ class FilesItemPanel(wx.Panel):
             self.hSizer.Add([2,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.SetSizer(self.hSizer);
         else: # listitem
-            self.SetMinSize((660,30))
+            self.SetMinSize((660,22))
 
             self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)##
 
@@ -161,7 +161,7 @@ class FilesItemPanel(wx.Panel):
             
 
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
-            self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND|wx.TOP, 5)##
+            self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND, 0)
 
             self.thumb = ThumbnailViewer(self, 'filesMode')
             self.thumb.setBackground(wx.BLACK)
@@ -173,7 +173,7 @@ class FilesItemPanel(wx.Panel):
             self.title.SetForegroundColour(wx.BLACK)
             self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.title.SetMinSize((400,18))
-            self.hSizer.Add(self.title, 0,wx.TOP|wx.BOTTOM, 0)     
+            self.hSizer.Add(self.title, 0,wx.TOP|wx.BOTTOM, 3)     
             #self.hSizer.Add([5,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3) 
             # V Line
             ##self.vLine1 = self.addLine() 
@@ -367,6 +367,8 @@ class FilesItemPanel(wx.Panel):
                 self.popularity_image = wx.Image(popularity_file, wx.BITMAP_TYPE_ANY)            
 
                 self.popularity = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.popularity_image))
+                self.popularity.Bind(wx.EVT_MOUSE_EVENTS, self.popularityOver)
+
                 if torrent['num_seeders'] > 0 and torrent['num_leechers'] > 0:
                     self.popularity.SetToolTipString('%s seeders\n%s leechers' % (torrent['num_seeders'], torrent['num_leechers']))
                 else:
@@ -501,6 +503,43 @@ class FilesItemPanel(wx.Panel):
         except:
             print 'Exception in keytyped'
             
+    def popularityOver(self, event):
+        
+        event.Skip()
+        colour = wx.Colour(216,233,240)
+
+        if self.data is None:
+            colour = self.guiUtility.unselectedColour
+
+        elif event.Entering() and self.data is not None:
+            colour = self.guiUtility.selectedColour
+    
+
+
+        self.title.SetBackgroundColour(colour)
+        self.fileSize.SetBackgroundColour(colour)
+        self.SetBackgroundColour(colour)
+        wx.CallAfter(self.Refresh)
+
+
+        #if event.Entering():
+        #    self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
+        #elif event.Leaving() and self.selected == False:
+        #    self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+
+
+
+
+
+        #self.SetFocus()
+        if self.data and (event.LeftUp() or event.RightDown()):
+            # torrent data is sent to guiUtility > standardDetails.setData
+            self.guiUtility.selectTorrent(self.data)
+            
+        ##if event.RightDown():
+        ##    self.rightMouseButton(event)
+
+
             
         
     def mouseAction(self, event):   
@@ -575,7 +614,9 @@ class FilesItemPanel(wx.Panel):
             self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
             if sys.platform == 'win32':
                 self.SetMinSize((-1,97))
-            else:
+            elif sys.platform == 'darwin':
+		self.SetMinSize((-1,101))
+	    else:
                 self.SetMinSize((-1,100))                
         elif visible and self.summary:
             pass
@@ -594,7 +635,7 @@ class FilesItemPanel(wx.Panel):
             wx.CallAfter(self.summary.DestroyChildren)
             wx.CallAfter(self.summary.Destroy)
             self.summary = None
-            self.SetMinSize((-1,30))               
+            self.SetMinSize((-1,22))               
 
 
 

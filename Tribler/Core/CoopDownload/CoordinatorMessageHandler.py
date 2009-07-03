@@ -4,9 +4,8 @@
 # SecureOverlay message handler for a Coordinator
 #
 import sys
-import os
 
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
+from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
@@ -26,7 +25,7 @@ class CoordinatorMessageHandler:
 
         if t == RESERVE_PIECES:
             return self.got_reserve_pieces(permid, message, selversion)
-        
+
     def got_reserve_pieces(self, permid, message,selversion):
         try:
             infohash = message[1:21]
@@ -38,13 +37,13 @@ class CoordinatorMessageHandler:
 
         network_got_reserve_pieces_lambda = lambda:self.network_got_reserve_pieces(permid,infohash,pieces,all_or_nothing,selversion)
         self.launchmany.rawserver.add_task(network_got_reserve_pieces_lambda,0)
-        
-        return True 
+
+        return True
 
 
     def network_got_reserve_pieces(self,permid,infohash,pieces,all_or_nothing,selversion):
         # Called by network thread
-        
+
         c = self.launchmany.get_coopdl_role_object(infohash,COOPDL_ROLE_COORDINATOR)
         if c is None:
             return
@@ -57,5 +56,3 @@ class CoordinatorMessageHandler:
             return
 
         c.network_got_reserve_pieces(permid, pieces, all_or_nothing, selversion)
-            
-        

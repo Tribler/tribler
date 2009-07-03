@@ -93,7 +93,7 @@ class PiecePicker:
 # 2fastbt_
         self.helper = helper
         self.rate_predictor = rate_predictor
-        self.live_streaming = False
+        self.videostatus = None
 # _2fastbt
         self._init_interests()
 

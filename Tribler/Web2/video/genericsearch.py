@@ -66,7 +66,7 @@ class GenericSearch(db.ThreadedDBSearch):
             while(True):
                 regexp = self.get('RE_VIDEO_URL%d' % trynum)
                 if not regexp:
-                    break;
+                    break
                 src = re.findall(regexp, srcpage, re.S | re.I)
                 if len(src) == 1:
                     success = True

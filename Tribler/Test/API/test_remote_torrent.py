@@ -14,12 +14,7 @@ import unittest
 import os
 import sys
 import time
-from Tribler.Core.Utilities.Crypto import sha
-from random import randint,shuffle
 from traceback import print_exc
-from types import StringType, ListType, DictType
-from threading import Thread,enumerate
-from time import sleep
 import socket
 
 from Tribler.Test.test_as_server import TestAsServer

@@ -138,14 +138,12 @@ class OverlapMsgHandler:
         except:
             if DEBUG:
                 print_exc(file=sys.stderr)
-            pass
 
     
     def send_callback(self,exc,permid):
         if exc is not None:
             if DEBUG:
                 print >> sys.stderr,"socnet: SOCIAL_OVERLAP: error sending to",show_permid_short(permid),exc
-            pass
 
     #
     # Internal methods
@@ -257,7 +255,7 @@ def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo
         if DEBUG:
             print >>sys.stderr,"socnet: Got persinfo",persinfo.keys()
             if len(persinfo.keys()) > 1:
-                 print >>sys.stderr,"socnet: Got persinfo THUMB THUMB THUMB THUMB"
+                print >>sys.stderr,"socnet: Got persinfo THUMB THUMB THUMB THUMB"
         
         # Arno, 2008-08-22: to avoid UnicodeDecode errors when commiting 
         # on sqlite

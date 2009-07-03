@@ -3,19 +3,17 @@
 
 import sys
 from cStringIO import StringIO
-from binascii import b2a_hex, b2a_uu 
+from binascii import b2a_hex
 #from RawServer import RawServer
-from Tribler.Core.Utilities.Crypto import sha
+
 try:
     True
 except:
     True = 1
     False = 0
 
-# 2fastbt_
 from BT1.Encrypter import protocol_name
-from traceback import print_exc,print_stack
-# _2fastbt
+
 
 def toint(s):
     return long(b2a_hex(s), 16)

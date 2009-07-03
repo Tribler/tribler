@@ -4,7 +4,6 @@
 # Please apply networking code fixes also to DialbackConnHandler.py
 
 from cStringIO import StringIO
-from sets import Set
 from struct import pack,unpack
 from threading import currentThread
 from time import time
@@ -14,7 +13,7 @@ import sys
 from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern,getMessageName
 from Tribler.Core.BitTornado.BT1.convert import tobinary,toint
 from Tribler.Core.BitTornado.__init__ import createPeerID
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB,safe_dict,bin2str
+from Tribler.Core.CacheDB.sqlitecachedb import safe_dict,bin2str
 from Tribler.Core.Overlay.permid import ChallengeResponse
 from Tribler.Core.Utilities.utilities import show_permid_short,hostname_or_ip2ip
 from Tribler.Core.simpledefs import *
@@ -361,7 +360,6 @@ class SecureOverlay:
         """ sockethandler flushes connection """
         if DEBUG:
             print >> sys.stderr,"secover: connection_flushed",singsock.get_ip(),singsock.get_port()
-        pass
     
     #
     # Interface for ServerPortHandler
@@ -771,7 +769,7 @@ class OverlayConnection:
             for callback in self.cb_queue:
                 ## Failure connecting
                 if DEBUG:
-                   print >> sys.stderr,"olconn: cleanup_callbacks: callback is",callback
+                    print >> sys.stderr,"olconn: cleanup_callbacks: callback is",callback
                 callback(exc,self.specified_dns,self.get_auth_permid(),0)
         except Exception,e:
             print_exc()
@@ -827,7 +825,7 @@ class OverlayConnection:
                 print >> sys.stderr,"olconn: We don't support peer's version of the protocol"
             return None
         elif DEBUG:
-                print >> sys.stderr,"olconn: Selected protocol version",self.sel_proto_ver
+            print >> sys.stderr,"olconn: Selected protocol version",self.sel_proto_ver
 
         self.state = STATE_AUTH_WAIT
         self.cr = ChallengeResponse(self.handler.get_my_keypair(),self.handler.get_my_peer_id(),self)

@@ -187,7 +187,7 @@ class TorrentFeedThread(Thread):
             self.urls[url] = newtxt
             self.writefile()
         elif DEBUG:
-                print >>sys.stderr,"subscrip: setURLStatus: unknown URL?",url
+            print >>sys.stderr,"subscrip: setURLStatus: unknown URL?",url
         self.lock.release()
     
     def deleteURL(self,url):
@@ -258,7 +258,6 @@ class TorrentFeedThread(Thread):
                     except ValueError:
                         # the bdecode failed
                         print >>sys.stderr, "Bdecode failed: ", rss_url
-                        pass
                     
                     except ExpatError:
                         print >>sys.stderr, "Invalid RSS: ", rss_url 
@@ -448,12 +447,10 @@ class TorrentFeedReader:
                                 #its not a torrent after all, but just some html link
                                 if DEBUG:
                                     print >>sys.stderr, "%s not a torrent" % url
-                                pass
                         except:
                             #url didn't open
                             if DEBUG:
                                 print >>sys.stderr, "%s did not open" % url
-                            pass
                 if not found_torrent:
                     yield title,None
             except GeneratorExit:

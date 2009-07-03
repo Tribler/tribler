@@ -5,7 +5,6 @@
 import os
 
 from distutils.core import setup
-import py2exe
 
 from Tribler.__init__ import LIBRARYNAME
 mainfile = os.path.join(LIBRARYNAME,'Plugin','BackgroundProcess.py')

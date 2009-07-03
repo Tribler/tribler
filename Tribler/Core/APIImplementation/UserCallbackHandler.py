@@ -5,8 +5,8 @@ import sys
 import os
 import shutil
 import binascii
-from threading import Thread,currentThread
-from traceback import print_exc,print_stack
+from threading import currentThread
+from traceback import print_exc
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.APIImplementation.ThreadPool import ThreadPool

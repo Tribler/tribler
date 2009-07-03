@@ -95,6 +95,7 @@ class OverlayApps:
         
         if config['buddycast']:
             # Create handler for Buddycast messages
+            
             self.buddycast = BuddyCastFactory.getInstance(superpeer=config['superpeer'], log=config['overlay_log'])
             # Using buddycast to handle torrent collecting since they are dependent
             self.buddycast.register(overlay_bridge, launchmany, 

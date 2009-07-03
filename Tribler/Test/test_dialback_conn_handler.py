@@ -19,13 +19,12 @@ import unittest
 from threading import Event, Thread, currentThread
 from socket import error as socketerror
 from time import sleep
-from traceback import print_exc
 
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
 from Tribler.Core.BitTornado.BT1.MessageID import DIALBACK_REQUEST
 
-from Tribler.Core.NATFirewall.ReturnConnHandler import ReturnConnHandler, dialback_infohash
+from Tribler.Core.NATFirewall.ReturnConnHandler import ReturnConnHandler
 
 # Thread must come as first parent class!
 class Peer(Thread):
@@ -85,7 +84,6 @@ class Peer(Thread):
     def run(self):
         print >> sys.stderr,"test: MyServer: run called by",currentThread().getName()
         self.multihandler.listen_forever()
-        pass    
 
     def report_failure(self,msg):
         self.testcase.assertRaises(Exception, self.report_failure)

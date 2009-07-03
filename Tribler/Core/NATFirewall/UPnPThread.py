@@ -2,13 +2,9 @@
 # see LICENSE.txt for license information
 
 import sys
-import os
-import time
-import copy
-import socket
-from UserDict import DictMixin
-from threading import RLock,Condition,Event,Thread
-from traceback import print_exc,print_stack
+from threading import Event,Thread
+from traceback import print_exc
+
 from Tribler.Core.BitTornado.natpunch import UPnPWrapper, UPnPError
 
 DEBUG = False

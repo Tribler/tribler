@@ -8,7 +8,6 @@
 
 import sys
 import os
-from traceback import print_exc
 
 if (sys.platform == 'win32'):
     import _winreg

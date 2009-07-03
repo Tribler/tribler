@@ -5,7 +5,6 @@ from Rerequester import Rerequester
 from urllib import quote
 from threading import Event
 from random import randrange
-import sys
 import __init__
 try:
     True

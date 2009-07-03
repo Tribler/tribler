@@ -1,8 +1,6 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
-import sys
-
 from Tribler.Core.simpledefs import *
 import Tribler.Core.Overlay.permid as permidmod 
 from Tribler.Core.Utilities.Crypto import RSA_keypair_to_pub_key_in_der 

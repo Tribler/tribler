@@ -3,9 +3,6 @@
 
 #http://en.wikipedia.org/wiki/Damerau-Levenshtein_distance
 
-import string
-import math
-
 def editDist(str1,str2, maxlength=14):
     # If fast is set: only calculate titles with same #fast initial chars
     if not str1 or not str2: # protect against empty strings

@@ -3,7 +3,7 @@
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.BitTornado.parseargs import parseargs, formatDefinitions
-from Tribler.Core.BitTornado.RawServer import RawServer, autodetect_socket_style
+from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.HTTPHandler import HTTPHandler, months
 from Tribler.Core.BitTornado.parsedir import parsedir
 from NatCheck import NatCheck

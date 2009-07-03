@@ -4,7 +4,6 @@
 import httplib
 import socket
 import urllib2
-from urllib import addinfourl
 
 def urlOpenTimeout(url,timeout=30,*data):
     class TimeoutHTTPConnection(httplib.HTTPConnection):

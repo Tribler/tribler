@@ -9,19 +9,13 @@ import sys
 import wx
 import os
 
-from random import shuffle
 from traceback import print_exc
-from cStringIO import StringIO
 
-from wx.lib import colourselect
-
-from Tribler.Utilities.configreader import ConfigReader
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Video.VideoPlayer import *
-from Tribler.Category.Category import Category
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid

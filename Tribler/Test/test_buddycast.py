@@ -9,14 +9,7 @@
 import os
 import sys
 import unittest
-import tempfile
-from traceback import print_exc
-import thread, threading
-from random import sample, randint
-from time import time, sleep
 from shutil import copy as copyFile
-from binascii import unhexlify
-from sets import Set as set
 
 if os.path.exists('test_buddycast.py'):
     BASE_DIR = os.path.join('..', '..')
@@ -28,7 +21,7 @@ elif os.path.exists('clean.bat'):
 sys.path.insert(1, os.path.abspath(BASE_DIR))
     
 from Tribler.__init__ import LIBRARYNAME    
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
 from Tribler.Core.BuddyCast.buddycast import DataHandler
 

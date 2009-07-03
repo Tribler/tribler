@@ -9,13 +9,12 @@
 
 import sys
 from threading import currentThread
-from traceback import print_exc,print_stack
+from traceback import print_exc
 
 from Tribler.Core.Overlay.SecureOverlay import CloseException
 from Tribler.Core.BitTornado.BT1.MessageID import getMessageName
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 import threading
 
 DEBUG = False
@@ -197,9 +196,9 @@ class OverlayThreadingBridge:
         """ Called by OverlayThread """
         self.secover.close(permid)
         
-    def add_task(self,task,t=0,id=None):
+    def add_task(self,task,t=0,ident=None):
         """ Called by OverlayThread """
-        self.tqueue.add_task(task,t,id)
+        self.tqueue.add_task(task,t,ident)
         
 #===============================================================================
 #    # Jie: according to Arno's suggestion, commit on demand instead of periodically

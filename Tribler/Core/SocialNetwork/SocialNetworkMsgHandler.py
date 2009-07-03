@@ -2,14 +2,11 @@
 # see LICENSE.txt for license information
 
 
-import sys, socket
-from time import time
+import sys
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIFTH
 from Tribler.Core.SocialNetwork.OverlapMsgHandler import OverlapMsgHandler
-
-from Tribler.Core.Utilities.utilities import show_permid_short
 
 DEBUG = False
 

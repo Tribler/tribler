@@ -12,23 +12,20 @@
 import threading
 import sys
 import os
-import socket
 import random
 import cPickle
 from time import time
-from types import StringType, ListType, DictType, IntType, BooleanType
-from traceback import print_exc,print_stack
+from types import DictType
+from traceback import print_exc
 from sets import Set
 
 from Tribler.Core.simpledefs import *
-from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
-from Tribler.Core.SocialNetwork.OverlapMsgHandler import OverlapMsgHandler
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
 from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import *
 
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH
@@ -398,11 +395,9 @@ class FriendshipMsgHandler:
         elif fs == FS_MUTUAL:
             if DEBUG:
                 print >>sys.stderr,"friendship: process_request: Got request but already approved"
-            pass
         elif fs == FS_I_DENIED:
             if DEBUG:
                 print >>sys.stderr,"friendship: process_request: Got request but I already denied"
-            pass
         elif DEBUG:
             print >>sys.stderr,"friendship: process_request: Got request, but fs is",fs
 
@@ -637,7 +632,7 @@ class FriendshipMsgHandler:
                     
                     # Delegate 
                     if msgrec['type'] == F_REQUEST_MSG and msgrec['attempt'] == 2:
-                         self.delegate_friendship_making(targetpermid=permid,targetmsgid=msgid)
+                        self.delegate_friendship_making(targetpermid=permid,targetmsgid=msgid)
         
         # Remove timed out messages
         for permid,msgid in delmsgids:
@@ -823,7 +818,6 @@ class FriendshipMsgHandler:
             else:
                 if DEBUG:
                     print >>sys.stderr,"friendship: forward: Failed to forward to helper",show_permid_short(permid)
-                pass
         
     def checkpoint(self):
         statedir = self.session.get_state_dir()

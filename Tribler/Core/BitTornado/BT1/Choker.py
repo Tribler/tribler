@@ -2,9 +2,6 @@
 # see LICENSE.txt for license information
 
 from random import randrange, shuffle
-from traceback import print_exc,print_stack
-import csv
-import random
 import sys
 
 from Tribler.Core.BitTornado.clock import clock

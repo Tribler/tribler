@@ -1,8 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-from errno import ECONNRESET
-from threading import currentThread,Event
-from traceback import print_exc,print_stack
+from threading import currentThread
+from traceback import print_exc
 import inspect
 import os
 import re
@@ -13,7 +12,6 @@ import wx
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoServer import VideoHTTPServer,VideoRawVLCServer
-from Tribler.Video.Progress import ProgressBar,BufferInfo, ProgressInf
 from Tribler.Video.utils import win32_retrieve_video_play_command,win32_retrieve_playcmd_from_mimetype,quote_program_path,videoextdefaults
 
 from Tribler.Core.simpledefs import *
@@ -589,11 +587,11 @@ class VideoPlayer:
 
     def escape_path(self,path):
         if path[0] != '"' and path[0] != "'" and path.find(' ') != -1:
-           if sys.platform == 'win32':
-               # Add double quotes
-               path = "\""+path+"\""
-           else:
-               path = "\'"+path+"\'"
+            if sys.platform == 'win32':
+                # Add double quotes
+                path = "\""+path+"\""
+            else:
+                path = "\'"+path+"\'"
         return path
 
 

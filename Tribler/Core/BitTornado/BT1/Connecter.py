@@ -6,7 +6,7 @@ import sys
 from Tribler.Core.Utilities.Crypto import sha
 from types import DictType,IntType,LongType,ListType,StringType
 from random import shuffle
-from traceback import print_exc,print_stack
+from traceback import print_exc
 from math import ceil
 import socket
 import urlparse
@@ -353,7 +353,6 @@ class Connection:
                     if self.get_ip() == self.connecter.tracker_ip:
                         # Keep connection to tracker / source
                         print >>sys.stderr,"Connecter: live: Keeping connection to SOURCE",self.connecter.tracker_ip 
-                        pass
                     else:
                         raise ValueError("Kicking old LIVE peer "+self.get_ip())
 
@@ -699,7 +698,7 @@ class Connecter:
         self.infohash = infohash
         self.tracker = tracker
         try:
-            (scheme, netloc, path, pars, query, fragment) = urlparse.urlparse(self.tracker)
+            (scheme, netloc, path, pars, query, _fragment) = urlparse.urlparse(self.tracker)
             host = netloc.split(':')[0] 
             self.tracker_ip = socket.getaddrinfo(host,None)[0][4][0]
         except:
@@ -1155,7 +1154,6 @@ class Connecter:
                 elif ext_msg_name == EXTEND_MSG_OVERLAYSWARM:
                     if DEBUG:
                         print >>sys.stderr,"Not closing EXTEND+CHALLENGE: peer didn't read our spec right, be liberal"
-                    pass
                 elif ext_msg_name == EXTEND_MSG_UTORRENT_PEX and ut_pex_enabled:
                     d = bdecode(message[2:])
                     if type(d) == DictType:

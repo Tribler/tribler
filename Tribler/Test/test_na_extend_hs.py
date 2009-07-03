@@ -6,23 +6,18 @@
 #
 
 import unittest
-import os
 import sys
 import time
 import socket
 from traceback import print_exc
-from types import DictType,StringType,IntType
+from types import DictType,IntType
 
 from Tribler.Test.test_extend_hs import TestExtendHandshake
-from olconn import OLConnection
 from btconn import BTConnection
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
-from Tribler.Core.BitTornado.BT1.track import compact_ip,decompact_ip
+from Tribler.Core.BitTornado.BT1.track import compact_ip
 from Tribler.Core.Utilities.Crypto import sha
-from Tribler.Core.Utilities.utilities import isValidIP
 
 DEBUG=True
 

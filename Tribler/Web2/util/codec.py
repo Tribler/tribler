@@ -291,31 +291,31 @@ def decodehtmlchars(str, failchar = '?'):
     index = 0
 
     while True:
-            entref = str.find("&", index)
-            if entref == -1:
-                break
+        entref = str.find("&", index)
+        if entref == -1:
+            break
 
-            entrefend = str.find(";", index)
+        entrefend = str.find(";", index)
 
-            if entrefend == -1:
-                result = result + str[index:entref+1]
-                index = entref + 1
-                continue
+        if entrefend == -1:
+            result = result + str[index:entref+1]
+            index = entref + 1
+            continue
 
-            try:
-                if str[entref + 1] == "#":
-                    if str[entref + 2].lower() == "x":
-                        chr = unichr(int(str[entref + 3 : entrefend], 16))
-                    else:
-                        chr = unichr(int(str[entref + 2 : entrefend]))
+        try:
+            if str[entref + 1] == "#":
+                if str[entref + 2].lower() == "x":
+                    chr = unichr(int(str[entref + 3 : entrefend], 16))
                 else:
-                    chr = unichr(htmlchars[str[entref + 1 : entrefend]])
-            except:
-                chr = failchar
+                    chr = unichr(int(str[entref + 2 : entrefend]))
+            else:
+                chr = unichr(htmlchars[str[entref + 1 : entrefend]])
+        except:
+            chr = failchar
 
-            result = result + str[index:entref]  + chr
+        result = result + str[index:entref]  + chr
 
-            index = entrefend + 1
+        index = entrefend + 1
 
     result = result + str[index:]
     return result

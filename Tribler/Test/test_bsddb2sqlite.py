@@ -3,8 +3,7 @@ import sys
 import unittest
 import tempfile
 from traceback import print_exc
-import thread, threading
-from shutil import copy as copyFile, move
+from shutil import copy as  move
 
 if os.path.exists(__file__):
     BASE_DIR = '..'

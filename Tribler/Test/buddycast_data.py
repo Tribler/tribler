@@ -4,7 +4,7 @@ from random import randint, random, sample
 import os
 import string
 from copy import deepcopy
-from bencode import bencode, bdecode
+from bencode import bencode
 
 #from BitTornado.BT1.bencode import bencode, bdecode
 from Tribler.Core.CacheDB import MyPreferenceDBHandler

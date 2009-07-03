@@ -3,18 +3,16 @@
 
 import wx, os, sys, os.path
 import wx.xrc as xrc
-from traceback import print_exc,print_stack
+from traceback import print_exc
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.unicode import *
-from Tribler.Core.Utilities.utilities import sort_dictlist
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
-from traceback import print_exc,print_stack
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 ## from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
-from Tribler.Main.vwxGUI.standardGrid import GridState,filesGrid,libraryGrid
+from Tribler.Main.vwxGUI.standardGrid import filesGrid,libraryGrid
 from Tribler.Main.Utility.constants import *
 #from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -24,7 +22,6 @@ from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
 from Tribler.Core.Utilities.unicode import *
 
-from threading import Thread,currentThread
 from time import time
 
 from font import *
@@ -53,6 +50,7 @@ class standardOverview(wx.Panel):
     Panel that shows one of the overview panels
     """
     def __init__(self, *args):
+        self.firewallStatus = None
         
         if len(args) == 0:
             pre = wx.PrePanel()
@@ -83,8 +81,6 @@ class standardOverview(wx.Panel):
         
 #        self.SetBackgroundColour((255,255,90))
   
-        self.firewallStatus = None
-        
 #        self.Bind(wx.EVT_SIZE, self.standardOverviewResize)
         self.mode = None        
         self.selectedTorrent = None
@@ -182,9 +178,9 @@ class standardOverview(wx.Panel):
         elif nameCP == 'settingsOverview':
             self.SetMinSize((900,500))
         elif nameCP == 'libraryOverview':
-            self.SetMinSize((600,480)) 
+            self.SetMinSize((600,490)) # 480
         else: # filesOverview
-            self.SetMinSize((600,476)) 
+            self.SetMinSize((600,490)) # 476
 
         self.hSizer.Layout()
         
@@ -289,8 +285,8 @@ class standardOverview(wx.Panel):
         #print >> sys.stderr, 'standardOverview: currentPanel' , currentPanel
         modeString = self.mode[:-4]
         #print >> sys.stderr, 'standardOverview: modestring' , modeString
-        #if DEBUG:
-        print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
+        if DEBUG:
+            print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
 
         pager = xrc.XRCCTRL(self.guiUtility.frame, 'standardPager')    # Jie:not really used for profile, rss and library?
         if modeString == "startpage":
@@ -515,7 +511,6 @@ class standardOverview(wx.Panel):
             if self.mode in ('filesMode', 'personsMode', 'libraryMode', 'friendsMode','settingsMode'):
                 #self.loadTorrentData(filterState[0], filterState[1])
                 self.data[filterState.db]['grid'].gridManager.set_state(filterState)
-                pass
             elif self.mode in ('subscriptionsMode'):
                 self.loadSubscriptionData()
                 self.refreshData()

@@ -8,8 +8,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, 
 from unicode import name2unicode,dunno2unicode
 from copy import deepcopy,copy
 from sets import Set
-from traceback import print_exc, print_stack
-from threading import currentThread
+from traceback import print_exc
 from time import time
 from Tribler.Core.Utilities.Crypto import sha
 import sys
@@ -487,7 +486,7 @@ class PeerDBHandler(BasicDBHandler):
             peer_list.append(peer)
             
         if get_online:
-           self.checkOnline(peer_list)
+            self.checkOnline(peer_list)
             
         # peer_list consumes about 1.5M for 1400 peers, and this function costs about 0.015 second
         
@@ -530,10 +529,10 @@ class PeerDBHandler(BasicDBHandler):
         session.add_observer(self.setOnline, NTFY_PEERS, [NTFY_CONNECTION], None)
     
     def updatePeerIcon(self, permid, icontype, icondata, updateFlag = True):
-         # save thumb in db
-         self.updatePeer(permid, thumbnail=bin2str(icondata))
-         #if self.mm is not None:
-         #    self.mm.save_data(permid, icontype, icondata)
+        # save thumb in db
+        self.updatePeer(permid, thumbnail=bin2str(icondata))
+        #if self.mm is not None:
+        #    self.mm.save_data(permid, icontype, icondata)
     
 
     def getPeerIcon(self, permid):
@@ -991,7 +990,7 @@ class PreferenceDBHandler(BasicDBHandler):
         # get the recently seen peers' preference. used by buddycast
         sql = "select peer_id,torrent_id from Preference where peer_id in (select peer_id from Peer order by %s desc)"%key
         if num is not None:
-             sql = sql[:-1] + " limit %d)"%num
+            sql = sql[:-1] + " limit %d)"%num
         res = self._db.fetchall(sql)
         return res
     

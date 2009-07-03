@@ -7,7 +7,7 @@ from base64 import encodestring
 from copy import deepcopy
 import traceback,os
 
-from M2Crypto import Rand,EC,EVP
+from M2Crypto import Rand,EC
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 

@@ -3,15 +3,7 @@
 
 import sys
 import os
-from copy import deepcopy
-from Queue import Queue, Empty 
-from time import time, sleep
-from base64 import encodestring, decodestring
-from unicode import dunno2unicode
-import math
-from random import shuffle
 import threading
-from traceback import print_exc, extract_stack, print_stack
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.CacheDB.sqlitecachedb import *
@@ -26,15 +18,15 @@ CURRENT_DB_VERSION = 2
 DEBUG = False
 
 def init_friendship_stats(config, db_exception_handler = None):
-        """ create friendship statistics database """
-        global CREATE_FRIENDSHIP_STATS_SQL_FILE
-        config_dir = config['state_dir']
-        install_dir = config['install_dir']
-        CREATE_FRIENDSHIP_STATS_SQL_FILE = os.path.join(install_dir,CREATE_FRIENDSHIP_STATS_SQL_FILE_POSTFIX)
-        sqlitedb = SQLiteFriendshipStatsCacheDB.getInstance(db_exception_handler)   
-        sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
-        sqlitedb.initDB(sqlite_db_path, CREATE_FRIENDSHIP_STATS_SQL_FILE,current_db_version=CURRENT_DB_VERSION)  # the first place to create db in Tribler
-        return sqlitedb
+    """ create friendship statistics database """
+    global CREATE_FRIENDSHIP_STATS_SQL_FILE
+    config_dir = config['state_dir']
+    install_dir = config['install_dir']
+    CREATE_FRIENDSHIP_STATS_SQL_FILE = os.path.join(install_dir,CREATE_FRIENDSHIP_STATS_SQL_FILE_POSTFIX)
+    sqlitedb = SQLiteFriendshipStatsCacheDB.getInstance(db_exception_handler)   
+    sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
+    sqlitedb.initDB(sqlite_db_path, CREATE_FRIENDSHIP_STATS_SQL_FILE,current_db_version=CURRENT_DB_VERSION)  # the first place to create db in Tribler
+    return sqlitedb
 
 
 class FSCacheDBBaseV2(SQLiteCacheDBBase):
@@ -138,7 +130,7 @@ class FriendshipStatisticsDBHandler(BasicDBHandler):
         res_list = self.getAll(value_name, where=where, offset= offset, limit=limit, order_by=order_by, source_permid=permidstr)
 
         if DEBUG:
-                print >>sys.stderr,"FriendshipStatisticsDBHandler: getAll: result is",res_list
+            print >>sys.stderr,"FriendshipStatisticsDBHandler: getAll: result is",res_list
         
         return res_list
     

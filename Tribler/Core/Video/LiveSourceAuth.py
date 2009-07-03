@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
-from traceback import print_exc,print_stack
+from traceback import print_exc
 from cStringIO import StringIO
 import struct
 import time

@@ -2,8 +2,6 @@
 # see LICENSE.txt for license information
 """ Base classes for the Core API """
 
-import sys
-
 from Tribler.Core.exceptions import *
 
 DEBUG = False

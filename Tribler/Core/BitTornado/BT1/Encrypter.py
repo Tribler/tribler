@@ -1,23 +1,19 @@
 # Written by Bram Cohen and Pawel Garbacki
 # see LICENSE.txt for license information
 
+import sys
 from cStringIO import StringIO
 from binascii import b2a_hex
 from socket import error as socketerror
 from urllib import quote
 from struct import unpack
-from Tribler.Core.Utilities.Crypto import sha
 from time import time
-import random
 from sets import Set
+from traceback import print_exc
 
-# 2fastbt_
-from traceback import print_exc, extract_stack, print_stack
-import sys
-from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern
 from Tribler.Core.BitTornado.BT1.convert import toint
-# _2fastbt
+
 
 try:
     True
@@ -389,7 +385,7 @@ class Connection:
         b = myip.split(".")
         if a[0] == b[0] and a[1] == b[1] and a[2] == b[2]:
             if DEBUG:
-               print >>sys.stderr,"encoder.connection: na: Found peer on local LAN",self.get_ip()
+                print >>sys.stderr,"encoder.connection: na: Found peer on local LAN",self.get_ip()
             self.na_address_distance = 0
         else:
             self.na_address_distance = 1

@@ -28,16 +28,13 @@ import Tribler.Debug.console
 import os,sys
 import urllib
 original_open_https = urllib.URLopener.open_https
-import M2Crypto
+import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
 
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
 # errors on Vista in "Regional and Language Settings Options" different from 
 # "English[United Kingdom]" 
 #import locale
-import signal
-import commands
-import pickle
 
 #try:
 #    import wxversion
@@ -49,16 +46,13 @@ import wx.animate
 from wx import xrc
 #import hotshot
 
-from threading import Thread, Event,currentThread,enumerate
-from time import time, ctime, sleep
-from traceback import print_exc, print_stack
-from cStringIO import StringIO
+from traceback import print_exc
 import urllib2
 import tempfile
 
 import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
-from Tribler.Main.vwxGUI.MainFrame import MainFrame
+from Tribler.Main.vwxGUI.MainFrame import MainFrame # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame,VideoMacFrame
 ## from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
@@ -81,15 +75,17 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 
+# Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
+# one of those modules imports time as a module.
+from time import time, sleep
 
-#import pdb
 
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878
 SESSION_CHECKPOINT_INTERVAL = 1800.0 # seconds
 
 DEBUG = False
-ALLOW_MULTIPLE = True
+ALLOW_MULTIPLE = False
 
 ##############################################################
 #
@@ -113,7 +109,6 @@ class ABCApp(wx.App):
 
         self.old_reputation = 0
 
-        
         try:
             ubuntu = False
             if sys.platform == "linux2":
@@ -320,14 +315,12 @@ class ABCApp(wx.App):
 
             self.frame.top_bg.createBackgroundImage()
             ## self.frame.top_bg.setBackground((230,230,230))
+
+            self.frame.top_bg.Layout()
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)
                 wx.CallAfter(self.frame.top_bg.Layout)
                 
-
-            self.frame.top_bg.Layout()
-
-
             # reputation
             self.guiserver.add_task(self.guiservthread_update_reputation, .2)
           
@@ -558,7 +551,7 @@ class ABCApp(wx.App):
         reputation = self.get_reputation()
         if sys.platform == 'win32':
             self.frame.top_bg.updateReputation(reputation)
-        else:
+        elif self.frame.top_bg.sr_msg:
             if reputation < -0.33:
                 self.frame.top_bg.sr_msg.SetLabel('Poor')
                 self.frame.top_bg.sr_msg.SetForegroundColour((255,51,0))
@@ -765,7 +758,6 @@ class ABCApp(wx.App):
             except KeyError:
                 # Apparently libraryMode only has has a 'grid' key when visible
                 print_exc()
-                pass
             except AttributeError:
                 print_exc()
             except:
@@ -884,7 +876,7 @@ class ABCApp(wx.App):
         """ Set total # peers and torrents discovered """
         
         # Arno: GUI thread accessing database
-        now = time.time()
+        now = time()
         if now - self.last_update < self.update_freq:
             return  
         self.last_update = now
@@ -1188,7 +1180,7 @@ def run(params = None):
             #os.chdir(installdir)
     
             # Launch first abc single instance
-            app = ABCApp(0, params, single_instance_checker, installdir)
+            app = ABCApp(False, params, single_instance_checker, installdir)
             configpath = app.getConfigPath()
             app.MainLoop()
     

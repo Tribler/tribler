@@ -21,7 +21,7 @@ from threading import Event, Thread, currentThread
 from socket import error as socketerror
 from time import sleep
 import tempfile
-from traceback import print_exc,print_stack
+from traceback import print_exc
 import shutil
 
 from Tribler.Core.BitTornado.RawServer import RawServer
@@ -29,7 +29,7 @@ from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
 from Tribler.Core.BitTornado.BT1.MessageID import GET_METADATA
 
 from M2Crypto import EC
-from Tribler.Core.Overlay.SecureOverlay import SecureOverlay, overlay_infohash, OLPROTO_VER_CURRENT
+from Tribler.Core.Overlay.SecureOverlay import SecureOverlay, OLPROTO_VER_CURRENT
 import Tribler.Core.CacheDB.sqlitecachedb as sqlitecachedb  
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
@@ -116,7 +116,6 @@ class Peer(Thread):
     def run(self):
         print >> sys.stderr,"test: MyServer: run called by",currentThread().getName()
         self.multihandler.listen_forever()
-        pass    
 
     def report_failure(self,msg):
         self.testcase.assertRaises(Exception, self.report_failure)

@@ -1,14 +1,8 @@
 # Written by Fabian van der Werf
 # see LICENSE.txt for license information
 
-from bsddb import dbshelve
 import os
-from util import observer
-from util import download
 from util import db
-import base64
-import re
-import settings
 import urllib
 import wx
 

@@ -7,12 +7,9 @@ import sys
 import time
 import socket
 from Tribler.Core.Utilities.Crypto import sha
-from random import randint,shuffle
 from traceback import print_exc
-from types import StringType, ListType, DictType, IntType, BooleanType
-from time import sleep
+from types import StringType, ListType, DictType, IntType
 import tempfile
-from M2Crypto import Rand,EC
 
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
@@ -209,15 +206,15 @@ class TestBuddyCastMsg(TestAsServer):
     def create_good_taste_buddies(self,oversion):
         tbs = []
         for i in range(0,10):
-           tb = self.create_good_peer(i,oversion)
-           tbs.append(tb)
+            tb = self.create_good_peer(i,oversion)
+            tbs.append(tb)
         return tbs 
 
     def create_good_random_peers(self,oversion,num=10):
         tbs = []
         for i in range(0,num):
-           tb = self.create_good_peer(i,oversion)
-           tbs.append(tb)
+            tb = self.create_good_peer(i,oversion)
+            tbs.append(tb)
         return tbs 
         
     def create_good_peer(self,id,oversion):

@@ -1,7 +1,7 @@
 REM @echo off
 set LIBRARYNAME=Tribler
 
-set PYTHONHOME=C:\Python252
+set PYTHONHOME=C:\Python254
 REM Arno: Add .. to make it find khashmir. Add . to find us (python 2.5)
 set PYTHONPATH=.;%PYTHONHOME%;..
 
@@ -97,4 +97,6 @@ cd dist\installdir
 %NSIS% triblerplay.nsi
 move swarmplayer_*.exe ..
 cd ..
+REM Arno : sign SwarmPlayer_*.exe
+"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "SwarmPlayer" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" "SwarmPlayer_*.exe"
 cd ..

@@ -1,9 +1,6 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
-import os
-import tempfile
 import unittest
-from sets import Set
 from random import shuffle
 
 from Tribler.Core.BuddyCast.similarity import *

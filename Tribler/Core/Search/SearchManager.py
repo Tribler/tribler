@@ -1,7 +1,6 @@
 # Written by Jelle Roozenburg, Arno Bakker
 # see LICENSE.txt for license information
 import sys
-from traceback import print_exc
 
 from Tribler.Core.Search.KeywordSearch import KeywordSearch
 

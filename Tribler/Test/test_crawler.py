@@ -7,11 +7,7 @@ import os
 import sys
 import time
 from Tribler.Core.Utilities.Crypto import sha
-from random import randint,shuffle
-from traceback import print_exc
-from types import StringType, IntType, ListType
-from threading import Thread
-from M2Crypto import Rand,EC
+from M2Crypto import Rand
 import cPickle
 
 from Tribler.Test.test_as_server import TestAsServer

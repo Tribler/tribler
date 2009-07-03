@@ -10,7 +10,6 @@ import threading
 from random import shuffle
 from time import time
 from traceback import print_exc
-from Tribler.Core.Session import Session
 
 PHONEHOME = False
 VIDEOPLAYBACK_REPORT = True

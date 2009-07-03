@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 import sys
 import os
-from traceback import print_exc
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Lang.lang import Lang

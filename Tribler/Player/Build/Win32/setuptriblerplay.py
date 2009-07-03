@@ -1,5 +1,4 @@
 # setup.py
-import time
 import sys
 import os
 

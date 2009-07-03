@@ -2,14 +2,12 @@
 # see LICENSE.txt for license information
 #
 
-import os,sys,string,time
-import socket
-import SocketServer
+import sys
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
-import thread
-from threading import RLock,Thread,currentThread
+from threading import RLock,Thread
 from traceback import print_exc
+import string
 
 DEBUG = True
         

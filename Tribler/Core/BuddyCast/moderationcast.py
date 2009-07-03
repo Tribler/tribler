@@ -8,16 +8,14 @@ from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.CacheDB.CacheDBHandler import ModerationCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.Overlay.permid import permid_for_user
-from Tribler.Core.Overlay.permid import sign_data
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Utilities.utilities import *
 
 from base64 import decodestring
 from binascii import hexlify
 from time import time
-from traceback import print_exc, print_stack
+from traceback import print_exc
 from types import StringType, ListType, DictType
-from zlib import compress, decompress
 
 DEBUG_UI = False
 DEBUG = False    #Default debug
@@ -25,8 +23,6 @@ debug = False   #For send-errors and other low-level stuff
 
 AUTO_MODERATE = False    #Automatically moderate content, with bogus moderations
 AUTO_MODERATE_INTERVAL = 1    #Number of seconds between creation of moderations
-
-from random import randint, sample, seed, random
 
 class ModerationCastCore:
     """ ModerationCastCore is responsible for sending and receiving:

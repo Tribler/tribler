@@ -11,8 +11,6 @@ import os
 import os.path
 import pickle
 import re
-import shutil
-import thread
 import threading
 import time
 import traceback

@@ -13,9 +13,7 @@ from time import sleep
 from clock import clock
 import sys
 from random import shuffle, randrange
-from traceback import print_exc,print_stack
-
-from threading import currentThread
+from traceback import print_exc
 
 try:
     True
@@ -381,7 +379,7 @@ class SocketHandler:
                     break
                 except Exception,e:
                     print_exc()
-                    pass # Arno: ???? raise e
+                    pass # FIXME Arno: ???? raise e
             else:
                 raise socket.error('unable to connect')
         return s
@@ -408,7 +406,6 @@ class SocketHandler:
                         if not data:
                             if DEBUG:
                                 print >> sys.stderr,"SocketHandler: UDP no-data",addr
-                            pass
                         else:
                             if DEBUG:
                                 print >> sys.stderr,"SocketHandler: Got UDP data",addr,"len",len(data)
@@ -417,7 +414,6 @@ class SocketHandler:
                     except socket.error, e:
                         if DEBUG:
                             print >> sys.stderr,"SocketHandler: UDP Socket error",str(e)
-                        pass
                 elif len(self.single_sockets) < self.max_connects:
                     try:
                         newsock, addr = s.accept()

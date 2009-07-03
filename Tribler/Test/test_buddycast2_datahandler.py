@@ -7,9 +7,6 @@
 import os
 import sys
 import unittest
-from tempfile import mkdtemp
-from distutils.dir_util import copy_tree, remove_tree
-from sets import Set
 from traceback import print_exc
 from shutil import copy as copyFile, move
 from time import sleep
@@ -27,9 +24,7 @@ from Tribler.Category.Category import Category
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.Core.Statistics.Crawler import Crawler
 
-import hotshot, hotshot.stats
 import math
-from random import random, shuffle
 
 def extract_db_files(file_dir, file_name):
     try:

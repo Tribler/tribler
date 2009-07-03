@@ -4,9 +4,8 @@
 import unittest
 
 from tempfile import mkstemp
-from threading import Event
 import os
-from types import StringType, IntType, ListType, DictType
+from types import StringType, DictType
 from math import ceil
 
 from Tribler.Core.API import *

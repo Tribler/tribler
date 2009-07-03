@@ -1,9 +1,8 @@
 import os
 import sys
 import unittest
-import tempfile
 from traceback import print_exc
-import thread, threading
+import thread
 from threading import Thread
 from time import time,sleep
 import math
@@ -55,8 +54,8 @@ if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
     copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
     #print "refresh sqlite db", TRIBLER_DB_PATH
     if os.path.exists(STATE_FILE_NAME_PATH):
-            os.remove(STATE_FILE_NAME_PATH)
-            print "remove journal file"
+        os.remove(STATE_FILE_NAME_PATH)
+        print "remove journal file"
 
 SQLiteCacheDB.DEBUG = False
 DEBUG = True

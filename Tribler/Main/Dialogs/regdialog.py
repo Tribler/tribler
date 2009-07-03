@@ -4,7 +4,6 @@
 # Description : Ask whether or not to associate ABC with torrents
 #########################################################################
 import wx
-from os import path
 
 
 ################################################################

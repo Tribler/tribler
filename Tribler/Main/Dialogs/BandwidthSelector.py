@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 
 import wx
-import sys
 
 
 class BandwidthSelector(wx.Dialog):

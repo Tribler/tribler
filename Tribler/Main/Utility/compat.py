@@ -11,9 +11,6 @@
 import os
 import sys
 
-from traceback import print_exc
-from cStringIO import StringIO
-
 from shutil import move, copy2
 
 from Tribler.Utilities.configreader import ConfigReader

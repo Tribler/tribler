@@ -5,8 +5,6 @@ import sys
 import os
 #import time
 import copy
-import math
-from traceback import print_exc,print_stack
 from types import StringType,ListType,IntType,LongType
 
 from Tribler.Core.simpledefs import *
@@ -18,7 +16,7 @@ import Tribler.Core.APIImplementation.maketorrent as maketorrent
 import Tribler.Core.APIImplementation.makeurl as makeurl
 from Tribler.Core.APIImplementation.miscutils import *
 
-from Tribler.Core.Utilities.utilities import find_prog_in_PATH,validTorrentFile,isValidURL
+from Tribler.Core.Utilities.utilities import validTorrentFile,isValidURL
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.osutils import *

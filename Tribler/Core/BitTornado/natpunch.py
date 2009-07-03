@@ -152,19 +152,15 @@ class _UPnP2:   # derived from Yejun Yang's code
                                     except:
                                         if DEBUG:
                                             print_exc()
-                                        pass
                             except:
                                 if DEBUG:
                                     print_exc()
-                                pass
                     except:
                         if DEBUG:
                             print_exc()
-                        pass
             except:
                 if DEBUG:
                     print_exc()
-                pass
             self.last_got_services = clock()
         return self.services
 
@@ -187,7 +183,6 @@ class _UPnP2:   # derived from Yejun Yang's code
             except:
                 if DEBUG:
                     print_exc()
-                pass
         if DEBUG and not success:
             print >>sys.stderr,"upnp2: COULDN'T OPEN "+str(p)
             print_exc()
@@ -204,7 +199,6 @@ class _UPnP2:   # derived from Yejun Yang's code
             except:
                 if DEBUG:
                     print_exc()
-                pass
         if DEBUG and not success:
             print >>sys.stderr,"upnp2: COULDN'T CLOSE "+str(p)
             print_exc()
@@ -230,7 +224,6 @@ class _UPnP2:   # derived from Yejun Yang's code
             except:
                 if DEBUG:
                     print_exc()
-                pass
         if DEBUG and not success:
             print >>sys.stderr,"upnp2: COULDN'T GET EXT IP ADDR"
         return success

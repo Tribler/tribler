@@ -1,8 +1,6 @@
 import os, sys
 import tempfile
 import unittest
-from sets import Set
-import base64
 
 if os.path.exists('test_sqlitecachedb.py'):
     BASE_DIR = '..'

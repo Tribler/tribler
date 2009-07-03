@@ -2,17 +2,15 @@
 # see LICENSE.txt for license information
 
 import os
-import sys
 import base64
-from Tribler.Core.Utilities.Crypto import sha
 from traceback import print_exc
-from shutil import copy2
+
 import wx
 import wx.lib.imagebrowser as ib
+import wx.lib.editor as editor
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import show_permid
-import wx.lib.editor as editor
 
 DEBUG = False
 

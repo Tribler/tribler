@@ -1,9 +1,7 @@
 import os
 import sys
 import unittest
-import tempfile
 from traceback import print_exc
-import thread, threading
 from time import time
 from binascii import unhexlify
 from shutil import copy as copyFile, move

@@ -3,10 +3,7 @@
 import wx
 import sys
 import os
-import socket
-import random
 from threading import Event, Semaphore
-from time import sleep
 from Tribler.Core.Utilities.Crypto import sha
 from traceback import print_exc
 #from cStringIO import StringIO
@@ -16,7 +13,7 @@ from wx.lib import masked
 from Tribler.Lang.lang import Lang
 from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.Core.defaults import dldefaults as BTDefaults
-from Tribler.Core.defaults import dldefaults,DEFAULTPORT
+from Tribler.Core.defaults import DEFAULTPORT
 from Tribler.Core.defaults import trackerdefaults as TrackerDefaults
 from Tribler.Core.defaults import tdefdefaults as TorrentDefDefaults 
 from Tribler.Core.BitTornado.parseargs import parseargs

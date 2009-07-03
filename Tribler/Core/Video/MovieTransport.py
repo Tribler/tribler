@@ -2,8 +2,7 @@
 # see LICENSE.txt for license information
 
 
-import os,sys,string,time
-from traceback import print_exc
+import os,sys
 
 from Tribler.Core.osutils import *
 

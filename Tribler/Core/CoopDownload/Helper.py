@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
-from traceback import print_exc, print_stack
+from traceback import print_exc
 from time import time
 
 
@@ -273,7 +273,6 @@ class Helper:
         if exc is not None:
             if DEBUG:
                 print >> sys.stderr,"helper: RESERVE_PIECES: error sending to",show_permid_short(permid),exc
-            pass
 
 
     #

@@ -1,7 +1,7 @@
 # written by Nicolas Neubauer
 # see LICENSE.txt for license information
 
-import sys, random, time
+import sys, time
 
 DEBUG = False
 

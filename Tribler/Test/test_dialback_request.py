@@ -2,18 +2,16 @@
 # see LICENSE.txt for license information
 
 import unittest
-import os
 import sys
 import time
 import socket
-from Tribler.Core.Utilities.Crypto import sha
 from traceback import print_exc
 from types import StringType
 
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from btconn import BTConnection
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
+from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
 from Tribler.Core.NATFirewall.ReturnConnHandler import dialback_infohash

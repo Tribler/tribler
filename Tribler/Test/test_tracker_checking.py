@@ -3,8 +3,6 @@
 
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from time import sleep
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
-from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 
 
 

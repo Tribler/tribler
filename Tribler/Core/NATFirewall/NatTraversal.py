@@ -1,7 +1,5 @@
 from time import strftime
 from traceback import print_exc
-import datetime
-import select
 import socket
 import sys
 
@@ -93,7 +91,7 @@ def tryConnect(coordinator):
             break
 
         if DEBUG:
-                print >> sys.stderr, "NatTraversal: received", data, "from", addr
+            print >> sys.stderr, "NatTraversal: received", data, "from", addr
             
     #success = False
     #try:

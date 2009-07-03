@@ -6,11 +6,9 @@
 import os
 import tempfile
 import unittest
-import socket
 import shutil
 
 from copy import deepcopy
-from sets import Set
 
 import Tribler.Core.CacheDB.cachedb as cachedb
 

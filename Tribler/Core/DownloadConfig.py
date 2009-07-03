@@ -16,9 +16,7 @@ import os
 #import time
 import copy
 import pickle
-import shutil
-from traceback import print_exc,print_stack
-from types import StringType,ListType,IntType
+from types import StringType
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
@@ -27,8 +25,13 @@ from Tribler.Core.Base import *
 from Tribler.Core.APIImplementation.miscutils import *
 from Tribler.Core.LiveSourceAuthConfig import LiveSourceAuthConfig
 
-from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.osutils import getfreespace, get_home_dir
+
+# importing get_home_dir from Tribler.Core.Session causes an
+# ImportError...
+def get_home_dir():
+    from Tribler.Core.Session import get_home_dir as session_get_home_dir
+    return session_get_home_dir()
 
 class DownloadConfigInterface:
     """

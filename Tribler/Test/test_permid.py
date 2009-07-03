@@ -3,17 +3,8 @@
 
 import unittest
 
-import os
 import sys
-import socket
-import tempfile
-import random
-import shutil
 import time
-from binascii import b2a_hex
-from struct import pack,unpack
-from StringIO import StringIO
-from threading import Thread,currentThread
 from types import DictType, StringType
 
 from Tribler.Test.test_as_server import TestAsServer

@@ -88,7 +88,7 @@ class SeedingManager:
                 self.ds.get_download().stop()
                 
                 if DEBUG:
-                     print >>sys.stderr,"Stop seedings: ",self.ds.get_download().get_dest_files()
+                    print >>sys.stderr,"Stop seedings: ",self.ds.get_download().get_dest_files()
             
             return g2g_r
             
@@ -100,7 +100,7 @@ class SeedingManager:
                 self.ds.get_download().stop()
                 
                 if DEBUG:
-                     print >>sys.stderr,"Stop seedings: ",self.ds.get_download().get_dest_files()
+                    print >>sys.stderr,"Stop seedings: ",self.ds.get_download().get_dest_files()
             
             
             return t4t_r

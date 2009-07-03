@@ -1,9 +1,7 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke 
 # see LICENSE.txt for license information
-import pdb
 import wx, os, sys
 from traceback import print_exc
-from time import time
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -82,7 +80,7 @@ class tribler_topButton(wx.Panel):
         i = 0
         for img in self.bitmapPath:
             if not os.path.isfile(img):
-                  print >>sys.stderr,"TopButton: Could not find image:",img
+                print >>sys.stderr,"TopButton: Could not find image:",img
             try:
                 if img in tribler_topButton.__bitmapCache:
                     self.bitmaps[i] = tribler_topButton.__bitmapCache[img]
@@ -335,7 +333,7 @@ class settingsButton(tribler_topButton):
         i = 0
         for img in self.bitmapPath:
             if not os.path.isfile(img):
-                  print >>sys.stderr,"TopButton: Could not find image:",img
+                print >>sys.stderr,"TopButton: Could not find image:",img
             try:
                 if img in settingsButton.__bitmapCache:
                     self.bitmaps[i] = settingsButton.__bitmapCache[img]
@@ -529,7 +527,7 @@ class SwitchButton(tribler_topButton):
     # Somehow can't inherit these
     __bitmapCache = {}
 
-        
+
     def searchBitmaps(self):
         self.toggled = False
         self.allBitmaps = [None, None, None, None]
@@ -609,10 +607,22 @@ class SwitchButton(tribler_topButton):
         if not self.enabled:
             return
         
+
         if self.bitmaps[0]:
             dc.DrawBitmap(self.bitmaps[0], 0,0, True)
-        if self.mouseOver and self.bitmaps[1]:
-            dc.DrawBitmap(self.bitmaps[1], 0,0, True)
+        if self.mouseOver:
+            if self.GetName() == 'prevpage':
+                if self.GetParent().currentPage == 0:
+                    return
+                elif self.bitmaps[1]:
+                    dc.DrawBitmap(self.bitmaps[1], 0,0, True)
+            elif self.GetName() == 'nextpage':
+                if self.GetParent().currentPage == self.GetParent().totalPages-1:
+                    return
+                elif self.bitmaps[1]:
+                    dc.DrawBitmap(self.bitmaps[1], 0,0, True)
+            elif self.bitmaps[1]:
+                dc.DrawBitmap(self.bitmaps[1], 0,0, True)
 
 
 class ClickButton(tribler_topButton):

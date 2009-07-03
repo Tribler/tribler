@@ -6,10 +6,9 @@
 
 import unittest
 import os
-from traceback import print_exc
 
 from Tribler.Core.API import TorrentDef
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
+from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
 from Tribler.Core.Overlay.permid import verify_torrent_signature
 

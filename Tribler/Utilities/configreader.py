@@ -4,7 +4,6 @@
 import sys
 import wx
 import os
-from traceback import print_stack
 
 from cStringIO import StringIO
 
@@ -257,7 +256,6 @@ class ConfigReader(ConfigParser):
 #            data = StringIO()
 #            print_exc(file = data)
 #            sys.stderr.write(data.getvalue())
-            pass
 
         if DEBUG:
             print >>sys.stderr,"ConfigReader: Read",param,type,section,"got",value

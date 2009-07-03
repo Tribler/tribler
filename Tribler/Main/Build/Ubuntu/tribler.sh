@@ -1,31 +1,63 @@
 #!/bin/sh
 # Startup script for Ubuntu Linux
 
-# don't care about gtk/x11/whatever. Currently (>= 3.4.0) must be unicode
-WXPYTHONVER24=`ls -1d /usr/lib/python2.4/site-packages/wx-2.8* 2>/dev/null | grep -v ansi | sed -e 's/.*wx-//g' -e 's/-.*//g' | sort -nr | head -1`
-WXPYTHONVER25=`ls -1d /usr/lib/python2.5/site-packages/wx-2.8* 2>/dev/null | grep -v ansi | sed -e 's/.*wx-//g' -e 's/-.*//g' | sort -nr | head -1`
+check()
+{
+    # look for the python executable
+    PYTHONBIN=`which $1`
+    if [ "$PYTHONBIN" != "" ]; then
+        _PYTHONBIN=$PYTHONBIN
+    fi
 
-if [ "$WXPYTHONVER24" = "" ] && [ "$WXPYTHONVER25" = "" ];
-then
-    echo "Hmmm... No wxPython unicode package found for python2.4 or 2.5, cannot run Tribler, sorry"
-    exit -1
-fi
+    if [ -d "/usr/lib/$1" ]; then
 
-if [ "$WXPYTHONVER25" = "" ];
-then
-    PYTHON="python2.4"
-    WXPYTHONVER=$WXPYTHONVER24
-    echo "Using python2.4"
-else
-    PYTHON="python2.5"
-    WXPYTHONVER=$WXPYTHONVER25
-    echo "Using python2.5"
-fi
+        # look for the python-vlc library
+        if [ -f "/usr/lib/$1/site-packages/vlc.so" ]; then
+            _VLCPATH="/usr/lib/$1/site-packages"
+        fi
 
-WXPYTHON=`ls -1d /usr/lib/$PYTHON/site-packages/wx-$WXPYTHONVER* | grep -v ansi | head -1`
+        # look for the python-wx library
+        WXPYTHONVER=`ls -1d /usr/lib/$1/site-packages/wx-2.8* 2>/dev/null | grep -v ansi | sed -e 's/.*wx-//g' -e 's/-.*//g' | sort -nr | head -1`
+        if [ "$WXPYTHONVER" != "" ]; then
+            _WXPYTHONPATH=`ls -1d /usr/lib/$1/site-packages/wx-$WXPYTHONVER* | grep -v ansi | head -1`
+        fi
+    fi
+}
 
-PYTHONPATH=/usr/share/tribler/:$WXPYTHON
-export PYTHONPATH
+confirm()
+{
+    if [ "$1" = "" ]; then
+        echo $2
+        echo "Cannot run Tribler, sorry"
+        exit 1
+    fi
+}
 
-cd /usr/share/tribler
-exec $PYTHON -O Tribler/Main/tribler.py "$@" > /tmp/$USER-tribler.log 2>&1
+warn()
+{
+    if [ "$1" = "" ]; then
+        echo $2
+        echo "Some parts of Tribler may not function properly, sorry"
+    fi
+}
+
+check "python2.4"
+check "python2.5"
+check "python2.6"
+
+confirm "$_PYTHONBIN" "Unfortunatly we were not able to find python (version 2.4, 2.5, or 2.6)."
+confirm "$_WXPYTHONPATH" "Unfortunatly we were not able to find a unicode package for wxPython 2.8 (python version 2.4, 2.5, or 2.6)."
+warn "$_VLCPATH" "Unfortunatey we were not able to find the python bindings for vlc."
+
+_TRIBLERPATH="/usr/share/tribler"
+
+echo "_PYTHONBIN:    $_PYTHONBIN"
+echo "_TRIBLERPATH:  $_TRIBLERPATH"
+echo "_WXPYTHONPATH: $_WXPYTHONPATH"
+echo "_VLCPATH:      $_VLCPATH"
+
+export PYTHONPATH="$_TRIBLERPATH:$_PYTHONPATH:$_WXPYTHONPATH:$_VLCPATH"
+
+echo "Starting Tribler..."
+cd $_TRIBLERPATH
+exec $_PYTHONBIN -O Tribler/Main/tribler.py "$@" > /tmp/$USER-tribler.log 2>&1

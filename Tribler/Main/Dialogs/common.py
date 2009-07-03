@@ -3,14 +3,13 @@
 
 import wx
 from ABC.GUI.list import ManagedList
-from threading import Event
 
 def sort_dictlist(dict_list, key, order='increase'):
     
     aux = [(dict_list[i][key], i) for i in xrange(len(dict_list))]
     try:
         aux.sort()
-    except UnicodeDecodeError,e:
+    except UnicodeDecodeError:
         # Arno: there are unicode strings and non-unicode strings in the data.
         # One of the non-unicode strings contains data that cannot be
         # decoded into a unicode string for comparison to the other unicode

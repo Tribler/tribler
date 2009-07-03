@@ -1,11 +1,11 @@
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
+from Tribler.Main.vwxGUI.tribler_topButton import SwitchButton
 from wx.lib.stattext import GenStaticText as StaticText
 from font import *
 
-import wx, os, sys, os.path, math
+import wx, sys, math
 
-DEBUG = True
+DEBUG = False
 
 # font sizes
 if sys.platform == 'darwin':
@@ -72,19 +72,9 @@ class standardPager(wx.Panel):
         self.boldFont  = wx.Font(FS_ITEMNORMAL,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE) # was Arial
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        #self.number = wx.StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))
-        #self.number.SetLabel('0 %s' % self.utility.lang.get('item')+'s')
-        #self.number.SetFont(self.normalFont)
-        #self.hSizer.Add(self.number, 3, wx.ALL, 0)
         
-        # left arrows
-#        self.leftPages = ImagePanel(self)
-#        self.leftPages.SetBitmap(wx.Bitmap("prev2.gif",wx.BITMAP_TYPE_GIF))
-#        self.hSizer.Add(self.leftPages, 0, BORDER_EXPAND, 0)
         self.left = SwitchButton(self, name='prevpage')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        ##self.left.setBackground(self.guiUtility.triblerRed)
-        #self.hSizer.AddSpacer(wx.Size(25))
         self.hSizer.Add(self.left, 0, wx.TOP, 0)
         
         #page numbers
@@ -93,7 +83,6 @@ class standardPager(wx.Panel):
         
         self.right = SwitchButton(self, name='nextpage')
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        ##self.right.setBackground(self.guiUtility.triblerRed)
         self.hSizer.AddSpacer(wx.Size(20))
         self.hSizer.AddSpacer(wx.Size(20))
         self.hSizer.Add(self.right, 0, wx.TOP, 0)
@@ -115,7 +104,7 @@ class standardPager(wx.Panel):
         
         self.beginPage = max(0, min(self.totalPages-self.numPages, self.beginPage))
         if self.currentPage <= self.beginPage-1:
-                self.beginPage = max(0, self.beginPage - 1)
+            self.beginPage = max(0, self.beginPage - 1)
                 
         rightDots = self.beginPage+self.numPages < self.totalPages
         leftDots = self.beginPage != 0

@@ -156,7 +156,7 @@ Random Peers
 import sys
 from random import sample, randint, shuffle
 from time import time, gmtime, strftime
-from traceback import print_exc, print_stack
+from traceback import print_exc
 from sets import Set
 from array import array
 from bisect import insort
@@ -173,12 +173,12 @@ from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND, NTFY_MYPR
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_ELEVENTH , OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
-from similarity import P2PSim, P2PSimSorted, P2PSimLM
+from similarity import P2PSimLM
 from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollecting
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Statistics.Crawler import Crawler
 
-from threading import Event, currentThread
+from threading import currentThread
 
 from bartercast import BarterCastCore
 from moderationcast import ModerationCastCore

@@ -5,7 +5,7 @@
 #
 import sys
 
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 
 DEBUG = False
 
@@ -74,24 +74,13 @@ LANGUAGES = {                #The language-codes and their representations for l
 
 #For debugging messages
 import sys
-from traceback import print_exc
 
 #For validity-checks
 from types import StringType, ListType, DictType
 from time import time
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
+from Tribler.Core.BitTornado.bencode import bencode
 from Tribler.Core.Overlay.permid import verify_data
 from os.path import exists, isfile
-from M2Crypto import Rand,EC,EVP
-
-#For image
-from mimetypes import guess_type
-from cStringIO import StringIO
-
-#For Messages-toString
-from binascii import hexlify
-from time import gmtime, asctime
-from Tribler.Core.Utilities.utilities import show_permid_short
 
 #*****************Validity-checks*****************
 def validInfohash(infohash):

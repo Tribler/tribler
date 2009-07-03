@@ -3,19 +3,12 @@
 
 import sys
 import os
-from time import time,sleep
-import copy
 import pickle
 import socket
 import binascii
-import shutil
-from UserDict import DictMixin
-from threading import RLock,Condition,Event,Thread,currentThread,enumerate
-from traceback import print_exc,print_stack
-from types import StringType
+from threading import Event,Thread,enumerate
+from traceback import print_exc
 
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
-from Tribler.Core.BitTornado.download_bt1 import BT1Download
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
 from Tribler.Core.BitTornado.BT1.track import Tracker
@@ -27,7 +20,6 @@ from Tribler.Core.exceptions import *
 from Tribler.Core.Download import Download
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay,OLPROTO_VER_CURRENT
@@ -42,7 +34,6 @@ import Tribler.Core.CacheDB.cachedb as cachedb
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
 from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import *
 from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import *
-from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.RequestPolicy import *
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Category.Category import Category
@@ -278,7 +269,6 @@ class TriblerLaunchMany(Thread):
                 if pstate is not None:
                     if DEBUG:
                         print >>sys.stderr,"tlm: add: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
-                    pass
             
             # Store in list of Downloads, always. 
             infohash = d.get_def().get_infohash()
@@ -557,7 +547,7 @@ class TriblerLaunchMany(Thread):
         if stop:
             # Some grace time for early shutdown tasks
             if self.shutdownstarttime is not None:
-                now = time()
+                now = time.time()
                 diff = now - self.shutdownstarttime
                 if diff < gracetime:
                     print >>sys.stderr,"tlm: shutdown: delaying for early shutdown tasks",gracetime-diff
@@ -575,7 +565,7 @@ class TriblerLaunchMany(Thread):
         to checkpointing, etc.
         """
         if self.overlay_apps is not None:
-            self.shutdownstarttime = time()
+            self.shutdownstarttime = time.time()
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
         
             

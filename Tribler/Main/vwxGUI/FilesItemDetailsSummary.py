@@ -1,22 +1,18 @@
-import wx, os
+# Written by Jelle Roozenburg, Richard Gwin
+# see LICENSE.txt for license information
+
+import wx
+
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton, TestButton
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 ## from Tribler.Main.vwxGUI.TextButton import *
 from Tribler.Main.vwxGUI.bgPanel import *
-from Tribler.Core.Utilities.unicode import bin2unicode
-
-from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
-## from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI.GridState import GridState
-from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
-from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
+from Tribler.Video.VideoPlayer import VideoPlayer
 
 
 class FilesItemDetailsSummary(bgPanel):

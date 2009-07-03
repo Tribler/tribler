@@ -14,13 +14,12 @@
 import sys
 import copy
 import pickle
-from traceback import print_exc
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.Base import *
 from Tribler.Core.BitTornado.RawServer import autodetect_socket_style
-from Tribler.Core.Utilities.utilities import find_prog_in_PATH,validTorrentFile,isValidURL
+from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 
 
 class SessionConfigInterface:
@@ -1050,6 +1049,9 @@ class SessionConfigInterface:
         """ File to log message to in super peer mode (default = No logging)
         @param value An absolute path name.
         """
+        
+        print_stack()
+        
         self.sessconfig['overlay_log'] = value
 
     def get_overlay_log(self):

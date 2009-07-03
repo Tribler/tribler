@@ -1,20 +1,17 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker, Lucian Musat 
 # see LICENSE.txt for license information
 
-import wx, time, random, os
+import wx, os
 from wx import xrc
-from traceback import print_exc,print_stack
+from traceback import print_exc
 from threading import Event, Thread
-import urllib,urllib2
+import urllib
 import webbrowser
-from sets import Set
 from webbrowser import open_new
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
-from Tribler.Core.Utilities.unicode import dunno2unicode
 
-from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 #from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
@@ -26,7 +23,7 @@ from Tribler.Main.Utility.constants import *
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
-from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
+from Tribler.Video.VideoPlayer import VideoPlayer
 
 
 
@@ -470,7 +467,6 @@ class GUIUtility:
 
             if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
                 self.frame.videoframe.videopanel.vlcwin.show_loading()
-            
 
             #self.frame.top_bg.search_results.SetColour(wx.BLACK)
 
@@ -542,7 +538,6 @@ class GUIUtility:
             if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
                 self.frame.videoframe.videopanel.vlcwin.show_loading()
             
-
             #self.frame.top_bg.search_results.SetColour(wx.BLACK)
 
             self.frame.top_bg.results.SetForegroundColour((0,105,156))
@@ -597,7 +592,7 @@ class GUIUtility:
             self.showPager(False)
 
             if self.frame.top_bg.search_results.GetLabel() != '':
-                  self.frame.top_bg.search_results.Hide()
+                self.frame.top_bg.search_results.Hide()
             ##    self.frame.top_bg.search_results.SetLabel('Return to Results')
             ##    self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
             self.frame.Layout()
@@ -672,7 +667,7 @@ class GUIUtility:
 
 
             if self.frame.top_bg.search_results.GetLabel() != '':
-                  self.frame.top_bg.search_results.Hide()
+                self.frame.top_bg.search_results.Hide()
             ##    self.frame.top_bg.search_results.SetLabel('Return to Results')
             ##    self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
             self.frame.top_bg.Layout()
@@ -1131,7 +1126,7 @@ class GUIUtility:
             event.Skip()
 
     def getSearchField(self,mode=None):
-       return self.standardOverview.getSearchField(mode=mode)
+        return self.standardOverview.getSearchField(mode=mode)
    
     def isReachable(self):
         return self.utility.session.get_externally_reachable()
@@ -1235,7 +1230,6 @@ class GUIUtility:
                 t.start()
             except:
                 print_exc()
-                pass
                 
         elif DEBUG:
             print >>sys.stderr,'GUIUtil: onOpenFileDest failed: no torrent selected'

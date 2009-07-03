@@ -3,21 +3,15 @@
 #
 
 import sys
-from time import time, ctime
-from zlib import compress, decompress
-from base64 import decodestring
-from binascii import hexlify
-from traceback import print_exc, print_stack
-from types import StringType, ListType, DictType
-from random import randint, sample, seed, random
+from time import time
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.BitTornado.BT1.MessageID import VOTECAST
 from Tribler.Core.CacheDB.CacheDBHandler import VoteCastDBHandler
 from Tribler.Core.Utilities.utilities import *
-from Tribler.Core.Overlay.permid import permid_for_user,sign_data
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+from Tribler.Core.Overlay.permid import permid_for_user
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.BuddyCast.moderationcast_util import *
 
 DEBUG_UI = False

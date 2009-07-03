@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 
 import sys
-from traceback import print_exc,print_stack
 
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException

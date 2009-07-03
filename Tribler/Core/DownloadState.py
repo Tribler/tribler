@@ -3,10 +3,6 @@
 """ Contains a snapshot of the state of the Download at a specific point in time. """
 
 import sys
-import os
-#import time
-import copy
-import shutil
 from traceback import print_exc,print_stack
 
 from Tribler.Core.simpledefs import *
@@ -334,7 +330,7 @@ class DownloadState(Serializable):
         if self.coopdl_helpers is None:
             return []
         else:
-           return self.coopdl_helpers 
+            return self.coopdl_helpers 
 
     def get_coopdl_coordinator(self):
         """ Returns the permid of the coordinator when helping that peer

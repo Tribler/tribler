@@ -2,20 +2,14 @@
 # see LICENSE.txt for license information
 
 import unittest
-import os
 import sys
 import time
-import socket
-import tempfile
 from time import sleep
-from types import StringType, ListType, DictType, IntType
+from types import StringType, DictType
 
-from M2Crypto import EC
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import QUERY, QUERY_REPLY, getMessageName
-from Tribler.Core.Utilities.utilities import show_permid_short
 
-from btconn import BTConnection
 from olconn import OLConnection
 from Tribler.Test.test_as_server import TestAsServer
 

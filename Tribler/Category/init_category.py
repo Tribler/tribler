@@ -4,7 +4,6 @@
 # give the initial category information
 
 import ConfigParser
-import os
 
 def splitList(string):
     l = []

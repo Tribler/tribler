@@ -6,12 +6,8 @@ import os
 import sys
 import time
 from Tribler.Core.Utilities.Crypto import sha
-from random import randint,shuffle
-from traceback import print_exc
-from types import StringType, ListType, DictType, IntType
-from threading import Thread
-from time import sleep
-from M2Crypto import Rand,EC
+from types import StringType, DictType, IntType
+from M2Crypto import EC
 
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection

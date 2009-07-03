@@ -2,23 +2,17 @@
 # see LICENSE.txt for license information
 import wx
 import wx.xrc as xrc
-import random, sys, os
-from time import time
-from traceback import print_exc,print_stack
-import urllib
+import sys, os
 import cStringIO
 
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from Tribler.Core.simpledefs import *
-from Tribler.Core.SessionConfig import SessionConfigInterface
 
-from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
 
 
 #fonts

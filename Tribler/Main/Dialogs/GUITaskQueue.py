@@ -7,10 +7,6 @@
 # wx.CallAfter
 #
 
-from threading import Thread,Condition
-from traceback import print_exc
-from time import time
-
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 
 DEBUG = False

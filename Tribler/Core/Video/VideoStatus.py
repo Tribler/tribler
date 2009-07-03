@@ -4,7 +4,6 @@
 import sys
 from math import ceil
 from sets import Set
-from traceback import print_exc,print_stack
 
 from Tribler.Core.simpledefs import *
 

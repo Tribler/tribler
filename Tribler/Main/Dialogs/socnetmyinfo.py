@@ -3,7 +3,6 @@
 
 import os
 import sys
-import base64
 from traceback import print_exc
 import tempfile
 import cStringIO
@@ -17,7 +16,6 @@ import wx.lib.imagebrowser as ib
 from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
 
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap, ICON_MAX_DIM
-from Tribler.Core.Utilities.unicode import str2unicode
 #from common import CommonTriblerList
 from Tribler.Main.Utility.constants import *
 from Tribler.Core.SessionConfig import SessionStartupConfig

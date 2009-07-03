@@ -17,10 +17,8 @@ import unittest
 
 import sys
 import socket
-import tempfile
-import shutil
 import time
-from threading import Thread,currentThread
+from threading import Thread
 from types import DictType, StringType
 from traceback import print_exc
 from M2Crypto import EC
@@ -97,43 +95,43 @@ class MyServer(Thread):
         self.subtest_bad_resp1_sig_by_other_key(ss)
 
     def subtest_good_response1(self,ss):
-            self._test_response1(ss, self.create_good_response1,True)
+        self._test_response1(ss, self.create_good_response1,True)
 
     def subtest_bad_resp1_no_bdecoable(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_no_bdecodable,False)
+        self._test_response1(ss, self.create_bad_resp1_no_bdecodable,False)
     
     def subtest_bad_resp1_not_dict1(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_not_dict1,False)
+        self._test_response1(ss, self.create_bad_resp1_not_dict1,False)
 
     def subtest_bad_resp1_not_dict2(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_not_dict2,False)
+        self._test_response1(ss, self.create_bad_resp1_not_dict2,False)
 
     def subtest_bad_resp1_empty_dict(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_empty_dict,False)
+        self._test_response1(ss, self.create_bad_resp1_empty_dict,False)
 
     def subtest_bad_resp1_wrong_dict_keys(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_wrong_dict_keys,False)
+        self._test_response1(ss, self.create_bad_resp1_wrong_dict_keys,False)
 
     def subtest_bad_resp1_bad_cert(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_bad_cert,False)
+        self._test_response1(ss, self.create_bad_resp1_bad_cert,False)
 
     def subtest_bad_resp1_too_short_randomA(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_too_short_randomA,False)
+        self._test_response1(ss, self.create_bad_resp1_too_short_randomA,False)
 
     def subtest_bad_resp1_bad_peerid(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_bad_peerid,False)
+        self._test_response1(ss, self.create_bad_resp1_bad_peerid,False)
 
     def subtest_bad_resp1_bad_sig_input(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_bad_sig_input,False)
+        self._test_response1(ss, self.create_bad_resp1_bad_sig_input,False)
 
     def subtest_bad_resp1_too_short_randomB(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_too_short_randomB,False)
+        self._test_response1(ss, self.create_bad_resp1_too_short_randomB,False)
 
     def subtest_bad_resp1_wrong_randomB(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_bad_randomB,False)
+        self._test_response1(ss, self.create_bad_resp1_bad_randomB,False)
 
     def subtest_bad_resp1_sig_by_other_key(self,ss):
-            self._test_response1(ss, self.create_bad_resp1_sig_by_other_key,False)
+        self._test_response1(ss, self.create_bad_resp1_sig_by_other_key,False)
 
     def _test_response1(self,ss,gen_resp1,good):
         print >>sys.stderr,"test: myserver running:",gen_resp1

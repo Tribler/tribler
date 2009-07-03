@@ -11,7 +11,6 @@ from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.Utilities.utilities import isValidInfohash, show_permid_short, sort_dictlist, bin2str
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTH, OLPROTO_VER_ELEVENTH 
-from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.simpledefs import *
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.osutils import getfreespace,get_readable_torrent_name

@@ -3,26 +3,17 @@
 
 import sys
 from math import ceil
-from threading import Lock,Condition,Event,RLock,currentThread
-from traceback import print_exc,print_stack
-from select import select
+from threading import Condition,currentThread
+from traceback import print_exc
 from tempfile import mkstemp
-from threading import Thread
-from sets import Set
 import collections
 import os
 import base64
-import SocketServer
-import BaseHTTPServer
-from SocketServer import ThreadingMixIn
-import os,sys,string,time
-import random,socket,thread,re
+import os,sys,time
+import re
 
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
-from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker
 from Tribler.Core.Video.MovieTransport import MovieTransport,MovieTransportStreamWrapper
-from Tribler.Core.Video.VideoStatus import VideoStatus
-from Tribler.Core.Video.PiecePickerStreaming import PiecePickerStreaming 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Video.LiveSourceAuth import ECDSAAuthenticator,RSAAuthenticator,AuthStreamWrapper,VariableReadAuthStreamWrapper
 from Tribler.Core.osutils import *
@@ -1377,7 +1368,7 @@ class MovieOnDemandTransporter(MovieTransport):
                     print >>sys.stderr,"vod: trans:                        BUFFER UNDERRUN -- IGNORING, rate is sustainable"
             else:
                 if DEBUG:
-                   print >>sys.stderr,"vod: trans:                         BUFFER UNDERRUN -- STALLING, cannot pause player to fall back some, so just wait for more pieces"
+                    print >>sys.stderr,"vod: trans:                         BUFFER UNDERRUN -- STALLING, cannot pause player to fall back some, so just wait for more pieces"
                 self.data_ready.release()
                 return
                     

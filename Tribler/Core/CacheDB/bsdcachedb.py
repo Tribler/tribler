@@ -104,15 +104,13 @@ OwnerDB - (PeerDB, TorrentDB)
 """
 
 import os, sys
-from time import time, ctime
-from random import random
-from Tribler.Core.Utilities.Crypto import sha
+from time import time
 from copy import deepcopy
 from sets import Set
-from traceback import print_exc, print_stack
+from traceback import print_exc
 from threading import currentThread
 
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
+from Tribler.Core.BitTornado.bencode import bencode
 
 #from Tribler.utilities import isValidPermid, isValidInfohash
 
@@ -144,8 +142,6 @@ try:
 except ImportError:
     # For earlier Pythons w/distutils pybsddb
     from bsddb3 import db, dbshelve, dbutils
-
-from shelve import BsdDbShelf 
 
 dbutils._deadlock_VerboseFile = sys.stderr
 

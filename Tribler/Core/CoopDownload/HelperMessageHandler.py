@@ -4,10 +4,8 @@
 # SecureOverlay message handler for a Helper
 #
 
-
-from Tribler.Core.Utilities.Crypto import sha
-import sys, os
-from random import randint
+import sys
+import os
 import binascii
 
 from Tribler.Core.TorrentDef import *
@@ -175,7 +173,7 @@ class HelperMessageHandler:
             infohash = message[1:21]
             pieces = bdecode(message[21:])
         except:
-            print >> sys.stderr,"helper: warning: bad data in PIECES_RESERVED"
+            print >> sys.stderr,"helper: warning: bad data in PIECES_RESERVED message"
             return False
 
         network_got_pieces_reserved_lambda = lambda:self.network_got_pieces_reserved(permid,message,selversion,infohash,pieces)

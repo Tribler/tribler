@@ -1,10 +1,9 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Lucan Musat
 # see LICENSE.txt for license information
 
-import os, sys, wx, math
-from traceback import print_exc,print_stack
-import wx.xrc as xrc
-from time import time,sleep
+import sys, wx
+from traceback import print_exc
+from time import time
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
@@ -12,14 +11,9 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.filesItemPanel import FilesItemPanel
 from Tribler.Main.vwxGUI.LibraryItemPanel import LibraryItemPanel
-## from Tribler.Main.vwxGUI.PersonsItemPanel import PersonsItemPanel
-## from Tribler.Main.vwxGUI.FriendsItemPanel import FriendsItemPanel
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
-## from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
-from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-#from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
 
 DEBUG = False
@@ -261,7 +255,7 @@ class GridManager(object):
         else:
             # 15/07/08 Boudewijn: only change grid when still searching
             #if self.torrentsearch_manager.inSearchMode(self.state.db):    # 25/07/08 Jie: it causes GUI never updated when not in search mode
-                self.itemChanged(*args)
+            self.itemChanged(*args)
              
         
     def itemChanged(self,subject,changeType,objectID,*args):
@@ -433,7 +427,7 @@ class standardGrid(wx.Panel):
             self.initReady = True
             wx.Panel.__init__(self,parent,-1,name=name)
         
-        print >>sys.stderr,"standardGrid: __init__: viewmode is",self.viewmode
+        #print >>sys.stderr,"standardGrid: __init__: viewmode is",self.viewmode
         
         if type(cols) == int:
             self.cols = cols
@@ -945,16 +939,16 @@ class standardGrid(wx.Panel):
                 
     def getFirstPanel(self):
         try:
-             hSizer = self.vSizer.GetItem(1).GetSizer()
-             panel = hSizer.GetItem(0).GetWindow()
-             return panel
+            hSizer = self.vSizer.GetItem(1).GetSizer()
+            panel = hSizer.GetItem(0).GetWindow()
+            return panel
         except:
             return None
         
     def toggleColumnHeaders(self, show):
         # show or hide columnheaders
         if bool(self.columnHeader) == show:
-                return
+            return
         if show:
             panel = self.getFirstPanel()
             if panel:
@@ -987,7 +981,7 @@ class filesGrid(standardGrid):
 #        columns = 5
 #        self.subPanelHeight = 108 # This will be update after first refresh
         columns = (5, 1)
-        subPanelHeight = (5*22, 30)
+        subPanelHeight = (5*22, 22)
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical',parent=parent,name="filesGrid")
         
     def getSubPanel(self, keyfun):
@@ -996,7 +990,7 @@ class filesGrid(standardGrid):
 class libraryGrid(standardGrid):
     def __init__(self,parent=None):
         columns = (1,1)
-        subPanelHeight = (22, 30) # This will be update after first refresh
+        subPanelHeight = (22, 22) # This will be update after first refresh
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="libraryGrid")
             
     def getSubPanel(self, keyfun):

@@ -1,17 +1,10 @@
 # Written by Boxun Zhang
 # see LICENSE.txt for license information
 
-import sys
 import os
-from copy import deepcopy
-from Queue import Queue, Empty 
-from time import time, sleep
-from base64 import encodestring, decodestring
-from unicode import dunno2unicode
-import math
-from random import shuffle
+from time import time
 import threading
-from traceback import print_exc, extract_stack, print_stack
+from traceback import print_exc
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.CacheDB.sqlitecachedb import *
@@ -32,15 +25,15 @@ cost_reads = []
 DEBUG = False
 
 def init_seeding_stats(config, db_exception_handler = None):
-        """ create SeedingStats database """
-        global CREATE_SEEDINGSTATS_SQL_FILE
-        config_dir = config['state_dir']
-        install_dir = config['install_dir']
-        CREATE_SEEDINGSTATS_SQL_FILE = os.path.join(install_dir,CREATE_SEEDINGSTATS_SQL_FILE_POSTFIX)
-        sqlitedb = SQLiteSeedingStatsCacheDB.getInstance(db_exception_handler)   
-        sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
-        sqlitedb.initDB(sqlite_db_path, CREATE_SEEDINGSTATS_SQL_FILE)  # the first place to create db in Tribler
-        return sqlitedb
+    """ create SeedingStats database """
+    global CREATE_SEEDINGSTATS_SQL_FILE
+    config_dir = config['state_dir']
+    install_dir = config['install_dir']
+    CREATE_SEEDINGSTATS_SQL_FILE = os.path.join(install_dir,CREATE_SEEDINGSTATS_SQL_FILE_POSTFIX)
+    sqlitedb = SQLiteSeedingStatsCacheDB.getInstance(db_exception_handler)   
+    sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
+    sqlitedb.initDB(sqlite_db_path, CREATE_SEEDINGSTATS_SQL_FILE)  # the first place to create db in Tribler
+    return sqlitedb
 
 class SQLiteSeedingStatsCacheDB(SQLiteCacheDBBase):
     __single = None    # used for multithreaded singletons pattern

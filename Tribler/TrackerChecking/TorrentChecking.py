@@ -23,9 +23,8 @@
 import sys
 import threading
 from threading import Thread
-from random import random, sample
-from time import time, asctime
-from traceback import print_exc, print_stack
+from random import sample
+from time import time
 
 from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
@@ -70,7 +69,7 @@ class TorrentChecking(Thread):
             del data['info']
             torrent['info'] = data
             return torrent
-        except Exception, msg:
+        except Exception:
             #print_exc()
             return torrent
             

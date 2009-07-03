@@ -9,14 +9,8 @@ import tempfile
 import random
 import shutil
 import time
-from binascii import b2a_hex
-from struct import pack,unpack
-from StringIO import StringIO
-from threading import Thread,currentThread
-from types import DictType, StringType
-from traceback import print_exc,print_stack
+from traceback import print_exc
 
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from M2Crypto import EC
 
 from Tribler.Core.Session import *

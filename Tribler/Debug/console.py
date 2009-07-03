@@ -32,4 +32,3 @@ class SafeLinePrintStream:
         
 sys.stderr = SafeLinePrintStream(sys.stderr)
 sys.stdout = sys.stderr
-

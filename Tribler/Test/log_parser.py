@@ -66,7 +66,7 @@ def parse_log_line(line, line_num):
             data['msg'] = eval(msg)
             data['query'] = data['msg']['q'][7:]
         except KeyboardInterrupt:
-             raise KeyboardInterrupt
+            raise KeyboardInterrupt
         except Exception, msg:
             print >> sys.stderr, "Error in eval the msg on line %d:"%line_num, Exception, msg
             return None
@@ -142,4 +142,4 @@ if __name__ == '__main__':
         i += 1
         #for ret in parse_log_file(file_path):
         for ret in get_buddycast_data(file_path):
-                print "GOT",`ret`
+            print "GOT",`ret`

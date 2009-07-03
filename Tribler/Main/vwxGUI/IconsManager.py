@@ -154,17 +154,16 @@ class IconsManager:
         try:
             sim = wx.Image(srcfilename).Scale(ICON_MAX_DIM,ICON_MAX_DIM)
             sim.SaveFile(dstfilename,wx.BITMAP_TYPE_JPEG)
-            f = StringIO()
+            f = cStringIO.StringIO()
             sim.SaveStream(f,wx.BITMAP_TYPE_JPEG)
             self.peer_db.updatePeerIcon('image/jpeg',f.getvalue())
             f.close()
         except:
             if DEBUG:
                 print_exc()
-            pass
 
     def load_wxBitmap(self,permid, dim = ICON_MAX_DIM):
-        [mimetype,data] = self.peer_db.getPeerIcon(permid)
+        [_mimetype,data] = self.peer_db.getPeerIcon(permid)
         if data is None:
             return None
         else:

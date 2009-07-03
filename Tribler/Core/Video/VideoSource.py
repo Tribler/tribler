@@ -7,16 +7,15 @@
 # We assume we are the sole originator of these pieces, i.e. none of the pieces
 # injected are already obtained from another source or requested from some peer.
 
-import os,sys
+import sys
 from threading import RLock,Thread
 from traceback import print_exc
 from time import sleep
 from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker
-from Tribler.Core.Video.VideoStatus import VideoStatus
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Video.LiveSourceAuth import NullAuthenticator,ECDSAAuthenticator,RSAAuthenticator
-
 from Tribler.Core.Utilities.Crypto import sha
+
 
 DEBUG = True
 

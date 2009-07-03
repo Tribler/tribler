@@ -5,7 +5,6 @@ from clock import clock
 from CurrentRateMeasure import Measure
 from math import sqrt
 import sys
-from traceback import print_exc,print_stack
 
 try:
     True

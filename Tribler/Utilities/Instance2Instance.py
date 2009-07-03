@@ -10,10 +10,8 @@
 #
 import sys
 import socket
-from StringIO import StringIO
 from traceback import print_exc
 from threading import Thread, Event
-from binascii import hexlify
 from Tribler.Core.BitTornado.RawServer import RawServer
 
 DEBUG = True

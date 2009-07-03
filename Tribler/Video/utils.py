@@ -100,7 +100,7 @@ def win32_retrieve_playcmd_from_mimetype(mimetype,videourl):
     if DEBUG:
         print >>sys.stderr,"videoplay: ext winfiletype is",ext
     if ext is None or ext == '':
-            return [None,None]
+        return [None,None]
     if DEBUG:
         print >>sys.stderr,"videoplay: Looking for player for mime",mimetype,"which is ext",ext
 

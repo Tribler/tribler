@@ -4,14 +4,8 @@
 import os, re
 from Tribler.Category.init_category import getCategoryInfo
 from FamilyFilter import XXXFilter
-from Tribler.Core.BitTornado import bencode
-from Tribler.Core.Utilities.unicode import str2unicode, dunno2unicode
-from sets import Set
-from time import time
-from copy import deepcopy
 from traceback import print_exc
     
-from threading import Condition
 import sys
 
 from Tribler.__init__ import LIBRARYNAME

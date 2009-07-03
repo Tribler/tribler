@@ -241,7 +241,6 @@ class DescriptionContentHandler(ContentHandler):
     def endDocument(self):
         if DEBUG:
             print >> sys.stderr,"upnp: discover: Services found",self.services
-        pass
 
     def endElement(self, name):
         #print >> sys.stderr,"endElement",name

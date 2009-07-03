@@ -90,7 +90,8 @@ class TopSearchPanel(bgPanel):
         self.first = True
         self.rep = 0
         self.count=0
-      
+        self.sr_msg = None
+     
     def set_frame(self,frame):
         self.frame = frame
 

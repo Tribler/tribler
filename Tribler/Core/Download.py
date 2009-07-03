@@ -3,13 +3,7 @@
 """ The representation of a running BT download/upload. """
 
 import sys
-import os
-#import time
-import copy
-import pickle
-import shutil
 from traceback import print_exc,print_stack
-from types import StringType,ListType,IntType
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
@@ -18,8 +12,6 @@ from Tribler.Core.Base import *
 from Tribler.Core.APIImplementation.DownloadRuntimeConfig import DownloadRuntimeConfig
 from Tribler.Core.APIImplementation.DownloadImpl import DownloadImpl
 from Tribler.Core.APIImplementation.miscutils import *
-
-from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.osutils import *
 
 

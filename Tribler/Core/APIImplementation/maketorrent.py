@@ -10,9 +10,8 @@ import zlib
 
 from Tribler.Core.Utilities.Crypto import sha
 from copy import copy
-from threading import Event
 from time import time
-from traceback import print_exc,print_stack
+from traceback import print_exc
 from types import LongType
 
 from Tribler.Core.BitTornado.bencode import bencode
@@ -49,7 +48,7 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
     # http://www.bittorrent.org/DHT_protocol.html says both announce and nodes
     # are not allowed, but some torrents (Azureus?) apparently violate this.
     if input['nodes'] is None and input['announce'] is None:
-            raise ValueError('No tracker set')
+        raise ValueError('No tracker set')
     
     for key in ['announce','announce-list','nodes','comment','created by','httpseeds']:
         if input[key] is not None and len(input[key]) > 0:

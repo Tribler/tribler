@@ -1,9 +1,5 @@
-import os
-import sys
 import unittest
-from traceback import print_exc
 from time import sleep
-from threading import Thread, currentThread
 
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 

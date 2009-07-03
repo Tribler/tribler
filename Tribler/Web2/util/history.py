@@ -4,7 +4,6 @@
 from bsddb import dbshelve
 import bsddb
 
-import os.path
 import observer
 import threading
 

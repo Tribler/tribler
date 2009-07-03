@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 
 import os,sys
-from traceback import print_exc
 
 (DOWNLOAD_COMPLETE,DONE_SEEDING)=range(0,2)
 

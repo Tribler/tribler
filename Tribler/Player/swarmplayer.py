@@ -26,6 +26,7 @@ import os
 import sys
 import time
 import tempfile
+import shutil
 from traceback import print_exc
 from cStringIO import StringIO
 from threading import Thread

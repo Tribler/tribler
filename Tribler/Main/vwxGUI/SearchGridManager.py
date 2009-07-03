@@ -1,7 +1,6 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Lucan Musat, Arno Bakker
 # see LICENSE.txt for license information
 
-import os
 import sys
 import wx
 from traceback import print_exc, print_stack

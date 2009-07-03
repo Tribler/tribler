@@ -1,25 +1,18 @@
 # Written by Boudewijn Schoon, Arno Bakker
 # see LICENSE.txt for license information
 
-import socket
 import unittest
-import os
 import sys
 import time
-from Tribler.Core.Utilities.Crypto import sha
-from random import randint,shuffle
 from traceback import print_exc
-from types import StringType, IntType, ListType
-from threading import Thread
-from M2Crypto import Rand,EC
-import cPickle
+from M2Crypto import EC
 
 from Tribler.Test.test_crawler import TestCrawler
 from olconn import OLConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 
-from Tribler.Core.BitTornado.BT1.MessageID import getMessageName,CRAWLER_FRIENDSHIP_STATS
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
+from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_FRIENDSHIP_STATS
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
 from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
 

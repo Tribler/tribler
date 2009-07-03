@@ -4,13 +4,11 @@
 import unittest
 import os
 import sys
+import wx
 import time
 from Tribler.Core.Utilities.Crypto import sha
-from random import randint,shuffle
-from traceback import print_exc
-from types import StringType, ListType, DictType
+from types import StringType, DictType
 from threading import Thread
-from time import sleep
 from M2Crypto import Rand,EC
 
 from Tribler.Test.test_as_server import TestAsServer

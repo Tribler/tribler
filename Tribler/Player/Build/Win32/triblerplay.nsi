@@ -123,17 +123,24 @@ Section "!Main EXE" SecMain
 
  WriteUninstaller "$INSTDIR\Uninstall.exe"
 
+ ; Add an application to the firewall exception list - All Networks - All IP Version - Enabled
+ SimpleFC::AddApplication "Tribler" "$INSTDIR\${PRODUCT}.exe" 0 2 "" 1
+ ; Pop $0 ; return error(1)/success(0)
+
 SectionEnd
+
 
 Section "Desktop Icons" SecDesk
    CreateShortCut "$DESKTOP\${PRODUCT}.lnk" "$INSTDIR\${PRODUCT}.exe" ""
 SectionEnd
+
 
 Section "Startmenu Icons" SecStart
    CreateDirectory "$SMPROGRAMS\${PRODUCT}"
    CreateShortCut "$SMPROGRAMS\${PRODUCT}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
    CreateShortCut "$SMPROGRAMS\${PRODUCT}\${PRODUCT}.lnk" "$INSTDIR\${PRODUCT}.exe" "" "$INSTDIR\${PRODUCT}.exe" 0
 SectionEnd
+
 
 Section "Make Default For .tstream" SecDefaultTStream
    WriteRegStr HKCR .tstream "" tstream
@@ -145,6 +152,7 @@ Section "Make Default For .tstream" SecDefaultTStream
    WriteRegStr HKCR "tstream\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
    WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\${LIBRARYNAME}\Images\SwarmPlayerIcon.ico"
 SectionEnd
+
 
 Section /o "Make Default For .torrent" SecDefaultTorrent
    ; Delete ddeexec key if it exists
@@ -158,6 +166,8 @@ Section /o "Make Default For .torrent" SecDefaultTorrent
    WriteRegStr HKCR "bittorrent\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
    WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\${LIBRARYNAME}\Images\torrenticon.ico"
 SectionEnd
+
+
 
 ;--------------------------------
 ;Descriptions
@@ -189,7 +199,12 @@ Section "Uninstall"
  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
 
+ ; Remove an application from the firewall exception list
+ SimpleFC::RemoveApplication "$INSTDIR\${PRODUCT}.exe"
+ ; Pop $0 ; return error(1)/success(0)
+
 SectionEnd
+
 
 ;--------------------------------
 ;Functions Section

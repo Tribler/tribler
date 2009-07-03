@@ -7,7 +7,6 @@ import os
 import sys
 import time
 import socket
-from Tribler.Core.Utilities.Crypto import sha
 from traceback import print_exc
 from types import DictType,StringType,IntType
 
@@ -19,7 +18,6 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.DownloadConfig import *
-from Tribler.Core.Utilities.utilities import isValidIP
 
 DEBUG=True
 

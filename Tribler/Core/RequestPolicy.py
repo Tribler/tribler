@@ -2,9 +2,6 @@
 # see LICENSE.txt for license information
 """ Controls the authorization of messages received via the Tribler Overlay """
 
-import sys
-from threading import currentThread
-
 from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.BitTornado.BT1.MessageID import *

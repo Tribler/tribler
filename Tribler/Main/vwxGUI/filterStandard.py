@@ -1,5 +1,4 @@
-import wx, os, sys
-import wx.xrc as xrc
+import wx, sys
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc

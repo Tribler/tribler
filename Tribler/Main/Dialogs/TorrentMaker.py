@@ -362,7 +362,7 @@ class TrackerInfoPanel(wx.Panel):
         if self.itracker.GetValue():
             params['usinginternaltracker'] = True
         else:
-             params['usinginternaltracker'] = False
+            params['usinginternaltracker'] = False
             
         if self.manualover.GetValue(): # Use manual specification of trackers
             # Announce list

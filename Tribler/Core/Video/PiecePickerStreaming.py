@@ -3,9 +3,8 @@
 
 import sys
 import time
-from math import ceil
 import random
-from traceback import print_exc,print_stack
+from traceback import print_exc
 
 from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker 
 
@@ -80,8 +79,6 @@ class PiecePickerStreaming(PiecePicker):
                  priority_step = 20, helper = None, rate_predictor = None, piecesize = 0):
         PiecePicker.__init__( self, numpieces, rarest_first_cutoff, rarest_first_priority_cutoff,
                               priority_step, helper, rate_predictor )
-
-        self.videostatus = None
 
         # maximum existing piece number, to avoid scanning beyond it in next()
         self.maxhave = 0
@@ -570,9 +567,9 @@ class PiecePickerStreaming(PiecePicker):
 
         if choice is None:
             if vs.live_streaming:
-               choice = pick_rarest_small_range( first, highprob_cutoff )
+                choice = pick_rarest_small_range( first, highprob_cutoff )
             else:
-               choice = pick_first( first, highprob_cutoff )
+                choice = pick_first( first, highprob_cutoff )
             type = "high"
 
         # it is possible that the performance of this peer prohibits
@@ -635,7 +632,7 @@ class PiecePickerStreaming(PiecePicker):
         return choice
 
     def is_valid_piece(self,piece):
-       return self.videostatus.in_valid_range(piece)
+        return self.videostatus.in_valid_range(piece)
    
     def get_valid_range_iterator(self):
         if self.videostatus.live_streaming and self.videostatus.get_live_startpos() is None:

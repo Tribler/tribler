@@ -3,7 +3,6 @@
 
 from cStringIO import StringIO
 from socket import error as socketerror
-from traceback import print_exc
 try:
     True
 except:

@@ -52,7 +52,7 @@ if sys.platform == 'darwin':
     FS_TITLE = 10
     FS_PERC = 9
     FS_SPEED = 9
-    FS_PAUSE = 9
+    FS_PAUSE = 10
 elif sys.platform == 'win32':
     FS_TITLE = 8
     FS_PERC = 6
@@ -132,7 +132,7 @@ class LibraryItemPanel(wx.Panel):
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)        
         self.Show(False)
 
-        self.SetMinSize((660,30))
+        self.SetMinSize((660,22))
 
         self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
        
@@ -151,7 +151,7 @@ class LibraryItemPanel(wx.Panel):
 
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.vSizerOverall.Add(self.hSizer, 0 , wx.EXPAND|wx.TOP, 5)
+        self.vSizerOverall.Add(self.hSizer, 0 , wx.EXPAND, 0)
 
         self.SetBackgroundColour(wx.WHITE)
 
@@ -263,9 +263,12 @@ class LibraryItemPanel(wx.Panel):
         self.pb.SetMinSize((100,5))        
 
         self.pbSizer = wx.BoxSizer(wx.VERTICAL)
-        self.pbSizer.Add([0,2],0,wx.FIXED_MINSIZE,0)        
+        if sys.platform == 'win32':
+            self.pbSizer.Add([0,3],0,wx.FIXED_MINSIZE,0)        
+        else:
+            self.pbSizer.Add([0,1], 0, wx.FIXED_MINSIZE, 0)
         self.pbSizer.Add(self.pb,0,wx.FIXED_MINSIZE,0)        
-        self.pbSizer.Add([0,2],0,wx.FIXED_MINSIZE,0)  
+        self.pbSizer.Add([0,1],0,wx.FIXED_MINSIZE,0)  
         self.pbSizer.Add(self.eta,0,wx.FIXED_MINSIZE,0)  
       
                 

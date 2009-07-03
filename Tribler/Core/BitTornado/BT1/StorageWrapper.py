@@ -3,7 +3,6 @@
 
 from traceback import print_exc
 from random import randrange
-from math import log,pow,floor
 from copy import deepcopy
 import pickle
 import traceback, sys
@@ -926,9 +925,9 @@ class StorageWrapper:
         # do_get_piece() returns PieceBuffer
         pb = self.do_get_piece(index,begin,length)
         if self.merkle_torrent and pb is not None and begin == 0:
-             hashlist = self.merkletree.get_hashes_for_piece(index)
+            hashlist = self.merkletree.get_hashes_for_piece(index)
         else:
-             hashlist = []
+            hashlist = []
         return [pb,hashlist]
 
     def do_get_piece(self, index, begin, length):

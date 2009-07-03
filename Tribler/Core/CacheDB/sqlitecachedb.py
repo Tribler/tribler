@@ -3,15 +3,11 @@
 
 import sys
 import os
-from copy import deepcopy
-from Queue import Queue, Empty 
-from time import time, sleep
+from time import sleep
 from base64 import encodestring, decodestring
 from unicode import dunno2unicode
-import math
-from random import shuffle
 import threading
-from traceback import print_exc, extract_stack, print_stack
+from traceback import print_exc, print_stack
 
 from Tribler.__init__ import LIBRARYNAME
 

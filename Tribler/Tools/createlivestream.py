@@ -7,7 +7,6 @@ import os
 import shutil
 import time
 import tempfile
-import random
 import urllib2
 from traceback import print_exc
 from threading import Condition

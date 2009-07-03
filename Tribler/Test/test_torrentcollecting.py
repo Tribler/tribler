@@ -1,13 +1,6 @@
 import os
 import sys
 import unittest
-import tempfile
-from traceback import print_exc
-import thread, threading
-from threading import Thread
-from time import time,sleep
-import math
-from random import shuffle
 
 if os.path.exists('test_sqlitecachedb.py'):
     BASE_DIR = '..'

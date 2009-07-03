@@ -1,15 +1,11 @@
 # Written by Fabian van der Werf
 # see LICENSE.txt for license information
 
-from bsddb import dbshelve
-
 import copy
 import os
 import os.path
-import re
 import shutil
 import subprocess
-import traceback
 import urllib
 
 import settings

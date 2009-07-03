@@ -1,9 +1,6 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
 # see LICENSE.txt for license information
 import wx, os, sys
-import wx.xrc as xrc
-
-from traceback import print_stack,print_exc
 
 DEBUG = True
 

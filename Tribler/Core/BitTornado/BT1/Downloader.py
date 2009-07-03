@@ -7,11 +7,8 @@ from random import shuffle
 from Tribler.Core.BitTornado.clock import clock
 # 2fastbt_
 from Tribler.Core.CoopDownload.Helper import SingleDownloadHelperInterface
-from traceback import print_stack
-# _2fastbt
 
 import sys
-import time
 
 try:
     True
@@ -462,7 +459,9 @@ class SingleDownload(SingleDownloadHelperInterface):
                     d.example_interest = interest
                     
         # Arno: LIVEWRAP: no endgame
-        if not self.downloader.endgamemode and self.downloader.storage.is_endgame() and not self.downloader.picker.live_streaming:
+        if not self.downloader.endgamemode and \
+           self.downloader.storage.is_endgame() and \
+           not (self.downloader.picker.videostatus and self.downloader.picker.videostatus.live_streaming):
             self.downloader.start_endgame()
 
 

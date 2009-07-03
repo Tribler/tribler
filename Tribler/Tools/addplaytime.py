@@ -49,7 +49,7 @@ for metainfo_name in argv[1:]:
             path = ''
             for item in file['path']:
                 if (path != ''):
-                   path = path + "/"
+                    path = path + "/"
                 path = path + item
             print '   %s (%d)' % (path, file['length'])
             file_length += file['length']

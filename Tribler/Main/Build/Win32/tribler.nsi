@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "5.1.0"
+!define VERSION "5.1.2"
 
 !include "MUI.nsh"
 
@@ -116,7 +116,7 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images"
-CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images\5.0"
+ CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images\5.0"
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI"
  File Tribler\Main\vwxGUI\*.*
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images"
@@ -133,24 +133,31 @@ CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images\5.0"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayName" "${PRODUCT} (remove only)"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString" "$INSTDIR\Uninstall.exe"
 
-; Now writing to KHEY_LOCAL_MACHINE only -- remove references to uninstall from current user
+ ; Now writing to KHEY_LOCAL_MACHINE only -- remove references to uninstall from current user
  DeleteRegKey HKEY_CURRENT_USER "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
-; Remove old error log if present
+ ; Remove old error log if present
  Delete "$INSTDIR\tribler.exe.log"
 
  WriteUninstaller "$INSTDIR\Uninstall.exe"
 
+ ; Add an application to the firewall exception list - All Networks - All IP Version - Enabled
+ SimpleFC::AddApplication "Tribler" "$INSTDIR\${PRODUCT}.exe" 0 2 "" 1
+ ; Pop $0 ; return error(1)/success(0)
+
 SectionEnd
+
 
 Section "Desktop Icons" SecDesk
    CreateShortCut "$DESKTOP\${PRODUCT}.lnk" "$INSTDIR\${PRODUCT}.exe" ""
 SectionEnd
+
 
 Section "Startmenu Icons" SecStart
    CreateDirectory "$SMPROGRAMS\${PRODUCT}"
    CreateShortCut "$SMPROGRAMS\${PRODUCT}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
    CreateShortCut "$SMPROGRAMS\${PRODUCT}\${PRODUCT}.lnk" "$INSTDIR\${PRODUCT}.exe" "" "$INSTDIR\${PRODUCT}.exe" 0
 SectionEnd
+
 
 Section "Make Default For .torrent" SecDefaultTorrent
    ; Delete ddeexec key if it exists
@@ -164,6 +171,7 @@ Section "Make Default For .torrent" SecDefaultTorrent
    WriteRegStr HKCR "bittorrent\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
    WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\Tribler\Images\torrenticon.ico"
 SectionEnd
+
 
 Section "Make Default For .tstream" SecDefaultTStream
    ; Arno: Poor man's attempt to check if already registered
@@ -223,6 +231,10 @@ Section "Uninstall"
 
  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
+
+ ; Remove an application from the firewall exception list
+ SimpleFC::RemoveApplication "$INSTDIR\${PRODUCT}.exe"
+ ; Pop $0 ; return error(1)/success(0)
 
 SectionEnd
 
