@@ -7,7 +7,10 @@
 #       * uses getopt for command line argument parsing
 
 import sys
+import shutil
 import time
+import tempfile
+import random
 import os
 import getopt
 from traceback import print_exc
@@ -17,15 +20,17 @@ from Tribler.Core.API import *
 from Tribler.Core.BitTornado.__init__ import version, report_email
 
 
+checkpointedwhenseeding = False
+sesjun = None
+
 def usage():
     print "Usage: python dirseeder.py [options] directory"
     print "Options:"
     print "\t--port <port>"
     print "\t-p <port>\t\tuse <port> to listen for connections"
     print "\t\t\t\t(default is random value)"
-    print "\t--output <output-dir>"
-    print "\t-o <output-dir>\t\tuse <output-dir for storing downloaded data"
-    print "\t\t\t\t(default is current directory)"
+    print "\tdirectory (default is current)"
+    print "\t(default is off)"
     print "\t--version"
     print "\t-v\t\t\tprint version and exit"
     print "\t--help"
@@ -37,15 +42,26 @@ def print_version():
     print version, "<" + report_email + ">"
 
 def states_callback(dslist):
+    allseeding = True
     for ds in dslist:
         state_callback(ds)
+        if ds.get_status() != DLSTATUS_SEEDING:
+            allseeding = False
+        
+    global checkpointedwhenseeding
+    global sesjun
+    if len(dslist) > 0 and allseeding and not checkpointedwhenseeding:
+        checkpointedwhenseeding = True
+        print >>sys.stderr,"All seeding, checkpointing Session to enable quick restart"
+        sesjun.checkpoint()
+        
     return (1.0, False)
 
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
     print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
-            (d.get_def().get_name(), \
+            (`d.get_def().get_name()`, \
             dlstatus_strings[ds.get_status()], \
             ds.get_progress() * 100, \
             ds.get_error(), \
@@ -56,22 +72,21 @@ def state_callback(ds):
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hvo:p:", ["help", "version", "output-dir", "port"])
+        opts, args = getopt.getopt(sys.argv[1:], "hvp:", ["help", "version", "port"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
         sys.exit(2)
 
     # init to default values
-    output_dir = os.getcwd()
     port = 6969
 
     for o, a in opts:
         if o in ("-h", "--help"):
             usage()
             sys.exit(0)
-        elif o in ("-o", "--output-dir"):
-            output_dir = a
+        elif o in ("-p", "--port"):
+            port = int(a)
         elif o in ("-p", "--port"):
             port = int(a)
         elif o in ("-v", "--version"):
@@ -88,13 +103,13 @@ def main():
     elif len(args) == 0:
         torrentsdir = os.getcwd()
     else:
-        torrentsdir = args[0]
+        torrentsdir = os.path.abspath(args[0])
 
-    print "Press Ctrl-C to stop the download"
+    print "Press Ctrl-C or send SIGKILL or WM_DESTROY to stop seeding"
 
     # setup session
     sscfg = SessionStartupConfig()
-    statedir = os.path.join(output_dir,"."+LIBRARYNAME)
+    statedir = os.path.join(torrentsdir,"."+LIBRARYNAME)
     sscfg.set_state_dir(statedir)
     sscfg.set_listen_port(port)
     sscfg.set_megacache(False)
@@ -103,6 +118,8 @@ def main():
     sscfg.set_internal_tracker(True)
     
     s = Session(sscfg)
+    global sesjun
+    sesjun = s
     s.set_download_states_callback(states_callback, getpeerlist=False)
     
     # Restore previous Session
@@ -110,46 +127,50 @@ def main():
 
     # setup and start downloads
     dscfg = DownloadStartupConfig()
-    dscfg.set_dest_dir(output_dir);
-    dscfg.set_max_speed(UPLOAD,256) # FOR DEMO
+    dscfg.set_dest_dir(torrentsdir)
+    #dscfg.set_max_speed(UPLOAD,256) # FOR DEMO
     
-    for torrent_file in os.listdir(torrentsdir):
-        if torrent_file.endswith(".torrent"): 
-            try:
-                tdef = TorrentDef.load(torrent_file)
-                s.add_to_internal_tracker(tdef)
-                d = s.start_download(tdef, dscfg)
-            except DuplicateDownloadException, e:
-                print >>sys.stderr,"Restarting existing Download"
-            except Exception, e:
-                print_exc()
     
     #
-    # loop while waiting for CTRL-C (or any other signal/interrupt)
-    #
-    # - cannot use sys.stdin.read() - it means busy waiting when running
-    #   the process in background
-    # - cannot use condition variable - that don't listen to KeyboardInterrupt
-    #
-    # time.sleep(sys.maxint) has "issues" on 64bit architectures; divide it
-    # by some value (2048) to solve problem
+    # Scan dir, until exit by CTRL-C (or any other signal/interrupt)
     #
     try:
         while True:
-        #    time.sleep(sys.maxint/2048)
-            data = sys.stdin.read()
-            print >>sys.stderr,"len data",len(data)
-            print >>sys.stderr,"data",`data`
-            if len(data) == 0:
-                break
+            try:
+                print >>sys.stderr,"Rescanning",`torrentsdir`
+                for torrent_file in os.listdir(torrentsdir):
+                    if torrent_file.endswith(".torrent") or torrent_file.endswith(".tstream"): 
+                        print >>sys.stderr,"Found file",`torrent_file`
+                        tfullfilename = os.path.join(torrentsdir,torrent_file)
+                        tdef = TorrentDef.load(tfullfilename)
+                        
+                        # See if already running:
+                        dlist = s.get_downloads()
+                        existing = False
+                        for d in dlist:
+                            existinfohash = d.get_def().get_infohash()
+                            if existinfohash == tdef.get_infohash():
+                                existing = True
+                                break
+                        if existing:
+                            print >>sys.stderr,"Ignoring existing Download",`tdef.get_name()`
+                        else:
+                            s.add_to_internal_tracker(tdef)
+                            d = s.start_download(tdef, dscfg)
+                            
+                            # Checkpoint again when new are seeding
+                            global checkpointedwhenseeding
+                            checkpointedwhenseeding = False
+                            
+            except KeyboardInterrupt,e:
+                raise e
+            except Exception, e:
+                print_exc()
+            
+            time.sleep(30.0)
+
     except Exception, e:
         print_exc()
-
-    s.shutdown()
-    while not s.has_shutdown():
-        time.sleep(1)
-    time.sleep(1)
-
 
 if __name__ == "__main__":
     main()
