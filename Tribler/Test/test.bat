@@ -35,6 +35,7 @@ CALL test_buddycast_msg.bat
 CALL test_buddycast2_datahandler.bat
 REM # See warning in test_friendship.py
 CALL test_friendship.bat
+CALL test_merkle_msg.bat
 
 REM Takes a long time, do at end
 python test_natcheck.py

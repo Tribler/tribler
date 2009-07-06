@@ -76,6 +76,7 @@ EXTEND_MSG_HANDSHAKE_ID = chr(0)
 EXTEND_MSG_OVERLAYSWARM = 'Tr_OVERLAYSWARM'
 EXTEND_MSG_G2G_V1       = 'Tr_G2G'
 EXTEND_MSG_G2G_V2       = 'Tr_G2G_v2'
+EXTEND_MSG_HASHPIECE    = 'Tr_hashpiece'
 
 CURRENT_LIVE_VERSION=1
 EXTEND_MSG_LIVE_PREFIX  = 'Tr_LIVE_v'
@@ -245,10 +246,19 @@ class Connection:
                     c.queue_g2g_piece_xfer( index, begin, piece )
 
             if self.connecter.merkle_torrent:
+                hashpiece_msg_id = self.his_extend_msg_name_to_id(EXTEND_MSG_HASHPIECE)
                 bhashlist = bencode(hashlist)
-                self.partial_message = ''.join((
-                                tobinary(1+4+4+4+len(bhashlist)+len(piece)), HASHPIECE,
-                                tobinary(index), tobinary(begin), tobinary(len(bhashlist)), bhashlist, piece.tostring() ))
+                if hashpiece_msg_id is None:
+                    # old Tribler <= 4.5.2 style
+                    self.partial_message = ''.join((
+                                    tobinary(1+4+4+4+len(bhashlist)+len(piece)), HASHPIECE,
+                                    tobinary(index), tobinary(begin), tobinary(len(bhashlist)), bhashlist, piece.tostring() ))
+                else:
+                    # Merkle BEP
+                    self.partial_message = ''.join((
+                                    tobinary(2+4+4+4+len(bhashlist)+len(piece)), EXTEND, hashpiece_msg_id,
+                                    tobinary(index), tobinary(begin), tobinary(len(bhashlist)), bhashlist, piece.tostring() ))
+                    
             else:
                 self.partial_message = ''.join((
                             tobinary(len(piece) + 9), PIECE, 
@@ -758,6 +768,9 @@ class Connecter:
             d = {EXTEND_MSG_G2G_V2:ord(G2G_PIECE_XFER)}
             self.EXTEND_HANDSHAKE_M_DICT.update(d)
             self.sched(self.g2g_callback,G2G_CALLBACK_INTERVAL)
+        if self.merkle_torrent:
+            d = {EXTEND_MSG_HASHPIECE:ord(HASHPIECE)}
+            self.EXTEND_HANDSHAKE_M_DICT.update(d)
             
         # LIVEHACK
         livekey = EXTEND_MSG_LIVE_PREFIX+str(CURRENT_LIVE_VERSION)
@@ -910,6 +923,50 @@ class Connecter:
         except:
             print_exc()
 
+            
+    def got_hashpiece(self, connection, message):
+        """ Process Merkle hashpiece message. Note: EXTEND byte has been 
+        stripped, it starts with peer's Tr_hashpiece id for historic reasons ;-)
+        """
+        try:
+            c = self.connections[connection]
+            
+            if len(message) <= 13:
+                if DEBUG:
+                    print >>sys.stderr,"Close on bad HASHPIECE: msg len"
+                connection.close()
+                return
+            i = toint(message[1:5])
+            if i >= self.numpieces:
+                if DEBUG:
+                    print >>sys.stderr,"Close on bad HASHPIECE: index out of range"
+                connection.close()
+                return
+            begin = toint(message[5:9])
+            len_hashlist = toint(message[9:13])
+            bhashlist = message[13:13+len_hashlist]
+            hashlist = bdecode(bhashlist)
+            if not isinstance(hashlist, list):
+                raise AssertionError, "hashlist not list"
+            for oh in hashlist:
+                if not isinstance(oh,list) or \
+                not (len(oh) == 2) or \
+                not isinstance(oh[0],int) or \
+                not isinstance(oh[1],str) or \
+                not ((len(oh[1])==20)): \
+                    raise AssertionError, "hashlist entry invalid"
+            piece = message[13+len_hashlist:]
+
+            if DEBUG_NORMAL_MSGS:
+                print >>sys.stderr,"connecter: Got HASHPIECE",i,begin
+
+            if c.download.got_piece(i, begin, hashlist, piece):
+                self.got_piece(i)
+        except Exception,e:
+            if DEBUG:
+                print >>sys.stderr,"Close on bad HASHPIECE: exception",str(e)
+                print_exc()
+            connection.close()
 
     # NETWORK AWARE
     def na_got_loopback(self,econnection):
@@ -929,6 +986,7 @@ class Connecter:
             print >>sys.stderr,"connecter: na_got_internal: From",newconn.get_ip(),newconn.get_port()
         
         origconn.close()
+
 
     def got_message(self, connection, message):
         # connection: Encrypter.Connection; c: Connecter.Connection
@@ -1059,45 +1117,9 @@ class Connecter:
                 return
             
         elif t == HASHPIECE:
-            # Merkle: Handle pieces with hashes
-            try:
-                if len(message) <= 13:
-                    if DEBUG:
-                        print >>sys.stderr,"Close on bad HASHPIECE: msg len"
-                    connection.close()
-                    return
-                i = toint(message[1:5])
-                if i >= self.numpieces:
-                    if DEBUG:
-                        print >>sys.stderr,"Close on bad HASHPIECE: index out of range"
-                    connection.close()
-                    return
-                begin = toint(message[5:9])
-                len_hashlist = toint(message[9:13])
-                bhashlist = message[13:13+len_hashlist]
-                hashlist = bdecode(bhashlist)
-                if not isinstance(hashlist, list):
-                    raise AssertionError, "hashlist not list"
-                for oh in hashlist:
-                    if not isinstance(oh,list) or \
-                    not (len(oh) == 2) or \
-                    not isinstance(oh[0],int) or \
-                    not isinstance(oh[1],str) or \
-                    not ((len(oh[1])==20)): \
-                        raise AssertionError, "hashlist entry invalid"
-                piece = message[13+len_hashlist:]
-
-                if DEBUG_NORMAL_MSGS:
-                    print >>sys.stderr,"connecter: Got HASHPIECE",i,begin
-
-                if c.download.got_piece(i, begin, hashlist, piece):
-                    self.got_piece(i)
-            except Exception,e:
-                if DEBUG:
-                    print >>sys.stderr,"Close on bad HASHPIECE: exception",str(e)
-                    print_exc()
-                connection.close()
-                return
+            # Merkle: Handle pieces with hashes, old Tribler<= 4.5.2 style
+            self.got_hashpiece(connection,message)
+            
         elif t == G2G_PIECE_XFER: 
             # EXTEND_MSG_G2G_V1 only, V2 is proper EXTEND msg 
             if len(message) <= 12:
@@ -1197,6 +1219,10 @@ class Connecter:
                             return
                             
                     c.got_g2g_piece_xfer_v2(ppdict)
+                elif ext_msg_name == EXTEND_MSG_HASHPIECE and self.merkle_torrent:
+                    # Merkle: Handle pieces with hashes, Merkle BEP
+                    oldmsg = message[1:]
+                    self.got_hashpiece(connection,oldmsg)
                 else:
                     if DEBUG:
                         print >>sys.stderr,"Close on bad EXTEND: peer sent ID that maps to name we don't support",ext_msg_name,`ext_id`,ord(ext_id)

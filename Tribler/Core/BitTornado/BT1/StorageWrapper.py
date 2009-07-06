@@ -799,8 +799,9 @@ class StorageWrapper:
         if self.merkle_torrent and len(hashlist) > 0:
             if self.merkletree.check_hashes(hashlist):
                 self.merkletree.update_hash_admin(hashlist,self.hashes)
-            # if the check wasn't right, the peer will be discovered as bad later
-            # TODO: make bad now?
+            else:
+                raise ValueError("bad list of hashes")
+            
         if not self.places.has_key(index):
             while self._clear_space(index):
                 pass

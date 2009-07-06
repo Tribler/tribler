@@ -421,6 +421,8 @@ class TriblerLaunchMany(Thread):
         """ Integrity check for first SingleDownload in queue done
         
         Called by network thread """
+        if DEBUG:
+            print >>sys.stderr,"tlm: hashcheck_done, success",success
         if success:
             self.sdownloadtohashcheck.hashcheck_done()
         if self.hashcheck_queue:

@@ -38,6 +38,7 @@ python test_multicast.py
 ./test_buddycast2_datahandler.sh
 # See warning in test_friendship.py
 ./test_friendship.sh
+test_merkle_msg.sh
 
 # Takes a long time, do at end
 python test_natcheck.py

@@ -18,7 +18,10 @@ DEBUG=False
 
 class TestMerkleHashes(unittest.TestCase):
     """ 
-    Testing Simple Merkle Hashes extension version 0
+    Testing Simple Merkle Hashes extension version 0, in particular:
+    * The algorithmic part
+    * The .torrent file part
+    See test_merkle_msg.py for protocol testing.
     """
     
     def setUp(self):
