@@ -89,7 +89,7 @@ REM Diego : sign SwarmPlugin_*.exe
 "C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "SwarmPlugin for Internet Explorer" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" "SwarmPlugin_IE*.exe"
 REM Arno: build .cab file. 
 "C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\CabArc.Exe" -s 6144 n SwarmPlugin_IE.cab ..\%LIBRARYNAME%\Plugin\Build\Win32\SwarmPlugin_IE.inf
-REM Arno : sign SwarmPlugin_*.cab
+REM Arno : sign SwarmPlugin*.cab
 "C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "SwarmPlugin for Internet Explorer" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" "SwarmPlugin_IE*.cab"
 
 cd ..

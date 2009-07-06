@@ -20,7 +20,7 @@ class PlayerTaskBarIcon(wx.TaskBarIcon):
 
         if sys.platform != "darwin":
             # Mac already has the right icon set at startup
-            self.SetIcon(self.icon,'SwarmPlayer')
+            self.SetIcon(self.icon,self.wxapp.appname)
         
     def CreatePopupMenu(self):        
         menu = wx.Menu()
@@ -57,7 +57,7 @@ class PlayerOptionsDialog(wx.Dialog):
     
     def __init__(self,wxapp,icons):
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
-        wx.Dialog.__init__(self, None, -1, 'SwarmPlayer Options', size=(400,200), style=style)
+        wx.Dialog.__init__(self, None, -1, self.wxapp.appname+' Options', size=(400,200), style=style)
         self.wxapp = wxapp
 
         self.port = None
@@ -68,7 +68,7 @@ class PlayerOptionsDialog(wx.Dialog):
         mainbox = wx.BoxSizer(wx.VERTICAL)
         
         aboutbox = wx.BoxSizer(wx.VERTICAL)
-        aboutlabel1 = wx.StaticText(self, -1, 'SwarmPlayer is a product of the Tribler team.')
+        aboutlabel1 = wx.StaticText(self, -1, self.wxapp.appname+' is a product of the Tribler team.')
         aboutlabel2 = wx.StaticText(self, -1, 'Visit us at www.p2p-next.org!')
         aboutbox.Add(aboutlabel1, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 5)
         aboutbox.Add(aboutlabel2, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 5)
