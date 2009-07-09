@@ -525,7 +525,7 @@ class VideoPlayer:
             if mimetype is None:
                 if ext == '.avi':
                     mimetype = 'video/avi'
-                elif ext == '.mpegts':
+                elif ext == '.mpegts' or ext == '.ts':
                     mimetype = 'video/mp2t'
                 else:
                     mimetype = 'video/mpeg'
