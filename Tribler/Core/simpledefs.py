@@ -25,7 +25,10 @@ DOWNLOAD = 'down'
 DLMODE_NORMAL = 0
 DLMODE_VOD = 1
 
-PERSISTENTSTATE_CURRENTVERSION = 3
+# version 3
+# version 4: added [dlstate][total_up] and [dlstate][total_down]
+PERSISTENTSTATE_VERSION_FOUR = 4
+PERSISTENTSTATE_CURRENTVERSION = PERSISTENTSTATE_VERSION_FOUR
 """
 V1 = SwarmPlayer 1.0.0
 V2 = Tribler 4.5.0: SessionConfig: Added NAT fields

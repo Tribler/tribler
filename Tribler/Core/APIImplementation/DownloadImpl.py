@@ -475,6 +475,11 @@ class DownloadImpl:
         ds = self.network_get_state(None,False,sessioncalling=True)
         pstate['dlstate']['status'] = ds.get_status()
         pstate['dlstate']['progress'] = ds.get_progress()
+
+        # 08/07/09 boudewijn: now store bandwidth usage for this
+        # torrent
+        pstate['dlstate']['total_up'] = ds.get_total_up()
+        pstate['dlstate']['total_down'] = ds.get_total_down()
         
         if DEBUG:
             print >>sys.stderr,"Download: netw_get_pers_state: status",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()

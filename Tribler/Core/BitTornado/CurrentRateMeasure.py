@@ -4,12 +4,12 @@
 from clock import clock
 
 class Measure:
-    def __init__(self, max_rate_period, fudge = 1):
+    def __init__(self, max_rate_period, fudge = 1, total = 0L):
         self.max_rate_period = max_rate_period
         self.ratesince = clock() - fudge
         self.last = self.ratesince
         self.rate = 0.0
-        self.total = 0L
+        self.total = total
 
     def update_rate(self, amount):
         self.total += amount

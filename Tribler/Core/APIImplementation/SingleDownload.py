@@ -42,7 +42,8 @@ class SingleDownload:
             self.dldoneflag = Event()
             self.dlrawserver = multihandler.newRawServer(infohash,self.dldoneflag)
             self.lmvodeventcallback = lmvodeventcallback
-    
+            self.pstate = pstate
+            
             if pstate is not None:
                 self.hashcheckfrac = pstate['dlstate']['progress']
             else:
@@ -95,8 +96,7 @@ class SingleDownload:
                 # Restarting download
                 resumedata=pstate['engineresumedata']
             self._hashcheckfunc = self.dow.initFiles(resumedata=resumedata)
-            
-            
+
         except Exception,e:
             self.fatalerrorfunc(e)
     
@@ -139,7 +139,7 @@ class SingleDownload:
         if DEBUG:
             print >>sys.stderr,"SingleDownload: hashcheck_done()"
         try:
-            self.dow.startEngine(vodeventfunc = self.lmvodeventcallback)
+            self.dow.startEngine(vodeventfunc = self.lmvodeventcallback, pstate = self.pstate)
             self._getstatsfunc = self.dow.startStats() # not possible earlier
             self.dow.startRerequester()
             self.dlrawserver.start_listening(self.dow.getPortHandler())

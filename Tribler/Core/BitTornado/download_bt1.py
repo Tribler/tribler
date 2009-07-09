@@ -379,7 +379,7 @@ class BT1Download:
     def _reqmorefunc(self, pieces):
         self.downloader.requeue_piece_download(pieces)
 
-    def startEngine(self, ratelimiter = None, vodeventfunc = None):
+    def startEngine(self, ratelimiter = None, vodeventfunc = None, pstate = None):
         
         if DEBUG:
             print >>sys.stderr,"BT1Download: startEngine",`self.info['name']`
@@ -392,9 +392,18 @@ class BT1Download:
         for i in xrange(self.len_pieces):
             if self.storagewrapper.do_I_have(i):
                 self.picker.complete(i)
-        self.upmeasure = Measure(self.config['max_rate_period'], 
-                            self.config['upload_rate_fudge'])
-        self.downmeasure = Measure(self.config['max_rate_period'])
+
+        # 08/07/09 boudewijn: up and download bytes are on persistent
+        # storage enabling more interesting seeding policies.
+        if pstate is None or pstate['version'] < PERSISTENTSTATE_VERSION_FOUR:
+            uptotal = 0L
+            downtotal = 0L
+        else:
+            uptotal = pstate['dlstate']['total_up']
+            downtotal = pstate['dlstate']['total_down']
+            
+        self.upmeasure = Measure(self.config['max_rate_period'], fudge=self.config['upload_rate_fudge'], total=uptotal)
+        self.downmeasure = Measure(self.config['max_rate_period'], total=downtotal)
 
         if ratelimiter:
             self.ratelimiter = ratelimiter
