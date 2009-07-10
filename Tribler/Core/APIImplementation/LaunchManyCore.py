@@ -610,19 +610,12 @@ class TriblerLaunchMany(Thread):
         pickle.dump(pstate,f)
         f.close()
 
+
     def load_download_pstate(self,filename):
         """ Called by any thread """
         f = open(filename,"rb")
         pstate = pickle.load(f)
         f.close()
-
-        # 09/07/09 boudewijn: now store bandwidth usage for this
-        # torrent. Upgrade pstate to version four.
-        if pstate["version"] < PERSISTENTSTATE_VERSION_FOUR:
-            pstate["dlstate"]["total_up"] = 0L
-            pstate["dlstate"]["total_down"] = 0L
-            pstate["version"] = PERSISTENTSTATE_VERSION_FOUR
-
         return pstate
 
     #

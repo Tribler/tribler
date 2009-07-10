@@ -151,20 +151,6 @@ class DownloadState(Serializable):
         """
         return self.error
 
-    def get_total_up(self):
-        if self.stats is None:
-            return 0L
-        # self.stats:          BitTornado.BT1.DownloaderFeedback.py (return from gather method)
-        # self.stats["stats"]: BitTornado.BT1.Statistics.py (Statistics_Response instance)
-        return self.stats["stats"].upTotal
-
-    def get_total_down(self):
-        if self.stats is None:
-            return 0L
-        # self.stats:          BitTornado.BT1.DownloaderFeedback.py (return from gather method)
-        # self.stats["stats"]: BitTornado.BT1.Statistics.py (Statistics_Response instance)
-        return self.stats["stats"].downTotal
-
     #
     # Details
     # 
