@@ -110,6 +110,9 @@ class ABCApp(wx.App):
         self.old_reputation = 0
 
         try:
+            import sys
+            self.pre_stdout, self.pre_stderr = sys.stdout, sys.stderr
+
             ubuntu = False
             if sys.platform == "linux2":
                 f = open("/etc/issue","rb")
@@ -130,6 +133,9 @@ class ABCApp(wx.App):
         
     def OnInit(self):
         try:
+            import sys
+            sys.stdout, sys.stderr = self.pre_stdout, self.pre_stderr
+
             self.utility = Utility(self.installdir,Session.get_default_state_dir())
             self.utility.app = self
 
