@@ -9,7 +9,7 @@
 # History:
 #
 # 1.0.4rc1   Added: torrent_size (size of the .torrent file) to the remote
-#            torrent search responce 
+#            torrent search response, see Session.query_connected_peers().
 #
 # Timeline disruption: API v1.0.3 was released with Next-Share M16 on April 30.
 # 1.0.2rc6 was released with Tribler 5.1.0. Reintroduced as 1.0.4rc1
