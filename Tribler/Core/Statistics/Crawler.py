@@ -262,11 +262,12 @@ class Crawler:
         Received CRAWLER_REQUEST message from OverlayApps
         """
         if selversion >= OLPROTO_VER_SEVENTH and len(message) >= 5:
-            if message[1] in self._message_handlers:
 
-                message_id = message[1]
-                channel_id = ord(message[2])
-                frequency = ord(message[3]) << 8 | ord(message[4])
+            message_id = message[1]
+            channel_id = ord(message[2])
+            frequency = ord(message[3]) << 8 | ord(message[4])
+
+            if message_id in self._message_handlers:
                 now = time.time()
                 request_callback, reply_callback, last_request_timestamp = self._message_handlers[message_id]
 
