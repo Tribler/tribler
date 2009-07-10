@@ -503,7 +503,7 @@ class ABCApp(wx.App):
         self.utility.ratelimiter = self.ratelimiter
  
 # SelectiveSeeding _       
-        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)#, self.utility.session)
+        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read, os.path.join(state_dir, STATEDIR_SEEDINGMANAGER_DIR))
         self.seedingcount = 0 
 # _SelectiveSeeding
 
@@ -943,6 +943,9 @@ class ABCApp(wx.App):
 
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
+
+        # write all persistent data to disk
+        self.seedingmanager.write_all_storage()
         
         #friends.done(self.utility.session)
         

@@ -40,6 +40,7 @@ STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
 STATEDIR_PEERICON_DIR = 'icons'
 STATEDIR_TORRENTCOLL_DIR = 'collected_torrent_files'
 STATEDIR_SESSCONFIG = 'sessconfig.pickle'
+STATEDIR_SEEDINGMANAGER_DIR = 'seeding_manager_stats'
 DESTDIR_COOPDOWNLOAD = 'downloadhelp' 
 
 TRIBLER_TORRENT_EXT = ".tribe"
