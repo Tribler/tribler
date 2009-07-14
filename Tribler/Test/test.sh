@@ -27,6 +27,8 @@ python test_TimedTaskQueue.py
 python test_crawler.py
 python test_friendship_crawler.py
 python test_multicast.py
+python test_url.py
+python test_url_metadata.py
 
 ./test_sqlitecachedbhandler.sh
 ./test_secure_overlay.sh

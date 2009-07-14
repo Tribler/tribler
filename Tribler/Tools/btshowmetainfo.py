@@ -6,8 +6,9 @@
 
 from sys import *
 from os.path import *
-from sha import *
-from Tribler.Core.BitTornado.bencode import *
+import binascii
+
+from Tribler.Core.API import TorrentDef
 from Tribler.Core.Overlay.permid import verify_torrent_signature
 
 if len(argv) == 1:
@@ -16,8 +17,16 @@ if len(argv) == 1:
     exit(2) # common exit code for syntax error
 
 for metainfo_name in argv[1:]:
-    metainfo_file = open(metainfo_name, 'rb')
-    metainfo = bdecode(metainfo_file.read())
+    if metainfo_name.endswith(".url"):
+        f = open(metainfo_name,"rb")
+        url = f.read()
+        f.close()
+        tdef = TorrentDef.load_from_url(url)
+    else:
+        tdef = TorrentDef.load(metainfo_name)
+    metainfo = tdef.get_metainfo()
+    infohash = tdef.get_infohash()
+    
     print "metainfo:",metainfo.keys()
     #print "metainfo creation date",metainfo['creation date']
     if 'azureus_properties' in metainfo:
@@ -36,11 +45,10 @@ for metainfo_name in argv[1:]:
                 print "cdn_properties:",key,"=",cdnprops[key]
     #print `metainfo`
     info = metainfo['info']
-    info_hash = sha(bencode(info))
 
     print 'metainfo file.: %s' % basename(metainfo_name)
-    print 'info hash.....: %s' % info_hash.hexdigest()
-    print 'info hash.....: %s' % `info_hash.digest()`
+    print 'info hash.....: %s' % binascii.hexlify(infohash)
+    print 'info hash.....: %s' % `infohash`
     piece_length = info['piece length']
     if info.has_key('length'):
         # let's assume we just have a file

@@ -14,7 +14,6 @@ version = version_short + ' (' + product_name + ')'
 report_email = 'triblersoft@gmail.com'
 
 from types import StringType
-from Tribler.Core.Utilities.Crypto import sha
 from time import time, clock
 from string import strip
 import socket

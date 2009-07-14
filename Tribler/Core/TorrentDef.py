@@ -31,6 +31,10 @@ class TorrentDef(Serializable,Copyable):
     by its API, first create the torrent def, finalize it, then add the
     fields to the metainfo, and create a new torrent def from that
     upgraded metainfo using TorrentDef.load_from_dict()
+    
+    This class can also be used to create P2P URLs, by calling set_url_compat()
+    before finalizing. In that case only name, piece length, tracker, bitrate 
+    and source-authentication parameters (for live) are configurable. 
 
     cf. libtorrent torrent_info
     """
@@ -100,20 +104,28 @@ class TorrentDef(Serializable,Copyable):
         t = TorrentDef()
         t.metainfo = metainfo
         t.metainfo_valid = True
-        t.infohash = sha(bencode(metainfo['info'])).digest()
-        
-        #print >>sys.stderr,"INFOHASH",`t.infohash`
-        
         # copy stuff into self.input
         maketorrent.copy_metainfo_to_input(t.metainfo,t.input)
 
+        # For testing EXISTING LIVE, or EXISTING MERKLE: DISABLE, i.e. keep true infohash
+        if t.get_url_compat():
+            t.infohash = makeurl.metainfo2swarmid(t.metainfo)
+        else:
+            # Two places where infohash calculated, here and in maketorrent.py
+            # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
+            t.infohash = sha(bencode(metainfo['info'])).digest()
+        
+        #print >>sys.stderr,"INFOHASH",`t.infohash`
+
         return t
+    
     _create = staticmethod(_create)
 
     def load_from_url(url):
         """
-        Load a BT .torrent or Tribler .tribe file from the URL and convert
-        it into a TorrentDef.
+        If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
+        file from the URL and convert it into a TorrentDef. If the URL starts
+        with our URL scheme, we convert the URL to a URL-compatible TorrentDef.
         
         @param url URL
         @return TorrentDef.
@@ -121,18 +133,14 @@ class TorrentDef(Serializable,Copyable):
         # Class method, no locking required
         if url.startswith(P2PURL_SCHEME):
             (metainfo,swarmid) = makeurl.p2purl2metainfo(url)
-            
-            # h4x0r: for testing with existing live streams: to get a live 
-            # torrent file that is equiv we need this: 
-            
-            # LIVE: ENABLE, EXISTING MERKLE: DISABLE 
+
+            # Metainfo created from URL, so create URL compatible TorrentDef.
+            metainfo['info']['url-compat'] = 1
+
+            # For testing EXISTING LIVE: ENABLE, for old EXISTING MERKLE: DISABLE 
             #metainfo['info']['name.utf-8'] = metainfo['info']['name'] 
 
             t = TorrentDef._create(metainfo)
-            
-            # LIVE,EXISTING MERKLE: DISABLE
-            # for testing with existing live: comment this line away.
-            t.infohash = swarmid
             
             return t
         else:
@@ -250,7 +258,7 @@ class TorrentDef(Serializable,Copyable):
             authparams['authmethod'] = LIVE_AUTHMETHOD_NONE
         else: 
             authparams['authmethod'] = authconfig.get_method()
-            authparams['pubkey'] = str(authconfig.get_pubkey())
+            authparams['pubkey'] = authconfig.get_pubkey()
 
         self.input['live'] = authparams 
 
@@ -549,6 +557,19 @@ class TorrentDef(Serializable,Copyable):
             return self.input['live']['pubkey']
         else:
             return None
+
+
+    def set_url_compat(self,value):
+        """ Set the URL compatible value for this definition. Only possible
+        for Merkle torrents and live torrents.
+        @param value Integer."""
+        
+        self.input['url-compat'] = value
+
+    def get_url_compat(self):
+        """ Returns whether this definition is URL compatible.
+        @return Boolean. """
+        return 'url-compat' in self.input and self.input['url-compat']
         
 
     def finalize(self,userabortflag=None,userprogresscallback=None):
@@ -596,8 +617,16 @@ class TorrentDef(Serializable,Copyable):
         # thread.
         (infohash,metainfo) = maketorrent.make_torrent_file(self.input,userabortflag=userabortflag,userprogresscallback=userprogresscallback)
         if infohash is not None:
-            self.infohash = infohash
+            
+            if self.get_url_compat():
+                url = makeurl.metainfo2p2purl(metainfo)
+                # Make sure metainfo is preserved, in particular, the url-compat field.
+                swarmid = makeurl.metainfo2swarmid(metainfo) 
+                self.infohash = swarmid
+            else:
+                self.infohash = infohash
             self.metainfo = metainfo
+            
             self.input['name'] = metainfo['info']['name']
             # May have been 0, meaning auto.
             self.input['piece length'] = metainfo['info']['piece length']
@@ -612,7 +641,9 @@ class TorrentDef(Serializable,Copyable):
     # Operations on finalized TorrentDefs
     #
     def get_infohash(self):
-        """ Returns the infohash of the torrent.
+        """ Returns the infohash of the torrent, for non-URL compatible
+        torrents. Otherwise it returns the swarm identifier (either the root hash
+        (Merkle torrents) or hash of the live-source authentication key.
         @return A string of length 20. """
         if self.metainfo_valid:
             return self.infohash
@@ -729,6 +760,27 @@ class TorrentDef(Serializable,Copyable):
         
         return 'files' in self.metainfo['info']
 
+    
+    def is_merkle_torrent(self):
+        """ Returns whether this TorrentDef is a Merkle torrent. Use
+        get_create_merkle_torrent() to determine this before finalization.
+        @return Boolean """
+        if self.metainfo_valid:
+            return 'root hash' in self.metainfo['info']
+        else:
+            raise TorrentDefNotFinalizedException()
+
+    
+    def get_url(self):
+        """ Returns the URL representation of this TorrentDef. The TorrentDef
+        must be a Merkle or live torrent and must be set to URL-compatible 
+        before finalizing."""
+        
+        if self.metainfo_valid:
+            return makeurl.metainfo2p2purl(self.metainfo)
+        else:
+            raise TorrentDefNotFinalizedException()
+    
     
     #
     # Internal methods

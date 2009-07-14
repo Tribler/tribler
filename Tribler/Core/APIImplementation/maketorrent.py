@@ -98,6 +98,11 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
 
         create_torrent_signature(metainfo,input['torrentsigkeypairfilename'])
 
+    if 'url-compat' in input:
+        metainfo['info']['url-compat'] = input['url-compat']
+
+    # Two places where infohash calculated, here and in TorrentDef.
+    # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
     infohash = sha(bencode(info)).digest()
     return (infohash,metainfo)
 
@@ -508,7 +513,7 @@ def copy_metainfo_to_input(metainfo,input):
         if key in metainfo:
             input[key] = metainfo[key]
             
-    infokeys = ['name','piece length','live']
+    infokeys = ['name','piece length','live','url-compat']
     for key in infokeys:
         if key in metainfo['info']:
             input[key] = metainfo['info'][key]
@@ -544,6 +549,10 @@ def copy_metainfo_to_input(metainfo,input):
       
     if 'live' in metainfo['info']:
         input['live'] = metainfo['info']['live'] 
+
+
+    if 'url-compat' in metainfo['info']:
+        input['url-compat'] = metainfo['info']['url-compat'] 
 
 
 def get_files(metainfo,exts):

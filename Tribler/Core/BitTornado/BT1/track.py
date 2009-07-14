@@ -405,7 +405,12 @@ class Tracker:
                             szt = sz * n   # Transferred for this torrent
                             tt = tt + szt
                             if self.allow_get == 1:
-                                linkname = '<a href="/file?info_hash=' + quote(hash) + '">' + name + '</a>'
+                                # P2PURL
+                                url = self.allowed[hash].get('url')
+                                if url:
+                                    linkname = '<a href="' + url + '">' + name + '</a>'
+                                else:
+                                    linkname = '<a href="/file?info_hash=' + quote(hash) + '">' + name + '</a>'
                             else:
                                 linkname = name
                             s.write('<tr><td><code>%s</code></td><td>%s</td><td align="right">%s</td><td align="right">%i</td><td align="right">%i</td><td align="right">%i</td><td align="right">%s</td></tr>\n' \
@@ -905,7 +910,7 @@ class Tracker:
 
     def parse_allowed(self,source=None):
         if DEBUG:
-            print >>sys.stderr,"tracker: parse_allowed: Source is",source
+            print >>sys.stderr,"tracker: parse_allowed: Source is",source,"alloweddir",self.config['tracker_allowed_dir']
         
         if source is None:
             self.rawserver.add_task(self.parse_allowed, self.parse_dir_interval)

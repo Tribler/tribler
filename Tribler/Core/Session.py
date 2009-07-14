@@ -473,6 +473,9 @@ class Session(SessionRuntimeConfig):
             infohash = tdef.get_infohash()
             filename = self.get_internal_tracker_torrentfilename(infohash)
             tdef.save(filename)
+            
+            print >>sys.stderr,"Session: add_to_int_tracker: saving to",filename,"url-compat",tdef.get_url_compat()
+            
             # Bring to attention of Tracker thread
             self.lm.tracker_rescan_dir()
         finally:

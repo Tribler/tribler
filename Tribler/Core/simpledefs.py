@@ -124,9 +124,9 @@ COOPDL_ROLE_COORDINATOR = 'coordinator'
 COOPDL_ROLE_HELPER = 'helper'
 
 # Methods for authentication of the source in live streaming
-LIVE_AUTHMETHOD_NONE = "None"   # None
+LIVE_AUTHMETHOD_NONE = "None"   # No auth, also no abs. piece nr. or timestamp.
 LIVE_AUTHMETHOD_ECDSA = "ECDSA" # Elliptic Curve DSA signatures
-LIVE_AUTHMETHOD_RSA = "RSA" # RSA signatures
+LIVE_AUTHMETHOD_RSA = "RSA"     # RSA signatures
 
 # Video-On-Demand / live events
 VODEVENT_START = "start"
@@ -148,4 +148,5 @@ FS_HE_INVITED = 3
 FS_I_DENIED = 4
 FS_HE_DENIED = 5
 
-P2PURL_SCHEME = "nsp"
+P2PURL_SCHEME = "tribe" # No colon
+

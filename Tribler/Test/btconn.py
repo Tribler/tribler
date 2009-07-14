@@ -7,15 +7,17 @@ from binascii import b2a_hex
 from struct import pack,unpack
 from StringIO import StringIO
 
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_CURRENT
+
 DEBUG=False
 
-current_version = 11
+current_version = OLPROTO_VER_CURRENT
 lowest_version = 2
 
 protocol_name = "BitTorrent protocol"
 # Enable Tribler extensions:
 # Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
-# Left+42 bit = Tribler Simple Merkle Hashes extension
+# Left+42 bit = Tribler Simple Merkle Hashes extension v0. Outdated, but still sent for compatibility.
 # Left+43 bit = Tribler Overlay swarm extension
 # Right-most bit = BitTorrent DHT extension
 tribler_option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'

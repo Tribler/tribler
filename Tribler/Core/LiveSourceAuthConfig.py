@@ -36,7 +36,7 @@ class ECDSALiveSourceAuthConfig(LiveSourceAuthConfig):
             self.keypair = keypair
 
     def get_pubkey(self):
-        return self.keypair.pub().get_der()
+        return str(self.keypair.pub().get_der())
     
     def get_keypair(self):
         return self.keypair

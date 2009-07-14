@@ -4,9 +4,11 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.4rc1, Jun 4, 2009. Import this to use the API """
+""" Tribler Core API v1.0.4rc2, Jul, 2009. Import this to use the API """
 
 # History:
+#
+# 1.0.4rc2   TorrentDef now supports P2P URLs.
 #
 # 1.0.4rc1   Added: torrent_size (size of the .torrent file) to the remote
 #            torrent search response, see Session.query_connected_peers().
@@ -14,7 +16,7 @@
 # Timeline disruption: API v1.0.3 was released with Next-Share M16 on April 30.
 # 1.0.2rc6 was released with Tribler 5.1.0. Reintroduced as 1.0.4rc1
 #
-# 1.0.3    Released with Next-Share M16  
+# 1.0.3      Released with Next-Share M16  
 #
 # 1.0.3rc1   Added: [s/g]et_multicast_local_peer_discovery() to Session API.
 #            Added: [s/g]et_moderation_cast_promote_own() to aggressively

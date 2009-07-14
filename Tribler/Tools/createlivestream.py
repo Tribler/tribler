@@ -24,7 +24,8 @@ argsdef = [('name', '', 'name of the stream'),
            ('nuploads', 7, 'the max number of peers to serve directly'),
            ('port', 7764, 'the TCP+UDP listen port'),
            ('thumb', '', 'filename of image in JPEG format, preferably 171x96'),
-           ('auth', 'RSA', 'Live-souce authentication method to use (ECDSA or RSA)')]
+           ('auth', 'RSA', 'Live-souce authentication method to use (ECDSA or RSA)'),
+           ('url', False, 'Create URL instead of torrent (cannot be used with thumb)')]
 
 
 def state_callback(ds):
@@ -62,8 +63,9 @@ class FileLoopStream:
 if __name__ == "__main__":
 
     config, fileargs = parseargs.parseargs(sys.argv, argsdef, presets = {})
+    
     print >>sys.stderr,"config is",config
-    print "fileargs is",fileargs
+    print >>sys.stderr,"fileargs is",fileargs
     
     if config['name'] == '':
         print "Usage:  ",get_usage(argsdef)
@@ -105,7 +107,7 @@ if __name__ == "__main__":
             authcfg = ECDSALiveSourceAuthConfig()
             authcfg.save(authfilename)
 
-    print >>sys.stderr,"main: Source auth pubkey",`str(authcfg.get_pubkey())`
+    print >>sys.stderr,"main: Source auth pubkey",`authcfg.get_pubkey()`
 
 
     tdef = TorrentDef()
@@ -114,13 +116,23 @@ if __name__ == "__main__":
     tdef.create_live(config['name'],config['bitrate'],config['duration'],authcfg)
     tdef.set_tracker(s.get_internal_tracker_url())
     tdef.set_piece_length(config['piecesize']) #TODO: auto based on bitrate?
-    if len(config['thumb']) > 0:
-        tdef.set_thumbnail(config['thumb'])
+    if config['url']:
+        tdef.set_url_compat(1)
+    else:
+        if len(config['thumb']) > 0:
+            tdef.set_thumbnail(config['thumb'])
     tdef.finalize()
     
-    torrentbasename = config['name']+'.tstream'
-    torrentfilename = os.path.join(config['destdir'],torrentbasename)
-    tdef.save(torrentfilename)
+    if config['url']:
+        urlbasename = config['name']+'.url'
+        urlfilename = os.path.join(config['destdir'],urlbasename)
+        f = open(urlfilename,"wb")
+        f.write(tdef.get_url())
+        f.close()
+    else:
+        torrentbasename = config['name']+'.tstream'
+        torrentfilename = os.path.join(config['destdir'],torrentbasename)
+        tdef.save(torrentfilename)
 
     #tdef2 = TorrentDef.load(torrentfilename)
     #print >>sys.stderr,"main: Source auth pubkey2",`tdef2.metainfo['info']['live']`

@@ -69,7 +69,6 @@ class BT1Download:
         self.port = port
         
         self.info = self.response['info']  
-        #self.infohash = sha(bencode(self.info)).digest()
         # Merkle: Create list of fake hashes. This will be filled if we're an
         # initial seeder
         if self.info.has_key('root hash') or self.info.has_key('live'):

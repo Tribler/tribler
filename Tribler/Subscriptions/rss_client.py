@@ -36,7 +36,6 @@ import time
 
 from Tribler.Core.API import *
 from Tribler.Core.BitTornado.bencode import bdecode,bencode
-from Tribler.Core.Utilities.Crypto import sha
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 
@@ -236,10 +235,12 @@ class TorrentFeedThread(Thread):
 
                         bdata = urlopenobj.read()
                         urlopenobj.close()
-
                         data = bdecode(bdata)
+                        
+                        tdef = TorrentDef.load_from_dict(data)
+                        
                         if 'info' in data:
-                            infohash = sha(bencode(data['info'])).digest()
+                            infohash = tdef.get_infohash()
                             if not self.torrent_db.hasTorrent(infohash):
                                 if DEBUG:
                                     if "name" in data["info"]:

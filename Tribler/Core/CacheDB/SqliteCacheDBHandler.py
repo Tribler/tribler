@@ -11,6 +11,7 @@ from sets import Set
 from traceback import print_exc
 from time import time
 from Tribler.Core.Utilities.Crypto import sha
+from Tribler.Core.TorrentDef import TorrentDef
 import sys
 import os
 import socket
@@ -1138,20 +1139,15 @@ class TorrentDBHandler(BasicDBHandler):
     def _readTorrentData(self, filename, source='BC', extra_info={}, metadata=None):
         # prepare data to insert into database
         try:
-            if metadata is None:
-                f = open(filename, 'rb')
-                metadata = f.read()
-                f.close()
-            
-            metainfo = bdecode(metadata)
+            tdef = TorrentDef.load(filename)
+            metainfo = tdef.get_metainfo()
+            infohash = tdef.get_infohash()
         except Exception,msg:
             print >> sys.stderr, Exception,msg,`metadata`
             return None,None
         
         namekey = name2unicode(metainfo)  # convert info['name'] to type(unicode)
         info = metainfo['info']
-        infohash = sha(bencode(info)).digest()
-
         torrent = {'infohash': infohash}
         torrent['torrent_file_name'] = os.path.split(filename)[1]
         torrent['name'] = info.get(namekey, '')

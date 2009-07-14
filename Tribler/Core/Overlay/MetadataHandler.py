@@ -6,19 +6,20 @@ from Tribler.Core.Utilities.Crypto import sha
 from time import time, ctime
 from traceback import print_exc, print_stack
 from sets import Set
+from threading import currentThread
 
+from Tribler.Core.simpledefs import *
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.Utilities.utilities import isValidInfohash, show_permid_short, sort_dictlist, bin2str
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTH, OLPROTO_VER_ELEVENTH 
-from Tribler.Core.simpledefs import *
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.osutils import getfreespace,get_readable_torrent_name
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PopularityDBHandler
-from threading import currentThread
+from Tribler.Core.TorrentDef import TorrentDef
 
-DEBUG = False
+DEBUG = True
 
 BARTERCAST_TORRENTS = False
 
@@ -240,8 +241,16 @@ class MetadataHandler:
 
             if DEBUG:
                 print >> sys.stderr,"metadata: sending torrent", `torrent_path`, len(torrent_data)
-            torrent = {'torrent_hash':infohash, 
-                       'metadata':torrent_data}
+                
+            torrent = {}
+            torrent['torrent_hash'] = infohash
+            # P2PURLs: If URL compat then send URL
+            tdef = TorrentDef.load_from_dict(metainfo)
+            if selversion >= OLPROTO_VER_ELEVENTH and tdef.get_url_compat():
+                torrent['url'] = tdef.get_url()
+            else:
+                torrent['metadata'] = torrent_data
+                
             if selversion >= OLPROTO_VER_FOURTH:
                 data = self.torrent_db.getTorrent(infohash)
                 if data is None:
@@ -258,6 +267,7 @@ class MetadataHandler:
                                 'seeder':nseeders,
                                 'last_check_time':last_check_ago,
                                 'status':status})
+
 
             return self.do_send_metadata(permid, torrent, selversion)
         else:    # deleted before sending it
@@ -426,7 +436,8 @@ class MetadataHandler:
     def valid_metadata(self, infohash, metadata):
         try:
             metainfo = bdecode(metadata)
-            got_infohash = sha(bencode(metainfo['info'])).digest()
+            tdef = TorrentDef.load_from_dict(metainfo)
+            got_infohash = tdef.get_infohash()
             if infohash != got_infohash:
                 print >> sys.stderr, "metadata: infohash doesn't match the torrent " + \
                 "hash. Required: " + `infohash` + ", but got: " + `got_infohash`
@@ -463,13 +474,35 @@ class MetadataHandler:
                 return True
             if self.torrent_db.hasMetaData(infohash):
                 return True
-            
-            metadata = message['metadata']
+
+            # P2PURL
+            goturl = False
+            if selversion >= OLPROTO_VER_ELEVENTH:
+                if 'url' in metadata:
+                    try:
+                        tdef = TorrentDef.load_from_url(metadata['url'])
+                        # Internal storage format is still .torrent file
+                        metainfo = tdef.get_metainfo()
+                        metadata = bencode(metainfo)
+                        goturl = True
+                    except:
+                        print_exc()
+                        return False
+                else:
+                    metadata = message['metadata']
+            else:
+                metadata = message['metadata']
+                    
             if not self.valid_metadata(infohash, metadata):
                 return False
+            
             if DEBUG:
                 torrent_size = len(metadata)
-                print >> sys.stderr,"metadata: Recvd torrent", `infohash`, sha(infohash).hexdigest(), torrent_size
+                if goturl:
+                    mdt = "URL"
+                else:
+                    mdt = "torrent" 
+                print >> sys.stderr,"metadata: Recvd",mdt,`infohash`,sha(infohash).hexdigest(), torrent_size
             
             extra_info = {}
             if selversion >= OLPROTO_VER_FOURTH:

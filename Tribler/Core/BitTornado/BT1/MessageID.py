@@ -9,7 +9,7 @@
 protocol_name = 'BitTorrent protocol'
 # Enable Tribler extensions:
 # Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
-# Left+42 bit = Tribler Simple Merkle Hashes extension
+# Left+42 bit = Tribler Simple Merkle Hashes extension v0. Outdated, but still sent for compatibility.
 # Left+43 bit = Tribler Overlay swarm extension
 #               AND uTorrent extended protocol, conflicting. See EXTEND message
 # Right-most bit = BitTorrent DHT extension

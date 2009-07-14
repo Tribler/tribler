@@ -139,10 +139,16 @@ def main():
             try:
                 print >>sys.stderr,"Rescanning",`torrentsdir`
                 for torrent_file in os.listdir(torrentsdir):
-                    if torrent_file.endswith(".torrent") or torrent_file.endswith(".tstream"): 
+                    if torrent_file.endswith(".torrent") or torrent_file.endswith(".tstream") or torrent_file.endswith(".url"): 
                         print >>sys.stderr,"Found file",`torrent_file`
                         tfullfilename = os.path.join(torrentsdir,torrent_file)
-                        tdef = TorrentDef.load(tfullfilename)
+                        if torrent_file.endswith(".url"):
+                            f = open(tfullfilename,"rb")
+                            url = f.read()
+                            f.close()
+                            tdef = TorrentDef.load_from_url(url)
+                        else:
+                            tdef = TorrentDef.load(tfullfilename)
                         
                         # See if already running:
                         dlist = s.get_downloads()

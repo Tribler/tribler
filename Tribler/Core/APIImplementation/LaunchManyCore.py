@@ -265,8 +265,8 @@ class TriblerLaunchMany(Thread):
             if not tdef.is_finalized():
                 raise ValueError("TorrentDef not finalized")
             
+            infohash = tdef.get_infohash()
             d = Download(self.session,tdef)
-            infohash = tdef.get_infohash() 
             
             # Check if running or saved on disk
             if infohash in self.downloads:
@@ -284,7 +284,6 @@ class TriblerLaunchMany(Thread):
 
             if self.torrent_db != None and self.mypref_db != None:
                 raw_filename = tdef.get_name_as_unicode()
-                infohash = tdef.get_infohash()
                 save_name = get_readable_torrent_name(infohash, raw_filename)
                 #print >> sys.stderr, 'tlm: add', save_name, self.session.sessconfig
                 torrent_dir = self.session.sessconfig['torrent_collecting_dir']
