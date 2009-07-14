@@ -15,11 +15,13 @@
 import sys
 import urlparse
 import urllib  
-import curses.ascii
+if sys.platform != "win32":
+    import curses.ascii
 from types import IntType, LongType
 from struct import pack, unpack
 from base64 import b64encode, b64decode
-from M2Crypto import Rand
+from M2Crypto import Rand # TODO REMOVE FOR LICHT
+from traceback import print_exc,print_stack
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.Crypto import sha
@@ -52,7 +54,8 @@ def metainfo2p2purl(metainfo):
     urldict = {}
 
     urldict['s'] = p2purl_encode_nnumber(info['piece length'])
-    urldict['n'] = p2purl_encode_name2url(info['name'],encoding)
+    urldict['n'] = p2purl_encode_name2url(info['name.utf-8'],'utf-8')
+    
     if info.has_key('length'):
         urldict['l'] = p2purl_encode_nnumber(info['length'])
     else:
@@ -125,12 +128,23 @@ def p2purl2metainfo(url):
         else:
             query = url[qidx+1:fidx]
             fragment = url[fidx:]
-    
-        cidx = authority.find(":")
-        if cidx != -1:
-            port = authority[cidx+1:]
-            if not port.isdigit():
-                raise ValueError("Port not int")
+
+        # Check port no.
+        csbidx = authority.find("]")
+        if authority.startswith("[") and csbidx != -1:
+            # Literal IPv6 address
+            if csbidx == len(authority)-1:
+                port = None
+            else:
+                port = authority[csbidx+1:]
+        else:
+            cidx = authority.find(":")
+            if cidx != -1:
+                port = authority[cidx+1:]
+            else:
+                port = None
+        if port is not None and not port.isdigit():
+            raise ValueError("Port not int")
     
     
     if scheme != P2PURL_SCHEME:
@@ -258,15 +272,20 @@ def pubkey2swarmid(livedict):
 
 def p2purl_decode_name2utf8(v):
     """ URL decode name to UTF-8 encoding """
-    for c in v:
-        if not curses.ascii.isascii(c):
-            raise ValueError("Name contains unescaped 8-bit value "+`c`)
+    if sys.platform != "win32":
+        for c in v:
+            if not curses.ascii.isascii(c):
+                raise ValueError("Name contains unescaped 8-bit value "+`c`)
     return urllib.unquote_plus(v)
 
 def p2purl_encode_name2url(name,encoding):
     """ Encode name in specified encoding to URL escaped UTF-8 """
-    uname = unicode(name, encoding)
-    utf8name = uname.encode('utf-8')
+    
+    if encoding.lower() == 'utf-8':
+        utf8name = name
+    else:
+        uname = unicode(name, encoding)
+        utf8name = uname.encode('utf-8')
     return urllib.quote_plus(utf8name)
 
 

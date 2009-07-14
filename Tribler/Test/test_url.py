@@ -44,17 +44,26 @@ class TestP2PURLs(unittest.TestCase):
         """
 
         badurllist = []
+        
         badurllist += [("ribe://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg", "wrong scheme")]
         badurllist += [("tribe//127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg", "no colon after scheme")] 
         #badurllist += [("tribe://127.1.0.10:6969/announce?trai ler.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg", "space not escaped")] # too strict
         #badurllist += [("tribe://localhost;10/?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg", "bad port spec")] # too strict
         badurllist += [("tribe://localhost:https/?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg", "port not int")]
         badurllist += [("tribe://localhost/trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg", "not query")]
-        badurllist += [("tribe://localhost?tr\xfeiler.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg", "char in name not URL escaped")]
+        if sys.platform != "win32":
+            badurllist += [("tribe://localhost?tr\xfeiler.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg", "char in name not URL escaped")]
         badurllist += [("tribe://localhost?Sjaak&", "query with empty key=value")]
         badurllist += [("tribe://localhost?trailer.mkv&r:TTgcifG0Ot7STCY2JL8SUOxROFo&l:AKK35A&s=gAA&b:AAFnGg", "key value not separated by =")]
         badurllist += [("tribe://localhost?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b:AAFnGg", "some key value not separated by =")]
         badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=", "query with malformed key value")]
+
+
+        # IPv6 addresses
+        badurllist += [("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg","unclosed IPv6 literal address")]
+        badurllist += [("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg","unopened IPv6 literal address")]        
+        badurllist += [("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg","unclosed IPv6 literal address, no port")]
+        badurllist += [("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg","unopened IPv6 literal address, no port")]        
 
         self.run_badurllist(badurllist)
 
@@ -91,7 +100,6 @@ class TestP2PURLs(unittest.TestCase):
         
         self.run_badurllist(badurllist)
 
-
     def run_badurllist(self,badurllist):
         
         #print >>sys.stderr,badurllist
@@ -117,9 +125,10 @@ class TestP2PURLs(unittest.TestCase):
         paramlist += [(u'Serg\u00e9Harr\u014c',134349,2 ** 15, "4:01")] # Unicode name
         paramlist += [(u'\u4f60\u597d',134349,2 ** 15, "4:01")] # Unicode name, Ni Hao ;o)
         
-        self.run_paramlist_vod(paramlist)
+        self.run_paramlist_vod(paramlist,"http://127.0.0.1/announce")
+        #self.run_paramlist_vod(paramlist,"http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce")
         
-    def run_paramlist_vod(self,paramlist):
+    def run_paramlist_vod(self,paramlist,tracker):
         tmpdirname = tempfile.mkdtemp()
         
         for name,leng,piecesize,duration in paramlist:
@@ -127,7 +136,7 @@ class TestP2PURLs(unittest.TestCase):
             
             print >>sys.stderr,"\n\nTest",`name`
             tmpfilename = os.path.join(tmpdirname,name)
-            
+        
             content = '*' * leng
             f = open(tmpfilename,"wb")
             f.write(content)
@@ -135,7 +144,7 @@ class TestP2PURLs(unittest.TestCase):
             
             tdef = TorrentDef()
             tdef.add_content(tmpfilename,playtime=duration)
-            tdef.set_tracker("http://127.0.0.1/announce")
+            tdef.set_tracker(tracker)
             tdef.set_piece_length(piecesize)
             tdef.set_create_merkle_torrent(True)
             tdef.set_url_compat(True)
@@ -148,6 +157,10 @@ class TestP2PURLs(unittest.TestCase):
                 utf8name = name.encode("UTF-8")
             else:
                 utf8name = name
+                
+            #print >>sys.stderr,"ORIG NAME",`utf8name`
+            #print >>sys.stderr,"TDEF NAME",`tdef2.get_name()`
+                
             self.assertEqual(tdef2.get_name(),utf8name)
             self.assertEqual(tdef2.get_length(),leng)
             self.assertEqual(tdef2.get_piece_length(),piecesize)
@@ -155,8 +168,11 @@ class TestP2PURLs(unittest.TestCase):
             s = dur2s(duration)
             ebitrate = leng/s
             self.assertEqual(tbitrate,ebitrate)
-                        
-        shutil.rmtree(tmpdirname)
+             
+        try:           
+            shutil.rmtree(tmpdirname)
+        except:
+            print_exc()
         
 
     def test_create_live(self):
@@ -171,10 +187,10 @@ class TestP2PURLs(unittest.TestCase):
         paramlist += [(u'Serg\u00e9Harr\u014c.ts',2 ** 15, 2 ** 16, "1:00:00", RSALiveSourceAuthConfig())] # Unicode name
         paramlist += [(u'\u4f60\u597d.ts',2 ** 15, 2 ** 16, "1:00:00", RSALiveSourceAuthConfig())] # Unicode name, Ni Hao ;o)
         
-        self.run_paramlist_live(paramlist)
+        self.run_paramlist_live(paramlist,"http://127.0.0.1/announce")
+        self.run_paramlist_live(paramlist,"http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce")
 
-
-    def run_paramlist_live(self,paramlist):
+    def run_paramlist_live(self,paramlist,tracker):
         tmpdirname = tempfile.mkdtemp()
         
         for name,piecesize,bitrate,duration,authcfg in paramlist:
@@ -183,7 +199,7 @@ class TestP2PURLs(unittest.TestCase):
             
             tdef = TorrentDef()
             tdef.create_live(name,bitrate,playtime=duration,authconfig=authcfg)
-            tdef.set_tracker("http://127.0.0.1/announce")
+            tdef.set_tracker(tracker)
             tdef.set_piece_length(piecesize)
             tdef.set_url_compat(True)
             tdef.finalize()
@@ -204,7 +220,10 @@ class TestP2PURLs(unittest.TestCase):
             
             self.assertEquals(tdef2.get_live_pubkey(),authcfg.get_pubkey())
                         
-        shutil.rmtree(tmpdirname)
+        try:           
+            shutil.rmtree(tmpdirname)
+        except:
+            print_exc()
 
 
 

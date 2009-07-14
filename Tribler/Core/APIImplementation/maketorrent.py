@@ -124,7 +124,7 @@ def uniconvert(s, enc):
     it to one, guessing the encoding if necessary. """
     if not isinstance(s, unicode):
         try:
-            s = str2unicode(s)
+            s = bin2unicode(s,enc)
         except UnicodeError:
             raise UnicodeError('bad filename: '+s)
     return s.encode(enc)

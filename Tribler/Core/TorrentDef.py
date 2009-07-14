@@ -615,6 +615,7 @@ class TorrentDef(Serializable,Copyable):
 
         # Note: reading of all files and calc of hashes is done by calling 
         # thread.
+        
         (infohash,metainfo) = maketorrent.make_torrent_file(self.input,userabortflag=userabortflag,userprogresscallback=userprogresscallback)
         if infohash is not None:
             
