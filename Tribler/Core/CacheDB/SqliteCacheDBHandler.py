@@ -1968,7 +1968,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             return self.recent_preflist_with_clicklog  
 
-    def getRecentLivePrefListOL10(self, num=0):
+    def getRecentLivePrefListOL11(self, num=0):
         """
         Returns OL 10 style preference list. It contains all infor from previous versions like clickLog info and some
         additional info related to swarm size.
@@ -1981,7 +1981,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
             self.rlock.acquire()
             try:
                 #if self.recent_preflist_with_swarmsize is None:
-                self.recent_preflist_with_swarmsize = self._getRecentLivePrefListOL10()
+                self.recent_preflist_with_swarmsize = self._getRecentLivePrefListOL11()
             finally:
                 self.rlock.release()
         if num > 0:
@@ -2071,7 +2071,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return recent_preflist_with_clicklog
     
     
-    def _getRecentLivePrefListOL10(self, num=0): 
+    def _getRecentLivePrefListOL11(self, num=0): 
         """
         first calls the previous method to get a list of torrents and related info from MyPreference db 
         (_getRecentLivePrefListWithClicklog) and then appendes it with swarm size info or ( num_seeders, num_leechers, calc_age, num_seeders).

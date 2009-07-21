@@ -2265,7 +2265,7 @@ class DataHandler:
         """ Get a number of my preferences. Get all if num==0 """
         #Rahim
         if selversion >= OLPROTO_VER_ELEVENTH:
-            return self.mypref_db.getRecentLivePrefListOL10(num) # return a list of preferences with clicklog and swarm size info.
+            return self.mypref_db.getRecentLivePrefListOL11(num) # return a list of preferences with clicklog and swarm size info.
         
         elif selversion>=OLPROTO_VER_EIGHTH:
             return self.mypref_db.getRecentLivePrefListWithClicklog(num)

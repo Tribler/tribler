@@ -604,7 +604,7 @@ class MetadataHandler:
             if not self.initialized:
                 return []
             else: 
-                collectedList=self.recently_collected_torrents[-1*num:] # this is list of infohashs
+                collectedList=self.recently_collected_torrents[-1*num:] # this is list of infohashes
                 if len(collectedList) >0:
                     swarmSizeList= self.popularity_db.calculateSwarmSize(collectedList, content='Infohash' , toBC=True)
                 for index in range(0,len(collectedList)):
