@@ -5,8 +5,8 @@
 import sys
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
-from threading import RLock,Thread
-from traceback import print_exc
+from threading import RLock,Thread,currentThread
+from traceback import print_exc,print_stack
 import string
 
 DEBUG = True
