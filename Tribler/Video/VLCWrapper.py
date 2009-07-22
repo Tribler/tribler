@@ -120,12 +120,13 @@ class VLCWrapper:
             self._init_vlc()
 
         check_threading()
-        if sys.platform == 'win32':
-            oldcwd = os.getcwd()
-            os.chdir(os.path.join(self.installdir,'vlc'))
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.1":
+            if sys.platform == 'win32':
+                oldcwd = os.getcwd()
+                os.chdir(os.path.join(self.installdir,'vlc'))
     
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
-        params = ["--verbose=0"]
+        params = ["--verbose=2"]
         
         """
         # To enable logging to file:
@@ -144,7 +145,14 @@ class VLCWrapper:
         #params += ["--access-filter","timeshift"]
         #params += ["--timeshift-force"]
         # Arno: attempt to improve robustness
-        params += ["--http-reconnect"]
+        
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.1":
+            params += ["--http-reconnect"]
+        
+        #if sys.platform == 'win32':
+        #    params += ["--plugin-path", "c:\\build\\mbvlc100\\vlc\\plugins" ]
+
+
 
 
         # Arno, 2009-03-30: On my Vista Test Machine (no Aero) video playback 
@@ -177,16 +185,25 @@ class VLCWrapper:
         else:
             params += ["--key-fullscreen", "Esc"]
         
+        # Arno, 2009-07-22: Not sure whether sys.argv0 gives right dir.
         if sys.platform == 'darwin':
             params += ["--plugin-path", "%s/macbinaries/vlc_plugins" % (
                  # location of plugins: next to tribler.py
                  os.path.abspath(os.path.dirname(sys.argv[0]))
                  )]
+
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
+            if sys.platform == 'win32':
+                params += ["--plugin-path", os.path.abspath(os.path.join(self.installdir,'vlc','plugins'))]
+
+            
+        #print >>sys.stderr,"VLCWrapper: get_vlc_mediactrl: params",params
             
         media = self.vlc.MediaControl(params)
-            
-        if sys.platform == 'win32':
-            os.chdir(oldcwd)
+
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.1":            
+            if sys.platform == 'win32':
+                os.chdir(oldcwd)
     
         return media
     
