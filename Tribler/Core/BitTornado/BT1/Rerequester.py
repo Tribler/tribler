@@ -155,12 +155,20 @@ class Rerequester:
 
     def announce(self, event = 3, callback = lambda: None, specialurl = None):
 
+        # IPVSIX: Azureus 3.1.1.0 used as Ubuntu IPv6 tracker doesn't support BEP 7
+        if ':' in self.ip:
+            compact = 0
+        else:
+            compact = 1
+
         if specialurl is not None:
             s = self.url+'&uploaded=0&downloaded=0&left=1'   # don't add to statistics
             if self.howmany() >= self.maxpeers:
                 s += '&numwant=0'
             else:
-                s += '&no_peer_id=1&compact=1'
+                s += '&no_peer_id=1'
+                if compact:
+                    s+= '&compact=1'
             self.last_failed = True         # force true, so will display an error
             self.special = specialurl
             self.rerequest(s, callback)
@@ -177,7 +185,9 @@ class Rerequester:
         if self.howmany() >= self.maxpeers:
             s += '&numwant=0'
         else:
-            s += '&no_peer_id=1&compact=1'
+                s += '&no_peer_id=1'
+                if compact:
+                    s+= '&compact=1'
         if event != 3:
             s += '&event=' + ['started', 'completed', 'stopped'][event]
         if event == 2:
@@ -210,7 +220,16 @@ class Rerequester:
                 self._fail(callback)
             if self.ip:
                 try:
-                    s += '&ip=' + gethostbyname(self.ip)
+                    # IPVSIX
+                    if ':' in self.ip:
+                        # TODO: support for ipv4= field
+                        urlip = "["+self.ip+"]" # URL encoding for IPv6, see RFC3986
+                        field = "ipv6"
+                    else:
+                        urlip = self.ip
+                        field = "ip"
+                        
+                    s += '&' + field + '=' + urlip  
                 except:
                     self.errorcodes['troublecode'] = 'unable to resolve: '+self.ip
                     self.externalsched(fail)
@@ -344,6 +363,9 @@ class Rerequester:
                 if DEBUG:
                     print >>sys.stderr,"Rerequester: Tracker returns:", r
                 check_peers(r)
+                
+                #print >>sys.stderr,"Rerequester: Tracker returns, post check done"
+                
             except ValueError, e:
                 if DEBUG:
                     print_exc()
@@ -365,9 +387,15 @@ class Rerequester:
 
             # even if the attempt timed out, go ahead and process data
             def add(self = self, r = r, callback = callback):
+                #print >>sys.stderr,"Rerequester: add: postprocessing",r
                 self.postrequest(r, callback)
+                
+            #print >>sys.stderr,"Rerequester: _request_single: scheduling processing of returned",r
             self.externalsched(add)
         except:
+            
+            print_exc()
+            
             self.exception(callback)
 
     def _dht_rerequest(self):
@@ -402,6 +430,9 @@ class Rerequester:
             self.externalsched(add)
 
     def postrequest(self, r, callback):
+        
+        #print >>sys.stderr,"Rerequester: postrequest: ENTER"
+        
         try:
             if r.has_key('warning message'):
                 self.errorfunc('warning from tracker - ' + r['warning message'])
@@ -423,6 +454,9 @@ class Rerequester:
                         port = (ord(p[x+4]) << 8) | ord(p[x+5])
                         peers.append(((ip, port), 0)) # Arno: note: not just (ip,port)!!!
                 else:
+                    # IPVSIX: Azureus 3.1.1.0 used as Ubuntu IPv6 tracker 
+                    # doesn't support BEP 7. Hence these may be IPv6.
+                    #
                     for x in p:
                         peers.append(((x['ip'].strip(), x['port']), x.get('peer id', 0)))
             else:
@@ -447,6 +481,8 @@ class Rerequester:
                 # Arno, 2009-04-06: Need more effort to support IPv6, e.g.
                 # see SocketHandler.SingleSocket.get_ip(). The getsockname()
                 # + getpeername() calls should be make to accept IPv6 returns.
+                # Plus use inet_ntop() instead of inet_ntoa(), but former only
+                # supported on UNIX :-( See new ipaddr module in Python 2.7
                 #
                 print >>sys.stderr,"Rerequester: Got IPv6 peer addresses, not yet supported, ignoring."
                 peers = []

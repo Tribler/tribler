@@ -53,9 +53,14 @@ class SingleSocket:
         self.ip = None
         self.port = -1
         try:
-            (self.myip,self.myport) = self.socket.getsockname()
-            (self.ip,self.port) = self.socket.getpeername()
+            myname = self.socket.getsockname()
+            self.myip = myname[0]
+            self.myport = myname[1]
+            peername = self.socket.getpeername() 
+            self.ip = peername[0]
+            self.port = peername[1]
         except:
+            print_exc()
             if ip is None:
                 self.ip = 'unknown'
             else:
@@ -64,8 +69,11 @@ class SingleSocket:
     def get_ip(self, real=False):
         if real:
             try:
-                (self.ip,self.port) = self.socket.getpeername()
+                peername = self.socket.getpeername() 
+                self.ip = peername[0]
+                self.port = peername[1]
             except:
+                print_exc()
                 pass
         return self.ip
     
@@ -77,8 +85,11 @@ class SingleSocket:
     def get_myip(self, real=False):
         if real:
             try:
-                (self.myip,self.myport) = self.socket.getsockname()
+                myname = self.socket.getsockname()
+                self.myip = myname[0]
+                self.myport = myname[1]
             except:
+                print_exc()
                 pass
         return self.myip
     
@@ -353,7 +364,7 @@ class SocketHandler:
                     submit a bug to python that it shouldn't lock when the op is
                     a null op
                     """
-                    socket.inet_aton(dns[0])
+                    socket.inet_aton(dns[0]) # IPVSIX: change to inet_pton()
                     #print >>sys.stderr,"SockHand: start_conn: after inet_aton",dns[0],"<",dns,">"
                     addrinfos=[(socket.AF_INET, None, None, None, (dns[0], dns[1]))]
                 except:

@@ -144,6 +144,10 @@ class RawServer:
                         if DEBUG:
                             print >> sys.stderr,"rawserver: stopping because done flag set"
                         return
+                    
+                    #print >>sys.stderr,"RawServer: funcs is",`self.funcs`
+                    
+                    
                     while self.funcs and self.funcs[0][0] <= clock():
                         garbage1, func, id = self.funcs.pop(0)
                         if id in self.tasks_to_kill:

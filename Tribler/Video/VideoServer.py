@@ -232,8 +232,8 @@ class VideoRawVLCServer:
         pass
 
     def ReadDataCallback(self, bufc, buflen, sid):
-        #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: stream",sid,"wants", buflen,"thread",currentThread().getName()
         try:
+            print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: stream",sid,"wants", buflen,"thread",currentThread().getName()
             # workaround
             #sid = self.lastsid
             #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: stream override sid",sid
@@ -258,6 +258,7 @@ class VideoRawVLCServer:
             else:
                 bufc[0:size]=data
             #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: bufc size ", len(bufc)
+            
             return size
         except:
             print_exc()

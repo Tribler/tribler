@@ -119,17 +119,15 @@ class VideoPlayer:
         if DEBUG:
             print >>sys.stderr,"videoplay: Playing file with Unicode filename via HTTP"
 
-        videoserver = VideoHTTPServer.getInstance()
-        
         (prefix,ext) = os.path.splitext(dest)
-        videourl = self.create_url(videoserver,'/'+os.path.basename(prefix+ext))
+        videourl = self.create_url(self.videohttpserv,'/'+os.path.basename(prefix+ext))
         [mimetype,cmd] = self.get_video_player(ext,videourl)
 
         stream = open(dest,"rb")
         stats = os.stat(dest)
         length = stats.st_size
         streaminfo = {'mimetype':mimetype,'stream':stream,'length':length}
-        videoserver.set_inputstream(streaminfo)
+        self.videohttpserv.set_inputstream(streaminfo)
         
         self.launch_video_player(cmd)
 
