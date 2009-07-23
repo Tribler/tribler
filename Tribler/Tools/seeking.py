@@ -210,5 +210,5 @@ if __name__ == "__main__":
   d.set_state_callback(state_callback,getpeerlist=False)
 
   while not QUIT_NOW:
-    time.sleep(30000)
+    time.sleep(10)
 
