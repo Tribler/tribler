@@ -16,21 +16,12 @@ class SearchManager:
         self.dbhandler = dbhandler
         self.keywordsearch = KeywordSearch()
     
-    def search(self,kws,maxhits=None):
+    def search(self,kws,maxhits=None, local=True):
         """ Called by any thread """
         if DEBUG:
             print >>sys.stderr,"SearchManager: search",kws
             
-        namerecs = self.dbhandler.searchNames(kws)    
-
-        if DEBUG:
-            print >>sys.stderr,"SearchManager: search: Got namerecs",len(namerecs),`namerecs`
-        
-        hits = self.keywordsearch.search(namerecs,kws)
-        
-        if DEBUG:
-            print >>sys.stderr,"SearchManager: search: Filtered namerecs",len(hits)
-        
+        hits = self.dbhandler.searchNames(kws, local)
         if maxhits is None:
             return hits
         else:

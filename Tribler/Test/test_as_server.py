@@ -28,7 +28,7 @@ class TestAsServer(unittest.TestCase):
         """ unittest test setup code """
         self.setUpPreSession()
         self.session = Session(self.config)
-        self.hisport = self.session.get_listen_port()
+        self.hisport = self.session.get_listen_port()        
         self.setUpPostSession()
 
     def setUpPreSession(self):

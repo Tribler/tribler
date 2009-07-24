@@ -946,7 +946,21 @@ class GUIUtility:
             self.searchPersons(self.standardOverview.mode, input)
         
         
+    def searchChannels(self, mode, input):
+        if DEBUG:
+            print >>sys.stderr,"GUIUtil: searchChannels:",input
+        low = input.lower()
+        wantkeywords = [i for i in low.split(' ') if i]
+        ##### GUI specific code
         
+        if mode == 'channelsMode':
+            q = 'k:'
+            for kw in wantkeywords:
+                q += kw+' '
+            
+            self.utility.session.chquery_connected_peers(q,self.sesscb_got_channel_hits)
+            ##### GUI specific code
+                
         
     def searchFiles(self, mode, input):
         
@@ -995,6 +1009,19 @@ class GUIUtility:
         kwstr = query[len('SIMPLE '):]
         kws = kwstr.split()
         wx.CallAfter(self.torrentsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
+        
+    def sesscb_got_channel_hits(self,permid,query,hits):
+        # Called by SessionCallback thread 
+        if DEBUG:
+            print >>sys.stderr,"GUIUtil: sesscb_got_channel_hits",len(hits)
+
+        kwstr = query[2:]
+        kws = kwstr.split()
+        #Code that calls GUI
+        # 1. Grid needs to be updated with incoming hits, from each remote peer
+        # 2. Sorting should also be done by that function
+        #wx.CallAfter(self.torrentsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
+        
 
     def stopSearch(self):
         self.frame.go.setToggled(False)

@@ -28,7 +28,6 @@ try:
 except ImportError:
     pass
 
-
 DEBUG = False
 
 def get_home_dir():
@@ -595,6 +594,8 @@ class Session(SessionRuntimeConfig):
                 return self.lm.search_db
             elif subject == NTFY_TERM:
                 return self.lm.term_db
+            elif subject == NTFY_CHANNELCAST:
+                return self.lm.channelcast_db
             else:
                 raise ValueError('Cannot open DB subject: '+subject)
         finally:
@@ -735,6 +736,25 @@ class Session(SessionRuntimeConfig):
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:
             self.sesslock.release()
+            
+    def chquery_connected_peers(self,query,usercallback=None,max_peers_to_query=None):
+        """
+        Queries its connected peers regarding a channel, which could be of both forms.
+        keyword-based search which has following representation... query = "k:bbctv"
+        permid-based search...... query = "p:f34wrf2345wfer2345wefd3r34r54"
+        """
+        
+        self.sesslock.acquire()
+        try:
+            if self.sessconfig['overlay']:
+                from Tribler.Core.SocialNetwork.ChannelQueryMsgHandler import ChannelQueryMsgHandler
+                cqmh = ChannelQueryMsgHandler.getInstance()
+                cqmh.send_query(query,usercallback,max_peers_to_query=max_peers_to_query)
+            else:
+                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
+        finally:
+            self.sesslock.release()
+        
 
     
     def download_torrentfile_from_peer(self,permid,infohash,usercallback):
@@ -908,3 +928,5 @@ class Session(SessionRuntimeConfig):
         finally:
             self.sesslock.release()
             
+def usercallback(permid,query,d):
+    print >> sys.stderr, "chquery_connected_peers: Processing reply:", permid, query, repr(d)

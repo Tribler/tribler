@@ -130,6 +130,8 @@ class TriblerLaunchMany(Thread):
             self.modcast_db.registerSession(self.session)
             self.votecast_db = VoteCastDBHandler.getInstance()
             self.votecast_db.registerSession(self.session)
+            self.channelcast_db = ChannelCastDBHandler.getInstance()
+            self.channelcast_db.registerSession(self.session)
             self.search_db      = SearchDBHandler.getInstance()
             self.term_db        = TermDBHandler.getInstance()
 
@@ -530,6 +532,7 @@ class TriblerLaunchMany(Thread):
         
         network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop,checkpoint,gracetime)
         self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
+        # TODO: checkpoint overlayapps / friendship msg handler
 
         
     def network_checkpoint_callback(self,dllist,stop,checkpoint,gracetime):
@@ -563,9 +566,8 @@ class TriblerLaunchMany(Thread):
                     network_shutdown_callback_lambda = lambda:self.network_shutdown()
                     self.rawserver.add_task(network_shutdown_callback_lambda,delay)
                     return
-            
+                
             self.network_shutdown()
-
             
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start
@@ -576,7 +578,6 @@ class TriblerLaunchMany(Thread):
             self.shutdownstarttime = timemod.time()
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
         
-            
     def network_shutdown(self):
         try:
             # Detect if megacache is enabled

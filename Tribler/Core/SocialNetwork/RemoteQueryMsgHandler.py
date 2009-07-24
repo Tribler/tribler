@@ -258,7 +258,7 @@ class RemoteQueryMsgHandler:
         # In the future we could support full SQL queries:
         # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE
         kws = q.split()
-        hits = self.search_manager.search(kws, maxhits=MAX_RESULTS)
+        hits = self.search_manager.search(kws, maxhits=MAX_RESULTS, local=False)
 
         p = self.create_query_reply(d['id'],hits,selversion)
         m = QUERY_REPLY+p

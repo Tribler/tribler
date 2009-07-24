@@ -349,7 +349,7 @@ def validModerationCastReplyMsg(data):
     return True
 
 def validVoteCastMsg(data):
-    """ Returns True if VoteCastMsg is valid, ie, be of type [(mod_id,vote) """
+    """ Returns True if VoteCastMsg is valid, ie, be of type [(mod_id,vote)] """
     if data is None or not type(data) == ListType:
         return False
     
@@ -362,6 +362,25 @@ def validVoteCastMsg(data):
     
     return True
 
+def validChannelCastMsg(data):
+    """ Returns True if ChannelCastMsg is valid, ie, it is of type [(publisher_id, timestamp)] """
+    if data is None: 
+        print >> sys.stderr, "data is None"
+        return False
+    
+    if not type(data) == ListType:
+        print >> sys.stderr, "data is not List"
+        return False
+    
+    for record in data:
+        if not validPermid(record[0]):
+            print >> sys.stderr, "not valid permid: ", repr(record[0]) 
+            return False
+        if not validTimestamp(record[1]):
+            print >> sys.stderr, "not valid timestamp: ", repr(record[1])
+            return False
+    
+    return True
     
 #*************************************************
 

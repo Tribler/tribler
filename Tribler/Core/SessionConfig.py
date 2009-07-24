@@ -1204,7 +1204,6 @@ class SessionConfigInterface:
                self.sessconfig['moderationcast_recent_forward_moderations_per_have'] + \
                self.sessconfig['moderationcast_random_forward_moderations_per_have']
 
-    
     def set_moderationcast_promote_own(self,value):
         """" Sets whether to promote your own moderations at every
         overlay connection made.
@@ -1218,7 +1217,6 @@ class SessionConfigInterface:
         @return Boolean.
         """
         return self.sessconfig['moderationcast_promote_own']
-
 
     # 
     # Local Peer Discovery using IP Multicast
@@ -1238,6 +1236,30 @@ class SessionConfigInterface:
         """
         return self.sessconfig['multicast_local_peer_discovery']
 
+    def get_votecast_recent_votes(self):
+        return self.sessconfig['votecast_recent_votes']
+    
+    def set_votecast_recent_votes(self, value):
+        self.sessconfig['votecast_recent_votes'] = value 
+    
+    def get_votecast_random_votes(self):
+        return self.sessconfig['votecast_random_votes']
+
+    def set_votecast_random_votes(self, value):
+        self.sessconfig['votecast_random_votes'] = value
+    
+    # ChannelCast
+    def get_channelcast_recent_own_subscriptions(self):
+        return self.sessconfig['channelcast_recent_own_subscriptions']
+    
+    def set_channelcast_recent_own_subscriptions(self, value):
+        self.sessconfig['channelcast_recent_own_subscriptions'] = value
+
+    def get_channelcast_random_own_subscriptions(self):
+        return self.sessconfig['channelcast_random_own_subscriptions']
+    
+    def set_channelcast_random_own_subscriptions(self, value):
+        self.sessconfig['channelcast_random_own_subscriptions'] = value
 
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  

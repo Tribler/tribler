@@ -36,6 +36,10 @@ import time
 
 from Tribler.Core.API import *
 from Tribler.Core.BitTornado.bencode import bdecode,bencode
+from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
+from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 
@@ -112,6 +116,9 @@ class TorrentFeedThread(Thread):
         
         self.torrent_dir = self.session.get_torrent_collecting_dir()
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
+        
+        self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         
         filename = self.getfilename()
         dirname = os.path.dirname(filename)
@@ -132,9 +139,14 @@ class TorrentFeedThread(Thread):
             pass
             #traceback.print_exc()
     
-        #self.addURL('http://www.vuze.com/syndication/browse/AZHOT/ALL/X/X/26/X/_/_/X/X/feed.xml')
+        self.addURL('http://www.legaltorrents.com/feeds/cat/netlabel-music.rss')
     
-    def addURL(self, url, dowrite=True, status="active", on_torrent_callback=None):
+    
+    def addURL(self, url, dowrite=True, status="active"):
+        def on_torrent_callback(rss_url, infohash, torrent_data):
+            print >>sys.stderr, "Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
+            self.channelcast_db.addOwnTorrent(infohash, torrent_data)
+
         self.lock.acquire()
         if url not in self.urls:
             self.urls[url] = status
@@ -201,6 +213,26 @@ class TorrentFeedThread(Thread):
                     break
             self.writefile()
         self.lock.release()
+    
+    def updateChannel(self,query_permid, query, hits):
+        """
+        This function is called when there is a reply from remote peer regarding updating of a channel
+        query_permid: the peer who returned the results
+        query: the query string
+        hits: details of all matching results related to the query  
+        """
+        for hit in hits:
+            l = (hit[0],hit[2], hit[3], hit[5])
+            result = verify_data(bencode(l),str2bin(hit[0]),str2bin(hit[6]))
+            
+            if result and self.channelcast_db.addTorrent(hit): # if verified and is a new insert
+                print >>sys.stderr, "torrent record is successfully added into ChannelCastDB"
+                # if new insert, request the torrent
+                if not self.channelcast_db.existsTorrent(hit[2]):
+                    print >>sys.stderr, "Downloading the torrent"
+                    # if torrent does not exist in the database, request to download the torrent
+                    self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
+        
         
     def run(self):
         time.sleep(10) # Let other Tribler components, in particular, Session startup
@@ -209,6 +241,15 @@ class TorrentFeedThread(Thread):
             cfeeds = self.feeds[:]
             self.feeds_changed = False
             self.lock.release()
+            
+            # even before publishing your torrents, update the channels that you are subscribed to.
+            # let the frequency be the same as that of publishing
+            subscribed_channels = self.channelcast_db.getMySubscribedChannels()
+            for permid, channel_name, num_subscriptions in subscribed_channels:
+                # query the remote peers, based on permid, to update the channel content
+                q = "p:"+permid
+                self.session.chquery_connected_peers(q,usercallback=self.updateChannel)
+            
 
             # feeds contains (rss_url, generator) pairs
             feeds = {}
@@ -552,3 +593,5 @@ class URLHistory:
         else:
             return link[:idx]
     
+def usercallback(infohash,metadata,filename):
+    pass

@@ -70,6 +70,7 @@ from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid_short
+from Tribler.Subscriptions.rss_client import TorrentFeedThread 
 #import Tribler.Core.CacheDB.friends as friends 
 
 from Tribler.Video.defs import *
@@ -354,9 +355,9 @@ class ABCApp(wx.App):
                 print_exc()
             
             # Must be after ABCLaunchMany is created
-            #self.torrentfeed = TorrentFeedThread.getInstance()
-            #self.torrentfeed.register(self.utility)
-            #self.torrentfeed.start()
+            self.torrentfeed = TorrentFeedThread.getInstance()
+            self.torrentfeed.register(self.utility.session)
+            self.torrentfeed.start()
             
             #print "DIM",wx.GetDisplaySize()
             #print "MM",wx.GetDisplaySizeMM()

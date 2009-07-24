@@ -87,13 +87,14 @@ KEEP_ALIVE = chr(240)
 # Bartercast, payload is bencoded dict
 BARTERCAST = chr(236)
 
+CHANNELCAST = chr(225)
 VOTECAST = chr(226)
 MODERATIONCAST_HAVE = chr(227)
 MODERATIONCAST_REQUEST = chr(228)
 MODERATIONCAST_REPLY = chr(229)
 
 #BuddyCastMessages = [BARTERCAST, BUDDYCAST, KEEP_ALIVE]
-BuddyCastMessages = [MODERATIONCAST_HAVE, MODERATIONCAST_REQUEST, MODERATIONCAST_REPLY, VOTECAST, BARTERCAST, BUDDYCAST, KEEP_ALIVE]
+BuddyCastMessages = [CHANNELCAST, MODERATIONCAST_HAVE, MODERATIONCAST_REQUEST, MODERATIONCAST_REPLY, VOTECAST, BARTERCAST, BUDDYCAST, KEEP_ALIVE]
 
 # bencoded torrent_hash (Arno,2007-08-14: shouldn't be bencoded, but is)
 GET_METADATA = chr(248)
@@ -154,8 +155,13 @@ CRAWLER_REPLY = chr(231)
 
 CrawlerMessages = [CRAWLER_REQUEST, CRAWLER_REPLY]
 
+#ChannelQuery messages
+CHANNEL_QUERY = chr(223)
+CHANNEL_QUERY_REPLY = chr(224)
+ChannelQueryMessages = [CHANNEL_QUERY, CHANNEL_QUERY_REPLY]
+
 # All overlay-swarm messages
-OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages
+OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages + ChannelQueryMessages
 
 # Crawler sub-messages
 CRAWLER_DATABASE_QUERY = chr(1)
@@ -196,6 +202,8 @@ message_map = {
     SOCIAL_OVERLAP:"SOCIAL_OVERLAP",
     QUERY:"QUERY",
     QUERY_REPLY:"QUERY_REPLY",
+    CHANNEL_QUERY:"CHANNEL_QUERY",
+    CHANNEL_QUERY_REPLY:"CHANNEL_QUERY_REPLY",
     MODERATIONCAST_HAVE:"MODERATIONCAST_HAVE",
     MODERATIONCAST_REQUEST:"MODERATIONCAST_REQUEST",
     MODERATIONCAST_REPLY:"MODERATIONCAST_REPLY",

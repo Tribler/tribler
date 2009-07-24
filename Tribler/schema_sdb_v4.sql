@@ -327,6 +327,67 @@ CREATE UNIQUE INDEX Popularity_idx
 
 
 
+-- v4: Patch for ChannelCast, Search
+
+CREATE TABLE ChannelCast (
+publisher_id text,
+publisher_name text,
+infohash text,
+torrenthash text,
+torrentname text,
+time_stamp integer,
+signature text
+);
+
+----------------------------------------
+
+CREATE TABLE InvertedIndex (
+word               text NOT NULL,
+torrent_id         integer
+);
+
+CREATE INDEX word_idx
+on InvertedIndex
+(word);
+
+CREATE UNIQUE INDEX invertedindex_idx
+on InvertedIndex
+(word,torrent_id);
+
+----------------------------------------
+
+CREATE TABLE TorrentFiles(
+torrent_id         integer,
+filepath           text,
+filesize           integer
+);
+
+CREATE INDEX torrentfile_idx
+on TorrentFiles
+(torrent_id);
+
+----------------------------------------
+
+CREATE TABLE BadTorrents (
+  torrent_id       integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  infohash		   text NOT NULL,
+  name             text,
+  torrent_file_name text,
+  length           integer,
+  creation_date    integer,
+  num_files        integer,
+  thumbnail        integer,
+  insert_time      numeric,
+  secret           integer,
+  relevance        numeric DEFAULT 0,
+  source_id        integer,
+  category_id      integer,
+  status_id        integer,
+  num_seeders      integer,
+  num_leechers     integer,
+  comment          text
+);
+
 
 
 COMMIT TRANSACTION create_table;

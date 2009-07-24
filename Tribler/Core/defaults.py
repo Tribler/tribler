@@ -63,6 +63,7 @@ sessdefaults['dialback_active'] = True  # do active discovery (needed to disable
 sessdefaults['dialback_trust_superpeers'] = True # trust superpeer replies (needed to disable for testing only) (0 = disabled)
 sessdefaults['socnet'] = True
 sessdefaults['rquery'] = True
+sessdefaults['chquery'] = True
 sessdefaults['stop_collecting_threshold'] = 200
 sessdefaults['internaltracker'] = True
 sessdefaults['nickname'] = '__default_name__' # is replaced with hostname in LaunchManyCore.py
@@ -90,6 +91,10 @@ sessdefaults['moderationcast_recent_forward_moderations_per_have'] = 13
 sessdefaults['moderationcast_random_forward_moderations_per_have'] = 12
 sessdefaults['moderationcast_promote_own'] = False
 sessdefaults['multicast_local_peer_discovery'] = True
+sessdefaults['votecast_recent_votes']=25
+sessdefaults['votecast_random_votes']=25
+sessdefaults['channelcast_recent_own_subscriptions'] = 13
+sessdefaults['channelcast_random_own_subscriptions'] = 12 
 
 trackerdefaults = {}
 trackerdefaults['tracker_url'] = None

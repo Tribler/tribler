@@ -10,6 +10,10 @@ from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
 
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
+
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+
 from math import sqrt
 try:
     import web2
@@ -56,6 +60,10 @@ class TorrentSearchGridManager:
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         
         self.category = Category.getInstance()
+        self.moderationcastdb = ModerationCastDBHandler.getInstance()
+        self.votecastdb = VoteCastDBHandler.getInstance()
+        self.channelcastdb = ChannelCastDBHandler.getInstance()
+        
         
     def getInstance(*args, **kw):
         if TorrentSearchGridManager.__single is None:
@@ -109,9 +117,10 @@ class TorrentSearchGridManager:
             elif categorykey in [cat.lower() for cat in categories]:
                 okCategory = True
             
-            okGood = torrent['status'] == 'good' or torrent.get('myDownloadHistory', False)
-            
-            #print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
+            #okGood = torrent['status'] == 'good' or torrent.get('myDownloadHistory', False)
+            okGood = torrent['status'] != 'dead' or torrent.get('myDownloadHistory', False)
+                        
+            print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
             return okLibrary and okCategory and okGood
         
         # 1. Local search puts hits in self.hits
@@ -452,81 +461,47 @@ class TorrentSearchGridManager:
         #else:
         #    print >>sys.stderr,"TorrentSearchManager: No web2 hits, mode",mode,"web2on",web2on,"in search",self.getSearchMode(mode),"catkey",categorykey
     
+    
     #Rameez: The following code will call normalization functions and then 
-    #sort and merge the combine torrent and youtube results
+    #sort and merge the torrent results
     def sort(self):
-        self.normalizeResults()
-        self.statisticalNormalization()
-        #Rameez: now sort combined (i.e after the above two normalization procedures)
+        self.doStatNormalization(self.hits,'num_seeders', 'norm_num_seeders')
+        self.doStatNormalization(self.hits,'votes', 'norm_votes')
+        self.doStatNormalization(self.hits,'subscriptions', 'norm_subscriptions')
 
-        #print >> sys.stderr, 'SearchGridMan: Search res: %s' % [a.get('normScore',0) for a in self.hits]
         def cmp(a,b):
             # normScores can be small, so multiply
-            # No normscore gives negative 1000, because should be less than 0 (mean)
-            return int(1000000.0 * (b.get('normScore',-1000) - a.get('normScore',-1000)))
+            return int( 1000000.0 * ( b.get('norm_num_seeders',0) + b.get('norm_votes',0) + b.get('norm_subscriptions',0) -
+                        a.get('norm_num_seeders',0) - a.get('norm_votes',0) - a.get('norm_subscriptions',0) ))
+           
         self.hits.sort(cmp)
         
         
-                            
-    
-    def normalizeResults(self):
-        torrent_total = 0
-        youtube_total = 0
-        KEY_NORMSCORE = 'normScore'
-        
-        #Rameez: normalize torrent results
-        #Rameez: normalize youtube results
-        for hit in self.hits:
-            if not hit.has_key('views'):
-                torrent_total += hit.get('num_seeders',0)
-            elif hit['views'] != 'unknown':
-                youtube_total += int(hit['views'])
 
-        if torrent_total == 0: # if zero, set to one for divZeroExc. we can do this, cause nominator will also be zero in following division
-            torrent_total = 1 
-        if youtube_total == 0:
-            youtube_total = 1
-            
-        for hit in self.hits:
-            if not hit.has_key('views'):
-                hit[KEY_NORMSCORE] = hit.get('num_seeders',0)/float(torrent_total)
-            elif hit['views'] != 'unknown':
-                hit[KEY_NORMSCORE] = int(hit['views'])/float(youtube_total)
-
-    
+    def doStatNormalization(self, hits, normKey, newKey):
+        '''Center the variance on zero (this means mean == 0) and divide
+        all values by the standard deviation. This is sometimes called scaling.
+        This is done on the field normKey of hits and the output is added to a new 
+        field called newKey.'''
         
-    
-    def statisticalNormalization(self):
-        youtube_hits = [hit for hit in self.hits if (hit.get('views', 'unknown') != "unknown"
-                                                     and hit.has_key('normScore'))]
-        torrent_hits = [hit for hit in self.hits if (not hit.has_key('views')
-                                                     and hit.has_key('normScore'))]
-        self.doStatNormalization(youtube_hits)
-        self.doStatNormalization(torrent_hits)
-
-    def doStatNormalization(self, hits):
-        #Rameez: statistically normalize torrent results
-        
-        count = 0
         tot = 0
 
         for hit in hits:
-            tot += hit['normScore']
-            count +=1
+            tot += hit[normKey]
         
-        if count > 0:
-            mean = tot/count
+        if len(hits) > 0:
+            mean = tot/len(hits)
         else:
             mean = 0
         
         sum = 0
         for hit in hits:
-            temp = hit['normScore'] - mean
+            temp = hit[normKey] - mean
             temp = temp * temp
             sum += temp
         
-        if count > 1:
-            dev = sum /(count-1)
+        if len(hits) > 1:
+            dev = sum /(len(hits)-1)
         else:
             dev = 0
         
@@ -534,9 +509,9 @@ class TorrentSearchGridManager:
         
         for hit in hits:
             if stdDev > 0:
-                hit['normScore'] = (hit['normScore']-mean)/ stdDev
-        
-        
+                hit[newKey] = (hit[normKey]-mean)/ stdDev
+            else:
+                hit[newKey] = 0
 
 
 class PeerSearchGridManager:

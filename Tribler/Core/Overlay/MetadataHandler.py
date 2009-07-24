@@ -19,7 +19,7 @@ from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PopularityDBHandler
 from Tribler.Core.TorrentDef import TorrentDef
 
-DEBUG = True
+DEBUG = False
 
 BARTERCAST_TORRENTS = False
 
@@ -202,7 +202,7 @@ class MetadataHandler:
         res = self.torrent_db.getOne(('torrent_file_name', 'status_id'), infohash=bin2str(infohash))
         if not res:
             if DEBUG:
-                print >> sys.stderr,"metadata: GET_METADATA: not in database"
+                print >> sys.stderr,"metadata: GET_METADATA: not in database", infohash
             return True    # don't close connection because I don't have the torrent
         torrent_file_name, status_id = res
         if status_id == self.torrent_db._getStatusID('dead'):

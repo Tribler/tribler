@@ -21,9 +21,8 @@ debug = False    #For send-errors and other low-level stuff
 AUTO_MODERATE = False    #Automatically moderate content, with bogus moderations
 AUTO_MODERATE_INTERVAL = 1    #Number of seconds between creation of moderations
 
-NO_RANDOM_VOTES = 12
-NO_RECENT_VOTES = 13
 
+SINGLE_VOTECAST_LENGTH = 130
 
 class VoteCastCore:
     """ VoteCastCore is responsible for sending and receiving VOTECAST-messages """
@@ -40,18 +39,14 @@ class VoteCastCore:
         self.secure_overlay = secure_overlay
         self.votecastdb = VoteCastDBHandler.getInstance()
         self.my_permid = self.votecastdb.my_permid
-        self.max_have_length = SINGLE_HAVE_LENGTH * session.get_moderationcast_moderations_per_have()
+        self.session = session
+        self.max_length = SINGLE_VOTECAST_LENGTH * (session.get_votecast_random_votes() + session.get_votecast_recent_votes())       
 
         self.network_delay = 30
         #Reference to buddycast-core, set by the buddycast-core (as it is created by the
         #buddycast-factory after calling this constructor).
         self.buddycast_core = None
         
-        #Debug-interface
-        if DEBUG_UI:
-            from moderationcast_test import ModerationCastTest
-            ModerationCastTest(self)
-
         #Extend logging with ModerationCAST-messages and status
         if self.log:
             self.overlay_log = OverlayLogger.getInstance(self.log)
@@ -93,11 +88,14 @@ class VoteCastCore:
         """ Create a VOTECAST message """
 
         #Select latest own moderations
-        if DEBUG: print >> sys.stderr, "Creating votecastmsg..."
-        records = self.votecastdb.recentVotes(NO_RECENT_VOTES)
+        if DEBUG: print >> sys.stderr, "Creating votecastmsg..."        
         
         #Add random own moderations
+        NO_RANDOM_VOTES = self.session.get_votecast_random_votes()
+        NO_RECENT_VOTES = self.session.get_votecast_recent_votes()
         size = NO_RANDOM_VOTES+NO_RECENT_VOTES
+        
+        records = self.votecastdb.recentVotes(NO_RECENT_VOTES)
         random_own = self.votecastdb.randomVotes(size)
         #print >> sys.stderr, "random own >>>>>>>>>>> ", random_own
         
@@ -136,10 +134,9 @@ class VoteCastCore:
                         permid_for_user(sender_permid), recv_msg
             return False
 
-        if self.max_have_length > 0 and len(recv_msg) > self.max_have_length:
+        if self.max_length > 0 and len(recv_msg) > self.max_length:
             if DEBUG:
-
-                print >> sys.stderr, "votecast: warning - got large voteCastHaveMsg", len(t)
+                print >> sys.stderr, "votecast: warning - got large voteCastHaveMsg; msg_size:", len(recv_msg)
             return False
 
         votecast_data = {}
@@ -155,12 +152,7 @@ class VoteCastCore:
             print >> sys.stderr, "votecast: invalid votecast_message"
             return False
         
-        st = time()
         self.handleVoteCastMsg(sender_permid, votecast_data)
-        et = time()
-        diff = et - st
-        if DEBUG:
-            print >>sys.stderr,"votecast: HANDLE took %.4f" % diff            
 
         #Log RECV_MSG of uncompressed message
         if self.log:
@@ -182,7 +174,7 @@ class VoteCastCore:
         for value in data:
             vote = {}
             vote['mod_id'] = value[0]
-            vote['voter_id'] = self.votecastdb.getPeerID(sender_permid)
+            vote['voter_id'] = permid_for_user(sender_permid)
             vote['vote'] = value[1] 
             self.votecastdb.addVote(vote)
             

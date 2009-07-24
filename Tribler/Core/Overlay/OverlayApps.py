@@ -18,6 +18,7 @@ from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.NATFirewall.NatCheckMsgHandler import NatCheckMsgHandler
 from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler 
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
+from Tribler.Core.SocialNetwork.ChannelQueryMsgHandler import ChannelQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
 from Tribler.Core.Statistics.Crawler import Crawler
@@ -46,6 +47,7 @@ class OverlayApps:
         self.dialback_handler = None
         self.socnet_handler = None
         self.rquery_handler = None
+        self.chquery_handler = None
         self.friendship_handler = None
         self.msg_handlers = {}
         self.connection_handlers = []
@@ -132,6 +134,12 @@ class OverlayApps:
             self.rquery_handler.register(overlay_bridge,launchmany,config,self.buddycast,log=config['overlay_log'])
             self.register_msg_handler(RemoteQueryMessages,self.rquery_handler.handleMessage)
             self.register_connection_handler(self.rquery_handler.handleConnection)
+            
+        if config['chquery']:
+            self.chquery_handler = ChannelQueryMsgHandler.getInstance()
+            self.chquery_handler.register(overlay_bridge,launchmany,config,self.buddycast)
+            self.register_msg_handler(ChannelQueryMessages,self.chquery_handler.handleMessage)
+            self.register_connection_handler(self.chquery_handler.handleConnection) 
 
         if config['crawler']:
             crawler = Crawler.get_instance(session)

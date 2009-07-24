@@ -77,7 +77,8 @@ class FilesItemDetailsSummary(bgPanel):
         ##self.triblerStyles.setDarkText(self.NumLeechers)
         ##self.NumLeechers.SetLabel('%s' % self.torrent['num_leechers'])
 
-        self.Popularity = wx.StaticText(self,-1,"Popularity:",wx.Point(0,0),wx.Size(125,22))     
+        #self.Popularity = wx.StaticText(self,-1,"Popularity:",wx.Point(0,0),wx.Size(125,22))     
+        self.Popularity = wx.StaticText(self,-1,"Swarm size:",wx.Point(0,0),wx.Size(125,22))
         self.Popularity.SetMinSize((125,14))
         self.triblerStyles.setDarkText(self.Popularity)    
 
@@ -86,10 +87,11 @@ class FilesItemDetailsSummary(bgPanel):
         self.triblerStyles.setDarkText(self.Popularity_info)
         pop = self.torrent['num_seeders'] + self.torrent['num_leechers']    
         if pop > 0:
-            if pop == 1:
-                self.Popularity_info.SetLabel('%s person' %(pop))
-            else: 
-                self.Popularity_info.SetLabel('%s people' %(pop))
+            self.Popularity_info.SetLabel('%s seeders, %s leechers' %(self.torrent['num_seeders'],self.torrent['num_leechers']))
+            #if pop == 1:
+            #    self.Popularity_info.SetLabel('%s person' %(pop))
+            #else: 
+            #    self.Popularity_info.SetLabel('%s people' %(pop))
         else: 
             self.Popularity_info.SetLabel('unknown')
 

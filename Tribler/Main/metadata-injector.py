@@ -76,6 +76,8 @@ def main():
 
             moderation = {}
             moderation['infohash'] = bin2str(infohash)
+            torrenthash = sha.sha(bencode(data)).digest()
+            moderation['torrenthash'] = bin2str(torrenthash)
 
             moderation_cast_db.addOwnModeration(moderation)
 

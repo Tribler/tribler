@@ -166,7 +166,7 @@ import socket
 
 from Tribler.Core.simpledefs import BCCOLPOLICY_SIMPLE
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE, MODERATIONCAST_HAVE, MODERATIONCAST_REQUEST, MODERATIONCAST_REPLY, VOTECAST
+from Tribler.Core.BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE, MODERATIONCAST_HAVE, MODERATIONCAST_REQUEST, MODERATIONCAST_REPLY, VOTECAST, CHANNELCAST
 from Tribler.Core.Utilities.utilities import show_permid_short, show_permid,validPermid,validIP,validPort,validInfohash,readableBuddyCastMsg, hostname_or_ip2ip
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND, NTFY_MYPREFERENCES, NTFY_INSERT, NTFY_DELETE
@@ -183,6 +183,7 @@ from threading import currentThread
 from bartercast import BarterCastCore
 from moderationcast import ModerationCastCore
 from votecast import VoteCastCore
+from channelcast import ChannelCastCore
 
 DEBUG = False   # for errors
 debug = False   # for status
@@ -325,10 +326,11 @@ class BuddyCastFactory:
         
         self.moderationcast_core = ModerationCastCore(self.data_handler, self.overlay_bridge, self.launchmany.session, self.getCurrrentInterval, self.log, self.launchmany.secure_overlay.get_dns_from_peerdb)    
         self.votecast_core = VoteCastCore(self.data_handler, self.overlay_bridge, self.launchmany.session, self.getCurrrentInterval, self.log, self.launchmany.secure_overlay.get_dns_from_peerdb)
+        self.channelcast_core = ChannelCastCore(self.data_handler, self.overlay_bridge, self.launchmany.session, self.getCurrrentInterval, self.log, self.launchmany.secure_overlay.get_dns_from_peerdb)
             
         self.buddycast_core = BuddyCastCore(self.overlay_bridge, self.launchmany, 
                self.data_handler, self.buddycast_interval, self.superpeer,
-               self.metadata_handler, self.torrent_collecting_solution, self.bartercast_core, self.moderationcast_core, self.votecast_core, self.log)
+               self.metadata_handler, self.torrent_collecting_solution, self.bartercast_core, self.moderationcast_core, self.votecast_core, self.channelcast_core, self.log)
         
         self.data_handler.register_buddycast_core(self.buddycast_core)
         
@@ -442,7 +444,12 @@ class BuddyCastFactory:
                 print >> sys.stderr, "bc: Received votecast message"
             if self.votecast_core != None:
                 return self.votecast_core.gotVoteCastMessage(message[1:], permid, selversion)
-            
+ 
+        elif t == CHANNELCAST:
+            if DEBUG:
+                print >> sys.stderr, "bc: Received channelcast message"
+            if self.channelcast_core != None:
+                return self.channelcast_core.gotChannelCastMessage(message[1:], permid, selversion)           
                 
         elif t == BARTERCAST:
             if DEBUG:
@@ -506,7 +513,7 @@ class BuddyCastCore:
     
     def __init__(self, overlay_bridge, launchmany, data_handler, 
                  buddycast_interval, superpeer, 
-                 metadata_handler, torrent_collecting_solution, bartercast_core, moderationcast_core, votecast_core, log=None):
+                 metadata_handler, torrent_collecting_solution, bartercast_core, moderationcast_core, votecast_core, channelcast_core, log=None):
         self.overlay_bridge = overlay_bridge
         self.launchmany = launchmany
         self.data_handler = data_handler
@@ -589,6 +596,7 @@ class BuddyCastCore:
 
         self.moderationcast_core = moderationcast_core
         self.votecast_core = votecast_core
+        self.channelcast_core = channelcast_core
 
         # Crawler
         crawler = Crawler.get_instance()
@@ -976,6 +984,9 @@ class BuddyCastCore:
         if self.votecast_core != None:
             self.votecast_core.createAndSendVoteCastMessage(target_permid, selversion)
 
+        if self.channelcast_core != None:
+            self.channelcast_core.createAndSendChannelCastMessage(target_permid, selversion)
+            
         if self.log:
             dns = self.dnsindb(target_permid)
             if dns:
