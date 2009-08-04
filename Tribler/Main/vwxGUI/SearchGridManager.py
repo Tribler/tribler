@@ -60,7 +60,6 @@ class TorrentSearchGridManager:
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         
         self.category = Category.getInstance()
-        self.moderationcastdb = ModerationCastDBHandler.getInstance()
         self.votecastdb = VoteCastDBHandler.getInstance()
         self.channelcastdb = ChannelCastDBHandler.getInstance()
         

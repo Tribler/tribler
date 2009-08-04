@@ -9,6 +9,7 @@ from M2Crypto import Rand
 
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
+from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler,PeerDBHandler
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH

@@ -58,7 +58,6 @@ NTFY_BARTERCAST = 'bartercast' # currently not observable
 NTFY_MYINFO = 'myinfo'
 NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
-NTFY_MODERATIONCAST = 'moderationcast'
 NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
 NTFY_SEARCH = 'clicklogsearch' # BuddyCast 4

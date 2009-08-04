@@ -81,9 +81,6 @@ class GUIUtility:
                                      # 2 : from Library and Harddisk
 
 
-        # Moderation cast
-        self.moderatedinfohash = None
-        self.modcast_db = None 
         self.fakeButton = None
         self.realButton = None
 
@@ -140,9 +137,6 @@ class GUIUtility:
         return GUIUtility.__single
     getInstance = staticmethod(getInstance)
 
-    def open_dbs(self):
-        self.modcast_db = self.utility.session.open_dbhandler(NTFY_MODERATIONCAST)
-        
     def buttonClicked(self, event):
         "One of the buttons in the GUI has been clicked"
         self.frame.SetFocus()
@@ -319,15 +313,11 @@ class GUIUtility:
 
         elif name == 'fake':    
             self.realButton.setState(False) # disabled real button
-            moderation = self.modcast_db.getModeration(bin2str(self.moderatedinfohash))
-            # ARNO50: Please turn DB records into dicts. Not doing this makes
-            # the whole code DB schema dependent!
-            self.modcast_db.blockModerator(moderation[0])
+            # TODO: write code for positive code
 
         elif name == 'real':    
             self.fakeButton.setState(False) # disable fake button
-            moderation = self.modcast_db.getModeration(bin2str(self.moderatedinfohash))
-            self.modcast_db.forwardModerator(moderation[0])
+            # TODO: write code for positive code
 
 
 

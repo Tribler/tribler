@@ -24,6 +24,7 @@
 
 import os
 import sys
+import binascii
 import traceback
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 #from BitTornado.zurllib import urlopen
@@ -33,6 +34,7 @@ from xml.dom.minidom import parseString
 from xml.parsers.expat import ExpatError
 from threading import Thread,RLock,Event
 import time
+import sha
 
 from Tribler.Core.API import *
 from Tribler.Core.BitTornado.bencode import bdecode,bencode
@@ -70,49 +72,11 @@ class TorrentFeedThread(Thread):
             TorrentFeedThread(*args, **kw)
         return TorrentFeedThread.__single
     getInstance = staticmethod(getInstance)
-    """    
-    def register(self,utility):
-        self.utility = utility
-        self.intertorrentinterval = self.utility.config.Read("torrentcollectsleep","int")
-        
-        self.torrent_dir = self.utility.session.get_torrent_collecting_dir()
-        self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-        
-        filename = self.getfilename()
-        try:
-            f = open(filename,"rb")
-            for line in f.readlines():
-                for key in ['active','inactive']:
-                    if line.startswith(key):
-                        url = line[len(key)+1:-2] # remove \r\n
-                        if DEBUG:
-                            print >>sys.stderr,"subscrip: Add from file URL",url,"EOU"
-                        self.addURL(url,dowrite=False,status=key)
-            f.close()        
-        except:
-            pass
-            #traceback.print_exc()
     
-        #self.addURL('http://www.vuze.com/syndication/browse/AZHOT/ALL/X/X/26/X/_/_/X/X/feed.xml')
-        
-        
-    def addURL(self,url,dowrite=True,status="active"):
-        self.lock.acquire()
-        if url not in self.urls:
-            self.urls[url] = status
-            if status == "active":
-                feed = TorrentFeedReader(url,self.gethistfilename(url))
-                self.feeds.append(feed)
-                self.feeds_changed = True
-            if dowrite:
-                self.writefile()
-        self.lock.release()        
-    """
-    
-    def register(self,session,reloadfrequency,checkfrequency):
+    def register(self,session):
         self.session = session
-        self.reloadfrequency = reloadfrequency
-        self.checkfrequency = checkfrequency
+        self.reloadfrequency = self.session.get_rss_reload_frequency()
+        self.checkfrequency = self.session.get_rss_check_frequency()
         
         self.torrent_dir = self.session.get_torrent_collecting_dir()
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
@@ -139,7 +103,7 @@ class TorrentFeedThread(Thread):
             pass
             #traceback.print_exc()
     
-        self.addURL('http://www.legaltorrents.com/feeds/cat/netlabel-music.rss')
+        #self.addURL('http://www.legaltorrents.com/feeds/cat/netlabel-music.rss')
     
     
     def addURL(self, url, dowrite=True, status="active"):
@@ -171,7 +135,7 @@ class TorrentFeedThread(Thread):
 
     def gethistfilename(self,url):
         # TODO: url2pathname or something that gives a readable filename
-        h = sha(url).hexdigest()
+        h = sha.sha(url).hexdigest()
         return os.path.join(self.getdir(),h+'.txt')
     
     """    
@@ -278,10 +242,10 @@ class TorrentFeedThread(Thread):
                         urlopenobj.close()
                         data = bdecode(bdata)
                         
-                        tdef = TorrentDef.load_from_dict(data)
+                        #tdef = TorrentDef.load_from_dict(data)
                         
                         if 'info' in data:
-                            infohash = tdef.get_infohash()
+                            infohash = sha.sha(bencode(data['info'])).digest()
                             if not self.torrent_db.hasTorrent(infohash):
                                 if DEBUG:
                                     if "name" in data["info"]:

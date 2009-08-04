@@ -18,9 +18,6 @@ DEBUG_UI = False
 DEBUG = False    #Default debug
 debug = False    #For send-errors and other low-level stuff
 
-AUTO_MODERATE = False    #Automatically moderate content, with bogus moderations
-AUTO_MODERATE_INTERVAL = 1    #Number of seconds between creation of moderations
-
 
 SINGLE_VOTECAST_LENGTH = 130
 
@@ -47,14 +44,9 @@ class VoteCastCore:
         #buddycast-factory after calling this constructor).
         self.buddycast_core = None
         
-        #Extend logging with ModerationCAST-messages and status
+        #Extend logging with VoteCast-messages and status
         if self.log:
             self.overlay_log = OverlayLogger.getInstance(self.log)
-        
-        if AUTO_MODERATE:
-            assert AUTO_MODERATE_INTERVAL > 0
-            from moderationcast_experiment import BogusAutoModerator
-            self.auto_moderator = BogusAutoModerator(AUTO_MODERATE_INTERVAL)
 
     def initialized(self):
         return self.buddycast_core is not None
@@ -62,7 +54,7 @@ class VoteCastCore:
     ################################
     def createAndSendVoteCastMessage(self, target_permid, selversion):
         """ Creates and sends a VOTECAST message """
-        votecast_data = self.createVoteCastMessage(target_permid)
+        votecast_data = self.createVoteCastMessage()
         if len(votecast_data) == 0:
             if DEBUG:
                 print >>sys.stderr, "No votes there.. hence we do not send"            
@@ -84,32 +76,19 @@ class VoteCastCore:
         
 
     ################################
-    def createVoteCastMessage(self, target_permid):
+    def createVoteCastMessage(self):
         """ Create a VOTECAST message """
 
-        #Select latest own moderations
         if DEBUG: print >> sys.stderr, "Creating votecastmsg..."        
         
-        #Add random own moderations
         NO_RANDOM_VOTES = self.session.get_votecast_random_votes()
         NO_RECENT_VOTES = self.session.get_votecast_recent_votes()
-        size = NO_RANDOM_VOTES+NO_RECENT_VOTES
-        
-        records = self.votecastdb.recentVotes(NO_RECENT_VOTES)
-        random_own = self.votecastdb.randomVotes(size)
-        #print >> sys.stderr, "random own >>>>>>>>>>> ", random_own
-        
-        for vote in random_own:
-            if len(records) == size:
-                break
-            #print >> sys.stderr, "votes information", vote
-            if vote not in records:
-                records.append(vote)
+        records = self.votecastdb.getRecentAndRandomVotes()
+
         data = []        
         for record in records:            
-            mod_id = record[0]
-            vote = record[1]
-            data.append((mod_id, vote))
+            data.append((record[0], record[1])) #mod_id, vote
+        print >>sys.stderr, "votecast to be sent:", repr(data)
         return data
 
     
@@ -143,6 +122,7 @@ class VoteCastCore:
 
         try:
             votecast_data = bdecode(recv_msg)
+            print >>sys.stderr, repr(votecast_data)
         except:
             print >> sys.stderr, "votecast: warning, invalid bencoded data"
             return False

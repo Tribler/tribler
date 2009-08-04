@@ -887,43 +887,22 @@ class SQLiteCacheDBV4(SQLiteCacheDBBase):
         # bring database up to version 2, if necessary        
         if fromver < 2:
             sql = """
--- Patch for Moderation and VoteCast
+-- V2: Patch for VoteCast
             
-CREATE TABLE ModerationCast (
-mod_id text,
-mod_name text,
-infohash text not NULL,
-time_stamp integer,
-media_type text,
-quality text,
-tags text,
-signature integer
-);
-
-CREATE INDEX moderationcast_idx
-ON ModerationCast
-(mod_id);
-
-----------------------------------------
-
-CREATE TABLE Moderators (
-mod_id integer,
-status integer,
-time_stamp integer
-);
-
-CREATE UNIQUE INDEX moderators_idx
-ON Moderators
-(mod_id);
-
-----------------------------------------
-
 CREATE TABLE VoteCast (
 mod_id text,
-voter_id integer,
-vote text,
+voter_id text,
+vote integer,
 time_stamp integer
 );
+
+CREATE INDEX mod_id_idx
+on VoteCast 
+(mod_id);
+
+CREATE INDEX voter_id_idx
+on VoteCast 
+(voter_id);
 
 CREATE UNIQUE INDEX votecast_idx
 ON VoteCast
@@ -999,6 +978,80 @@ CREATE INDEX Number_of_leechers_idx
 CREATE UNIQUE INDEX Popularity_idx
   ON Popularity
    (torrent_id, peer_id, msg_receive_time);
+
+-- v4: Patch for ChannelCast, Search
+
+CREATE TABLE ChannelCast (
+publisher_id text,
+publisher_name text,
+infohash text,
+torrenthash text,
+torrentname text,
+time_stamp integer,
+signature text
+);
+
+CREATE INDEX pub_id_idx
+on ChannelCast
+(publisher_id);
+
+CREATE INDEX pub_name_idx
+on ChannelCast
+(publisher_name);
+
+CREATE INDEX infohash_ch_idx
+on ChannelCast
+(infohash);
+
+----------------------------------------
+
+CREATE TABLE InvertedIndex (
+word               text NOT NULL,
+torrent_id         integer
+);
+
+CREATE INDEX word_idx
+on InvertedIndex
+(word);
+
+CREATE UNIQUE INDEX invertedindex_idx
+on InvertedIndex
+(word,torrent_id);
+
+----------------------------------------
+
+CREATE TABLE TorrentFiles(
+torrent_id         integer,
+filepath           text,
+filesize           integer
+);
+
+CREATE INDEX torrentfile_idx
+on TorrentFiles
+(torrent_id);
+
+----------------------------------------
+
+CREATE TABLE BadTorrents (
+  torrent_id       integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  infohash           text NOT NULL,
+  name             text,
+  torrent_file_name text,
+  length           integer,
+  creation_date    integer,
+  num_files        integer,
+  thumbnail        integer,
+  insert_time      numeric,
+  secret           integer,
+  relevance        numeric DEFAULT 0,
+  source_id        integer,
+  category_id      integer,
+  status_id        integer,
+  num_seeders      integer,
+  num_leechers     integer,
+  comment          text
+);
+
 
 """
             self.execute_write(sql, commit=False)

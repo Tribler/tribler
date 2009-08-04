@@ -24,7 +24,7 @@ from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Core.osutils import get_readable_torrent_name
-
+from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
 SPECIAL_VALUE=481
 
@@ -90,7 +90,7 @@ class TriblerLaunchMany(Thread):
         # do_cache -> do_overlay -> (do_buddycast, do_download_help)
         if config['megacache']:
             import Tribler.Core.CacheDB.cachedb as cachedb
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyDBHandler, PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, BarterCastDBHandler, ModerationCastDBHandler, VoteCastDBHandler, SearchDBHandler,TermDBHandler, CrawlerDBHandler      
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyDBHandler, PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, BarterCastDBHandler, VoteCastDBHandler, SearchDBHandler,TermDBHandler, CrawlerDBHandler, ChannelCastDBHandler      
             from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import SeedingStatsDBHandler, SeedingStatsSettingsDBHandler
             from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
             from Tribler.Category.Category import Category
@@ -126,8 +126,6 @@ class TriblerLaunchMany(Thread):
             self.friend_db      = FriendDBHandler.getInstance()
             self.bartercast_db  = BarterCastDBHandler.getInstance()
             self.bartercast_db.registerSession(self.session)
-            self.modcast_db = ModerationCastDBHandler.getInstance()
-            self.modcast_db.registerSession(self.session)
             self.votecast_db = VoteCastDBHandler.getInstance()
             self.votecast_db.registerSession(self.session)
             self.channelcast_db = ChannelCastDBHandler.getInstance()
@@ -259,6 +257,10 @@ class TriblerLaunchMany(Thread):
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
             
+        # start the torrent feed thread
+        self.torrentfeed = TorrentFeedThread.getInstance()
+        self.torrentfeed.register(self.session)
+        self.torrentfeed.start()        
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """

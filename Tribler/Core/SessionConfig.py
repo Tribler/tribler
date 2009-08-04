@@ -1142,82 +1142,24 @@ class SessionConfigInterface:
         return self.sessconfig['crawler']
     
     #
-    # ModerationCast
+    # RSS feed settings
     #
-    # Arno, 2009-04-16: these methods must be documented.
-    #
-    def set_moderationcast_recent_own_moderations_per_have(self, n):
-        """ Sets the maximum number of recent own moderations that can be embedded
-         in a ModerationCast_Have message.
-        @param n Integer. """
-        self.sessconfig['moderationcast_recent_own_moderations_per_have'] = n
+    def set_rss_reload_frequency(self, frequency):
+        """ reload a rss source every n seconds """
+        self.sessconfig['rss_reload_frequency'] = frequency
 
-    def get_moderationcast_recent_own_moderations_per_have(self):
-        """ Returns the maximum number of recent own moderations that can be embedded
-         in a ModerationCast_Have message.
-        @return Integer. """
-        return self.sessconfig['moderationcast_recent_own_moderations_per_have']
+    def get_rss_reload_frequency(self):
+        """ Returns the reload frequency for a rss source """
+        return self.sessconfig['rss_reload_frequency']
 
-    def set_moderationcast_random_own_moderations_per_have(self, n):
-        """ Sets the maximum number of random own moderations that can be embedded
-         in a ModerationCast_Have message.
-        @param n Integer. """
-        self.sessconfig['moderationcast_random_own_moderations_per_have'] = n
+    def set_rss_check_frequency(self, frequency):
+        """ test a potential .torrent in a rss source every n seconds """
+        self.sessconfig['rss_check_frequency'] = frequency
 
-    def get_moderationcast_random_own_moderations_per_have(self):
-        """ Returns the maximum number of random own moderations that can be embedded
-         in a ModerationCast_Have message.
-        @return Integer. """
-        return self.sessconfig['moderationcast_random_own_moderations_per_have']
-
-    def set_moderationcast_recent_forward_moderations_per_have(self, n):
-        """ Sets the maximum number of recent moderations from other moderators that can be 
-        fowarded in a ModerationCast_Have message.
-        @param n Integer. """
-        self.sessconfig['moderationcast_recent_forward_moderations_per_have'] = n
-
-    def get_moderationcast_recent_forward_moderations_per_have(self):
-        """ Returns the maximum number of recent moderations from other moderators that can 
-         be forwarded in a ModerationCast_Have message.
-        @return Integer. """
-        return self.sessconfig['moderationcast_recent_forward_moderations_per_have']
+    def get_rss_check_frequency(self):
+        """ Returns the check frequency for a potential .torrent in a rss source """
+        return self.sessconfig['rss_check_frequency']
     
-    def set_moderationcast_random_forward_moderations_per_have(self, n):
-        """ Sets the maximum number of random moderations from other moderators that can be 
-        forwarded in a ModerationCast_Have message.
-        @param n Integer. """
-        self.sessconfig['moderationcast_random_forward_moderations_per_have'] = n
-
-    def get_moderationcast_random_forward_moderations_per_have(self):
-        """ Returns the maximum number of random moderations from other moderators that can be 
-        forwarded in ModerationCast_Have message.
-        @return Integer. """
-        return self.sessconfig['moderationcast_random_forward_moderations_per_have']
-
-    def get_moderationcast_moderations_per_have(self):
-        """ Returns the maximum number of moderations that can be embedded in 
-        ModerationCast_Have message.
-        @return Integer.
-        """
-        return self.sessconfig['moderationcast_recent_own_moderations_per_have'] + \
-               self.sessconfig['moderationcast_random_own_moderations_per_have'] + \
-               self.sessconfig['moderationcast_recent_forward_moderations_per_have'] + \
-               self.sessconfig['moderationcast_random_forward_moderations_per_have']
-
-    def set_moderationcast_promote_own(self,value):
-        """" Sets whether to promote your own moderations at every
-        overlay connection made.
-        @param value Boolean.
-        """
-        self.sessconfig['moderationcast_promote_own'] = value
-        
-    def get_moderationcast_promote_own(self):
-        """" Returns whether to promote your own moderations at every
-        overlay connection made.
-        @return Boolean.
-        """
-        return self.sessconfig['moderationcast_promote_own']
-
     # 
     # Local Peer Discovery using IP Multicast
     #

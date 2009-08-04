@@ -228,43 +228,22 @@ CREATE VIEW Friend AS SELECT * FROM Peer WHERE friend=1;
 CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
 
 
--- V2: Patch for Moderation and VoteCast
+-- V2: Patch for VoteCast
             
-CREATE TABLE ModerationCast (
-mod_id text,
-mod_name text,
-infohash text not NULL,
-time_stamp integer,
-media_type text,
-quality text,
-tags text,
-signature text
-);
-
-CREATE INDEX moderationcast_idx
-ON ModerationCast
-(mod_id);
-
-----------------------------------------
-
-CREATE TABLE Moderators (
-mod_id integer,
-status integer,
-time_stamp integer
-);
-
-CREATE UNIQUE INDEX moderators_idx
-ON Moderators
-(mod_id);
-
-----------------------------------------
-
 CREATE TABLE VoteCast (
 mod_id text,
-voter_id integer,
-vote text,
+voter_id text,
+vote integer,
 time_stamp integer
 );
+
+CREATE INDEX mod_id_idx
+on VoteCast 
+(mod_id);
+
+CREATE INDEX voter_id_idx
+on VoteCast 
+(voter_id);
 
 CREATE UNIQUE INDEX votecast_idx
 ON VoteCast
@@ -338,6 +317,18 @@ torrentname text,
 time_stamp integer,
 signature text
 );
+
+CREATE INDEX pub_id_idx
+on ChannelCast
+(publisher_id);
+
+CREATE INDEX pub_name_idx
+on ChannelCast
+(publisher_name);
+
+CREATE INDEX infohash_ch_idx
+on ChannelCast
+(infohash);
 
 ----------------------------------------
 

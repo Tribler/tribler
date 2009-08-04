@@ -50,9 +50,9 @@ class DatabaseCrawler:
                         "SELECT 'torrent_count', count(*) FROM Torrent"))
 
         if selversion >= OLPROTO_VER_EIGHTH:
-            sql.extend(("SELECT 'moderations_count', count(*) FROM ModerationCast",
-                        "SELECT 'positive_votes_count', count(*) FROM Moderators where status=1",
-                        "SELECT 'negative_votes_count', count(*) FROM Moderators where status=-1"))
+            sql.extend(("SELECT 'num_subscribers', count(*) FROM VoteCast where vote=2"
+                        "SELECT 'positive_votes_count', count(*) FROM VoteCast where vote=1",
+                        "SELECT 'negative_votes_count', count(*) FROM VoteCast where vote=-1"))
 
         request_callback(CRAWLER_DATABASE_QUERY, ";".join(sql), callback=self._after_request_callback)
 

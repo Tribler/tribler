@@ -70,7 +70,7 @@ from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid_short
-from Tribler.Subscriptions.rss_client import TorrentFeedThread 
+ 
 #import Tribler.Core.CacheDB.friends as friends 
 
 from Tribler.Video.defs import *
@@ -244,18 +244,8 @@ class ABCApp(wx.App):
             
             # Make sure self.utility.frame is set
             self.startAPI()
-            self.guiUtility.open_dbs()
             ##self.guiUtility.initStandardOverview(self.frame.standardOverview)
 
-            # TEST: add mod for Gopher
-            """
-            moderation_cast_db = self.utility.session.open_dbhandler(NTFY_MODERATIONCAST)
-            moderation = {}
-            from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-            moderation['infohash'] = bin2str('\xbd\x0c\x86\xf9\xe4JE\x0e\xff\xff\x16\xedF01*<| \xe9')
-            moderation_cast_db.addOwnModeration(moderation)
-            """
-            
             self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
             self.frame.search_icon = xrc.XRCCTRL(self.frame, "search_icon")
             self.frame.files_friends = xrc.XRCCTRL(self.frame, "files_friends")
@@ -355,9 +345,6 @@ class ABCApp(wx.App):
                 print_exc()
             
             # Must be after ABCLaunchMany is created
-            self.torrentfeed = TorrentFeedThread.getInstance()
-            self.torrentfeed.register(self.utility.session)
-            self.torrentfeed.start()
             
             #print "DIM",wx.GetDisplaySize()
             #print "MM",wx.GetDisplaySizeMM()
