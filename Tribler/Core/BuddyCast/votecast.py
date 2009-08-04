@@ -88,7 +88,7 @@ class VoteCastCore:
         data = []        
         for record in records:            
             data.append((record[0], record[1])) #mod_id, vote
-        print >>sys.stderr, "votecast to be sent:", repr(data)
+        if DEBUG: print >>sys.stderr, "votecast to be sent:", repr(data)
         return data
 
     
@@ -122,14 +122,13 @@ class VoteCastCore:
 
         try:
             votecast_data = bdecode(recv_msg)
-            print >>sys.stderr, repr(votecast_data)
         except:
             print >> sys.stderr, "votecast: warning, invalid bencoded data"
             return False
 
         # check message-structure
         if not validVoteCastMsg(votecast_data):
-            print >> sys.stderr, "votecast: invalid votecast_message"
+            print >> sys.stderr, "votecast: warning, invalid votecast_message"
             return False
         
         self.handleVoteCastMsg(sender_permid, votecast_data)
@@ -149,7 +148,8 @@ class VoteCastCore:
         ################################
     def handleVoteCastMsg(self, sender_permid, data):
         """ Handles VoteCast message """
-        print >> sys.stderr, "Processing VOTECAST msg from: ", permid_for_user(sender_permid), "; data: ", repr(data)
+        if DEBUG: 
+            print >> sys.stderr, "Processing VOTECAST msg from: ", permid_for_user(sender_permid), "; data: ", repr(data)
     
         for value in data:
             vote = {}

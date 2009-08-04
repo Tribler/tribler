@@ -22,7 +22,7 @@ from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINETH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINETH, OLPROTO_VER_ELEVENTH
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -111,8 +111,6 @@ class RemoteQueryMsgHandler:
         
         if DEBUG:
             print >> sys.stderr,"rquery: handleConnection",exc,"v",selversion,"local",locally_initiated
-        if exc is not None:
-            return
         
         if selversion < OLPROTO_VER_SIXTH:
             return True
@@ -295,6 +293,9 @@ class RemoteQueryMsgHandler:
             r['category'] = torrent['category']
             if selversion >= OLPROTO_VER_NINETH:
                 r['torrent_size'] = getsize(join(self.torrent_dir, torrent['torrent_file_name']))
+            if selversion >= OLPROTO_VER_ELEVENTH:
+                r['channel_permid'] = torrent['channel_permid']
+                r['channel_name'] = torrent['channel_name']
             d2[torrent['infohash']] = r
         d['a'] = d2
         return bencode(d)
@@ -421,7 +422,13 @@ def isValidVal(d,selversion):
         if DEBUG:
             print >>sys.stderr,"rqmh: reply: a: value not dict"
         return False
-    if selversion >= OLPROTO_VER_NINETH:
+    if selversion >= OLPROTO_VER_ELEVENTH:
+        if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d and 'torrent_size' in d and 'channel_permid' in d and 'channel_name' in d):
+            if DEBUG:
+                print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
+        return False
+        
+    elif selversion >= OLPROTO_VER_NINETH:
         if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d and 'torrent_size' in d):
             if DEBUG:
                 print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()

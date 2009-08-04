@@ -18,7 +18,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, 
 from Tribler.Core.SocialNetwork.ChannelQueryMsgHandler import ChannelQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 
-DEBUG = True
+DEBUG = False
 
 NUM_OWN_RECENT_TORRENTS = 15
 NUM_OWN_RANDOM_TORRENTS = 10

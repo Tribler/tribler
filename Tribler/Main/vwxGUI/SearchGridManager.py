@@ -27,6 +27,7 @@ DEBUG = False
 SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
 SEARCHMODE_NONE = 3
+VOTE_LIMIT = -5
 
 class TorrentSearchGridManager:
     # Code to make this a singleton
@@ -290,10 +291,12 @@ class TorrentSearchGridManager:
                             print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: Ignoring hit for",`value['content_name']`,"already got it"
                         continue # do not show results we have ourselves
                     
+                    # First, check if it matches the word boundaries, that belongs to previous version
+                    
                     # Convert answer fields as per 
                     # Session.query_connected_peers() spec. to NEWDB format
                     newval = {}
-                    newval['name'] = value['content_name']
+                    newval['name'] = value['content_name']                    
                     newval['infohash'] = key
                     newval['torrent_file_name'] = ''
                     newval['length'] = value['length']
@@ -312,6 +315,58 @@ class TorrentSearchGridManager:
                         newval['torrent_size'] = value['torrent_size']
                     else:
                         newval['torrent_size'] = -1
+                        
+                    # OLPROTO_VER_ELEVENTH includes channel_permid, channel_name fields.
+                    if 'channel_permid' not in value:
+                        # just to check if it is not OLPROTO_VER_ELEVENTH version
+                        # if so, check word boundaries in the swarm name
+                        filename = value['content_name']
+                        filename = filename.lower()
+                        filename = filename.replace('*',' ')
+                        filename = filename.replace('(',' ')
+                        filename = filename.replace(')',' ')
+                        filename = filename.replace('{',' ')
+                        filename = filename.replace('}',' ')
+                        filename = filename.replace('/',' ')
+                        filename = filename.replace('\\',' ')
+                        filename = filename.replace('|',' ')
+                        filename = filename.replace('-',' ')
+                        filename = filename.replace('.',' ')
+                        filename = filename.replace('+',' ')
+                        filename = filename.replace('$',' ')
+                        filename = filename.replace('%',' ')
+                        filename = filename.replace('^',' ')
+                        filename = filename.replace('_',' ')
+                        import re
+                        ls = re.split(r'\s+', filename)
+                        flag = False
+                        for kw in kws:
+                            if kw not in ls:
+                                flag=True
+                                break
+                        if flag:
+                            continue
+                        
+                    if 'channel_permid' in value:
+                        newval['channel_permid']=value['channel_permid']
+                    else:
+                        newval['channel_permid']=None
+                        
+                    if 'channel_name' in value:
+                        newval['channel_name'] = value['channel_name']
+                    else:
+                        newval['channel_name']=None
+                        
+                    if 'channel_permid' in value:
+                        newval['neg_votes'] = self.votecastdb.getNegVotes(value['channel_permid'])
+                        newval['subscriptions'] = self.votecastdb.getNumSubscriptions(value['channel_permid'])
+                        if newval['subscriptions']-newval['neg_votes']<VOTE_LIMIT:
+                            # now, this is SPAM
+                            continue
+                    else:
+                        newval['subscriptions']=0
+                        newval['neg_votes'] = 0
+                            
 
                     # Extra fiedl: Set from which peer this info originates
                     newval['query_permids'] = [permid]
@@ -465,13 +520,13 @@ class TorrentSearchGridManager:
     #sort and merge the torrent results
     def sort(self):
         self.doStatNormalization(self.hits,'num_seeders', 'norm_num_seeders')
-        self.doStatNormalization(self.hits,'votes', 'norm_votes')
+        self.doStatNormalization(self.hits,'neg_votes', 'norm_neg_votes')
         self.doStatNormalization(self.hits,'subscriptions', 'norm_subscriptions')
 
         def cmp(a,b):
             # normScores can be small, so multiply
-            return int( 1000000.0 * ( b.get('norm_num_seeders',0) + b.get('norm_votes',0) + b.get('norm_subscriptions',0) -
-                        a.get('norm_num_seeders',0) - a.get('norm_votes',0) - a.get('norm_subscriptions',0) ))
+            return int( 1000000.0 * ( 0.8*b.get('norm_num_seeders',0) + 0.1*b.get('norm_neg_votes',0) + 0.1*b.get('norm_subscriptions',0) -
+                        0.8*a.get('norm_num_seeders',0) - 0.1*a.get('norm_neg_votes',0) - 0.1*a.get('norm_subscriptions',0) ))
            
         self.hits.sort(cmp)
         
