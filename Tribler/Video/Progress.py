@@ -249,14 +249,14 @@ class ProgressSlider(wx.Panel):
         pos = event.GetPosition()
         if event.ButtonDown():
             if self.onSliderButton(pos):
-                print >> sys.stderr, 'Start drag'
+                print >> sys.stderr, 'ProgressSlider: Start drag'
                 self.dragging = True
             elif self.onSlider(pos): # click somewhere on the slider
                 self.setSliderPosition(pos,True)
         elif event.ButtonUp():
             if self.dragging:
+                print >> sys.stderr, 'ProgressSlider: End drag'
                 self.setSliderPosition(pos, True)
-                print >> sys.stderr, 'End drag'
             self.dragging = False
         elif event.Dragging():
             if self.dragging:
@@ -289,7 +289,7 @@ class ProgressSlider(wx.Panel):
             #theEvent = wx.ScrollEvent(pos=self.progress)
             #self.GetEventHandler().ProcessEvent(theEvent)
             #print >> sys.stderr, 'Posted event'
-            print >> sys.stderr, 'Set progress to : %f' % self.progress
+            print >> sys.stderr, 'ProgressSlider: Set progress to : %f' % self.progress
             self.sliderChangedAction()
             
     def sliderChangedAction(self):
@@ -328,7 +328,7 @@ class ProgressSlider(wx.Panel):
             self.Refresh()
         
     def GetValue(self):
-        print >>sys.stderr, 'Progress: %f, Range (%f, %f)' % (self.progress, self.range[0], self.range[1])
+        print >>sys.stderr, 'ProgressSlider: %f, Range (%f, %f)' % (self.progress, self.range[0], self.range[1])
         return self.progress * (self.range[1] - self.range[0])+ self.range[0]
 
     def SetRange(self, a,b):
@@ -463,14 +463,14 @@ class VolumeSlider(wx.Panel):
         pos = event.GetPosition()
         if event.ButtonDown():
             if self.onSliderButton(pos):
-                print >> sys.stderr, 'Start drag'
+                print >> sys.stderr, 'VolumeSlider: Start drag'
                 self.dragging = True
             elif self.onSlider(pos): # click somewhere on the slider
                 self.setSliderPosition(pos,True)
         elif event.ButtonUp():
             if self.dragging:
+                print >> sys.stderr, 'VolumeSlider: End drag'
                 self.setSliderPosition(pos, True)
-                print >> sys.stderr, 'End drag'
             self.dragging = False
         elif event.Dragging():
             if self.dragging:
@@ -503,7 +503,7 @@ class VolumeSlider(wx.Panel):
             #theEvent = wx.ScrollEvent(pos=self.progress)
             #self.GetEventHandler().ProcessEvent(theEvent)
             #print >> sys.stderr, 'Posted event'
-            print >> sys.stderr, 'Set progress to : %f' % self.progress
+            print >> sys.stderr, 'VolumeSlider: Set progress to : %f' % self.progress
             self.sliderChangedAction()
             
     def sliderChangedAction(self):
@@ -516,7 +516,7 @@ class VolumeSlider(wx.Panel):
             self.Refresh()
         
     def GetValue(self):
-        print >>sys.stderr, 'Progress: %f, Range (%f, %f)' % (self.progress, self.range[0], self.range[1])
+        print >>sys.stderr, 'VolumeSlider: %f, Range (%f, %f)' % (self.progress, self.range[0], self.range[1])
         return self.progress * (self.range[1] - self.range[0])+ self.range[0]
 
     def SetRange(self, a,b):
