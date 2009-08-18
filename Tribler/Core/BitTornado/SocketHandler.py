@@ -60,7 +60,7 @@ class SingleSocket:
             self.ip = peername[0]
             self.port = peername[1]
         except:
-            print_exc()
+            #print_exc()
             if ip is None:
                 self.ip = 'unknown'
             else:
@@ -73,7 +73,7 @@ class SingleSocket:
                 self.ip = peername[0]
                 self.port = peername[1]
             except:
-                print_exc()
+                #print_exc()
                 pass
         return self.ip
     
