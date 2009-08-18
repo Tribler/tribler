@@ -13,8 +13,9 @@ def vod_event_callback(d,event,params):
 
         epoch_server = None
         epoch_local = time.time()
+        blocksize = d.get_def().get_piece_length()
         while True:
-            stream.read()
+            stream.read(blocksize)
             last_ts = stream.get_generation_time()
 
             if epoch_server is None:
@@ -51,7 +52,7 @@ scfg.set_megacache( False )
 scfg.set_overlay( False )
 
 s = Session( scfg )
-tdef = TorrentDef.load('ParadisoCam.mpegts.tstream')
+tdef = TorrentDef.load(sys.argv[1])
 dscfg = DownloadStartupConfig()
 dscfg.set_video_event_callback( vod_event_callback )
 dscfg.set_max_uploads(16)
