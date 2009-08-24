@@ -327,6 +327,8 @@ class TorrentSearchGridManager:
                         filename = filename.replace(')',' ')
                         filename = filename.replace('{',' ')
                         filename = filename.replace('}',' ')
+                        filename = filename.replace('[',' ')
+                        filename = filename.replace(']',' ')
                         filename = filename.replace('/',' ')
                         filename = filename.replace('\\',' ')
                         filename = filename.replace('|',' ')
@@ -337,6 +339,12 @@ class TorrentSearchGridManager:
                         filename = filename.replace('%',' ')
                         filename = filename.replace('^',' ')
                         filename = filename.replace('_',' ')
+                        filename = filename.replace(',',' ')
+                        filename = filename.replace('#',' ')
+                        filename = filename.replace('!',' ')
+                        filename = filename.replace('@',' ')
+                        filename = filename.replace('~',' ')
+                        filename = filename.replace("'"," ")
                         import re
                         ls = re.split(r'\s+', filename)
                         flag = False
