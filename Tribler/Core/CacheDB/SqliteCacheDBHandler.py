@@ -1298,6 +1298,8 @@ class TorrentDBHandler(BasicDBHandler):
                     filename = filename.replace(')',' ')
                     filename = filename.replace('{',' ')
                     filename = filename.replace('}',' ')
+                    filename = filename.replace('[',' ')
+                    filename = filename.replace(']',' ')                    
                     filename = filename.replace('/',' ')
                     filename = filename.replace('\\',' ')
                     filename = filename.replace('|',' ')
@@ -1308,6 +1310,12 @@ class TorrentDBHandler(BasicDBHandler):
                     filename = filename.replace('%',' ')
                     filename = filename.replace('^',' ')
                     filename = filename.replace('_',' ')
+                    filename = filename.replace(',',' ')
+                    filename = filename.replace('#',' ')
+                    filename = filename.replace('!',' ')
+                    filename = filename.replace('@',' ')
+                    filename = filename.replace('~',' ')
+                    filename = filename.replace("'"," ")
                     ls = re.split(r'\s+', filename)                    
                     for l in ls:
                         termdoc.append((l,torrent_id))
@@ -1854,7 +1862,7 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['channel_name'] = ""
             torrent['neg_votes']=0
             torrent['subscriptions']=0
-            sql = "select publisher_id, publisher_name from ChannelCast where infohash='" + torrent['infohash'] + "'"
+            sql = "select publisher_id, publisher_name from ChannelCast where infohash='" + bin2str(torrent['infohash']) + "'" #note that.. above, its in bin format
             records = self._db.fetchall(sql)
             if records is not None and len(records)>0:
                 if len(records)>1:
