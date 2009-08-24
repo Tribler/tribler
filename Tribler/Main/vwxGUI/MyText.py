@@ -21,7 +21,7 @@ class MyText(wx.Panel):
 
 
     def onPaint(self, event):
-        print 'Paint MyText'
+        #print 'Paint MyText'
         dc = wx.PaintDC(self)
         
         x, y = self.GetPositionTuple()
