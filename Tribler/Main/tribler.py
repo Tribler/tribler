@@ -76,6 +76,8 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 
+from Tribler.Subscriptions.rss_client import TorrentFeedThread
+
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
 from time import time, sleep
@@ -364,7 +366,10 @@ class ABCApp(wx.App):
             #self.sr_indicator_right_image = wx.Image(os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0", "SRindicator_right.png", wx.BITMAP_TYPE_ANY))            
             #self.sr_indicator_right = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.sr_indicator_right_image))
 
-            
+            # start the torrent feed thread
+            self.torrentfeed = TorrentFeedThread.getInstance()
+            self.torrentfeed.register(self.session)
+            self.torrentfeed.start()             
         except Exception,e:
             print_exc()
             self.error = e
