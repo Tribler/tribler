@@ -24,7 +24,6 @@ from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Core.osutils import get_readable_torrent_name
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
 SPECIAL_VALUE=481
 
@@ -257,10 +256,7 @@ class TriblerLaunchMany(Thread):
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
             
-        # start the torrent feed thread
-        self.torrentfeed = TorrentFeedThread.getInstance()
-        self.torrentfeed.register(self.session)
-        self.torrentfeed.start()        
+       
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """
