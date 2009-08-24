@@ -368,7 +368,7 @@ class ABCApp(wx.App):
 
             # start the torrent feed thread
             self.torrentfeed = TorrentFeedThread.getInstance()
-            self.torrentfeed.register(self.session)
+            self.torrentfeed.register(self.utility.session)
             self.torrentfeed.start()             
         except Exception,e:
             print_exc()
