@@ -31,7 +31,7 @@ from Tribler.Core.Search.SearchManager import SearchManager
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
-MAX_PEERS_TO_QUERY = 10
+MAX_PEERS_TO_QUERY = 20
 
 DEBUG = False
 
@@ -110,7 +110,7 @@ class RemoteQueryMsgHandler:
             return True
         
         if DEBUG:
-            print >> sys.stderr,"rquery: handleConnection",exc,"v",selversion,"local",locally_initiated
+            print >> sys.stderr,"rquery: handleConnection",exc,"v",selversion,"local",locally_initiated, ";#conn:", len(self.connections)
         
         if selversion < OLPROTO_VER_SIXTH:
             return True
@@ -320,19 +320,19 @@ class RemoteQueryMsgHandler:
             d = bdecode(message[1:])
         except:
             if DEBUG:
-                print >>sys.stderr,"rquery: Cannot bdecode QUERY_REPLY message"
+                print >>sys.stderr,"rquery: Cannot bdecode QUERY_REPLY message", selversion
             return False
         
         if not isValidQueryReply(d,selversion):
             if DEBUG:
-                print >>sys.stderr,"rquery: not valid QUERY_REPLY message"
+                print >>sys.stderr,"rquery: not valid QUERY_REPLY message", selversion
             return False
 
         # Check auth
         queryrec = self.is_registered_query_id(d['id'])
         if not queryrec:
             if DEBUG:
-                print >>sys.stderr,"rquery: QUERY_REPLY has unknown query ID"
+                print >>sys.stderr,"rquery: QUERY_REPLY has unknown query ID", selversion
             return False
 
         # Process
@@ -426,13 +426,13 @@ def isValidVal(d,selversion):
         if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d and 'torrent_size' in d and 'channel_permid' in d and 'channel_name' in d):
             if DEBUG:
                 print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
-        return False
+            return False
         
     elif selversion >= OLPROTO_VER_NINETH:
         if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d and 'torrent_size' in d):
             if DEBUG:
                 print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
-        return False
+            return False
     else:
         if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d):
             if DEBUG:
