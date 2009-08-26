@@ -23,7 +23,7 @@ DEBUG = True
 if sys.platform == "linux2" or sys.platform == "darwin":
     USE_VLC_RAW_INTERFACE = False
 else:
-    USE_VLC_RAW_INTERFACE = False # for Next-Share
+    USE_VLC_RAW_INTERFACE = False # False for Next-Share
     
 
 class VideoPlayer:

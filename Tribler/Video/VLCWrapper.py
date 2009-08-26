@@ -126,7 +126,7 @@ class VLCWrapper:
                 os.chdir(os.path.join(self.installdir,'vlc'))
     
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
-        params = ["--verbose=0"]
+        params = ["--verbose=2"]
         
         """
         # To enable logging to file:
@@ -134,7 +134,7 @@ class VLCWrapper:
         #os.close(loghandle)
         currwd = os.getcwd()
         logfilename = os.path.join(currwd,"vlc.log")
-        params += ["--file-logging"]
+        params += [""--extraintf=logger""]
         params += ["--logfile",logfilename]
         """
         
@@ -196,7 +196,10 @@ class VLCWrapper:
             if sys.platform == 'win32':
                 params += ["--plugin-path", os.path.abspath(os.path.join(self.installdir,'vlc','plugins'))]
 
-            
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
+            params += ["--no-video-title-show"]
+            params += ["--no-osd"]
+
         #print >>sys.stderr,"VLCWrapper: get_vlc_mediactrl: params",params
             
         media = self.vlc.MediaControl(params)
