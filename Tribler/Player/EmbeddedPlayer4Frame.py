@@ -23,7 +23,7 @@ from Tribler.Video.Progress import ProgressSlider, VolumeSlider
 from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
 from Tribler.Video.VideoFrame import VLCLogoWindow,DelayTimer
 
-DEBUG = False
+DEBUG = True
 
 class EmbeddedPlayer4FramePanel(wx.Panel):
     """
@@ -58,8 +58,6 @@ class EmbeddedPlayer4FramePanel(wx.Panel):
             ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
             #self.slider = wx.Slider(self, -1)
             self.slider = ProgressSlider(self, self.utility, imgprefix='4frame')
-            #self.slider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.Seek)
-            #self.slider.Bind(wx.EVT_SCROLL_THUMBTRACK, self.StopSliderUpdate)
             self.slider.SetRange(0,1)
             self.slider.SetValue(0)
             self.oldvolume = None
@@ -103,7 +101,8 @@ class EmbeddedPlayer4FramePanel(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"embedplay: Load:",url,streaminfo,currentThread().getName()
         # Arno: hack: disable dragging when not playing from file.
-        if url is None or url.startswith('http:'):
+        #if url is None or url.startswith('http:'):
+        if url is not None and url.startswith('http:'):
            self.slider.DisableDragging()
         else:
            self.slider.EnableDragging()
@@ -167,12 +166,12 @@ class EmbeddedPlayer4FramePanel(wx.Panel):
 
     def Seek(self, evt=None):
         if DEBUG:
-            print >>sys.stderr,"embedplay: Seek", pos
+            print >>sys.stderr,"embedplay: Seek"
         
         oldsliderpos = self.slider.GetValue()
-        #print >>sys.stderr, 'embedplay: Seek: GetValue returned,',oldsliderpos
+        print >>sys.stderr, 'embedplay: Seek: GetValue returned,',oldsliderpos
         pos = int(oldsliderpos * 1000.0)
-        #print >>sys.stderr, 'embedplay: Seek: newpos',pos
+        print >>sys.stderr, 'embedplay: Seek: newpos',pos
         
         try:
             if self.GetState() == MEDIASTATE_STOPPED:

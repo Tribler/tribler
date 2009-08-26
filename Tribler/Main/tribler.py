@@ -126,6 +126,8 @@ class ABCApp(wx.App):
                 if data.find("Ubuntu 9.04") != -1:
                     ubuntu = True
                     
+            print >>sys.stderr,"tribler: Activating workaround for Ubuntu?",ubuntu
+                    
             if not redirectstderrout and ubuntu:
                 # On Ubuntu 8.10 not redirecting output causes the program to quit
                 wx.App.__init__(self, redirect=True)
@@ -160,12 +162,10 @@ class ABCApp(wx.App):
             #s = wx.MINIMIZE_BOX | wx.MAXIMIZE_BOX | wx.RESIZE_BORDER | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.CLIP_CHILDREN
             #s = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT
             self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1)
-            
-            # Arno: Do heavy startup on GUI thread after splash screen has been
-            # painted.
             self.splash.Show()
-            "Replacement for self.Bind(wx.EVT_IDLE, self.OnIdle)"
-            wx.CallAfter(self.PostInit)    
+            
+            # Arno, 2009-08-18: Don't delay postinit anymore, gives problems on Ubuntu 9.04
+            self.PostInit()    
             return True
             
         except Exception,e:
@@ -173,17 +173,6 @@ class ABCApp(wx.App):
             self.error = e
             self.onError()
             return False
-
-    def OnIdle(self,event=None):
-        if not self.postinitstarted:
-            self.postinitstarted = True
-            wx.CallAfter(self.PostInit)
-            # Arno: On Linux I sometimes have to move the mouse into the splash
-            # for the rest of Tribler to start. H4x0r
-            if event is not None:
-                event.RequestMore(True)
-                event.Skip()
-
 
     def PostInit(self):
         try:

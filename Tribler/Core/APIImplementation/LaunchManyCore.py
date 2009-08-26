@@ -255,8 +255,6 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking_period = config['torrent_checking_period']
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
-            
-       
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """

@@ -9,6 +9,9 @@ from threading import RLock,Thread,currentThread
 from traceback import print_exc,print_stack
 import string
 
+import os
+import Tribler.Core.osutils
+
 DEBUG = True
         
 
@@ -197,7 +200,7 @@ class VideoRawVLCServer:
         self.sid2streaminfo = {}
         
         
-        self.lastsid = None # workaround bug? in raw inf
+        #self.lastsid = None # workaround bug? in raw inf
         
     def getInstance(*args, **kw):
         if VideoRawVLCServer.__single is None:
@@ -215,7 +218,7 @@ class VideoRawVLCServer:
             self.sid2streaminfo[sid] = streaminfo
             
             # workaround
-            self.lastsid = sid
+            # self.lastsid = sid
         finally:
             self.lock.release()
         
@@ -242,11 +245,11 @@ class VideoRawVLCServer:
                 # Switched streams, garbage collect old
                 oldstream = self.sid2streaminfo[self.oldsid]['stream']
                 del self.sid2streaminfo[self.oldsid]
-                self.oldsid = sid
                 try:
                     oldstream.close()
                 except:
                     print_exc()
+            self.oldsid = sid
             
             streaminfo = self.get_inputstream(sid)
             #print >>sys.stderr,"rawread: sid",sid,"n",buflen
@@ -266,9 +269,18 @@ class VideoRawVLCServer:
         
     def SeekDataCallback(self, pos, sid):
         try:
-            #print >>sys.stderr,"VideoRawVLCServer: SeekDataCallback: stream",sid,"seeking to", pos
+            # WARNING: CURRENT 0.8.6h binaries have bug in vlcglue.c: pos is just a long int , not a long long int.
+            
+            print >>sys.stderr,"VideoRawVLCServer: SeekDataCallback: stream",sid,"seeking to", pos,"oldsid",self.oldsid
             # Arno: TODO: add support for seeking
+            if True:
+                streaminfo = self.get_inputstream(sid)
+                streaminfo['stream'].seek(pos,os.SEEK_SET)
+                return 0
+            
+            
             return -1
+        
         except:
             print_exc()
             return -1
