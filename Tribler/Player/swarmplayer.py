@@ -530,6 +530,15 @@ class PlayerFrame(VideoFrame):
         # TODO: first event.Skip does not close window, second apparently does
         # Check how event differs
 
+        # This gets called multiple times somehow
+        if not self.closed:
+            self.closed = True
+            self.parent.videoFrame = None
+
+            self.parent.videoplayer.stop_playback()
+            self.parent.remove_downloads_in_vodmode_if_not_complete()
+            self.parent.restart_other_downloads()
+
         if event is not None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
@@ -540,15 +549,6 @@ class PlayerFrame(VideoFrame):
         else:
             print >>sys.stderr,"main: Closing untriggered by event"
 
-        # This gets called multiple times somehow
-        if not self.closed:
-            self.closed = True
-            self.parent.videoFrame = None
-
-            self.parent.videoplayer.stop_playback()
-            self.parent.remove_downloads_in_vodmode_if_not_complete()
-            self.parent.restart_other_downloads()
-            
         print >>sys.stderr,"main: Closing done"
         # TODO: Show balloon in systray when closing window to indicate things continue there
 

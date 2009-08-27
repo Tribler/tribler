@@ -40,7 +40,8 @@ UNAUTH_PERMID_PERIOD = 3600
 """
 Arno: 2007-02-16:
 uTorrent and Bram's BitTorrent now support an extension to the protocol,
-documented on http://www.rasterbar.com/products/libtorrent/extension_protocol.html
+documented on http://www.bittorrent.org/beps/bep_0010.html (previously
+http://www.rasterbar.com/products/libtorrent/extension_protocol.html)
 
 The problem is that the bit they use in the options field of the BT handshake
 is the same as we use to indicate a peer supports the overlay-swarm connection.

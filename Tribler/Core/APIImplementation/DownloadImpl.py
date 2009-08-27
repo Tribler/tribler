@@ -16,7 +16,7 @@ from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 
-DEBUG = True
+DEBUG = False
 
 class DownloadImpl:
     
