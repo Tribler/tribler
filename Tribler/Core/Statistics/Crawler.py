@@ -47,7 +47,6 @@ class Crawler:
     def __init__(self, session):
         if self.__singleton:
             raise RuntimeError, "Crawler is Singleton"
-        Crawler.__single = self 
         self._overlay_bridge = OverlayThreadingBridge.getInstance()
         self._session = session
         self._crawler_db = CrawlerDBHandler.getInstance()
