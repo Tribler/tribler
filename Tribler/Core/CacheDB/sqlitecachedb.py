@@ -432,7 +432,7 @@ class SQLiteCacheDBBase:
             print_stack()
             print >> sys.stderr, "cachedb: execute error:", Exception, msg 
             thread_name = threading.currentThread().getName()
-            print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
+            print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
             #return None
             # ARNODB: this is incorrect, it should reraise the exception
             # such that _transaction can rollback or recommit. 
