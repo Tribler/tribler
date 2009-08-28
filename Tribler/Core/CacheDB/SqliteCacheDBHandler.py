@@ -1281,17 +1281,31 @@ class TorrentDBHandler(BasicDBHandler):
             termdoc = []
             for li in data['files']:
                 if li.has_key('path') and li.has_key('length'):
-                    ls = li['path']   # list representing file path
-                    if len(ls) ==0:
+                    # boudewijn: the origional code is adapted for
+                    # readability, speed, and to remove a unicode bug
+                    #
+                    # ls = li['path']   # list representing file path
+                    # if len(ls) == 0:
+                    #     continue
+                    # filelen = li['length']
+                    # filename = ls[len(ls)-1]
+                    # filepath = ""
+                    # for l in ls:
+                    #     filepath += filter(lambda c: c.isalnum(), l) + "/"
+                    # filepath = filepath[:len(filepath)-1]                    
+                    # files.append((torrent_id,filepath,filelen))
+
+                    def only_alnum(s):
+                        return filter(lambda c: c.isalnum(), s)
+                    
+                    ls = map(only_alnum, li['path'])   # list representing file path
+                    if len(ls) == 0:
                         continue
                     filelen = li['length']
-                    filename = ls[len(ls)-1]
-                    filepath = ""
-                    for l in ls:
-                        filepath += l + "/"
-                    filepath = filepath[:len(filepath)-1]                    
-                    files.append((torrent_id,filepath,filelen))
-                    
+                    filename = ls[-1]
+                    filepath = "/".join(ls)
+                    files.append((torrent_id, filepath, filelen))
+
                     filename = filename.lower()
                     filename = filename.replace('*',' ')
                     filename = filename.replace('(',' ')
@@ -1318,17 +1332,18 @@ class TorrentDBHandler(BasicDBHandler):
                     filename = filename.replace("'"," ")
                     ls = re.split(r'\s+', filename)                    
                     for l in ls:
+                        l = filter(lambda c: c.isalnum(), l)
                         termdoc.append((l,torrent_id))
             if len(files)>0:        
-                sql = "insert into TorrentFiles values(?,?,?)"
+                sql = u"insert into TorrentFiles values(?,?,?)"
                 self._db.executemany(sql, files, commit=True)
                            
             if len(termdoc)>0:
-                sql1 = "insert or replace into InvertedIndex values(?,?)"
+                sql1 = u"insert or replace into InvertedIndex values(?,?)"
                 self._db.executemany(sql1, termdoc, commit=True)           
             
         else:
-            sql = "insert into TorrentFiles values(?,?,?)"
+            sql = u"insert into TorrentFiles values(?,?,?)"
             values = [(torrent_id,dunno2unicode(data['name']),data['length'])]
             self._db.executemany(sql, values, commit=True)
             #print >> sys.stderr, "Adding torrent files ", str(torrent_id)
