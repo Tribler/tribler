@@ -64,15 +64,28 @@ class TestUTorrentPeerExchange(TestAsServer):
             (sub)test where the error occured in the traceback it prints.
         """
 
+        # myid needs to identify the connection as Tribler in order to
+        # get the 'same' bit added.f
+        myid = "R" + "".join(map(chr, range(19)))
+
         # Create a fake other client, so the EXTEND ut_pex won't be empty
         msg2 = self.create_good_nontribler_extend_hs(listenport=4321)
-        s2 = BTConnection('localhost',self.hisport,mylistenport=4321,user_option_pattern='\x00\x00\x00\x00\x00\x10\x00\x00',user_infohash=self.infohash)
+        s2 = BTConnection('localhost',self.hisport,mylistenport=4321,user_option_pattern='\x00\x00\x00\x00\x00\x10\x00\x00',user_infohash=self.infohash,myid=myid)
         s2.read_handshake_medium_rare()
         s2.send(msg2)
-        #self.subtest_good_nontribler_ut_pex()
+        self.subtest_good_nontribler_ut_pex()
         self.subtest_good_nontribler_ut_pex_diff_id()
-        #self.subtest_good_tribler_ut_pex()
-        #self.subtest_bad_ut_pex()
+        self.subtest_good_tribler_ut_pex()
+        self.subtest_bad_ut_pex()
+
+        # now we add a second non-tribler peer. this peer should also
+        # be in the pex message but should not have the 'same' bit set
+        myid = "X" + "".join(map(chr, range(19)))
+        msg3 = self.create_good_nontribler_extend_hs(listenport=4322)
+        s3 = BTConnection('localhost',self.hisport,mylistenport=4322,user_option_pattern='\x00\x00\x00\x00\x00\x10\x00\x00',user_infohash=self.infohash,myid=myid)
+        s3.read_handshake_medium_rare()
+        s3.send(msg3)
+        self.subtest_good_nontribler_ut_pex_same_and_nonsame()
 
     #
     # Good ut_pex message
@@ -97,7 +110,10 @@ class TestUTorrentPeerExchange(TestAsServer):
         s.send('bla')
         s.close()
 
-    def _test_good(self,msg_gen_func,options=None,infohash=None,pex_id=1):
+    def subtest_good_nontribler_ut_pex_same_and_nonsame(self):
+        self._test_good(self.create_good_tribler_extend_hs,infohash=self.infohash,connections={"tribler":1,"non-tribler":1})
+
+    def _test_good(self,msg_gen_func,options=None,infohash=None,pex_id=1,connections={"tribler":1,"non-tribler":0}):
         if options is None and infohash is None:
             s = BTConnection('localhost',self.hisport)
         elif options is None:
@@ -139,7 +155,7 @@ class TestUTorrentPeerExchange(TestAsServer):
                 self.assert_(len(resp) > 0)
                 print "test: Tribler returns",getMessageName(resp[0])
                 if resp[0] == EXTEND:
-                    self.check_ut_pex(resp[1:],pex_id=pex_id)
+                    self.check_ut_pex(resp[1:],pex_id,connections)
                     s.close()
                     break
         except socket.timeout:
@@ -193,7 +209,7 @@ class TestUTorrentPeerExchange(TestAsServer):
         bd = bencode(d)
         return EXTEND+chr(pex_id)+bd
 
-    def check_ut_pex(self,data,pex_id):
+    def check_ut_pex(self,data,pex_id,connections):
         self.assert_(data[0] == chr(pex_id))
         d = bdecode(data[1:])
         
@@ -205,20 +221,34 @@ class TestUTorrentPeerExchange(TestAsServer):
         apeers = self.check_compact_peers(cp)
         
         print >>sys.stderr,"test: apeers is",apeers
-        
+
         self.assert_('added.f' in d.keys())
-        f = d['added.f']
-        print "test: Length of added.f",len(f)
-        self.assert_(type(f) == StringType)
-        self.assert_(len(apeers) == len(f))
+        addedf = d['added.f']
+        print "test: Length of added.f",len(addedf)
+        self.assert_(type(addedf) == StringType)
+        self.assert_(len(apeers) == len(addedf))
         self.assert_('dropped' in d.keys())
         cp = d['dropped']
         self.check_compact_peers(cp)
+
         
-        # Check that the fake client we created is included
-        self.assert_(len(apeers) == 1)
-        self.assert_(apeers[0][1] == 4321)
-        
+        # Check that the fake client(s) we created are included
+        connections_in_pex = sum(connections.values())
+        self.assert_(len(apeers) == connections_in_pex)
+        self.assert_(apeers[0][1] in (4321, 4322))
+
+        # 03/09/09 Boudewijn: the bit 0x04 is reserved to indicate
+        # that the peer is of the 'same' client type as sender. both
+        # are Tribler peers so the 'same' bit must be set
+        tribler_peers = 0
+        non_tribler_peers = 0
+        for b in addedf:
+            if ord(b) & 4:
+                tribler_peers += 1
+            else:
+                non_tribler_peers += 1
+        self.assert_(tribler_peers == connections["tribler"])
+        self.assert_(non_tribler_peers == connections["non-tribler"])
 
     def check_compact_peers(self,cp):
         self.assert_(type(cp) == StringType)
@@ -240,10 +270,15 @@ class TestUTorrentPeerExchange(TestAsServer):
             self.create_not_bdecodable,
             self.create_not_dict1,
             self.create_not_dict2,
-            self.create_bad_keys,
-            self.create_added_missing,
-            self.create_added_f_missing,
-            self.create_dropped_missing,
+
+            # not testing for bad and missing keys because some known
+            # clients act this way. Therefore our code is not as
+            # strict anymore.
+            # self.create_bad_keys,
+            # self.create_added_missing,
+            # self.create_added_f_missing,
+            # self.create_dropped_missing,
+                   
             self.create_added_not_str,
             self.create_added_f_not_str,
             self.create_dropped_not_str,

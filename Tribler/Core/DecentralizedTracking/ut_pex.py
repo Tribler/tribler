@@ -18,6 +18,11 @@ The PEX message payload is a bencoded dict with three keys:
   OR-ing them together is allowed as I've seen \x03 values.
  'dropped': the set of peers dropped since last PEX
 
+03/09/09 Boudewijn: Added a 'is same kind of peer as me' bit to the
+'added.f' value. When a Tribler peer send this bit as True this means
+'is also a Tribler peer'.
+    \x04: is same kind of peer
+
 The mechanism is insecure because there is no way to know if the peer addresses
 are really of some peers that are running BitTorrent, or just DoS victims.
 For peer addresses that come from trackers we at least know that the peer host
@@ -49,6 +54,8 @@ def create_ut_pex(addedconns,droppedconns,thisconn):
             flag |= 1
         if conn.download is not None and conn.download.peer_is_complete():
             flag |= 2
+        if conn.is_tribler_peer():
+            flag |= 4
             
         #print >>sys.stderr,"ut_pex: create_ut_pex: add flag",`flag`
         flags += chr(flag)
@@ -60,6 +67,13 @@ def create_ut_pex(addedconns,droppedconns,thisconn):
 def check_ut_pex(d):
     if type(d) != DictType:
         raise ValueError('ut_pex: not a dict')
+
+    # 'same' peers are peers that indicate (with a bit) that the peer
+    # in apeers is the same client type as itself. So if the sender of
+    # the pex message is a Tribler peer the same_apeers will also be
+    # tribler peers
+    same_apeers = []
+
     apeers = check_ut_pex_peerlist(d,'added')
     dpeers = check_ut_pex_peerlist(d,'dropped')
     if 'added.f' in d:
@@ -69,6 +83,21 @@ def check_ut_pex(d):
         if len(addedf) != len(apeers) and not len(addedf) == 0:
             # KTorrent sends an empty added.f, be nice
             raise ValueError('ut_pex: added.f: more flags than peers')
+
+        # we need all flags to be integers
+        addedf = map(ord, addedf)
+
+        # filter out all 'same' peers. the loop runs in reverse order
+        # so the indexes don't change as we pop them from the apeers
+        # list
+        for i in range(max(len(apeers),len(addedf))-1,-1,-1):
+            if addedf[i] & 4:
+                same_apeers.append(apeers.pop(i))
+
+                # for completeness we should also pop the item from
+                # addedf even though we don't use it anymore
+                addedf.pop(i)
+                
     # Arno, 2008-09-12: Be liberal in what we receive
     ##else:
         ##raise ValueError('ut_pex: added.f: missing')
@@ -76,7 +105,7 @@ def check_ut_pex(d):
     if DEBUG:
         print >>sys.stderr,"ut_pex: Got",apeers
     
-    return (apeers,dpeers)
+    return (same_apeers,apeers,dpeers)
     
 def check_ut_pex_peerlist(d,name):
     if name not in d:

@@ -407,15 +407,19 @@ class Connection:
     def get_extend_listenport(self):
         return self.extend_hs_dict.get('p')
 
+    def is_tribler_peer(self):
+        client, version = decodePeerID(self.connection.id)
+        return client == TRIBLER_PEERID_LETTER
+
     def send_extend_handshake(self):
 
         # NETWORK AWARE
         hisip = self.connection.get_ip(real=True)
         ipv4 = None
         if self.connecter.config.get('same_nat_try_internal',0):
-            [client,version] = decodePeerID(self.connection.id)
-            print >>sys.stderr,"connecter: send_extend_hs: Peer is client",client
-            if client == TRIBLER_PEERID_LETTER:
+            is_tribler_peer = self.is_tribler_peer()
+            print >>sys.stderr,"connecter: send_extend_hs: Peer is Tribler client",is_tribler_peer
+            if is_tribler_peer:
                 # If we're connecting to a Tribler peer, show our internal IP address
                 # as 'ipv4'.
                 ipv4 = self.get_ip(real=True)
@@ -442,7 +446,7 @@ class Connection:
     def got_ut_pex(self,d):
         if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Got uTorrent PEX:",d
-        (added_peers,dropped_peers) = check_ut_pex(d)
+        (same_added_peers,added_peers,dropped_peers) = check_ut_pex(d)
         
         # DoS protection: we're accepting IP addresses from 
         # an untrusted source, so be a bit careful
@@ -450,13 +454,22 @@ class Connection:
         if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Got",len(added_peers),"peers via uTorrent PEX, using max",mx
             
-        #print >>sys.stderr,"connecter: Got",added_peers
-        # Take random sample of mx peers
-        shuffle(added_peers)
-        sample_added_peers_with_id = []
+        # for now we have a strong bias towards Tribler peers
+        if self.is_tribler_peer():
+            shuffle(same_added_peers)
+            shuffle(added_peers)
+            sample_peers = same_added_peers
+            sample_peers.extend(added_peers)
+        else:
+            sample_peers = same_added_peers
+            sample_peers.extend(added_peers)
+            shuffle(sample_peers)
         
+        # Take random sample of mx peers
+        sample_added_peers_with_id = []
+
         # Put the sample in the format desired by Encoder.start_connections()
-        for dns in added_peers[:mx]:
+        for dns in sample_peers[:mx]:
             peer_with_id = (dns, 0)
             sample_added_peers_with_id.append(peer_with_id)
         if len(sample_added_peers_with_id) > 0:
