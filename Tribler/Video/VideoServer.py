@@ -137,14 +137,13 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     blocksize = streaminfo['blocksize']
                 else:
                     blocksize = 65536
-            print >>sys.stderr,"videoserv: do_GET: MIME type is",mimetype,"length",length,"blocksize",blocksize,currentThread().getName()
     
             #mimetype = 'application/x-mms-framed'
             #mimetype = 'video/H264'
-                
-            print >>sys.stderr,"videoserv: do_GET: final MIME type is",mimetype,"length",length,currentThread().getName()
+            print >>sys.stderr,"videoserv: do_GET: MIME type is",mimetype,"length",length,"blocksize",blocksize,currentThread().getName()
 
-            # Support for HTTP range queries: http://tools.ietf.org/html/rfc2616#section-14.35
+            # Support for HTTP range queries: 
+            # http://tools.ietf.org/html/rfc2616#section-14.35
             firstbyte = 0
             if length is not None:
                 lastbyte = length-1
@@ -214,9 +213,12 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         
             print >>sys.stderr,"videoserv: do_GET: final range",firstbyte,lastbyte,nbytes2send,currentThread().getName()
         
+        
+            # Seek in stream to desired offset
             if firstbyte != 0:
                 stream.seek(firstbyte)
     
+            # Send headers
             self.send_header("Content-Type", mimetype)
             if length is not None:
                 self.send_header("Content-Length", nbytes2send)
@@ -224,6 +226,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.send_header("Transfer-Encoding", "chunked")
             self.end_headers()
 
+
+            # Send body
             done = False
             while True:
                 data = stream.read(blocksize)
@@ -237,7 +241,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     # http://www.ietf.org/rfc/rfc2616.txt, $3.6.1 
                     self.wfile.write("%x\r\n" % (len(data)))
                 if len(data) > 0:
-                    # Range queries:
+                    # Limit output to what was asked on range queries:
                     if length is not None and nbyteswritten+len(data) > nbytes2send:
                         endlen = nbytes2send-nbyteswritten
                         if endlen != 0:
@@ -263,10 +267,9 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             if nbyteswritten != nbytes2send:
                 print >>sys.stderr,"videoserv: do_GET: Sent wrong amount, wanted",nbytes2send,"got",nbyteswritten,currentThread().getName()
     
-            #stream.close()
+            stream.close()
             if self.server.statuscallback is not None:
                 self.server.statuscallback("Done")
-            #f.close()
             
         except Exception,e:
             if DEBUG:
