@@ -166,6 +166,20 @@ class DownloadState(Serializable):
         else:
             return self.stats['down']/1024.0
 
+    def get_total_transferred(self,direct):
+        """
+        Returns the total amount of up or downloaded bytes.
+        @return The amount in bytes.
+        """
+        if self.stats is None:
+            return 0L
+        # self.stats:          BitTornado.BT1.DownloaderFeedback.py (return from gather method)
+        # self.stats["stats"]: BitTornado.BT1.Statistics.py (Statistics_Response instance)
+        if direct == UPLOAD:
+            return self.stats['stats'].upTotal
+        else:
+            return self.stats['stats'].downTotal
+    
     def get_eta(self):
         """
         Returns the estimated time to finish of download.
