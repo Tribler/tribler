@@ -150,32 +150,32 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
             range = self.headers.getheader('range')
             if range:
-                type, seek = string.split(range,'=')
-                    
-                firstbytestr, lastbytestr = string.split(seek,'-')
-                firstbyte = bytestr2int(firstbytestr)
-                lastbyte = bytestr2int(lastbytestr)
-        
                 bad = False
-                if length is None:
-                    # - No length (live) 
-                    bad = True
-                elif seek.find(",") != -1:
+                type, seek = string.split(range,'=')
+                if seek.find(",") != -1:
                     # - Range header contains set, not supported at the moment
                     bad = True
-                elif firstbyte is None and lastbyte is None:
-                    # - Invalid input
-                    bad = True
-                elif firstbyte >= length:
-                    bad = True
-                elif lastbyte >= length:
-                    if firstbyte is None:
-                        """ If the entity is shorter than the specified 
-                        suffix-length, the entire entity-body is used.
-                        """
-                        lastbyte = length-1
-                    else:
+                else:
+                    firstbytestr, lastbytestr = string.split(seek,'-')
+                    firstbyte = bytestr2int(firstbytestr)
+                    lastbyte = bytestr2int(lastbytestr)
+            
+                    if length is None:
+                        # - No length (live) 
                         bad = True
+                    elif firstbyte is None and lastbyte is None:
+                        # - Invalid input
+                        bad = True
+                    elif firstbyte >= length:
+                        bad = True
+                    elif lastbyte >= length:
+                        if firstbyte is None:
+                            """ If the entity is shorter than the specified 
+                            suffix-length, the entire entity-body is used.
+                            """
+                            lastbyte = length-1
+                        else:
+                            bad = True
                     
                 if bad:
                     # Send 416 - Requested Range not satisfiable and exit
@@ -197,10 +197,10 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     # "-100" = last 100 bytes
                     nbytes2send = lastbyte
                     firstbyte = length - lastbyte
-                    lastbyte = lastbyte - 1
+                    lastbyte = length - 1
                     
                 else:
-                    nbytes2send = lastbyte - firstbyte
+                    nbytes2send = lastbyte+1 - firstbyte
         
                 crheader = "bytes "+str(firstbyte)+"-"+str(lastbyte)+"/"+str(nbytes2send)
         

@@ -49,14 +49,20 @@ class TestVideoHTTPServer(unittest.TestCase):
     #
     # Tests
     #
-    def test_rangeAB(self):
+    def test_ranges(self):
+        # Run single test, VideoHTTPServer is singleton at the moment and
+        # doesn't like recreate.
         try:
-            self.range_test(115,215,100)
-        except:
-            print_exc()
-        
-        
+            self.range_test(115,214,100)
+            self.range_test(self.sourcesize-100,None,100)
+            self.range_test(None,100,100)
 
+            self.range_test(115,214,100,setset=True)
+            
+        except Exception,e:
+            print_exc()
+            #raise e
+        
 
     #
     # Internal
@@ -83,7 +89,7 @@ class TestVideoHTTPServer(unittest.TestCase):
             
         return head
 
-    def range_test(self,firstbyte,lastbyte,expsize):
+    def range_test(self,firstbyte,lastbyte,expsize,setset=False):
         self.register_file_stream()
         
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -93,6 +99,9 @@ class TestVideoHTTPServer(unittest.TestCase):
         
         head += "Range: bytes="
         head += self.create_range_str(firstbyte,lastbyte)
+        if setset:
+            # Make into set of byte ranges, VideoHTTPServer should refuse.
+            head += ",0-99"
         head += "\r\n"
         
         head += "Connection: close\r\n"
@@ -100,6 +109,21 @@ class TestVideoHTTPServer(unittest.TestCase):
         head += "\r\n"
         
         s.send(head)
+
+        if firstbyte is not None and lastbyte is None:
+            # 100-
+            expfirstbyte = firstbyte 
+            explastbyte = self.sourcesize-1
+        elif firstbyte is None and lastbyte is not None:
+            # -100
+            expfirstbyte = self.sourcesize-lastbyte 
+            explastbyte = self.sourcesize-1
+        else:
+            expfirstbyte = firstbyte
+            explastbyte = lastbyte
+
+        print >>sys.stderr,"test: Expecting first",expfirstbyte,"last",explastbyte,"size",expsize
+        self.assert_(expfirstbyte+expsize == explastbyte+1)
         
         # Parse header
         while True:
@@ -113,12 +137,17 @@ class TestVideoHTTPServer(unittest.TestCase):
                 return
             
             if line.startswith("HTTP"):
-                # Python returns "HTTP/1.0 206 Partial Content\r\n" HTTP 1.0???
-                self.assert_(line.startswith("HTTP/1."))
-                self.assert_(line.find("206") != -1) # Partial content
+                if not setset:
+                    # Python returns "HTTP/1.0 206 Partial Content\r\n" HTTP 1.0???
+                    self.assert_(line.startswith("HTTP/1."))
+                    self.assert_(line.find("206") != -1) # Partial content
+                else:
+                    self.assert_(line.startswith("HTTP/1."))
+                    self.assert_(line.find("416") != -1) # Requested Range Not Satisfiable
+                    return
+
             elif line.startswith("Content-Range:"):
-                
-                expline = "Content-Range: bytes "+self.create_range_str(firstbyte,lastbyte)+"/"+str(expsize)+"\r\n"
+                expline = "Content-Range: bytes "+self.create_range_str(expfirstbyte,explastbyte)+"/"+str(expsize)+"\r\n"
                 self.assertEqual(expline,line)
                  
             elif line.startswith("Content-Type:"):

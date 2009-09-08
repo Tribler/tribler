@@ -255,7 +255,8 @@ class BackgroundApp(BaseApp):
             else:
                 stream = params['stream']
     
-            streaminfo = { 'mimetype': params['mimetype'], 'stream': stream, 'length': params['length'] }
+            blocksize = d.get_def().get_piece_length()
+            streaminfo = { 'mimetype': params['mimetype'], 'stream': stream, 'length': params['length'],'blocksize':blocksize }
             
             duser = self.dusers[d]
             duser['streaminfo'] = streaminfo
