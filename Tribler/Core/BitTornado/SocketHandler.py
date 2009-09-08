@@ -30,7 +30,47 @@ if sys.platform == 'win32':
 else:
     SOCKET_BLOCK_ERRORCODE=errno.EWOULDBLOCK
 
+class InterruptSocketHandler:
+    @staticmethod
+    def data_came_in(interrupt_socket, data):
+        pass
 
+class InterruptSocket:
+    """
+    When we need the poll to return before the timeout expires, we
+    will send some data to the InterruptSocket and discard the data.
+    """
+    def __init__(self, socket_handler):
+        self.socket_handler = socket_handler
+        self.handler = InterruptSocketHandler
+
+        self.ip = "localhost"
+        self.port = None
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # we assume that one port in the range below is free
+        for self.port in xrange(10000, 12345):
+            try:
+                if DEBUG: print >>sys.stderr, "InterruptSocket: Trying to start InterruptSocket on port", self.port
+                self.socket.bind((self.ip, self.port))
+                break
+            except:
+                pass
+
+        # start listening to the InterruptSocket
+        self.socket_handler.single_sockets[self.socket.fileno()] = self
+        self.socket_handler.poll.register(self.socket, POLLIN)
+
+    def interrupt(self):
+        self.interrupt_socket.sendto("+", (self.ip, self.port))
+
+    def get_ip(self):
+        return self.ip
+
+    def get_port(self):
+        return self.port
+        
 class SingleSocket:
     """ 
     There are two places to create SingleSocket:
@@ -187,6 +227,7 @@ class SocketHandler:
         self.max_connects = 1000
         self.servers = {}
         self.btengine_said_reachable = False
+        self.interrupt_socket = None
 
     def scan_for_timeouts(self):
         t = clock() - self.timeout
@@ -566,6 +607,15 @@ class SocketHandler:
     def add_socket(self, socket):
         self.servers[socket.fileno()] = socket
         socket.setblocking(0)
+
+    def get_interrupt_socket(self):
+        """
+        Create a socket to interrupt the poll when the thread needs to
+        continue without waiting for the timeout
+        """
+        if not self.interrupt_socket:
+            self.interrupt_socket = InterruptSocket(self)
+        return self.interrupt_socket
         
 def is_udp_socket(sock):
     return sock.getsockopt(socket.SOL_SOCKET,socket.SO_TYPE) == socket.SOCK_DGRAM

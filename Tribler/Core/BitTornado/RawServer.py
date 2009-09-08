@@ -68,6 +68,10 @@ class RawServer:
         if sockethandler is None:
             sockethandler = SocketHandler(timeout, ipv6_enable, READSIZE)
         self.sockethandler = sockethandler
+
+        self.is_polling = False
+        self.interrupt_socket = sockethandler.get_interrupt_socket()
+        
         self.add_task(self.scan_for_timeouts, timeout_check_interval)
 
     def get_exception_flag(self):
@@ -85,6 +89,8 @@ class RawServer:
             delay = 0
         self.lock.acquire()
         self.externally_added.append((func, delay, id))
+        if self.is_polling:
+            self.interrupt_socket.interrupt()
         self.lock.release()
 
     def scan_for_timeouts(self):
@@ -139,7 +145,16 @@ class RawServer:
                     #if DEBUG:
                     #    print >>sys.stderr,"rawserver: do_poll",period
 
+                    self.lock.acquire()
+                    self.is_polling = True
+                    self.lock.release()
+
                     events = self.sockethandler.do_poll(period)
+
+                    self.lock.acquire()
+                    self.is_polling = False
+                    self.lock.release()
+
                     if self.doneflag.isSet():
                         if DEBUG:
                             print >> sys.stderr,"rawserver: stopping because done flag set"
