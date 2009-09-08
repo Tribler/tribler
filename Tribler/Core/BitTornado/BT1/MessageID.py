@@ -15,7 +15,6 @@ protocol_name = 'BitTorrent protocol'
 # Right-most bit = BitTorrent DHT extension
 #option_pattern = chr(0)*8
 option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'
-disabled_overlay_option_pattern = '\x00\x00\x00\x00\x00\x20\x00\x00'
 
 
 CHOKE = chr(0)

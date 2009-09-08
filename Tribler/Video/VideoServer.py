@@ -3,6 +3,7 @@
 #
 
 import sys
+import time
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
 from threading import RLock,Thread,currentThread
@@ -14,9 +15,29 @@ import Tribler.Core.osutils
 
 DEBUG = True
         
+        
+def bytestr2int(b):
+    if b == "":
+        return None
+    else:
+        return int(b)
 
-class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
-#class VideoHTTPServer(BaseHTTPServer.HTTPServer):
+
+#class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
+class VideoHTTPServer(BaseHTTPServer.HTTPServer):
+    """
+    Arno: not using ThreadingMixIn makes it a single-threaded server.
+    
+    2009-09-08: Previously single or multi didn't matter because there would
+    always just be one request for one HTTP path. Now we started supporting HTTP
+    range queries and that results in parallel requests on the same path
+    (and thus our stream object). The reason there are parallel requests
+    is due to the funky way VLC uses HTTP range queries: It does not request 
+    begin1-end1, begin2-end2, begin2-end2, but begin1- & begin2- &
+    begin3-. That is, it requests almost the whole file everytime, and in
+    parallel too, aborting the earlier connections as it proceeds. 
+
+    """
     __single = None
     
     def __init__(self,port):
@@ -32,7 +53,7 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
 
         self.lock = RLock()        
         
-        self.urlpath2streaminfo = {}
+        self.urlpath2streaminfo = {} # Maps URL to streaminfo
         
         self.errorcallback = None
         self.statuscallback = None
@@ -92,16 +113,21 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
     """
 
     def do_GET(self):
+        
+        nbytes2send = None
+        nbyteswritten= 0
         try:
             if DEBUG:
-                print >>sys.stderr,"videoserv: do_GET: Got request",self.path,self.headers.getheader('range')
+                print >>sys.stderr,"videoserv: do_GET: Got request",self.path,self.headers.getheader('range'),currentThread().getName()
+                print >>sys.stderr,"videoserv: do_GET: Range",self.headers.getrawheader('Range'),currentThread().getName()
                 
             #if self.server.statuscallback is not None:
             #    self.server.statuscallback("Player ready - Attempting to load file...")
+
             streaminfo = self.server.get_inputstream(self.path)
             if streaminfo is None:
                 if DEBUG:
-                    print >>sys.stderr,"videoserv: do_GET: No data to serve request"
+                    print >>sys.stderr,"videoserv: do_GET: No data to serve request",currentThread().getName()
                 return
             else:
                 mimetype = streaminfo['mimetype']
@@ -111,36 +137,98 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     blocksize = streaminfo['blocksize']
                 else:
                     blocksize = 65536
-            print >>sys.stderr,"videoserv: MIME type is",mimetype,"length",length,"blocksize",blocksize
+            print >>sys.stderr,"videoserv: do_GET: MIME type is",mimetype,"length",length,"blocksize",blocksize,currentThread().getName()
     
             #mimetype = 'application/x-mms-framed'
             #mimetype = 'video/H264'
                 
-            print >>sys.stderr,"videoserv: final MIME type is",mimetype,"length",length
-    
+            print >>sys.stderr,"videoserv: do_GET: final MIME type is",mimetype,"length",length,currentThread().getName()
+
+            # Support for HTTP range queries: http://tools.ietf.org/html/rfc2616#section-14.35
             firstbyte = 0
             if length is not None:
                 lastbyte = length-1
-    
+
             range = self.headers.getheader('range')
             if range:
                 type, seek = string.split(range,'=')
-                firstbyte, lastbyte = string.split(seek,'-')
+                    
+                firstbytestr, lastbytestr = string.split(seek,'-')
+                firstbyte = bytestr2int(firstbytestr)
+                lastbyte = bytestr2int(lastbytestr)
+        
+                bad = False
+                if length is None:
+                    # - No length (live) 
+                    bad = True
+                elif seek.find(",") != -1:
+                    # - Range header contains set, not supported at the moment
+                    bad = True
+                elif firstbyte is None and lastbyte is None:
+                    # - Invalid input
+                    bad = True
+                elif firstbyte >= length:
+                    bad = True
+                elif lastbyte >= length:
+                    if firstbyte is None:
+                        """ If the entity is shorter than the specified 
+                        suffix-length, the entire entity-body is used.
+                        """
+                        lastbyte = length-1
+                    else:
+                        bad = True
+                    
+                if bad:
+                    # Send 416 - Requested Range not satisfiable and exit
+                    self.send_response(416)
+                    if length is None:
+                        crheader = "bytes */*"
+                    else:
+                        crheader = "bytes */"+str(length)
+                    self.send_header("Content-Range",crheader)
+                    self.end_headers()
+                    
+                    return
+                
+                if firstbyte is not None and lastbyte is None:
+                    # "100-" : byte 100 and further
+                    nbytes2send = length - firstbyte
+                    lastbyte = length - 1
+                elif firstbyte is None and lastbyte is not None:
+                    # "-100" = last 100 bytes
+                    nbytes2send = lastbyte
+                    firstbyte = length - lastbyte
+                    lastbyte = lastbyte - 1
+                    
+                else:
+                    nbytes2send = lastbyte - firstbyte
+        
+                crheader = "bytes "+str(firstbyte)+"-"+str(lastbyte)+"/"+str(nbytes2send)
+        
+                self.send_response(206)
+                self.send_header("Content-Range",crheader)
+            else:
+                nbytes2send = length
+                self.send_response(200)
+        
+        
+            print >>sys.stderr,"videoserv: do_GET: final range",firstbyte,lastbyte,nbytes2send,currentThread().getName()
         
             if firstbyte != 0:
-                stream.seek( int(firstbyte) )
+                stream.seek(firstbyte)
     
-            self.send_response(200)
             self.send_header("Content-Type", mimetype)
             if length is not None:
-                self.send_header("Content-Length", length)
+                self.send_header("Content-Length", nbytes2send)
             else:
                 self.send_header("Transfer-Encoding", "chunked")
             self.end_headers()
 
-            count = 0
+            done = False
             while True:
                 data = stream.read(blocksize)
+                if len(data) == 0:
+                    done = True
                 
                 #print >>sys.stderr,"videoserv: HTTP: read",len(data),"bytes"
                 
@@ -148,34 +236,45 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     # If length unknown, use chunked encoding
                     # http://www.ietf.org/rfc/rfc2616.txt, $3.6.1 
                     self.wfile.write("%x\r\n" % (len(data)))
-                if len(data) > 0: 
-                    self.wfile.write(data)
+                if len(data) > 0:
+                    # Range queries:
+                    if length is not None and nbyteswritten+len(data) > nbytes2send:
+                        endlen = nbytes2send-nbyteswritten
+                        if endlen != 0:
+                            self.wfile.write(data[:endlen])
+                        done = True
+                        nbyteswritten += endlen
+                    else:
+                        self.wfile.write(data)
+                        nbyteswritten += len(data)
+                    
                 if length is None:
                     # If length unknown, use chunked encoding
                     self.wfile.write("\r\n")
 
-                if len(data) == 0:
+                if done:
                     if DEBUG:
-                        print >>sys.stderr,"videoserv: stream.read no data" 
+                        print >>sys.stderr,"videoserv: do_GET: stream reached EOF or range query's send limit",currentThread().getName() 
                     break
                     
-                count += 1
-                #if count % 100 == 0:
-                #print >>sys.stderr,"videoserv: writing data % 100"
-                
             if DEBUG:
-                print >>sys.stderr,"videoserv: do_GET: Done sending data"
+                print >>sys.stderr,"videoserv: do_GET: Done sending data",currentThread().getName()
+                
+            if nbyteswritten != nbytes2send:
+                print >>sys.stderr,"videoserv: do_GET: Sent wrong amount, wanted",nbytes2send,"got",nbyteswritten,currentThread().getName()
     
-            stream.close()
+            #stream.close()
             if self.server.statuscallback is not None:
                 self.server.statuscallback("Done")
             #f.close()
             
         except Exception,e:
             if DEBUG:
-                print >>sys.stderr,"videoserv: Error occured while serving"
+                print >>sys.stderr,"videoserv: Error occured while serving",currentThread().getName()
             print_exc()
             self.error(e,self.path)
+
+        
 
 
     def error(self,e,url):

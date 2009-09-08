@@ -102,10 +102,10 @@ class EmbeddedPlayer4FramePanel(wx.Panel):
             print >>sys.stderr,"embedplay: Load:",url,streaminfo,currentThread().getName()
         # Arno: hack: disable dragging when not playing from file.
         #if url is None or url.startswith('http:'):
-        if url is not None and url.startswith('http:'):
-           self.slider.DisableDragging()
-        else:
-           self.slider.EnableDragging()
+        #if url is not None and url.startswith('http:'):
+        #   self.slider.DisableDragging()
+        #else:
+        self.slider.EnableDragging()
         self.SetPlayerStatus('')
         if streaminfo is not None:
             self.estduration = streaminfo.get('estduration',None)

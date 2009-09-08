@@ -178,7 +178,10 @@ class BackgroundApp(BaseApp):
         tdef  = TorrentDef.load_from_url(url)
         
         # Select which video to play (if multiple)
-        videofiles = tdef.get_files(exts=videoextdefaults)
+        if tdef.get_live():
+            videofiles = tdef.get_files()
+        else:
+            videofiles = tdef.get_files(exts=videoextdefaults)
         if len(videofiles) == 1:
             dlfile = videofiles[0]
         elif len(videofiles) == 0:
