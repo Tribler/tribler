@@ -8,6 +8,10 @@
 
 # History:
 #
+# 1.0.4rc3   Added: get_total_transferred to the DownloadState to
+#            retrieve the total amount of bytes that are up or
+#            downloaded for a single torrent
+#
 # 1.0.4rc2   TorrentDef now supports P2P URLs.
 #
 # 1.0.4rc1   Added: torrent_size (size of the .torrent file) to the remote
