@@ -12,7 +12,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler,PeerDBHandler
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_ELEVENTH
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -21,9 +21,9 @@ from Tribler.Core.Search.SearchManager import SearchManager
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
-MAX_PEERS_TO_QUERY = 10
+MAX_PEERS_TO_QUERY = 20
 
-DEBUG = True
+DEBUG = False
 
 class ChannelQueryMsgHandler:
     __single = None
@@ -83,7 +83,7 @@ class ChannelQueryMsgHandler:
         if DEBUG:
             print >> sys.stderr,"cquery: handleConnection",exc,"v",selversion,"local",locally_initiated
         
-        if selversion < OLPROTO_VER_SIXTH:
+        if selversion < OLPROTO_VER_ELEVENTH:
             return True
 
         if exc is None:
