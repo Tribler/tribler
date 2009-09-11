@@ -10,11 +10,18 @@
 #        to off and restart one in VOD mode just after)
 #
 
+# History:
+#
 # NSSA API 1.0.1rc1
 #
+#     * Added INFO message to convey NSSA info to plugin for providing feedback
+#       to the user.
+#
+# NSPlugin JavaScript API 1.0.1rc1
 #     * Added input.p2pstatus read-only property giving the latest status as
 #       reported by the NSSA.
 #
+# 
 
 import os
 import sys
@@ -39,8 +46,12 @@ from Tribler.Core.osutils import *
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
 from Tribler.Utilities.Instance2Instance import InstanceConnectionHandler,InstanceConnection
 from Tribler.Player.BaseApp import BaseApp
+from Tribler.Player.swarmplayer import get_status_msgs
+
+from Tribler.Video.defs import *
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Video.VideoServer import VideoHTTPServer
+
 
 DEBUG = True
 ALLOW_MULTIPLE = False
@@ -68,6 +79,8 @@ class BackgroundApp(BaseApp):
         # and resume it to the new user.
         #
         self.dusers = {}   
+        self.approxplayerstate = MEDIASTATE_STOPPED
+        
 
         if sys.platform == "win32":
             # If the BG Process is started by the plug-in notify it with an event
@@ -244,6 +257,9 @@ class BackgroundApp(BaseApp):
                 ic.set_streaminfo(duser['streaminfo'])
                 
                 ic.start_playback(infohash)
+                
+        duser['said_start_playback'] = False
+        duser['decodeprogress'] = 0
        
 
     #
@@ -251,6 +267,7 @@ class BackgroundApp(BaseApp):
     #
     def gui_states_callback(self,dslist,haspeerlist):
         """ Override BaseApp """
+        print >>sys.stderr,"bg: gui_states_callback",self.approxplayerstate
         (playing_dslist,totalhelping,totalspeed) = BaseApp.gui_states_callback(self,dslist,haspeerlist)
        
         for ds in playing_dslist:
@@ -259,19 +276,12 @@ class BackgroundApp(BaseApp):
             uic = duser['uic']
             
             # Generate info string for all
-            # TODO: use SwarmPlayer get_status_msgs()
-            print >>sys.stderr, 'bg: 4INFO: %s play %s progress %f' % (d.get_def().get_name(), ds.get_vod_playable(), ds.get_vod_prebuffering_progress()) 
+            [topmsg,msg,duser['said_start_playback'],duser['decodeprogress']] = get_status_msgs(ds,self.approxplayerstate,self.appname,duser['said_start_playback'],duser['decodeprogress'],totalhelping,totalspeed)
+            info = msg
             
-            if not ds.get_vod_playable():
-                preprogress = ds.get_vod_prebuffering_progress()
-                pstr = str(int(preprogress*100))
-                info = "Buffering... "+pstr+"%"
-            else:
-                info = "Nothing to report"
-                
-            print >>sys.stderr, 'bg: 4INFO: Sending',info
+            if DEBUG:
+                print >>sys.stderr, 'bg: 4INFO: Sending',info
             uic.info(info)
-       
         
     def sesscb_vod_event_callback( self, d, event, params ):
         """ Registered by BaseApp. Called by SessionCallbackThread """
@@ -296,13 +306,17 @@ class BackgroundApp(BaseApp):
             duser['uic'].set_streaminfo(duser['streaminfo'])
             duser['uic'].start_playback(d.get_def().get_infohash())
             
+            self.approxplayerstate = MEDIASTATE_PLAYING
+            
         elif event == VODEVENT_PAUSE:
             duser = self.dusers[d]
             duser['uic'].pause()
+            self.approxplayerstate = MEDIASTATE_PAUSED
             
         elif event == VODEVENT_RESUME:
             duser = self.dusers[d]
             duser['uic'].resume()
+            self.approxplayerstate = MEDIASTATE_PLAYING
 
     def get_supported_vod_events(self):
         return [ VODEVENT_START, VODEVENT_PAUSE, VODEVENT_RESUME ]
