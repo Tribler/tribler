@@ -1,18 +1,20 @@
 <html>
-<head><title>SwarmPlugin Page 1</title></head>
+<head><title>IE SwarmPlugin Page 1</title></head>
 
 <body>
 
 
-<h1>SwarmPlugin Page 1</h1>
+<h1>IE SwarmPlugin Page 1</h1>
 
-<object classid="clsid:1800B8AF-4E33-43C0-AFC7-894433C13538" codebase="http://trial.p2p-next.org/Beta/swarmplugin.cab"
+<object classid="clsid:1800B8AF-4E33-43C0-AFC7-894433C13538"
         width="380" height="320" id="vlc" events="True" target=''>
 <param name="Src" value="http://www.vuze.com/download/XUGIN6PEJJCQ5777C3WUMMBRFI6HYIHJ.torrent?referal=torrentfilelinkcdp&title=Gopher" />
 <param name="ShowDisplay" value="True" />
 <param name="Loop" value="False" />
 <param name="AutoPlay" value="True" />
 </object>
+<br>
+NSSA reports: <em><p id="p2pstatusline"></p></em>
 
 
 <script language="Javascript">
@@ -41,6 +43,21 @@ function debugonclick()
 
 }
 
+    
+function updatep2pstatus()
+{
+    line = document.vlc.input.p2pstatus
+    var p2pstatusline = document.getElementById("p2pstatusline");
+	p2pstatusline.innerHTML = line
+}
+
+setInterval(updatep2pstatus,100)
+
+
+function seek(percentage)
+{
+	document.vlc.input.position = percentage
+}
 
 </script>
 
@@ -50,6 +67,8 @@ function debugonclick()
 <input type=button value="Pause" onClick='document.vlc.playlist.togglePause();'>
 <input type=button value="Stop" onclick='document.vlc.playlist.stop();'>
 <input type=button value="Debug" onclick='debugonclick();'>
+<input type=button value="Seek 25%" onclick='seek(.25);'>
+<input type=button value="Seek 50%" onclick='seek(.5);'>
 <br/>
 
 

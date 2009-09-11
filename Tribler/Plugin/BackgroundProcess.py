@@ -267,7 +267,6 @@ class BackgroundApp(BaseApp):
     #
     def gui_states_callback(self,dslist,haspeerlist):
         """ Override BaseApp """
-        print >>sys.stderr,"bg: gui_states_callback",self.approxplayerstate
         (playing_dslist,totalhelping,totalspeed) = BaseApp.gui_states_callback(self,dslist,haspeerlist)
        
         for ds in playing_dslist:

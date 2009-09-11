@@ -54,6 +54,11 @@ function updatep2pstatus()
 setInterval(updatep2pstatus,100)
 
 
+function seek(percentage)
+{
+	document.vlc.input.position = percentage
+}
+
 </script>
 
 
@@ -62,7 +67,8 @@ setInterval(updatep2pstatus,100)
 <input type=button value="Pause" onClick='document.vlc.playlist.togglePause();'>
 <input type=button value="Stop" onclick='document.vlc.playlist.stop();'>
 <input type=button value="Debug" onclick='debugonclick();'>
-<input type=button value="Jump" onclick='updatep2pstatus();'>
+<input type=button value="Seek 25%" onclick='seek(.25);'>
+<input type=button value="Seek 50%" onclick='seek(.5);'>
 <br/>
 
 
