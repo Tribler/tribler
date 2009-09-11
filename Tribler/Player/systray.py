@@ -56,13 +56,12 @@ class PlayerTaskBarIcon(wx.TaskBarIcon):
 class PlayerOptionsDialog(wx.Dialog):
     
     def __init__(self,wxapp,icons):
+        self.wxapp = wxapp
+        self.icons = icons
+        self.port = None
+        
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
         wx.Dialog.__init__(self, None, -1, self.wxapp.appname+' Options', size=(400,200), style=style)
-        self.wxapp = wxapp
-
-        self.port = None
-
-        self.icons = icons
         self.SetIcons(self.icons)
 
         mainbox = wx.BoxSizer(wx.VERTICAL)

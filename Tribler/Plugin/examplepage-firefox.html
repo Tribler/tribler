@@ -1,18 +1,17 @@
 <html>
-<head><title>IE SwarmPlugin Page 1</title></head>
+<head><title>Firefox SwarmPlugin Page 1</title></head>
 
 <body>
 
 
-<h1>IE SwarmPlugin Page 1</h1>
+<h1>Firefox SwarmPlugin Page 1</h1>
 
-<object classid="clsid:1800B8AF-4E33-43C0-AFC7-894433C13538"
-        width="380" height="320" id="vlc" events="True" target=''>
-<param name="Src" value="http://www.vuze.com/download/XUGIN6PEJJCQ5777C3WUMMBRFI6HYIHJ.torrent?referal=torrentfilelinkcdp&title=Gopher" />
-<param name="ShowDisplay" value="True" />
-<param name="Loop" value="False" />
-<param name="AutoPlay" value="True" />
-</object>
+
+<embed type="application/x-ns-stream"
+name="vlcName"
+id="vlc"
+autoplay="yes" loop="yes" width="400" height="300"
+target="http://www.vuze.com/download/XUGIN6PEJJCQ5777C3WUMMBRFI6HYIHJ.torrent?referal=torrentfilelinkcdp&title=Gopher" />
 <br>
 NSSA reports: <em><p id="p2pstatusline"></p></em>
 
@@ -51,17 +50,31 @@ function updatep2pstatus()
 	p2pstatusline.innerHTML = line
 }
 
-setInterval(updatep2pstatus,100)
-
+function activatePeriodicReport()
+{
+	setInterval(updatep2pstatus,100);
+}
 
 function seek(percentage)
 {
 	document.vlc.input.position = percentage
 }
 
+function dwrite(line)
+{
+	var dump = document.getElementById("dump");
+	var text = document.createTextNode (line)
+	dump.appendChild(text)
+}
+
 </script>
 
 
+<script language="Javascript">
+// Somehow calling setInterval only works in Firefox when called from
+// a function that is triggered externally???
+activatePeriodicReport();
+</script>
 
 <input type=button value="Play" onClick='document.vlc.playlist.play();'>
 <input type=button value="Pause" onClick='document.vlc.playlist.togglePause();'>
@@ -71,6 +84,8 @@ function seek(percentage)
 <input type=button value="Seek 50%" onclick='seek(.5);'>
 <br/>
 
+<h3>Debugging</h3>
+<p id="dump"></p>
 
 <hr>
 

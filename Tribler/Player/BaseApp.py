@@ -360,7 +360,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         #         print_exc()
 
         # Set systray icon tooltip. This has limited size on Win32!
-        txt = self.appname+'1.0.1\n\n'
+        txt = self.appname+' 1.0.2\n\n'
         txt += 'DL: %.1f\n' % (totalspeed[DOWNLOAD])
         txt += 'UL:   %.1f\n' % (totalspeed[UPLOAD])
         txt += 'Helping: %d\n' % (totalhelping)

@@ -92,6 +92,7 @@ class BackgroundApp(BaseApp):
         try:
             # Do common initialization
             BaseApp.OnInitBase(self)
+            print >>sys.stderr,"bg: Awaiting commands"
             return True
         
         except Exception,e:
