@@ -30,9 +30,6 @@ class DownloadState(Serializable):
         The get_pieces_complete() returns only completeness information about 
         this range. This is used for playing a video in a multi-torrent file.
         @param logmsgs A list of messages from the BT engine which may be of 
-        @param peerid Our own peer id in the BT download swarm.
-        interest to the user. E.g. connection to tracker failed.
-        @param videoinfo Dictionary with video information.
         """
         
         #print >>sys.stderr,"DownloadState.__init__",`download.get_def().get_name()`,"status",status,"error",error,"progress",progress,"stats",`stats`
@@ -42,8 +39,6 @@ class DownloadState(Serializable):
         self.logmsgs = logmsgs
         self.coopdl_helpers = coopdl_helpers
         self.coopdl_coordinator = coopdl_coordinator
-        self.peerid = peerid
-        self.videoinfo = videoinfo
         if stats is None:
             # No info available yet from download engine
             self.error = error # readonly access
@@ -110,21 +105,6 @@ class DownloadState(Serializable):
                     # we have all pieces of the selected files
                     self.status = DLSTATUS_SEEDING
                     self.progress = 1.0
-
-    def get_peerid(self):
-        """ Returns our own peer id in this swarm, or None if unknown.
-        @return String or None.
-        """
-        return self.peerid
-
-    def get_videoinfo(self):
-        """ Returns information about the video being streamed, or {} if unknown.
-        @return Dict.
-        """
-        if not self.videoinfo:
-            return {}
-        else:
-            return self.videoinfo
 
     def get_download(self):
         """ Returns the Download object of which this is the state """

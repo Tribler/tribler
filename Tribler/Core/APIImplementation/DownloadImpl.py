@@ -251,7 +251,7 @@ class DownloadImpl:
             else:
                 
                 (status,stats,logmsgs,coopdl_helpers,coopdl_coordinator) = self.sd.get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,0.0,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,coopdl_helpers=coopdl_helpers,coopdl_coordinator=coopdl_coordinator,peerid=self.sd.peerid,videoinfo=self.sd.videoinfo)
+                ds = DownloadState(self,status,self.error,0.0,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,coopdl_helpers=coopdl_helpers,coopdl_coordinator=coopdl_coordinator)
                 self.progressbeforestop = ds.get_progress()
                 
             if sessioncalling:

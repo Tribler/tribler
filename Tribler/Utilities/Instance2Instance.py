@@ -36,7 +36,7 @@ class Instance2InstanceServer(Thread):
                                    errorfunc = self.rawserver_nonfatalerrorfunc)
         self.rawserver.add_task(self.rawserver_keepalive,1)
         # Only accept local connections
-        self.rawserver.bind(self.i2iport,bind=['127.0.0.1']) 
+        self.rawserver.bind(self.i2iport,bind=['127.0.0.1'],reuse=True) 
         
     def rawserver_keepalive(self):
         """ Hack to prevent rawserver sleeping in select() for a long time, not
@@ -204,12 +204,14 @@ class InstanceConnection:
         self.remain = self.remain + data
     
     def write(self,data):
-        self.singsock.write(data)            
+        if self.singsock is not None:
+            self.singsock.write(data)            
     
     def close(self):
-        self.singsock.close()
-        self.connhandler.connection_lost(self.singsock)
-        
+        if self.singsock is not None:
+            self.singsock.close()
+            self.connhandler.connection_lost(self.singsock)
+            self.singsock = None
         
 
 class Instance2InstanceClient:

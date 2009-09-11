@@ -9,6 +9,11 @@
 #        so start others in STOPPED state (rather than switching them all
 #        to off and restart one in VOD mode just after)
 #
+
+# NSSA API 1.0.1rc1
+#
+#     * Added input.p2pstatus read-only property giving the latest status as
+#       reported by the NSSA.
 #
 
 import os
@@ -239,6 +244,34 @@ class BackgroundApp(BaseApp):
                 ic.set_streaminfo(duser['streaminfo'])
                 
                 ic.start_playback(infohash)
+       
+
+    #
+    # DownloadStates
+    #
+    def gui_states_callback(self,dslist,haspeerlist):
+        """ Override BaseApp """
+        (playing_dslist,totalhelping,totalspeed) = BaseApp.gui_states_callback(self,dslist,haspeerlist)
+       
+        for ds in playing_dslist:
+            d = ds.get_download()
+            duser = self.dusers[d]
+            uic = duser['uic']
+            
+            # Generate info string for all
+            # TODO: use SwarmPlayer get_status_msgs()
+            print >>sys.stderr, 'bg: 4INFO: %s play %s progress %f' % (d.get_def().get_name(), ds.get_vod_playable(), ds.get_vod_prebuffering_progress()) 
+            
+            if not ds.get_vod_playable():
+                preprogress = ds.get_vod_prebuffering_progress()
+                pstr = str(int(preprogress*100))
+                info = "Buffering... "+pstr+"%"
+            else:
+                info = "Nothing to report"
+                
+            print >>sys.stderr, 'bg: 4INFO: Sending',info
+            uic.info(info)
+       
         
     def sesscb_vod_event_callback( self, d, event, params ):
         """ Registered by BaseApp. Called by SessionCallbackThread """
@@ -352,6 +385,9 @@ class BGInstanceConnection(InstanceConnection):
         
     def resume(self):
         self.write( 'RESUME\r\n' )
+
+    def info(self,infostr):
+        self.write( 'INFO '+infostr+'\r\n' )        
 
     def shutdown(self):
         # SHUTDOWN Service

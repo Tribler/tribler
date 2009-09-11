@@ -116,6 +116,7 @@ class Reporter:
             
         now = time()
         v = ds.get_vod_stats() or { "played": 0, "stall": 0, "late": 0, "dropped": 0, "prebuf": -1, "pieces": {} }
+        # Arno, 2009-09-09: method removed, was unclean
         vi = ds.get_videoinfo() or { "live": False, "inpath": "(none)", "status": None }
         vs = vi["status"]
 
@@ -155,7 +156,7 @@ class Reporter:
             "listenport": scfg.get_listen_port(),
             "infohash":   `ds.get_download().get_def().get_infohash()`,
             "filename":   vi["inpath"],
-            "peerid":     `ds.get_peerid()`,
+            "peerid":     `ds.get_peerid()`,  # Arno, 2009-09-09: method removed, should be Download method
             "live":       vi["live"],
             "progress":   100.00*ds.get_progress(),
             "down_total": down_total,
