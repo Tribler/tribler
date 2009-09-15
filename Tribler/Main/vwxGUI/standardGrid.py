@@ -816,7 +816,7 @@ class standardGrid(wx.Panel):
             columnHeaderHeight = self.topMargin
             
         if self.GetName() in ['channelsGrid', 'subscriptionsGrid', 'popularGrid']:
-            if self.GetName() == 'channelsGrid':
+            if self.GetName() == 'channelsGrid' and self.guiUtility.guiPage != 'search_results':
                 self.currentRows = 1
             else:
                 self.currentRows = (size[1] - columnHeaderHeight) / self.subPanelHeight

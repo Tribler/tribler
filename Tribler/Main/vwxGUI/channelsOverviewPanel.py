@@ -8,7 +8,7 @@ from time import time
 from traceback import print_exc,print_stack
 import urllib
 import cStringIO
-
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
@@ -88,7 +88,7 @@ class channelsOverviewPanel(wx.Panel):
 
     def setMyChannelInfo(self):
         # get torrent list
-        torrentList = self.channelcast_db.getTorrentsFromPublisherId(self.utility.session.get_permid())
+        torrentList = self.channelcast_db.getTorrentsFromPublisherId(bin2str(self.utility.session.get_permid()))
         self.torrentList = torrentList
 
         # convert torrentList to proper format (dictionnary)
@@ -98,7 +98,7 @@ class channelsOverviewPanel(wx.Panel):
             torrent_list.append(torrent)
         self.myTorrentList = torrent_list
 
-        self.num_votes = self.channelcast_db.getSubscribersCount(self.utility.session.get_permid())
+        self.num_votes = self.channelcast_db.getSubscribersCount(bin2str(self.utility.session.get_permid()))
 
         if self.num_votes == 0:
             self.myChannelName = "My Channel (No subscribers)"

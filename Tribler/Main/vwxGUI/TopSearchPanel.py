@@ -414,7 +414,7 @@ class TopSearchPanel(bgPanel):
             self.guiUtility.guiPage = 'channels'
             self.guiUtility.channelsOverview()
             self.guiUtility.loadInformation('channelsMode', 'name', erase=False)
-            #wx.Yield()
+            wx.Yield()
             self.guiUtility.standardOverview.data['channelsMode']['grid'].expandPanelFromIndex(self.indexMyChannel)
             self.guiUtility.standardOverview.data['channelsMode']['grid3'].expandPanelFromIndex(self.indexPopularChannels)
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].expandPanelFromIndex(self.indexSubscribedChannels)

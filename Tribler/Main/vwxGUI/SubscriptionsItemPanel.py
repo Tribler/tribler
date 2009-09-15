@@ -253,7 +253,7 @@ class SubscriptionsItemPanel(wx.Panel):
         
 
     def setSubscribed(self):
-        if self.vcdb.hasSubscription(self.publisher_id, self.utility.session.get_permid()):
+        if self.vcdb.hasSubscription(self.publisher_id, bin2str(self.utility.session.get_permid())):
             self.subscribed = True
         else:
             self.subscribed = False

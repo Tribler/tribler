@@ -213,10 +213,10 @@ class ChannelsItemPanel(wx.Panel):
 
 
             self.publisher_id = self.utility.session.get_permid()
-            self.num_votes = self.channelcast_db.getSubscribersCount(self.utility.session.get_permid())
+            self.num_votes = self.channelcast_db.getSubscribersCount(bin2str(self.publisher_id))
 
             # get torrent list
-            torrentList = self.channelcast_db.getTorrentsFromPublisherId(self.publisher_id)
+            torrentList = self.channelcast_db.getTorrentsFromPublisherId(bin2str(self.publisher_id))
             self.torrentList = torrentList
 
             # convert torrentList to proper format (dictionnary)
@@ -281,7 +281,7 @@ class ChannelsItemPanel(wx.Panel):
         
 
     def setSubscribed(self):
-        if self.vcdb.hasVote(self.publisher_id,self.utility.session.get_permid()):
+        if self.vcdb.hasVote(self.publisher_id,bin2str(self.utility.session.get_permid())):
             self.subscribed = True
         else:
             self.subscribed = False
