@@ -458,8 +458,6 @@ class VLCLogoWindow(wx.Panel):
         if sys.platform == 'linux2':
             dc.DrawRectangle(x,y,maxw,maxh)
         if self.logo is not None:
-            print >>sys.stderr,"VLCLogoWindow: OnPaint: painting logo"
-            
             dc.DrawBitmap(self.logo,halfx,halfy,True)
         #logox = max(0,maxw-self.logo.GetWidth()-30)
         #dc.DrawBitmap(self.logo,logox,20,True)
