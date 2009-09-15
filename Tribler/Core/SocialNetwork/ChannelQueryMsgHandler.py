@@ -58,9 +58,10 @@ class ChannelQueryMsgHandler:
 
     def handleMessage(self,permid,selversion,message):
         """ Handles Incoming messages """
+
         if not self.registered:
             return True
-        
+       
         t = message[0]
         if t == CHANNEL_QUERY:
             if DEBUG:
@@ -114,6 +115,7 @@ class ChannelQueryMsgHandler:
     def conn_callback(self,exc,dns,permid,selversion,message):
         if exc is None and selversion >= OLPROTO_VER_SIXTH:
             self.overlay_bridge.send(permid,message,self.send_callback)
+
     
     def send_callback(self,exc,permid):
         pass    
@@ -138,10 +140,12 @@ class ChannelQueryMsgHandler:
         for permid in self.connections:
             self.overlay_bridge.connect(permid,query_conn_callback_lambda)
             peers_to_query += 1
+
         
         if peers_to_query < max_peers_to_query and self.bc_fac and self.bc_fac.buddycast_core:
             query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(MAX_PEERS_TO_QUERY-peers_to_query)
             for permid in query_cand:
+                print >> sys.stderr , "peers_to_query" , bin2str(permid)
                 if permid not in self.connections:    # don't call twice
                     self.overlay_bridge.connect(permid,query_conn_callback_lambda)
                     peers_to_query += 1

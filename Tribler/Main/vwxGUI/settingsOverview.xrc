@@ -472,7 +472,7 @@
             <size>419,0</size>
           </object>
           <object class="sizeritem">
-            <object class="wxPanel" name="Save" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
+            <object class="wxPanel" name="cSave" subclass="Tribler.Main.vwxGUI.tribler_topButton.tribler_topButton">
               <size>62,32</size>
             </object>
           </object>

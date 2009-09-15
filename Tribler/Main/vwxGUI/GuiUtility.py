@@ -18,44 +18,16 @@ from Tribler.Category.Category import Category
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog, InviteFriendsDialog
 from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.vwxGUI.GridState import GridState
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager,PeerSearchGridManager
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager, ChannelSearchGridManager, PeerSearchGridManager
 from Tribler.Main.Utility.constants import *
 
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-
 from Tribler.Video.VideoPlayer import VideoPlayer
+from fontSizes import *
 
+from Tribler.__init__ import LIBRARYNAME
 
 
 DEBUG = False
-
-# fonts
-if sys.platform == 'darwin': # mac os x
-    FONT_SIZE_SR_MSG=11
-    FONT_SIZE_TOTAL_DOWN=9
-    FONT_SIZE_TOTAL_UP=9
-    FONT_SIZE_RESULTS=10
-    FONT_SIZE_SETTINGS=10
-    FONT_SIZE_MY_FILES=10
-    FONT_SIZE_FAMILY_FILTER=10
-    FONT_SIZE_FILES_FRIENDS=11
-    FONT_SIZE_SHARING_REPUTATION=11
-    FONT_SIZE_SEARCH_RESULTS=12
-    FONT_SIZE_SEARCH=14
-
-else:
-
-    FONT_SIZE_SR_MSG=8
-    FONT_SIZE_TOTAL_DOWN=7
-    FONT_SIZE_TOTAL_UP=7
-    FONT_SIZE_RESULTS=8
-    FONT_SIZE_SETTINGS=8
-    FONT_SIZE_MY_FILES=8
-    FONT_SIZE_FAMILY_FILTER=8
-    FONT_SIZE_FILES_FRIENDS=8
-    FONT_SIZE_SHARING_REPUTATION=8
-    FONT_SIZE_SEARCH_RESULTS=8
-    FONT_SIZE_SEARCH=10
 
 
 class GUIUtility:
@@ -68,7 +40,7 @@ class GUIUtility:
         # do other init
         self.xrcResource = None
         self.utility = utility
-        self.vwxGUI_path = os.path.join(self.utility.getPath(), 'Tribler', 'Main', 'vwxGUI')
+        self.vwxGUI_path = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI')
         self.utility.guiUtility = self
         self.params = params
         self.frame = None
@@ -98,6 +70,16 @@ class GUIUtility:
         self.port_number = None
 
 
+        # search mode
+        self.search_mode = 'files' # 'files' or 'channels'
+
+
+        # first channel search
+        self.firstchannelsearch = True
+
+        # page Title
+        self.pageTitle = None
+
 
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
@@ -107,6 +89,7 @@ class GUIUtility:
         # Arno: 2008-04-16: I want to keep this for searching, as an extension
         # of the standardGrid.GridManager
         self.torrentsearch_manager = TorrentSearchGridManager.getInstance(self)
+        self.channelsearch_manager = ChannelSearchGridManager.getInstance(self)
         self.peersearch_manager = PeerSearchGridManager.getInstance(self)
         
         self.guiOpen = Event()
@@ -195,7 +178,7 @@ class GUIUtility:
         elif name == "addAsFriend" or name == 'deleteFriend':
             self.standardDetails.addAsFriend()
 
-        elif name in ('download', 'download1'): 
+        elif name in ['save','save_big']: 
             self.standardDetails.download()
         elif name == 'addFriend':
             #print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
@@ -204,7 +187,6 @@ class GUIUtility:
             dialog.Destroy()
         elif name == 'inviteFriends':
             self.emailFriend(event)
-       
             #else:
             #    print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is None"
             
@@ -405,6 +387,17 @@ class GUIUtility:
 #            self.standardMessagesOverview()
 #        elif DEBUG:
 #            print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
+
+    def setSearchMode(self, search_mode):
+        if search_mode not in ('files', 'channels'):
+            return
+        self.search_mode = search_mode
+        if self.guiPage == 'search_results':
+            if self.search_mode == 'files':
+                self.frame.pageTitlePanel.pageTitle.SetLabel('File search')
+            elif self.search_mode == 'channels': 
+                self.frame.pageTitlePanel.pageTitle.SetLabel('Channel search')
+
     
 
     def LibraryClicked(self, event):
@@ -439,38 +432,6 @@ class GUIUtility:
 
 
 
-    def OnResultsClicked(self):
-        if self.guiPage == None:
-            self.guiPage = 'search_results'
-        if self.guiPage != 'search_results':
-            self.guiPage = 'search_results'
-            if self.frame.top_bg.ag.IsPlaying():
-                self.frame.top_bg.ag.Show() 
-
-            #self.standardGrid.deselectAll()
-            #self.standardGrid.clearAllData()
-
-            self.standardFilesOverview()
-            if sys.platform != 'darwin':
-                self.frame.videoframe.show_videoframe()
-            self.frame.videoparentpanel.Show()            
-
-            if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
-                self.frame.videoframe.videopanel.vlcwin.show_loading()
-
-            #self.frame.top_bg.search_results.SetColour(wx.BLACK)
-
-            wx.CallAfter(self.frame.top_bg.settings.SetForegroundColour,(255,51,0))
-            wx.CallAfter(self.frame.top_bg.my_files.SetForegroundColour,(255,51,0))
-            self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_SETTINGS, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_MY_FILES, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-
-            if sys.platform == 'win32':
-                self.frame.top_bg.Refresh()
-
-            self.frame.pagerPanel.Show()
-        
-
     def toggleFamilyFilter(self, state = None):
         catobj = Category.getInstance()
         ff_enabled = not catobj.family_filter_enabled()
@@ -499,97 +460,159 @@ class GUIUtility:
         ##self.frame.pageTitle.SetLabel('START PAGE')               
         filesDetailsList = []
         self.standardOverview.setMode('startpageMode')
-        ##self.frame.files_friends.Hide()
-        ##self.frame.ag.Hide()
-        ##self.frame.go.Hide()
-        ##self.frame.search.Hide()
-        ##self.standardOverview.searchCentre.SetFocus()
-        ##self.standardOverview.searchCentre.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDow)
-        ##self.standardOverview.Refresh()
-         
-#        self.standardOverview.filterChanged(filters)
-#        self.standardDetails.setMode('fileDetails') 
 
     def standardStats(self, filters = ['','']):
         self.frame.pageTitle.SetLabel('STATS')               
 #        filesDetailsList = []
         self.standardOverview.setMode('statsMode')
             
-    def standardFilesOverview(self, filters = ['','']):
-        if self.guiPage != 'search_results':
-            self.guiPage = 'search_results'
-            if self.frame.top_bg.ag.IsPlaying():
-                self.frame.top_bg.ag.Show() 
+    def standardFilesOverview(self):
+        self.guiPage = 'search_results'
+        if self.frame.top_bg.ag.IsPlaying():
+            self.frame.top_bg.ag.Show() 
 
-            if sys.platform != 'darwin':
-                self.frame.videoframe.show_videoframe()
-            self.frame.videoparentpanel.Show()            
+        if sys.platform != 'darwin':
+            self.frame.videoframe.show_videoframe()
+        self.frame.videoparentpanel.Show()            
 
-            if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
-                self.frame.videoframe.videopanel.vlcwin.show_loading()
+        if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
+            self.frame.videoframe.videopanel.vlcwin.show_loading()
             
-            #self.frame.top_bg.search_results.SetColour(wx.BLACK)
+        self.frame.channelsDetails.Hide()
 
+
+        self.frame.top_bg.results.SetForegroundColour((0,105,156))
+        self.frame.top_bg.channels.SetForegroundColour((255,51,0))
+        self.frame.top_bg.settings.SetForegroundColour((255,51,0))
+        self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
+
+        self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+
+        self.frame.top_bg.search_results.Show()
+
+        if sys.platform == 'win32':
+            self.frame.top_bg.Refresh()
+
+        self.showPager(True)
+        if sys.platform == "linux2":
+            self.frame.pagerPanel.SetMinSize((634,20))
+        elif sys.platform == 'darwin':
+            self.frame.pagerPanel.SetMinSize((635,20))
+        else:
+            self.frame.pagerPanel.SetMinSize((626,20))
+
+
+        self.standardOverview.setMode('filesMode')
+
+        try:
+            if self.standardDetails:
+                self.standardDetails.setMode('filesMode', None)
+        except:
+            pass
+
+        ##self.frame.pageTitlePanel.Show()
+
+        
+    def channelsOverview(self):
+        self.frame.top_bg.ag.Hide()
+             
+        self.frame.channelsDetails.Show()
+             
+        if self.guiPage == 'search_results':
+            self.frame.top_bg.channels.SetForegroundColour((255,51,0))
             self.frame.top_bg.results.SetForegroundColour((0,105,156))
-            self.frame.top_bg.settings.SetForegroundColour((255,51,0))
-            self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
-            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_RESULTS+1, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_SETTINGS, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_MY_FILES, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-
+            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
             self.frame.top_bg.search_results.Show()
+            #self.frame.pageTitlePanel.Initialize()
+        elif self.guiPage == 'channels':
+            self.frame.top_bg.channels.SetForegroundColour((0,105,156))
+            self.frame.top_bg.results.SetForegroundColour((255,51,0))
+            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.search_results.Hide()
+            #self.frame.pageTitlePanel.Initialize()
 
-            if sys.platform == 'win32':
-                self.frame.top_bg.Refresh()
+        self.frame.top_bg.settings.SetForegroundColour((255,51,0))
+        self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
 
-            self.frame.pagerPanel.Show()
+        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
-            self.standardOverview.setMode('filesMode')
-            gridState = GridState('filesMode', 'all', 'rameezmetric')
+        self.frame.top_bg.Refresh()
 
-            self.standardOverview.filterChanged(gridState)
-            try:
-                if self.standardDetails:
-                    self.standardDetails.setMode('filesMode', None)
-            except:
-                pass
+
+
+        if sys.platform != 'darwin':
+            self.frame.videoframe.show_videoframe()
+        self.frame.videoparentpanel.Show()
+
+        self.showPager(False)
+
+
+
+        self.frame.Layout()
+        self.standardOverview.setMode('channelsMode')
+
+        self.standardOverview.data['channelsMode']['grid'].reloadChannels()
+        self.standardOverview.data['channelsMode']['grid2'].reloadChannels()
+        self.standardOverview.data['channelsMode']['grid3'].reloadChannels()
+
+
+        ##wx.CallAfter(self.frame.channelsDetails.reinitialize)
+
+        ##self.frame.pageTitlePanel.Hide()
         
 
 
+
+    def loadInformation(self, mode, sort, erase = False):
+        """ Loads the information in a specific mode """
+        if erase:
+            self.standardOverview.getGrid().clearAllData()
+        gridState = GridState(mode, 'all', sort)
+        self.standardOverview.filterChanged(gridState)
+
+
+
     def settingsOverview(self):
-        if self.guiPage != 'settings':
-            self.guiPage = 'settings' 
-            if sys.platform == 'darwin':
-                self.frame.top_bg.ag.Stop() # only calling Hide() on mac isnt sufficient 
-            self.frame.top_bg.ag.Hide()
-            if sys.platform == 'win32':
-                self.frame.top_bg.Layout()
+        self.guiPage = 'settings' 
+        if sys.platform == 'darwin':
+            self.frame.top_bg.ag.Stop() # only calling Hide() on mac isnt sufficient 
+        self.frame.top_bg.ag.Hide()
+        if sys.platform == 'win32':
+            self.frame.top_bg.Layout()
+
+        self.frame.channelsDetails.Hide()
+        ##self.frame.pageTitlePanel.Hide()
                 
-            self.frame.top_bg.results.SetForegroundColour((255,51,0))
-            self.frame.top_bg.settings.SetForegroundColour((0,105,156))
-            self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
-            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_RESULTS, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_SETTINGS+1, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_MY_FILES, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.results.SetForegroundColour((255,51,0))
+        self.frame.top_bg.channels.SetForegroundColour((255,51,0))
+        self.frame.top_bg.settings.SetForegroundColour((0,105,156))
+        self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
+
+        self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
 
-            self.frame.videoframe.hide_videoframe()
-            self.frame.videoparentpanel.Hide()            
+        self.frame.videoframe.hide_videoframe()
+        self.frame.videoparentpanel.Hide()            
 
-            if sys.platform == 'darwin':
-                self.frame.videoframe.videopanel.vlcwin.stop_animation()
+        if sys.platform == 'darwin':
+            self.frame.videoframe.videopanel.vlcwin.stop_animation()
 
-            self.showPager(False)
+        self.showPager(False)
 
-            if self.frame.top_bg.search_results.GetLabel() != '':
-                self.frame.top_bg.search_results.Hide()
-            ##    self.frame.top_bg.search_results.SetLabel('Return to Results')
-            ##    self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
-            self.frame.Layout()
-            self.standardOverview.setMode('settingsMode')
-            #if self.standardOverview.firewallStatus.initDone == True:
-            #    self.standardOverview.firewallStatus.setToggled(True)
-             
+        if self.frame.top_bg.search_results.GetLabel() != '':
+            self.frame.top_bg.search_results.Hide()
+        self.frame.Layout()
+        self.standardOverview.setMode('settingsMode')
+
 
     def showPager(self, b):
         self.frame.pagerPanel.Show(b)
@@ -597,39 +620,6 @@ class GUIUtility:
         self.frame.BR.Show(b)
         
 
-        
-        
-    def standardPersonsOverview(self):
-        self.frame.pageTitle.SetLabel('TRIBLER')
-        self.standardOverview.setMode('personsMode')
-        if not self.standardOverview.getSorting():
-            gridState = GridState('personsMode', 'all', 'last_connected', reverse=False)
-            self.standardOverview.filterChanged(gridState)
-        self.standardDetails.setMode('personsMode')
-        #self.standardOverview.clearSearch()
-        #self.standardOverview.toggleSearchDetailsPanel(False)
-        
-    def standardFriendsOverview(self):
-        self.frame.pageTitle.SetLabel('ALL FRIENDS')
-        self.standardOverview.setMode('friendsMode')
-        if not self.standardOverview.getSorting():
-            gridState = GridState('friendsMode', 'all', 'name', reverse=True)
-            self.standardOverview.filterChanged(gridState)
-        self.standardDetails.setMode('friendsMode')
-        #self.standardOverview.clearSearch()
-        #self.standardOverview.toggleSearchDetailsPanel(False)
-        
-    def standardProfileOverview(self):
-        self.frame.pageTitle.SetLabel('PROFILE')
-        profileList = []
-        panel = self.standardOverview.data['profileMode'].get('panel',None)
-        if panel is not None:
-            panel.seldomReloadData()
-        self.standardOverview.setMode('profileMode')
-        self.standardDetails.seldomReloadData()
-        self.standardDetails.setMode('profileMode')
-
-        
     def standardLibraryOverview(self, filters = None, refresh=False):
         
         setmode = refresh
@@ -639,17 +629,16 @@ class GUIUtility:
                 self.frame.top_bg.ag.Stop()
             self.frame.top_bg.ag.Hide()
             self.frame.top_bg.results.SetForegroundColour((255,51,0))
+            self.frame.top_bg.channels.SetForegroundColour((255,51,0))
             self.frame.top_bg.settings.SetForegroundColour((255,51,0))
             self.frame.top_bg.my_files.SetForegroundColour((0,105,156))
-            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_RESULTS, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_SETTINGS, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_MY_FILES+1, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
-
-            #if self.standardGrid:
-            #    self.standardGrid.deselectAll()
-            #    self.standardGrid.clearAllData()
-
+            self.frame.channelsDetails.Hide()
+            ##self.frame.pageTitlePanel.Hide()
 
             if sys.platform != 'darwin':
                 self.frame.videoframe.show_videoframe()
@@ -658,23 +647,22 @@ class GUIUtility:
 
             if self.frame.top_bg.search_results.GetLabel() != '':
                 self.frame.top_bg.search_results.Hide()
-            ##    self.frame.top_bg.search_results.SetLabel('Return to Results')
-            ##    self.frame.top_bg.search_results.SetForegroundColour(wx.RED)
             self.frame.top_bg.Layout()
             
+            if sys.platform == "linux2":
+                self.frame.pagerPanel.SetMinSize((634,20))
+            elif sys.platform == 'darwin':
+                self.frame.pagerPanel.SetMinSize((635,20))
+            else:
+                self.frame.pagerPanel.SetMinSize((626,20))
 
             self.showPager(True)
-            
-            
+           
             setmode = True
             
         if setmode:
-            #self.frame.pageTitle.SetLabel('DOWNLOADS')      
             self.standardOverview.setMode('libraryMode',refreshGrid=refresh)
-            #gridState = self.standardOverview.getFilter().getState()
-            #if not gridState or not gridState.isValid():
-            gridState = GridState('libraryMode', 'all', 'name')
-            self.standardOverview.filterChanged(gridState)
+            self.loadInformation('libraryMode', "name", erase=False)
 
             if sys.platform != 'darwin':
                 wx.CallAfter(self.frame.videoframe.show_videoframe)
@@ -682,6 +670,7 @@ class GUIUtility:
         self.standardDetails.setMode('libraryMode')
 
         wx.CallAfter(self.frame.standardPager.Show,self.standardOverview.getGrid().getGridManager().get_total_items()>0)
+
 
         
     def standardSubscriptionsOverview(self):
@@ -913,45 +902,26 @@ class GUIUtility:
     def get_nat_type(self, callback=None):
         return self.utility.session.get_nat_type(callback=callback)
 
+
+
     def dosearch(self):
         sf = self.frame.top_bg.searchField
-        #sf = self.standardOverview.getSearchField()
         if sf is None:
             return
         input = sf.GetValue().strip()
         if input == '':
             return
 
-        ##sizer = self.frame.search.GetContainingSizer()
-        ##self.frame.go.setToggled(True)
-        ##self.frame.go.SetMinSize((61,24))
-        ##sizer.Layout()
-        ##self.frame.top_bg.Refresh()
-        ##self.frame.top_bg.Update()
+        if self.search_mode == 'files':
+            ##wx.CallAfter(self.frame.pageTitlePanel.pageTitle.SetLabel, 'File search')
+            self.searchFiles('filesMode', input)
+        else:
+            ##wx.CallAfter(self.frame.pageTitlePanel.pageTitle.SetLabel, 'Channel search')
+            self.searchChannels('channelsMode', input)
 
-        #self.standardOverview.toggleSearchDetailsPanel(True)
-        if self.standardOverview.mode in ["filesMode" ]:
-            self.searchFiles(self.standardOverview.mode, input)
-        elif self.standardOverview.mode in ["personsMode", 'friendsMode']:
-            self.searchPersons(self.standardOverview.mode, input)
-        
-        
-    def searchChannels(self, mode, input):
-        if DEBUG:
-            print >>sys.stderr,"GUIUtil: searchChannels:",input
-        low = input.lower()
-        wantkeywords = [i for i in low.split(' ') if i]
-        ##### GUI specific code
-        
-        if mode == 'channelsMode':
-            q = 'k:'
-            for kw in wantkeywords:
-                q += kw+' '
-            
-            self.utility.session.chquery_connected_peers(q,self.sesscb_got_channel_hits)
-            ##### GUI specific code
-                
-        
+      
+
+
     def searchFiles(self, mode, input):
         
         if DEBUG:
@@ -961,9 +931,30 @@ class GUIUtility:
         self.torrentsearch_manager.setSearchKeywords(wantkeywords, mode)
         self.torrentsearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
         #print "******** gui uti searchFiles", wantkeywords
-        gridstate = GridState(self.standardOverview.mode, 'all', 'rameezmetric')
+
+        self.frame.channelsDetails.Hide()
+        ##self.frame.pageTitlePanel.Show()
+
+        self.standardOverview.setMode('filesMode')
+
+        ##self.frame.pageTitlePanel.pageTitle.SetMinSize((665,20))
+        self.frame.standardOverview.SetMinSize((300,490)) # 476
+
+        self.showPager(True)
+        if sys.platform == "linux2":
+            self.frame.pagerPanel.SetMinSize((626,20))
+        elif sys.platform == 'darwin':
+            self.frame.pagerPanel.SetMinSize((674,21))
+        else:
+            self.frame.pagerPanel.SetMinSize((626,20))
+
+
+
+        self.standardOverview.getGrid().clearAllData()
+        gridstate = GridState('filesMode', 'all', 'rameezmetric')
         self.standardOverview.filterChanged(gridstate)
-        
+        #self.standardOverview.getGrid().Refresh()        
+
         #
         # Query the peers we are connected to
         #
@@ -974,12 +965,42 @@ class GUIUtility:
         self.utility.session.query_connected_peers(q,self.sesscb_got_remote_hits,self.max_remote_queries)
         self.standardOverview.setSearchFeedback('remote', False, 0, wantkeywords,self.frame.top_bg.search_results)
                 
-        #
-        # Query YouTube, etc.
-        #
-        #web2on = self.utility.config.Read('enableweb2search',"boolean")
-        #if mode == 'filesMode' and web2on:
-        #    self.torrentsearch_manager.searchWeb2(60) # 3 pages, TODO: calc from grid size
+
+
+
+    def searchChannels(self, mode, input):
+        if DEBUG:
+            print >>sys.stderr,"GUIUtil: searchChannels:",input
+        low = input.lower()
+
+        wantkeywords = [i for i in low.split(' ') if i]
+        self.channelsearch_manager.setSearchKeywords(wantkeywords, mode)
+
+        ##### GUI specific code
+
+        if self.standardOverview.getMode != 'channelsMode':
+            self.standardOverview.setMode('channelsMode')
+
+
+        self.frame.channelsDetails.Show()
+        if not self.frame.channelsDetails.isEmpty():
+            self.frame.channelsDetails.reinitialize()
+        self.showPager(False)
+
+        self.loadInformation('channelsMode', 'name', erase=True)
+
+
+        
+        if mode == 'channelsMode':
+            q = 'k:'
+            for kw in wantkeywords:
+                q += kw+' '
+            
+            self.utility.session.chquery_connected_peers(q,self.sesscb_got_channel_hits)
+            ##### GUI specific code
+
+
+
 
     def complete(self, term):
         """autocompletes term."""
@@ -993,6 +1014,7 @@ class GUIUtility:
 
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
+
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",len(hits)
 
@@ -1010,7 +1032,7 @@ class GUIUtility:
         #Code that calls GUI
         # 1. Grid needs to be updated with incoming hits, from each remote peer
         # 2. Sorting should also be done by that function
-        #wx.CallAfter(self.torrentsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
+        wx.CallAfter(self.channelsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
         
 
     def stopSearch(self):

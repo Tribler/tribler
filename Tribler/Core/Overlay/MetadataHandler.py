@@ -445,7 +445,7 @@ class MetadataHandler:
             return True
         except:
             print_exc()
-            print >> sys.stderr, "problem metadata:", repr(metadata)
+            #print >> sys.stderr, "problem metadata:", repr(metadata)
             return False
         
     def got_metadata(self, permid, message, selversion):    

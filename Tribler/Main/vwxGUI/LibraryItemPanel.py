@@ -29,6 +29,8 @@ from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *
 
+from Tribler.__init__ import LIBRARYNAME
+
 DEBUG = False
 
 [ID_MENU_1418,ID_MENU_1419,ID_MENU_1420] = 1418,1419,1420
@@ -137,7 +139,7 @@ class LibraryItemPanel(wx.Panel):
         self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
        
 
-        imgpath = os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0","line3.png")
+        imgpath = os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0","line3.png")
         self.line_file = wx.Image(imgpath, wx.BITMAP_TYPE_ANY)            
 
         self.hLine = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.line_file))
@@ -374,7 +376,7 @@ class LibraryItemPanel(wx.Panel):
             title = 'Down &&&& Up Speed'
         return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':400,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
                 {'sort':'??', 'dummy':True, 'title':title,'width':130, 'tip':self.utility.lang.get('C_downupspeed')}, 
-                {'sort':'progress', 'title':'Completion/ETA', 'width':120, 'tip':self.utility.lang.get('C_progress')}               
+                {'sort':'progress', 'title':'Completion/ETA', 'width':140, 'tip':self.utility.lang.get('C_progress')}               
                 ]     
 
     # pause or resume a download
@@ -484,6 +486,7 @@ class LibraryItemPanel(wx.Panel):
             
             dls = ds.get_current_speed(DOWNLOAD)*1024 # speed_format needs byte/s
             uls = ds.get_current_speed(UPLOAD)*1024
+
 
             self.speedDown2.SetLabel(self.utility.speed_format_new(dls)) 
             self.speedUp2.SetLabel(self.utility.speed_format_new(uls))
@@ -610,6 +613,10 @@ class LibraryItemPanel(wx.Panel):
                     #self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
+    def setIndex(self, index):
+        self.index=index
+
+
     def mouseAction(self, event):
         #if DEBUG:
         #    print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()

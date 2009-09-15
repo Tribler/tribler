@@ -237,6 +237,7 @@ class standardPager(wx.Panel):
         if self.itemsPerPage == 0:
             self.totalPages = 0
         else:
+            ##pass
             self.totalPages = int(math.ceil(self.totalItems/float(self.itemsPerPage)))
 
         #self.number.SetLabel('%d %s%s / %d %s%s' % (self.totalItems, self.utility.lang.get('item'), getPlural(self.totalItems), self.totalPages, self.utility.lang.get('page'), getPlural(self.totalPages)))

@@ -26,9 +26,9 @@ from time import time
 
 from font import *
 
+OVERVIEW_MODES = ['startpageMode','basicMode', 'filesMode', 'settingsMode', 'channelsMode',
+                  'libraryMode']
 
-OVERVIEW_MODES = ['startpageMode','basicMode', 'statsMode', 'resultsMode', 'filesMode', 'settingsMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode',
-                  'messageMode', 'libraryMode', 'itemdetailsMode', 'fileDetailsMode','playlistMode', 'personDetailsMode', 'playlistMode']
 # font sizes
 if sys.platform == 'darwin':
     FS_FILETITLE = 10
@@ -180,7 +180,7 @@ class standardOverview(wx.Panel):
         elif nameCP == 'libraryOverview':
             self.SetMinSize((600,490)) # 480
         else: # filesOverview
-            self.SetMinSize((600,490)) # 476
+            self.SetMinSize((600,492)) # 476
 
         self.hSizer.Layout()
         
@@ -305,12 +305,33 @@ class standardOverview(wx.Panel):
             panelName = modeString+'Overview'
             res = xrc.XmlResource(xrcResource)
             currentPanel = res.LoadPanel(self, panelName)
-            grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')    
+            grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')  
+        elif modeString == "channels":
+            #currentPanel = subscriptionsGrid(parent=self)
+            #grid = currentPanel
+            xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
+            panelName = modeString+'Overview'
+            res = xrc.XmlResource(xrcResource)
+            currentPanel = res.LoadPanel(self, panelName)
+            grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')  
+            grid2 = xrc.XRCCTRL(currentPanel, 'subscriptionsGrid')  
+            grid3 = xrc.XRCCTRL(currentPanel, 'popularGrid')  
+            #grid4 = xrc.XRCCTRL(currentPanel, 'chresultsGrid')  
+  
             
         self.data[self.mode]['panel'] = currentPanel
+	if sys.platform == 'darwin' and modeString == 'channels':
+	    self.data[self.mode]['panel'].SetMinSize((300,760))
+	    self.data[self.mode]['panel'].SetSize((300,760))
         if modeString != "startpage":
             self.data[self.mode]['grid'] = grid
             self.data[self.mode]['pager'] = pager
+
+        if modeString == "channels":
+            self.data[self.mode]['grid2'] = grid2
+            self.data[self.mode]['grid3'] = grid3
+            #self.data[self.mode]['grid4'] = grid4
+
 
         if pager is not None:                  
             pager.setGrid(grid)
@@ -508,15 +529,12 @@ class standardOverview(wx.Panel):
         #    print >> sys.stderr, 'standardOverview: ********************** VALID LIBRARY Filterstate:', filterState
             
         if filterState and filterState.isValid():
-            if self.mode in ('filesMode', 'personsMode', 'libraryMode', 'friendsMode','settingsMode'):
-                #self.loadTorrentData(filterState[0], filterState[1])
+            if self.mode in ('filesMode', 'libraryMode', 'settingsMode', 'channelsMode'):
                 self.data[filterState.db]['grid'].gridManager.set_state(filterState)
-            elif self.mode in ('subscriptionsMode'):
-                self.loadSubscriptionData()
-                self.refreshData()
-#        if DEBUG:
-#            print >> sys.stderr, 'standardOverview: filterstate: %s' % filterState
-            
+                if self.mode == 'channelsMode':
+                    self.data[filterState.db]['grid2'].gridManager.set_state(filterState)
+                    self.data[filterState.db]['grid3'].gridManager.set_state(filterState)
+                    #self.data[filterState.db]['grid4'].gridManager.set_state(filterState)
             else:
                 if DEBUG:
                     print >>sys.stderr,'standardOverview: Filters not yet implemented in this mode'
@@ -569,7 +587,8 @@ class standardOverview(wx.Panel):
         self.data[self.mode]['grid'].setData(reclist)
     """    
    
-   
+
+  
     
     def getSearchField(self,mode=None):
         if mode is None:
@@ -624,8 +643,18 @@ class standardOverview(wx.Panel):
     def setMessage(self, stype, finished, num, keywords = []):
         if stype:
             self.results[stype] = num # FIXME different remote search overwrite eachother
-        
-        total = sum([v for v in self.results.values() if v != -1])
+
+        total = 0
+        if self.mode == 'filesMode': 
+            for el in self.results:
+                if el in ['remote', 'torrent', 'library']: 
+                    if self.results[el] != -1:
+                        total+=self.results[el]
+        elif self.mode == 'channelsMode':
+            for el in self.results:
+                if el in ['remotechannels', 'channels']: 
+                    if self.results[el] != -1:
+                        total+=self.results[el]
 
         wx.CallAfter(self.guiUtility.frame.standardPager.Show,(total > 0))
         self.guiUtility.frame.pagerPanel.Refresh()
@@ -638,28 +667,23 @@ class standardOverview(wx.Panel):
         if finished:  
             msg = self.guiUtility.utility.lang.get('finished_search') % (self.keywords, total)
             self.guiUtility.stopSearch()
-            #self.searchFinished(set_message=False)
         else:
             msg = self.guiUtility.utility.lang.get('going_search') % (total)
 
-        #self.search_results.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,True,FONTFACE))
-        if self.mode not in ['filesMode']:
-            self.search_results.SetForegroundColour(wx.RED)
-        else:
-            self.search_results.SetForegroundColour(wx.BLACK)
  
-        if self.mode in ['filesMode']:
+        if self.mode in ['filesMode', 'channelsMode']:
             if sys.platform == 'win32':
                 self.search_results.SetText(msg)
                 self.guiUtility.frame.top_bg.Refresh()
             else:
                 #self.search_results.Refresh(eraseBackground=True)
                 self.search_results.SetLabel(msg)
+ 
         else:
             if sys.platform == 'win32':
-                self.search_results.SetText('Return to Results')    
+                self.search_results.SetText('')    
             else:
-                self.search_results.SetLabel('Return to Results')
+                self.search_results.SetLabel('')
         
     def growWithGrid(self):
         gridHeight = self.data[self.mode]['grid'].GetSize()[1]

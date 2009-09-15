@@ -659,6 +659,7 @@ class Multicast:
   
     def flag_peer_as_local_to_db(self, permid, is_local):
         if is_local:
-            print >>sys.stderr,"pdisc: Flagging a peer as local"
+            pass
+            ##print >>sys.stderr,"pdisc: Flagging a peer as local"
         return self.peer_db.setPeerLocalFlag(permid, is_local)
 

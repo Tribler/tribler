@@ -10,7 +10,7 @@ from Tribler.Main.vwxGUI.EmbeddedPlayer import EmbeddedPlayerPanel
 DEBUG = False
 
         
-class VideoMacFrame(VideoBaseFrame):
+class VideoMacFrame(wx.Frame, VideoBaseFrame):
     """ Provides a wx.Frame around an EmbeddedPlayerPanel so the embedded player
     is shown as a separate window. The Embedded Player consists of a VLCLogoWindow
     and the media controls such as Play/Pause buttons and Volume Control.
@@ -28,7 +28,7 @@ class VideoMacFrame(VideoBaseFrame):
             size = (800,150)
         else:
             if sys.platform == 'darwin':
-                size = (800,520)
+                size = (320,240)
             else:
                 size = (800,520) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
         wx.Frame.__init__(self, None, -1, title, size=size) 

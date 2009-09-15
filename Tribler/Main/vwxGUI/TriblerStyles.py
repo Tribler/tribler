@@ -6,19 +6,19 @@ from font import *
 if sys.platform == 'darwin':
     FS_LEFTH1 = 12
     FS_HEADER = 11
-    FS_FILETITLE = 10
+    FS_FILETITLE = 12
     FS_SIMILARITY = 10
     FS_HEARTRANK = 8
 elif sys.platform == 'linux2':
     FS_LEFTH1 = 11
     FS_HEADER = 10
-    FS_FILETITLE = 8
+    FS_FILETITLE = 9
     FS_SIMILARITY = 7
     FS_HEARTRANK = 7
 else:
     FS_LEFTH1 = 11
     FS_HEADER = 10
-    FS_FILETITLE = 9
+    FS_FILETITLE = 10
     FS_SIMILARITY = 10
     FS_HEARTRANK = 7
 

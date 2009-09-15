@@ -232,7 +232,8 @@ class VideoPlayer:
             self.videoframe.hide_videoframe()
 
 
-    def play(self,ds):
+
+    def play(self,ds, selectedinfilename=None):
         """ Used by Tribler Main """
         self.determine_playbackmode()
         
@@ -245,24 +246,27 @@ class VideoPlayer:
             # Let user choose any file
             videofiles = d.get_dest_files(exts=None)
             
-        print >>sys.stderr,"videoplay: play: videofiles",videofiles
             
-        selectedinfilename = None
         selectedoutfilename= None
-        if len(videofiles) > 1:
-            infilenames = []
-            for infilename,diskfilename in videofiles:
-                infilenames.append(infilename)
-            selectedinfilename = self.ask_user_to_select_video(infilenames)
-            if selectedinfilename is None:
-                print >>sys.stderr,"videoplay: play: User selected no video"
-                return
+        if selectedinfilename == None:
+            if len(videofiles) > 1:
+                infilenames = []
+                for infilename,diskfilename in videofiles:
+                    infilenames.append(infilename)
+                selectedinfilename = self.ask_user_to_select_video(infilenames)
+                if selectedinfilename is None:
+                    print >>sys.stderr,"videoplay: play: User selected no video"
+                    return
+                for infilename,diskfilename in videofiles:
+                    if infilename == selectedinfilename:
+                        selectedoutfilename = diskfilename
+            else:
+                selectedinfilename = videofiles[0][0]
+                selectedoutfilename = videofiles[0][1]
+        else:
             for infilename,diskfilename in videofiles:
                 if infilename == selectedinfilename:
                     selectedoutfilename = diskfilename
-        else:
-            selectedinfilename = videofiles[0][0]
-            selectedoutfilename = videofiles[0][1]
 
         complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
 
@@ -388,18 +392,21 @@ class VideoPlayer:
                     d.restart()
 
 
-    def start_and_play(self,tdef,dscfg):
+
+
+    def start_and_play(self,tdef,dscfg, selectedinfilename = None):
         """ Called by GUI thread when Tribler started with live or video torrent on cmdline """
 
         # ARNO50: > Preview1: TODO: make sure this works better when Download already existed.
         
-        selectedinfilename = None
-        if not tdef.get_live():
-            videofiles = tdef.get_files(exts=videoextdefaults)
-            if len(videofiles) == 1:
-                selectedinfilename = videofiles[0]
-            elif len(videofiles) > 1:
-                selectedinfilename = self.ask_user_to_select_video(videofiles)
+
+        if selectedinfilename == None:
+            if not tdef.get_live():
+                videofiles = tdef.get_files(exts=videoextdefaults)
+                if len(videofiles) == 1:
+                    selectedinfilename = videofiles[0]
+                elif len(videofiles) > 1:
+                    selectedinfilename = self.ask_user_to_select_video(videofiles)
 
         if selectedinfilename or tdef.get_live():
             if tdef.is_multifile_torrent():

@@ -59,7 +59,7 @@ class SettingsOverviewPanel(wx.Panel):
                              'diskLocationCtrl', \
                              'portChange', \
                              'iconSaved', \
-                             'Save']
+                             'cSave']
 
 
         self.elements = {}
@@ -146,7 +146,7 @@ class SettingsOverviewPanel(wx.Panel):
         #self.elements['firewallValue'].Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
         self.elements['diskLocationCtrl'].Bind(wx.EVT_KEY_DOWN,self.diskLocationCtrlEnter)
 
-        self.elements['Save'].Bind(wx.EVT_LEFT_UP, self.saveAll)
+        self.elements['cSave'].Bind(wx.EVT_LEFT_UP, self.saveAll)
 
      
 

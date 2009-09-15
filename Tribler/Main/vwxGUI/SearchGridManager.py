@@ -10,9 +10,11 @@ from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
-
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+
+from Tribler.Core.simpledefs import *
+
+#from Tribler.Core.Session import *
 
 from math import sqrt
 try:
@@ -58,12 +60,17 @@ class TorrentSearchGridManager:
         self.standardOverview = None
         self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
         self.rerankingStrategy = {'filesMode':DefaultTorrentReranker(), 'libraryMode':DefaultTorrentReranker()}
-        self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
-        
+        self.oldsearchkeywords = {'filesMode':[], 'channelsMode':[], 'libraryMode':[]} # previous query
+
         self.category = Category.getInstance()
-        self.votecastdb = VoteCastDBHandler.getInstance()
-        self.channelcastdb = ChannelCastDBHandler.getInstance()
-        
+        #self.session = Session.getInstance()
+
+        #self.votecastdb= self.guiUtility.utility.session.open_dbhandler(NTFY_VOTECAST)
+        #self.channelcastdb= self.guiUtility.utility.session.open_dbhandler(NTFY_CHANNELCAST)
+
+        #self.votecastdb = VoteCastDBHandler.getInstance()
+        #self.channelcastdb = ChannelCastDBHandler.getInstance()
+       
         
     def getInstance(*args, **kw):
         if TorrentSearchGridManager.__single is None:
@@ -71,12 +78,14 @@ class TorrentSearchGridManager:
         return TorrentSearchGridManager.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self,torrent_db,pref_db,mypref_db,search_db):
+    def register(self,torrent_db,pref_db,mypref_db,search_db,channelcast_db, votecast_db):
         self.torrent_db = torrent_db
         self.pref_db = pref_db
         self.mypref_db = mypref_db
         self.search_db = search_db
         self.searchmgr = SearchManager(torrent_db)
+        self.channelcastdb = channelcast_db ##
+        self.votecastdb = votecast_db ##
         
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
@@ -139,6 +148,7 @@ class TorrentSearchGridManager:
         self.standardOverview.setSearchFeedback('web2', self.stopped, -1, self.searchkeywords[mode])
         self.standardOverview.setSearchFeedback('remote', self.stopped, -1, self.searchkeywords[mode])
         if mode == 'filesMode':
+            ##pass
             self.standardOverview.setSearchFeedback('torrent', self.stopped, len(self.hits), self.searchkeywords[mode])
         elif mode == 'libraryMode':
             # set finished true and use other string
@@ -171,16 +181,16 @@ class TorrentSearchGridManager:
         
         if sort == 'rameezmetric':
             self.sort()
-        else:
-            # Sort on columns in list view
-            cmpfunc = lambda a,b:torrent_cmp(a,b,sort)
-            self.hits.sort(cmpfunc,reverse=reverse)
-            
-        # Nic: Ok this is somewhat diagonal to the previous sorting algorithms
-        # eventually, these should probably be combined
-        # since for now, however, my reranking is very tame (exchanging first and second place under certain circumstances)
-        # this should be fine...
-         
+#        else:
+#            # Sort on columns in list view
+#            cmpfunc = lambda a,b:torrent_cmp(a,b,sort)
+#            self.hits.sort(cmpfunc,reverse=reverse)
+#            
+#        # Nic: Ok this is somewhat diagonal to the previous sorting algorithms
+#        # eventually, these should probably be combined
+#        # since for now, however, my reranking is very tame (exchanging first and second place under certain circumstances)
+#        # this should be fine...
+#         
         self.rerankingStrategy[mode] = getTorrentReranker()
         self.hits = self.rerankingStrategy[mode].rerank(self.hits, self.searchkeywords[mode], self.torrent_db, 
                                                         self.pref_db, self.mypref_db, self.search_db)
@@ -574,6 +584,404 @@ class TorrentSearchGridManager:
                 hit[newKey] = (hit[normKey]-mean)/ stdDev
             else:
                 hit[newKey] = 0
+
+
+
+class ChannelSearchGridManager:
+    # Code to make this a singleton
+    __single = None
+   
+    def __init__(self,guiUtility):
+        if ChannelSearchGridManager.__single:
+            raise RuntimeError, "ChannelSearchGridManager is singleton"
+        ChannelSearchGridManager.__single = self
+        
+        self.guiUtility = guiUtility
+        
+        # Contains all matches for keywords in DB, not filtered by category
+        self.hits = []
+        # Remote results for current keywords
+        self.remoteHits = {}
+        self.stopped = False
+        self.dod = None
+        # Jelle's word filter
+        self.searchmgr = None
+        self.channelcast_db = None
+        self.pref_db = None # Nic: for rerankers
+        self.mypref_db = None
+        self.search_db = None
+        # For asking for a refresh when remote results came in
+        self.gridmgr = None
+
+        self.standardOverview = None
+        self.searchkeywords = {'filesMode':[], 'channelsMode':[], 'libraryMode':[]}
+        self.rerankingStrategy = {'filesMode':DefaultTorrentReranker(), 'libraryMode':DefaultTorrentReranker()}
+        self.oldsearchkeywords = {'filesMode':[], 'channelsMode':[], 'libraryMode':[]} # previous query
+        
+        self.category = Category.getInstance()
+        
+    def getInstance(*args, **kw):
+        if ChannelSearchGridManager.__single is None:
+            ChannelSearchGridManager(*args, **kw)       
+        return ChannelSearchGridManager.__single
+    getInstance = staticmethod(getInstance)
+
+    def register(self,channelcast_db,pref_db,mypref_db,search_db, votecast_db):
+        self.channelcast_db = channelcast_db
+        self.pref_db = pref_db
+        self.mypref_db = mypref_db
+        self.search_db = search_db
+        self.searchmgr = SearchManager(channelcast_db)
+        self.votecastdb = votecast_db
+        
+    def set_gridmgr(self,gridmgr):
+        self.gridmgr = gridmgr
+    
+
+    def getChannelHits(self,mode):
+        begintime = time()
+        
+        if DEBUG:
+            print >>sys.stderr,"ChannelSearchGridManager: getChannelHits:",mode
+        
+        
+        if not self.standardOverview:
+            self.standardOverview = self.guiUtility.standardOverview
+            
+        
+
+        # 1. Local search puts hits in self.hits
+        new_local_hits = self.searchLocalDatabase(mode)
+        if DEBUG:
+            print >> sys.stderr , "new_local_hits", new_local_hits
+        
+        if DEBUG:
+            print >>sys.stderr,'ChannelSearchGridManager: getChannelHits: search found: %d items' % len(self.hits)
+
+        
+        self.standardOverview.setSearchFeedback('remotechannels', self.stopped, -1, self.searchkeywords[mode])
+        if mode == 'channelsMode':
+            self.standardOverview.setSearchFeedback('channels', self.stopped, len(self.hits), self.searchkeywords[mode])
+        elif mode == 'libraryMode':
+            # set finished true and use other string
+            self.standardOverview.setSearchFeedback('library', True, len(self.hits), self.searchkeywords[mode])
+            
+        
+        # 2. Add remote hits that may apply.
+        if mode != 'libraryMode':
+            self.addStoredRemoteResults(mode)
+
+            if DEBUG:
+                print >>sys.stderr,'ChannelSearchGridManager: getChannelHits: found after remote search: %d items' % len(self.hits)
+        
+      
+
+
+        if len(self.hits) == 0:
+            return [0, None]
+        else:        
+            return [len(self.hits),self.hits]
+                
+ 
+    def getSubscriptions(self, mode):
+        subscriptions = self.channelcast_db.getMySubscribedChannels()
+        return [len(subscriptions), subscriptions]
+
+    def getPopularChannels(self, mode):
+        pchannels = self.channelcast_db.getMostPopularChannels()
+        return [len(pchannels), pchannels]
+               
+    def setSearchKeywords(self,wantkeywords, mode):
+        self.stopped = False
+        self.searchkeywords[mode] = wantkeywords
+        if mode == 'filesMode':
+            self.remoteHits = {}
+            if self.dod:
+                self.dod.clear()
+
+    def getSearchMode(self, mode):
+        # Return searching, stopped, or no search
+        if self.standardOverview is None:
+            if self.searchkeywords.get(mode):
+                return SEARCHMODE_SEARCHING
+        else:
+            if self.searchkeywords.get(mode):
+                if self.standardOverview.getSearchBusy():
+                    return SEARCHMODE_SEARCHING
+                else:
+                    return SEARCHMODE_STOPPED
+        return SEARCHMODE_NONE
+            
+         
+    def stopSearch(self):
+        self.stopped = True
+        if self.dod:
+            self.dod.stop()
+     
+    def getCurrentHitsLen(self):
+        return len(self.hits)
+    
+    def searchLocalDatabase(self,mode):
+        """ Called by GetChannelHits() to search local DB. Caches previous query result. """
+        if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
+            if DEBUG:
+                print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
+            return False
+        
+        self.oldsearchkeywords[mode] = self.searchkeywords[mode]
+        if DEBUG:
+            print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: Want",self.searchkeywords[mode]
+         
+        if len(self.searchkeywords[mode]) == 0 or len(self.searchkeywords[mode]) == 1 and self.searchkeywords[mode][0] == '':
+            return False
+
+        query = "k:"
+        for i in self.searchkeywords[mode]:
+            query = query + i + ' '
+        
+        self.hits = self.searchmgr.searchChannels(query)
+        return True
+
+
+
+
+    def addStoredRemoteResults(self, mode):
+        """ Called by getChannelHits() to add remote results to self.hits """
+        if len(self.remoteHits) > 0:
+            numResults = 0
+            
+            for remoteItem in self.remoteHits.values():
+                self.hits.append(remoteItem)
+                numResults+=1
+            self.standardOverview.setSearchFeedback('remotechannels', self.stopped, numResults, self.searchkeywords[mode])
+        
+    def gotRemoteHits(self,permid,kws,answers,mode):
+        """ Called by GUIUtil when hits come in. """
+        try:
+            #if DEBUG:
+            print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHist: got",len(answers),"for",kws
+            
+            # Always store the results, only display when in filesMode
+            # We got some replies. First check if they are for the current query
+            if self.searchkeywords['channelsMode'] == kws:
+                numResults = 0
+                for key,value in answers.iteritems():
+                    
+                    if self.channelcast_db.hasTorrent(key):
+                        if DEBUG:
+                            print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHist: Ignoring hit for",`value['content_name']`,"already got it"
+                        continue # do not show results we have ourselves
+                    
+                    # Convert answer fields as per 
+                    # Session.query_connected_peers() spec. to NEWDB format
+                    newval = {}
+                    self.remoteHits[newval['infohash']] = newval
+                    numResults +=1
+             
+                if numResults > 0 and mode == 'channelsMode': #  and self.standardOverview.getSearchBusy():
+                    self.refreshGrid()
+                    if DEBUG:
+                        print >>sys.stderr,'ChannelSearchGridManager: gotRemoteHits: Refresh grid after new remote channel hits came in'
+                return True
+            elif DEBUG:
+                print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords[mode]
+            return False
+        except:
+            print_exc()
+            return False
+        
+    def refreshGrid(self):
+        if self.gridmgr is not None:
+            print >>sys.stderr,"ChannelSearchGridManager: refreshGrid: gridmgr refresh"
+            self.gridmgr.refresh()
+
+            
+    #
+    # Move to Web2SearchGridManager
+    #
+    def searchWeb2(self,initialnum):
+        
+        if DEBUG:
+            print >>sys.stderr,"ChannelSearchGridManager: searchWeb2:",initialnum
+        
+        if self.dod:
+            self.dod.stop()
+        self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords['filesMode']),guiutil=self.guiUtility)
+        self.dod.request(initialnum)
+        self.dod.register(self.tthread_gotWeb2Hit)
+        
+    def tthread_gotWeb2Hit(self,item):
+        """ Called by Web2DBSearchThread*s* """
+        #if DEBUG:
+        print >>sys.stderr,"ChannelSearchGridManager: tthread_gotWeb2Hit",`item['content_name']`
+
+        wx.CallAfter(self.refreshGrid)
+        
+    def web2tonewdb(self,value):
+        try:
+            # Added protection against missing values
+            newval = {}
+            newval['infohash'] = value['infohash']
+            newval['name'] = value['content_name']
+            newval['status'] = value.get('status','unknown')
+            newval['description'] = value.get('description','')
+            newval['tags'] = value.get('tags',[])
+            newval['url'] = value.get('url','')
+            newval['num_leechers'] = value.get('leecher',1)
+            newval['num_seeders'] = value.get('views',1)
+            newval['creation_date'] = value.get('date','')
+            newval['views'] = value.get('views',0)
+            newval['web2'] = value.get('web2',True)
+            newval['length'] = value.get('length',1)
+            if 'preview' in value: # Apparently not always present
+                newval['preview'] = value['preview']
+            return newval
+        except:
+            print_exc()
+            return None
+
+    def addStoredWeb2Results(self,mode,categorykey,range):
+        web2on = self.guiUtility.utility.config.Read('enableweb2search',"boolean")
+        
+        #if DEBUG:
+        #    print >>sys.stderr,"TorrentSearchGridManager: getCategory: mode",mode,"webon",web2on,"insearch",self.getSearchMode(mode),"catekey",categorykey
+        
+        if mode == 'filesMode' and web2on and self.getSearchMode(mode) == SEARCHMODE_SEARCHING and \
+            categorykey in ['video', 'all']:
+            # if we are searching in filesmode
+            #self.standardOverview.setSearchFeedback('web2', False, 0)
+            
+            if self.dod:
+                # Arno: ask for more when needed (=only one page left to display)
+                if DEBUG:
+                    print >>sys.stderr,"ChannelSearchManager: web2: requestMore?",range[1],self.dod.getNumRequested()
+                pagesize = range[1] - range[0]
+                #diff = self.dod.getNumRequested() - range[1]
+                #if diff <= pagesize:
+                # JelleComment: above code doesnt work, because other search results are also on pages
+                # so we might have 100 pages of local search results. If range is related to 80th page
+                # websearch will try to get 80xpagesize youtube videos
+                # Set it steady to 3 pages
+                if self.dod.getNumRequested() < 3*pagesize:
+                    if DEBUG:
+                        print >>sys.stderr,"ChannelSearchManager: web2: requestMore diff",pagesize
+                    self.dod.requestMore(pagesize)
+                    
+                data = self.dod.getData()
+                if DEBUG:
+                    print >>sys.stderr,"ChannelSearchManager: getHitsInCat: web2: Got total",len(data)
+                numResults = 0
+                for value in data:
+                    
+                    # Translate to NEWDB/FileItemPanel format, doing this in 
+                    # web2/video/genericsearch.py breaks something
+                    newval = self.web2tonewdb(value)
+                    if newval is None:
+                        continue
+
+                    known = False
+                    for item in self.hits:
+                        if item['infohash'] == newval['infohash']:
+                            known = True
+                            break
+                    if not known:
+                        self.hits.append(newval)
+                        numResults += 1
+
+                self.standardOverview.setSearchFeedback('web2', self.stopped, numResults, self.searchkeywords[mode])
+        #    else:
+        #        print >>sys.stderr,"TorrentSearchManager: No web2 hits, no self.dod"
+                
+        #else:
+        #    print >>sys.stderr,"TorrentSearchManager: No web2 hits, mode",mode,"web2on",web2on,"in search",self.getSearchMode(mode),"catkey",categorykey
+    
+    #Rameez: The following code will call normalization functions and then 
+    #sort and merge the combine torrent and youtube results
+    def sort(self):
+        self.normalizeResults()
+        self.statisticalNormalization()
+        #Rameez: now sort combined (i.e after the above two normalization procedures)
+
+        #print >> sys.stderr, 'SearchGridMan: Search res: %s' % [a.get('normScore',0) for a in self.hits]
+        def cmp(a,b):
+            # normScores can be small, so multiply
+            # No normscore gives negative 1000, because should be less than 0 (mean)
+            return int(1000000.0 * (b.get('normScore',-1000) - a.get('normScore',-1000)))
+        self.hits.sort(cmp)
+        
+        
+                            
+    
+    def normalizeResults(self):
+        torrent_total = 0
+        youtube_total = 0
+        KEY_NORMSCORE = 'normScore'
+        
+        #Rameez: normalize torrent results
+        #Rameez: normalize youtube results
+        for hit in self.hits:
+            if not hit.has_key('views'):
+                torrent_total += hit.get('num_seeders',0)
+            elif hit['views'] != 'unknown':
+                youtube_total += int(hit['views'])
+
+        if torrent_total == 0: # if zero, set to one for divZeroExc. we can do this, cause nominator will also be zero in following division
+            torrent_total = 1 
+        if youtube_total == 0:
+            youtube_total = 1
+            
+        for hit in self.hits:
+            if not hit.has_key('views'):
+                hit[KEY_NORMSCORE] = hit.get('num_seeders',0)/float(torrent_total)
+            elif hit['views'] != 'unknown':
+                hit[KEY_NORMSCORE] = int(hit['views'])/float(youtube_total)
+
+    
+        
+    
+    def statisticalNormalization(self):
+        youtube_hits = [hit for hit in self.hits if (hit.get('views', 'unknown') != "unknown"
+                                                     and hit.has_key('normScore'))]
+        torrent_hits = [hit for hit in self.hits if (not hit.has_key('views')
+                                                     and hit.has_key('normScore'))]
+        self.doStatNormalization(youtube_hits)
+        self.doStatNormalization(torrent_hits)
+
+    def doStatNormalization(self, hits):
+        #Rameez: statistically normalize torrent results
+        
+        count = 0
+        tot = 0
+
+        for hit in hits:
+            tot += hit['normScore']
+            count +=1
+        
+        if count > 0:
+            mean = tot/count
+        else:
+            mean = 0
+        
+        sum = 0
+        for hit in hits:
+            temp = hit['normScore'] - mean
+            temp = temp * temp
+            sum += temp
+        
+        if count > 1:
+            dev = sum /(count-1)
+        else:
+            dev = 0
+        
+        stdDev = sqrt(dev)
+        
+        for hit in hits:
+            if stdDev > 0:
+                hit['normScore'] = (hit['normScore']-mean)/ stdDev
+        
+
+
+
 
 
 class PeerSearchGridManager:

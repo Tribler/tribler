@@ -45,7 +45,7 @@ from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 
-DEBUG = True #False
+DEBUG = False
 
 class TorrentFeedThread(Thread):
     
@@ -63,6 +63,11 @@ class TorrentFeedThread(Thread):
         self.feeds = []
         self.lock = RLock()
         self.done = Event()
+
+
+        # main url used for rc1
+        self.mainURL = None
+
 
         # when rss feeds change, we have to restart the checking
         self.feeds_changed = False
@@ -95,6 +100,7 @@ class TorrentFeedThread(Thread):
                 for key in ['active','inactive']:
                     if line.startswith(key):
                         url = line[len(key)+1:-2] # remove \r\n
+                        self.mainURL = url
                         if DEBUG:
                             print >>sys.stderr,"subscrip: Add from file URL",url,"EOU"
                         self.addURL(url,dowrite=False,status=key)

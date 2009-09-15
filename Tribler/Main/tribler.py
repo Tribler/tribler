@@ -223,11 +223,8 @@ class ABCApp(wx.App):
             self.guiUtility.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
             self.guiUtility.mainSizer = self.guiUtility.scrollWindow.GetSizer()
             self.frame.topBackgroundRight = xrc.XRCCTRL(self.frame, "topBG3")
-            #self.guiUtility.scrollWindow.SetScrollbars(1,1,1100,683)
-            #self.guiUtility.scrollWindow.SetScrollRate(15,15)
             self.frame.mainButtonPersons = xrc.XRCCTRL(self.frame, "mainButtonPersons")
             self.frame.messageField = xrc.XRCCTRL(self.frame, "messageField")
-            self.frame.pageTitle = xrc.XRCCTRL(self.frame, "pageTitle")
             self.frame.pageTitlePanel = xrc.XRCCTRL(self.frame, "pageTitlePanel")
             self.frame.standardDetails = xrc.XRCCTRL(self.frame, "standardDetails")
             self.frame.standardOverview = xrc.XRCCTRL(self.frame, "standardOverview")
@@ -251,14 +248,21 @@ class ABCApp(wx.App):
  
             self.frame.BL = xrc.XRCCTRL(self.frame, "BL")
             self.frame.BR = xrc.XRCCTRL(self.frame, "BR")
+            self.frame.BL.Hide()
+            self.frame.BR.Hide()
 
 
-
+            self.frame.channelsDetails = xrc.XRCCTRL(self.frame, "channelsDetails")
+            if sys.platform == 'win32':
+                wx.CallAfter(self.frame.channelsDetails.Hide)
+            else:
+                self.frame.channelsDetails.Hide()
             # on linux pagerpanel needs a SetMinSize call
             if sys.platform == "linux2":
                 self.frame.pagerPanel.SetMinSize((626,20))
             elif sys.platform == 'darwin':
-                self.frame.pagerPanel.SetMinSize((674,21))
+                self.frame.pagerPanel.SetMinSize((400,19))
+                self.frame.pagerPanel.SetSize((400,19))
             else:
                 self.frame.pagerPanel.SetMinSize((626,20))
 
@@ -292,6 +296,7 @@ class ABCApp(wx.App):
                 #
                 wx.CallAfter(self.frame.standardOverview.Hide)
                 wx.CallAfter(self.frame.standardDetails.Hide)
+                ##hide_names = [self.frame.pagerPanel, self.frame.pageTitlePanel]
                 hide_names = [self.frame.pagerPanel]
             else:
                 hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pagerPanel]
@@ -343,6 +348,11 @@ class ABCApp(wx.App):
             #self.frame.Refresh()
             #self.frame.Layout()
             self.frame.Show(True)
+
+            #self.frame.pageTitlePanel.Show()
+            #wx.CallAfter(self.frame.pageTitlePanel.tl.Hide)
+            #wx.CallAfter(self.frame.pageTitlePanel.tr.Hide)
+
 
             wx.CallAfter(self.startWithRightView)
             # Delay this so GUI has time to paint

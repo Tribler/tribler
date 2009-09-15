@@ -9,8 +9,14 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.filesItemPanel import FilesItemPanel
+from Tribler.Main.vwxGUI.ItemPanel import ItemPanel
 from Tribler.Main.vwxGUI.LibraryItemPanel import LibraryItemPanel
+from Tribler.Main.vwxGUI.ChannelsItemPanel import ChannelsItemPanel
+from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
+from Tribler.Main.vwxGUI.PopularItemPanel import PopularItemPanel
+from Tribler.Main.vwxGUI.ChResultsItemPanel import ChResultsItemPanel
+
+
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
 from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -31,6 +37,8 @@ class GridManager(object):
         
         self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
+        self.votecast_db = self.session.open_dbhandler(NTFY_VOTECAST)
         self.friend_db = self.session.open_dbhandler(NTFY_FRIENDS)
         self.pref_db = self.session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES) 
@@ -46,7 +54,10 @@ class GridManager(object):
         self.dslist = []
         
         self.torrentsearch_manager = utility.guiUtility.torrentsearch_manager
-        self.torrentsearch_manager.register(self.torrent_db, self.pref_db, self.mypref_db, self.search_db)
+        self.torrentsearch_manager.register(self.torrent_db, self.pref_db, self.mypref_db, self.search_db, self.channelcast_db, self.votecast_db)
+
+        self.channelsearch_manager = utility.guiUtility.channelsearch_manager
+        self.channelsearch_manager.register(self.channelcast_db, self.pref_db, self.mypref_db, self.search_db, self.votecast_db)
 
         self.peersearch_manager = utility.guiUtility.peersearch_manager
         self.peersearch_manager.register(self.peer_db,self.friend_db)
@@ -89,6 +100,30 @@ class GridManager(object):
             self.setObserver()
             
         self.data, self.total_items = self._getData(self.state)
+
+
+
+        if self.state.db == 'channelsMode':
+            if self.grid.guiUtility.guiPage == 'search_results':
+                if self.grid.name == 'channelsGrid':
+                    self.grid.SetMinSize((274,300))
+                    self.grid.SetSize((274,300))
+                    self.grid.calculateRows()
+                if self.grid.name == 'subscriptionsGrid':
+                    self.grid.Hide()
+                if self.grid.name == 'popularGrid':
+                    self.grid.Hide()
+            else:
+                if self.grid.name == 'channelsGrid':
+                    self.grid.SetMinSize((300,49))
+                    self.grid.SetSize((300,49))
+                if self.grid.name == 'subscriptionsGrid':
+                    self.grid.Show()
+                if self.grid.name == 'popularGrid':
+                    self.grid.Show()
+
+
+
         #print >> sys.stderr, 'GridManager: Data length: %d/%d' % (len(self.data), self.total_items)
         self.grid.setData(self.data)
         if DEBUG:
@@ -127,6 +162,30 @@ class GridManager(object):
         
         return self.cache_numbers[key][0]
     
+
+    def get_number_subscriptions(self, state):
+        category_name = state.category
+        
+        subscriptions = (state.db == 'channelsMode')
+        key = (category_name, subscriptions)
+        now = time()
+        
+        if (key not in self.cache_numbers or
+            now - self.cache_numbers[key][1] > self.cache_ntorrent_interval):
+       
+            nsubscriptions = 2 # Richard : Hard coded for now, but needs to be retrieved properly from the subscriptions database functions
+
+            ## nsubscriptions = self.subscriptions_db.getSubscribersCount(category_name = category_name, subscriptions = subscriptions)
+            self.cache_numbers[key] = [nsubscriptions, now]
+            #if ntorrents > 1000:
+            #    self.cache_ntorrent_interval = 120
+            #elif ntorrents > 100 and self.cache_ntorrent_interval < 30:
+            #    self.cache_ntorrent_interval = 30
+            #print >> sys.stderr, '***** update get_number_torrents', ntorrents, self.cache_ntorrent_interval, time()-now
+        
+        return self.cache_numbers[key][0]
+
+
     def get_number_peers(self, state):
         # cache the numbers to avoid loading db, which is a heavy operation
         category_name = state.category
@@ -180,12 +239,39 @@ class GridManager(object):
                 
                 #print >> sys.stderr, "GridManager: _getData: filter returned",len(data)
                 
-            else:
+            else: # files mode
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
                 
             #if state.db == 'libraryMode':
             if data is not None:
                 data = self.addDownloadStates(data)
+
+        elif state.db == 'channelsMode':
+
+            data=None
+            total_items=None
+
+            if self.grid.guiUtility.guiPage == 'search_results':
+                if self.grid.name == 'channelsGrid':
+
+                    [total_items,res] = self.channelsearch_manager.getChannelHits(state.db)
+                    data = []
+                    if total_items > 0:
+                        for el in res:
+                            num_votes = self.channelcast_db.getSubscribersCount(bin2str(el[0][0]))
+                            data_new = (el[0][0], el[0][1], num_votes)
+                            data.append(data_new)
+
+
+            else:
+                if self.grid.GetName() == 'subscriptionsGrid':
+                    [total_items,data] = self.channelsearch_manager.getSubscriptions(state.db)
+
+
+                if self.grid.GetName() == 'popularGrid':
+                    [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db)
+
+
         elif state.db in ('personsMode', 'friendsMode'):
             if state.db == 'friendsMode':
                 state.category = 'friend'
@@ -306,17 +392,19 @@ class GridManager(object):
         Called by GUIThread
         """
         self.dslist = dslist
-        if self.state.db == 'libraryMode':
+        if self.state.db  == 'libraryMode': 
             for infohash in [ds.get_download().get_def().get_infohash() for ds in dslist]:
                 if self._objectOnPage(NTFY_TORRENTS, infohash):
                     self.refresh()
                     break
-        else:
+        elif self.state.db == 'channelsMode':
+            self.refresh()
+        ##else:
             # friendsMode
             # self.refresh()
             # We don't refresh on filesMode, but do need to add DownloadStates
             # for the Play button to work.
-            self.addDownloadStates(self.data)
+        ##    self.addDownloadStates(self.data)
         
     def _objectOnPage(self, subject, objectID):
         if subject == NTFY_PEERS:
@@ -357,7 +445,8 @@ class GridManager(object):
             for torrent in liblist:
                 if torrent['infohash'] == infohash:
                     #if DEBUG:
-                    #    print >>sys.stderr,"standardGrid: addDownloadStates: adding ds for",`ds.get_download().get_def().get_name()`
+                    #print >>sys.stderr,"standardGrid: addDownloadStates: adding ds for",`ds.get_download().get_def().get_name()`
+                    #print >>sys.stderr,"standardGrid: addDownloadStates: adding ds for",`bin2str(ds.get_download().get_def().get_infohash())`
                     torrent['ds'] = ds
                     break
         return liblist
@@ -401,6 +490,7 @@ class standardGrid(wx.Panel):
     def __init__(self, cols, subPanelHeight, orientation='horizontal', viewmode = 'list', parent = None, name="standardGrid"): ##
         self.data = None
         self.detailPanel = None
+        self.name = name
         self.orientation = orientation
         self.subPanelClass = None
         self.items = 0 #number of items that are currently visible 
@@ -410,6 +500,7 @@ class standardGrid(wx.Panel):
         self.topMargin = 5
         self.lastSize = None
         self.panels = []
+        self.Panels = []
         self.viewmode = viewmode
         self.guiUtility = GUIUtility.getInstance()
 
@@ -473,8 +564,7 @@ class standardGrid(wx.Panel):
         self.addComponents()
         self.calculateRows()
         
-        if self.viewmode == 'list':
-            self.toggleColumnHeaders(True)
+        self.toggleColumnHeaders(True)
         self.Show()
         self.Layout()
         self.Refresh()
@@ -562,17 +652,11 @@ class standardGrid(wx.Panel):
 
 
     def setData(self, dataList):
-        
-        #if dataList is None:
-            #datalength = 0
-        #else:
-            #datalength = len(dataList)
-        
         if type(dataList) == list or dataList is None:
-            #if DEBUG:
-            #    print >>sys.stderr,'grid.setData: list'
+            if DEBUG:
+                print >>sys.stderr,'grid.setData: list'
             self.data = dataList
-     
+    
         if not self.initReady:
             return
                 
@@ -616,21 +700,40 @@ class standardGrid(wx.Panel):
             self.data.append(item)
         self.refreshData()
         
+
     def refreshPanels(self):
         "Refresh TorrentPanels with correct data and refresh pagerPanel"
-        if self.getStandardPager():
+        if self.getStandardPager() and self.name not in ['channelsGrid', 'popularGrid', 'subscriptionsGrid']:
             self.standardPager.refresh()
 
-        if self.data is None:
-            self.clearAllData()
-        else:
-            for i in xrange(0, self.items):
-                if i < len(self.data):
-                    self.setDataOfPanel(i, self.data[i])
+
+        if self.name == 'channelsGrid': 
+            if self.guiUtility.guiPage != 'search_results': 
+                self.setDataOfPanel(0,"mychannel") # panel 0 corresponds to My Channel:
+            else:
+                if self.data == None:
+                    for i in xrange(0, self.items):
+                            self.setDataOfPanel(i, None)
                 else:
-                    self.setDataOfPanel(i, None)
-                    
-        self.updateSelection()
+                    for i in xrange(0, self.items):
+                        if i < len(self.data):
+                            self.setDataOfPanel(i, self.data[i])
+                        else:
+                            self.setDataOfPanel(i, None)
+        elif self.name in ['subscriptionsGrid', 'popularGrid', 'libraryGrid', 'filesGrid']:
+            if self.data is None: 
+                self.clearAllData()
+            else:
+                for i in xrange(0, self.items):
+                    if i < len(self.data):
+                        self.setDataOfPanel(i, self.data[i])
+                    else:
+                        self.setDataOfPanel(i, None)
+       
+        if self.name != 'channelsGrid':
+            self.updateSelection()
+    
+
     
     def gridResized(self, rows):
         self.items = self.cols * rows
@@ -664,7 +767,15 @@ class standardGrid(wx.Panel):
                 hSizer = self.vSizer.GetItem(panelNumber/self.cols+1).GetSizer()
                 panel = hSizer.GetItem(panelNumber % self.cols).GetWindow()
                 
+            if data == "mychannel":
+                panel.setdslist(self.gridManager.dslist)
+            panel.setIndex(panelNumber)
             panel.setData(data)
+
+            if panelNumber < len(self.Panels):
+                self.Panels[panelNumber] = panel
+            else:
+                self.Panels.append(panel)
         except:
             if DEBUG:
                 print >>sys.stderr,"standardGrid: Error: Could not set data in panel number %d, with %d cols" % (panelNumber, self.cols)
@@ -684,6 +795,15 @@ class standardGrid(wx.Panel):
         if event:
             event.Skip()
         
+
+    def expandPanelFromIndex(self, index):
+        if index == -1:
+            pass
+        else:
+            hSizer = self.vSizer.GetItem(index%self.currentRows+1).GetSizer()
+            panel = hSizer.GetItem(index/self.currentRows).GetWindow()
+            panel.select()
+
    
         
     def calculateRows(self, event=None):
@@ -695,14 +815,17 @@ class standardGrid(wx.Panel):
         else:
             columnHeaderHeight = self.topMargin
             
-        if size[1] < 50 or self.subPanelHeight == 0:
-            self.currentRows = 0
-            self.items = 0
-        else:            
+        if self.GetName() in ['channelsGrid', 'subscriptionsGrid', 'popularGrid']:
+            if self.GetName() == 'channelsGrid':
+                self.currentRows = 1
+            else:
+                self.currentRows = (size[1] - columnHeaderHeight) / self.subPanelHeight
+        else:
             self.currentRows = (size[1] - columnHeaderHeight - 79) / self.subPanelHeight 
-            if DEBUG:
-                print >> sys.stderr, 'standardGrid: Height: %d, single panel is %d, so %d rows' % (size[1], self.subPanelHeight, self.currentRows)
-            self.items = self.cols * self.currentRows
+        if DEBUG:
+            print >> sys.stderr, 'standardGrid: Height: %d, single panel is %d, so %d rows' % (size[1], self.subPanelHeight, self.currentRows)
+        self.items = self.cols * self.currentRows
+
         
         if oldRows != self.currentRows: #changed
             if DEBUG:
@@ -814,7 +937,6 @@ class standardGrid(wx.Panel):
                 rowIndex += 1
                 
                 
-            #print >>sys.stderr,"standardGrid: QQQQQQQQQQQQQQQQQQQQQQQQQQQ QUERY RESULTS DISPLAYED"
             self.Layout()
         except:
             # I sometimes get UnicodeErrors here somewhere
@@ -847,7 +969,6 @@ class standardGrid(wx.Panel):
                         panel_id = None
                         
                     #if panel_id is None or repr(panel_id) != repr(id):
-                    print >> sys.stderr , 'item deselected2'
                     pan.deselect(rowIndex,colIndex)#number = number)
                     number += 1
                     colIndex += 1
@@ -857,8 +978,38 @@ class standardGrid(wx.Panel):
             # I sometimes get UnicodeErrors here somewhere
             print_exc()
 
+    def deselectAllChannels(self):
+        rowIndex = 0
+        colIndex = 0
+        for pan in self.Panels:
+            if pan is not None:
+                try:
+                    pan.deselect(rowIndex,colIndex)
+                except:
+                    pass
+            rowIndex += 1
+        self.Layout()
 
 
+    def reloadChannels(self, index= -1):
+        """Deselect all channels, but the one expanded (if any)
+        """
+        self.deselectAllChannels()
+        if index != -1:
+            self.Panels[index].select()
+        self.Layout()
+
+
+    def showSelectedChannel(self):
+        if self.name == 'channelsGrid':
+            hSizer = self.vSizer.GetItem(1).GetSizer()
+            panel = hSizer.GetItem(0).GetWindow()
+        else:
+            for i in xrange(0, len(self.data)):
+                hSizer = self.vSizer.GetItem(i%self.currentRows+1).GetSizer()
+                panel = hSizer.GetItem(i/ self.currentRows).GetWindow()
+        if panel.selected == True:
+            panel.select()
 
 
 
@@ -952,7 +1103,15 @@ class standardGrid(wx.Panel):
         if show:
             panel = self.getFirstPanel()
             if panel:
-                self.columnHeader = ColumnHeaderBar(self, panel)
+                if self.name == 'channelsGrid':
+                    self.columnHeader = ColumnHeaderBar(self, panel, name = 'channelheader')
+                elif self.name == 'subscriptionsGrid':
+                    self.columnHeader = ColumnHeaderBar(self, panel, name = 'popularheader')
+                elif self.name == 'popularGrid':
+                    self.columnHeader = ColumnHeaderBar(self, panel, name = 'subscriptionsheader')
+                else:
+                    self.columnHeader = ColumnHeaderBar(self, panel, name = 'filesheader')
+
                 self.columnHeaderSizer.Detach(0)
                 self.columnHeaderSizer.Add(self.columnHeader, 1, wx.EXPAND, 0)
                 self.columnHeaderSizer.Layout()
@@ -985,7 +1144,7 @@ class filesGrid(standardGrid):
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical',parent=parent,name="filesGrid")
         
     def getSubPanel(self, keyfun):
-        return FilesItemPanel(self, keyfun)
+        return ItemPanel(self, keyfun)
 
 class libraryGrid(standardGrid):
     def __init__(self,parent=None):
@@ -995,4 +1154,44 @@ class libraryGrid(standardGrid):
             
     def getSubPanel(self, keyfun):
         return LibraryItemPanel(self, keyfun)
+
+class channelsGrid(standardGrid):
+    def __init__(self,parent=None):
+        columns = (1,1)
+        subPanelHeight = (22, 22) # This will be update after first refresh
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="channelsGrid")
+            
+    def getSubPanel(self, keyfun):
+        return ChannelsItemPanel(self, keyfun)
+
+class chresultsGrid(standardGrid):
+    def __init__(self,parent=None):
+        columns = (1,1)
+        subPanelHeight = (22, 22) # This will be update after first refresh
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="chresultsGrid")
+            
+    def getSubPanel(self, keyfun):
+        return ChResultsItemPanel(self, keyfun)
+
+
+class subscriptionsGrid(standardGrid):
+    def __init__(self,parent=None):
+        columns = (1,1)
+        subPanelHeight = (22, 22) # This will be update after first refresh
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="subscriptionsGrid")
+            
+    def getSubPanel(self, keyfun):
+        return SubscriptionsItemPanel(self, keyfun)
+
+class popularGrid(standardGrid):
+    def __init__(self,parent=None):
+        columns = (1,1)
+        subPanelHeight = (22, 22) # This will be update after first refresh
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="popularGrid")
+            
+    def getSubPanel(self, keyfun):
+        return PopularItemPanel(self, keyfun)
+
+
+
     

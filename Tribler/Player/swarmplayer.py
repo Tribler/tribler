@@ -68,7 +68,7 @@ VIDEOHTTP_LISTENPORT = 6879
 
 class PlayerApp(BaseApp):
     def __init__(self, redirectstderrout, appname, params, single_instance_checker, installdir, i2iport, sport):
-
+        self.videoFrame = None
         BaseApp.__init__(self, redirectstderrout, appname, params, single_instance_checker, installdir, i2iport, sport)
 
         self.said_start_playback = False

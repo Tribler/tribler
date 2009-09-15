@@ -27,3 +27,8 @@ class SearchManager:
         else:
             return hits[:maxhits]
 
+    def searchChannels(self, query): ##
+        data = self.dbhandler.searchChannels(query) 
+        return data
+
+

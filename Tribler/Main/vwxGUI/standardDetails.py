@@ -1479,6 +1479,7 @@ class standardDetails(wx.Panel):
         """
         def success_callback(*args):
             # empty the permids list to indicate that we are done
+            
             if DEBUG: print >>sys.stderr,"standardDetails: _download_torrentfile_from_peers: received .torrent from peer"
             if state[0]:
                 state[0] = False
@@ -1518,18 +1519,22 @@ class standardDetails(wx.Panel):
             # medium and unknown torrent size. 
             next_callback(1)
 
-    def torrent_is_playable(self, torrent=None, default=True, callback=None):
+    def torrent_is_playable(self, torrent=None, default=(False, []), callback=None):
         """
         TORRENT is a dictionary containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
 
         DEFAULT indicates the default value when we don't know if the
-        torrent is playable.
+        torrent is playable. 
 
         CALLBACK can be given to result the actual 'playable' value
         for the torrent after some downloading/processing. The DEFAULT
         value is returned in this case. Will only be called if
         self.item == torrent
+
+        The return value is a tuple consisting of a boolean indicating if the torrent is playable and a list.
+        If the torrent is not playable or if the defalut value is returned the boolean is False and the list is empty.
+        If it is playable the boolean is true and the list returned consists of the playable files within the actual torrent. 
         """
         if torrent is None:
             torrent = self.item
@@ -1543,10 +1548,10 @@ class standardDetails(wx.Panel):
             tdef = TorrentDef.load(torrent_filename)
             if tdef.get_files(exts=videoextdefaults):
                 if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable is playable"
-                return True
+                return (True, tdef.get_files(exts=videoextdefaults))
             else:
                 if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable is NOT playable"
-                return False
+                return (False, [])
 
         elif callback:
             # unknown, figure it out and return the information using
@@ -1563,7 +1568,7 @@ class standardDetails(wx.Panel):
                         callback(torrent, playable)
                 self._download_torrentfile_from_peers(torrent, got_requested_torrent)
             
-        if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
+        print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
         return default
 
 

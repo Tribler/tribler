@@ -621,6 +621,8 @@ class SwitchButton(tribler_topButton):
                     return
                 elif self.bitmaps[1]:
                     dc.DrawBitmap(self.bitmaps[1], 0,0, True)
+            elif self.GetName() == 'playbig' and not self.isToggled():
+                return
             elif self.bitmaps[1]:
                 dc.DrawBitmap(self.bitmaps[1], 0,0, True)
 

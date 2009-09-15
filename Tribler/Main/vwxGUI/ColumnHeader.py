@@ -5,6 +5,8 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.standardFilter import filesFilter
 
+from Tribler.__init__ import LIBRARYNAME
+
 from font import *
 
 class ColumnHeader(wx.Panel):
@@ -35,8 +37,9 @@ class ColumnHeader(wx.Panel):
             self.reverse = True
         else:
             self.reverse = False
-        
-        
+
+
+       
     def addComponents(self, title, picture, tip, component):
         self.SetBackgroundColour(self.unselectedColour)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -52,10 +55,10 @@ class ColumnHeader(wx.Panel):
                 self.hSizer.Add(self.icon, 0, wx.TOP,1 )
             if title:
                 if not picture:
-                    self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+                    self.hSizer.Add([3,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
                 self.text = wx.StaticText(self, -1, title)
                 self.triblerStyles.setDarkText(self.text)
-                self.hSizer.Add(self.text, 1, wx.TOP, 3)            
+                self.hSizer.Add(self.text, 1, wx.TOP, 1)            
             
             self.dummy = self.dummy or (not picture and not title)
             if picture == None and title == None:
@@ -87,6 +90,9 @@ class ColumnHeader(wx.Panel):
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(True)
         self.hSizer.Layout()
+
+
+
         
     def setText(self, t):
         self.text.SetLabel(t)
@@ -162,7 +168,7 @@ class ColumnHeader(wx.Panel):
                 
 class ColumnHeaderBar(wx.Panel):
     
-    def __init__(self, parent, itemPanel):
+    def __init__(self, parent, itemPanel, name=None):
 #        print 'itemPanel = %s' % itemPanel
         self.itemPanel = itemPanel
         wx.Panel.__init__(self, parent, -1)
@@ -170,10 +176,16 @@ class ColumnHeaderBar(wx.Panel):
         self.dynamicColumnName = None
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
+        self.name=name
+
 
         self.addComponents()
         #self.SetMinSize((-1,30))
+
+
+
         self.Show(True)
+
         
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -186,11 +198,13 @@ class ColumnHeaderBar(wx.Panel):
 
 
 
-        ##cornerTL_file = os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0","wrapCorTL.png")
-        ##self.cornerTL_image = wx.Image(cornerTL_file, wx.BITMAP_TYPE_ANY)            
-        ##self.cornerTL = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.cornerTL_image))
+        if self.name in ['filesheader', 'channelheader']:
 
-        ##self.hSizer.Add(self.cornerTL,0,0,0)
+            cornerTL_file = os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0","tl4.png")
+            self.cornerTL_image = wx.Image(cornerTL_file, wx.BITMAP_TYPE_ANY)            
+            self.cornerTL = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.cornerTL_image))
+
+            self.hSizer.Add(self.cornerTL,0,0,0)
 
 
         
@@ -241,13 +255,37 @@ class ColumnHeaderBar(wx.Panel):
         
 #        self.dynamicColumnName = comboboxSortChoices[0].sorting
 #        self.extraSortingMouseaction(event='')
+
+        if self.name in ['filesheader', 'channelheader']:
+
+            cornerTR_file = os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0","tr4.png")
+            self.cornerTR_image = wx.Image(cornerTR_file, wx.BITMAP_TYPE_ANY)            
+            self.cornerTR = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.cornerTR_image))
+
+            self.hSizer.Add(self.cornerTR,0,0,0)
+
+
+
         
-        #self.SetBackgroundColour(wx.Colour(100,100,100))
+        self.SetBackgroundColour(wx.WHITE)
 #        self.hSizer.Add(self.filesFilter, 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
         self.hSizer.Layout()
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(True)
         
+
+    def roundCorners(self, x):
+        self.x=x
+        wx.EVT_PAINT(self, self.OnPaint)
+
+
+    def OnPaint(self, event):
+        dc = wx.PaintDC(self)
+        dc.DrawBitmap(self.tl, 0, 0)
+        dc.DrawBitmap(self.tr, self.x, 0)
+
+
+
     def setOrdering(self, column, ordering):
         for header in self.columns:
             if header != column:

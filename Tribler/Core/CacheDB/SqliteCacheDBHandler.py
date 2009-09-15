@@ -1105,6 +1105,9 @@ class TorrentDBHandler(BasicDBHandler):
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
                       'relevance', 'infohash', 'tracker', 'last_check']
 
+        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment'] ##
+
+
     def register(self, category, torrent_dir):
         self.category = category
         self.torrent_dir = torrent_dir
@@ -1354,6 +1357,15 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.show_execute = False
         return torrent_id
     
+    def getInfohashFromTorrentName(self, name): ##
+        sql = "select infohash from Torrent where name='" + str2bin(name) + "'"
+        infohash = self._db.fetchone(sql)
+        return infohash
+        
+
+
+
+
     def _insertNewSrc(self, src, commit=True):
         desc = ''
         if src.startswith('http') and src.endswith('xml'):
@@ -1837,7 +1849,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         mainsql = "select * from Torrent where torrent_id in (" + sql + ") order by num_seeders desc"
         results = self._db.fetchall(mainsql)
-        #print >> sys.stderr, "mainsql results:", len(results) 
+        # print >> sys.stderr, "mainsql results:", len(results) 
         
         for result in results:
             torrent = dict(zip(value_name,result))
@@ -1880,12 +1892,12 @@ class TorrentDBHandler(BasicDBHandler):
             sql = "select publisher_id, publisher_name from ChannelCast where infohash='" + bin2str(torrent['infohash']) + "'" #note that.. above, its in bin format
             records = self._db.fetchall(sql)
             if records is not None and len(records)>0:
+                votecastdb = VoteCastDBHandler.getInstance()
                 if len(records)>1:
                     # if more than 1 channel has this torrent, select most popular channel.
                     # For spam, resultant votes limit = -6
                     NEG = -6 # if the effective vote count is less than -5, it is considered as SPAM
                     max_votes = NEG
-                    votecastdb = VoteCastDBHandler.getInstance()
                     for record in records:
                         negvotes = votecastdb.getNegVotes(record[0])
                         numsubscriptions = votecastdb.getNumSubscriptions(record[0])
@@ -1902,7 +1914,7 @@ class TorrentDBHandler(BasicDBHandler):
                     torrent['channel_permid'] = records[0][0]
                     torrent['channel_name'] = records[0][1]
                     torrent['neg_votes'] = votecastdb.getNegVotes(records[0][0])
-                    torrent['subscriptions'] = votecastdb.getNumSubscriptions(record[0][1])
+                    torrent['subscriptions'] = votecastdb.getNumSubscriptions(records[0][1])
                 
             torrent_list.append(torrent)
         
@@ -2947,6 +2959,16 @@ class VoteCastDBHandler(BasicDBHandler):
             
         return allrecords
     
+
+    def hasSubscription(self, permid, voter_peerid): ##
+        sql = 'select mod_id, voter_id from VoteCast where mod_id==? and voter_id==? and vote=2'
+        item = self._db.fetchone(sql,(permid,voter_peerid,))
+        if item is None:
+            return False
+        else:
+            return True
+
+
     def subscribe(self,permid):
         """insert/change the vote status to 2"""
         sql = "select vote from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
@@ -2958,12 +2980,13 @@ class VoteCastDBHandler(BasicDBHandler):
             sql = "update VoteCast set vote=2 where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
             self._db.execute_write(sql)    
 
-    def unsubscribe(self, permid):
+    def unsubscribe(self, permid): ###
         """ change the vote status to 0, if unsubscribed"""
         sql = "select vote from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
         vote = self._db.fetchone(sql)
         if vote is not None and vote==2:
-            sql = "delete from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
+            ## sql = "delete from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
+            sql = "update VoteCast set vote=0 where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
             self._db.execute_write(sql)
     
     def spam(self, permid):
@@ -3035,7 +3058,104 @@ class ChannelCastDBHandler(BasicDBHandler):
         bencoding = bencode(r)
         signature = bin2str(sign_data(bencoding, self.session.keypair))
         record.append(signature)
+
+    def searchNames(self,kws): ##
+        t1 = time()
+        value_name = ['torrent_id',
+                      'infohash',
+                      'name',
+                       'torrent_file_name',                        
+                       'length', 
+                       'creation_date', 
+                       'num_files',
+                       'thumbnail',                       
+                      'insert_time', 
+                      'secret', 
+                      'relevance',  
+                      'source_id', 
+                      'category_id', 
+                       'status_id',
+                       'num_seeders',
+                      'num_leechers', 
+                      'comment']        
+        
+        
+        
+        #import re
+        #kws = kws.lower()
+        #words = re.split(r'\s+', kws)
+        sql = ""
+        count = 0
+        for word in kws:
+            word = word.lower()
+            count += 1
+            sql += " select torrent_id from InvertedIndex where word='" + word + "' "
+            if count < len(kws):
+                sql += " intersect "
+        
+        torrent_list = []
+        
+        mainsql = "select * from ChannelCast where torrent_id in (" + sql + ") order by num_seeders desc"
+        records = self._db.fetchall(mainsql)
+        #print >> sys.stderr, "mainsql records:", len(records) 
+        
+        for record in records:
+            torrent = dict(zip(value_name,record))
+            try:
+                torrent['source'] = self.id2src[torrent['source_id']]
+            except:
+                print_exc()
+                # Arno: RSS subscription and id2src issue
+                torrent['source'] = 'http://some/RSS/feed'
+            
+            torrent['category'] = [self.id2category[torrent['category_id']]]
+            torrent['status'] = self.id2status[torrent['status_id']]
+            torrent['simRank'] = ranksfind(None,torrent['infohash'])
+            torrent['infohash'] = str2bin(torrent['infohash'])
+            #torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers']
+            torrent['last_check_time'] = 0 #torrent['last_check']
+            #del torrent['last_check']
+            del torrent['source_id']
+            del torrent['category_id']
+            del torrent['status_id']
+            torrent_id = torrent['torrent_id']
+            mypref_stats = self.mypref_db.getMyPrefStats(torrent_id)    
+            #print >> sys.stderr, "my_pref:", repr(mypref_stats)
+            #print >> sys.stderr, "torrent_id:", torrent_id
+            #print >> sys.stderr, "status:", torrent['status']     
+            if mypref_stats is not None and torrent_id in mypref_stats:
+                # add extra info for torrent in mypref
+                print >> sys.stderr, "# add extra info for torrent in mypref"
+                torrent['myDownloadHistory'] = True
+                data = mypref_stats[torrent_id]  #(create_time,progress,destdir)
+                torrent['download_started'] = data[0]
+                torrent['progress'] = data[1]
+                torrent['destdir'] = data[2]            
+                
+                
+            # Adding #votes and #subscriptions of the moderator of this torrent
+            torrent['votes'] = 0
+            torrent['subscriptions'] = 0
+            
+            
+            moderationcastdb = ModerationCastDBHandler.getInstance()            
+            moderation = moderationcastdb.getModeration(bin2str(torrent['infohash']))
+            if moderation is not None:
+                votecastdb = VoteCastDBHandler.getInstance()                
+                votes = votecastdb.getPosNegVotes(moderation[0])
+                if votes is not None and len(votes) == 2:
+                    torrent['votes'] = votes[0] + votes[1]      
+            
+                channelcastdb = ChannelCastDBHandler.getInstance()
+                torrent['subscriptions'] = channelcastdb.getSubscribersCount(moderation[0])
+                
+            torrent_list.append(torrent)
+        
+        print >> sys.stderr, "# hits:%d; search time:%s" % (len(torrent_list),time()-t1)
+        return torrent_list
+        
     
+
     def addOwnTorrent(self, infohash, torrentdata):
         publisher_id = bin2str(self.my_permid)
         infohash = bin2str(infohash)
@@ -3051,6 +3171,12 @@ class ChannelCastDBHandler(BasicDBHandler):
             return True
         return False
         
+
+    def deleteOwnTorrent(self, infohash): ##
+        sql = 'Delete From ChannelCast where infohash==?'
+        self._db.execute_write(sql,(infohash,))
+
+
     
     def addTorrent(self,record):
         sql = "select count(*) from ChannelCast where publisher_id='" + record[0] + "' and infohash='" + record[2] + "'"
@@ -3094,6 +3220,22 @@ class ChannelCastDBHandler(BasicDBHandler):
             allrecords.extend(othersrandomtorrents)
         return allrecords
     
+
+    def getTorrentFromTorrenthash(self,torrenthash): ##
+        sql = "select * from Torrent where infohash='"+ bin2str(torrenthash) + "'"
+        torrent = self._db.fetchone(sql)
+        return torrent
+
+    def getTorrentsFromPublisherId(self, publisher_id): ##
+        records=[]
+        sql = "select infohash from ChannelCast where publisher_id='"+ publisher_id + "'"
+        res= self._db.fetchall(sql)
+        for res_item in res:
+            torrentHash = res_item[0] 
+            records.append(self.getTorrentFromTorrenthash(str2bin(torrentHash)))
+        return records
+
+
     def searchChannels(self,query):
         # query would be of the form: "k:barack obama" or "p:4fw342d23re2we2w3e23d2334d" permid
         value_name = deepcopy(self.value_name) ##
@@ -3155,7 +3297,8 @@ class ChannelCastDBHandler(BasicDBHandler):
         votecastdb = VoteCastDBHandler.getInstance()
         # Inner query: First, identify the publishers you are subscribed to
         # Outer query: Get all publishers that are not in your publishers' list, along with the number of subscriptions
-        sql = "select mod_id, count(*) from VoteCast where mod_id not in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id order by 2 desc"
+        ## sql = "select mod_id, count(*) from VoteCast where mod_id not in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id order by 2 desc"
+        sql = "select mod_id, count(*) from VoteCast where mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id order by 2 desc" ## Richard : for now popular channels can contain channels i am subscribed to
         votes = self._db.fetchall(sql)
         for vote in votes:
             sql = "select publisher_name, time_stamp from ChannelCast where publisher_id='"+vote[0]+"' order by 2 desc" 
@@ -3163,12 +3306,31 @@ class ChannelCastDBHandler(BasicDBHandler):
             mod_name = record[0]
             records.append((vote[0],mod_name,vote[1]))
         return records
-    
+
     def getSubscribersCount(self,permid):
         """returns the number of subscribers in integer format"""
         sql = "select count(*) from VoteCast where mod_id='"+permid+"'"
         numrecords = self._db.fetchone(sql)
         return numrecords
+
+    
+
+    def getOtherChannels(self): ##
+        """Returns all the channels different from my channel
+           Returns a list of tuples: [(permid,channel_name,#votes)]
+        """
+        records = []
+        votecastdb = VoteCastDBHandler.getInstance()
+        sql = "select distinct publisher_id, publisher_name from ChannelCast" 
+        channels = self._db.fetchall(sql)
+        for channel in channels:
+            if channel[0] != bin2str(self.my_permid):
+                num_votes = self.getSubscribersCount(channel[0])
+                records.append((channel[0], channel[1], num_votes))
+        print >> sys.stderr , "records" , records
+        return records
+
+
     
     def getMySubscribedChannels(self):
         """return a list of tuples: [(permid,channel_name,#subscriptions)]"""
@@ -3183,6 +3345,24 @@ class ChannelCastDBHandler(BasicDBHandler):
             records.append((vote[0],mod_name,vote[1]))
         return records
     
+
+    def getMostPopularChannelFromTorrent(self, torrenthash): ##
+        """Returns name of most popular channel if any"""
+        sql = "select publisher_id, publisher_name from ChannelCast where torrenthash='"+bin2str(torrenthash)+"'" 
+        publishers = self._db.fetchall(sql)
+        if len(publishers) == 0:
+            return None
+        else:
+            mostfamouspublishername = None
+            maxvote = -1
+            for publisher_item in publishers:
+                publisher = publisher_item[0]
+                publisher_name = publisher_item[1]
+                if getSubscribersCount(publisher) > maxvote:
+                    maxvote = getSubscribersCount(publisher)
+                    mostfamouspublishername = publisher_name
+            return mostfamouspublishername
+
 
     
             
