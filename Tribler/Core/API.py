@@ -4,13 +4,17 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.4rc2, Jul, 2009. Import this to use the API """
+""" Tribler Core API v1.0.4rc4, Sep, 2009. Import this to use the API """
 
 # History:
 #
-# 1.0.4rc3   Added: get_total_transferred to the DownloadState to
+# 1.0.4rc4   Added: get_total_transferred() to the DownloadState to
 #            retrieve the total amount of bytes that are up or
-#            downloaded for a single torrent
+#            downloaded for a single Download.
+#
+# 1.0.4rc3   Added chquery_connected_peers() to Session class for making
+#            queries for the new channel concept.
+#
 #
 # 1.0.4rc2   TorrentDef now supports P2P URLs.
 #
