@@ -478,7 +478,7 @@ class MetadataHandler:
             # P2PURL
             goturl = False
             if selversion >= OLPROTO_VER_ELEVENTH:
-                if 'url' in metadata:
+                if 'url' in message:
                     try:
                         tdef = TorrentDef.load_from_url(metadata['url'])
                         # Internal storage format is still .torrent file
