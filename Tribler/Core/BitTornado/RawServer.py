@@ -8,6 +8,7 @@ from cStringIO import StringIO
 from traceback import print_exc
 from select import error
 from threading import Event, RLock
+from thread import get_ident
 from clock import clock
 import sys
 import time
@@ -69,7 +70,7 @@ class RawServer:
             sockethandler = SocketHandler(timeout, ipv6_enable, READSIZE)
         self.sockethandler = sockethandler
 
-        self.is_polling = False
+        self.thread_ident = None
         self.interrupt_socket = sockethandler.get_interrupt_socket()
         
         self.add_task(self.scan_for_timeouts, timeout_check_interval)
@@ -89,7 +90,7 @@ class RawServer:
             delay = 0
         self.lock.acquire()
         self.externally_added.append((func, delay, id))
-        if self.is_polling:
+        if self.thread_ident != get_ident():
             self.interrupt_socket.interrupt()
         self.lock.release()
 
@@ -129,6 +130,7 @@ class RawServer:
         if DEBUG:
             print >>sys.stderr,"rawserver: listen forever()"
         # handler=btlanuchmany: MultiHandler, btdownloadheadless: Encoder
+        self.thread_ident = get_ident()
         self.sockethandler.set_handler(handler)
         try:
             while not self.doneflag.isSet():
@@ -144,16 +146,7 @@ class RawServer:
                         
                     #if DEBUG:
                     #    print >>sys.stderr,"rawserver: do_poll",period
-
-                    self.lock.acquire()
-                    self.is_polling = True
-                    self.lock.release()
-
                     events = self.sockethandler.do_poll(period)
-
-                    self.lock.acquire()
-                    self.is_polling = False
-                    self.lock.release()
 
                     if self.doneflag.isSet():
                         if DEBUG:
