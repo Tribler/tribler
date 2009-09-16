@@ -89,7 +89,8 @@ class ChannelQueryMsgHandler:
 
         if exc is None:
             self.connections.add(permid)
-        else:
+
+        elif permid in self.connections:
             self.connections.remove(permid)
 
         return True
