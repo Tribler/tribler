@@ -919,7 +919,7 @@ class PreferenceDBHandler(BasicDBHandler):
                     print >> sys.stderr, "torrent_id not set, retrieving manually!"
                 torrent_id = TorrentDBHandler.getInstance().getTorrentID(infohash)
                 
-            term_ids = [foreign2local[str(foreign)] for foreign in search_terms]
+            term_ids = [foreign2local[str(foreign)] for foreign in search_terms if str(foreign) in foreign2local]
             searchdb.storeKeywordsByID(peer_id, torrent_id, term_ids, commit=False)
         if commit:
             searchdb.commit()
