@@ -3303,8 +3303,9 @@ class ChannelCastDBHandler(BasicDBHandler):
         for vote in votes:
             sql = "select publisher_name, time_stamp from ChannelCast where publisher_id='"+vote[0]+"' order by 2 desc" 
             record = self._db.fetchone(sql)
-            mod_name = record[0]
-            records.append((vote[0],mod_name,vote[1]))
+            if not record is None:
+                mod_name = record[0]
+                records.append((vote[0],mod_name,vote[1]))
         return records
 
     def getSubscribersCount(self,permid):
