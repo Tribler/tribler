@@ -215,8 +215,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         
         
             # Seek in stream to desired offset
-            if firstbyte != 0:
-                stream.seek(firstbyte)
+            stream.seek(firstbyte)
     
             # Send headers
             self.send_header("Content-Type", mimetype)
