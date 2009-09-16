@@ -418,7 +418,7 @@ class channelsDetails(bgPanel):
             self.foundText.SetLabel("Found %s file" % len(self.torrentList))
             
         
-        if self.publisher_id == bin2str(self.utility.session.get_permid()): # My Channel
+        if self.parent.isMyChannel(): # My Channel
             self.SubscriptionButton.Hide()
             self.SubscriptionText.Hide()
             self.rssText.Show()

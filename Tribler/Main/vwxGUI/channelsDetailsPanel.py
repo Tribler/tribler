@@ -165,6 +165,7 @@ class channelsDetailsPanel(bgPanel):
         self.removeText.SetForegroundColour(wx.BLACK)
         self.removeText.SetFont(wx.Font(FS_SAVE_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.removeText.SetMinSize((50,10))
+        self.removeText.Hide()
 
         # scroll left
         self.scrollLeft = tribler_topButton(self, -1, name = "ScrollLeft")

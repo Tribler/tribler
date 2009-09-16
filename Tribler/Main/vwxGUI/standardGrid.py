@@ -106,8 +106,8 @@ class GridManager(object):
         if self.state.db == 'channelsMode':
             if self.grid.guiUtility.guiPage == 'search_results':
                 if self.grid.name == 'channelsGrid':
-                    self.grid.SetMinSize((274,300))
-                    self.grid.SetSize((274,300))
+                    self.grid.SetMinSize((274,500))
+                    self.grid.SetSize((274,500))
                     self.grid.calculateRows()
                 if self.grid.name == 'subscriptionsGrid':
                     self.grid.Hide()
@@ -249,7 +249,7 @@ class GridManager(object):
         elif state.db == 'channelsMode':
 
             data=None
-            total_items=None
+            total_items=0
 
             if self.grid.guiUtility.guiPage == 'search_results':
                 if self.grid.name == 'channelsGrid':
@@ -730,8 +730,7 @@ class standardGrid(wx.Panel):
                     else:
                         self.setDataOfPanel(i, None)
        
-        if self.name != 'channelsGrid':
-            self.updateSelection()
+        self.showSelectedChannel()
     
 
     

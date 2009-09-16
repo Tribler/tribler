@@ -241,7 +241,12 @@ class ChannelsItemPanel(wx.Panel):
 
             self.setMyTitle()
 
-            self.SetMinSize((660,30))
+            if self.guiUtility.guiPage == 'search_results':
+                self.SetMinSize((660,22))
+                self.SetSize((660,22))
+            else:
+                self.SetMinSize((660,30))
+                self.SetSize((660,30))
 
         else:
             self.mychannel = False
