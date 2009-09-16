@@ -324,7 +324,7 @@ class SubscriptionsItemPanel(wx.Panel):
 
 
     def isMyChannel(self):
-        return self.mychannel
+        return False
 
 
     def mouseAction(self, event):
