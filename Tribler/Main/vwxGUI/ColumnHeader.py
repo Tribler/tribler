@@ -198,7 +198,7 @@ class ColumnHeaderBar(wx.Panel):
 
 
 
-        if self.name in ['filesheader', 'channelheader']:
+        if self.name in ['filesheader', 'channelheader', 'libraryheader']:
 
             cornerTL_file = os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0","tl4.png")
             self.cornerTL_image = wx.Image(cornerTL_file, wx.BITMAP_TYPE_ANY)            
@@ -256,7 +256,7 @@ class ColumnHeaderBar(wx.Panel):
 #        self.dynamicColumnName = comboboxSortChoices[0].sorting
 #        self.extraSortingMouseaction(event='')
 
-        if self.name in ['filesheader', 'channelheader']:
+        if self.name in ['filesheader', 'channelheader', 'libraryheader']:
 
             cornerTR_file = os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0","tr4.png")
             self.cornerTR_image = wx.Image(cornerTR_file, wx.BITMAP_TYPE_ANY)            

@@ -543,7 +543,6 @@ class TopSearchPanel(bgPanel):
         self.newChannel = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/iconSaved.png", wx.BITMAP_TYPE_ANY))
         self.total_down = wx.StaticText(self, -1, "0B Down")
         self.total_up = wx.StaticText(self, -1, "0B Up")
-        self.arrow = tribler_topButton(self, -1, name = 'arrow_down')
         self.file_sel = wx.StaticText(self, -1, "Files")
         #self.file_sel = SwitchButton(self, -1, name = "chooseFiles")
         self.channel_sel = wx.StaticText(self, -1, "Channels")
@@ -555,6 +554,7 @@ class TopSearchPanel(bgPanel):
             self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
             #self.files_friends = MyText(self, "Search Files",wx.BLACK, wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
             self.go = tribler_topButton(self,-1,name = 'Search_new_win')
+            self.arrow = tribler_topButton(self, -1, name = 'arrow_down_win')
             self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient_new_win.png", wx.BITMAP_TYPE_ANY))
             self.familyfilter = SwitchButton(self, -1, name = 'familyfilter_win')
             #self.familyfilter = NewStaticText(self, "Family Filter:", wx.BLACK, wx.Font(FONT_SIZE_FAMILY_FILTER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
@@ -576,7 +576,7 @@ class TopSearchPanel(bgPanel):
         else:    
             self.files_friends = wx.StaticText(self, -1, "Search Files or Channels") 
             self.go = tribler_topButton(self,-1,name = 'Search_new')
-
+            self.arrow = tribler_topButton(self, -1, name = 'arrow_down')
             self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient_new.png", wx.BITMAP_TYPE_ANY))
             self.familyfilter = wx.StaticText(self, -1, "Family Filter:")
             #if sys.platform == 'win32':
