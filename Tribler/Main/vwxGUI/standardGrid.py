@@ -115,8 +115,8 @@ class GridManager(object):
                     self.grid.Hide()
             else:
                 if self.grid.name == 'channelsGrid':
-                    self.grid.SetMinSize((274,20))
-                    self.grid.SetSize((274,20))
+                    self.grid.SetMinSize((274,49))
+                    self.grid.SetSize((274,49))
                 if self.grid.name == 'subscriptionsGrid':
                     self.grid.Show()
                 if self.grid.name == 'popularGrid':
