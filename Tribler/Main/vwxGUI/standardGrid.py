@@ -115,8 +115,8 @@ class GridManager(object):
                     self.grid.Hide()
             else:
                 if self.grid.name == 'channelsGrid':
-                    self.grid.SetMinSize((300,49))
-                    self.grid.SetSize((300,49))
+                    self.grid.SetMinSize((274,20))
+                    self.grid.SetSize((274,20))
                 if self.grid.name == 'subscriptionsGrid':
                     self.grid.Show()
                 if self.grid.name == 'popularGrid':
@@ -730,6 +730,7 @@ class standardGrid(wx.Panel):
                     else:
                         self.setDataOfPanel(i, None)
        
+
         if self.name in ['subscriptionsGrid', 'popularGrid', 'channelsGrid']:
             self.showSelectedChannel()
     
@@ -1004,12 +1005,12 @@ class standardGrid(wx.Panel):
         if self.name == 'channelsGrid':
             hSizer = self.vSizer.GetItem(1).GetSizer()
             panel = hSizer.GetItem(0).GetWindow()
-        else:
+        elif self.data is not None:
             for i in xrange(0, len(self.data)):
                 hSizer = self.vSizer.GetItem(i%self.currentRows+1).GetSizer()
                 panel = hSizer.GetItem(i/ self.currentRows).GetWindow()
-        if panel.selected == True:
-            panel.select()
+                if panel.selected == True:
+                    panel.select()
 
 
 

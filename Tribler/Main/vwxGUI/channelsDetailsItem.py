@@ -163,12 +163,31 @@ class channelsDetailsItem(wx.Panel):
 
     def mouseAction(self, event):
         event.Skip()
+
+        tc = self.torrentColourSel
+        bc = self.backgroundColourSel
+
         if event.Entering():
-            self.title.SetForegroundColour(self.torrentColourSel)
-            self.SetBackgroundColour(self.backgroundColourSel)
+            tc = self.torrentColourSel
+            bc = self.backgroundColourSel
         elif event.Leaving() and not self.selected:
-            self.title.SetForegroundColour(self.torrentColour)
-            self.SetBackgroundColour(self.backgroundColour)
+            tc = self.torrentColour
+            bc = self.backgroundColour
+
+        self.title.SetForegroundColour(tc)
+        self.SetBackgroundColour(bc)
+        wx.CallAfter(self.Refresh)
+
+
+
+
+
+#        if event.Entering():
+#            self.title.SetForegroundColour(self.torrentColourSel)
+#            self.SetBackgroundColour(self.backgroundColourSel)
+#        elif event.Leaving() and not self.selected:
+#            self.title.SetForegroundColour(self.torrentColour)
+#            self.SetBackgroundColour(self.backgroundColour)
         if event.LeftUp():
             if sys.platform == 'darwin':
                 self.GetParent().deselectAllExceptSelected(self.index)

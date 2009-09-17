@@ -102,7 +102,10 @@ class ChannelsItemPanel(wx.Panel):
 
         self.line_file = wx.Image(imgpath, wx.BITMAP_TYPE_ANY)            
         self.hLine = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.line_file))
-        self.vSizerOverall.Add(self.hLine, 0, wx.EXPAND, 0)
+        if sys.platform == 'win32':
+            self.vSizerOverall.Add(self.hLine, 0, 0, 0)
+        else:
+            self.vSizerOverall.Add(self.hLine, 0, wx.EXPAND, 0)
 
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.vSizerOverall.Add(self.hSizer, 0 , wx.EXPAND, 0)
@@ -131,7 +134,7 @@ class ChannelsItemPanel(wx.Panel):
 
         ##self.hSizer.Add((10,0), 0, 0, 0)
 
-        if sys.platform == 'darwin':
+        if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
 
@@ -244,9 +247,12 @@ class ChannelsItemPanel(wx.Panel):
             if self.guiUtility.guiPage == 'search_results':
                 self.SetMinSize((660,22))
                 self.SetSize((660,22))
-            else:
+            elif sys.platform != 'win32':
                 self.SetMinSize((660,30))
                 self.SetSize((660,30))
+            else: # win32
+                self.SetMinSize((660,25))
+                #self.SetSize((660,25))
 
         else:
             self.mychannel = False

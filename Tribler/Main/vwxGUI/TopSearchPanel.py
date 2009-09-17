@@ -773,7 +773,7 @@ class TopSearchPanel(bgPanel):
         object_1.Add(object_2, 1, wx.EXPAND, 0)
 
         if sys.platform == 'win32':
-            space = 25
+            space = 9
         elif sys.platform == 'linux2':
             space = 7
         else:

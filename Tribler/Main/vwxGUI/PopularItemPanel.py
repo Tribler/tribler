@@ -106,7 +106,11 @@ class PopularItemPanel(wx.Panel):
         imgpath = os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0","line4.png")
         self.line_file = wx.Image(imgpath, wx.BITMAP_TYPE_ANY)            
         self.hLine = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.line_file))
-        self.vSizerOverall.Add(self.hLine, 0, wx.EXPAND, 0)
+        if sys.platform == 'win32':
+            self.vSizerOverall.Add(self.hLine, 0, 0, 0)
+        else:
+            self.vSizerOverall.Add(self.hLine, 0, wx.EXPAND, 0)
+
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.vSizerOverall.Add(self.hSizer, 0 , wx.EXPAND, 0)
         self.SetBackgroundColour(wx.WHITE)

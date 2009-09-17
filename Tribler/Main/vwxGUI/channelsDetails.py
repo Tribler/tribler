@@ -56,12 +56,12 @@ elif sys.platform == 'linux2':
     FS_UPDATE_TEXT = 7
     FS_FILETITLE_SEL = 14 
 else:
-    FS_FILETITLE = 8
+    FS_FILETITLE = 10
     FS_ITEM = 6
     FS_REMOVE_TEXT = 6
-    FS_RSS_TEXT = 5
-    FS_RSSFEEDBACK_TEXT = 5
-    FS_CONTAIN_TEXT = 4
+    FS_RSS_TEXT = 7
+    FS_RSSFEEDBACK_TEXT = 7
+    FS_CONTAIN_TEXT = 8
     FS_UPDATE_TEXT = 4
     FS_FILETITLE_SEL = 10 
 
