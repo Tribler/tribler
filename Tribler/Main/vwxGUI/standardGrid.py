@@ -392,13 +392,16 @@ class GridManager(object):
         Called by GUIThread
         """
         self.dslist = dslist
-        if self.state.db  == 'libraryMode': 
-            for infohash in [ds.get_download().get_def().get_infohash() for ds in dslist]:
-                if self._objectOnPage(NTFY_TORRENTS, infohash):
-                    self.refresh()
-                    break
-        elif self.state.db == 'channelsMode':
-            self.refresh()
+        try: # sometimes the self.state is None causing an exception
+            if self.state.db  == 'libraryMode': 
+                for infohash in [ds.get_download().get_def().get_infohash() for ds in dslist]:
+                    if self._objectOnPage(NTFY_TORRENTS, infohash):
+                        self.refresh()
+                        break
+            elif self.state.db == 'channelsMode':
+                self.refresh()
+        except:
+            pass
         ##else:
             # friendsMode
             # self.refresh()
