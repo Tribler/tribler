@@ -80,11 +80,11 @@
                           </object>
                           <object class="sizeritem">
                             <object class="wxPanel" name="channelsDetails" subclass="Tribler.Main.vwxGUI.channelsDetails.channelsDetails">
-                              <size>402,500</size>
+                              <size>466,500</size>
                               <bg>#FFFFFF</bg>
                               <hidden>1</hidden>
                             </object>
-                            <minsize>402,500</minsize>
+                            <minsize>466,500</minsize>
                           </object>
                         </object>
                         <option>0</option>

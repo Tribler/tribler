@@ -314,8 +314,8 @@ class standardOverview(wx.Panel):
             res = xrc.XmlResource(xrcResource)
             currentPanel = res.LoadPanel(self, panelName)
             grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')  
-            grid2 = xrc.XRCCTRL(currentPanel, 'subscriptionsGrid')  
-            grid3 = xrc.XRCCTRL(currentPanel, 'popularGrid')  
+            grid2 = xrc.XRCCTRL(currentPanel, 'popularGrid')  
+            ##grid3 = xrc.XRCCTRL(currentPanel, 'subscriptionsGrid')  
             #grid4 = xrc.XRCCTRL(currentPanel, 'chresultsGrid')  
   
             
@@ -329,7 +329,7 @@ class standardOverview(wx.Panel):
 
         if modeString == "channels":
             self.data[self.mode]['grid2'] = grid2
-            self.data[self.mode]['grid3'] = grid3
+            ##self.data[self.mode]['grid3'] = grid3
             #self.data[self.mode]['grid4'] = grid4
 
 
@@ -533,7 +533,7 @@ class standardOverview(wx.Panel):
                 self.data[filterState.db]['grid'].gridManager.set_state(filterState)
                 if self.mode == 'channelsMode':
                     self.data[filterState.db]['grid2'].gridManager.set_state(filterState)
-                    self.data[filterState.db]['grid3'].gridManager.set_state(filterState)
+                    ##self.data[filterState.db]['grid3'].gridManager.set_state(filterState)
                     #self.data[filterState.db]['grid4'].gridManager.set_state(filterState)
             else:
                 if DEBUG:

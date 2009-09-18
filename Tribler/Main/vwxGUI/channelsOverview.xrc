@@ -2,7 +2,7 @@
 <resource>
   <object class="wxPanel" name="channelsOverview" subclass="Tribler.Main.vwxGUI.channelsOverviewPanel.channelsOverviewPanel">
     <pos>0,0</pos>
-    <size>274,760</size>
+    <size>250,760</size>
     <bg>#FFFFFF</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
@@ -11,7 +11,7 @@
         <option>0</option>
         <object class="wxPanel" name="channelsGrid" subclass="Tribler.Main.vwxGUI.standardGrid.channelsGrid">
           <pos>0,0</pos>
-          <size>274,49</size>
+          <size>210,49</size>
           <bg>#FFFFFF</bg>
         </object>
       </object>
@@ -20,16 +20,7 @@
         <option>0</option>
         <object class="wxPanel" name="popularGrid" subclass="Tribler.Main.vwxGUI.standardGrid.popularGrid">
           <pos>0,0</pos>
-          <size>274,217</size>
-          <bg>#FFFFFF</bg>
-        </object>
-      </object>
-      <object class="sizeritem">
-        <flag>wxFIXED_MINSIZE</flag>
-        <option>0</option>
-        <object class="wxPanel" name="subscriptionsGrid" subclass="Tribler.Main.vwxGUI.standardGrid.subscriptionsGrid">
-          <pos>0,0</pos>
-          <size>274,217</size>
+          <size>210,434</size>
           <bg>#FFFFFF</bg>
         </object>
       </object>

@@ -98,7 +98,7 @@ class ChannelsItemPanel(wx.Panel):
         self.Show(False)
         self.SetMinSize((660,22))
         self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
-        imgpath = os.path.join(self.utility.getPath(), LIBRARYNAME ,"Main","vwxGUI","images","5.0","line4.png")
+        imgpath = os.path.join(self.utility.getPath(), LIBRARYNAME ,"Main","vwxGUI","images","5.0","line5.png")
 
         self.line_file = wx.Image(imgpath, wx.BITMAP_TYPE_ANY)            
         self.hLine = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.line_file))
@@ -154,7 +154,7 @@ class ChannelsItemPanel(wx.Panel):
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
             
     def getColumns(self):
-        return [{'sort':'name', 'reverse':True, 'title':'Channels', 'width':228,'tip':self.utility.lang.get('C_filename'), 'order':'down'}
+        return [{'sort':'name', 'reverse':True, 'title':'Channels', 'width':183,'tip':self.utility.lang.get('C_filename'), 'order':'down'}
                 ]     
                   
     def refreshData(self):
@@ -380,7 +380,7 @@ class ChannelsItemPanel(wx.Panel):
             self.parent.deselectAllChannels()
             self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
-            self.guiUtility.standardOverview.data['channelsMode']['grid3'].deselectAll()
+            ##self.guiUtility.standardOverview.data['channelsMode']['grid3'].deselectAll()
             self.select()
             self.guiUtility.frame.top_bg.indexMyChannel=0
             self.guiUtility.frame.top_bg.indexPopularChannels=-1

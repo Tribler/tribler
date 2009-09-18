@@ -75,11 +75,12 @@ class channelsDetailsItem(wx.Panel):
 
 
         self.SetBackgroundColour(self.backgroundColour)
-        self.SetMinSize((320,18))
+        self.expandedValue = 377
+        self.SetMinSize((self.expandedValue,18))
         self.torrentColour=(255,51,0)
         self.torrentColourSel=(0,105,156)
-        self.expandedSize=(320,100)
-        self.panelSize=(320,self.expandedSize[1]-18)
+        self.expandedSize=(self.expandedValue,100)
+        self.panelSize=(self.expandedValue,self.expandedSize[1]-18)
         self.index = 0 # used for torrent deletion
         self.selected=False
         self.subpanel=None
@@ -101,10 +102,10 @@ class channelsDetailsItem(wx.Panel):
         
 
         # torrent title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(320,18))
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.expandedValue,18))
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))        
         self.title.SetForegroundColour(self.torrentColour)
-        self.title.SetMinSize((289,18))
+        self.title.SetMinSize((self.expandedValue-31,18))
        
         # save button
         #self.save = tribler_topButton(self, -1, name = "downloadFromChannel")
@@ -240,7 +241,7 @@ class channelsDetailsItem(wx.Panel):
 
 
     def deselect(self): # deselect an item
-        self.SetMinSize((320,18))
+        self.SetMinSize((self.expandedValue,18))
 
         if sys.platform == 'darwin':
             if self.subpanel:

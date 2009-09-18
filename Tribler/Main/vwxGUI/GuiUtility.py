@@ -559,7 +559,7 @@ class GUIUtility:
 
         self.standardOverview.data['channelsMode']['grid'].reloadChannels()
         self.standardOverview.data['channelsMode']['grid2'].reloadChannels()
-        self.standardOverview.data['channelsMode']['grid3'].reloadChannels()
+        ##self.standardOverview.data['channelsMode']['grid3'].reloadChannels()
 
 
         ##wx.CallAfter(self.frame.channelsDetails.reinitialize)

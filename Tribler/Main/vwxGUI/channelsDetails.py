@@ -133,6 +133,8 @@ class channelsDetails(bgPanel):
         self.vcdb = self.utility.session.open_dbhandler(NTFY_VOTECAST)
         self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
 
+
+        self.x=466
         self.addComponents()
 
 
@@ -181,14 +183,14 @@ class channelsDetails(bgPanel):
 
         # vSizerContents
         self.vSizerContents = wx.BoxSizer(wx.VERTICAL) ## list of items within a particular channel
-        self.vSizerContents.SetMinSize((300,100))
+        self.vSizerContents.SetMinSize((self.x - 87,100))
 
         # channel title
-        self.channelTitle =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(270,36))        
+        self.channelTitle =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.x-135,36))        
         self.channelTitle.SetBackgroundColour((216,233,240))
         self.channelTitle.SetForegroundColour(wx.BLACK)
         self.channelTitle.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
-        self.channelTitle.SetMinSize((270,36))
+        self.channelTitle.SetMinSize((self.x-135,36))
 
         # subscription text
         self.SubscriptionText = wx.StaticText(self,-1,"Unsubscribe",wx.Point(0,0),wx.Size(70,36),wx.ALIGN_RIGHT)  
@@ -212,7 +214,7 @@ class channelsDetails(bgPanel):
         self.rssCtrl.Bind(wx.EVT_KEY_DOWN, self.addRSS)
         self.rssCtrl.SetBackgroundColour((206,223,230))
         #self.rssCtrl.SetValue("http://www.legaltorrents.com/feeds/cat/netlabel-music.rss")
-        self.rssCtrl.SetMinSize((200,23))
+        self.rssCtrl.SetMinSize((self.x-205,23))
 
         self.tf = TorrentFeedThread.getInstance()
         try:
@@ -366,9 +368,9 @@ class channelsDetails(bgPanel):
     def OnPaint(self, event):
         dc = wx.PaintDC(self)
         dc.DrawBitmap(self.tl, 0, 0)
-        dc.DrawBitmap(self.tr, 392, 0)
+        dc.DrawBitmap(self.tr, 456, 0)
         dc.DrawBitmap(self.bl, 0, 490)
-        dc.DrawBitmap(self.br, 392, 490)
+        dc.DrawBitmap(self.br, 456, 490)
 
 
     def addRSS(self, event):
@@ -603,22 +605,25 @@ class channelsDetails(bgPanel):
 
     def SubscriptionClicked(self, event):
         if self.SubscriptionButton.isToggled():
-            self.votecast_db.subscribe(self.publisher_id)
+            self.vcdb.subscribe(self.publisher_id)
             self.SubscriptionText.SetLabel("Unsubscribe")
             self.SubscriptionButton.setToggled(False)
         else:
-            self.hideElements()
-            self.erasevSizerContents()
-            self.votecast_db.unsubscribe(self.publisher_id)
+            ##self.hideElements()
+            ##self.erasevSizerContents()
+            self.vcdb.unsubscribe(self.publisher_id)
 
             self.guiUtility.frame.top_bg.indexMyChannel=-1
             self.guiUtility.frame.top_bg.indexPopularChannels=-1
             self.guiUtility.frame.top_bg.indexSubscribedChannels=-1
 
-            self.parent.setData(None)
-            self.parent.deselect()
-            self.parent.Refresh()
-            self.parent.parent.gridManager.refresh()
+            self.SubscriptionText.SetLabel("Subscribe")
+            self.SubscriptionButton.setToggled(True)
+
+            ##self.parent.setData(None)
+            ##self.parent.deselect()
+            ##self.parent.Refresh()
+            ##self.parent.parent.gridManager.refresh()
 
         self.parent.setSubscribed() # reloads subscription state of the parent
 

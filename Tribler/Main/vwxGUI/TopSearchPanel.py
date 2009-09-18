@@ -416,7 +416,7 @@ class TopSearchPanel(bgPanel):
             self.guiUtility.loadInformation('channelsMode', 'name', erase=False)
             wx.Yield()
             self.guiUtility.standardOverview.data['channelsMode']['grid'].expandPanelFromIndex(self.indexMyChannel)
-            self.guiUtility.standardOverview.data['channelsMode']['grid3'].expandPanelFromIndex(self.indexPopularChannels)
+            ##self.guiUtility.standardOverview.data['channelsMode']['grid3'].expandPanelFromIndex(self.indexPopularChannels)
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].expandPanelFromIndex(self.indexSubscribedChannels)
 
         colour = wx.Colour(0,105,156)

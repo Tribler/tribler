@@ -106,8 +106,8 @@ class GridManager(object):
         if self.state.db == 'channelsMode':
             if self.grid.guiUtility.guiPage == 'search_results':
                 if self.grid.name == 'channelsGrid':
-                    self.grid.SetMinSize((274,500))
-                    self.grid.SetSize((274,500))
+                    self.grid.SetMinSize((210,500))
+                    self.grid.SetSize((210,500))
                     self.grid.calculateRows()
                 if self.grid.name == 'subscriptionsGrid':
                     self.grid.Hide()
@@ -115,8 +115,8 @@ class GridManager(object):
                     self.grid.Hide()
             else:
                 if self.grid.name == 'channelsGrid':
-                    self.grid.SetMinSize((274,49))
-                    self.grid.SetSize((274,49))
+                    self.grid.SetMinSize((210,49))
+                    self.grid.SetSize((210,49))
                 if self.grid.name == 'subscriptionsGrid':
                     self.grid.Show()
                 if self.grid.name == 'popularGrid':

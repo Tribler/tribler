@@ -38,12 +38,14 @@ DEBUG = False
 
 if sys.platform == 'darwin':
     FS_MY_CHANNEL_TITLE = 13
+    FS_SUBSCRIPTION = 10
     FONTFAMILY_MY_CHANNEL=wx.SWISS
     FS_TITLE = 10
     FS_PERC = 9
     FS_SPEED = 9
 else:
     FS_MY_CHANNEL_TITLE = 11
+    FS_SUBSCRIPTION = 8
     FONTFAMILY_MY_CHANNEL=wx.SWISS
     FS_TITLE = 8
     FS_PERC = 7
@@ -103,7 +105,7 @@ class PopularItemPanel(wx.Panel):
         self.Show(False)
         self.SetMinSize((660,22))
         self.vSizerOverall = wx.BoxSizer(wx.VERTICAL)
-        imgpath = os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0","line4.png")
+        imgpath = os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0","line5.png")
         self.line_file = wx.Image(imgpath, wx.BITMAP_TYPE_ANY)            
         self.hLine = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.line_file))
         if sys.platform == 'win32':
@@ -119,10 +121,10 @@ class PopularItemPanel(wx.Panel):
         self.hSizer.Add([10,0],0,wx.FIXED_MINSIZE,0)        
 
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(240,16))        
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,16))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((240,16))
+        self.title.SetMinSize((105,16))
 
         #self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
         #self.vSizerTitle.Add((
@@ -131,9 +133,21 @@ class PopularItemPanel(wx.Panel):
         self.hSizer.Add(self.title, 0, wx.TOP,3)
 
         # Add subscription button
-        ##self.SubscriptionButton = SwitchButton(self, -1, name = "SubscriptionButton")
-        ##self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
-        ##self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 1)
+        #self.SubscriptionButton = tribler_topButton(self, -1, name = "sbutton")
+        #self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
+        #self.SubscriptionButton.Hide()
+        #self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 1)
+
+
+
+        # Add subscription text
+        self.SubscriptionText = wx.StaticText(self,-1,"Subscribed",wx.Point(0,0),wx.Size(210,16))
+        self.SubscriptionText.SetBackgroundColour(wx.WHITE)
+        self.SubscriptionText.SetForegroundColour((0,110,149))
+        self.SubscriptionText.SetFont(wx.Font(FS_SUBSCRIPTION,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.SubscriptionText.Hide()
+        self.hSizer.Add(self.SubscriptionText, 0, wx.TOP, 2)
+
 
 
         ##self.hSizer.Add((10,0), 0, 0, 0)
@@ -153,7 +167,7 @@ class PopularItemPanel(wx.Panel):
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
             
     def getColumns(self):
-        return [{'sort':'name', 'reverse':True, 'title':'Most Popular Channels', 'width':242,'tip':self.utility.lang.get('C_filename'), 'order':'down'}
+        return [{'sort':'name', 'reverse':True, 'title':'Most Popular', 'width':197,'tip':self.utility.lang.get('C_filename'), 'order':'down'}
                 ]     
                   
     def refreshData(self):
@@ -226,8 +240,12 @@ class PopularItemPanel(wx.Panel):
     def setSubscribed(self):
         if self.vcdb.hasSubscription(self.publisher_id, bin2str(self.utility.session.get_permid())):
             self.subscribed = True
+            self.SubscriptionText.Show()
         else:
             self.subscribed = False
+            self.SubscriptionText.Hide()
+        self.hSizer.Layout()
+
         
 
     def setTorrentList(self, torrentList):
@@ -327,7 +345,7 @@ class PopularItemPanel(wx.Panel):
             self.parent.deselectAllChannels()
             self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
-            self.guiUtility.standardOverview.data['channelsMode']['grid3'].deselectAll()
+            ##self.guiUtility.standardOverview.data['channelsMode']['grid3'].deselectAll()
             self.select()
             self.guiUtility.frame.top_bg.indexMyChannel=-1
             self.guiUtility.frame.top_bg.indexPopularChannels=self.index

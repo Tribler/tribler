@@ -153,7 +153,7 @@ class channelsDetailsPanel(bgPanel):
 
         # vSizerContents
         self.vSizerContents = wx.BoxSizer(wx.VERTICAL) ## list of items within a particular torrent
-        self.vSizerContents.SetMinSize((200,10))
+        self.vSizerContents.SetMinSize((260,10))
 
 
         # vSizerSave
@@ -243,7 +243,7 @@ class channelsDetailsPanel(bgPanel):
         self.vSizerSave.Add((0,5), 0, 0, 0)
         self.vSizerSave.Add(self.saveText, 0, wx.LEFT, -5)
 
-        self.hSizerFiles.Add((40,0), 0, 0, 0)
+        self.hSizerFiles.Add((38,0), 0, 0, 0)
         self.hSizerFiles.Add(self.vSizerSave, 0, 0, 0)
 
         #self.loadChannel()
