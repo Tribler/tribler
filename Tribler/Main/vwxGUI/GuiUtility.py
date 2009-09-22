@@ -473,7 +473,7 @@ class GUIUtility:
         if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
             self.frame.videoframe.videopanel.vlcwin.show_loading()
             
-        self.frame.channelsDetails.reinitialize(force=True)
+        #self.frame.channelsDetails.reinitialize()
         self.frame.channelsDetails.Hide()
 
 

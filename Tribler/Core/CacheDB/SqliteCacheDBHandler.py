@@ -3333,7 +3333,10 @@ class ChannelCastDBHandler(BasicDBHandler):
         votecastdb = VoteCastDBHandler.getInstance()
         sql = "select publisher_id, publisher_name from ChannelCast where publisher_id ='" + bin2str(self.my_permid) + "'" + "group by publisher_id"
         res = self._db.fetchall(sql) 
-        mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(res[0][0])))
+        if not res is None:
+            mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(res[0][0])))
+        else:
+            mychannel.append((self.my_permid,"MyChannel" , 0))
         return mychannel
 
 

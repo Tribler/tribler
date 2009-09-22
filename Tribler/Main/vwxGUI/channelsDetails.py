@@ -73,6 +73,7 @@ class channelsDetails(bgPanel):
     def __init__(self, *args,**kwds):
         ##bgPanel.__init__(self,*args,**kwds)
         ##self.Hide()
+        self.initialized = False
         if len(args) == 0:
             pre = wx.PrePanel()
             # the Create step is done by XRC.
@@ -110,7 +111,6 @@ class channelsDetails(bgPanel):
 
         self.parent = None
 
-        self.initialized = False
  
         # list of torrents
         self.torrents=[] 
