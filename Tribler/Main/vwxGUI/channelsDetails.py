@@ -134,6 +134,10 @@ class channelsDetails(bgPanel):
         self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
 
 
+        self.origin = None 
+
+
+
         self.x=466
         self.addComponents()
 
@@ -335,9 +339,13 @@ class channelsDetails(bgPanel):
         self.Layout()
 
 
+    def setType(self, Type):
+        self.type = Type
 
-    def hideElements(self):
-        if self.initialized == self.initialized:
+
+
+    def hideElements(self, force = False):
+        if self.initialized == True or force==True:
             self.channelTitle.Hide()
             self.SubscriptionButton.Hide()
             ##self.updateSubscriptionText.Hide()
@@ -351,15 +359,29 @@ class channelsDetails(bgPanel):
             self.addButton.Hide()
             self.rssFeedbackText.Hide()
 
-    def reinitialize(self):
-        self.hideElements()
-        self.erasevSizerContents()
+    def reinitialize(self, force = False):
+        self.hideElements(force)
+        self.clearAll()
         self.isempty = True
 
 
-    def isEmpty(self):
-        return self.isempty
+    def clearAll(self):
+        for i in range(self.totalItems):
+            self.torrents[i].title.SetLabel('')
+            self.torrents[i].Hide()
+        self.vSizerContents.Clear()
+        self.vSizerContents.Layout()
+        self.vSizer.Layout()
+        self.Layout()
+    
 
+
+
+    def isEmpty(self):
+        try:
+            return self.isempty
+        except:
+            return True
 
     def roundCorners(self):
         wx.EVT_PAINT(self, self.OnPaint)
@@ -531,6 +553,7 @@ class channelsDetails(bgPanel):
         else:
             numItems = self.torrentsPerPage    
         for i in range(numItems):
+            self.torrents[self.currentPage*self.torrentsPerPage+i].title.SetLabel('')
             self.torrents[self.currentPage*self.torrentsPerPage+i].Hide()
         self.vSizerContents.Clear()
         self.vSizerContents.Layout()
@@ -608,9 +631,9 @@ class channelsDetails(bgPanel):
             self.vcdb.subscribe(self.publisher_id)
             self.SubscriptionText.SetLabel("Unsubscribe")
             self.SubscriptionButton.setToggled(False)
+            self.parent.num_votes+=1
+
         else:
-            ##self.hideElements()
-            ##self.erasevSizerContents()
             self.vcdb.unsubscribe(self.publisher_id)
 
             self.guiUtility.frame.top_bg.indexMyChannel=-1
@@ -619,13 +642,11 @@ class channelsDetails(bgPanel):
 
             self.SubscriptionText.SetLabel("Subscribe")
             self.SubscriptionButton.setToggled(True)
-
-            ##self.parent.setData(None)
-            ##self.parent.deselect()
-            ##self.parent.Refresh()
-            ##self.parent.parent.gridManager.refresh()
+            self.parent.num_votes-=1
 
         self.parent.setSubscribed() # reloads subscription state of the parent
+        self.parent.resetTitle()
+
 
     def updateRSS(self):
         self.guiserver = GUITaskQueue.getInstance()

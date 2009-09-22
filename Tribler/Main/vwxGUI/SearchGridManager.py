@@ -682,13 +682,17 @@ class ChannelSearchGridManager:
         else:        
             return [len(self.hits),self.hits]
                 
+    def getMyChannel(self, mode):
+        mychannel = self.channelcast_db.getMyChannel()
+        return [1, mychannel]
  
     def getSubscriptions(self, mode):
         subscriptions = self.channelcast_db.getMySubscribedChannels()
         return [len(subscriptions), subscriptions]
 
-    def getPopularChannels(self, mode):
-        pchannels = self.channelcast_db.getMostPopularChannels()
+    def getPopularChannels(self, mode, maximum=20):
+        pchannels = self.channelcast_db.getMostPopularUnsubscribedChannels()
+        pchannels = pchannels[:maximum]
         return [len(pchannels), pchannels]
                
     def setSearchKeywords(self,wantkeywords, mode):

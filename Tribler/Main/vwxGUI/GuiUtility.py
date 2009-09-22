@@ -392,11 +392,6 @@ class GUIUtility:
         if search_mode not in ('files', 'channels'):
             return
         self.search_mode = search_mode
-        if self.guiPage == 'search_results':
-            if self.search_mode == 'files':
-                self.frame.pageTitlePanel.pageTitle.SetLabel('File search')
-            elif self.search_mode == 'channels': 
-                self.frame.pageTitlePanel.pageTitle.SetLabel('Channel search')
 
     
 
@@ -478,7 +473,9 @@ class GUIUtility:
         if self.frame.videoframe.videopanel.vlcwin.is_animation_running():
             self.frame.videoframe.videopanel.vlcwin.show_loading()
             
+        self.frame.channelsDetails.reinitialize(force=True)
         self.frame.channelsDetails.Hide()
+
 
 
         self.frame.top_bg.results.SetForegroundColour((0,105,156))
@@ -516,9 +513,14 @@ class GUIUtility:
         ##self.frame.pageTitlePanel.Show()
 
         
-    def channelsOverview(self):
+    def channelsOverview(self, erase=False):
         self.frame.top_bg.ag.Hide()
              
+        if erase:
+            self.frame.channelsDetails.reinitialize(force=True)
+            self.frame.top_bg.indexMyChannel = -1
+            self.frame.top_bg.indexPopularChannels = -1
+
         self.frame.channelsDetails.Show()
              
         if self.guiPage == 'search_results':
@@ -981,6 +983,9 @@ class GUIUtility:
         if self.standardOverview.getMode != 'channelsMode':
             self.standardOverview.setMode('channelsMode')
 
+
+        self.frame.top_bg.indexMyChannel=-1
+        self.frame.top_bg.indexPopularChannels=-1
 
         self.frame.channelsDetails.Show()
         if not self.frame.channelsDetails.isEmpty():

@@ -90,7 +90,7 @@ class PopularItemPanel(wx.Panel):
 
         self.index=-1
 
-
+        self.dslist = None
         self.addComponents()
             
         self.gui_server = GUITaskQueue.getInstance()
@@ -176,6 +176,21 @@ class PopularItemPanel(wx.Panel):
     def addLine(self):
         vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,0),wx.LI_VERTICAL)
         self.vSizer1.Add(vLine, 0, wx.LEFT|wx.RIGHT, 3)
+
+    def setdslist(self, dslist):
+        self.dslist = dslist
+
+    def addDownloadStates(self, liblist):
+        for ds in self.dslist:
+            infohash = ds.get_download().get_def().get_infohash()
+            for torrent in liblist:
+                pass
+                if torrent['name'] == ds.get_download().get_def().get_name():
+                    # print >>sys.stderr,"CHIP: addDownloadStates: adding ds for",`ds.get_download().get_def().get_name()`
+                    torrent['ds'] = ds
+                    break
+        return liblist
+
        
     def setData(self, data):
         if threading.currentThread().getName() != "MainThread":
@@ -193,8 +208,8 @@ class PopularItemPanel(wx.Panel):
         if data is None:
             self.title.SetLabel("")
             self.title.Hide()
-            ##self.SubscriptionButton.Hide()
             self.hLine.Show()
+            ##self.SubscriptionButton.Hide()
             self.Refresh()
             return 
         else:
@@ -203,22 +218,38 @@ class PopularItemPanel(wx.Panel):
         
 
         self.mychannel = False
+
+        self.publisher_id, self.publisher_name, self.num_votes = data
+        ## print >> sys.stderr, "publisher_id", publisher_id, "publisher_name" , publisher_name, "num_votes", num_votes
+
+
         if data and oldinfohash != self.data[0]:
-            title = data[1][:self.titleLength]
+            title = data[1][:self.titleLength] + " (%s)" % self.num_votes
             self.title.Show()
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
-            self.title.SetToolTipString(data[1])
+            if self.num_votes == 0:
+                ttstring = data[1] + " (No subscribers)"
+            elif self.num_votes == 1: 
+                ttstring = data[1] + " (1 subscriber)"
+            else: 
+                ttstring = data[1] + " (%s subscribers)" % self.num_votes
+            self.title.SetToolTipString(ttstring)
 
-         
-        self.publisher_id, self.publisher_name, self.num_votes = data
-        ## print >> sys.stderr, "publisher_id", publisher_id, "publisher_name" , publisher_name, "num_votes", num_votes
 
         # determine whether subscribed
         self.setSubscribed()
 
         # get torrent list
         torrentList = self.channelcast_db.getTorrentsFromPublisherId(self.publisher_id)
+        self.torrentList = torrentList
+
+
+
+
+        # add download states
+        torrentList = self.torrentList
+        torrentList = self.addDownloadStates(torrentList)
         self.torrentList = torrentList
 
 
@@ -246,20 +277,25 @@ class PopularItemPanel(wx.Panel):
             self.SubscriptionText.Hide()
         self.hSizer.Layout()
 
+
+
+    def resetTitle(self):
+        title = self.data[1][:self.titleLength] + " (%s)" % self.num_votes
+        self.title.SetLabel(title)
+        self.title.Wrap(self.title.GetSize()[0])
+        if self.num_votes == 0:
+            ttstring = self.data[1] + " (No subscribers)"
+        elif self.num_votes == 1: 
+            ttstring = self.data[1] + " (1 subscriber)"
+        else: 
+            ttstring = self.data[1] + " (%s subscribers)" % self.num_votes
+        self.title.SetToolTipString(ttstring)
+        #self.Refresh()
+        
         
 
     def setTorrentList(self, torrentList):
         self.torrentList = torrentList
-
-
-    def setMyTitle(self):
-        title = "My channel (%s)" % len(self.torrentList)
-        self.title.SetLabel(title)
-        self.title.Show()
-        self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
-        self.title.Wrap(self.title.GetSize()[0])
-        self.title.SetToolTipString(title)
-
 
 
     def select(self, i=None, j=None):
@@ -341,16 +377,16 @@ class PopularItemPanel(wx.Panel):
             return
 
         
-        if event.LeftUp():
+        if event.LeftUp() and not self.selected:
+            self.channelsDetails.reinitialize(force=True)
             self.parent.deselectAllChannels()
             self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
-            ##self.guiUtility.standardOverview.data['channelsMode']['grid3'].deselectAll()
             self.select()
             self.guiUtility.frame.top_bg.indexMyChannel=-1
             self.guiUtility.frame.top_bg.indexPopularChannels=self.index
-            self.guiUtility.frame.top_bg.indexSubscribedChannels=-1
-            self.channelsDetails.loadChannel(self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
+            wx.CallAfter(self.channelsDetails.loadChannel, self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
+            self.channelsDetails.origin = 'popular_channel'
 
 
         wx.CallAfter(self.Refresh)

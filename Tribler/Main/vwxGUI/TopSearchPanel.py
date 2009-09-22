@@ -395,10 +395,14 @@ class TopSearchPanel(bgPanel):
                 self.guiUtility.standardFilesOverview()
                 self.guiUtility.loadInformation('filesMode', 'rameezmetric', erase=False)
             else:
-                self.guiUtility.standardOverview.setMode('channelsMode')
+                if self.guiUtility.frame.channelsDetails.origin != 'search_results':
+                    erase=True 
+                else:
+                    erase=False
+               # self.guiUtility.standardOverview.setMode('channelsMode')
                 self.guiUtility.guiPage = 'search_results'
-                self.guiUtility.channelsOverview()
-                self.guiUtility.loadInformation('channelsMode', 'name', erase=False)
+                self.guiUtility.channelsOverview(erase)
+                wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase=False)
 
 
         colour = wx.Colour(0,105,156)
@@ -411,13 +415,19 @@ class TopSearchPanel(bgPanel):
 
     def OnChannels(self,event):
         if event.LeftDown() and self.guiUtility.guiPage != 'channels':
+            try:
+                if self.guiUtility.frame.channelsDetails.origin == 'search_results':
+                    erase=True 
+                else:
+                    erase=False
+            except:
+                erase=False
             self.guiUtility.guiPage = 'channels'
-            self.guiUtility.channelsOverview()
+            self.guiUtility.channelsOverview(erase)
             self.guiUtility.loadInformation('channelsMode', 'name', erase=False)
             wx.Yield()
             self.guiUtility.standardOverview.data['channelsMode']['grid'].expandPanelFromIndex(self.indexMyChannel)
-            ##self.guiUtility.standardOverview.data['channelsMode']['grid3'].expandPanelFromIndex(self.indexPopularChannels)
-            self.guiUtility.standardOverview.data['channelsMode']['grid2'].expandPanelFromIndex(self.indexSubscribedChannels)
+            self.guiUtility.standardOverview.data['channelsMode']['grid2'].expandPanelFromIndex(self.indexPopularChannels)
 
         colour = wx.Colour(0,105,156)
         self.channels.SetForegroundColour(colour)

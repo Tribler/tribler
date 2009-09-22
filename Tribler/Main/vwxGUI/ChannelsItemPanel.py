@@ -207,20 +207,21 @@ class ChannelsItemPanel(wx.Panel):
        
            
 
-        if data == "mychannel":
+        if data[1] == "MyChannel":
             self.mychannel = True
             self.selectedColour = wx.Colour(216,233,240)
             self.backgroundColour = wx.Colour(255,255,255)
-            self.SetBackgroundColour(self.backgroundColour)
             self.channelTitleSelectedColour = wx.BLACK
 
 
-            self.publisher_id = self.utility.session.get_permid()
-            self.num_votes = self.channelcast_db.getSubscribersCount(bin2str(self.publisher_id))
+
+            self.publisher_id, self.publisher_name, self.num_votes = data
+
 
             # get torrent list
             torrentList = self.channelcast_db.getTorrentsFromPublisherId(bin2str(self.publisher_id))
             self.torrentList = torrentList
+
 
             # convert torrentList to proper format (dictionnary)
             torrent_list = []
@@ -256,15 +257,28 @@ class ChannelsItemPanel(wx.Panel):
 
         else:
             self.mychannel = False
+
+
+
+            self.publisher_id, self.publisher_name, self.num_votes = data
+
             if data and oldinfohash != self.data[0]:
-                title = data[1][:self.titleLength]
+                title = data[1][:self.titleLength] + " (%s)" % self.num_votes
                 self.title.Show()
                 self.title.SetLabel(title)
+                self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
                 self.title.Wrap(self.title.GetSize()[0])
                 self.title.SetToolTipString(data[1])
+        
 
-         
-            self.publisher_id, self.publisher_name, self.num_votes = data
+            if self.num_votes == 0:
+                ttstring = data[1] + " (No subscribers)"
+            elif self.num_votes == 1: 
+                ttstring = data[1] + " (1 subscriber)"
+            else: 
+                ttstring = data[1] + " (%s subscribers)" % self.num_votes
+            self.title.SetToolTipString(ttstring)
+
 
             # determine whether subscribed
             self.setSubscribed()
@@ -282,6 +296,10 @@ class ChannelsItemPanel(wx.Panel):
                 torrent_list.append(torrent)
             self.torrentList = torrent_list
 
+            # add download states
+            torrentList = self.torrentList
+            torrentList = self.addDownloadStates(torrentList)
+            self.torrentList = torrentList
 
 
                
@@ -303,12 +321,19 @@ class ChannelsItemPanel(wx.Panel):
 
 
     def setMyTitle(self):
-        title = "My channel (%s)" % len(self.torrentList)
+        title = "My channel (%s)" % self.num_votes
         self.title.SetLabel(title)
         self.title.Show()
         self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
         self.title.Wrap(self.title.GetSize()[0])
-        self.title.SetToolTipString(title)
+        if self.num_votes == 0:
+            ttstring = "My Channel (No subscribers)"
+        elif self.num_votes == 1: 
+            ttstring = "My Channel (1 subscriber)"
+        else: 
+            ttstring = "My Channel (%s subscribers)" % self.num_votes
+        self.title.SetToolTipString(ttstring)
+
 
 
 
@@ -376,18 +401,21 @@ class ChannelsItemPanel(wx.Panel):
 
 
         
-        if event.LeftUp():
+        if event.LeftUp() and not self.selected:
+            self.channelsDetails.reinitialize(force=True)
             self.parent.deselectAllChannels()
             self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
-            ##self.guiUtility.standardOverview.data['channelsMode']['grid3'].deselectAll()
             self.select()
             self.guiUtility.frame.top_bg.indexMyChannel=0
             self.guiUtility.frame.top_bg.indexPopularChannels=-1
-            self.guiUtility.frame.top_bg.indexSubscribedChannels=-1
             wx.CallAfter(self.channelsDetails.loadChannel,self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
+            if self.guiUtility.guiPage == 'search_results':
+                self.channelsDetails.origin = 'search_results'
+            else:
+                self.channelsDetails.origin = 'my_channel'
 
-
+            
         wx.CallAfter(self.Refresh)
 
         self.SetFocus()

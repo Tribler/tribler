@@ -3010,9 +3010,9 @@ class VoteCastDBHandler(BasicDBHandler):
         sql = "select count(*) from VoteCast where mod_id='"+publisher_id+"' and vote=-1"
         return self._db.fetchone(sql)
     
-    def getNumSubscriptions(self,publisher_id):
+    def getNumSubscriptions(self,publisher_id): ###
         """returns the number of subscribers in integer format"""
-        sql = "select vote from VoteCast where mod_id='"+publisher_id+"' and vote=2"
+        sql = "select count(*) from VoteCast where mod_id='"+publisher_id+"' and vote=2" # before select vote
         return self._db.fetchone(sql)                    
 #end votes
 
@@ -3291,7 +3291,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             channel_list.append(channel)
         return  channel_list        
         
-    def getMostPopularChannels(self, num=15):
+    def getMostPopularChannels(self):
         """return a list of tuples: [(permid,channel_name,#subscriptions)]"""
         records = []
         votecastdb = VoteCastDBHandler.getInstance()
@@ -3307,6 +3307,36 @@ class ChannelCastDBHandler(BasicDBHandler):
                 mod_name = record[0]
                 records.append((vote[0],mod_name,vote[1]))
         return records
+
+
+
+    def getMostPopularUnsubscribedChannels(self): ##
+        """return a list of tuples: [(permid,channel_name,#subscriptions)]"""
+        records = []
+        votecastdb = VoteCastDBHandler.getInstance()
+
+        sql = "select mod_id from VoteCast where mod_id not in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id"
+        mod_ids = self._db.fetchall(sql)
+        votes=[]
+        for mod_id in mod_ids:
+            votes.append((mod_id[0], votecastdb.getNumSubscriptions(mod_id[0])))      
+        for vote in votes:
+            sql = "select publisher_name, time_stamp from ChannelCast where publisher_id='"+vote[0]+"' order by 2 desc" 
+            record = self._db.fetchone(sql)
+            if not record is None:
+                mod_name = record[0]
+                records.append((vote[0],mod_name,vote[1]))
+        return records
+
+    def getMyChannel(self):
+        mychannel = []
+        votecastdb = VoteCastDBHandler.getInstance()
+        sql = "select publisher_id, publisher_name from ChannelCast where publisher_id ='" + bin2str(self.my_permid) + "'" + "group by publisher_id"
+        res = self._db.fetchall(sql) 
+        mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(res[0][0])))
+        return mychannel
+
+
 
     def getSubscribersCount(self,permid):
         """returns the number of subscribers in integer format"""

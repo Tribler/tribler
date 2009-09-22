@@ -163,27 +163,9 @@ class GridManager(object):
         return self.cache_numbers[key][0]
     
 
-    def get_number_subscriptions(self, state):
-        category_name = state.category
+    def get_number_subscriptions(self):
         
-        subscriptions = (state.db == 'channelsMode')
-        key = (category_name, subscriptions)
-        now = time()
-        
-        if (key not in self.cache_numbers or
-            now - self.cache_numbers[key][1] > self.cache_ntorrent_interval):
-       
-            nsubscriptions = 2 # Richard : Hard coded for now, but needs to be retrieved properly from the subscriptions database functions
-
-            ## nsubscriptions = self.subscriptions_db.getSubscribersCount(category_name = category_name, subscriptions = subscriptions)
-            self.cache_numbers[key] = [nsubscriptions, now]
-            #if ntorrents > 1000:
-            #    self.cache_ntorrent_interval = 120
-            #elif ntorrents > 100 and self.cache_ntorrent_interval < 30:
-            #    self.cache_ntorrent_interval = 30
-            #print >> sys.stderr, '***** update get_number_torrents', ntorrents, self.cache_ntorrent_interval, time()-now
-        
-        return self.cache_numbers[key][0]
+        return 
 
 
     def get_number_peers(self, state):
@@ -264,12 +246,16 @@ class GridManager(object):
 
 
             else:
-                if self.grid.GetName() == 'subscriptionsGrid':
-                    [total_items,data] = self.channelsearch_manager.getSubscriptions(state.db)
+                if self.grid.name == 'channelsGrid':
+                    [total_items,data] = self.channelsearch_manager.getMyChannel(state.db)
 
 
-                if self.grid.GetName() == 'popularGrid':
-                    [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db)
+                if self.grid.name == 'popularGrid':
+
+                    [stotal_items,sdata] = self.channelsearch_manager.getSubscriptions(state.db)
+                    [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db, maximum=19-stotal_items)
+                    data.extend(sdata)
+                    total_items+=stotal_items
 
 
         elif state.db in ('personsMode', 'friendsMode'):
@@ -710,20 +696,7 @@ class standardGrid(wx.Panel):
             self.standardPager.refresh()
 
 
-        if self.name == 'channelsGrid': 
-            if self.guiUtility.guiPage != 'search_results': 
-                self.setDataOfPanel(0,"mychannel") # panel 0 corresponds to My Channel:
-            else:
-                if self.data == None:
-                    for i in xrange(0, self.items):
-                            self.setDataOfPanel(i, None)
-                else:
-                    for i in xrange(0, self.items):
-                        if i < len(self.data):
-                            self.setDataOfPanel(i, self.data[i])
-                        else:
-                            self.setDataOfPanel(i, None)
-        elif self.name in ['subscriptionsGrid', 'popularGrid', 'libraryGrid', 'filesGrid']:
+        if self.name in ['channelsGrid', 'subscriptionsGrid', 'popularGrid', 'libraryGrid', 'filesGrid']:
             if self.data is None: 
                 self.clearAllData()
             else:
@@ -771,8 +744,10 @@ class standardGrid(wx.Panel):
                 hSizer = self.vSizer.GetItem(panelNumber/self.cols+1).GetSizer()
                 panel = hSizer.GetItem(panelNumber % self.cols).GetWindow()
                 
-            if data == "mychannel":
+            if self.name == 'channelsGrid' or self.name == 'popularGrid':
                 panel.setdslist(self.gridManager.dslist)
+
+             
             panel.setIndex(panelNumber)
             panel.setData(data)
 
@@ -1005,16 +980,20 @@ class standardGrid(wx.Panel):
 
 
     def showSelectedChannel(self):
-        if self.name == 'channelsGrid':
-            hSizer = self.vSizer.GetItem(1).GetSizer()
-            panel = hSizer.GetItem(0).GetWindow()
-        elif self.data is not None:
-            for i in xrange(0, len(self.data)):
-                hSizer = self.vSizer.GetItem(i%self.currentRows+1).GetSizer()
-                panel = hSizer.GetItem(i/ self.currentRows).GetWindow()
+        try:
+            if self.name == 'channelsGrid' and self.guiUtility.guiPage != 'search_results':
+                hSizer = self.vSizer.GetItem(1).GetSizer()
+                panel = hSizer.GetItem(0).GetWindow()
                 if panel.selected == True:
                     panel.select()
-
+            elif self.data is not None:
+                for i in xrange(0, len(self.data)):
+                    hSizer = self.vSizer.GetItem(i%self.currentRows+1).GetSizer()
+                    panel = hSizer.GetItem(i/ self.currentRows).GetWindow()
+                    if panel.selected == True:
+                        panel.select()
+        except:
+            pass
 
 
     def hasDetailPanel(self):
