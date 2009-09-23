@@ -453,6 +453,7 @@ class LibraryItemPanel(wx.Panel):
         if torrent is None:
             for child in self.GetChildren():
                 child.Hide()
+            self.hLine.Show()
             torrent = {}
         else:
             for child in self.GetChildren():
@@ -587,6 +588,7 @@ class LibraryItemPanel(wx.Panel):
                 self.title.SetLabel('')
                 self.title.SetToolTipString('')
                 self.title.Hide()
+                self.hLine.Show()
                
         self.Layout()
         self.Refresh()
