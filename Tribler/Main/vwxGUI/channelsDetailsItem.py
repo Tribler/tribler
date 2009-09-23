@@ -231,7 +231,10 @@ class channelsDetailsItem(wx.Panel):
             self.vSizer.Add(self.subpanel, 1, 0, 0)
             self.title.SetForegroundColour(self.torrentColourSel)
             self.title.SetFont(wx.Font(FS_TITLE_SEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))        
-            self.vSizer.Layout()
+            if sys.platform == 'win32':
+                wx.CallAfter(self.vSizer.Layout)
+            else:
+                self.vSizer.Layout()
             if self.isMine():
                 self.remove.Show()
             else:

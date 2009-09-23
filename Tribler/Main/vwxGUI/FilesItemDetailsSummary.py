@@ -38,7 +38,7 @@ elif sys.platform == 'linux2':
 else: # windows
     FS_PLAYTEXT = 7
     FS_SAVETEXT = 7
-    FS_TORRENT = 8
+    FS_TORRENT = 9
     FS_BELONGS_TO_CHANNEL = 6
 
 
@@ -404,8 +404,11 @@ class fileItem(wx.Panel):
         self.fileColour=(255,51,0)
         self.fileColourSel=(0,105,156)
 
-        self.SetMinSize((380, 18))
-        self.panelSize=(300, 14)
+        if sys.platform == 'win32':
+            self.ms=17
+        else:
+            self.ms=18
+        self.SetMinSize((380,self.ms))
         self.selected=False
         self.addComponents()
         self.SetBackgroundColour((216, 233, 240))
@@ -417,10 +420,10 @@ class fileItem(wx.Panel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # file title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(380,18))
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(380,self.ms))
         self.title.SetFont(wx.Font(FS_TORRENT,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))        
         self.title.SetForegroundColour(self.fileColour)
-        self.title.SetMinSize((380,18))
+        self.title.SetMinSize((380,self.ms))
 
         # play button
         self.play = tribler_topButton(self, -1, name='library_play')
@@ -442,7 +445,7 @@ class fileItem(wx.Panel):
             wl.append(c)
         for window in wl:
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        if sys.platform == 'darwin':
+        if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
     def setTitle(self, title):

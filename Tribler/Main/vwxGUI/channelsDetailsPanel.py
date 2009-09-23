@@ -452,7 +452,13 @@ class fileItem(bgPanel):
         self.fileColour=(255,51,0)
         self.fileColourSel=(0,105,156)
 
-        self.SetMinSize((200, 18))
+        if sys.platform == 'win32':
+            self.minsize=(250,18)
+        else:
+            self.minsize=(200,18)
+
+
+        self.SetMinSize(self.minsize)
         self.selected=False
         self.addComponents()
 
@@ -472,10 +478,10 @@ class fileItem(bgPanel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # file title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(200,18))
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),self.minsize)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))        
         self.title.SetForegroundColour(self.fileColour)
-        self.title.SetMinSize((200,18))
+        self.title.SetMinSize(self.minsize)
 
         # play button
         if sys.platform != 'win32':
@@ -502,7 +508,7 @@ class fileItem(bgPanel):
         for window in wl:
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
 
-        if sys.platform == 'darwin':
+        if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
     def setTitle(self, title):
