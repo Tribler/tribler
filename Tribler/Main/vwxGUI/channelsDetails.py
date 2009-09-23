@@ -556,7 +556,6 @@ class channelsDetails(bgPanel):
         else:
             numItems = self.torrentsPerPage    
         for i in range(numItems):
-            self.torrents[self.currentPage*self.torrentsPerPage+i].title.SetLabel('')
             self.torrents[self.currentPage*self.torrentsPerPage+i].Hide()
         self.vSizerContents.Clear()
         self.vSizerContents.Layout()
