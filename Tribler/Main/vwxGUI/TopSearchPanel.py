@@ -478,32 +478,66 @@ class TopSearchPanel(bgPanel):
             item.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
     def viewResults(self,event):
+        if sys.platform == 'darwin' and self.count < 100:
+            self.ag.Play()
+            self.ag.Show()
+        if not self.first:
+            if self.search_mode == 'files':
+                self.guiUtility.standardFilesOverview()
+                self.guiUtility.loadInformation('filesMode', 'rameezmetric', erase=False)
+            else:
+                if self.guiUtility.frame.channelsDetails.origin != 'search_results':
+                    erase=True 
+                else:
+                    erase=False
+               # self.guiUtility.standardOverview.setMode('channelsMode')
+                self.guiUtility.guiPage = 'search_results'
+                self.guiUtility.channelsOverview(erase)
+                wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase=False)
+
         self.results.setToggled(True)
         self.settings.setToggled(False)
         self.my_files.setToggled(False)
         self.channels.setToggled(False)
-        self.guiUtility.standardFilesOverview()
 
     def viewChannels(self,event):
+        if self.guiUtility.guiPage != 'channels':
+            try:
+                if self.guiUtility.frame.channelsDetails.origin == 'search_results':
+                    erase=True 
+                else:
+                    erase=False
+            except:
+                erase=False
+            self.guiUtility.guiPage = 'channels'
+            self.guiUtility.channelsOverview(erase)
+            self.guiUtility.loadInformation('channelsMode', 'name', erase=False)
+            wx.Yield()
+            self.guiUtility.standardOverview.data['channelsMode']['grid'].expandPanelFromIndex(self.indexMyChannel)
+            self.guiUtility.standardOverview.data['channelsMode']['grid2'].expandPanelFromIndex(self.indexPopularChannels)
+
+
         self.results.setToggled(False)
         self.settings.setToggled(False)
         self.my_files.setToggled(False)
         self.channels.setToggled(True)
-        self.guiUtility.channelsOverview()
 
     def viewSettings(self,event):
+        if self.guiUtility.guiPage != 'settings':
+            self.guiUtility.settingsOverview()
         self.results.setToggled(False)
         self.settings.setToggled(True)
         self.my_files.setToggled(False)
         self.channels.setToggled(False)
-        self.guiUtility.settingsOverview()
 
     def viewLibrary(self,event):
+        if self.guiUtility.guiPage != 'my_files':
+            self.guiUtility.standardLibraryOverview()
+            self.guiUtility.loadInformation('libraryMode', 'name', erase=False)
         self.results.setToggled(False)
         self.settings.setToggled(False)
         self.my_files.setToggled(True)
         self.channels.setToggled(False)
-        self.guiUtility.standardLibraryOverview()
 
     def toggleFamilyFilter(self,event):
         self.guiUtility.toggleFamilyFilter()

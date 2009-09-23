@@ -118,7 +118,7 @@ class channelsDetailsPanel(bgPanel):
 
 
 
-        self.refreshScrollButtons()
+        ##self.refreshScrollButtons()
         self.Refresh()
         self.SetBackgroundColour(self.backgroundColour)
         self.Show()

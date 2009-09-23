@@ -451,8 +451,15 @@ class LibraryItemPanel(wx.Panel):
         self.data = torrent
         
         if torrent is None:
-            for child in self.GetChildren():
-                child.Hide()
+            #for child in self.GetChildren():
+            #    child.Hide()
+            self.title.Hide()
+            self.pb.Hide()
+            self.percentage.Hide()
+            self.speedDown2.Hide()
+            self.speedUp2.Hide()
+            self.remove.Hide()
+            self.pause_resume.Hide()
             self.hLine.Show()
             torrent = {}
         else:

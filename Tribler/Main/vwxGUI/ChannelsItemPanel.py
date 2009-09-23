@@ -252,7 +252,7 @@ class ChannelsItemPanel(wx.Panel):
                 self.SetMinSize((660,30))
                 self.SetSize((660,30))
             else: # win32
-                self.SetMinSize((660,25))
+                self.SetMinSize((660,30))
                 #self.SetSize((660,25))
 
         else:

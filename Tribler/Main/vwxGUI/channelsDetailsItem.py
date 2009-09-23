@@ -77,6 +77,7 @@ class channelsDetailsItem(wx.Panel):
         self.SetBackgroundColour(self.backgroundColour)
         self.expandedValue = 377
         self.SetMinSize((self.expandedValue,18))
+        self.SetSize((self.expandedValue,18))
         self.torrentColour=(255,51,0)
         self.torrentColourSel=(0,105,156)
         self.expandedSize=(self.expandedValue,100)
@@ -222,19 +223,21 @@ class channelsDetailsItem(wx.Panel):
         if not self.subpanel or sys.platform != 'darwin':
             self.subpanel = channelsDetailsPanel(self,-1)
             self.subpanel.SetMinSize(self.panelSize)
+            self.subpanel.SetSize(self.panelSize)
             self.subpanel.SetBackgroundColour(self.backgroundColourSel)
             self.SetBackgroundColour(self.backgroundColourSel)
             self.guiUtility.selectTorrent(self.torrent)
 
-        
             self.vSizer.Add(self.subpanel, 1, 0, 0)
             self.title.SetForegroundColour(self.torrentColourSel)
             self.title.SetFont(wx.Font(FS_TITLE_SEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))        
-
+            self.vSizer.Layout()
             if self.isMine():
                 self.remove.Show()
             else:
                 self.remove.Hide()
+
+            
 
         self.selected = True
 

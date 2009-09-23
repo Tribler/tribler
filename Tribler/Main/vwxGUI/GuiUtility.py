@@ -499,7 +499,7 @@ class GUIUtility:
         elif sys.platform == 'darwin':
             self.frame.pagerPanel.SetMinSize((635,20))
         else:
-            self.frame.pagerPanel.SetMinSize((626,20))
+            self.frame.pagerPanel.SetMinSize((635,20))
 
 
         self.standardOverview.setMode('filesMode')
@@ -656,7 +656,7 @@ class GUIUtility:
             elif sys.platform == 'darwin':
                 self.frame.pagerPanel.SetMinSize((635,20))
             else:
-                self.frame.pagerPanel.SetMinSize((626,20))
+                self.frame.pagerPanel.SetMinSize((635,20))
 
             self.showPager(True)
            
