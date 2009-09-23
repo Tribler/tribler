@@ -424,7 +424,7 @@ class channelsDetailsPanel(bgPanel):
             self.files[i].deselect()
         
 
-class fileItem(wx.Panel):
+class fileItem(bgPanel):
     def __init__(self, *args,**kwds):
         if len(args) == 0:
             pre = wx.PrePanel()
@@ -455,6 +455,14 @@ class fileItem(wx.Panel):
         self.SetMinSize((200, 18))
         self.selected=False
         self.addComponents()
+
+
+        self.tile = True
+        self.backgroundColour = wx.Colour(195,219,231)
+        self.searchBitmap('subpanel.png')
+        self.createBackgroundImage()
+
+
         self.SetBackgroundColour((195, 219, 231))
         self.Refresh()
 
