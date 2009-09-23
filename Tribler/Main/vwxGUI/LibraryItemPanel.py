@@ -461,6 +461,7 @@ class LibraryItemPanel(wx.Panel):
             self.remove.Hide()
             self.pause_resume.Hide()
             self.library_play.Hide()
+            self.eta.Hide()
             self.hLine.Show()
             torrent = {}
         else:
