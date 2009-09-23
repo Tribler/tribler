@@ -51,7 +51,7 @@ elif sys.platform == 'linux2':
     FS_FILETITLE = 12
     FS_ITEM = 8
     FS_REMOVE_TEXT = 8
-    FS_RSS = 7
+    FS_RSS = 10
     FS_RSS_TEXT = 8
     FS_RSSFEEDBACK_TEXT = 8
     FS_CONTAIN_TEXT = 7

@@ -454,6 +454,8 @@ class fileItem(bgPanel):
 
         if sys.platform == 'win32':
             self.minsize=(250,18)
+        elif sys.platform == 'linux2':
+            self.minsize=(250,18)
         else:
             self.minsize=(200,18)
 
@@ -513,6 +515,7 @@ class fileItem(bgPanel):
 
     def setTitle(self, title):
         self.title.SetLabel(title[:200])
+        self.title.SetToolTipString(self.title.GetLabel()) 
         self.Refresh()       
 
     def mouseAction(self, event):
