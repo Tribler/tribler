@@ -41,6 +41,7 @@ if sys.platform == 'darwin':
     FS_FILETITLE = 14
     FS_ITEM = 12
     FS_REMOVE_TEXT = 12
+    FS_RSS = 10
     FS_RSS_TEXT = 11
     FS_RSSFEEDBACK_TEXT = 11
     FS_CONTAIN_TEXT = 10
@@ -50,15 +51,17 @@ elif sys.platform == 'linux2':
     FS_FILETITLE = 12
     FS_ITEM = 8
     FS_REMOVE_TEXT = 8
+    FS_RSS = 7
     FS_RSS_TEXT = 8
     FS_RSSFEEDBACK_TEXT = 8
     FS_CONTAIN_TEXT = 7
     FS_UPDATE_TEXT = 7
     FS_FILETITLE_SEL = 14 
 else:
-    FS_FILETITLE = 10
+    FS_FILETITLE = 11
     FS_ITEM = 6
     FS_REMOVE_TEXT = 6
+    FS_RSS = 10
     FS_RSS_TEXT = 7
     FS_RSSFEEDBACK_TEXT = 7
     FS_CONTAIN_TEXT = 8
@@ -214,7 +217,7 @@ class channelsDetails(bgPanel):
 
         # rss ctrl
         self.rssCtrl = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER|wx.NO_BORDER)
-
+        self.rssCtrl.SetFont(wx.Font(FS_RSS, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
         self.rssCtrl.Bind(wx.EVT_KEY_DOWN, self.addRSS)
         self.rssCtrl.SetBackgroundColour((206,223,230))
         #self.rssCtrl.SetValue("http://www.legaltorrents.com/feeds/cat/netlabel-music.rss")
