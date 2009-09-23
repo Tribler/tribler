@@ -40,8 +40,8 @@ elif sys.platform == 'linux2':
     FS_TITLE = 9
     FS_TITLE_SEL = 10
 else:
-    FS_TITLE = 8
-    FS_TITLE_SEL = 9 
+    FS_TITLE = 9
+    FS_TITLE_SEL = 10 
 
 
 
