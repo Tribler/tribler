@@ -32,7 +32,7 @@ if sys.platform == 'darwin':
 elif sys.platform == 'linux2':
     FS_PLAYTEXT = 7
     FS_SAVETEXT = 7
-    FS_TORRENT = 8
+    FS_TORRENT = 9
     FS_BELONGS_TO_CHANNEL = 6
 
 else: # windows

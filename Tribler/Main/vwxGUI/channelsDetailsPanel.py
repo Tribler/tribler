@@ -470,7 +470,11 @@ class fileItem(wx.Panel):
         self.title.SetMinSize((200,18))
 
         # play button
-        self.play = tribler_topButton(self, -1, name='library_play')
+        if sys.platform != 'win32':
+            self.play = tribler_topButton(self, -1, name='channels_play')
+        else:
+            self.play = tribler_topButton(self, -1, name='channels_play_win')
+
         self.play.Bind(wx.EVT_LEFT_UP, self.play_clicked)
         self.play.Hide()
 
