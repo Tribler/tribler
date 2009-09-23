@@ -595,7 +595,7 @@ class TopSearchPanel(bgPanel):
         if sys.platform == 'win32':
             self.search_results = MyText(self, "",wx.BLACK, wx.Font(FONT_SIZE_SEARCH_RESULTS, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
             self.search_results.Hide()
-            self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files.png", wx.BITMAP_TYPE_ANY))
+            self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files_channels.png", wx.BITMAP_TYPE_ANY))
             #self.files_friends = MyText(self, "Search Files",wx.BLACK, wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
             self.go = tribler_topButton(self,-1,name = 'Search_new_win')
             self.arrow = tribler_topButton(self, -1, name = 'arrow_down_win')
