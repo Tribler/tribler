@@ -240,7 +240,7 @@ class GridManager(object):
                     data = []
                     if total_items > 0:
                         for el in res:
-                            num_votes = self.channelcast_db.getSubscribersCount(bin2str(el[0][0]))
+                            num_votes = self.channelcast_db.getSubscribersCount(el[0][0])
                             data_new = (el[0][0], el[0][1], num_votes)
                             data.append(data_new)
 

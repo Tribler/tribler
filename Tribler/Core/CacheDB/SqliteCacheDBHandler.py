@@ -3343,7 +3343,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def getSubscribersCount(self,permid):
         """returns the number of subscribers in integer format"""
-        sql = "select count(*) from VoteCast where mod_id='"+permid+"'"
+        sql = "select count(*) from VoteCast where mod_id='"+permid+"'" + " and vote=2"
         numrecords = self._db.fetchone(sql)
         return numrecords
 

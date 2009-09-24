@@ -207,6 +207,7 @@ class PopularItemPanel(wx.Panel):
         
         if data is None:
             self.title.SetLabel("")
+            self.SubscriptionText.Hide()
             self.title.Hide()
             self.hLine.Show()
             ##self.SubscriptionButton.Hide()

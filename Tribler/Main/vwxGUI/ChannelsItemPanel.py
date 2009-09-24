@@ -32,20 +32,22 @@ DEBUG = False
 
 # font sizes
 
-
+    
 if sys.platform == 'darwin':
     FS_MY_CHANNEL_TITLE = 13
+    FS_SUBSCRIPTION = 10
     FONTFAMILY_MY_CHANNEL=wx.SWISS
     FS_TITLE = 10
     FS_PERC = 9
     FS_SPEED = 9
 else:
     FS_MY_CHANNEL_TITLE = 11
+    FS_SUBSCRIPTION = 8
     FONTFAMILY_MY_CHANNEL=wx.SWISS
     FS_TITLE = 8
     FS_PERC = 7
     FS_SPEED = 7
-    
+
 
 class ChannelsItemPanel(wx.Panel):
     def __init__(self, parent, keyTypedFun = None, name='regular'):
@@ -115,10 +117,10 @@ class ChannelsItemPanel(wx.Panel):
         self.hSizer.Add([10,0],0,wx.FIXED_MINSIZE,0)        
 
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(240,16))        
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,16))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((240,16))
+        self.title.SetMinSize((105,16))
 
         #self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
         #self.vSizerTitle.Add((
@@ -133,6 +135,17 @@ class ChannelsItemPanel(wx.Panel):
 
 
         ##self.hSizer.Add((10,0), 0, 0, 0)
+
+
+        # Add subscription text
+        self.SubscriptionText = wx.StaticText(self,-1,"Subscribed",wx.Point(0,0),wx.Size(210,16))
+        self.SubscriptionText.SetBackgroundColour(wx.WHITE)
+        self.SubscriptionText.SetForegroundColour((0,110,149))
+        self.SubscriptionText.SetFont(wx.Font(FS_SUBSCRIPTION,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.SubscriptionText.Hide()
+        self.hSizer.Add(self.SubscriptionText, 0, wx.TOP, 2)
+
+
 
         if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
@@ -195,8 +208,8 @@ class ChannelsItemPanel(wx.Panel):
         
         if data is None:
             self.title.SetLabel("")
+            self.SubscriptionText.Hide()
             self.title.Hide()
-            ##self.SubscriptionButton.Hide()
             self.hLine.Show()
             self.Refresh()
             return 
@@ -213,6 +226,7 @@ class ChannelsItemPanel(wx.Panel):
             self.backgroundColour = wx.Colour(255,255,255)
             self.channelTitleSelectedColour = wx.BLACK
 
+            self.SubscriptionText.Hide()
 
 
             self.publisher_id, self.publisher_name, self.num_votes = data
@@ -310,11 +324,28 @@ class ChannelsItemPanel(wx.Panel):
         
 
     def setSubscribed(self):
-        if self.vcdb.hasVote(self.publisher_id,bin2str(self.utility.session.get_permid())):
+        if self.vcdb.hasSubscription(self.publisher_id,bin2str(self.utility.session.get_permid())):
             self.subscribed = True
+            self.SubscriptionText.Show()
         else:
             self.subscribed = False
+            self.SubscriptionText.Hide()
+        self.hSizer.Layout()
         
+
+    def resetTitle(self):
+        title = self.data[1][:self.titleLength] + " (%s)" % self.num_votes
+        self.title.SetLabel(title)
+        self.title.Wrap(self.title.GetSize()[0])
+        if self.num_votes == 0:
+            ttstring = self.data[1] + " (No subscribers)"
+        elif self.num_votes == 1: 
+            ttstring = self.data[1] + " (1 subscriber)"
+        else: 
+            ttstring = self.data[1] + " (%s subscribers)" % self.num_votes
+        self.title.SetToolTipString(ttstring)
+        #self.Refresh()
+
 
     def setTorrentList(self, torrentList):
         self.torrentList = torrentList
