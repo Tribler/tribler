@@ -226,6 +226,9 @@ class ChannelsItemPanel(wx.Panel):
             self.backgroundColour = wx.Colour(255,255,255)
             self.channelTitleSelectedColour = wx.BLACK
 
+            if sys.platform == 'linux2':
+                self.title.SetMinSize((150,16))
+                self.title.SetSize((150,16))
             self.SubscriptionText.Hide()
 
 
@@ -324,7 +327,7 @@ class ChannelsItemPanel(wx.Panel):
         
 
     def setSubscribed(self):
-        if self.vcdb.hasSubscription(self.publisher_id,bin2str(self.utility.session.get_permid())):
+        if self.vcdb.hasSubscription(bin2str(self.publisher_id),bin2str(self.utility.session.get_permid())):
             self.subscribed = True
             self.SubscriptionText.Show()
         else:

@@ -633,21 +633,24 @@ class channelsDetails(bgPanel):
             self.vcdb.subscribe(self.publisher_id)
             self.SubscriptionText.SetLabel("Unsubscribe")
             self.SubscriptionButton.setToggled(False)
-            self.parent.num_votes+=1
+
+            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes+=1    
+            #self.parent.num_votes+=1
 
         else:
             self.vcdb.unsubscribe(self.publisher_id)
 
             self.guiUtility.frame.top_bg.indexMyChannel=-1
-            self.guiUtility.frame.top_bg.indexPopularChannels=-1
-            self.guiUtility.frame.top_bg.indexSubscribedChannels=-1
+            self.guiUtility.frame.top_bg.indexPopularChannels=self.parent.index
 
             self.SubscriptionText.SetLabel("Subscribe")
             self.SubscriptionButton.setToggled(True)
-            self.parent.num_votes-=1
 
-        self.parent.setSubscribed() # reloads subscription state of the parent
-        self.parent.resetTitle()
+            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes-=1    
+            #self.parent.num_votes-=1
+
+        self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).setSubscribed()       
+        self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).resetTitle()       
 
 
     def updateRSS(self):

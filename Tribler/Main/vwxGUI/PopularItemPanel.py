@@ -282,6 +282,7 @@ class PopularItemPanel(wx.Panel):
 
     def resetTitle(self):
         title = self.data[1][:self.titleLength] + " (%s)" % self.num_votes
+        print >> sys.stderr , self.num_votes
         self.title.SetLabel(title)
         self.title.Wrap(self.title.GetSize()[0])
         if self.num_votes == 0:
@@ -292,6 +293,7 @@ class PopularItemPanel(wx.Panel):
             ttstring = self.data[1] + " (%s subscribers)" % self.num_votes
         self.title.SetToolTipString(ttstring)
         #self.Refresh()
+        self.hSizer.Layout()
         
         
 

@@ -957,6 +957,17 @@ class standardGrid(wx.Panel):
             # I sometimes get UnicodeErrors here somewhere
             print_exc()
 
+
+    def getPanelFromIndex(self, index):
+        if index == -1:
+            pass
+        else:
+            hSizer = self.vSizer.GetItem(index%self.currentRows+1).GetSizer()
+            panel = hSizer.GetItem(index/self.currentRows).GetWindow()
+            return panel
+
+
+
     def deselectAllChannels(self):
         rowIndex = 0
         colIndex = 0

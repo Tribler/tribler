@@ -595,7 +595,9 @@ class standardOverview(wx.Panel):
             mode = self.mode
         return self.data[mode]['search']
     
-    def getGrid(self):
+    def getGrid(self, num=None):
+        if num == 2:
+            return self.data.get(self.mode, {}).get('grid2')
         return self.data.get(self.mode, {}).get('grid')
     
         
