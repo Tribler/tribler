@@ -148,6 +148,7 @@ class ChannelsItemPanel(wx.Panel):
 
         if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            self.SubscriptionText.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
 
 
@@ -277,9 +278,8 @@ class ChannelsItemPanel(wx.Panel):
         else:
             self.mychannel = False
 
-            if sys.platform != 'darwin':
-                self.title.SetMinSize((105,16))
-                self.title.SetSize((105,16))
+            self.title.SetMinSize((105,16))
+            self.title.SetSize((105,16))
 
             self.publisher_id, self.publisher_name, self.num_votes = data
 

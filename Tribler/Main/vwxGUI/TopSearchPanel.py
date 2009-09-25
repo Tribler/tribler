@@ -387,10 +387,10 @@ class TopSearchPanel(bgPanel):
         dlg.Destroy()
 
     def OnResults(self,event):
-        if sys.platform == 'darwin' and self.count < 100:
-            self.ag.Play()
-            self.ag.Show()
         if event.LeftDown() and not self.first:
+            if sys.platform == 'darwin' and self.count < 100:
+                self.ag.Play()
+                self.ag.Show()
             if self.search_mode == 'files':
                 self.guiUtility.standardFilesOverview()
                 self.guiUtility.loadInformation('filesMode', 'rameezmetric', erase=False)

@@ -106,22 +106,39 @@ class GridManager(object):
         if self.state.db == 'channelsMode':
             if self.grid.guiUtility.guiPage == 'search_results':
                 if self.grid.name == 'channelsGrid':
-                    self.grid.SetMinSize((210,500))
-                    self.grid.SetSize((210,500))
-                    self.grid.calculateRows()
+                    if sys.platform == 'darwin':
+                        self.grid.SetMinSize((218,500))
+                        self.grid.SetSize((218,500))
+                    else:
+                        self.grid.SetMinSize((210,500))
+                        self.grid.SetSize((210,500))
+                    if sys.platform != 'darwin':
+                        self.grid.calculateRows()
                 if self.grid.name == 'subscriptionsGrid':
                     self.grid.Hide()
                 if self.grid.name == 'popularGrid':
-                    self.grid.Hide()
+                    if sys.platform == 'darwin':
+                        wx.CallAfter(self.grid.Hide)
+                    else:
+                        self.grid.Hide()
+                    
             else:
                 if self.grid.name == 'channelsGrid':
-                    self.grid.SetMinSize((210,49))
-                    self.grid.SetSize((210,49))
+                    if sys.platform == 'darwin':
+                        self.grid.SetMinSize((218,49))
+                        self.grid.SetSize((218,49))
+                    else:
+                        self.grid.SetMinSize((210,49))
+                        self.grid.SetSize((210,49))
                     self.grid.GetContainingSizer().Layout()
                 if self.grid.name == 'subscriptionsGrid':
                     self.grid.Show()
                 if self.grid.name == 'popularGrid':
                     self.grid.Show()
+                    if sys.platform == 'darwin':
+                        self.grid.SetMinSize((218,434))
+                        self.grid.SetSize((218,434))
+
 
 
 

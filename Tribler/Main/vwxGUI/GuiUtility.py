@@ -497,7 +497,7 @@ class GUIUtility:
         if sys.platform == "linux2":
             self.frame.pagerPanel.SetMinSize((634,20))
         elif sys.platform == 'darwin':
-            self.frame.pagerPanel.SetMinSize((635,20))
+            self.frame.pagerPanel.SetMinSize((634,20))
         else:
             self.frame.pagerPanel.SetMinSize((635,20))
 
@@ -514,6 +514,8 @@ class GUIUtility:
 
         
     def channelsOverview(self, erase=False):
+        if sys.platform == 'darwin':
+            self.frame.top_bg.ag.Stop()
         self.frame.top_bg.ag.Hide()
              
         if erase:
@@ -654,7 +656,7 @@ class GUIUtility:
             if sys.platform == "linux2":
                 self.frame.pagerPanel.SetMinSize((634,20))
             elif sys.platform == 'darwin':
-                self.frame.pagerPanel.SetMinSize((635,20))
+                self.frame.pagerPanel.SetMinSize((634,20))
             else:
                 self.frame.pagerPanel.SetMinSize((635,20))
 

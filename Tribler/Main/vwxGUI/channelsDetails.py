@@ -40,8 +40,8 @@ DEBUG = False
 if sys.platform == 'darwin':
     FS_FILETITLE = 14
     FS_ITEM = 12
-    FS_REMOVE_TEXT = 12
-    FS_RSS = 10
+    FS_REMOVE_TEXT = 11
+    FS_RSS = 12
     FS_RSS_TEXT = 11
     FS_RSSFEEDBACK_TEXT = 11
     FS_CONTAIN_TEXT = 10

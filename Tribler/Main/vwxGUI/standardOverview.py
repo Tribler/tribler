@@ -180,8 +180,10 @@ class standardOverview(wx.Panel):
         elif nameCP == 'libraryOverview':
             self.SetMinSize((600,490)) # 480
         else: # filesOverview
-            self.SetMinSize((600,492)) # 476
-
+            if sys.platform == 'darwin':
+                self.SetMinSize((600,493))
+            else:
+                self.SetMinSize((600,492))
         self.hSizer.Layout()
         
 

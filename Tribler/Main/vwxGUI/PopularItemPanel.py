@@ -142,7 +142,7 @@ class PopularItemPanel(wx.Panel):
 
         # Add subscription text
         self.SubscriptionText = wx.StaticText(self,-1,"Subscribed",wx.Point(0,0),wx.Size(210,16))
-        if sys.platform != 'win32':
+        if sys.platform == 'linux2':
             self.SubscriptionText.SetBackgroundColour(wx.WHITE)
         self.SubscriptionText.SetForegroundColour((0,110,149))
         self.SubscriptionText.SetFont(wx.Font(FS_SUBSCRIPTION,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
@@ -155,6 +155,7 @@ class PopularItemPanel(wx.Panel):
 
         if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            self.SubscriptionText.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
             
 
          
