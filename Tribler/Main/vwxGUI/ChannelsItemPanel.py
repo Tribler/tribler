@@ -277,7 +277,7 @@ class ChannelsItemPanel(wx.Panel):
         else:
             self.mychannel = False
 
-            if sys.platform == 'win32':
+            if sys.platform != 'darwin':
                 self.title.SetMinSize((105,16))
                 self.title.SetSize((105,16))
 
