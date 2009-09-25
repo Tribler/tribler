@@ -3334,7 +3334,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select publisher_id, publisher_name from ChannelCast where publisher_id ='" + bin2str(self.my_permid) + "'" + "group by publisher_id"
         res = self._db.fetchall(sql) 
         if not res is None:
-            mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(res[0][0])))
+            mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(bin2str(self.my_permid))))
         else:
             mychannel.append((self.my_permid,"MyChannel" , 0))
         return mychannel
@@ -3370,7 +3370,8 @@ class ChannelCastDBHandler(BasicDBHandler):
         """return a list of tuples: [(permid,channel_name,#subscriptions)]"""
         records = []
         votecastdb = VoteCastDBHandler.getInstance()
-        sql = "select mod_id, count(*) from VoteCast where mod_id in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id order by 2 desc"
+        #sql = "select mod_id, count(*) from VoteCast where mod_id in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id order by 2 desc"
+        sql = "select mod_id, count(*) from VoteCast where mod_id <>'"+bin2str(self.my_permid)+"'" + " and vote=2 and voter_id='" + bin2str(self.my_permid) + "'" + " group by mod_id order by 2 desc"
         votes = self._db.fetchall(sql)
         for vote in votes:
             sql = "select publisher_name, time_stamp from ChannelCast where publisher_id='"+vote[0]+"' order by 2 desc" 

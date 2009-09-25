@@ -142,7 +142,8 @@ class PopularItemPanel(wx.Panel):
 
         # Add subscription text
         self.SubscriptionText = wx.StaticText(self,-1,"Subscribed",wx.Point(0,0),wx.Size(210,16))
-        self.SubscriptionText.SetBackgroundColour(wx.WHITE)
+        if sys.platform != 'win32':
+            self.SubscriptionText.SetBackgroundColour(wx.WHITE)
         self.SubscriptionText.SetForegroundColour((0,110,149))
         self.SubscriptionText.SetFont(wx.Font(FS_SUBSCRIPTION,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.SubscriptionText.Hide()
@@ -151,6 +152,10 @@ class PopularItemPanel(wx.Panel):
 
 
         ##self.hSizer.Add((10,0), 0, 0, 0)
+
+        if sys.platform != 'linux2':
+            self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            
 
          
         # Add Refresh        
@@ -281,6 +286,8 @@ class PopularItemPanel(wx.Panel):
 
 
     def resetTitle(self):
+
+        print >> sys.stderr , self.num_votes
         title = self.data[1][:self.titleLength] + " (%s)" % self.num_votes
         self.title.SetLabel(title)
         self.title.Wrap(self.title.GetSize()[0])

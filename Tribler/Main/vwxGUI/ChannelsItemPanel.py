@@ -139,7 +139,6 @@ class ChannelsItemPanel(wx.Panel):
 
         # Add subscription text
         self.SubscriptionText = wx.StaticText(self,-1,"Subscribed",wx.Point(0,0),wx.Size(210,16))
-        self.SubscriptionText.SetBackgroundColour(wx.WHITE)
         self.SubscriptionText.SetForegroundColour((0,110,149))
         self.SubscriptionText.SetFont(wx.Font(FS_SUBSCRIPTION,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.SubscriptionText.Hide()
@@ -229,6 +228,9 @@ class ChannelsItemPanel(wx.Panel):
             if sys.platform == 'linux2':
                 self.title.SetMinSize((150,16))
                 self.title.SetSize((150,16))
+            else:
+                self.title.SetMinSize((150,18))
+                self.title.SetSize((150,18))
             self.SubscriptionText.Hide()
 
 
@@ -275,7 +277,9 @@ class ChannelsItemPanel(wx.Panel):
         else:
             self.mychannel = False
 
-
+            if sys.platform == 'win32':
+                self.title.SetMinSize((105,16))
+                self.title.SetSize((105,16))
 
             self.publisher_id, self.publisher_name, self.num_votes = data
 
@@ -327,7 +331,7 @@ class ChannelsItemPanel(wx.Panel):
         
 
     def setSubscribed(self):
-        if self.vcdb.hasSubscription(bin2str(self.publisher_id),bin2str(self.utility.session.get_permid())):
+        if self.vcdb.hasSubscription(self.publisher_id, bin2str(self.utility.session.get_permid())):
             self.subscribed = True
             self.SubscriptionText.Show()
         else:

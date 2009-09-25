@@ -60,7 +60,7 @@ elif sys.platform == 'linux2':
 else:
     FS_FILETITLE = 11
     FS_ITEM = 6
-    FS_REMOVE_TEXT = 6
+    FS_REMOVE_TEXT = 7
     FS_RSS = 10
     FS_RSS_TEXT = 7
     FS_RSSFEEDBACK_TEXT = 7
@@ -634,23 +634,31 @@ class channelsDetails(bgPanel):
             self.SubscriptionText.SetLabel("Unsubscribe")
             self.SubscriptionButton.setToggled(False)
 
-            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes+=1    
+            if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
+                self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes+=1    
+            else:
+                self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes+=1
             #self.parent.num_votes+=1
 
         else:
             self.vcdb.unsubscribe(self.publisher_id)
-
-            self.guiUtility.frame.top_bg.indexMyChannel=-1
-            self.guiUtility.frame.top_bg.indexPopularChannels=self.parent.index
-
             self.SubscriptionText.SetLabel("Subscribe")
             self.SubscriptionButton.setToggled(True)
 
-            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes-=1    
+            if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
+                self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes-=1    
+            else:
+                self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes-=1
+
             #self.parent.num_votes-=1
 
-        self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).setSubscribed()       
-        self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).resetTitle()       
+        if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
+            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).setSubscribed()       
+            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).resetTitle()       
+        else:
+            self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).setSubscribed()       
+            self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).resetTitle()       
+
 
 
     def updateRSS(self):
