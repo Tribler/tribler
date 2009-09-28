@@ -186,7 +186,7 @@ from channelcast import ChannelCastCore
 
 DEBUG = False   # for errors
 debug = False   # for status
-debugnic = True # for my temporary outputs
+debugnic = False # for my temporary outputs
 unblock = 0
 
 # Nicolas: 10 KByte -- I set this to 1024 KByte.     
@@ -361,7 +361,6 @@ class BuddyCastFactory:
         self.overlay_bridge.add_task(self.doBuddyCast, buddycast_interval)
         if not self.started:
             self.started = True
-            
         # Do our thang.
         self.buddycast_core.work()
         self.ranonce = True # Nicolas: now we can start testing and stuff works better
@@ -386,12 +385,17 @@ class BuddyCastFactory:
         
         past = now() - self.start_time
         if past < 2*60:
-            if self.data_handler.get_npeers() < 20:
+            if len(self.buddycast_core.connected_connectable_peers)<10:
+                interval = 0.2                
+            elif self.data_handler.get_npeers() < 20:
                 interval = 2
             else:
                 interval = 5
         elif past < 30*60:
-            interval = 5
+            if len(self.buddycast_core.connected_connectable_peers)<10:
+                interval = 2
+            else:                        
+                interval = 5
         elif past > 24*60*60:
             interval = 60
         else:
@@ -916,8 +920,8 @@ class BuddyCastCore:
             print >> sys.stderr, "bc: createAndSendBuddyCastMessage", len(buddycast_data), currentThread().getName()
         try:
             buddycast_data['permid'] = self.permid
-            validBuddyCastData(buddycast_data, self.num_myprefs, 
-                                   self.num_tbs, self.num_rps, self.num_tb_prefs)
+            #validBuddyCastData(buddycast_data, self.num_myprefs, 
+            #                       self.num_tbs, self.num_rps, self.num_tb_prefs)
             buddycast_data.pop('permid')
             buddycast_msg = bencode(buddycast_data)
         except:
@@ -1565,19 +1569,32 @@ class BuddyCastCore:
     def updateTBandRPList(self):
         """ Select the top 10 most similar (sim>0) peer to TB and others to RP """
         
+        """ In early September 2009, it has been decided that, out of 10 taste buddies, 3 peers are selected which has an overlay
+            same or better of the current version; another 3 peers are selected each of which has an overlay better than 8. Rest 
+            of the slots are filled with highest similarity (just as before). The process of the selection of random peers is not changed!"""
+            
         nconnpeers = len(self.connected_connectable_peers)
         if nconnpeers == 0:
             self.connected_taste_buddies = []
             self.connected_random_peers = [] 
             return
         
+        # we need at least 3 peers of the same or better versions, among taste buddies
+        better_version_peers = 0 
+        
+        # we also need at least 4 peers of the recent versions (here, OL>=8), among taste buddies
+        recent_version_peers = 0 
+
         tmplist = []
+        tmpverlist = []
+        tmplist2 = []
         tbs = []
         rps = []
         for permid in self.connected_connectable_peers:
-            sim = self.data_handler.getPeerSim(permid)
+            sim = self.data_handler.getPeerSim(permid)            
+            version = self.connected_connectable_peers[permid]['oversion']
             if sim > 0:
-                tmplist.append([sim, permid])
+                tmplist.append([version,permid])
             else:
                 rps.append(permid)
         tmplist.sort()
@@ -1586,14 +1603,30 @@ class BuddyCastCore:
         #ntb = self.max_conn_tb    # 10 tb & 10 rp
         ntb = min((nconnpeers+1)/2, self.max_conn_tb)    # half tb and half rp
         if len(tmplist) > 0:
-            for sim,permid in tmplist[:ntb]:
-                tbs.append(permid)
+            for version,permid in tmplist:
+                if version >= OLPROTO_VER_CURRENT and better_version_peers<=3: #OLPROTO_VER_ELEVENTH
+                    better_version_peers += 1
+                    tmpverlist.append(permid)
+                elif version >= OLPROTO_VER_EIGHTH and recent_version_peers<=3:
+                    recent_version_peers += 1
+                    tmpverlist.append(permid)
+                else:
+                    sim = self.data_handler.getPeerSim(permid)
+                    tmplist2.append([sim,permid])
+            tmplist2.sort()
+            tmplist2.reverse()
+            tbs = tmpverlist
+            for sim, permid in tmplist2[:ntb-better_version_peers-recent_version_peers]:
+                tbs.append(permid)          
+        
         ntb = len(tbs)
         if len(tmplist) > ntb:
-            rps = [permid for sim,permid in tmplist[ntb:]] + rps
+            rps = [permid for sim,permid in tmplist2[ntb-better_version_peers-recent_version_peers:]] + rps
         
+        tmplist = []
         # remove the oldest peer from both random peer list and connected_connectable_peers
         if len(rps) > self.max_conn_rp:
+            # then select recently seen peers 
             tmplist = []
             for permid in rps:
                 connect_time = self.connected_connectable_peers[permid]['connect_time']
@@ -1601,22 +1634,19 @@ class BuddyCastCore:
             tmplist.sort()
             tmplist.reverse()
             rps = []
-            i = 0
-            for last_seen,permid in tmplist:
-                if i < self.max_conn_rp:
-                    rps.append(permid)
-                else:
-                    self.connected_connectable_peers.pop(permid)
-                i += 1
-            
+            for last_seen,permid in tmplist[:self.max_conn_rp]:
+                rps.append(permid)
+            for last_seen,permid in tmplist[self.max_conn_rp:]:
+                self.connected_connectable_peers.pop(permid)
+
         self.connected_taste_buddies = tbs
         self.connected_random_peers = rps
-        
-        for p in self.connected_taste_buddies:
-            assert p in self.connected_connectable_peers
-        for p in self.connected_random_peers:
-            assert p in self.connected_connectable_peers
-        assert len(self.connected_taste_buddies) + len(self.connected_random_peers) <= len(self.connected_connectable_peers)
+        #print >> sys.stderr, "#tbs:",len(tbs), ";#rps:", len(rps)
+        #for p in self.connected_taste_buddies:
+        #    assert p in self.connected_connectable_peers
+        #for p in self.connected_random_peers:
+        #    assert p in self.connected_connectable_peers
+        #assert len(self.connected_taste_buddies) + len(self.connected_random_peers) <= len(self.connected_connectable_peers)
         
             
     def addPeerToConnCP(self, peer_permid, conn_time):
@@ -1691,7 +1721,8 @@ class BuddyCastCore:
         if debug:
             print >> sys.stderr, "bc: handle conn from overlay", exc, \
                 self.get_peer_info(permid), "selversion:", selversion, \
-                "local_init:", locally_initiated, ctime(now())
+                "local_init:", locally_initiated, ctime(now()), "; #connections:", len(self.connected_connectable_peers), \
+                "; #TB:", len(self.connected_taste_buddies), "; #RP:", len(self.connected_random_peers)
         
     def addConnection(self, peer_permid, selversion, locally_initiated):
         # add connection to connection list
