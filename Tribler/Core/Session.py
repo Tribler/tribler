@@ -737,9 +737,23 @@ class Session(SessionRuntimeConfig):
             
     def chquery_connected_peers(self,query,usercallback=None,max_peers_to_query=None):
         """
-        Queries its connected peers regarding a channel, which could be of both forms.
-        keyword-based search which has following representation... query = "k:bbctv"
-        permid-based search...... query = "p:f34wrf2345wfer2345wefd3r34r54"
+        Designed on the lines of query_connected_peers (see above), this function is used to query for
+        channel (either a particular channel matching the permid in the query or a list of channels
+        whose names match the keywords in the query) by sending the query to connected peers. 
+        
+        The usercallback method is called when a remote peer replies with hits. Similar to query_connected_peers's
+        usercallback method, it has 3 arguments. First, the permid of the queried peer. Second, the query string.
+        Third, a list of the hits.
+         
+        Below is the format of the query in corresponding scenarios: 
+        a. keyword-based query: "k:bbctv"     ('k' stands for keyword-based and ':' is a separator followed by the keywords)
+        b. permid-based query: "p:f34wrf2345wfer2345wefd3r34r54" ('p' stands for permid-based and ':' is a separator followed by the permid)
+        
+        In each of the above 2 cases, the format of the hits that is returned by the queried peer is a list of ChannelCast table records, i.e.,:
+        [(publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature)]
+        
+        @param query A Unicode query string adhering to the above spec.
+        @param usercallback A function adhering to the above spec.        
         """
         
         self.sesslock.acquire()
