@@ -110,7 +110,8 @@ class GUIUtility:
         self.bgColour = wx.Colour(102,102,102)
         self.darkTextColour = wx.Colour(51,51,51)
         
-        self.max_remote_queries = 10    # max number of remote peers to query
+        # Recall improves by 20-25% by increasing the number of peers to query to 20 from 10 !
+        self.max_remote_queries = 20    # max number of remote peers to query
         self.remote_search_threshold = 20    # start remote search when results is less than this number
 
     
