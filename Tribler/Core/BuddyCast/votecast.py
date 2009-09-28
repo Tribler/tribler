@@ -13,6 +13,7 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.BuddyCast.moderationcast_util import *
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_ELEVENTH
 
 DEBUG_UI = False
 DEBUG = False    #Default debug
@@ -54,6 +55,11 @@ class VoteCastCore:
     ################################
     def createAndSendVoteCastMessage(self, target_permid, selversion):
         """ Creates and sends a VOTECAST message """
+        if selversion < OLPROTO_VER_ELEVENTH:
+            if DEBUG:
+                print >> sys.stderr, "Do not send to lower version peer:", selversion
+            return
+                
         votecast_data = self.createVoteCastMessage()
         if len(votecast_data) == 0:
             if DEBUG:
@@ -103,6 +109,12 @@ class VoteCastCore:
     ################################
     def gotVoteCastMessage(self, recv_msg, sender_permid, selversion):
         """ Receives VoteCast message and handles it. """
+        # VoteCast feature is renewed in eleventh version; hence, do not receive from lower version peers
+        if selversion < OLPROTO_VER_ELEVENTH:
+            if DEBUG:
+                print >> sys.stderr, "Do not receive from lower version peer:", selversion
+            return
+                
         if DEBUG:
             print >> sys.stderr,'votecast: Received a msg from ', permid_for_user(sender_permid)
 

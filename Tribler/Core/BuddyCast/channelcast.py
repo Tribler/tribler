@@ -17,6 +17,7 @@ from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.SocialNetwork.ChannelQueryMsgHandler import ChannelQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_ELEVENTH
 
 DEBUG = False
 
@@ -54,6 +55,12 @@ class ChannelCastCore:
     
     def createAndSendChannelCastMessage(self, target_permid, selversion):
         """ Create and send a ChannelCast Message """
+        # ChannelCast feature starts from eleventh version; hence, do not send to lower version peers
+        if selversion < OLPROTO_VER_ELEVENTH:
+            if DEBUG:
+                print >> sys.stderr, "Do not send to lower version peer:", selversion
+            return
+        
         channelcast_data = self.createChannelCastMessage()
         if channelcast_data is None or len(channelcast_data)==0:
             if DEBUG:
@@ -96,6 +103,12 @@ class ChannelCastCore:
  
     def gotChannelCastMessage(self, recv_msg, sender_permid, selversion):
         """ Receive and handle a ChannelCast message """
+        # ChannelCast feature starts from eleventh version; hence, do not receive from lower version peers
+        if selversion < OLPROTO_VER_ELEVENTH:
+            if DEBUG:
+                print >> sys.stderr, "Do not receive from lower version peer:", selversion
+            return
+                
         if DEBUG:
             print >> sys.stderr,'channelcast: Received a msg from ', permid_for_user(sender_permid)
             print >> sys.stderr," my_permid=", permid_for_user(self.my_permid)
