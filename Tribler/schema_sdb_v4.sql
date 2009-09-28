@@ -9,6 +9,11 @@
 -- 
 -- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
 --
+-- v4: ChannelCast is an extension of the concept of ModerationCast, with an additional integrity measure.
+--     'torrenthash' field is used to protect the integrity of the torrent file created by the publisher,
+--     from fake-tracker attack, by including sha1 hash of the dictionary corresponding to the entire torrent.
+--
+--     'InvertedIndex' table is used for precise keyword matching than substring search that was used previously.
 
 BEGIN TRANSACTION create_table;
 
