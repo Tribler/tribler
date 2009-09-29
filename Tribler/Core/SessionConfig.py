@@ -1141,25 +1141,6 @@ class SessionConfigInterface:
         @return Boolean. """
         return self.sessconfig['crawler']
     
-    #
-    # RSS feed settings
-    #
-    def set_rss_reload_frequency(self, frequency):
-        """ reload a rss source every n seconds """
-        self.sessconfig['rss_reload_frequency'] = frequency
-
-    def get_rss_reload_frequency(self):
-        """ Returns the reload frequency for a rss source """
-        return self.sessconfig['rss_reload_frequency']
-
-    def set_rss_check_frequency(self, frequency):
-        """ test a potential .torrent in a rss source every n seconds """
-        self.sessconfig['rss_check_frequency'] = frequency
-
-    def get_rss_check_frequency(self):
-        """ Returns the check frequency for a potential .torrent in a rss source """
-        return self.sessconfig['rss_check_frequency']
-    
     # 
     # Local Peer Discovery using IP Multicast
     #
@@ -1178,30 +1159,68 @@ class SessionConfigInterface:
         """
         return self.sessconfig['multicast_local_peer_discovery']
 
+    #
+    # VoteCast
+    #
+    def set_votecast_recent_votes(self, value):
+        """ Sets the maximum limit for the recent votes by the user, 
+        that will be forwarded to connected peers 
+        @param value int 
+        """
+        self.sessconfig['votecast_recent_votes'] = value 
+
     def get_votecast_recent_votes(self):
+        """ Returns the maximum limit for the recent votes by the user, 
+        that will be forwarded to connected peers 
+        @return int 
+        """
         return self.sessconfig['votecast_recent_votes']
     
-    def set_votecast_recent_votes(self, value):
-        self.sessconfig['votecast_recent_votes'] = value 
-    
+    def set_votecast_random_votes(self, value):
+        """ Sets the maximum limit for the user's votes that are different from recent ones
+        but selected randomly; these votes will be forwarded to connected peers along with recent votes 
+        @param value int 
+        """
+        self.sessconfig['votecast_random_votes'] = value
+
     def get_votecast_random_votes(self):
+        """ Returns the maximum limit for the user's votes that are different from recent ones
+        but selected randomly; these votes will be forwarded to connected peers along with recent votes 
+        @return int 
+        """        
         return self.sessconfig['votecast_random_votes']
 
-    def set_votecast_random_votes(self, value):
-        self.sessconfig['votecast_random_votes'] = value
-    
+    #
     # ChannelCast
-    def get_channelcast_recent_own_subscriptions(self):
-        return self.sessconfig['channelcast_recent_own_subscriptions']
-    
+    #
     def set_channelcast_recent_own_subscriptions(self, value):
+        """ Sets the maximum limit for the recent subscriptions by the user, 
+        that will be forwarded to connected peers 
+        @param value int 
+        """
         self.sessconfig['channelcast_recent_own_subscriptions'] = value
 
-    def get_channelcast_random_own_subscriptions(self):
-        return self.sessconfig['channelcast_random_own_subscriptions']
+    def get_channelcast_recent_own_subscriptions(self):
+        """ Returns the maximum limit for the recent subscriptions by the user, 
+        that will be forwarded to connected peers 
+        @return int 
+        """
+        return self.sessconfig['channelcast_recent_own_subscriptions']
     
     def set_channelcast_random_own_subscriptions(self, value):
+        """ Sets the maximum limit for the user's subscriptions that are different from recent ones
+        but selected randomly; these subscriptions will be forwarded to connected peers 
+        @param value int 
+        """
         self.sessconfig['channelcast_random_own_subscriptions'] = value
+
+    def get_channelcast_random_own_subscriptions(self):
+        """ Returns the maximum limit for the user's subscriptions that are different from recent ones
+        but selected randomly; these subscriptions will be forwarded to connected peers 
+        @return int 
+        """
+        return self.sessconfig['channelcast_random_own_subscriptions']
+    
 
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  

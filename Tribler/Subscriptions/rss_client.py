@@ -46,6 +46,8 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
+RSS_RELOAD_FREQUENCY = 2*60*60      # reload a rss source every n seconds
+RSS_CHECK_FREQUENCY = 1  # test a potential .torrent in a rss source every n seconds
 
 DEBUG = False
 
@@ -82,8 +84,8 @@ class TorrentFeedThread(Thread):
     
     def register(self,session):
         self.session = session
-        self.reloadfrequency = self.session.get_rss_reload_frequency()
-        self.checkfrequency = self.session.get_rss_check_frequency()
+        self.reloadfrequency = RSS_RELOAD_FREQUENCY
+        self.checkfrequency = RSS_CHECK_FREQUENCY
         
         self.torrent_dir = self.session.get_torrent_collecting_dir()
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
@@ -111,7 +113,7 @@ class TorrentFeedThread(Thread):
             pass
             #traceback.print_exc()
     
-        #self.addURL('http://www.legaltorrents.com/feeds/cat/netlabel-music.rss')
+        self.addURL('http://www.legaltorrents.com/feeds/cat/netlabel-music.rss')
     
     
     def addURL(self, url, dowrite=True, status="active"):
