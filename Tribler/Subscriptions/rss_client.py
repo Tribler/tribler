@@ -113,7 +113,7 @@ class TorrentFeedThread(Thread):
             pass
             #traceback.print_exc()
     
-        self.addURL('http://www.legaltorrents.com/feeds/cat/netlabel-music.rss')
+        #self.addURL('http://www.legaltorrents.com/feeds/cat/netlabel-music.rss')
     
     
     def addURL(self, url, dowrite=True, status="active"):
