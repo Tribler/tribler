@@ -6,7 +6,8 @@ __fool_epydoc = 481
 uTorrent Peer Exchange (PEX) Support:
 -------------------------------------
 As documented in
-    http://transmission.m0k.org/trac/browser/trunk/misc/utorrent.txt
+    (link no longer availabe) http://transmission.m0k.org/trac/browser/trunk/misc/utorrent.txt 
+    http://trac.transmissionbt.com/browser/trunk/doc/extended-messaging.txt
     BitTorrent-5.0.8/BitTorrent/Connector.py
     
 The PEX message payload is a bencoded dict with three keys:
@@ -90,7 +91,7 @@ def check_ut_pex(d):
         # filter out all 'same' peers. the loop runs in reverse order
         # so the indexes don't change as we pop them from the apeers
         # list
-        for i in range(max(len(apeers),len(addedf))-1,-1,-1):
+        for i in range(min(len(apeers),len(addedf))-1,-1,-1):
             if addedf[i] & 4:
                 same_apeers.append(apeers.pop(i))
 
