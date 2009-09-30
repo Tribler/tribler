@@ -1490,20 +1490,26 @@ class MovieOnDemandTransporter(MovieTransport):
             self.stat_pieces.set( piece[0], "toplayer", time.time() )
             self.stat_pieces.complete( piece[0] )
 
-        # 23/06/09 Boudewijn: because of vlc buffering the self.outbuf
-        # almost always gets emptied. This results in periodic (every
-        # few seconds) pause signals to VLC. 
-        #
-        # To 'solve' this we delay the delivery to VLC based on the
-        # current buffer size. More delay when there is less data
-        # available. 
-        if lenoutbuf < 10:
-            if lenoutbuf > 0:
-                delay = min(0.2, 5 * 0.1 / lenoutbuf)
-            else:
-                delay = 0.2
-            if DEBUG: print >>sys.stderr, "Vod: Delaying pop to VLC by", delay, "seconds"
-            time.sleep(delay)
+        if True:
+            # 23/06/09 Boudewijn: because of vlc buffering the self.outbuf
+            # almost always gets emptied. This results in periodic (every
+            # few seconds) pause signals to VLC. 
+            #
+            # To 'solve' this we delay the delivery to VLC based on the
+            # current buffer size. More delay when there is less data
+            # available.
+            #
+            # 24/06/09 Boudewijn: smaller is (much) better for live as
+            # they never get over a certain amount of outstanding
+            # pieces. So this will need to be made dependeont. VOD can be
+            # higher than live.
+            if lenoutbuf < 5:
+                if lenoutbuf > 0:
+                    delay = min(0.1, 3 * 0.1 / lenoutbuf)
+                else:
+                    delay = 0.1
+                if DEBUG: print >>sys.stderr, "Vod: Delaying pop to VLC by", delay, "seconds"
+                time.sleep(delay)
 
         return piece
 
