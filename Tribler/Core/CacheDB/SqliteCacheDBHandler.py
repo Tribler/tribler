@@ -3347,6 +3347,11 @@ class ChannelCastDBHandler(BasicDBHandler):
         numrecords = self._db.fetchone(sql)
         return numrecords
 
+    def getMyNumberSubscriptions(self): ##
+        """returns the number of subscribers in integer format"""
+        sql = "select count(*) from VoteCast where voter_id='"+ bin2str(self.my_permid) + "'" + " and vote=2"
+        numrecords = self._db.fetchone(sql)
+        return numrecords
     
 
     def getOtherChannels(self): ##

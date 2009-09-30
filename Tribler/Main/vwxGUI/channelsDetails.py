@@ -47,6 +47,7 @@ if sys.platform == 'darwin':
     FS_CONTAIN_TEXT = 10
     FS_UPDATE_TEXT = 10
     FS_FILETITLE_SEL = 14 # size of title in expanded torrent
+    FS_MAX_SUBSCRIPTION_TEXT = 11
 elif sys.platform == 'linux2':
     FS_FILETITLE = 12
     FS_ITEM = 8
@@ -57,6 +58,7 @@ elif sys.platform == 'linux2':
     FS_CONTAIN_TEXT = 7
     FS_UPDATE_TEXT = 7
     FS_FILETITLE_SEL = 14 
+    FS_MAX_SUBSCRIPTION_TEXT = 8
 else:
     FS_FILETITLE = 11
     FS_ITEM = 6
@@ -67,8 +69,7 @@ else:
     FS_CONTAIN_TEXT = 8
     FS_UPDATE_TEXT = 4
     FS_FILETITLE_SEL = 10 
-
-
+    FS_MAX_SUBSCRIPTION_TEXT = 5
 
 
 
@@ -178,10 +179,6 @@ class channelsDetails(bgPanel):
         # hSizerChannels
         self.hSizerChannels = wx.BoxSizer(wx.HORIZONTAL)
 
-
-        # vSizer2
-        self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
-
         # vSizerLeft
         self.vSizerLeft = wx.BoxSizer(wx.VERTICAL)
        
@@ -267,11 +264,20 @@ class channelsDetails(bgPanel):
 
 
         # contents text
-        self.foundText = wx.StaticText(self,-1,"Found",wx.Point(0,0),wx.Size(150,18))  
+        self.foundText = wx.StaticText(self,-1,"Found",wx.Point(0,0),wx.Size(100,18))  
         self.foundText.SetBackgroundColour((216,233,240))
         self.foundText.SetForegroundColour(wx.BLACK)
         self.foundText.SetFont(wx.Font(FS_CONTAIN_TEXT,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.foundText.SetMinSize((150,18))
+        self.foundText.SetMinSize((100,18))
+
+
+        # subscription limit text
+        self.SubscriptionLimitText = wx.StaticText(self,-1,"Sorry, you have reached the maximum amout of subscriptions. Please unsubscribe to some channels.",wx.Point(0,0),wx.Size(330,40), style = wx.ALIGN_CENTRE)  
+        self.SubscriptionLimitText.SetBackgroundColour((216,233,240))
+        self.SubscriptionLimitText.SetForegroundColour((255,0,0))
+        self.SubscriptionLimitText.SetFont(wx.Font(FS_MAX_SUBSCRIPTION_TEXT,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.SubscriptionLimitText.SetMinSize((330,40))
+        self.SubscriptionLimitText.Hide()
 
 
         # update subscription text
@@ -290,12 +296,11 @@ class channelsDetails(bgPanel):
         self.hSizer0.Add((5,0), 0, 0, 0)
         self.hSizer0.Add(self.SubscriptionButton, 0, 0, 0)
 
-        self.vSizer2.Add(self.foundText, 0, 0, 0)
-        self.vSizer2.Add((0,5), 0, 0, 0)
-        ##self.vSizer2.Add(self.add_torrent, 0, 0, 0)
 
         self.hSizer1.Add((20,0), 0, 0, 0)
-        self.hSizer1.Add(self.vSizer2, 0, 0, 0)
+        self.hSizer1.Add(self.foundText, 0, 0, 0)
+        self.hSizer1.Add((5,0), 0, 0, 0)
+        self.hSizer1.Add(self.SubscriptionLimitText, 0, 0, 0)
 
         self.hSizer2.Add((20,20), 0, 0, 0)
         self.hSizer2.Add(self.rssText, 0, wx.TOP, 3)
@@ -630,15 +635,21 @@ class channelsDetails(bgPanel):
 
     def SubscriptionClicked(self, event):
         if self.SubscriptionButton.isToggled():
-            self.vcdb.subscribe(self.publisher_id)
-            self.SubscriptionText.SetLabel("Unsubscribe")
-            self.SubscriptionButton.setToggled(False)
+      
+            if self.guiUtility.nb_subscriptions < 19: # hard coded for now
 
-            if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
-                self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes+=1    
-            else:
-                self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes+=1
-            #self.parent.num_votes+=1
+                self.vcdb.subscribe(self.publisher_id)
+                self.SubscriptionText.SetLabel("Unsubscribe")
+                self.SubscriptionButton.setToggled(False)
+
+                if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
+                    self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes+=1    
+                else:
+                    self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes+=1
+                #self.parent.num_votes+=1
+
+            else: # maximum number of subscriptions reached
+                self.updateSubscriptionLimitText()
 
         else:
             self.vcdb.unsubscribe(self.publisher_id)
@@ -658,6 +669,21 @@ class channelsDetails(bgPanel):
         else:
             self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).setSubscribed()       
             self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).resetTitle()       
+
+
+
+    def updateSubscriptionLimitText(self):
+        self.guiserver = GUITaskQueue.getInstance()
+        self.guiserver.add_task(lambda:wx.CallAfter(self.showSubscriptionLimitText), 0.0)
+
+    def showSubscriptionLimitText(self):
+        self.SubscriptionLimitText.Show(True)
+        sizer = self.SubscriptionLimitText.GetContainingSizer()
+        sizer.Layout()
+        self.guiserver.add_task(lambda:wx.CallAfter(self.hideSubscriptionLimitText), 6.0)
+
+    def hideSubscriptionLimitText(self):
+        self.SubscriptionLimitText.Show(False)
 
 
 

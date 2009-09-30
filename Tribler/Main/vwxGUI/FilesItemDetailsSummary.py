@@ -18,6 +18,7 @@ from font import *
 
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.utils import videoextdefaults
+from Tribler.__init__ import LIBRARYNAME
 
 
 
@@ -99,6 +100,8 @@ class FilesItemDetailsSummary(bgPanel):
         ##self.SetMinSize((300,40))
 
         self.hSizer0 = wx.BoxSizer(wx.HORIZONTAL)               
+        self.hSizer1 = wx.BoxSizer(wx.HORIZONTAL)               
+        self.hSizermain = wx.BoxSizer(wx.HORIZONTAL)               
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)               
 
@@ -140,13 +143,12 @@ class FilesItemDetailsSummary(bgPanel):
         self.scrollLeft = tribler_topButton(self, -1, name = "ScrollLeft")
         self.scrollLeft.createBackgroundImage()  
         self.scrollLeft.Bind(wx.EVT_LEFT_UP, self.scrollLeftClicked)      
-        #self.scrollLeft.Hide()
+
  
         # scroll right
         self.scrollRight = tribler_topButton(self, -1, name = "ScrollRight")
         self.scrollRight.createBackgroundImage()        
         self.scrollRight.Bind(wx.EVT_LEFT_UP, self.scrollRightClicked)      
-        #self.scrollRight.Hide()
 
 
 
@@ -162,15 +164,11 @@ class FilesItemDetailsSummary(bgPanel):
         self.play_big.Bind(wx.EVT_LEFT_UP, self.playbig_clicked)
 
 
-       
-        def is_playable_callback(torrent, playable):
-            self.setPlayableStatus(playable)
-              
 
-        playable = self.guiUtility.standardDetails.torrent_is_playable(callback=is_playable_callback)
-        self.setPlayableStatus(playable)
-        
-
+        # loading gif
+        ag_fname = os.path.join(self.utility.getPath(),LIBRARYNAME,'Main','vwxGUI','images','5.0','fids.gif')
+        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
+        self.ag.Play()
 
 
         self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
@@ -180,7 +178,6 @@ class FilesItemDetailsSummary(bgPanel):
         self.vSizer3 = wx.BoxSizer(wx.VERTICAL)
         self.vSizer3.Add([0,10], 0, wx.FIXED_MINSIZE, 0)
         self.vSizer3.Add(self.download, 0, wx.FIXED_MINSIZE, 4)
-
 
 
 
@@ -207,13 +204,29 @@ class FilesItemDetailsSummary(bgPanel):
         self.hSizer0.Add(self.vSizer3, 0, 0, 0)
 
 
-        self.vSizer.Add(self.hSizer0, 0, 0, 0)
 
+
+        self.hSizer1.Add((300,0), 0, 0, 0)
+        self.hSizer1.Add(self.ag, 0, 0, 0)
+
+        self.hSizermain.Add(self.hSizer1, 0, 0, 0)
+        self.hSizermain.Add(self.hSizer0, 0, 0, 0)
         
+        self.vSizer.Add(self.hSizermain, 0, 0, 0)
+
 
         self.SetSizer(self.vSizer)
         self.SetAutoLayout(1);  
         self.Layout()
+
+
+
+        def is_playable_callback(torrent, playable):
+            self.setPlayableStatus(playable)
+              
+
+        playable = self.guiUtility.standardDetails.torrent_is_playable(callback=is_playable_callback)
+        self.setPlayableStatus(playable)
 
 
 
@@ -231,6 +244,13 @@ class FilesItemDetailsSummary(bgPanel):
                 self.scrollRight.Hide()
             else:
                 self.loadTorrent(self.fileList)
+            self.ag.Stop()
+            self.ag.Hide()
+            self.hSizermain.Detach(0)
+            self.hSizermain.Layout()
+            self.vSizer.Layout()
+            self.Layout()
+            self.Refresh()
         else: # torrent is not playable   
             self.scrollLeft.Hide()
             self.scrollRight.Hide()
@@ -426,9 +446,9 @@ class fileItem(wx.Panel):
         self.title.SetMinSize((380,self.ms))
 
         # play button
-        self.play = tribler_topButton(self, -1, name='library_play')
-        #self.play.Bind(wx.EVT_LEFT_UP, self.play_clicked)
-        self.play.Hide()
+        self.play = tribler_topButton(self, -1, name='fids_play')
+        self.play.mouseOver = False
+        self.play.Refresh()
 
         self.hSizer.Add(self.play, 0, 0, 0)
         self.hSizer.Add((10,0), 0, 0, 0)
@@ -458,11 +478,13 @@ class fileItem(wx.Panel):
 
         if event.Entering():
             self.title.SetForegroundColour(self.fileColourSel)
-            self.play.Show()
+            self.play.mouseOver = True
+            self.play.Refresh()
             self.hSizer.Layout()
         elif event.Leaving():
             self.title.SetForegroundColour(self.fileColour)
-            self.play.Hide()
+            self.play.mouseOver = False
+            self.play.Refresh()
             self.hSizer.Layout()
 
 

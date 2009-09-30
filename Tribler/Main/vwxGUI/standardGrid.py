@@ -251,6 +251,12 @@ class GridManager(object):
             data=None
             total_items=0
 
+
+            nb_subscriptions = self.channelcast_db.getMyNumberSubscriptions()
+            self.grid.guiUtility.nb_subscriptions = nb_subscriptions
+
+
+
             if self.grid.guiUtility.guiPage == 'search_results':
                 if self.grid.name == 'channelsGrid':
 
@@ -780,8 +786,11 @@ class standardGrid(wx.Panel):
     
     def clearAllData(self):
         for i in range(0, self.items):
-            self.setDataOfPanel(i, None)
-            
+            hSizer = self.vSizer.GetItem(i%self.currentRows+1).GetSizer()
+            panel = hSizer.GetItem(i/ self.currentRows).GetWindow()
+            panel.deselect(0,0)
+            panel.setData(None)
+
     def onResize(self, event=None):
         if self.GetSize() == self.lastSize:
             return

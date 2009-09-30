@@ -491,8 +491,10 @@ class fileItem(bgPanel):
         else:
             self.play = tribler_topButton(self, -1, name='channels_play_win')
 
+
+        self.play.mouseOver = False
+        self.play.Refresh()
         self.play.Bind(wx.EVT_LEFT_UP, self.play_clicked)
-        self.play.Hide()
 
         self.hSizer.Add(self.play, 0, 0, 0)
         self.hSizer.Add((10,0), 0, 0, 0)
@@ -519,18 +521,19 @@ class fileItem(bgPanel):
         self.Refresh()       
 
     def mouseAction(self, event):
-        if event.LeftUp():
-            self.play_clicked()
-
+        event.Skip()
         if event.Entering():
             self.title.SetForegroundColour(self.fileColourSel)
-            self.play.Show()
+            self.play.mouseOver = True
+            self.play.Refresh()
             self.hSizer.Layout()
         elif event.Leaving():
             self.title.SetForegroundColour(self.fileColour)
-            self.play.Hide()
+            self.play.mouseOver = False
+            self.play.Refresh()
             self.hSizer.Layout()
-
+        if event.LeftUp():
+            self.play_clicked()
 
         self.Refresh()
 

@@ -81,6 +81,10 @@ class GUIUtility:
         self.pageTitle = None
 
 
+        # number subsciptions
+        self.nb_subscriptions = None
+
+
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
 
