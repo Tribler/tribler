@@ -60,34 +60,34 @@ def validVoteCastMsg(data):
         return False
     
     for record in data:
-        print >>sys.stderr, "validvotecastmsg: ", repr(record)
+        if DEBUG: 
+            print >>sys.stderr, "validvotecastmsg: ", repr(record)
         if not validPermid(record[0]):
-            print >> sys.stderr, "not valid permid: ", repr(record[0]) 
+            if DEBUG:
+                print >> sys.stderr, "not valid permid: ", repr(record[0]) 
             return False
         if not type(record[1]) == int:
-            print >> sys.stderr, "not int: ", repr(record[1]) 
+            if DEBUG:
+                print >> sys.stderr, "not int: ", repr(record[1]) 
             return False
     
     return True
 
-def validChannelCastMsg(data):
-    """ Returns True if ChannelCastMsg is valid, ie, it is of type [(publisher_id, timestamp)] """
-    if data is None: 
-        print >> sys.stderr, "data is None"
+
+def validChannelCastMsg(channelcast_data):
+    """ Returns true if ChannelCastMsg is valid,
+    format: [(publisher_id, publisher_name, infohash, torrenthash, torrent_name, timestamp, signature)] 
+     """
+    if not isinstance(channelcast_data,list):
         return False
-    
-    if not type(data) == ListType:
-        print >> sys.stderr, "data is not List"
-        return False
-    
-    for record in data:
-        if not validPermid(record[0]):
-            print >> sys.stderr, "not valid permid: ", repr(record[0]) 
+    for ch in channelcast_data:
+        if len(ch) != 7:
             return False
-        if not validTimestamp(record[1]):
-            print >> sys.stderr, "not valid timestamp: ", repr(record[1])
+        # ch format: publisher_id, publisher_name, infohash, torrenthash, torrent_name, timestamp, signature
+        if not (validPermid(ch[0]) and isinstance(ch[1],str) and validInfohash(ch[2]) and validInfohash(ch[3])
+                and isinstance(ch[4],str) and validTimestamp(ch[5]) and isinstance(ch[6],str)):
             return False
-    
+
     return True
     
 #*************************************************

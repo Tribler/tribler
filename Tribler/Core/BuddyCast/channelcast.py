@@ -17,6 +17,7 @@ from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.SocialNetwork.ChannelQueryMsgHandler import ChannelQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_ELEVENTH
 
 DEBUG = False
@@ -25,6 +26,8 @@ NUM_OWN_RECENT_TORRENTS = 15
 NUM_OWN_RANDOM_TORRENTS = 10
 NUM_OTHERS_RECENT_TORRENTS = 15
 NUM_OTHERS_RECENT_TORRENTS = 10
+
+RELOAD_FREQUENCY = 2*60*60
 
 class ChannelCastCore:
     def __init__(self, data_handler, secure_overlay, session, buddycast_interval_function, log = '', dnsindb = None):
@@ -151,33 +154,36 @@ class ChannelCastCore:
         return True       
 
     def handleChannelCastMsg(self, sender_permid, data):
-        if DEBUG:
-            print >> sys.stderr, "Processing CHANNELCAST msg from: ", permid_for_user(sender_permid)
-            print >> sys.stderr, "data: ", repr(data)
-            
-        for record in data:
-            l = (record[0],record[2], record[3], record[5])
-            result = verify_data(bencode(l),str2bin(record[0]),str2bin(record[6]))
-            if result:
-                if self.channelcastdb.addTorrent(record):
-                    print >>sys.stderr, "torrent record is successfully added into ChannelCastDB"
-                    if not self.channelcastdb.existsTorrent(record[2]):
-                        print >>sys.stderr, "Downloading the torrent"
-                        self.rtorrent_handler.download_torrent(sender_permid,str2bin(record[2]),usercallback)
-                else:
-                    print >>sys.stderr, "Torrent already exists.. so need not download it"
+        self.updateChannel(sender_permid, None, data)
 
-        if DEBUG:
-            print >> sys.stderr, "Processed CHANNELCAST msg from: ", permid_for_user(sender_permid)
+    def updateChannel(self,query_permid, query, hits):
+        """
+        This function is called when there is a reply from remote peer regarding updating of a channel
+        @param query_permid: the peer who returned the results
+        @param query: the query string
+        @param hits: details of all matching results related to the query  
+        """
+        for hit in hits:
+            l = (hit[0],hit[2], hit[3], hit[5])
+            result = verify_data(bencode(l),str2bin(hit[0]),str2bin(hit[6]))
+            
+            if result and self.channelcastdb.addTorrent(hit): # if verified and is a new insert
+                print >>sys.stderr, "torrent record is successfully added into ChannelCastDB"
+                # if new insert, request the torrent
+                if not self.channelcastdb.existsTorrent(hit[2]):
+                    print >>sys.stderr, "Downloading the torrent"
+                    # if torrent does not exist in the database, request to download the torrent
+                    self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
+    
+    def updateMySubscribedChannels(self):
+        subscribed_channels = self.channelcastdb.getMySubscribedChannels()
+        for permid, channel_name, num_subscriptions in subscribed_channels:
+            # query the remote peers, based on permid, to update the channel content
+            q = "p:"+permid
+            self.session.chquery_connected_peers(q,usercallback=self.updateChannel)
+        
+        self.secure_overlay.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)        
 
 def usercallback(infohash,metadata,filename):
     pass
 
-
-def validChannelCastMsg(channelcast_data):
-    if not isinstance(channelcast_data,list):
-        return False
-    for ch in channelcast_data:
-        if len(ch) != 7:
-            return False
-    return True

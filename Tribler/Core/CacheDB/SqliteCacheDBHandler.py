@@ -1959,7 +1959,7 @@ class TorrentDBHandler(BasicDBHandler):
                 
             torrent_list.append(torrent)
         
-        print >> sys.stderr, "# hits:%d; search time:%s" % (len(torrent_list),time()-t1)
+        #print >> sys.stderr, "# hits:%d; search time:%s" % (len(torrent_list),time()-t1)
         return torrent_list
 
 
@@ -3214,8 +3214,8 @@ class ChannelCastDBHandler(BasicDBHandler):
         
 
     def deleteOwnTorrent(self, infohash): ##
-        sql = 'Delete From ChannelCast where infohash==?'
-        self._db.execute_write(sql,(infohash,))
+        sql = 'Delete From ChannelCast where infohash==? and publisher_id==?'
+        self._db.execute_write(sql,(infohash,bin2str(self.my_permid),))
 
 
     
@@ -3268,13 +3268,15 @@ class ChannelCastDBHandler(BasicDBHandler):
         return torrent
 
     def getTorrentsFromPublisherId(self, publisher_id): ##
-        records=[]
-        sql = "select infohash from ChannelCast where publisher_id='"+ publisher_id + "'"
-        res= self._db.fetchall(sql)
-        for res_item in res:
-            torrentHash = res_item[0] 
-            records.append(self.getTorrentFromTorrenthash(str2bin(torrentHash)))
-        return records
+        sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id='" + publisher_id + "' )"
+        return self._db.fetchall(sql)
+        #records=[]
+        #sql = "select infohash from ChannelCast where publisher_id='"+ publisher_id + "'"
+        #res= self._db.fetchall(sql)
+        #for res_item in res:
+        #    torrentHash = res_item[0] 
+        #    records.append(self.getTorrentFromTorrenthash(str2bin(torrentHash)))
+        #return records
 
 
     def searchChannels(self,query):

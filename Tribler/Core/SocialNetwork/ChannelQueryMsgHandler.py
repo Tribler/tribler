@@ -11,7 +11,7 @@ from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler,PeerDBHandler
 from Tribler.Core.BitTornado.BT1.MessageID import *
-
+from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_ELEVENTH
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid
 from Tribler.Core.Statistics.Logger import OverlayLogger
@@ -146,7 +146,7 @@ class ChannelQueryMsgHandler:
         if peers_to_query < max_peers_to_query and self.bc_fac and self.bc_fac.buddycast_core:
             query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(MAX_PEERS_TO_QUERY-peers_to_query)
             for permid in query_cand:
-                print >> sys.stderr , "peers_to_query" , bin2str(permid)
+                print >> sys.stderr , "ch: peers_to_query" , bin2str(permid)
                 if permid not in self.connections:    # don't call twice
                     self.overlay_bridge.connect(permid,query_conn_callback_lambda)
                     peers_to_query += 1
@@ -264,5 +264,9 @@ def isValidQueryReply(d,selversion):
     if not ('a' in d and 'id' in d):
         if DEBUG:
             print >>sys.stderr,"ch_reply: a or id key missing"
+        return False
+    if not validChannelCastMsg(d['a']):
+        if DEBUG:
+            print >> sys.stderr, "ch_reply: is not valid list of ChannelCast records"
         return False
     return True
