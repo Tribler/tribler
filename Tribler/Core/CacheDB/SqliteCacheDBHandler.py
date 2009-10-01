@@ -3427,9 +3427,9 @@ class ChannelCastDBHandler(BasicDBHandler):
         return records
     
 
-    def getMostPopularChannelFromTorrent(self, torrenthash): ##
+    def getMostPopularChannelFromTorrent(self, infohash): ##
         """Returns name of most popular channel if any"""
-        sql = "select publisher_id, publisher_name from ChannelCast where torrenthash='"+bin2str(torrenthash)+"'" 
+        sql = "select publisher_id, publisher_name from ChannelCast where infohash='"+bin2str(infohash)+"'" 
         publishers = self._db.fetchall(sql)
         if len(publishers) == 0:
             return None
@@ -3439,8 +3439,9 @@ class ChannelCastDBHandler(BasicDBHandler):
             for publisher_item in publishers:
                 publisher = publisher_item[0]
                 publisher_name = publisher_item[1]
-                if getSubscribersCount(publisher) > maxvote:
-                    maxvote = getSubscribersCount(publisher)
+                num_subscribers = self.getSubscribersCount(publisher) 
+                if num_subscribers > maxvote:
+                    maxvote = num_subscribers
                     mostfamouspublishername = publisher_name
             return mostfamouspublishername
 

@@ -381,6 +381,8 @@ def isValidQuery(d,selversion):
         return False
     if len(d['q']) == 0:
         return False
+    if not d['q'].isalnum():
+        return False
     if len(d) > 2: # no other keys
         return False
     return True
