@@ -188,25 +188,7 @@ class TorrentFeedThread(Thread):
             self.writefile()
         self.lock.release()
     
-    def updateChannel(self,query_permid, query, hits):
-        """
-        This function is called when there is a reply from remote peer regarding updating of a channel
-        query_permid: the peer who returned the results
-        query: the query string
-        hits: details of all matching results related to the query  
-        """
-        for hit in hits:
-            l = (hit[0],hit[2], hit[3], hit[5])
-            result = verify_data(bencode(l),str2bin(hit[0]),str2bin(hit[6]))
-            
-            if result and self.channelcast_db.addTorrent(hit): # if verified and is a new insert
-                print >>sys.stderr, "torrent record is successfully added into ChannelCastDB"
-                # if new insert, request the torrent
-                if not self.channelcast_db.existsTorrent(hit[2]):
-                    print >>sys.stderr, "Downloading the torrent"
-                    # if torrent does not exist in the database, request to download the torrent
-                    self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
-        
+       
         
     def run(self):
         time.sleep(10) # Let other Tribler components, in particular, Session startup
@@ -216,15 +198,6 @@ class TorrentFeedThread(Thread):
             self.feeds_changed = False
             self.lock.release()
             
-            # even before publishing your torrents, update the channels that you are subscribed to.
-            # let the frequency be the same as that of publishing
-            subscribed_channels = self.channelcast_db.getMySubscribedChannels()
-            for permid, channel_name, num_subscriptions in subscribed_channels:
-                # query the remote peers, based on permid, to update the channel content
-                q = "p:"+permid
-                self.session.chquery_connected_peers(q,usercallback=self.updateChannel)
-            
-
             # feeds contains (rss_url, generator) pairs
             feeds = {}
             for feed, on_torrent_callback in cfeeds:
