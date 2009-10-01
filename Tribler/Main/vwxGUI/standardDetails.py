@@ -1479,9 +1479,8 @@ class standardDetails(wx.Panel):
         """
         def success_callback(*args):
             # empty the permids list to indicate that we are done
-            
-            if DEBUG: print >>sys.stderr,"standardDetails: _download_torrentfile_from_peers: received .torrent from peer"
             if state[0]:
+                if DEBUG: print >>sys.stderr,"standardDetails: _download_torrentfile_from_peers: received .torrent from peer after", time() - begin_timer, "seconds"
                 state[0] = False
                 callback(*args)
 
@@ -1500,6 +1499,9 @@ class standardDetails(wx.Panel):
         state = [True, torrent['query_permids'][:]]
         torrent['query_torrent_was_requested'] = True
 
+        if DEBUG:
+            begin_timer = time()
+
         # The rules and policies below can be tweaked to increase
         # performace. More parallel requests can be made, or the
         # timeout to ask more people can be decreased. All at the
@@ -1508,15 +1510,18 @@ class standardDetails(wx.Panel):
             # this is a big torrent. to preserve bandwidth we will
             # request sequentially with a large timeout
             next_callback(3)
+            next_callback(3)
             
         elif 0 <= torrent['torrent_size'] <= 10 * 1024:
             # this is a small torrent. bandwidth is not an issue so
             # download in parallel
             next_callback(-1)
             next_callback(1)
+            next_callback(1)
 
         else:
             # medium and unknown torrent size. 
+            next_callback(1)
             next_callback(1)
 
     def torrent_is_playable(self, torrent=None, default=(False, []), callback=None):
@@ -1558,15 +1563,15 @@ class standardDetails(wx.Panel):
             # a callback
 
             if 'query_permids' in torrent and not torrent.get('myDownloadHistory'):
-                def got_requested_torrent(infohash, metadata, filename):
+                def sesscb_got_requested_torrent(infohash, metadata, filename):
                     if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable Downloaded a torrent"
                     # test that we are still focussed on the same torrent
                     if torrent_filename.endswith(filename) and self.item == torrent:
                         # recursive call
                         playable = self.torrent_is_playable(torrent, default=default)
                         if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable performing callback. is playable", playable
-                        callback(torrent, playable)
-                self._download_torrentfile_from_peers(torrent, got_requested_torrent)
+                        wx.CallAfter(callback, torrent, playable)
+                self._download_torrentfile_from_peers(torrent, sesscb_got_requested_torrent)
             
         print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
         return default
