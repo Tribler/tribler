@@ -475,7 +475,7 @@ class DownloadConfigInterface:
         return self.dlconfig['http_timeout']
 
     def set_check_hashes(self,value):
-        """ Whether to check the integrit of the data on disk using the 
+        """ Whether to check the integrity of the data on disk using the 
         hashes from the torrent definition.
         @param value Boolean 
         """

@@ -313,7 +313,7 @@ class Session(SessionRuntimeConfig):
         object. The Download is then started and checkpointed.
 
         If a checkpointed version of the Download is found, that is restarted
-        overriding the saved DownloadStartupConfig is "dcfg" is not None.
+        overriding the saved DownloadStartupConfig if "dcfg" is not None.
         
         @param tdef  A finalized TorrentDef
         @param dcfg DownloadStartupConfig or None, in which case 

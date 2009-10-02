@@ -42,7 +42,7 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
-    def set_saveas(self,path):
+    def set_dest_dir(self,path):
         raise OperationNotPossibleAtRuntimeException()
 
     def set_video_event_callback(self,usercallback):

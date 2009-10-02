@@ -14,7 +14,8 @@
 
 import sys
 import urlparse
-import urllib  
+import urllib
+import math
 if sys.platform != "win32":
     import curses.ascii
 from types import IntType, LongType
@@ -35,7 +36,6 @@ def metainfo2p2purl(metainfo):
     'encoding' field set. 
     @return URL
     """
-    
     info = metainfo['info']
     
     bitrate = None
@@ -53,8 +53,9 @@ def metainfo2p2purl(metainfo):
                                                 
     urldict = {}
 
-    urldict['s'] = p2purl_encode_nnumber(info['piece length'])
-    urldict['n'] = p2purl_encode_name2url(info['name.utf-8'],'utf-8')
+    urldict['s'] = p2purl_encode_piecelength(info['piece length'])
+    # Warning: mbcs encodings sometimes don't work well under python!
+    urldict['n'] = p2purl_encode_name2url(info['name'],encoding)
     
     if info.has_key('length'):
         urldict['l'] = p2purl_encode_nnumber(info['length'])
@@ -223,7 +224,7 @@ def p2purl_parse_query(query):
             reqinfo['info']['length'] = p2purl_decode_nnumber(v)
             gotlen = True
         elif k == 's':
-            reqinfo['info']['piece length'] = p2purl_decode_nnumber(v)
+            reqinfo['info']['piece length'] = p2purl_decode_piecelength(v)
             gotps = True
         elif k == 'a':
             reqinfo['info']['live']['authmethod'] = v
@@ -318,6 +319,16 @@ def p2purl_encode_nnumber(s):
         format = "Q"
     format = "!"+format # network-byte order
     return b64urlencode(pack(format,s))
+
+
+#
+# Convert Python power-of-two piecelength to text value, or vice versa.
+#
+def p2purl_decode_piecelength(s):
+    return int(math.pow(2.0,float(s)))
+
+def p2purl_encode_piecelength(s):
+    return str(int(math.log(float(s),2.0)))
 
 #
 # "Modified BASE64 for URL" as informally specified in

@@ -18,7 +18,7 @@ from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 # TODO: use reimplementations
-from Tribler.Core.APIImplementation.makeurl import p2purl_decode_base64url,p2purl_decode_nnumber
+from Tribler.Core.APIImplementation.makeurl import p2purl_decode_base64url,p2purl_decode_nnumber,p2purl_decode_piecelength 
 
 
 DEBUG=True
@@ -47,11 +47,11 @@ class TestURLMetadata(TestAsServer):
         self.hispermid = str(self.his_keypair.pub().get_der()) 
 
         # Create URL compat torrents and save in Torrent database.
-        self.tdef1 = TorrentDef.load_from_url(P2PURL_SCHEME+'://127.2.3.42:7764/announce?SjaakCam.mpegts&k=MHowDQYJKoZIhvcNAQEBBQADaQAwZgJhAN0Khlp5ZhWC7VfLynCkKts71b8h8tZXH87PkDtJUTJaX_SS1Cddxkv63PRmKOvtAHhkTLSsWOZbSeHkOlPIq_FGg2aDLDJ05g3lQ-8mSmo05ff4SLqNUTShWO2CR2TPhQIBAw&l=HCAAAA&s=gAA&a=RSA&b=AAIAAA')
+        self.tdef1 = TorrentDef.load_from_url(P2PURL_SCHEME+'://127.2.3.42:7764/announce?SjaakCam.mpegts&k=MHowDQYJKoZIhvcNAQEBBQADaQAwZgJhAN0Khlp5ZhWC7VfLynCkKts71b8h8tZXH87PkDtJUTJaX_SS1Cddxkv63PRmKOvtAHhkTLSsWOZbSeHkOlPIq_FGg2aDLDJ05g3lQ-8mSmo05ff4SLqNUTShWO2CR2TPhQIBAw&l=HCAAAA&s=15&a=RSA&b=AAIAAA')
         self.torrentfn1 = os.path.join(self.session.get_torrent_collecting_dir(),"live.torrent")
         self.tdef1.save(self.torrentfn1)
 
-        self.tdef2 = TorrentDef.load_from_url(P2PURL_SCHEME+'://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=gAA&b=AAFnGg')
+        self.tdef2 = TorrentDef.load_from_url(P2PURL_SCHEME+'://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg')
         self.torrentfn2 = os.path.join(self.session.get_torrent_collecting_dir(),"vod.torrent")
         self.tdef2.save(self.torrentfn2)
 
@@ -137,7 +137,7 @@ class TestURLMetadata(TestAsServer):
                 if k == 'l': #length
                     v = p2purl_decode_nnumber(v)
                 elif k == 's': # piece size
-                    v = p2purl_decode_nnumber(v)
+                    v = p2purl_decode_piecelength(v)
                 elif k == 'r': # root hash
                     v = p2purl_decode_base64url(v)
                 elif k == 'k': # live key
