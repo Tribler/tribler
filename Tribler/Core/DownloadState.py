@@ -175,7 +175,7 @@ class DownloadState(Serializable):
         Returns the download's number of active connections. This is used
         to see if there is any progress when non-fatal errors have occured
         (e.g. tracker timeout).
-        @return Boolean.
+        @return An integer.
         """
         if self.stats is None:
             return 0
@@ -253,14 +253,6 @@ class DownloadState(Serializable):
         else:
             return self.stats['vod_playable_after']
         
-#    def get_vod_duration(self):
-#        """ Returns video total duration if vod system managed to detect it
-#        
-#        @return int duration in seconds or None if unknown
-#        """
-#        if self.stats is not None:
-#            return self.stats['vod_duration']
-
     def get_vod_stats(self):
         """ Returns a dictionary of collected VOD statistics. The keys contained are:
         <pre>
