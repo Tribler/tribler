@@ -111,6 +111,7 @@ class standardPager(wx.Panel):
         self.setPageNumbers(self.beginPage, min(self.numPages,self.totalPages) , self.currentPage, leftDots, rightDots)
         if self.hasGrid():
             self.grid.gridManager.set_page(self.currentPage)
+            self.grid.deselectAll()
         
         
     def setPageNumbers(self, begin, number, current, leftDots, rightDots):
@@ -130,6 +131,9 @@ class standardPager(wx.Panel):
                 text.Bind(wx.EVT_LEFT_UP, self.mouseAction)
                 self.pageNumbers.append(text)
                 self.hSizer.Insert(len(self.pageNumbers)+1, text, 0, wx.TOP|wx.LEFT|wx.RIGHT, 2)
+                size = (self.GetSize()[0]+19, self.GetSize()[1])
+                self.SetMinSize(size)
+                self.SetSize(size)
 
             refresh = True
         elif number < currentPageNumber:
@@ -138,6 +142,9 @@ class standardPager(wx.Panel):
                 self.pageNumbers[i].Destroy()
                 #self.pageNumbers[i].Show(False)
             self.pageNumbers = self.pageNumbers[:number]
+            #size = (self.GetSize()[0]-19, self.GetSize[1])
+            #self.SetMinSize(size)
+            #self.SetSize(size)
             refresh = True
           
         # Manage dots before and after page numbers

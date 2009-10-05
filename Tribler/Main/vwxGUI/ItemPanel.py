@@ -40,6 +40,7 @@ AUTOMODERATION_SAVE_WEBSEARCH_IMAGE_TO_TORRENT = False
 if sys.platform == 'darwin':
     FS_FILETITLE = 10
     FS_FILETITLE_SEL = 12 # size of title in expanded torrent
+    FS_FILESIZE = 10
     FS_SEEDERS = 10
     FS_LEECHERS = 10
     FS_SIMILARITY = 10
@@ -47,6 +48,7 @@ if sys.platform == 'darwin':
 elif sys.platform == 'linux2':
     FS_FILETITLE = 8
     FS_FILETITLE_SEL = 10 
+    FS_FILESIZE = 8
     FS_SEEDERS = 8
     FS_LEECHERS = 8
     FS_SIMILARITY = 7
@@ -54,6 +56,7 @@ elif sys.platform == 'linux2':
 else:
     FS_FILETITLE = 8
     FS_FILETITLE_SEL = 10 
+    FS_FILESIZE = 8
     FS_SEEDERS = 8
     FS_LEECHERS = 8
     FS_SIMILARITY = 10
@@ -170,7 +173,7 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.fileSize = wx.StaticText(self,-1,"size",wx.Point(0,0),wx.Size(100,18), wx.ALIGN_LEFT | wx.ST_NO_AUTORESIZE)        
         self.fileSize.SetBackgroundColour(wx.WHITE)
         self.fileSize.SetForegroundColour(wx.BLACK) 
-        self.fileSize.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.fileSize.SetFont(wx.Font(FS_FILESIZE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.fileSize.SetMinSize((100,18))
 
         self.hSizer.Add(self.fileSize, 0,wx.TOP|wx.BOTTOM, 2)  
@@ -281,6 +284,7 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
                 #print >> sys.stderr , title
                 #print >> sys.stderr , title_new
                 self.title.Enable(True)
+                self.title.Show()
                 self.title.SetLabel(title)
                 if sys.platform != 'win32': # on windows causes a new line bug when title contains & symbol
                     self.title.Wrap(self.title.GetSize()[0])
@@ -364,6 +368,7 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
                 self.title.SetLabel('')
                 self.title.SetToolTipString('')
                 self.title.Enable(False)
+                self.title.Hide()
                 self.seeders.SetLabel('')                
                 self.leechers.SetLabel('')                
                 if self.listItem:

@@ -24,7 +24,7 @@ except ImportError:
     print_exc()
     
 
-DEBUG = False
+DEBUG = True
 
 SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
@@ -761,26 +761,44 @@ class ChannelSearchGridManager:
         
     def gotRemoteHits(self,permid,kws,answers,mode):
         """ Called by GUIUtil when hits come in. """
+        print >> sys.stderr , "answers" , answers
         try:
             #if DEBUG:
             print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHist: got",len(answers),"for",kws
             
-            # Always store the results, only display when in filesMode
+            # Always store the results, only display when in channelsMode
             # We got some replies. First check if they are for the current query
             if self.searchkeywords['channelsMode'] == kws:
                 numResults = 0
-                for key,value in answers.iteritems():
+                for el in answers[0]:  
                     
-                    if self.channelcast_db.hasTorrent(key):
-                        if DEBUG:
-                            print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHist: Ignoring hit for",`value['content_name']`,"already got it"
-                        continue # do not show results we have ourselves
+#                    if self.channelcast_db.hasTorrent(infohash):
+#                        if DEBUG:
+#                            print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHist: Ignoring hit for",`value['content_name']`,"already got it"
+#                        continue # do not show results we have ourselves
                     
                     # Convert answer fields as per 
-                    # Session.query_connected_peers() spec. to NEWDB format
+                    # Session.chquery_connected_peers() spec. to NEWDB format
                     newval = {}
-                    self.remoteHits[newval['infohash']] = newval
-                    numResults +=1
+                    newval['publisher_id'] = el[0]                    
+                    newval['publisher_name'] = el[1]                    
+                    newval['infohash'] = el[2]
+                    newval['torrenthash'] = el[3]
+                    newval['torrentname'] = el[4]
+                    newval['time_stamp'] = el[5]
+                    newval['signature'] = el[6]
+                        
+
+                    if newval['infohash'] in self.remoteHits:
+                        # merge this result with previous results
+                        oldval = self.remoteHits[newval['infohash']]
+                        for query_permid in newval['query_permids']:
+                            if not query_permid in oldval['query_permids']:
+                                oldval['query_permids'].append(query_permid)
+                    else:
+                        self.remoteHits[newval['infohash']] = newval
+                        numResults +=1
+
              
                 if numResults > 0 and mode == 'channelsMode': #  and self.standardOverview.getSearchBusy():
                     self.refreshGrid()

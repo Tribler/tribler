@@ -261,6 +261,8 @@ class GridManager(object):
                 if self.grid.name == 'channelsGrid':
 
                     [total_items,res] = self.channelsearch_manager.getChannelHits(state.db)
+                    if res is not None:
+                        print >> sys.stderr , len(res)
                     data = []
                     if total_items > 0:
                         for el in res:
