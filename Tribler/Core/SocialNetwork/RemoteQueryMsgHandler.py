@@ -244,18 +244,20 @@ class RemoteQueryMsgHandler:
         if self.logfile:
             self.log(permid, q)        
      
-        # Filter against bad input
-        if not q.isalnum():
-            newq = u''
-            for i in range(0,len(q)):
-                if q[i].isalnum():
-                    newq += q[i]
-            q = newq
+#        # Filter against bad input
+#        if not q.isalnum():
+#            newq = u''
+#            for i in range(0,len(q)):
+#                if q[i].isalnum():
+#                    newq += q[i]
+#            q = newq
         
         # Format: 'SIMPLE '+string of space separated keywords
         # In the future we could support full SQL queries:
         # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE
-        kws = q.split()
+        import re
+        kws = re.split(r'\W+', q.lower())
+        #kws = q.split()
         hits = self.search_manager.search(kws, maxhits=MAX_RESULTS, local=False)
 
         p = self.create_query_reply(d['id'],hits,selversion)

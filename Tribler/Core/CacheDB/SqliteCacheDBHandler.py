@@ -1281,30 +1281,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         def remove_special_characters(filename):
             filename = filename.lower()
-            filename = filename.replace('*',' ')
-            filename = filename.replace('(',' ')
-            filename = filename.replace(')',' ')
-            filename = filename.replace('{',' ')
-            filename = filename.replace('}',' ')
-            filename = filename.replace('[',' ')
-            filename = filename.replace(']',' ')                    
-            filename = filename.replace('/',' ')
-            filename = filename.replace('\\',' ')
-            filename = filename.replace('|',' ')
-            filename = filename.replace('-',' ')
-            filename = filename.replace('.',' ')
-            filename = filename.replace('+',' ')
-            filename = filename.replace('$',' ')
-            filename = filename.replace('%',' ')
-            filename = filename.replace('^',' ')
-            filename = filename.replace('_',' ')
-            filename = filename.replace(',',' ')
-            filename = filename.replace('#',' ')
-            filename = filename.replace('!',' ')
-            filename = filename.replace('@',' ')
-            filename = filename.replace('~',' ')
-            filename = filename.replace("'"," ")
-            return re.split(r'\s+', filename)             
+            return re.split(r'\W+', filename)             
         
         if data.has_key('files'):                        
             files = []
@@ -1337,31 +1314,6 @@ class TorrentDBHandler(BasicDBHandler):
                     filepath = "/".join(ls)
                     files.append((torrent_id, filepath, filelen))
 
-#                    filename = filename.lower()
-#                    filename = filename.replace('*',' ')
-#                    filename = filename.replace('(',' ')
-#                    filename = filename.replace(')',' ')
-#                    filename = filename.replace('{',' ')
-#                    filename = filename.replace('}',' ')
-#                    filename = filename.replace('[',' ')
-#                    filename = filename.replace(']',' ')                    
-#                    filename = filename.replace('/',' ')
-#                    filename = filename.replace('\\',' ')
-#                    filename = filename.replace('|',' ')
-#                    filename = filename.replace('-',' ')
-#                    filename = filename.replace('.',' ')
-#                    filename = filename.replace('+',' ')
-#                    filename = filename.replace('$',' ')
-#                    filename = filename.replace('%',' ')
-#                    filename = filename.replace('^',' ')
-#                    filename = filename.replace('_',' ')
-#                    filename = filename.replace(',',' ')
-#                    filename = filename.replace('#',' ')
-#                    filename = filename.replace('!',' ')
-#                    filename = filename.replace('@',' ')
-#                    filename = filename.replace('~',' ')
-#                    filename = filename.replace("'"," ")
-#                    ls = re.split(r'\s+', filename)  
                     ls = remove_special_characters(dunno2unicode(filename))                  
                     for l in ls:
                         l = filter(lambda c: c.isalnum(), l)
@@ -2950,12 +2902,15 @@ class VoteCastDBHandler(BasicDBHandler):
         item = self._db.fetchone(sql,(permid,peerid,))
         return item
     
+    def addVotes(self, votes):
+        sql = 'insert into VoteCast Values (?,?,?,?)'
+        self._db.executemany(sql,votes,commit=True)
+    
     def addVote(self, vote, clone=True):
         vote['time_stamp'] = now()
         if self.hasVote(vote['mod_id'],vote['voter_id']):
-            self.deleteVote(vote['mod_id'],vote['voter_id'])        
+            self.deleteVote(vote['mod_id'],vote['voter_id'])
         self._db.insert(self.table_name, **vote)        
-        print >> sys.stderr, "Vote added:",repr(vote)        
     
     def deleteVotes(self, permid):
         sql = 'Delete From VoteCast where mod_id==?'

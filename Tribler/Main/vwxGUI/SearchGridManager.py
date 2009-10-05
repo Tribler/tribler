@@ -129,7 +129,7 @@ class TorrentSearchGridManager:
             #okGood = torrent['status'] == 'good' or torrent.get('myDownloadHistory', False)
             okGood = torrent['status'] != 'dead' or torrent.get('myDownloadHistory', False)
                         
-            print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
+            #print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
             return okLibrary and okCategory and okGood
         
         # 1. Local search puts hits in self.hits
@@ -207,6 +207,7 @@ class TorrentSearchGridManager:
         
         self.searchkeywords[mode] = wantkeywords
         if mode == 'filesMode':
+            print >> sys.stderr, "query:", self.searchkeywords[mode],";time:%", time()
             self.remoteHits = {}
             if self.dod:
                 self.dod.clear()
@@ -287,7 +288,7 @@ class TorrentSearchGridManager:
         """ Called by GUIUtil when hits come in. """
         try:
             #if DEBUG:
-            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"for",kws
+            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"for",kws, bin2str(permid), time()
             
             # Always store the results, only display when in filesMode
             # We got some replies. First check if they are for the current query
@@ -332,31 +333,8 @@ class TorrentSearchGridManager:
                         # if so, check word boundaries in the swarm name
                         filename = value['content_name']
                         filename = filename.lower()
-                        filename = filename.replace('*',' ')
-                        filename = filename.replace('(',' ')
-                        filename = filename.replace(')',' ')
-                        filename = filename.replace('{',' ')
-                        filename = filename.replace('}',' ')
-                        filename = filename.replace('[',' ')
-                        filename = filename.replace(']',' ')
-                        filename = filename.replace('/',' ')
-                        filename = filename.replace('\\',' ')
-                        filename = filename.replace('|',' ')
-                        filename = filename.replace('-',' ')
-                        filename = filename.replace('.',' ')
-                        filename = filename.replace('+',' ')
-                        filename = filename.replace('$',' ')
-                        filename = filename.replace('%',' ')
-                        filename = filename.replace('^',' ')
-                        filename = filename.replace('_',' ')
-                        filename = filename.replace(',',' ')
-                        filename = filename.replace('#',' ')
-                        filename = filename.replace('!',' ')
-                        filename = filename.replace('@',' ')
-                        filename = filename.replace('~',' ')
-                        filename = filename.replace("'"," ")
                         import re
-                        ls = re.split(r'\s+', filename)
+                        ls = re.split(r'\W+', filename)
                         flag = False
                         for kw in kws:
                             if kw not in ls:
@@ -430,7 +408,7 @@ class TorrentSearchGridManager:
         
     def refreshGrid(self):
         if self.gridmgr is not None:
-            print >>sys.stderr,"TorrentSearchGridManager: refreshGrid: gridmgr refresh"
+            #print >>sys.stderr,"TorrentSearchGridManager: refreshGrid: gridmgr refresh"
             self.gridmgr.refresh()
 
             

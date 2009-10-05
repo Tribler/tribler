@@ -920,7 +920,7 @@ class GUIUtility:
         input = sf.GetValue().strip()
         if input == '':
             return
-
+        
         if self.search_mode == 'files':
             ##wx.CallAfter(self.frame.pageTitlePanel.pageTitle.SetLabel, 'File search')
             self.searchFiles('filesMode', input)
@@ -936,7 +936,10 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: searchFiles:",input
         low = input.lower()
-        wantkeywords = [i for i in low.split(' ') if i]
+        import re
+        p = re.compile(r'\W+')
+        wantkeywords = [i for i in p.split(low) if i]        
+        #wantkeywords = [i for i in low.split(' ') if i]
         self.torrentsearch_manager.setSearchKeywords(wantkeywords, mode)
         self.torrentsearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
         #print "******** gui uti searchFiles", wantkeywords
@@ -981,8 +984,10 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: searchChannels:",input
         low = input.lower()
-
-        wantkeywords = [i for i in low.split(' ') if i]
+        import re
+        p = re.compile(r'\W+')
+        wantkeywords = [i for i in p.split(low) if i]   
+        #wantkeywords = [i for i in low.split(' ') if i]
         self.channelsearch_manager.setSearchKeywords(wantkeywords, mode)
 
         ##### GUI specific code
@@ -1079,7 +1084,8 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: searchPersons:",input
         low = input.lower().strip()
-        wantkeywords = low.split(' ')
+        import re
+        wantkeywords = re.split(r'\W+', low)
 
         self.peersearch_manager.setSearchKeywords(wantkeywords, mode)
         self.peersearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
