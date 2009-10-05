@@ -233,7 +233,8 @@ class SocketHandler:
         t = clock() - self.timeout
         tokill = []
         for s in self.single_sockets.values():
-            if s.last_hit < t:
+            # Only SingleSockets can be closed because of timeouts
+            if type(s) is SingleSocket and s.last_hit < t:
                 tokill.append(s)
         for k in tokill:
             if k.socket is not None:
