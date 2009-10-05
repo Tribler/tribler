@@ -87,6 +87,10 @@ def validChannelCastMsg(channelcast_data):
         if not (validPermid(ch[0]) and isinstance(ch[1],str) and validInfohash(ch[2]) and validInfohash(ch[3])
                 and isinstance(ch[4],str) and validTimestamp(ch[5]) and isinstance(ch[6],str)):
             return False
+        # now, verify signature
+        l = (ch[0],ch[2], ch[3], ch[5])
+        if not verify_data(bencode(l),str2bin(ch[0]),str2bin(ch[6])):
+            return False
 
     return True
     

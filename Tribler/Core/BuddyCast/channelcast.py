@@ -164,10 +164,7 @@ class ChannelCastCore:
         @param hits: details of all matching results related to the query  
         """
         for hit in hits:
-            l = (hit[0],hit[2], hit[3], hit[5])
-            result = verify_data(bencode(l),str2bin(hit[0]),str2bin(hit[6]))
-            
-            if result and self.channelcastdb.addTorrent(hit): # if verified and is a new insert
+            if self.channelcastdb.addTorrent(hit): # if verified and is a new insert
                 print >>sys.stderr, "torrent record is successfully added into ChannelCastDB"
                 # if new insert, request the torrent
                 if not self.channelcastdb.existsTorrent(hit[2]):
