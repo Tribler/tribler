@@ -614,9 +614,10 @@ class SingleDownload(SingleDownloadHelperInterface):
         return self.have.complete()
 
 class Downloader:
-    def __init__(self, storage, picker, backlog, max_rate_period,
+    def __init__(self, infohash, storage, picker, backlog, max_rate_period,
                  numpieces, chunksize, measurefunc, snub_time,
                  kickbans_ok, kickfunc, banfunc, scheduler = None):
+        self.infohash = infohash
         self.storage = storage
         self.picker = picker
         self.backlog = backlog
@@ -649,6 +650,14 @@ class Downloader:
         self.requeueing = False
         self.paused = False
         self.scheduler = scheduler
+
+        # hack: we should not import this since it is not part of the
+        # core nor should we import here, but otherwise we will get
+        # import errors
+        #
+        # _event_reporter stores events that are logged somewhere...
+        from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+        self._event_reporter = get_reporter_instance()
 
         # check periodicaly
         self.scheduler(self.periodic_check, 1)
@@ -705,6 +714,9 @@ class Downloader:
         d = SingleDownload(self, connection)
         perip.lastdownload = d
         self.downloads.append(d)
+
+        self._event_reporter.add_event(self.infohash, "connection-established:%s" % str(ip))
+
         return d
 
     def piece_flunked(self, index):
@@ -740,6 +752,10 @@ class Downloader:
         self.downloads.remove(download)
         if self.endgamemode and not self.downloads: # all peers gone
             self._reset_endgame()
+
+        self._event_reporter.add_event(self.infohash, "connection-upload:%s,%d" % (ip, download.connection.total_uploaded))
+        self._event_reporter.add_event(self.infohash, "connection-download:%s,%d" % (ip, download.connection.total_downloaded))
+        self._event_reporter.add_event(self.infohash, "connection-lost:%s" % ip)
 
     def _reset_endgame(self):            
         if DEBUG: print >>sys.stderr, "Downloader: _reset_endgame"
@@ -801,10 +817,21 @@ class Downloader:
         if self.picker.am_I_complete():
             assert not self.all_requests
             assert not self.endgamemode
-            for d in [i for i in self.downloads if i.have.complete()]:
-                d.connection.send_have(index)   # be nice, tell the other seed you completed
-                self.add_disconnected_seed(d.connection.get_readable_id())
-                d.connection.close()
+
+            for download in self.downloads:
+                if download.have.complete():
+                    download.connection.send_have(index)   # be nice, tell the other seed you completed
+                    self.add_disconnected_seed(download.connection.get_readable_id())
+                    download.connection.close()
+
+                    self._event_reporter.add_event(self.infohash, "connection-seed:%s,%d" % (download.ip, download.connection.total_uploaded))
+                else:
+                    self._event_reporter.add_event(self.infohash, "connection-upload:%s,%d" % (download.ip, download.connection.total_uploaded))
+                    self._event_reporter.add_event(self.infohash, "connection-download:%s,%d" % (download.ip, download.connection.total_downloaded))
+
+            self._event_reporter.add_event(self.infohash, "complete")
+            self._event_reporter.flush()
+                    
             return True
         return False
 

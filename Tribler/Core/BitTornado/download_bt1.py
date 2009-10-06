@@ -406,7 +406,7 @@ class BT1Download:
         self.ratemeasure = RateMeasure()
         self.ratemeasure_datarejected = self.ratemeasure.data_rejected
 
-        self.downloader = Downloader(self.storagewrapper, self.picker, 
+        self.downloader = Downloader(self.infohash, self.storagewrapper, self.picker, 
             self.config['request_backlog'], self.config['max_rate_period'], 
             self.len_pieces, self.config['download_slice_size'], 
             self._received_data, self.config['snub_time'], self.config['auto_kick'], 

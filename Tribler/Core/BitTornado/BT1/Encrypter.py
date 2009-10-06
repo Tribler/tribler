@@ -293,6 +293,9 @@ class Connection:
         if not self.complete and not self.is_coordinator_con():
             if DEBUG:
                 print >>sys.stderr,"encoder: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
+
+            self.Encoder._event_reporter.add_event(self.Encoder.connecter.infohash, "connection-timeout:%s:%s" % (self.get_ip(), self.get_port()))
+
             self.close()
 
     def close(self,closeall=False):
@@ -461,9 +464,20 @@ class Encoder:
         self.toofast_banned = {}
         self.coordinator_ip = None
 # _2fastbt        
+
+        # hack: we should not import this since it is not part of the
+        # core nor should we import here, but otherwise we will get
+        # import errors
+        #
+        # _event_reporter stores events that are logged somewhere...
+        from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+        self._event_reporter = get_reporter_instance()
+
+        # the addresses that have already been reported
+        self._known_addresses = {}
+
         schedulefunc(self.send_keepalives, keepalive_delay)
         
-
     def send_keepalives(self):
         self.schedulefunc(self.send_keepalives, self.keepalive_delay)
         if self.paused:
@@ -481,6 +495,24 @@ class Encoder:
             print >>sys.stderr,"encoder: adding",len(dnsidlist),"peers to queue, current len",len(self.to_connect)
         if not self.to_connect:
             self.raw_server.add_task(self._start_connection_from_queue)
+
+        # all reported addresses are stored in self._known_addresses
+        # to prevent duplicated addresses being send
+        new_addresses = []
+        known_addresses = self._known_addresses
+        for dns, _ in dnsidlist:
+            address = "%s:%s" % dns
+            if not address in known_addresses:
+                known_addresses[address] = True
+                new_addresses.append(address)
+
+        if new_addresses:
+            self._event_reporter.add_event(self.connecter.infohash, "known-hosts:%s" % ";".join(new_addresses))
+
+        # prevent 'to much' memory usage
+        if len(known_addresses) > 2500:
+            known_addresses.clear()
+
         self.to_connect.update(dnsidlist)
         # make sure addrs from various sources, like tracker, ut_pex and DHT are mixed
         # TODO: or not? For Tribler Supported we may want the tracker to
