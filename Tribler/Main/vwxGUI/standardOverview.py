@@ -182,6 +182,8 @@ class standardOverview(wx.Panel):
         else: # filesOverview
             if sys.platform == 'darwin':
                 self.SetMinSize((600,493))
+            elif sys.platform == 'win32':
+                self.SetMinSize((600,490))
             else:
                 self.SetMinSize((600,492))
         self.hSizer.Layout()
