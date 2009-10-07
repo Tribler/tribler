@@ -1302,16 +1302,24 @@ class TorrentDBHandler(BasicDBHandler):
                     # filepath = filepath[:len(filepath)-1]                    
                     # files.append((torrent_id,filepath,filelen))
 
-                    def only_alnum(s):
-                        return filter(lambda c: c.isalnum(), s)
-                    
-                    #ls = map(only_alnum, li['path'])   # list representing file path
-                    ls = li['path']
+                    # add filename that can cause a unicode bug
+                    # li['path'].append("_\x9f.test")
+
+                    def filter_characters(s):
+                        def to_unicode(c):
+                            if 0 < ord(c) < 128:
+                                return c
+                            else:
+                                if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum(), "in", `s`
+                                return "?"
+                        return "".join(map(to_unicode, s))
+
+                    ls = map(filter_characters, li['path'])   # list representing file path
                     if len(ls) == 0:
                         continue
                     filelen = li['length']
                     filename = ls[-1]
-                    filepath = "/".join(ls)
+                    filepath = u"/".join(ls)
                     files.append((torrent_id, filepath, filelen))
 
                     ls = remove_special_characters(dunno2unicode(filename))                  
