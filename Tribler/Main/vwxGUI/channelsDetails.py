@@ -13,19 +13,20 @@ from wx.lib.stattext import GenStaticText as StaticText
 import threading
 import os, sys
 
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 from Tribler.Video.VideoPlayer import VideoPlayer
-from Tribler.Main.vwxGUI.tribler_topButton import *
 
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import *
+
 from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.vwxGUI.channelsDetailsItem import channelsDetailsItem
+from Tribler.Main.vwxGUI.tribler_topButton import *
 
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
@@ -108,7 +109,6 @@ class channelsDetails(bgPanel):
         self.lastPage=0
         self.totalItems=0
         self.torrentsPerPage=15
-        self.torrentSpacing=(0,5) # space between torrents
         self.torrentLength=320
         self.torrentColour=(255,51,0)
         self.torrentColourSel=(0,105,156)
@@ -241,12 +241,6 @@ class channelsDetails(bgPanel):
         self.rssFeedbackText.Hide()
 
 
-        # add Torrent button
-        ##self.add_torrent = tribler_topButton(self, -1, name = "addTorrent")
-        ##self.add_torrent.createBackgroundImage()
-        ##self.add_torrent.Bind(wx.EVT_LEFT_UP, self.addTorrentClicked)
-        ##self.add_torrent.Hide()
-
         # subscription button
         self.SubscriptionButton = SwitchButton(self, -1, name = "SubscriptionButton")
         self.SubscriptionButton.createBackgroundImage()
@@ -278,15 +272,7 @@ class channelsDetails(bgPanel):
         self.SubscriptionLimitText.SetFont(wx.Font(FS_MAX_SUBSCRIPTION_TEXT,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.SubscriptionLimitText.SetMinSize((330,40))
         self.SubscriptionLimitText.Hide()
-
-
-        # update subscription text
-        #self.updateSubscriptionText = wx.StaticText(self,-1,"Last Updated 3 days ago",wx.Point(0,0),wx.Size(150,18))  
-        #self.updateSubscriptionText.SetBackgroundColour((216,233,240))
-        #self.updateSubscriptionText.SetForegroundColour(wx.BLACK)
-        #self.updateSubscriptionText.SetFont(wx.Font(FS_UPDATE_TEXT,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        #self.updateSubscriptionText.SetMinSize((150,18))
-   
+  
 
 
         self.hSizer0.Add((20,0), 0, 0, 0)
@@ -356,7 +342,6 @@ class channelsDetails(bgPanel):
         if self.initialized == True or force==True:
             self.channelTitle.Hide()
             self.SubscriptionButton.Hide()
-            ##self.updateSubscriptionText.Hide()
             self.foundText.Hide()
             self.scrollLeft.Hide()
             self.scrollRight.Hide()
@@ -492,7 +477,6 @@ class channelsDetails(bgPanel):
     def loadChannel(self, parent, torrentList, publisher_id, publisher_name, subscribed):
         self.parent = parent
         self.torrentList = torrentList
-        ##self.add_torrent.Show(self.parent.isMyChannel())
         self.setSubscribed(subscribed)
         self.setPublisherId(publisher_id)
         self.showElements(subscribed)
@@ -546,7 +530,6 @@ class channelsDetails(bgPanel):
         for i in range(numItems):
             self.vSizerContents.Add(self.torrents[self.currentPage*self.torrentsPerPage+i], 0, 0, 0)
             self.torrents[self.currentPage*self.torrentsPerPage+i].Show()
-            # self.vSizerContents.Add(self.torrentSpacing, 0, 0, 0)
         self.vSizerContents.Layout()
         self.refreshScrollButtons()
         self.Layout()
@@ -646,7 +629,6 @@ class channelsDetails(bgPanel):
                     self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes+=1    
                 else:
                     self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes+=1
-                #self.parent.num_votes+=1
 
             else: # maximum number of subscriptions reached
                 self.updateSubscriptionLimitText()
@@ -661,15 +643,14 @@ class channelsDetails(bgPanel):
             else:
                 self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes-=1
 
-            #self.parent.num_votes-=1
+
 
         if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
             self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).setSubscribed()       
-            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).resetTitle()       
+            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).resetTitle()      
         else:
             self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).setSubscribed()       
             self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).resetTitle()       
-
 
 
     def updateSubscriptionLimitText(self):
