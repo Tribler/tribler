@@ -257,7 +257,15 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
     for b in prefxchg['random peers']:
         validPeer(b)
         
-    # ARNOCOMMENT: missing test for 'collected torrents' field
+    if 'collected torrents' in prefxchg:
+        # 'collected torrents' must contain a list with 20 byte infohashes
+        if not isinstance(prefxchg['collected torrents'], list):
+            raise RuntimeError, "bc: invalid 'collected torrents' type " + str(type(prefxchg['collected torrents']))
+        for infohash in prefxchg['collected torrents']:
+            if not (isinstance(infohash, str) or isinstance(infohash, unicode)):
+                raise RuntimeError, "bc: invalid infohash type " + str(type(infohash))
+            if not len(infohash) == 20:
+                raise RuntimeError, "bc: invalid infohash length " + str(len(infohash))
         
     return True
 
@@ -1253,8 +1261,9 @@ class BuddyCastCore:
                 except:
                     errmsg = repr(msg)
                 if DEBUG:
-                    print >> sys.stderr, "bc: warning, got invalid BuddyCastMsg:", errmsg, \
-                    "Round", self.round   # ipv6
+                    dns = self.dnsindb(sender_permid)
+                    print >> sys.stderr, "bc: warning, got invalid BuddyCastMsg:", errmsg, "From", dns, "Round", self.round   # ipv6
+
                 return False
            
             # update sender's ip and port in buddycast
