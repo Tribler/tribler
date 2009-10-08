@@ -292,14 +292,18 @@ class PeerDBHandler(BasicDBHandler):
         
         return peers
     
-    def getLocalPeerList(self, max_peers): # return a list of peer_ids
+    def getLocalPeerList(self, max_peers,minoversion=None): # return a list of peer_ids
         """Return a list of peerids for local nodes, friends first, then random local nodes"""
         
-        sql = 'select permid from Peer where is_local=1 ORDER BY friend DESC, random() limit %d'%max_peers
+        sql = 'select permid from Peer where is_local=1 '
+        if minoversion is not None:
+            sql += 'and oversion >= '+str(minoversion)+' '
+        sql += 'ORDER BY friend DESC, random() limit %d'%max_peers
         list = []
         for row in self._db.fetchall(sql):
             list.append(base64.b64decode(row[0]))
         return list
+
 
     def addPeer(self, permid, value, update_dns=True, update_connected=False, commit=True):
         # add or update a peer
@@ -1106,11 +1110,25 @@ class TorrentDBHandler(BasicDBHandler):
                       'relevance', 'infohash', 'tracker', 'last_check']
 
         self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment'] ##
-
+        
 
     def register(self, category, torrent_dir):
         self.category = category
         self.torrent_dir = torrent_dir
+        return
+        # consider for migration    
+        # insert the torrent details into InvertedIndex and TorrentFiles tables, if the DB is just migrated to a new version
+        sql = "select torrent_file_name from Torrent where torrent_file_name is not NULL"
+        records = self._db.fetchall(sql)
+        sql1 = "select count(*) from InvertedIndex"
+        num = self._db.fetchone(sql1)
+        if num==0 and len(records)>0: # this means its a new migration 
+            for record in records:
+                filename = os.path.join(self.torrent_dir, record[0])
+                infohash, torrent = self._readTorrentData(filename)
+                if infohash is not None:
+                    self.deleteTorrent(infohash)
+                    self._addTorrentToDB(infohash, torrent, commit=True)
 
     def getTorrentID(self, infohash):
         return self._db.getTorrentID(infohash)
@@ -1326,18 +1344,11 @@ class TorrentDBHandler(BasicDBHandler):
                     for l in ls:
                         l = filter(lambda c: c.isalnum(), l)
                         termdoc.append((l,torrent_id))
-            if len(files)>0:        
-                sql = u"insert into TorrentFiles values(?,?,?)"
-                self._db.executemany(sql, files, commit=True)
                            
             if len(termdoc)>0:
                 sql1 = u"insert or replace into InvertedIndex values(?,?)"
                 self._db.executemany(sql1, termdoc, commit=True)           
-            
-        else:
-            sql = u"insert into TorrentFiles values(?,?,?)"
-            values = [(torrent_id,dunno2unicode(data['name']),data['length'])]
-            self._db.executemany(sql, values, commit=True)
+
         
         # Now include the 'name' field as well, which is common for both single-file and batch torrents     
         termdoc = []
@@ -3317,22 +3328,67 @@ class ChannelCastDBHandler(BasicDBHandler):
 
 
     def getMostPopularUnsubscribedChannels(self): ##
-        """return a list of tuples: [(permid,channel_name,#subscriptions)]"""
-        records = []
+        """return a list of tuples: [(permid,channel_name,#votes)]"""
+        
         votecastdb = VoteCastDBHandler.getInstance()
-
-        sql = "select mod_id from VoteCast where mod_id not in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id"
-        mod_ids = self._db.fetchall(sql)
-        votes=[]
-        for mod_id in mod_ids:
-            votes.append((mod_id[0], votecastdb.getNumSubscriptions(mod_id[0])))      
-        for vote in votes:
-            sql = "select publisher_name, time_stamp from ChannelCast where publisher_id='"+vote[0]+"' order by 2 desc" 
-            record = self._db.fetchone(sql)
-            if not record is None:
-                mod_name = record[0]
-                records.append((vote[0],mod_name,vote[1]))
-        return records
+        allrecords = []
+        
+        t1 = time()
+        records = []
+        sql = "select distinct publisher_id, publisher_name from ChannelCast"
+        records = self._db.fetchall(sql)
+        t2= time()
+        print >>sys.stderr, "getMostPopularUnsubscribedChannels: distinct publishers:", (t2-t1)
+        
+        publishers = {}
+        for publisher_id, publisher_name in records:
+            if not publisher_id in publishers:
+                t1 = time()
+                publishers[publisher_id] = publisher_name
+                sql = "select sum(vote), count(*) from VoteCast where mod_id='" + publisher_id +"'"
+                sum, count = self._db.fetchone(sql)
+                if sum is None or count is None:
+                    continue
+                # 2*num_subscriptions - num_negvotes = sum
+                # num_subscriptions + num_negvotes = count 
+                num_subscriptions = (sum+count)/3
+                num_negvotes = count - num_subscriptions
+                if num_subscriptions-num_negvotes > -6: # else it is considered SPAM
+                    allrecords.append((publisher_id, publisher_name, num_subscriptions-num_negvotes))
+                t2 = time()
+                print >>sys.stderr, "getMostPopularUnsubscribedChannels: ",publisher_id, (t2-t1)
+        def compare(a,b):
+            return cmp(a[2],b[2])
+        allrecords.sort(cmp=compare, reverse=True)
+        return allrecords
+    
+#        #sql = "select mod_id from VoteCast where mod_id not in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id"
+#        #mod_ids = self._db.fetchall(sql)
+#        sql = "select mod_id, count(*) from VoteCast where mod_id<>'" + bin2str(self.my_permid) + "' and voter_id<>'" + bin2str(self.my_permid) + "' and vote=2 group by mod_id"
+#        subs = self._db.fetchall(sql)
+#        sql = "select mod_id, count(*) from VoteCast where mod_id<>'" + bin2str(self.my_permid) + "' and voter_id<>'" + bin2str(self.my_permid) + "' and vote=-1 group by mod_id"
+#        negs = self._db.fetchall(sql)
+#        votes = {}
+#        for sub in subs:
+#            votes[sub[0]] = sub[1]
+#        for neg in negs:
+#            if neg[0] in votes:
+#                votes[neg[0]] = votes[neg[0]]-neg[1]
+#            else:
+#                votes[neg[0]]=-neg[1]
+#        records=[]
+#        for mod_id, vote in votes.items():
+#            records.append((vote,mod_id))
+#        records.sort(reverse=True)
+#        #for mod_id in mod_ids:
+#        #    votes.append((mod_id[0], votecastdb.getNumSubscriptions(mod_id[0])))      
+#        for vote, mod_id in records:
+#            sql = "select publisher_name, time_stamp from ChannelCast where publisher_id='"+mod_id+"' order by 2 desc" 
+#            record = self._db.fetchone(sql)
+#            if not record is None:
+#                mod_name = record[0]
+#                records.append((mod_id,mod_name,vote))
+#        return records
 
     def getMyChannel(self):
         mychannel = []

@@ -76,24 +76,34 @@ def validVoteCastMsg(data):
 
 def validChannelCastMsg(channelcast_data):
     """ Returns true if ChannelCastMsg is valid,
-    format: [(publisher_id, publisher_name, infohash, torrenthash, torrent_name, timestamp, signature)] 
+    format: {'signature':{'publisher_id':, 'publisher_name':, 'infohash':, 'torrenthash':, 'torrent_name':, 'timestamp':, 'signature':}} 
      """
-    if not isinstance(channelcast_data,list):
+    if not isinstance(channelcast_data,dict):
         return False
-    for ch in channelcast_data:
-        if len(ch) != 7:
+    for signature, ch in channelcast_data.items():
+        if not isinstance(ch,dict):
+            if DEBUG:
+                print >>sys.stderr,"rvalidChannelCastMsg: a: value not dict"
             return False
-        # ch format: publisher_id, publisher_name, infohash, torrenthash, torrent_name, timestamp, signature
-        if not (validPermid(ch[0]) and isinstance(ch[1],str) and validInfohash(ch[2]) and validInfohash(ch[3])
-                and isinstance(ch[4],str) and validTimestamp(ch[5]) and isinstance(ch[6],str)):
+        if len(ch) !=6:
+            if DEBUG:
+                print >>sys.stderr,"rvalidChannelCastMsg: a: #keys!=6"
+            return False
+        if not ('publisher_id' in ch and 'publisher_name' in ch and 'infohash' in ch and 'torrenthash' in ch and 'torrentname' in ch and 'time_stamp' in ch):
+            if DEBUG:
+                print >>sys.stderr,"validChannelCastMsg: a: key missing, got",d.keys()
+            return False
+        if not (validPermid(ch['publisher_id']) and isinstance(ch['publisher_name'],str) and validInfohash(ch['infohash']) and validInfohash(ch['torrenthash'])
+                and isinstance(ch['torrentname'],str) and validTimestamp(ch['time_stamp'])):
             return False
         # now, verify signature
-        l = (ch[0],ch[2], ch[3], ch[5])
-        if not verify_data(bencode(l),str2bin(ch[0]),str2bin(ch[6])):
+        l = (ch['publisher_id'],ch['infohash'], ch['torrenthash'], ch['time_stamp'])
+        if not verify_data(bencode(l),str2bin(ch['publisher_id']),str2bin(signature)):
+            if DEBUG:
+                print >>sys.stderr, "validChannelCastMsg: verification failed!"
             return False
-
     return True
-    
+     
 #*************************************************
 
 def voteCastMsgToString(data):

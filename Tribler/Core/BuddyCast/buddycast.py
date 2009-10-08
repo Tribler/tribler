@@ -1972,20 +1972,25 @@ class BuddyCastCore:
         
     def addRemoteSearchPeer(self, permid, oversion, ntorrents, last_seen):
         if oversion >= OLPROTO_VER_SIXTH and ntorrents >= REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD:
-            insort(self.remote_search_peer_candidates, [last_seen,permid])
+            insort(self.remote_search_peer_candidates, [last_seen,permid, oversion])
             if len(self.remote_search_peer_candidates) > self.num_search_cand:
                 self.remote_search_peer_candidates.pop(0)
                 
-    def getRemoteSearchPeers(self, npeers):
+    def getRemoteSearchPeers(self, npeers,minoversion=None):
         if len(self.remote_search_peer_candidates) > npeers:
             _peers = sample(self.remote_search_peer_candidates, npeers)    # randomly select
         else:
             _peers = self.remote_search_peer_candidates
-        peers = [permid for last_seen,permid in _peers]
+        #peers = [permid for last_seen,permid in _peers]
+        peers = []
+        for p in _peers:
+            (last_seen,permid,selversion) = p
+            if minoversion is None or selversion >= minoversion:
+                peers.append(permid)
 
         # Also add local peers (they should be cheap)
         # TODO: How many peers?  Should these be part of the npeers?
-        local_peers = self.data_handler.getLocalPeerList(max_peers=5)
+        local_peers = self.data_handler.getLocalPeerList(max_peers=5,minoversion=minoversion)
         if DEBUG:
             print >> sys.stderr, "bc: getRemoteSearchPeers: Selected %d local peers" % len(local_peers)
         
@@ -2066,8 +2071,8 @@ class DataHandler:
     def getPeerPermid(self, peer_id):
         return self.peer_db.getPermid(peer_id)
 
-    def getLocalPeerList(self, max_peers):
-        return self.peer_db.getLocalPeerList(max_peers)
+    def getLocalPeerList(self, max_peers,minoversion=None):
+        return self.peer_db.getLocalPeerList(max_peers,minoversion=minoversion)
         
     def updatePort(self, port):
         self.my_db.put('port', port)

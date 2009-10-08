@@ -10,6 +10,7 @@
 
 import os
 import sys
+import re
 from time import time
 from sets import Set
 from traceback import print_stack, print_exc
@@ -20,8 +21,9 @@ from M2Crypto import Rand
 
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
+from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler,PeerDBHandler
 from Tribler.Core.BitTornado.BT1.MessageID import *
-
+from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINETH, OLPROTO_VER_ELEVENTH
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid
 from Tribler.Core.Statistics.Logger import OverlayLogger
@@ -53,8 +55,8 @@ class RemoteQueryMsgHandler:
             raise RuntimeError, "RemoteQueryMsgHandler is singleton"
         RemoteQueryMsgHandler.__single = self
 
-        
-        self.connections = Set()    # only connected remote_search_peers
+        self.connections = {}    # only connected remote_search_peers -> selversion
+        #self.connections = Set()    # only connected remote_search_peers
         self.query_ids2rec = {}    # ARNOCOMMENT: TODO: purge old entries...
         self.overlay_log = None
         self.registered = False
@@ -74,6 +76,7 @@ class RemoteQueryMsgHandler:
         self.launchmany= launchmany
         self.search_manager = SearchManager(launchmany.torrent_db)
         self.peer_db = launchmany.peer_db
+        self.channelcast_db = launchmany.channelcast_db
         self.config = config
         self.bc_fac = bc_fac # May be None
         if log:
@@ -116,9 +119,14 @@ class RemoteQueryMsgHandler:
             return True
 
         if exc is None:
-            self.connections.add(permid)
+            self.connections[permid] = selversion
+            #self.connections.add(permid)
         else:
-            self.connections.remove(permid)
+            #self.connections.remove(permid)
+            try:
+                del self.connections[permid]
+            except:
+                print_exc()
 
         return True
 
@@ -142,18 +150,24 @@ class RemoteQueryMsgHandler:
         m = QUERY+p
         query_conn_callback_lambda = lambda exc,dns,permid,selversion:self.conn_callback(exc,dns,permid,selversion,m)
 
+        if query.startswith("CHANNEL"):
+            wantminoversion = OLPROTO_VER_ELEVENTH
+        else:
+            wantminoversion =  OLPROTO_VER_SIXTH
+            
         if DEBUG:
             print >>sys.stderr,"rquery: send_query: Connected",len(self.connections),"peers"
         
         #print "******** send query net cb:", query, len(self.connections), self.connections
         
         peers_to_query = 0
-        for permid in self.connections:
-            self.overlay_bridge.connect(permid,query_conn_callback_lambda)
-            peers_to_query += 1
+        for permid,selversion in self.connections.iteritems():
+            if selversion >= wantminoversion:
+                self.overlay_bridge.connect(permid,query_conn_callback_lambda)
+                peers_to_query += 1
         
         if peers_to_query < max_peers_to_query and self.bc_fac and self.bc_fac.buddycast_core:
-            query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(MAX_PEERS_TO_QUERY-peers_to_query)
+            query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(MAX_PEERS_TO_QUERY-peers_to_query,wantminoversion)
             for permid in query_cand:
                 if permid not in self.connections:    # don't call twice
                     self.overlay_bridge.connect(permid,query_conn_callback_lambda)
@@ -238,29 +252,32 @@ class RemoteQueryMsgHandler:
     # Send query reply
     #
     def process_query(self, permid, d, selversion):
-        q = d['q'][len('SIMPLE '):]
-        q = dunno2unicode(q)
+        q = None
+        hits = None
+        p = None
+        
+        query = d['q']
+        
+        if query.startswith("SIMPLE"): # remote query
+            q = d['q'][len('SIMPLE '):]
+            q = dunno2unicode(q)
+         
+            # Format: 'SIMPLE '+string of space separated keywords
+            # In the future we could support full SQL queries:
+            # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE
+            kws = re.split(r'\W+', q.lower())
+            hits = self.search_manager.search(kws, maxhits=MAX_RESULTS, local=False)
+            p = self.create_remote_query_reply(d['id'],hits,selversion)
+        elif query.startswith("CHANNEL"): # channel query
+            q = d['q'][len('CHANNEL '):]
+            q = dunno2unicode(q)
+            hits = self.channelcast_db.searchChannels(q)
+            p = self.create_channel_query_reply(d['id'],hits,selversion)
+            
         # log incoming query, if logfile is set
         if self.logfile:
             self.log(permid, q)        
-     
-#        # Filter against bad input
-#        if not q.isalnum():
-#            newq = u''
-#            for i in range(0,len(q)):
-#                if q[i].isalnum():
-#                    newq += q[i]
-#            q = newq
-        
-        # Format: 'SIMPLE '+string of space separated keywords
-        # In the future we could support full SQL queries:
-        # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE
-        import re
-        kws = re.split(r'\W+', q.lower())
-        #kws = q.split()
-        hits = self.search_manager.search(kws, maxhits=MAX_RESULTS, local=False)
 
-        p = self.create_query_reply(d['id'],hits,selversion)
         m = QUERY_REPLY+p
 
         if self.overlay_log:
@@ -276,7 +293,7 @@ class RemoteQueryMsgHandler:
         self.inc_peer_nqueries(permid)
         
         
-    def create_query_reply(self,id,hits,selversion):
+    def create_remote_query_reply(self,id,hits,selversion):
         getsize = os.path.getsize
         join = os.path.join
         d = {}
@@ -302,11 +319,26 @@ class RemoteQueryMsgHandler:
         d['a'] = d2
         return bencode(d)
 
-
+    def create_channel_query_reply(self,id,hits):
+        d = {}
+        d['id'] = id
+        d2 = {}
+        for hit in hits:
+            r = {}
+            r['publisher_id'] = hit[0]
+            r['publisher_name'] = hit[1]
+            r['infohash'] = hit[2]
+            r['torrenthash'] = hit[3]
+            r['torrentname'] = hit[4]
+            r['time_stamp'] = hit[5]
+            # hit[6]: signature, which is unique for any torrent published by a user
+            d2[hit[6]] = r
+        d['a'] = d2
+        return bencode(d)
+    
     #
     # Receive query reply
     #
-
     def recv_query_reply(self,permid,message,selversion):
         
         #print "****** recv query reply", len(message)
@@ -314,8 +346,8 @@ class RemoteQueryMsgHandler:
         if selversion < OLPROTO_VER_SIXTH:
             return False
         
-        if len(message) > MAX_QUERY_REPLY_LEN:
-            return True    # don't close
+        #if len(message) > MAX_QUERY_REPLY_LEN:
+        #    return True    # don't close
 
         # Unpack
         try:
@@ -330,6 +362,7 @@ class RemoteQueryMsgHandler:
                 print >>sys.stderr,"rquery: not valid QUERY_REPLY message", selversion
             return False
 
+        
         # Check auth
         queryrec = self.is_registered_query_id(d['id'])
         if not queryrec:
@@ -413,15 +446,33 @@ def isValidQueryReply(d,selversion):
 def isValidHits(d,selversion):
     if not isinstance(d,dict):
         return False
-    for key in d.keys():
-#        if len(key) != 20:
-#            return False
-        val = d[key]
-        if not isValidVal(val,selversion):
-            return False
+    ls = d.values()
+    if len(ls)>0:
+        l = ls[0]
+        if 'publisher_id' in l: # channel search result
+            if not validChannelCastMsg(d):
+                return False
+        elif 'content_name' in l: # remote search
+            for key in d.keys():
+        #        if len(key) != 20:
+        #            return False
+                val = d[key]
+                if not isValidRemoteVal(val,selversion):
+                    return False
     return True
 
-def isValidVal(d,selversion):
+def isValidChannelVal(d, selversion):
+    if not isinstance(d,dict):
+        if DEBUG:
+            print >>sys.stderr,"rqmh: reply: a: value not dict"
+        return False
+    if not ('publisher_id' in d and 'publisher_name' in d and 'infohash' in d and 'torrenthash' in d and 'torrentname' in d and 'time_stamp' in d):
+        if DEBUG:
+            print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
+        return False
+    return True
+
+def isValidRemoteVal(d,selversion):
     if not isinstance(d,dict):
         if DEBUG:
             print >>sys.stderr,"rqmh: reply: a: value not dict"

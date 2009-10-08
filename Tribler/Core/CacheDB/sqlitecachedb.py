@@ -887,27 +887,6 @@ class SQLiteCacheDBV4(SQLiteCacheDBBase):
         # bring database up to version 2, if necessary        
         if fromver < 2:
             sql = """
--- V2: Patch for VoteCast
-            
-CREATE TABLE VoteCast (
-mod_id text,
-voter_id text,
-vote integer,
-time_stamp integer
-);
-
-CREATE INDEX mod_id_idx
-on VoteCast 
-(mod_id);
-
-CREATE INDEX voter_id_idx
-on VoteCast 
-(voter_id);
-
-CREATE UNIQUE INDEX votecast_idx
-ON VoteCast
-(mod_id, voter_id);
-
 
 -- Patch for BuddyCast 4
 
@@ -947,6 +926,36 @@ ALTER TABLE Peer ADD COLUMN is_local integer DEFAULT 0;
 
         if fromver < 4:
             sql="""
+-- V2: Patch for VoteCast
+
+DROP TABLE IF EXISTS ModerationCast;
+DROP INDEX IF EXISTS moderationcast_idx;
+
+DROP TABLE IF EXISTS Moderators;
+DROP INDEX IF EXISTS moderators_idx;
+
+DROP TABLE IF EXISTS VoteCast;
+DROP INDEX IF EXISTS votecast_idx;
+
+CREATE TABLE VoteCast (
+mod_id text,
+voter_id text,
+vote integer,
+time_stamp integer
+);
+
+CREATE INDEX mod_id_idx
+on VoteCast 
+(mod_id);
+
+CREATE INDEX voter_id_idx
+on VoteCast 
+(voter_id);
+
+CREATE UNIQUE INDEX votecast_idx
+ON VoteCast
+(mod_id, voter_id);
+            
 --- patch for BuddyCast 5 : Creation of Popularity table and relevant stuff
 
 CREATE TABLE Popularity (
@@ -1019,39 +1028,6 @@ on InvertedIndex
 (word,torrent_id);
 
 ----------------------------------------
-
-CREATE TABLE TorrentFiles(
-torrent_id         integer,
-filepath           text,
-filesize           integer
-);
-
-CREATE INDEX torrentfile_idx
-on TorrentFiles
-(torrent_id);
-
-----------------------------------------
-
-CREATE TABLE BadTorrents (
-  torrent_id       integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-  infohash           text NOT NULL,
-  name             text,
-  torrent_file_name text,
-  length           integer,
-  creation_date    integer,
-  num_files        integer,
-  thumbnail        integer,
-  insert_time      numeric,
-  secret           integer,
-  relevance        numeric DEFAULT 0,
-  source_id        integer,
-  category_id      integer,
-  status_id        integer,
-  num_seeders      integer,
-  num_leechers     integer,
-  comment          text
-);
-
 
 """
             self.execute_write(sql, commit=False)
