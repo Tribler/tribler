@@ -46,6 +46,7 @@ class GUIUtility:
         self.frame = None
         self.selectedMainButton = None
         self.standardOverview = None
+        self.standardDetails = None
         self.reachable = False
         self.DELETE_TORRENT_ASK = True
         self.DELETE_TORRENT_ASK_OLD = True

@@ -1469,13 +1469,21 @@ class standardDetails(wx.Panel):
 #    def isEnabled(self):
 #        return self.enabled
 
-    def _download_torrentfile_from_peers(self, torrent, callback):
+    def _download_torrentfile_from_peers(self, torrent, callback, duplicate=True):
         """
         TORRENT is a dictionary containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
 
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
+
+        DUPLICATE can be True: the file will be downloaded from peers
+        regardless of a previous/current download attempt (returns
+        True). Or DUPLICATE can be False: the file will only be
+        downloaded when it was not yet attempted to download (when
+        False is returned no callback will be made)
+
+        Returns True or False
         """
         def success_callback(*args):
             # empty the permids list to indicate that we are done
@@ -1495,9 +1503,19 @@ class standardDetails(wx.Panel):
                     next_callback_lambda = lambda:next_callback(timeout)
                     guiserver.add_task(next_callback_lambda, timeout)
 
+        # return False when duplicate
+        if not duplicate and torrent.get('query_torrent_was_requested', False):
+            return False
+
+        # return False when there are no sources to retrieve the
+        # torrent from
+        if not 'query_permids' in torrent:
+            print >> sys.stderr, "standardDetails: _download_torrentfile_from_peers: can not download .torrent file. No known source peers"
+            return False
+
+        torrent['query_torrent_was_requested'] = True
         guiserver = GUITaskQueue.getInstance()
         state = [True, torrent['query_permids'][:]]
-        torrent['query_torrent_was_requested'] = True
 
         if DEBUG:
             begin_timer = time()
@@ -1509,7 +1527,6 @@ class standardDetails(wx.Panel):
         if torrent['torrent_size'] > 50 * 1024:
             # this is a big torrent. to preserve bandwidth we will
             # request sequentially with a large timeout
-            next_callback(3)
             next_callback(3)
             
         elif 0 <= torrent['torrent_size'] <= 10 * 1024:
@@ -1523,6 +1540,8 @@ class standardDetails(wx.Panel):
             # medium and unknown torrent size. 
             next_callback(1)
             next_callback(1)
+
+        return True
 
     def torrent_is_playable(self, torrent=None, default=(False, []), callback=None):
         """
@@ -1538,7 +1557,7 @@ class standardDetails(wx.Panel):
         self.item == torrent
 
         The return value is a tuple consisting of a boolean indicating if the torrent is playable and a list.
-        If the torrent is not playable or if the defalut value is returned the boolean is False and the list is empty.
+        If the torrent is not playable or if the default value is returned the boolean is False and the list is empty.
         If it is playable the boolean is true and the list returned consists of the playable files within the actual torrent. 
         """
         if torrent is None:
@@ -1551,9 +1570,10 @@ class standardDetails(wx.Panel):
 
         if os.path.isfile(torrent_filename):
             tdef = TorrentDef.load(torrent_filename)
-            if tdef.get_files(exts=videoextdefaults):
+            files = tdef.get_files(exts=videoextdefaults)
+            if files:
                 if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable is playable"
-                return (True, tdef.get_files(exts=videoextdefaults))
+                return (True, files)
             else:
                 if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable is NOT playable"
                 return (False, [])
@@ -1573,7 +1593,7 @@ class standardDetails(wx.Panel):
                         wx.CallAfter(callback, torrent, playable)
                 self._download_torrentfile_from_peers(torrent, sesscb_got_requested_torrent)
             
-        print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
+        if DEBUG: print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
         return default
 
 

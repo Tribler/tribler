@@ -3,18 +3,19 @@
 
 import sys
 import wx
+import os
 from traceback import print_exc, print_stack
 from time import time
 
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
-
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 
 from Tribler.Core.simpledefs import *
 
-#from Tribler.Core.Session import *
+from Tribler.Core.Overlay.MetadataHandler import get_filename
+from Tribler.Core.Session import Session
 
 from math import sqrt
 try:
@@ -24,7 +25,7 @@ except ImportError:
     print_exc()
     
 
-DEBUG = True
+DEBUG = False
 
 SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
@@ -63,14 +64,15 @@ class TorrentSearchGridManager:
         self.oldsearchkeywords = {'filesMode':[], 'channelsMode':[], 'libraryMode':[]} # previous query
 
         self.category = Category.getInstance()
-        #self.session = Session.getInstance()
 
         #self.votecastdb= self.guiUtility.utility.session.open_dbhandler(NTFY_VOTECAST)
         #self.channelcastdb= self.guiUtility.utility.session.open_dbhandler(NTFY_CHANNELCAST)
 
         #self.votecastdb = VoteCastDBHandler.getInstance()
         #self.channelcastdb = ChannelCastDBHandler.getInstance()
-       
+
+        self.prefetch_callback = wx.CallLater(0, self.prefetch_hits)
+        
         
     def getInstance(*args, **kw):
         if TorrentSearchGridManager.__single is None:
@@ -91,7 +93,7 @@ class TorrentSearchGridManager:
         self.gridmgr = gridmgr
     
     def getHitsInCategory(self,mode,categorykey,range,sort,reverse):
-        begintime = time()
+        if DEBUG: begintime = time()
         # mode is 'filesMode', 'libraryMode'
         # categorykey can be 'all', 'Video', 'Document', ...
         
@@ -177,7 +179,8 @@ class TorrentSearchGridManager:
         else:
             end = range[1]
         begin = range[0]
-        beginsort = time()
+
+        if DEBUG: beginsort = time()
         
         if sort == 'rameezmetric':
             self.sort()
@@ -190,16 +193,70 @@ class TorrentSearchGridManager:
 #        # eventually, these should probably be combined
 #        # since for now, however, my reranking is very tame (exchanging first and second place under certain circumstances)
 #        # this should be fine...
-#         
+         
         self.rerankingStrategy[mode] = getTorrentReranker()
         self.hits = self.rerankingStrategy[mode].rerank(self.hits, self.searchkeywords[mode], self.torrent_db, 
                                                         self.pref_db, self.mypref_db, self.search_db)
-        
-            
-        #print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time()-beginsort))
+
+        # boudewijn: now that we have sorted the search results we
+        # want to prefetch the top N torrents.
+        if not self.prefetch_callback.IsRunning():
+            self.prefetch_callback.Start(1000)
+
+        if DEBUG:
+            print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time()-beginsort))
         return [len(self.hits),self.hits[begin:end]]
                 
-                
+
+    def prefetch_hits(self):
+        """
+        Prefetching attempts to reduce the time required to get the
+        user the data it wants.
+
+        We assume the torrent at the beginning of self.hits are more
+        likely to be selected by the user than the ones at the
+        end. This allows us to perform prefetching operations on a
+        subselection of these items.
+
+        The prefetch_hits function can be called multiple times. It
+        will only attempt to prefetch every PREFETCH_DELAY
+        seconds. This gives search results from multiple sources the
+        chance to be received and sorted before prefetching a subset.
+        """
+        if not self.guiUtility.standardDetails is None:
+            if DEBUG: begin_time = time()
+            download_torrentfile_from_peers = self.guiUtility.standardDetails._download_torrentfile_from_peers
+            torrent_dir = Session.get_instance().get_torrent_collecting_dir()
+            hit_counter = 0
+            prefetch_counter = 0
+
+            # prefetch .torrent files if they are from buddycast sources
+            for hit in self.hits:
+                def sesscb_prefetch_done(infohash, metadata, filename):
+                    if DEBUG:
+                        # find the origional hit
+                        for hit in self.hits:
+                            if hit["infohash"] == infohash:
+                                print >> sys.stderr, "Prefetch: in", "%.1fs" % (time() - begin_time), `hit["name"]`
+                                return
+                        print >> sys.stderr, "Prefetch BUG. We got a hit from something we didn't ask for"
+
+                if 'torrent_file_name' not in hit or not hit['torrent_file_name']:
+                    hit['torrent_file_name'] = get_filename(hit['infohash']) 
+                torrent_filename = os.path.join(torrent_dir, hit['torrent_file_name'])
+
+                if not os.path.isfile(torrent_filename):
+                    if download_torrentfile_from_peers(hit, sesscb_prefetch_done, duplicate=False):
+                        prefetch_counter += 1
+                        if DEBUG: print >> sys.stderr, "Prefetch: attempting to download", `hit["name"]`
+
+                hit_counter += 1
+                if prefetch_counter >= 10 or hit_counter >= 25:
+                    # (1) prefetch a maximum of N hits
+                    # (2) prefetch only from the first M hits
+                    # (.) wichever is lowest or (1) or (2)
+                    break
+
     def setSearchKeywords(self,wantkeywords, mode):
         self.stopped = False
 #        if len(wantkeywords) == 0:
@@ -270,7 +327,6 @@ class TorrentSearchGridManager:
             if DEBUG:
                 print >> sys.stderr,"TorrentSearchGridManager: remote: Adding %d remote results (%d in category)" % (len(self.remoteHits), len(catResults))
             
-            
             for remoteItem in catResults:
                 known = False
                 for item in self.hits:
@@ -287,8 +343,8 @@ class TorrentSearchGridManager:
     def gotRemoteHits(self,permid,kws,answers,mode):
         """ Called by GUIUtil when hits come in. """
         try:
-            #if DEBUG:
-            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"for",kws, bin2str(permid), time()
+            if DEBUG:
+                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: got",len(answers),"unfiltered results for",kws, bin2str(permid), time()
             
             # Always store the results, only display when in filesMode
             # We got some replies. First check if they are for the current query
@@ -366,9 +422,6 @@ class TorrentSearchGridManager:
 
                     # Extra fiedl: Set from which peer this info originates
                     newval['query_permids'] = [permid]
-                    if DEBUG:
-                        print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: appending hit",`newval['name']`
-                        #value['name'] = 'REMOTE '+value['name']
                         
                     # Filter out results from unwanted categories
                     flag = False
@@ -383,12 +436,18 @@ class TorrentSearchGridManager:
                         continue
 
                     if newval['infohash'] in self.remoteHits:
+                        if DEBUG:
+                            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: merging hit",`newval['name']`
+
                         # merge this result with previous results
                         oldval = self.remoteHits[newval['infohash']]
                         for query_permid in newval['query_permids']:
                             if not query_permid in oldval['query_permids']:
                                 oldval['query_permids'].append(query_permid)
                     else:
+                        if DEBUG:
+                            print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: appending hit",`newval['name']`
+
                         self.remoteHits[newval['infohash']] = newval
                         numResults +=1
                         # if numResults % 5 == 0:
@@ -525,8 +584,6 @@ class TorrentSearchGridManager:
                         0.8*a.get('norm_num_seeders',0) - 0.1*a.get('norm_neg_votes',0) - 0.1*a.get('norm_subscriptions',0) ))
            
         self.hits.sort(cmp)
-        
-        
 
     def doStatNormalization(self, hits, normKey, newKey):
         '''Center the variance on zero (this means mean == 0) and divide
@@ -777,7 +834,6 @@ class ChannelSearchGridManager:
                         self.remoteHits[newval['infohash']] = newval
                         numResults +=1
 
-             
                 if numResults > 0 and mode == 'channelsMode': #  and self.standardOverview.getSearchBusy():
                     self.refreshGrid()
                     if DEBUG:
