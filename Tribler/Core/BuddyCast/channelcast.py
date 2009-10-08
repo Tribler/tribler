@@ -165,10 +165,10 @@ class ChannelCastCore:
         """
         for hit in hits:
             if self.channelcastdb.addTorrent(hit): # if verified and is a new insert
-                print >>sys.stderr, "torrent record is successfully added into ChannelCastDB"
+                if DEBUG: print >>sys.stderr, "torrent record is successfully added into ChannelCastDB"
                 # if new insert, request the torrent
                 if not self.channelcastdb.existsTorrent(hit[2]):
-                    print >>sys.stderr, "Downloading the torrent"
+                    if DEBUG: print >>sys.stderr, "Downloading the torrent"
                     # if torrent does not exist in the database, request to download the torrent
                     self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
     
