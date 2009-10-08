@@ -1010,11 +1010,11 @@ class GUIUtility:
 
         
         if mode == 'channelsMode':
-            q = 'k:'
+            q = 'CHANNEL k:'
             for kw in wantkeywords:
                 q += kw+' '
             
-            self.utility.session.chquery_connected_peers(q,self.sesscb_got_channel_hits)
+            self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
             ##### GUI specific code
 
 
@@ -1045,12 +1045,17 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_channel_hits",len(hits)
 
-        kwstr = query[2:]
+        #kwstr = query[2:]
+        kwstr = query[len("CHANNEL x:"):]
         kws = kwstr.split()
+        records = []
+        for k,v in hits.items():
+            records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
+
         #Code that calls GUI
         # 1. Grid needs to be updated with incoming hits, from each remote peer
         # 2. Sorting should also be done by that function
-        wx.CallAfter(self.channelsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
+        wx.CallAfter(self.channelsearch_manager.gotRemoteHits,permid,kws,records,self.standardOverview.getMode())
         
 
     def stopSearch(self):
