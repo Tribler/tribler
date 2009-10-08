@@ -63,7 +63,6 @@ sessdefaults['dialback_active'] = True  # do active discovery (needed to disable
 sessdefaults['dialback_trust_superpeers'] = True # trust superpeer replies (needed to disable for testing only) (0 = disabled)
 sessdefaults['socnet'] = True
 sessdefaults['rquery'] = True
-sessdefaults['chquery'] = True
 sessdefaults['stop_collecting_threshold'] = 200
 sessdefaults['internaltracker'] = True
 sessdefaults['nickname'] = '__default_name__' # is replaced with hostname in LaunchManyCore.py
