@@ -126,7 +126,7 @@ class VLCWrapper:
                 os.chdir(os.path.join(self.installdir,'vlc'))
     
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
-        params = ["--verbose=2"]
+        params = ["--verbose=0"]
         
         """
         # To enable logging to file:
