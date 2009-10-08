@@ -15,7 +15,6 @@ from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
-from Tribler.Core.SocialNetwork.ChannelQueryMsgHandler import ChannelQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_ELEVENTH
@@ -93,9 +92,20 @@ class ChannelCastCore:
         if DEBUG: 
             print >> sys.stderr, "Creating channelcastmsg..."
         
-        records = self.channelcastdb.getRecentAndRandomTorrents(NUM_OWN_RECENT_TORRENTS,NUM_OWN_RANDOM_TORRENTS,NUM_OTHERS_RECENT_TORRENTS,NUM_OTHERS_RECENT_TORRENTS)
-        # records is of the form: [(mod_id, mod_name, infohash, torrenthash, torrent_name, time_stamp, signature)]
-        return records
+        hits = self.channelcastdb.getRecentAndRandomTorrents(NUM_OWN_RECENT_TORRENTS,NUM_OWN_RANDOM_TORRENTS,NUM_OTHERS_RECENT_TORRENTS,NUM_OTHERS_RECENT_TORRENTS)
+        # hits is of the form: [(mod_id, mod_name, infohash, torrenthash, torrent_name, time_stamp, signature)]
+        d = {}
+        for hit in hits:
+            r = {}
+            r['publisher_id'] = hit[0]
+            r['publisher_name'] = hit[1]
+            r['infohash'] = hit[2]
+            r['torrenthash'] = hit[3]
+            r['torrentname'] = hit[4]
+            r['time_stamp'] = hit[5]
+            # hit[6]: signature, which is unique for any torrent published by a user
+            d[hit[6]] = r
+        return d
     
     def channelCastSendCallback(self, exc, target_permid, other=0):
         if DEBUG:
@@ -163,12 +173,13 @@ class ChannelCastCore:
         @param query: the query string
         @param hits: details of all matching results related to the query  
         """
-        for hit in hits:
+        records = []
+        for k,v in hits.items():
+            records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
+        for hit in records:
             if self.channelcastdb.addTorrent(hit): # if verified and is a new insert
-                if DEBUG: print >>sys.stderr, "torrent record is successfully added into ChannelCastDB"
                 # if new insert, request the torrent
                 if not self.channelcastdb.existsTorrent(hit[2]):
-                    if DEBUG: print >>sys.stderr, "Downloading the torrent"
                     # if torrent does not exist in the database, request to download the torrent
                     self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
     
@@ -176,8 +187,8 @@ class ChannelCastCore:
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()
         for permid, channel_name, num_subscriptions in subscribed_channels:
             # query the remote peers, based on permid, to update the channel content
-            q = "p:"+permid
-            self.session.chquery_connected_peers(q,usercallback=self.updateChannel)
+            q = "CHANNEL p:"+permid
+            self.session.query_connected_peers(q,usercallback=self.updateChannel)
         
         self.secure_overlay.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)        
 
