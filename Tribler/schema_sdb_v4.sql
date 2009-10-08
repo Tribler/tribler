@@ -352,39 +352,6 @@ on InvertedIndex
 
 ----------------------------------------
 
-CREATE TABLE TorrentFiles(
-torrent_id         integer,
-filepath           text,
-filesize           integer
-);
-
-CREATE INDEX torrentfile_idx
-on TorrentFiles
-(torrent_id);
-
-----------------------------------------
-
-CREATE TABLE BadTorrents (
-  torrent_id       integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-  infohash		   text NOT NULL,
-  name             text,
-  torrent_file_name text,
-  length           integer,
-  creation_date    integer,
-  num_files        integer,
-  thumbnail        integer,
-  insert_time      numeric,
-  secret           integer,
-  relevance        numeric DEFAULT 0,
-  source_id        integer,
-  category_id      integer,
-  status_id        integer,
-  num_seeders      integer,
-  num_leechers     integer,
-  comment          text
-);
-
-
 
 COMMIT TRANSACTION create_table;
 
