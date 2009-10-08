@@ -148,13 +148,8 @@ CRAWLER_REPLY = chr(231)
 
 CrawlerMessages = [CRAWLER_REQUEST, CRAWLER_REPLY]
 
-#ChannelQuery messages
-CHANNEL_QUERY = chr(223)
-CHANNEL_QUERY_REPLY = chr(224)
-ChannelQueryMessages = [CHANNEL_QUERY, CHANNEL_QUERY_REPLY]
-
 # All overlay-swarm messages
-OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages + ChannelQueryMessages
+OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages
 
 # Crawler sub-messages
 CRAWLER_DATABASE_QUERY = chr(1)
@@ -195,8 +190,6 @@ message_map = {
     SOCIAL_OVERLAP:"SOCIAL_OVERLAP",
     QUERY:"QUERY",
     QUERY_REPLY:"QUERY_REPLY",
-    CHANNEL_QUERY:"CHANNEL_QUERY",
-    CHANNEL_QUERY_REPLY:"CHANNEL_QUERY_REPLY",
     VOTECAST:"VOTECAST",
     BARTERCAST:"BARTERCAST",
     G2G_PIECE_XFER: "G2G_PIECE_XFER",
