@@ -8,6 +8,7 @@ Database wrapper to add and retrieve Video playback statistics
 import sys
 import os
 import thread
+from base64 import b64encode
 from time import time
 
 from Tribler.__init__ import LIBRARYNAME
@@ -131,10 +132,16 @@ class VideoPlaybackDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self, SQLiteVideoPlaybackStatsCacheDB.get_instance(), 'playback_event')
             
     def add_event(self, key, event):
-        assert type(key) is str
+        assert type(key) in (str, unicode)
         assert not "'" in key
-        assert type(event) is str
+        assert type(event) in (str, unicode)
         assert not "'" in event
+
+        # because the key usually an infohash, and because this is
+        # usually (and incorrectly) stored in a string instead of a
+        # unicode string, this will crash the database wrapper.
+        key = b64encode(key)
+
         if DEBUG: print >>sys.stderr, "VideoPlaybackDBHandler add_event", key, event
         self._db.execute_write("INSERT INTO %s (key, timestamp, event) VALUES ('%s', %s, '%s')" % (self.table_name, key, time(), event))
 

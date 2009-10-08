@@ -16,7 +16,15 @@ from time import time
 from traceback import print_exc
 from Tribler.Core.Session import Session
 
+# PHONEHOME: When True the logging will be enabled. When the overlay
+# is available all events will be stored in a database that can be
+# crawled. When the overlay is NOT available all events will be,
+# periodically, send to a HTTP logging server.
 PHONEHOME = True
+
+# USE_LIVING_LAB_REPORTING: When True all HTTP logging will be
+# targeted to the living-lab servers. Otherwise the Tribler servers
+# are used.
 USE_LIVING_LAB_REPORTING = False
 
 DEBUG = False
