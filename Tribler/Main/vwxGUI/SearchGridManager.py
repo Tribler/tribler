@@ -71,7 +71,9 @@ class TorrentSearchGridManager:
         #self.votecastdb = VoteCastDBHandler.getInstance()
         #self.channelcastdb = ChannelCastDBHandler.getInstance()
 
-        self.prefetch_callback = wx.CallLater(0, self.prefetch_hits)
+        # 09/10/09 boudewijn: CallLater does not accept zero as a
+        # delay. the value needs to be a positive integer.
+        self.prefetch_callback = wx.CallLater(10, self.prefetch_hits)
         
         
     def getInstance(*args, **kw):
