@@ -455,7 +455,7 @@ class fileItem(bgPanel):
         if sys.platform == 'win32':
             self.minsize=(250,18)
         elif sys.platform == 'linux2':
-            self.minsize=(250,18)
+            self.minsize=(250,17)
         else:
             self.minsize=(200,18)
 
@@ -466,12 +466,12 @@ class fileItem(bgPanel):
 
 
         self.tile = True
-        self.backgroundColour = wx.Colour(195,219,231)
+        self.backgroundColour = wx.Colour(95,219,231)
         self.searchBitmap('subpanel.png')
         self.createBackgroundImage()
 
 
-        self.SetBackgroundColour((195, 219, 231))
+        self.SetBackgroundColour(self.backgroundColour)
         self.Refresh()
 
 
@@ -480,10 +480,10 @@ class fileItem(bgPanel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # file title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),self.minsize)
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.minsize[0]-30, self.minsize[1]))
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))        
         self.title.SetForegroundColour(self.fileColour)
-        self.title.SetMinSize(self.minsize)
+        self.title.SetMinSize((self.minsize[0]-30, self.minsize[1]))
 
         # play button
         if sys.platform != 'win32':
@@ -516,8 +516,11 @@ class fileItem(bgPanel):
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
     def setTitle(self, title):
-        self.title.SetLabel(title[:200])
-        self.title.SetToolTipString(self.title.GetLabel()) 
+        self.title.SetToolTipString(title) 
+        i=0
+        while self.title.GetTextExtent(title[:i])[0] < self.minsize[0]-30 and i <= len(title):
+            i=i+1
+        self.title.SetLabel(title[:(i-1)])
         self.Refresh()       
 
     def mouseAction(self, event):

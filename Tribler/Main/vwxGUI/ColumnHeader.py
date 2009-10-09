@@ -228,17 +228,8 @@ class ColumnHeaderBar(wx.Panel):
             if dict.get('component') != 'comboboxSort' :
                 self.hSizer.Add(header, dict.get('weight',0), wx.EXPAND|wx.BOTTOM, 0)
 
-                if columns.index(dict) != len(columns)-1:
-                    line = wx.StaticLine(self,-1,wx.DefaultPosition, ((0,0)), wx.LI_VERTICAL)
-                    self.SetBackgroundColour(self.triblerStyles.sortingColumns(2))
-                    self.hSizer.Add(line, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 0)
-                    if dict.get('width'):
-                        header.SetSize((dict['width']+6, -1))
-                        header.SetMinSize((dict['width']+6, -1))
-                else:
-                    if dict.get('width'):
-                        header.SetSize((dict['width']+3, -1))
-                        header.SetMinSize((dict['width']+3, -1))
+                header.SetSize((dict['width'], -1))
+                header.SetMinSize((dict['width'], -1))
                     
             else:
                 header.Hide()

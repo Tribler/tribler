@@ -167,7 +167,7 @@ class ChannelsItemPanel(wx.Panel):
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
             
     def getColumns(self):
-        return [{'sort':'name', 'reverse':True, 'title':'Channels', 'width':183,'tip':self.utility.lang.get('C_filename'), 'order':'down'}
+        return [{'sort':'name', 'reverse':True, 'title':'Channels', 'width':186,'tip':self.utility.lang.get('C_filename'), 'order':'down'}
                 ]     
                   
     def refreshData(self):

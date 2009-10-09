@@ -147,34 +147,6 @@ class standardPager(wx.Panel):
             #self.SetSize(size)
             refresh = True
           
-        # Manage dots before and after page numbers
-        #if rightDots and not self.currentDots[1]:
-        #    dots = self.getDefaultTextField('...')
-        #    extra =  int(bool(self.currentDots[0]))
-            
-        #    self.hSizer.Insert(len(self.pageNumbers)+2+extra, dots, 0, wx.LEFT|wx.RIGHT, 2)
-        #    self.currentDots[1] = dots
-        #    refresh = True
-        
-        #if not rightDots and self.currentDots[1]:
-        #    self.hSizer.Detach(self.currentDots[1])
-        #    self.currentDots[1].Destroy()
-        #    self.currentDots[1] = None
-        #    refresh = True
-        
-        #if leftDots and not self.currentDots[0]:
-        #    dots = self.getDefaultTextField('...')
-            
-        #    self.hSizer.Insert(2, dots, 0, wx.LEFT|wx.RIGHT, 2)
-        #    self.currentDots[0] = dots
-        #    refresh = True
-        
-        #if not leftDots and self.currentDots[0]:
-        #    self.hSizer.Detach(self.currentDots[0])
-        #    self.currentDots[0].Destroy()
-        #    self.currentDots[0] = None
-        #    refresh = True
-            
             
         #print '%d statictexts' % (len(self.pageNumbers))
         # Put right numbers in statictexts

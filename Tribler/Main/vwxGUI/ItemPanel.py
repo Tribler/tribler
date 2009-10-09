@@ -45,6 +45,10 @@ if sys.platform == 'darwin':
     FS_LEECHERS = 10
     FS_SIMILARITY = 10
     FS_HEARTRANK = 8
+    TITLELENGTH = 80
+    TITLEHEIGHT = 18
+    TITLEHEIGHTEXP = 18
+
 elif sys.platform == 'linux2':
     FS_FILETITLE = 8
     FS_FILETITLE_SEL = 10 
@@ -53,6 +57,9 @@ elif sys.platform == 'linux2':
     FS_LEECHERS = 8
     FS_SIMILARITY = 7
     FS_HEARTRANK = 7
+    TITLELENGTH = 164
+    TITLEHEIGHT = 12
+    TITLEHEIGHTEXP = 18
 else:
     FS_FILETITLE = 8
     FS_FILETITLE_SEL = 10 
@@ -61,7 +68,10 @@ else:
     FS_LEECHERS = 8
     FS_SIMILARITY = 10
     FS_HEARTRANK = 7
-    
+    TITLELENGTH = 80
+    TITLEHEIGHT = 18
+    TITLEHEIGHTEXP = 18
+
 
 filesModeThumbSize = (125, 70)
 #filesModeThumbSizeList = (32, 18)
@@ -81,7 +91,7 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.parent = parent
         self.data = None
         self.datacopy = {}
-        self.titleLength = 64 # num characters
+        self.titleLength = TITLELENGTH # num characters
         self.triblerGrey = wx.Colour(200,200,200)
         self.selected = False
         self.warningMode = False
@@ -103,6 +113,14 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.vcdb = self.session.open_dbhandler(NTFY_VOTECAST)
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
 
+        self.w1 = 415
+        self.w2 = 99
+        self.w3 = 80
+        self.w4 = 67
+
+        self.h1 = TITLEHEIGHT
+
+
 
         self.addComponents()
         self.Show()
@@ -118,7 +136,6 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.name = name
         self.ThumbnailViewer = ThumbnailViewer
         self.guiUtility.thumbnailViewer = ThumbnailViewer
-        self.vSizer2 = None
 
 
         
@@ -161,50 +178,50 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
 
         # Add title
-        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(400,18))        
+        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.w1-5,self.h1))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetForegroundColour(wx.BLACK)
         self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((400,18))
+        self.title.SetMinSize((self.w1-5,self.h1))
 
         self.hSizer.Add(self.title, 0,wx.TOP|wx.BOTTOM, 3)  
   
+        self.hSizer.Add([5,0],0 ,0 ,0)
 
-        self.fileSize = wx.StaticText(self,-1,"size",wx.Point(0,0),wx.Size(100,18), wx.ALIGN_LEFT | wx.ST_NO_AUTORESIZE)        
+
+
+        self.fileSize = wx.StaticText(self,-1,"size",wx.Point(0,0),wx.Size(self.w2-5,18), wx.ALIGN_LEFT | wx.ST_NO_AUTORESIZE)        
         self.fileSize.SetBackgroundColour(wx.WHITE)
         self.fileSize.SetForegroundColour(wx.BLACK) 
         self.fileSize.SetFont(wx.Font(FS_FILESIZE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.fileSize.SetMinSize((100,18))
+        self.fileSize.SetMinSize((self.w2-5,18))
 
         self.hSizer.Add(self.fileSize, 0,wx.TOP|wx.BOTTOM, 2)  
 
-        ##self.popularity = None
+        self.hSizer.Add([5,0],0 ,0 ,0)
 
 
         # seeders
-        self.seeders = wx.StaticText(self, -1, "", wx.Point(0,0), wx.Size(62,18))
+        self.seeders = wx.StaticText(self, -1, "", wx.Point(0,0), wx.Size(self.w3-5,18))
         self.seeders.SetBackgroundColour(wx.WHITE)
         self.seeders.SetForegroundColour(wx.BLACK) 
         self.seeders.SetFont(wx.Font(FS_SEEDERS,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.seeders.SetMinSize((62,18))
+        self.seeders.SetMinSize((self.w3-5,18))
 
 
         # leechers
-        self.leechers = wx.StaticText(self, -1, "", wx.Point(0,0), wx.Size(50,18))
+        self.leechers = wx.StaticText(self, -1, "", wx.Point(0,0), wx.Size(self.w4-5,18))
         self.leechers.SetBackgroundColour(wx.WHITE)
         self.leechers.SetForegroundColour(wx.BLACK) 
         self.leechers.SetFont(wx.Font(FS_LEECHERS,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.leechers.SetMinSize((50,18))
+        self.leechers.SetMinSize((self.w4-5,18))
 
         self.hSizer.Add(self.seeders, 0,wx.TOP|wx.BOTTOM, 2)  
-        self.hSizer.Add([10,0], 0, 0, 0)
+
+        self.hSizer.Add([5,0],0 ,0 ,0)
+
         self.hSizer.Add(self.leechers, 0,wx.TOP|wx.BOTTOM, 2)  
 
-
-        self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer2.Add([30,2],0,wx.EXPAND|wx.FIXED_MINSIZE,3)            
-        self.hSizer.Add(self.vSizer2,0,wx.EXPAND|wx.FIXED_MINSIZE, 0)
-        self.hSizer.Add([10,5],0,wx.FIXED_MINSIZE,0)
 
         self.hSizerSummary = wx.BoxSizer(wx.HORIZONTAL) ##
         self.vSizerOverall.Add(self.hSizerSummary, 0, wx.FIXED_MINSIZE|wx.EXPAND, 0) ##           
@@ -235,19 +252,11 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
             #window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)  
             
     def getColumns(self):
-        if self.type == 'torrent':
-            ##return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':395,'tip':self.utility.lang.get('C_filename')},
-            ##        {'sort':'length', 'title':'Size', 'width':132, 'tip':self.utility.lang.get('C_filesize')},
-            ##        {'sort':'popularity', 'title':'Popularity', 'width':120, 'tip':self.utility.lang.get('C_popularity')}
-            ##        ]
-            return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':394,'tip':self.utility.lang.get('C_filename')},
-                    {'sort':'length', 'title':'Size', 'width':94, 'tip':self.utility.lang.get('C_filesize')},
-                    {'sort':'length', 'title':'Seeders', 'width':65, 'tip':self.utility.lang.get('C_uploaders')},
-                    {'sort':'length', 'title':'Leechers', 'width':87, 'tip':self.utility.lang.get('C_downloaders')},
-                    ]
-        else:
-            return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':395,'tip':self.utility.lang.get('C_channelname')}
-                    ]
+        return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':self.w1,'tip':self.utility.lang.get('C_filename')},
+                {'sort':'length', 'title':'Size', 'width':self.w2, 'tip':self.utility.lang.get('C_filesize')},
+                {'sort':'length', 'title':'Seeders', 'width':self.w3, 'tip':self.utility.lang.get('C_uploaders')},
+                {'sort':'length', 'title':'Leechers', 'width':self.w4, 'tip':self.utility.lang.get('C_downloaders')},
+                ]
 
     def setType(self, type):
         if type not in ('torrent', 'channel'):
@@ -274,10 +283,10 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
         self.thumb.Hide() ## should not be shown
 
-        #self.thumb.setTorrent(torrent)
 
         if self.type == 'torrent':
             if data.get('name'):
+                titlefull = data['name']
                 title = data['name'][:self.titleLength]
                 if sys.platform == 'win32':
                     title = string.replace(title,'&','&&')
@@ -288,11 +297,8 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
                 self.title.SetLabel(title)
                 if sys.platform != 'win32': # on windows causes a new line bug when title contains & symbol
                     self.title.Wrap(self.title.GetSize()[0])
-                self.title.SetToolTipString(title)
-                ##self.setSourceIcon(torrent)
-
-
-                
+                self.title.SetToolTipString(titlefull)
+               
 
 
                 if self.listItem:
@@ -316,55 +322,12 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
                         self.leechers.SetForegroundColour(wx.BLACK)
                         self.leechers.SetLabel("%s " % data['num_leechers'])                
 
-##                    # Show Popularity of torrent a sequence of bars
-##                    total = data['num_seeders']+data['num_leechers']
-##                
-##                    popularity_file = os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","popularity")
-## 
-##                    if total > 18000:  
-##                        popularity_file+='10'
-##                    elif total > 16000:  
-##                        popularity_file+='9'
-##                    elif total > 14000:  
-##                        popularity_file+='8'
-##                    elif total > 12000:  
-##                        popularity_file+='7'
-##                    elif total > 10000:  
-##                        popularity_file+='6'
-##                    elif total > 8000:  
-##                        popularity_file+='5'
-##                    elif total > 6000:  
-##                        popularity_file+='4'
-##                    elif total > 4000:  
-##                        popularity_file+='3'
-##                    elif total > 2000:  
-##                        popularity_file+='2'
-##                    else:  
-##                        popularity_file+='1'
-
-##                    popularity_file+='.png'
-
-##                    if self.popularity is not None:
-##                        self.popularity.Destroy()
-
-                    #self.popularity = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(49,12),name=popularity_file)
-##                    self.popularity_image = wx.Image(popularity_file, wx.BITMAP_TYPE_ANY)            
-    
-##                    self.popularity = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.popularity_image))
-##                    self.popularity.Bind(wx.EVT_MOUSE_EVENTS, self.popularityOver)
-
-##                    if data['num_seeders'] > 0 and data['num_leechers'] > 0:
-##                        self.popularity.SetToolTipString('%s seeders\n%s leechers' % (data['num_seeders'], data['num_leechers']))
-##                    else:
-##                        self.popularity.SetToolTipString('Poor')
-##                    self.hSizer.Add(self.popularity, 0, wx.TOP, 2)
    
                     self.hLine.Show()
 
                 
                 
             else:
-                #self.thumb.Hide()
                 self.title.SetLabel('')
                 self.title.SetToolTipString('')
                 self.title.Enable(False)
@@ -375,8 +338,6 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
                     # -- if list VIEW --
                     self.fileSize.SetLabel('')
  
-##                    if self.popularity:
-##                        self.popularity.Hide()
 
             
         else: # channel
@@ -430,14 +391,10 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
 
         self.Layout()
-        #self.Refresh()
-        #self.parent.Refresh()
         
 
     def addLine(self):
         vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
-#        vLine.SetForegroundColour(wx.Colour(64,128,128))
-#        vLine.SetBackgroundColour(wx.Colour(255,51,0))
         self.hSizer.Add(vLine, 0, wx.RIGHT|wx.LEFT|wx.EXPAND, 3)
         return vLine
           
@@ -459,6 +416,8 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
         self.title.SetBackgroundColour(colour)
         self.title.SetFont(wx.Font(FS_FILETITLE_SEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
+        self.title.SetMinSize((self.w1, TITLEHEIGHTEXP))
+        self.title.SetSize((self.w1, TITLEHEIGHTEXP))
         
         
         self.SetBackgroundColour(colour)
@@ -491,6 +450,8 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
             
         self.title.SetBackgroundColour(colour)
         self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.title.SetMinSize((self.w1, TITLEHEIGHT))
+        self.title.SetSize((self.w1, TITLEHEIGHT))
 
         self.SetBackgroundColour(colour)
         self.fileSize.SetBackgroundColour(colour)
@@ -567,12 +528,7 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
 
         if self.data and (event.LeftUp() or event.RightDown()):
-            # torrent data is sent to guiUtility > standardDetails.setData in case of torrent
-            ##if self.type == 'torrent':
             self.guiUtility.selectTorrent(self.data)
-            ##else:
-            ##    self.toggleItemDetailsSummary(True)
-            ##    self.Refresh()
 
            
 

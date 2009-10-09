@@ -136,32 +136,39 @@ class FilesItemDetailsSummary(bgPanel):
 
         # vSizerContents
         self.vSizerContents = wx.BoxSizer(wx.VERTICAL) ## list of items within a particular channel
-        self.vSizerContents.SetMinSize((400,30))
+        self.vSizerContents.SetMinSize((470,30))
 
 
         # scroll left
         self.scrollLeft = tribler_topButton(self, -1, name = "ScrollLeft")
         self.scrollLeft.createBackgroundImage()  
         self.scrollLeft.Bind(wx.EVT_LEFT_UP, self.scrollLeftClicked)      
+        self.scrollLeft.Hide()
 
  
         # scroll right
         self.scrollRight = tribler_topButton(self, -1, name = "ScrollRight")
         self.scrollRight.createBackgroundImage()        
         self.scrollRight.Bind(wx.EVT_LEFT_UP, self.scrollRightClicked)      
+        self.scrollRight.Hide()
 
 
 
 
-        self.download = tribler_topButton(self, -1, name='save_big')
+        self.download = tribler_topButton(self, -1, name='save_medium')
         self.download.SetMinSize((62,32))
         self.download.SetSize((62,32))
-
-
+        self.download.Hide()
 
         self.play_big = SwitchButton(self, -1, name='playbig')
         self.play_big.setToggled(False) # default
         self.play_big.Bind(wx.EVT_LEFT_UP, self.playbig_clicked)
+        self.play_big.Hide()
+
+
+
+        self.play_big.SetPosition((580,20))
+        self.download.SetPosition((615,28))
 
 
 
@@ -173,17 +180,13 @@ class FilesItemDetailsSummary(bgPanel):
         else:
             self.ag.Play()
 
-        self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer2.Add([0,10], 0, wx.FIXED_MINSIZE, 0)
-        self.vSizer2.Add(self.play_big, 0, wx.FIXED_MINSIZE, 4)
+        #self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
+        #self.vSizer2.Add([0,10], 0, wx.FIXED_MINSIZE, 0)
+        #self.vSizer2.Add(self.play_big, 0, wx.FIXED_MINSIZE, 4)
         
-        self.vSizer3 = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer3.Add([0,10], 0, wx.FIXED_MINSIZE, 0)
-        self.vSizer3.Add(self.download, 0, wx.FIXED_MINSIZE, 4)
-
-
-
-
+        #self.vSizer3 = wx.BoxSizer(wx.VERTICAL)
+        #self.vSizer3.Add([0,18], 0, wx.FIXED_MINSIZE, 0)
+        #self.vSizer3.Add(self.download, 0, wx.FIXED_MINSIZE, 4)
 
             
         self.vSizerLeft.Add((0,3), 0, 0, 0)
@@ -194,16 +197,16 @@ class FilesItemDetailsSummary(bgPanel):
 
 
 
-        self.hSizer0.Add((20,0), 0, 0, 0)
+        self.hSizer0.Add((20,80), 0, 0, 0)
         self.hSizer0.Add(self.vSizerLeft, 0, 0, 0)
         self.hSizer0.Add((10,0), 0, 0, 0)
         self.hSizer0.Add(self.vSizerContents, 0, wx.TOP, 0)
         self.hSizer0.Add((10,0), 0, 0, 0)
         self.hSizer0.Add(self.vSizerRight, 0, 0, 0)
-        self.hSizer0.Add((80,0), 0, 0, 0)
-        self.hSizer0.Add(self.vSizer2, 0, 0, 0)
-        self.hSizer0.Add((10,0), 0, 0, 0)
-        self.hSizer0.Add(self.vSizer3, 0, 0, 0)
+        #self.hSizer0.Add((80,0), 0, 0, 0)
+        #self.hSizer0.Add(self.vSizer2, 0, 0, 0)
+        #self.hSizer0.Add((3,0), 0, 0, 0)
+        #self.hSizer0.Add(self.vSizer3, 0, 0, 0)
 
 
 
@@ -239,6 +242,8 @@ class FilesItemDetailsSummary(bgPanel):
         3 : Torrent is playable and contains multiple files
         """
         if playable[0]:
+            self.play_big.Show()
+            self.download.Show()
             self.fileList=playable[1]
             if len(self.fileList) == 1: # torrent contains only one file
                 self.play_big.setToggled(True)
@@ -246,6 +251,8 @@ class FilesItemDetailsSummary(bgPanel):
                 self.scrollRight.Hide()
             else:
                 self.loadTorrent(self.fileList)
+                self.scrollLeft.Show()
+                self.scrollRight.Show()
             if sys.platform == 'darwin':
                 wx.CallAfter(self.ag.Stop)
                 wx.CallAfter(self.ag.Hide)
@@ -430,11 +437,17 @@ class fileItem(wx.Panel):
         self.fileColour=(255,51,0)
         self.fileColourSel=(0,105,156)
 
+
         if sys.platform == 'win32':
-            self.ms=17
+            self.minsize=(460,17)
+        elif sys.platform == 'linux2':
+            self.minsize=(460,17)
         else:
-            self.ms=18
-        self.SetMinSize((380,self.ms))
+            self.minsize=(460,19)
+
+
+
+        self.SetMinSize(self.minsize)
         self.selected=False
         self.addComponents()
         self.SetBackgroundColour((216, 233, 240))
@@ -446,10 +459,10 @@ class fileItem(wx.Panel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # file title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(380,self.ms))
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.minsize[0]-30, self.minsize[1]))
         self.title.SetFont(wx.Font(FS_TORRENT,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))        
         self.title.SetForegroundColour(self.fileColour)
-        self.title.SetMinSize((380,self.ms))
+        self.title.SetMinSize((self.minsize[0]-30, self.minsize[1]))
 
         # play button
         self.play = tribler_topButton(self, -1, name='fids_play')
@@ -474,10 +487,15 @@ class fileItem(wx.Panel):
         if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
+
     def setTitle(self, title):
-        self.title.SetLabel(title[:380])
-        self.title.SetToolTipString(self.title.GetLabel())
+        self.title.SetToolTipString(title) 
+        i=0
+        while self.title.GetTextExtent(title[:i])[0] < self.minsize[0]-30 and i <= len(title):
+            i=i+1
+        self.title.SetLabel(title[:(i-1)])
         self.Refresh()       
+
 
     def mouseAction(self, event):
         event.Skip()
@@ -496,9 +514,6 @@ class fileItem(wx.Panel):
 
         if event.LeftUp():
             self.play_clicked()
-
-
-
 
         self.Refresh()
 

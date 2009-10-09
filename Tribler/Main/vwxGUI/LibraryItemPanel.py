@@ -374,9 +374,9 @@ class LibraryItemPanel(wx.Panel):
             title = 'Down && Up Speed'
         else: 
             title = 'Down &&&& Up Speed'
-        return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':400,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
+        return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':407,'weight':0,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
                 {'sort':'??', 'dummy':True, 'title':title,'width':130, 'tip':self.utility.lang.get('C_downupspeed')}, 
-                {'sort':'progress', 'title':'Completion/ETA', 'width':116, 'tip':self.utility.lang.get('C_progress')}               
+                {'sort':'progress', 'title':'Completion/ETA', 'width':124, 'tip':self.utility.lang.get('C_progress')}               
                 ]     
 
     # pause or resume a download
