@@ -279,7 +279,9 @@ class GridManager(object):
                 if self.grid.name == 'popularGrid':
 
                     [stotal_items,sdata] = self.channelsearch_manager.getSubscriptions(state.db)
+                    print >> sys.stderr , "stotal_items " , stotal_items
                     [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db, maximum=19-stotal_items)
+                    print >> sys.stderr , "total_items " , total_items
                     data.extend(sdata)
                     total_items+=stotal_items
 

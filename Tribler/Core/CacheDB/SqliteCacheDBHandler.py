@@ -3345,7 +3345,8 @@ class ChannelCastDBHandler(BasicDBHandler):
             if not publisher_id in publishers:
                 t1 = time()
                 publishers[publisher_id] = publisher_name
-                sql = "select sum(vote), count(*) from VoteCast where mod_id='" + publisher_id +"'"
+                sql = "select sum(vote), count(*) from VoteCast where mod_id='" + publisher_id +"' and voter_id not in (select voter_id from VoteCast where voter_id = '"+bin2str(self.my_permid)+"' and vote = 2)"
+
                 sum, count = self._db.fetchone(sql)
                 if sum is None or count is None:
                     continue
@@ -3357,9 +3358,17 @@ class ChannelCastDBHandler(BasicDBHandler):
                     allrecords.append((publisher_id, publisher_name, num_subscriptions-num_negvotes))
                 t2 = time()
                 print >>sys.stderr, "getMostPopularUnsubscribedChannels: ",publisher_id, (t2-t1)
+
+
+        print >> sys.stderr , "allrecords" , allrecords
+
+
         def compare(a,b):
             return cmp(a[2],b[2])
         allrecords.sort(cmp=compare, reverse=True)
+
+        print >> sys.stderr , "allrecords" , allrecords
+
         return allrecords
     
 #        #sql = "select mod_id from VoteCast where mod_id not in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id"

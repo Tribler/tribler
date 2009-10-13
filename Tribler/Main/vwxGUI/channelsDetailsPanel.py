@@ -466,7 +466,7 @@ class fileItem(bgPanel):
 
 
         self.tile = True
-        self.backgroundColour = wx.Colour(95,219,231)
+        self.backgroundColour = wx.Colour(195,219,231)
         self.searchBitmap('subpanel.png')
         self.createBackgroundImage()
 
