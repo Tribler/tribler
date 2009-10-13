@@ -3000,8 +3000,8 @@ class VoteCastDBHandler(BasicDBHandler):
         sql = "select vote from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
         vote = self._db.fetchone(sql)
         if vote is not None and vote==2:
-            ## sql = "delete from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
-            sql = "update VoteCast set vote=0 where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
+            sql = "delete from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
+            #sql = "update VoteCast set vote=0 where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
             self._db.execute_write(sql)
     
     def spam(self, permid):
@@ -3333,71 +3333,31 @@ class ChannelCastDBHandler(BasicDBHandler):
         votecastdb = VoteCastDBHandler.getInstance()
         allrecords = []
         
-        t1 = time()
-        records = []
         sql = "select distinct publisher_id, publisher_name from ChannelCast"
-        records = self._db.fetchall(sql)
-        t2= time()
-        print >>sys.stderr, "getMostPopularUnsubscribedChannels: distinct publishers:", (t2-t1)
+        channel_records = self._db.fetchall(sql)
+        
+        sql = "select mod_id, (2*sum(vote)-count(*))/3 from VoteCast group by mod_id order by 2 desc"
+        votecast_records = self._db.fetchall(sql)
+        
+        sql = "select distinct mod_id from VoteCast where voter_id='"+bin2str(self.my_permid)+"' and vote=2"
+        subscribed_channels = self._db.fetchall(sql)
+        subscribers = {}
+        for record in subscribed_channels:
+            subscribers[record[0]]="12"
         
         publishers = {}
-        for publisher_id, publisher_name in records:
-            if not publisher_id in publishers:
-                t1 = time()
-                publishers[publisher_id] = publisher_name
-                sql = "select sum(vote), count(*) from VoteCast where mod_id='" + publisher_id +"' and voter_id not in (select voter_id from VoteCast where voter_id = '"+bin2str(self.my_permid)+"' and vote = 2)"
-
-                sum, count = self._db.fetchone(sql)
-                if sum is None or count is None:
-                    continue
-                # 2*num_subscriptions - num_negvotes = sum
-                # num_subscriptions + num_negvotes = count 
-                num_subscriptions = (sum+count)/3
-                num_negvotes = count - num_subscriptions
-                if num_subscriptions-num_negvotes > -6: # else it is considered SPAM
-                    allrecords.append((publisher_id, publisher_name, num_subscriptions-num_negvotes))
-                t2 = time()
-                print >>sys.stderr, "getMostPopularUnsubscribedChannels: ",publisher_id, (t2-t1)
-
-
-        print >> sys.stderr , "allrecords" , allrecords
-
-
-        def compare(a,b):
-            return cmp(a[2],b[2])
-        allrecords.sort(cmp=compare, reverse=True)
-
-        print >> sys.stderr , "allrecords" , allrecords
-
+        for publisher_id, publisher_name in channel_records:
+            if publisher_id not in publishers:
+                publishers[publisher_id]=publisher_name
+        
+        for mod_id, vote in votecast_records:
+            if vote < -5: # it is considered SPAM
+                continue
+            if mod_id in publishers and mod_id not in subscribers:
+                allrecords.append((mod_id, publishers[mod_id], vote)) 
+        
         return allrecords
     
-#        #sql = "select mod_id from VoteCast where mod_id not in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id"
-#        #mod_ids = self._db.fetchall(sql)
-#        sql = "select mod_id, count(*) from VoteCast where mod_id<>'" + bin2str(self.my_permid) + "' and voter_id<>'" + bin2str(self.my_permid) + "' and vote=2 group by mod_id"
-#        subs = self._db.fetchall(sql)
-#        sql = "select mod_id, count(*) from VoteCast where mod_id<>'" + bin2str(self.my_permid) + "' and voter_id<>'" + bin2str(self.my_permid) + "' and vote=-1 group by mod_id"
-#        negs = self._db.fetchall(sql)
-#        votes = {}
-#        for sub in subs:
-#            votes[sub[0]] = sub[1]
-#        for neg in negs:
-#            if neg[0] in votes:
-#                votes[neg[0]] = votes[neg[0]]-neg[1]
-#            else:
-#                votes[neg[0]]=-neg[1]
-#        records=[]
-#        for mod_id, vote in votes.items():
-#            records.append((vote,mod_id))
-#        records.sort(reverse=True)
-#        #for mod_id in mod_ids:
-#        #    votes.append((mod_id[0], votecastdb.getNumSubscriptions(mod_id[0])))      
-#        for vote, mod_id in records:
-#            sql = "select publisher_name, time_stamp from ChannelCast where publisher_id='"+mod_id+"' order by 2 desc" 
-#            record = self._db.fetchone(sql)
-#            if not record is None:
-#                mod_name = record[0]
-#                records.append((mod_id,mod_name,vote))
-#        return records
 
     def getMyChannel(self):
         mychannel = []
@@ -3474,7 +3434,6 @@ class ChannelCastDBHandler(BasicDBHandler):
                     maxvote = num_subscribers
                     mostfamouspublishername = publisher_name
             return mostfamouspublishername
-
 
     
             
