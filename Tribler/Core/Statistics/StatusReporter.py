@@ -96,7 +96,7 @@ class EventStatusReporter:
 
     def _reporting_thread(self):
         """
-        Send the report on a seperate thread
+        Send the report on a separate thread
 
         We choose not to use a lock object to protect access to
         self._enable_reporting, self._retry_delay, and

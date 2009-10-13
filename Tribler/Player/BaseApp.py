@@ -42,7 +42,7 @@ from Tribler.Core.API import *
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 from Tribler.Utilities.Instance2Instance import *
 
-from Tribler.Player.systray import PlayerTaskBarIcon
+from Tribler.Player.systray import *
 # from Tribler.Player.Reporter import Reporter
 from Tribler.Player.UtilityStub import UtilityStub
 
@@ -101,7 +101,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         # Note: setting this makes the program not exit when the videoFrame
         # is being closed.
         
-        self.tbicon = PlayerTaskBarIcon(self,self.iconpath)
+        self.tbicon = M23TrialPlayerTaskBarIcon(self,self.iconpath)
 
         
         # Start Tribler Session
@@ -388,6 +388,14 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         # Arno: on some torrents this causes VLC to fail to tune into the video
         # although it plays audio???
         #ds.get_download().set_max_speed(DOWNLOAD,1500)
+    
+        try:
+            # M23TRIAL
+            self.tbicon.gui_states_callback(dslist,haspeerlist)
+            
+        except:
+            print_exc()
+
         
         return (playing_dslist,totalhelping,totalspeed) 
 

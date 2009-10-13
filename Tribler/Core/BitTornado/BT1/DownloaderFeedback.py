@@ -111,6 +111,8 @@ class DownloaderFeedback:
 
 
     def gather(self, displayfunc = None, getpeerlist=False):
+        """ Called by SingleDownload to obtain download statistics to become the
+        DownloadStates for each Download """
         s = {'stats': self.statistics.update()}
         if getpeerlist:
             s['spew'] = self.spews()
@@ -127,7 +129,11 @@ class DownloaderFeedback:
             s['vod_prebuf_frac'] = 1.0
             s['vod_playable'] = True
             s['vod_playable_after'] = 0.0
-            s['vod_stats'] = {}
+            s['vod_stats'] = {'harry':1}
+            if self.voddownload is not None:
+                #s['vod'] = True
+                s['vod_stats'] = self.voddownload.get_stats()
+
 #            if self.voddownload:
 #                s['vod_duration'] = self.voddownload.get_duration()
 #            else:

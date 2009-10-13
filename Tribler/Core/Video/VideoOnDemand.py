@@ -1561,6 +1561,7 @@ class MovieOnDemandTransporter(MovieTransport):
     def get_stats(self):
         """ Returns accumulated statistics. The piece data is cleared after this call to save memory. """
         """ Called by network thread """
+        
         s = { "played": self.stat_playedpieces,
               "late": self.stat_latepieces,
               "dropped": self.stat_droppedpieces,
@@ -1568,7 +1569,9 @@ class MovieOnDemandTransporter(MovieTransport):
               "pos": self.videostatus.playback_pos,
               "prebuf": self.stat_prebuffertime,
               "pp": self.piecepicker.stats,
-              "pieces": self.stat_pieces.pop_completed(), }
+              "pieces": self.stat_pieces.pop_completed(),
+              "firstpiece":self.videostatus.first_piece,
+              "npieces":self.videostatus.movie_numpieces}
         return s
 
     def get_prebuffering_progress(self):

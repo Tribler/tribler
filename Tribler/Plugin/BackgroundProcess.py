@@ -279,10 +279,20 @@ class BackgroundApp(BaseApp):
             [topmsg,msg,duser['said_start_playback'],duser['decodeprogress']] = get_status_msgs(ds,self.approxplayerstate,self.appname,duser['said_start_playback'],duser['decodeprogress'],totalhelping,totalspeed)
             info = msg
             
+            try:
+                # M23TRIAL
+                w = ds.get_vod_stats()
+                if 'npieces' in w:
+                    print >>sys.stderr,"W",w['pos'],"==",w['firstpiece']+w['npieces']
+                    if w['pos'] == w['firstpiece']+w['npieces']-1:  # -1 is to compensate for off by one error somewhere
+                        info = "The SwarmPlugin will run until you shutdown your computer. If you want to stop it before then, right-click on the systray icon and select Exit"
+            except:
+                print_exc()
+                    
             if DEBUG:
                 print >>sys.stderr, 'bg: 4INFO: Sending',info
             uic.info(info)
-        
+            
     def sesscb_vod_event_callback( self, d, event, params ):
         """ Registered by BaseApp. Called by SessionCallbackThread """
         wx.CallAfter(self.gui_vod_event_callback,d,event,params)

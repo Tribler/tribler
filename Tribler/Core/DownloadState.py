@@ -256,13 +256,15 @@ class DownloadState(Serializable):
     def get_vod_stats(self):
         """ Returns a dictionary of collected VOD statistics. The keys contained are:
         <pre>
-        'played' = number of pieces played
+        'played' = number of pieces played. With seeking this may be more than npieces
         'late' = number of pieces arrived after they were due
         'dropped' = number of pieces lost
         'stall' = estimation of time the player stalled, waiting for pieces (seconds)
-        'pos' = playback position
+        'pos' = playback position, as an absolute piece number
         'prebuf' = amount of prebuffering time that was needed (seconds,
                    set when playback starts)
+        'firstpiece' = starting absolute piece number of selected file
+        'npieces' = number of pieces in selected file
         </pre>, or no keys if no VOD is in progress.
         @return Dict.
         """
