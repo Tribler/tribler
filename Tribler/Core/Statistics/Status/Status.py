@@ -186,6 +186,7 @@ class StatusElement:
                 # here... at the very least I have added a True/False
                 # return value
                 result = False
+                traceback.print_exc()
                 print >>sys.stderr, "Exception in callback",callback,"for parameter",self.name
                 print >>sys.stderr, e
         return result

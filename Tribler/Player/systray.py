@@ -6,6 +6,7 @@ import os
 import textwrap
 import time
 from sets import Set # M23TRIAL
+import struct # M23TRIAL
 from traceback import print_exc
 import wx
 
@@ -65,7 +66,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
         """ Called every second with Download engine statistics, peerlist is there 
         every 10 secs, see BaseApp.gui_states_callback """
         if haspeerlist:
-            # TODO: this is over all content in the BackgroundProcess
+            # this is over all content in the BackgroundProcess
             for ds in dslist:
                 peers= ds.get_peerlist()
                 for peer in peers:
@@ -76,23 +77,29 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
 
     def get_treatment(self):
         
-        # TODO: determine which treatment to give.
         if self.wxapp.s is not None:
             permid = self.wxapp.s.get_permid()
-            digit = ord(pubbytes[-1]) % 10
-            # TODO: verify digit is correctly distributed over 0..9
             
-            if digit >= 0 and digit <= 1:
+            # TODO: check this is valid random number
+            # Convert last 4 bytes to int32
+            # Note this means a user gets the same treatment on each run.
+            bits32 = permid[-4:]
+            values = struct.unpack("L",bits32)
+            bin = values[0] % 6
+            
+            print >>sys.stderr,"m23seed: bin is",bin,values[0]
+            
+            if bin == 0:
                 return "controlgroup"
-            elif digit >= 2 and digit <= 3:
+            elif bin == 1:
                 return "appealforhelp"
-            elif digit >= 4 and digit <= 5:
+            elif bin == 2:
                 return "quantitative"
-            elif digit >= 6 and digit <= 7:
+            elif bin == 3:
                 return "compaverage"
-            elif digit >= 8 and digit <= 9:
+            elif bin == 4:
                 return "efficacy"
-            elif digit >= 8 and digit <= 9:   # TODO: map 6 treatments to 10 values
+            elif bin == 5:
                 return "awareness"
         else:
             return "controlgroup"
@@ -112,17 +119,15 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             # user has uploaded data. This treatment needs X and the user answer for
             # the quit dialog every time the dialog is shown to him.
             X = len(self.helpedpeerids)
-            # TODO: set minimum?
+            # Dave: no minimum
             msg = "By keeping this program running you have already helped %d other people to see the video. By not quitting you can help more." % (X)
              
         elif t == "compaverage": 
-            # X is calculated locally similarly to the efficacy treatment. Y needs to be
+            # X is calculated locally similarly to the quantitative treatment. Y needs to be
             # obtained from a server which calculates it periodically. This treatment
             # needs X, Y and the user answer for the quit dialog every time the dialog
             # is shown to him.
             
-            # TODO: set minimum + check description which says "similar to efficacy
-            # treat". This is similar to "quant" treat.
             X = len(self.helpedpeerids) 
             
             # TODO: Idea: let each client report its helpedpeerids count, by calling 
@@ -142,8 +147,8 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
               
         else: #  "awareness":
             #  no dialog. But the user sees a message in the video window at the end.
-            # TODO: message currently always shown at end
             ask = False 
+            msg = ""
 
         content = ""
         lines = textwrap.wrap(msg,50)
@@ -167,7 +172,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
         from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
         _event_reporter = get_reporter_instance()
         # Report (treatment,choice and exact message). TODO: make more compact by storing just X,Y,P?
-        _event_reporter.add_event("m23-seed-treat", "t:%s:q:%d:msg:%s" % (t,quit,msg))
+        _event_reporter.add_event("m23trial", "seed-treat:%s,q:%d,msg:%s" % (t,quit,msg))
         _event_reporter.flush()
         
         # Delay quit to allow log to succeed and exit

@@ -281,11 +281,14 @@ class BackgroundApp(BaseApp):
             
             try:
                 # M23TRIAL
-                w = ds.get_vod_stats()
-                if 'npieces' in w:
-                    print >>sys.stderr,"W",w['pos'],"==",w['firstpiece']+w['npieces']
-                    if w['pos'] == w['firstpiece']+w['npieces']-1:  # -1 is to compensate for off by one error somewhere
-                        info = "The SwarmPlugin will run until you shutdown your computer. If you want to stop it before then, right-click on the systray icon and select Exit"
+                if self.tbicon is not None:
+                    t = self.tbicon.get_treatment()
+                    if t == "awareness":
+                        w = ds.get_vod_stats()
+                        if 'npieces' in w:
+                            print >>sys.stderr,"W",w['pos'],"==",w['firstpiece']+w['npieces']
+                            if w['pos'] == w['firstpiece']+w['npieces']-1:  # -1 is to compensate for off by one error somewhere
+                                info = "The SwarmPlugin will run until you shutdown your computer. If you want to stop it before then, right-click on the systray icon and select Exit"
             except:
                 print_exc()
                     

@@ -13,6 +13,7 @@ import thread
 import threading
 from random import shuffle
 from time import time
+from base64 import b64encode
 from traceback import print_exc
 from Tribler.Core.Session import Session
 
@@ -148,7 +149,7 @@ class EventStatusReporter:
             shuffle(report_urls)
 
         while True:
-            # sleep in betreen reports. will send a report immediately
+            # sleep in between reports. will send a report immediately
             # when the flush event is set
             self._thread_flush.wait(timeout)
             self._thread_flush.clear()
@@ -263,7 +264,7 @@ class EventStatusReporter:
         if self._enable_reporting:
 
             # prepend the prefix to the key
-            key = self._prefix + key
+            key = self._prefix + b64encode(key)
             
             self._thread_lock.acquire()
             try:
