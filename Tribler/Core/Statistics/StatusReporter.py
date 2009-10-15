@@ -129,7 +129,7 @@ class EventStatusReporter:
             living_lab_reporter.set_permid(session.get_permid())
             status_holder = get_status_holder("vod-stats")
             status_holder.add_reporter(living_lab_reporter)
-            status_element = status_holder.create_status_element("event", "A list containing timestamped VOD playback events", initial_value=[])
+            status_element = status_holder.create_status_element("action-list", "A list containing timestamped VOD playback events", initial_value=[])
 
         else:
             # there are several urls available where reports can be

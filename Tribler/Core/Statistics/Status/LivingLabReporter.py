@@ -49,24 +49,35 @@ class LivingLabReporter:
 
         # populate the element with items from a list?
         if type(value) in (types.GeneratorType, types.ListType, types.TupleType):
-            i = 0
+            n = 0
             for v in value:
-                element.appendChild(self.newElement(doc, str(i), v))
-                i += 1
+                # name the container "n<number>" because the container
+                # name can not start with a decimal
+                element.appendChild(self.newElement(doc, "n%d" % n, v))
+                n += 1
 
         # populate the element with items from a dictionary?
         elif type(value) is types.DictionaryType:
             for k, v in value.iteritems():
-                element.appendChild(self.newElement(doc, str(k), v))
+                # name the container "k<key>" because the container
+                # name can not start with a decimal
+                element.appendChild(self.newElement(doc, "k%s" % k, v))
 
         # populate the element with items from a string?
         elif type(value) in (types.StringType, types.UnicodeType):
-            # element.appendChild(doc.createTextNode(value))
-            element.setAttribute("value", value)
+            # use <element>VALUE</element> format
+            element.appendChild(doc.createTextNode(value))
+
+            # use <element value=VALUE/> format
+            #element.setAttribute("value", value)
 
         # populate the element from a primitive (int, float, etc.)
         else:
-            element.setAttribute("value", str(value))
+            # use <element>VALUE</element> format
+            element.appendChild(doc.createTextNode(str(value)))
+
+            # use <element value=VALUE/> format
+            # element.setAttribute("value", str(value))
 
         return element
 
