@@ -97,6 +97,7 @@ class LivingLabReporter:
 
         header.appendChild(self.newElement(doc, "deviceid", base64.b64encode(self._permid)))
         header.appendChild(self.newElement(doc, "timestamp", long(round(time.time()))))
+        header.appendChild(self.newElement(doc, "report", self.get_name()))
 
         version = "someversion"
         header.appendChild(self.newElement(doc, "swversion", version))

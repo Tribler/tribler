@@ -8,6 +8,7 @@ partners at the living lab. This is determened by the
 USE_LIVING_LAB_REPORTING variable.
 """
 
+from base64 import b64encode
 import sys, urllib, zlib
 import thread
 import threading
@@ -26,7 +27,7 @@ PHONEHOME = True
 # USE_LIVING_LAB_REPORTING: When True all HTTP logging will be
 # targeted to the living-lab servers. Otherwise the Tribler servers
 # are used.
-USE_LIVING_LAB_REPORTING = False
+USE_LIVING_LAB_REPORTING = True
 
 DEBUG = False
 
@@ -265,6 +266,12 @@ class EventStatusReporter:
 
             # prepend the prefix to the key
             key = self._prefix + b64encode(key)
+
+            # because the key usually an infohash, and because this is
+            # usually (and incorrectly) stored in a string instead of
+            # a unicode string, this will crash the ulanc-reporter
+            # when converted into XML.
+            key = b64encode(key)
             
             self._thread_lock.acquire()
             try:

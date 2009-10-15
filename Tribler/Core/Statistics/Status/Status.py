@@ -221,6 +221,9 @@ class StatusReporter:
         self.elements = []
         self.error_handler = error_handler
 
+    def get_name(self):
+        return self.name
+
     def add_element(self, element):
         """
         Add a status element to this reporter
