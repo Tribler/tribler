@@ -164,7 +164,6 @@ class TorrentSearchGridManager:
 
         if mode != 'libraryMode':
             self.addStoredRemoteResults(mode, categorykey)
-            self.addStoredWeb2Results(mode,categorykey,range)
 
             if DEBUG:
                 print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
@@ -308,7 +307,6 @@ class TorrentSearchGridManager:
             return False
         
         self.hits = self.searchmgr.search(self.searchkeywords[mode])
-        
         return True
 
     def addStoredRemoteResults(self, mode, cat):
@@ -335,6 +333,12 @@ class TorrentSearchGridManager:
                     #print >> sys.stderr,"TorrentSearchGridManager: remote: Should we add",`remoteItem['name']`
                     if item['infohash'] == remoteItem['infohash']:
                         known = True
+                        # if a hit belongs to a more popular channel, then replace the previous
+                        if remoteItem['channel_permid'] !="" and remoteItem['channel_name'] != "" and remoteItem['subscriptions']-remoteItem['neg_votes'] > item['subscriptions']-item['neg_votes']:
+                            item['subscriptions'] = remoteItem['subscriptions']
+                            item['neg_votes'] = remoteItem['neg_votes']
+                            item['channel_permid'] = remoteItem['channel_permid']
+                            item['channel_name'] = remoteItem['channel_name']
                         break
                 if not known:
                     #print >> sys.stderr,"TorrentSearchGridManager: remote: Adding",`remoteItem['name']`
@@ -404,12 +408,12 @@ class TorrentSearchGridManager:
                     if 'channel_permid' in value:
                         newval['channel_permid']=value['channel_permid']
                     else:
-                        newval['channel_permid']=None
+                        newval['channel_permid']=""
                         
                     if 'channel_name' in value:
                         newval['channel_name'] = value['channel_name']
                     else:
-                        newval['channel_name']=None
+                        newval['channel_name']=""
                         
                     if 'channel_permid' in value:
                         newval['neg_votes'] = self.votecastdb.getNegVotes(value['channel_permid'])
@@ -446,6 +450,13 @@ class TorrentSearchGridManager:
                         for query_permid in newval['query_permids']:
                             if not query_permid in oldval['query_permids']:
                                 oldval['query_permids'].append(query_permid)
+                        
+                        # if a hit belongs to a more popular channel, then replace the previous
+                        if newval['channel_permid'] !="" and newval['channel_name'] != "" and newval['subscriptions']-newval['neg_votes'] > oldval['subscriptions']-oldval['neg_votes']:
+                            oldval['subscriptions'] = newval['subscriptions']
+                            oldval['neg_votes'] = newval['neg_votes']
+                            oldval['channel_permid'] = newval['channel_permid']
+                            oldval['channel_name'] = newval['channel_name']
                     else:
                         if DEBUG:
                             print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: appending hit",`newval['name']`
