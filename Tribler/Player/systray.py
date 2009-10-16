@@ -120,7 +120,11 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             # the quit dialog every time the dialog is shown to him.
             X = len(self.helpedpeerids)
             # Dave: no minimum
-            msg = "By keeping this program running you have already helped %d other people to see the video. By not quitting you can help more." % (X)
+            if X == 1:
+                people = "person"
+            else:
+                people = "people"
+            msg = "By keeping this program running you have already helped %d other %s to see the video. By not quitting you can help more." % (X, people)
              
         elif t == "compaverage": 
             # X is calculated locally similarly to the quantitative treatment. Y needs to be
@@ -130,12 +134,17 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             
             X = len(self.helpedpeerids) 
             
+            if X == 1:
+                people = "person"
+            else:
+                people = "people"
+            
             # TODO: Idea: let each client report its helpedpeerids count, by calling 
             # add_event on gui_states_callback every N secs. A script calculates Y from
             # this and puts it on a website, which is also read periodically by each client.
             Y = 10 
-            
-            msg = "By keeping this program running you have helped %d other people to see the video. The average number of people other participants in the trial have helped is %d." % (X,Y)
+
+            msg = "By keeping this program running you have helped %d other %s to see the video. The average number of people other participants in the trial have helped is %d." % (X,people,Y)
              
         elif t == "efficacy":
             # P is the total number of users who participated in the experiment so far. 
