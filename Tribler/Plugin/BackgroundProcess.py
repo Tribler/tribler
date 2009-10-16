@@ -52,6 +52,7 @@ from Tribler.Video.defs import *
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Video.VideoServer import VideoHTTPServer
 
+from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
 
 DEBUG = True
 ALLOW_MULTIPLE = False
@@ -80,6 +81,9 @@ class BackgroundApp(BaseApp):
         #
         self.dusers = {}   
         self.approxplayerstate = MEDIASTATE_STOPPED
+
+        self.counter = 0 # counter for the stats reported periodically
+        self.interval = 60 # report interval
         
 
         if sys.platform == "win32":
@@ -269,6 +273,7 @@ class BackgroundApp(BaseApp):
     def gui_states_callback(self,dslist,haspeerlist):
         """ Override BaseApp """
         (playing_dslist,totalhelping,totalspeed) = BaseApp.gui_states_callback(self,dslist,haspeerlist)
+        self.report_periodic_vod_stats(playing_dslist)
        
         for ds in playing_dslist:
             d = ds.get_download()
@@ -355,7 +360,24 @@ class BackgroundApp(BaseApp):
         print >>sys.stderr,"bg: Video server sets status callback",status
         # ARNOTODO: Report status to plugin
 
-        
+    #
+    # reports vod stats collected periodically
+    #
+    def report_periodic_vod_stats(self,playing_dslist):
+        ds = playing_dslist[0]
+        dw = ds.get_download()
+        infohash = dw.get_def().get_infohash()
+        self.counter += 1
+        if self.counter%self.interval == 0:
+            event_reporter = get_reporter_instance()
+            for ds in playing_dslist:
+                vod_stats = ds.get_vod_stats()
+                print >> sys.stderr,"LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL vod_stats is", vod_stats
+                event_reporter.add_event(infohash, "prebuffering time that was needed:%d" % vod_stats['prebuf'])
+                event_reporter.add_event(infohash, "time the player stalled:%d" % vod_stats['stall'])
+                event_reporter.add_event(infohash, "# pieces arrived after they were due:%d" % vod_stats['late'])
+                event_reporter.add_event(infohash, "# pieces lost:%d" % vod_stats['dropped'])
+                event_reporter.add_event(infohash, "playback position:%d" % vod_stats['pos'])
         
 
 class BGInstanceConnection(InstanceConnection):
