@@ -129,7 +129,10 @@ class Connection:
         
         self.ut_pex_first_flag = True # first time we sent a ut_pex to this peer?
         
-        self.na_candidate_ext_ip = None 
+        self.na_candidate_ext_ip = None
+        
+        # RePEX counters and repexer instance field
+        self.pex_received = 0 # number of PEX messages received
 
 
     def get_myip(self, real=False):
@@ -369,7 +372,7 @@ class Connection:
         for key in ['p','e', 'yourip','ipv4','ipv6','reqq']:
             if key in d:
                 self.extend_hs_dict[key] = d[key]
-
+        
         #print >>sys.stderr,"connecter: got_extend_hs: keys",d.keys()
 
         # If he tells us our IP, record this and see if we get a majority vote on it
@@ -391,6 +394,12 @@ class Connection:
                         self.na_check_for_same_nat(yourip)
             except:
                 print_exc()
+        
+        # RePEX: Tell repexer we have received an extended handshake
+        repexer = self.connecter.repexer
+        if repexer:
+            version = d.get('v',None)
+            self.connecter.sched(lambda:repexer.got_extend_handshake(self, version), 0.0)
 
 
     def his_extend_msg_name_to_id(self,ext_name):
@@ -447,6 +456,20 @@ class Connection:
         if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Got uTorrent PEX:",d
         (same_added_peers,added_peers,dropped_peers) = check_ut_pex(d)
+        
+        # RePEX: increase counter
+        self.pex_received += 1
+        
+        # RePEX: for now, we pass the whole PEX dict to the repexer and
+        # let it decode it. The reason is that check_ut_pex's interface
+        # has recently changed, currently returning a triple to prefer
+        # Tribler peers. The repexer, however, might have different 
+        # interests (e.g., storinng all flags). To cater to both interests,
+        # check_ut_pex needs to be rewritten. 
+        repexer = self.connecter.repexer
+        if repexer:
+            self.connecter.sched(lambda:repexer.got_ut_pex(self, d), 0.0)
+            return
         
         # DoS protection: we're accepting IP addresses from 
         # an untrusted source, so be a bit careful
@@ -800,6 +823,9 @@ class Connecter:
             self.overlay_bridge = OverlayThreadingBridge.getInstance()
         else:
             self.overlay_bridge = None
+            
+        # RePEX
+        self.repexer = None # Should this be called observer instead?
 
     def how_many_connections(self):
         return len(self.connections)
@@ -807,7 +833,12 @@ class Connecter:
     def connection_made(self, connection):
         c = Connection(connection, self)
         self.connections[connection] = c
-
+        
+        # RePEX: Inform repexer connection is made
+        repexer = self.repexer
+        if repexer:
+            self.sched(lambda:repexer.connection_made(c,connection.supports_extend_messages()), 0.0)
+        
         if connection.supports_extend_messages():
             # The peer either supports our overlay-swarm extension or 
             # the utorrent extended protocol.
@@ -835,6 +866,11 @@ class Connecter:
 
     def connection_lost(self, connection):
         c = self.connections[connection]
+
+        # RePEX: inform repexer of closed connection
+        repexer = self.repexer
+        if repexer:
+            self.sched(lambda:repexer.connection_closed(c), 0.0)
 
         ######################################
         # BarterCast

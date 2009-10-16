@@ -503,8 +503,19 @@ class BT1Download:
         if self.rerequest:
             return self.rerequest.last_failed
         return False
-
-    def startRerequester(self):
+    
+    def startRerequester(self, paused=False):
+        # RePEX:
+        # Moved the creation of the Rerequester to a separate method,
+        # allowing us to only create the Rerequester without starting
+        # it from SingleDownload.
+        if self.rerequest is None:
+            self.rerequest = self.createRerequester()
+            self.encoder.set_rerequester(self.rerequest)
+        if not paused:
+            self.rerequest.start()
+        
+    def createRerequester(self, callback=None):
         if self.response.has_key ('announce-list'):
             trackerlist = self.response['announce-list']
             for tier in range(len(trackerlist)):
@@ -516,19 +527,21 @@ class BT1Download:
                 trackerlist = [[tracker]]
             else:
                 trackerlist = [[]]
-            
-        self.rerequest = Rerequester(trackerlist, self.config['rerequest_interval'], 
+        
+        if callback is None:
+            callback = self.encoder.start_connections
+        
+        rerequest = Rerequester(trackerlist, self.config['rerequest_interval'], 
             self.rawserver.add_task,self.connecter.how_many_connections, 
-            self.config['min_peers'], self.encoder.start_connections, 
+            self.config['min_peers'], callback, 
             self.rawserver.add_task, self.storagewrapper.get_amount_left, 
             self.upmeasure.get_total, self.downmeasure.get_total, self.port, self.config['ip'], 
             self.myid, self.infohash, self.config['http_timeout'], 
             self.logerrorfunc, self.excfunc, self.config['max_initiate'], 
             self.doneflag, self.upmeasure.get_rate, self.downmeasure.get_rate, 
             self.unpauseflag,self.config)
-
-        self.encoder.set_rerequester(self.rerequest)
-        self.rerequest.start()
+        
+        return rerequest
 
 
     def _init_stats(self):

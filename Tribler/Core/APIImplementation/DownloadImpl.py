@@ -34,7 +34,7 @@ class DownloadImpl:
         self.session = session
         self.tdef = tdef.copy()
         self.tdef.readonly = True
-
+        
     #
     # Creating a Download
     #
@@ -118,7 +118,7 @@ class DownloadImpl:
             if initialdlstatus != DLSTATUS_STOPPED:
                 if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED: 
                     # Also restart on STOPPED_ON_ERROR, may have been transient
-                    self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodeventcallback)
+                    self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodeventcallback,initialdlstatus) # RePEX: propagate initialdlstatus
                 
             self.pstate_for_restart = pstate
                 
@@ -128,7 +128,7 @@ class DownloadImpl:
             self.set_error(e)
             self.dllock.release()
 
-    def create_engine_wrapper(self,lmcreatedcallback,pstate,lmvodeventcallback):
+    def create_engine_wrapper(self,lmcreatedcallback,pstate,lmvodeventcallback,initialdlstatus=None):
         """ Called by any thread, assume dllock already acquired """
         if DEBUG:
             print >>sys.stderr,"Download: create_engine_wrapper()"
@@ -147,7 +147,10 @@ class DownloadImpl:
 
         # Note: BT1Download is started with copy of d.dlconfig, not direct access
         kvconfig = copy.copy(self.dlconfig)
-
+        
+        # RePEX: extend kvconfig with initialdlstatus
+        kvconfig['initialdlstatus'] = initialdlstatus
+        
         # Define which file to DL in VOD mode
         live = self.get_def().get_live()
         vodfileindex = {
@@ -245,16 +248,23 @@ class DownloadImpl:
         """ Called by network thread """
         self.dllock.acquire()
         try:
+            # RePEX: get last stored SwarmCache, if any:
+            swarmcache = None
+            if self.pstate_for_restart is not None and self.pstate_for_restart.has_key('dlstate'):
+                swarmcache = self.pstate_for_restart['dlstate'].get('swarmcache',None)
+            
             if self.sd is None:
                 if DEBUG:
                     print >>sys.stderr,"DownloadImpl: network_get_state: Download not running"
-                ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
+                ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop,swarmcache=swarmcache)
             else:
+                # RePEX: try getting the swarmcache from SingleDownload or use our last known swarmcache:
+                swarmcache = self.sd.get_swarmcache() or swarmcache
                 
                 (status,stats,logmsgs,coopdl_helpers,coopdl_coordinator) = self.sd.get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,0.0,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,coopdl_helpers=coopdl_helpers,coopdl_coordinator=coopdl_coordinator)
+                ds = DownloadState(self,status,self.error,0.0,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,coopdl_helpers=coopdl_helpers,coopdl_coordinator=coopdl_coordinator,swarmcache=swarmcache)
                 self.progressbeforestop = ds.get_progress()
-                
+            
             if sessioncalling:
                 return ds
 
@@ -337,24 +347,36 @@ class DownloadImpl:
             self.dllock.release()
 
         
-    def restart(self):
+    def restart(self, initialdlstatus=None):
         """ Restart the Download. Technically this action does not need to be
         delegated to the network thread, but does so removes some concurrency
         problems. By scheduling both stops and restarts via the network task 
-        queue we ensure that they are executed in the order they were called.  
+        queue we ensure that they are executed in the order they were called.
+        
+        Note that when a Download is downloading or seeding, calling restart 
+        is a no-op. If a Download is performing some other task, it is left 
+        up to the internal running SingleDownload to determine what a restart 
+        means. Often it means SingleDownload will abort its current task and 
+        switch to downloading/seeding.
+        
         Called by any thread """
+        # RePEX: added initialdlstatus parameter
+        # RePEX: TODO: Should we mention the initialdlstatus behaviour in the docstring?
         if DEBUG:
             print >>sys.stderr,"DownloadImpl: restart:",`self.tdef.get_name_as_unicode()`
         self.dllock.acquire()
         try:
-            self.session.lm.rawserver.add_task(self.network_restart,0.0)
+            network_restart_lambda = lambda:self.network_restart(initialdlstatus)
+            self.session.lm.rawserver.add_task(network_restart_lambda,0.0)
         finally:
             self.dllock.release()
 
-    def network_restart(self):
+    def network_restart(self,initialdlstatus=None):
         """ Called by network thread """
         # Must schedule the hash check via lm. In some cases we have batch stops
         # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
+        
+        # RePEX: added initialdlstatus parameter
         if DEBUG:
             print >>sys.stderr,"DownloadImpl: network_restart",`self.tdef.get_name_as_unicode()`
         self.dllock.acquire()
@@ -362,14 +384,19 @@ class DownloadImpl:
             if self.sd is None:
                 self.error = None # assume fatal error is reproducible
                 # h4xor: restart using earlier loaded resumedata
-                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=self.pstate_for_restart,lmvodeventcallback=self.session.lm.network_vod_event_callback)
-            elif DEBUG:
-                print >>sys.stderr,"DownloadImpl: network_restart: SingleDownload already running",`self`
+                # RePEX: propagate initialdlstatus
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=self.pstate_for_restart,lmvodeventcallback=self.session.lm.network_vod_event_callback,initialdlstatus=initialdlstatus)
+            else:
+                if DEBUG:
+                    print >>sys.stderr,"DownloadImpl: network_restart: SingleDownload already running",`self`
+                # RePEX: leave decision what to do to SingleDownload
+                self.sd.restart(initialdlstatus)
 
             # No exception if already started, for convenience
         finally:
             self.dllock.release()
-
+    
+    
     #
     # Config parameters that only exists at runtime 
     #
@@ -473,9 +500,11 @@ class DownloadImpl:
         pstate['dlconfig'] = dlconfig
 
         pstate['dlstate'] = {}
-        ds = self.network_get_state(None,False,sessioncalling=True)
+        #ds = self.network_get_state(None,False,sessioncalling=True)
+        ds = self.network_get_state(None,True,sessioncalling=True) # RePEX: get peerlist in case of running Download
         pstate['dlstate']['status'] = ds.get_status()
         pstate['dlstate']['progress'] = ds.get_progress()
+        pstate['dlstate']['swarmcache'] = ds.get_swarmcache() # RePEX: store SwarmCache
         
         if DEBUG:
             print >>sys.stderr,"Download: netw_get_pers_state: status",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()

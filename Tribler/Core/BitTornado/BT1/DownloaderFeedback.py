@@ -84,6 +84,9 @@ class DownloaderFeedback:
             a['g2g'] = c.use_g2g
             a['g2g_score'] = c.g2g_score()
 
+            # RePEX: include number of pex messages in the stats
+            a['pex_received'] = c.pex_received 
+            
             l.append(a)                                               
 
         for dl in self.httpdl.get_downloads():

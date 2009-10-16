@@ -131,6 +131,7 @@ class Connection:
 # 2fastbt_
         self.create_time = time()
 # _2fastbt
+        
         if self.locally_initiated or ext_handshake:
             if DEBUG:
                 print >>sys.stderr,"Encoder.Connection: writing protname + options + infohash"
@@ -144,7 +145,7 @@ class Connection:
         else:
             self.next_len, self.next_func = 1, self.read_header_len
         self.Encoder.raw_server.add_task(self._auto_close, AUTOCLOSE_TIMEOUT)
-
+        
     def get_ip(self, real=False):
         return self.connection.get_ip(real)
 
@@ -296,6 +297,10 @@ class Connection:
 
             self.Encoder._event_reporter.add_event(self.Encoder.connecter.infohash, "connection-timeout:%s:%s" % (self.get_ip(), self.get_port()))
 
+            # RePEX: inform repexer of timeout
+            repexer = self.Encoder.repexer
+            if repexer and not self.closed:
+                self.connecter.sched(lambda:repexer.connection_timeout(self), 0.0)
             self.close()
 
     def close(self,closeall=False):
@@ -311,6 +316,11 @@ class Connection:
         self.closed = True
         if self.Encoder.connections.has_key(self.connection):
             self.Encoder.admin_close(self.connection)
+        
+        # RePEX: inform repexer of closed connection
+        repexer = self.Encoder.repexer
+        if repexer and not self.complete:
+            self.connecter.sched(lambda:repexer.connection_closed(self), 0.0)
             
         if self.complete:
             self.connecter.connection_lost(self)
@@ -477,6 +487,11 @@ class Encoder:
         self._known_addresses = {}
 
         schedulefunc(self.send_keepalives, keepalive_delay)
+        
+        # RePEX: added repexer field.
+        # Note: perhaps call it observer in the future and make the 
+        # download engine more observable?
+        self.repexer = None
         
     def send_keepalives(self):
         self.schedulefunc(self.send_keepalives, self.keepalive_delay)

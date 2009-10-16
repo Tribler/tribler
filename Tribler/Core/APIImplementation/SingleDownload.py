@@ -18,6 +18,7 @@ from Tribler.Core.BitTornado.__init__ import createPeerID
 from Tribler.Core.BitTornado.download_bt1 import BT1Download
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.Video.VideoStatus import VideoStatus
+from Tribler.Core.DecentralizedTracking.repex import RePEXer
 
 
 SPECIAL_VALUE = 481
@@ -38,6 +39,7 @@ class SingleDownload:
         self.logmsgs = []
         self._hashcheckfunc = None
         self._getstatsfunc = None
+        self.infohash = infohash
         try:
             self.dldoneflag = Event()
             self.dlrawserver = multihandler.newRawServer(infohash,self.dldoneflag)
@@ -89,13 +91,23 @@ class SingleDownload:
             #if DEBUG:
             #    print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex
             
+            # RePEX: Start in RePEX mode
+            if kvconfig['initialdlstatus'] == DLSTATUS_REPEXING:
+                if pstate is not None and pstate.has_key('dlstate'):
+                    swarmcache = pstate['dlstate'].get('swarmcache',{})
+                else:
+                    swarmcache = {}
+                self.repexer = RePEXer(self.infohash, swarmcache)
+            else:
+                self.repexer = None
+            
             if pstate is None:
                 resumedata = None
             else:
                 # Restarting download
                 resumedata=pstate['engineresumedata']
             self._hashcheckfunc = self.dow.initFiles(resumedata=resumedata)
-            
+
             
         except Exception,e:
             self.fatalerrorfunc(e)
@@ -141,7 +153,14 @@ class SingleDownload:
         try:
             self.dow.startEngine(vodeventfunc = self.lmvodeventcallback)
             self._getstatsfunc = self.dow.startStats() # not possible earlier
-            self.dow.startRerequester()
+            
+            # RePEX: don't start the Rerequester in RePEX mode
+            repexer = self.repexer
+            if repexer is None:
+                self.dow.startRerequester()
+            else:
+                self.hook_repexer()
+                
             self.dlrawserver.start_listening(self.dow.getPortHandler())
         except Exception,e:
             self.fatalerrorfunc(e)
@@ -175,7 +194,7 @@ class SingleDownload:
             self.dow.setMaxConns(nconns,networkcalling=True)
         if callback is not None:
             callback(nconns)
-
+    
 
     #
     # For DownloadState
@@ -199,7 +218,12 @@ class SingleDownload:
             stats['frac'] = self.hashcheckfrac
             return (DLSTATUS_HASHCHECKING,stats,logmsgs,coopdl_helpers,coopdl_coordinator)
         else:
-            return (None,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs,coopdl_helpers,coopdl_coordinator)
+            # RePEX: if we're repexing, set our status
+            if self.repexer is not None:
+                status = DLSTATUS_REPEXING
+            else:
+                status = None
+            return (status,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs,coopdl_helpers,coopdl_coordinator)
 
     def get_infohash(self):
         return self.infohash
@@ -229,8 +253,77 @@ class SingleDownload:
             # Hashchecking or waiting for while being shutdown, signal LaunchMany
             # so it can schedule a new one.
             self.lmhashcheckcompletecallback(success=False)
+        
+        # RePEX: unhook and abort RePEXer
+        if self.repexer:
+            repexer = self.unhook_repexer()
+            repexer.repex_aborted(self.infohash, DLSTATUS_STOPPED)
+        
         return resumedata
-
+    
+    #
+    # RePEX, Raynor Vliegendhart:
+    # Restarting a running Download previously was a NoOp according to 
+    # DownloadImpl, but now the decision is left up to SingleDownload.
+    def restart(self, initialdlstatus=None):
+        """
+        Called by network thread. Called when Download was already running
+        and Download.restart() was called.
+        """
+        if self.repexer and initialdlstatus != DLSTATUS_REPEXING:
+            # kill the RePEX process
+            repexer = self.unhook_repexer()
+            repexer.repex_aborted(self.infohash, initialdlstatus)
+        else:
+            pass # NoOp, continue with download as before
+    
+    
+    #
+    # RePEX: get_swarmcache
+    #
+    def get_swarmcache(self):
+        """
+        Returns the last stored swarmcache when RePEXing otherwise None.
+        
+        @return A dict mapping dns to a dict with at least 'last_seen' 
+        and 'pex' keys.
+        """
+        if self.repexer is not None:
+            return self.repexer.get_swarmcache()[0]
+        return None
+    
+    #
+    # RePEX: Hooking and unhooking the RePEXer
+    #
+    def hook_repexer(self):
+        repexer = self.repexer
+        if repexer is None:
+            return
+        self.dow.Pause()
+        
+        # create Rerequester in BT1D just to be sure, but don't start it
+        # (this makes sure that Encoder.rerequest != None)
+        self.dow.startRerequester(paused=True)
+        
+        connecter, encoder = self.dow.connecter, self.dow.encoder
+        connecter.repexer = repexer
+        encoder.repexer = repexer
+        rerequest = self.dow.createRerequester(repexer.rerequester_peers)
+        repexer.repex_ready(self.infohash, connecter, encoder, rerequest)
+    
+    def unhook_repexer(self):
+        repexer = self.repexer
+        if repexer is None:
+            return
+        self.repexer = None
+        if self.dow is not None:
+            connecter, encoder = self.dow.connecter, self.dow.encoder
+            connecter.repexer = None
+            encoder.repexer = None
+            self.dow.startRerequester() # not started, so start it.
+            self.dow.Unpause()
+        return repexer
+    
     #
     # Cooperative download
     #

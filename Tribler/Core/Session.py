@@ -306,7 +306,7 @@ class Session(SessionRuntimeConfig):
     #
     # Public methods
     #
-    def start_download(self,tdef,dcfg=None):
+    def start_download(self,tdef,dcfg=None,initialdlstatus=None):
         """ 
         Creates a Download object and adds it to the session. The passed 
         TorrentDef and DownloadStartupConfig are copied into the new Download 
@@ -319,10 +319,13 @@ class Session(SessionRuntimeConfig):
         @param dcfg DownloadStartupConfig or None, in which case 
         a new DownloadStartupConfig() is created with its default settings
         and the result becomes the runtime config of this Download.
+        @param initialdlstatus The initial download status of this Download 
+        or None. This enables the caller to create a Download in e.g. 
+        DLSTATUS_REPEXING state instead.
         @return Download
         """
         # locking by lm
-        return self.lm.add(tdef,dcfg)
+        return self.lm.add(tdef,dcfg,initialdlstatus=initialdlstatus)
 
     def resume_download_from_file(self,filename):
         """

@@ -480,7 +480,9 @@ class LibraryItemPanel(wx.Panel):
             #abctorrent.status.checkJustFinished()
 
 
-            if ds.get_status() == DLSTATUS_STOPPED:
+            # RePEX: a repexing download can also be resumed, which will just
+            # abort the repexing phase and returns the download to seeding 
+            if ds.get_status() in (DLSTATUS_STOPPED, DLSTATUS_REPEXING):
                 self.pause_resume.SetLabel('Resume')
 
             if ds.get_status() in (DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING):

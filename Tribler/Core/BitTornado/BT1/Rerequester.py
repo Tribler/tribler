@@ -108,6 +108,7 @@ class Rerequester:
         self.errorcodes = {}
         self.lock = SuccessLock()
         self.special = None
+        self.started = False
         self.stopped = False
         self.schedid = 'arno481'
         self.infohash = infohash
@@ -116,9 +117,10 @@ class Rerequester:
 
 
     def start(self):
-            
-        self.sched(self.c, self.interval/2)
-        self.d(0)
+        if not self.started:
+            self.started = True
+            self.sched(self.c, self.interval/2)
+            self.d(0)
 
     def c(self):
         if self.stopped:

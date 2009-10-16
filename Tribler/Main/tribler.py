@@ -521,8 +521,12 @@ class ABCApp(wx.App):
         # crashes.
         #
         self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
-
         
+        # RePEX: Start scheduler and logger
+        from Tribler.Core.DecentralizedTracking.repex import RePEXScheduler, RePEXLogger
+        RePEXLogger.getInstance().start()
+        RePEXScheduler.getInstance().start()
+
     def sesscb_states_callback(self,dslist):
         """ Called by SessionThread """
         wx.CallAfter(self.gui_states_callback,dslist)

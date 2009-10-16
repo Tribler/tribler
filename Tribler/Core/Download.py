@@ -70,10 +70,15 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         # Called by any thread 
         DownloadImpl.stop(self)
         
-    def restart(self):
-        """ Restarts the stopped Download. """
+    def restart(self,initialdlstatus=None):
+        """
+        Restarts the stopped Download.
+        
+        @param initialdlstatus An optional parameter to restart the Download in 
+        a specific state.
+        """
         # Called by any thread
-        DownloadImpl.restart(self)
+        DownloadImpl.restart(self, initialdlstatus)
         
     #
     # Config parameters that only exists at runtime 
