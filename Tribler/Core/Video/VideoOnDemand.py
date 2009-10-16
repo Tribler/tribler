@@ -592,7 +592,7 @@ class MovieOnDemandTransporter(MovieTransport):
             self.data_ready.acquire()
             vs.prebuffering = False
             self.stat_prebuffertime = time.time() - self.prebufstart
-            self._event_reporter.add_event(self.bt1download.infohash, "prebufv:%d" % self.stat_prebuffertime)
+            self._event_reporter.add_event(self.bt1download.infohash, "prebuf:%d" % self.stat_prebuffertime)
             self.notify_playable()
             self.data_ready.notify()
             self.data_ready.release()

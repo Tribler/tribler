@@ -371,11 +371,11 @@ class BackgroundApp(BaseApp):
                 dw = ds.get_download()
                 infohash = dw.get_def().get_infohash()
                 vod_stats = ds.get_vod_stats()
-                event_reporter.add_event(infohash, "prebufp:%d" % vod_stats['prebuf']) # prebuffering time that was needed
-                event_reporter.add_event(infohash, "stall:%d" % vod_stats['stall']) # time the player stalled
-                event_reporter.add_event(infohash, "late:%d" % vod_stats['late']) # number of pieces arrived after they were due
-                event_reporter.add_event(infohash, "dropped:%d" % vod_stats['dropped']) # number of pieces lost
-                event_reporter.add_event(infohash, "pos:%d" % vod_stats['pos']) # playback position
+                #if vod_stats_has_key("prebuf"): event_reporter.add_event(infohash, "prebufp:%d" % vod_stats['prebuf']) # prebuffering time that was needed
+                if vod_stats.has_key("stall"): event_reporter.add_event(infohash, "stall:%d" % vod_stats['stall']) # time the player stalled
+                if vod_stats.has_key("late"): event_reporter.add_event(infohash, "late:%d" % vod_stats['late']) # number of pieces arrived after they were due
+                if vod_stats.has_key("dropped"): event_reporter.add_event(infohash, "dropped:%d" % vod_stats['dropped']) # number of pieces lost
+                if vod_stats.has_key("pos"): event_reporter.add_event(infohash, "pos:%d" % vod_stats['pos']) # playback position
         
 
 class BGInstanceConnection(InstanceConnection):
