@@ -364,20 +364,18 @@ class BackgroundApp(BaseApp):
     # reports vod stats collected periodically
     #
     def report_periodic_vod_stats(self,playing_dslist):
-        ds = playing_dslist[0]
-        dw = ds.get_download()
-        infohash = dw.get_def().get_infohash()
         self.counter += 1
         if self.counter%self.interval == 0:
             event_reporter = get_reporter_instance()
             for ds in playing_dslist:
+                dw = ds.get_download()
+                infohash = dw.get_def().get_infohash()
                 vod_stats = ds.get_vod_stats()
-                print >> sys.stderr,"LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL vod_stats is", vod_stats
-                event_reporter.add_event(infohash, "prebuffering time that was needed:%d" % vod_stats['prebuf'])
-                event_reporter.add_event(infohash, "time the player stalled:%d" % vod_stats['stall'])
-                event_reporter.add_event(infohash, "# pieces arrived after they were due:%d" % vod_stats['late'])
-                event_reporter.add_event(infohash, "# pieces lost:%d" % vod_stats['dropped'])
-                event_reporter.add_event(infohash, "playback position:%d" % vod_stats['pos'])
+                event_reporter.add_event(infohash, "prebuf:%d" % vod_stats['prebuf']) # prebuffering time that was needed
+                event_reporter.add_event(infohash, "stal:%d" % vod_stats['stall']) # time the player stalled
+                event_reporter.add_event(infohash, "late:%d" % vod_stats['late']) # number of pieces arrived after they were due
+                event_reporter.add_event(infohash, "dropped:%d" % vod_stats['dropped']) # number of pieces lost
+                event_reporter.add_event(infohash, "pos:%d" % vod_stats['pos']) # playback position
         
 
 class BGInstanceConnection(InstanceConnection):
