@@ -114,11 +114,25 @@ class TorrentFeedThread(Thread):
             #traceback.print_exc()
     
         #self.addURL('http://www.legaltorrents.com/feeds/cat/netlabel-music.rss')
+        #self.addFile('ubuntu-9.04-desktop-i386.iso.torrent')
     
+    def addFile(self, filename):
+        """ This function enables to add individual torrents, instead of a collection of torrents through RSS """
+        try:
+            data = open(filename, 'rb').read()
+            torrent_data = bdecode(data)
+            infohash = sha.sha(bencode(torrent_data['info'])).digest()
+            if DEBUG: print >>sys.stderr, "Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
+            self.save_torrent(infohash, data)
+            self.channelcast_db.addOwnTorrent(infohash, torrent_data)
+        except:
+            print >> sys.stderr, "Could not add torrent:", filename
+            traceback.print_exc()
+
     
     def addURL(self, url, dowrite=True, status="active"):
         def on_torrent_callback(rss_url, infohash, torrent_data):
-            print >>sys.stderr, "Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
+            if DEBUG: print >>sys.stderr, "Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
             self.channelcast_db.addOwnTorrent(infohash, torrent_data)
 
         self.lock.acquire()
