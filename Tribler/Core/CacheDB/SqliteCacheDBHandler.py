@@ -3392,12 +3392,14 @@ class ChannelCastDBHandler(BasicDBHandler):
 
         for mod_id, vote in votecast_records:
             if vote < -5: # it is considered SPAM
-                del publishers[mod_id]
+                if mod_id in publishers:
+                    del publishers[mod_id]
                 continue
-            if mod_id in publishers and mod_id not in subscribers:
-                publishers[mod_id][1] = vote
-            else:
-                del publishers[mod_id]
+            if mod_id in publishers: 
+                if mod_id not in subscribers:
+                    publishers[mod_id][1] = vote
+                else:
+                    del publishers[mod_id]
         for k, v in publishers.items():
             allrecords.append((k, v[0], v[1]))
         def compare(a,b):
