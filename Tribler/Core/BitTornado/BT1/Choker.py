@@ -217,10 +217,16 @@ class Choker:
 
     def connection_lost(self, connection): 
         """ connection is a Connecter.Connection """
-        self.connections.remove(connection)
-        self.picker.lost_peer(connection)
-        if connection.get_upload().is_interested() and not connection.get_upload().is_choked():
-            self._rechoke()
+        # Raynor Vliegendhart, RePEX:
+        # The RePEX code can close a connection right after the handshake 
+        # but before the Choker has been informed via connection_made. 
+        # However, Choker.connection_lost is still called when a connection
+        # is closed, so we should check whether Choker knows the connection:
+        if connection in self.connections:
+            self.connections.remove(connection)
+            self.picker.lost_peer(connection)
+            if connection.get_upload().is_interested() and not connection.get_upload().is_choked():
+                self._rechoke()
 
     def interested(self, connection):
         if not connection.get_upload().is_choked():

@@ -398,9 +398,11 @@ class Connection:
         # RePEX: Tell repexer we have received an extended handshake
         repexer = self.connecter.repexer
         if repexer:
-            version = d.get('v',None)
-            self.connecter.sched(lambda:repexer.got_extend_handshake(self, version), 0.0)
-
+            try:
+                version = d.get('v',None)
+                repexer.got_extend_handshake(self, version)
+            except:
+                print_exc()
 
     def his_extend_msg_name_to_id(self,ext_name):
         """ returns the message id (byte) for the given message name or None """
@@ -468,7 +470,10 @@ class Connection:
         # check_ut_pex needs to be rewritten. 
         repexer = self.connecter.repexer
         if repexer:
-            self.connecter.sched(lambda:repexer.got_ut_pex(self, d), 0.0)
+            try:
+                repexer.got_ut_pex(self, d)
+            except:
+                print_exc()
             return
         
         # DoS protection: we're accepting IP addresses from 
@@ -837,7 +842,14 @@ class Connecter:
         # RePEX: Inform repexer connection is made
         repexer = self.repexer
         if repexer:
-            self.sched(lambda:repexer.connection_made(c,connection.supports_extend_messages()), 0.0)
+            try:
+                repexer.connection_made(c,connection.supports_extend_messages())
+                if c.closed:
+                    # The repexer can close the connection in certain cases.
+                    # If so, we abort further execution of this function.
+                    return c
+            except:
+                print_exc()
         
         if connection.supports_extend_messages():
             # The peer either supports our overlay-swarm extension or 
@@ -870,7 +882,10 @@ class Connecter:
         # RePEX: inform repexer of closed connection
         repexer = self.repexer
         if repexer:
-            self.sched(lambda:repexer.connection_closed(c), 0.0)
+            try:
+                repexer.connection_closed(c)
+            except:
+                print_exc()
 
         ######################################
         # BarterCast

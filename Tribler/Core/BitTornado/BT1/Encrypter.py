@@ -300,7 +300,10 @@ class Connection:
             # RePEX: inform repexer of timeout
             repexer = self.Encoder.repexer
             if repexer and not self.closed:
-                self.connecter.sched(lambda:repexer.connection_timeout(self), 0.0)
+                try:
+                    repexer.connection_timeout(self)
+                except:
+                    print_exc()
             self.close()
 
     def close(self,closeall=False):
@@ -320,7 +323,10 @@ class Connection:
         # RePEX: inform repexer of closed connection
         repexer = self.Encoder.repexer
         if repexer and not self.complete:
-            self.connecter.sched(lambda:repexer.connection_closed(self), 0.0)
+            try:
+                repexer.connection_closed(self)
+            except:
+                print_exc()
             
         if self.complete:
             self.connecter.connection_lost(self)
