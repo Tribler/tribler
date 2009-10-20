@@ -36,11 +36,14 @@ urllib.URLopener.open_https = original_open_https
 # "English[United Kingdom]" 
 #import locale
 
-#try:
-#    import wxversion
-#    wxversion.select('2.8')
-#except:
-#    pass
+# 20/10/09 Boudewijn: on systems that install multiple wx versions we
+# would prefer 2.8.
+try:
+   import wxversion
+   wxversion.select('2.8')
+except:
+   pass
+
 import wx
 import wx.animate
 from wx import xrc
