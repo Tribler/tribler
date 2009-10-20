@@ -305,11 +305,11 @@ class RePEXer(RePEXerInterface):
             if c.pex_received > 0:
                 costtype = 'pex'
                 success = True
-            elif c.pex_received == 0:
-                costtype = 'no_pex_msg'
             elif not c.supports_extend_msg('ut_pex'):
                 costtype = 'no_pex_support'
-        
+            elif c.pex_received == 0:
+                costtype = 'no_pex_msg'
+            
         if costtype:
             d, u = self.datacost[costtype]
             d += singlesocket.data_received
