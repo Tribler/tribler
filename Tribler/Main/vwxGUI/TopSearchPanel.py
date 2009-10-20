@@ -64,6 +64,9 @@ class TopSearchPanel(bgPanel):
         self.indexMyChannel = -1       
         self.indexPopularChannels = -1       
         self.indexSubscribedChannels = -1       
+
+
+        self.b = True
       
     def set_frame(self,frame):
         self.frame = frame
@@ -399,7 +402,6 @@ class TopSearchPanel(bgPanel):
                     erase=True 
                 else:
                     erase=False
-               # self.guiUtility.standardOverview.setMode('channelsMode')
                 self.guiUtility.guiPage = 'search_results'
                 self.guiUtility.channelsOverview(erase)
                 wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase=False)
@@ -414,7 +416,10 @@ class TopSearchPanel(bgPanel):
 
 
     def OnChannels(self,event):
+        import time
         if event.LeftDown() and self.guiUtility.guiPage != 'channels':
+            T1 = time.time()
+
             try:
                 if self.guiUtility.frame.channelsDetails.origin == 'search_results':
                     erase=True 
@@ -423,11 +428,35 @@ class TopSearchPanel(bgPanel):
             except:
                 erase=False
             self.guiUtility.guiPage = 'channels'
+
+
+            #t1 = time.time()
             self.guiUtility.channelsOverview(erase)
+            #t2 = time.time()
+            #print >> sys.stderr , "channels_overview", t2 - t1
+
+            #t1 = time.time()
             self.guiUtility.loadInformation('channelsMode', 'name', erase=False)
-            wx.Yield()
+            #t2 = time.time()
+            #print >> sys.stderr , "loadinformation", t2 - t1
+
+            #t1 = time.time()
+            #wx.Yield()
+            #t2 = time.time()
+            #print >> sys.stderr , "Yield", t2 - t1
+
+            #t1 = time.time()
             self.guiUtility.standardOverview.data['channelsMode']['grid'].expandPanelFromIndex(self.indexMyChannel)
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].expandPanelFromIndex(self.indexPopularChannels)
+            #t2 = time.time()
+            #print >> sys.stderr , "expandPanel", t2 - t1
+
+
+
+            T2 = time.time()
+            print >> sys.stderr , "ALL", T2 - T1
+    
+
 
         colour = wx.Colour(0,105,156)
         self.channels.SetForegroundColour(colour)
@@ -437,9 +466,13 @@ class TopSearchPanel(bgPanel):
         self.checkPage('my_files', self.my_files)
 
 
+
+
     def OnSettings(self,event):
         if event.LeftDown() and self.guiUtility.guiPage != 'settings':
             self.guiUtility.settingsOverview()
+            print >> sys.stderr , len(self.guiUtility.standardOverview.data['channelsMode']['grid'].data)
+            print >> sys.stderr , len(self.guiUtility.standardOverview.data['channelsMode']['grid2'].data)
         colour = wx.Colour(0,105,156)
         self.settings.SetForegroundColour(colour)
         self.settings.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))

@@ -115,14 +115,14 @@ class channelsDetailsItem(wx.Panel):
         #self.save.Hide()
 
         # remove button
-        self.remove = tribler_topButton(self, -1, name = "remove")
-        self.remove.setBackground(self.backgroundColourSel)
-        self.remove.Bind(wx.EVT_LEFT_UP, self.removeClicked)
-        self.remove.Hide()
+        self.reemove = tribler_topButton(self, -1, name = "reemove")
+        self.reemove.setBackground(self.backgroundColourSel)
+        self.reemove.Bind(wx.EVT_LEFT_UP, self.removeClicked)
+        self.reemove.Hide()
 
 
         self.hSizer.Add(self.title, 0, wx.LEFT, 5)
-        self.hSizer.Add(self.remove, 0, wx.TOP, 7)
+        self.hSizer.Add(self.reemove, 0, wx.TOP, 7)
 
         self.vSizer.Add(self.hSizer, 0, 0, 0)
 
@@ -216,7 +216,6 @@ class channelsDetailsItem(wx.Panel):
         self.guiUtility.frame.standardDetails.download(self.torrent)
 
     def removeClicked(self, event):
-        pass
         self.channelcast_db.deleteOwnTorrent(self.torrent['infohash'])
         cd = self.GetParent()
         cd.removeTorrent(self.index)
@@ -242,9 +241,9 @@ class channelsDetailsItem(wx.Panel):
             else:
                 self.vSizer.Layout()
             if self.isMine():
-                self.remove.Show()
+                self.reemove.Show()
             else:
-                self.remove.Hide()
+                self.reemove.Hide()
 
             
 
@@ -270,7 +269,7 @@ class channelsDetailsItem(wx.Panel):
         self.SetBackgroundColour(self.backgroundColour)
         self.selected = False
 
-        self.remove.Hide()
+        self.reemove.Hide()
         self.Refresh()
 
 

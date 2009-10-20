@@ -121,33 +121,37 @@ class PopularItemPanel(wx.Panel):
         self.hSizer.Add([10,0],0,wx.FIXED_MINSIZE,0)        
 
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,16))        
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(140,16))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((105,16))
+        self.title.SetMinSize((140,16))
 
-        #self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
-        #self.vSizerTitle.Add((
 
 
         self.hSizer.Add(self.title, 0, wx.TOP,3)
 
+
+        # Add Spacer
+        self.hSizer.Add([30,0],0,0,0)        
+
+
         # Add subscription button
-        #self.SubscriptionButton = tribler_topButton(self, -1, name = "sbutton")
-        #self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
-        #self.SubscriptionButton.Hide()
-        #self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 1)
+        self.SubscriptionButton = tribler_topButton(self, -1, name = "SubscriptionButton_small")
+        self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
+        self.SubscriptionButton.setBackground(wx.WHITE)
+        self.SubscriptionButton.Hide()
+        self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 2)
 
 
 
         # Add subscription text
-        self.SubscriptionText = wx.StaticText(self,-1,"Subscribed",wx.Point(0,0),wx.Size(210,16))
-        if sys.platform == 'linux2':
-            self.SubscriptionText.SetBackgroundColour(wx.WHITE)
-        self.SubscriptionText.SetForegroundColour((0,110,149))
-        self.SubscriptionText.SetFont(wx.Font(FS_SUBSCRIPTION,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.SubscriptionText.Hide()
-        self.hSizer.Add(self.SubscriptionText, 0, wx.TOP, 2)
+        #self.SubscriptionText = wx.StaticText(self,-1,"Subscribed",wx.Point(0,0),wx.Size(210,16))
+        #if sys.platform == 'linux2':
+        #    self.SubscriptionText.SetBackgroundColour(wx.WHITE)
+        #self.SubscriptionText.SetForegroundColour((0,110,149))
+        #self.SubscriptionText.SetFont(wx.Font(FS_SUBSCRIPTION,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        #self.SubscriptionText.Hide()
+        #self.hSizer.Add(self.SubscriptionText, 0, wx.TOP, 2)
 
 
 
@@ -155,7 +159,8 @@ class PopularItemPanel(wx.Panel):
 
         if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-            self.SubscriptionText.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            #self.SubscriptionText.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+        self.SubscriptionButton.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
             
 
          
@@ -213,10 +218,10 @@ class PopularItemPanel(wx.Panel):
         
         if data is None:
             self.title.SetLabel("")
-            self.SubscriptionText.Hide()
+            #self.SubscriptionText.Hide()
+            self.SubscriptionButton.Hide()
             self.title.Hide()
             self.hLine.Show()
-            ##self.SubscriptionButton.Hide()
             self.Refresh()
             return 
         else:
@@ -278,10 +283,12 @@ class PopularItemPanel(wx.Panel):
     def setSubscribed(self):
         if self.vcdb.hasSubscription(self.publisher_id, bin2str(self.utility.session.get_permid())):
             self.subscribed = True
-            self.SubscriptionText.Show()
+            #self.SubscriptionText.Show()
+            self.SubscriptionButton.Show()
         else:
             self.subscribed = False
-            self.SubscriptionText.Hide()
+            #self.SubscriptionText.Hide()
+            self.SubscriptionButton.Hide()
         self.hSizer.Layout()
 
 
@@ -310,10 +317,8 @@ class PopularItemPanel(wx.Panel):
 
     def select(self, i=None, j=None):
         self.selected = True        
-        if self.isMyChannel():
-            self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.BOLD, False,FONTFACE))
-        else:
-            self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
+        self.SubscriptionButton.setBackground((216,233,240))
+        self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
         colour = self.selectedColour
         channelColour = self.channelTitleSelectedColour
         self.title.SetBackgroundColour(colour)
@@ -324,10 +329,8 @@ class PopularItemPanel(wx.Panel):
         
     def deselect(self, i=None, j=None):
         self.selected = False
-        if self.isMyChannel():
-            self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
-        else:
-            self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.SubscriptionButton.setBackground(wx.WHITE)
+        self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         colour = self.backgroundColour
         channelColour = self.channelTitleUnselectedColour
         self.title.SetBackgroundColour(colour)
@@ -337,21 +340,33 @@ class PopularItemPanel(wx.Panel):
        
 
     def SubscriptionClicked(self, event):
-        if self.SubscriptionButton.isToggled():
-            vote = {'mod_id' : self.publisher_id ,'voter_id' : self.utility.session.get_permid() , 'vote' : 2, 'time_stamp' : 0}
-            self.vcdb.addVote(vote)
-            self.SubscriptionText.SetLabel("Remove \nSubscription")
-            self.SubscriptionButton.setToggled(False)
-        else:
-            self.hideElements()
-            self.erasevSizerContents()
-            self.vcdb.deleteVote(self.publisher_id ,self.utility.session.get_permid())
+#        if self.SubscriptionButton.isToggled():
+#            vote = {'mod_id' : self.publisher_id ,'voter_id' : self.utility.session.get_permid() , 'vote' : 2, 'time_stamp' : 0}
+#            self.vcdb.addVote(vote)
+#            self.SubscriptionText.SetLabel("Remove \nSubscription")
+#            self.SubscriptionButton.setToggled(False)
+#        else:
+#            self.hideElements()
+#            self.erasevSizerContents()
+#            self.vcdb.deleteVote(self.publisher_id ,self.utility.session.get_permid())
+#
+#            self.parent.setData(None)
+#            self.parent.Refresh()
+#            self.parent.parent.gridManager.refresh()
 
-            self.parent.setData(None)
-            self.parent.Refresh()
-            self.parent.parent.gridManager.refresh()
+#        self.parent.setSubscribed() # reloads subscription state of the parent
 
-        self.parent.setSubscribed() # reloads subscription state of the parent
+
+
+
+
+
+        self.vcdb.unsubscribe(self.publisher_id)
+        self.SubscriptionButton.Hide()
+         
+
+
+
         
 
     def isSubscribed(self):
@@ -375,9 +390,11 @@ class PopularItemPanel(wx.Panel):
             if event.Entering() and self.data is not None:
                 colour = self.selectedColour
                 channelColour = self.channelTitleSelectedColour
+                self.SubscriptionButton.setBackground((216,233,240))
             elif event.Leaving() and self.selected == False:
                 colour = self.backgroundColour
                 channelColour = self.channelTitleUnselectedColour
+                self.SubscriptionButton.setBackground(wx.WHITE)
             self.title.SetBackgroundColour(colour)
             self.title.SetForegroundColour(channelColour)
             self.SetBackgroundColour(colour)

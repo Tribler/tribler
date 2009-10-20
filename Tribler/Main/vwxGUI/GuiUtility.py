@@ -9,6 +9,8 @@ import urllib
 import webbrowser
 from webbrowser import open_new
 
+from time import time
+
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
 
@@ -537,14 +539,12 @@ class GUIUtility:
             self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
             self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
             self.frame.top_bg.search_results.Show()
-            #self.frame.pageTitlePanel.Initialize()
         elif self.guiPage == 'channels':
             self.frame.top_bg.channels.SetForegroundColour((0,105,156))
             self.frame.top_bg.results.SetForegroundColour((255,51,0))
             self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
             self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
             self.frame.top_bg.search_results.Hide()
-            #self.frame.pageTitlePanel.Initialize()
 
         self.frame.top_bg.settings.SetForegroundColour((255,51,0))
         self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
@@ -565,18 +565,20 @@ class GUIUtility:
 
 
         self.frame.Layout()
+
+        t1 = time()
+
         self.standardOverview.setMode('channelsMode')
+
+
+        t2 = time()
+        print >> sys.stderr , "channelsMode" , t2 -t1
 
         self.standardOverview.data['channelsMode']['grid'].reloadChannels()
         self.standardOverview.data['channelsMode']['grid2'].reloadChannels()
-        ##self.standardOverview.data['channelsMode']['grid3'].reloadChannels()
 
 
         ##wx.CallAfter(self.frame.channelsDetails.reinitialize)
-
-        ##self.frame.pageTitlePanel.Hide()
-        
-
 
 
     def loadInformation(self, mode, sort, erase = False):
@@ -597,7 +599,6 @@ class GUIUtility:
             self.frame.top_bg.Layout()
 
         self.frame.channelsDetails.Hide()
-        ##self.frame.pageTitlePanel.Hide()
                 
         self.frame.top_bg.results.SetForegroundColour((255,51,0))
         self.frame.top_bg.channels.SetForegroundColour((255,51,0))
@@ -648,7 +649,6 @@ class GUIUtility:
             self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
             self.frame.channelsDetails.Hide()
-            ##self.frame.pageTitlePanel.Hide()
 
             if sys.platform != 'darwin':
                 self.frame.videoframe.show_videoframe()
@@ -731,23 +731,14 @@ class GUIUtility:
         self.standardOverview.Show(True)
         wx.CallAfter(self.refreshOnResize)
         
-        # Preselect mainButtonFiles
-#        filesButton = xrc.XRCCTRL(self.frame, 'Start page')
-#        filesButton.setSelected(True)
-#        self.selectedMainButton = filesButton
 
-        # init thumb / list view
         self.gridViewMode = 'list'
         
         #self.filterStandard.Hide() ## hide the standardOverview at startup
-
-        # Init family filter        
-        ##self.familyButton = xrc.XRCCTRL(self.frame, 'familyfilter')
         
         # Family filter initialized from configuration file
         catobj = Category.getInstance()
         print >> sys.stderr , "FAMILY FILTER :" , self.utility.config.Read('family_filter', "boolean")
-        #catobj.set_family_filter(self.utility.config.Read('family_filter', "boolean"))
 
         
     def initFilterStandard(self, filterStandard):
@@ -766,9 +757,6 @@ class GUIUtility:
         self.standardDetails = standardDetails
         firstItem = self.standardOverview.getFirstItem()
         self.standardDetails.setMode('filesMode', firstItem)        
-#        self.standardDetails.Hide()
-        # init player here?    
-        ## self.standardDetails.refreshStatusPanel(True)         
         self.guiOpen.set()
         
     def deleteSubscription(self,subscrip):

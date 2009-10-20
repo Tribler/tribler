@@ -89,6 +89,8 @@ class standardOverview(wx.Panel):
         for mode in OVERVIEW_MODES:
             self.data[mode] = {} #each mode has a dictionary of gui elements with name and reference
         self.currentPanel = None
+        self.settingsPanel = None
+        self.channelsPanel = None
         self.addComponents()
         #self.Refresh()
         
@@ -142,8 +144,14 @@ class standardOverview(wx.Panel):
     def refreshMode(self,refreshGrid=True):
         # load xrc
         self.oldpanel = self.currentPanel   
+
+        t1 = time()
         
         self.currentPanel = self.loadPanel()
+
+        t2 = time()
+        print >> sys.stderr , "loadPanel" , t2 - t1
+
 
         #print >> sys.stderr , 'standardOverview: self.oldpanel' , self.oldpanel
         #print >> sys.stderr , 'standardOverview: self.currentPanel' , self.currentPanel
@@ -298,67 +306,68 @@ class standardOverview(wx.Panel):
             currentPanel = wx.Panel(self,-1,size=(0,0))
             pager = None
             grid = currentPanel
+
         elif modeString == "files": # AKA search results page
             currentPanel = filesGrid(parent=self)
             grid = currentPanel
+
         elif modeString == "library":
             currentPanel = libraryGrid(parent=self)
             grid = currentPanel
+
         elif modeString == "settings":
-            xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
-            panelName = modeString+'Overview'
-            res = xrc.XmlResource(xrcResource)
-            currentPanel = res.LoadPanel(self, panelName)
-            grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')  
+            if self.settingsPanel is None:
+                xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
+                panelName = modeString+'Overview'
+                res = xrc.XmlResource(xrcResource)
+                currentPanel = res.LoadPanel(self, panelName)
+                self.settingsPanel = currentPanel
+            else:
+                currentPanel = self.settingsPanel
+
         elif modeString == "channels":
-            #currentPanel = subscriptionsGrid(parent=self)
-            #grid = currentPanel
-            xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
-            panelName = modeString+'Overview'
-            res = xrc.XmlResource(xrcResource)
-            currentPanel = res.LoadPanel(self, panelName)
+            if self.channelsPanel is None:
+                xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
+                panelName = modeString+'Overview'
+                res = xrc.XmlResource(xrcResource)
+                currentPanel = res.LoadPanel(self, panelName)
+                self.channelsPanel = currentPanel
+            else:
+                currentPanel = self.channelsPanel
             grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')  
             grid2 = xrc.XRCCTRL(currentPanel, 'popularGrid')  
-            ##grid3 = xrc.XRCCTRL(currentPanel, 'subscriptionsGrid')  
-            #grid4 = xrc.XRCCTRL(currentPanel, 'chresultsGrid')  
-  
+
+      
             
         self.data[self.mode]['panel'] = currentPanel
 	if sys.platform == 'darwin' and modeString == 'channels':
 	    self.data[self.mode]['panel'].SetMinSize((300,760))
 	    self.data[self.mode]['panel'].SetSize((300,760))
-        if modeString != "startpage":
+
+
+        if modeString in ["files","library"]:
             self.data[self.mode]['grid'] = grid
             self.data[self.mode]['pager'] = pager
 
+
         if modeString == "channels":
+            self.data[self.mode]['grid'] = grid
             self.data[self.mode]['grid2'] = grid2
-            ##self.data[self.mode]['grid3'] = grid3
-            #self.data[self.mode]['grid4'] = grid4
 
 
-        if pager is not None:                  
+
+        if pager is not None and modeString in ["files","library"]:                  
             pager.setGrid(grid)
 
         if self.mode == 'settingsMode':
             self.firewallStatus = xrc.XRCCTRL(currentPanel,'firewallStatus')
             self.firewallStatusText = xrc.XRCCTRL(currentPanel,'firewallStatusText')
             self.portValue = xrc.XRCCTRL(currentPanel,'firewallValue')
-        #    self.portValue.Bind(wx.EVT_KEY_DOWN,self.OnPortChange)
             self.portChange = xrc.XRCCTRL(currentPanel, 'portChange')
             self.iconSaved = xrc.XRCCTRL(currentPanel, 'iconSaved')
             wx.CallAfter(self.updateFirewall)
 
                         
-
-            
-        ##    if self.guiUtility.isReachable():
-        ##        self.firewallStatus.setToggled(True)
-        ##        self.firewallStatus.Refresh()
-        ##        print >> sys.stderr , "OK"
-        ##    else:
-        ##        self.firewallStatus.setToggled(False)
-        ##    self.Refresh()
 
 
 
@@ -529,16 +538,12 @@ class standardOverview(wx.Panel):
         if filterState:
             filterState.setDefault(oldFilterState)
             
-        #if filterState.db == 'libraryMode':
-        #    print >> sys.stderr, 'standardOverview: ********************** VALID LIBRARY Filterstate:', filterState
             
         if filterState and filterState.isValid():
             if self.mode in ('filesMode', 'libraryMode', 'settingsMode', 'channelsMode'):
                 self.data[filterState.db]['grid'].gridManager.set_state(filterState)
                 if self.mode == 'channelsMode':
                     self.data[filterState.db]['grid2'].gridManager.set_state(filterState)
-                    ##self.data[filterState.db]['grid3'].gridManager.set_state(filterState)
-                    #self.data[filterState.db]['grid4'].gridManager.set_state(filterState)
             else:
                 if DEBUG:
                     print >>sys.stderr,'standardOverview: Filters not yet implemented in this mode'
@@ -547,15 +552,13 @@ class standardOverview(wx.Panel):
             if DEBUG:
                 print >>sys.stderr,"standardOverview: before refreshData"
                 
-    
+ 
           
-            #self.refreshData()
             self.data[self.mode]['filterState'] = filterState
             
        
         else:
             print >> sys.stderr, 'standardOverview: Invalid Filterstate:', filterState
-            #print_stack()    
     
     """
     def loadSubscriptionData(self):

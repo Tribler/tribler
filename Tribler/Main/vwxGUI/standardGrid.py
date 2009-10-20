@@ -70,6 +70,9 @@ class GridManager(object):
         self.cache_numbers = {}
         self.cache_ntorrent_interval = 1
         self.cache_npeer_interval = 1
+
+
+        self.old_data = None
         
     def set_state(self, state, reset_page = False):
         self.state = state
@@ -100,7 +103,6 @@ class GridManager(object):
             self.setObserver()
             
         self.data, self.total_items = self._getData(self.state)
-
 
 
         if self.state.db == 'channelsMode':
@@ -139,16 +141,22 @@ class GridManager(object):
                         self.grid.SetMinSize((218,434))
                         self.grid.SetSize((218,434))
 
+        #if self.old_data is None:
 
+        #t1 = time()
 
-
-        #print >> sys.stderr, 'GridManager: Data length: %d/%d' % (len(self.data), self.total_items)
         self.grid.setData(self.data)
+        #    self.old_data = self.data
+        #else:
+        #    self.grid.setData(self.old_data)
+
+
+        #t2 = time()
+        #print >> sys.stderr  , "setDATA" , t2 - t1
+
         if DEBUG:
             print >> sys.stderr, 'GridManager: state: %s' % (self.state)
             print >> sys.stderr, 'GridManager: state: gave %d results, out of total %d' % (len(self.data), self.total_items)
-            #for torrent in self.data:
-            #    print >>sys.stderr,"GridManager: elem name is",`torrent['name']`
         
         
     def set_page(self, page):
@@ -261,8 +269,6 @@ class GridManager(object):
                 if self.grid.name == 'channelsGrid':
 
                     [total_items,res] = self.channelsearch_manager.getChannelHits(state.db)
-                    if res is not None:
-                        print >> sys.stderr , len(res)
                     data = []
                     if total_items > 0:
                         for el in res:
@@ -278,12 +284,17 @@ class GridManager(object):
 
                 if self.grid.name == 'popularGrid':
 
+                    t1 = time() 
+
                     [stotal_items,sdata] = self.channelsearch_manager.getSubscriptions(state.db)
                     print >> sys.stderr , "stotal_items " , stotal_items
                     [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db, maximum=19-stotal_items)
                     print >> sys.stderr , "total_items " , total_items
                     data.extend(sdata)
                     total_items+=stotal_items
+
+                    t2 = time() 
+                    print >> sys.stderr , "getData" , t2 - t1
 
 
         elif state.db in ('personsMode', 'friendsMode'):

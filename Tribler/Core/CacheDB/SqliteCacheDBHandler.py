@@ -3369,25 +3369,27 @@ class ChannelCastDBHandler(BasicDBHandler):
         
         votecastdb = VoteCastDBHandler.getInstance()
         allrecords = []
+
         t1 = time()
+
         sql = "select distinct publisher_id, publisher_name from ChannelCast"
         channel_records = self._db.fetchall(sql)
-        t2 = time()
+
         sql = "select mod_id, (2*sum(vote)-count(*))/3 from VoteCast group by mod_id order by 2 desc"
         votecast_records = self._db.fetchall(sql)
-        t3 = time()
+
         sql = "select distinct mod_id from VoteCast where voter_id='"+bin2str(self.my_permid)+"' and vote=2"
         subscribed_channels = self._db.fetchall(sql)
         
         subscribers = {}
         for record in subscribed_channels:
             subscribers[record[0]]="12"
-        
+
         publishers = {}
         for publisher_id, publisher_name in channel_records:
             if publisher_id not in publishers and publisher_id!=bin2str(self.my_permid):
-                publishers[publisher_id]=publisher_name
-        
+                publishers[publisher_id]=[publisher_name, 0]
+
         for mod_id, vote in votecast_records:
             if vote < -5: # it is considered SPAM
                 del publishers[mod_id]
@@ -3455,6 +3457,8 @@ class ChannelCastDBHandler(BasicDBHandler):
         records = []
         votecastdb = VoteCastDBHandler.getInstance()
         #sql = "select mod_id, count(*) from VoteCast where mod_id in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id order by 2 desc"
+
+        t1 = time()
         sql = "select mod_id, count(*) from VoteCast where mod_id <>'"+bin2str(self.my_permid)+"'" + " and vote=2 and voter_id='" + bin2str(self.my_permid) + "'" + " group by mod_id order by 2 desc"
         votes = self._db.fetchall(sql)
         for vote in votes:
@@ -3462,6 +3466,9 @@ class ChannelCastDBHandler(BasicDBHandler):
             record = self._db.fetchone(sql)
             mod_name = record[0]
             records.append((vote[0],mod_name,vote[1]))
+        t2 = time()
+        print >> sys.stderr , "subscribed" , t2 - t1
+
         return records
     
 

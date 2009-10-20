@@ -117,10 +117,10 @@ class ChannelsItemPanel(wx.Panel):
         self.hSizer.Add([10,0],0,wx.FIXED_MINSIZE,0)        
 
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,16))        
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(160,16))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((105,16))
+        self.title.SetMinSize((160,16))
 
         #self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
         #self.vSizerTitle.Add((
@@ -128,27 +128,37 @@ class ChannelsItemPanel(wx.Panel):
 
         self.hSizer.Add(self.title, 0, wx.TOP,3)
 
+
+        # Add Spacer
+        self.hSizer.Add([10,0],0,0,0)        
+
+
+
         # Add subscription button
-        ##self.SubscriptionButton = SwitchButton(self, -1, name = "SubscriptionButton")
-        ##self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
-        ##self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 1)
+        #self.SubscriptionButton = tribler_topButton(self, -1, name = "SubscriptionButton_small")
+        #self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
+        #self.SubscriptionButton.setBackground(wx.WHITE)
+        #self.SubscriptionButton.Hide()
+        #self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 2)
+
+
+
 
 
         ##self.hSizer.Add((10,0), 0, 0, 0)
 
 
         # Add subscription text
-        self.SubscriptionText = wx.StaticText(self,-1,"Subscribed",wx.Point(0,0),wx.Size(210,16))
-        self.SubscriptionText.SetForegroundColour((0,110,149))
-        self.SubscriptionText.SetFont(wx.Font(FS_SUBSCRIPTION,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.SubscriptionText.Hide()
-        self.hSizer.Add(self.SubscriptionText, 0, wx.TOP, 2)
+        #self.SubscriptionText = wx.StaticText(self,-1,"Subscribed",wx.Point(0,0),wx.Size(210,16))
+        #self.SubscriptionText.SetForegroundColour((0,110,149))
+        #self.SubscriptionText.SetFont(wx.Font(FS_SUBSCRIPTION,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        #self.SubscriptionText.Hide()
+        #self.hSizer.Add(self.SubscriptionText, 0, wx.TOP, 2)
 
 
 
         if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-            self.SubscriptionText.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
 
 
@@ -208,7 +218,8 @@ class ChannelsItemPanel(wx.Panel):
         
         if data is None:
             self.title.SetLabel("")
-            self.SubscriptionText.Hide()
+            #self.SubscriptionText.Hide()
+            #self.SubscriptionButton.Hide()
             self.title.Hide()
             self.hLine.Show()
             self.Refresh()
@@ -232,7 +243,7 @@ class ChannelsItemPanel(wx.Panel):
             else:
                 self.title.SetMinSize((150,18))
                 self.title.SetSize((150,18))
-            self.SubscriptionText.Hide()
+            #self.SubscriptionButton.Hide()
 
 
             self.publisher_id, self.publisher_name, self.num_votes = data
@@ -278,8 +289,8 @@ class ChannelsItemPanel(wx.Panel):
         else:
             self.mychannel = False
 
-            self.title.SetMinSize((105,16))
-            self.title.SetSize((105,16))
+            self.title.SetMinSize((160,16))
+            self.title.SetSize((160,16))
 
             self.publisher_id, self.publisher_name, self.num_votes = data
 
@@ -333,10 +344,12 @@ class ChannelsItemPanel(wx.Panel):
     def setSubscribed(self):
         if self.vcdb.hasSubscription(self.publisher_id, bin2str(self.utility.session.get_permid())):
             self.subscribed = True
-            self.SubscriptionText.Show()
+            #self.SubscriptionButton.Show()
+            #self.SubscriptionText.Show()
         else:
             self.subscribed = False
-            self.SubscriptionText.Hide()
+            #self.SubscriptionButton.Hide()
+            #self.SubscriptionText.Hide()
         self.hSizer.Layout()
         
 
@@ -402,6 +415,36 @@ class ChannelsItemPanel(wx.Panel):
         self.SetBackgroundColour(colour)
         self.Refresh()
        
+    def SubscriptionClicked(self, event):
+#        if self.SubscriptionButton.isToggled():
+#            vote = {'mod_id' : self.publisher_id ,'voter_id' : self.utility.session.get_permid() , 'vote' : 2, 'time_stamp' : 0}
+#            self.vcdb.addVote(vote)
+#            self.SubscriptionText.SetLabel("Remove \nSubscription")
+#            self.SubscriptionButton.setToggled(False)
+#        else:
+#            self.hideElements()
+#            self.erasevSizerContents()
+#            self.vcdb.deleteVote(self.publisher_id ,self.utility.session.get_permid())
+#
+#            self.parent.setData(None)
+#            self.parent.Refresh()
+#            self.parent.parent.gridManager.refresh()
+
+#        self.parent.setSubscribed() # reloads subscription state of the parent
+
+
+        self.vcdb.unsubscribe(self.publisher_id)
+        self.SubscriptionButton.Hide()
+         
+
+
+
+
+
+
+
+
+
      
 
     def isSubscribed(self):

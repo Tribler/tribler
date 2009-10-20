@@ -61,18 +61,18 @@ class channelsOverviewPanel(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
 
-        self.standardOverview = self.guiUtility.standardOverview
+#        self.standardOverview = self.guiUtility.standardOverview
 
-        self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+#        self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
-        self.channelcast_db = self.utility.session.open_dbhandler(NTFY_CHANNELCAST)
-        self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-        self.vcdb = self.utility.session.open_dbhandler(NTFY_VOTECAST)
+#        self.channelcast_db = self.utility.session.open_dbhandler(NTFY_CHANNELCAST)
+#        self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
+#        self.vcdb = self.utility.session.open_dbhandler(NTFY_VOTECAST)
 
 
-        self.channelsDetails = self.guiUtility.frame.channelsDetails
+#        self.channelsDetails = self.guiUtility.frame.channelsDetails
 
-        self.setMyChannelInfo()
+#        self.setMyChannelInfo()
 
 
     def myChannelClicked(self, event):

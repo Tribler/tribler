@@ -34,7 +34,7 @@ from Tribler.__init__ import LIBRARYNAME
 
 DETAILS_MODES = ['filesMode',  'libraryMode', 'channelsMode']
 
-DEBUG = False
+DEBUG = True
 
 
 # font sizes
@@ -176,6 +176,8 @@ class channelsDetails(bgPanel):
         self.hSizer1 = wx.BoxSizer(wx.HORIZONTAL)
         # hSizer2
         self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        # hSizer3
+        self.hSizer3 = wx.BoxSizer(wx.HORIZONTAL)
         # hSizerChannels
         self.hSizerChannels = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -212,6 +214,14 @@ class channelsDetails(bgPanel):
         self.rssText.SetFont(wx.Font(FS_RSS_TEXT,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.rssText.SetMinSize((55,20))
 
+        # torrent text
+        #self.torrentText = wx.StaticText(self,-1,"Torrent:",wx.Point(0,0),wx.Size(55,20))  
+        #self.torrentText.SetBackgroundColour((216,233,240))
+        #self.torrentText.SetForegroundColour(wx.BLACK)
+        #self.torrentText.SetFont(wx.Font(FS_RSS_TEXT,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        #self.torrentText.SetMinSize((55,20))
+
+
         # rss ctrl
         self.rssCtrl = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER|wx.NO_BORDER)
         self.rssCtrl.SetFont(wx.Font(FS_RSS, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
@@ -226,6 +236,15 @@ class channelsDetails(bgPanel):
         except:
             pass
 
+
+        # torrent ctrl
+        #self.torrentCtrl = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER|wx.NO_BORDER)
+        #self.torrentCtrl.SetFont(wx.Font(FS_RSS, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
+        #self.torrentCtrl.SetBackgroundColour((206,223,230))
+        #self.torrentCtrl.SetMinSize((self.x-205,23))
+
+
+
         # add Button
         self.addButton = SwitchButton(self, -1, name = "addRSS")
         self.addButton.createBackgroundImage()  
@@ -239,6 +258,24 @@ class channelsDetails(bgPanel):
         self.rssFeedbackText.SetFont(wx.Font(FS_RSSFEEDBACK_TEXT,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
         self.rssFeedbackText.SetMinSize((55,20))
         self.rssFeedbackText.Hide()
+
+
+        #self.torrentFeedbackText = wx.StaticText(self,-1,"Added",wx.Point(0,0),wx.Size(55,20))  
+        #self.torrentFeedbackText.SetBackgroundColour((216,233,240))
+        #self.torrentFeedbackText.SetForegroundColour((0,110,149))
+        #self.torrentFeedbackText.SetFont(wx.Font(FS_RSSFEEDBACK_TEXT,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
+        #self.torrentFeedbackText.SetMinSize((55,20))
+        #self.torrentFeedbackText.Hide()
+
+
+
+
+        # add Torrent button
+        self.add_torrent = tribler_topButton(self, -1, name = "torrent_add")
+        self.add_torrent.createBackgroundImage()
+        self.add_torrent.Bind(wx.EVT_LEFT_UP, self.addTorrentClicked)
+        self.add_torrent.Hide()
+
 
 
         # subscription button
@@ -288,6 +325,7 @@ class channelsDetails(bgPanel):
         self.hSizer1.Add((5,0), 0, 0, 0)
         self.hSizer1.Add(self.SubscriptionLimitText, 0, 0, 0)
 
+
         self.hSizer2.Add((20,20), 0, 0, 0)
         self.hSizer2.Add(self.rssText, 0, wx.TOP, 3)
         self.hSizer2.Add((5,0), 0, 0, 0)
@@ -299,6 +337,23 @@ class channelsDetails(bgPanel):
 	self.hSizer2.Add(self.addButton, 0, 0, 0)
         self.hSizer2.Add((5,0), 0, 0, 0)
         self.hSizer2.Add(self.rssFeedbackText, 0, wx.TOP, 5)
+
+        self.hSizer3.Add((351,0), 0, 0, 0)
+        self.hSizer3.Add(self.add_torrent, 0, 0, 0)
+
+
+        #self.hSizer3.Add((20,20), 0, 0, 0)
+        #self.hSizer3.Add(self.torrentText, 0, wx.TOP, 3)
+        #self.hSizer3.Add((5,0), 0, 0, 0)
+        #self.hSizer3.Add(self.torrentCtrl, 0, 0, 0)
+        #if sys.platform != 'darwin':
+	#    self.hSizer3.Add((10,0), 0, 0, 0)
+        #else:
+	#    self.hSizer3.Add((5,0), 0, 0, 0)
+	#self.hSizer3.Add(self.add_torrent, 0, 0, 0)
+        #self.hSizer3.Add((5,0), 0, 0, 0)
+        #self.hSizer3.Add(self.torrentFeedbackText, 0, wx.TOP, 5)
+
 
 
             
@@ -322,7 +377,9 @@ class channelsDetails(bgPanel):
         self.vSizer.Add(self.hSizer1, 0, wx.TOP, -15)   
         self.vSizer.Add((0,2), 0, 0, 0)
         self.vSizer.Add(self.hSizer2, 0, 0, 0)     
-        self.vSizer.Add((0,50), 0, 0, 0)
+        self.vSizer.Add((0,3), 0, 0, 0)
+        self.vSizer.Add(self.hSizer3, 0, 0, 0)     
+        self.vSizer.Add((0,40), 0, 0, 0)
         self.vSizer.Add(self.hSizerChannels, 0, 0, 0)     
 
 
@@ -330,7 +387,9 @@ class channelsDetails(bgPanel):
 
         self.SetSizer(self.vSizer)
         self.SetAutoLayout(1)
+        self.vSizer.Layout()
         self.Layout()
+
 
 
     def setType(self, Type):
@@ -427,7 +486,7 @@ class channelsDetails(bgPanel):
         self.rssCtrl.Hide()
         self.addButton.Hide()
         self.rssFeedbackText.Hide()
-
+        self.add_torrent.Hide()
         self.foundText.Show()
         if len(self.torrentList) != 1:
             self.foundText.SetLabel("Found %s files" % len(self.torrentList))
@@ -436,6 +495,7 @@ class channelsDetails(bgPanel):
             
         
         if self.parent.isMyChannel(): # My Channel
+            self.add_torrent.Show()
             self.SubscriptionButton.Hide()
             self.SubscriptionText.Hide()
             self.rssText.Show()
@@ -456,6 +516,27 @@ class channelsDetails(bgPanel):
 
 
 
+    def addTorrentClicked(self, event):
+        dlg = wx.FileDialog(self,"Choose torrent file", style = wx.DEFAULT_DIALOG_STYLE)
+        dlg.SetPath("/lhome/lgwin/TriblerDownloads/collected_torrent_files/u' Fitna_The_Movie_-_By_Geert_Wilders_English.avi__dfc74cd7bbe4e4ac83e6a938d6b928b71aa3db29.torrent'")
+        if dlg.ShowModal() == wx.ID_OK and os.path.isfile(dlg.GetPath()):
+
+
+            Torrent = self.tf.addFile(dlg.GetPath())
+
+            #torrent_file_name = os.path.split(dlg.GetPath())[1]
+            #torrent_db = TorrentDBHandler.getInstance()
+            #sql = "select * from Torrent where torrent_file_name ='" + torrent_file_name + "' "
+            #torrent = torrent_db._db.fetchone(sql)
+
+            #Torrent = dict(zip(torrent_db.value_name_for_channel, torrent))
+
+            #print >> sys.stderr , Torrent            
+
+            if Torrent is not None:
+                Torrent = dict(zip(self.torrent_db.value_name_for_channel, Torrent))
+
+                self.addTorrent(Torrent)
 
 
 
@@ -493,10 +574,10 @@ class channelsDetails(bgPanel):
 
     def reloadChannel(self, torrentList): # reloads the list of torrents after a torrent has been added or deleted
         self.torrentList = torrentList
+        self.totalItems = len(self.torrentList)
         self.showElements(self.subscribed)
         self.erasevSizerContents()
         self.Refresh()
-        self.totalItems = len(self.torrentList)
         self.setLastPage()
         self.addItems()
         self.displayChannelContents()
@@ -506,7 +587,10 @@ class channelsDetails(bgPanel):
         isMine = self.parent.isMyChannel()
         self.torrents = []
         for i in range(self.totalItems):
+            if DEBUG:
+                print >> sys.stderr , "item :" , i
             item=channelsDetailsItem(self, -1)
+            item.reemove.Hide()
             item.SetIndex(i)
             self.torrents.append(item)
             self.torrents[i].setTitle(self.torrentList[i]['name'])
