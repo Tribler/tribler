@@ -448,15 +448,17 @@ class RePEXer(RePEXerInterface):
             print >>sys.stderr, "RePEXer: connect_queue: active_sockets: %s" % self.active_sockets
         
         # We get here from repex_ready, connection_closed or from rerequester_peers.
-        # First we check whether we can connect and whether we're done.
-        if self.done or not self.can_connect():
+        # First we check whether we can connect, whether we're done, or whether we are closing.
+        if self.done or self.is_closing or not self.can_connect():
             return
         # when we have found sufficient live peers and at least the initial peers are checked,
         # we are done and close the remaining connections:
         if self.initial_peers_checked() and len(self.live_peers) >= REPEX_SWARMCACHE_SIZE:
-            if not self.is_closing:
-                self.is_closing = True
-                self.encoder.close_all()
+            # close_all() will result in generate several connection_closed events.
+            # To prevent reentry of this function, we'll set a flag we check at function entry.
+            self.is_closing = True
+            self.encoder.close_all()
+            assert self.active_sockets == 0
             if self.active_sockets == 0:
                 self.send_done()
             return
