@@ -674,6 +674,7 @@ class RePEXScheduler(RePEXerStatusCallback):
                 now = ts_now()
                 found_infohash = None
                 found_download = None
+                found_age = -1
                 for ds in dslist:
                     download = ds.get_download()
                     infohash = download.tdef.get_infohash()
@@ -692,9 +693,10 @@ class RePEXScheduler(RePEXerStatusCallback):
                         else:
                             if age >= REPEX_INTERVAL:
                                 debug_msg = "...suitable for RePEX!"
-                                found_download = download
-                                found_infohash = infohash
-                                break
+                                if age > found_age:
+                                    found_download = download
+                                    found_infohash = infohash
+                                    found_age = age
                     else:
                         debug_msg = "...not repexable: %s %s%%" % (dlstatus_strings[ds.get_status()], ds.get_progress()*100)
                     if DEBUG:
@@ -708,7 +710,7 @@ class RePEXScheduler(RePEXerStatusCallback):
                     if DEBUG:
                         print >>sys.stderr, "RePEXScheduler: network_scan: found %s, starting RePEX phase." % `found_download.tdef.get_name_as_unicode()`
                     self.current_repex = found_infohash
-                    self.downloads[infohash] = found_download
+                    self.downloads[found_infohash] = found_download
                     found_download.restart(initialdlstatus=DLSTATUS_REPEXING)
                     return -1, False
             except Exception, e:
