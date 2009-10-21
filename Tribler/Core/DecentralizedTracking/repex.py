@@ -432,7 +432,11 @@ class RePEXer(RePEXerInterface):
             print >>sys.stderr, "RePEXer: connecting: %s:%s" % dns
         self.active_sockets += 1
         self.attempted.add(dns)
-        self.encoder.start_connection(dns, id, forcenew = True)
+        if not self.encoder.start_connection(dns, id, forcenew = True):
+            print >>sys.stderr, "RePEXer: connecting failed: %s:%s" % dns
+            self.active_sockets -= 1
+            if dns in self.starting_peertable:
+                self.shufflecount += 1
     
     def next_peer_from_queue(self):
         if self.to_pex:

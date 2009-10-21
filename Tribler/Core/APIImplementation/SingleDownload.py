@@ -242,6 +242,11 @@ class SingleDownload:
             print >>sys.stderr,"SingleDownload: shutdown"
         resumedata = None
         if self.dow is not None:
+            # RePEX: unhook and abort RePEXer
+            if self.repexer:
+                repexer = self.unhook_repexer()
+                repexer.repex_aborted(self.infohash, DLSTATUS_STOPPED)
+
             self.dldoneflag.set()
             self.dlrawserver.shutdown()
             resumedata = self.dow.shutdown()
@@ -253,12 +258,7 @@ class SingleDownload:
             # Hashchecking or waiting for while being shutdown, signal LaunchMany
             # so it can schedule a new one.
             self.lmhashcheckcompletecallback(success=False)
-        
-        # RePEX: unhook and abort RePEXer
-        if self.repexer:
-            repexer = self.unhook_repexer()
-            repexer.repex_aborted(self.infohash, DLSTATUS_STOPPED)
-        
+                
         return resumedata
     
     #
