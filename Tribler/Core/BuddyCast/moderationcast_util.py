@@ -21,7 +21,7 @@ TIMESTAMP_IN_FUTURE = 5 * 60    # 5 minutes is okay
 #*****************Validity-checks*****************
 def validInfohash(infohash):
     """ Returns True iff infohash is a valid infohash """
-    r = type(infohash) == str
+    r = ( type(infohash) == str or type(infohash) == unicode)
     if not r:
         if DEBUG:
             print >>sys.stderr, "Invalid infohash: type(infohash) ==", str(type(infohash))+\
@@ -30,7 +30,7 @@ def validInfohash(infohash):
 
 def validPermid(permid):
     """ Returns True iff permid is a valid Tribler Perm-ID """
-    r = type(permid) == str and len(permid) <= 120
+    r = (type(permid) == str or type(permid)== unicode) and len(permid) <= 125
     if not r:
         if DEBUG:
             print >>sys.stderr, "Invalid permid: type(permid) ==", str(type(permid))+\
@@ -93,8 +93,10 @@ def validChannelCastMsg(channelcast_data):
             if DEBUG:
                 print >>sys.stderr,"validChannelCastMsg: a: key missing, got",d.keys()
             return False
-        if not (validPermid(ch['publisher_id']) and isinstance(ch['publisher_name'],str) and validInfohash(ch['infohash']) and validInfohash(ch['torrenthash'])
-                and isinstance(ch['torrentname'],str) and validTimestamp(ch['time_stamp'])):
+        if not (validPermid(ch['publisher_id']) and (isinstance(ch['publisher_name'],str) or isinstance(ch['publisher_name'], unicode)) and validInfohash(ch['infohash']) and validInfohash(ch['torrenthash'])
+                and (isinstance(ch['torrentname'],str) or isinstance(ch['torrentname'],unicode)) and validTimestamp(ch['time_stamp'])):
+            if DEBUG:
+                print >>sys.stderr,"validChannelCastMsg: something not valid"
             return False
         # now, verify signature
         l = (ch['publisher_id'],ch['infohash'], ch['torrenthash'], ch['time_stamp'])

@@ -1,7 +1,7 @@
 import sys
 from time import time, ctime, sleep
 from zlib import compress, decompress
-from base64 import decodestring
+from base64 import decodestring, encodestring
 from binascii import hexlify
 from traceback import print_exc, print_stack
 from types import StringType, ListType, DictType
@@ -10,7 +10,7 @@ from sha import sha
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Statistics.Logger import OverlayLogger
-from Tribler.Core.BitTornado.BT1.MessageID import CHANNELCAST
+from Tribler.Core.BitTornado.BT1.MessageID import CHANNELCAST, BUDDYCAST
 from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
@@ -69,7 +69,6 @@ class ChannelCastCore:
                 print >>sys.stderr, "No channels there.. hence we do not send"
             #self.session.chquery_connected_peers('k:MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAf3BkHsZ6UdIpuIX441wjU5Ybe0HPjTDvS+iacFZABH20It9N9uwkwtpkS3uEvVvfcTX50jcFNXOSCwq')            
             return
-        
         channelcast_msg = bencode(channelcast_data)
         
         if self.log:
@@ -80,11 +79,9 @@ class ChannelCastCore:
                 msg = repr(channelcast_data)
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
         
-        
-        if DEBUG: print >> sys.stderr, "Sending channelcastmsg",repr(channelcast_data) 
-        data = CHANNELCAST+channelcast_msg
+        data = CHANNELCAST + channelcast_msg
         self.secure_overlay.send(target_permid, data, self.channelCastSendCallback)        
-        
+        if DEBUG: print >> sys.stderr, "Sent channelcastmsg",repr(channelcast_msg)
     
     def createChannelCastMessage(self):
         """ Create a ChannelCast Message """
@@ -102,9 +99,11 @@ class ChannelCastCore:
             r['infohash'] = hit[2]
             r['torrenthash'] = hit[3]
             r['torrentname'] = hit[4]
-            r['time_stamp'] = hit[5]
+            r['time_stamp'] = int(hit[5])
             # hit[6]: signature, which is unique for any torrent published by a user
-            d[hit[6]] = r
+            signature = hit[6].encode('ascii','ignore')
+            d[signature] = r
+        #assert validChannelCastMsg(d)
         return d
     
     def channelCastSendCallback(self, exc, target_permid, other=0):
