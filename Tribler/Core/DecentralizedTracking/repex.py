@@ -711,6 +711,7 @@ class RePEXScheduler(RePEXerStatusCallback):
                         print >>sys.stderr, "RePEXScheduler: network_scan: found %s, starting RePEX phase." % `found_download.tdef.get_name_as_unicode()`
                     self.current_repex = found_infohash
                     self.downloads[found_infohash] = found_download
+                    found_download.set_mode(DLMODE_NORMAL)
                     found_download.restart(initialdlstatus=DLSTATUS_REPEXING)
                     return -1, False
             except Exception, e:
@@ -1006,7 +1007,8 @@ class RePEXerTester(RePEXerStatusCallback):
             def hack_into_pstate(d=download,swarmcache=swarmcache):
                 d.pstate_for_restart.setdefault('dlstate',{})['swarmcache'] = swarmcache
             self.session.lm.rawserver.add_task(hack_into_pstate,0.0)
-            
+        
+        download.set_mode(DLMODE_NORMAL)
         download.restart(initialdlstatus=DLSTATUS_REPEXING)
     
     #
