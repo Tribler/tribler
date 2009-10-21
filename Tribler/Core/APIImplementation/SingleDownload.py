@@ -98,6 +98,8 @@ class SingleDownload:
                 else:
                     swarmcache = {}
                 self.repexer = RePEXer(self.infohash, swarmcache)
+                # Prevent the video being played when this download is restarted in RePEX mode:
+                self.lmvodeventcallback = lambda *args, **kwargs: None
             else:
                 self.repexer = None
             
