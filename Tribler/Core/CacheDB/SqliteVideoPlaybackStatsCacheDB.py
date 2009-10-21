@@ -133,7 +133,7 @@ class VideoPlaybackDBHandler(BasicDBHandler):
             
     def add_event(self, key, event):
         assert type(key) in (str, unicode)
-        assert not "'" in key
+        # assert not "'" in key # TODO: This assert is unnecessary and breaks for certain infohashes? (Raynor Vliegendhart)
         assert type(event) in (str, unicode)
         assert not "'" in event
 
