@@ -5,7 +5,7 @@ import sys
 import cPickle
 from time import strftime
 
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_ELEVENTH
 # OLPROTO_VER_SEVENTH --> Sixth public release, >= 4.5.0, supports CRAWLER_REQUEST and CRAWLER_REPLY messages
 # OLPROTO_VER_EIGHTH  --> Seventh public release, >= 5.0, supporting BuddyCast with clicklog info.
 
@@ -49,10 +49,12 @@ class DatabaseCrawler:
             sql.extend(("SELECT 'peer_count', count(*) FROM Peer",
                         "SELECT 'torrent_count', count(*) FROM Torrent"))
 
-        if selversion >= OLPROTO_VER_EIGHTH:
-            sql.extend(("SELECT 'num_subscribers', count(*) FROM VoteCast where vote=2"
-                        "SELECT 'positive_votes_count', count(*) FROM VoteCast where vote=1",
-                        "SELECT 'negative_votes_count', count(*) FROM VoteCast where vote=-1"))
+        if selversion >= OLPROTO_VER_ELEVENTH:
+            sql.extend(("SELECT 'my_subscriptions', count(*) FROM VoteCast where voter_id='" + show_permid(permid) + "' and vote=2",
+                        "SELECT 'my_negative_votes', count(*) FROM VoteCast where voter_id='" + show_permid(permid) + "' and vote=-1",
+                        "SELECT 'my_channel_files', count(*) FROM ChannelCast where publisher_id='" + show_permid(permid) + "'",
+                        "SELECT 'all_subscriptions', count(*) FROM VoteCast where vote=2",
+                        "SELECT 'all_negative_votes', count(*) FROM VoteCast where vote=-1"))
 
         request_callback(CRAWLER_DATABASE_QUERY, ";".join(sql), callback=self._after_request_callback)
 
