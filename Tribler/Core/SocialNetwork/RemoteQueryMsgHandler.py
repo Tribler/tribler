@@ -332,7 +332,8 @@ class RemoteQueryMsgHandler:
             r['torrentname'] = hit[4]
             r['time_stamp'] = hit[5]
             # hit[6]: signature, which is unique for any torrent published by a user
-            d2[hit[6]] = r
+            signature = hit[6].encode('ascii','ignore')
+            d2[signature] = r
         d['a'] = d2
         return bencode(d)
     
@@ -409,16 +410,24 @@ class RemoteQueryMsgHandler:
 
 def isValidQuery(d,selversion):
     if not isinstance(d,dict):
+        if DEBUG:
+            print >> sys.stderr, "rqmh: not dict"
         return False
     if not ('q' in d and 'id' in d):
+        if DEBUG:
+            print >> sys.stderr, "rqmh: some keys are missing", d.keys()
         return False
-    if not (isinstance(d['q'],str) and isinstance(d['id'],str)):
+    if not ((isinstance(d['q'],str) or isinstance(d['q'], unicode)) and isinstance(d['id'],str)):
+        if DEBUG:
+            print >> sys.stderr, "rqmh: d['q'] or d['id'] are not of string format", d['q'], d['id']
         return False
     if len(d['q']) == 0:
-        return False
-    if not d['q'].isalnum():
+        if DEBUG:
+            print >> sys.stderr, "rqmh: len(d['q']) == 0"
         return False
     if len(d) > 2: # no other keys
+        if DEBUG:
+            print >> sys.stderr, "rqmh: d has more than 2 keys"
         return False
     return True
 
