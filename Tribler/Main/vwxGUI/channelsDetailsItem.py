@@ -216,6 +216,7 @@ class channelsDetailsItem(wx.Panel):
         self.guiUtility.frame.standardDetails.download(self.torrent)
 
     def removeClicked(self, event):
+        self.deselect()
         self.channelcast_db.deleteOwnTorrent(self.torrent['infohash'])
         cd = self.GetParent()
         cd.removeTorrent(self.index)

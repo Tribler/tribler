@@ -144,7 +144,6 @@ class GridManager(object):
         #if self.old_data is None:
 
         #t1 = time()
-
         self.grid.setData(self.data)
         #    self.old_data = self.data
         #else:

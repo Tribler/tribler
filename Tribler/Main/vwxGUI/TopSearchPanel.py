@@ -64,10 +64,8 @@ class TopSearchPanel(bgPanel):
         self.indexMyChannel = -1       
         self.indexPopularChannels = -1       
         self.indexSubscribedChannels = -1       
-
-
-        self.b = True
-      
+        self.needs_refresh = False
+     
     def set_frame(self,frame):
         self.frame = frame
 
@@ -271,15 +269,12 @@ class TopSearchPanel(bgPanel):
                 self.frame.Layout() 
                 if sys.platform == 'win32':
                     self.createBackgroundImage()
-                ##else:
-                ##    self.createBackgroundImage('top_search_grey.png')
                 self.srgradient.Show()
                 self.sr_indicator.Show()
                 self.frame.standardOverview.Show()
                 self.seperator.Show()
                 self.familyfilter.Show()
                 self.search_results.Show()
-                ##self.frame.pageTitlePanel.Show()
                 if sys.platform == 'win32':
                     self.results.setBlank(False)
                     self.results.setToggled(True)
@@ -320,6 +315,12 @@ class TopSearchPanel(bgPanel):
 
 
             self.guiUtility.guiPage = 'search_results'
+
+            if self.needs_refresh:
+                self.guiUtility.frame.channelsDetails.reinitialize()
+                self.needs_refresh = False
+
+
 
             if self.guiUtility.search_mode == 'files':
                 self.guiUtility.standardFilesOverview()
@@ -429,29 +430,15 @@ class TopSearchPanel(bgPanel):
                 erase=False
             self.guiUtility.guiPage = 'channels'
 
-
-            #t1 = time.time()
+            if self.needs_refresh:
+                self.indexMyChannel = -1
+                self.indexPopularChannels = -1
+                self.needs_refresh = False
+            
             self.guiUtility.channelsOverview(erase)
-            #t2 = time.time()
-            #print >> sys.stderr , "channels_overview", t2 - t1
-
-            #t1 = time.time()
-            self.guiUtility.loadInformation('channelsMode', 'name', erase=False)
-            #t2 = time.time()
-            #print >> sys.stderr , "loadinformation", t2 - t1
-
-            #t1 = time.time()
-            #wx.Yield()
-            #t2 = time.time()
-            #print >> sys.stderr , "Yield", t2 - t1
-
-            #t1 = time.time()
+            wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase=False)
             self.guiUtility.standardOverview.data['channelsMode']['grid'].expandPanelFromIndex(self.indexMyChannel)
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].expandPanelFromIndex(self.indexPopularChannels)
-            #t2 = time.time()
-            #print >> sys.stderr , "expandPanel", t2 - t1
-
-
 
             T2 = time.time()
             print >> sys.stderr , "ALL", T2 - T1
@@ -470,9 +457,10 @@ class TopSearchPanel(bgPanel):
 
     def OnSettings(self,event):
         if event.LeftDown() and self.guiUtility.guiPage != 'settings':
+            if self.needs_refresh:
+                self.guiUtility.frame.channelsDetails.reinitialize()
+#                self.needs_refresh = False
             self.guiUtility.settingsOverview()
-            print >> sys.stderr , len(self.guiUtility.standardOverview.data['channelsMode']['grid'].data)
-            print >> sys.stderr , len(self.guiUtility.standardOverview.data['channelsMode']['grid2'].data)
         colour = wx.Colour(0,105,156)
         self.settings.SetForegroundColour(colour)
         self.settings.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
@@ -483,6 +471,9 @@ class TopSearchPanel(bgPanel):
 
     def OnLibrary(self,event):
         if event.LeftDown() and self.guiUtility.guiPage != 'my_files':
+            if self.needs_refresh:
+                self.guiUtility.frame.channelsDetails.reinitialize()
+#                self.needs_refresh = False
             self.guiUtility.standardLibraryOverview()
             self.guiUtility.loadInformation('libraryMode', 'name', erase=False)
         colour = wx.Colour(0,105,156)

@@ -3219,6 +3219,12 @@ class ChannelCastDBHandler(BasicDBHandler):
         self._db.execute_write(sql,(infohash,bin2str(self.my_permid),))
 
 
+    def deleteTorrentsFromPublisherId(self, permid): ##
+        sql = "Delete From ChannelCast where publisher_id='" + permid + "'"
+        self._db.execute_write(sql)
+    
+
+
     
     def addTorrent(self,record):
         sql = "select count(*) from ChannelCast where publisher_id='" + record[0] + "' and infohash='" + record[2] + "'"
@@ -3455,23 +3461,81 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     
     def getMySubscribedChannels(self):
-        """return a list of tuples: [(permid,channel_name,#subscriptions)]"""
-        records = []
-        votecastdb = VoteCastDBHandler.getInstance()
+        """return a list of tuples: [(permid,channel_name,#votes)]"""
+#        records = []
+#        votecastdb = VoteCastDBHandler.getInstance()
         #sql = "select mod_id, count(*) from VoteCast where mod_id in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id order by 2 desc"
 
-        t1 = time()
-        sql = "select mod_id, count(*) from VoteCast where mod_id <>'"+bin2str(self.my_permid)+"'" + " and vote=2 and voter_id='" + bin2str(self.my_permid) + "'" + " group by mod_id order by 2 desc"
-        votes = self._db.fetchall(sql)
-        for vote in votes:
-            sql = "select publisher_name, time_stamp from ChannelCast where publisher_id='"+vote[0]+"' order by 2 desc" 
-            record = self._db.fetchone(sql)
-            mod_name = record[0]
-            records.append((vote[0],mod_name,vote[1]))
-        t2 = time()
-        print >> sys.stderr , "subscribed" , t2 - t1
+#        t1 = time()
+#        sql = "select mod_id, count(*) from VoteCast where mod_id <>'"+bin2str(self.my_permid)+"'" + " and vote=2 and voter_id='" + bin2str(self.my_permid) + "'" + " group by mod_id order by 2 desc"
+#        votes = self._db.fetchall(sql)
+#        for vote in votes:
+#            sql = "select publisher_name, time_stamp from ChannelCast where publisher_id='"+vote[0]+"' order by 2 desc" 
+#            record = self._db.fetchone(sql)
+#            mod_name = record[0]
+#            records.append((vote[0],mod_name,vote[1]))
+#        t2 = time()
+#        print >> sys.stderr , "subscribed" , t2 - t1
 
-        return records
+#        return records
+
+        allrecords = []
+
+
+        sql = "select distinct publisher_id, publisher_name from ChannelCast"
+        channel_records = self._db.fetchall(sql)
+
+        sql = "select mod_id, (2*sum(vote)-count(*))/3 from VoteCast group by mod_id order by 2 desc"
+        votecast_records = self._db.fetchall(sql)
+
+
+        sql = "select distinct mod_id from VoteCast where voter_id='"+bin2str(self.my_permid)+"' and vote=2"
+        subscribed_channels = self._db.fetchall(sql)
+        
+        subscribers = {}
+        for record in subscribed_channels:
+            subscribers[record[0]]="12"
+
+        publishers = {}
+        for publisher_id, publisher_name in channel_records:
+            if publisher_id not in publishers and publisher_id!=bin2str(self.my_permid):
+                publishers[publisher_id]=[publisher_name, 0]
+
+        for mod_id, vote in votecast_records:
+            if mod_id in subscribers:
+                if mod_id in publishers: 
+                    publishers[mod_id][1] = vote
+                else:
+                    del publishers[mod_id]
+        for k, v in publishers.items():
+            allrecords.append((k, v[0], v[1]))
+        def compare(a,b):
+            if a[2]>b[2] : return -1
+            if a[2]<b[2] : return 1
+            return 0
+        allrecords.sort(compare)
+        return allrecords
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
 
     def getMostPopularChannelFromTorrent(self, infohash): ##

@@ -518,9 +518,13 @@ class fileItem(bgPanel):
     def setTitle(self, title):
         self.title.SetToolTipString(title) 
         i=0
-        while self.title.GetTextExtent(title[:i])[0] < self.minsize[0]-30 and i <= len(title):
-            i=i+1
-        self.title.SetLabel(title[:(i-1)])
+        try:
+            while self.title.GetTextExtent(title[:i])[0] < self.minsize[0]-30 and i <= len(title):
+                i=i+1
+            self.title.SetLabel(title[:(i-1)])
+        except:
+            self.title.SetLabel(title)
+
         self.Refresh()       
 
     def mouseAction(self, event):

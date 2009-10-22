@@ -268,11 +268,11 @@ class ChannelsItemPanel(wx.Panel):
             self.torrentList = torrentList
 
             if self.num_votes == 0:
-                self.publisher_name = "My Channel (No subscribers)"
+                self.publisher_name = "My Channel (No votes)"
             elif self.num_votes == 1:
-                self.publisher_name = "My Channel (1 subscriber)" 
+                self.publisher_name = "My Channel (1 vote)" 
             else:
-                self.publisher_name = "My Channel (%s subscribers)" % self.num_votes 
+                self.publisher_name = "My Channel (%s votes)" % self.num_votes 
 
             self.setMyTitle()
 
@@ -304,11 +304,11 @@ class ChannelsItemPanel(wx.Panel):
         
 
             if self.num_votes == 0:
-                ttstring = data[1] + " (No subscribers)"
+                ttstring = data[1] + " (No votes)"
             elif self.num_votes == 1: 
-                ttstring = data[1] + " (1 subscriber)"
+                ttstring = data[1] + " (1 vote)"
             else: 
-                ttstring = data[1] + " (%s subscribers)" % self.num_votes
+                ttstring = data[1] + " (%s votes)" % self.num_votes
             self.title.SetToolTipString(ttstring)
 
 
@@ -358,11 +358,11 @@ class ChannelsItemPanel(wx.Panel):
         self.title.SetLabel(title)
         self.title.Wrap(self.title.GetSize()[0])
         if self.num_votes == 0:
-            ttstring = self.data[1] + " (No subscribers)"
+            ttstring = self.data[1] + " (No votes)"
         elif self.num_votes == 1: 
-            ttstring = self.data[1] + " (1 subscriber)"
+            ttstring = self.data[1] + " (1 votes)"
         else: 
-            ttstring = self.data[1] + " (%s subscribers)" % self.num_votes
+            ttstring = self.data[1] + " (%s votes)" % self.num_votes
         self.title.SetToolTipString(ttstring)
         #self.Refresh()
 
@@ -378,11 +378,11 @@ class ChannelsItemPanel(wx.Panel):
         self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
         self.title.Wrap(self.title.GetSize()[0])
         if self.num_votes == 0:
-            ttstring = "My Channel (No subscribers)"
+            ttstring = "My Channel (No votes)"
         elif self.num_votes == 1: 
-            ttstring = "My Channel (1 subscriber)"
+            ttstring = "My Channel (1 votes)"
         else: 
-            ttstring = "My Channel (%s subscribers)" % self.num_votes
+            ttstring = "My Channel (%s votes)" % self.num_votes
         self.title.SetToolTipString(ttstring)
 
 

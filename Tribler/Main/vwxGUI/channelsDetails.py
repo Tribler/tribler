@@ -34,7 +34,7 @@ from Tribler.__init__ import LIBRARYNAME
 
 DETAILS_MODES = ['filesMode',  'libraryMode', 'channelsMode']
 
-DEBUG = True
+DEBUG = False
 
 
 # font sizes
@@ -136,7 +136,7 @@ class channelsDetails(bgPanel):
         
         self.vcdb = self.utility.session.open_dbhandler(NTFY_VOTECAST)
         self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-
+        self.channelcast_db = self.utility.session.open_dbhandler(NTFY_CHANNELCAST)
 
         self.origin = None 
 
@@ -178,6 +178,8 @@ class channelsDetails(bgPanel):
         self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)
         # hSizer3
         self.hSizer3 = wx.BoxSizer(wx.HORIZONTAL)
+        # hSizer4
+        self.hSizer4 = wx.BoxSizer(wx.HORIZONTAL)
         # hSizerChannels
         self.hSizerChannels = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -311,6 +313,12 @@ class channelsDetails(bgPanel):
         self.SubscriptionLimitText.Hide()
   
 
+        # add Spam button
+        self.spam = tribler_topButton(self, -1, name = "spam")
+        self.spam.SetPosition((196,50))
+        self.spam.createBackgroundImage()
+        self.spam.Bind(wx.EVT_LEFT_UP, self.spamClicked)
+        self.spam.Hide()
 
         self.hSizer0.Add((20,0), 0, 0, 0)
         self.hSizer0.Add(self.channelTitle, 0, 0, 0)
@@ -355,6 +363,8 @@ class channelsDetails(bgPanel):
         #self.hSizer3.Add(self.torrentFeedbackText, 0, wx.TOP, 5)
 
 
+        #self.hSizer4.Add((196,0), 0, 0, 0)
+        #self.hSizer4.Add(self.spam, 0, 0, 0)
 
             
         self.vSizerLeft.Add((0,100), 0, 0, 0)
@@ -379,6 +389,8 @@ class channelsDetails(bgPanel):
         self.vSizer.Add(self.hSizer2, 0, 0, 0)     
         self.vSizer.Add((0,3), 0, 0, 0)
         self.vSizer.Add(self.hSizer3, 0, 0, 0)     
+        self.vSizer.Add((0,3), 0, 0, 0)
+        self.vSizer.Add(self.hSizer4, 0, 0, 0)     
         self.vSizer.Add((0,40), 0, 0, 0)
         self.vSizer.Add(self.hSizerChannels, 0, 0, 0)     
 
@@ -410,6 +422,8 @@ class channelsDetails(bgPanel):
             self.rssCtrl.Hide()
             self.addButton.Hide()
             self.rssFeedbackText.Hide()
+            self.add_torrent.Hide()
+            self.spam.Hide()
 
     def reinitialize(self, force = False):
         self.hideElements(force)
@@ -482,12 +496,13 @@ class channelsDetails(bgPanel):
         self.channelTitle.Show()
         self.SubscriptionButton.Show()
         self.SubscriptionText.Show()
+        self.foundText.Show()
         self.rssText.Hide()
         self.rssCtrl.Hide()
         self.addButton.Hide()
         self.rssFeedbackText.Hide()
         self.add_torrent.Hide()
-        self.foundText.Show()
+        self.spam.Hide()
         if len(self.torrentList) != 1:
             self.foundText.SetLabel("Found %s files" % len(self.torrentList))
         else:
@@ -504,12 +519,13 @@ class channelsDetails(bgPanel):
                 self.rssCtrl.SetValue(self.rssFeed)
             self.addButton.Show()
 
-        elif subscribed:
-            self.SubscriptionText.SetLabel("Unsubscribe")
-            self.SubscriptionButton.setToggled(False)
         else:
-            self.SubscriptionText.SetLabel("Subscribe")
-            self.SubscriptionButton.setToggled(True)
+            if subscribed:
+                self.SubscriptionText.SetLabel("Unsubscribe")
+                self.SubscriptionButton.setToggled(False)
+            else:
+                self.SubscriptionText.SetLabel("Subscribe")
+                self.SubscriptionButton.setToggled(True)
         self.scrollLeft.Show()
         self.scrollRight.Show()
         self.isempty = False
@@ -520,23 +536,27 @@ class channelsDetails(bgPanel):
         dlg = wx.FileDialog(self,"Choose torrent file", style = wx.DEFAULT_DIALOG_STYLE)
         dlg.SetPath("/lhome/lgwin/TriblerDownloads/collected_torrent_files/u' Fitna_The_Movie_-_By_Geert_Wilders_English.avi__dfc74cd7bbe4e4ac83e6a938d6b928b71aa3db29.torrent'")
         if dlg.ShowModal() == wx.ID_OK and os.path.isfile(dlg.GetPath()):
-
-
             Torrent = self.tf.addFile(dlg.GetPath())
-
-            #torrent_file_name = os.path.split(dlg.GetPath())[1]
-            #torrent_db = TorrentDBHandler.getInstance()
-            #sql = "select * from Torrent where torrent_file_name ='" + torrent_file_name + "' "
-            #torrent = torrent_db._db.fetchone(sql)
-
-            #Torrent = dict(zip(torrent_db.value_name_for_channel, torrent))
-
-            #print >> sys.stderr , Torrent            
-
             if Torrent is not None:
                 Torrent = dict(zip(self.torrent_db.value_name_for_channel, Torrent))
-
                 self.addTorrent(Torrent)
+
+    def spamClicked(self, event):
+        dialog = wx.MessageDialog(None, "Are sure you want to report %s as spam ?\nThis will remove all the torrents and unsubscribe you from the channel. " % self.channelTitle.GetLabel(), "Report spam", wx.OK|wx.CANCEL|wx.ICON_WARNING)
+        result = dialog.ShowModal()
+        dialog.Destroy()
+        if result == wx.ID_OK:
+            self.reinitialize() 
+            self.vcdb.spam(self.publisher_id)
+            self.channelcast_db.deleteTorrentsFromPublisherId(self.publisher_id)
+            if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
+                wx.CallAfter(self.guiUtility.standardOverview.getGrid(2).clearAllData)
+                wx.CallAfter(self.guiUtility.standardOverview.getGrid(2).gridManager.refresh)
+            else:
+                wx.CallAfter(self.guiUtility.standardOverview.getGrid().clearAllData)
+                wx.CallAfter(self.guiUtility.standardOverview.getGrid().gridManager.refresh)
+            
+
 
 
 
@@ -548,6 +568,10 @@ class channelsDetails(bgPanel):
 
 
     def removeTorrent(self, index):
+        if self.currentPage == self.lastPage:
+            numItems = self.totalItems % self.torrentsPerPage
+            for i in range (numItems):
+                self.torrents[self.currentPage*self.torrentsPerPage+i].Hide()
         del self.torrentList[index]
         self.parent.setTorrentList(self.torrentList)
         self.parent.setMyTitle()
@@ -562,11 +586,13 @@ class channelsDetails(bgPanel):
         self.setPublisherId(publisher_id)
         self.showElements(subscribed)
         self.erasevSizerContents()
-        self.Refresh()
+        #self.Refresh()
         self.setTitle(publisher_name)
         self.totalItems = len(self.torrentList)
         self.setLastPage()
         self.addItems()
+        if not self.parent.isMyChannel():
+            self.spam.Show()
         self.displayChannelContents()
         self.roundCorners()
         self.Refresh()
@@ -701,26 +727,35 @@ class channelsDetails(bgPanel):
         
 
     def SubscriptionClicked(self, event):
-        if self.SubscriptionButton.isToggled():
+        if self.SubscriptionButton.isToggled(): # subscribe
       
-            if self.guiUtility.nb_subscriptions < 19: # hard coded for now
+            if self.guiUtility.nb_subscriptions < 10: # hard coded for now, max subscriptions = 10
 
                 self.vcdb.subscribe(self.publisher_id)
                 self.SubscriptionText.SetLabel("Unsubscribe")
                 self.SubscriptionButton.setToggled(False)
+
+                self.guiUtility.frame.top_bg.needs_refresh = True
 
                 if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
                     self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes+=1    
                 else:
                     self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes+=1
 
+
             else: # maximum number of subscriptions reached
                 self.updateSubscriptionLimitText()
 
-        else:
+
+
+
+        else: # unsubscribe
             self.vcdb.unsubscribe(self.publisher_id)
             self.SubscriptionText.SetLabel("Subscribe")
             self.SubscriptionButton.setToggled(True)
+
+            self.guiUtility.frame.top_bg.needs_refresh = True
+
 
             if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
                 self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes-=1    
@@ -735,6 +770,10 @@ class channelsDetails(bgPanel):
         else:
             self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).setSubscribed()       
             self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).resetTitle()       
+
+#        if self.guiUtility.frame.top_bg.needs_refresh:
+#            self.guiUtility.frame.top_bg.indexPopularChannels = -1
+#            self.guiUtility.frame.top_bg.indexMyChannel = -1
 
 
     def updateSubscriptionLimitText(self):

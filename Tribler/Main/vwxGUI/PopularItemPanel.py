@@ -241,11 +241,11 @@ class PopularItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             if self.num_votes == 0:
-                ttstring = data[1] + " (No subscribers)"
+                ttstring = data[1] + " (No votes)"
             elif self.num_votes == 1: 
-                ttstring = data[1] + " (1 subscriber)"
+                ttstring = data[1] + " (1 vote)"
             else: 
-                ttstring = data[1] + " (%s subscribers)" % self.num_votes
+                ttstring = data[1] + " (%s votes)" % self.num_votes
             self.title.SetToolTipString(ttstring)
 
 
@@ -283,11 +283,9 @@ class PopularItemPanel(wx.Panel):
     def setSubscribed(self):
         if self.vcdb.hasSubscription(self.publisher_id, bin2str(self.utility.session.get_permid())):
             self.subscribed = True
-            #self.SubscriptionText.Show()
             self.SubscriptionButton.Show()
         else:
             self.subscribed = False
-            #self.SubscriptionText.Hide()
             self.SubscriptionButton.Hide()
         self.hSizer.Layout()
 
@@ -300,11 +298,11 @@ class PopularItemPanel(wx.Panel):
         self.title.SetLabel(title)
         self.title.Wrap(self.title.GetSize()[0])
         if self.num_votes == 0:
-            ttstring = self.data[1] + " (No subscribers)"
+            ttstring = self.data[1] + " (No votes)"
         elif self.num_votes == 1: 
-            ttstring = self.data[1] + " (1 subscriber)"
+            ttstring = self.data[1] + " (1 vote)"
         else: 
-            ttstring = self.data[1] + " (%s subscribers)" % self.num_votes
+            ttstring = self.data[1] + " (%s votes)" % self.num_votes
         self.title.SetToolTipString(ttstring)
         #self.Refresh()
         self.hSizer.Layout()
@@ -340,33 +338,14 @@ class PopularItemPanel(wx.Panel):
        
 
     def SubscriptionClicked(self, event):
-#        if self.SubscriptionButton.isToggled():
-#            vote = {'mod_id' : self.publisher_id ,'voter_id' : self.utility.session.get_permid() , 'vote' : 2, 'time_stamp' : 0}
-#            self.vcdb.addVote(vote)
-#            self.SubscriptionText.SetLabel("Remove \nSubscription")
-#            self.SubscriptionButton.setToggled(False)
-#        else:
-#            self.hideElements()
-#            self.erasevSizerContents()
-#            self.vcdb.deleteVote(self.publisher_id ,self.utility.session.get_permid())
-#
-#            self.parent.setData(None)
-#            self.parent.Refresh()
-#            self.parent.parent.gridManager.refresh()
-
-#        self.parent.setSubscribed() # reloads subscription state of the parent
-
-
-
-
-
-
         self.vcdb.unsubscribe(self.publisher_id)
         self.SubscriptionButton.Hide()
-         
-
-
-
+        self.guiUtility.frame.top_bg.needs_refresh = True
+        try:
+            wx.CallAfter(self.channelsDetails.SubscriptionText.SetLabel,"Subscribe")
+            wx.CallAfter(self.channelsDetails.SubscriptionButton.setToggled, True)
+        except:
+            pass
         
 
     def isSubscribed(self):
@@ -378,7 +357,6 @@ class PopularItemPanel(wx.Panel):
 
 
     def mouseAction(self, event):
-
         event.Skip()
         colour = self.selectedColour
         channelColour = self.channelTitleSelectedColour
@@ -410,8 +388,9 @@ class PopularItemPanel(wx.Panel):
             self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
             self.select()
-            self.guiUtility.frame.top_bg.indexMyChannel=-1
-            self.guiUtility.frame.top_bg.indexPopularChannels=self.index
+            if not self.guiUtility.frame.top_bg.needs_refresh:
+                self.guiUtility.frame.top_bg.indexMyChannel=-1
+                self.guiUtility.frame.top_bg.indexPopularChannels=self.index
             wx.CallAfter(self.channelsDetails.loadChannel, self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
             self.channelsDetails.origin = 'popular_channel'
 
