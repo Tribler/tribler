@@ -340,6 +340,7 @@ class PopularItemPanel(wx.Panel):
     def SubscriptionClicked(self, event):
         self.vcdb.unsubscribe(self.publisher_id)
         self.SubscriptionButton.Hide()
+        self.setSubscribed()
         self.guiUtility.frame.top_bg.needs_refresh = True
         try:
             wx.CallAfter(self.channelsDetails.SubscriptionText.SetLabel,"Subscribe")
