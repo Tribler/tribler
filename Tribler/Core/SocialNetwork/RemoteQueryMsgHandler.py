@@ -319,7 +319,7 @@ class RemoteQueryMsgHandler:
         d['a'] = d2
         return bencode(d)
 
-    def create_channel_query_reply(self,id,hits):
+    def create_channel_query_reply(self,id,hits,selversion):
         d = {}
         d['id'] = id
         d2 = {}
