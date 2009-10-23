@@ -530,6 +530,13 @@ class Multicast:
         This one will trigger an overlay connection and then initiate a buddycast
         exchange
         """
+        # todo: when the port or selversion change this will NOT be
+        # updated in the database. Solution: change the whole
+        # flag_peer_as_local_to_db into check_and_update_peer_in_db
+        # and let it check for the existance and current value of
+        # is_local, port, and selversion. (at no additional queries I
+        # might add)
+
         self.log.debug("Got Tr_OVERLAYSWARM announce!")
         port, selversion = params
 
@@ -652,14 +659,27 @@ class Multicast:
         return (avg, min, max)
 
     def add_peer_to_db(self,permid,dns,selversion):    
+        # todo: should is_local be set to True?
         now = int(time.time())
         peer_data = {'permid':permid, 'ip':dns[0], 'port':dns[1], 'oversion':selversion, 'last_seen':now, 'last_connected':now}
         self.peer_db.addPeer(permid, peer_data, update_dns=True, update_connected=True, commit=True)
         
   
     def flag_peer_as_local_to_db(self, permid, is_local):
-        if is_local:
-            pass
+        """
+        Sets the is_local flag for PERMID to IS_LOCAL if and only if
+        PERMID exists in the database, in this case it returns
+        True. Otherwise it returns False.
+        """
+        peer = self.peer_db.getPeer(permid, ('is_local',))
+        if peer:
+            if not peer[0] == is_local:
+                self.peer_db.setPeerLocalFlag(permid, is_local)
+            return True
+        return False
+            
+        # if is_local:
+        #     pass
             ##print >>sys.stderr,"pdisc: Flagging a peer as local"
-        return self.peer_db.setPeerLocalFlag(permid, is_local)
+        # return self.peer_db.setPeerLocalFlag(permid, is_local)
 

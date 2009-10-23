@@ -365,11 +365,12 @@ class PeerDBHandler(BasicDBHandler):
         return ret
 
     def setPeerLocalFlag(self, permid, is_local, commit=True):
-        argv = {"is_local":int(is_local)}
-        updated = self._db.update(self.table_name, 'permid='+repr(bin2str(permid)), **argv)
-        if commit:
-            self.commit()
-        return updated
+        # argv = {"is_local":int(is_local)}
+        # updated = self._db.update(self.table_name, 'permid='+repr(bin2str(permid)), **argv)
+        # if commit:
+        #     self.commit()
+        # return updated
+        self._db.update(self.table_name, 'permid='+repr(bin2str(permid)), commit=commit, is_local=int(is_local))
     
     def updatePeer(self, permid, commit=True, **argv):
         self._db.update(self.table_name, 'permid='+repr(bin2str(permid)), commit=commit, **argv)
@@ -2457,7 +2458,7 @@ class BarterCastDBHandler(BasicDBHandler):
         self.update_network()
                    
         if DEBUG:
-            print >> sys.stderr, "bartercastdb: MyPermid is ", self.my_permid
+            print >> sys.stderr, "bartercastdb:"
 
         
     ##def registerSession(self, session):
@@ -2472,6 +2473,9 @@ class BarterCastDBHandler(BasicDBHandler):
 
         # Retrieve MyPermid
         self.my_permid = session.get_permid()
+
+        if DEBUG:
+            print >> sys.stderr, "bartercastdb: MyPermid is ", `self.my_permid`
 
         if self.my_permid is None:
             raise ValueError('Cannot get permid from Session')
@@ -2882,12 +2886,15 @@ class VoteCastDBHandler(BasicDBHandler):
         
         self.peer_db = PeerDBHandler.getInstance()
         if DEBUG:
-            print >> sys.stderr, "votecast: My permid is",`self.my_permid`
+            print >> sys.stderr, "votecast: "
     
     def registerSession(self, session):
         self.session = session
         self.my_permid = session.get_permid()
-    
+
+        if DEBUG:
+            print >> sys.stderr, "votecast: My permid is",`self.my_permid`
+
     def __len__(self):
         return sum([db._size() for db in self.dbs])
     
@@ -3086,13 +3093,15 @@ class ChannelCastDBHandler(BasicDBHandler):
         
         self.peer_db = PeerDBHandler.getInstance()
         if DEBUG:
-            print >> sys.stderr, "ChannelCast: My permid is",`self.my_permid`
+            print >> sys.stderr, "ChannelCast: "
             
         self.value_name = ['publisher_id','publisher_name','infohash','torrenthash','torrentname','time_stamp','signature'] ##
     
     def registerSession(self, session):
         self.session = session
         self.my_permid = session.get_permid()
+        if DEBUG:
+            print >> sys.stderr, "ChannelCast: My permid is",`self.my_permid`
         
     def _sign(self, record):
         assert record is not None
