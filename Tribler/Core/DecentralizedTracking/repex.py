@@ -201,17 +201,30 @@ class RePEXer(RePEXerInterface):
         self.shufflecount = 0 # number of peers in peertable unconnectable or useless
         # sum of these two must become len(peertable) since we prefer the initial peertable
         
+        self.datacost_bandwidth_keys = ['no_pex_support', 'no_pex_msg', 'pex', 'other']
+        self.datacost_counter_keys = ['connection_attempts','connections_made','bootstrap_peers']
         self.datacost = {}
         self.datacost['no_pex_support'] = (0,0) # down,up
         self.datacost['no_pex_msg'] = (0,0) # down,up
         self.datacost['pex'] = (0,0) # down,up
         self.datacost['other'] = (0,0) # down,up
+        self.datacost['connection_attempts'] = 0 # number of times connect() successfully created a connection 
+        self.datacost['connections_made'] = 0 # number of times connection_made() was called
+        self.datacost['bootstrap_peers'] = 0 # total number of peers given to rerequester_peers()
         
         self.requesting_tracker = False # needed to interact with Rerequester in case of failure
         self.bootstrap_counter = 0 # how often did we call bootstrap()?
         
         self.is_closing = False # flag so that we only call close_all once
         self.done = False # flag so we know when we're done or are aborted
+        self.aborted = False # flag so we know the exact done-reason
+        self.ready = False # flag so we know whether repex_ready has been called
+        
+        # Added robustness, check whether received SwarmCache is not None
+        if self.starting_peertable is None:
+            print >>sys.stderr, 'RePEXer: __init__: swarmcache was None, defaulting to {}'
+            self.starting_peertable = {}
+            
     
     #
     # RePEXerInterface
@@ -225,6 +238,7 @@ class RePEXer(RePEXerInterface):
             return
         if DEBUG:
             print >>sys.stderr, "RePEXer: repex_ready:", b2a_hex(infohash)
+        self.ready = True
         self.connecter = connecter
         self.encoder = encoder
         self.rerequest = rerequester
@@ -254,6 +268,7 @@ class RePEXer(RePEXerInterface):
                 status_string = dlstatus_strings[dlstatus]
             print >>sys.stderr, "RePEXer: repex_aborted:", b2a_hex(infohash),status_string
         self.done = True
+        self.aborted = True
         for observer in self._observers:
             observer.repex_aborted(self, dlstatus)
         # Note that we do not need to close active connections
@@ -272,6 +287,7 @@ class RePEXer(RePEXerInterface):
             print >>sys.stderr, "RePEXer: rerequester_peers: received %s peers" % numpeers
         if numpeers > 0:
             self.to_pex.extend([dns for dns,id in peers])
+            self.datacost['bootstrap_peers'] += numpeers
         self.connect_queue()
         
  
@@ -339,7 +355,7 @@ class RePEXer(RePEXerInterface):
             return
         if DEBUG:
             print >>sys.stderr, "RePEXer: connection_made: %s:%s ext_support = %s" % (dns + (ext_support,))
-        
+        self.datacost['connections_made'] += 1
         self.bt_connectable.add(dns)
         if ext_support:
             self.bt_ext.add(dns)
@@ -431,10 +447,12 @@ class RePEXer(RePEXerInterface):
         if DEBUG:
             print >>sys.stderr, "RePEXer: connecting: %s:%s" % dns
         self.active_sockets += 1
+        self.datacost['connection_attempts'] += 1
         self.attempted.add(dns)
         if not self.encoder.start_connection(dns, id, forcenew = True):
             print >>sys.stderr, "RePEXer: connecting failed: %s:%s" % dns
             self.active_sockets -= 1
+            self.datacost['connection_attempts'] -= 1
             if dns in self.starting_peertable:
                 self.shufflecount += 1
     
@@ -487,6 +505,8 @@ class RePEXer(RePEXerInterface):
             print >>sys.stderr, "RePEXer: connect_queue: active_sockets: %s" % self.active_sockets
             
     def bootstrap(self):
+        if DEBUG:
+            print >>sys.stderr, "RePEXer: bootstrap"
         self.bootstrap_counter += 1
         if REPEX_DISABLE_BOOTSTRAP or self.rerequest is None:
             self.rerequester_peers(None)
@@ -558,12 +578,52 @@ class RePEXer(RePEXerInterface):
         for observer in self._observers:
             if DEBUG:
                 print >>sys.stderr, "RePEXer: send_done: calling repex_done on", `observer`
-            observer.repex_done(self,
-                                swarmcache,
-                                self.shufflecount,
-                                shufflepeers,
-                                self.bootstrap_counter,
-                                self.datacost)
+            try:
+                observer.repex_done(self,
+                                    swarmcache,
+                                    self.shufflecount,
+                                    shufflepeers,
+                                    self.bootstrap_counter,
+                                    self.datacost)
+            except:
+                print_exc()
+    
+    #
+    # Informal string representation of a RePEXer
+    #
+    def __str__(self):
+        if self.done and self.aborted:
+            status = 'ABORTED'
+        elif self.done:
+            status = 'DONE'
+        elif self.ready:
+            status = 'REPEXING'
+        else:
+            status = 'WAITING'
+        infohash = '[%s]' % b2a_hex(self.infohash)
+        summary = ''
+        table = ''
+        datacost = ''
+        if self.done and not self.aborted:
+            infohash = '\n    ' + infohash
+            swarmcache = self.final_peertable
+            summary = '\n    table size/shuffle/bootstrap %s/%s/%s' % (len(swarmcache), self.shufflecount, self.bootstrap_counter)
+            prev_peers = set(self.starting_peertable.keys())
+            cur_peers = set(swarmcache.keys())
+            
+            for dns in sorted(set.symmetric_difference(prev_peers,cur_peers)):
+                if dns in cur_peers:
+                    table += '\n        A: %s:%s' % dns
+                else:
+                    table += '\n        D: %s:%s - BT/PEX %s/%s' % (dns + (dns in self.bt_connectable, dns in self.bt_pex))
+            table += '\n'
+            datacost = '    datacost:\n        %s/%s BT connections made, received %s bootstrap peers\n'
+            datacost %= (self.datacost['connections_made'],self.datacost['connection_attempts'],self.datacost['bootstrap_peers'])
+            for k in self.datacost_bandwidth_keys:
+                v = self.datacost[k]
+                datacost += '          %s: %s bytes down / %s bytes up\n' % (k.ljust(16), str(v[0]).rjust(6), str(v[1]).rjust(6))
+        
+        return '<RePEXer(%s)%s%s%s%s>' % (status,infohash,summary,table,datacost)
 
 class RePEXerStatusCallback:
     """
@@ -593,7 +653,9 @@ class RePEXerStatusCallback:
         ut_pex.
         @param bootstrapcount The number of times bootstrapping was needed.
         @param datacost A dict with keys 'no_pex_support', 'no_pex_msg', 
-        'pex' and 'other', containing (download,upload) byte tuples.
+        'pex' and 'other', containing (download,upload) byte tuples, and
+        keys 'connection_attempts', 'connections_made', 'bootstrap_peers',
+        containing simple counters.
         """
 
 # TODO: move this class to a module in Policies
@@ -829,20 +891,7 @@ class RePEXLogger(RePEXerStatusCallback):
     
     def repex_done(self, repexer, swarmcache, shufflecount, shufflepeers, bootstrapcount, datacost):
         if DEBUG:
-            print >>sys.stderr, 'RePEXLogger: repex_done: %s\n\ttable size/shuffle/bootstrap %s/%s/%s' % (
-                                b2a_hex(repexer.infohash), len(swarmcache), shufflecount, bootstrapcount)
-        
-            prev_peers = set(repexer.starting_peertable.keys())
-            cur_peers = set(swarmcache.keys())
-            for dns in sorted(set.symmetric_difference(prev_peers,cur_peers)):
-                if dns in cur_peers:
-                    print >>sys.stderr, '\tA: %s:%s' % dns
-                else:
-                    print >>sys.stderr, '\tD: %s:%s - BT/PEX %s/%s' % (dns + shufflepeers.get(dns, (None,None)))
-            if datacost:
-                print >>sys.stderr, 'datacost:'
-                for k, v in datacost.iteritems():
-                    print >>sys.stderr, '\t%s: %s bytes down / %s bytes up' % (k.ljust(16), str(v[0]).rjust(6), str(v[1]).rjust(6))
+            print >>sys.stderr, 'RePEXLogger: repex_done: %s' % repexer
         self.repexlog.storeSwarmCache(repexer.infohash, swarmcache, (shufflecount,shufflepeers,bootstrapcount,datacost), commit=True)
 
 class RePEXLogDB:
@@ -851,8 +900,8 @@ class RePEXLogDB:
     """
     __single = None    # used for multithreaded singletons pattern
     lock = RLock()
-    PEERDB_FILE = 'repexlog.db'
-    PEERDB_VERSION = '0.2'
+    PEERDB_FILE = 'repexlog.pickle'
+    PEERDB_VERSION = '0.3'
     MAX_HISTORY = 20480 # let's say 1K per SwarmCache, 20480 would be max 20 MB...
     
     @classmethod
@@ -1030,23 +1079,9 @@ class RePEXerTester(RePEXerStatusCallback):
     
     def repex_done(self, repexer, swarmcache, shufflecount, shufflepeers, bootstrapcount, datacost):
         download = self.downloads[repexer.infohash]
-        print >>sys.stderr, 'RePEXerTester: repex_done: table size/shuffle/bootstrap %s/%s/%s' % (
-                            len(swarmcache), shufflecount, bootstrapcount)
+        print >>sys.stderr, 'RePEXerTester: repex_done: %s' % repexer
         self.repexers.setdefault(download,[]).append(repexer)
         self.swarmcaches.setdefault(download,[]).append(swarmcache)
-        
-        prev_peers = set(repexer.starting_peertable.keys())
-        cur_peers = set(swarmcache.keys())
-        for dns in sorted(set.symmetric_difference(prev_peers,cur_peers)):
-            if dns in cur_peers:
-                print >>sys.stderr, '\tA: %s:%s' % dns
-            else:
-                print >>sys.stderr, '\tD: %s:%s - BT/PEX %s/%s' % (dns + shufflepeers.get(dns, (None,None)))
-        if datacost:
-                print >>sys.stderr, 'datacost:'
-                for k, v in datacost.iteritems():
-                    print >>sys.stderr, '\t%s: %s bytes down / %s bytes up' % (k.ljust(16), str(v[0]).rjust(6), str(v[1]).rjust(6))
-        print >>sys.stderr
         
         # Always log to RePEXLogDB
         self.peerdb.storeSwarmCache(repexer.infohash, swarmcache, (shufflecount,shufflepeers,bootstrapcount,datacost))
