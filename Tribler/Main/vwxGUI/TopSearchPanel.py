@@ -47,6 +47,7 @@ class TopSearchPanel(bgPanel):
         if DEBUG:
             print >> sys.stderr , "TopSearchPanel: __init__"
         bgPanel.__init__(self,*args,**kwds)
+        self.init_ready = False
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility 
         self.installdir = self.utility.getPath()
@@ -679,6 +680,7 @@ class TopSearchPanel(bgPanel):
 
         self.Layout()
         self.frame.Layout()
+        self.init_ready = True
 
     def __set_properties(self):
         # begin wx.Glade: MyPanel.__set_properties

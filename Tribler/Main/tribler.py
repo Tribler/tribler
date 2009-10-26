@@ -316,7 +316,7 @@ class ABCApp(wx.App):
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)
                 wx.CallAfter(self.frame.top_bg.Layout)
-                
+
             # reputation
             self.guiserver.add_task(self.guiservthread_update_reputation, .2)
           
@@ -679,11 +679,17 @@ class ABCApp(wx.App):
 
     def guiservthread_update_reputation(self):
         """ update the reputation"""
-        wx.CallAfter(self.set_reputation)
-        self.guiserver.add_task(self.guiservthread_update_reputation,10.0) 
+        # 26/10/09 boudewijn: the guiservthread_update_reputation will
+        # use parameters from self.frame.top_bg that have not yet been
+        # created. They are eventually created when the UI thread is
+        # ready for it. Therefore, we will set an 'init_ready'
+        # parameter when it is ready.
+        if self.frame.top_bg.init_ready:
+           wx.CallAfter(self.set_reputation)
+           self.guiserver.add_task(self.guiservthread_update_reputation,10.0)
 
-
-
+        else:
+           self.guiserver.add_task(self.guiservthread_update_reputation,.2)
         
     def gui_states_callback(self,dslist):
         """ Called by MainThread  """
