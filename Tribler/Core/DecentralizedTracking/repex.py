@@ -13,7 +13,7 @@ from Tribler.Core.exceptions import *
 from Tribler.Core.osutils import *
 from Tribler.Core.DecentralizedTracking.ut_pex import check_ut_pex_peerlist
 
-DEBUG = True
+DEBUG = False
 REPEX_DISABLE_BOOTSTRAP = False
 
 # TODO: Move constants to simpledefs or make it configurable?
