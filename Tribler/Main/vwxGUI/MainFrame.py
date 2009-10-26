@@ -630,9 +630,15 @@ class MainFrame(wx.Frame):
         elif type == NTFY_ACT_ACTIVE:
             prefix = u""
             if msg == "no network":
-                text = "%s\nLast activity: %.1f seconds ago" % (msg, arg2)
+                text = "No network - last activity: %.1f seconds ago" % arg2
                 self.SetTitle(text)
                 print  >> sys.stderr,"main: Activity",`text`
+            elif self.GetTitle().startswith("No network"):
+                title = self.utility.lang.get('title') + \
+                        " " + \
+                        self.utility.lang.get('version')
+                self.SetTitle(title)
+                
                 
         elif type == NTFY_ACT_UPNP:
             prefix = self.utility.lang.get('act_upnp')
