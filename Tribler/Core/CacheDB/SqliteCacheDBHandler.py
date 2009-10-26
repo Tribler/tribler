@@ -3497,7 +3497,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select mod_id, (2*sum(vote)-count(*))/3 from VoteCast group by mod_id order by 2 desc"
         votecast_records = self._db.fetchall(sql)
 
-
         sql = "select distinct mod_id from VoteCast where voter_id='"+bin2str(self.my_permid)+"' and vote=2"
         subscribed_channels = self._db.fetchall(sql)
         
@@ -3507,15 +3506,13 @@ class ChannelCastDBHandler(BasicDBHandler):
 
         publishers = {}
         for publisher_id, publisher_name in channel_records:
-            if publisher_id not in publishers and publisher_id!=bin2str(self.my_permid):
+            if publisher_id not in publishers and publisher_id in subscribers and publisher_id!=bin2str(self.my_permid):
                 publishers[publisher_id]=[publisher_name, 0]
 
         for mod_id, vote in votecast_records:
-            if mod_id in subscribers:
-                if mod_id in publishers: 
-                    publishers[mod_id][1] = vote
-                else:
-                    del publishers[mod_id]
+            if mod_id in publishers: 
+                publishers[mod_id][1] = vote
+
         for k, v in publishers.items():
             allrecords.append((k, v[0], v[1]))
         def compare(a,b):
@@ -3524,28 +3521,6 @@ class ChannelCastDBHandler(BasicDBHandler):
             return 0
         allrecords.sort(compare)
         return allrecords
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
 
     def getMostPopularChannelFromTorrent(self, infohash): ##
         """Returns name of most popular channel if any"""
