@@ -241,9 +241,9 @@ class FilesItemDetailsSummary(bgPanel):
         2 : Torrent is playable and contains 1 file
         3 : Torrent is playable and contains multiple files
         """
+        self.play_big.Show()
+        self.download.Show()
         if playable[0]:
-            self.play_big.Show()
-            self.download.Show()
             self.fileList=playable[1]
             if len(self.fileList) == 1: # torrent contains only one file
                 self.play_big.setToggled(True)
@@ -265,6 +265,8 @@ class FilesItemDetailsSummary(bgPanel):
             self.Layout()
             self.Refresh()
         else: # torrent is not playable   
+            self.ag.Stop()
+            self.ag.Hide()
             self.scrollLeft.Hide()
             self.scrollRight.Hide()
 
