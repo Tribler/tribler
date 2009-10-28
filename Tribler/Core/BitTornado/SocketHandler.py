@@ -471,7 +471,7 @@ class SocketHandler:
                     except socket.error, e:
                         if DEBUG:
                             print >> sys.stderr,"SocketHandler: UDP Socket error",str(e)
-                elif len(self.single_sockets) < self.max_connects:
+                else:
                     try:
                         newsock, addr = s.accept()
                         if DEBUG:
@@ -486,21 +486,23 @@ class SocketHandler:
                                     print_exc()
                                 pass
                             self.btengine_said_reachable = True
-                            
-                        newsock.setblocking(0)
-                        nss = SingleSocket(self, newsock, self.handler)    # create socket for incoming peers and tracker
-                        self.single_sockets[newsock.fileno()] = nss
-                        self.poll.register(newsock, POLLIN)
-                        self.handler.external_connection_made(nss)
+
+                        # Only use the new socket if we can spare the
+                        # connections. Otherwise we will silently drop
+                        # the connection.
+                        if len(self.single_sockets) < self.max_connects:
+                            newsock.setblocking(0)
+                            nss = SingleSocket(self, newsock, self.handler)    # create socket for incoming peers and tracker
+                            self.single_sockets[newsock.fileno()] = nss
+                            self.poll.register(newsock, POLLIN)
+                            self.handler.external_connection_made(nss)
+                        else:
+                            print >> sys.stderr,"SocketHandler: too many connects"
                         
                     except socket.error,e:
                         if DEBUG:
                             print >> sys.stderr,"SocketHandler: SocketError while accepting new connection",str(e)
                         self._sleep()
-# 2fastbt_
-                else:
-                    print >> sys.stderr,"SocketHandler: too many connects"
-# _2fastbt
             else:
                 s = self.single_sockets.get(sock)
                 if not s:
