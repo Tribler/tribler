@@ -277,32 +277,12 @@ class FilesItemDetailsSummary(bgPanel):
 
     def loadTorrent(self, files):
         self.totalItems = len(files)
+        self.files = files[:] # make a shallow copy because we plan to
+                              # modify this list
         self.setLastPage()
-        self.addItems(files)
         #self.erasevSizerContents
         self.displayTorrentContents()
         self.Refresh()
-
-
-    def addItems(self, files):
-        for i in range(self.totalItems):
-            ##item = wx.StaticText(self, -1, files[i], wx.Point(0,0), wx.Size(300,14))
-            ##self.files.append(item)
-            ##self.files[i].SetFont(wx.Font(FS_TORRENT,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            ##self.files[i].Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction(i))
-            ##self.files[i].SetToolTipString(self.fileList[i]['name'][:self.fileLength])
-            ##self.files[i].SetForegroundColour(self.fileColour)
-
-
-            item = fileItem(self)
-            item.setSummary(self)
-            item.setTitle(files[i])
-            self.files.append(item)
-            self.files[i].Hide()
-
-
-
-
 
     def displayTorrentContents(self):
         if self.currentPage == self.lastPage:
@@ -312,9 +292,15 @@ class FilesItemDetailsSummary(bgPanel):
         else:
             numItems = self.filesPerPage    
 
-        for i in range(numItems):
-            self.vSizerContents.Add(self.files[self.currentPage*self.filesPerPage+i], 0, 0, 0)
-            self.files[self.currentPage*self.filesPerPage+i].Show()
+        for index in range(self.currentPage*self.filesPerPage, self.currentPage*self.filesPerPage+numItems):
+            if type(self.files[index]) is str:
+                item = fileItem(self)
+                item.setSummary(self)
+                item.setTitle(self.files[index])
+                self.files[index] = item
+           
+            self.vSizerContents.Add(self.files[index], 0, 0, 0)
+            self.files[index].Show()
             # self.vSizerContents.Add(self.torrentSpacing, 0, 0, 0)
         self.vSizerContents.Layout()
         self.hSizer0.Layout()
@@ -331,8 +317,9 @@ class FilesItemDetailsSummary(bgPanel):
             numItems = self.totalItems % self.filesPerPage
         else:
             numItems = self.filesPerPage    
-        for i in range(numItems):
-            self.files[self.currentPage*self.filesPerPage+i].Hide()
+        for index in range(self.currentPage*self.filesPerPage, self.currentPage*self.filesPerPage+numItems):
+            if not type(self.files[index]) is str:
+                self.files[index].Hide()
         self.vSizerContents.Clear()
         self.vSizerContents.Layout()
         self.hSizer0.Layout()
