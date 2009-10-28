@@ -572,7 +572,7 @@ class RePEXer(RePEXerInterface):
         shufflepeers = {}
         for dns in self.starting_peertable:
             if dns not in swarmcache:
-                shufflepeers[dns] = (dns in self.bt_connectable, dns in self.bt_pex)
+                shufflepeers[dns] = (dns in self.bt_connectable, dns in self.bt_pex, self.starting_peertable[dns].get('last_seen',0))
         
         self.final_peertable = swarmcache
         for observer in self._observers:
@@ -648,9 +648,9 @@ class RePEXerStatusCallback:
         'pex' keys. The 'pex' key contains a list of (dns,flags) tuples.
         @param shufflecount The number of peers in the old SwarmCache that
         were not responding with a PEX message.
-        @param shufflepeers A dict mapping a shuffle peer's dns to a boolean
-        tuple, indicating whether (a) it sent a BT handshake and (b) supported
-        ut_pex.
+        @param shufflepeers A dict mapping a shuffle peer's dns to a triple,
+        indicating (a) whether it sent a BT handshake, (b) whether it supported
+        ut_pex, and (c) the last time the peer was seen. 
         @param bootstrapcount The number of times bootstrapping was needed.
         @param datacost A dict with keys 'no_pex_support', 'no_pex_msg', 
         'pex' and 'other', containing (download,upload) byte tuples, and
@@ -901,7 +901,7 @@ class RePEXLogDB:
     __single = None    # used for multithreaded singletons pattern
     lock = RLock()
     PEERDB_FILE = 'repexlog.pickle'
-    PEERDB_VERSION = '0.3'
+    PEERDB_VERSION = '0.4'
     MAX_HISTORY = 20480 # let's say 1K per SwarmCache, 20480 would be max 20 MB...
     
     @classmethod
