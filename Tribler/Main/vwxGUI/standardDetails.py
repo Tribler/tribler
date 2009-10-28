@@ -1543,7 +1543,7 @@ class standardDetails(wx.Panel):
 
         return True
 
-    def torrent_is_playable(self, torrent=None, default=(False, []), callback=None):
+    def torrent_is_playable(self, torrent=None, default=(None, []), callback=None):
         """
         TORRENT is a dictionary containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!

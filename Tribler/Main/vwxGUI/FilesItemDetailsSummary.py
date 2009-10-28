@@ -241,34 +241,38 @@ class FilesItemDetailsSummary(bgPanel):
         2 : Torrent is playable and contains 1 file
         3 : Torrent is playable and contains multiple files
         """
-        self.play_big.Show()
-        self.download.Show()
-        if playable[0]:
-            self.fileList=playable[1]
-            if len(self.fileList) == 1: # torrent contains only one file
-                self.play_big.setToggled(True)
-                self.scrollLeft.Hide()
-                self.scrollRight.Hide()
-            else:
-                self.loadTorrent(self.fileList)
-                self.scrollLeft.Show()
-                self.scrollRight.Show()
-            if sys.platform == 'darwin':
-                wx.CallAfter(self.ag.Stop)
-                wx.CallAfter(self.ag.Hide)
-            else:
+        if playable[0] is None:
+            # we don't know yet. display the animation
+            pass
+        else:
+            self.play_big.Show()
+            self.download.Show()
+            if playable[0]:
+                self.fileList=playable[1]
+                if len(self.fileList) == 1: # torrent contains only one file
+                    self.play_big.setToggled(True)
+                    self.scrollLeft.Hide()
+                    self.scrollRight.Hide()
+                else:
+                    self.loadTorrent(self.fileList)
+                    self.scrollLeft.Show()
+                    self.scrollRight.Show()
+                if sys.platform == 'darwin':
+                    wx.CallAfter(self.ag.Stop)
+                    wx.CallAfter(self.ag.Hide)
+                else:
+                    self.ag.Stop()
+                    self.ag.Hide()
+                self.hSizermain.Detach(0)
+                self.hSizermain.Layout()
+                self.vSizer.Layout()
+                self.Layout()
+                self.Refresh()
+            else: # torrent is not playable   
                 self.ag.Stop()
                 self.ag.Hide()
-            self.hSizermain.Detach(0)
-            self.hSizermain.Layout()
-            self.vSizer.Layout()
-            self.Layout()
-            self.Refresh()
-        else: # torrent is not playable   
-            self.ag.Stop()
-            self.ag.Hide()
-            self.scrollLeft.Hide()
-            self.scrollRight.Hide()
+                self.scrollLeft.Hide()
+                self.scrollRight.Hide()
 
 
     def loadTorrent(self, files):
@@ -490,8 +494,8 @@ class fileItem(wx.Panel):
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
 
-    def setTitle(self, title):
-        self.title.SetToolTipString(title) 
+    def _setTitle(self, title):
+        self.title.SetToolTipString(title)
         i=0
         try:
             while self.title.GetTextExtent(title[:i])[0] < self.minsize[0]-30 and i <= len(title):
@@ -501,6 +505,15 @@ class fileItem(wx.Panel):
             self.title.SetLabel(title)
         self.Refresh()       
 
+    def setTitle(self, title):
+        """
+        Simple wrapper around _setTitle to handle unicode bugs
+        """
+        try:
+            self._setTitle(title)
+        except UnicodeDecodeError:
+            self._setTitle(`title`)
+        
 
     def mouseAction(self, event):
         event.Skip()
