@@ -71,6 +71,12 @@ class InterruptSocket:
     def get_port(self):
         return self.port
         
+class UdpSocket:
+    """ Class to hold socket and handler for a UDP socket. """
+    def __init__(self, socket, handler):
+        self.socket = socket
+        self.handler = handler
+
 class SingleSocket:
     """ 
     There are two places to create SingleSocket:
@@ -232,6 +238,7 @@ class SocketHandler:
         self.servers = {}
         self.btengine_said_reachable = False
         self.interrupt_socket = None
+        self.udp_sockets = {}
 
     def scan_for_timeouts(self):
         t = clock() - self.timeout
@@ -454,23 +461,7 @@ class SocketHandler:
                     if DEBUG:
                         print >> sys.stderr,"SocketHandler: Got event, close server socket"
                     self.poll.unregister(s)
-                    if not is_udp_socket(s):
-                        s.close()
                     del self.servers[sock]
-                elif is_udp_socket(s):
-                    try:
-                        (data,addr) = s.recvfrom(8192)
-                        if not data:
-                            if DEBUG:
-                                print >> sys.stderr,"SocketHandler: UDP no-data",addr
-                        else:
-                            if DEBUG:
-                                print >> sys.stderr,"SocketHandler: Got UDP data",addr,"len",len(data)
-                            self.handlerudp.data_came_in(addr, data)
-                            
-                    except socket.error, e:
-                        if DEBUG:
-                            print >> sys.stderr,"SocketHandler: UDP Socket error",str(e)
                 else:
                     try:
                         newsock, addr = s.accept()
@@ -503,10 +494,27 @@ class SocketHandler:
                         if DEBUG:
                             print >> sys.stderr,"SocketHandler: SocketError while accepting new connection",str(e)
                         self._sleep()
+                continue
+
+            s = self.udp_sockets.get(sock)
+            if s:
+                try:
+                    (data, addr) = s.socket.recvfrom(65535)
+                    if not data:
+                        if DEBUG:
+                            print >> sys.stderr, "SocketHandler: UDP no-data", addr
             else:
-                s = self.single_sockets.get(sock)
-                if not s:
+                        if DEBUG:
+                            print >> sys.stderr,"SocketHandler: Got UDP data",addr,"len",len(data)
+                        s.handler.data_came_in(addr, data)
+
+                except socket.error, e:
+                    if DEBUG:
+                        print >> sys.stderr,"SocketHandler: UDP Socket error",str(e)
                     continue
+
+            s = self.single_sockets.get(sock)
+            if s:
                 if (event & (POLLHUP | POLLERR)):
                     if DEBUG:
                         print >> sys.stderr,"SocketHandler: Got event, connect socket got error"
@@ -599,22 +607,16 @@ class SocketHandler:
     def create_udpsocket(self,port,host):
         server = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         server.bind((host,port))
-        self.servers[server.fileno()] = server
         server.setblocking(0)
         return server
         
     def start_listening_udp(self,serversocket,handler):
-        self.handlerudp = handler
+        self.udp_sockets[serversocket.fileno()] = UdpSocket(serversocket, handler)
         self.poll.register(serversocket, POLLIN)
     
     def stop_listening_udp(self,serversocket):
-        del self.servers[serversocket.fileno()]
-        
-
-    # Addition for multicast
-    def add_socket(self, socket):
-        self.servers[socket.fileno()] = socket
-        socket.setblocking(0)
+        self.poll.unregister(serversocket, POLLIN)
+        del self.udp_sockets[serversocket.fileno()]
 
     def get_interrupt_socket(self):
         """
@@ -624,6 +626,3 @@ class SocketHandler:
         if not self.interrupt_socket:
             self.interrupt_socket = InterruptSocket(self)
         return self.interrupt_socket
-        
-def is_udp_socket(sock):
-    return sock.getsockopt(socket.SOL_SOCKET,socket.SO_TYPE) == socket.SOCK_DGRAM

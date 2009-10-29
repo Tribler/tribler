@@ -272,7 +272,3 @@ class RawServer:
             print >>sys.stderr,"rawudp: stop_listen:",serversocket
         self.sockethandler.stop_listening_udp(serversocket)
 
-    # Allow adding a socket directly, used by the multicast discovery
-    def add_socket(self, socket):
-        return self.sockethandler.add_socket(socket)
-    

@@ -810,7 +810,7 @@ class TriblerLaunchMany(Thread):
         self.mc_channel.addAnnounceHandler(self.mc_channel.handleOVERLAYSWARMAnnounce)
 
         self.mc_sock = self.mc_channel.getSocket()
-        self.rawserver.add_socket(self.mc_sock)
+        self.mc_sock.setblocking(0)
 
     def start_multicast(self):
         if not self.session.get_overlay() or not self.session.get_multicast_local_peer_discovery():
