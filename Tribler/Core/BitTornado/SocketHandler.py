@@ -503,7 +503,7 @@ class SocketHandler:
                     if not data:
                         if DEBUG:
                             print >> sys.stderr, "SocketHandler: UDP no-data", addr
-            else:
+                    else:
                         if DEBUG:
                             print >> sys.stderr,"SocketHandler: Got UDP data",addr,"len",len(data)
                         s.handler.data_came_in(addr, data)
