@@ -489,6 +489,7 @@ class SocketHandler:
                             self.handler.external_connection_made(nss)
                         else:
                             print >> sys.stderr,"SocketHandler: too many connects"
+                            newsock.close()
                         
                     except socket.error,e:
                         if DEBUG:
