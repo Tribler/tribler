@@ -344,12 +344,8 @@ class ChannelsItemPanel(wx.Panel):
     def setSubscribed(self):
         if self.vcdb.hasSubscription(self.publisher_id, bin2str(self.utility.session.get_permid())):
             self.subscribed = True
-            #self.SubscriptionButton.Show()
-            #self.SubscriptionText.Show()
         else:
             self.subscribed = False
-            #self.SubscriptionButton.Hide()
-            #self.SubscriptionText.Hide()
         self.hSizer.Layout()
         
 
@@ -375,7 +371,11 @@ class ChannelsItemPanel(wx.Panel):
         title = "My channel (%s)" % self.num_votes
         self.title.SetLabel(title)
         self.title.Show()
-        self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
+        if self.selected == True:
+            self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.BOLD, False,FONTFACE))
+        else:
+            self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
+
         self.title.Wrap(self.title.GetSize()[0])
         if self.num_votes == 0:
             ttstring = "My Channel (No votes)"

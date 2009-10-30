@@ -28,19 +28,19 @@ if sys.platform == 'darwin':
     FS_PLAYTEXT = 10
     FS_SAVETEXT = 10
     FS_TORRENT = 9
-    FS_BELONGS_TO_CHANNEL = 7
+    FS_BELONGS_TO_CHANNEL = 8
 
 elif sys.platform == 'linux2':
     FS_PLAYTEXT = 7
     FS_SAVETEXT = 7
     FS_TORRENT = 9
-    FS_BELONGS_TO_CHANNEL = 6
+    FS_BELONGS_TO_CHANNEL = 7
 
 else: # windows
     FS_PLAYTEXT = 7
     FS_SAVETEXT = 7
     FS_TORRENT = 9
-    FS_BELONGS_TO_CHANNEL = 6
+    FS_BELONGS_TO_CHANNEL = 7
 
 
 class FilesItemDetailsSummary(bgPanel):
@@ -110,21 +110,18 @@ class FilesItemDetailsSummary(bgPanel):
         # belongs to channel text
         self.belongstochanneltext = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(180,14))        
         self.belongstochanneltext.SetBackgroundColour((216, 233, 240))
-        self.belongstochanneltext.SetForegroundColour((100,100,100))
-        self.belongstochanneltext.SetFont(wx.Font(FS_BELONGS_TO_CHANNEL,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.belongstochanneltext.SetForegroundColour((0,110,149))
+        self.belongstochanneltext.SetFont(wx.Font(FS_BELONGS_TO_CHANNEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
         self.belongstochanneltext.SetMinSize((180,14))
 
 
         channel = self.chdb.getMostPopularChannelFromTorrent(self.torrenthash)
         if channel is not None:
             self.belongstochanneltext.SetLabel("From %s's Channel" % channel)
+            self.belongstochanneltext.SetToolTipString("Please search for %s's channel to subscribe to it" % channel)
 
 
-
-
-
-        self.vSizer.Add([0,0], 0, wx.BOTTOM|wx.FIXED_MINSIZE, 0)
-        self.vSizer.Add(self.belongstochanneltext, 0, wx.LEFT, 5)
+        self.vSizer.Add(self.belongstochanneltext, 0, wx.LEFT, 10)
 
 
 

@@ -30,6 +30,8 @@ from Tribler.Main.vwxGUI.tribler_topButton import *
 
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+
 from Tribler.__init__ import LIBRARYNAME
 
 DETAILS_MODES = ['filesMode',  'libraryMode', 'channelsMode']
@@ -163,7 +165,12 @@ class channelsDetails(bgPanel):
         self.Refresh()
 
         if sys.platform != 'darwin':
-	    self.Show()
+            self.Show()
+
+        #self.guiserver = GUITaskQueue.getInstance()
+        #self.guiserver.add_task(self.guiservthread_updateincomingtorrents, 0)
+
+
 
     def addComponents(self):
 
@@ -234,9 +241,13 @@ class channelsDetails(bgPanel):
 
         self.tf = TorrentFeedThread.getInstance()
         try:
-	    self.rssCtrl.SetValue(self.tf.mainURL)
+            self.rssCtrl.SetValue(self.tf.mainURL)
         except:
             pass
+
+
+        self.tf.addURL(self.rssCtrl.GetValue().strip()) ## callback=self.nonUIThreadAddTorrent
+
 
 
         # torrent ctrl
@@ -339,10 +350,10 @@ class channelsDetails(bgPanel):
         self.hSizer2.Add((5,0), 0, 0, 0)
         self.hSizer2.Add(self.rssCtrl, 0, 0, 0)
         if sys.platform != 'darwin':
-	    self.hSizer2.Add((10,0), 0, 0, 0)
+            self.hSizer2.Add((10,0), 0, 0, 0)
         else:
-	    self.hSizer2.Add((5,0), 0, 0, 0)
-	self.hSizer2.Add(self.addButton, 0, 0, 0)
+            self.hSizer2.Add((5,0), 0, 0, 0)
+        self.hSizer2.Add(self.addButton, 0, 0, 0)
         self.hSizer2.Add((5,0), 0, 0, 0)
         self.hSizer2.Add(self.rssFeedbackText, 0, wx.TOP, 5)
 
@@ -355,10 +366,10 @@ class channelsDetails(bgPanel):
         #self.hSizer3.Add((5,0), 0, 0, 0)
         #self.hSizer3.Add(self.torrentCtrl, 0, 0, 0)
         #if sys.platform != 'darwin':
-	#    self.hSizer3.Add((10,0), 0, 0, 0)
+        #    self.hSizer3.Add((10,0), 0, 0, 0)
         #else:
-	#    self.hSizer3.Add((5,0), 0, 0, 0)
-	#self.hSizer3.Add(self.add_torrent, 0, 0, 0)
+        #    self.hSizer3.Add((5,0), 0, 0, 0)
+        #self.hSizer3.Add(self.add_torrent, 0, 0, 0)
         #self.hSizer3.Add((5,0), 0, 0, 0)
         #self.hSizer3.Add(self.torrentFeedbackText, 0, wx.TOP, 5)
 
@@ -433,8 +444,9 @@ class channelsDetails(bgPanel):
 
     def clearAll(self):
         for i in range(self.totalItems):
-            self.torrents[i].title.SetLabel('')
-            self.torrents[i].Hide()
+            if type(self.torrents[i]) is not dict:
+                self.torrents[i].title.SetLabel('')
+                self.torrents[i].Hide()
         self.vSizerContents.Clear()
         self.vSizerContents.Layout()
         self.vSizer.Layout()
@@ -470,7 +482,7 @@ class channelsDetails(bgPanel):
         if self.rssCtrl.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'addRSS') and self.rssFeed != self.rssCtrl.GetValue().strip() and self.addButton.isToggled():
             self.setRSSFeed(self.rssCtrl.GetValue().strip())
             self.torrentfeed.deleteURL(self.rssFeed) 
-            self.torrentfeed.addURL(self.rssCtrl.GetValue().strip()) 
+            self.torrentfeed.addURL(self.rssCtrl.GetValue().strip(), callback=self.nonUIThreadAddTorrent) 
             self.addButton.setToggled(False)
             self.updateRSS()
         else:
@@ -557,40 +569,117 @@ class channelsDetails(bgPanel):
                 wx.CallAfter(self.guiUtility.standardOverview.getGrid().gridManager.refresh)
             
 
+    def nonUIThreadAddTorrent(self, rss_url, infohash, torrent_data):
+        print >> sys.stderr , "NONUITHREAD"
+        if torrent_data is not None:
+            print >> sys.stderr , "torrent data not none"
+            torrent = dict(zip(self.torrent_db.value_name_for_channel, torrent_data))
+            wx.CallAfter(self.addTorrent, torrent)
+
+
+
+    def getNumItemsCurrentPage(self):
+        if self.totalItems == 0:
+            return 0
+        else:
+            if self.currentPage != self.lastPage:
+                return self.torrentsPerPage
+            else:
+                numItems = self.totalItems % self.torrentsPerPage
+                if numItems == 0:
+                    numItems = self.torrentsPerPage
+                return numItems
+                
+            
+
 
 
 
     def addTorrent(self, torrent):
+        if DEBUG:
+            print >> sys.stderr , "ADDTORRENT"
+
+        isMine = self.parent.isMyChannel()
+
+        self.erasevSizerContents()
+
         self.torrentList.append(torrent)
+        self.totalItems = len(self.torrentList)
+        self.setLastPage()
         self.parent.setTorrentList(self.torrentList)
-        self.parent.setMyTitle()
-        self.reloadChannel(self.torrentList)
+        self.showElements(self.subscribed)
+
+        item=channelsDetailsItem(self, -1)
+        item.reemove.Hide()
+        item.SetIndex(self.totalItems - 1)
+        self.torrents.append(item)
+        self.torrents[-1].setTitle(self.torrentList[-1]['name'])
+        self.torrents[-1].setTorrent(self.torrentList[-1])
+        self.torrents[-1].setMine(isMine)
+        self.torrents[-1].deselect()
+        self.torrents[-1].Hide()
+
+        self.displayChannelContents()
+
+
 
 
     def removeTorrent(self, index):
-        if self.currentPage == self.lastPage:
-            numItems = self.totalItems % self.torrentsPerPage
-            for i in range (numItems):
-                self.torrents[self.currentPage*self.torrentsPerPage+i].Hide()
+#        if self.currentPage == self.lastPage:
+#            numItems = self.totalItems % self.torrentsPerPage
+#            for i in range (numItems):
+#                self.torrents[self.currentPage*self.torrentsPerPage+i].Hide()
+#        del self.torrentList[index]
+#        self.parent.setTorrentList(self.torrentList)
+#        self.parent.setMyTitle()
+#        if self.currentPage == self.lastPage and (self.totalItems -1) % self.torrentsPerPage == 0 and self.currentPage > 0:
+#            self.currentPage = self.currentPage - 1
+#        self.reloadChannel(self.torrentList)
+
+        self.erasevSizerContents()
+
+        if DEBUG:
+            print >> sys.stderr , "INDEX DELETED" , index
+
+        # change self.torrentList
         del self.torrentList[index]
         self.parent.setTorrentList(self.torrentList)
         self.parent.setMyTitle()
-        self.reloadChannel(self.torrentList)
 
+        # change self.torrents
+        del self.torrents[index]
+
+        # update indexes
+        for i in range(index, self.totalItems-1):
+            if type (self.torrents[i]) is not dict:
+                self.torrents[i].SetIndex(i)
+
+        self.totalItems = self.totalItems - 1
+
+        self.setLastPage()
+        if self.currentPage > self.lastPage:
+            self.currentPage = self.currentPage - 1
+
+
+        self.showElements(self.subscribed)
+        self.displayChannelContents()
 
 
     def loadChannel(self, parent, torrentList, publisher_id, publisher_name, subscribed):
+        self.currentPage = 0
         self.parent = parent
+        self.torrents = torrentList[:] # make a shallow copy because we plan to
+                              # modify this list
+
         self.torrentList = torrentList
+        self.totalItems = len(self.torrentList)
+        self.setLastPage()
         self.setSubscribed(subscribed)
         self.setPublisherId(publisher_id)
         self.showElements(subscribed)
         self.erasevSizerContents()
-        #self.Refresh()
         self.setTitle(publisher_name)
-        self.totalItems = len(self.torrentList)
-        self.setLastPage()
-        self.addItems()
+        #self.addItems()
         if not self.parent.isMyChannel():
             self.spam.Show()
         self.displayChannelContents()
@@ -628,6 +717,7 @@ class channelsDetails(bgPanel):
 
 
     def displayChannelContents(self):
+        isMine = self.parent.isMyChannel()
         if self.currentPage == self.lastPage:
             numItems = self.totalItems % self.torrentsPerPage
             if numItems == 0 and self.totalItems != 0:
@@ -635,11 +725,31 @@ class channelsDetails(bgPanel):
         else:
             numItems = self.torrentsPerPage    
 
+        print >> sys.stderr , "numitems" , numItems
 
 
-        for i in range(numItems):
-            self.vSizerContents.Add(self.torrents[self.currentPage*self.torrentsPerPage+i], 0, 0, 0)
-            self.torrents[self.currentPage*self.torrentsPerPage+i].Show()
+
+        for index in range(self.currentPage*self.torrentsPerPage, self.currentPage*self.torrentsPerPage+numItems):
+            if type(self.torrents[index]) is dict:
+                item = channelsDetailsItem(self, -1)
+                item.reemove.Hide()
+                item.SetIndex(index)
+                self.torrents[index] = item
+                self.torrents[index].setTitle(self.torrentList[index]['name'])
+                self.torrents[index].setTorrent(self.torrentList[index])
+                self.torrents[index].setMine(isMine)
+           
+            self.vSizerContents.Add(self.torrents[index], 0, 0, 0)
+            self.torrents[index].Show()
+
+
+
+#        for i in range(numItems):
+#            if DEBUG:
+#                print >> sys.stderr , "showing item :" , i
+
+#            self.vSizerContents.Add(self.torrents[self.currentPage*self.torrentsPerPage+i], 0, 0, 0)
+#            self.torrents[self.currentPage*self.torrentsPerPage+i].Show()
         self.vSizerContents.Layout()
         self.refreshScrollButtons()
         self.Layout()
@@ -651,10 +761,13 @@ class channelsDetails(bgPanel):
     def erasevSizerContents(self):
         if self.currentPage == self.lastPage:
             numItems = self.totalItems % self.torrentsPerPage
+            if numItems == 0 and self.totalItems != 0:
+                numItems = self.torrentsPerPage
         else:
             numItems = self.torrentsPerPage    
-        for i in range(numItems):
-            self.torrents[self.currentPage*self.torrentsPerPage+i].Hide()
+        for index in range(self.currentPage*self.torrentsPerPage, self.currentPage*self.torrentsPerPage+numItems):
+            if type(self.torrents[index]) is not dict:
+                self.torrents[index].Hide()
         self.vSizerContents.Clear()
         self.vSizerContents.Layout()
         self.vSizer.Layout()
@@ -679,6 +792,7 @@ class channelsDetails(bgPanel):
                     self.lastPage = 0
             else:
                 self.lastPage = (self.totalItems - self.totalItems % self.torrentsPerPage) / self.torrentsPerPage
+
         else:
             self.lastPage=lastPage
 
@@ -723,7 +837,8 @@ class channelsDetails(bgPanel):
 
     def deselectAll(self):
         for i in range(self.totalItems):
-            self.torrents[i].deselect()
+            if type(self.torrents[i]) is not dict:
+                self.torrents[i].deselect()
         
 
     def SubscriptionClicked(self, event):
@@ -808,6 +923,20 @@ class channelsDetails(bgPanel):
 
 
 
+    def guiservthread_updateincomingtorrents(self):
+        self.checkincomingtorrents()
+        self.guiserver.add_task(self.guiservthread_updateincomingtorrents,2.0)
+
+
+    def checkincomingtorrents(self):
+        try:
+            if len(self.tf.new_torrent_list) > 0: # new torrents
+                for torrent in self.tf.new_torrent_list:
+                    self.addTorrent(torrent)  
+                self.tf.new_torrent_list = []      
+        except:
+            pass        
+            
 
 
 

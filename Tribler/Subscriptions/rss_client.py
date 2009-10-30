@@ -45,6 +45,8 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 
+from urllib2 import Request, urlopen, URLError, HTTPError
+
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 RSS_RELOAD_FREQUENCY = 2*60*60      # reload a rss source every n seconds
 RSS_CHECK_FREQUENCY = 1  # test a potential .torrent in a rss source every n seconds
@@ -60,7 +62,7 @@ class TorrentFeedThread(Thread):
             raise RuntimeError, "TorrentFeedThread is singleton"
         TorrentFeedThread.__single = self
         Thread.__init__(self)
-        self.setName( "TorrentFeed"+self.getName() )
+        self.setName( "TorrentFeed"+self.getName())
         self.setDaemon(True)
 
         self.urls = {}
@@ -68,10 +70,10 @@ class TorrentFeedThread(Thread):
         self.lock = RLock()
         self.done = Event()
 
-
         # main url used for rc1
         self.mainURL = None
 
+        
 
         # when rss feeds change, we have to restart the checking
         self.feeds_changed = False
@@ -131,9 +133,17 @@ class TorrentFeedThread(Thread):
             traceback.print_exc()
             return None
 
+#    def setURLCallback(self, url, callback):
+#        self.lock.acquire()
+#	for tup in self.feeds:
+#            if tup[0].feed_url == url:
+#               tup[2] = callback
+#        self.lock.release()
     
-    def addURL(self, url, dowrite=True, status="active"):
+    def addURL(self, url, dowrite=True, status="active", callback=None):
+        print >> sys.stderr , "callback", url, callback
         def on_torrent_callback(rss_url, infohash, torrent_data):
+            print >> sys.stderr , "rss_url" , rss_url
             if DEBUG: print >>sys.stderr, "Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
             self.channelcast_db.addOwnTorrent(infohash, torrent_data)
 
@@ -142,10 +152,14 @@ class TorrentFeedThread(Thread):
             self.urls[url] = status
             if status == "active":
                 feed = TorrentFeedReader(url,self.gethistfilename(url))
-                self.feeds.append((feed, on_torrent_callback))
+                self.feeds.append([feed, on_torrent_callback, callback])
                 self.feeds_changed = True
             if dowrite:
                 self.writefile()
+        if callback:
+            for tup in self.feeds:
+                if tup[0].feed_url == url:
+                   tup[2] = callback
         self.lock.release()
 
     def writefile(self):
@@ -197,7 +211,7 @@ class TorrentFeedThread(Thread):
             del self.urls[url]
             for i in range(len(self.feeds)):
                 feed = self.feeds[i]
-                if feed.feed_url == url:
+                if feed[0] == url:
                     del self.feeds[i]
                     self.feeds_changed = True
                     break
@@ -216,7 +230,7 @@ class TorrentFeedThread(Thread):
             
             # feeds contains (rss_url, generator) pairs
             feeds = {}
-            for feed, on_torrent_callback in cfeeds:
+            for feed, on_torrent_callback, user_callback in cfeeds:
                 try:
                     sugestion_generator = feed.refresh()
                 except:
@@ -253,7 +267,11 @@ class TorrentFeedThread(Thread):
                                         print >>sys.stderr, "Injecting", title
                                 self.save_torrent(infohash, bdata, source=rss_url)
                                 if on_torrent_callback:
+                                    print >> sys.stderr , "ON TORRENT CALLBACK"
                                     on_torrent_callback(rss_url, infohash, data)
+                                if user_callback:
+                                    print >> sys.stderr , "USER CALLBACK"
+                                    user_callback(rss_url, infohash, data)
 
 
                     except StopIteration:
@@ -264,7 +282,7 @@ class TorrentFeedThread(Thread):
                         # the bdecode failed
                         print >>sys.stderr, "Bdecode failed: ", rss_url
                     
-                    except ExpatError:
+                    except (ExpatError, HTTPError):
                         print >>sys.stderr, "Invalid RSS: ", rss_url 
 
                     # sleep in between torrent retrievals

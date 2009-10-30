@@ -280,6 +280,11 @@ class PopularItemPanel(wx.Panel):
         self.parent.Refresh()
         
 
+    def resetNumVotes(self):
+        pass
+
+
+
     def setSubscribed(self):
         if self.vcdb.hasSubscription(self.publisher_id, bin2str(self.utility.session.get_permid())):
             self.subscribed = True

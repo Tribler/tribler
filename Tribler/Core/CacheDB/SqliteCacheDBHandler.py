@@ -1110,7 +1110,7 @@ class TorrentDBHandler(BasicDBHandler):
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
                       'relevance', 'infohash', 'tracker', 'last_check']
 
-        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment'] ##
+        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment'] 
         
 
     def register(self, category, torrent_dir):
@@ -3431,8 +3431,8 @@ class ChannelCastDBHandler(BasicDBHandler):
         votecastdb = VoteCastDBHandler.getInstance()
         sql = "select publisher_id, publisher_name from ChannelCast where publisher_id ='" + bin2str(self.my_permid) + "'" + "group by publisher_id"
         res = self._db.fetchall(sql) 
-        if not res is None:
-            mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(bin2str(self.my_permid))))
+        if res is not None:
+            mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(bin2str(self.my_permid)) - votecastdb.getNegVotes(bin2str(self.my_permid))))
         else:
             mychannel.append((self.my_permid,"MyChannel" , 0))
         return mychannel

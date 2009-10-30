@@ -269,12 +269,15 @@ class channelsDetailsPanel(bgPanel):
 
     def loadChannel(self, files=None):
         self.totalItems = len(files)
+        self.files = files[:] # make a shallow copy because we plan to
+                              # modify this list
+        
         if self.GetParent().isMine():
             self.removeText.SetLabel("Remove")
         else:
             self.removeText.SetLabel("")
         self.setLastPage()
-        self.addItems(files)
+        #self.addItems(files)
         self.displayChannelContents()
 
 
@@ -299,9 +302,21 @@ class channelsDetailsPanel(bgPanel):
         else:
             numItems = self.itemsPerPage    
 
-        for i in range(numItems):
-            self.vSizerContents.Add(self.files[self.currentPage*self.itemsPerPage+i], 0, 0, 0)
-            self.files[self.currentPage*self.itemsPerPage+i].Show()
+        for index in range(self.currentPage*self.itemsPerPage, self.currentPage*self.itemsPerPage+numItems):
+            if type(self.files[index]) is str:
+                item = fileItem(self)
+                item.setTitle(self.files[index])
+                self.files[index] = item
+           
+            self.vSizerContents.Add(self.files[index], 0, 0, 0)
+            self.files[index].Show()
+            # self.vSizerContents.Add(self.torrentSpacing, 0, 0, 0)
+
+
+
+#        for i in range(numItems):
+#            self.vSizerContents.Add(self.files[self.currentPage*self.itemsPerPage+i], 0, 0, 0)
+#            self.files[self.currentPage*self.itemsPerPage+i].Show()
             # self.vSizerContents.Add(self.torrentSpacing, 0, 0, 0)
         self.vSizerContents.Layout()
         self.refreshScrollButtons()
@@ -315,8 +330,9 @@ class channelsDetailsPanel(bgPanel):
             numItems = self.totalItems % self.itemsPerPage
         else:
             numItems = self.itemsPerPage    
-        for i in range(numItems):
-            self.files[self.currentPage*self.itemsPerPage+i].Hide()
+        for index in range(self.currentPage*self.itemsPerPage, self.currentPage*self.itemsPerPage+numItems):
+            if type(self.files[index]) is not str:
+                self.files[index].Hide()
         self.vSizerContents.Clear()
         self.vSizerContents.Layout()
         self.vSizer.Layout()
