@@ -1118,19 +1118,21 @@ class TorrentDBHandler(BasicDBHandler):
         self.torrent_dir = torrent_dir
         return
         # consider for migration    
+
+    def upgrade(self):
         # insert the torrent details into InvertedIndex and TorrentFiles tables, if the DB is just migrated to a new version
-        sql = "select torrent_file_name from Torrent where torrent_file_name is not NULL"
+        sql = "select torrent_id, name, torrent_file_name from Torrent where torrent_file_name is not NULL"
         records = self._db.fetchall(sql)
         sql1 = "select count(*) from InvertedIndex"
         num = self._db.fetchone(sql1)
         if num==0 and len(records)>0: # this means its a new migration 
             for record in records:
-                filename = os.path.join(self.torrent_dir, record[0])
+                filename = os.path.join(self.torrent_dir, record[2])
                 infohash, torrent = self._readTorrentData(filename)
                 if infohash is not None:
                     self.deleteTorrent(infohash)
                     self._addTorrentToDB(infohash, torrent, commit=True)
-
+        
     def getTorrentID(self, infohash):
         return self._db.getTorrentID(infohash)
     
@@ -1842,13 +1844,10 @@ class TorrentDBHandler(BasicDBHandler):
                        'status_id',
                        'num_seeders',
                       'num_leechers', 
-                      'comment']        
+                      'comment',
+                      'channel_permid',
+                      'channel_name']        
         
-        
-        
-        #import re
-        #kws = kws.lower()
-        #words = re.split(r'\s+', kws)
         sql = ""
         count = 0
         for word in kws:
@@ -1858,26 +1857,50 @@ class TorrentDBHandler(BasicDBHandler):
             if count < len(kws):
                 sql += " intersect "
         
-        torrent_list = []
-        
-        mainsql = "select * from Torrent where torrent_id in (" + sql + ") order by num_seeders desc"
+        mainsql = """select T.*, C.publisher_id as channel_permid, C.publisher_name as channel_name 
+                     from Torrent T LEFT OUTER JOIN ChannelCast C on T.infohash = C.infohash 
+                     where T.torrent_id in (%s) order by T.num_seeders desc """ % (sql)
         if not local:
             mainsql += " limit 20"
+            
         results = self._db.fetchall(mainsql)
-        # print >> sys.stderr, "mainsql results:", len(results) 
         t2 = time()
         sql = "select mod_id, sum(vote), count(*) from VoteCast group by mod_id order by 2 desc"
         votecast_records = self._db.fetchall(sql)         
-        
         
         votes = {}
         for vote in votecast_records:
             votes[vote[0]] = (vote[1], vote[2])
         t3 = time()
         
+        torrents_dict = {}
         for result in results:
             a = time()
             torrent = dict(zip(value_name,result))
+            
+            # check if this torrent belongs to more than one channel
+            if torrent['infohash'] in torrents_dict:
+                old_record = torrents_dict[torrent['infohash']]
+                # check if this channel has votes and if so, is it better than previous channel
+                if torrent['channel_permid'] in votes:
+                    sum, count = votes[torrent['channel_permid']] 
+                    negvotes = (sum + count)/3
+                    numsubscriptions = (2*count-sum)/3
+                    if numsubscriptions-negvotes > old_record['subscriptions'] - old_record['neg_votes']:
+                        print >> sys.stderr, "overridden", torrent['channel_name'], old_record['channel_name']
+                        old_record['channel_permid'] = torrent['channel_permid']
+                        old_record['channel_name'] = torrent['channel_name']
+                        old_record['subscriptions'] = numsubscriptions
+                        old_record['neg_votes'] = negvotes
+                else:
+                    if old_record['subscriptions'] - old_record['neg_votes'] < 0: # SPAM cutoff
+                        old_record['channel_permid'] = torrent['channel_permid']
+                        old_record['channel_name'] = torrent['channel_name']
+                        old_record['subscriptions'] = 0
+                        old_record['neg_votes'] = 0
+                continue
+            
+            torrents_dict[torrent['infohash']] = torrent
             try:
                 torrent['source'] = self.id2src[torrent['source_id']]
             except:
@@ -1896,62 +1919,21 @@ class TorrentDBHandler(BasicDBHandler):
             del torrent['category_id']
             del torrent['status_id']
             torrent_id = torrent['torrent_id']
-            mypref_stats = self.mypref_db.getMyPrefStats(torrent_id)    
-            #print >> sys.stderr, "my_pref:", repr(mypref_stats)
-            #print >> sys.stderr, "torrent_id:", torrent_id
-            #print >> sys.stderr, "status:", torrent['status']     
-            if mypref_stats is not None and torrent_id in mypref_stats:
-                # add extra info for torrent in mypref
-                print >> sys.stderr, "# add extra info for torrent in mypref"
-                torrent['myDownloadHistory'] = True
-                data = mypref_stats[torrent_id]  #(create_time,progress,destdir)
-                torrent['download_started'] = data[0]
-                torrent['progress'] = data[1]
-                torrent['destdir'] = data[2]            
             
-            # now, add the details of channel to which the torrent belongs, if any 
-            torrent['channel_permid'] = ""
-            torrent['channel_name'] = ""
             torrent['neg_votes']=0
             torrent['subscriptions']=0
+            if torrent['channel_permid'] in votes:
+                sum, count = votes[torrent['channel_permid']]
+                negvotes = (sum + count)/3
+                numsubscriptions = (2*count-sum)/3                
+                torrent['neg_votes']=negvotes
+                torrent['subscriptions']=numsubscriptions
             
-            sql = "select publisher_id, publisher_name from ChannelCast where infohash='" + bin2str(torrent['infohash']) + "'" #note that.. above, its in bin format
-            records = self._db.fetchall(sql)
-            
-            if records is not None and len(records)>0:
-                if len(records)>1:
-                    # if more than 1 channel has this torrent, select most popular channel.
-                    # For spam, resultant votes limit = -6
-                    NEG = -6 # if the effective vote count is less than -5, it is considered as SPAM
-                    max_votes = NEG
-                    
-                    for record in records:
-                        if record[0] not in votes:
-                            continue
-                        sum, count = votes[record[0]]
-                        negvotes = (sum + count)/3
-                        numsubscriptions = (2*count-sum)/3
-                        if max_votes<numsubscriptions-negvotes:
-                            max_votes = numsubscriptions-negvotes
-                            torrent['channel_permid'] = record[0]
-                            torrent['channel_name'] = record[1]
-                            torrent['neg_votes']=negvotes
-                            torrent['subscriptions']=numsubscriptions
-                    if max_votes==NEG:
-                        # if none of the channels has more than -6 votes,  
-                        continue
-                elif records[0][0] in votes:
-                    sum, count = votes[records[0][0]]
-                    negvotes = (sum + count)/3
-                    numsubscriptions = (2*count-sum)/3
-                    torrent['channel_permid'] = records[0][0]
-                    torrent['channel_name'] = records[0][1]
-                    torrent['neg_votes'] = negvotes
-                    torrent['subscriptions'] = numsubscriptions
-                
-            torrent_list.append(torrent)
             #print >> sys.stderr, "hello.. %.3f,%.3f" %((time()-a), time())
-        
+        def compare(a,b):
+            return -1*cmp(a['num_seeders'], b['num_seeders'])
+        torrent_list = torrents_dict.values()
+        torrent_list.sort(compare)
         #print >> sys.stderr, "# hits:%d; search time:%.3f,%.3f,%.3f" % (len(torrent_list),t2-t1, t3-t2, time()-t3 )
         return torrent_list
 
@@ -3326,12 +3308,12 @@ class ChannelCastDBHandler(BasicDBHandler):
                 if channel[0] in channels:
                     continue
                 channels[channel[0]] = channel[1]
-                print >>sys.stderr, "channel:", repr(channel)
+                #print >>sys.stderr, "channel:", repr(channel)
                 # now, retrieve the last 20 of each of these channels' torrents                             
                 s = "select * from ChannelCast where publisher_id='"+ channel[0] +"' order by time_stamp desc limit 20"
                 record = self._db.fetchall(s)
                 if record is not None and len(record)>0:
-                    records.append(record)
+                    records.extend(record)
             return records         
         elif query[0] == 'p': # search channel's torrents based on permid
             q = query[2:]
