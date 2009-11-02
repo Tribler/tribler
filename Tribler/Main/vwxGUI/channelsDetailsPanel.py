@@ -171,11 +171,14 @@ class channelsDetailsPanel(bgPanel):
         self.scrollLeft = tribler_topButton(self, -1, name = "ScrollLeft")
         self.scrollLeft.createBackgroundImage()  
         self.scrollLeft.Bind(wx.EVT_LEFT_UP, self.scrollLeftClicked)      
+        self.scrollLeft.setSelected(True)  
+
  
         # scroll right
         self.scrollRight = tribler_topButton(self, -1, name = "ScrollRight")
         self.scrollRight.createBackgroundImage()        
         self.scrollRight.Bind(wx.EVT_LEFT_UP, self.scrollRightClicked)      
+        self.scrollRight.setSelected(True)  
 
 
         # play

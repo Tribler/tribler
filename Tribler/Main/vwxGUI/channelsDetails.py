@@ -31,6 +31,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import *
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 
 from Tribler.__init__ import LIBRARYNAME
 
@@ -142,6 +143,8 @@ class channelsDetails(bgPanel):
 
         self.origin = None 
 
+
+        self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
 
         self.x=466
@@ -546,7 +549,9 @@ class channelsDetails(bgPanel):
 
     def addTorrentClicked(self, event):
         dlg = wx.FileDialog(self,"Choose torrent file", style = wx.DEFAULT_DIALOG_STYLE)
-        dlg.SetPath("/lhome/lgwin/TriblerDownloads/collected_torrent_files/u' Fitna_The_Movie_-_By_Geert_Wilders_English.avi__dfc74cd7bbe4e4ac83e6a938d6b928b71aa3db29.torrent'")
+        path = self.defaultDLConfig.get_dest_dir()
+#        dlg.SetPath("/lhome/lgwin/TriblerDownloads/collected_torrent_files/u' Fitna_The_Movie_-_By_Geert_Wilders_English.avi__dfc74cd7bbe4e4ac83e6a938d6b928b71aa3db29.torrent'")
+        dlg.SetPath(path)
         if dlg.ShowModal() == wx.ID_OK and os.path.isfile(dlg.GetPath()):
             Torrent = self.tf.addFile(dlg.GetPath())
             if Torrent is not None:
