@@ -476,7 +476,7 @@ class fileItem(bgPanel):
         elif sys.platform == 'linux2':
             self.minsize=(250,17)
         else:
-            self.minsize=(200,18)
+            self.minsize=(260,18)
 
 
         self.SetMinSize(self.minsize)

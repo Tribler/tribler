@@ -1040,6 +1040,11 @@ class GUIUtility:
         for k,v in hits.items():
             records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
 
+
+        print >> sys.stderr , "RREECCOORRDDSS" , records
+
+
+
         #Code that calls GUI
         # 1. Grid needs to be updated with incoming hits, from each remote peer
         # 2. Sorting should also be done by that function

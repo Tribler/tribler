@@ -360,7 +360,10 @@ class channelsDetails(bgPanel):
         self.hSizer2.Add((5,0), 0, 0, 0)
         self.hSizer2.Add(self.rssFeedbackText, 0, wx.TOP, 5)
 
-        self.hSizer3.Add((351,0), 0, 0, 0)
+        if sys.platform == 'darwin':
+            self.hSizer3.Add((346,0), 0, 0, 0)
+        else:
+            self.hSizer3.Add((351,0), 0, 0, 0)
         self.hSizer3.Add(self.add_torrent, 0, 0, 0)
 
 
@@ -398,8 +401,11 @@ class channelsDetails(bgPanel):
         self.vSizer.Add((0,15), 0, 0, 0)
         self.vSizer.Add(self.hSizer0, 0, 0, 0)     
         self.vSizer.Add((0,2), 0, 0, 0)
-        self.vSizer.Add(self.hSizer1, 0, wx.TOP, -15)   
-        self.vSizer.Add((0,2), 0, 0, 0)
+        self.vSizer.Add(self.hSizer1, 0, wx.TOP, -15)
+        if sys.platform == 'darwin':
+            self.vSizer.Add((0,4), 0, 0, 0)
+        else:
+            self.vSizer.Add((0,2), 0, 0, 0)
         self.vSizer.Add(self.hSizer2, 0, 0, 0)     
         self.vSizer.Add((0,3), 0, 0, 0)
         self.vSizer.Add(self.hSizer3, 0, 0, 0)     
@@ -835,7 +841,7 @@ class channelsDetails(bgPanel):
 
     def deselectAllExceptSelected(self, index): ## for mac os x
         for i in range(self.totalItems):
-            if i <> index:
+            if i <> index and type(self.torrents[i]) is not dict:
                 self.torrents[i].deselect()
         
 

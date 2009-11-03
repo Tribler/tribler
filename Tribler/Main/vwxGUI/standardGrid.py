@@ -144,6 +144,9 @@ class GridManager(object):
         #if self.old_data is None:
 
         #t1 = time()
+
+        ##print >> sys.stderr , "DAAAATAAAAA" , self.data
+                        
         self.grid.setData(self.data)
         #    self.old_data = self.data
         #else:
@@ -268,7 +271,9 @@ class GridManager(object):
                 if self.grid.name == 'channelsGrid':
 
                     [total_items,res] = self.channelsearch_manager.getChannelHits(state.db)
+                    ##print >> sys.stderr, res
                     data = []
+                    channels = []
                     if total_items > 0:
                         for k, v in res.items():
                             data_new = (k, v[0], v[1], v[2])

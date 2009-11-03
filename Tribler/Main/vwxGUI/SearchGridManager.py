@@ -25,7 +25,7 @@ except ImportError:
     print_exc()
     
 
-DEBUG = False
+DEBUG = True
 
 SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
@@ -783,7 +783,7 @@ class ChannelSearchGridManager:
     
     def searchLocalDatabase(self,mode):
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """
-        if self.searchkeywords[mode] == self.oldsearchkeywords[mode]: # and len(self.hits) > 0:
+        if self.searchkeywords[mode] == self.oldsearchkeywords[mode]:  ## and len(self.hits) > 0:
             if DEBUG:
                 print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
             return False
@@ -812,6 +812,7 @@ class ChannelSearchGridManager:
                 if hit[2] not in torrents:
                     torrents[hit[2]] = (hit[4], hit[5])
                 
+        print >> sys.stderr , " LOCAL HITS" , self.hits
         return True
 
 
@@ -834,10 +835,11 @@ class ChannelSearchGridManager:
                 #self.hits.append(remoteItem)
                 numResults+=1
             self.standardOverview.setSearchFeedback('remotechannels', self.stopped, numResults, self.searchkeywords[mode])
+            self.remoteHits = {}
         
     def gotRemoteHits(self,permid,kws,answers,mode):
         """ Called by GUIUtil when hits come in. """
-        print >> sys.stderr , "answers" , answers
+        ##print >> sys.stderr , "answers" , answers
         try:
             #if DEBUG:
             print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHist: got",len(answers),"for",kws
@@ -864,13 +866,12 @@ class ChannelSearchGridManager:
                     newval['time_stamp'] = el[5]
                     newval['signature'] = el[6]
                     
-                    self.remoteHits[e1] = 1
+                    self.remoteHits[el] = 1
                     numResults +=1
                     def usercallback(infohash,metadata,filename):
                         pass
                     if not self.torrent_db.hasTorrent(str2bin(el[2])):
                         self.rtorrent_handler.download_torrent(permid,str2bin(el[2]),usercallback)
-
 #                    if newval['infohash'] in self.remoteHits:
 #                        # merge this result with previous results
 #                        oldval = self.remoteHits[newval['infohash']]
