@@ -1887,7 +1887,7 @@ class TorrentDBHandler(BasicDBHandler):
                     negvotes = (sum + count)/3
                     numsubscriptions = (2*count-sum)/3
                     if numsubscriptions-negvotes > old_record['subscriptions'] - old_record['neg_votes']:
-                        print >> sys.stderr, "overridden", torrent['channel_name'], old_record['channel_name']
+                        #print >> sys.stderr, "overridden", torrent['channel_name'], old_record['channel_name']
                         old_record['channel_permid'] = torrent['channel_permid']
                         old_record['channel_name'] = torrent['channel_name']
                         old_record['subscriptions'] = numsubscriptions
@@ -3356,7 +3356,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             record = self._db.fetchone(sql)
             if not record is None:
                 mod_name = record[0]
-                records.append((vote[0],mod_name,vote[1]))
+                records.append((vote[0],mod_name,vote[1], {}))
         return records
 
 
@@ -3398,7 +3398,7 @@ class ChannelCastDBHandler(BasicDBHandler):
                 else:
                     del publishers[mod_id]
         for k, v in publishers.items():
-            allrecords.append((k, v[0], v[1]))
+            allrecords.append((k, v[0], v[1], {}))
         def compare(a,b):
             if a[2]>b[2] : return -1
             if a[2]<b[2] : return 1
@@ -3414,9 +3414,9 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select publisher_id, publisher_name from ChannelCast where publisher_id ='" + bin2str(self.my_permid) + "'" + "group by publisher_id"
         res = self._db.fetchall(sql) 
         if res is not None:
-            mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(bin2str(self.my_permid)) - votecastdb.getNegVotes(bin2str(self.my_permid))))
+            mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(bin2str(self.my_permid)) - votecastdb.getNegVotes(bin2str(self.my_permid)), {}))
         else:
-            mychannel.append((self.my_permid,"MyChannel" , 0))
+            mychannel.append((self.my_permid,"MyChannel" , 0, {}))
         return mychannel
 
 
@@ -3445,7 +3445,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         for channel in channels:
             if channel[0] != bin2str(self.my_permid):
                 num_votes = self.getSubscribersCount(channel[0])
-                records.append((channel[0], channel[1], num_votes))
+                records.append((channel[0], channel[1], num_votes, {}))
         print >> sys.stderr , "records" , records
         return records
 
@@ -3496,7 +3496,7 @@ class ChannelCastDBHandler(BasicDBHandler):
                 publishers[mod_id][1] = vote
 
         for k, v in publishers.items():
-            allrecords.append((k, v[0], v[1]))
+            allrecords.append((k, v[0], v[1], {}))
         def compare(a,b):
             if a[2]>b[2] : return -1
             if a[2]<b[2] : return 1
