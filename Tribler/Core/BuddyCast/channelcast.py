@@ -176,11 +176,13 @@ class ChannelCastCore:
         for k,v in hits.items():
             records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
         for hit in records:
-            if self.channelcastdb.addTorrent(hit): # if verified and is a new insert
-                # if new insert, request the torrent
-                if not self.channelcastdb.existsTorrent(hit[2]):
-                    # if torrent does not exist in the database, request to download the torrent
-                    self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
+            if self.channelcastdb.existsTorrent(hit[2]):
+                self.channelcastdb.addTorrent(hit)
+            else:
+                def usercallback(infohash,metadata,filename):
+                    self.channelcastdb.addTorrent(hit)
+                self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
+                    
     
     def updateMySubscribedChannels(self):
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()
@@ -190,7 +192,3 @@ class ChannelCastCore:
             self.session.query_connected_peers(q,usercallback=self.updateChannel)
         
         self.secure_overlay.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)        
-
-def usercallback(infohash,metadata,filename):
-    pass
-
