@@ -126,7 +126,8 @@ class RemoteQueryMsgHandler:
             try:
                 del self.connections[permid]
             except:
-                print_exc()
+                pass
+                #print_exc()
 
         return True
 
