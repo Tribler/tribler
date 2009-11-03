@@ -3228,7 +3228,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         return False
         
     def existsTorrent(self,infohash):
-        sql = "select count(*) from Torrent where infohash='" + infohash + "'"
+        sql = "select count(*) from Torrent where infohash='" + infohash + "' and name<>NULL"
         num_records = self._db.fetchone(sql)
         if num_records > 0:
             return True
