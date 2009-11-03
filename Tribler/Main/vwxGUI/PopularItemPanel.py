@@ -230,8 +230,7 @@ class PopularItemPanel(wx.Panel):
         
 
         self.mychannel = False
-
-        self.publisher_id, self.publisher_name, self.num_votes = data
+        self.publisher_id, self.publisher_name, self.num_votes, torrents = data
         ## print >> sys.stderr, "publisher_id", publisher_id, "publisher_name" , publisher_name, "num_votes", num_votes
 
 

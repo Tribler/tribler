@@ -57,7 +57,7 @@ class GridManager(object):
         self.torrentsearch_manager.register(self.torrent_db, self.pref_db, self.mypref_db, self.search_db, self.channelcast_db, self.votecast_db)
 
         self.channelsearch_manager = utility.guiUtility.channelsearch_manager
-        self.channelsearch_manager.register(self.channelcast_db, self.pref_db, self.mypref_db, self.search_db, self.votecast_db)
+        self.channelsearch_manager.register(self.channelcast_db, self.pref_db, self.mypref_db, self.search_db, self.votecast_db, self.torrent_db)
 
         self.peersearch_manager = utility.guiUtility.peersearch_manager
         self.peersearch_manager.register(self.peer_db,self.friend_db)
@@ -270,11 +270,12 @@ class GridManager(object):
                     [total_items,res] = self.channelsearch_manager.getChannelHits(state.db)
                     data = []
                     if total_items > 0:
-                        for el in res:
-                            num_votes = self.channelcast_db.getSubscribersCount(el[0][0])
-                            data_new = (el[0][0], el[0][1], num_votes)
+                        for k, v in res.items():
+                            data_new = (k, v[0], v[1], v[2])
                             data.append(data_new)
-
+#                            num_votes = self.channelcast_db.getSubscribersCount(el[0][0])
+#                            data_new = (el[0][0], el[0][1], num_votes)
+#                            data.append(data_new)
 
             else:
                 if self.grid.name == 'channelsGrid':

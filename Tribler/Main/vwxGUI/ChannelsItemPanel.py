@@ -246,7 +246,8 @@ class ChannelsItemPanel(wx.Panel):
             #self.SubscriptionButton.Hide()
 
 
-            self.publisher_id, self.publisher_name, self.num_votes = data
+            
+            self.publisher_id, self.publisher_name, self.num_votes, torrents = data
 
 
             # get torrent list
@@ -292,7 +293,7 @@ class ChannelsItemPanel(wx.Panel):
             self.title.SetMinSize((160,16))
             self.title.SetSize((160,16))
 
-            self.publisher_id, self.publisher_name, self.num_votes = data
+            self.publisher_id, self.publisher_name, self.num_votes, torrents = data
 
             if data and oldinfohash != self.data[0]:
                 title = data[1][:self.titleLength] + " (%s)" % self.num_votes

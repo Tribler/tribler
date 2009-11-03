@@ -11,7 +11,7 @@ from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
-
+from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.simpledefs import *
 
 from Tribler.Core.Overlay.MetadataHandler import get_filename
@@ -674,13 +674,15 @@ class ChannelSearchGridManager:
         return ChannelSearchGridManager.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self,channelcast_db,pref_db,mypref_db,search_db, votecast_db):
+    def register(self,channelcast_db,pref_db,mypref_db,search_db, votecast_db, torrent_db):
         self.channelcast_db = channelcast_db
         self.pref_db = pref_db
         self.mypref_db = mypref_db
         self.search_db = search_db
         self.searchmgr = SearchManager(channelcast_db)
         self.votecastdb = votecast_db
+        self.torrent_db = torrent_db
+        self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
@@ -781,7 +783,7 @@ class ChannelSearchGridManager:
     
     def searchLocalDatabase(self,mode):
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """
-        if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
+        if self.searchkeywords[mode] == self.oldsearchkeywords[mode]: # and len(self.hits) > 0:
             if DEBUG:
                 print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: returning old hit list",len(self.hits)
             return False
@@ -797,7 +799,19 @@ class ChannelSearchGridManager:
         for i in self.searchkeywords[mode]:
             query = query + i + ' '
         
-        self.hits = self.searchmgr.searchChannels(query)
+        #self.hits = self.searchmgr.searchChannels(query)
+        hits = self.searchmgr.searchChannels(query)
+        self.hits = {}
+        for hit in hits:
+            if hit[0] not in hits:
+                torrents = {}                 
+                torrents[hit[2]] = (hit[4], hit[5]) # {infohash:(torrentname, timestamp)}
+                self.hits[hit[0]] = [hit[1], self.channelcast_db.getSubscribersCount(hit[0]), torrents]
+            else:
+                torrents = self.hits[hit[0]][2]
+                if hit[2] not in torrents:
+                    torrents[hit[2]] = (hit[4], hit[5])
+                
         return True
 
 
@@ -808,8 +822,16 @@ class ChannelSearchGridManager:
         if len(self.remoteHits) > 0:
             numResults = 0
             
-            for remoteItem in self.remoteHits.values():
-                self.hits.append(remoteItem)
+            for remoteItem in self.remoteHits.keys():
+                if remoteItem[0] not in self.hits:
+                    torrents = {}
+                    torrents[remoteItem[2]] = (remoteItem[4], remoteItem[5])
+                    self.hits[remoteItem[0]] = [remoteItem[1], self.channelcast_db.getSubscribersCount(remoteItem[0]), torrents]
+                else:
+                    torrents = self.hits[remoteItem[0]][2]
+                    if remoteItem[2] not in torrents:
+                        torrents[remoteItem[2]] = (remoteItem[4], remoteItem[5])
+                #self.hits.append(remoteItem)
                 numResults+=1
             self.standardOverview.setSearchFeedback('remotechannels', self.stopped, numResults, self.searchkeywords[mode])
         
@@ -824,7 +846,7 @@ class ChannelSearchGridManager:
             # We got some replies. First check if they are for the current query
             if self.searchkeywords['channelsMode'] == kws:
                 numResults = 0
-                for el in answers[0]:  
+                for el in answers:  
                     
 #                    if self.channelcast_db.hasTorrent(infohash):
 #                        if DEBUG:
@@ -841,17 +863,23 @@ class ChannelSearchGridManager:
                     newval['torrentname'] = el[4]
                     newval['time_stamp'] = el[5]
                     newval['signature'] = el[6]
-                        
+                    
+                    self.remoteHits[e1] = 1
+                    numResults +=1
+                    def usercallback(infohash,metadata,filename):
+                        pass
+                    if not self.torrent_db.hasTorrent(str2bin(el[2])):
+                        self.rtorrent_handler.download_torrent(permid,str2bin(el[2]),usercallback)
 
-                    if newval['infohash'] in self.remoteHits:
-                        # merge this result with previous results
-                        oldval = self.remoteHits[newval['infohash']]
-                        for query_permid in newval['query_permids']:
-                            if not query_permid in oldval['query_permids']:
-                                oldval['query_permids'].append(query_permid)
-                    else:
-                        self.remoteHits[newval['infohash']] = newval
-                        numResults +=1
+#                    if newval['infohash'] in self.remoteHits:
+#                        # merge this result with previous results
+#                        oldval = self.remoteHits[newval['infohash']]
+#                        for query_permid in newval['query_permids']:
+#                            if not query_permid in oldval['query_permids']:
+#                                oldval['query_permids'].append(query_permid)
+#                    else:
+#                        self.remoteHits[newval['infohash']] = el #newval
+#                        numResults +=1
 
                 if numResults > 0 and mode == 'channelsMode': #  and self.standardOverview.getSearchBusy():
                     self.refreshGrid()
