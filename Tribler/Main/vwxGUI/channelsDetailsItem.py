@@ -28,6 +28,7 @@ from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.vwxGUI.channelsDetailsPanel import channelsDetailsPanel
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 
 
 
@@ -217,7 +218,7 @@ class channelsDetailsItem(wx.Panel):
 
     def removeClicked(self, event):
         self.deselect()
-        self.channelcast_db.deleteOwnTorrent(self.torrent['infohash'])
+        self.channelcast_db.deleteOwnTorrent(bin2str(self.torrent['infohash']))
         cd = self.GetParent()
         cd.removeTorrent(self.index)
 

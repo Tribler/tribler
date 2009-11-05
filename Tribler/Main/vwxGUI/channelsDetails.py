@@ -551,19 +551,6 @@ class channelsDetails(bgPanel):
         self.scrollRight.Show()
         self.isempty = False
 
-
-
-    def addTorrentClicked(self, event):
-        dlg = wx.FileDialog(self,"Choose torrent file", style = wx.DEFAULT_DIALOG_STYLE)
-        path = self.defaultDLConfig.get_dest_dir()
-#        dlg.SetPath("/lhome/lgwin/TriblerDownloads/collected_torrent_files/u' Fitna_The_Movie_-_By_Geert_Wilders_English.avi__dfc74cd7bbe4e4ac83e6a938d6b928b71aa3db29.torrent'")
-        dlg.SetPath(path)
-        if dlg.ShowModal() == wx.ID_OK and os.path.isfile(dlg.GetPath()):
-            Torrent = self.tf.addFile(dlg.GetPath())
-            if Torrent is not None:
-                Torrent = dict(zip(self.torrent_db.value_name_for_channel, Torrent))
-                self.addTorrent(Torrent)
-
     def spamClicked(self, event):
         dialog = wx.MessageDialog(None, "Are sure you want to report %s as spam ?\nThis will remove all the torrents and unsubscribe you from the channel. " % self.channelTitle.GetLabel(), "Report spam", wx.OK|wx.CANCEL|wx.ICON_WARNING)
         result = dialog.ShowModal()
@@ -578,15 +565,39 @@ class channelsDetails(bgPanel):
             else:
                 wx.CallAfter(self.guiUtility.standardOverview.getGrid().clearAllData)
                 wx.CallAfter(self.guiUtility.standardOverview.getGrid().gridManager.refresh)
+
+
+    def addTorrentClicked(self, event):
+        dlg = wx.FileDialog(self,"Choose torrent file", style = wx.DEFAULT_DIALOG_STYLE)
+        path = self.defaultDLConfig.get_dest_dir()
+        dlg.SetPath(path)
+        if dlg.ShowModal() == wx.ID_OK and os.path.isfile(dlg.GetPath()):
+            infohash = self.tf.addFile(dlg.GetPath())
+            if infohash is not None:
+                try:
+                    torrent = self.torrent_db.getTorrent(infohash)
+                    if DEBUG:
+                        print >> sys.stderr , torrent
+                    self.addTorrent(torrent)
+                except:
+                    print >> sys.stderr , "Could not add torrent"
+                    pass
+            else:
+                print >> sys.stderr , "No infohash. Could not add torrent"
+
             
 
     def nonUIThreadAddTorrent(self, rss_url, infohash, torrent_data):
-        print >> sys.stderr , "NONUITHREAD"
+        if DEBUG:
+            print >> sys.stderr , "NONUITHREAD"
         if torrent_data is not None:
-            print >> sys.stderr , "torrent data not none"
-            torrent = dict(zip(self.torrent_db.value_name_for_channel, torrent_data))
-            wx.CallAfter(self.addTorrent, torrent)
-
+            try:
+                torrent = self.torrent_db.getTorrent(infohash)
+                if DEBUG:
+                    print >> sys.stderr , torrent
+                wx.CallAfter(self.addTorrent, torrent)
+            except:
+                pass
 
 
     def getNumItemsCurrentPage(self):

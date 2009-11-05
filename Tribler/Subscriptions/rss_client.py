@@ -127,7 +127,7 @@ class TorrentFeedThread(Thread):
             if DEBUG: print >>sys.stderr, "Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
             self.save_torrent(infohash, data)
             self.channelcast_db.addOwnTorrent(infohash, torrent_data)
-            return torrent_data
+            return infohash
         except:
             print >> sys.stderr, "Could not add torrent:", filename
             traceback.print_exc()

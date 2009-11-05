@@ -3299,6 +3299,8 @@ class ChannelCastDBHandler(BasicDBHandler):
                 sql += " publisher_name like '%" + kw + "%' "
                 if count<len(kwlist):
                     sql += " and "
+
+            sql += " and publisher_id <> '" + bin2str(self.my_permid) + "'" ## remove own channel from channel results
                     
             
             channellist = self._db.fetchall(sql)
