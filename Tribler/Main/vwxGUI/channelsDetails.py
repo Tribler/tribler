@@ -239,6 +239,7 @@ class channelsDetails(bgPanel):
         self.rssCtrl.SetFont(wx.Font(FS_RSS, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
         self.rssCtrl.Bind(wx.EVT_KEY_DOWN, self.addRSS)
         self.rssCtrl.SetBackgroundColour((206,223,230))
+        self.rssCtrl.Refresh()
         #self.rssCtrl.SetValue("http://www.legaltorrents.com/feeds/cat/netlabel-music.rss")
         self.rssCtrl.SetMinSize((self.x-205,23))
 
