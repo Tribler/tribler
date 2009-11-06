@@ -29,6 +29,8 @@ NUM_OTHERS_RECENT_TORRENTS = 10
 RELOAD_FREQUENCY = 2*60*60
 
 class ChannelCastCore:
+    __single = None
+
     def __init__(self, data_handler, secure_overlay, session, buddycast_interval_function, log = '', dnsindb = None):
         """ Returns an instance of this class """
         #Keep reference to interval-function of BuddycastFactory
@@ -51,10 +53,20 @@ class ChannelCastCore:
         if self.log:
             self.overlay_log = OverlayLogger.getInstance(self.log)
             self.dnsindb = self.data_handler.get_dns_from_peerdb
+        self.hits = []
     
     def initialized(self):
         return self.buddycast_core is not None
-    
+ 
+
+
+    def getInstance(*args, **kw):
+        if ChannelCastCore.__single is None:
+            ChannelCastCore(*args, **kw)
+        return ChannelCastCore.__single
+    getInstance = staticmethod(getInstance)
+
+   
     def createAndSendChannelCastMessage(self, target_permid, selversion):
         """ Create and send a ChannelCast Message """
         # ChannelCast feature starts from eleventh version; hence, do not send to lower version peers
@@ -178,10 +190,18 @@ class ChannelCastCore:
         for hit in records:
             if self.channelcastdb.existsTorrent(hit[2]):
                 self.channelcastdb.addTorrent(hit)
+                self.hits.append(hit)
             else:
                 def usercallback(infohash,metadata,filename):
                     self.channelcastdb.addTorrent(hit)
+                    self.hits.append(hit)
                 self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
+
+    def getNewRecords(self):
+        hits = self.hits[:]
+        self.hits = []
+        return hits
+
                     
     
     def updateMySubscribedChannels(self):

@@ -31,6 +31,8 @@ from Tribler.Main.vwxGUI.tribler_topButton import *
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Core.BuddyCast.channelcast import ChannelCastCore
+from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 
 from Tribler.__init__ import LIBRARYNAME
@@ -146,6 +148,11 @@ class channelsDetails(bgPanel):
 
         self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
+        self.buddycast_factory = BuddyCastFactory.getInstance()
+        self.channelcast = self.buddycast_factory.channelcast_core
+
+        self.guiserver = GUITaskQueue.getInstance()
+        self.guiserver.add_task(self.guiservthread_refresh_torrents, 0)
 
         self.x=466
         self.addComponents()
@@ -423,6 +430,10 @@ class channelsDetails(bgPanel):
         self.vSizer.Layout()
         self.Layout()
 
+    def guiservthread_refresh_torrents(self):
+        records = self.channelcast.getNewRecords()
+        print >> sys.stderr , "RECORD : " , records
+        self.guiserver.add_task(self.guiservthread_refresh_torrents,10.0)
 
 
     def setType(self, Type):
