@@ -616,7 +616,7 @@ class SocketHandler:
         self.poll.register(serversocket, POLLIN)
     
     def stop_listening_udp(self,serversocket):
-        self.poll.unregister(serversocket, POLLIN)
+        self.poll.unregister(serversocket)
         del self.udp_sockets[serversocket.fileno()]
 
     def get_interrupt_socket(self):
