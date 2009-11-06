@@ -1878,6 +1878,13 @@ class TorrentDBHandler(BasicDBHandler):
             a = time()
             torrent = dict(zip(value_name,result))
             
+            #bug fix: If channel_permid and/or channel_name is None, it cannot bencode
+            #bencode(None) is an Error
+            if torrent['channel_permid'] is None:
+                torrent['channel_permid'] = ""
+            if torrent['channel_name'] is None:
+                torrent['channel_name'] = ""
+                            
             # check if this torrent belongs to more than one channel
             if torrent['infohash'] in torrents_dict:
                 old_record = torrents_dict[torrent['infohash']]
