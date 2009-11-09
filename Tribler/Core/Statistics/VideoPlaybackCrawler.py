@@ -10,7 +10,7 @@ import zlib
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_VIDEOPLAYBACK_INFO_QUERY, CRAWLER_VIDEOPLAYBACK_EVENT_QUERY
 from Tribler.Core.CacheDB.SqliteVideoPlaybackStatsCacheDB import VideoPlaybackDBHandler
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_EIGHTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_EIGHTH, OLPROTO_VER_TENTH
 from Tribler.Core.Statistics.Crawler import Crawler
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 
@@ -55,7 +55,7 @@ class VideoPlaybackCrawler:
         @param selversion The oberlay protocol version
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        if selversion >= OLPROTO_VER_TEN:
+        if selversion >= OLPROTO_VER_TENTH:
             if DEBUG: print >>sys.stderr, "videoplaybackcrawler: query_initiator", show_permid_short(permid), "version", selversion
             # Overlay version 10 provided a simplification in the VOD
             # stats collecting. We now have only one database table:

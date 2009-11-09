@@ -459,7 +459,12 @@ class Crawler:
                 # reply from unknown permid or channel
                 if DEBUG: print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(payload), "bytes payload from", show_permid_short(permid), "from unknown peer or unused channel"
                 
-        if DEBUG: print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(payload), "bytes payload from", show_permid_short(permid), "from unknown peer or unused channel"
+        if DEBUG:
+            if len(message) >= 2:
+                message_id = message[1]
+            else:
+                message_id = ""
+            print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(message), "bytes from", show_permid_short(permid), "from unknown peer or unused channel"
         return False
 
     def handle_connection(self, exc, permid, selversion, locally_initiated):
