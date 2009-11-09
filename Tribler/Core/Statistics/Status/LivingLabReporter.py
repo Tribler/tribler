@@ -33,9 +33,13 @@ class LivingLabReporter:
 
     def __init__(self):
         self._permid = "anonymous"
+        self._version = "-unknown-version-"
 
     def set_permid(self, permid):
         self._permid = permid
+
+    def set_version(self, version):
+        self._version = version
 
     def newElement(self, doc, name, value):
         """
@@ -109,9 +113,7 @@ class LivingLabReporter:
         header.appendChild(self.newElement(doc, "deviceid", base64.b64encode(self._permid)))
         header.appendChild(self.newElement(doc, "timestamp", long(round(time.time()))))
         header.appendChild(self.newElement(doc, "report", self.get_name()))
-
-        version = "someversion"
-        header.appendChild(self.newElement(doc, "swversion", version))
+        header.appendChild(self.newElement(doc, "swversion", self._version))
 
         # set an element to identify this report for stress testing
         if STRESSTEST:
@@ -173,6 +175,11 @@ class LivingLabReporter:
         h.putheader("content-length",str(len(body)))
         h.endheaders()
         h.send(body)
+
+        if DEBUG:
+            print >> sys.stderr, "***"
+            print >> sys.stderr, "LivingLabReporter: post() Sending", len(xml_str), "bytes of xml data"
+            print >> sys.stderr, "***"
         
         errcode, errmsg, headers = h.getreply()
         if DEBUG:

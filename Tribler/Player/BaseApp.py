@@ -141,7 +141,13 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         # Start remote control
         self.i2is.start()
 
-
+        # report client version
+        from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+        reporter = get_reporter_instance()
+        reporter.add_event("client-startup", "version:" + self.utility.lang.get("version"))
+        reporter.add_event("client-startup", "build:" + self.utility.lang.get("build"))
+        reporter.add_event("client-startup", "build_date:" + self.utility.lang.get("build_date"))
+        
     def start_download(self,tdef,dlfile):
         """ Start download of torrent tdef and play video file dlfile from it """
         

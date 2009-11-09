@@ -166,6 +166,13 @@ class ABCApp(wx.App):
             #s = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT
             self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1)
             self.splash.Show()
+
+            # report client version
+            from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+            reporter = get_reporter_instance()
+            reporter.add_event("client-startup", "version:" + self.utility.lang.get("version"))
+            reporter.add_event("client-startup", "build:" + self.utility.lang.get("build"))
+            reporter.add_event("client-startup", "build_date:" + self.utility.lang.get("build_date"))
             
             # Arno, 2009-08-18: Don't delay postinit anymore, gives problems on Ubuntu 9.04
             self.PostInit()    
