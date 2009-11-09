@@ -119,9 +119,16 @@ class VideoPlaybackCrawler:
                 # the database and we can't affored to remove it, as
                 # it may cause exceptions in the running playback.
                 if i == 1:
-                    sql = "SELECT timestamp, origin, event FROM playback_event WHERE key = '%s' ORDER BY timestamp ASC LIMIT 50" % key
+                    sql = """
+SELECT timestamp, origin, event FROM playback_event WHERE key = '%s' ORDER BY timestamp ASC LIMIT 50;
+DELETE FROM playback_event WHERE key = '%s';
+""" % (key, key)
                 else:
-                    sql = "SELECT timestamp, origin, event FROM playback_event WHERE key = '%s' ORDER BY timestamp ASC LIMIT 50; DELETE FROM playback_event WHERE key = '%s'; DELETE FROM playback_info WHERE key = '%s';" % (key, key, key)
+                    sql = """
+SELECT timestamp, origin, event FROM playback_event WHERE key = '%s' ORDER BY timestamp ASC LIMIT 50;
+DELETE FROM playback_event WHERE key = '%s';
+DELETE FROM playback_info WHERE key = '%s';
+""" % (key, key, key)
                     
                 # todo: optimize to not select key for each row
                 request_callback(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, sql, channel_data=key, callback=self._after_event_request_callback, frequency=0)

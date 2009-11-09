@@ -56,6 +56,13 @@ class DatabaseCrawler:
                         "SELECT 'all_subscriptions', count(*) FROM VoteCast where vote=2",
                         "SELECT 'all_negative_votes', count(*) FROM VoteCast where vote=-1"))
 
+        # if OLPROTO_VER_EIGHTH <= selversion <= 11:
+        #     sql.extend(("SELECT 'moderations_count', count(*) FROM ModerationCast"))
+
+        # if selversion >= OLPROTO_VER_EIGHTH:
+        #     sql.extend(("SELECT 'positive_votes_count', count(*) FROM Moderators where status=1",
+        #                 "SELECT 'negative_votes_count', count(*) FROM Moderators where status=-1"))
+
         request_callback(CRAWLER_DATABASE_QUERY, ";".join(sql), callback=self._after_request_callback)
 
     def _after_request_callback(self, exc, permid):

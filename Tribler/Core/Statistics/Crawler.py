@@ -422,6 +422,7 @@ class Crawler:
                     # after a time (in case connection is lost before
                     # all parts are received)
 
+                    if DEBUG: print >> sys.stderr, "crawler: received", getMessageName(CRAWLER_REPLY+message_id), "with", len(message), "bytes payload from", show_permid_short(permid), "with", parts_left, "parts left"
                     # Can't do anything until all parts have been received
                     return True
                 else:
