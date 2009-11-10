@@ -163,7 +163,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             msg = "Do you really want to quit?"
         
         elif t == "appealforhelp" :
-            msg = "By running SwarmPlayer you are helping other people see the video you watched.\n\nDo you really want to quit?"
+            msg = "By running SwarmPlugin you are helping other people see the video you watched.\n\nDo you really want to quit?"
 
         elif t == "quantitative":
             # X is calculated on the client side. It is the number of peers to whom this
@@ -175,7 +175,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
                 people = "person"
             else:
                 people = "people"
-            msg = "While running SwarmPlayer you have already helped %d other %s to see the video you watched. If you keep it running you can help more. \n\nDo you really want to quit?" % (X, people)
+            msg = "While running SwarmPlugin you have already helped %d other %s to see the video you watched. If you keep it running you can help more. \n\nDo you really want to quit?" % (X, people)
              
         elif t == "compaverage": 
             # X is calculated locally similarly to the quantitative treatment. Y needs to be
@@ -194,7 +194,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             # TODO: A script must calculate Y from this and puts it on a website.
             Y = self.average_helpedpeers
 
-            msg = "While running SwarmPlayer you have helped %d other %s to see the video. The average number of people other SwarmPlayer users have helped is %d. \n\nDo you really want to quit?" % (X,people,Y)
+            msg = "While running SwarmPlugin you have helped %d other %s to see the video. The average number of people other SwarmPlugin users have helped is %d. \n\nDo you really want to quit?" % (X,people,Y)
              
         elif t == "efficacy":
             # P is the total number of users who participated in the experiment so far. 
@@ -202,7 +202,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             
             P = self.total_peers
             #msg = "Together with a total of %d other peers you have helped at least %d people see the video. By keeping this program running you are contributing to the development of a new, open video platform for the internet." % (P,P)
-            msg = "Together with a total of %d other peers you have helped %d people see the video. \n\nBy keeping SwarmPlayer running you are contributing to the development of a new, open video platform for the internet.\n\nDo you really want to quit?" % (P,P) 
+            msg = "Together with a total of %d other peers you have helped %d people see the video. \n\nBy keeping SwarmPlugin running you are contributing to the development of a new, open video platform for the internet.\n\nDo you really want to quit?" % (P,P) 
         else: #  "awareness":
             #  no dialog. But the user sees a message in the video window at the end.
             # TODO Msg in the video window
@@ -247,7 +247,7 @@ QUIT = 1
 
 class QuitDialog(wx.Dialog):
     def __init__(self, msg):
-        wx.Dialog.__init__(self, None, wx.ID_ANY, '', style = wx.CAPTION)
+        wx.Dialog.__init__(self, None, wx.ID_ANY, 'SwarmPlugin', style = wx.CAPTION)
         self.answerToDialog = KEEP_RUNNING
         
         main_sizer    = wx.BoxSizer(wx.HORIZONTAL)
@@ -261,10 +261,8 @@ class QuitDialog(wx.Dialog):
         main_sizer.Add(icon, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
 
         text1 =  wx.StaticText(self, wx.ID_ANY, msg)
-        text1.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        #text1.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         text1.Wrap(400)
-#        text2 =  wx.StaticText(self, wx.ID_ANY, 'Do you really want to quit?')
-#        text2.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         
         keepRunningBtn = wx.Button(self, wx.ID_ANY, 'Keep running')
         quitBtn = wx.Button(self, wx.ID_ANY, 'Quit')
@@ -275,8 +273,7 @@ class QuitDialog(wx.Dialog):
         inside_sizer2.Add(keepRunningBtn, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
         inside_sizer2.Add(quitBtn, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
 
-        inside_sizer1.Add(text1, 0, wx.ALIGN_TOP | wx.ALIGN_LEFT | wx.ALL, 25)
-#        inside_sizer1.Add(text2, 0, wx.ALIGN_TOP | wx.ALIGN_LEFT | wx.ALL, 25)
+        inside_sizer1.Add(text1, 0, wx.ALIGN_TOP | wx.ALIGN_LEFT | wx.ALL, 10)
         inside_sizer1.Add(inside_sizer2, 0, wx.ALIGN_RIGHT | wx.ALL, 0)
 
         main_sizer.Add(inside_sizer1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
@@ -400,7 +397,7 @@ class PlayerAdvancedOptionsDialog(wx.Dialog):
     
     def __init__(self,icons,port,wxapp):
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER  # TODO: Add OK+Cancel
-        wx.Dialog.__init__(self, None, -1, 'SwarmPlayer Advanced Options', size=(400,200), style=style)
+        wx.Dialog.__init__(self, None, -1, 'SwarmPlugin Advanced Options', size=(400,200), style=style)
         self.wxapp = wxapp
 
         self.SetIcons(icons)
