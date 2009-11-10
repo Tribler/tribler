@@ -163,7 +163,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             msg = "Do you really want to quit?"
         
         elif t == "appealforhelp" :
-            msg = "By keeping this program running you are \nhelping other people see the video.\n\nDo you really want to quit?"
+            msg = "By running SwarmPlayer you are helping other people see the video you watched.\n\nDo you really want to quit?"
 
         elif t == "quantitative":
             # X is calculated on the client side. It is the number of peers to whom this
@@ -175,7 +175,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
                 people = "person"
             else:
                 people = "people"
-            msg = "By keeping this program running you have already helped %d other %s to see the video. By not quitting you can help more." % (X, people)
+            msg = "While running SwarmPlayer you have already helped %d other %s to see the video you watched. If you keep it running you can help more. \n\nDo you really want to quit?" % (X, people)
              
         elif t == "compaverage": 
             # X is calculated locally similarly to the quantitative treatment. Y needs to be
@@ -194,7 +194,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             # TODO: A script must calculate Y from this and puts it on a website.
             Y = self.average_helpedpeers
 
-            msg = "By keeping this program running you have helped %d other %s to see the video. The average number of people other participants in the trial have helped is %d." % (X,people,Y)
+            msg = "While running SwarmPlayer you have helped %d other %s to see the video. The average number of people other SwarmPlayer users have helped is %d. \n\nDo you really want to quit?" % (X,people,Y)
              
         elif t == "efficacy":
             # P is the total number of users who participated in the experiment so far. 
@@ -202,7 +202,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             
             P = self.total_peers
             #msg = "Together with a total of %d other peers you have helped at least %d people see the video. By keeping this program running you are contributing to the development of a new, open video platform for the internet." % (P,P)
-            msg = "Together with a total of %d other peers you have helped at least %d people see the video. \n\nBy keeping this program running you are contributing to the development of a new, \nopen video platform for the internet.\n\nDo you really want to quit?" % (P,P) 
+            msg = "Together with a total of %d other peers you have helped %d people see the video. \n\nBy keeping SwarmPlayer running you are contributing to the development of a new, open video platform for the internet.\n\nDo you really want to quit?" % (P,P) 
         else: #  "awareness":
             #  no dialog. But the user sees a message in the video window at the end.
             # TODO Msg in the video window
@@ -247,7 +247,7 @@ QUIT = 1
 
 class QuitDialog(wx.Dialog):
     def __init__(self, msg):
-        wx.Dialog.__init__(self, None, wx.ID_ANY, '', style = wx.DEFAULT_DIALOG_STYLE)
+        wx.Dialog.__init__(self, None, wx.ID_ANY, '', style = wx.CAPTION)
         self.answerToDialog = KEEP_RUNNING
         
         main_sizer    = wx.BoxSizer(wx.HORIZONTAL)
@@ -255,13 +255,14 @@ class QuitDialog(wx.Dialog):
         inside_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
 
         # TODO: add better icon. The same as the systray, perhaps?
-        bmp = wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_CMN_DIALOG, (60, 60))
+        bmp = wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_CMN_DIALOG, (-1, -1))
         icon = wx.StaticBitmap(self, wx.ID_ANY, bmp)
         
         main_sizer.Add(icon, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
 
         text1 =  wx.StaticText(self, wx.ID_ANY, msg)
         text1.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        text1.Wrap(400)
 #        text2 =  wx.StaticText(self, wx.ID_ANY, 'Do you really want to quit?')
 #        text2.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         
