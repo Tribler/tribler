@@ -134,7 +134,7 @@ class LivingLabReporter:
         # xml_str = xml_printer.to_pretty_xml()
         # xml_str = xml_printer.to_xml()
 
-        instruction = u"<?xml encoding=\"UTF-8\"?>"
+        instruction = u"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         # xml_str = instruction + u"\n" + root.toprettyxml(encoding="UTF-8")
         xml_str = instruction + root.toxml(encoding="UTF-8")
 
@@ -177,8 +177,12 @@ class LivingLabReporter:
         h.send(body)
 
         if DEBUG:
+            # filename = "report-%d.xml" % time.time()
+            # open(filename, "w").write(xml_str)
+
             print >> sys.stderr, "***"
             print >> sys.stderr, "LivingLabReporter: post() Sending", len(xml_str), "bytes of xml data"
+            print >> sys.stderr, "Report stored locally in file", filename
             print >> sys.stderr, "***"
         
         errcode, errmsg, headers = h.getreply()
