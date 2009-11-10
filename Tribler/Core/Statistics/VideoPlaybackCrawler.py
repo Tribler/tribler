@@ -160,10 +160,10 @@ DELETE FROM playback_info WHERE key = '%s';
             if DEBUG:
                 print >> sys.stderr, "videoplaybackcrawler: handle_crawler_reply", error, message
 
-            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), channel_data, message, "\n")))
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), str(channel_data), message, "\n")))
             self._file.flush()
 
-        elif selversion >= OLPROTO_VER_TEN:
+        elif selversion >= OLPROTO_VER_TENTH:
             # Overlay version 10 sends the reply pickled and zipped
             if DEBUG:
                 print >> sys.stderr, "videoplaybackcrawler: handle_crawler_reply", show_permid_short(permid), len(message), "bytes zipped"
