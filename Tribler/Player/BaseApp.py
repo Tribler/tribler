@@ -372,6 +372,14 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         txt += 'Helping: %d\n' % (totalhelping)
         #print >>sys.stderr,"main: ToolTip summary",txt
         self.OnSetSysTrayTooltip(txt)
+
+        
+        try:
+            # M23TRIAL
+            self.tbicon.gui_states_callback(dslist,haspeerlist)
+            
+        except:
+            print_exc()
         
         # No playing Downloads        
         if len(playing_dslist) == 0:
@@ -395,13 +403,6 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         # although it plays audio???
         #ds.get_download().set_max_speed(DOWNLOAD,1500)
     
-        try:
-            # M23TRIAL
-            self.tbicon.gui_states_callback(dslist,haspeerlist)
-            
-        except:
-            print_exc()
-
         
         return (playing_dslist,totalhelping,totalspeed) 
 

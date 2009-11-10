@@ -88,19 +88,44 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
                 _event_reporter.add_event("m23trial", "helped-peers:%d" % len(self.helpedpeerids))
                 
                 
-                if self.get_treatment() == "compaverage":
-                    # TODO: get average number of peers helped by other peers from a website. How to?
-                    self.average_helpedpeers = 10
-                    
-                if self.get_treatment() == "efficacy":
-                    # TODO: get total number of peers who took part in the experiment from a website. How to?
-                    self.total_peers = 10
+        if self.counter_for_reporting == 0 or self.counter_for_reporting % self.reporting_interval == 0:
+            if self.get_treatment() == "compaverage":
+                # TODO: get average number of peers helped by other peers from a website. How to?
+                try:
+                    self.average_helpedpeers = self.get_avg_helped()
+                except:
+                    print_exc()
                 
-            self.counter_for_reporting += 1
+            if self.get_treatment() == "efficacy":
+                # TODO: get total number of peers who took part in the experiment from a website. How to?
+                try:
+                    self.total_peers = self.get_total_peers()
+                except:
+                    print_exc()
+                     
+            
+        self.counter_for_reporting += 1
+        print >>sys.stderr,"m23seed: gui_states count",self.counter_for_reporting
                 
 
-    def get_treatment(self):
+    def get_avg_helped(self):
+        url = 'http://trial.p2p-next.org/avghelped.txt'
+        return self.get_num(url)
+
+    def get_total_peers(self):
+        url = 'http://trial.p2p-next.org/totalpeers.txt'
+        return self.get_num(url)
         
+    def get_num(self,url):
+        f = urlOpenTimeout(url,timeout=2)
+        data = f.read()
+        f.close()
+        clean = data.strip()
+        return int(clean)
+        
+        
+
+    def get_treatment(self):
         if self.wxapp.s is not None:
             permid = self.wxapp.s.get_permid()
             
@@ -129,8 +154,10 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             return "controlgroup"
     
     def OnExitClient(self,event=None):
-
         t = self.get_treatment()
+        
+        print >>sys.stderr,"m23seed: OnExitClient",t
+        
         ask = True
         if t == "controlgroup":
             msg = "Do you really want to quit?"
@@ -191,6 +218,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
 
         quit = 0
         if ask:
+            print >>sys.stderr,"m23seed: OnExitClient ASKING"
             #dlg = wx.MessageDialog(None, content, title, wx.YES|wx.NO|wx.ICON_QUESTION)
             # TODO word wrap msg
             dlg = QuitDialog(msg)

@@ -39,6 +39,5 @@ class PluginEmulator:
             
             
 #pe = PluginEmulator(62062,"START","http://www.cs.vu.nl/~arno/vod/route2.tstream")
-pe = PluginEmulator(62062,"START","http://www.vuze.com/download/XUGIN6PEJJCQ5777C3WUMMBRFI6HYIHJ.torrent?referal=torrentfilelinkcdp&title=Gopher")
-     
+pe = PluginEmulator(62062,"START","http://www.legaltorrents.com/get/140-big-buck-bunny-480p.torrent")     
         

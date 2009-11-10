@@ -747,7 +747,7 @@ class Session(SessionRuntimeConfig):
         try:
             if self.sessconfig['overlay']:
                 if not query.startswith('SIMPLE ') and not query.startswith('CHANNEL '):
-                    raise ValueError('Query does not start with SIMPLE')
+                    raise ValueError('Query does not start with SIMPLE or CHANNEL')
                 
                 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
                 
