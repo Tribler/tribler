@@ -97,7 +97,7 @@ class SeedingStatsCrawler:
         return True
 
 
-    def handle_crawler_reply(self, permid, selversion, channel_id, error, message, reply_callback):
+    def handle_crawler_reply(self, permid, selversion, channel_id, channel_data, error, message, reply_callback):
         """
         Received a CRAWLER_DATABASE_QUERY request.
         @param permid The Crawler permid

@@ -447,11 +447,7 @@ class Crawler:
                     # disconnect based on the return value from the
                     # message handler
                     try:
-                        # todo: update all code to always accept the channel_data parameter
-                        if channel_data:
-                            self._message_handlers[message_id][1](permid, selversion, channel_id, channel_data, error, payload, send_request_helper)
-                        else:
-                            self._message_handlers[message_id][1](permid, selversion, channel_id, error, payload, send_request_helper)
+                        self._message_handlers[message_id][1](permid, selversion, channel_id, channel_data, error, payload, send_request_helper)
                     except:
                         print_exc()
                     return True

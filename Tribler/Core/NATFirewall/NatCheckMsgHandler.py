@@ -147,7 +147,7 @@ class NatCheckMsgHandler:
             return False
         return True
 
-    def gotNatCheckReplyMessage(self, permid, selversion, channel_id, error, payload, request_callback):
+    def gotNatCheckReplyMessage(self, permid, selversion, channel_id, channel_data, error, payload, request_callback):
         """
         The handle-reply callback
         """
@@ -372,7 +372,7 @@ class NatCheckMsgHandler:
         return True
 
         
-    def gotUdpConnectReply(self, permid, selversion, channel_id, error, mhr_msg, request_callback):
+    def gotUdpConnectReply(self, permid, selversion, channel_id, channel_data, error, mhr_msg, request_callback):
 
         if DEBUG:
             print >> sys.stderr, "NatCheckMsgHandler: gotMakeHoleReplyMessage"

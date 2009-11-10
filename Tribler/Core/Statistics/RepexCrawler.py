@@ -87,7 +87,7 @@ class RepexCrawler:
         else:
             reply_callback(cPickle.dumps(repexhistory, 2))
 
-    def handle_crawler_reply(self, permid, selversion, channel_id, error, message, request_callback):
+    def handle_crawler_reply(self, permid, selversion, channel_id, channel_data, error, message, request_callback):
         """
         Received a CRAWLER_REPEX_QUERY reply.
         @param permid The Crawler permid
