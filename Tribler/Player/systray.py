@@ -11,6 +11,7 @@ from traceback import print_exc
 import wx
 
 from Tribler.Core.API import *
+from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
 
 class PlayerTaskBarIcon(wx.TaskBarIcon):
     
@@ -61,6 +62,10 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
     def __init__(self,wxapp,iconfilename):
         PlayerTaskBarIcon.__init__(self,wxapp,iconfilename)
         self.helpedpeerids = Set()
+        self.reporting_interval = 6
+        self.counter_for_reporting = 0
+        self.average_helpedpeers = 5 # for use in the compaverage treatment
+        self.total_peers = 0 # for use in the efficacy treatment
     
     def gui_states_callback(self,dslist,haspeerlist):
         """ Called every second with Download engine statistics, peerlist is there 
@@ -73,6 +78,25 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
                     #print >>sys.stderr,"M23SeedTreat: Got peer",`peer['ip']`
                     if peer['utotal'] > 0.0:
                         self.helpedpeerids.add(peer['ip']) # Could use 'id' but that is not unique for HTTP seeders
+            
+            # LOG HELPED PEER IDS TO SERVER
+            # We don't need to log every 10s.          
+            if self.counter_for_reporting % self.reporting_interval == 0:
+                _event_reporter = get_reporter_instance()
+                # Report (number of peers helped). 
+                # TODO: check if Id is sent and timestamp recorded on the server
+                _event_reporter.add_event("m23trial", "helped-peers:%d" % len(self.helpedpeerids))
+                
+                
+                if self.get_treatment() == "compaverage":
+                    # TODO: get average number of peers helped by other peers from a website. How to?
+                    self.average_helpedpeers = 10
+                    
+                if self.get_treatment() == "efficacy":
+                    # TODO: get total number of peers who took part in the experiment from a website. How to?
+                    self.total_peers = 10
+                
+            self.counter_for_reporting += 1
                 
 
     def get_treatment(self):
@@ -139,23 +163,22 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             else:
                 people = "people"
             
-            # TODO: Idea: let each client report its helpedpeerids count, by calling 
-            # add_event on gui_states_callback every N secs. A script calculates Y from
-            # this and puts it on a website, which is also read periodically by each client.
-            Y = 10 
+            # Each client reports periodically the number of peers helped to the server. 
+            # TODO: A script must calculate Y from this and puts it on a website.
+            Y = self.average_helpedpeers
 
             msg = "By keeping this program running you have helped %d other %s to see the video. The average number of people other participants in the trial have helped is %d." % (X,people,Y)
              
         elif t == "efficacy":
             # P is the total number of users who participated in the experiment so far. 
-            # It is calculated by the server and updated periodically.
+            # TODO: calculate in the server and updated periodically.
             
-            # TODO
-            P = 10
+            P = self.total_peers
             msg = "Together with a total of %d other peers you have helped at least %d people see the video. By keeping this program running you are contributing to the development of a new, open video platform for the internet." % (P,P)
               
         else: #  "awareness":
             #  no dialog. But the user sees a message in the video window at the end.
+            # TODO Msg in the video window
             ask = False 
             msg = ""
 
@@ -168,17 +191,19 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
 
         quit = 0
         if ask:
-            dlg = wx.MessageDialog(None, content, title, wx.YES|wx.NO|wx.ICON_QUESTION)
-            result = dlg.ShowModal()
+            #dlg = wx.MessageDialog(None, content, title, wx.YES|wx.NO|wx.ICON_QUESTION)
+            # TODO word wrap msg
+            dlg = QuitDialog(msg)
+            dlg.ShowModal()
+            result = dlg.getAnswer()
             dlg.Destroy()
-            if result == wx.ID_YES:
+            if result == QUIT:
                 #print >>sys.stderr,"PlayerTaskBarIcon: OnExitClient"
                 quit = 1
         else:
             quit = 1
             
         # LOG TO SERVER
-        from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
         _event_reporter = get_reporter_instance()
         # Report (treatment,choice and exact message). TODO: make more compact by storing just X,Y,P?
         _event_reporter.add_event("m23trial", "seed-treat:%s,q:%d,msg:%s" % (t,quit,msg))
@@ -189,6 +214,66 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             time.sleep(1)
             self.wxapp.ExitMainLoop()
     
+KEEP_RUNNING = 0
+QUIT = 1
+
+class QuitDialog(wx.Dialog):
+    def __init__(self, msg):
+        wx.Dialog.__init__(self, None, wx.ID_ANY, '', style = wx.DEFAULT_DIALOG_STYLE)
+        self.answerToDialog = KEEP_RUNNING
+        
+        main_sizer    = wx.BoxSizer(wx.HORIZONTAL)
+        inside_sizer1 = wx.BoxSizer(wx.VERTICAL)
+        inside_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+
+        # TODO: add better icon. The same as the systray, perhaps?
+        bmp = wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_CMN_DIALOG, (60, 60))
+        icon = wx.StaticBitmap(self, wx.ID_ANY, bmp)
+        
+        main_sizer.Add(icon, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
+
+        text1 =  wx.StaticText(self, wx.ID_ANY, msg)
+        text1.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+#        text2 =  wx.StaticText(self, wx.ID_ANY, 'Do you really want to quit?')
+#        text2.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        
+        keepRunningBtn = wx.Button(self, wx.ID_ANY, 'Keep running')
+        quitBtn = wx.Button(self, wx.ID_ANY, 'Quit')
+        
+        self.Bind(wx.EVT_BUTTON, self.onQuit, quitBtn)
+        self.Bind(wx.EVT_BUTTON, self.onKeepRunning, keepRunningBtn)
+        
+        inside_sizer2.Add(keepRunningBtn, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+        inside_sizer2.Add(quitBtn, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+
+        inside_sizer1.Add(text1, 0, wx.ALIGN_TOP | wx.ALIGN_LEFT | wx.ALL, 25)
+#        inside_sizer1.Add(text2, 0, wx.ALIGN_TOP | wx.ALIGN_LEFT | wx.ALL, 25)
+        inside_sizer1.Add(inside_sizer2, 0, wx.ALIGN_RIGHT | wx.ALL, 0)
+
+        main_sizer.Add(inside_sizer1, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        
+        self.CenterOnScreen()
+        self.SetSizer(main_sizer)
+        main_sizer.Fit(self)
+        
+        
+    def onKeepRunning(self, event):
+        self.answerToDialog = KEEP_RUNNING
+        self.Close()
+ 
+    def onQuit(self, event):
+        self.answerToDialog = QUIT
+        self.Close()
+        
+    def getAnswer(self):
+        return self.answerToDialog
+        
+        #TODO: do the message to be shown in the video window: NOTE THAT IN A MAC THE BG PROCESS IS IN THE DOCK, NOT IN THE SYSTRAY!
+        #TODO How to display the dialog upon shutdown signal?
+        #TODO If we can differentiate between shutdown and clicking on quit, we should adapt wording for context
+        #TODO: what if we still have an appeal in the video window to control for 'controlling appeals'?
+
+
     
 class PlayerOptionsDialog(wx.Dialog):
     
