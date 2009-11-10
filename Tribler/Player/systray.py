@@ -136,7 +136,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             msg = "Do you really want to quit?"
         
         elif t == "appealforhelp" :
-            msg = "By keeping this program running you are helping other people see the video." 
+            msg = "By keeping this program running you are \nhelping other people see the video.\n\nDo you really want to quit?"
 
         elif t == "quantitative":
             # X is calculated on the client side. It is the number of peers to whom this
@@ -174,8 +174,8 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             # TODO: calculate in the server and updated periodically.
             
             P = self.total_peers
-            msg = "Together with a total of %d other peers you have helped at least %d people see the video. By keeping this program running you are contributing to the development of a new, open video platform for the internet." % (P,P)
-              
+            #msg = "Together with a total of %d other peers you have helped at least %d people see the video. By keeping this program running you are contributing to the development of a new, open video platform for the internet." % (P,P)
+            msg = "Together with a total of %d other peers you have helped at least %d people see the video. \n\nBy keeping this program running you are contributing to the development of a new, \nopen video platform for the internet.\n\nDo you really want to quit?" % (P,P) 
         else: #  "awareness":
             #  no dialog. But the user sees a message in the video window at the end.
             # TODO Msg in the video window
