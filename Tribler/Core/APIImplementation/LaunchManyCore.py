@@ -21,6 +21,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
+from Tribler.Core.NATFirewall.UDPPuncture import UDPHandler
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Core.osutils import get_readable_torrent_name
@@ -255,6 +256,8 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking_period = config['torrent_checking_period']
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
+
+        self.udppuncture_handler = UDPHandler(self.rawserver)
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """
@@ -573,6 +576,8 @@ class TriblerLaunchMany(Thread):
         if self.overlay_apps is not None:
             self.shutdownstarttime = timemod.time()
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
+        if self.udppuncture_handler is not None:
+            self.udppuncture_handler.shutdown()
         
     def network_shutdown(self):
         try:
