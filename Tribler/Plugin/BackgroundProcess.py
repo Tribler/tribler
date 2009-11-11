@@ -83,7 +83,7 @@ class BackgroundApp(BaseApp):
         self.approxplayerstate = MEDIASTATE_STOPPED
 
         self.counter = 0 # counter for the stats reported periodically
-        self.interval = 60 # report interval
+        self.interval = 120 # report interval
         
 
         if sys.platform == "win32":

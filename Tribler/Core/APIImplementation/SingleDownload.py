@@ -8,6 +8,7 @@ import copy
 import pickle
 import socket
 import binascii
+from base64 import b64encode
 from types import StringType,ListType,IntType
 from traceback import print_exc,print_stack
 from threading import Event
@@ -51,6 +52,12 @@ class SingleDownload:
                 self.hashcheckfrac = 0.0
     
             self.peerid = createPeerID()
+            
+            # for M32 trial
+            from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+            event_reporter = get_reporter_instance()
+            event_reporter.add_event(self.infohash, "peerid:%s" % b64encode(self.peerid))
+            
             #print >>sys.stderr,"SingleDownload: __init__: My peer ID is",`peerid`
     
             self.dow = BT1Download(self.hashcheckprogressfunc,
