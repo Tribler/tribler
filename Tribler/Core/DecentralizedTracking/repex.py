@@ -202,7 +202,7 @@ class RePEXer(RePEXerInterface):
         # sum of these two must become len(peertable) since we prefer the initial peertable
         
         self.datacost_bandwidth_keys = ['no_pex_support', 'no_pex_msg', 'pex', 'other']
-        self.datacost_counter_keys = ['connection_attempts','connections_made','bootstrap_peers']
+        self.datacost_counter_keys = ['connection_attempts','connections_made','bootstrap_peers','pex_connections']
         self.datacost = {}
         self.datacost['no_pex_support'] = (0,0) # down,up
         self.datacost['no_pex_msg'] = (0,0) # down,up
@@ -211,6 +211,7 @@ class RePEXer(RePEXerInterface):
         self.datacost['connection_attempts'] = 0 # number of times connect() successfully created a connection 
         self.datacost['connections_made'] = 0 # number of times connection_made() was called
         self.datacost['bootstrap_peers'] = 0 # total number of peers given to rerequester_peers()
+        self.datacost['pex_connections'] = 0 # total number of connections that sent a PEX reply
         
         self.requesting_tracker = False # needed to interact with Rerequester in case of failure
         self.bootstrap_counter = 0 # how often did we call bootstrap()?
@@ -429,6 +430,8 @@ class RePEXer(RePEXerInterface):
             # TODO: Might be more sophisticated to sampling of PEX msg at the end?
             # (allows us to get more diversity and perhaps also security?)
         
+        self.datacost['pex_connections'] += 1
+        
         # Closing time
         connection.close()
     
@@ -617,8 +620,9 @@ class RePEXer(RePEXerInterface):
                 else:
                     table += '\n        D: %s:%s - BT/PEX %s/%s' % (dns + (dns in self.bt_connectable, dns in self.bt_pex))
             table += '\n'
-            datacost = '    datacost:\n        %s/%s BT connections made, received %s bootstrap peers\n'
-            datacost %= (self.datacost['connections_made'],self.datacost['connection_attempts'],self.datacost['bootstrap_peers'])
+            datacost = '    datacost:\n        %s(%s)/%s BT(PEX) connections made, received %s bootstrap peers\n'
+            datacost %= (self.datacost['connections_made'],self.datacost['pex_connections'],
+                         self.datacost['connection_attempts'],self.datacost['bootstrap_peers'])
             for k in self.datacost_bandwidth_keys:
                 v = self.datacost[k]
                 datacost += '          %s: %s bytes down / %s bytes up\n' % (k.ljust(16), str(v[0]).rjust(6), str(v[1]).rjust(6))
@@ -901,7 +905,7 @@ class RePEXLogDB:
     __single = None    # used for multithreaded singletons pattern
     lock = RLock()
     PEERDB_FILE = 'repexlog.pickle'
-    PEERDB_VERSION = '0.4'
+    PEERDB_VERSION = '0.5'
     MAX_HISTORY = 20480 # let's say 1K per SwarmCache, 20480 would be max 20 MB...
     
     @classmethod
