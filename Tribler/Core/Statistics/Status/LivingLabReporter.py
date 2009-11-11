@@ -53,12 +53,16 @@ class LivingLabReporter:
 
         # populate the element with items from a list?
         if type(value) in (types.GeneratorType, types.ListType, types.TupleType):
-            n = 0
             for v in value:
-                # name the container "n<number>" because the container
-                # name can not start with a decimal
-                element.appendChild(self.newElement(doc, "n%d" % n, v))
-                n += 1
+                # each element v in value will be stored in a
+                # container called <item>
+                element.appendChild(self.newElement(doc, "item", v))
+            # n = 0
+            # for v in value:
+            #     # name the container "n<number>" because the container
+            #     # name can not start with a decimal
+            #     element.appendChild(self.newElement(doc, "n%d" % n, v))
+            #     n += 1
 
         # populate the element with items from a dictionary?
         elif type(value) is types.DictionaryType:
