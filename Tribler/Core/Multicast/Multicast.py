@@ -545,7 +545,7 @@ class Multicast:
             # Discovered myself, which is not interesting
             return
 
-        if self.flag_peer_as_local_to_db(permid, True) > 0:
+        if self.flag_peer_as_local_to_db(permid, True):
             self.log.debug("node flagged as local")
             # Updated ok
             return
@@ -663,8 +663,7 @@ class Multicast:
         now = int(time.time())
         peer_data = {'permid':permid, 'ip':dns[0], 'port':dns[1], 'oversion':selversion, 'last_seen':now, 'last_connected':now}
         self.peer_db.addPeer(permid, peer_data, update_dns=True, update_connected=True, commit=True)
-        
-  
+
     def flag_peer_as_local_to_db(self, permid, is_local):
         """
         Sets the is_local flag for PERMID to IS_LOCAL if and only if
@@ -672,7 +671,7 @@ class Multicast:
         True. Otherwise it returns False.
         """
         peer = self.peer_db.getPeer(permid, ('is_local',))
-        if peer:
+        if not peer is None:
             if not peer[0] == is_local:
                 self.peer_db.setPeerLocalFlag(permid, is_local)
             return True
