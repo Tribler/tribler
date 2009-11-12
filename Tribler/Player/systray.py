@@ -105,7 +105,6 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
                      
             
         self.counter_for_reporting += 1
-        print >>sys.stderr,"m23seed: gui_states count",self.counter_for_reporting
                 
 
     def get_avg_helped(self):
@@ -136,7 +135,7 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             values = struct.unpack("L",bits32)
             bin = values[0] % 6
             
-            print >>sys.stderr,"m23seed: bin is",bin,values[0]
+            #print >>sys.stderr,"m23seed: bin is",bin,values[0]
             
             if bin == 0:
                 return "controlgroup"

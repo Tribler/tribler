@@ -53,7 +53,7 @@ class SingleDownload:
     
             self.peerid = createPeerID()
             
-            # for M32 trial
+            # M23TRIAL
             from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
             event_reporter = get_reporter_instance()
             event_reporter.add_event(self.infohash, "peerid:%s" % b64encode(self.peerid))

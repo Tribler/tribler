@@ -74,6 +74,10 @@ copy %PYTHONHOME%\Lib\site-packages\wx-2.8-msw-unicode\wx\msvcp71.dll dist\insta
 
 copy reset*.bat dist\installdir
 
+REM M23TRIAL
+copy leecher.exe dist\installdir\bgprocess
+
+
 cd dist\installdir
 
 :makeinstaller

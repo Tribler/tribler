@@ -28,7 +28,9 @@ import sys
 import time
 import random
 import binascii
-from traceback import print_exc
+import tempfile
+from traceback import print_exc,print_stack
+from threading import Thread,currentThread
 
 if sys.platform == "win32":
     import win32event
@@ -85,6 +87,9 @@ class BackgroundApp(BaseApp):
         self.counter = 0 # counter for the stats reported periodically
         self.interval = 120 # report interval
         
+
+        # M23TRIAL
+        self.runvictor = False
 
         if sys.platform == "win32":
             # If the BG Process is started by the plug-in notify it with an event
@@ -288,6 +293,7 @@ class BackgroundApp(BaseApp):
                 # M23TRIAL
                 if self.tbicon is not None:
                     t = self.tbicon.get_treatment()
+                    print >>sys.stderr,"m23seed: treatment is",t
                     if t == "awareness":
                         w = ds.get_vod_stats()
                         if 'npieces' in w:
@@ -300,6 +306,26 @@ class BackgroundApp(BaseApp):
             if DEBUG:
                 print >>sys.stderr, 'bg: 4INFO: Sending',info
             uic.info(info)
+            
+        # M23TRIAL
+        if len(playing_dslist) == 1:
+            ds = playing_dslist[0]
+            if ds.get_status() == DLSTATUS_SEEDING:
+                pass
+                
+        if not self.runvictor:
+            self.runvictor = True
+            self.run_victor_test()
+                
+                
+                
+    def run_victor_test(self):
+        if sys.platform == "win32":
+            # Executed on MainThread, use separate for Victor's stuff.
+            print >>sys.stderr,"m23trial: Starting Victor's test"
+            self.victhread = VictorTestThread(self.installdir)
+            self.victhread.start()
+        
             
     def sesscb_vod_event_callback( self, d, event, params ):
         """ Registered by BaseApp. Called by SessionCallbackThread """
@@ -475,6 +501,75 @@ class ControlledStream:
     def close(self):
         self.done = True
         # DO NOT close original stream
+
+
+
+#M23TRIAL
+class VictorTestThread(Thread):
+    
+    def __init__(self,installdir):
+        Thread.__init__(self)
+        self.setName( "VictorTestThread"+self.getName())
+        self.setDaemon(True)
+        
+        self.prog = os.path.join(installdir,"leecher.exe")
+        if not self.prog.startswith('"'):
+            self.prog = '"'+self.prog+'"'
+
+    def run(self):
+        try:
+            print >>sys.stderr,"m23trial: Running victor test on",currentThread().getName()
+
+            [loghandle,logfilename] = tempfile.mkstemp()
+            os.close(loghandle)
+
+            # TODO: make dynamic, e.g. read from website?
+            hexhash = '31d86ad5fd8ac49792d3fca17326a7664c6f86e1'
+            destfilename = 'test.mp4'
+            destipport = '130.161.211.198:10000'
+            myipport = '0.0.0.0:10020'
+
+            tmpdir = tempfile.mkdtemp()
+            fullfilename = os.path.join(tmpdir,destfilename)
+
+            cmd = self.prog + " %s %s %s %s > %s 2>&1" % (hexhash, fullfilename, destipport, myipport, logfilename)
+            print >>sys.stderr,"m23trial: victor test cmd is",cmd
+            
+            
+            (child_stdin, child_stdout) = os.popen2(cmd,'b')  # DON'T FORGET 'b' OTHERWISE THINGS GO WRONG!
+            
+            # Sleep for 60 secs for program to complete, can't tell from OS with
+            # Python on win32
+            
+            print >>sys.stderr,"m23trial: Giving Victor's program X secs to complete"
+            time.sleep(10) 
+            print >>sys.stderr,"m23trial: Time up"
+            
+            print >>sys.stderr,"m23trial: Reading Victor's log"
+            # Dump logfile to ULANC
+            logfile = open(logfilename, 'rb')
+            data = logfile.read()
+            logfile.close()
+
+            from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+            event_reporter = get_reporter_instance()
+            #event_reporter.add_event("Victor leecher", data )
+            print >>sys.stderr,"m23trial: victor output",data
+
+            print >>sys.stderr,"m23trial: Close child_in"
+            child_in.close()
+            print >>sys.stderr,"m23trial: Close child_out"
+            child_out.close()
+            
+            
+            print >>sys.stderr,"m23trial: Victor test done"
+            
+            # TODO: Mugurel's test
+            
+        except:
+            print_exc()
+            
+            
 
 
 ##############################################################
