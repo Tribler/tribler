@@ -316,7 +316,7 @@ class BackgroundApp(BaseApp):
         if len(playing_dslist) == 1:
             ds = playing_dslist[0]
             if ds.get_status() == DLSTATUS_SEEDING:
-                if not self.runvictor:
+                if self.runvictor == False:
                     self.runvictor = True
                     self.run_victor_test()
                 
@@ -325,7 +325,7 @@ class BackgroundApp(BaseApp):
     def run_victor_test(self):
         if sys.platform == "win32":
             # Executed on MainThread, use separate for Victor's stuff.
-            print >>sys.stderr,"m23trial: Starting Victor's test"
+            print >>sys.stderr,"m23trial: Starting Victor's test",currentThread().getName()
             self.victhread = VictorTestThread(self.installdir)
             self.victhread.start()
         
@@ -565,10 +565,10 @@ class VictorTestThread(Thread):
             # Fallback: print to log
             print >>sys.stderr,"m23trial: victor output",data
 
-            #print >>sys.stderr,"m23trial: Close child_in"
-            #child_in.close()
-            #print >>sys.stderr,"m23trial: Close child_out"
-            #child_out.close()
+            print >>sys.stderr,"m23trial: Close child_in"
+            child_stdin.close()
+            print >>sys.stderr,"m23trial: Close child_out"
+            child_stdout.close()
             
             
             print >>sys.stderr,"m23trial: Victor test done"
@@ -627,6 +627,9 @@ def run_bgapp(appname,params = None):
 
     if not ALLOW_MULTIPLE:
         del single_instance_checker
+        
+    # Ultimate catchall for hanging popen2's and what not
+    os._exit(0)
 
 
 if __name__ == '__main__':
