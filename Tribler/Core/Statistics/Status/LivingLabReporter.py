@@ -296,16 +296,20 @@ if __name__ == "__main__":
             status = Status.get_status_holder("StressTest")
             status.add_reporter(reporter)
             s = status.create_status_element("TestMixed", "A mixed test width size %d" % size)
-            times = []
             start = time.time()
-            for i in xrange(repeat):
-                before = time.time()
+            sub_start = start
+            for i in xrange(1, repeat+1):
                 s.set_value(data)
-                times.append(time.time() - before)
-                time.sleep(delay)
-            stop = time.time()
+                if not delay is None:
+                    time.sleep(delay)
 
-            print "Reported", repeat, "times", size, "bytes. Average %.2f MB/s. Total %.2f. Avg %.2f. Min %.2f. Max %.2f." % (repeat*size / (stop-start) / 1024 / 1024, sum(times), sum(times) / len(times), min(times), max(times))
+                if i % 100 == 0:
+                    delta = time.time() - sub_start
+                    print "Reported %5d times." % i, "%d bytes." % size, "%.2f MB/s." % (100*size / delta / 1024 / 1024), "%2.2f reports/s" % (100 / delta)
+                    sub_start = time.time()
+                
+            delta = time.time() - start
+            print "> Reported %5d times." % i, "%d bytes." % size, "%.2f MB/s." % (i*size / delta / 1024 / 1024), "%2.2f reports/s" % (i / delta)
 
         # reporter = LivingLabOnChangeReporter("Living lab stress-test reporter", error_handler=error_handler)
         # status = Status.get_status_holder("StressTest")
@@ -318,6 +322,6 @@ if __name__ == "__main__":
         # s.set_value(generate_dict())
 
         data = generate_dict()
-        stress(data, 71213, 0.001, 1000)
+        stress(data, 71213, None, 1000)
 
     stresstest()
