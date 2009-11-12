@@ -9,6 +9,9 @@ import base64
 import httplib
 import xml.dom.minidom
 
+import cStringIO
+import gzip
+
 import Status
 
 STRESSTEST = False
@@ -148,11 +151,21 @@ class LivingLabReporter:
         # required for stress test
         return xml_str
 
+    @staticmethod
+    def compress(s):
+        zbuf = cStringIO.StringIO()
+        zfile = gzip.GzipFile(mode="wb", fileobj=zbuf, compresslevel=9)
+        zfile.write(s)
+        zfile.close()
+        return zbuf.getvalue()
+
     def post(self, xml_str):
         """
         Post a status report to the living lab using multipart/form-data
         This is a bit on the messy side, but it does work
         """
+        if DEBUG:
+            uncompressed_xml_length = len(xml_str)
 
         self.num_reports += 1
         
@@ -164,6 +177,11 @@ class LivingLabReporter:
         base = ["--" + boundary]
         base.append('Content-Disposition: form-data; name="NextShareData"; filename="NextShareData"')
         base.append("Content-Type: text/xml")
+
+        # compress xml
+        xml_str = self.compress(xml_str)
+        base.append("Content-Encoding: gzip")
+
         base.append("")
         base.append(xml_str)
         base.append("--" + boundary + "--")
@@ -181,11 +199,10 @@ class LivingLabReporter:
         h.send(body)
 
         if DEBUG:
-            # filename = "report-%d.xml" % time.time()
-            # open(filename, "w").write(xml_str)
-
             print >> sys.stderr, "***"
-            print >> sys.stderr, "LivingLabReporter: post() Sending", len(xml_str), "bytes of xml data"
+            print >> sys.stderr, "LivingLabReporter: post() Sending", uncompressed_xml_length, "bytes of xml data in a +/-", len(body), "bytes post"
+            filename = "report-%d.xml" % time.time()
+            open(filename, "w").write(body)
             print >> sys.stderr, "Report stored locally in file", filename
             print >> sys.stderr, "***"
         
