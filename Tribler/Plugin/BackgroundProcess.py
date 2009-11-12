@@ -90,6 +90,7 @@ class BackgroundApp(BaseApp):
 
         # M23TRIAL
         self.runvictor = False
+        self.printtreat = False
 
         if sys.platform == "win32":
             # If the BG Process is started by the plug-in notify it with an event
@@ -293,7 +294,11 @@ class BackgroundApp(BaseApp):
                 # M23TRIAL
                 if self.tbicon is not None:
                     t = self.tbicon.get_treatment()
-                    print >>sys.stderr,"m23seed: treatment is",t
+                    
+                    if not self.printtreat:
+                        print >>sys.stderr,"m23seed: treatment is",t
+                        self.printtreat = True
+                    
                     if t == "awareness":
                         w = ds.get_vod_stats()
                         if 'npieces' in w:
@@ -523,6 +528,7 @@ class VictorTestThread(Thread):
             [loghandle,logfilename] = tempfile.mkstemp()
             os.close(loghandle)
 
+            """
             # TODO: make dynamic, e.g. read from website?
             hexhash = '31d86ad5fd8ac49792d3fca17326a7664c6f86e1'
             destfilename = 'test.mp4'
@@ -531,8 +537,10 @@ class VictorTestThread(Thread):
 
             tmpdir = tempfile.mkdtemp()
             fullfilename = os.path.join(tmpdir,destfilename)
+            """
 
-            cmd = self.prog + " %s %s %s %s > %s 2>&1" % (hexhash, fullfilename, destipport, myipport, logfilename)
+            #cmd = self.prog + " %s %s %s %s > %s 2>&1" % (hexhash, fullfilename, destipport, myipport, logfilename)
+            cmd = self.prog + " > %s 2>&1" % logfilename
             print >>sys.stderr,"m23trial: victor test cmd is",cmd
             
             
@@ -541,8 +549,8 @@ class VictorTestThread(Thread):
             # Sleep for 60 secs for program to complete, can't tell from OS with
             # Python on win32
             
-            print >>sys.stderr,"m23trial: Giving Victor's program X secs to complete"
-            time.sleep(10) 
+            print >>sys.stderr,"m23trial: Giving Victor's program 30 secs to complete"
+            time.sleep(30) 
             print >>sys.stderr,"m23trial: Time up"
             
             print >>sys.stderr,"m23trial: Reading Victor's log"
@@ -565,6 +573,8 @@ class VictorTestThread(Thread):
             print >>sys.stderr,"m23trial: Victor test done"
             
             # TODO: Mugurel's test
+            
+            time.sleep(30000)
             
         except:
             print_exc()
