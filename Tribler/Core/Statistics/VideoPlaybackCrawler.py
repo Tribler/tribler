@@ -169,7 +169,7 @@ DELETE FROM playback_info WHERE key = '%s';
                 print >> sys.stderr, "videoplaybackcrawler: handle_crawler_reply", show_permid_short(permid), len(message), "bytes zipped"
 
             info = cPickle.loads(zlib.decompress(message))
-            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), channel_data, str(info), "\n")))
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), str(channel_data), str(info), "\n")))
             self._file.flush()
             
         elif selversion >= OLPROTO_VER_EIGHTH:
@@ -177,7 +177,7 @@ DELETE FROM playback_info WHERE key = '%s';
                 print >> sys.stderr, "videoplaybackcrawler: handle_crawler_reply", show_permid_short(permid), cPickle.loads(message)
 
             info = cPickle.loads(message)
-            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), channel_data, str(info), "\n")))
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "  EVENT REPLY", show_permid(permid), str(error), str(channel_data), str(info), "\n")))
             self._file.flush()
 
     def handle_event_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
