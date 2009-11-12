@@ -1,4 +1,4 @@
--------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 
     Next-Share content-delivery library.
 
@@ -20,7 +20,7 @@
 
     The following library modules are Copyright (c) 2008-2012, Norut AS; All rights reserved:
       BaseLib/Core/Multicast/*
-      BaseLib/Player/Status/*
+      BaseLib/Core/Statistics/Status/*
 
     The following library modules are Copyright (c) 2008-2012, DACC Systems AB; All rights reserved:
 
@@ -67,8 +67,10 @@
       BaseLib/Video/VideoFrame.py
       reset.bat
       reset-keepid.bat
-      vlc/projects/activex/p2pcontrol.*
-      vlc/projects/mozilla/p2pcontrol.*
+      vlc4plugin-0.9.5-r11972.patch
+      BaseLib/Core/Video/PiecePickerSVC.py
+      BaseLib/Core/Video/SVCTransporter.py
+      BaseLib/Core/Video/SVCVideoStatus.py
 
     The following library modules are Copyright (c) 2008-2012, STMicroelectronics S.r.l.; All rights reserved:
 

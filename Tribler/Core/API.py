@@ -4,9 +4,11 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.4rc4, Sep, 2009. Import this to use the API """
+""" Tribler Core API v1.0.4rc5, Oct 2009. Import this to use the API """
 
 # History:
+#
+# 1.0.4rc5   Added: DLSTATUS_REPEXING.
 #
 # 1.0.4rc4   Added: get_total_transferred() to the DownloadState to
 #            retrieve the total amount of bytes that are up or
