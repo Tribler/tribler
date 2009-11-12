@@ -556,10 +556,10 @@ class VictorTestThread(Thread):
             #event_reporter.add_event("Victor leecher", data )
             print >>sys.stderr,"m23trial: victor output",data
 
-            print >>sys.stderr,"m23trial: Close child_in"
-            child_in.close()
-            print >>sys.stderr,"m23trial: Close child_out"
-            child_out.close()
+            #print >>sys.stderr,"m23trial: Close child_in"
+            #child_in.close()
+            #print >>sys.stderr,"m23trial: Close child_out"
+            #child_out.close()
             
             
             print >>sys.stderr,"m23trial: Victor test done"
