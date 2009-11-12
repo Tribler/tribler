@@ -10,7 +10,7 @@ DEBUG = False
 
 class TimeoutFinder:
     PINGBACK_TIMES = [ 245, 235, 175, 115, 85, 55, 25, 10 ]
-    PINGBACK_ADDRESS = ("mughal.tribler.org", 7396)
+    PINGBACK_ADDRESS = ("m23trial-udp.tribler.org", 7396)
 
     def __init__(self, rawserver, initial_ping, reportback = None):
         self.sockets = []

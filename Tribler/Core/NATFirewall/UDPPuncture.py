@@ -75,7 +75,7 @@ else:
 
 
 class UDPHandler:
-    TRACKER_ADDRESS = "mughal.tribler.org"
+    TRACKER_ADDRESS = "m23trial-udp.tribler.org"
 
     # Define message types
     CONNECT = chr(0)  # Connection request, directly sent to target
