@@ -63,6 +63,10 @@ I2I_LISTENPORT = 62062
 BG_LISTENPORT = 8621
 VIDEOHTTP_LISTENPORT = 6878
 
+# Added by Mugurel Ionut Andreica (UPB) -- the variable will be set to 1 only during the Ledbat Test
+LEDBAT_TEST_RUNNING = 0
+LEDBAT_TEST_RUNNING_LOCK = Lock()
+
 class BackgroundApp(BaseApp):
 
     def __init__(self, redirectstderrout, appname, params, single_instance_checker, installdir, i2iport, sport):
@@ -405,7 +409,16 @@ class BackgroundApp(BaseApp):
                 if vod_stats.has_key("late"): event_reporter.add_event(infohash, "late:%d" % vod_stats['late']) # number of pieces arrived after they were due
                 if vod_stats.has_key("dropped"): event_reporter.add_event(infohash, "dropped:%d" % vod_stats['dropped']) # number of pieces lost
                 if vod_stats.has_key("pos"): event_reporter.add_event(infohash, "pos:%d" % vod_stats['pos']) # playback position
+
+        # Added by Mugurel Ionut Andreica (UPB) -- should report the amount of bytes uploaded on all the connections (so far)
+        LEDBAT_TEST_RUNNING_LOCK.acquire()
+        x = LEDBAT_TEST_RUNNING
+        LEDBAT_TEST_RUNNING_LOCK.release()
         
+        if (x == 1):
+            #report upload information
+            event_reporter = get_reporter_instance()
+            # TO DO: how to get access to a counter of uploaded bytes (or a list of counters with uploaded bytes per connection) ?
 
 class BGInstanceConnection(InstanceConnection):
     
@@ -634,5 +647,4 @@ def run_bgapp(appname,params = None):
 
 if __name__ == '__main__':
     run_bgapp("SwarmPlugin")
-
         
