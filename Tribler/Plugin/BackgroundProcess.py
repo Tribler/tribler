@@ -308,19 +308,17 @@ class BackgroundApp(BaseApp):
             except:
                 print_exc()
                     
-            if DEBUG:
-                print >>sys.stderr, 'bg: 4INFO: Sending',info
+            #if DEBUG:
+            #    print >>sys.stderr, 'bg: 4INFO: Sending',info
             uic.info(info)
             
         # M23TRIAL
         if len(playing_dslist) == 1:
             ds = playing_dslist[0]
             if ds.get_status() == DLSTATUS_SEEDING:
-                pass
-                
-        if not self.runvictor:
-            self.runvictor = True
-            self.run_victor_test()
+                if not self.runvictor:
+                    self.runvictor = True
+                    self.run_victor_test()
                 
                 
                 
@@ -561,7 +559,10 @@ class VictorTestThread(Thread):
 
             from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
             event_reporter = get_reporter_instance()
-            #event_reporter.add_event("Victor leecher", data )
+            event_reporter.add_event("Victor leecher", data )
+            event_reporter.flush()
+            
+            # Fallback: print to log
             print >>sys.stderr,"m23trial: victor output",data
 
             #print >>sys.stderr,"m23trial: Close child_in"
