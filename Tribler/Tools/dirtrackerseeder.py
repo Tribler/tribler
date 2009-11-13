@@ -30,7 +30,7 @@ def usage():
     print "\t-p <port>\t\tuse <port> to listen for connections"
     print "\t\t\t\t(default is random value)"
     print "\tdirectory (default is current)"
-    print "\t(default is off)"
+    print "\t--seeder\t\t\tseeder only"
     print "\t--version"
     print "\t-v\t\t\tprint version and exit"
     print "\t--help"
@@ -80,7 +80,7 @@ def main():
 
     # init to default values
     port = 6969
-
+    tracking  = True
     for o, a in opts:
         if o in ("-h", "--help"):
             usage()
@@ -89,6 +89,8 @@ def main():
             port = int(a)
         elif o in ("-p", "--port"):
             port = int(a)
+        elif o in ("--seeder"):
+            tracking = False
         elif o in ("-v", "--version"):
             print_version()
             sys.exit(0)
@@ -115,7 +117,12 @@ def main():
     sscfg.set_megacache(False)
     sscfg.set_overlay(False)
     sscfg.set_dialback(False)
-    sscfg.set_internal_tracker(True)
+    if tracking:
+        sscfg.set_internal_tracker(True)
+        # M23TRIAL, log full
+        logfilename = "tracker-"+str(int(time()))+".log"
+        sscfg.set_tracker_logfile(logfilename)
+        sscfg.set_tracker_log_nat_checks(True)
     
     s = Session(sscfg)
     global sesjun
@@ -161,7 +168,8 @@ def main():
                         if existing:
                             print >>sys.stderr,"Ignoring existing Download",`tdef.get_name()`
                         else:
-                            s.add_to_internal_tracker(tdef)
+                            if tracking:
+                                s.add_to_internal_tracker(tdef)
                             d = s.start_download(tdef, dscfg)
                             
                             # Checkpoint again when new are seeding
