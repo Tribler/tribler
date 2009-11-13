@@ -115,7 +115,7 @@ class BackgroundTrafficReceiver(Thread):
 
         tfinish = time.time()
         serversocket.close()
-    print "Background Traffic Received stopped"
+        print "Background Traffic Receiver stopped"
 
 class BackgroundTrafficGenerator(Thread):
     def __init__(self, serverIP, serverPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, TCPConns = DEFAULT_NUM_TCP_CONNS, chunkSize = DEFAULT_CHUNK_SIZE, numChunks = DEFAULT_NUM_CHUNKS, transferRate = DEFAULT_RATE_LIMIT, duration = DEFAULT_TEST_DURATION, deadline = None, id = random.randint(1,1000), trafficShaper = None, plotter = None):

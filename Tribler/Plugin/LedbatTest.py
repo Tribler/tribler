@@ -3,12 +3,12 @@ import sys
 from Tribler.Plugin.UploadCongestionControl.constants import *
 from Tribler.Plugin.UploadCongestionControl.ledbat import *
 from Tribler.Plugin.UploadCongestionControl.tcp import *
-
-USE_BACKGROUND_PROCESS_STUFF = 0
-
-if (USE_BACKGROUND_PROCESS_STUFF == 1):
-    from Tribler.Plugin.BackgroundProcess import *
 import random
+
+LEDBAT_TEST_RUNNING = 0
+LEDBAT_TEST_RUNNING_LOCK = Lock()
+totalUpldBytesDic = {}
+totalUpldBytes = 0
 
 #TEST_DESTINATION = "127.0.0.1"
 #TEST_DESTINATION = "pygmee.tribler.org"
@@ -56,7 +56,7 @@ class TrafficShaper:
             return self.maxRate
 
 def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedbatPort = DEFAULT_SOURCE_LEDBAT_UDP_PORT, maxLedbatPort = DEFAULT_SOURCE_LEDBAT_UDP_PORT + 1 * NUM_LISTEN_UDP_SOCKS - 1):
-    #print "Sender test"
+    global LEDBAT_TEST_RUNNING, LEDBAT_TEST_RUNNING_LOCK
 
     numTCP = 1
     numTCPConns = 1
@@ -67,10 +67,10 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
     plotter = Plotter(1.0, mypermid)
     trafficShaper = TrafficShaper()
 
-    if (USE_BACKGROUND_PROCESS_STUFF == 1):
-        LEDBAT_TEST_RUNNING_LOCK.acquire()
-        LEDBAT_TEST_RUNNING = 1
-        LEDBAT_TEST_RUNNING_LOCK.release()
+    LEDBAT_TEST_RUNNING_LOCK.acquire()
+    #print LEDBAT_TEST_RUNNING
+    LEDBAT_TEST_RUNNING = 1
+    LEDBAT_TEST_RUNNING_LOCK.release()
 
     deadline = time.time() + 133.0
 
@@ -88,7 +88,7 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
     for i in range(numLedbat):
         ledbat_udp = Ledbat(id = "Ledbat_" + str(i), numUDPSocks = numLedbatUDPConns, plotter = plotter)
         ledbat_udp.destPort = random.randint(minLedbatPort, maxLedbatPort)
-        print "Port=", ledbat_udp.destPort, "(min=", minLedbatPort, "; max=", maxLedbatPort, ")"
+        #print "Port=", ledbat_udp.destPort, "(min=", minLedbatPort, "; max=", maxLedbatPort, ")"
         ludp.append(ledbat_udp)
 
     time.sleep(4.0)
@@ -105,7 +105,7 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
     for j in range(packetSize):
         packet = packet + str(random.randint(1,9))
 
-    while (i < numPackets and time.time() < deadline):
+    while (time.time() < deadline):
         i += 1
         for xudp in ludp:
             xudp.sendPacket(packet, xudp.id, TEST_DESTINATION, xudp.destPort, 1)
@@ -119,10 +119,10 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
     
     plotter.stopRunning()
 
-    if (USE_BACKGROUND_PROCESS_STUFF == 1):
-        LEDBAT_TEST_RUNNING_LOCK.acquire()
-        LEDBAT_TEST_RUNNING = 0
-        LEDBAT_TEST_RUNNING_LOCK.release()
+    LEDBAT_TEST_RUNNING_LOCK.acquire()
+    #print LEDBAT_TEST_RUNNING
+    LEDBAT_TEST_RUNNING = 0
+    LEDBAT_TEST_RUNNING_LOCK.release()
 
     for xudp in ludp:
         xudp.join()

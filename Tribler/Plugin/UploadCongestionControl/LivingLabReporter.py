@@ -16,7 +16,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
     """
     def __init__(self, name, frequency, mypermid, error_handler=None):
         Status.PeriodicStatusReporter.__init__(self, name, frequency, error_handler=None)
-        self.logFile = open("ReporterLogFile.txt", "w")
+        #self.logFile = open("ReporterLogFile.txt", "w")
         self.xmlLogs = []
         self.mypermid = mypermid
 
@@ -79,7 +79,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
 
         # Now we send this to the service using a HTTP POST
 
-        self.logFile.write(xml_str + "\n")
+        #self.logFile.write(xml_str + "\n")
         self.xmlLogs.append(xml_str)
 
     def post(self, xml_str):
@@ -126,7 +126,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
     
     def stop(self, block=False):
         Status.PeriodicStatusReporter.stop(self, block)
-        self.logFile.close()
+        #self.logFile.close()
         
         for xml_str in self.xmlLogs:
             self.post(xml_str)

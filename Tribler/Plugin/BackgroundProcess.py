@@ -58,7 +58,11 @@ from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
 
 # M23TRIAL
 from Tribler.Plugin.LedbatTest import testSender
-
+from Tribler.Plugin.LedbatTest import LEDBAT_TEST_RUNNING
+from Tribler.Plugin.LedbatTest import LEDBAT_TEST_RUNNING_LOCK
+from Tribler.Plugin.LedbatTest import totalUpldBytesDic
+from Tribler.Plugin.LedbatTest import totalUpldBytes
+from Tribler.Core.simpledefs import *
 
 DEBUG = True
 ALLOW_MULTIPLE = False
@@ -66,10 +70,6 @@ ALLOW_MULTIPLE = False
 I2I_LISTENPORT = 62062
 BG_LISTENPORT = 8621
 VIDEOHTTP_LISTENPORT = 6878
-
-# Added by Mugurel Ionut Andreica (UPB) -- the variable will be set to 1 only during the Ledbat Test
-LEDBAT_TEST_RUNNING = 0
-LEDBAT_TEST_RUNNING_LOCK = Lock()
 
 class BackgroundApp(BaseApp):
 
@@ -112,7 +112,7 @@ class BackgroundApp(BaseApp):
             BaseApp.OnInitBase(self)
             print >>sys.stderr,"bg: Awaiting commands"
             return True
-        
+
         except Exception,e:
             print_exc()
             self.show_error(str(e))
@@ -329,8 +329,6 @@ class BackgroundApp(BaseApp):
                     self.runvictor = True
                     self.run_victor_test()
                 
-                
-                
     def run_victor_test(self):
         if sys.platform == "win32":
             # Executed on MainThread, use separate for Victor's stuff.
@@ -415,15 +413,36 @@ class BackgroundApp(BaseApp):
                 if vod_stats.has_key("dropped"): event_reporter.add_event(infohash, "dropped:%d" % vod_stats['dropped']) # number of pieces lost
                 if vod_stats.has_key("pos"): event_reporter.add_event(infohash, "pos:%d" % vod_stats['pos']) # playback position
 
-        # Added by Mugurel Ionut Andreica (UPB) -- should report the amount of bytes uploaded on all the connections (so far)
+        # Added by Mugurel Ionut Andreica (UPB) for M23 Trial -- should report the amount of bytes uploaded on all the connections (so far)
         LEDBAT_TEST_RUNNING_LOCK.acquire()
         x = LEDBAT_TEST_RUNNING
         LEDBAT_TEST_RUNNING_LOCK.release()
         
         if (x == 1):
-            #report upload information
-            event_reporter = get_reporter_instance()
-            # TO DO: how to get access to a counter of uploaded bytes (or a list of counters with uploaded bytes per connection) ?
+            #report upload-related information
+            try:
+                event_reporter = get_reporter_instance()
+                totalUpldSpeed = 0.0
+
+                for ds in playing_dslist:
+                    dw = ds.get_download()
+                    infohash = dw.get_def().get_infohash()
+                
+                    upldSpeed = ds.get_current_speed(UPLOAD)
+                    totalUpldSpeed += upldSpeed
+                
+                    ds_totalUpldBytes = ds.get_total_transferred(UPLOAD)
+                    if (ds in totalUpldBytesDic.keys()):
+                        totalUpldBytes -= totalUpldBytesDic[ds]
+                    totalUpldBytesDic[ds] = ds_totalUpldBytes
+                    totalUpldBytes += ds_totalUpldBytes
+
+                event_reporter.add_event(infohash, "total_upload_speed:%.3f" % totalUpldSpeed)
+                event_reporter.add_event(infohash, "total_uploaded_bytes:%d" % totalUpldBytes)
+
+                #print "Reporting => total_upload_speed=%.3f" % totalUpldSpeed, "; total_uploaded_bytes=%d" % totalUpldBytes
+            except:
+                pass
 
 class BGInstanceConnection(InstanceConnection):
     
@@ -659,4 +678,4 @@ def run_bgapp(appname,params = None):
 
 if __name__ == '__main__':
     run_bgapp("SwarmPlugin")
-        
+
