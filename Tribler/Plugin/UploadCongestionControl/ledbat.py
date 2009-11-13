@@ -238,7 +238,7 @@ class LedbatSender(Thread):
         
         currCwnd = self.cwnd
         self.numRecvPackets += 1
-        #if (self.numRecvPackets % 1000 == 0 and self.cwndMode == 1):
+        #if (self.numRecvPackets % 500 == 0 and self.cwndMode == 1):
         #    print "delay=", delay, "; oldCwnd=", oldCwnd, "; current delay=", currDelay, "; base Delay=", bDelay, "; queueingDelay=", queueingDelay, "; offTarget=", offTarget, "; GAIN=", self.GAIN, "; cwnd=", self.cwnd
         #    print "last packet id=", self.packetID, "; current ACK ID=", pkt.packetID, "; unAcked=", self.UnAcked
 
