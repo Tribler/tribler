@@ -9,7 +9,8 @@ if (USE_BACKGROUND_PROCESS_STUFF == 1):
 import random
 
 #TEST_DESTINATION = "127.0.0.1"
-TEST_DESTINATION = "pygmee.tribler.org"
+#TEST_DESTINATION = "pygmee.tribler.org"
+TEST_DESTINATION = "p2p-next-09.grid.pub.ro"
 
 NUM_LISTEN_UDP_SOCKS = 10
 
@@ -52,7 +53,7 @@ class TrafficShaper:
         else:
             return self.maxRate
 
-def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedbatPort = DEFAULT_SOURCE_LEDBAT_UDP_PORT, maxLedbatPort = DEFAULT_SOURCE_LEDBAT_UDP_PORT + 2 * NUM_LISTEN_UDP_SOCKS - 1):
+def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedbatPort = DEFAULT_SOURCE_LEDBAT_UDP_PORT, maxLedbatPort = DEFAULT_SOURCE_LEDBAT_UDP_PORT + 1 * NUM_LISTEN_UDP_SOCKS - 1):
     #print "Sender test"
 
     numTCP = 1
@@ -60,9 +61,6 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
 
     numLedbat = 1
     numLedbatUDPConns = 1
-
-    numCC = 0
-    numCCUDPConns = 1
 
     plotter = Plotter(1.0, mypermid)
     trafficShaper = TrafficShaper()
@@ -91,7 +89,7 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
         print "Port=", ledbat_udp.destPort, "(min=", minLedbatPort, "; max=", maxLedbatPort, ")"
         ludp.append(ledbat_udp)
 
-    time.sleep(7.0)
+    time.sleep(4.0)
 
     for xudp in ludp:
         xudp.start()
