@@ -186,7 +186,7 @@ class GUIUtility:
         elif name == "addAsFriend" or name == 'deleteFriend':
             self.standardDetails.addAsFriend()
 
-        elif name in ['save','save_big']: 
+        elif name in ['save','save_big', 'save_medium']: 
             self.standardDetails.download()
         elif name == 'addFriend':
             #print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
