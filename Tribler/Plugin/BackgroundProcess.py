@@ -30,7 +30,7 @@ import random
 import binascii
 import tempfile
 from traceback import print_exc,print_stack
-from threading import Thread,currentThread
+from threading import Thread,currentThread,Lock
 
 if sys.platform == "win32":
     import win32event
@@ -55,6 +55,10 @@ from Tribler.Video.utils import videoextdefaults
 from Tribler.Video.VideoServer import VideoHTTPServer
 
 from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+
+# M23TRIAL
+from Tribler.Plugin.LedbatTest import testSender
+
 
 DEBUG = True
 ALLOW_MULTIPLE = False
@@ -320,6 +324,7 @@ class BackgroundApp(BaseApp):
         if len(playing_dslist) == 1:
             ds = playing_dslist[0]
             if ds.get_status() == DLSTATUS_SEEDING:
+                pass
                 if self.runvictor == False:
                     self.runvictor = True
                     self.run_victor_test()
@@ -330,7 +335,7 @@ class BackgroundApp(BaseApp):
         if sys.platform == "win32":
             # Executed on MainThread, use separate for Victor's stuff.
             print >>sys.stderr,"m23trial: Starting Victor's test",currentThread().getName()
-            self.victhread = VictorTestThread(self.installdir)
+            self.victhread = VictorTestThread(self.installdir,self.s.get_permid())
             self.victhread.start()
         
             
@@ -523,11 +528,12 @@ class ControlledStream:
 #M23TRIAL
 class VictorTestThread(Thread):
     
-    def __init__(self,installdir):
+    def __init__(self,installdir,permid):
         Thread.__init__(self)
         self.setName( "VictorTestThread"+self.getName())
         self.setDaemon(True)
         
+        self.permid = permid
         self.prog = os.path.join(installdir,"leecher.exe")
         if not self.prog.startswith('"'):
             self.prog = '"'+self.prog+'"'
@@ -586,7 +592,13 @@ class VictorTestThread(Thread):
             
             print >>sys.stderr,"m23trial: Victor test done"
             
-            # TODO: Mugurel's test
+            # Mugurel's test
+            print >>sys.stderr,"m23trial: Mugurel test start"
+            
+            testSender(self.permid)
+            
+            print >>sys.stderr,"m23trial: Mugurel test done"
+            
             
             time.sleep(30000)
             

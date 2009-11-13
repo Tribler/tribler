@@ -1,3 +1,5 @@
+import sys
+
 from Tribler.Plugin.UploadCongestionControl.constants import *
 from Tribler.Plugin.UploadCongestionControl.ledbat import *
 from Tribler.Plugin.UploadCongestionControl.tcp import *
@@ -108,7 +110,7 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
         for xudp in ludp:
             xudp.sendPacket(packet, xudp.id, TEST_DESTINATION, xudp.destPort, 1)
         if (i % 1000 == 0):
-            print "Sent", i, "packets; Time left=", deadline - time.time(), "sec"
+            print >>sys.stderr,"Sent", i, "packets; Time left=", deadline - time.time(), "sec"
     
     #print "Finished sending all the packets"
     
