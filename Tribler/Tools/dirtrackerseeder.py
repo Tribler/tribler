@@ -72,7 +72,7 @@ def state_callback(ds):
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hvp:", ["help", "version", "port"])
+        opts, args = getopt.getopt(sys.argv[1:], "hvp:", ["help", "version", "port", "seeder"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
