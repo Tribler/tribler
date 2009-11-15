@@ -135,6 +135,10 @@ class BackgroundTrafficGenerator(Thread):
         self.deadline = deadline
         self.trafficShaper = trafficShaper
         
+        self.connected = 0
+        self.connectedLock = Lock()
+        self.connectedLock.acquire()
+        
         if (plotter != None):
             plotter.register(self)
    
@@ -343,4 +347,9 @@ class BackgroundTrafficGenerator(Thread):
             socketList.append(s)
         
         if (len(socketList) > 0):
+            self.connected = 1
+            self.connectedLock.release()
             self.send_the_data(socketList = socketList, chunkSize = self.chunkSize, numChunks = self.numChunks, testDuration = self.duration, rateLimit = self.transferRate, numTCPconns = self.TCPConns, closeSockets = 1)
+        else:
+            self.connected = 0
+            self.connectedLock.release()

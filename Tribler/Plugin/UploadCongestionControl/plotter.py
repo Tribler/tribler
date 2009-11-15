@@ -49,7 +49,10 @@ class Plotter(Thread):
         try:
             key = plottable.getName()
             if (key != None):
-                newElem = self.status.create_status_element(key, key)
+                try:
+                    newElem = self.status.create_status_element(key, key)
+                except:
+                    newElem = self.status.get_status_element(key)
                 newElem.set_value(0.0)
                 self.registeredLock.acquire()
                 self.registered[key] = (plottable, [], [], None, newElem)

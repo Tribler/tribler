@@ -12,7 +12,7 @@ totalUpldBytes = 0
 
 #TEST_DESTINATION = "127.0.0.1"
 #TEST_DESTINATION = "pygmee.tribler.org"
-TEST_DESTINATION = "p2p-next-09.grid.pub.ro"
+TEST_DESTINATION = ["p2p-next-09.grid.pub.ro", "pygmee.tribler.org" ]
 
 NUM_LISTEN_UDP_SOCKS = 10
 
@@ -55,8 +55,15 @@ class TrafficShaper:
         else:
             return self.maxRate
 
+def getStringFromPermID(permid):
+    lmax = min([16, len(permid)])
+    xpermid = permid[:lmax].encode('ascii', 'ignore')
+    return xpermid
+
 def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedbatPort = DEFAULT_SOURCE_LEDBAT_UDP_PORT, maxLedbatPort = DEFAULT_SOURCE_LEDBAT_UDP_PORT + 1 * NUM_LISTEN_UDP_SOCKS - 1):
     global LEDBAT_TEST_RUNNING, LEDBAT_TEST_RUNNING_LOCK
+
+    print >>sys.stderr, "Starting Ledbat Test"
 
     numTCP = 1
     numTCPConns = 1
@@ -64,23 +71,41 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
     numLedbat = 1
     numLedbatUDPConns = 1
 
-    plotter = Plotter(1.0, mypermid)
+    permid = getStringFromPermID(mypermid)
+    plotter = Plotter(1.0, permid)
     trafficShaper = TrafficShaper()
+
+    destIdx = 0
+    while (destIdx < len(TEST_DESTINATION)):
+        deadline = time.time() + 133.0
+
+        lbtg = []
+        for i in range(numTCP):
+            btg = BackgroundTrafficGenerator(serverIP = TEST_DESTINATION[destIdx], duration = 1300.0, deadline = deadline, chunkSize = 500, numChunks = 1000000, transferRate = 5000000.0 + i, TCPConns = numTCPConns, id = "TCP_" + str(i) + "_BW", trafficShaper = trafficShaper, plotter = plotter)
+            lbtg.append(btg)
+
+        started = 0
+        for btg in lbtg:
+            btg.start()
+            btg.connectedLock.acquire()
+            started += btg.connected
+
+        if (started > 0 or started == numTCP):
+            break
+        else:
+            for btg in lbtg:
+                btg.join()
+            destIdx += 1
+
+    if (destIdx >= len(TEST_DESTINATION)):
+        print >>sys.stderr, "No server is up - Aborting the Ledbat test"
+        plotter.stopRunning()
+        return
 
     LEDBAT_TEST_RUNNING_LOCK.acquire()
     #print LEDBAT_TEST_RUNNING
     LEDBAT_TEST_RUNNING = 1
     LEDBAT_TEST_RUNNING_LOCK.release()
-
-    deadline = time.time() + 133.0
-
-    lbtg = []
-    for i in range(numTCP):
-        btg = BackgroundTrafficGenerator(serverIP = TEST_DESTINATION, duration = 1300.0, deadline = deadline, chunkSize = 500, numChunks = 1000000, transferRate = 5000000.0 + i, TCPConns = numTCPConns, id = "TCP_" + str(i) + "_BW", trafficShaper = trafficShaper, plotter = plotter)
-        lbtg.append(btg)
-
-    for btg in lbtg:
-        btg.start()
     
     plotter.start()
 
@@ -108,7 +133,7 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
     while (time.time() < deadline):
         i += 1
         for xudp in ludp:
-            xudp.sendPacket(packet, xudp.id, TEST_DESTINATION, xudp.destPort, 1)
+            xudp.sendPacket(packet, xudp.id, TEST_DESTINATION[destIdx], xudp.destPort, 1)
         if (i % 1000 == 0):
             print >>sys.stderr,"Sent", i, "packets; Time left=", deadline - time.time(), "sec"
     
@@ -151,7 +176,7 @@ def testReceiver(ledbatStartingPort, tcpPort):
 
 if __name__=="__main__":
     if (len(sys.argv) == 1 or sys.argv[1] == "send"):
-        testSender("permid-009")
+        testSender("permid-xxy")
     elif (len(sys.argv) > 1 and sys.argv[1] == "recv"):
         if (len(sys.argv) > 3):
             testReceiver(int(sys.argv[2]), int(sys.argv[3]))

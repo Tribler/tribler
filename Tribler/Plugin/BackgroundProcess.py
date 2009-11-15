@@ -58,6 +58,7 @@ from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
 
 # M23TRIAL
 from Tribler.Plugin.LedbatTest import testSender
+from Tribler.Plugin.LedbatTest import getStringFromPermID
 from Tribler.Plugin.LedbatTest import LEDBAT_TEST_RUNNING
 from Tribler.Plugin.LedbatTest import LEDBAT_TEST_RUNNING_LOCK
 from Tribler.Plugin.LedbatTest import totalUpldBytesDic
@@ -374,7 +375,7 @@ class BackgroundApp(BaseApp):
 
     def get_supported_vod_events(self):
         return [ VODEVENT_START, VODEVENT_PAUSE, VODEVENT_RESUME ]
-        
+
     #
     # VideoServer status/error reporting
     #
@@ -400,6 +401,7 @@ class BackgroundApp(BaseApp):
     # reports vod stats collected periodically
     #
     def report_periodic_vod_stats(self,playing_dslist):
+        #print >>sys.stderr, "VOD Stats"
         self.counter += 1
         if self.counter%self.interval == 0:
             event_reporter = get_reporter_instance()
@@ -419,6 +421,7 @@ class BackgroundApp(BaseApp):
         LEDBAT_TEST_RUNNING_LOCK.release()
         
         if (x == 1):
+            global totalUpldBytes, totalUpldBytesDic
             #report upload-related information
             try:
                 event_reporter = get_reporter_instance()
@@ -437,12 +440,13 @@ class BackgroundApp(BaseApp):
                     totalUpldBytesDic[ds] = ds_totalUpldBytes
                     totalUpldBytes += ds_totalUpldBytes
 
-                event_reporter.add_event(infohash, "total_upload_speed:%.3f" % totalUpldSpeed)
-                event_reporter.add_event(infohash, "total_uploaded_bytes:%d" % totalUpldBytes)
+                permid = getStringFromPermID(self.s.get_permid())
+                event_reporter.add_event(permid, "total_upload_speed:%.3f" % totalUpldSpeed)
+                event_reporter.add_event(permid, "total_uploaded_bytes:%d" % totalUpldBytes)
 
-                #print "Reporting => total_upload_speed=%.3f" % totalUpldSpeed, "; total_uploaded_bytes=%d" % totalUpldBytes
+                print >>sys.stderr, "Reporting (permid=", permid, "=> total_upload_speed=%.3f" % totalUpldSpeed, "; total_uploaded_bytes=%d" % totalUpldBytes
             except:
-                pass
+                print_exc()
 
 class BGInstanceConnection(InstanceConnection):
     

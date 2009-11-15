@@ -51,31 +51,28 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         # Create the header
         header = doc.createElement("header")
         root.appendChild(header)
-
-        # TODO: GET PERMID FROM SOMEWHERE
         header.appendChild(self.newElement(doc, "deviceid", self.mypermid))
-        header.appendChild(self.newElement(doc, "timestamp",
-                                           long(round(time.time()))))
+        header.appendChild(self.newElement(doc, "timestamp", long(round(time.time()))))
 
-        version = "cctest"
+        version = "ledbat_test_m23_trial"
         header.appendChild(self.newElement(doc, "swversion", version))
 
         # Now add the status elements
         report = doc.createElement("event")
         root.appendChild(report)
 
+        report.appendChild(self.newElement(doc, "deviceid", self.mypermid))
+        report.appendChild(self.newElement(doc, "swversion", version))
         report.appendChild(self.newElement(doc, "attribute", "statusreport"))
-        report.appendChild(self.newElement(doc, "timestamp",
-                                           long(round(time.time()))))
+        report.appendChild(self.newElement(doc, "timestamp", long(round(time.time()))))
         for element in self.elements:
-            report.appendChild(self.newElement(doc,
-                                               element.get_name(),
-                                               element.get_value()))
+            report.appendChild(self.newElement(doc, element.get_name(), element.get_value()))
 
         # all done
         xml_printer = XmlPrinter.XmlPrinter(root)
         xml_str = xml_printer.to_pretty_xml()
         #xml_str = xml_printer.to_xml()
+        #print xml_str
 
         # Now we send this to the service using a HTTP POST
 
@@ -129,7 +126,10 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         #self.logFile.close()
         
         for xml_str in self.xmlLogs:
-            self.post(xml_str)
+            try:
+                self.post(xml_str)
+            except:
+                pass
 
 if __name__ == "__main__":
     """
