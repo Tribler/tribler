@@ -41,7 +41,11 @@ class UPnPThread(Thread):
             self.upnp_wrap = UPnPWrapper.getInstance()
             self.upnp_wrap.register(self.locally_guessed_ext_ip)
 
+            from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+            reporter = get_reporter_instance()
+
             if self.upnp_wrap.test(self.upnp_type):
+                reporter.add_event("UPnP", "Init'ed")
                 try:
                     shownerror=False
                     # Get external IP address from firewall
@@ -67,10 +71,12 @@ class UPnPThread(Thread):
                     ret = self.upnp_wrap.open(self.listen_port,iproto='UDP')
                     if ret == False and not shownerror:
                         self.error_func(self.upnp_type,self.listen_port,0,listenproto='UDP')
+                    reporter.add_event("UPnP", "UDP:%d" % ret)
                 
                 except UPnPError,e:
                     self.error_func(self.upnp_type,self.listen_port,1,e)
             else:
+                reporter.add_event("UPnP", "Init failed")
                 if self.upnp_type != 3:
                     self.error_func(self.upnp_type,self.listen_port,2)
                 elif DEBUG:
