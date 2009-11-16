@@ -247,8 +247,8 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         for window in wl:
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
-            window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
-            window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
+#            window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
+#            window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
             #window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)  
             
     def getColumns(self):
@@ -562,8 +562,8 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
             if sys.platform == 'win32':
                 self.SetMinSize((-1,97))
             elif sys.platform == 'darwin':
-		self.SetMinSize((-1,101))
-	    else:
+                self.SetMinSize((-1,101))
+            else:
                 self.SetMinSize((-1,100))                
         elif visible and self.summary:
             pass
