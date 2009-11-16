@@ -1547,16 +1547,18 @@ class TorrentDBHandler(BasicDBHandler):
             FROM TorrentTracker tt, Torrent tr  WHERE tr.torrent_id=tt.torrent_id AND tr.torrent_id==%d"""%torrent_id
             sql +=" order by tt.last_check DESC limit 1"
             sizeInfo = self._db.fetchall(sql)
+
+            if len(sizeInfo) == 1:
+                num_seeders  = sizeInfo[0][1]
+                num_leechers = sizeInfo[0][2]
+                last_check = sizeInfo[0][3]
             
-            sql1= """SELECT COUNT(*) FROM Preference WHERE torrent_id=%d"""%torrent_id
-            mySeenSources = self._db.fetchone(sql1)
-            num_seeders  = sizeInfo[0][1]
-            num_leechers = sizeInfo[0][2]
-            last_check = sizeInfo[0][3]
+                sql1= """SELECT COUNT(*) FROM Preference WHERE torrent_id=%d"""%torrent_id
+                mySeenSources = self._db.fetchone(sql1)
             
-            return [(torrent_id, num_seeders, num_leechers, last_check, mySeenSources, sizeInfo)]
-        else:
-            return [()]  
+                return [(torrent_id, num_seeders, num_leechers, last_check, mySeenSources, sizeInfo)]
+
+        return [()]  
             
     
     def getLargestSourcesSeen(self, torrent_id, timeNow, freshness=-1):
