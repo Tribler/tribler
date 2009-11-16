@@ -7,8 +7,6 @@ import random
 
 LEDBAT_TEST_RUNNING = 0
 LEDBAT_TEST_RUNNING_LOCK = Lock()
-totalUpldBytesDic = {}
-totalUpldBytes = 0
 
 #TEST_DESTINATION = "127.0.0.1"
 #TEST_DESTINATION = "pygmee.tribler.org"
@@ -59,6 +57,12 @@ def getStringFromPermID(permid):
     lmax = min([16, len(permid)])
     xpermid = permid[:lmax].encode('ascii', 'ignore')
     return xpermid
+
+def isLedbatTestRunning():
+    LEDBAT_TEST_RUNNING_LOCK.acquire()
+    x = LEDBAT_TEST_RUNNING
+    LEDBAT_TEST_RUNNING_LOCK.release()
+    return x
 
 def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedbatPort = DEFAULT_SOURCE_LEDBAT_UDP_PORT, maxLedbatPort = DEFAULT_SOURCE_LEDBAT_UDP_PORT + 1 * NUM_LISTEN_UDP_SOCKS - 1):
     global LEDBAT_TEST_RUNNING, LEDBAT_TEST_RUNNING_LOCK

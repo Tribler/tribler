@@ -59,11 +59,10 @@ from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
 # M23TRIAL
 from Tribler.Plugin.LedbatTest import testSender
 from Tribler.Plugin.LedbatTest import getStringFromPermID
-from Tribler.Plugin.LedbatTest import LEDBAT_TEST_RUNNING
-from Tribler.Plugin.LedbatTest import LEDBAT_TEST_RUNNING_LOCK
-from Tribler.Plugin.LedbatTest import totalUpldBytesDic
-from Tribler.Plugin.LedbatTest import totalUpldBytes
+from Tribler.Plugin.LedbatTest import isLedbatTestRunning
 from Tribler.Core.simpledefs import *
+totalUpldBytesDic = {}
+totalUpldBytes = 0
 
 DEBUG = True
 ALLOW_MULTIPLE = False
@@ -416,13 +415,12 @@ class BackgroundApp(BaseApp):
                 if vod_stats.has_key("pos"): event_reporter.add_event(infohash, "pos:%d" % vod_stats['pos']) # playback position
 
         # Added by Mugurel Ionut Andreica (UPB) for M23 Trial -- should report the amount of bytes uploaded on all the connections (so far)
-        LEDBAT_TEST_RUNNING_LOCK.acquire()
-        x = LEDBAT_TEST_RUNNING
-        LEDBAT_TEST_RUNNING_LOCK.release()
-        
-        if (x == 1):
+        if (isLedbatTestRunning() == 1):
             global totalUpldBytes, totalUpldBytesDic
             #report upload-related information
+            #print >>sys.stderr, "Ledbat test is running"
+            
+            print 
             try:
                 event_reporter = get_reporter_instance()
                 totalUpldSpeed = 0.0
@@ -444,7 +442,7 @@ class BackgroundApp(BaseApp):
                 event_reporter.add_event(permid, "total_upload_speed:%.3f" % totalUpldSpeed)
                 event_reporter.add_event(permid, "total_uploaded_bytes:%d" % totalUpldBytes)
 
-                print >>sys.stderr, "Reporting (permid=", permid, "=> total_upload_speed=%.3f" % totalUpldSpeed, "; total_uploaded_bytes=%d" % totalUpldBytes
+                print >>sys.stderr, "Reporting (permid=", permid, ") => total_upload_speed=%.3f" % totalUpldSpeed, "; total_uploaded_bytes=%d" % totalUpldBytes
             except:
                 print_exc()
 
