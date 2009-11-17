@@ -631,7 +631,7 @@ class UDPConnection:
                 if DEBUG:
                     debug("    My IP: %s:%d" % (my_addres[0], my_addres[1]))
                 if self.handler.reporter:
-                    self.handler.reporter.add_event("UDPPuncture", "IYIP:%s,%d" % (my_addres[0], my_addres[1]))
+                    self.handler.reporter.add_event("UDPPuncture", "IYIP:%s,%d,%s" % (my_addres[0], my_addres[1], self.id.encode('hex')))
 
                 self.handler.incoming_ip(my_addres)
 
