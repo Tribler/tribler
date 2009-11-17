@@ -806,7 +806,7 @@ class ChannelSearchGridManager:
             if hit[0] not in hits:
                 torrents = {}                 
                 torrents[hit[2]] = (hit[4], hit[5]) # {infohash:(torrentname, timestamp)}
-                self.hits[hit[0]] = [hit[1], self.channelcast_db.getSubscribersCount(hit[0]), torrents]
+                self.hits[hit[0]] = [hit[1], self.votecastdb.getEffectiveVote(hit[0]), torrents]
             else:
                 torrents = self.hits[hit[0]][2]
                 if hit[2] not in torrents:

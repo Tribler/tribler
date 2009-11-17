@@ -91,6 +91,10 @@ class standardOverview(wx.Panel):
         self.currentPanel = None
         self.settingsPanel = None
         self.channelsPanel = None
+
+
+        self.channel = None
+
         self.addComponents()
         #self.Refresh()
         
@@ -340,9 +344,9 @@ class standardOverview(wx.Panel):
       
             
         self.data[self.mode]['panel'] = currentPanel
-	if sys.platform == 'darwin' and modeString == 'channels':
-	    self.data[self.mode]['panel'].SetMinSize((300,760))
-	    self.data[self.mode]['panel'].SetSize((300,760))
+        if sys.platform == 'darwin' and modeString == 'channels':
+            self.data[self.mode]['panel'].SetMinSize((300,760))
+            self.data[self.mode]['panel'].SetSize((300,760))
 
 
         if modeString in ["files","library"]:

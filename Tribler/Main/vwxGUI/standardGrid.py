@@ -22,6 +22,8 @@ from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SE
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Category.Category import Category
 
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+
 DEBUG = False
 
 
@@ -289,17 +291,19 @@ class GridManager(object):
 
                 if self.grid.name == 'popularGrid':
 
-                    t1 = time() 
 
                     [stotal_items,sdata] = self.channelsearch_manager.getSubscriptions(state.db)
-                    print >> sys.stderr , "stotal_items " , stotal_items
-                    [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db, maximum=19-stotal_items)
-                    print >> sys.stderr , "total_items " , total_items
+                    [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db, maximum=18-stotal_items)
+                    channel = self.grid.guiUtility.standardOverview.channel
+                    if channel is not None:
+                        if not self.votecast_db.hasSubscription(channel[0], bin2str(self.grid.guiUtility.utility.session.get_permid())):
+                            data.append(channel)
+                            total_items+=1
+                        else:
+                            self.grid.guiUtility.standardOverview.channel = None
                     data.extend(sdata)
                     total_items+=stotal_items
 
-                    t2 = time() 
-                    print >> sys.stderr , "getData" , t2 - t1
 
 
         elif state.db in ('personsMode', 'friendsMode'):
@@ -749,6 +753,8 @@ class standardGrid(wx.Panel):
                         self.setDataOfPanel(i, self.data[i])
                     else:
                         self.setDataOfPanel(i, None)
+
+
        
 
         if self.name in ['subscriptionsGrid', 'popularGrid', 'channelsGrid']:
@@ -778,6 +784,8 @@ class standardGrid(wx.Panel):
         raise NotImplementedError('Method getSubPanel should be subclassed')
 
     def setDataOfPanel(self, panelNumber, data):
+
+
         #if DEBUG:
         #    print >> sys.stderr, 'Set data of panel %d with data: %s' % (panelNumber, data)
         try:

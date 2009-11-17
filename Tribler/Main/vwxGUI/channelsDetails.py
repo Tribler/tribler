@@ -337,7 +337,7 @@ class channelsDetails(bgPanel):
 
         # add Spam button
         self.spam = tribler_topButton(self, -1, name = "spam")
-        self.spam.SetPosition((196,50))
+        self.spam.SetPosition((196,70))
         self.spam.createBackgroundImage()
         self.spam.Bind(wx.EVT_LEFT_UP, self.spamClicked)
         self.spam.Hide()
@@ -433,7 +433,7 @@ class channelsDetails(bgPanel):
     def guiservthread_refresh_torrents(self):
         records = self.channelcast.getNewRecords()
         print >> sys.stderr , "RECORD : " , records
-        self.guiserver.add_task(self.guiservthread_refresh_torrents,10.0)
+        self.guiserver.add_task(self.guiservthread_refresh_torrents,5.0)
 
 
     def setType(self, Type):
@@ -475,7 +475,7 @@ class channelsDetails(bgPanel):
     
 
 
-
+    
     def isEmpty(self):
         try:
             return self.isempty
@@ -886,10 +886,11 @@ class channelsDetails(bgPanel):
 
                 self.guiUtility.frame.top_bg.needs_refresh = True
 
-                if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
-                    self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes+=1    
-                else:
-                    self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes+=1
+#                if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
+#                    self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes+=1    
+#                else:
+#                    self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes+=1
+#                    print >> sys.stderr , self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes
 
 
             else: # maximum number of subscriptions reached
@@ -906,10 +907,11 @@ class channelsDetails(bgPanel):
             self.guiUtility.frame.top_bg.needs_refresh = True
 
 
-            if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
-                self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes-=1    
-            else:
-                self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes-=1
+#            if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
+#                self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes-=1    
+#            else:
+#                self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes-=1
+#                print >> sys.stderr , self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes
 
 
 

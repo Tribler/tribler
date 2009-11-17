@@ -234,7 +234,7 @@ class PopularItemPanel(wx.Panel):
         ## print >> sys.stderr, "publisher_id", publisher_id, "publisher_name" , publisher_name, "num_votes", num_votes
 
 
-        if data and oldinfohash != self.data[0]:
+        if data: # and oldinfohash != self.data[0]:
             title = data[1][:self.titleLength] + " (%s)" % self.num_votes
             self.title.Show()
             self.title.SetLabel(title)
@@ -293,11 +293,12 @@ class PopularItemPanel(wx.Panel):
             self.SubscriptionButton.Hide()
         self.hSizer.Layout()
 
+    def getVotes(self):
+        return self.vcdb.getEffectiveVote(self.publisher_id)
 
 
     def resetTitle(self):
-
-        print >> sys.stderr , self.num_votes
+        self.num_votes = self.getVotes()
         title = self.data[1][:self.titleLength] + " (%s)" % self.num_votes
         self.title.SetLabel(title)
         self.title.Wrap(self.title.GetSize()[0])
@@ -343,6 +344,7 @@ class PopularItemPanel(wx.Panel):
 
     def SubscriptionClicked(self, event):
         self.vcdb.unsubscribe(self.publisher_id)
+        self.resetTitle()
         self.SubscriptionButton.Hide()
         self.setSubscribed()
         self.guiUtility.frame.top_bg.needs_refresh = True
@@ -404,6 +406,23 @@ class PopularItemPanel(wx.Panel):
 
         self.SetFocus()
             
+
+
+    def loadChannel(self):
+        self.channelsDetails.reinitialize(force=True)
+        self.parent.deselectAllChannels()
+        self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
+        self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
+        self.select()
+        self.guiUtility.frame.top_bg.indexMyChannel=0
+        self.guiUtility.frame.top_bg.indexPopularChannels=-1
+        wx.CallAfter(self.channelsDetails.loadChannel,self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
+        if self.guiUtility.guiPage == 'search_results':
+            self.channelsDetails.origin = 'search_results'
+        else:
+            self.channelsDetails.origin = 'my_channel'
+
+
 
     def setIndex(self, index):
         self.index=index

@@ -3053,6 +3053,16 @@ class VoteCastDBHandler(BasicDBHandler):
         """ returns (sum, count) from VoteCast """
         sql = "select sum(vote), count(*) from VoteCast where mod_id='"+publisher_id+"'"
         return self._db.fetchone(sql)
+
+    def getEffectiveVote(self, publisher_id):
+        """ returns positive - negative votes """
+        sql = "select count(*) from VoteCast where mod_id='"+publisher_id+"' and vote=2" 
+        subscriptions = self._db.fetchone(sql)
+        sql = "select count(*) from VoteCast where mod_id='"+publisher_id+"' and vote=-1" 
+        negative_votes = self._db.fetchone(sql)
+        return (subscriptions - negative_votes)
+          
+
                         
 #end votes
 
@@ -3517,21 +3527,21 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def getMostPopularChannelFromTorrent(self, infohash): ##
         """Returns name of most popular channel if any"""
-        sql = "select publisher_id, publisher_name from ChannelCast where infohash='"+bin2str(infohash)+"'" 
+        vcdb = VoteCastDBHandler.getInstance()
+        sql = "select * from ChannelCast where infohash='"+bin2str(infohash)+"'" 
         publishers = self._db.fetchall(sql)
         if len(publishers) == 0:
             return None
         else:
-            mostfamouspublishername = None
             maxvote = -1
             for publisher_item in publishers:
-                publisher = publisher_item[0]
-                publisher_name = publisher_item[1]
-                num_subscribers = self.getSubscribersCount(publisher) 
+                num_subscribers = vcdb.getEffectiveVote(publisher_item[0])
                 if num_subscribers > maxvote:
+                    publisher_id = publisher_item[0]
+                    publisher_name = publisher_item[1]
                     maxvote = num_subscribers
-                    mostfamouspublishername = publisher_name
-            return mostfamouspublishername
+            channel = (publisher_id, publisher_name, maxvote, {})
+            return channel
 
     
             

@@ -1041,7 +1041,7 @@ class GUIUtility:
             records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
 
 
-        print >> sys.stderr , "RREECCOORRDDSS" , records
+        print >> sys.stderr , "CHANNEL HITS" , records
 
 
 

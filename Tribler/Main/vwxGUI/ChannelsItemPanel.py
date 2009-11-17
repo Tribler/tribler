@@ -135,11 +135,11 @@ class ChannelsItemPanel(wx.Panel):
 
 
         # Add subscription button
-        #self.SubscriptionButton = tribler_topButton(self, -1, name = "SubscriptionButton_small")
-        #self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
-        #self.SubscriptionButton.setBackground(wx.WHITE)
-        #self.SubscriptionButton.Hide()
-        #self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 2)
+        self.SubscriptionButton = tribler_topButton(self, -1, name = "SubscriptionButton_small")
+        self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
+        self.SubscriptionButton.setBackground(wx.WHITE)
+        self.SubscriptionButton.Hide()
+        self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 2)
 
 
 
@@ -160,6 +160,7 @@ class ChannelsItemPanel(wx.Panel):
         if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
+        self.SubscriptionButton.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
 
          
@@ -243,7 +244,7 @@ class ChannelsItemPanel(wx.Panel):
             else:
                 self.title.SetMinSize((150,18))
                 self.title.SetSize((150,18))
-            #self.SubscriptionButton.Hide()
+            self.SubscriptionButton.Hide()
 
 
             
@@ -345,12 +346,20 @@ class ChannelsItemPanel(wx.Panel):
     def setSubscribed(self):
         if self.vcdb.hasSubscription(self.publisher_id, bin2str(self.utility.session.get_permid())):
             self.subscribed = True
+            self.SubscriptionButton.Show()
         else:
             self.subscribed = False
+            self.SubscriptionButton.Hide()
         self.hSizer.Layout()
         
 
+    def getVotes(self):
+        return self.vcdb.getEffectiveVote(self.publisher_id)
+
+
+
     def resetTitle(self):
+        self.num_votes = self.getVotes()
         title = self.data[1][:self.titleLength] + " (%s)" % self.num_votes
         self.title.SetLabel(title)
         self.title.Wrap(self.title.GetSize()[0])
@@ -361,7 +370,6 @@ class ChannelsItemPanel(wx.Panel):
         else: 
             ttstring = self.data[1] + " (%s votes)" % self.num_votes
         self.title.SetToolTipString(ttstring)
-        #self.Refresh()
 
 
     def setTorrentList(self, torrentList):
@@ -390,7 +398,8 @@ class ChannelsItemPanel(wx.Panel):
 
 
     def select(self, i=None, j=None):
-        self.selected = True      
+        self.selected = True   
+        self.SubscriptionButton.setBackground((216,233,240))
         if self.isMyChannel():
             self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.BOLD, False,FONTFACE))
         else:
@@ -405,6 +414,7 @@ class ChannelsItemPanel(wx.Panel):
         
     def deselect(self, i=None, j=None):
         self.selected = False
+        self.SubscriptionButton.setBackground(wx.WHITE)
         if self.isMyChannel():
             self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
         else:
@@ -416,37 +426,19 @@ class ChannelsItemPanel(wx.Panel):
         self.SetBackgroundColour(colour)
         self.Refresh()
        
+
     def SubscriptionClicked(self, event):
-#        if self.SubscriptionButton.isToggled():
-#            vote = {'mod_id' : self.publisher_id ,'voter_id' : self.utility.session.get_permid() , 'vote' : 2, 'time_stamp' : 0}
-#            self.vcdb.addVote(vote)
-#            self.SubscriptionText.SetLabel("Remove \nSubscription")
-#            self.SubscriptionButton.setToggled(False)
-#        else:
-#            self.hideElements()
-#            self.erasevSizerContents()
-#            self.vcdb.deleteVote(self.publisher_id ,self.utility.session.get_permid())
-#
-#            self.parent.setData(None)
-#            self.parent.Refresh()
-#            self.parent.parent.gridManager.refresh()
-
-#        self.parent.setSubscribed() # reloads subscription state of the parent
-
-
         self.vcdb.unsubscribe(self.publisher_id)
+        self.resetTitle()
         self.SubscriptionButton.Hide()
-         
+        self.setSubscribed()
+        self.guiUtility.frame.top_bg.needs_refresh = True
+        try:
+            wx.CallAfter(self.channelsDetails.SubscriptionText.SetLabel,"Subscribe")
+            wx.CallAfter(self.channelsDetails.SubscriptionButton.setToggled, True)
+        except:
+            pass
 
-
-
-
-
-
-
-
-
-     
 
     def isSubscribed(self):
         return self.subscribed
@@ -484,24 +476,37 @@ class ChannelsItemPanel(wx.Panel):
 
         
         if event.LeftUp() and not self.selected:
-            self.channelsDetails.reinitialize(force=True)
-            self.parent.deselectAllChannels()
-            self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
-            self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
-            self.select()
-            self.guiUtility.frame.top_bg.indexMyChannel=0
-            self.guiUtility.frame.top_bg.indexPopularChannels=-1
-            wx.CallAfter(self.channelsDetails.loadChannel,self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
-            if self.guiUtility.guiPage == 'search_results':
-                self.channelsDetails.origin = 'search_results'
-            else:
-                self.channelsDetails.origin = 'my_channel'
-
+#            self.channelsDetails.reinitialize(force=True)
+#            self.parent.deselectAllChannels()
+#            self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
+#            self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
+#            self.select()
+#            self.guiUtility.frame.top_bg.indexMyChannel=0
+#            self.guiUtility.frame.top_bg.indexPopularChannels=-1
+#            wx.CallAfter(self.channelsDetails.loadChannel,self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
+#            if self.guiUtility.guiPage == 'search_results':
+#                self.channelsDetails.origin = 'search_results'
+#            else:
+#                self.channelsDetails.origin = 'my_channel'
+            self.loadChannel()
+            wx.CallAfter(self.Refresh)
+            self.SetFocus()
             
-        wx.CallAfter(self.Refresh)
+    def loadChannel(self):
+        self.channelsDetails.reinitialize(force=True)
+        self.parent.deselectAllChannels()
+        self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
+        self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
+        self.select()
+        self.guiUtility.frame.top_bg.indexMyChannel=0
+        self.guiUtility.frame.top_bg.indexPopularChannels=-1
+        wx.CallAfter(self.channelsDetails.loadChannel,self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
+        if self.guiUtility.guiPage == 'search_results':
+            self.channelsDetails.origin = 'search_results'
+        else:
+            self.channelsDetails.origin = 'my_channel'
 
-        self.SetFocus()
-            
+
     def setIndex(self, index):
         self.index=index
 
