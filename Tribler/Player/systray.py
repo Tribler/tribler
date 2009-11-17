@@ -84,20 +84,17 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             if self.counter_for_reporting % self.reporting_interval == 0:
                 _event_reporter = get_reporter_instance()
                 # Report (number of peers helped). 
-                # TODO: check if Id is sent and timestamp recorded on the server
                 _event_reporter.add_event("m23trial", "helped-peers:%d" % len(self.helpedpeerids))
                 
                 
         if self.counter_for_reporting == 0 or self.counter_for_reporting % self.reporting_interval == 0:
             if self.get_treatment() == "compaverage":
-                # TODO: get average number of peers helped by other peers from a website. How to?
                 try:
                     self.average_helpedpeers = self.get_avg_helped()
                 except:
                     print_exc()
                 
             if self.get_treatment() == "efficacy":
-                # TODO: get total number of peers who took part in the experiment from a website. How to?
                 try:
                     self.total_peers = self.get_total_peers()
                 except:
