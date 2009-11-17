@@ -369,7 +369,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         txt = self.appname+' 1.0.2\n\n'
         txt += 'DL: %.1f\n' % (totalspeed[DOWNLOAD])
         txt += 'UL:   %.1f\n' % (totalspeed[UPLOAD])
-        txt += 'Helping: %d\n' % (totalhelping)
+        # txt += 'Helping: %d\n' % (totalhelping) # taking this out for the M23Trial (it adds noise to the seeding appeals)
         #print >>sys.stderr,"main: ToolTip summary",txt
         self.OnSetSysTrayTooltip(txt)
 

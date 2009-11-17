@@ -13,6 +13,8 @@ import wx
 from Tribler.Core.API import *
 from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
 
+from Tribler.Core.Utilities.utilities import show_permid # M23TRIAL
+
 class PlayerTaskBarIcon(wx.TaskBarIcon):
     
     def __init__(self,wxapp,iconfilename):
@@ -82,9 +84,12 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
             # LOG HELPED PEER IDS TO SERVER
             # We don't need to log every 10s.          
             if self.counter_for_reporting % self.reporting_interval == 0:
+                permid = show_permid(self.wxapp.s.get_permid())
                 _event_reporter = get_reporter_instance()
                 # Report (number of peers helped). 
-                _event_reporter.add_event("m23trial", "helped-peers:%d" % len(self.helpedpeerids))
+                # temporary hack: instead of making a complicate xpath query later, we put everything 
+                # we need in the text of this element
+                _event_reporter.add_event("m23trial", "helped-peers:%d:" % len(self.helpedpeerids) + permid + ":" + str(self.counter_for_reporting))
                 
                 
         if self.counter_for_reporting == 0 or self.counter_for_reporting % self.reporting_interval == 0:
