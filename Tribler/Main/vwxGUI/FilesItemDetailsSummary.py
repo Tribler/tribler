@@ -20,6 +20,7 @@ from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.utils import videoextdefaults
 from Tribler.__init__ import LIBRARYNAME
 
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 
 
 
@@ -75,6 +76,11 @@ class FilesItemDetailsSummary(bgPanel):
         #self.refreshScrollButtons()
 
 
+        # most popular channel (if any) this torrent belongs to
+        self.channel = None
+
+
+
         self.infohash = torrentHash
         self.torrent = torrent
         self.torrenthash = torrentHash
@@ -110,16 +116,16 @@ class FilesItemDetailsSummary(bgPanel):
         # belongs to channel text
         self.belongstochanneltext = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(180,14))        
         self.belongstochanneltext.SetBackgroundColour((216, 233, 240))
-        self.belongstochanneltext.SetForegroundColour((0,110,149))
+        self.belongstochanneltext.SetForegroundColour((255,51,0))
+        self.belongstochanneltext.Bind(wx.EVT_LEFT_UP, self.belongstochanneltext_clicked)
         self.belongstochanneltext.SetFont(wx.Font(FS_BELONGS_TO_CHANNEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
         self.belongstochanneltext.SetMinSize((180,14))
 
 
         channel = self.chdb.getMostPopularChannelFromTorrent(self.torrenthash)
         if channel is not None:
-            self.belongstochanneltext.SetLabel("From %s's Channel" % channel)
-            self.belongstochanneltext.SetToolTipString("Please search for %s's channel to subscribe to it" % channel)
-
+            self.belongstochanneltext.SetLabel("From %s's Channel" % channel[1])
+            self.channel = channel
 
         self.vSizer.Add(self.belongstochanneltext, 0, wx.LEFT, 10)
 
@@ -270,6 +276,72 @@ class FilesItemDetailsSummary(bgPanel):
                 self.ag.Hide()
                 self.scrollLeft.Hide()
                 self.scrollRight.Hide()
+
+
+    def belongstochanneltext_clicked(self, event):
+        self.guiUtility.standardOverview.channel = self.channel
+        self.guiUtility.guiPage = 'channels'
+        self.guiUtility.frame.top_bg.indexMyChannel = -1
+        self.guiUtility.frame.top_bg.indexPopularChannels = -1
+        self.guiUtility.channelsOverview(erase=False)
+
+        # channelsearchmanager
+        channelsearch_manager = self.guiUtility.channelsearch_manager
+ 
+        # read my channel data
+        [total_items,mychannel_data] = channelsearch_manager.getMyChannel('channelsMode')
+        
+        # read popular channels data
+        [stotal_items,sdata] = channelsearch_manager.getSubscriptions('channelsMode')
+        [total_items,popularchannels_data] = channelsearch_manager.getPopularChannels('channelsMode', maximum=18-stotal_items)
+        popularchannels_data.extend(sdata)
+
+       # my channel check
+        if self.channel[0] == bin2str(self.guiUtility.utility.session.get_permid()):
+             self.guiUtility.standardOverview.getGrid().data = mychannel_data
+             self.guiUtility.standardOverview.getGrid().refreshPanels()
+             self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data
+             self.guiUtility.standardOverview.getGrid(2).refreshPanels()
+             wx.CallAfter(self.processLinkToChannel, 'grid', 0)
+             return
+
+        # popular channels check
+        for index in xrange(0,len(ptotal_data)):
+            if self.channel[0] == ptotal_data[index][0]:
+                 self.guiUtility.standardOverview.getGrid().data = mychannel_data
+                 self.guiUtility.standardOverview.getGrid().refreshPanels()
+                 self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data
+                 self.guiUtility.standardOverview.getGrid(2).refreshPanels()
+                 wx.CallAfter(self.processLinkToChannel, 'grid2', index)
+                 return
+
+        # channel isn't viewed yet. insert it in the popular unsubscribed channels section
+        self.guiUtility.standardOverview.getGrid().data = mychannel_data
+        self.guiUtility.standardOverview.getGrid().refreshPanels()
+        [total_items,popularchannels_data] = channelsearch_manager.getPopularChannels('channelsMode', maximum=18-stotal_items)
+        popularchannels_data.append(self.channel)
+        index= len(popularchannels_data) - 1
+        popularchannels_data.extend(sdata)
+        self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data
+        self.guiUtility.standardOverview.getGrid(2).refreshPanels()
+        wx.CallAfter(self.processLinkToChannel, 'grid2', index)
+
+
+
+
+    def processLinkToChannel(self, grid, index):
+        print >> sys.stderr , "index" , index
+        self.guiUtility.standardOverview.data['channelsMode'][grid].expandPanelFromIndex(index)
+        self.guiUtility.standardOverview.data['channelsMode'][grid].getPanelFromIndex(index).loadChannel()
+        if grid == 'grid': # my channel
+            self.guiUtility.frame.top_bg.indexMyChannel = 0
+            self.guiUtility.frame.top_bg.indexPopularChannels = -1
+        else:
+            self.guiUtility.frame.top_bg.indexMyChannel = -1
+            self.guiUtility.frame.top_bg.indexPopularChannels = index
+
+
+
 
 
     def loadTorrent(self, files):
