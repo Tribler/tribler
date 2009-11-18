@@ -709,7 +709,7 @@ class UDPConnection:
                     self.handler.connections[remote] = connection
                     connection.connection_state = UDPConnection.CONNECT_SENT
                     if self.handler.reporter:
-                        self.handler.reporter.add_event("UDPPuncture", "OCON:IRRQ,%s,%d,%s" % (connection.address[0],
+                        self.handler.reporter.add_event("UDPPuncture", "OCON-IRRQ:%s,%d,%s" % (connection.address[0],
                             connection.address[1], connection.id.encode('hex')))
                     connection.sendto(UDPHandler.CONNECT + chr(0) + self.handler.id +
                         natfilter_to_byte(self.handler.nat_type, self.handler.filter_type) +
