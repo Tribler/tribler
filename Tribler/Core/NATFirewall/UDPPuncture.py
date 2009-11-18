@@ -443,8 +443,8 @@ class UDPHandler:
                     rendezvous = self.connections.get(rendezvous_addr)
                     if rendezvous:
                         if self.reporter:
-                            self.reporter.add_event("UDPPuncture", "OFWC:%s,%d,%s" % (rendezvous.address[0],
-                                rendezvous.address[1], rendezvous.id.encode('hex')))
+                            self.reporter.add_event("UDPPuncture", "OFWC:%s,%d,%s,%s" % (rendezvous.address[0],
+                                rendezvous.address[1], rendezvous.id.encode('hex'), peer.id.encode('hex')))
                         rendezvous.sendto(UDPHandler.FW_CONNECT_REQ + peer.id)
 
                 peer.connection_state = UDPConnection.CONNECT_SENT
@@ -825,8 +825,8 @@ class UDPConnection:
                     #FIXME: handle unconnected peers! I.e. delete from advertised_by list and goto next
                     if rendezvous:
                         if self.handler.reporter:
-                            self.handler.reporter.add_event("UDPPuncture", "OFWC-RTR:%s,%d,%s" % (rendezvous.address[0],
-                                rendezvous.address[1], rendezvous.id.encode('hex')))
+                            self.handler.reporter.add_event("UDPPuncture", "OFWC-RTR:%s,%d,%s,%s" % (rendezvous.address[0],
+                                rendezvous.address[1], rendezvous.id.encode('hex'), peer.id.encode('hex')))
                         rendezvous.sendto(UDPHandler.FW_CONNECT_REQ + remote)
 
                 data = data[5:]
