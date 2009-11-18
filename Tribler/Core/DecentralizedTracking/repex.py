@@ -113,7 +113,12 @@ def c2infohash_dns(connection):
     """
     # luckily the same interface
     infohash = connection.connecter.infohash 
-    dns = (connection.get_ip(True), connection.get_port(False))
+    #dns = (connection.get_ip(True), connection.get_port(False)) # buggy, get_port might return -1
+    if hasattr(connection, 'got_ut_pex'):
+        encr_connection = connection.connection
+    else:
+        encr_connection = connection
+    dns = encr_connection.dns
     return infohash, dns
 
 def swarmcache_ts(swarmcache):
