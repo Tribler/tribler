@@ -32,6 +32,7 @@ class BackgroundTrafficReceiver(Thread):
         serversocket.setblocking(0)
         #bind the socket
         try:
+            serversocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
             serversocket.bind(("0.0.0.0", self.port))
         except:
             return

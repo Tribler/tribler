@@ -1,3 +1,7 @@
+'''
+Mugurel Ionut Andreica (UPB)
+'''
+
 import sys
 
 from Tribler.Plugin.UploadCongestionControl.constants import *
@@ -8,9 +12,7 @@ import random
 LEDBAT_TEST_RUNNING = 0
 LEDBAT_TEST_RUNNING_LOCK = Lock()
 
-#TEST_DESTINATION = "127.0.0.1"
-#TEST_DESTINATION = "pygmee.tribler.org"
-TEST_DESTINATION = ["p2p-next-09.grid.pub.ro", "pygmee.tribler.org" ]
+TEST_DESTINATION = ["mugurel.p2p-next.org", "trial23sink.das2.ewi.tudelft.nl", "p2p-next-09.grid.pub.ro", "pygmee.tribler.org" ]
 
 NUM_LISTEN_UDP_SOCKS = 10
 
@@ -105,6 +107,8 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
         print >>sys.stderr, "No server is up - Aborting the Ledbat test"
         plotter.stopRunning()
         return
+    else:
+        print >>sys.stderr, "Sending data to ", TEST_DESTINATION[destIdx]
 
     LEDBAT_TEST_RUNNING_LOCK.acquire()
     #print LEDBAT_TEST_RUNNING
@@ -117,7 +121,7 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
     for i in range(numLedbat):
         ledbat_udp = Ledbat(id = "Ledbat_" + str(i), numUDPSocks = numLedbatUDPConns, plotter = plotter)
         ledbat_udp.destPort = random.randint(minLedbatPort, maxLedbatPort)
-        #print "Port=", ledbat_udp.destPort, "(min=", minLedbatPort, "; max=", maxLedbatPort, ")"
+        print >>sys.stderr, "Ledbat port=", ledbat_udp.destPort, "(min=", minLedbatPort, "; max=", maxLedbatPort, ")"
         ludp.append(ledbat_udp)
 
     time.sleep(4.0)

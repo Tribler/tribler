@@ -85,8 +85,8 @@ class LedbatSender(Thread):
             self.UDPSockTotalBytesSent[udpsock] = 0
             self.UDPSockPort[udpsock] = port
 
-        self.rtt = 0.1
-        self.stddev = 0.1
+        self.rtt = 0.25
+        self.stddev = 1.0
         self.alpha = 0.875
         self.beta = 0.75
         
@@ -207,6 +207,8 @@ class LedbatSender(Thread):
         self.packetListCond.release()
 
     def adjustUploadRate(self, upldRate, pkt, udpsock):
+        #print "Upload Rate adjust message"
+
         self.upldRateLock.acquire()
         self.upldRate = self.upldRate - self.upldRateUDPSock[udpsock]
         self.upldRateUDPSock[udpsock] = upldRate
@@ -218,6 +220,8 @@ class LedbatSender(Thread):
         self.bwPlottable.setValue(x)     
 
     def adjustDelay(self, delay, pkt):
+        #print "Delay adjust message"
+
         self.packetListCond.acquire()
         self.updateBaseDelay(delay)
         self.updateCurrentDelay(delay)
@@ -253,7 +257,7 @@ class LedbatSender(Thread):
         #    print "newRtt=", newRtt
         #    print "packet ID=", pkt.packetID, "; sending time=", pkt.sendTime, "; tnow=", tnow
 
-        #print "pid=", pkt.packetID, ";rtt=", newRtt
+        #print "ACK: pid=", pkt.packetID, "; RTT=", newRtt
         self.majorLock.acquire()
 
         #self.rttList.append(newRtt)
@@ -267,7 +271,7 @@ class LedbatSender(Thread):
         try:
             del self.packetDic[pkt.packetID]
             decUnAcked = -1
-            #print "Received OK ack for packet with pid=", pkt.packetID
+            #print "ACK-OK: pid=", pkt.packetID
         except:
             decUnAcked = 0
         
@@ -328,6 +332,8 @@ class LedbatSender(Thread):
         decUnAcked = 0
         
         for pid in toRemove:
+            #print "Packet lost: pid=", pid
+
             try:
                 sendTime = self.packetDic[pid]
                 del self.packetDic[pid]
@@ -512,7 +518,7 @@ class LedbatReceiver(Thread):
             udpsock, port = udpsp
             udpsock.setblocking(0)
             inputSockList.append(udpsock)
-            #print "[LedbatReceiver-" + self.id + "] Waiting for data on UDP port", port
+            print >>sys.stderr, "[LedbatReceiver-" + self.id + "] Waiting for data on UDP port", port
 
         while (self.isRunning()):            
             inputready, outputready, exceptready = select(inputSockList, [], [], DEFAULT_TMAX_WAIT_SELECTOR) 
@@ -560,7 +566,8 @@ class LedbatReceiver(Thread):
                                     totalTransferTime = max([difSend, difRecv])
                                     upldRate = (self.totalTransferredBytes[remoteID] - self.packetList[remoteID][0].totalTransferredBytes) / totalTransferTime
                                     if (self.numRecvPackets % 1000 == 0):
-                                        print "[LedbatReceiver-" + self.id + "] Sending upload rate (", remoteID, ") => totalTransferredBytes=", (self.totalTransferredBytes[remoteID] - self.packetList[remoteID][0].totalTransferredBytes), "totalTransferTime=", totalTransferTime, "uploadRate=", upldRate
+                                        pass
+                                    print "[LedbatReceiver-" + self.id + "] Sending upload rate (", remoteID, ") => totalTransferredBytes=", (self.totalTransferredBytes[remoteID] - self.packetList[remoteID][0].totalTransferredBytes), "totalTransferTime=", totalTransferTime, "uploadRate=", upldRate
                                     self.ledbat_sender.sendPacketImmediately(str(upldRate), int(packet.packetID), packet.sendTime, PACKET_TYPE_RATE, packet.stage, remoteIP, remotePort, 0)
 
                                     while (len(self.packetList[remoteID]) > self.minNumPackets and packet.recvTime - self.packetList[remoteID][0].recvTime > 1.05):
@@ -569,7 +576,8 @@ class LedbatReceiver(Thread):
                                     while (len(self.packetList[remoteID]) > self.minNumPackets and packet.recvTime - self.packetList[remoteID][len(self.packetList[remoteID]) - 2].recvTime < 0.05):
                                         self.packetList[remoteID].pop(len(self.packetList[remoteID]) - 2)                                    
 
-                            delay = packet.recvTime - packet.sendTime
+                            delay = packet.recvTime - packet.sendTime             
+                            print "[LedbatReceiver-" + self.id + "] Sending delay (", remoteID, ") => pid=", packet.packetID, "; delay=", delay
                             self.ledbat_sender.sendPacketImmediately(str(delay), int(packet.packetID), packet.sendTime, PACKET_TYPE_DELAY, packet.stage, remoteIP, remotePort, 0)
                         elif (packet.type == PACKET_TYPE_DELAY):
                             delay = float(packet.content)
@@ -618,6 +626,7 @@ class Ledbat(Thread):
             while (NEXT_AVAIL_LEDBAT_UDP_PORT <= MAX_SOURCE_LEDBAT_UDP_PORT):
                 localAddr = (DEFAULT_IP, NEXT_AVAIL_LEDBAT_UDP_PORT)
                 try:
+                    UDPSock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
                     UDPSock.bind(localAddr)
                     break
                 except:

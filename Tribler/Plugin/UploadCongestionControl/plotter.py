@@ -1,3 +1,7 @@
+'''
+Mugurel Ionut Andreica (UPB)
+'''
+
 READY_FOR_RELEASE = 1
 
 if (READY_FOR_RELEASE == 0):

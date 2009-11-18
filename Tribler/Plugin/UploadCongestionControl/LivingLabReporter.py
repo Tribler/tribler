@@ -54,7 +54,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         header.appendChild(self.newElement(doc, "deviceid", self.mypermid))
         header.appendChild(self.newElement(doc, "timestamp", long(round(time.time()))))
 
-        version = "ledbat_test_m23_trial"
+        version = "ledbat_test_m23_trial_v1.0"
         header.appendChild(self.newElement(doc, "swversion", version))
 
         # Now add the status elements

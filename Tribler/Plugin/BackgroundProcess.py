@@ -420,7 +420,6 @@ class BackgroundApp(BaseApp):
             #report upload-related information
             #print >>sys.stderr, "Ledbat test is running"
             
-            print 
             try:
                 event_reporter = get_reporter_instance()
                 totalUpldSpeed = 0.0
@@ -428,14 +427,16 @@ class BackgroundApp(BaseApp):
                 for ds in playing_dslist:
                     dw = ds.get_download()
                     infohash = dw.get_def().get_infohash()
+
+                    #print >>sys.stderr, "cntDic=", len(totalUpldBytesDic.keys()), "; ds=", ds, "; dw=", dw, "; infohash=", infohash
                 
                     upldSpeed = ds.get_current_speed(UPLOAD)
                     totalUpldSpeed += upldSpeed
                 
                     ds_totalUpldBytes = ds.get_total_transferred(UPLOAD)
-                    if (ds in totalUpldBytesDic.keys()):
-                        totalUpldBytes -= totalUpldBytesDic[ds]
-                    totalUpldBytesDic[ds] = ds_totalUpldBytes
+                    if (dw in totalUpldBytesDic.keys()):
+                        totalUpldBytes -= totalUpldBytesDic[dw]
+                    totalUpldBytesDic[dw] = ds_totalUpldBytes
                     totalUpldBytes += ds_totalUpldBytes
 
                 permid = getStringFromPermID(self.s.get_permid())
