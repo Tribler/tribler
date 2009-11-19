@@ -170,7 +170,7 @@ class EventStatusReporter:
 
             if event:
                 # prepend the session-key
-                self._event.insert(0, {"key":"session-key", "timestamp":time(), "event":self._session_key})
+                event.insert(0, {"key":"session-key", "timestamp":time(), "event":self._session_key})
 
             if USE_LIVING_LAB_REPORTING:
                 if event:
