@@ -128,7 +128,7 @@ def testReceiver(ledbatStartingPort, tcpPort):
     btr.start()
     ledbat = Ledbat(id = "recv", startingUDPPort = ledbatStartingPort, numUDPSocks = NUM_LISTEN_UDP_SOCKS)
     ledbat.start()
-    time.sleep(12000000.0)
+    time.sleep(12000000000.0)
     ledbat.stopRunning()
     btr.stopRunning()
     ledbat.join()

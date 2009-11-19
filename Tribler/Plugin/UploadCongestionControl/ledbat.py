@@ -76,13 +76,13 @@ class LedbatSender(Thread):
 
         self.UDPSockList = UDPSockList
         self.numUDPSocks = len(self.UDPSockList)        
-        self.UDPSockTotalBytesSent = {}
+        #self.UDPSockTotalBytesSent = {}
         self.UDPSockPort = {}
         self.UDPSockIdx = 0
 
         for udpsp in self.UDPSockList:
             udpsock, port = udpsp
-            self.UDPSockTotalBytesSent[udpsock] = 0
+            #self.UDPSockTotalBytesSent[udpsock] = 0
             self.UDPSockPort[udpsock] = port
 
         self.rtt = 0.25
@@ -147,7 +147,7 @@ class LedbatSender(Thread):
         try:
             #print "[CCSender-" + self.id + "] Sending packet to (", destIP, ":", destPort, ")"
             UDPSock.sendto(strpacket, (destIP, destPort))
-            self.UDPSockTotalBytesSent[UDPSock] += len(strpacket)
+            #self.UDPSockTotalBytesSent[UDPSock] += len(strpacket)
             error = 0
         except:
             #print "[CCSender-" + self.id + "] Error sending packet:", sys.exc_info()[0]
@@ -176,10 +176,10 @@ class LedbatSender(Thread):
 
     def sendPacketImmediately(self, content, packetID, sendTime, type, sourceID, destIP, destPort, destID):
         #UDPSock, UDPPort = self.UDPSockList[0]
-        UDPSock, UDPPort = self.UDPSockList[self.UDPSockIdx]
-        self.UDPSockIdx += 1
-        if (self.UDPSockIdx == self.numUDPSocks):
-            self.UDPSockIdx = 0
+        UDPSock, UDPPort = self.UDPSockList[self.UDPSockIdx + 1]
+        #self.UDPSockIdx += 1
+        #if (self.UDPSockIdx == self.numUDPSocks):
+        #    self.UDPSockIdx = 0
 
         if (packetID < 0):
             self.packetID += 1
@@ -374,7 +374,7 @@ class LedbatSender(Thread):
             self.lastPacketLossTime = tnow
 
         self.majorLock.acquire()
-        self.timerPeriod = self.timer.period = max([0.5 * self.rtt, 0.06])
+        self.timerPeriod = self.timer.period = max([0.5 * self.rtt, 0.1])
         currRtt = self.rtt
         #print "timer Notify => timer period =", self.timer.period
         self.majorLock.release()
@@ -412,9 +412,9 @@ class LedbatSender(Thread):
                 #UDPPort = self.UDPSockPort[UDPSock]                
                 # choose the next UDP socket round-robin
                 UDPSock, UDPPort = self.UDPSockList[self.UDPSockIdx]
-                self.UDPSockIdx += 1
-                if (self.UDPSockIdx == self.numUDPSocks):
-                    self.UDPSockIdx = 0
+                #self.UDPSockIdx += 1
+                #if (self.UDPSockIdx == self.numUDPSocks):
+                #    self.UDPSockIdx = 0
                 
                 tnow = time.time()
                 if (sendTime < 0):

@@ -74,7 +74,7 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
     numTCPConns = 1
 
     numLedbat = 1
-    numLedbatUDPConns = 1
+    numLedbatUDPConns = 2
 
     permid = getStringFromPermID(mypermid)
     print >>sys.stderr, "PermID=", permid
