@@ -322,6 +322,6 @@ if __name__ == "__main__":
         # s.set_value(generate_dict())
 
         data = generate_dict()
-        stress(data, 71213, None, 1000)
+        stress(data, 71213, None, 100000)
 
     stresstest()
