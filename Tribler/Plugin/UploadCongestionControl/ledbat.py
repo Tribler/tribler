@@ -319,9 +319,11 @@ class LedbatSender(Thread):
         #    laux.sort()
         #    self.rtt = self.rttList[int(66.0 * len(self.rttList) / 100.0)]
 
-        rttCoeff = 10.0
+        rttCoeff = 7.0
         stddevCoeff = 4.0
-        tprev = tnow - (rttCoeff * self.rtt + stddevCoeff * self.stddev)
+        packetTimeout = max([rttCoeff * self.rtt + stddevCoeff * self.stddev, 0.21 + self.rtt])
+
+        tprev = tnow - packetTimeout
 
         toRemove = []
         for pid in self.packetDic.keys():
@@ -372,7 +374,7 @@ class LedbatSender(Thread):
             self.lastPacketLossTime = tnow
 
         self.majorLock.acquire()
-        self.timerPeriod = self.timer.period = 0.5 * self.rtt
+        self.timerPeriod = self.timer.period = max([0.5 * self.rtt, 0.06])
         currRtt = self.rtt
         #print "timer Notify => timer period =", self.timer.period
         self.majorLock.release()
@@ -424,15 +426,14 @@ class LedbatSender(Thread):
                 dataPacket = pkt.toString()
                 self.__sendPacket(UDPSock, dataPacket, pkt, destIP, destPort)
                 
-                self.packetListCond.acquire()
                 self.numSentPackets += 1
+                if (self.numSentPackets % 100 == 0):
+                    time.sleep(0.0)
+
+                self.packetListCond.acquire()
                 #if (self.numSentPackets % 200 == 0):
                 #    print "[LebatSender-", self.id, "] Sent", self.numSentPackets, "packets; cwnd=", self.cwnd, "; unAcked=", self.UnAcked, "; rtt=", self.rtt
-
                 self.packetListCond.notifyAll()
-
-                #if (len(self.packetList) <= ceil(self.cwnd) - 1):
-                #    self.packetListCond.notifyAll()
 
             self.packetListCond.wait()
             self.packetListCond.release()
@@ -565,9 +566,9 @@ class LedbatReceiver(Thread):
                         
                                     totalTransferTime = max([difSend, difRecv])
                                     upldRate = (self.totalTransferredBytes[remoteID] - self.packetList[remoteID][0].totalTransferredBytes) / totalTransferTime
-                                    if (self.numRecvPackets % 1000 == 0):
-                                        pass
-                                    print "[LedbatReceiver-" + self.id + "] Sending upload rate (", remoteID, ") => totalTransferredBytes=", (self.totalTransferredBytes[remoteID] - self.packetList[remoteID][0].totalTransferredBytes), "totalTransferTime=", totalTransferTime, "uploadRate=", upldRate
+                                    if (self.numRecvPackets % 500 == 0):
+                                        #pass
+                                        print "[LedbatReceiver-" + self.id + "] Sending upload rate (", remoteID, ") => totalTransferredBytes=", (self.totalTransferredBytes[remoteID] - self.packetList[remoteID][0].totalTransferredBytes), "totalTransferTime=", totalTransferTime, "uploadRate=", upldRate
                                     self.ledbat_sender.sendPacketImmediately(str(upldRate), int(packet.packetID), packet.sendTime, PACKET_TYPE_RATE, packet.stage, remoteIP, remotePort, 0)
 
                                     while (len(self.packetList[remoteID]) > self.minNumPackets and packet.recvTime - self.packetList[remoteID][0].recvTime > 1.05):
@@ -577,7 +578,7 @@ class LedbatReceiver(Thread):
                                         self.packetList[remoteID].pop(len(self.packetList[remoteID]) - 2)                                    
 
                             delay = packet.recvTime - packet.sendTime             
-                            print "[LedbatReceiver-" + self.id + "] Sending delay (", remoteID, ") => pid=", packet.packetID, "; delay=", delay
+                            #print "[LedbatReceiver-" + self.id + "] Sending delay (", remoteID, ") => pid=", packet.packetID, "; delay=", delay
                             self.ledbat_sender.sendPacketImmediately(str(delay), int(packet.packetID), packet.sendTime, PACKET_TYPE_DELAY, packet.stage, remoteIP, remotePort, 0)
                         elif (packet.type == PACKET_TYPE_DELAY):
                             delay = float(packet.content)

@@ -3,6 +3,7 @@ Mugurel Ionut Andreica (UPB)
 '''
 
 import sys
+import base64
 
 from Tribler.Plugin.UploadCongestionControl.constants import *
 from Tribler.Plugin.UploadCongestionControl.ledbat import *
@@ -56,9 +57,7 @@ class TrafficShaper:
             return self.maxRate
 
 def getStringFromPermID(permid):
-    lmax = min([16, len(permid)])
-    xpermid = permid[:lmax].encode('ascii', 'ignore')
-    return xpermid
+    return base64.b64encode(permid)
 
 def isLedbatTestRunning():
     LEDBAT_TEST_RUNNING_LOCK.acquire()
@@ -78,6 +77,8 @@ def testSender(mypermid, tcpPort = DEFAULT_TCP_BACKGROUND_TRAFFIC_PORT, minLedba
     numLedbatUDPConns = 1
 
     permid = getStringFromPermID(mypermid)
+    print >>sys.stderr, "PermID=", permid
+    
     plotter = Plotter(1.0, permid)
     trafficShaper = TrafficShaper()
 
@@ -184,7 +185,7 @@ def testReceiver(ledbatStartingPort, tcpPort):
 
 if __name__=="__main__":
     if (len(sys.argv) == 1 or sys.argv[1] == "send"):
-        testSender("permid-xxy")
+        testSender("permid-ledbat_test")
     elif (len(sys.argv) > 1 and sys.argv[1] == "recv"):
         if (len(sys.argv) > 3):
             testReceiver(int(sys.argv[2]), int(sys.argv[3]))

@@ -2,6 +2,8 @@
 Mugurel Ionut Andreica (UPB)
 '''
 
+import sys
+
 READY_FOR_RELEASE = 1
 
 if (READY_FOR_RELEASE == 0):
@@ -95,7 +97,7 @@ class Plotter(Thread):
             regList = []
             self.registeredLock.acquire()
             for plottableName in self.registered.keys():
-                regList.append(self.registered[plottableName])
+                regList.append((plottableName, self.registered[plottableName]))
             self.registeredLock.release()
 
             tnow = time.time() - self.tstart
@@ -106,12 +108,16 @@ class Plotter(Thread):
             ymax = None
             sumy = 0
             
+            print >>sys.stderr, "---------------------------------------------------------"
             for plottableTuple in regList:
-                plottable, xdata, ydata, lines, elem = plottableTuple
+                plottableName, tuple = plottableTuple
+                plottable, xdata, ydata, lines, elem = tuple
                 xdata.append(tnow)
                 yvalue = plottable.getValue()
                 sumy += yvalue
                 ydata.append(yvalue)
+                
+                print >>sys.stderr, plottableName, ": t=", tnow, "=> value=", yvalue 
                 
                 # for status reporting
                 elem.set_value(yvalue)
