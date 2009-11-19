@@ -8,13 +8,11 @@ partners at the living lab. This is determened by the
 USE_LIVING_LAB_REPORTING variable.
 """
 
-from base64 import b64encode
 import sys, urllib, zlib
 import thread
 import threading
 from random import shuffle
 from time import time
-from base64 import b64encode
 from traceback import print_exc
 from Tribler.Core.Session import Session
 
@@ -53,7 +51,7 @@ def get_reporter_instance():
         from Tribler.Core.CacheDB.SqliteVideoPlaybackStatsCacheDB import VideoPlaybackDBHandler
         return VideoPlaybackDBHandler.get_instance()
     else:
-        return EventStatusReporter.get_instance(str(time()) + ":")
+        return EventStatusReporter.get_instance()
 
 class EventStatusReporter:
     """
@@ -75,13 +73,12 @@ class EventStatusReporter:
                 EventStatusReporter.lock.release()
         return EventStatusReporter.__single
     
-    def __init__(self, prefix):
+    def __init__(self):
         if EventStatusReporter.__single is not None:
             raise RuntimeError, "EventStatusReporter is singleton"
-        assert type(prefix) is str
 
         # the prefix is prepended to each event key
-        self._prefix = prefix
+        self._session_key = str(time())
 
         # thread-safety
         self._thread_lock = thread.allocate_lock()
@@ -170,6 +167,10 @@ class EventStatusReporter:
 
             finally:
                 self._thread_lock.release()
+
+            if event:
+                # prepend the session-key
+                self._event.insert(0, {"key":"session-key", "timestamp":time(), "event":self._session_key})
 
             if USE_LIVING_LAB_REPORTING:
                 if event:
@@ -264,15 +265,6 @@ class EventStatusReporter:
         assert type(event) is str
         if self._enable_reporting:
 
-            # prepend the prefix to the key
-            key = self._prefix + b64encode(key)
-
-            # because the key usually an infohash, and because this is
-            # usually (and incorrectly) stored in a string instead of
-            # a unicode string, this will crash the ulanc-reporter
-            # when converted into XML.
-            key = b64encode(key)
-            
             self._thread_lock.acquire()
             try:
                 # check self._enable_reporting again since this is
@@ -281,6 +273,10 @@ class EventStatusReporter:
                     return True
                 if DEBUG: print >> sys.stderr, "EventStatusReporter: add_event", `key`, `event`
                 self._event.append({"key":key, "timestamp":time(), "event":event})
+
+                # if len(self._event) == 10:
+                #     self._thread_flush.set()
+
             finally:
                 self._thread_lock.release()
 

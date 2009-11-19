@@ -41,6 +41,7 @@ class SingleDownload:
         self._hashcheckfunc = None
         self._getstatsfunc = None
         self.infohash = infohash
+        self.b64_infohash = b64encode(infohash)
         try:
             self.dldoneflag = Event()
             self.dlrawserver = multihandler.newRawServer(infohash,self.dldoneflag)
@@ -56,7 +57,7 @@ class SingleDownload:
             # M23TRIAL
             from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
             event_reporter = get_reporter_instance()
-            event_reporter.add_event(self.infohash, "peerid:%s" % b64encode(self.peerid))
+            event_reporter.add_event(self.b64_infohash, "peerid:%s" % b64encode(self.peerid))
             
             #print >>sys.stderr,"SingleDownload: __init__: My peer ID is",`peerid`
     

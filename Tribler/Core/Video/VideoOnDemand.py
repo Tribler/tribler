@@ -11,6 +11,7 @@ import os
 import base64
 import os,sys,time
 import re
+from base64 import b64encode
 
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 from Tribler.Core.Video.MovieTransport import MovieTransport,MovieTransportStreamWrapper
@@ -100,16 +101,17 @@ class MovieOnDemandTransporter(MovieTransport):
         # _event_reporter stores events that are logged somewhere...
         from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
         self._event_reporter = get_reporter_instance()
+        self.b64_infohash = b64encode(bt1download.infohash)
             
         # add an event to indicate that the user wants playback to
         # start
         def set_nat(nat):
-            self._event_reporter.add_event(bt1download.infohash, "nat:%s" % nat)
-        self._event_reporter.add_event(bt1download.infohash, "play-init")
-        self._event_reporter.add_event(bt1download.infohash, "piece-size:%d" % videostatus.piecelen)
-        self._event_reporter.add_event(bt1download.infohash, "num-pieces:%d" % videostatus.movie_numpieces)
-        self._event_reporter.add_event(bt1download.infohash, "bitrate:%d" % videostatus.bitrate)
-        self._event_reporter.add_event(bt1download.infohash, "nat:%s" % session.get_nat_type(callback=set_nat))
+            self._event_reporter.add_event(self.b64_infohash, "nat:%s" % nat)
+        self._event_reporter.add_event(self.b64_infohash, "play-init")
+        self._event_reporter.add_event(self.b64_infohash, "piece-size:%d" % videostatus.piecelen)
+        self._event_reporter.add_event(self.b64_infohash, "num-pieces:%d" % videostatus.movie_numpieces)
+        self._event_reporter.add_event(self.b64_infohash, "bitrate:%d" % videostatus.bitrate)
+        self._event_reporter.add_event(self.b64_infohash, "nat:%s" % session.get_nat_type(callback=set_nat))
 
         # self._complete = False
         self.videoinfo = videoinfo
@@ -557,7 +559,7 @@ class MovieOnDemandTransporter(MovieTransport):
                         print >>sys.stderr,"vod: trans: No bitrate info avail, wild guess: %.2f KByte/s" % (bitrate/1024)
 
                     vs.set_bitrate(bitrate)
-                    self._event_reporter.add_event(self.bt1download.infohash, "bitrate-guess:%d" % bitrate)
+                    self._event_reporter.add_event(self.b64_infohash, "bitrate-guess:%d" % bitrate)
             else:
                 if self.doing_bitrate_est:
                     # There was no playtime info in torrent, use what FFMPEG tells us
@@ -567,7 +569,7 @@ class MovieOnDemandTransporter(MovieTransport):
                         print >>sys.stderr,"vod: trans: Estimated bitrate: %.2f KByte/s" % (bitrate/1024)
 
                     vs.set_bitrate(bitrate)
-                    self._event_reporter.add_event(self.bt1download.infohash, "bitrate-ffmpeg:%d" % bitrate)
+                    self._event_reporter.add_event(self.b64_infohash, "bitrate-ffmpeg:%d" % bitrate)
 
             if width is not None and height is not None:
                 diff = False
@@ -592,7 +594,7 @@ class MovieOnDemandTransporter(MovieTransport):
             self.data_ready.acquire()
             vs.prebuffering = False
             self.stat_prebuffertime = time.time() - self.prebufstart
-            self._event_reporter.add_event(self.bt1download.infohash, "prebuf:%d" % self.stat_prebuffertime)
+            self._event_reporter.add_event(self.b64_infohash, "prebuf:%d" % self.stat_prebuffertime)
             self.notify_playable()
             self.data_ready.notify()
             self.data_ready.release()
@@ -635,13 +637,13 @@ class MovieOnDemandTransporter(MovieTransport):
         vs = self.videostatus
  
         if vs.in_high_range(piece):
-            self._event_reporter.add_event(self.bt1download.infohash, "hipiece:%d" % piece)
+            self._event_reporter.add_event(self.b64_infohash, "hipiece:%d" % piece)
         else:
-            self._event_reporter.add_event(self.bt1download.infohash, "piece:%d" % piece)
+            self._event_reporter.add_event(self.b64_infohash, "piece:%d" % piece)
 
         # if not self._complete and self.piecepicker.am_I_complete():
         #     self._complete = True
-        #     self._event_reporter.add_event(self.bt1download.infohash, "complete")
+        #     self._event_reporter.add_event(self.b64_infohash, "complete")
         #     self._event_reporter.flush()
 
         if vs.wraparound:
@@ -865,7 +867,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def start( self, bytepos = 0, force = False ):
         """ Initialise to start playing at position `bytepos'. """
-        self._event_reporter.add_event(self.bt1download.infohash, "play")
+        self._event_reporter.add_event(self.b64_infohash, "play")
 
         # ARNOTODO: we don't use start(bytepos != 0) at the moment. See if we 
         # should. Also see if we need the read numbytes here, or that it
@@ -946,7 +948,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def stop( self ):
         """ Playback is stopped. """
-        self._event_reporter.add_event(self.bt1download.infohash, "stop")
+        self._event_reporter.add_event(self.b64_infohash, "stop")
         self._event_reporter.flush()
 
         vs = self.videostatus
@@ -967,7 +969,7 @@ class MovieOnDemandTransporter(MovieTransport):
     def pause( self, autoresume = False ):
         """ Pause playback. If `autoresume' is set, playback is expected to be
         resumed automatically once enough data has arrived. """
-        self._event_reporter.add_event(self.bt1download.infohash, "pause")
+        self._event_reporter.add_event(self.b64_infohash, "pause")
 
         vs = self.videostatus
         if not vs.playing or not vs.pausable:
@@ -988,7 +990,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def resume( self ):
         """ Resume paused playback. """
-        self._event_reporter.add_event(self.bt1download.infohash, "resume")
+        self._event_reporter.add_event(self.b64_infohash, "resume")
 
         vs = self.videostatus
 

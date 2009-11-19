@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
+from base64 import b64encode
 from cStringIO import StringIO
 from binascii import b2a_hex
 from socket import error as socketerror
@@ -295,7 +296,7 @@ class Connection:
             if DEBUG:
                 print >>sys.stderr,"encoder: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
 
-            self.Encoder._event_reporter.add_event(self.Encoder.connecter.infohash, "connection-timeout:%s:%s" % (self.get_ip(), self.get_port()))
+            self.Encoder._event_reporter.add_event(b64encode(self.Encoder.connecter.infohash), "connection-timeout:%s:%s" % (self.get_ip(), self.get_port()))
 
             # RePEX: inform repexer of timeout
             repexer = self.Encoder.repexer
@@ -528,7 +529,7 @@ class Encoder:
                 new_addresses.append(address)
 
         if new_addresses:
-            self._event_reporter.add_event(self.connecter.infohash, "known-hosts:%s" % ";".join(new_addresses))
+            self._event_reporter.add_event(b64encode(self.connecter.infohash), "known-hosts:%s" % ";".join(new_addresses))
 
         # prevent 'to much' memory usage
         if len(known_addresses) > 2500:

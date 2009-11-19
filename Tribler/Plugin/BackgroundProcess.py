@@ -29,6 +29,7 @@ import time
 import random
 import binascii
 import tempfile
+from base64 import b64encode
 from traceback import print_exc,print_stack
 from threading import Thread,currentThread,Lock
 
@@ -406,13 +407,13 @@ class BackgroundApp(BaseApp):
             event_reporter = get_reporter_instance()
             for ds in playing_dslist:
                 dw = ds.get_download()
-                infohash = dw.get_def().get_infohash()
+                b64_infohash = b64encode(dw.get_def().get_infohash())
                 vod_stats = ds.get_vod_stats()
-                #if vod_stats_has_key("prebuf"): event_reporter.add_event(infohash, "prebufp:%d" % vod_stats['prebuf']) # prebuffering time that was needed
-                if vod_stats.has_key("stall"): event_reporter.add_event(infohash, "stall:%d" % vod_stats['stall']) # time the player stalled
-                if vod_stats.has_key("late"): event_reporter.add_event(infohash, "late:%d" % vod_stats['late']) # number of pieces arrived after they were due
-                if vod_stats.has_key("dropped"): event_reporter.add_event(infohash, "dropped:%d" % vod_stats['dropped']) # number of pieces lost
-                if vod_stats.has_key("pos"): event_reporter.add_event(infohash, "pos:%d" % vod_stats['pos']) # playback position
+                #if vod_stats_has_key("prebuf"): event_reporter.add_event(b64_infohash, "prebufp:%d" % vod_stats['prebuf']) # prebuffering time that was needed
+                if vod_stats.has_key("stall"): event_reporter.add_event(b64_infohash, "stall:%d" % vod_stats['stall']) # time the player stalled
+                if vod_stats.has_key("late"): event_reporter.add_event(b64_infohash, "late:%d" % vod_stats['late']) # number of pieces arrived after they were due
+                if vod_stats.has_key("dropped"): event_reporter.add_event(b64_infohash, "dropped:%d" % vod_stats['dropped']) # number of pieces lost
+                if vod_stats.has_key("pos"): event_reporter.add_event(b64_infohash, "pos:%d" % vod_stats['pos']) # playback position
 
         # Added by Mugurel Ionut Andreica (UPB) for M23 Trial -- should report the amount of bytes uploaded on all the connections (so far)
         if (isLedbatTestRunning() == 1):
@@ -439,11 +440,12 @@ class BackgroundApp(BaseApp):
                     totalUpldBytesDic[dw] = ds_totalUpldBytes
                     totalUpldBytes += ds_totalUpldBytes
 
-                permid = getStringFromPermID(self.s.get_permid())
-                event_reporter.add_event(permid, "total_upload_speed:%.3f" % totalUpldSpeed)
-                event_reporter.add_event(permid, "total_uploaded_bytes:%d" % totalUpldBytes)
+                # permid = getStringFromPermID(self.s.get_permid())
+                b64_permid = b64encode(self.s.get_permid())
+                event_reporter.add_event(b64_permid, "total_upload_speed:%.3f" % totalUpldSpeed)
+                event_reporter.add_event(b64_permid, "total_uploaded_bytes:%d" % totalUpldBytes)
 
-                print >>sys.stderr, "Reporting (permid=", permid, ") => total_upload_speed=%.3f" % totalUpldSpeed, "; total_uploaded_bytes=%d" % totalUpldBytes
+                print >>sys.stderr, "Reporting (permid=", getStringFromPermID(permid), ") => total_upload_speed=%.3f" % totalUpldSpeed, "; total_uploaded_bytes=%d" % totalUpldBytes
             except:
                 print_exc()
 

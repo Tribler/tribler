@@ -4,6 +4,7 @@
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 from Tribler.Core.BitTornado.bitfield import Bitfield
 from random import shuffle
+from base64 import b64encode
 from Tribler.Core.BitTornado.clock import clock
 # 2fastbt_
 try:
@@ -618,6 +619,7 @@ class Downloader:
                  numpieces, chunksize, measurefunc, snub_time,
                  kickbans_ok, kickfunc, banfunc, scheduler = None):
         self.infohash = infohash
+        self.b64_infohash = b64encode(infohash)
         self.storage = storage
         self.picker = picker
         self.backlog = backlog
@@ -715,7 +717,7 @@ class Downloader:
         perip.lastdownload = d
         self.downloads.append(d)
 
-        self._event_reporter.add_event(self.infohash, "connection-established:%s" % str(ip))
+        self._event_reporter.add_event(self.b64_infohash, "connection-established:%s" % str(ip))
 
         return d
 
@@ -753,9 +755,9 @@ class Downloader:
         if self.endgamemode and not self.downloads: # all peers gone
             self._reset_endgame()
 
-        self._event_reporter.add_event(self.infohash, "connection-upload:%s,%d" % (ip, download.connection.total_uploaded))
-        self._event_reporter.add_event(self.infohash, "connection-download:%s,%d" % (ip, download.connection.total_downloaded))
-        self._event_reporter.add_event(self.infohash, "connection-lost:%s" % ip)
+        self._event_reporter.add_event(self.b64_infohash, "connection-upload:%s,%d" % (ip, download.connection.total_uploaded))
+        self._event_reporter.add_event(self.b64_infohash, "connection-download:%s,%d" % (ip, download.connection.total_downloaded))
+        self._event_reporter.add_event(self.b64_infohash, "connection-lost:%s" % ip)
 
     def _reset_endgame(self):            
         if DEBUG: print >>sys.stderr, "Downloader: _reset_endgame"
@@ -824,12 +826,12 @@ class Downloader:
                     self.add_disconnected_seed(download.connection.get_readable_id())
                     download.connection.close()
 
-                    self._event_reporter.add_event(self.infohash, "connection-seed:%s,%d" % (download.ip, download.connection.total_uploaded))
+                    self._event_reporter.add_event(self.b64_infohash, "connection-seed:%s,%d" % (download.ip, download.connection.total_uploaded))
                 else:
-                    self._event_reporter.add_event(self.infohash, "connection-upload:%s,%d" % (download.ip, download.connection.total_uploaded))
-                    self._event_reporter.add_event(self.infohash, "connection-download:%s,%d" % (download.ip, download.connection.total_downloaded))
+                    self._event_reporter.add_event(self.b64_infohash, "connection-upload:%s,%d" % (download.ip, download.connection.total_uploaded))
+                    self._event_reporter.add_event(self.b64_infohash, "connection-download:%s,%d" % (download.ip, download.connection.total_downloaded))
 
-            self._event_reporter.add_event(self.infohash, "complete")
+            self._event_reporter.add_event(self.b64_infohash, "complete")
             self._event_reporter.flush()
                     
             return True
