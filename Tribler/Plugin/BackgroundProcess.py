@@ -445,7 +445,7 @@ class BackgroundApp(BaseApp):
                 event_reporter.add_event(b64_permid, "total_upload_speed:%.3f" % totalUpldSpeed)
                 event_reporter.add_event(b64_permid, "total_uploaded_bytes:%d" % totalUpldBytes)
 
-                print >>sys.stderr, "Reporting (permid=", getStringFromPermID(permid), ") => total_upload_speed=%.3f" % totalUpldSpeed, "; total_uploaded_bytes=%d" % totalUpldBytes
+                print >>sys.stderr, "Reporting (permid=", getStringFromPermID(self.s.get_permid()), ") => total_upload_speed=%.3f" % totalUpldSpeed, "; total_uploaded_bytes=%d" % totalUpldBytes
             except:
                 print_exc()
 

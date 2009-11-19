@@ -390,7 +390,13 @@ class MovieOnDemandTransporter(MovieTransport):
         for piece in toinvalidateset:
             self.live_invalidate_piece_globally(piece)
 
+        try:
+            self._event_reporter.add_event(self.b64_infohash, "live-hookin:%d" % maxnum)
+        except:
+            print_exc()
+
         return True
+    
 
     def live_streaming_timer(self):
         """ Background 'thread' to check where to hook in if live streaming. """
