@@ -120,7 +120,7 @@ def main():
     if tracking:
         sscfg.set_internal_tracker(True)
         # M23TRIAL, log full
-        logfilename = "tracker-"+str(int(time()))+".log"
+        logfilename = "tracker-"+str(int(time.time()))+".log"
         sscfg.set_tracker_logfile(logfilename)
         sscfg.set_tracker_log_nat_checks(True)
     
