@@ -294,10 +294,12 @@ class FilesItemDetailsSummary(bgPanel):
         # read popular channels data
         [stotal_items,sdata] = channelsearch_manager.getSubscriptions('channelsMode')
         [total_items,popularchannels_data] = channelsearch_manager.getPopularChannels('channelsMode', maximum=18-stotal_items)
-        popularchannels_data.extend(sdata)
+        popularchannels_data_copy = popularchannels_data[:]
+        popularchannels_data.extend[sdata]
 
        # my channel check
         if self.channel[0] == bin2str(self.guiUtility.utility.session.get_permid()):
+             self.guiUtility.frame.channelsDetails = True
              self.guiUtility.standardOverview.getGrid().data = mychannel_data
              self.guiUtility.standardOverview.getGrid().refreshPanels()
              self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data
@@ -308,6 +310,7 @@ class FilesItemDetailsSummary(bgPanel):
         # popular channels check
         for index in xrange(0,len(ptotal_data)):
             if self.channel[0] == ptotal_data[index][0]:
+                 self.guiUtility.frame.channelsDetails = False
                  self.guiUtility.standardOverview.getGrid().data = mychannel_data
                  self.guiUtility.standardOverview.getGrid().refreshPanels()
                  self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data
@@ -316,13 +319,13 @@ class FilesItemDetailsSummary(bgPanel):
                  return
 
         # channel isn't viewed yet. insert it in the popular unsubscribed channels section
+        self.guiUtility.frame.channelsDetails = False
         self.guiUtility.standardOverview.getGrid().data = mychannel_data
         self.guiUtility.standardOverview.getGrid().refreshPanels()
-        [total_items,popularchannels_data] = channelsearch_manager.getPopularChannels('channelsMode', maximum=18-stotal_items)
-        popularchannels_data.append(self.channel)
-        index= len(popularchannels_data) - 1
-        popularchannels_data.extend(sdata)
-        self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data
+        popularchannels_data_copy.append(self.channel)
+        index= len(popularchannels_data_copy) - 1
+        popularchannels_data_copy.extend(sdata)
+        self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data_copy
         self.guiUtility.standardOverview.getGrid(2).refreshPanels()
         wx.CallAfter(self.processLinkToChannel, 'grid2', index)
 

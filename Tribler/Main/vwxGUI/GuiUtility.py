@@ -934,6 +934,7 @@ class GUIUtility:
         #print "******** gui uti searchFiles", wantkeywords
 
         self.frame.channelsDetails.Hide()
+        self.frame.channelsDetails.mychannel = False
         ##self.frame.pageTitlePanel.Show()
 
         self.standardOverview.setMode('filesMode')
@@ -989,6 +990,7 @@ class GUIUtility:
         self.frame.top_bg.indexPopularChannels=-1
 
         self.frame.channelsDetails.Show()
+        self.frame.channelsDetails.mychannel = False
         if not self.frame.channelsDetails.isEmpty():
             self.frame.channelsDetails.reinitialize()
         self.showPager(False)

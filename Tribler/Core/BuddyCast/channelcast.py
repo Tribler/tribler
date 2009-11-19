@@ -193,14 +193,11 @@ class ChannelCastCore:
                 self.hits.append(hit)
             else:
                 def usercallback(infohash,metadata,filename):
+                    print >> sys.stderr , "USERCALLBACK" 
                     self.channelcastdb.addTorrent(hit)
                     self.hits.append(hit)
                 self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
 
-    def getNewRecords(self):
-        hits = self.hits[:]
-        self.hits = []
-        return hits
 
                     
     

@@ -250,9 +250,10 @@ class ChannelsItemPanel(wx.Panel):
             
             self.publisher_id, self.publisher_name, self.num_votes, torrents = data
 
+            self.publisher_id = bin2str(self.publisher_id)
 
             # get torrent list
-            torrentList = self.channelcast_db.getTorrentsFromPublisherId(bin2str(self.publisher_id))
+            torrentList = self.channelcast_db.getTorrentsFromPublisherId(self.publisher_id)
             self.torrentList = torrentList
 
 

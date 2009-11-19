@@ -20,7 +20,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 from Tribler.Video.VideoPlayer import VideoPlayer
 
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import *
 
@@ -84,6 +84,7 @@ class channelsDetails(bgPanel):
         ##bgPanel.__init__(self,*args,**kwds)
         ##self.Hide()
         self.initialized = False
+        self.publisher_id = None
         if len(args) == 0:
             pre = wx.PrePanel()
             # the Create step is done by XRC.
@@ -120,6 +121,10 @@ class channelsDetails(bgPanel):
 
         self.parent = None
 
+
+        # if channels details panel is viewing my channel
+        self.mychannel = False
+
  
         # list of torrents
         self.torrents=[] 
@@ -152,8 +157,8 @@ class channelsDetails(bgPanel):
         self.channelcast = self.buddycast_factory.channelcast_core
 
         self.guiserver = GUITaskQueue.getInstance()
-        self.guiserver.add_task(self.guiservthread_refresh_torrents, 0)
-
+#        self.guiserver.add_task(self.guiservthread_refresh_torrents, 0)
+        self.guiserver.add_task(self.guiservthread_updateincomingtorrents, 0)
         self.x=466
         self.addComponents()
 
@@ -590,7 +595,7 @@ class channelsDetails(bgPanel):
                     torrent = self.torrent_db.getTorrent(infohash)
                     if DEBUG:
                         print >> sys.stderr , torrent
-                    self.addTorrent(torrent)
+                    self.addTorrent(torrent, True)
                 except:
                     print >> sys.stderr , "Could not add torrent"
                     pass
@@ -602,12 +607,12 @@ class channelsDetails(bgPanel):
     def nonUIThreadAddTorrent(self, rss_url, infohash, torrent_data):
         if DEBUG:
             print >> sys.stderr , "NONUITHREAD"
-        if torrent_data is not None:
+        if self.isMyChannel() and torrent_data is not None:
             try:
                 torrent = self.torrent_db.getTorrent(infohash)
                 if DEBUG:
                     print >> sys.stderr , torrent
-                wx.CallAfter(self.addTorrent, torrent)
+                wx.CallAfter(self.addTorrent, torrent, True)
             except:
                 pass
 
@@ -625,15 +630,19 @@ class channelsDetails(bgPanel):
                 return numItems
                 
             
+    def isMyChannel(self):
+        return self.mychannel
 
 
 
-
-    def addTorrent(self, torrent):
+    def addTorrent(self, torrent, isMine = False):
         if DEBUG:
             print >> sys.stderr , "ADDTORRENT"
 
-        isMine = self.parent.isMyChannel()
+#        isMine = self.parent.isMyChannel()
+
+        print >> sys.stderr , "torrent" , torrent
+
 
         self.erasevSizerContents()
 
@@ -702,6 +711,7 @@ class channelsDetails(bgPanel):
     def loadChannel(self, parent, torrentList, publisher_id, publisher_name, subscribed):
         self.currentPage = 0
         self.parent = parent
+        self.mychannel = self.parent.mychannel
         self.torrents = torrentList[:] # make a shallow copy because we plan to
                               # modify this list
 
@@ -956,22 +966,33 @@ class channelsDetails(bgPanel):
         self.rssFeedbackText.Show(False)
 
 
-
-
-
     def guiservthread_updateincomingtorrents(self):
         self.checkincomingtorrents()
         self.guiserver.add_task(self.guiservthread_updateincomingtorrents,2.0)
 
 
     def checkincomingtorrents(self):
-        try:
-            if len(self.tf.new_torrent_list) > 0: # new torrents
-                for torrent in self.tf.new_torrent_list:
-                    self.addTorrent(torrent)  
-                self.tf.new_torrent_list = []      
-        except:
-            pass        
+        if self.publisher_id is not None:
+            hits = self.channelcast.hits
+            non_added_hits=[]
+            if DEBUG:
+                print >> sys.stderr , "NEW CHANNELCAST RECORDS : ", hits
+            try:
+                if len(hits) > 0: # new torrents
+                    for hit in hits:
+                        if self.publisher_id != hit[0]:
+                            non_added_hits.append(hit)
+                            continue
+                        torrent = self.torrent_db.getTorrent(str2bin(hit[2]))
+                        if torrent is not None:
+                            b = self.publisher_id == bin2str(self.guiUtility.utility.session.get_permid())
+                            wx.CallAfter(self.addTorrent, torrent, b)
+                        else:
+                            non_added_hits.append(hit)
+                    self.channelcast.hits = non_added_hits
+            except:
+                pass
+
             
 
 
