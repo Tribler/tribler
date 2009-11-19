@@ -225,6 +225,7 @@ class RePEXer(RePEXerInterface):
         self.done = False # flag so we know when we're done or are aborted
         self.aborted = False # flag so we know the exact done-reason
         self.ready = False # flag so we know whether repex_ready has been called
+        self.ready_ts = -1 # for logging purposes, store the time repex_ready event was triggered
         
         # Added robustness, check whether received SwarmCache is not None
         if self.starting_peertable is None:
@@ -245,6 +246,7 @@ class RePEXer(RePEXerInterface):
         if DEBUG:
             print >>sys.stderr, "RePEXer: repex_ready:", b2a_hex(infohash)
         self.ready = True
+        self.ready_ts = ts_now()
         self.connecter = connecter
         self.encoder = encoder
         self.rerequest = rerequester
@@ -901,7 +903,9 @@ class RePEXLogger(RePEXerStatusCallback):
     def repex_done(self, repexer, swarmcache, shufflecount, shufflepeers, bootstrapcount, datacost):
         if DEBUG:
             print >>sys.stderr, 'RePEXLogger: repex_done: %s' % repexer
-        self.repexlog.storeSwarmCache(repexer.infohash, swarmcache, (shufflecount,shufflepeers,bootstrapcount,datacost), commit=True)
+        self.repexlog.storeSwarmCache(repexer.infohash, swarmcache,
+                                      (shufflecount,shufflepeers,bootstrapcount,datacost),
+                                      timestamp=repexer.ready_ts, commit=True)
 
 class RePEXLogDB:
     """
@@ -910,7 +914,7 @@ class RePEXLogDB:
     __single = None    # used for multithreaded singletons pattern
     lock = RLock()
     PEERDB_FILE = 'repexlog.pickle'
-    PEERDB_VERSION = '0.5'
+    PEERDB_VERSION = '0.6'
     MAX_HISTORY = 20480 # let's say 1K per SwarmCache, 20480 would be max 20 MB...
     
     @classmethod
@@ -958,7 +962,7 @@ class RePEXLogDB:
         finally:
             self.lock.release()
         
-    def storeSwarmCache(self, infohash, swarmcache, stats = None, commit=False):
+    def storeSwarmCache(self, infohash, swarmcache, stats = None, timestamp=-1, commit=False):
         """
         Stores the SwarmCache for a given infohash. Does not automatically
         commit the changes to file.
@@ -967,6 +971,9 @@ class RePEXLogDB:
         'last_seen' and 'pex' keys.
         @param stats (shufflecount, shufflepeers, bootstrapcount, datacost) 
         quadruple or None.
+        @param timestamp Optional timestamp, by default -1. Empty SwarmCaches 
+        don't contain any time information at all, so it's useful to explicitly
+        specify the time when the SwarmCache was created.
         @param commit Flag to commit automatically.
         """
         if DEBUG:
@@ -975,7 +982,7 @@ class RePEXLogDB:
                             b2a_hex(infohash), '', '') # less cluttered
         self.lock.acquire()
         try:
-            self.history.append((infohash,swarmcache,stats))
+            self.history.append((infohash,swarmcache,stats,timestamp))
             if len(self.history) > self.MAX_HISTORY:
                 del self.history[:-self.MAX_HISTORY]
             if commit:
@@ -1093,5 +1100,6 @@ class RePEXerTester(RePEXerStatusCallback):
         self.swarmcaches.setdefault(download,[]).append(swarmcache)
         
         # Always log to RePEXLogDB
-        self.peerdb.storeSwarmCache(repexer.infohash, swarmcache, (shufflecount,shufflepeers,bootstrapcount,datacost))
-        
+        self.peerdb.storeSwarmCache(repexer.infohash, swarmcache,
+                                    (shufflecount,shufflepeers,bootstrapcount,datacost),
+                                    timestamp=repexer.ready_ts, commit=True)
