@@ -184,6 +184,11 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         #dcfg.set_max_conns_to_initiate(300)
         #dcfg.set_max_conns(300)
         
+        # Cap at 1 MB/s
+        #print >>sys.stderr,"bg: CAPPING DOWNLOAD SPEED $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+        #dcfg.set_max_speed(DOWNLOAD,1024)
+
+        
         
         # Stop all non-playing, see if we're restarting one
         infohash = tdef.get_infohash()
@@ -316,10 +321,18 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         # Arno: delegate to GUI thread. This makes some things (especially
         #access control to self.videoFrame easier
         #self.gui_states_callback(dslist)
-        wx.CallAfter(self.gui_states_callback,dslist,haspeerlist)
+        wx.CallAfter(self.gui_states_callback_wrapper,dslist,haspeerlist)
         
         #print >>sys.stderr,"main: SessStats:",self.getpeerlistcount,getpeerlist,haspeerlist
         return (1.0,getpeerlist) 
+
+
+    def gui_states_callback_wrapper(self,dslist,haspeerlist):
+        try:
+            self.gui_states_callback(dslist,haspeerlist)
+        except:
+            print_exc()
+
 
     def gui_states_callback(self,dslist,haspeerlist):
         """ Called by *GUI* thread.

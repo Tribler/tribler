@@ -280,7 +280,7 @@ class BackgroundApp(BaseApp):
                 
         duser['said_start_playback'] = False
         duser['decodeprogress'] = 0
-       
+        
 
     #
     # DownloadStates
@@ -288,7 +288,10 @@ class BackgroundApp(BaseApp):
     def gui_states_callback(self,dslist,haspeerlist):
         """ Override BaseApp """
         (playing_dslist,totalhelping,totalspeed) = BaseApp.gui_states_callback(self,dslist,haspeerlist)
-        self.report_periodic_vod_stats(playing_dslist)
+        try:
+            self.report_periodic_vod_stats(playing_dslist)
+        except:
+            print_exc()
        
         for ds in playing_dslist:
             d = ds.get_download()

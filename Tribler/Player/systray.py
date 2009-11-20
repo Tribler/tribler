@@ -122,7 +122,11 @@ class M23TrialPlayerTaskBarIcon(PlayerTaskBarIcon):
         data = f.read()
         f.close()
         clean = data.strip()
-        return int(clean)
+        try:
+            return int(float(clean))
+        except:
+            print_exc()
+            return 10
         
         
 
