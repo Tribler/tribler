@@ -370,8 +370,8 @@ class UDPHandler:
             self.sendqueue.popleft()
 
     def check_nat_compatible(self, peer):
-        if self.filter_type == UDPHandler.FILTER_APDF and peer.nat_type == UDPHandler.NAT_APDM:
-            return False
+        #~ if self.filter_type == UDPHandler.FILTER_APDF and peer.nat_type == UDPHandler.NAT_APDM:
+            #~ return False
         if self.nat_type == UDPHandler.NAT_APDM and peer.filter_type == UDPHandler.FILTER_APDF:
             return False
         return True
