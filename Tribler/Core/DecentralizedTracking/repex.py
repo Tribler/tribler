@@ -467,7 +467,8 @@ class RePEXer(RePEXerInterface):
                 self.shufflecount += 1
     
     def next_peer_from_queue(self):
-        if self.to_pex:
+        # Only return a peer if we can connect
+        if self.can_connect() and self.to_pex:
             return self.to_pex.pop(0)
         else:
             return None
@@ -497,7 +498,7 @@ class RePEXer(RePEXerInterface):
         
         # Connect to peers in the queue
         peer = self.next_peer_from_queue()
-        while peer is not None and self.can_connect():
+        while peer is not None:
             self.connect(peer)
             peer = self.next_peer_from_queue()
         
