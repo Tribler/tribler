@@ -514,6 +514,7 @@ class UDPHandler:
         connection.last_advert = 0
         connection.nat_type = UDPHandler.NAT_UNKNOWN
         connection.filter_type = UDPHandler.FILTER_UNKNOWN
+        connection.natfw_version = 0
         connection.pex_add.clear()
         connection.pex_del.clear()
         if len(connection.advertised_by) == 0:
@@ -705,6 +706,7 @@ class UDPConnection:
 
                     if compare_natfw_version(ord(data[12]), connection.natfw_version):
                         connection.nat_type, connection.filter_type = byte_to_natfilter(data[11])
+                        connection.natfw_version = ord(data[12])
 
                     self.handler.connections[remote] = connection
                     connection.connection_state = UDPConnection.CONNECT_SENT
@@ -738,8 +740,8 @@ class UDPConnection:
                     #FIXME: should we check the received address here as well?
 
                     peer.advertised_by[self.address] = time.time()
-                    nat_type, filter_type = byte_to_natfilter(data[2 + i * 12 + 10])
                     if DEBUG:
+                        nat_type, filter_type = byte_to_natfilter(data[2 + i * 12 + 10])
                         debug("    Received peer %s %s:%d NAT/fw:%d,%d" % (id.encode('hex'),
                             address[0], address[1], nat_type, filter_type))
                     if compare_natfw_version(ord(data[2 + i * 12 + 11]), peer.natfw_version):
