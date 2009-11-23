@@ -59,7 +59,7 @@ class GUIUtility:
         self.fakeButton = None
         self.realButton = None
 
-        # videoplayer
+       # videoplayer
         self.videoplayer = VideoPlayer.getInstance()
 
         # current GUI page
@@ -909,7 +909,7 @@ class GUIUtility:
         input = sf.GetValue().strip()
         if input == '':
             return
-        
+
         if self.search_mode == 'files':
             ##wx.CallAfter(self.frame.pageTitlePanel.pageTitle.SetLabel, 'File search')
             self.searchFiles('filesMode', input)
@@ -1043,7 +1043,8 @@ class GUIUtility:
             records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
 
 
-        print >> sys.stderr , "CHANNEL HITS" , records
+        if DEBUG:
+            print >> sys.stderr , "CHANNEL HITS" , records
 
 
 

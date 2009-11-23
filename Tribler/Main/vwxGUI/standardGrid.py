@@ -540,6 +540,7 @@ class standardGrid(wx.Panel):
         self.Panels = []
         self.viewmode = viewmode
         self.guiUtility = GUIUtility.getInstance()
+        self.allowDeselectAll = True
 
         self.guiUtility.standardGrid = self
  
@@ -980,6 +981,10 @@ class standardGrid(wx.Panel):
     def deselectAll(self):
         """Deselect all torrentPanels"""
         
+        if not self.allowDeselectAll:
+            return
+
+
         try:
             #print 'standardGrid: update selection'
             if not self.hasDetailPanel():

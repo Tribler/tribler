@@ -223,6 +223,7 @@ class standardPager(wx.Panel):
         
         if self.currentPage >= self.totalPages:
             self.currentPage = max(self.totalPages -1, 0)
+        
         self.refreshPageNumbers()
         
 #    def imageClicked(self, event):
@@ -233,15 +234,27 @@ class standardPager(wx.Panel):
         if DEBUG:
             print >>sys.stderr,'standardPager: mouseaction'
         obj = event.GetEventObject()
-        
+
         old = self.currentPage
         #print '%s did mouse' % obj
         if obj == self.left:
+            if self.currentPage > 0:
+                self.grid.allowDeselectAll=True
+            else:
+                self.grid.allowDeselectAll=False
             self.currentPage = max(0, self.currentPage-1)
         elif obj == self.right:
+            if self.currentPage < self.totalPages-1:
+                self.grid.allowDeselectAll=True
+            else:
+                self.grid.allowDeselectAll=False
             self.currentPage = min(self.totalPages-1, self.currentPage+1)
         elif obj in self.pageNumbers:
             index = self.pageNumbers.index(obj)
+            if index != self.currentPage:
+                self.grid.allowDeselectAll=True
+            else:
+                self.grid.allowDeselectAll=False
             self.currentPage = self.beginPage+index
         else:
             event.Skip()

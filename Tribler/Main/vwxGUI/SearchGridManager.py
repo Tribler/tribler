@@ -467,6 +467,7 @@ class TorrentSearchGridManager:
                         # self.refreshGrid()
              
                 if numResults > 0 and mode == 'filesMode': #  and self.standardOverview.getSearchBusy():
+                    self.gridmgr.grid.allowDeselectAll = False
                     self.refreshGrid()
                     if DEBUG:
                         print >>sys.stderr,'TorrentSearchGridManager: gotRemoteHits: Refresh grid after new remote torrent hits came in'
