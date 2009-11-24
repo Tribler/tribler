@@ -414,8 +414,8 @@ class UDPHandler:
                     continue
                 if not self.check_nat_compatible(peer):
                     continue
-                # Don't connect to peers with who we have communicated in the last three minutes
-                if peer.last_comm > now - 180:
+                # Don't connect to peers with who we have communicated in the last five minutes
+                if peer.last_comm > now - 300:
                     continue
 
                 # Don't try to connect to peers that we can't arange a rendez-vous for
