@@ -482,8 +482,9 @@ class BaseApp(wx.App,InstanceConnectionHandler):
     def set_ratelimits(self):
         uploadrate = float(self.playerconfig['total_max_upload_rate'])
         print >>sys.stderr,"main: set_ratelimits: Setting max upload rate to",uploadrate
-        self.ratelimiter.set_global_max_speed(UPLOAD,uploadrate)
-        self.ratelimiter.set_global_max_seedupload_speed(uploadrate)
+        if self.ratelimiter is not None:
+            self.ratelimiter.set_global_max_speed(UPLOAD,uploadrate)
+            self.ratelimiter.set_global_max_seedupload_speed(uploadrate)
 
     def ratelimit_callback(self,dslist):
         """ When the player is in seeding mode, limit the used upload to

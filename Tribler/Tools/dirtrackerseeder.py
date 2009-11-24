@@ -137,6 +137,7 @@ def main():
     dscfg.set_dest_dir(torrentsdir)
     #dscfg.set_max_speed(UPLOAD,256) # FOR DEMO
     
+    ##dscfg.set_max_uploads(32)
     
     #
     # Scan dir, until exit by CTRL-C (or any other signal/interrupt)
