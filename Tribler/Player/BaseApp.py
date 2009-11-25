@@ -21,6 +21,7 @@
 import os
 import sys
 import time
+import shutil
 from sets import Set
 
 from threading import enumerate,currentThread,RLock
@@ -111,6 +112,8 @@ class BaseApp(wx.App,InstanceConnectionHandler):
             print >>sys.stderr,"main: Session config",cfgfilename
         try:
             self.sconfig = SessionStartupConfig.load(cfgfilename)
+            
+            print >>sys.stderr,"main: Session saved port",self.sconfig.get_listen_port(),cfgfilename
         except:
             print_exc()
             self.sconfig = SessionStartupConfig()
@@ -552,7 +555,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         time.sleep(2) 
         
         if self.s is not None:
-            self.s.shutdown()
+            self.s.shutdown(hacksessconfcheckpoint=False)
         
         if self.tbicon is not None:
             self.tbicon.RemoveIcon()
