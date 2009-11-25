@@ -188,9 +188,8 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         #dcfg.set_max_conns(300)
         
         # Cap at 1 MB/s
-        #print >>sys.stderr,"bg: CAPPING DOWNLOAD SPEED $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
-        #dcfg.set_max_speed(DOWNLOAD,1024)
-
+        print >>sys.stderr,"bg: Capping Download speed to 1 MByte/s"
+        dcfg.set_max_speed(DOWNLOAD,1024)
         
         
         # Stop all non-playing, see if we're restarting one

@@ -384,6 +384,14 @@ class PlayerOptionsDialog(wx.Dialog):
         self.wxapp.save_playerconfig()
          
         # TODO: For max upload, etc. we also have to modify the runtime Session.
+        if self.port != self.wxapp.s.get_listen_port():
+            dlg = wx.MessageDialog(None, "The SwarmPlugin will now exit to change the port. Reload the Web page to restart it", self.wxapp.appname+" Restart", wx.OK|wx.ICON_INFORMATION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            self.wxapp.OnExit()
+            # F*cking wx won't exit. Die
+            os._exit(1)
+
 
     def OnAdvanced(self,event = None):
 
@@ -412,7 +420,7 @@ class PlayerAdvancedOptionsDialog(wx.Dialog):
         portbox = wx.BoxSizer(wx.HORIZONTAL)
         label = wx.StaticText(self, -1, 'Port')
         self.portctrl = wx.TextCtrl(self, -1, str(port))
-        portbox.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
+        portbox.Add(label, 1, wx.ALIGN_CENTER_VERTICAL) 
         portbox.Add(self.portctrl)
 
         button2box = wx.BoxSizer(wx.HORIZONTAL)
