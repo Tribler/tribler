@@ -161,7 +161,19 @@ class UDPHandler:
                 self.reporter = get_reporter_instance()
 
         if self.reporter:
-            my_wan_ip = guessip.get_my_wan_ip()
+            my_wan_ip = None
+            if sys.platform == 'win32':
+                try:
+                    import os
+                    for line in os.popen("netstat -nr").readlines():
+                        words = line.split()
+                        if words[0] == '0.0.0.0':
+                            my_wan_ip = words[3]
+                            break
+                except:
+                    pass
+            else:
+                my_wan_ip = guessip.get_my_wan_ip()
             if my_wan_ip == None:
                 my_wan_ip = 'Unknown'
             self.reporter.add_event("UDPPuncture", "ID:%s;IP:%s" % (self.id.encode('hex'), my_wan_ip))
