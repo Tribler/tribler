@@ -79,6 +79,7 @@ class EventStatusReporter:
 
         # the prefix is prepended to each event key
         self._session_key = str(time())
+        self._sequence_number = 0
 
         # thread-safety
         self._thread_lock = thread.allocate_lock()
@@ -171,6 +172,8 @@ class EventStatusReporter:
             if event:
                 # prepend the session-key
                 event.insert(0, {"key":"session-key", "timestamp":time(), "event":self._session_key})
+                event.insert(0, {"key":"sequence-number", "timestamp":time(), "event":self._sequence_number})
+                self._sequence_number += 1
 
             if USE_LIVING_LAB_REPORTING:
                 if event:
