@@ -68,7 +68,7 @@ copy %LIBRARYNAME%\ns-binary-LICENSE.txt dist\installdir
 copy %LIBRARYNAME%\Plugin\Build\Win32\heading.bmp dist\installdir
 REM TODO Diego: manifest?
 copy %LIBRARYNAME%\Plugin\Build\Win32\swarmplugin_FX_only.nsi dist\installdir
-copy %LIBRARYNAME%\Plugin\Build\Win32\swarmplugin.exe.manifest dist\installdir
+REM copy %LIBRARYNAME%\Plugin\Build\Win32\swarmplugin.exe.manifest dist\installdir
 
 copy %PYTHONHOME%\Lib\site-packages\wx-2.8-msw-unicode\wx\msvcp71.dll dist\installdir\bgprocess
 

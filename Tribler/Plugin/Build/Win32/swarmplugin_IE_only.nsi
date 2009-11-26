@@ -72,10 +72,12 @@ Section "!Main EXE" SecMain
  SectionIn RO
  SetOutPath "$INSTDIR"
  File *.txt
- File swarmplugin.exe.manifest
- ; TODO : add checkbox for IE and Fx
+  ; TODO : add checkbox for IE and Fx
  File activex\axvlc.dll
+ File activex\axvlc.dll.manifest
  File *.dll
+ File *.dll.manifest
+ 
  File /r bgprocess
 
  File /r plugins

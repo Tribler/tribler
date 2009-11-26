@@ -72,8 +72,9 @@ Section "!Main EXE" SecMain
  SectionIn RO
  SetOutPath "$INSTDIR"
  File *.txt
- File swarmplugin.exe.manifest
  File mozilla\npvlc.dll
+ File mozilla\npvlc.dll.manifest
+ 
  File *.dll
  File /r bgprocess
 
