@@ -619,6 +619,9 @@ class VictorTestThread(Thread):
             
             print >>sys.stderr,"m23trial: Victor test done"
             
+            print >>sys.stderr,"m23trial: Sleeping 10 mins before Mugurel's test"
+            time.sleep(600)
+            
             # Mugurel's test
             print >>sys.stderr,"m23trial: Mugurel test start"
             
