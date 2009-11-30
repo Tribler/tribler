@@ -749,6 +749,10 @@ class Tracker:
             except ValueError:
                 ipv4 = False
 
+        # Arno: log received GET
+        if self.config['tracker_logfile']:
+            self.getlog(ip, path, headers)
+
         if ( (self.allowed_IPs and not self.allowed_IPs.includes(ip))
              or (self.banned_IPs and self.banned_IPs.includes(ip)) ):
             return (400, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
@@ -861,6 +865,11 @@ class Tracker:
         print '%s - %s [%02d/%3s/%04d:%02d:%02d:%02d] "!natcheck-%s:%i" %i 0 - -' % (
             ip, quote(peerid), day, months[month], year, hour, minute, second,
             ip, port, result)
+
+    def getlog(self, ip, path, headers):
+        year, month, day, hour, minute, second, a, b, c = localtime(time())
+        print '%s - %s [%02d/%3s/%04d:%02d:%02d:%02d] "GET %s HTTP/1.1" 100 0 - -' % (
+            ip, ip, day, months[month], year, hour, minute, second, path)
 
     def connectback_result(self, result, downloadid, peerid, ip, port):
         record = self.downloads.get(downloadid, {}).get(peerid)
