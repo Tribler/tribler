@@ -147,6 +147,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             firstbyte = 0
             if length is not None:
                 lastbyte = length-1
+            else:
+                lastbyte = None # to avoid print error below
 
             range = self.headers.getheader('range')
             if range:

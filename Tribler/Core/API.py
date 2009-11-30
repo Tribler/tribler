@@ -14,8 +14,8 @@
 #            retrieve the total amount of bytes that are up or
 #            downloaded for a single Download.
 #
-# 1.0.4rc3   Added chquery_connected_peers() to Session class for making
-#            queries for the new channel concept.
+# 1.0.4rc3   Added "CHANNEL" queries to query_connected_peers() to Session 
+#            class for making queries for the new channel concept.
 #
 #
 # 1.0.4rc2   TorrentDef now supports P2P URLs.
