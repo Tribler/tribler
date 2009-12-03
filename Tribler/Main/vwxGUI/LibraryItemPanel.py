@@ -479,14 +479,15 @@ class LibraryItemPanel(wx.Panel):
             # Check if torrent just finished for resort
             #abctorrent.status.checkJustFinished()
 
-
-            # RePEX: a repexing download can also be resumed, which will just
-            # abort the repexing phase and returns the download to seeding 
-            if ds.get_status() in (DLSTATUS_STOPPED, DLSTATUS_REPEXING):
-                self.pause_resume.SetLabel('Resume')
-
-            if ds.get_status() in (DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING):
+            if ds.get_status() in (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING):
                 self.pause_resume.SetLabel('Pause')
+            else: 
+                # Resume will result in currently only the following allow the 'resume'
+                # option. 
+                # DLSTATUS_STOPPED              --> try download/seeding
+                # DLSTATUS_STOPPED_ON_ERROR     --> try download/seeding
+                # DLSTATUS_REPEXING             --> try seeding
+                self.pause_resume.SetLabel('Resume')
 
             
             #self.pb.setEnabled(True)
