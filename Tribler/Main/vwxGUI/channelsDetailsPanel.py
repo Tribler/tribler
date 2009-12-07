@@ -205,17 +205,17 @@ class channelsDetailsPanel(bgPanel):
 
 
         # save
-        self.save = tribler_topButton(self, -1, name = "download")
+        self.save = tribler_topButton(self, -1, name = "save_medium")
         self.save.createBackgroundImage()        
         self.save.Bind(wx.EVT_LEFT_UP, self.saveClicked)      
 
 
         # save text
-        self.saveText =wx.StaticText(self,-1,"Save",wx.Point(0,0),wx.Size(40,10))        
-        self.saveText.SetBackgroundColour(self.backgroundColour)
-        self.saveText.SetForegroundColour(wx.BLACK)
-        self.saveText.SetFont(wx.Font(FS_SAVE_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.saveText.SetMinSize((40,10))
+        #self.saveText =wx.StaticText(self,-1,"Save",wx.Point(0,0),wx.Size(40,10))        
+        #self.saveText.SetBackgroundColour(self.backgroundColour)
+        #self.saveText.SetForegroundColour(wx.BLACK)
+        #self.saveText.SetFont(wx.Font(FS_SAVE_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        #self.saveText.SetMinSize((40,10))
 
 
         self.hSizer0.Add((280,0), 0, 0, 0)
@@ -242,9 +242,9 @@ class channelsDetailsPanel(bgPanel):
         self.hSizerFiles.Add(self.vSizerRight, 0, 0, 0)
 
         self.vSizerSave.Add((0,10), 0, 0, 0)
-        self.vSizerSave.Add(self.save, 0, 0, 0)
-        self.vSizerSave.Add((0,5), 0, 0, 0)
-        self.vSizerSave.Add(self.saveText, 0, wx.LEFT, -5)
+        self.vSizerSave.Add(self.save, 0, wx.LEFT, -23)
+        #self.vSizerSave.Add((0,5), 0, 0, 0)
+        #self.vSizerSave.Add(self.saveText, 0, wx.LEFT, -5)
 
         self.hSizerFiles.Add((38,0), 0, 0, 0)
         self.hSizerFiles.Add(self.vSizerSave, 0, 0, 0)
@@ -483,6 +483,7 @@ class fileItem(bgPanel):
         self.selected=False
         self.addComponents()
 
+        self.storedTitle = None 
 
         self.tile = True
         self.backgroundColour = wx.Colour(195,219,231)
@@ -535,6 +536,7 @@ class fileItem(bgPanel):
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
     def setTitle(self, title):
+        self.storedTitle = title
         self.title.SetToolTipString(title) 
         i=0
         try:
@@ -566,7 +568,10 @@ class fileItem(bgPanel):
 
     def play_clicked(self):
         ds = self.GetParent().GetParent().torrent.get('ds')
-        selectedinfilename = self.title.GetLabel()
+        selectedinfilename = self.storedTitle
+        videoplayer = self._get_videoplayer(exclude=ds) 
+        videoplayer.stop_playback() # stop current playback
+        videoplayer.show_loading()
 
         if ds is not None:
             self._get_videoplayer(exclude=ds).play(ds, selectedinfilename)
@@ -583,11 +588,6 @@ class fileItem(bgPanel):
             dscfg = defaultDLConfig.copy()
 
             self._get_videoplayer().start_and_play(tdef, dscfg, selectedinfilename)
-
-
-        videoplayer = self._get_videoplayer(exclude=ds) 
-        videoplayer.stop_playback() # stop current playback
-        videoplayer.show_loading()
 
 
         self.guiUtility.standardDetails.setVideodata(self.guiUtility.standardDetails.getData())

@@ -72,6 +72,12 @@ class GUIUtility:
         # port number
         self.port_number = None
 
+        # utf8
+        if sys.platform == 'darwin':
+            self.utf8 = ""
+        else:
+            self.utf8 = "UTF-8"
+
 
         # search mode
         self.search_mode = 'files' # 'files' or 'channels'
@@ -491,10 +497,10 @@ class GUIUtility:
         self.frame.top_bg.settings.SetForegroundColour((255,51,0))
         self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
 
-        self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+        self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
 
         self.frame.top_bg.search_results.Show()
 
@@ -536,21 +542,21 @@ class GUIUtility:
         if self.guiPage == 'search_results':
             self.frame.top_bg.channels.SetForegroundColour((255,51,0))
             self.frame.top_bg.results.SetForegroundColour((0,105,156))
-            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
             self.frame.top_bg.search_results.Show()
         elif self.guiPage == 'channels':
             self.frame.top_bg.channels.SetForegroundColour((0,105,156))
             self.frame.top_bg.results.SetForegroundColour((255,51,0))
-            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
             self.frame.top_bg.search_results.Hide()
 
         self.frame.top_bg.settings.SetForegroundColour((255,51,0))
         self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
 
-        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
 
         self.frame.top_bg.Refresh()
 
@@ -574,8 +580,8 @@ class GUIUtility:
         t2 = time()
         print >> sys.stderr , "channelsMode" , t2 -t1
 
-        self.standardOverview.data['channelsMode']['grid'].reloadChannels()
-        self.standardOverview.data['channelsMode']['grid2'].reloadChannels()
+        #self.standardOverview.data['channelsMode']['grid'].reloadChannels()
+        #self.standardOverview.data['channelsMode']['grid2'].reloadChannels()
 
 
         ##wx.CallAfter(self.frame.channelsDetails.reinitialize)
@@ -605,10 +611,10 @@ class GUIUtility:
         self.frame.top_bg.settings.SetForegroundColour((0,105,156))
         self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
 
-        self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+        self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
 
 
         self.frame.videoframe.hide_videoframe()
@@ -629,6 +635,8 @@ class GUIUtility:
         self.frame.pagerPanel.Show(b)
         self.frame.BL.Show(b)
         self.frame.BR.Show(b)
+        self.frame.pagerPanel.Refresh()
+        self.frame.standardPager.Refresh()
         
 
     def standardLibraryOverview(self, filters = None, refresh=False):
@@ -643,10 +651,10 @@ class GUIUtility:
             self.frame.top_bg.channels.SetForegroundColour((255,51,0))
             self.frame.top_bg.settings.SetForegroundColour((255,51,0))
             self.frame.top_bg.my_files.SetForegroundColour((0,105,156))
-            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+            self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+            self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
 
             self.frame.channelsDetails.Hide()
 
@@ -1300,6 +1308,7 @@ class GUIUtility:
             self.utility.session.remove_download(item['ds'].get_download(),removecontent = True)
             
         self.standardOverview.removeTorrentFromLibrary(item)
+        #wx.CallAfter(self.frame.standardPager.Show,self.standardOverview.getGrid().getGridManager().get_total_items()>0)
 
                 
     def onDeleteTorrentFromLibrary(self, event = None):

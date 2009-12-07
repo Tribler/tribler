@@ -406,7 +406,10 @@ class ProgressSlider(wx.Panel):
         if width > 2*self.margin+self.textWidth:
             # Draw times
             font = self.GetFont()
-            font.SetPointSize(8)
+            if sys.platform != 'darwin':
+                font.SetPointSize(8)
+            else:
+                font.SetPointSize(10)
             dc.SetFont(font)
             dc.DrawText('%s / %s' % (timePositionString, durationString), width-self.margin-self.textWidth, height/2-dc.GetCharHeight()/2)
 

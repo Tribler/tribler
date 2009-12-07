@@ -66,6 +66,12 @@ class TopSearchPanel(bgPanel):
         self.indexPopularChannels = -1       
         self.indexSubscribedChannels = -1       
         self.needs_refresh = False
+
+        if sys.platform == 'darwin':
+            self.utf8=""
+        else:
+            self.utf8="UTF-8"
+
      
     def set_frame(self,frame):
         self.frame = frame
@@ -280,7 +286,7 @@ class TopSearchPanel(bgPanel):
                     self.results.setBlank(False)
                     self.results.setToggled(True)
                 else:
-                    self.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+                    self.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
                     self.results.SetLabel('Search Results')
                     self.results.SetForegroundColour((0,105,156))
 
@@ -310,9 +316,9 @@ class TopSearchPanel(bgPanel):
                 self.channels.SetForegroundColour((255,51,0))
                 self.settings.SetForegroundColour((255,51,0))
                 self.my_files.SetForegroundColour((255,51,0))
-                self.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-                self.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-                self.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+                self.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
+                self.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
+                self.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
 
 
             self.guiUtility.guiPage = 'search_results'
@@ -371,7 +377,7 @@ class TopSearchPanel(bgPanel):
 
     def sr_msgClick(self,event=None):
 
-        if self.rep  < 0.33:
+        if self.rep  < -0.33:
             title = self.utility.lang.get('sharing_reputation_information_title')
             msg = self.utility.lang.get('sharing_reputation_poor')
             
@@ -412,7 +418,7 @@ class TopSearchPanel(bgPanel):
 
         colour = wx.Colour(0,105,156)
         self.results.SetForegroundColour(colour)
-        self.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
         self.checkPage('settings', self.settings)
         self.checkPage('my_files', self.my_files)
         self.checkPage('channels', self.channels)
@@ -449,7 +455,7 @@ class TopSearchPanel(bgPanel):
 
         colour = wx.Colour(0,105,156)
         self.channels.SetForegroundColour(colour)
-        self.channels.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.channels.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
         self.checkPage('search_results', self.results)
         self.checkPage('settings', self.settings)
         self.checkPage('my_files', self.my_files)
@@ -465,7 +471,7 @@ class TopSearchPanel(bgPanel):
             self.guiUtility.settingsOverview()
         colour = wx.Colour(0,105,156)
         self.settings.SetForegroundColour(colour)
-        self.settings.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.settings.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
         self.checkPage('search_results', self.results)
         self.checkPage('my_files', self.my_files)
         self.checkPage('channels', self.channels)
@@ -480,7 +486,7 @@ class TopSearchPanel(bgPanel):
             self.guiUtility.loadInformation('libraryMode', 'name', erase=False)
         colour = wx.Colour(0,105,156)
         self.my_files.SetForegroundColour(colour)
-        self.my_files.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.my_files.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
         self.checkPage('search_results', self.results)
         self.checkPage('settings', self.settings)
         self.checkPage('channels', self.channels)
@@ -501,7 +507,7 @@ class TopSearchPanel(bgPanel):
     def checkPage(self, name, item):
         if self.guiUtility.guiPage != name:
             item.SetForegroundColour(wx.Colour(255,51,0))
-            item.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            item.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8)) 
 
     def viewResults(self,event):
         if sys.platform == 'darwin' and self.count < 100:
@@ -609,7 +615,7 @@ class TopSearchPanel(bgPanel):
 # ----------------------------------------------------------------------------------------          
         
         self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
-        self.newFile = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/iconSaved.png", wx.BITMAP_TYPE_ANY))
+        self.newFile = wx.StaticBitmap(self, -1, self.Bitmap("images/iconSaved_state4.png", wx.BITMAP_TYPE_ANY))
         self.newChannel = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/iconSaved.png", wx.BITMAP_TYPE_ANY))
         self.total_down = wx.StaticText(self, -1, "0B Down")
         self.total_up = wx.StaticText(self, -1, "0B Up")
@@ -694,9 +700,9 @@ class TopSearchPanel(bgPanel):
         self.go.SetMinSize((50,24))
         self.go.SetBackgroundColour((230,230,230))
         self.go.Refresh()
-        self.total_down.SetFont(wx.Font(FONT_SIZE_TOTAL_DOWN, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.total_up.SetFont(wx.Font(FONT_SIZE_TOTAL_UP, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-        self.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.total_down.SetFont(wx.Font(FONT_SIZE_TOTAL_DOWN, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8)) # UTF-8
+        self.total_up.SetFont(wx.Font(FONT_SIZE_TOTAL_UP, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))     # UTF-8
+        self.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))          # UTF-8
         self.total_down.SetToolTipString('Total Download')
         self.total_up.SetToolTipString('Total Upload')
         if sys.platform == 'win32':
@@ -711,7 +717,7 @@ class TopSearchPanel(bgPanel):
             self.total_up.SetBackgroundColour((235,235,235))
             self.search_results.SetBackgroundColour(wx.Colour(wx.TRANSPARENT))
             self.guiUtility.toggleFamilyFilter(True)
-        else:
+        elif sys.platform == 'linux2':
             self.familyfilter.SetMinSize((100,15))
             self.familyfilter.SetFont(wx.Font(FONT_SIZE_FAMILY_FILTER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
             self.settings.SetMinSize((60,15))
@@ -736,8 +742,34 @@ class TopSearchPanel(bgPanel):
             self.file_sel.SetForegroundColour((255, 51, 0))
             self.channel_sel.SetFont(wx.Font(FONT_SIZE_SEARCH_CHOICE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
             self.channel_sel.SetForegroundColour((255, 51, 0))
+        else: # mac
+            self.familyfilter.SetMinSize((100,15))
+            self.familyfilter.SetFont(wx.Font(FONT_SIZE_FAMILY_FILTER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
+            self.settings.SetMinSize((60,15))
+            self.settings.SetForegroundColour(wx.Colour(255, 51, 0))
+            self.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
+            self.my_files.SetMinSize((60,15))
+            self.my_files.SetForegroundColour(wx.Colour(255, 51, 0))
+            self.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
+            self.channels.SetMinSize((65,15))
+            self.channels.SetForegroundColour(wx.Colour(255, 51, 0))
+            self.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
+            self.sharing_reputation.SetFont(wx.Font(FONT_SIZE_SHARING_REPUTATION, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
+            self.results.SetMinSize((100,15))
+            self.results.SetForegroundColour(wx.Colour(255, 51, 0))
+            self.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
+            self.sr_msg.SetFont(wx.Font(FONT_SIZE_SR_MSG, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
+            self.search_results.SetMinSize((100,15))
+            self.search_results.SetFont(wx.Font(FONT_SIZE_SEARCH_RESULTS, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))            
+            self.files_friends.SetFont(wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
 
-        # end wx.Glade
+            self.file_sel.SetFont(wx.Font(FONT_SIZE_SEARCH_CHOICE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
+            self.file_sel.SetForegroundColour((255, 51, 0))
+            self.channel_sel.SetFont(wx.Font(FONT_SIZE_SEARCH_CHOICE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
+            self.channel_sel.SetForegroundColour((255, 51, 0))
+            
+
+        # end wx.Glade 
 
 
     def __do_layout(self):

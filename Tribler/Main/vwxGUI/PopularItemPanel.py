@@ -121,10 +121,14 @@ class PopularItemPanel(wx.Panel):
         self.hSizer.Add([10,0],0,wx.FIXED_MINSIZE,0)        
 
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(140,16))        
+        if sys.platform == 'linux2':
+            TITLELENGTH=160
+        else:
+            TITLELENGTH=140
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(TITLELENGTH,16))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((140,16))
+        self.title.SetMinSize((TITLELENGTH,16))
 
 
 
@@ -132,7 +136,7 @@ class PopularItemPanel(wx.Panel):
 
 
         # Add Spacer
-        self.hSizer.Add([30,0],0,0,0)        
+        self.hSizer.Add([170-TITLELENGTH,0],0,0,0)        
 
 
         # Add subscription button
@@ -309,9 +313,8 @@ class PopularItemPanel(wx.Panel):
         else: 
             ttstring = self.data[1] + " (%s votes)" % self.num_votes
         self.title.SetToolTipString(ttstring)
-        #self.Refresh()
         self.hSizer.Layout()
-        
+        #self.Refresh()
         
 
     def setTorrentList(self, torrentList):
@@ -395,9 +398,9 @@ class PopularItemPanel(wx.Panel):
             self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
             self.select()
-            if not self.guiUtility.frame.top_bg.needs_refresh:
-                self.guiUtility.frame.top_bg.indexMyChannel=-1
-                self.guiUtility.frame.top_bg.indexPopularChannels=self.index
+            #if not self.guiUtility.frame.top_bg.needs_refresh:
+            self.guiUtility.frame.top_bg.indexMyChannel=-1
+            self.guiUtility.frame.top_bg.indexPopularChannels=self.index
             wx.CallAfter(self.channelsDetails.loadChannel, self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
             self.channelsDetails.origin = 'popular_channel'
 

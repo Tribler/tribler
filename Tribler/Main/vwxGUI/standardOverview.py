@@ -645,6 +645,7 @@ class standardOverview(wx.Panel):
             gridmgr = grid.getGridManager()
             if gridmgr is not None:
                 gridmgr.refresh()
+                self.guiUtility.frame.standardPager.Show(gridmgr.get_total_items()>0)
 
         
     def toggleLoadingDetailsPanel(self, visible):

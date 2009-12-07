@@ -233,7 +233,7 @@ class VideoPlayer:
 
 
 
-    def play(self,ds, selectedinfilename=None):
+    def play(self,ds, selectedinfilename=None, index=None):
         """ Used by Tribler Main """
         self.determine_playbackmode()
         
@@ -254,6 +254,7 @@ class VideoPlayer:
                 for infilename,diskfilename in videofiles:
                     infilenames.append(infilename)
                 selectedinfilename = self.ask_user_to_select_video(infilenames)
+                print >> sys.stderr , "selectedinfilename == None" , selectedinfilename , len(selectedinfilename)
                 if selectedinfilename is None:
                     print >>sys.stderr,"videoplay: play: User selected no video"
                     return
@@ -264,10 +265,14 @@ class VideoPlayer:
                 selectedinfilename = videofiles[0][0]
                 selectedoutfilename = videofiles[0][1]
         else:
+            print >> sys.stderr , "selectedinfilename not None" , selectedinfilename , len(selectedinfilename)
+            if index is not None:
+                selectedinfilename = videofiles[index][0]
             for infilename,diskfilename in videofiles:
                 if infilename == selectedinfilename:
                     selectedoutfilename = diskfilename
 
+        print >> sys.stderr , "PROGRESS" , ds.get_progress()
         complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
 
         bitrate = tdef.get_bitrate(selectedinfilename)

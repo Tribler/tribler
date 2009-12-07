@@ -28,7 +28,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 if sys.platform == 'darwin':
     FS_PLAYTEXT = 10
     FS_SAVETEXT = 10
-    FS_TORRENT = 9
+    FS_TORRENT = 11
     FS_BELONGS_TO_CHANNEL = 8
 
 elif sys.platform == 'linux2':
@@ -84,6 +84,8 @@ class FilesItemDetailsSummary(bgPanel):
         self.infohash = torrentHash
         self.torrent = torrent
         self.torrenthash = torrentHash
+
+        self.storedTitle = None
 
         self.addComponents()
 
@@ -295,11 +297,11 @@ class FilesItemDetailsSummary(bgPanel):
         [stotal_items,sdata] = channelsearch_manager.getSubscriptions('channelsMode')
         [total_items,popularchannels_data] = channelsearch_manager.getPopularChannels('channelsMode', maximum=18-stotal_items)
         popularchannels_data_copy = popularchannels_data[:]
-        popularchannels_data.extend[sdata]
+        popularchannels_data.extend(sdata)
 
        # my channel check
         if self.channel[0] == bin2str(self.guiUtility.utility.session.get_permid()):
-             self.guiUtility.frame.channelsDetails = True
+             self.guiUtility.frame.channelsDetails.mychannel = True
              self.guiUtility.standardOverview.getGrid().data = mychannel_data
              self.guiUtility.standardOverview.getGrid().refreshPanels()
              self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data
@@ -308,9 +310,9 @@ class FilesItemDetailsSummary(bgPanel):
              return
 
         # popular channels check
-        for index in xrange(0,len(ptotal_data)):
-            if self.channel[0] == ptotal_data[index][0]:
-                 self.guiUtility.frame.channelsDetails = False
+        for index in xrange(0,len(popularchannels_data)):
+            if self.channel[0] == popularchannels_data[index][0]:
+                 self.guiUtility.frame.channelsDetails.mychannel = False
                  self.guiUtility.standardOverview.getGrid().data = mychannel_data
                  self.guiUtility.standardOverview.getGrid().refreshPanels()
                  self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data
@@ -319,7 +321,7 @@ class FilesItemDetailsSummary(bgPanel):
                  return
 
         # channel isn't viewed yet. insert it in the popular unsubscribed channels section
-        self.guiUtility.frame.channelsDetails = False
+        self.guiUtility.frame.channelsDetails.mychannel = False
         self.guiUtility.standardOverview.getGrid().data = mychannel_data
         self.guiUtility.standardOverview.getGrid().refreshPanels()
         popularchannels_data_copy.append(self.channel)
@@ -420,6 +422,7 @@ class FilesItemDetailsSummary(bgPanel):
         if self.currentPage > 0:
             self.erasevSizerContents()
             self.currentPage = self.currentPage - 1
+            print >> sys.stderr , self.currentPage
             self.displayTorrentContents()
 
 
@@ -428,13 +431,14 @@ class FilesItemDetailsSummary(bgPanel):
         if self.currentPage < self.lastPage:
             self.erasevSizerContents()
             self.currentPage = self.currentPage + 1
+            print >> sys.stderr , self.currentPage
             self.displayTorrentContents()
 
 
 
     def playbig_clicked(self,event):
         if self.play_big.isToggled():
-
+            self.guiUtility.standardOverview.getGrid().allowDeselectAll = False
             ds = self.torrent.get('ds')
 
             videoplayer = self._get_videoplayer(exclude=ds) 
@@ -568,6 +572,7 @@ class fileItem(wx.Panel):
         """
         Simple wrapper around _setTitle to handle unicode bugs
         """
+        self.storedTitle = title
         try:
             self._setTitle(title)
         except UnicodeDecodeError:
@@ -602,7 +607,10 @@ class fileItem(wx.Panel):
     def play_clicked(self):
 
         ds = self.summary.torrent.get('ds')
-        selectedinfilename = self.title.GetLabel()
+        selectedinfilename = self.storedTitle
+        videoplayer = self.summary._get_videoplayer(exclude=ds) 
+        videoplayer.stop_playback() # stop current playback
+        videoplayer.show_loading()
 
         if ds is not None:
             self.summary._get_videoplayer(exclude=ds).play(ds, selectedinfilename)
@@ -621,9 +629,6 @@ class fileItem(wx.Panel):
             self.summary._get_videoplayer().start_and_play(tdef, dscfg, selectedinfilename)
 
 
-        videoplayer = self.summary._get_videoplayer(exclude=ds) 
-        videoplayer.stop_playback() # stop current playback
-        videoplayer.show_loading()
 
 
         self.guiUtility.standardDetails.setVideodata(self.guiUtility.standardDetails.getData())

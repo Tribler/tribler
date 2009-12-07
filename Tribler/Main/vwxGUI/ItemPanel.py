@@ -169,7 +169,7 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
             
             
 
-        self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
+        self.hSizer.Add([10,5],0,wx.FIXED_MINSIZE,0)
         self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND, 0)
 
         self.thumb = ThumbnailViewer(self, 'filesMode')
@@ -178,11 +178,12 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
 
         # Add title
-        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.w1-5,self.h1))        
+        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(300,self.h1))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetForegroundColour(wx.BLACK)
         self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((self.w1-5,self.h1))
+        self.title.SetMinSize((300,self.h1))
+        self.title.SetSize((300,self.h1))
 
         self.hSizer.Add(self.title, 0,wx.TOP|wx.BOTTOM, 3)  
   
@@ -416,8 +417,8 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
         self.title.SetBackgroundColour(colour)
         self.title.SetFont(wx.Font(FS_FILETITLE_SEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
-        self.title.SetMinSize((self.w1, TITLEHEIGHTEXP))
-        self.title.SetSize((self.w1, TITLEHEIGHTEXP))
+        self.title.SetMinSize((self.w1-5, TITLEHEIGHTEXP))
+        self.title.SetSize((self.w1-5, TITLEHEIGHTEXP))
         
         
         self.SetBackgroundColour(colour)
@@ -450,8 +451,8 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
             
         self.title.SetBackgroundColour(colour)
         self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((self.w1, TITLEHEIGHT))
-        self.title.SetSize((self.w1, TITLEHEIGHT))
+        self.title.SetMinSize((self.w1-5, TITLEHEIGHT))
+        self.title.SetSize((self.w1-5, TITLEHEIGHT))
 
         self.SetBackgroundColour(colour)
         self.fileSize.SetBackgroundColour(colour)

@@ -3285,7 +3285,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         return torrent
 
     def getTorrentsFromPublisherId(self, publisher_id): ##
-        sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id='" + publisher_id + "' )"
+        sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id='" + publisher_id + "' ) and name is not NULL"
         return self._db.fetchall(sql)
         #records=[]
         #sql = "select infohash from ChannelCast where publisher_id='"+ publisher_id + "'"

@@ -257,7 +257,7 @@ class GridManager(object):
             #if state.db == 'libraryMode':
             if data is not None:
                 data = self.addDownloadStates(data)
-
+ 
         elif state.db == 'channelsMode':
 
             data=None
@@ -962,11 +962,14 @@ class standardGrid(wx.Panel):
                         pan.deselect(rowIndex,colIndex)#number = number)
                     else:
                         #pan.select(rowIndex,colIndex)
-                        pan.select(rowIndex, 
-                                   colIndex,
-                                   self.standardPager.currentPage, 
-                                   self.cols, 
-                                   self.currentRows)                         
+                        try:
+                            pan.select(rowIndex, 
+                                       colIndex,
+                                       self.standardPager.currentPage, 
+                                       self.cols, 
+                                       self.currentRows)                         
+                        except:
+                            pass
                     number += 1
                     colIndex += 1
                 rowIndex += 1

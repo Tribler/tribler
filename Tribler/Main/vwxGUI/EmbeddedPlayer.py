@@ -41,8 +41,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
 
 
-        self.Bind(wx.EVT_KEY_DOWN, self.keyDown)
-
+        #self.Bind(wx.EVT_KEY_DOWN, self.keyDown)
 
         mainbox = wx.BoxSizer(wx.VERTICAL)
 
@@ -145,7 +144,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'fullScreen')
             if sys.platform != 'darwin':
                 self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
-                self.fsbtn.setSelected(2)
+            self.fsbtn.setSelected(2)
 
 
             self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'saveDisabled', 'save')   
@@ -177,7 +176,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.playtimer = None
         self.update = False
         self.timer = None
-        
+
+
     def mouseAction(self,event):
         if event.LeftDown():
             if self.mute.isToggled(): # unmute
@@ -262,7 +262,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.Bind(wx.EVT_TIMER, self.UpdateSlider)
             
         self.timer.Start(200)
-        self.enableFullScreen()
+        if sys.platform != 'darwin':
+            self.enableFullScreen()
         self.enablePlay()
         self.enableScroll()
 
@@ -557,7 +558,8 @@ class VLCLogoWindow(wx.Panel):
         self.vlcwrap = vlcwrap
         self.animation_running = False
        
-        self.Bind(wx.EVT_KEY_UP, self.keyDown)
+        #self.Bind(wx.EVT_KEY_UP, self.keyDown)
+        #self.Bind(wx.EVT_LEFT_UP, self.leftClick)
 
         if logopath is not None and not animate:
             self.logo = wx.BitmapFromImage(wx.Image(logopath),-1)
@@ -605,13 +607,14 @@ class VLCLogoWindow(wx.Panel):
         if self.vlcwrap is not None:
             wx.CallAfter(self.tell_vclwrap_window_for_playback)
 
-        self.tl = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME, "Video","Images","tl.png"))
-        self.tr = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Video","Images","tr.png"))
-        self.bl = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Video","Images","bl.png"))
-        self.br = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Video","Images","br.png"))
+        if sys.platform != 'darwin':
+            self.tl = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME, "Video","Images","tl.png"))
+            self.tr = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Video","Images","tr.png"))
+            self.bl = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Video","Images","bl.png"))
+            self.br = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Video","Images","br.png"))
 
-        self.roundCorners()
-        self.Refresh()
+            self.roundCorners()
+            self.Refresh()
 
     def roundCorners(self):
         wx.EVT_PAINT(self, self.OnPaint)

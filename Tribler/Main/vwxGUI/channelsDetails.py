@@ -258,11 +258,12 @@ class channelsDetails(bgPanel):
         self.tf = TorrentFeedThread.getInstance()
         try:
             self.rssCtrl.SetValue(self.tf.mainURL)
+            self.rssFeed = self.rssCtrl.GetValue().strip()
         except:
             pass
 
 
-        self.tf.addURL(self.rssCtrl.GetValue().strip()) ## callback=self.nonUIThreadAddTorrent
+        #self.tf.addURL(self.rssCtrl.GetValue().strip()) ## callback=self.nonUIThreadAddTorrent
 
 
 
@@ -506,9 +507,9 @@ class channelsDetails(bgPanel):
             keycode = None
 
         if self.rssCtrl.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'addRSS') and self.rssFeed != self.rssCtrl.GetValue().strip() and self.addButton.isToggled():
-            self.setRSSFeed(self.rssCtrl.GetValue().strip())
             self.torrentfeed.deleteURL(self.rssFeed) 
-            self.torrentfeed.addURL(self.rssCtrl.GetValue().strip(), callback=self.nonUIThreadAddTorrent) 
+            self.setRSSFeed(self.rssCtrl.GetValue().strip())
+            self.torrentfeed.addURL(self.rssFeed, callback=self.nonUIThreadAddTorrent) 
             self.addButton.setToggled(False)
             self.updateRSS()
         else:
@@ -613,6 +614,7 @@ class channelsDetails(bgPanel):
                 if DEBUG:
                     print >> sys.stderr , torrent
                 wx.CallAfter(self.addTorrent, torrent, True)
+                wx.CallAfter(self.rssCtrl.SetFocus)
             except:
                 pass
 
@@ -769,7 +771,7 @@ class channelsDetails(bgPanel):
         else:
             numItems = self.torrentsPerPage    
 
-        print >> sys.stderr , "numitems" , numItems
+        #print >> sys.stderr , "numitems" , numItems
 
 
 
@@ -945,7 +947,7 @@ class channelsDetails(bgPanel):
         self.SubscriptionLimitText.Show(True)
         sizer = self.SubscriptionLimitText.GetContainingSizer()
         sizer.Layout()
-        self.guiserver.add_task(lambda:wx.CallAfter(self.hideSubscriptionLimitText), 6.0)
+        self.guiserver.add_task(lambda:wx.CallAfter(self.hideSubscriptionLimitText), 3.0)
 
     def hideSubscriptionLimitText(self):
         self.SubscriptionLimitText.Show(False)

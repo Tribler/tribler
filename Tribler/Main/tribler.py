@@ -255,6 +255,18 @@ class ABCApp(wx.App):
             self.frame.BR.Hide()
 
 
+            self.frame.blvideo = xrc.XRCCTRL(self.frame, "blvideo")
+            self.frame.brvideo = xrc.XRCCTRL(self.frame, "brvideo")
+            self.frame.tlvideo = xrc.XRCCTRL(self.frame, "tlvideo")
+            self.frame.trvideo = xrc.XRCCTRL(self.frame, "trvideo")
+
+            if sys.platform != 'darwin':
+                self.frame.blvideo.Hide()
+                self.frame.brvideo.Hide()
+                self.frame.tlvideo.Hide()
+                self.frame.trvideo.Hide()
+
+
             self.frame.channelsDetails = xrc.XRCCTRL(self.frame, "channelsDetails")
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.channelsDetails.Hide)
@@ -564,16 +576,18 @@ class ABCApp(wx.App):
         reputation = self.get_reputation()
         if sys.platform == 'win32':
             self.frame.top_bg.updateReputation(reputation)
-        elif self.frame.top_bg.sr_msg:
-            if reputation < -0.33:
-                self.frame.top_bg.sr_msg.SetLabel('Poor')
-                self.frame.top_bg.sr_msg.SetForegroundColour((255,51,0))
-            elif reputation < 0.33:
-                self.frame.top_bg.sr_msg.SetLabel('Average')
-                self.frame.top_bg.sr_msg.SetForegroundColour(wx.BLACK)
-            else:
-                self.frame.top_bg.sr_msg.SetLabel('Good')
-                self.frame.top_bg.sr_msg.SetForegroundColour((0,80,120))
+        else:
+            self.frame.top_bg.rep = reputation 
+            if self.frame.top_bg.sr_msg:
+                if reputation < -0.33:
+                    self.frame.top_bg.sr_msg.SetLabel('Poor')
+                    self.frame.top_bg.sr_msg.SetForegroundColour((255,51,0))
+                elif reputation < 0.33:
+                    self.frame.top_bg.sr_msg.SetLabel('Average')
+                    self.frame.top_bg.sr_msg.SetForegroundColour(wx.BLACK)
+                else:
+                    self.frame.top_bg.sr_msg.SetLabel('Good')
+                    self.frame.top_bg.sr_msg.SetForegroundColour((0,80,120))
 
 
 

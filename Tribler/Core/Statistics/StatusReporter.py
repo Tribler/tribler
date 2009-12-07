@@ -20,7 +20,7 @@ from Tribler.Core.Session import Session
 # is available all events will be stored in a database that can be
 # crawled. When the overlay is NOT available all events will be,
 # periodically, send to a HTTP logging server.
-PHONEHOME = True
+PHONEHOME = False
 
 # USE_LIVING_LAB_REPORTING: When True all HTTP logging will be
 # targeted to the living-lab servers. Otherwise the Tribler servers

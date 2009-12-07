@@ -62,10 +62,17 @@ class SettingsOverviewPanel(wx.Panel):
                              'cSave']
 
 
+        if sys.platform == 'darwin':
+            self.utf8=""
+        else:
+            self.utf8="UTF-8"
+
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         self.mypref = None
         self.currentPortValue = None
+
+        self.callback=None
  
         self.reload_counter = -1
         self.reload_cache = [None, None, None]
@@ -125,10 +132,10 @@ class SettingsOverviewPanel(wx.Panel):
 
 
         #set fonts
-        self.elements['profileTitle'].SetFont(wx.Font(FONT_SIZE_PROFILE_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
-        self.elements['sharingTitle'].SetFont(wx.Font(FONT_SIZE_SHARING_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
-        self.elements['firewallTitle'].SetFont(wx.Font(FONT_SIZE_FIREWALL_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
-        self.elements['fileText'].SetFont(wx.Font(FONT_SIZE_FILE_TEXT, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "UTF-8"))
+        self.elements['profileTitle'].SetFont(wx.Font(FONT_SIZE_PROFILE_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, self.utf8))
+        self.elements['sharingTitle'].SetFont(wx.Font(FONT_SIZE_SHARING_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, self.utf8))
+        self.elements['firewallTitle'].SetFont(wx.Font(FONT_SIZE_FIREWALL_TITLE, wx.SWISS, wx.NORMAL, wx.BOLD, 0, self.utf8))
+        self.elements['fileText'].SetFont(wx.Font(FONT_SIZE_FILE_TEXT, wx.SWISS, wx.NORMAL, wx.BOLD, 0, self.utf8))
 
         self.elements['zeroUp'].Bind(wx.EVT_LEFT_UP, self.zeroUp)
         self.elements['fiftyUp'].Bind(wx.EVT_LEFT_UP, self.fiftyUp)
@@ -352,7 +359,8 @@ class SettingsOverviewPanel(wx.Panel):
                 maxdownload = 'value'
             else:
                 saved = False
-                self.elements['downloadCtrl'].SetForegroundColour(wx.RED)
+                if sys.platform != 'darwin': # on mac can't reset the font colour back to black again
+                    self.elements['downloadCtrl'].SetForegroundColour(wx.RED)
                 self.elements['downloadCtrl'].SetValue('Error')
                  
      
@@ -372,7 +380,8 @@ class SettingsOverviewPanel(wx.Panel):
                 self.guiUtility.utility.config.Write('maxuploadrate', valup)
             else:
                 saved = False
-                self.elements['uploadCtrl'].SetForegroundColour(wx.RED)
+                if sys.platform != 'darwin': # on mac can't reset the font colour ack to black again
+                    self.elements['uploadCtrl'].SetForegroundColour(wx.RED)
                 self.elements['uploadCtrl'].SetValue('Error')
 
 
@@ -381,7 +390,8 @@ class SettingsOverviewPanel(wx.Panel):
 
         if not os.path.exists(self.elements['diskLocationCtrl'].GetValue()):
             saved = False
-            self.elements['diskLocationCtrl'].SetForegroundColour(wx.RED)
+            if sys.platform !='darwin':
+                self.elements['diskLocationCtrl'].SetForegroundColour(wx.RED)
             self.elements['diskLocationCtrl'].SetValue('Error')
 
 
@@ -433,6 +443,10 @@ class SettingsOverviewPanel(wx.Panel):
                     tt.SetTip(self.utility.lang.get('restart_tooltip'))
 
 
+            #profile info
+            if self.callback is not None:
+                self.callback(self.name, self.icondata, self.iconmime, self.scfg, self.cfgfilename, self.utility.session)
+
             self.updateSaveIcon()
 
    
@@ -458,10 +472,23 @@ class SettingsOverviewPanel(wx.Panel):
         wizard = MyInfoWizard(self)
         wizard.RunWizard(wizard.getFirstPage())
 
-    def WizardFinished(self,wizard):
+    def WizardFinished(self,wizard, name, icondata, iconmime, scfg, cfgfilename, callback=None):
         wizard.Destroy()
+      
+        if icondata is None:
+            im = IconsManager.getInstance()
+            self.mugshot = im.get_default('personsMode','DEFAULT_THUMB')
+        else:
+            self.mugshot = data2wxBitmap(iconmime, icondata)
 
-        self.getNameMugshot()
-        self.showNameMugshot()
+        self.getGuiElement('myNameField').SetLabel(name)
+        thumbpanel = self.getGuiElement('thumb')
+        thumbpanel.createBackgroundImage()
+        thumbpanel.setBitmap(self.mugshot)
 
-        #self.saveAll()
+        self.name=name
+        self.icondata=icondata
+        self.iconmime=iconmime
+        self.scfg=scfg
+        self.cfgfilename=cfgfilename
+        self.callback=callback

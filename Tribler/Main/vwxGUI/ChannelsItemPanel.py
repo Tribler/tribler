@@ -462,9 +462,11 @@ class ChannelsItemPanel(wx.Panel):
             if event.Entering() and self.data is not None:
                 colour = self.selectedColour
                 channelColour = self.channelTitleSelectedColour
+                self.SubscriptionButton.setBackground((216,233,240))
             elif event.Leaving() and self.selected == False:
                 colour = self.backgroundColour
                 channelColour = self.channelTitleUnselectedColour
+                self.SubscriptionButton.setBackground(wx.WHITE)
             self.title.SetBackgroundColour(colour)
             self.title.SetForegroundColour(channelColour)
             self.SetBackgroundColour(colour)

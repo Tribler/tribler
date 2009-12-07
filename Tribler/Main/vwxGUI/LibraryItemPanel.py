@@ -366,7 +366,7 @@ class LibraryItemPanel(wx.Panel):
             # is shown after libView, hitting the delete button generates
             # an event in this class.
             #window.Bind(wx.EVT_KEY_UP, self.keyTyped)                         
-            window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
+            #window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
 
             
     def getColumns(self):
@@ -754,8 +754,8 @@ class LibraryItemPanel(wx.Panel):
             # delete works for active and inactive torrents
             self.guiUtility.onDeleteTorrentFromLibrary()
             
-        if event.RightDown():
-            self.rightMouseButton(event)
+        #if event.RightDown():
+        #    self.rightMouseButton(event)
    
    
     def rightMouseButton(self, event):     
