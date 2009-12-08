@@ -297,6 +297,11 @@ class ChannelsItemPanel(wx.Panel):
 
             self.publisher_id, self.publisher_name, self.num_votes, torrents = data
 
+
+            # recalculate number of votes from database
+            self.num_votes=self.vcdb.getEffectiveVote(self.publisher_id)
+
+
             if data and oldinfohash != self.data[0]:
                 title = data[1][:self.titleLength] + " (%s)" % self.num_votes
                 self.title.Show()
@@ -371,7 +376,7 @@ class ChannelsItemPanel(wx.Panel):
         else: 
             ttstring = self.data[1] + " (%s votes)" % self.num_votes
         self.title.SetToolTipString(ttstring)
-
+        self.hSizer.Layout()
 
     def setTorrentList(self, torrentList):
         self.torrentList = torrentList
