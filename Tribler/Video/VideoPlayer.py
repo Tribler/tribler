@@ -18,7 +18,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
-DEBUG = True
+DEBUG = False
 
 
 if sys.platform == "linux2" or sys.platform == "darwin":
