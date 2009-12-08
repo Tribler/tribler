@@ -137,7 +137,13 @@ class ABCApp(wx.App):
             else:
                 wx.App.__init__(self, redirectstderrout)
         except:
+            # boudewijn: wx messes around with streams
+            import sys
+            sys.stdout, sys.stderr = self.pre_stdout, self.pre_stderr
             print_exc()
+            # boudewijn: we need to flush, otherwise exception is not
+            # always shown
+            sys.stderr.flush()
         
     def OnInit(self):
         try:
@@ -185,7 +191,6 @@ class ABCApp(wx.App):
             # Initialise fonts
             font.init()
 
-            
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
             
             # H4x0r a bit
@@ -471,6 +476,10 @@ class ABCApp(wx.App):
         
         s = Session(self.sconfig)
         self.utility.session = s
+
+        from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+        UserDownloadChoice.get_singleton().set_session_dir(self.utility.session.sessconfig["state_dir"])
+        
 
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
@@ -796,18 +805,11 @@ class ABCApp(wx.App):
             except:
                 print_exc()
             
-            # Restart other torrents when the single torrent that was
-            # running in VOD mode is done
-            currdlist = []
-            for ds in dslist:
-                currdlist.append(ds.get_download())
-            vodd = self.videoplayer.get_vod_download()
-            for ds in dslist:
-                d = ds.get_download()
-                if d == vodd and ds.get_status() == DLSTATUS_SEEDING:
-                    self.restart_other_downloads(currdlist)
-                    break
-                            
+            # The VideoPlayer instance manages both pausing and
+            # restarting of torrents before and after VOD playback
+            # occurs.
+            self.videoplayer.restart_other_downloads(dslist)
+                     
             # Adjust speeds once every 4 seconds
             adjustspeeds = False
             if self.rateadjustcount % 4 == 0:
@@ -854,30 +856,6 @@ class ABCApp(wx.App):
 
         except:
             print_exc()
-
-    def restart_other_downloads(self,currdlist):
-        restartdlist = self.videoplayer.get_vod_postponed_downloads()
-        self.videoplayer.set_vod_postponed_downloads([]) # restart only once
-        for d in restartdlist:
-            if d in currdlist:
-                d.set_mode(DLMODE_NORMAL)
-                d.restart()
-
-
-    def OnClosingVideoFrameOrExtPlayer(self):
-        vodd = self.videoplayer.get_vod_download()
-        if vodd is not None:
-            if vodd.get_def().get_live():
-                # Arno, 2009-03-27: Works poorly with VLC 0.9 without MPEGTS 
-                # patch. There VLC may close the HTTP connection and we interpret
-                # it as a window close (no window in 5.0) and stop live, thereby
-                # killing any future attempts. Should see how this works with
-                # MPEGTS patch put in.
-                #
-                print >>sys.stderr,"main: OnClosingVideoFrameOrExtPlayer: vodd is live, stopping",vodd.get_def().get_name_as_unicode()
-                vodd.stop()
-            self.restart_other_downloads(self.utility.session.get_downloads())
-        #else: playing Web2 video
 
     def loadSessionCheckpoint(self):
         # Load all other downloads

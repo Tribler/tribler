@@ -22,6 +22,7 @@ from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager, ChannelSearchGridManager, PeerSearchGridManager
 from Tribler.Main.Utility.constants import *
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.Video.VideoPlayer import VideoPlayer
 from fontSizes import *
@@ -127,6 +128,7 @@ class GUIUtility:
         self.max_remote_queries = 20    # max number of remote peers to query
         self.remote_search_threshold = 20    # start remote search when results is less than this number
 
+        self.user_download_choice = UserDownloadChoice.get_singleton()
     
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -1306,9 +1308,12 @@ class GUIUtility:
         
         if item.get('ds'):
             self.utility.session.remove_download(item['ds'].get_download(),removecontent = True)
+            self.user_download_choice.remove_download_state(item['ds'].get_download().get_def().get_infohash())
             
         self.standardOverview.removeTorrentFromLibrary(item)
         #wx.CallAfter(self.frame.standardPager.Show,self.standardOverview.getGrid().getGridManager().get_total_items()>0)
+
+
 
                 
     def onDeleteTorrentFromLibrary(self, event = None):

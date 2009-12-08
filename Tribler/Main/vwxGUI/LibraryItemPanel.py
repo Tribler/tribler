@@ -25,6 +25,7 @@ from Tribler.Video.utils import videoextdefaults
 from bgPanel import *
 from font import *
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *
@@ -118,6 +119,9 @@ class LibraryItemPanel(wx.Panel):
         #self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)   
         self.cache_progress = {}
         self.gui_server = GUITaskQueue.getInstance()
+
+        self.user_download_choice = UserDownloadChoice.get_singleton()
+
 
 #        self.SetMinSize((-1, 130))
         self.selected = False
@@ -395,14 +399,14 @@ class LibraryItemPanel(wx.Panel):
         if self.data.get('ds'):
             ds = self.data.get('ds')
             ds.get_download().stop()
-
-
+        self.user_download_choice.set_download_state(self.data["infohash"], "stop")
 
     def resumeDownload(self):
         self.pause_resume.SetLabel('Pause')
         if self.data.get('ds'):
             ds = self.data.get('ds')
             ds.get_download().restart()
+        self.user_download_choice.set_download_state(self.data["infohash"], "restart")
 
                   
     def refreshData(self):
