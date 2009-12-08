@@ -3218,7 +3218,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             torrentname = torrentdata['info']['name']
             record = [publisher_id,self.session.get_nickname(),infohash,torrenthash,torrentname,now()]
             self._sign(record)
-            sql = 'insert into ChannelCast Values("' + str(record[0]) + '","' + str(record[1]) + '","' + str(record[2]) + '","' + str(record[3]) + '","' + str(record[4]) + '","' + str(record[5]) + '","' + str(record[6]) + '")'
+            sql = 'insert into ChannelCast Values("' + record[0] + '","' + record[1] + '","' + record[2] + '","' + record[3] + '","' + record[4] + '","' + str(record[5]) + '","' + record[6] + '")'
             self._db.execute_write(sql)
             return True
         return False
@@ -3240,14 +3240,15 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select count(*) from ChannelCast where publisher_id='" + record[0] + "' and infohash='" + record[2] + "'"
         num_records = self._db.fetchone(sql)
         if num_records==0:
-            sql = 'insert into ChannelCast Values("' + str(record[0]) + '","' + str(record[1]) + '","' + str(record[2]) + '","' + str(record[3]) + '","' + str(record[4]) + '","' + str(record[5]) + '","' + str(record[6]) + '")'
+            #sql = 'insert into ChannelCast Values("' + str(record[0]) + '","' + str(record[1]) + '","' + str(record[2]) + '","' + str(record[3]) + '","' + str(record[4]) + '","' + str(record[5]) + '","' + str(record[6]) + '")'
+            sql = 'insert into ChannelCast Values("' + record[0] + '","' + record[1] + '","' + record[2] + '","' + record[3] + '","' + record[4] + '","' + str(record[5]) + '","' + record[6] + '")'
             print sql
             self._db.execute_write(sql)
             return True
         return False
         
     def existsTorrent(self,infohash):
-        sql = "select count(*) from Torrent where infohash='" + infohash + "' and name<>NULL"
+        sql = "select count(*) from Torrent where infohash='" + infohash + "' and name<>''"
         num_records = self._db.fetchone(sql)
         if num_records > 0:
             return True
@@ -3285,7 +3286,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         return torrent
 
     def getTorrentsFromPublisherId(self, publisher_id): ##
-        sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id='" + publisher_id + "' ) and name is not NULL"
+        sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id='" + publisher_id + "' ) and name<>'' "
         return self._db.fetchall(sql)
         #records=[]
         #sql = "select infohash from ChannelCast where publisher_id='"+ publisher_id + "'"
@@ -3491,6 +3492,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
 #        return records
 
+        print >> sys.stderr , "getMySubscribedChannels"
         allrecords = []
 
 
