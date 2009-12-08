@@ -570,7 +570,7 @@ class channelsDetails(bgPanel):
         self.isempty = False
 
     def spamClicked(self, event):
-        dialog = wx.MessageDialog(None, "Are sure you want to report %s as spam ?\nThis will remove all the torrents and unsubscribe you from the channel. " % self.channelTitle.GetLabel(), "Report spam", wx.OK|wx.CANCEL|wx.ICON_WARNING)
+        dialog = wx.MessageDialog(None, "Are sure you want to report %s as spam ?\nThis will remove all the torrents and possibly unsubscribe you from the channel. " % self.channelTitle.GetLabel(), "Report spam", wx.OK|wx.CANCEL|wx.ICON_WARNING)
         result = dialog.ShowModal()
         dialog.Destroy()
         if result == wx.ID_OK:
