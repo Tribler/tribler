@@ -413,7 +413,7 @@ class TopSearchPanel(bgPanel):
                 self.guiUtility.guiPage = 'search_results'
                 self.guiUtility.channelsOverview(erase)
                 self.guiUtility.frame.channelsDetails.mychannel = False
-                wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase=False)
+                wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase)
 
 
         colour = wx.Colour(0,105,156)
