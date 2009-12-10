@@ -12,7 +12,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 ## from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
-from Tribler.Main.vwxGUI.standardGrid import filesGrid,libraryGrid
+from Tribler.Main.vwxGUI.standardGrid import filesGrid,libraryGrid,channelsGrid,popularGrid
 from Tribler.Main.Utility.constants import *
 #from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -93,8 +93,6 @@ class standardOverview(wx.Panel):
         self.channelsPanel = None
 
 
-        self.channel = None
-
         self.addComponents()
         #self.Refresh()
         
@@ -136,7 +134,6 @@ class standardOverview(wx.Panel):
         # switch to another view, 
         # mode is one of the [filesMode, personsMode, friendsMode, profileMode, libraryMode, subscriptionsMode]
         if self.mode != mode or mode == 'fileDetailsMode' or mode == 'playlistMode':
-            #self.stopWeb2Search()
             self.mode = mode
             self.refreshMode(refreshGrid=refreshGrid)
             
@@ -148,22 +145,10 @@ class standardOverview(wx.Panel):
     def refreshMode(self,refreshGrid=True):
         # load xrc
         self.oldpanel = self.currentPanel   
-
-        t1 = time()
         
         self.currentPanel = self.loadPanel()
 
-        t2 = time()
-        print >> sys.stderr , "loadPanel" , t2 - t1
-
-
-        #print >> sys.stderr , 'standardOverview: self.oldpanel' , self.oldpanel
-        #print >> sys.stderr , 'standardOverview: self.currentPanel' , self.currentPanel
-
-
         assert self.currentPanel, "standardOverview: Panel could not be loaded"
-        #self.currentPanel.GetSizer().Layout()
-        #self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
         if self.data[self.mode].get('grid') and refreshGrid:
             self.data[self.mode]['grid'].gridManager.reactivate()
@@ -171,20 +156,15 @@ class standardOverview(wx.Panel):
         if self.oldpanel and self.oldpanel != self.currentPanel:
             self.hSizer.Detach(self.oldpanel)
             self.oldpanel.Hide()
-            #self.oldpanel.Disable()
 
         assert len(self.hSizer.GetChildren()) == 0, 'Error: standardOverview self.hSizer has old-panel and gets new panel added (2 panel bug). Old panels are: %s' % self.hSizer.GetChildren()
             
-        #if self.oldpanel != self.currentPanel: 
-        #    self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)   
-        
         nameCP = self.currentPanel.GetName()
         if nameCP == 'profileOverview': 
             sizeCP = self.currentPanel.GetSize()
             sizeFrame = self.Parent.GetSize()
             
             heightCP = max(sizeCP[1], sizeFrame[1])
-#            print 'heightCP = %s' % heightCP
             self.SetSize((-1, heightCP))        
             self.SetMinSize((500,sizeCP[1]))
         elif nameCP == 'settingsOverview':
@@ -209,7 +189,6 @@ class standardOverview(wx.Panel):
         wx.CallAfter(self.currentPanel.Refresh)
 
         wx.CallAfter(self.guiUtility.scrollWindow.FitInside)
-#        self.guiUtility.scrollWindow.FitInside()        
 
     def setPager(self, pager): ## added
         if DEBUG:
@@ -331,15 +310,18 @@ class standardOverview(wx.Panel):
 
         elif modeString == "channels":
             if self.channelsPanel is None:
+                t1=time()
                 xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
                 panelName = modeString+'Overview'
                 res = xrc.XmlResource(xrcResource)
                 currentPanel = res.LoadPanel(self, panelName)
                 self.channelsPanel = currentPanel
+                t2=time()
+                print >> sys.stderr , "XRC" , t2-t1
             else:
                 currentPanel = self.channelsPanel
-            grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')  
-            grid2 = xrc.XRCCTRL(currentPanel, 'popularGrid')  
+            grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')
+            grid2 = xrc.XRCCTRL(currentPanel, 'popularGrid')
 
       
             

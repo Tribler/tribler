@@ -3093,6 +3093,11 @@ class ChannelCastDBHandler(BasicDBHandler):
             print >> sys.stderr, "ChannelCast: couldn't make the table"
         
         self.peer_db = PeerDBHandler.getInstance()
+        self.firstQueryMySubscriptions=True
+        self.allRecordsMySubscriptions=None
+        self.firstQueryPopularChannels=True
+        self.allRecordsPopularChannels=None
+        
         if DEBUG:
             print >> sys.stderr, "ChannelCast: "
             
@@ -3101,6 +3106,9 @@ class ChannelCastDBHandler(BasicDBHandler):
     def registerSession(self, session):
         self.session = session
         self.my_permid = session.get_permid()
+        self.getMySubscribedChannels()
+        self.getMostPopularUnsubscribedChannels()
+        print >> sys.stderr , "REGISTERED"
         if DEBUG:
             print >> sys.stderr, "ChannelCast: My permid is",`self.my_permid`
         
@@ -3383,9 +3391,13 @@ class ChannelCastDBHandler(BasicDBHandler):
 
 
 
-    def getMostPopularUnsubscribedChannels(self): ##
+    def getMostPopularUnsubscribedChannels(self,from_channelcast=False): ##
         """return a list of tuples: [(permid,channel_name,#votes)]"""
         
+        if not self.firstQueryPopularChannels and not from_channelcast:
+            self.firstQueryPopularChannels=True
+            return self.allRecordsPopularChannels
+
         votecastdb = VoteCastDBHandler.getInstance()
         allrecords = []
 
@@ -3427,6 +3439,10 @@ class ChannelCastDBHandler(BasicDBHandler):
             return 0
         allrecords.sort(compare)
         #print >> sys.stderr, "getMostPopularUnsubscribedChannels: execution times %.3f, %.3f, %.3f" %(t2-t1, t3-t2, time()-t3)
+        if not from_channelcast:
+            if self.allRecordsPopularChannels is None:
+                self.firstQueryPopularChannels=False
+            self.allRecordsPopularChannels=allrecords
         return allrecords
     
 
@@ -3473,7 +3489,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
 
     
-    def getMySubscribedChannels(self):
+    def getMySubscribedChannels(self, from_channelcast=False):
         """return a list of tuples: [(permid,channel_name,#votes)]"""
 #        records = []
 #        votecastdb = VoteCastDBHandler.getInstance()
@@ -3492,10 +3508,19 @@ class ChannelCastDBHandler(BasicDBHandler):
 
 #        return records
 
+        if from_channelcast:
+            print >> sys.stderr , "FROM CHANNELCAST"
+
+        if not self.firstQueryMySubscriptions and not from_channelcast:
+            self.firstQueryMySubscriptions=True
+            return self.allRecordsMySubscriptions
+
+
+
         print >> sys.stderr , "getMySubscribedChannels"
         allrecords = []
 
-
+        t1=time()
         sql = "select distinct publisher_id, publisher_name from ChannelCast"
         channel_records = self._db.fetchall(sql)
 
@@ -3525,6 +3550,15 @@ class ChannelCastDBHandler(BasicDBHandler):
             if a[2]<b[2] : return 1
             return 0
         allrecords.sort(compare)
+
+        t2=time()
+        print >> sys.stderr , "DATABASE" , t2-t1
+
+        if not from_channelcast:
+            if self.allRecordsMySubscriptions is None:            
+                self.firstQueryMySubscriptions=False
+            self.allRecordsMySubscriptions=allrecords
+
         return allrecords
 
     def getMostPopularChannelFromTorrent(self, infohash): ##

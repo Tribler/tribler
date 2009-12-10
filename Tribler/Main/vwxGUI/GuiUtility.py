@@ -526,7 +526,6 @@ class GUIUtility:
         except:
             pass
 
-        ##self.frame.pageTitlePanel.Show()
 
         
     def channelsOverview(self, erase=False):
@@ -582,11 +581,6 @@ class GUIUtility:
         t2 = time()
         print >> sys.stderr , "channelsMode" , t2 -t1
 
-        #self.standardOverview.data['channelsMode']['grid'].reloadChannels()
-        #self.standardOverview.data['channelsMode']['grid2'].reloadChannels()
-
-
-        ##wx.CallAfter(self.frame.channelsDetails.reinitialize)
 
 
     def loadInformation(self, mode, sort, erase = False):
