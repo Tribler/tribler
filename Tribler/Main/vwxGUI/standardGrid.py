@@ -754,11 +754,12 @@ class standardGrid(wx.Panel):
                         self.setDataOfPanel(i, self.data[i])
                     else:
                         self.setDataOfPanel(i, None)
+                    wx.GetApp().Yield(True)
 
 
        
 
-        if self.name in ['subscriptionsGrid', 'popularGrid', 'channelsGrid']:
+        if self.name in ['popularGrid', 'channelsGrid']:
             self.showSelectedChannel()
     
 

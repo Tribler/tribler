@@ -579,7 +579,8 @@ class GUIUtility:
 
 
         t2 = time()
-        print >> sys.stderr , "channelsMode" , t2 -t1
+        if DEBUG: 
+            print >> sys.stderr , "channelsMode" , t2 -t1
 
 
 

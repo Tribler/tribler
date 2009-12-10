@@ -640,31 +640,7 @@ class ABCApp(wx.App):
             s = '%dGB Down' % (d//1073741824)
 
 
-        #if d < 10:
-        #    s = '%dB Down   ' % d         
-        #elif d < 100:
-        #    s = '%dB Down  ' % d         
-        #elif d < 1000:
-        #    s = '%dB Down ' % d
-        #elif d < 10000:
-        #    s = '%dKB Down  ' % (d//1000L)
-        #elif d < 100000:
-        #    s = '%dKB Down ' % (d//1000L)
-        #elif d < 1000000:
-        #    s = '%dKB Down' % (d//1000L)
-        #elif d < 10000000:
-        #    s = '%dMB Down  ' % (d//1000000L)
-        #elif d < 100000000:
-        #    s = '%dMB Down ' % (d//1000000L)
-        #elif d < 1000000000:
-        #    s = '%dMB Down' % (d//1000000L)
-        #elif d < 10000000000:
-        #    s = '%dGB Down  ' % (d//1000000000L)
-        #elif d < 100000000000:
-        #    s = '%dGB Down ' % (d//1000000000L)
-        #else:
-        #    s = '%dGB Down' % (d//1000000000L)
-        
+       
         self.frame.top_bg.total_down.SetLabel(s)
 
 
@@ -687,14 +663,6 @@ class ABCApp(wx.App):
             s = '%3dGB Up' % (u//1073741824)
 
 
-        #if u < 1000:
-        #    s = '%4dB Up' % u
-        #elif u < 1000000:
-        #    s = '%3dKB Up' % (u//1000L)
-        #elif u < 1000000000:
-        #    s = '%3dMB Up' % (u//1000000L)
-        #else:
-        #    s = '%3dGB Up' % (u//1000000000L)
 
         self.frame.top_bg.total_up.SetLabel(s)
 
@@ -704,8 +672,9 @@ class ABCApp(wx.App):
         self.frame.hsizer.Prepend(wx.Size(reputation*40+50,0),0,wx.LEFT,0)
    
         self.frame.hsizer.Layout()
+        if sys.platform=='linux2':
+            self.frame.top_bg.Layout()  
  
-        ##self.old_reputation = reputation
 
 
     def guiservthread_update_reputation(self):

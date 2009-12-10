@@ -741,7 +741,8 @@ class ChannelSearchGridManager:
         t1 = time()
         subscriptions = self.channelcast_db.getMySubscribedChannels()
         t2 = time()
-        print >> sys.stderr , "getSubscriptions" , t2 - t1
+        if DEBUG:
+            print >> sys.stderr , "getSubscriptions" , t2 - t1
         return [len(subscriptions), subscriptions]
 
     def getPopularChannels(self, mode, maximum=20):
@@ -749,7 +750,8 @@ class ChannelSearchGridManager:
         pchannels = self.channelcast_db.getMostPopularUnsubscribedChannels()
         pchannels = pchannels[:maximum]
         t2 = time()
-        print >> sys.stderr , "getPopularChannels" , t2 - t1
+        if DEBUG:
+            print >> sys.stderr , "getPopularChannels" , t2 - t1
         return [len(pchannels), pchannels]
                
     def setSearchKeywords(self,wantkeywords, mode):

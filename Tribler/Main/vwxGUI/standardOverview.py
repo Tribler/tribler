@@ -92,7 +92,7 @@ class standardOverview(wx.Panel):
         self.settingsPanel = None
         self.channelsPanel = None
 
-
+        self.channel=None
         self.addComponents()
         #self.Refresh()
         
@@ -317,7 +317,8 @@ class standardOverview(wx.Panel):
                 currentPanel = res.LoadPanel(self, panelName)
                 self.channelsPanel = currentPanel
                 t2=time()
-                print >> sys.stderr , "XRC" , t2-t1
+                if DEBUG:
+                    print >> sys.stderr , "CHANNEL XRC LOADING" , t2-t1
             else:
                 currentPanel = self.channelsPanel
             grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')

@@ -444,12 +444,17 @@ class TopSearchPanel(bgPanel):
                 self.needs_refresh = False
             
             self.guiUtility.channelsOverview(erase)
+
+            #wx.Yield()
             wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase=False)
+
+
             self.guiUtility.standardOverview.data['channelsMode']['grid'].expandPanelFromIndex(self.indexMyChannel)
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].expandPanelFromIndex(self.indexPopularChannels)
 
             T2 = time.time()
-            print >> sys.stderr , "ALL", T2 - T1
+            if DEBUG:
+                print >> sys.stderr , "CHANNEL LOADING", T2 - T1
     
 
 

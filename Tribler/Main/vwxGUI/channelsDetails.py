@@ -464,10 +464,12 @@ class channelsDetails(bgPanel):
             self.spam.Hide()
 
     def reinitialize(self, force = False):
-        self.hideElements(force)
-        self.clearAll()
-        self.isempty = True
-
+        try:
+            self.hideElements(force)
+            self.clearAll()
+            self.isempty = True
+        except:
+            pass
 
     def clearAll(self):
         for i in range(self.totalItems):

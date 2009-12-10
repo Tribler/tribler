@@ -3108,7 +3108,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         self.my_permid = session.get_permid()
         self.getMySubscribedChannels()
         self.getMostPopularUnsubscribedChannels()
-        print >> sys.stderr , "REGISTERED"
         if DEBUG:
             print >> sys.stderr, "ChannelCast: My permid is",`self.my_permid`
         
@@ -3508,7 +3507,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
 #        return records
 
-        if from_channelcast:
+        if DEBUG and from_channelcast:
             print >> sys.stderr , "FROM CHANNELCAST"
 
         if not self.firstQueryMySubscriptions and not from_channelcast:
@@ -3517,10 +3516,10 @@ class ChannelCastDBHandler(BasicDBHandler):
 
 
 
-        print >> sys.stderr , "getMySubscribedChannels"
+        if DEBUG:
+            print >> sys.stderr , "getMySubscribedChannels"
         allrecords = []
 
-        t1=time()
         sql = "select distinct publisher_id, publisher_name from ChannelCast"
         channel_records = self._db.fetchall(sql)
 
@@ -3551,8 +3550,6 @@ class ChannelCastDBHandler(BasicDBHandler):
             return 0
         allrecords.sort(compare)
 
-        t2=time()
-        print >> sys.stderr , "DATABASE" , t2-t1
 
         if not from_channelcast:
             if self.allRecordsMySubscriptions is None:            

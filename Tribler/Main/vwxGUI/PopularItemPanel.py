@@ -143,27 +143,13 @@ class PopularItemPanel(wx.Panel):
         self.SubscriptionButton = tribler_topButton(self, -1, name = "SubscriptionButton_small")
         self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
         self.SubscriptionButton.setBackground(wx.WHITE)
+          
         self.SubscriptionButton.Hide()
         self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 2)
 
 
-
-        # Add subscription text
-        #self.SubscriptionText = wx.StaticText(self,-1,"Subscribed",wx.Point(0,0),wx.Size(210,16))
-        #if sys.platform == 'linux2':
-        #    self.SubscriptionText.SetBackgroundColour(wx.WHITE)
-        #self.SubscriptionText.SetForegroundColour((0,110,149))
-        #self.SubscriptionText.SetFont(wx.Font(FS_SUBSCRIPTION,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        #self.SubscriptionText.Hide()
-        #self.hSizer.Add(self.SubscriptionText, 0, wx.TOP, 2)
-
-
-
-        ##self.hSizer.Add((10,0), 0, 0, 0)
-
         if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-            #self.SubscriptionText.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.SubscriptionButton.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
             
 
@@ -222,7 +208,6 @@ class PopularItemPanel(wx.Panel):
         
         if data is None:
             self.title.SetLabel("")
-            #self.SubscriptionText.Hide()
             self.SubscriptionButton.Hide()
             self.title.Hide()
             self.hLine.Show()
@@ -235,7 +220,6 @@ class PopularItemPanel(wx.Panel):
 
         self.mychannel = False
         self.publisher_id, self.publisher_name, self.num_votes, torrents = data
-        ## print >> sys.stderr, "publisher_id", publisher_id, "publisher_name" , publisher_name, "num_votes", num_votes
 
 
         if data: # and oldinfohash != self.data[0]:
