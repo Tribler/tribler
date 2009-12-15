@@ -172,10 +172,10 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.hSizer.Add([10,5],0,wx.FIXED_MINSIZE,0)
         self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND, 0)
 
-        self.thumb = ThumbnailViewer(self, 'filesMode')
-        self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize((32,18))
-        self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
+        #self.thumb = ThumbnailViewer(self, 'filesMode')
+        #self.thumb.setBackground(wx.BLACK)
+        #self.thumb.SetSize((32,18))
+        #self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
 
         # Add title
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(300,self.h1))        
@@ -191,7 +191,7 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
 
 
-        self.fileSize = wx.StaticText(self,-1,"size",wx.Point(0,0),wx.Size(self.w2-5,18), wx.ALIGN_LEFT | wx.ST_NO_AUTORESIZE)        
+        self.fileSize = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.w2-5,18), wx.ALIGN_LEFT | wx.ST_NO_AUTORESIZE)        
         self.fileSize.SetBackgroundColour(wx.WHITE)
         self.fileSize.SetForegroundColour(wx.BLACK) 
         self.fileSize.SetFont(wx.Font(FS_FILESIZE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
@@ -282,7 +282,7 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         if not data:
             data = {}
 
-        self.thumb.Hide() ## should not be shown
+        #self.thumb.Hide() ## should not be shown
 
 
         if self.type == 'torrent':

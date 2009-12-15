@@ -224,14 +224,6 @@ class TopSearchPanel(bgPanel):
             self.arrow_sel = False
         self.file_sel.SetForegroundColour((0, 105, 156))
 
-#    def OnFileSel(self, event):
-#        self.search_mode = 'files'
-#        self.guiUtility.setSearchMode('files')
-#        self.file_sel.Flicker()
-        #self.file_sel.Hide()
-        #self.channel_sel.Hide()
-#        self.arrow_sel = False
-#        wx.CallAfter(self.file_sel.GetContainingSizer().Layout)
 
 
     def OnChannelSel(self, event):
@@ -245,14 +237,6 @@ class TopSearchPanel(bgPanel):
             self.arrow_sel = False
         self.channel_sel.SetForegroundColour((0, 105, 156))
 
-#    def OnChannelSel(self, event):
-#        self.search_mode = 'channels'
-#        self.guiUtility.setSearchMode('channels')
-#        self.channel_sel.Flicker()
-        #self.file_sel.Hide()
-        #self.channel_sel.Hide()
-#        self.arrow_sel = False
-#        wx.CallAfter(self.file_sel.GetContainingSizer().Layout)
 
 
 
@@ -337,7 +321,6 @@ class TopSearchPanel(bgPanel):
             if sys.platform == 'win32':
                 self.Refresh()
                 self.Layout()
-            
             # Arno: delay actual search so the painting is faster.
             wx.CallAfter(self.guiUtility.dosearch)
         else:
@@ -406,12 +389,27 @@ class TopSearchPanel(bgPanel):
                 self.guiUtility.standardFilesOverview()
                 self.guiUtility.loadInformation('filesMode', 'rameezmetric', erase=False)
             else:
+                
                 if self.guiUtility.frame.channelsDetails.origin != 'search_results':
                     erase=True 
                 else:
                     erase=False
+
+
                 self.guiUtility.guiPage = 'search_results'
                 self.guiUtility.channelsOverview(erase)
+
+                grid = self.guiUtility.standardOverview.getGrid()
+                grid.gridManager.blockedRefresh=True
+                grid2 = self.guiUtility.standardOverview.getGrid(2)
+                grid.clearAllData()
+                grid2.clearAllData()
+                grid2.Hide()
+                grid.gridManager.resizeGrid(grid)
+                grid.gridManager.blockedRefresh=False
+
+
+                wx.GetApp().Yield(True)
                 self.guiUtility.frame.channelsDetails.mychannel = False
                 wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase)
 
@@ -442,10 +440,10 @@ class TopSearchPanel(bgPanel):
                 self.indexMyChannel = -1
                 self.indexPopularChannels = -1
                 self.needs_refresh = False
-            
             self.guiUtility.channelsOverview(erase)
+            
+            wx.GetApp().Yield(True)
 
-            #wx.Yield()
             wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase=False)
 
 

@@ -93,6 +93,16 @@ class standardOverview(wx.Panel):
         self.channelsPanel = None
 
         self.channel=None
+
+        # get channelsPanel now for faster loading
+        xrcResource = os.path.join(self.guiUtility.vwxGUI_path, 'channelsOverview.xrc')
+        panelName = 'channelsOverview'
+        res = xrc.XmlResource(xrcResource)
+        currentPanel = res.LoadPanel(self, panelName)
+        self.channelsPanel = currentPanel
+        self.channelsPanel.Hide()
+
+
         self.addComponents()
         #self.Refresh()
         
@@ -160,24 +170,20 @@ class standardOverview(wx.Panel):
         assert len(self.hSizer.GetChildren()) == 0, 'Error: standardOverview self.hSizer has old-panel and gets new panel added (2 panel bug). Old panels are: %s' % self.hSizer.GetChildren()
             
         nameCP = self.currentPanel.GetName()
-        if nameCP == 'profileOverview': 
-            sizeCP = self.currentPanel.GetSize()
-            sizeFrame = self.Parent.GetSize()
-            
-            heightCP = max(sizeCP[1], sizeFrame[1])
-            self.SetSize((-1, heightCP))        
-            self.SetMinSize((500,sizeCP[1]))
-        elif nameCP == 'settingsOverview':
+        if nameCP == 'settingsOverview':
             self.SetMinSize((900,500))
         elif nameCP == 'libraryOverview':
-            self.SetMinSize((600,490)) # 480
-        else: # filesOverview
+            self.SetMinSize((600,490))
+        elif nameCP == 'filesOverview': 
             if sys.platform == 'darwin':
                 self.SetMinSize((600,493))
             elif sys.platform == 'win32':
                 self.SetMinSize((600,490))
             else:
                 self.SetMinSize((600,492))
+        else: # channelsOverview
+            self.SetMinSize((600,500))
+
         self.hSizer.Layout()
         
 
@@ -324,7 +330,7 @@ class standardOverview(wx.Panel):
             grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')
             grid2 = xrc.XRCCTRL(currentPanel, 'popularGrid')
 
-      
+     
             
         self.data[self.mode]['panel'] = currentPanel
         if sys.platform == 'darwin' and modeString == 'channels':
@@ -561,10 +567,13 @@ class standardOverview(wx.Panel):
                     if self.results[el] != -1:
                         total+=self.results[el]
         elif self.mode == 'channelsMode':
-            for el in self.results:
-                if el in ['remotechannels', 'channels']: 
-                    if self.results[el] != -1:
-                        total+=self.results[el]
+#            for el in self.results:
+#                if el in ['remotechannels', 'channels']: 
+#                    if self.results[el] != -1:
+#                        total+=self.results[el]
+            if 'channels' in self.results and self.results['channels'] != -1:
+                total=self.results['channels']
+
 
         wx.CallAfter(self.guiUtility.frame.standardPager.Show,(total > 0))
         self.guiUtility.frame.pagerPanel.Refresh()

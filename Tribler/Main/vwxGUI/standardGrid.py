@@ -73,6 +73,8 @@ class GridManager(object):
         self.cache_ntorrent_interval = 1
         self.cache_npeer_interval = 1
 
+        self.blockedRefresh=False
+
 
         self.old_data = None
         
@@ -86,6 +88,9 @@ class GridManager(object):
         """
         Refresh the data of the grid
         """
+
+        if self.blockedRefresh:
+            return
         if DEBUG:
             print >>sys.stderr,"standardGrid: refresh",self.grid.initReady
         #print_stack()
@@ -105,63 +110,52 @@ class GridManager(object):
             self.setObserver()
             
         self.data, self.total_items = self._getData(self.state)
-
+        wx.GetApp().Yield(True)
 
         if self.state.db == 'channelsMode':
-            if self.grid.guiUtility.guiPage == 'search_results':
-                if self.grid.name == 'channelsGrid':
-                    if sys.platform == 'darwin':
-                        self.grid.SetMinSize((218,500))
-                        self.grid.SetSize((218,500))
-                    else:
-                        self.grid.SetMinSize((210,500))
-                        self.grid.SetSize((210,500))
-                    if sys.platform != 'darwin':
-                        self.grid.calculateRows()
-                if self.grid.name == 'subscriptionsGrid':
-                    self.grid.Hide()
-                if self.grid.name == 'popularGrid':
-                    if sys.platform == 'darwin':
-                        wx.CallAfter(self.grid.Hide)
-                    else:
-                        self.grid.Hide()
-                    
-            else:
-                if self.grid.name == 'channelsGrid':
-                    if sys.platform == 'darwin':
-                        self.grid.SetMinSize((218,49))
-                        self.grid.SetSize((218,49))
-                    else:
-                        self.grid.SetMinSize((210,49))
-                        self.grid.SetSize((210,49))
-                    self.grid.GetContainingSizer().Layout()
-                if self.grid.name == 'subscriptionsGrid':
-                    self.grid.Show()
-                if self.grid.name == 'popularGrid':
-                    self.grid.Show()
-                    if sys.platform == 'darwin':
-                        self.grid.SetMinSize((218,434))
-                        self.grid.SetSize((218,434))
-
-        #if self.old_data is None:
-
-        #t1 = time()
-
-        ##print >> sys.stderr , "DAAAATAAAAA" , self.data
+            self.resizeGrid(self.grid)
                         
         self.grid.setData(self.data)
-        #    self.old_data = self.data
-        #else:
-        #    self.grid.setData(self.old_data)
-
-
-        #t2 = time()
-        #print >> sys.stderr  , "setDATA" , t2 - t1
 
         if DEBUG:
             print >> sys.stderr, 'GridManager: state: %s' % (self.state)
             print >> sys.stderr, 'GridManager: state: gave %d results, out of total %d' % (len(self.data), self.total_items)
         
+    def resizeGrid(self, grid):
+        if grid.guiUtility.guiPage == 'search_results':
+            if grid.name == 'channelsGrid':
+                if sys.platform == 'darwin':
+                    grid.SetMinSize((218,500))
+                    grid.SetSize((218,500))
+                else:
+                    grid.SetMinSize((210,500))
+                    grid.SetSize((210,500))
+                if sys.platform != 'darwin':
+                    grid.calculateRows()
+            if grid.name == 'popularGrid':
+                if sys.platform == 'darwin':
+                    wx.CallAfter(grid.Hide)
+                else:
+                    grid.Hide()
+                    
+        else:
+            if grid.name == 'channelsGrid':
+                if sys.platform == 'darwin':
+                    grid.SetMinSize((218,49))
+                    grid.SetSize((218,49))
+                else:
+                    grid.SetMinSize((210,49))
+                    grid.SetSize((210,49))
+                grid.GetContainingSizer().Layout()
+            if grid.name == 'popularGrid':
+                grid.Show()
+                if sys.platform == 'darwin':
+                    grid.SetMinSize((218,434))
+                    grid.SetSize((218,434))
+
+
+
+
         
     def set_page(self, page):
         if page != self.page:
@@ -251,6 +245,7 @@ class GridManager(object):
                 
                 #print >> sys.stderr, "GridManager: _getData: filter returned",len(data)
                 
+                total_items = len(data)
             else: # files mode
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
                 
@@ -273,16 +268,12 @@ class GridManager(object):
                 if self.grid.name == 'channelsGrid':
 
                     [total_items,res] = self.channelsearch_manager.getChannelHits(state.db)
-                    ##print >> sys.stderr, res
                     data = []
                     channels = []
                     if total_items > 0:
                         for k, v in res.items():
                             data_new = (k, v[0], v[1], v[2])
                             data.append(data_new)
-#                            num_votes = self.channelcast_db.getSubscribersCount(el[0][0])
-#                            data_new = (el[0][0], el[0][1], num_votes)
-#                            data.append(data_new)
 
             else:
                 if self.grid.name == 'channelsGrid':
@@ -433,7 +424,8 @@ class GridManager(object):
                         self.refresh()
                         break
             elif self.state.db == 'channelsMode':
-                self.refresh()
+                self.grid.setDSLists()
+                #self.refresh()
         except:
             pass
         ##else:
@@ -785,6 +777,21 @@ class standardGrid(wx.Panel):
     def getSubPanel(self, keyfun=None):
         raise NotImplementedError('Method getSubPanel should be subclassed')
 
+
+    def setDSLists(self):
+        for i in xrange(0, self.items):
+            if i < len(self.data):
+                try:
+                    hSizer = self.vSizer.GetItem(panelNumber%self.currentRows+1).GetSizer()
+                    panel = hSizer.GetItem(panelNumber/ self.currentRows).GetWindow()
+                    panel.setdslist(self.gridManager.dslist)
+                except:
+                    pass
+
+
+
+
+
     def setDataOfPanel(self, panelNumber, data):
 
 
@@ -868,7 +875,7 @@ class standardGrid(wx.Panel):
                 print >>sys.stderr,'standardGrid: Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
             
             self.updatePanel(oldRows, self.currentRows)
-            self.gridResized(self.currentRows)
+            #self.gridResized(self.currentRows)
         
         
     def updateCols(self, oldCols, newCols):

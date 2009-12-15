@@ -726,6 +726,7 @@ class ChannelSearchGridManager:
                 print >>sys.stderr,'ChannelSearchGridManager: getChannelHits: found after remote search: %d items' % len(self.hits)
         
       
+        self.standardOverview.setSearchFeedback('channels', self.stopped, len(self.hits), self.searchkeywords[mode])
 
 
         if len(self.hits) == 0:

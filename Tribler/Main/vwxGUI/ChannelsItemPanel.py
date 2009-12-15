@@ -216,11 +216,22 @@ class ChannelsItemPanel(wx.Panel):
             oldinfohash = self.data[0]
      
         self.data = data
+
+        if self.guiUtility.guiPage == 'search_results':
+            self.SetMinSize((660,22))
+            self.SetSize((660,22))
+            self.Refresh()
+        elif sys.platform != 'win32':
+            self.SetMinSize((660,30))
+            self.SetSize((660,30))
+        else: # win32
+            self.SetMinSize((660,30))
+            #self.SetSize((660,25))
         
         if data is None:
             self.title.SetLabel("")
             #self.SubscriptionText.Hide()
-            #self.SubscriptionButton.Hide()
+            self.SubscriptionButton.Hide()
             self.title.Hide()
             self.hLine.Show()
             self.Refresh()
@@ -228,8 +239,7 @@ class ChannelsItemPanel(wx.Panel):
         else:
             for child in self.GetChildren():
                 child.Show()
- 
-       
+     
            
 
         if data[1] == "MyChannel":
@@ -279,15 +289,6 @@ class ChannelsItemPanel(wx.Panel):
 
             self.setMyTitle()
 
-            if self.guiUtility.guiPage == 'search_results':
-                self.SetMinSize((660,22))
-                self.SetSize((660,22))
-            elif sys.platform != 'win32':
-                self.SetMinSize((660,30))
-                self.SetSize((660,30))
-            else: # win32
-                self.SetMinSize((660,30))
-                #self.SetSize((660,25))
 
         else:
             self.mychannel = False
