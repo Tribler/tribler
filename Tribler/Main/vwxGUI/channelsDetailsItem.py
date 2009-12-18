@@ -182,15 +182,6 @@ class channelsDetailsItem(wx.Panel):
         wx.CallAfter(self.Refresh)
 
 
-
-
-
-#        if event.Entering():
-#            self.title.SetForegroundColour(self.torrentColourSel)
-#            self.SetBackgroundColour(self.backgroundColourSel)
-#        elif event.Leaving() and not self.selected:
-#            self.title.SetForegroundColour(self.torrentColour)
-#            self.SetBackgroundColour(self.backgroundColour)
         if event.LeftUp():
             if sys.platform == 'darwin':
                 self.GetParent().deselectAllExceptSelected(self.index)
@@ -198,7 +189,6 @@ class channelsDetailsItem(wx.Panel):
             else:
                 self.GetParent().deselectAll()
             self.select()
-
 
             if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
                 self.guiUtility.standardOverview.getGrid(2).expandPanelFromIndex(self.guiUtility.frame.top_bg.indexPopularChannels) 

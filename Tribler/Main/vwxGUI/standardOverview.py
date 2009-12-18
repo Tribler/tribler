@@ -12,7 +12,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 ## from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
-from Tribler.Main.vwxGUI.standardGrid import filesGrid,libraryGrid,channelsGrid,popularGrid
+from Tribler.Main.vwxGUI.standardGrid import filesGrid,libraryGrid,channelsGrid,popularGrid,chresultsGrid
 from Tribler.Main.Utility.constants import *
 #from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -172,9 +172,9 @@ class standardOverview(wx.Panel):
         nameCP = self.currentPanel.GetName()
         if nameCP == 'settingsOverview':
             self.SetMinSize((900,500))
-        elif nameCP == 'libraryOverview':
+        elif nameCP == 'libraryGrid':
             self.SetMinSize((600,490))
-        elif nameCP == 'filesOverview': 
+        elif nameCP == 'filesGrid': 
             if sys.platform == 'darwin':
                 self.SetMinSize((600,493))
             elif sys.platform == 'win32':
@@ -327,9 +327,8 @@ class standardOverview(wx.Panel):
                     print >> sys.stderr , "CHANNEL XRC LOADING" , t2-t1
             else:
                 currentPanel = self.channelsPanel
-            grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')
-            grid2 = xrc.XRCCTRL(currentPanel, 'popularGrid')
-
+                grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')
+                grid2 = xrc.XRCCTRL(currentPanel, 'popularGrid')
      
             
         self.data[self.mode]['panel'] = currentPanel
@@ -438,7 +437,6 @@ class standardOverview(wx.Panel):
         assert filterState is None or 'GridState' in str(type(filterState)), 'filterState is %s' % str(filterState)
         oldFilterState = self.data[self.mode].get('filterState')
         
-#        print 'tb >FILTERCHANGED!!!!!'
         if DEBUG:
             print >>sys.stderr,"standardOverview: filterChanged: from",oldFilterState,"to",filterState
         
@@ -449,7 +447,7 @@ class standardOverview(wx.Panel):
         if filterState and filterState.isValid():
             if self.mode in ('filesMode', 'libraryMode', 'settingsMode', 'channelsMode'):
                 self.data[filterState.db]['grid'].gridManager.set_state(filterState)
-                if self.mode == 'channelsMode':
+                if self.mode == 'channelsMode' and self.data[filterState.db].get('grid2'):
                     self.data[filterState.db]['grid2'].gridManager.set_state(filterState)
             else:
                 if DEBUG:

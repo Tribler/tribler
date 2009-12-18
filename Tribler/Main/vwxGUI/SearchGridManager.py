@@ -661,6 +661,9 @@ class ChannelSearchGridManager:
         self.search_db = None
         # For asking for a refresh when remote results came in
         self.gridmgr = None
+        
+        self.mychannel = None
+        self.mysubscriptions = None 
 
         self.standardOverview = None
         self.searchkeywords = {'filesMode':[], 'channelsMode':[], 'libraryMode':[]}
@@ -735,15 +738,20 @@ class ChannelSearchGridManager:
             return [len(self.hits),self.hits]
                 
     def getMyChannel(self, mode):
-        mychannel = self.channelcast_db.getMyChannel()
+        if self.mychannel is None:
+            print >> sys.stderr , "FIRST"
+            self.mychannel = self.channelcast_db.getMyChannel()
+        mychannel = self.mychannel
         return [1, mychannel]
  
     def getSubscriptions(self, mode):
         t1 = time()
-        subscriptions = self.channelcast_db.getMySubscribedChannels()
+        if self.mysubscriptions is None:
+            self.mysubscriptions = self.channelcast_db.getMySubscribedChannels()
         t2 = time()
         if DEBUG:
             print >> sys.stderr , "getSubscriptions" , t2 - t1
+        subscriptions = self.mysubscriptions
         return [len(subscriptions), subscriptions]
 
     def getPopularChannels(self, mode, maximum=20):

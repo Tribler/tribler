@@ -25,7 +25,6 @@ from font import *
 from Tribler.Core.simpledefs import *
 
 from Tribler.Main.vwxGUI.FilesItemDetailsSummary import FilesItemDetailsSummary
-from Tribler.Main.vwxGUI.ChannelsItemDetailsSummary import ChannelsItemDetailsSummary
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
 
@@ -547,18 +546,11 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
     def toggleItemDetailsSummary(self, visible):
         if visible and not self.summary:            
-            if self.type == 'torrent':
-                if not self.data.get('web2'):                
-                    self.guiUtility.moderatedinfohash = self.data['infohash']
-                    self.summary = FilesItemDetailsSummary(self, torrentHash = self.data['infohash'], torrent = self.data)
-                else:
-                    self.summary = FilesItemDetailsSummary(self, torrentHash = None, torrent = self.data, web2data = self.data)
-            else: # channel
-                if not self.data.get('web2'):                
-                    ##self.guiUtility.moderatedinfohash = self.data['infohash'] ?
-                    self.summary = ChannelsItemDetailsSummary(self, torrentList = self.torrentList, subscribed = self.subscribed)
-                else:
-                    self.summary = ChannelsItemDetailsSummary(self, torrentHash = None, torrent = self.data, web2data = self.data) # not used ?
+            if not self.data.get('web2'):                
+                self.guiUtility.moderatedinfohash = self.data['infohash']
+                self.summary = FilesItemDetailsSummary(self, torrentHash = self.data['infohash'], torrent = self.data)
+            else:
+                self.summary = FilesItemDetailsSummary(self, torrentHash = None, torrent = self.data, web2data = self.data)
             self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
             if sys.platform == 'win32':
                 self.SetMinSize((-1,97))

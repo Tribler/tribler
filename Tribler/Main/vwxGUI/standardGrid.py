@@ -737,9 +737,15 @@ class standardGrid(wx.Panel):
             self.standardPager.refresh()
 
 
-        if self.name in ['channelsGrid', 'subscriptionsGrid', 'popularGrid', 'libraryGrid', 'filesGrid']:
+        if self.name in ['channelsGrid', 'popularGrid', 'libraryGrid', 'filesGrid']:
             if self.data is None: 
                 self.clearAllData()
+            elif self.name == 'popularGrid':
+                for i in xrange(0, self.items):
+                    if i < len(self.data):
+                        self.setDataOfPanel(i, self.data[i])
+                    else:
+                        self.setDataOfPanel(i, None)
             else:
                 for i in xrange(0, self.items):
                     if i < len(self.data):
@@ -758,7 +764,7 @@ class standardGrid(wx.Panel):
     
     def gridResized(self, rows):
         self.items = self.cols * rows
-        self.refreshPanels()
+        #self.refreshPanels()
 
        
             
@@ -875,7 +881,7 @@ class standardGrid(wx.Panel):
                 print >>sys.stderr,'standardGrid: Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
             
             self.updatePanel(oldRows, self.currentRows)
-            #self.gridResized(self.currentRows)
+            self.gridResized(self.currentRows)
         
         
     def updateCols(self, oldCols, newCols):
@@ -1040,17 +1046,20 @@ class standardGrid(wx.Panel):
 
 
     def deselectAllChannels(self):
-        rowIndex = 0
-        colIndex = 0
-        for pan in self.Panels:
-            if pan is not None:
-                try:
-                    pan.deselect(rowIndex,colIndex)
-                except:
-                    pass
-            rowIndex += 1
-        self.Layout()
-
+#        rowIndex = 0
+#        colIndex = 0
+#        for pan in self.Panels:
+#            if pan is not None:
+#                try:
+#                    pan.deselect(rowIndex,colIndex)
+#                except:
+#                    pass
+#            rowIndex += 1
+#        self.Layout()
+        for i in range(0, self.items):
+            hSizer = self.vSizer.GetItem(i%self.currentRows+1).GetSizer()
+            panel = hSizer.GetItem(i/ self.currentRows).GetWindow()
+            panel.deselect(0,0)
 
     def reloadChannels(self, index= -1):
         """Deselect all channels, but the one expanded (if any)

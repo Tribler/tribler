@@ -915,13 +915,10 @@ class GUIUtility:
             return
 
         if self.search_mode == 'files':
-            ##wx.CallAfter(self.frame.pageTitlePanel.pageTitle.SetLabel, 'File search')
             self.searchFiles('filesMode', input)
         else:
-            ##wx.CallAfter(self.frame.pageTitlePanel.pageTitle.SetLabel, 'Channel search')
             self.searchChannels('channelsMode', input)
-
-      
+     
 
 
     def searchFiles(self, mode, input):
@@ -986,12 +983,13 @@ class GUIUtility:
 
         self.standardOverview.setSearchFeedback('channels', False, -1, self.channelsearch_manager.searchkeywords[mode])
 
-        grid = self.standardOverview.getGrid()
-        grid.clearAllData()
         grid2 = self.standardOverview.getGrid(2)
-        grid.gridManager.resizeGrid(grid)
-        grid2.gridManager.resizeGrid(grid2)
+        grid2.Hide()
+        grid = self.standardOverview.getGrid()
+        grid.gridManager.blockedRefresh=True
 
+        grid.gridManager.resizeGrid(grid)
+        grid.gridManager.blockedRefresh=False
 
 
         self.frame.top_bg.indexMyChannel=-1
