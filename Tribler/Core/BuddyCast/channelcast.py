@@ -1,3 +1,6 @@
+# Written by Nitin Chiluka
+# see LICENSE.txt for license information
+
 import sys
 from time import time, ctime, sleep
 from zlib import compress, decompress
@@ -199,8 +202,6 @@ class ChannelCastCore:
                 self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
 
 
-                    
-    
     def updateMySubscribedChannels(self):
         subscribed_channels = self.channelcastdb.getMySubscribedChannels(from_channelcast=True)
         for permid, channel_name, num_subscriptions, notused in subscribed_channels:

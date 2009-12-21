@@ -8,6 +8,8 @@ if (sys.platform == 'win32'):
     from Tribler.Core.Utilities.win32regchecker import Win32RegChecker,HKLM
 
 videoextdefaults = ['aac','asf','avi','dv','divx','flac','flc','flv','mkv','mpeg','mpeg4','mpegts','mpg4','mp3','mp4','mpg','mkv','mov','m4v','ogg','ogm','qt','rm','swf','vob','wmv','wav']
+# Ric: added svc ext. for enhancement layers
+svcextdefaults = ['dat']
 
 DEBUG = False
 

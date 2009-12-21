@@ -23,6 +23,10 @@ class TestFriendshipCrawler(TestCrawler):
     Testing the user side of the crawler
     """
 
+    def setUpPreSession(self):
+        TestCrawler.setUpPreSession(self)
+        self.config.set_social_networking(True)
+
     def setUpPostSession(self):
         """ override TestAsServer """
         TestCrawler.setUpPostSession(self)

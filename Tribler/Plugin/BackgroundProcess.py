@@ -29,6 +29,8 @@ import time
 import random
 import binascii
 import tempfile
+import urllib
+from cStringIO import StringIO
 from base64 import b64encode
 from traceback import print_exc,print_stack
 from threading import Thread,currentThread,Lock
@@ -46,42 +48,60 @@ import wx
 
 from Tribler.Core.API import *
 from Tribler.Core.osutils import *
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
 from Tribler.Utilities.Instance2Instance import InstanceConnectionHandler,InstanceConnection
+from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.Player.BaseApp import BaseApp
 from Tribler.Player.swarmplayer import get_status_msgs
+from Tribler.Plugin.defs import *
+from Tribler.Plugin.Search import *
+from Tribler.Plugin.AtomFeedParser import *
 
 from Tribler.Video.defs import *
 from Tribler.Video.utils import videoextdefaults
-from Tribler.Video.VideoServer import VideoHTTPServer
+from Tribler.Video.VideoServer import VideoHTTPServer,MultiHTTPServer
 
 from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
 
-# M23TRIAL
-from Tribler.Plugin.LedbatTest import testSender
-from Tribler.Plugin.LedbatTest import getStringFromPermID
-from Tribler.Plugin.LedbatTest import isLedbatTestRunning
-from Tribler.Core.simpledefs import *
-totalUpldBytesDic = {}
-totalUpldBytes = 0
 
 DEBUG = True
 ALLOW_MULTIPLE = False
 
-I2I_LISTENPORT = 62062
-BG_LISTENPORT = 8621
-VIDEOHTTP_LISTENPORT = 6878
 
 class BackgroundApp(BaseApp):
 
     def __init__(self, redirectstderrout, appname, params, single_instance_checker, installdir, i2iport, sport):
-        
+
+        self.videoHTTPServer = VideoHTTPServer(VIDEOHTTP_LISTENPORT)
+        self.videoHTTPServer.register(self.videoservthread_error_callback,self.videoservthread_set_status_callback)
+        self.videoHTTPServer.background_serve()
+
+        #self.searchHTTPServer = MultiHTTPServer(VIDEOHTTP_LISTENPORT+1)
+        #self.searchHTTPServer.register(self.videoservthread_error_callback,self.videoservthread_set_status_callback)
+        self.searchHTTPServer = self.videoHTTPServer
+
         BaseApp.__init__(self, redirectstderrout, appname, params, single_instance_checker, installdir, i2iport, sport)
         
-        self.videoHTTPServer = VideoHTTPServer(VIDEOHTTP_LISTENPORT)
-        self.videoHTTPServer.background_serve()
-        self.videoHTTPServer.register(self.videoservthread_error_callback,self.videoservthread_set_status_callback)
+        # SEARCH:P2P
+        # Maps a query ID to the original searchstr, timestamp and all hits (local + remote)
+        self.id2hits = Query2HitsMap()
         
+        # Maps a URL path received by HTTP server to the requested resource,
+        # reading or generating it dynamically.
+        #
+        # For saving .torrents received in hits to P2P searches using
+        # SIMPLE+METADATA queries
+        self.tqueue = TimedTaskQueue(nameprefix="BGTaskQueue")
+        self.searchmapper = SearchPathMapper(self.s,self.id2hits,self.tqueue)
+        self.hits2anypathmapper = Hits2AnyPathMapper(self.s,self.id2hits)
+        
+        self.searchHTTPServer.add_path_mapper(self.searchmapper)
+        self.searchHTTPServer.add_path_mapper(self.hits2anypathmapper)
+        self.searchHTTPServer.background_serve()
+        self.searchurl = 'http://127.0.0.1:'+str(self.searchHTTPServer.get_port())+URLPATH_SEARCH_PREFIX
+
+
         # Maps Downloads to a using InstanceConnection and streaminfo when it 
         # plays. So it contains the Downloads in VOD mode for which there is
         # active interest from a plugin.
@@ -96,11 +116,6 @@ class BackgroundApp(BaseApp):
         self.counter = 0 # counter for the stats reported periodically
         self.interval = 120 # report interval
         
-
-        # M23TRIAL
-        self.runvictor = False
-        self.printtreat = False
-
         if sys.platform == "win32":
             # If the BG Process is started by the plug-in notify it with an event
             startupEvent = win32event.CreateEvent( None, 0, 0, 'startupEvent' )
@@ -121,6 +136,17 @@ class BackgroundApp(BaseApp):
             return False
 
 
+    # Arno: SEARCH: disable overlay for now
+    # Also need to ensure that *stats*db SQL scripts are copied along during
+    # build and crap.
+    """
+    def configure_session(self):
+        # Leave buddycast, etc. enabled for SEARCH
+        self.sconfig.set_social_networking(False)
+        self.sconfig.set_bartercast(False)
+        self.sconfig.set_crawler(False) # Arno: Cleanup million stats dbs first
+    """
+
     #
     # InstanceConnectionHandler interface. Called by Instance2InstanceThread
     #
@@ -129,6 +155,10 @@ class BackgroundApp(BaseApp):
         self.singsock2ic[s] = ic
         if DEBUG:
             print >>sys.stderr,"bg: Plugin connection_made",len(self.singsock2ic),"++++++++++++++++++++++++++++++++++++++++++++++++"
+          
+        # Arno: Concurrency problems getting SEARCHURL message to work, 
+        # JavaScript can't always read it. TODO  
+        ##ic.searchurl(self.searchurl)
 
     def connection_lost(self,s):
         if DEBUG:
@@ -204,6 +234,9 @@ class BackgroundApp(BaseApp):
             # SHUTDOWN command
             elif cmd.startswith( 'SHUTDOWN' ):
                 ic.shutdown()
+            #elif cmd.startswith( 'SEARCH' ):
+            #    searchstr = cmd.partition(' ')[2]
+            #    self.process_search_metafeed(ic,searchstr)
             else:
                 raise ValueError('bg: Unknown command: '+cmd)
         except:
@@ -281,7 +314,6 @@ class BackgroundApp(BaseApp):
         duser['said_start_playback'] = False
         duser['decodeprogress'] = 0
         
-
     #
     # DownloadStates
     #
@@ -301,45 +333,9 @@ class BackgroundApp(BaseApp):
             # Generate info string for all
             [topmsg,msg,duser['said_start_playback'],duser['decodeprogress']] = get_status_msgs(ds,self.approxplayerstate,self.appname,duser['said_start_playback'],duser['decodeprogress'],totalhelping,totalspeed)
             info = msg
-            
-            try:
-                # M23TRIAL
-                if self.tbicon is not None:
-                    t = self.tbicon.get_treatment()
-                    
-                    if not self.printtreat:
-                        print >>sys.stderr,"m23seed: treatment is",t
-                        self.printtreat = True
-                    
-                    if t == "awareness":
-                        w = ds.get_vod_stats()
-                        if 'npieces' in w:
-                            print >>sys.stderr,"W",w['pos'],"==",w['firstpiece']+w['npieces']
-                            if w['pos'] == w['firstpiece']+w['npieces']-1:  # -1 is to compensate for off by one error somewhere
-                                info = "The SwarmPlugin will run until you shutdown your computer. If you want to stop it before then, right-click on the systray icon and select Exit"
-            except:
-                print_exc()
-                    
             #if DEBUG:
             #    print >>sys.stderr, 'bg: 4INFO: Sending',info
             uic.info(info)
-            
-        # M23TRIAL
-        if len(playing_dslist) == 1:
-            ds = playing_dslist[0]
-            if ds.get_status() == DLSTATUS_SEEDING:
-                pass
-                if self.runvictor == False:
-                    self.runvictor = True
-                    self.run_victor_test()
-                
-    def run_victor_test(self):
-        if sys.platform == "win32":
-            # Executed on MainThread, use separate for Victor's stuff.
-            print >>sys.stderr,"m23trial: Starting Victor's test",currentThread().getName()
-            self.victhread = VictorTestThread(self.installdir,self.s.get_permid())
-            self.victhread.start()
-        
             
     def sesscb_vod_event_callback( self, d, event, params ):
         """ Registered by BaseApp. Called by SessionCallbackThread """
@@ -357,8 +353,9 @@ class BackgroundApp(BaseApp):
                 stream = params['stream']
     
             blocksize = d.get_def().get_piece_length()
-            streaminfo = { 'mimetype': params['mimetype'], 'stream': stream, 'length': params['length'],'blocksize':blocksize }
-            
+            #Ric: add svc on streaminfo
+            streaminfo = { 'mimetype': params['mimetype'], 'stream': stream, 'length': params['length'], 'blocksize':blocksize, 'svc': d.get_mode() == DLMODE_SVC }
+
             duser = self.dusers[d]
             duser['streaminfo'] = streaminfo
             duser['uic'].set_streaminfo(duser['streaminfo'])
@@ -418,39 +415,6 @@ class BackgroundApp(BaseApp):
                 if vod_stats.has_key("dropped"): event_reporter.add_event(b64_infohash, "dropped:%d" % vod_stats['dropped']) # number of pieces lost
                 if vod_stats.has_key("pos"): event_reporter.add_event(b64_infohash, "pos:%d" % vod_stats['pos']) # playback position
 
-        # Added by Mugurel Ionut Andreica (UPB) for M23 Trial -- should report the amount of bytes uploaded on all the connections (so far)
-        if (isLedbatTestRunning() == 1):
-            global totalUpldBytes, totalUpldBytesDic
-            #report upload-related information
-            #print >>sys.stderr, "Ledbat test is running"
-            
-            try:
-                event_reporter = get_reporter_instance()
-                totalUpldSpeed = 0.0
-
-                for ds in playing_dslist:
-                    dw = ds.get_download()
-                    infohash = dw.get_def().get_infohash()
-
-                    #print >>sys.stderr, "cntDic=", len(totalUpldBytesDic.keys()), "; ds=", ds, "; dw=", dw, "; infohash=", infohash
-                
-                    upldSpeed = ds.get_current_speed(UPLOAD)
-                    totalUpldSpeed += upldSpeed
-                
-                    ds_totalUpldBytes = ds.get_total_transferred(UPLOAD)
-                    if (dw in totalUpldBytesDic.keys()):
-                        totalUpldBytes -= totalUpldBytesDic[dw]
-                    totalUpldBytesDic[dw] = ds_totalUpldBytes
-                    totalUpldBytes += ds_totalUpldBytes
-
-                # permid = getStringFromPermID(self.s.get_permid())
-                b64_permid = b64encode(self.s.get_permid())
-                event_reporter.add_event(b64_permid, "total_upload_speed:%.3f" % totalUpldSpeed)
-                event_reporter.add_event(b64_permid, "total_uploaded_bytes:%d" % totalUpldBytes)
-
-                print >>sys.stderr, "Reporting (permid=", getStringFromPermID(self.s.get_permid()), ") => total_upload_speed=%.3f" % totalUpldSpeed, "; total_uploaded_bytes=%d" % totalUpldBytes
-            except:
-                print_exc()
 
 class BGInstanceConnection(InstanceConnection):
     
@@ -489,14 +453,14 @@ class BGInstanceConnection(InstanceConnection):
     def start_playback(self,infohash):
         """ Register cstream with HTTP server and tell IC to start reading """
         
-        self.urlpath = '/'+binascii.hexlify(infohash)+'/'+str(random.random())
+        self.urlpath = URLPATH_CONTENT_PREFIX+'/'+infohash2urlpath(infohash)+'/'+str(random.random())
+
         self.videoHTTPServer.set_inputstream(self.cstreaminfo,self.urlpath)
         
         if DEBUG:
             print >> sys.stderr, "bg: Telling plugin to start playback of",self.urlpath
         
         self.write( 'PLAY '+self.get_video_url()+'\r\n' )
-
 
     def get_video_url(self):
         return 'http://127.0.0.1:'+str(self.videoHTTPServer.get_port())+self.urlpath
@@ -509,6 +473,11 @@ class BGInstanceConnection(InstanceConnection):
 
     def info(self,infostr):
         self.write( 'INFO '+infostr+'\r\n' )        
+
+    def searchurl(self,searchurl):
+        
+        print >>sys.stderr,"SENDING SEARCHURL 2 PLUGIN"
+        self.write( 'SEARCHURL '+searchurl+'\r\n' )
 
     def shutdown(self):
         # SHUTDOWN Service
@@ -549,93 +518,6 @@ class ControlledStream:
     def close(self):
         self.done = True
         # DO NOT close original stream
-
-
-
-#M23TRIAL
-class VictorTestThread(Thread):
-    
-    def __init__(self,installdir,permid):
-        Thread.__init__(self)
-        self.setName( "VictorTestThread"+self.getName())
-        self.setDaemon(True)
-        
-        self.permid = permid
-        self.prog = os.path.join(installdir,"leecher.exe")
-        if not self.prog.startswith('"'):
-            self.prog = '"'+self.prog+'"'
-
-    def run(self):
-        try:
-            print >>sys.stderr,"m23trial: Running victor test on",currentThread().getName()
-
-            [loghandle,logfilename] = tempfile.mkstemp()
-            os.close(loghandle)
-
-            """
-            # TODO: make dynamic, e.g. read from website?
-            hexhash = '31d86ad5fd8ac49792d3fca17326a7664c6f86e1'
-            destfilename = 'test.mp4'
-            destipport = '130.161.211.198:10000'
-            myipport = '0.0.0.0:10020'
-
-            tmpdir = tempfile.mkdtemp()
-            fullfilename = os.path.join(tmpdir,destfilename)
-            """
-
-            #cmd = self.prog + " %s %s %s %s > %s 2>&1" % (hexhash, fullfilename, destipport, myipport, logfilename)
-            cmd = self.prog + " > %s 2>&1" % logfilename
-            print >>sys.stderr,"m23trial: victor test cmd is",cmd
-            
-            
-            (child_stdin, child_stdout) = os.popen2(cmd,'b')  # DON'T FORGET 'b' OTHERWISE THINGS GO WRONG!
-            
-            # Sleep for 60 secs for program to complete, can't tell from OS with
-            # Python on win32
-            
-            print >>sys.stderr,"m23trial: Giving Victor's program 30 secs to complete"
-            time.sleep(30) 
-            print >>sys.stderr,"m23trial: Time up"
-            
-            print >>sys.stderr,"m23trial: Reading Victor's log"
-            # Dump logfile to ULANC
-            logfile = open(logfilename, 'rb')
-            data = logfile.read()
-            logfile.close()
-
-            from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
-            event_reporter = get_reporter_instance()
-            event_reporter.add_event("Victor leecher", data )
-            event_reporter.flush()
-            
-            # Fallback: print to log
-            print >>sys.stderr,"m23trial: victor output",data
-
-            print >>sys.stderr,"m23trial: Close child_in"
-            child_stdin.close()
-            print >>sys.stderr,"m23trial: Close child_out"
-            child_stdout.close()
-            
-            
-            print >>sys.stderr,"m23trial: Victor test done"
-            
-            print >>sys.stderr,"m23trial: Sleeping 10 mins before Mugurel's test"
-            time.sleep(600)
-            
-            # Mugurel's test
-            print >>sys.stderr,"m23trial: Mugurel test start"
-            
-            testSender(self.permid)
-            
-            print >>sys.stderr,"m23trial: Mugurel test done"
-            
-            
-            time.sleep(30000)
-            
-        except:
-            print_exc()
-            
-            
 
 
 ##############################################################

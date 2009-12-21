@@ -15,6 +15,7 @@
 #    such that your code won't barf because we loaded an older version from
 #    disk that does not have your new fields.
 #
+import sys
 
 from simpledefs import *
 
@@ -161,7 +162,12 @@ dldefaults['max_initiate'] = 40
 dldefaults['check_hashes'] = 1
 dldefaults['max_upload_rate'] = 0
 dldefaults['max_download_rate'] = 0
-dldefaults['alloc_type'] = DISKALLOC_NORMAL
+# Arno, 2009-12-11: Sparse as default reduces CPU usage. Previously this was
+# also set, but in DownloadConfig.__init__
+if sys.platform == 'win32':
+    dldefaults['alloc_type'] = DISKALLOC_NORMAL
+else:
+    dldefaults['alloc_type'] = DISKALLOC_SPARSE
 dldefaults['alloc_rate'] = 2.0
 dldefaults['buffer_reads'] = 1
 dldefaults['write_buffer_size'] = 4

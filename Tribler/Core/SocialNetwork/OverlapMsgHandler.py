@@ -261,6 +261,9 @@ def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo
         # on sqlite
         name = str2unicode(persinfo['name'])
         
+        
+        print >> sys.stderr,"socnet: SOCIAL_OVERLAP",show_permid_short(permid),`name`
+        
         if self.peer_db.hasPeer(permid):
             self.peer_db.updatePeer(permid, name=name)
         else:
@@ -269,5 +272,5 @@ def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo
         # b. Save icon
         if 'icontype' in persinfo and 'icondata' in persinfo: 
             if DEBUG:
-                print >> sys.stderr,"socnet: saving icon for",show_permid_short(permid),name
+                print >> sys.stderr,"socnet: saving icon for",show_permid_short(permid),`name`
             self.peer_db.updatePeerIcon(permid, persinfo['icontype'],persinfo['icondata'])    

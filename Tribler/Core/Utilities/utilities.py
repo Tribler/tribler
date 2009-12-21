@@ -524,6 +524,13 @@ def hostname_or_ip2ip(hostname_or_ip):
     return ip
 
 
+def get_collected_torrent_filename(infohash):
+    # Arno: Better would have been the infohash in hex.
+    filename = sha(infohash).hexdigest()+'.torrent'    # notice: it's sha1-hash of infohash
+    return filename
+    # exceptions will be handled by got_metadata()
+
+
 if __name__=='__main__':
 
     torrenta = {'name':'a', 'swarmsize' : 12}

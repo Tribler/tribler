@@ -11,7 +11,7 @@ from threading import currentThread
 from Tribler.Core.simpledefs import *
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
-from Tribler.Core.Utilities.utilities import isValidInfohash, show_permid_short, sort_dictlist, bin2str
+from Tribler.Core.Utilities.utilities import isValidInfohash, show_permid_short, sort_dictlist, bin2str, get_collected_torrent_filename
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTH, OLPROTO_VER_ELEVENTH 
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Core.osutils import getfreespace,get_readable_torrent_name
@@ -29,21 +29,6 @@ overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00
 
 Max_Torrent_Size = 2*1024*1024    # 2MB torrent = 6GB ~ 250GB content
 
-
-def get_filename(infohash, metadata=None, humanreadable=False):
-    # Arno: Better would have been the infohash in hex.
-    if humanreadable:
-        torrent = bdecode(metadata)
-        raw_name = torrent['info'].get('name','')
-        file_name = get_readable_torrent_name(infohash, raw_name)
-    else:
-        file_name = sha(infohash).hexdigest()+'.torrent'    # notice: it's sha1-hash of infohash
-    #_path = os.path.join(self.torrent_dir, file_name)
-    #if os.path.exists(_path):
-        # assign a name for the torrent. add a timestamp if it exists.
-        #file_name = str(time()) + '_' + file_name 
-    return file_name
-    # exceptions will be handled by got_metadata()
 
 class MetadataHandler:
     
@@ -152,7 +137,7 @@ class MetadataHandler:
     def torrent_exists(self, infohash):
         # if the torrent is already on disk, put it in db
         
-        file_name = get_filename(infohash)
+        file_name = get_collected_torrent_filename(infohash)
         torrent_path = os.path.join(self.torrent_dir, file_name)
         if not os.path.exists(torrent_path):
             return None,None
@@ -247,8 +232,10 @@ class MetadataHandler:
             # P2PURLs: If URL compat then send URL
             tdef = TorrentDef.load_from_dict(metainfo)
             if selversion >= OLPROTO_VER_ELEVENTH and tdef.get_url_compat():
-                torrent['url'] = tdef.get_url()
+                torrent['metatype'] = URL_MIME_TYPE
+                torrent['metadata'] = tdef.get_url()
             else:
+                torrent['metatype'] = TSTREAM_MIME_TYPE
                 torrent['metadata'] = torrent_data
                 
             if selversion >= OLPROTO_VER_FOURTH:
@@ -396,7 +383,7 @@ class MetadataHandler:
                 self.warn_disk_full()
                 return None
         
-        file_name = get_filename(infohash, metadata)
+        file_name = get_collected_torrent_filename(infohash)
         if DEBUG:
             print >> sys.stderr,"metadata: Storing torrent", sha(infohash).hexdigest(),"in",file_name
         
@@ -478,9 +465,9 @@ class MetadataHandler:
             # P2PURL
             goturl = False
             if selversion >= OLPROTO_VER_ELEVENTH:
-                if 'url' in message:
+                if 'metatype' in message and message['metatype'] == URL_MIME_TYPE:
                     try:
-                        tdef = TorrentDef.load_from_url(metadata['url'])
+                        tdef = TorrentDef.load_from_url(metadata['metadata'])
                         # Internal storage format is still .torrent file
                         metainfo = tdef.get_metainfo()
                         metadata = bencode(metainfo)

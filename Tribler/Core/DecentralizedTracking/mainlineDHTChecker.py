@@ -1,4 +1,5 @@
 # written by Arno Bakker, Yuan Yuan
+# Modified by Raul Jimenez to integrate KTH DHT
 # see LICENSE.txt for license information
 
 import sys
@@ -11,6 +12,9 @@ class mainlineDHTChecker:
     __single = None
 
     def __init__(self):
+
+        if DEBUG:
+            print >>sys.stderr,'mainlineDHTChecker: initialization'
         if mainlineDHTChecker.__single:
             raise RuntimeError, "mainlineDHTChecker is Singleton"
         mainlineDHTChecker.__single = self

@@ -1,3 +1,5 @@
+# Written by Boudewijn Schoon
+# see LICENSE.txt for license information
 """
 Alternate stdout and stderr with much more protection
 """

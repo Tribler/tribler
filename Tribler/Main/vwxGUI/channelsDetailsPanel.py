@@ -18,9 +18,6 @@ from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
-from Tribler.Core.Overlay.MetadataHandler import get_filename
-
-
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.tribler_topButton import *
 
@@ -579,7 +576,7 @@ class fileItem(bgPanel):
         else:
             torrent = self.GetParent().GetParent().torrent
             if 'torrent_file_name' not in torrent:
-                torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
+                torrent['torrent_file_name'] = get_collected_torrent_filename(torrent['infohash']) 
             torrent_dir = self.utility.session.get_torrent_collecting_dir()
             torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
             tdef = TorrentDef.load(torrent_filename)

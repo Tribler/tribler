@@ -207,7 +207,23 @@ class Choker:
         for u in to_unchoke:
             u.unchoke()
 
-            
+
+    def add_connection(self, connection, p = None):
+        """
+        Just add a connection, do not start doing anything yet
+        Must call "start_connection" later!
+        """
+        print >>sys.stderr, "Added connection",connection
+        if p is None:
+            p = randrange(-2, len(self.connections) + 1)
+        connection.get_upload().choke()
+        self.connections.insert(max(p, 0), connection)
+        self.picker.got_peer(connection)
+        self._rechoke()
+        
+    def start_connection(self, connection):
+        connection.get_upload().unchoke()
+    
     def connection_made(self, connection, p = None):
         if p is None:
             p = randrange(-2, len(self.connections) + 1)

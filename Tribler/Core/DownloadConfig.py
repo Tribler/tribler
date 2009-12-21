@@ -54,10 +54,6 @@ class DownloadConfigInterface:
         # Define the built-in default here
         self.dlconfig.update(dldefaults)
 
-        # Arno: Sparse as default reduces CPU usage
-        if sys.platform != 'win32':
-            self.set_alloc_type(DISKALLOC_SPARSE)
-
         self.dlconfig['saveas'] = get_default_dest_dir()
 
 
@@ -72,7 +68,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['saveas']
 
-    def set_video_event_callback(self,usercallback):
+    def set_video_event_callback(self,usercallback,dlmode=DLMODE_VOD):
         """ Download the torrent in Video-On-Demand mode or as live stream.
         When a playback event occurs, the usercallback function will be 
         called, with the following list of arguments:
@@ -119,9 +115,11 @@ class DownloadConfigInterface:
         indefinitely (within reason) by the higher level code.
         
         @param usercallback  A function with the above signature.
+        @param dlmode        The download mode to start in (_VOD or _SVC)
         """
-        self.dlconfig['mode'] = DLMODE_VOD
-        self.dlconfig['vod_usercallback'] = usercallback
+        self.dlconfig['mode'] = dlmode
+        self.dlconfig['vod_usercallback'] = usercallback        
+
 
     def set_video_events(self,events=[]):
         """ Sets which events will be supported with the usercallback set
@@ -224,6 +222,12 @@ class DownloadConfigInterface:
             
         if self.dlconfig['mode'] == DLMODE_VOD and len(files) > 1:
             raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
+        
+        # Ric: added svc case
+        elif self.dlconfig['mode'] == DLMODE_SVC and len(files) < 2:
+            raise ValueError("In SVC Video-On-Demand mode at least 2 files have to be selected for download")
+                
+        
         self.dlconfig['selected_files'] = files
         
 
@@ -739,6 +743,25 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['ut_pex_max_addrs_from_peer']
 
+    def set_poa(self, poa):
+        if poa:
+            from base64 import encodestring
+            self.dlconfig['poa'] = encodestring(poa.serialize()).replace("\n","")
+            import sys
+            print >> sys.stderr,"POA is set:",self.dlconfig['poa']
+        
+    def get_poa(self):
+        if 'poa' in self.dlconfig:
+            if not self.dlconfig['poa']:
+                raise Exception("No POA specified")
+            from Tribler.Core.ClosedSwarm import ClosedSwarm
+            from base64 import decodestring
+            print >> sys.stderr,"get_poa:",self.dlconfig['poa']
+            poa = ClosedSwarm.POA.deserialize(decodestring(self.dlconfig['poa']))
+            return poa
+        return None
+        
+    
     def set_same_nat_try_internal(self,value):
         """ Whether to try to detect if a peer is behind the same NAT as
         this Session and then establish a connection over the internal
@@ -835,3 +858,4 @@ def get_default_dest_dir():
             tempdir = os.path.join(uhome, 'TriblerDownloads')
     return tempdir
     
+

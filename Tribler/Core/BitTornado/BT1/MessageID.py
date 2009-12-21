@@ -39,7 +39,11 @@ PORT = chr(9)
 EXTEND = chr(20)
 
 
-## IDs 255 and 254 are reserved. Tribler extensions number downwards
+#
+# Tribler specific message IDs
+#
+
+# IDs 255 and 254 are reserved. Tribler extensions number downwards
 
 ## PermID /Overlay Swarm Extension
 # ctxt
@@ -49,54 +53,20 @@ RESPONSE1 = chr(252)
 # rdata2
 RESPONSE2 = chr(251)
 
-PermIDMessages = [CHALLENGE, RESPONSE1, RESPONSE2]
 
 ## Merkle Hash Extension
 # Merkle: PIECE message with hashes
 HASHPIECE = chr(250)
 
 ## Buddycast Extension
-"""
-{'preferences':[[infohash]],
- #'permid': my permid,     # not used since 3.3.2
- 'connectable': self connectability, # used since version > 3.5
- 'name': my name,
- 'ip':current ip,
- 'port':current listening port,
- 'taste_buddies':[{'preferences':[[infohash]],
-                   'permid':Permanent ID,
-                   'ip':the last known IP,
-                   'port':the last known listen port,
-                   'age':the age of this preference list in integer seconds
-                  }],
- 'random_peers':[{'permid':Permanent ID,
-                  'ip':the last known IP,
-                  'port':the last known listen port,
-                  'age':the age of this preference list in integer seconds
-                 }]
- 'npeers': Number of peers known to peer
- 'nfiles': Number of files known to peer
- 'ndls': Number of downloads by peer
-}
-"""      
 # payload is beencoded dict
 BUDDYCAST = chr(249)
-# empty payload
-KEEP_ALIVE = chr(240)
-# Bartercast, payload is bencoded dict
-BARTERCAST = chr(236)
-CHANNELCAST = chr(225)
-VOTECAST = chr(226)
-BuddyCastMessages = [CHANNELCAST, VOTECAST, BARTERCAST, BUDDYCAST, KEEP_ALIVE]
 
 # bencoded torrent_hash (Arno,2007-08-14: shouldn't be bencoded, but is)
 GET_METADATA = chr(248)
 # {'torrent_hash', 'metadata', ... }
 METADATA = chr(247)
 
-MetadataMessages = [GET_METADATA, METADATA]
-
-# 2fastbt_
 ## Cooperative Download Extension
 # torrent_hash
 DOWNLOAD_HELP = chr(246)
@@ -107,51 +77,50 @@ STOP_DOWNLOAD_HELP = chr(245)
 DIALBACK_REQUEST = chr(244)
 DIALBACK_REPLY = chr(243)
 
-DialbackMessages = [DIALBACK_REQUEST,DIALBACK_REPLY]
-
 # torrent_hash + 1-byte all_or_nothing + bencode([piece num,...])
 RESERVE_PIECES = chr(242)
 # torrent_hash + bencode([piece num,...])
 PIECES_RESERVED = chr(241)
 
-HelpCoordinatorMessages = [DOWNLOAD_HELP,STOP_DOWNLOAD_HELP,PIECES_RESERVED]
-HelpHelperMessages = [RESERVE_PIECES]
-# _2fastbt
+# SecureOverlay empty payload
+KEEP_ALIVE = chr(240)
 
-# Note: SecureOverlay's KEEP_ALIVE is 240
 ## Social-Network feature 
 SOCIAL_OVERLAP = chr(239)
-
-SocialNetworkMessages = [SOCIAL_OVERLAP]
 
 # Remote query extension
 QUERY = chr(238)
 QUERY_REPLY = chr(237)
 
-RemoteQueryMessages = [QUERY,QUERY_REPLY]
+# Bartercast, payload is bencoded dict
+BARTERCAST = chr(236)
 
 # g2g info (uplink statistics, etc)
 G2G_PIECE_XFER = chr(235)
 
-VoDMessages = [G2G_PIECE_XFER]
-
 # Friendship messages
 FRIENDSHIP = chr(234)
-
-FriendshipMessages = [FRIENDSHIP]
-
-####### FREE ID = 233
 
 # Generic Crawler messages
 CRAWLER_REQUEST = chr(232)
 CRAWLER_REPLY = chr(231)
 
-CrawlerMessages = [CRAWLER_REQUEST, CRAWLER_REPLY]
+# Closed swarms
+# CS  : removed, unused. Using CS_CHALLENGE_A message ID in extend handshake
+CS_CHALLENGE_A = chr(227)
+CS_CHALLENGE_B = chr(228)
+CS_POA_EXCHANGE_A = chr(229)
+CS_POA_EXCHANGE_B = chr(230)
 
-# All overlay-swarm messages
-OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages
+VOTECAST = chr(226)
+CHANNELCAST = chr(225)
 
+####### FREE ID = 224
+
+
+#
 # Crawler sub-messages
+#
 CRAWLER_DATABASE_QUERY = chr(1)
 CRAWLER_SEEDINGSTATS_QUERY = chr(2)
 CRAWLER_NATCHECK = chr(3)
@@ -160,6 +129,31 @@ CRAWLER_NATTRAVERSAL = chr(5)
 CRAWLER_VIDEOPLAYBACK_INFO_QUERY = chr(6)
 CRAWLER_VIDEOPLAYBACK_EVENT_QUERY = chr(7)
 CRAWLER_REPEX_QUERY = chr(8) # RePEX: query a peer's SwarmCache history
+
+
+#
+# Summaries
+#
+
+PermIDMessages = [CHALLENGE, RESPONSE1, RESPONSE2]
+BuddyCastMessages = [CHANNELCAST, VOTECAST, BARTERCAST, BUDDYCAST, KEEP_ALIVE]
+MetadataMessages = [GET_METADATA, METADATA]
+DialbackMessages = [DIALBACK_REQUEST,DIALBACK_REPLY]
+HelpCoordinatorMessages = [DOWNLOAD_HELP,STOP_DOWNLOAD_HELP,PIECES_RESERVED]
+HelpHelperMessages = [RESERVE_PIECES]
+SocialNetworkMessages = [SOCIAL_OVERLAP]
+RemoteQueryMessages = [QUERY,QUERY_REPLY]
+VoDMessages = [G2G_PIECE_XFER]
+FriendshipMessages = [FRIENDSHIP]
+CrawlerMessages = [CRAWLER_REQUEST, CRAWLER_REPLY]
+
+# All overlay-swarm messages
+OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages
+
+
+#
+# Printing
+#
 
 message_map = {
     CHOKE:"CHOKE",
@@ -195,7 +189,9 @@ message_map = {
     BARTERCAST:"BARTERCAST",
     G2G_PIECE_XFER: "G2G_PIECE_XFER",
     FRIENDSHIP:"FRIENDSHIP",
-
+    VOTECAST:"VOTECAST",
+    CHANNELCAST:"CHANNELCAST",
+    
     CRAWLER_REQUEST:"CRAWLER_REQUEST",
     CRAWLER_REQUEST+CRAWLER_DATABASE_QUERY:"CRAWLER_DATABASE_QUERY_REQUEST",
     CRAWLER_REQUEST+CRAWLER_SEEDINGSTATS_QUERY:"CRAWLER_SEEDINGSTATS_QUERY_REQUEST",

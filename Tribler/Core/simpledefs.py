@@ -26,6 +26,7 @@ DOWNLOAD = 'down'
 
 DLMODE_NORMAL = 0
 DLMODE_VOD = 1
+DLMODE_SVC = 2 # Ric: added download mode for Scalable Video Coding (SVC) 
 
 PERSISTENTSTATE_CURRENTVERSION = 3
 """
@@ -44,8 +45,6 @@ STATEDIR_TORRENTCOLL_DIR = 'collected_torrent_files'
 STATEDIR_SESSCONFIG = 'sessconfig.pickle'
 STATEDIR_SEEDINGMANAGER_DIR = 'seeding_manager_stats'
 DESTDIR_COOPDOWNLOAD = 'downloadhelp' 
-
-TRIBLER_TORRENT_EXT = ".tribe"
 
 # For observer/callback mechanism, see Session.add_observer()
    
@@ -152,3 +151,8 @@ FS_HE_DENIED = 5
 
 P2PURL_SCHEME = "tribe" # No colon
 
+URL_MIME_TYPE = 'text/x-url'
+TSTREAM_MIME_TYPE = "application/x-ns-stream"
+
+TRIBLER_TORRENT_EXT = ".tribe" # Unused
+ 

@@ -10,6 +10,7 @@ import time as timemod
 from threading import Event,Thread,enumerate
 from traceback import print_exc
 
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
 from Tribler.Core.BitTornado.BT1.track import Tracker
@@ -23,7 +24,6 @@ from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
 from Tribler.Core.NATFirewall.UDPPuncture import UDPHandler
 from Tribler.Core.DecentralizedTracking import mainlineDHT
-from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Core.osutils import get_readable_torrent_name
 
 SPECIAL_VALUE=481
@@ -53,7 +53,7 @@ class TriblerLaunchMany(Thread):
         self.upnp_ext_ip = None
         self.dialback_ext_ip = None
         self.yourip_ext_ip = None
-
+        self.udppuncture_handler = None
 
         # Orig
         self.sessdoneflag = Event()
@@ -101,13 +101,16 @@ class TriblerLaunchMany(Thread):
                 
             if DEBUG:
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
+                
             cachedb.init(config, self.rawserver_fatalerrorfunc)
             
+            # ARNOCOMMENT, 2009-10-02: Should be moved out of core, used in Main client only.
             # initialize SeedingStats database
             cachedb.init_seeding_stats(config, self.rawserver_fatalerrorfunc)
-            
-            # initialize Friendship statistics database
-            cachedb.init_friendship_stats(config, self.rawserver_fatalerrorfunc)
+
+            if config['socnet']:
+                # initialize Friendship statistics database
+                cachedb.init_friendship_stats(config, self.rawserver_fatalerrorfunc)
 
             # initialize VideoPlayback statistics database
             cachedb.init_videoplayback_stats(config, self.rawserver_fatalerrorfunc)
@@ -138,7 +141,11 @@ class TriblerLaunchMany(Thread):
             self.crawler_db.loadCrawlers(config)
             self.seedingstats_db = SeedingStatsDBHandler.getInstance()
             self.seedingstatssettings_db = SeedingStatsSettingsDBHandler.getInstance()
-            self.friendship_statistics_db = FriendshipStatisticsDBHandler().getInstance()
+            
+            if config['socnet']:
+                self.friendship_statistics_db = FriendshipStatisticsDBHandler().getInstance()
+            else:
+                self.friendship_statistics_db = None
         else:
             config['overlay'] = 0    # turn overlay off
             config['torrent_checking'] = 0
@@ -228,20 +235,15 @@ class TriblerLaunchMany(Thread):
             self.httphandler = DummyHTTPHandler()
         self.multihandler.set_httphandler(self.httphandler)
 
+
         if config['mainline_dht']:
-            # Start up mainline DHT
-            # Arno: do this in a try block, as khashmir gives a very funky
-            # error when started from a .dmg (not from cmd line) on Mac. In 
-            # particular it complains that it cannot find the 'hex' encoding
-            # method when hstr.encode('hex') is called, and hstr is a string?!
-            #
-            try:
-                rsconvert = RawServerConverter(self.rawserver)
-                # '' = host, TODO: when local bind set
-                mainlineDHT.init('',self.listen_port,config['state_dir'],rawserver=rsconvert)
-            except:
-                print_exc()
-        
+            import logging
+            # Arno,The equivalent of DEBUG=False for kadtracker
+            logging.disable(logging.CRITICAL)
+            # Start up KTH mainline DHT
+            #TODO: Can I get the local IP number?
+            mainlineDHT.init(('127.0.0.1', self.listen_port), config['state_dir'])
+               
         
         # add task for tracker checking
         if config['torrent_checking']:
@@ -257,7 +259,8 @@ class TriblerLaunchMany(Thread):
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
 
-        self.udppuncture_handler = UDPHandler(self.rawserver)
+        # Disabled Gertjan's UDP code for M24.
+        #self.udppuncture_handler = UDPHandler(self.rawserver)
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """

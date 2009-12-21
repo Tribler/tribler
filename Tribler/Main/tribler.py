@@ -706,7 +706,7 @@ class ABCApp(wx.App):
             # Print stats on Console
             for ds in dslist:
                 # safename = `ds.get_download().get_def().get_name()`
-                # print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
                 # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                 if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                     print >>sys.stderr,"main: Error:",`ds.get_error()`

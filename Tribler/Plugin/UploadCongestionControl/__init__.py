@@ -1,3 +1,0 @@
-'''
-Mugurel Ionut Andreica (UPB)
-'''

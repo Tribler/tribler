@@ -39,6 +39,9 @@ def generate_keypair():
 def read_keypair(keypairfilename):
     return EC.load_key(keypairfilename)
 
+def read_pub_key(pubfilename):
+    return EC.load_pub_key(pubfilename)
+
 def save_keypair(keypair,keypairfilename):
     keypair.save_key(keypairfilename, None)    
 

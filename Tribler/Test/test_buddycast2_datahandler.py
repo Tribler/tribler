@@ -11,47 +11,18 @@ from traceback import print_exc
 from shutil import copy as copyFile, move
 from time import sleep
 import base64
+import math
 
-if os.path.exists(__file__):
-    BASE_DIR = '..'
-    sys.path.insert(1, os.path.abspath(os.path.join('..','..')))
-elif os.path.exists('LICENSE.txt'):
-    BASE_DIR = '.'
-    
+from Tribler.Core.defaults import *
 from Tribler.Core.BuddyCast.buddycast import DataHandler, BuddyCastFactory
 from Tribler.Core.CacheDB.CacheDBHandler import *
 from Tribler.Category.Category import Category
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.Core.Statistics.Crawler import Crawler
+from bak_tribler_sdb import *
 
-import math
 
-def extract_db_files(file_dir, file_name):
-    try:
-        import tarfile
-        tar=tarfile.open(os.path.join(file_dir, file_name), 'r|gz')
-        for member in tar:
-            print "extract file", member
-            tar.extract(member)
-            dest = os.path.join(file_dir,member.name)
-            dest_dir = os.path.dirname(dest)
-            if not os.path.isdir(dest_dir):
-                os.makedirs(dest_dir)
-            move(member.name, dest)
-        tar.close()
-        return True
-    except:
-        print_exc()
-        return False
-    
-
-DB_FILE_NAME = 'tribler.sdb'
-DB_DIR_NAME = None
-FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'Test/extend_db_dir/'))
-TRIBLER_DB_PATH = os.path.join(FILES_DIR, 'tribler.sdb')
 STATE_FILE_NAME_PATH = os.path.join(FILES_DIR, 'tribler.sdb-journal')
-TRIBLER_DB_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_tribler.sdb')
-
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
 S_TORRENT_PATH = os.path.join(FILES_DIR, 'single.torrent')
 
@@ -61,24 +32,16 @@ BUSYTIMEOUT = 5000
 
 
 def init():
-    if not os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-        got = extract_db_files(FILES_DIR, 'bak_tribler.tar.gz')
-        if not got:
-            print >> sys.stderr, "Please download bak_tribler.sdb from http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb and save it as", os.path.abspath(TRIBLER_DB_PATH_BACKUP)
-            sys.exit(1)
-    if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-        copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
-        print "refresh sqlite db", TRIBLER_DB_PATH
-        if os.path.exists(STATE_FILE_NAME_PATH):
-            os.remove(STATE_FILE_NAME_PATH)
-            print "remove journal file"
+    init_bak_tribler_sdb()
+
     db = SQLiteCacheDB.getInstance()
     db.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
     
     print >>sys.stderr,"OPENING DB",TRIBLER_DB_PATH
     
     #db.execute_write('drop index Torrent_relevance_idx')
-    TorrentDBHandler.getInstance().register(Category.getInstance(os.path.join(BASE_DIR, '..')),'.')
+    TorrentDBHandler.getInstance().register(Category.getInstance('..'),'.')
+
 
 class FakeSession:
     sessconfig = {}
@@ -90,6 +53,13 @@ class FakeSession:
 
     def add_observer(*args, **kargs):
         pass
+
+    def get_votecast_recent_votes(self):
+        return sessdefaults['votecast_recent_votes']
+    
+    def get_votecast_random_votes(self):
+        return sessdefaults['votecast_random_votes']
+
 
 class FakeLauchMany:
     
@@ -111,8 +81,8 @@ class FakeLauchMany:
 #        torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
         self.listen_port = 1234
 
-        self.modcast_db = ModerationCastDBHandler.getInstance()
-        self.modcast_db.registerSession(self.session)
+        self.channelcast_db = ChannelCastDBHandler.getInstance()
+        self.channelcast_db.registerSession(self.session)
 
         self.votecast_db = VoteCastDBHandler.getInstance()
         self.votecast_db.registerSession(self.session)

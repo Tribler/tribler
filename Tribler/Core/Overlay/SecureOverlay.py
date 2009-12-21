@@ -37,9 +37,10 @@ OLPROTO_VER_EIGHTH = 8  # Seventh public release, >= 5.0, supporting BuddyCast w
 OLPROTO_VER_NINETH = 9  # Eighth public release, >= 5.1, additional torrent_size in remote search query reply.
 OLPROTO_VER_TENTH = 10  # Nineth public release, M18, simplified the VOD statistics (this code is not likely to be used in public, but still).
 OLPROTO_VER_ELEVENTH = 11  # Tenth public release >= 5.2, swarm size info part of BC message
+OLPROTO_VER_TWELFTH = 12  # 11th public release >= 5.x, SIMPLE+METADATA query
 
 # Overlay-swarm protocol version numbers
-OLPROTO_VER_CURRENT = OLPROTO_VER_ELEVENTH
+OLPROTO_VER_CURRENT = OLPROTO_VER_TWELFTH
 
 OLPROTO_VER_LOWEST = OLPROTO_VER_SECOND
 SupportedVersions = range(OLPROTO_VER_LOWEST, OLPROTO_VER_CURRENT+1)
@@ -109,9 +110,9 @@ class SecureOverlay:
 
     def start_listening(self):
         self.overlay_rawserver.start_listening(self)
-        self.overlay_rawserver.add_task(self.monitor_activity, 2)
+        self.overlay_rawserver.add_task(self.secover_mon_netwact, 2)
 
-    def monitor_activity(self):
+    def secover_mon_netwact(self):
         """
         periodically notify the network status
         """
@@ -123,7 +124,7 @@ class SecureOverlay:
         else:
             msg = "network active"
         self.lm.set_activity(NTFY_ACT_ACTIVE, msg, diff)
-        self.overlay_rawserver.add_task(self.monitor_activity, 2)
+        self.overlay_rawserver.add_task(self.secover_mon_netwact, 2)
 
     def connect_dns(self,dns,callback):
         """ Connects to the indicated endpoint and determines the permid 

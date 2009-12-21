@@ -1,3 +1,6 @@
+# Written by Lucia D'Acunto
+# see LICENSE.txt for license information
+
 # Ping back server
 
 from socket import *

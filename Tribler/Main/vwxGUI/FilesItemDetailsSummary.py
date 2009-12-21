@@ -4,7 +4,6 @@
 import wx
 import sys
 
-from Tribler.Core.Overlay.MetadataHandler import get_filename
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.TorrentDef import TorrentDef
@@ -618,7 +617,7 @@ class fileItem(wx.Panel):
         else:
             torrent = self.summary.torrent
             if 'torrent_file_name' not in torrent:
-                torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
+                torrent['torrent_file_name'] = get_collected_torrent_filename(torrent['infohash']) 
             torrent_dir = self.utility.session.get_torrent_collecting_dir()
             torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
             tdef = TorrentDef.load(torrent_filename)

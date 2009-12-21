@@ -1,4 +1,4 @@
-# Written by Bram Cohen, Pawel Garbacki and Arno Bakker
+# Written by Bram Cohen, Pawel Garbacki, Arno Bakker and Njaal Borch
 # see LICENSE.txt for license information
 
 import time
@@ -22,6 +22,8 @@ from Tribler.Core.DecentralizedTracking.ut_pex import *
 from Tribler.Core.BitTornado.BT1.track import compact_ip,decompact_ip
 
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
+from Tribler.Core.ClosedSwarm import ClosedSwarm
+from Tribler.Core.Status import Status
 
 try:
     True
@@ -30,10 +32,12 @@ except:
     False = 0
 
 KICK_OLD_CLIENTS=False
+
 DEBUG = False
 DEBUG_NORMAL_MSGS = False
 DEBUG_UT_PEX = False
 DEBUG_MESSAGE_HANDLING = False
+DEBUG_CS = False # Debug closed swarms
 
 UNAUTH_PERMID_PERIOD = 3600
 
@@ -77,6 +81,7 @@ EXTEND_MSG_OVERLAYSWARM = 'Tr_OVERLAYSWARM'
 EXTEND_MSG_G2G_V1       = 'Tr_G2G'
 EXTEND_MSG_G2G_V2       = 'Tr_G2G_v2'
 EXTEND_MSG_HASHPIECE    = 'Tr_hashpiece'
+EXTEND_MSG_CS           = 'NS_CS'
 
 CURRENT_LIVE_VERSION=1
 EXTEND_MSG_LIVE_PREFIX  = 'Tr_LIVE_v'
@@ -128,11 +133,51 @@ class Connection:
         self.total_uploaded = 0
         
         self.ut_pex_first_flag = True # first time we sent a ut_pex to this peer?
+        self.na_candidate_ext_ip = None
         
         self.na_candidate_ext_ip = None
         
         # RePEX counters and repexer instance field
         self.pex_received = 0 # number of PEX messages received
+
+        # Closed swarm stuff
+        # Closed swarms
+        self.is_closed_swarm = False
+        self.remote_is_authenticated = False
+        self.remote_supports_cs = False
+        status = Status.get_status_holder("LivingLab")
+        self.cs_status = status.create_event("CS_protocol")
+        # This is a total for all
+        self.cs_status_unauth_requests = status.get_or_create_status_element("unauthorized_requests", 0)
+        self.cs_status_supported = status.get_or_create_status_element("nodes_supporting_cs", 0)
+        self.cs_status_not_supported = status.get_or_create_status_element("nodes_not_supporting_cs", 0)
+        
+        if self.connecter.is_closed_swarm:
+            if DEBUG:
+                print >>sys.stderr,"connecter: conn: CS: This is a closed swarm"
+            self.is_closed_swarm = True
+            if 'poa' in self.connecter.config:
+                try:
+                    from base64 import decodestring
+                    #poa = self.connecter.config.get_poa()
+                    poa = ClosedSwarm.POA.deserialize(decodestring(self.connecter.config['poa']))
+                    #poa = self.connecter.config['poa']
+                except Exception,e:
+                    print_exc()
+                    poa = None
+            else:
+                print >>sys.stderr,"connecter: conn: CS: Missing POA"
+                poa = None
+        
+            # Need to also get the rest of the info, like my keys
+            # and my POA
+            my_keypair = ClosedSwarm.read_cs_keypair(self.connecter.config['eckeypairfilename'])
+            self.closed_swarm_protocol = ClosedSwarm.ClosedSwarm(my_keypair,
+                                                                 self.connecter.infohash,
+                                                                 self.connecter.config['cs_keys'],
+                                                                 poa)
+            if DEBUG_CS:                                                                 
+                print >>sys.stderr,"connecter: conn: CS: Closed swarm ready to start handshake"
 
 
     def get_myip(self, real=False):
@@ -153,9 +198,13 @@ class Connection:
     def get_readable_id(self):
         return self.connection.get_readable_id()
 
+    def can_send_to(self):
+        if self.is_closed_swarm and not self.remote_is_authenticated:
+            return False
+        return True
+
     def close(self):
         if DEBUG:
-            print 'connection closed'
             if self.get_ip() == self.connecter.tracker_ip:
                 print >>sys.stderr,"connecter: close: live: WAAH closing SOURCE"
 
@@ -187,7 +236,7 @@ class Connection:
         if self.send_choke_queued:
             self.send_choke_queued = False
             if DEBUG_NORMAL_MSGS:
-                print >>sys.stderr,'CHOKE SUPPRESSED'
+                print >>sys.stderr,'Connection: send_unchoke: CHOKE SUPPRESSED'
         else:
             self._send_message(UNCHOKE)
             if (self.partial_message or self.just_unchoked is None
@@ -207,13 +256,20 @@ class Connection:
         self._send_message(CANCEL + tobinary(index) + 
             tobinary(begin) + tobinary(length))
         if DEBUG_NORMAL_MSGS:
-            print 'sent cancel: '+str(index)+': '+str(begin)+'-'+str(begin+length)
+            print >>sys.stderr,'sent cancel: '+str(index)+': '+str(begin)+'-'+str(begin+length)
 
     def send_bitfield(self, bitfield):
-        self._send_message(BITFIELD + bitfield)
+        if self.can_send_to():
+            self._send_message(BITFIELD + bitfield)
+        else:
+            self.cs_status_unauth_requests.inc()
+            print >>sys.stderr,"Sending empty bitfield to unauth node"
+            self._send_message(BITFIELD + Bitfield(self.connecter.numpieces).tostring())
+
 
     def send_have(self, index):
-        self._send_message(HAVE + tobinary(index))
+        if self.can_send_to():
+            self._send_message(HAVE + tobinary(index))
 
     def send_keepalive(self):
         self._send_message('')
@@ -227,6 +283,8 @@ class Connection:
 
     def send_partial(self, bytes):
         if self.connection.closed:
+            return 0
+        if not self.can_send_to():
             return 0
         if self.partial_message is None:
             s = self.upload.get_upload_chunk()
@@ -267,7 +325,7 @@ class Connection:
                             tobinary(len(piece) + 9), PIECE, 
                             tobinary(index), tobinary(begin), piece.tostring()))
             if DEBUG_NORMAL_MSGS:
-                print 'sending chunk: '+str(index)+': '+str(begin)+'-'+str(begin+len(piece))
+                print >>sys.stderr,'sending chunk: '+str(index)+': '+str(begin)+'-'+str(begin+len(piece))
 
         if bytes < len(self.partial_message):
             self.connection.send_message_raw(self.partial_message[:bytes])
@@ -335,6 +393,23 @@ class Connection:
                     if DEBUG:
                         print >>sys.stderr,"connecter: Peer supports Tr_OVERLAYSWARM, attempt connection"
                     self.connect_overlay()
+                    
+            if EXTEND_MSG_CS in self.extend_hs_dict['m']:
+                self.remote_supports_cs = True
+                self.cs_status_supported.inc()
+                if self.connection.locally_initiated:
+                    self.start_cs_handshake()
+            else:
+                self.remote_supports_cs = False
+                self.cs_status_not_supported.inc()
+                if DEBUG:
+                    print >>sys.stderr,"connecter: conn: Remote node does not support CS, flagging CS as done"
+                self.connecter.cs_handshake_completed()
+                status = Status.get_status_holder("LivingLab")
+                status.add_event(self.cs_status)
+                self.cs_status = status.create_event("CS_protocol")
+                
+                
             if self.connecter.use_g2g and (EXTEND_MSG_G2G_V1 in self.extend_hs_dict['m'] or EXTEND_MSG_G2G_V2 in self.extend_hs_dict['m']):
                 # Both us and the peer want to use G2G
                 if self.connection.locally_initiated:
@@ -505,6 +580,24 @@ class Connection:
                 print >>sys.stderr,"connecter: Starting ut_pex conns to",len(sample_added_peers_with_id)
             self.connection.Encoder.start_connections(sample_added_peers_with_id)
 
+    def get_extend_encryption(self):
+        return self.extend_hs_dict.get('e',0)
+    
+    def get_extend_listenport(self):
+        return self.extend_hs_dict.get('p')
+
+    def send_extend_handshake(self):
+        
+        d = {}
+        d['m'] = self.connecter.EXTEND_HANDSHAKE_M_DICT
+        d['p'] = self.connecter.mylistenport
+        ver = version_short.replace('-',' ',1)
+        d['v'] = ver
+        d['e'] = 0  # Apparently this means we don't like uTorrent encryption
+        self._send_message(EXTEND + EXTEND_MSG_HANDSHAKE_ID + bencode(d))
+        if DEBUG:
+            print >>sys.stderr,'connecter: sent extend: id=0+',d
+
     def send_extend_ut_pex(self,payload):
         msg = EXTEND+self.his_extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX)+payload
         self._send_message(msg)
@@ -516,6 +609,76 @@ class Connection:
         else:
             return False
 
+    def _send_cs_message(self, cs_list):
+        if DEBUG_CS:
+            print >>sys.stderr,"connecter: conn: _send_cs_message",cs_list[0]
+        blist = bencode(cs_list)
+        self._send_message(EXTEND + self.his_extend_msg_name_to_id(EXTEND_MSG_CS) + blist)
+        
+    def got_cs_message(self, cs_list):
+        if DEBUG_CS:
+            print >>sys.stderr,"connecter: conn: got_cs_message",cs_list[0]
+        if not self.is_closed_swarm:
+            raise Exception("Got ClosedSwarm message, but this swarm is not closed")
+
+        # Process incoming closed swarm messages
+        t = cs_list[0]
+        if t == CS_CHALLENGE_A:
+            if DEBUG_CS:
+                print >>sys.stderr,"connecter: conn: CS: Got initial challenge"
+            # Got a challenge to authenticate to participate in a closed swarm
+            try:
+                response = self.closed_swarm_protocol.b_create_challenge(cs_list)
+                self._send_cs_message(response)
+            except Exception,e:
+                self.cs_status.add_value("CS_bad_initial_challenge")
+                if DEBUG_CS:
+                    print >>sys.stderr,"connecter: conn: CS: Bad initial challenge:",e
+        elif t == CS_CHALLENGE_B:
+            if DEBUG_CS:
+                print >>sys.stderr,"connecter: conn: CS: Got return challenge"
+            try:
+                response = self.closed_swarm_protocol.a_provide_poa_message(cs_list)
+                self.remote_is_authenticated = self.closed_swarm_protocol.is_remote_node_authorized()
+                if DEBUG_CS:
+                    print >>sys.stderr,"connecter: conn: CS: Remote node authorized:",self.remote_is_authenticated
+                self._send_cs_message(response)
+            except Exception,e:
+                self.cs_status.add_value("CS_bad_return_challenge")
+                if DEBUG_CS:
+                    print >>sys.stderr,"connecter: conn: CS: Bad return challenge",e
+                print_exc()
+                
+        elif t == CS_POA_EXCHANGE_A:
+            if DEBUG_CS:
+               print >>sys.stderr,"connecter: conn: CS:Got POA from A"
+            try:
+                response = self.closed_swarm_protocol.b_provide_poa_message(cs_list)
+                self.remote_is_authenticated = self.closed_swarm_protocol.is_remote_node_authorized()
+                if DEBUG_CS:
+                    print >>sys.stderr,"connecter: conn: CS: Remote node authorized:",self.remote_is_authenticated
+                if response:
+                    self._send_cs_message(response)
+            except Exception,e:
+                self.cs_status.add_value("CS_bad_POA_EXCHANGE_A")
+                if DEBUG_CS:
+                   print >>sys.stderr,"connecter: conn: CS: Bad POA from A:",e
+                
+        elif t == CS_POA_EXCHANGE_B:
+            try:
+                self.closed_swarm_protocol.a_check_poa_message(cs_list)
+                self.remote_is_authenticated = self.closed_swarm_protocol.is_remote_node_authorized()
+                if DEBUG_CS:
+                   print >>sys.stderr,"connecter: conn: CS: Remote node authorized:",self.remote_is_authenticated
+            except Exception,e:
+                self.cs_status.add_value("CS_bad_POA_EXCHANGE_B")
+                if DEBUG_CS:
+                   print >>sys.stderr,"connecter: conn: CS: Bad POA from B:",e
+
+        if not self.closed_swarm_protocol.is_incomplete():
+            self.connecter.cs_handshake_completed()
+            status = Status.get_status_holder("LivingLab")
+            # Don't need to add successful CS event
 
     #
     # Give-2-Get
@@ -628,6 +791,15 @@ class Connection:
         if exc is not None:
             print >>sys.stderr,"connecter: peer",dns,"said he supported overlay swarm, but we can't connect to him",exc
 
+    def start_cs_handshake(self):
+        try:
+            if DEBUG_CS:
+                print >>sys.stderr,"connecter: conn: CS: Initiating Closed Swarm Handshake"
+            challenge = self.closed_swarm_protocol.a_create_challenge()
+            self._send_cs_message(challenge)
+        except Exception,e:
+            print >>sys.stderr,"connecter: conn: CS: Bad initial challenge:",e
+        
 
     #
     # NETWORK AWARE
@@ -730,6 +902,7 @@ class Connecter:
     def __init__(self, make_upload, downloader, choker, numpieces, piece_size,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
             coordinator = None, helper = None, get_extip_func = lambda: None, mylistenport = None, use_g2g = False, infohash=None, tracker=None):
+
         self.downloader = downloader
         self.make_upload = make_upload
         self.choker = choker
@@ -753,6 +926,7 @@ class Connecter:
         self.mylistenport = mylistenport
         self.infohash = infohash
         self.tracker = tracker
+
         try:
             (scheme, netloc, path, pars, query, _fragment) = urlparse.urlparse(self.tracker)
             host = netloc.split(':')[0] 
@@ -767,12 +941,6 @@ class Connecter:
         if self.config['overlay']:
             self.overlay_enabled = True
 
-        if DEBUG:
-            if self.overlay_enabled:
-                print >>sys.stderr,"connecter: Enabling overlay" 
-            else:
-                print >>sys.stderr,"connecter: Disabling overlay"
-            
         if DEBUG:
             if self.overlay_enabled:
                 print >>sys.stderr,"connecter: Enabling overlay"
@@ -794,7 +962,13 @@ class Connecter:
         # The set of messages we support. Note that the msg ID is an int not a byte in 
         # this dict.
         self.EXTEND_HANDSHAKE_M_DICT = {}
-            
+        
+        # Say in the EXTEND handshake that we support Closed swarms
+        if DEBUG:
+            print >>sys.stderr,"connecter: I support Closed Swarms"
+        d = {EXTEND_MSG_CS:ord(CS_CHALLENGE_A)}
+        self.EXTEND_HANDSHAKE_M_DICT.update(d)
+
         if self.overlay_enabled:
             # Say in the EXTEND handshake we support the overlay-swarm ext.
             d = {EXTEND_MSG_OVERLAYSWARM:ord(CHALLENGE)}
@@ -831,11 +1005,27 @@ class Connecter:
             
         # RePEX
         self.repexer = None # Should this be called observer instead?
+            
+        # Closed Swarm stuff
+        self.is_closed_swarm = False
+        self.cs_post_func = None
+        if 'cs_keys' in self.config:
+            if self.config['cs_keys'] != None:
+                if len(self.config['cs_keys']) == 0:
+                    if DEBUG_CS:
+                        print >>sys.stderr, "connecter: cs_keys is empty"
+                else:
+                    if DEBUG_CS:
+                       print >>sys.stderr, "connecter: This is a closed swarm  - has cs_keys"
+                    self.is_closed_swarm = True
+
 
     def how_many_connections(self):
         return len(self.connections)
 
     def connection_made(self, connection):
+
+        assert connection
         c = Connection(connection, self)
         self.connections[connection] = c
         
@@ -871,9 +1061,21 @@ class Connecter:
                 c.send_extend_handshake()
                 
         #TODO: overlay swarm also needs upload and download to control transferring rate
+        # If this is a closed swarm, don't do this now - will be done on completion of the CS protocol!
         c.upload = self.make_upload(c, self.ratelimiter, self.totalup)
         c.download = self.downloader.make_download(c)
-        self.choker.connection_made(c)
+        if not self.is_closed_swarm:
+            if DEBUG_CS:
+               print >>sys.stderr,"connecter: connection_made: Freeing choker!"
+            self.choker.connection_made(c)
+        else:
+            if DEBUG_CS:
+                print >>sys.stderr,"connecter: connection_made: Will free choker later"
+            self.choker.add_connection(c)
+            #self.cs_post_func = lambda:self.choker.connection_made(c)
+            #self.cs_post_func = lambda:self.choker.start_connection(c)
+            self.cs_post_func = lambda:self._cs_completed(c)
+
         return c
 
     def connection_lost(self, connection):
@@ -1058,19 +1260,26 @@ class Connecter:
         t = message[0]
         # EXTEND handshake will be sent just after BT handshake, 
         # before BITFIELD even
-        
+
         if DEBUG_MESSAGE_HANDLING:
             st = time.time()
 
-        if False: #connection.get_ip().startswith("192"):
-            print >>sys.stderr,"connecter: Got",getMessageName(t),connection.get_ip()
-        
         if DEBUG_NORMAL_MSGS:
             print >>sys.stderr,"connecter: Got",getMessageName(t),connection.get_ip()
         
         if t == EXTEND:
             self.got_extend_message(connection,c,message,self.ut_pex_enabled)
             return
+
+        # If this is a closed swarm and we have not authenticated the 
+        # remote node, we must NOT GIVE IT ANYTHING!
+        #if self.is_closed_swarm and c.closed_swarm_protocol.is_incomplete():
+            #print >>sys.stderr, "connecter: Remote node not authorized, ignoring it"
+            #return
+
+        if self.is_closed_swarm and c.can_send_to():
+            c.got_anything = False # Is this correct or does it break something?
+            
         if t == BITFIELD and c.got_anything:
             if DEBUG:
                 print >>sys.stderr,"Close on BITFIELD"
@@ -1126,6 +1335,11 @@ class Connecter:
             if c.download is not None:
                 c.download.got_have_bitfield(b)
         elif t == REQUEST:
+            if not c.can_send_to():
+                self.cs_status_unauth_requests.inc()
+                print >> sys.stderr,"Got REQUEST but remote node is not authenticated"
+                return # TODO: Do this better
+
             if len(message) != 13:
                 if DEBUG:
                     print >>sys.stderr,"Close on bad REQUEST: msg len"
@@ -1201,6 +1415,7 @@ class Connecter:
             begin = toint(message[5:9])
             length = toint(message[9:13])
             c.got_g2g_piece_xfer_v1(index,begin,length)
+
         else:
             connection.close()
 
@@ -1283,10 +1498,16 @@ class Connecter:
                             return
                             
                     c.got_g2g_piece_xfer_v2(ppdict)
+                    
                 elif ext_msg_name == EXTEND_MSG_HASHPIECE and self.merkle_torrent:
                     # Merkle: Handle pieces with hashes, Merkle BEP
                     oldmsg = message[1:]
                     self.got_hashpiece(connection,oldmsg)
+                    
+                elif ext_msg_name == EXTEND_MSG_CS:
+                    cs_list = bdecode(message[2:])
+                    c.got_cs_message(cs_list)
+                    
                 else:
                     if DEBUG:
                         print >>sys.stderr,"Close on bad EXTEND: peer sent ID that maps to name we don't support",ext_msg_name,`ext_id`,ord(ext_id)
@@ -1299,6 +1520,34 @@ class Connecter:
                 print_exc()
             connection.close()
             return
+
+    def _cs_completed(self, connection):
+        """
+        When completed, this is a callback function to reset the connection
+        """
+        try:
+            # Can't send bitfield here, must loop and send a bunch of HAVEs
+            # Get the bitfield from the uploader
+            have_list = connection.upload.storage.get_have_list()
+            bitfield = Bitfield(self.numpieces, have_list)
+            i = 0
+            for b in bitfield.toboollist():
+                if b:
+                    connection.send_have(i)
+                i += 1
+            #connection.upload.send_bitfield(connection)
+            connection.got_anyUpohing = False
+            self.choker.start_connection(connection)
+        except Exception,e:
+            print >> sys.stderr,"Error restarting after CS handshake:",e
+        
+    def cs_handshake_completed(self):
+        if DEBUG_CS:
+            print >>sys.stderr,"connecter: Closed swarm handshake completed!"
+        if self.cs_post_func:
+            self.cs_post_func()
+        elif DEBUG_CS:
+            print >>sys.stderr,"connecter: CS: Woops, don't have post function"
 
 
 def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
@@ -1347,3 +1596,6 @@ def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
     else:
         if DEBUG:
             print >> sys.stderr, "BARTERCAST: No bartercastdb instance"
+            
+
+            

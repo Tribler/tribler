@@ -4,19 +4,42 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.4rc5, Oct 2009. Import this to use the API """
+""" Tribler Core API v1.0.4, Dec 2009. Import this to use the API """
 
 # History:
 #
+# 1.0.4      Released with Next-Share M24
+#
+# 1.0.4rc7   Added: DLMODE_SVC for Scalable Video Coding support following
+#            P2P-Next WP6's design. 
+#
+# 1.0.4rc6   Added: SIMPLE+METADATA query. 
+#
 # 1.0.4rc5   Added: DLSTATUS_REPEXING.
+#
+#            Added: initialdlstatus parameter to Session.start_download() to 
+#            restart a Download in a particular state, in particular, 
+#            DLSTATUS_REPEXING.
+#
+#            Added: initialdlstatus parameter to Download.restart() to 
+#            restart a Download in a particular state.
+#
+#            Added: get_swarmcache() to DownloadState.
 #
 # 1.0.4rc4   Added: get_total_transferred() to the DownloadState to
 #            retrieve the total amount of bytes that are up or
 #            downloaded for a single Download.
 #
+#            Removed: get_peerid() and get_videoinfo() from DownloadState,
+#            the former is not a state parameter and the latter exposed internal
+#            state.
+#
 # 1.0.4rc3   Added "CHANNEL" queries to query_connected_peers() to Session 
 #            class for making queries for the new channel concept.
 #
+#            Removed: ModerationCast configuration parameters from SessionConfig.
+#            Added: ChannelCast configuration parameters to SessionConfig.
+#            Added: VoteCast configuration parameters to SessionConfig.
 #
 # 1.0.4rc2   TorrentDef now supports P2P URLs.
 #

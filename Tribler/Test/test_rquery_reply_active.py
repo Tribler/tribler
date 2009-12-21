@@ -7,6 +7,7 @@ import time
 from time import sleep
 from types import StringType, DictType
 
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import QUERY, QUERY_REPLY, getMessageName
 
@@ -15,9 +16,6 @@ from Tribler.Test.test_as_server import TestAsServer
 
 DEBUG=True
 
-TEST_QUERY = 'SIMPLE hallo'
-INFOHASH = 'i'*20
-CONTENT_NAME = 'Hallo S22E44'
 LENGTH = 481
 LEECHERS = 22
 SEEDERS = 11
@@ -54,35 +52,68 @@ class TestQueryReplyActive(TestAsServer):
         self.hispermid = str(self.his_keypair.pub().get_der())
         self.my_permid = str(self.my_keypair.pub().get_der())
 
-    def pretest(self):
+        self.content_name = 'Hallo S22E44'
+        self.tdef = TorrentDef()
+        self.tdef.set_tracker('http://localhost:0/announce')
+        self.tdef.set_piece_length(2 ** 15)
+        self.tdef.create_live(self.content_name,2 ** 16)
+        self.tdef.finalize()
+
+
+    def pretest_simple(self):
+        self.pretest_q('SIMPLE hallo')
+
+    def pretest_simpleplustorrents(self):
+        self.pretest_q('SIMPLE+METADATA hallo')
+
+    def pretest_q(self,query):
         # 1. First connect to Tribler
         self.openconn = OLConnection(self.my_keypair,'localhost',self.hisport)
         sleep(3)
         
         # 2. Make Tribler send query
-        self.session.query_connected_peers(TEST_QUERY,self.query_usercallback,max_peers_to_query=10)
+        self.query = query
+        self.session.query_connected_peers(query,self.query_usercallback,max_peers_to_query=10)
 
     def query_usercallback(self,permid,query,hits):
         
         print >>sys.stderr,"test: query_usercallback:",`permid`,`query`,`hits`
         
-        self.assert_(query == TEST_QUERY)
+        self.assert_(query == self.query)
         self.assert_(permid == self.my_permid)
         self.check_good_qreply(hits)
+        
+        # TODO: if SIMPLE+METADATA: check torrent now in db.
+        
 
     #
-    # Good QUERY, builds on TestQueryReply code
+    # Good SIMPLE QUERY, builds on TestQueryReply code
     #    
-    def singtest_good_qreply(self):
-        self.pretest()
-        self._test_qreply(self.create_good_qreply,True)
+    def singtest_good_simple_reply(self):
+        self.pretest_simple()
+        self._test_qreply(self.create_good_simple_reply,True)
+
+    #
+    # Good SIMPLE+METADATA QUERY, builds on TestQueryReply code
+    #    
+    def singtest_good_simpleplustorrents_reply(self):
+        self.pretest_simpleplustorrents()
+        self._test_qreply(self.create_good_simpleplustorrents_reply,True)
+
 
     #
     # Bad QUERY, builds on TestQueryReply code
     #    
     def singtest_bad_not_bdecodable(self):
-        self.pretest()
+        self.pretest_simple()
         self._test_qreply(self.create_not_bdecodable,False)
+
+    #
+    # Bad SIMPLE+METADATA QUERY, builds on TestQueryReply code
+    #    
+    def singtest_bad_not_bdecodable_torrentfile(self):
+        self.pretest_simpleplustorrents()
+        self._test_qreply(self.create_not_bdecodable_torrentfile,False)
 
 
     ### TODO: send different valid answers so consensus not reached
@@ -115,38 +146,69 @@ class TestQueryReplyActive(TestAsServer):
             s.close()
 
 
-    def create_good_qreply(self,id):
+    def create_good_simple_reply_dict(self,id):
         r = {}
-        r['content_name'] = CONTENT_NAME
+        r['content_name'] = self.content_name
         r['length'] = LENGTH
         r['leecher'] = LEECHERS
         r['seeder'] = SEEDERS
         r['category'] = CATEGORY
+        # OLPROTO_PROTO_ELEVENTH
+        # set later r['torrent_size'] = 42
+        r['channel_permid'] = '$' * 83
+        r['channel_name'] = 'Nitin Channel' 
         
         d2 = {}
-        d2[INFOHASH] = r
+        d2[self.tdef.get_infohash()] = r
         
         d = {}
         d['id'] = id
         d['a'] = d2
+        return d
         
+    def create_good_simple_reply(self,id):
+        d = self.create_good_simple_reply_dict(id)
+        bmetainfo = bencode(self.tdef.get_metainfo())
+        d['a'][self.tdef.get_infohash()]['torrent_size'] = len(bmetainfo) 
         b = bencode(d)
         return QUERY_REPLY+b
+
+    def create_good_simpleplustorrents_reply(self,id):
+        d = self.create_good_simple_reply_dict(id)
+        bmetainfo = bencode(self.tdef.get_metainfo())
+        d['a'][self.tdef.get_infohash()]['torrent_size'] = len(bmetainfo)
+        d['a'][self.tdef.get_infohash()]['metatype'] = 'application/x-tribler-stream' 
+        d['a'][self.tdef.get_infohash()]['metadata'] = bmetainfo 
+        b = bencode(d)
+        return QUERY_REPLY+b
+
     
 
     def check_good_qreply(self,hits):
         self.assert_(len(hits) == 1)
-        self.assert_(hits.keys()[0] == INFOHASH)
-        hit = hits[INFOHASH]
-        self.assert_(hit['content_name'] == CONTENT_NAME)
+        self.assert_(hits.keys()[0] == self.tdef.get_infohash())
+        hit = hits[self.tdef.get_infohash()]
+        self.assert_(hit['content_name'] == self.content_name)
         self.assert_(hit['length'] == LENGTH)
         self.assert_(hit['leecher'] == LEECHERS)
         self.assert_(hit['seeder'] == SEEDERS)
         self.assert_(hit['category'] ==  CATEGORY)
     
+        # OLPROTO_VERSION_ELEVENTH
+        bmetainfo = bencode(self.tdef.get_metainfo())
+        self.assert_(hit['torrent_size'] == len(bmetainfo))
+        if self.query.startswith('SIMPLE+METADATA'):
+            self.assert_(hit['metadata'] == bmetainfo)
 
     def create_not_bdecodable(self,id):
         return QUERY_REPLY+"bla"
+
+    def create_not_bdecodable_torrentfile(self,id):
+        d = self.create_good_simple_reply_dict(id)
+        d['a'][self.tdef.get_infohash()]['torrent_size'] = 3 # consistent with metadata. Should be named "metasize"
+        d['a'][self.tdef.get_infohash()]['metadata'] = 'bla'
+        b = bencode(d)
+        return QUERY_REPLY+b
 
     def check_rquery(self,data):
         d = bdecode(data)
@@ -158,7 +220,7 @@ class TestQueryReplyActive(TestAsServer):
         id = d['id']
         self.assert_(type(id) == StringType)
 
-        self.assert_(q == TEST_QUERY)
+        self.assert_(q == self.query)
         return d['id']
 
 

@@ -19,6 +19,7 @@ from Tribler.Core.BitTornado.__init__ import createPeerID
 from Tribler.Core.BitTornado.download_bt1 import BT1Download
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.Video.VideoStatus import VideoStatus
+from Tribler.Core.Video.SVCVideoStatus import SVCVideoStatus
 from Tribler.Core.DecentralizedTracking.repex import RePEXer
 
 
@@ -30,7 +31,6 @@ class SingleDownload:
     """ This class is accessed solely by the network thread """
     
     def __init__(self,infohash,metainfo,kvconfig,multihandler,get_extip_func,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate,lmvodeventcallback,lmhashcheckcompletecallback):
-        
         self.dow = None
         self.set_error_func = set_error_func
         self.videoinfo = None
@@ -54,7 +54,7 @@ class SingleDownload:
     
             self.peerid = createPeerID()
             
-            # M23TRIAL
+            # LOGGING
             from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
             event_reporter = get_reporter_instance()
             event_reporter.add_event(self.b64_infohash, "peerid:%s" % b64encode(self.peerid))
@@ -83,16 +83,30 @@ class SingleDownload:
             
             # Set local filename in vodfileindex
             if vodfileindex is not None:
+                # Ric: for SVC the index is a list of indexes
                 index = vodfileindex['index']
-                if index == -1:
-                    index = 0
-                vodfileindex['outpath'] = self.dow.get_dest(index)
+                if type(index) == ListType:
+                    svc = len(index) > 1
+                else:
+                    svc = False
+                
+                if svc:
+                    outpathindex = self.dow.get_dest(index[0])
+                else:
+                    if index == -1:
+                        index = 0
+                    outpathindex = self.dow.get_dest(index)
+
+                vodfileindex['outpath'] = outpathindex
                 self.videoinfo = vodfileindex
                 if 'live' in metainfo['info']:
                     authparams = metainfo['info']['live']
                 else:
                     authparams = None
-                self.videostatus = VideoStatus(metainfo['info']['piece length'],self.dow.files,vodfileindex,authparams)
+                if svc:
+                    self.videostatus = SVCVideoStatus(metainfo['info']['piece length'],self.dow.files,vodfileindex,authparams)
+                else:
+                    self.videostatus = VideoStatus(metainfo['info']['piece length'],self.dow.files,vodfileindex,authparams)
                 self.videoinfo['status'] = self.videostatus
                 self.dow.set_videoinfo(vodfileindex,self.videostatus)
 

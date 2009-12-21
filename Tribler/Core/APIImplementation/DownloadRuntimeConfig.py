@@ -3,6 +3,7 @@
 
 import sys
 
+from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 
@@ -45,11 +46,11 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
     def set_dest_dir(self,path):
         raise OperationNotPossibleAtRuntimeException()
 
-    def set_video_event_callback(self,usercallback):
+    def set_video_event_callback(self,usercallback,dlmode=DLMODE_VOD):
         """ Note: this currently works only when the download is stopped. """
         self.dllock.acquire()
         try:
-            DownloadConfigInterface.set_video_event_callback(self,usercallback)
+            DownloadConfigInterface.set_video_event_callback(self,usercallback,dlmode=dlmode)
         finally:
             self.dllock.release()
 
@@ -494,6 +495,20 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
+    def set_poa(self, poa):
+        self.dllock.acquire()
+        try:
+            DownloadConfigInterface.set_poa(self, poa)
+        finally:
+            self.dllock.release()
+            
+
+    def get_poa(self, poa):
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.get_poa(self)
+        finally:
+            self.dllock.release()
     def set_same_nat_try_internal(self,value):
         raise OperationNotPossibleAtRuntimeException()
 

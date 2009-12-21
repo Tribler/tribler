@@ -9,8 +9,6 @@ from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.Utilities.utilities import *
-# LAYERVIOLATION
-from Tribler.Core.Overlay.MetadataHandler import get_filename
 
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *

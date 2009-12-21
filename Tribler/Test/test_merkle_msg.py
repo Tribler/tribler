@@ -128,6 +128,13 @@ class TestMerkleMessage(TestAsServer):
         
         return dscfg        
         
+    def tearDown(self):
+        TestAsServer.tearDown(self)
+        try:
+            os.remove('piece1.bin')
+        except:
+            pass
+
         
     def singtest_good_hashpiece_bepstyle(self):
         self.subtest_good_hashpiece(False)

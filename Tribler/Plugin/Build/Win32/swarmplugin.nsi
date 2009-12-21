@@ -1,5 +1,5 @@
 !define PRODUCT "SwarmPlugin"
-!define VERSION "1.0.2"
+!define VERSION "1.0.3"
 !define BG "bgprocess"
 
 
@@ -46,7 +46,7 @@ BrandingText "${PRODUCT}"
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "I decline"
 ;   !define MUI_FINISHPAGE_RUN "$INSTDIR\swarmplayer.exe"
 
-!insertmacro MUI_PAGE_LICENSE "ns-binary-LICENSE.txt"
+!insertmacro MUI_PAGE_LICENSE "binary-LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES

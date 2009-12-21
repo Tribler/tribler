@@ -428,15 +428,16 @@ class SQLiteCacheDBBase:
             else:
                 return cur.execute(sql, args)
         except Exception, msg:
-            print_exc()
-            print_stack()
-            print >> sys.stderr, "cachedb: execute error:", Exception, msg 
-            thread_name = threading.currentThread().getName()
-            print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
-            #return None
-            # ARNODB: this is incorrect, it should reraise the exception
-            # such that _transaction can rollback or recommit. 
-            # This bug already reported by Johan
+            if False:
+                print_exc()
+                print_stack()
+                print >> sys.stderr, "cachedb: execute error:", Exception, msg 
+                thread_name = threading.currentThread().getName()
+                print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
+                #return None
+                # ARNODB: this is incorrect, it should reraise the exception
+                # such that _transaction can rollback or recommit. 
+                # This bug already reported by Johan
             raise msg
         
 
@@ -518,6 +519,8 @@ class SQLiteCacheDBBase:
         is not honoured for some reason. After the initial errors,
         they no longer occur.
         """
+        print >>sys.stderr,"sqlcachedb: commit_retry: after",str(e)
+        
         if str(e).startswith("BusyError"):
             try:
                 self._execute("COMMIT")

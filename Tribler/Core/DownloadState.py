@@ -39,8 +39,6 @@ class DownloadState(Serializable):
         # RePEX TODO: instead of being passed the latest SwarmCache, DownloadState could
         # also query it from Download? Perhaps add get_swarmcache to Download(Impl)?
         
-        #print >>sys.stderr,"DownloadState.__init__",`download.get_def().get_name()`,"status",status,"error",error,"progress",progress,"stats",`stats`
-        
         self.download = download
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
@@ -346,7 +344,6 @@ class DownloadState(Serializable):
         @return A PermID.
         """
         return self.coopdl_coordinator
-    
 
     #
     # RePEX: get swarmcache
@@ -386,5 +383,4 @@ class DownloadState(Serializable):
             # TODO: rearrange if statement to merge 1st and 3rd case?
             
         return swarmcache
-        
         

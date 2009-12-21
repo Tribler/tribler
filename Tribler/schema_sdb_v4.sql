@@ -1,5 +1,5 @@
 -- Tribler SQLite Database
--- Version: 2rc3
+-- Version: 4
 --
 -- History:
 --   v1: Published as part of Tribler 4.5

@@ -70,6 +70,7 @@ copy %PYTHONHOME%\msvcp60.dll dist\installdir
 REM py2exe does this: copy SSLEAY32.dll dist\installdir
 REM copy LIBEAY32.dll dist\installdir
 
+type %LIBRARYNAME%\LICENSE.txt %LIBRARYNAME%\binary-LICENSE-postfix.txt > %LIBRARYNAME%\binary-LICENSE.txt
 copy %LIBRARYNAME%\binary-LICENSE.txt dist\installdir
 mkdir dist\installdir\%LIBRARYNAME%
 mkdir dist\installdir\%LIBRARYNAME%\Core

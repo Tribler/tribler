@@ -19,16 +19,17 @@ import time as T
 
 from M2Crypto import Rand
 
+from Tribler.Core.simpledefs import *
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler,PeerDBHandler
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.BuddyCast.moderationcast_util import *
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINETH, OLPROTO_VER_ELEVENTH
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINETH, OLPROTO_VER_ELEVENTH, OLPROTO_VER_TWELFTH
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Utilities.unicode import dunno2unicode
-from Tribler.Core.Search.SearchManager import SearchManager
 
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
@@ -56,7 +57,6 @@ class RemoteQueryMsgHandler:
         RemoteQueryMsgHandler.__single = self
 
         self.connections = {}    # only connected remote_search_peers -> selversion
-        #self.connections = Set()    # only connected remote_search_peers
         self.query_ids2rec = {}    # ARNOCOMMENT: TODO: purge old entries...
         self.overlay_log = None
         self.registered = False
@@ -73,10 +73,13 @@ class RemoteQueryMsgHandler:
         if DEBUG:
             print >> sys.stderr,"rquery: register"
         self.overlay_bridge = overlay_bridge
-        self.launchmany= launchmany
-        self.search_manager = SearchManager(launchmany.torrent_db)
+        self.session =  launchmany.session
+        self.torrent_db = launchmany.torrent_db
         self.peer_db = launchmany.peer_db
         self.channelcast_db = launchmany.channelcast_db
+        # debug
+        # self.superpeer_db = launchmany.superpeer_db
+        
         self.config = config
         self.bc_fac = bc_fac # May be None
         if log:
@@ -120,9 +123,10 @@ class RemoteQueryMsgHandler:
 
         if exc is None:
             self.connections[permid] = selversion
-            #self.connections.add(permid)
+            #superpeers = self.superpeer_db.getSuperPeers()
+            #if permid in superpeers:
+             #   print >> sys.stderr,"rquery: handleConnection: Connect to superpeer"
         else:
-            #self.connections.remove(permid)
             try:
                 del self.connections[permid]
             except:
@@ -156,6 +160,11 @@ class RemoteQueryMsgHandler:
         else:
             wantminoversion =  OLPROTO_VER_SIXTH
             
+        if query.startswith("SIMPLE+METADATA"):
+            wantminoversion = OLPROTO_VER_TWELFTH
+        else:
+            wantminoversion =  OLPROTO_VER_SIXTH
+
         if DEBUG:
             print >>sys.stderr,"rquery: send_query: Connected",len(self.connections),"peers"
         
@@ -222,6 +231,8 @@ class RemoteQueryMsgHandler:
             return False
         
         if not isValidQuery(d,selversion):
+            if DEBUG:
+                print >>sys.stderr,"rquery: QUERY invalid",`d`
             return False
 
         # ACCESS CONTROL, INCLUDING CHECKING IF PEER HAS NOT EXCEEDED
@@ -233,7 +244,7 @@ class RemoteQueryMsgHandler:
         
         return True
 
-    def setLogFile(self, logfile):
+    def set_log_file(self, logfile):
         self.logfile = open(logfile, "a") 
    
    
@@ -253,32 +264,41 @@ class RemoteQueryMsgHandler:
     # Send query reply
     #
     def process_query(self, permid, d, selversion):
-        q = None
         hits = None
         p = None
-        
-        query = d['q']
-        
-        if query.startswith("SIMPLE"): # remote query
-            q = d['q'][len('SIMPLE '):]
-            q = dunno2unicode(q)
-         
-            # Format: 'SIMPLE '+string of space separated keywords
+        sendtorrents = False
+
+        netwq = d['q']
+        if netwq.startswith("SIMPLE"): # remote query
+            # Format: 'SIMPLE '+string of space separated keywords or
+            #         'SIMPLE+METADATA' +string of space separated keywords
+            #
             # In the future we could support full SQL queries:
             # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE
+            
+            if netwq.startswith('SIMPLE+METADATA'):
+                q = d['q'][len('SIMPLE+METADATA '):]
+                sendtorrents = True
+            else:
+                q = d['q'][len('SIMPLE '):]
+                    
+            q = self.clean_netwq(q)
+            q = dunno2unicode(q)
             kws = re.split(r'\W+', q.lower())
-            hits = self.search_manager.search(kws, maxhits=MAX_RESULTS, local=False)
+            hits = self.search_torrents(kws, maxhits=MAX_RESULTS,sendtorrents=sendtorrents)
             p = self.create_remote_query_reply(d['id'],hits,selversion)
-        elif query.startswith("CHANNEL"): # channel query
+            
+        elif netwq.startswith("CHANNEL"): # channel query
             q = d['q'][len('CHANNEL '):]
+            q = self.clean_netwq(q)
             q = dunno2unicode(q)
             hits = self.channelcast_db.searchChannels(q)
             p = self.create_channel_query_reply(d['id'],hits,selversion)
-            
+
         # log incoming query, if logfile is set
         if self.logfile:
             self.log(permid, q)        
-
+     
         m = QUERY_REPLY+p
 
         if self.overlay_log:
@@ -292,7 +312,16 @@ class RemoteQueryMsgHandler:
         self.overlay_bridge.send(permid, m, self.send_callback)
         
         self.inc_peer_nqueries(permid)
-        
+
+
+    def clean_netwq(self,q):
+        # Filter against bad input
+        newq = u''
+        for i in range(0,len(q)):
+            if q[i].isalnum():
+                newq += q[i]
+        return newq
+            
         
     def create_remote_query_reply(self,id,hits,selversion):
         getsize = os.path.getsize
@@ -304,7 +333,7 @@ class RemoteQueryMsgHandler:
             r = {}
             # NEWDBSTANDARD. Do not rename r's fields: they are part of the 
             # rquery protocol spec.
-            r['content_name'] = torrent['name'] 
+            r['content_name'] = torrent['name'] # According to TorrentDBHandler.addExternalTorrentencoded this is the original encoded name, TODO: standardize on UTF-8 encoding. 
             r['length'] = torrent['length']
             r['leecher'] = torrent['num_leechers']
             r['seeder'] = torrent['num_seeders']
@@ -316,6 +345,12 @@ class RemoteQueryMsgHandler:
             if selversion >= OLPROTO_VER_ELEVENTH:
                 r['channel_permid'] = torrent['channel_permid']
                 r['channel_name'] = torrent['channel_name']
+            if selversion >= OLPROTO_VER_TWELFTH and 'metadata' in torrent:
+                if DEBUG:
+                    print >>sys.stderr,"rqmh: create_query_reply: Adding torrent file"
+                r['metatype'] = torrent['metatype']
+                r['metadata'] = torrent['metadata']
+                
             d2[torrent['infohash']] = r
         d['a'] = d2
         return bencode(d)
@@ -372,6 +407,35 @@ class RemoteQueryMsgHandler:
                 print >>sys.stderr,"rquery: QUERY_REPLY has unknown query ID", selversion
             return False
 
+        if selversion >= OLPROTO_VER_TWELFTH:
+            if queryrec['query'].startswith('SIMPLE+METADATA'):
+                for infohash,torrentrec in d['a'].iteritems():
+                    if not 'metatype' in torrentrec:
+                        if DEBUG:
+                            print >>sys.stderr,"rquery: QUERY_REPLY has no metatype field", selversion
+                        return False
+
+                    if not 'metadata' in torrentrec:
+                        if DEBUG:
+                            print >>sys.stderr,"rquery: QUERY_REPLY has no metadata field", selversion
+                        return False
+                    if torrentrec['torrent_size'] != len(torrentrec['metadata']):
+                        if DEBUG:
+                            print >>sys.stderr,"rquery: QUERY_REPLY torrent_size != len metadata", selversion
+                        return False
+                    try:
+                        # Validity test
+                        if torrentrec['metatype'] == URL_MIME_TYPE:
+                            tdef = TorrentDef.load_from_url(torrentrec['metadata'])
+                        else:
+                            metainfo = bdecode(torrentrec['metadata'])
+                            tdef = TorrentDef.load_from_dict(metainfo)
+                    except:
+                        if DEBUG:
+                            print_exc()
+                        return False
+                        
+
         # Process
         self.process_query_reply(permid,queryrec['query'],queryrec['usercallback'],d)
         return True
@@ -384,10 +448,9 @@ class RemoteQueryMsgHandler:
         
         if len(d['a']) > 0:
             remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
-            self.launchmany.session.uch.perform_usercallback(remote_query_usercallback_lambda)
+            self.session.uch.perform_usercallback(remote_query_usercallback_lambda)
         elif DEBUG:
             print >>sys.stderr,"rquery: QUERY_REPLY: no results found"
-
 
 
     def inc_peer_nqueries(self, permid):
@@ -409,6 +472,51 @@ class RemoteQueryMsgHandler:
             return peer['num_queries']
 
 
+    def search_torrents(self,kws,maxhits=None,sendtorrents=False):
+        
+        if DEBUG:
+            print >>sys.stderr,"rquery: search for torrents matching",`kws`
+        
+        allhits = self.torrent_db.searchNames(kws,local=False)
+        
+        print >>sys.stderr,"rquery: got matches",`allhits`
+        
+        if maxhits is None:
+            hits = allhits
+        else:
+            hits = allhits[:maxhits]
+            
+        colltorrdir = self.session.get_torrent_collecting_dir()
+        if sendtorrents:
+            
+            print >>sys.stderr,"rqmh: search_torrents: adding torrents"
+            for hit in hits:
+                filename = os.path.join(colltorrdir,hit['torrent_file_name'])
+                try:
+                    tdef = TorrentDef.load(filename)
+                    if tdef.get_url_compat():
+                        metatype = URL_MIME_TYPE
+                        metadata = tdef.get_url()
+                    else:
+                        metatype = TSTREAM_MIME_TYPE
+                        metadata = bencode(tdef.get_metainfo())
+                except:
+                    print_exc()
+                    metadata = None
+                hit['metatype'] = metatype
+                hit['metadata'] = metadata
+                
+            # Filter out hits for which we could not read torrent file (rare)
+            newhits = []
+            for hit in hits:
+                if hit['metadata'] is not None:
+                    newhits.append(hit)
+            hits = newhits
+            
+        return hits
+
+
+
 def isValidQuery(d,selversion):
     if not isinstance(d,dict):
         if DEBUG:
@@ -425,6 +533,14 @@ def isValidQuery(d,selversion):
     if len(d['q']) == 0:
         if DEBUG:
             print >> sys.stderr, "rqmh: len(d['q']) == 0"
+        return False
+    if selversion < OLPROTO_VER_TWELFTH and d['q'].startswith('SIMPLE+METADATA'):
+        return False
+    idx = d['q'].find(' ')
+    if idx == -1:
+        return False
+    keyw = d['q'][idx+1:]
+    if not keyw.isalnum():
         return False
     if len(d) > 2: # no other keys
         if DEBUG:
@@ -474,7 +590,7 @@ def isValidHits(d,selversion):
 def isValidChannelVal(d, selversion):
     if not isinstance(d,dict):
         if DEBUG:
-            print >>sys.stderr,"rqmh: reply: a: value not dict"
+            print >>sys.stderr,"rqmh: reply: torrentrec: value not dict"
         return False
     if not ('publisher_id' in d and 'publisher_name' in d and 'infohash' in d and 'torrenthash' in d and 'torrentname' in d and 'time_stamp' in d):
         if DEBUG:
@@ -487,22 +603,43 @@ def isValidRemoteVal(d,selversion):
         if DEBUG:
             print >>sys.stderr,"rqmh: reply: a: value not dict"
         return False
-    if selversion >= OLPROTO_VER_ELEVENTH:
+    if selversion >= OLPROTO_VER_TWELFTH:
         if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d and 'torrent_size' in d and 'channel_permid' in d and 'channel_name' in d):
             if DEBUG:
-                print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
+                print >>sys.stderr,"rqmh: reply: torrentrec12: key missing, got",d.keys()
+            return False
+        if 'metatype' in d and 'metadata' in d:
+            try:
+                metatype = d['metatype']
+                metadata = d['metadata']
+                if metatype == URL_MIME_TYPE:
+                    tdef = TorrentDef.load_from_url(metadata)
+                else:
+                    metainfo = bdecode(metadata)
+                    tdef = TorrentDef.load_from_dict(metainfo)
+            except:
+                if DEBUG:
+                    print >>sys.stderr,"rqmh: reply: torrentrec12: metadata invalid"
+                    print_exc()
+                return False
+
+    elif selversion >= OLPROTO_VER_ELEVENTH:
+        if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d and 'torrent_size' in d and 'channel_permid' in d and 'channel_name' in d):
+            if DEBUG:
+                print >>sys.stderr,"rqmh: reply: torrentrec11: key missing, got",d.keys()
             return False
         
     elif selversion >= OLPROTO_VER_NINETH:
         if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d and 'torrent_size' in d):
             if DEBUG:
-                print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
+                print >>sys.stderr,"rqmh: reply: torrentrec9: key missing, got",d.keys()
             return False
     else:
         if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d):
             if DEBUG:
-                print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
+                print >>sys.stderr,"rqmh: reply: torrentrec6: key missing, got",d.keys()
             return False
+        
 #    if not (isinstance(d['content_name'],str) and isinstance(d['length'],int) and isinstance(d['leecher'],int) and isinstance(d['seeder'],int)):
 #        return False
 #    if len(d) > 4: # no other keys

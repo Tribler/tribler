@@ -1,0 +1,33 @@
+KadTracker 0.1.0
+
+INSTALLATION
+
+This package uses Python 2.5 standard library. No extra modules need to be
+installed.
+
+A Makefile is provided to run the tests. The tests require the nose test
+framework to work.
+
+API
+
+The API is located in kadtracker.py. This is the only module necessary to use the
+package.
+
+Users must ONLY use the methods provided in kadtracker.py.
+
+Users can use the Id and Node containers as they wish. These classes are located
+in identifier.py and node.py
+
+EXAMPLES
+
+Two examples are provided in the distribution:
+
+- server_dht.py
+
+Do the routing maintainance tasks plus a get_peers lookup to a random identifier
+every 10 minutes.
+
+- interactive_dht.py
+
+Do the routing maintainance task plus get_peers lookups asked by the user during
+the interactive session.

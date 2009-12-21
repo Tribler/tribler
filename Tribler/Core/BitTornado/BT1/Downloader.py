@@ -16,6 +16,8 @@ except ImportError:
             pass
         
 
+from Tribler.Core.Status import *
+
 import sys
 
 try:
@@ -117,7 +119,7 @@ if DEBUG:
             else:
                 s_after = ""
 
-            print >>sys.stderr, "Outstanding %s:%d:%d:%s [%s|%s|%s]" % (s_before, pieces[0], pieces[-1], s_after, "".join(map(print_chunks_helper, before)), "".join(map(print_chunks_helper, pieces)), "".join(map(print_chunks_helper, after)))
+            #print >>sys.stderr, "Outstanding %s:%d:%d:%s [%s|%s|%s]" % (s_before, pieces[0], pieces[-1], s_after, "".join(map(print_chunks_helper, before)), "".join(map(print_chunks_helper, pieces)), "".join(map(print_chunks_helper, after)))
 
         else:
             print >>sys.stderr, "Outstanding 0:0 []"
@@ -304,6 +306,10 @@ class SingleDownload(SingleDownloadHelperInterface):
         self.last = clock()
         self.last2 = clock()
         self.measure.update_rate(length)
+        # Update statistic gatherer
+        status = Status.get_status_holder("LivingLab")
+        s_download = status.get_or_create_status_element("downloaded",0)
+        s_download.inc(length)
         self.short_term_measure.update_rate(length)
         self.downloader.measurefunc(length)
         if not self.downloader.storage.piece_came_in(index, begin, hashlist, piece, self.guard):
@@ -662,9 +668,9 @@ class Downloader:
         self._event_reporter = get_reporter_instance()
 
         # check periodicaly
-        self.scheduler(self.periodic_check, 1)
+        self.scheduler(self.dlr_periodic_check, 1)
 
-    def periodic_check(self):
+    def dlr_periodic_check(self):
         self.picker.check_outstanding_requests(self.downloads)
 
         ds = [d for d in self.downloads if not d.choked]
@@ -672,7 +678,7 @@ class Downloader:
         for d in ds:
             d._request_more()
 
-        self.scheduler(self.periodic_check, 1)
+        self.scheduler(self.dlr_periodic_check, 1)
 
     def set_download_rate(self, rate):
         self.download_rate = rate * 1000
@@ -716,9 +722,7 @@ class Downloader:
         d = SingleDownload(self, connection)
         perip.lastdownload = d
         self.downloads.append(d)
-
         self._event_reporter.add_event(self.b64_infohash, "connection-established:%s" % str(ip))
-
         return d
 
     def piece_flunked(self, index):

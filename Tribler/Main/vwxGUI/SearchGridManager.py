@@ -426,7 +426,7 @@ class TorrentSearchGridManager:
                         newval['neg_votes'] = 0
                             
 
-                    # Extra fiedl: Set from which peer this info originates
+                    # Extra field: Set from which peer this info originates
                     newval['query_permids'] = [permid]
                         
                     # Filter out results from unwanted categories

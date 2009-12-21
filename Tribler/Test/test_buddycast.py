@@ -9,39 +9,17 @@
 import os
 import sys
 import unittest
-from shutil import copy as copyFile
 
-if os.path.exists('test_buddycast.py'):
-    BASE_DIR = os.path.join('..', '..')
-elif os.path.exists('LICENSE.txt'):
-    BASE_DIR = '..'
-elif os.path.exists('clean.bat'):
-    BASE_DIR = '.'
 
-sys.path.insert(1, os.path.abspath(BASE_DIR))
-    
 from Tribler.__init__ import LIBRARYNAME    
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
 from Tribler.Core.BuddyCast.buddycast import DataHandler
-
-DB_FILE_NAME = 'tribler.sdb'
-DB_DIR_NAME = None
-FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, LIBRARYNAME,'Test','extend_db_dir'))
-TRIBLER_DB_PATH = os.path.join(FILES_DIR, 'tribler.sdb')
-TRIBLER_DB_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_tribler.sdb')
+from bak_tribler_sdb import *
 
 LIB = 0
 AUTOCOMMIT = 0
 BUSYTIMEOUT = 5000
-
-def init():
-    if not os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-        print >> sys.stderr, "Please download bak_tribler.sdb from http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb and save it as", os.path.abspath(TRIBLER_DB_PATH_BACKUP)
-        sys.exit(1)
-    if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-        copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
-        #print "refresh sqlite db", TRIBLER_DB_PATH
 
 SQLiteCacheDB.DEBUG = False
 
@@ -52,6 +30,9 @@ class Session:
     def get_permid(self):
         fake_permid_x = 'fake_permid_x'+'0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         return fake_permid_x
+    
+    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], objectID = None):
+        pass
     
 
 class FakeLaunchmany:
@@ -70,7 +51,7 @@ class FakeLaunchmany:
         return '127.0.0.1'
 
 class FakeOverlayBridge:
-    def add_task(self, foo, sec=0):
+    def add_task(self, foo, sec=0, ident=None):
         foo()
 
 class TestBuddyCastDataHandler(unittest.TestCase):
@@ -91,7 +72,7 @@ class TestBuddyCastDataHandler(unittest.TestCase):
     def loadData(self, npeers = 2500):
         self.datahandler.updateMyPreferences()
         self.datahandler.loadAllPeers(npeers)
-        self.datahandler.loadAllPrefs(npeers)
+        #self.datahandler.loadAllPrefs(npeers)
                     
     def test_updateMyPreferences(self):
         self.datahandler.updateMyPreferences()
@@ -151,7 +132,7 @@ class TestBuddyCastDataHandler(unittest.TestCase):
     """
         
     def test_updateAllSim(self):
-        init()
+        init_bak_tribler_sdb()
         self.loadData(2500)
         pid = 3582
         oldsim = self.datahandler.peer_db.getOne('similarity', peer_id=pid)
@@ -203,7 +184,7 @@ class TestBuddyCastDataHandler(unittest.TestCase):
         
         
 def test_suite():
-    init()
+    init_bak_tribler_sdb()
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestBuddyCastDataHandler))
     return suite

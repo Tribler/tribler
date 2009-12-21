@@ -6,12 +6,29 @@
 ## (here) and correct.
 ##
 
-version_id = '5.2.0'
-product_name = 'Tribler'
-version_short = 'Tribler-' + version_id
+from Tribler.__init__ import LIBRARYNAME
+
+if LIBRARYNAME == "Tribler":
+    version_id = '5.2.0'
+    product_name = 'Tribler'
+    version_short = 'Tribler-' + version_id
+    report_email = 'tribler@tribler.org'
+    # Arno: looking at Azureus BTPeerIDByteDecoder this letter is free
+    # 'T' is BitTornado, 'A' is ABC, 'TR' is Transmission
+    TRIBLER_PEERID_LETTER='R'
+else:
+    version_id = '2.4.0' # aka M24
+    product_name = 'NextShare'
+    version_short = 'NextShare-' + version_id
+    report_email = 'support@p2p-next.org'
+    # Arno: looking at Azureus BTPeerIDByteDecoder this letter is free
+    # 'T' is BitTornado, 'A' is ABC, 'TR' is Transmission
+    TRIBLER_PEERID_LETTER='N'
+    
 
 version = version_short + ' (' + product_name + ')'
-report_email = 'triblersoft@gmail.com'
+_idprefix = TRIBLER_PEERID_LETTER
+
 
 from types import StringType
 from time import time, clock
@@ -28,11 +45,6 @@ import sys
 from traceback import print_exc
     
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
-
-# Arno: looking at Azureus BTPeerIDByteDecoder this letter is free
-# 'T' is BitTornado, 'A' is ABC, 'TR' is Transmission
-TRIBLER_PEERID_LETTER='R'
-_idprefix = TRIBLER_PEERID_LETTER
 
 #for subver in version_short[2:].split('.'):
 for subver in version_short.split('-')[1].split('.'):

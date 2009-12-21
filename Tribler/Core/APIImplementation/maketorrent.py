@@ -103,6 +103,7 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
 
     # Two places where infohash calculated, here and in TorrentDef.
     # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
+    
     infohash = sha(bencode(info)).digest()
     return (infohash,metainfo)
 
@@ -303,6 +304,10 @@ def makeinfo(input,userabortflag,userprogresscallback):
     else:
         # With source auth, live is a dict
         infodict['live'] = input['live']
+
+    if 'cs_keys' in input:
+        # This is a closed swarm - add torrent keys
+        infodict['cs_keys'] = input['cs_keys']
 
     if len(subs) == 1:
         # Find and add playtime
@@ -550,6 +555,8 @@ def copy_metainfo_to_input(metainfo,input):
     if 'live' in metainfo['info']:
         input['live'] = metainfo['info']['live'] 
 
+    if 'cs_keys' in metainfo['info']:
+        input['cs_keys'] = metainfo['info']['cs_keys']
 
     if 'url-compat' in metainfo['info']:
         input['url-compat'] = metainfo['info']['url-compat'] 

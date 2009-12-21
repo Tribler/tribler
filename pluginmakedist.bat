@@ -54,6 +54,7 @@ REM packs them in the installer .EXE
 
 REM Diego: building the deepest dir we get all of them.
 mkdir dist\installdir\bgprocess\%LIBRARYNAME%\Images
+mkdir dist\installdir\bgprocess\%LIBRARYNAME%\Core
 
 %PYTHONHOME%\python.exe -O %LIBRARYNAME%\Plugin\Build\Win32\setupBGexe.py py2exe
 
@@ -63,7 +64,11 @@ copy %LIBRARYNAME%\Images\SwarmPluginIcon.ico dist\installdir\bgprocess\%LIBRARY
 xcopy vlc4plugin\* dist\installdir /E /I
 REM Diego: replace vlc *.txt with P2P-Next License.txt
 del dist\installdir\*.txt
-copy %LIBRARYNAME%\ns-binary-LICENSE.txt dist\installdir
+type %LIBRARYNAME%\ns-LICENSE.txt %LIBRARYNAME%\binary-LICENSE-postfix.txt > %LIBRARYNAME%\binary-LICENSE.txt
+copy %LIBRARYNAME%\binary-LICENSE.txt dist\installdir
+REM NSSA Search API requires overlay
+copy %LIBRARYNAME%\schema_sdb_v*.sql dist\installdir\bgprocess\%LIBRARYNAME%
+copy %LIBRARYNAME%\Core\superpeer.txt dist\installdir\bgprocess\%LIBRARYNAME%\Core
 
 REM Diego: sign axvlc.dll
 "C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "SwarmPlugin for Internet Explorer" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" "dist\installdir\activex\axvlc.dll"
@@ -76,9 +81,6 @@ REM copy %LIBRARYNAME%\Plugin\Build\Win32\swarmplugin.exe.manifest dist\installd
 copy %PYTHONHOME%\Lib\site-packages\wx-2.8-msw-unicode\wx\msvcp71.dll dist\installdir\bgprocess
 
 copy reset*.bat dist\installdir
-
-REM M23TRIAL
-copy leecher.exe dist\installdir\bgprocess
 
 
 cd dist\installdir

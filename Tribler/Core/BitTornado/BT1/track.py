@@ -324,11 +324,11 @@ class Tracker:
                 self.aggregate_password = None
 
         self.cachetime = 0
-        self.cachetimeupdate()
+        self.track_cachetimeupdate()
 
-    def cachetimeupdate(self):
+    def track_cachetimeupdate(self):
         self.cachetime += 1     # raw clock, but more efficient for cache
-        self.rawserver.add_task(self.cachetimeupdate,1)
+        self.rawserver.add_task(self.track_cachetimeupdate,1)
 
     def aggregate_senddata(self, query):
         url = self.aggregate_forward+'?'+query

@@ -94,12 +94,13 @@ class DownloadImpl:
             else:
                 cdcfg = dcfg
             self.dlconfig = copy.copy(cdcfg.dlconfig)
+            
+
             # Copy sessconfig into dlconfig, such that BitTornado.BT1.Connecter, etc.
             # knows whether overlay is on, etc.
             #
             for (k,v) in self.session.get_current_startup_config_copy().sessconfig.iteritems():
                 self.dlconfig.setdefault(k,v)
-    
             self.set_filepieceranges(metainfo)
     
             # Things that only exist at runtime
@@ -109,6 +110,16 @@ class DownloadImpl:
     
             if DEBUG:
                 print >>sys.stderr,"DownloadImpl: setup: initialdlstatus",`self.tdef.get_name_as_unicode()`,initialdlstatus
+
+            # Closed swarms config
+            self.dlconfig['cs_keys'] = self.tdef.get_cs_keys_as_ders()
+            self.dlconfig['permid'] = self.session.get_permid()
+            if self.dlconfig['cs_keys']:
+                print >> sys.stderr,"This is a CLOSED SWARM"
+                #if dcfg.get_poa():
+                #    self.dlconfig['poa'] = dcfg.get_poa()
+                #else:
+                #    print >> sys.stderr,"POA not available - seeding?"
 
             # Set progress
             if pstate is not None and pstate.has_key('dlstate'):
@@ -200,6 +211,41 @@ class DownloadImpl:
         elif live:
             # live torrents must be streamed or produced, but not just downloaded
             raise LiveTorrentRequiresUsercallbackException()
+        # Ric: added svc case TODO
+        elif self.dlconfig['mode'] == DLMODE_SVC:
+            # video file present which is played or produced
+            multi = False
+            if 'files' in metainfo['info']:
+                multi = True
+            
+            # Determine bitrate
+            if multi and len(self.dlconfig['selected_files']) == 0:
+                # Multi-file torrent, but no file selected
+                raise VODNoFileSelectedInMultifileTorrentException() 
+            
+            # multi-file torrent
+            # Ric: the selected files are already ordered
+            files = self.dlconfig['selected_files']
+            
+            idx = []
+            for file in files:
+                idx.append( self.get_def().get_index_of_file_in_files(file) )
+                
+            bitrate = self.get_def().get_bitrate(files[0]) 
+            
+            # Determine MIME type
+            mimetype = self.get_mimetype(file)
+            # Arno: don't encode mimetype in lambda, allow for dynamic 
+            # determination by videoanalyser
+            vod_usercallback_wrapper = lambda event,params:self.session.uch.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],event,params)
+
+            vodfileindex['index'] = idx
+            vodfileindex['inpath'] = files
+            vodfileindex['bitrate'] = bitrate
+            vodfileindex['mimetype'] = mimetype
+            vodfileindex['usercallback'] = vod_usercallback_wrapper
+            vodfileindex['userevents'] = self.dlconfig['vod_userevents'][:]
+            
         else:
             vodfileindex['mimetype'] = 'application/octet-stream'
             

@@ -800,7 +800,7 @@ class PreferenceDBHandler(BasicDBHandler):
             
             
 
-    def addPreferences(self, peer_permid, prefs, recvTime, is_torrent_id=False, commit=True):
+    def addPreferences(self, peer_permid, prefs, recvTime=0.0, is_torrent_id=False, commit=True):
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
         # boudewijn: for buddycast version >= OLPROTO_VER_EIGTH the
         # prefs list may contain both strings (indicating an infohash)
@@ -1150,26 +1150,36 @@ class TorrentDBHandler(BasicDBHandler):
             self.existed_torrents.add(infohash)
             return True
     
-    def addExternalTorrent(self, filename, source='BC', extra_info={}, metadata=None):
+    def addExternalTorrent(self, filename, source='BC', extra_info={}, metatype=None, metadata=None, commit=True):
         #print >> sys.stderr, "-------------- Adding external torrent..", filename
-        infohash, torrent = self._readTorrentData(filename, source, extra_info, metadata)
+        infohash, torrent = self._readTorrentData(filename, source, extra_info, metatype=metatype, metadata=metadata)
         if infohash is None:
             return torrent
         if not self.hasTorrent(infohash):
-            self._addTorrentToDB(infohash, torrent, commit=True)
+            self._addTorrentToDB(infohash, torrent, commit=commit)
             self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
 
         return torrent
 
-    def _readTorrentData(self, filename, source='BC', extra_info={}, metadata=None):
+    def _readTorrentData(self, filename, source='BC', extra_info={}, metatype=None, metadata=None):
         #print >> sys.stderr, "-------------- Reading external torrent..", filename
         # prepare data to insert into database
         try:
-            tdef = TorrentDef.load(filename)
-            metainfo = tdef.get_metainfo()
+            if metadata is None:
+                tdef = TorrentDef.load(filename)
+                metainfo = tdef.get_metainfo()
+            else:
+                if metatype == URL_MIME_TYPE:
+                    tdef = TorrentDef.load_from_url(metadata)
+                    metainfo = tdef.get_metainfo()
+                else:
+                    metainfo = bdecode(metadata)
+                    tdef = TorrentDef.load_from_dict(metainfo)
+
             infohash = tdef.get_infohash()
         except Exception,msg:
-            print >> sys.stderr, Exception,msg,`metadata`
+            print_exc()
+            print >>sys.stderr,"torrentdb: _readTorrentData: Got bad torrent",`metadata`
             return None,None
         
         #print >> sys.stderr, "------- Reading dictionary of torrent..", filename
@@ -1177,7 +1187,11 @@ class TorrentDBHandler(BasicDBHandler):
         namekey = name2unicode(metainfo)  # convert info['name'] to type(unicode)
         info = metainfo['info']
         torrent = {'infohash': infohash}
-        torrent['torrent_file_name'] = os.path.split(filename)[1]
+        if metatype == URL_MIME_TYPE:
+            torrent['torrent_file_name'] = metadata
+        else:
+            torrent['torrent_file_name'] = os.path.split(filename)[1]
+            
         torrent['name'] = info.get(namekey, '')
         
         length = 0

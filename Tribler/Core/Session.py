@@ -697,10 +697,10 @@ class Session(SessionRuntimeConfig):
         The callback will be called by a popup thread which can be used
         indefinitely (within reason) by the higher level code.
 
-        At the moment we support two types of queries: One is a query for
+        At the moment we support three types of query, which are all queries for
         torrent files that match a set of keywords. The format of the
-        query string is "SIMPLE kw1 kw2 kw3". In the future we plan
-        to support full SQL queries.
+        query string is "SIMPLE kw1 kw2 kw3" (type 1) or "SIMPLE+METADATA kw1 kw2 
+        kw3" (type 3). In the future we plan to support full SQL queries.
         
         For SIMPLE queries the dictionary of hits consists of 
         (infohash,torrentrecord) pairs. The torrentrecord is a 
@@ -713,32 +713,39 @@ class Session(SessionRuntimeConfig):
         * 'category': A list of category strings the torrent was classified into
           by the remote peer.
         </pre>
-        
-        The second type of query: search for channels. 
-        It is used to query for channel (either a particular channel matching the permid in 
-        the query or a list of channels whose names match the keywords in the query)
-        by sending the query to connected peers. 
-        
-        The usercallback method is called when a remote peer replies with hits. Similar
-        to query_connected_peers's usercallback method, it has 3 arguments. First, the 
-        permid of the queried peer. Second, the query string. Third, a list of the hits.
-         
-        Below is the format of the query in corresponding scenarios: 
-        a. keyword-based query: "CHANNEL k:bbc"     
-            ('k' stands for keyword-based and ':' is a separator followed by the keywords)
-        b. permid-based query: "CHANNEL p:f34wrf2345wfer2345wefd3r34r54" 
-            ('p' stands for permid-based and ':' is a separator followed by the permid)
-        
-        In each of the above 2 cases, the format of the hits that is returned by the 
-        queried peer is a dictionary of hits of (signature,channelrecord). 
-        The channelrecord is a dictionary the contains following keys: 
-        {publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp}
 
         From Session API version 1.0.2 the following keys were added
         to the torrentrecord:
         <pre>
         * 'torrent_size': The size of the .torrent file.
         </pre>
+
+        For SIMPLE+METADATA queries there is an extra field
+        <pre>
+        * 'torrent_file': Bencoded contents of the .torrent file. 
+        </pre>
+        The torrents *not* be automatically added to the TorrentDBHandler 
+        (if enabled) at the time of the call.
+
+        
+        The third type of query: search for channels. It is used to query for 
+        channels: either a particular channel matching the permid in the query, 
+        or a list of channels whose names match the keywords in the query
+        by sending the query to connected peers. 
+        
+        The format of the query in the corresponding scenarios should be: 
+        a. keyword-based query: "CHANNEL k:bbc"     
+            ('k' stands for keyword-based and ':' is a separator followed by 
+            the keywords)
+        b. permid-based query: "CHANNEL p:f34wrf2345wfer2345wefd3r34r54" 
+            ('p' stands for permid-based and ':' is a separator followed by
+            the permid)
+        
+        In each of the above 2 cases, the format of the hits that is returned 
+        by the queried peer is a dictionary of hits of (signature,channelrecord). 
+        The channelrecord is a dictionary the contains following keys: 
+        {publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp}
+
         
         @param query A Unicode query string adhering to the above spec.
         @param usercallback A function adhering to the above spec.
@@ -746,8 +753,8 @@ class Session(SessionRuntimeConfig):
         self.sesslock.acquire()
         try:
             if self.sessconfig['overlay']:
-                if not query.startswith('SIMPLE ') and not query.startswith('CHANNEL '):
-                    raise ValueError('Query does not start with SIMPLE or CHANNEL')
+                if not (query.startswith('SIMPLE ') or query.startswith('SIMPLE+METADATA ')) and not query.startswith('CHANNEL '):
+                    raise ValueError('Query does not start with SIMPLE or SIMPLE+METADATA or CHANNEL')
                 
                 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
                 
@@ -772,6 +779,7 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
+        # ARNOCOMMENT: Perhaps make save to database optional.
         self.sesslock.acquire()
         try:
             if self.sessconfig['overlay']:

@@ -7,55 +7,18 @@ from threading import Thread
 from time import time,sleep
 import math
 from random import shuffle
-from shutil import copy as copyFile, move
-
-if os.path.exists(__file__):    #'test_sqlitecachedb.py'
-    BASE_DIR = '..'
-    sys.path.insert(1, os.path.abspath('..'))
-elif os.path.exists('LICENSE.txt'):
-    BASE_DIR = '.'
-    
 import apsw
+
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT
+from bak_tribler_sdb import *    
     
-def extract_db_files(file_dir, file_name):
-    try:
-        import tarfile
-        tar=tarfile.open(os.path.join(file_dir, file_name), 'r|gz')
-        for member in tar:
-            print "extract file", member
-            tar.extract(member)
-            dest = os.path.join(file_dir,member.name)
-            dest_dir = os.path.dirname(dest)
-            if not os.path.isdir(dest_dir):
-                os.makedirs(dest_dir)
-            move(member.name, dest)
-        tar.close()
-        return True
-    except:
-        print_exc()
-        return False
-    
-    
-CREATE_SQL_FILE = os.path.join(BASE_DIR, 'schema_sdb_v3.sql')
-assert os.path.isfile(CREATE_SQL_FILE)
-DB_FILE_NAME = 'tribler.sdb'
-DB_DIR_NAME = None
-FILES_DIR = os.path.join(BASE_DIR, 'Test/extend_db_dir/')
-TRIBLER_DB_PATH = os.path.join(FILES_DIR, 'tribler.sdb')
-STATE_FILE_NAME_PATH = os.path.join(FILES_DIR, 'tribler.sdb-journal')
-TRIBLER_DB_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_tribler.sdb')
-if not os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-    got = extract_db_files(FILES_DIR, 'bak_tribler.tar.gz')
-    if not got:
-        print >> sys.stderr, "Please download bak_tribler.sdb from http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb and save it as", os.path.abspath(TRIBLER_DB_PATH_BACKUP)
-        sys.exit(1)
-if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-    copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
-    #print "refresh sqlite db", TRIBLER_DB_PATH
-    if os.path.exists(STATE_FILE_NAME_PATH):
-        os.remove(STATE_FILE_NAME_PATH)
-        print "remove journal file"
+CREATE_SQL_FILE = os.path.join('..', 'schema_sdb_v4.sql')
+
+def init():
+    init_bak_tribler_sdb()
+
+    assert os.path.isfile(CREATE_SQL_FILE)
+
 
 SQLiteCacheDB.DEBUG = False
 DEBUG = True
@@ -869,6 +832,7 @@ def test_suite():
     return suite
         
 def main():
+    init()
     unittest.main(defaultTest='test_suite')
 
     

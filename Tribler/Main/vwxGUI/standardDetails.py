@@ -1,19 +1,18 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Lucian Musat 
 # see LICENSE.txt for license information
 
+import sys
 import wx
 import wx.xrc as xrc
+from wx.lib.stattext import GenStaticText as StaticText
+
 from binascii import hexlify
 from time import sleep,time
 import math
 from traceback import print_exc, print_stack
 import cStringIO
 import urlparse
-from wx.lib.stattext import GenStaticText as StaticText
-
 import threading
-
-from Tribler.Core.Overlay.MetadataHandler import get_filename
 
 from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -1564,7 +1563,7 @@ class standardDetails(wx.Panel):
             torrent = self.item
 
         if 'torrent_file_name' not in torrent or not torrent['torrent_file_name']:
-            torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
+            torrent['torrent_file_name'] = get_collected_torrent_filename(torrent['infohash']) 
         torrent_dir = self.utility.session.get_torrent_collecting_dir()
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
 
@@ -1639,7 +1638,7 @@ class standardDetails(wx.Panel):
             print >> sys.stderr, 'standardDetails: download: got torrent to download', 'torrent_file_name' in torrent, torrent_dir, torrent['torrent_file_name'] 
         
         if 'torrent_file_name' not in torrent:
-            torrent['torrent_file_name'] = get_filename(torrent['infohash']) 
+            torrent['torrent_file_name'] = get_collected_torrent_filename(torrent['infohash']) 
         torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
 
         if torrent.get('name'):

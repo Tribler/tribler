@@ -62,7 +62,18 @@ if sys.platform == 'win32':
     #
     # Windows die die die.
     #
-    MAX_INCOMPLETE = 8 # safety margin. Even 9 gives video socket timeout
+    # Update, 2009-10-21:
+    # This limiting has been disabled starting Vista SP2 and beyond:
+    # http://support.microsoft.com/kb/969710
+    #
+    # Go Vista?! 
+    #
+    winvertuple = sys.getwindowsversion()
+    spstr = winvertuple[4]
+    if winvertuple[0] == 5 or winvertuple[0] == 6 and spstr < "Service Pack 2":
+        MAX_INCOMPLETE = 8 # safety margin. Even 9 gives video socket timeout, 10 is official limit
+    else:
+        MAX_INCOMPLETE = 1024 # inf
 else:
     MAX_INCOMPLETE = 32
 

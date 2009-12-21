@@ -2,16 +2,10 @@ import os, sys
 import tempfile
 import unittest
 
-if os.path.exists('test_sqlitecachedb.py'):
-    BASE_DIR = '..'
-    sys.path.insert(1, os.path.abspath('..'))
-elif os.path.exists('LICENSE.txt'):
-    BASE_DIR = '.'
-
 from Tribler.Core.CacheDB.cachedb import SQLiteCacheDB
 from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler, PeerDBHandler
 
-CREATE_SQL_FILE = os.path.join(BASE_DIR, 'schema_sdb_v3.sql')
+CREATE_SQL_FILE = os.path.join('..', 'schema_sdb_v4.sql')
 assert os.path.isfile(CREATE_SQL_FILE)
     
 

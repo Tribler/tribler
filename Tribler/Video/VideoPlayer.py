@@ -20,7 +20,6 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 DEBUG = False
 
-
 if sys.platform == "linux2" or sys.platform == "darwin":
     USE_VLC_RAW_INTERFACE = False
 else:
@@ -593,7 +592,8 @@ class VideoPlayer:
                 [mimetype,playcmd] = win32_retrieve_playcmd_from_mimetype(mimetype,videourl)
 
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            print >>sys.stderr,"videoplay: using internal player"
+            if DEBUG:
+                print >>sys.stderr,"videoplay: using internal player"
             return [mimetype,videourl]
         elif self.playbackmode == PLAYBACKMODE_EXTERNAL_MIME and sys.platform == 'win32':
             if playcmd is not None:
@@ -614,7 +614,8 @@ class VideoPlayer:
             cmd = 'open -a '+playcmd
         else:
             cmd = playcmd
-        print >>sys.stderr,"videoplay: using external user-defined player by executing ",cmd
+        if DEBUG:
+            print >>sys.stderr,"videoplay: using external user-defined player by executing ",cmd
         return [mimetype,cmd]
 
 

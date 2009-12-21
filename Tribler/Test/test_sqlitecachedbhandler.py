@@ -6,40 +6,10 @@ from time import time
 from binascii import unhexlify
 from shutil import copy as copyFile, move
 
-if os.path.exists(__file__):
-    BASE_DIR = '..'
-    sys.path.insert(1, os.path.abspath('..'))
-elif os.path.exists('LICENSE.txt'):
-    BASE_DIR = '.'
-    
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, MyDBHandler, BasicDBHandler, PeerDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, PopularityDBHandler
 from Tribler.Category.Category import Category
-
-def extract_db_files(file_dir, file_name):
-    try:
-        import tarfile
-        tar=tarfile.open(os.path.join(file_dir, file_name), 'r|gz')
-        for member in tar:
-            print "extract file", member
-            tar.extract(member)
-            dest = os.path.join(file_dir,member.name)
-            dest_dir = os.path.dirname(dest)
-            if not os.path.isdir(dest_dir):
-                os.makedirs(dest_dir)
-            move(member.name, dest)
-        tar.close()
-        return True
-    except:
-        print_exc()
-        return False
-
-DB_FILE_NAME = 'tribler.sdb'
-DB_DIR_NAME = None
-FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'Test/extend_db_dir/'))
-TRIBLER_DB_PATH = os.path.join(FILES_DIR, 'tribler.sdb')
-STATE_FILE_NAME_PATH = os.path.join(FILES_DIR, 'tribler.sdb-journal')
-TRIBLER_DB_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_tribler.sdb')
+from bak_tribler_sdb import *
 
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
 S_TORRENT_PATH = os.path.join(FILES_DIR, 'single.torrent')
@@ -51,24 +21,17 @@ BUSYTIMEOUT = 5000
 SHOW_NOT_TESTED_FUNCTIONS = False    # Enable this to show the functions not tested yet
 
 def init():
-    if not os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-        got = extract_db_files(FILES_DIR, 'bak_tribler.tar.gz')
-        if not got:
-            print >> sys.stderr, "Please download bak_tribler.sdb from http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb and save it as", os.path.abspath(TRIBLER_DB_PATH_BACKUP)
-            sys.exit(1)
-    if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-        copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
-        #print "refresh sqlite db", TRIBLER_DB_PATH
-        if os.path.exists(STATE_FILE_NAME_PATH):
-            os.remove(STATE_FILE_NAME_PATH)
-            print "remove journal file"
+    init_bak_tribler_sdb()
+    
     SQLiteCacheDB.getInstance().initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
-    TorrentDBHandler.getInstance().register(Category.getInstance(os.path.join(BASE_DIR, '..')),'.')
+    TorrentDBHandler.getInstance().register(Category.getInstance('..'),'.')
+
 
 def getFuncs2Test(calss_name):
     return filter(lambda s:s != 'lock' and not s.startswith('__') and s not in dir(BasicDBHandler), dir(calss_name))
             
 SQLiteCacheDB.DEBUG = False
+
 
 class TestSqliteBasicDBHandler(unittest.TestCase):
     
@@ -91,34 +54,34 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
         db = BasicDBHandler(self.sqlitedb,table_name)
         
         ip = db.getOne('ip', peer_id=1)
-        assert ip == '68.108.115.221', ip
+        assert ip == '1.1.1.1', ip
         
-        pid = db.getOne('peer_id', ip='68.108.115.221')
+        pid = db.getOne('peer_id', ip='1.1.1.1')
         assert pid == 1, pid
         
-        name = db.getOne('name', ip='68.108.115.221', port=6881)
-        assert name == 'Thomas-PC', name
+        name = db.getOne('name', ip='1.1.1.1', port=1)
+        assert name == 'Peer 1', name
         
         name = db.getOne('name', ip='68.108.115.221', port=6882)
         assert name == None, name
         
-        tid = db.getOne('peer_id', conj='OR', ip='68.108.115.221', name='Thomas-PC')
+        tid = db.getOne('peer_id', conj='OR', ip='1.1.1.1', name='Peer 1')
         assert tid == 1, tid
         
-        tid = db.getOne('peer_id', conj='OR', ip='68.108.115.221', name='asdfasfasfXXXXXXxx...')
+        tid = db.getOne('peer_id', conj='OR', ip='1.1.1.1', name='asdfasfasfXXXXXXxx...')
         assert tid == 1, tid
 
-        tid = db.getOne('peer_id', conj='OR', ip='1.1.1.123', name='Thomas-PC')
+        tid = db.getOne('peer_id', conj='OR', ip='1.1.1.123', name='Peer 1')
         assert tid == 1, tid
 
         lbt = db.getOne('last_buddycast', peer_id=1)
         assert lbt == 1193379432, lbt
         
         name, ip, lbt = db.getOne(('name','ip','last_buddycast'), peer_id=1)
-        assert name == 'Thomas-PC' and ip == '68.108.115.221' and lbt == 1193379432, (name, ip, lbt)
+        assert name == 'Peer 1' and ip == '1.1.1.1' and lbt == 1193379432, (name, ip, lbt)
         
         values = db.getOne('*', peer_id=1)
-        results = (1, u'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr', u'Thomas-PC', u'68.108.115.221', 6881, None, 2, 12.537961593122299, 0, 0, 1194966306, 1193379769, 1193379432, 1, 1, 0, 0, 0, 0, 0)
+        results = (1, u'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr', u'Peer 1', u'1.1.1.1', 1, None, 2, 12.537961593122299, 0, 0, 1194966306, 1193379769, 1193379432, 1, 1, 0, 0, 0, 0, 0)
         
         for i in range(len(values)):
             assert values[i] == results[i], (i, values[i], results[i])
@@ -131,24 +94,24 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
         assert len(ips) == 3995, len(ips)
         
         ips = db.getAll('distinct ip')
-        assert len(ips) == 3492, len(ips)
+        assert len(ips) == 256, len(ips)
         
         ips = db.getAll('ip', "ip like '130.%'")
-        assert len(ips) == 26, len(ips)
+        assert len(ips) == 16, len(ips)
         
         ids = db.getAll('peer_id', 'thumbnail is NULL')
         assert len(ids) == 3995, len(ids)
         
-        ips = db.getAll('ip', "ip like '88.%'", port=7762, conj='or')
-        assert len(ips) == 495, len(ips)
+        ips = db.getAll('ip', "ip like '88.%'", port=88, conj='or')
+        assert len(ips) == 16, len(ips)
         
-        ips = db.getAll('ip', "ip like '88.%'", port=7762, order_by='ip')
-        assert len(ips) == 6, len(ips)
-        assert ips[0][0] == '88.14.171.194', ips[0]
+        ips = db.getAll('ip', "ip like '88.%'", port=88, order_by='ip')
+        assert len(ips) == 1, len(ips)
+        assert ips[0][0] == '88.88.88.88', ips[0]
         
-        names = db.getAll('name', "ip like '88.%'", port=7762, order_by='ip', limit=4, offset=1)
+        names = db.getAll('name', "ip like '88.%'", order_by='ip', limit=4, offset=1)
         assert len(names) == 4
-        assert names[2][0] == 'mb48', names
+        assert names[2][0] == 'Peer 856', names
         # select name from Peer where ip like '88.%' and port==7762 order by ip limit 4 offset 3
         
         ips = db.getAll('count(distinct ip), port', group_by='port')
@@ -172,7 +135,7 @@ class TestSqliteMyDBHandler(unittest.TestCase):
     def singtest_get(self):
         db = MyDBHandler.getInstance()
         value = db.get('version')
-        assert value == '3', value
+        assert value == '4', value
         
     def singtest_put(self):
         db = MyDBHandler.getInstance()
@@ -356,8 +319,10 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         sp2 = db.getPeer(self.sp2)
         assert isinstance(sp1, dict)
         assert isinstance(sp2, dict)
-        assert sp1['port'] == 7007
-        assert sp2['port'] == 7004
+        print >>sys.stderr,"singtest_GETLIST SP1",`sp1`
+        print >>sys.stderr,"singtest_GETLIST SP1",`sp2`
+        assert sp1['port'] == 628
+        assert sp2['port'] == 3287
 
     def singtest_getPeerSim(self):
         db = PeerDBHandler.getInstance()
@@ -385,8 +350,9 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         pl = peerlist[:10]
         peers = db.getPeers(pl, ['permid', 'peer_id', 'ip', 'port', 'name'])
         #for p in peers: print p
-        assert peers[7]['name'] == 'vasinc2006', peers[8]['name']
-        assert peers[1]['ip'] == '68.108.115.221'
+        assert peers[7]['name'] == 'Peer 7'
+        assert peers[8]['name'] == 'Peer 8'
+        assert peers[1]['ip'] == '1.1.1.1'
         assert peers[3]['peer_id'] == 3
         
     def singtest_addPeer(self):
@@ -465,8 +431,8 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         
     def singtest_findPeers(self):
         db = PeerDBHandler.getInstance()
-        find_list = db.findPeers('ip', '130.161.211.199')
-        assert len(find_list) == 3
+        find_list = db.findPeers('ip', '88.88.88.88')
+        assert len(find_list) == 16
         
         find_list = db.findPeers('ip', '1.2.3.4')
         assert len(find_list) == 0
@@ -1077,7 +1043,7 @@ class TestTorrentDBHandler(unittest.TestCase):
         assert m_size == 5358560, m_size
         
         cat = db.getOne('category_id', torrent_id=multiple_torrent_id)
-        assert cat == 7, cat    # other
+        assert cat == 8, cat    # other
         sid = db._db.getOne('TorrentSource', 'source_id', name=src)
         assert sid > 1
         m_sid = db.getOne('source_id', torrent_id=multiple_torrent_id)

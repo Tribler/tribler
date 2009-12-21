@@ -1,8 +1,11 @@
 # Written by Jelle Roozenburg, Arno Bakker
 # see LICENSE.txt for license information
+
+# ARNOCOMMENT: remove this now it doesn't use KeywordSearch anymore?
+
 import sys
 
-from Tribler.Core.Search.KeywordSearch import KeywordSearch
+#from Tribler.Core.Search.KeywordSearch import KeywordSearch
 
 DEBUG = False
 
@@ -14,14 +17,14 @@ class SearchManager:
     
     def __init__(self,dbhandler):
         self.dbhandler = dbhandler
-        self.keywordsearch = KeywordSearch()
+        # self.keywordsearch = KeywordSearch()
     
-    def search(self,kws,maxhits=None, local=True):
+    def search(self,kws,maxhits=None):
         """ Called by any thread """
         if DEBUG:
             print >>sys.stderr,"SearchManager: search",kws
             
-        hits = self.dbhandler.searchNames(kws, local)
+        hits = self.dbhandler.searchNames(kws)
         if maxhits is None:
             return hits
         else:

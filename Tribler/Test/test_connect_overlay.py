@@ -18,6 +18,9 @@ import sys
 import time
 from traceback import print_exc
 import socket
+import thread
+import BaseHTTPServer
+from SocketServer import ThreadingMixIn
 
 from Tribler.Test.test_as_server import TestAsServer
 from btconn import BTConnection
@@ -26,9 +29,52 @@ from Tribler.Core.TorrentDef import *
 from Tribler.Core.DownloadConfig import *
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
-from Tribler.Test.test_extend_hs_t350 import MyTracker
 
 DEBUG=True
+
+
+class MyTracker(ThreadingMixIn,BaseHTTPServer.HTTPServer):
+    
+    def __init__(self,trackport,myid,myip,myport):
+        self.myid = myid
+        self.myip = myip
+        self.myport = myport
+        BaseHTTPServer.HTTPServer.__init__( self, ("",trackport), SimpleServer )
+        self.daemon_threads = True
+        
+    def background_serve( self ):
+        thread.start_new_thread( self.serve_forever, () )
+
+    def shutdown(self):
+        self.socket.close()
+
+
+class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        
+        print >>sys.stderr,"test: tracker: Got GET request",self.path
+
+        p = []
+        p1 = {'peer id':self.server.myid,'ip':self.server.myip,'port':self.server.myport}
+        p.append(p1)
+        d = {}
+        d['interval'] = 1800
+        d['peers'] = p
+        bd = bencode(d)
+        size = len(bd)
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Length", size)
+        self.end_headers()
+        
+        try:
+            self.wfile.write(bd)
+        except Exception,e:
+            print_exc()
+
+
 
 class TestConnectOverlay(TestAsServer):
     """ 

@@ -26,6 +26,8 @@ from sets import Set
 
 from threading import enumerate,currentThread,RLock
 from traceback import print_exc
+# Ric: added svc ext  
+from Tribler.Video.utils import svcextdefaults
 
 if sys.platform == "darwin":
     # on Mac, we can only load VLC/OpenSSL libraries
@@ -49,7 +51,7 @@ from Tribler.Player.UtilityStub import UtilityStub
 
 DEBUG = False
 RATELIMITADSL = False
-
+DOWNLOADSPEED = 300
 DISKSPACE_LIMIT = 5L * 1024L * 1024L * 1024L  # 5 GB
 DEFAULT_MAX_UPLOAD_SEED_WHEN_SEEDING = 75 # KB/s
 
@@ -102,7 +104,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         # Note: setting this makes the program not exit when the videoFrame
         # is being closed.
         
-        self.tbicon = M23TrialPlayerTaskBarIcon(self,self.iconpath)
+        self.tbicon = PlayerTaskBarIcon(self,self.iconpath)
 
         
         # Start Tribler Session
@@ -117,11 +119,10 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         except:
             print_exc()
             self.sconfig = SessionStartupConfig()
+            self.sconfig.set_install_dir(self.installdir)
             self.sconfig.set_state_dir(state_dir)
-            
-            self.sconfig.set_listen_port(self.sport)    
-            self.sconfig.set_overlay(False)
-            self.sconfig.set_megacache(False)
+            self.sconfig.set_listen_port(self.sport)
+            self.configure_session()    
 
         self.s = Session(self.sconfig)
         self.s.set_download_states_callback(self.sesscb_states_callback)
@@ -130,7 +131,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
 
         if RATELIMITADSL:
             self.ratelimiter = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
-            self.ratelimiter.set_global_max_speed(DOWNLOAD,400)
+            self.ratelimiter.set_global_max_speed(DOWNLOAD,DOWNLOADSPEED)
             self.ratelimiter.set_global_max_speed(UPLOAD,90)
 
 
@@ -150,10 +151,18 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         reporter.add_event("client-startup", "version:" + self.utility.lang.get("version"))
         reporter.add_event("client-startup", "build:" + self.utility.lang.get("build"))
         reporter.add_event("client-startup", "build_date:" + self.utility.lang.get("build_date"))
-        
-    def start_download(self,tdef,dlfile):
+
+    def configure_session(self):
+        # No overlay
+        self.sconfig.set_overlay(False)
+        self.sconfig.set_megacache(False)
+
+
+    def start_download(self,tdef,dlfile,poa=None):
         """ Start download of torrent tdef and play video file dlfile from it """
-        
+        if poa:
+            from Tribler.Core.ClosedSwarm import ClosedSwarm
+            assert poa.__class__ == ClosedSwarm.POA
         # Free diskspace, if needed
         destdir = self.get_default_destdir()
         if not os.access(destdir,os.F_OK):
@@ -172,15 +181,35 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         
         # Setup how to download
         dcfg = DownloadStartupConfig()
-        
+
+        # CLOSED SWARMS
+        if poa:
+            dcfg.set_poa(poa)
+            print >> sys.stderr,"POA:",dcfg.get_poa()
+        else:
+            dcfg.set_poa(None)
+            
         # Delegate processing to VideoPlayer
-        dcfg.set_video_event_callback(self.sesscb_vod_event_callback)
         dcfg.set_video_events(self.get_supported_vod_events())
+        
+        # Ric: added svc
+        if tdef.is_multifile_torrent():
+            svcdlfiles = self.is_svc(dlfile, tdef)
+
+            if svcdlfiles is not None:
+                dcfg.set_video_event_callback(self.sesscb_vod_event_callback, dlmode=DLMODE_SVC)
+                # Ric: svcdlfiles is an ordered list of svc layers
+                dcfg.set_selected_files(svcdlfiles)
+            else:
+                # Normal multi-file torrent
+                dcfg.set_video_event_callback(self.sesscb_vod_event_callback)
+                dcfg.set_selected_files([dlfile])
+        else:
+            dcfg.set_video_event_callback(self.sesscb_vod_event_callback)
+            # Do not set selected file
+                    
 
         dcfg.set_dest_dir(destdir)
-        
-        if tdef.is_multifile_torrent():
-            dcfg.set_selected_files([dlfile])
         
         # Arno: 2008-7-15: commented out, just stick with old ABC-tuned 
         # settings for now
@@ -217,12 +246,20 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         if newd is None:
             print >>sys.stderr,"main: Starting new Download",`infohash`
             newd = self.s.start_download(tdef,dcfg)
+        # Ric: added restart of an svc download
         else:
-            newd.set_video_event_callback(self.sesscb_vod_event_callback)
             newd.set_video_events(self.get_supported_vod_events())
 
-            if tdef.is_multifile_torrent():
-                newd.set_selected_files([dlfile])
+            svcdlfiles = self.is_svc(dlfile, tdef)
+            if svcdlfiles is not None:
+                newd.set_video_event_callback(self.sesscb_vod_event_callback, dlmode = DLMODE_SVC)
+                # Ric: svcdlfiles is an ordered list of svc layers
+                newd.set_selected_files(svcdlfiles)
+            else:
+                newd.set_video_event_callback(self.sesscb_vod_event_callback)
+                if tdef.is_multifile_torrent():
+                    newd.set_selected_files([dlfile])
+
             print >>sys.stderr,"main: Restarting existing Download",`infohash`
             newd.restart()
 
@@ -381,21 +418,13 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         #         print_exc()
 
         # Set systray icon tooltip. This has limited size on Win32!
-        txt = self.appname+' 1.0.2\n\n'
+        txt = self.appname+' 1.0.3\n\n'
         txt += 'DL: %.1f\n' % (totalspeed[DOWNLOAD])
         txt += 'UL:   %.1f\n' % (totalspeed[UPLOAD])
-        # txt += 'Helping: %d\n' % (totalhelping) # taking this out for the M23Trial (it adds noise to the seeding appeals)
+        txt += 'Helping: %d\n' % (totalhelping) 
         #print >>sys.stderr,"main: ToolTip summary",txt
         self.OnSetSysTrayTooltip(txt)
 
-        
-        try:
-            # M23TRIAL
-            self.tbicon.gui_states_callback(dslist,haspeerlist)
-            
-        except:
-            print_exc()
-        
         # No playing Downloads        
         if len(playing_dslist) == 0:
             return ([],0,0)
@@ -606,6 +635,25 @@ class BaseApp(wx.App,InstanceConnectionHandler):
     
     def get_default_destdir(self):
         return os.path.join(self.s.get_state_dir(),'downloads')
+
+    
+    def is_svc(self, dlfile, tdef):
+        """ Ric: check if it as an SVC download. If it is add the enhancement 
+        layers to the dlfiles
+        """
+        svcfiles = None
+        
+        if tdef.is_multifile_torrent():
+            enhancement = tdef.get_files(exts=svcextdefaults)
+            # Ric: order the enhancement layer in the svcfiles list
+            # if the list of enhancements is not empty
+            if enhancement:
+                enhancement.sort()
+                if tdef.get_length(enhancement[0]) == tdef.get_length(dlfile):
+                    svcfiles = [dlfile]
+                    svcfiles.extend(enhancement)
+                
+        return svcfiles
 
     #
     # InstanceConnectionHandler

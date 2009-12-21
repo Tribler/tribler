@@ -12,7 +12,7 @@ from traceback import print_exc
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import P2PURL_SCHEME,NTFY_TORRENTS
+from Tribler.Core.simpledefs import P2PURL_SCHEME,NTFY_TORRENTS,URL_MIME_TYPE
 from Tribler.Core.BitTornado.BT1.MessageID import getMessageName,GET_METADATA,METADATA
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
@@ -106,12 +106,13 @@ class TestURLMetadata(TestAsServer):
     def check_metadata(self,bdata,tdef):
         data = bdecode(bdata)
         # selversion >= OLPROTO_VER_ELEVENTH:
-        for key in ['torrent_hash','url','last_check_time','status','leecher','seeder']:
+        for key in ['torrent_hash','metatype','metadata','last_check_time','status','leecher','seeder']:
             self.assert_(key in data)
             
+        self.assertEqual(data['metatype'],URL_MIME_TYPE)
         self.assertEqual(data['torrent_hash'],tdef.get_infohash())
             
-        url = data['url']
+        url = data['metadata']
         cidx = url.find(':')
         self.assert_(cidx != -1)
         scheme = url[0:cidx]

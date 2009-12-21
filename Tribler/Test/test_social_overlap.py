@@ -81,9 +81,9 @@ class TestSocialOverlap(TestAsServer):
             (sub)test where the error occured in the traceback it prints.
         """
         # 1. test good SOCIAL_OVERLAP
-        self.subtest_good_soverlap()
+        #self.subtest_good_soverlap('Beurre Alexander Lucas')
+        self.subtest_good_soverlap(u'esta\xe7\xe3o04')
 
-        """
         # 2. test various bad SOCIAL_OVERLAP messages
         self.subtest_bad_not_bdecodable()
         self.subtest_bad_not_dict1()
@@ -92,18 +92,18 @@ class TestSocialOverlap(TestAsServer):
         self.subtest_bad_wrong_dict_keys()
 
         self.subtest_bad_persinfo()
-        """
+
 
     #
     # Good SOCIAL_OVERLAP
     #
-    def subtest_good_soverlap(self):
+    def subtest_good_soverlap(self,name):
         """ 
             test good SOCIAL_OVERLAP messages
         """
         print >>sys.stderr,"test: good SOCIAL_OVERLAP"
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
-        msg = self.create_good_soverlap()
+        msg = self.create_good_soverlap(name)
         s.send(msg)
         resp = s.recv()
         self.assert_(resp[0] == SOCIAL_OVERLAP)
@@ -114,16 +114,19 @@ class TestSocialOverlap(TestAsServer):
         s.send('bla')
         s.close()
 
-    def create_good_soverlap(self):
+    def create_good_soverlap(self,name=None):
         d = {}
-        [pi_sig,pi] = self.create_good_persinfo()
+        [pi_sig,pi] = self.create_good_persinfo(name)
 
         d['persinfo'] = pi
         return self.create_payload(d)
 
-    def create_good_persinfo(self):
+    def create_good_persinfo(self,name=None):
         pi = {}
-        pi['name'] = u'esta\xe7\xe3o04' # 'Beurre Alexander Lucas'
+        if name is not None:
+            pi['name'] = name
+        else:
+            pi['name'] = 'Beurre Alexander Lucas'
         pi['icontype'] = 'image/jpeg'
         pi['icondata'] = self.read_usericon_ok()
         sig = None

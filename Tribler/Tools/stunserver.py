@@ -1,3 +1,6 @@
+# Written by Lucia D'Acunto
+# see LICENSE.txt for license information
+
 # natserver.py
 
 import os
@@ -24,7 +27,7 @@ def servemain(bounceaddr, serveraddr) :
     # Set up the sockets
     try :
         udpsock = socket(AF_INET, SOCK_DGRAM)
-	udpsock.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
+        udpsock.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
         udpsock.bind(serveraddr)
 
     except error, (errno, strerror) :
@@ -44,7 +47,7 @@ def servemain(bounceaddr, serveraddr) :
         pass
 
 
-    # Loop forever receiving messages and sending pings	
+    # Loop forever receiving messages and sending pings
     while 1 :
 
         if DEBUG:
@@ -80,7 +83,7 @@ def servemain(bounceaddr, serveraddr) :
 
             # Serve udp connections
             if i == udpsock :
-				
+
                 BUFSIZ = 1024
                 try:
                     data, clientaddr = udpsock.recvfrom(BUFSIZ)
@@ -90,7 +93,6 @@ def servemain(bounceaddr, serveraddr) :
                     if DEBUG:
                         print >> sys.stderr, strerr
                     break
-	            
 
                 if data == "ping1" : # The client is running Test I
 
@@ -126,7 +128,7 @@ def servemain(bounceaddr, serveraddr) :
                     try :
 
                         #serveraddr2 = (gethostbyname(gethostname()), int(sys.argv[1]) + 5)
-			serveraddr2 = (serveraddr[0], serveraddr[1] + 5)
+                        serveraddr2 = (serveraddr[0], serveraddr[1] + 5)
                         udpsock2 = socket(AF_INET, SOCK_DGRAM)
                         udpsock2.bind(serveraddr2)
                         if DEBUG:
@@ -144,7 +146,7 @@ def servemain(bounceaddr, serveraddr) :
 
                     # Send an echo back to the client using the new socket
                     reply =  "%s:%s " % (clientaddr[0], clientaddr[1])
-		    print >> sys.stderr, "send an echo back to the client using the new socket... reply=", reply, "clientaddr=", clientaddr
+                    print >> sys.stderr, "send an echo back to the client using the new socket... reply=", reply, "clientaddr=", clientaddr
                     udpsock2.sendto(reply, clientaddr)
 
                     udpsock2.close()
@@ -202,7 +204,7 @@ def bouncemain(serveraddr) :
         pass
 
 
-    # Loop forever receiving messages and sending pings	
+    # Loop forever receiving messages and sending pings
     while 1 :
 
         if DEBUG:
@@ -291,7 +293,7 @@ if __name__=="__main__" :
 
     try :
         #serveraddr = (gethostbyname(gethostname()), int(sys.argv[1]))
-	serveraddr = ("0.0.0.0", int(sys.argv[1]))
+        serveraddr = ("0.0.0.0", int(sys.argv[1]))
 
     except ValueError, strerror :
         if DEBUG:

@@ -1,6 +1,7 @@
 # Written by Bram Cohen
 # modified for multitracker operation by John Hoffman
 # modified for mainline DHT support by Fabian van der Werf
+# Modified by Raul Jimenez to integrate KTH DHT
 # see LICENSE.txt for license information
 
 import sys
@@ -19,6 +20,9 @@ from struct import pack, unpack
 import binascii
 
 import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
+if mainlineDHT.dht_imported:
+    from Tribler.Core.DecentralizedTracking.kadtracker.identifier import Id, IdError
+    
 
 try:
     from os import getpid
@@ -33,7 +37,7 @@ except:
     False = 0
     
 DEBUG = False
-DEBUG_DHT = False
+DEBUG_DHT = True
 
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 keys = {}
@@ -401,40 +405,42 @@ class Rerequester:
             self.exception(callback)
 
     def _dht_rerequest(self):
-        if DEBUG:
+        if DEBUG_DHT:
             print >>sys.stderr,"Rerequester: _dht_rerequest",`self.infohash`
+        try:
+            info_hash_id = Id(self.infohash)
+        except (IdError):
+            print >>sys.stderr,"Rerequester: _dht_rerequest: self.info_hash is not a valid identifier"
+            return
+                
         if 'dialback' in self.config and self.config['dialback']:
             from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
             
             if DialbackMsgHandler.getInstance().isConnectable():
-                self.dht.getPeersAndAnnounce(self.infohash, self.port, self._dht_got_peers)
-        else:
-            self.dht.getPeers(self.infohash, self._dht_got_peers)
+                print >>sys.stderr,"Rerequester: _dht_rerequest: get_peers AND announce"
+                self.dht.get_peers(info_hash_id, self._dht_got_peers, self.port)
+                return
+                #raul: I added this return so when the peer is NOT connectable
+                # it does a get_peers lookup but it does not announce
+        print >>sys.stderr,"Rerequester: _dht_rerequest: JUST get_peers, DO NOT announce"
+        self.dht.get_peers(info_hash_id, self._dht_got_peers)
+
 
     def _dht_got_peers(self, peers):
         if DEBUG_DHT:
             print >>sys.stderr,"Rerequester: DHT: Received",len(peers),"peers",currentThread().getName()
-        p = []
-        for peer in peers:
-            try:
-                ip, port = unpack("!4sH", peer)
-                if DEBUG_DHT:
-                    print >>sys.stderr,"Rerequester: DHT: Got",inet_ntoa(ip), int(port)
-                p.append({'ip':  inet_ntoa(ip),
-                          'port':port})
-            except:
-                pass
-
+        """
+        raul: This is quite weird but I leave as it is.
+        """
+        p = [{'ip': peer[0],'port': peer[1]} for peer in peers]
         if p:
             r = {'peers':p}
             def add(self = self, r = r):
                 self.postrequest(r, lambda : None)
             self.externalsched(add)
 
+
     def postrequest(self, r, callback):
-        
-        #print >>sys.stderr,"Rerequester: postrequest: ENTER"
-        
         try:
             if r.has_key('warning message'):
                 self.errorfunc('warning from tracker - ' + r['warning message'])

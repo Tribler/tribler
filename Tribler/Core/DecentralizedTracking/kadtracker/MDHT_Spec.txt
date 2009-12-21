@@ -1,0 +1,73 @@
+M24 release. BitTorrent and Mainline DHT protocol extensions.
+
+Mainline DHT is used in the Nextshare content delivery platform for the peer discovery process.
+Currently, the performance of the protocol is very poor, with the median lookup time taking up to 1 minute.
+We believe this poor performance is due to the bad management of the peer routing tables.
+
+Therefore, we propose a modification to the current MDHT protocol with a particular
+focus on a better routing table management, while maintaining its backward compatibility.
+Our MDHT protocol extensions are a follow up of our previous experiments on more then 3 million deployed nodes.
+
+The extensions in MDHT include (general):
+
+- A main routing table and a replacement routing table. The main routing table contains best known nodes;
+such nodes are considered best nodes when they are reachable from us and when our requests to them
+do no time out.
+- The nodes in the replacement table are nodes with relatively good attributes; for example, they
+demonstrate a significant number of responses to our requests and they have a relatively low number of
+timeouts. Such nodes are used (moved to the main routing table) as main nodes, when the current nodes 
+in the main routing table fail to respond to our queries. 
+
+- A node always starts in quarantine, no matter in which routing table the node is in.
+A node is in quarantine for as long as there is no response from it, after having sent us a query for about
+3 minutes ago. The quarantine ends when there is a 3 minutes window between a query from the node and 
+the next response. This quarantine period is designed to detect possible NATed nodes. If a node is in quarantine, 
+we are not sure whether the node is behind a NAT, but if the node is not in the quarantine - then we are 
+pretty confident that the node in not behind the NAT. A node that is not in quarantine never comes back to the 
+quarantine (unless it is completely kicked out from both tables and we loose all rnode information, and therefore starts over).
+
+- Nodes in the main table are refreshed every 3 minutes (if nodes are in quarantine), and every 10 minutes 
+(if nodes aren't in quarantine). Nodes in the replacement table are not refreshed (no matter whether they are in
+quarantine or not).
+
+- The nodes that are in one of the routing tables (main or replacement) are called rnodes. They store node-specific 
+information such as: the number of queries to the node, the number of responses from the node, the number of timeouts and errors.
+
+- Nodes are added to the main routing table only after they have been checked for reachability; nodes are
+not added to the main routing table if they don't respond to our reachability check queries.
+
+- When a node in the main table gets a timeout, it goes to the replacement table. In fact, this node gets replaced with a better
+node from the replacement table. The following happens inside the replacement table in order to select the best node for the main table:
+	- All the nodes in the correct bucket of the replacement table are pinged - checked for reachability
+	- Pings to the NextShare (NS) nodes are delayed for 200ms (in order to give priority to NS nodes)
+	- The node that replies first (the fastest) to our query is chosen as the best node for the main table
+
+
+More details on the routing table management:
+
+- When a query is received from a node which is not in any of the routing tables, then this node is checked for reachability.
+If there is room in the main table, the node will be added only if it responded to our reachability check (ping query). 
+Otherwise, the worst node in the replacement table will be replaced with this new-coming node. 
+A node in the replacement table is considered the "worst node" when its accummulated number of timeouts exceeds 3.
+
+- When a response is received from a node that is already in the main routing table, then it is simply refreshed.
+Otherwise, if the response comes from a node that is not an rnode and if there is room in the replacement table, then the 
+node is simply replaced with the worst node of the replacement table.
+
+- If there is a timeout from a node that is in the main routing table, then it is simply removed from the main table and 
+put into the replacement table. In fact, the node that did timeout is put inside the replacement table in place of the worst node.
+
+- Regarding the worst node selection inside the replacement table, we emphasize that the NS nodes are favored to remain inside
+the table. When the replacement table is refreshed - in order to identify the worst node in the bucket - the first pings (reachability checks)
+are sent to the NS nodes, and only after a delay, they are sent to the rest of the nodes.
+
+
+Additional Mainline DHT extensions - nodes2 replies:
+
+- For IPv4 nodes, we use the standard 'compact node info' encoding, specified in the BitTorrent protocol. However,
+the protocol specification does not have support for IPv6 nodes. The DHT messages - the 'nodes' replies - don't support IPv6,
+because all the node contacts are encoded as 6-bytes but IPv6 nodes need 18-bytes. Therefore, in this protocol extension we 
+use libtorrent - which implements a few extensions to MDHT - in order to make use of the 'nodes2' for IPv6 contact encoding.
+
+- According to the libtorrent specification, replies with the 'nodes2' key are contacts that are encoded as 20-bytes node ID and
+then a variable length encoded IP address (6 bytes in IPv4 case and 18 bytes in IPv6 case).

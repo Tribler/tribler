@@ -1,0 +1,11 @@
+Path: .
+URL: https://ttuki.vtt.fi/svn/p2p-next/KTH/kadtracker/tags/kadtracker-1.0-M24-RC4
+Repository Root: https://ttuki.vtt.fi/svn/p2p-next
+Repository UUID: e16421f0-f15b-0410-abcd-98678b794739
+Revision: 747
+Node Kind: directory
+Schedule: normal
+Last Changed Author: raul
+Last Changed Rev: 747
+Last Changed Date: 2009-12-14 13:27:26 +0100 (Mon, 14 Dec 2009)
+

@@ -16,7 +16,7 @@ if __debug__:
 PIECELOSS = 0
 
 DEBUG = False
-DEBUG_CHUNKS = True
+DEBUG_CHUNKS = False
 DEBUGPP = False
 
 def rarest_first( has_dict, rarity_list, filter = lambda x: True ):
@@ -170,7 +170,7 @@ class PiecePickerStreaming(PiecePicker):
         if self.transporter:
             self.transporter.got_have( piece )
 
-        if self.is_interesting(piece):
+        if self.is_interesting(piece) and connection:
             self.peer_connections[connection]["interesting"][piece] = 1
 
     def got_seed(self):
@@ -643,5 +643,6 @@ class PiecePickerStreaming(PiecePicker):
         #print >>sys.stderr,"PiecePickerStreaming: Live hooked in, or VOD, valid range set to subset"
         first,last = self.videostatus.download_range()
         return self.videostatus.generate_range((first,last))
+            
             
 PiecePickerVOD = PiecePickerStreaming

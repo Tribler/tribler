@@ -63,7 +63,8 @@ copy %LIBRARYNAME%\Images\SwarmPluginIcon.ico dist\installdir\bgprocess\%LIBRARY
 xcopy vlc4plugin\* dist\installdir /E /I
 REM Diego: replace vlc *.txt with P2P-Next License.txt
 del dist\installdir\*.txt
-copy %LIBRARYNAME%\ns-binary-LICENSE.txt dist\installdir
+type %LIBRARYNAME%\ns-LICENSE.txt %LIBRARYNAME%\binary-LICENSE-postfix.txt > %LIBRARYNAME%\binary-LICENSE.txt
+copy %LIBRARYNAME%\binary-LICENSE.txt dist\installdir
 
 copy %LIBRARYNAME%\Plugin\Build\Win32\heading.bmp dist\installdir
 REM TODO Diego: manifest?
@@ -73,9 +74,6 @@ REM copy %LIBRARYNAME%\Plugin\Build\Win32\swarmplugin.exe.manifest dist\installd
 copy %PYTHONHOME%\Lib\site-packages\wx-2.8-msw-unicode\wx\msvcp71.dll dist\installdir\bgprocess
 
 copy reset*.bat dist\installdir
-
-REM M23TRIAL
-copy leecher.exe dist\installdir\bgprocess
 
 
 cd dist\installdir

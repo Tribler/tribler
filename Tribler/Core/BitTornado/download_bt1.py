@@ -38,6 +38,9 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.Merkle.merkle import create_fake_hashes
 from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 from Tribler.Core.Video.PiecePickerStreaming import PiecePickerVOD
+# Ric: added svc
+from Tribler.Core.Video.PiecePickerSVC import PiecePickerSVC
+from Tribler.Core.Video.SVCTransporter import SVCTransporter
 from Tribler.Core.Video.VideoOnDemand import MovieOnDemandTransporter
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename,savefilenames2finaldest
 
@@ -67,8 +70,8 @@ class BT1Download:
         self.rawserver = rawserver
         self.get_extip_func = get_extip_func
         self.port = port
-        
         self.info = self.response['info']  
+        
         # Merkle: Create list of fake hashes. This will be filled if we're an
         # initial seeder
         if self.info.has_key('root hash') or self.info.has_key('live'):
@@ -91,7 +94,8 @@ class BT1Download:
         self.finflag = Event()
         self.rerequest = None
         self.tcp_ack_fudge = config['tcp_ack_fudge']
-        
+        # Ric added SVC case
+        self.svc_video = (config['mode'] == DLMODE_SVC)
         self.play_video = (config['mode'] == DLMODE_VOD)
         self.am_video_source = bool(config['video_source'])
         # i.e. if VOD then G2G, if live then BT 
@@ -99,6 +103,7 @@ class BT1Download:
         self.videoinfo = None
         self.videoanalyserpath = videoanalyserpath
         self.voddownload = None
+        
 
         self.selector_enabled = config['selector_enabled']
 
@@ -106,8 +111,8 @@ class BT1Download:
         self.failed = False
         self.checking = False
         self.started = False
-
-# 2fastbt_
+        
+        # 2fastbt_
         try:
             self.helper = None
             self.coordinator = None
@@ -135,6 +140,7 @@ class BT1Download:
                     self.config['coopdl_role'] = ''
                     self.config['coopdl_coordinator_permid'] = ''
 
+
             if self.am_video_source:
                 from Tribler.Core.Video.VideoSource import PiecePickerSource
 
@@ -143,6 +149,10 @@ class BT1Download:
             elif self.play_video:
                 # Jan-David: Start video-on-demand service
                 self.picker = PiecePickerVOD(self.len_pieces, config['rarest_first_cutoff'], 
+                             config['rarest_first_priority_cutoff'], helper = self.helper, piecesize=self.piecesize)
+            elif self.svc_video:
+                # Ric: Start SVC VoD service TODO
+                self.picker = PiecePickerSVC(self.len_pieces, config['rarest_first_cutoff'], 
                              config['rarest_first_priority_cutoff'], helper = self.helper, piecesize=self.piecesize)
             else:
                 self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'], 
@@ -161,7 +171,8 @@ class BT1Download:
         self.videoinfo = videoinfo
         self.videostatus = videostatus
 
-        if self.play_video:
+        # Ric: added svc case
+        if self.play_video or self.svc_video:
             self.picker.set_videostatus( self.videostatus )
 
     def checkSaveLocation(self, loc):
@@ -457,7 +468,14 @@ class BT1Download:
                 self.fileselector.set_priorities_now(self.priority)
                                 # erase old data once you've started modifying it
 
-        if self.play_video:
+        # Ric: added svc case TODO check with play_video
+        if self.svc_video:
+            if self.picker.am_I_complete():
+                # TODO do something
+                pass
+            self.voddownload = SVCTransporter(self,self.videostatus,self.videoinfo,self.videoanalyserpath,vodeventfunc)
+        
+        elif self.play_video:
             if self.picker.am_I_complete():
                 if DEBUG:
                     print >>sys.stderr,"BT1Download: startEngine: VOD requested, but file complete on disk",self.videoinfo
@@ -471,6 +489,7 @@ class BT1Download:
             else:
                 if DEBUG:
                     print >>sys.stderr,"BT1Download: startEngine: Going into VOD mode",self.videoinfo
+
                 self.voddownload = MovieOnDemandTransporter(self,self.videostatus,self.videoinfo,self.videoanalyserpath,vodeventfunc)
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"
@@ -773,3 +792,4 @@ class BT1Download:
 
     def get_moviestreamtransport(self):
         return self.voddownload
+         

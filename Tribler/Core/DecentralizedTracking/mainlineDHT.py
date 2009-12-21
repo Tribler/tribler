@@ -1,13 +1,18 @@
 # written by Fabian van der Werf, Arno Bakker
+# Modified by Raul Jimenez to integrate KTH DHT
 # see LICENSE.txt for license information
 
-khashmir_imported = False
-try:
-    from khashmir.utkhashmir import UTKhashmir
-    khashmir_imported = True
-except:
-    pass
+import sys
+from traceback import print_exc
 
+dht_imported = False
+
+if sys.version.split()[0] >= '2.5':
+    try:
+        from Tribler.Core.DecentralizedTracking.kadtracker.kadtracker import KadTracker
+        dht_imported = True
+    except (ImportError), e:
+        print_exc()
 
 DEBUG = False
 
@@ -15,11 +20,13 @@ dht = None
 
 def init(*args, **kws):
     global dht
-    global khashmir_imported
-    if khashmir_imported and dht is None:
-        dht = UTKhashmir(*args, **kws)
-        # Arno: no need for separate thread, it now runs on the regular network thread
-        dht.addContact('router.bittorrent.com', 6881)
+    global dht_imported
+    if DEBUG:
+        print >>sys.stderr,'dht: DHT initialization', dht_imported
+    if dht_imported and dht is None:
+        dht = KadTracker(*args, **kws)
+        if DEBUG:
+            print >>sys.stderr,'dht: DHT running'
 
 def control():
     import pdb
@@ -29,6 +36,6 @@ def deinit():
     global dht
     if dht is not None:
         try:
-            dht.rawserver.stop()
+            dht.stop()
         except:
             pass

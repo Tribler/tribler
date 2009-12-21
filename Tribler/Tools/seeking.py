@@ -1,3 +1,6 @@
+# Written by Riccardo Petrocco
+# see LICENSE.txt for license information
+
 import sys
 import time
 from traceback import print_exc
@@ -111,7 +114,7 @@ def vod_event_callback(d,event,params):
         print >>sys.stderr,"main: VOD ready callback: reading",len(data)
       if len(data) == 0 or data == prev_data:
         if config['debug']:
-	  	    print >>sys.stderr, "main: Same data replicated: we reached the end of the stream"
+          print >>sys.stderr, "main: Same data replicated: we reached the end of the stream"
         break
       f.write(data)
       currentSize += len(data)

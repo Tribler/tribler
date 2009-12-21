@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# Written by Boudewijn Schoon
+# see LICENSE.txt for license information
 
 """
 Use the garbage collector to monitor memory usage

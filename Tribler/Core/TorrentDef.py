@@ -3,8 +3,9 @@
 """ Definition of a torrent, that is, a collection of files or a live stream. """
 import sys
 import os
-#import time
 import copy
+import math
+from traceback import print_exc,print_stack
 from types import StringType,ListType,IntType,LongType
 
 from Tribler.Core.simpledefs import *
@@ -21,6 +22,8 @@ from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.osutils import *
 from Tribler.Core.Utilities.Crypto import sha
+
+from Tribler.Core.ClosedSwarm import ClosedSwarm
 
 class TorrentDef(Serializable,Copyable):
     """
@@ -94,6 +97,7 @@ class TorrentDef(Serializable,Copyable):
         bdata = stream.read()
         stream.close()
         data = bdecode(bdata)
+        #print >>sys.stderr,data
         return TorrentDef._create(data)
     _read = staticmethod(_read)
         
@@ -458,6 +462,25 @@ class TorrentDef(Serializable,Copyable):
         @return A number of bytes. """
         return self.input['piece length']
 
+    def set_cs_keys(self, keys):
+        self.input['cs_keys'] = keys
+
+    def get_cs_keys_as_ders(self):
+        if 'cs_keys' in self.input:
+            return self.input['cs_keys'].split(",")
+        return []
+            
+    def get_cs_keys(self):
+        if 'cs_keys' in self.input:
+            keys = self.input['cs_keys'].split(",")
+            
+            cs_keys = []
+            for key in keys:
+                k = ClosedSwarm.pubkey_from_der(key)
+                cs_keys.append(k)
+            return cs_keys
+        return None
+
     def set_add_md5hash(self,value):
         """ Whether to add an end-to-end MD5 checksum to the def.
         @param value Boolean.
@@ -502,6 +525,13 @@ class TorrentDef(Serializable,Copyable):
         @return Boolean."""
         return self.input['makehash_sha1']
 
+    def add_cs_key(self, key):
+        if not 'cs_keys' in self.input:
+            self.input['cs_keys'] = []
+
+        self.input['cs_keys'].append(key)
+
+    
     def set_create_merkle_torrent(self,value):
         """ Create a Merkle torrent instead of a regular BT torrent. A Merkle
         torrent uses a hash tree for checking the integrity of the content
@@ -601,7 +631,8 @@ class TorrentDef(Serializable,Copyable):
             secs = parse_playtime_to_secs(self.input['playtime'])
             pl = float(self.get_piece_length())
             length = float(self.input['bps']*secs)
-            
+
+            print >>sys.stderr,"TorrentDef: finalize",length,pl
             diff = length % pl
             add = (pl - diff) % pl
             newlen = int(length + add)
@@ -761,7 +792,8 @@ class TorrentDef(Serializable,Copyable):
         
         return 'files' in self.metainfo['info']
 
-    
+
+
     def is_merkle_torrent(self):
         """ Returns whether this TorrentDef is a Merkle torrent. Use
         get_create_merkle_torrent() to determine this before finalization.

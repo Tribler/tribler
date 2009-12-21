@@ -16,6 +16,7 @@ from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
+from Tribler.Core.BitTornado.__init__ import TRIBLER_PEERID_LETTER
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.DownloadConfig import *
 
@@ -66,7 +67,7 @@ class TestUTorrentPeerExchange(TestAsServer):
 
         # myid needs to identify the connection as Tribler in order to
         # get the 'same' bit added.f
-        myid = "R" + "".join(map(chr, range(19)))
+        myid = TRIBLER_PEERID_LETTER + "".join(map(chr, range(19)))
 
         # Create a fake other client, so the EXTEND ut_pex won't be empty
         msg2 = self.create_good_nontribler_extend_hs(listenport=4321)

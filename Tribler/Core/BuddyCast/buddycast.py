@@ -185,7 +185,7 @@ from votecast import VoteCastCore
 from channelcast import ChannelCastCore
 
 DEBUG = False   # for errors
-debug = False   # for status
+debug = False # for status
 debugnic = False # for my temporary outputs
 unblock = 0
 
@@ -557,7 +557,7 @@ class BuddyCastCore:
         self.connected_connectable_peers = {}    # permid: {'connect_time', 'ip', 'port', 'similarity', 'oversion', 'num_torrents'} 
         self.connected_unconnectable_peers = {}    # permid: connect_time
         self.connection_candidates = {}     # permid: last_seen
-        self.remote_search_peer_candidates = []    # [last_seen,permid], sorted, the first one in the list is the oldest one
+        self.remote_search_peer_candidates = []    # [last_seen,permid,selversion], sorted, the first one in the list is the oldest one
         
         # --- stats ---
         self.target_type = 0
@@ -755,7 +755,7 @@ class BuddyCastCore:
         for p in self.send_block_list.keys():    # don't call isBlocked() for performance reason
             if _now >= self.send_block_list[p] - self.network_delay:
                 if debug:
-                    print "bc: *** unblock peer in send block list" + self.get_peer_info(p) + \
+                    print >>sys.stderr,"bc: *** unblock peer in send block list" + self.get_peer_info(p) + \
                         "expiration:", ctime(self.send_block_list[p])
                 self.send_block_list.pop(p)
                     
@@ -793,7 +793,7 @@ class BuddyCastCore:
                 self.overlay_bridge.send(peer_permid, KEEP_ALIVE+keepalive_msg, 
                                      self.keepaliveSendCallback)
             if debug:
-                print "*** Send keep alive to peer", self.get_peer_info(peer_permid),  \
+                print >>sys.stderr,"bc: *** Send keep alive to peer", self.get_peer_info(peer_permid),  \
                     "overlay version", overlay_protocol_version
         
     def isConnected(self, peer_permid):
@@ -1162,11 +1162,11 @@ class BuddyCastCore:
     def buddycastSendCallback(self, exc, target_permid, other=0):
         if exc is None:
             if debug:
-                print "bc: *** msg was sent successfully to peer", \
+                print >>sys.stderr,"bc: *** msg was sent successfully to peer", \
                     self.get_peer_info(target_permid)
         else:
             if debug:
-                print "bc: *** warning - error in sending msg to",\
+                print >>sys.stderr,"bc: *** warning - error in sending msg to",\
                         self.get_peer_info(target_permid), exc
             self.closeConnection(target_permid, 'buddycast:'+str(exc))
             
@@ -1753,7 +1753,11 @@ class BuddyCastCore:
             self.launchmany.set_activity(NTFY_ACT_MEET, buf)    # notify user interface
 
             if self.torrent_collecting and not self.superpeer:
-                self.torrent_collecting.trigger(peer_permid, selversion)
+                try:
+                    # Arno, 2009-10-09: Torrent Collecting errors should not kill conn.
+                    self.torrent_collecting.trigger(peer_permid, selversion)
+                except:
+                    print_exc()
 
             if debug:
                 print >> sys.stderr, "bc: add connection", \
@@ -1800,7 +1804,7 @@ class BuddyCastCore:
         if not debug:
             return
         if DEBUG:
-            print "bc: *****", thread, str(step), "-",
+            print >>sys.stderr,"bc: *****", thread, str(step), "-",
         if thread == 'Active':
             if step == 2:
                 print >> sys.stderr, "Working:", now() - self.start_time, \
@@ -1972,7 +1976,7 @@ class BuddyCastCore:
         
     def addRemoteSearchPeer(self, permid, oversion, ntorrents, last_seen):
         if oversion >= OLPROTO_VER_SIXTH and ntorrents >= REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD:
-            insort(self.remote_search_peer_candidates, [last_seen,permid, oversion])
+            insort(self.remote_search_peer_candidates, [last_seen,permid,oversion])
             if len(self.remote_search_peer_candidates) > self.num_search_cand:
                 self.remote_search_peer_candidates.pop(0)
                 
@@ -1981,7 +1985,6 @@ class BuddyCastCore:
             _peers = sample(self.remote_search_peer_candidates, npeers)    # randomly select
         else:
             _peers = self.remote_search_peer_candidates
-        #peers = [permid for last_seen,permid in _peers]
         peers = []
         for p in _peers:
             (last_seen,permid,selversion) = p

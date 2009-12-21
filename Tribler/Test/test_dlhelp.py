@@ -15,6 +15,8 @@ import sys
 import time
 from traceback import print_exc
 import socket
+from types import ListType
+import tempfile
 
 from Tribler.Test.test_as_server import TestAsServer
 from btconn import BTConnection
@@ -25,7 +27,7 @@ from Tribler.Core.BitTornado.bitfield import Bitfield
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.BitTornado.BT1.convert import toint
 from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler
-from Tribler.Test.test_extend_hs_t350 import MyTracker
+from Tribler.Test.test_connect_overlay import MyTracker
 
 DEBUG=True
 
@@ -54,6 +56,10 @@ class TestDownloadHelp(TestAsServer):
         self.mytracker.background_serve()
 
         self.myid2 = 'R410-----56789HuGyx0'
+        
+        # Arno, 2009-12-15: Make sure coop downloads have their own destdir
+        destdir = tempfile.mkdtemp()
+        self.config.set_download_help_dir(destdir)
         
     def setUpMyListenSockets(self):
         # Start our server side, to with Tribler will try to connect

@@ -48,7 +48,7 @@ from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 
 from Tribler.Video.defs import * 
-from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser  
+from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
 from Tribler.Utilities.Instance2Instance import Instance2InstanceClient

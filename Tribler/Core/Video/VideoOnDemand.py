@@ -52,7 +52,7 @@ class PieceStats:
     def pop_completed(self):
         completed = {}
 
-        for x in self.completed:
+        for x in self.completed.keys():
             completed[x] = self.pieces.pop(x,{})
 
         self.completed = {}
@@ -253,8 +253,9 @@ class MovieOnDemandTransporter(MovieTransport):
         else:
             self.authenticator = None
 
-        self.refill_rawserv_tasker()
-        self.tick_second()
+        self.video_refillbuf_rawtask()
+        if False:
+            self.video_printstats_tick_second()
 
         # link to others (last thing to do)
         self.piecepicker.set_transporter( self )
@@ -802,13 +803,13 @@ class MovieOnDemandTransporter(MovieTransport):
 
         return max(0.0, self.expected_download_time() - self.expected_playback_time()) == 0.0
 
-    def tick_second(self):
-        self.rawserver.add_task( self.tick_second, 1.0 )
+    def video_printstats_tick_second(self):
+        self.rawserver.add_task( self.video_printstats_tick_second, 1.0 )
 
         vs = self.videostatus
 
         # Adjust estimate every second, but don't display every second
-        display = False # (int(time.time()) % 5) == 0
+        display = True # (int(time.time()) % 5) == 0
         if DEBUG: # display
             print >>sys.stderr,"vod: Estimated download time: %5.1fs [priority: %7.2f Kbyte/s] [overall: %7.2f Kbyte/s]" % (self.expected_download_time(), self.high_range_rate.get_rate()/1024, self.overall_rate.get_rate()/1024)
 
@@ -1460,10 +1461,10 @@ class MovieOnDemandTransporter(MovieTransport):
 
         self.data_ready.release()
 
-    def refill_rawserv_tasker( self ):
+    def video_refillbuf_rawtask( self ):
         self.refill_buffer()
 
-        self.rawserver.add_task( self.refill_rawserv_tasker, self.REFILL_INTERVAL )
+        self.rawserver.add_task( self.video_refillbuf_rawtask, self.REFILL_INTERVAL )
 
     def pop( self ):
         self.data_ready.acquire()

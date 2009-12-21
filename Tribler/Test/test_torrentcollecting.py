@@ -2,30 +2,16 @@ import os
 import sys
 import unittest
 
-if os.path.exists('test_sqlitecachedb.py'):
-    BASE_DIR = '..'
-elif os.path.exists('LICENSE.txt'):
-    BASE_DIR = '.'
-sys.path.insert(1, os.path.abspath(os.path.join('..',BASE_DIR)))
-    
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PreferenceDBHandler, MyPreferenceDBHandler
 from Tribler.Core.BuddyCast.TorrentCollecting import SimpleTorrentCollecting
+from bak_tribler_sdb import *
     
-CREATE_SQL_FILE = os.path.join(BASE_DIR, 'schema_sdb_v1.sql')
+CREATE_SQL_FILE = os.path.join('..', 'schema_sdb_v4.sql')
 assert os.path.isfile(CREATE_SQL_FILE)
-DB_FILE_NAME = 'tribler.sdb'
-DB_DIR_NAME = None
-FILES_DIR = os.path.join(BASE_DIR, 'Test/extend_db_dir/')
-TRIBLER_DB_PATH = os.path.join(FILES_DIR, 'tribler.sdb')
-TRIBLER_DB_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_tribler.sdb')
-if not os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-    print >> sys.stderr, "Please download bak_tribler.sdb from http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb and save it as", os.path.abspath(TRIBLER_DB_PATH_BACKUP)
-    sys.exit(1)
-if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
-    from shutil import copy as copyFile
-    copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
-    #print "refresh sqlite db", TRIBLER_DB_PATH
+
+def init():
+    init_bak_tribler_sdb()
 
 
 SQLiteCacheDB.DEBUG = False
@@ -34,7 +20,8 @@ class TestTorrentCollecting(unittest.TestCase):
         
     def setUp(self):
         self.db = SQLiteCacheDB.getInstance()
-        self.db.initDB(TRIBLER_DB_PATH_BACKUP, lib=0)
+        self.db.initDB(TRIBLER_DB_PATH_BACKUP)
+        
         permid = {}
         permid[3127] = 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAcPezgQ13k1MSOaUrCPisWRhYuNT7Tm+q5rUgHFvAWd9b+BcSut6TCniEgHYHDnQ6TH/vxQBqtY8Loag'
         permid[994] = 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAJUNmwvDaigRaM4cj7cE2O7lessqnnFEQsan7df9AZS8xeNmVsP/XXVrEt4t7e2TNicYmjn34st/sx2P'
@@ -50,7 +37,7 @@ class TestTorrentCollecting(unittest.TestCase):
     
     def test_selecteTorrentToCollect(self):
         db = PreferenceDBHandler.getInstance()
-        tc = SimpleTorrentCollecting(None)
+        tc = SimpleTorrentCollecting(None,None)
         truth = {3127:235, 994:20, 19:1, 5:0}
         
         for pid in truth:
@@ -96,6 +83,7 @@ def test_suite():
     return suite
         
 def main():
+    init()
     unittest.main(defaultTest='test_suite')
 
     

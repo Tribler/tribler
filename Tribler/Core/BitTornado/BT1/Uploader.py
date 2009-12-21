@@ -3,6 +3,8 @@
 
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 
+from Tribler.Core.Status import *
+
 import sys
 
 try:
@@ -51,6 +53,34 @@ class Upload:
         # Merkle
         self.hashlist = []
 
+    def send_haves(self, connection):
+        """
+        Send all pieces I have a series of HAVEs - this is done
+        by closed swarms after successfully connecting (will send blank
+        bitfields until remote node is authorized)
+        """
+        have_list = self.storage.get_have_list()
+
+        print >>sys.stderr, "Have list:",have_list
+        
+    def send_bitfield(self, connection):
+        """
+        Send the bitfield (again)
+        """
+        if self.storage.get_amount_left() == 0:
+            if not self.super_seeding:
+                if self.config['breakup_seed_bitfield']:
+                   bitfield, msgs = self.storage.get_have_list_cloaked()
+                   connection.send_bitfield(bitfield)
+                   for have in msgs:
+                        connection.send_have(have)
+                else:
+                    connection.send_bitfield(self.storage.get_have_list())
+        else:
+            if storage.do_I_have_anything():
+                connection.send_bitfield(self.storage.get_have_list())
+
+
     def got_not_interested(self):
         if self.interested:
             self.interested = False
@@ -98,7 +128,11 @@ class Upload:
                 return None
         self.measure.update_rate(len(piece))
         self.totalup.update_rate(len(piece))
-        
+
+        status = Status.get_status_holder("LivingLab")
+        s_upload = status.get_or_create_status_element("uploaded",0)
+        s_upload.inc(len(piece))
+
         # BarterCast counter
         self.connection.total_uploaded += length
         
@@ -136,9 +170,12 @@ class Upload:
 
     def unchoke(self):
         if self.choked:
-            self.choked = False
-            self.cleared = False
-            self.connection.send_unchoke()
+            try:
+                self.connection.send_unchoke() 
+                self.choked = False
+                self.cleared = False
+            except:
+                pass
         
     def disconnected(self):
         if self.piecebuf:
