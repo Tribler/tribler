@@ -14,7 +14,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, 
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.simpledefs import *
 
-from Tribler.Core.Overlay.MetadataHandler import get_filename
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.Session import Session
 
 from math import sqrt
@@ -243,7 +243,7 @@ class TorrentSearchGridManager:
                         print >> sys.stderr, "Prefetch BUG. We got a hit from something we didn't ask for"
 
                 if 'torrent_file_name' not in hit or not hit['torrent_file_name']:
-                    hit['torrent_file_name'] = get_filename(hit['infohash']) 
+                    hit['torrent_file_name'] = get_collected_torrent_filename(hit['infohash']) 
                 torrent_filename = os.path.join(torrent_dir, hit['torrent_file_name'])
 
                 if not os.path.isfile(torrent_filename):
