@@ -111,6 +111,10 @@ class UDPHandler:
     RECV_CONNECT_THRESHOLD = 4
     # Number of connections before scaling the numbers (prevent overflow, allow change)
     RECV_CONNECT_SCALE_THRESHOLD = 64
+    # Fixed threshold above which the filter state is assumed to be FILTER_NONE. This is to
+    # make sure that a few (or rather quite a few) missing packets or TIVs don't screw up a
+    # peer's idea of its filtering type.
+    FIXED_THRESHOLD = 7
 
     def __init__(self, rawserver, port = 0):
         self.rawserver = rawserver
@@ -282,7 +286,7 @@ class UDPHandler:
                 debug("Setting filter state (recv total %d, recv unsol %d)" %
                     (self.recv_connect_total, self.recv_unsolicited))
             update_filter = False
-            if self.recv_unsolicited > self.recv_connect_total / 2:
+            if self.recv_unsolicited > self.recv_connect_total / 2 or self.recv_unsolicited > UDPHandler.FIXED_THRESHOLD:
                 if self.filter_type != UDPHandler.FILTER_NONE or self.nat_type != UDPHandler.NAT_NONE:
                     update_filter = True
                     self.filter_type = UDPHandler.FILTER_NONE
