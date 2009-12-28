@@ -161,8 +161,8 @@ class UDPHandler:
                 self.reporter = get_reporter_instance()
 
         if self.reporter:
-            my_wan_ip = None
-            if sys.platform == 'win32':
+            my_wan_ip = guessip.get_my_wan_ip()
+            if sys.platform == 'win32' and my_wan_ip == None:
                 try:
                     import os
                     for line in os.popen("netstat -nr").readlines():
@@ -172,8 +172,6 @@ class UDPHandler:
                             break
                 except:
                     pass
-            else:
-                my_wan_ip = guessip.get_my_wan_ip()
             if my_wan_ip == None:
                 my_wan_ip = 'Unknown'
             self.reporter.add_event("UDPPuncture", "ID:%s;IP:%s" % (self.id.encode('hex'), my_wan_ip))
@@ -205,7 +203,7 @@ class UDPHandler:
 
             if self.check_connection_count():
                 if self.reporter:
-                    self.reporter.add_event("UDPPuncture", "ICON-TM:%s,%d,%s" % (address[0], address[1], data[2:6].encode('hex')))
+                    self.reporter.add_event("UDPPuncture", "OCTM:%s,%d,%s" % (address[0], address[1], data[2:6].encode('hex')))
                 
                 self.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_TOO_MANY, address)
                 return
@@ -430,40 +428,10 @@ class UDPHandler:
                 if peer.last_comm > now - 300:
                     continue
 
-                # Don't try to connect to peers that we can't arange a rendez-vous for
-                # when we think we need it
-                if peer.nat_type != UDPHandler.NAT_NONE and len(peer.advertised_by) == 0:
+                if not self.try_connect(peer):
                     continue
-
-                if DEBUG:
-                    debug("Found compatible peer at %s:%d" % peer.address)
                 self.last_connect = now
-
-                # Always send connect, to ensure the other peer's idea of its firewall
-                # is maintained correctly
-                if self.reporter:
-                    self.reporter.add_event("UDPPuncture", "OCON:%s,%d,%s,%d,%d,%d" % (peer.address[0],
-                        peer.address[1], peer.id.encode('hex'), peer.nat_type, peer.filter_type, peer.natfw_version))
-                peer.sendto(UDPHandler.CONNECT + chr(0) + self.id +
-                    natfilter_to_byte(self.nat_type, self.filter_type) + chr(self.natfw_version))
-
-                # Request a rendez-vous
-                if peer.filter_type != UDPHandler.FILTER_NONE:
-                    if DEBUG:
-                        debug("Rendez-vous needed")
-                    rendezvous_addr = peer.advertised_by.iterkeys().next()
-                    rendezvous = self.connections.get(rendezvous_addr)
-                    if rendezvous:
-                        if self.reporter:
-                            self.reporter.add_event("UDPPuncture", "OFWC:%s,%d,%s,%s" % (rendezvous.address[0],
-                                rendezvous.address[1], rendezvous.id.encode('hex'), peer.id.encode('hex')))
-                        rendezvous.sendto(UDPHandler.FW_CONNECT_REQ + peer.id)
-
-                peer.connection_state = UDPConnection.CONNECT_SENT
-                peer.last_received = now
-                self.connections[peer.address] = peer
                 break
-
 
         need_advert_time = now - self.keepalive_intvl
         timeout_time = now - 250
@@ -474,9 +442,18 @@ class UDPHandler:
 
         # Find all the connections that have timed out and put them in a separate list
         for connection in self.connections.itervalues():
-            if ((connection.connection_state == UDPConnection.CONNECT_SENT and
-                    connection.last_received < can_advert_time) or
-                    connection.last_received < timeout_time):
+            if (connection.connection_state == UDPConnection.CONNECT_SENT and
+                    connection.last_received < can_advert_time):
+                if connection.connection_tries < 0:
+                    if DEBUG:
+                        debug("Dropping connection with %s:%d (timeout)" %
+                            (connection.address[0], connection.address[1]))
+                    close_list.append(connection)
+                elif not self.try_connect(connection):
+                    if DEBUG:
+                        debug("Too many retries %s:%d" % (connection.address[0], connection.address[1]))
+                    close_list.append(connection)
+            elif connection.last_received < timeout_time:
                 if DEBUG:
                     debug("Dropping connection with %s:%d (timeout)" %
                         (connection.address[0], connection.address[1]))
@@ -516,6 +493,47 @@ class UDPHandler:
                         msg += " %s:%d" % (advertiser[0], advertiser[1])
                     debug(msg)
 
+    def try_connect(self, peer):
+        # Don't try to connect to peers that we can't arange a rendez-vous for
+        # when we think we need it
+        if peer.filter_type != UDPHandler.FILTER_NONE and len(peer.advertised_by) == 0:
+            return False
+        
+        if peer.connection_tries > 2:
+            return False
+        peer.connection_tries += 1
+
+        if DEBUG:
+            debug("Found compatible peer at %s:%d attempt %d" % (peer.address[0], peer.address[1], peer.connection_tries))
+
+        # Always send connect, to ensure the other peer's idea of its firewall
+        # is maintained correctly
+        if self.reporter:
+            self.reporter.add_event("UDPPuncture", "OCON%d:%s,%d,%s,%d,%d,%d" % (peer.connection_tries, peer.address[0],
+                peer.address[1], peer.id.encode('hex'), peer.nat_type, peer.filter_type, peer.natfw_version))
+        peer.sendto(UDPHandler.CONNECT + chr(0) + self.id +
+            natfilter_to_byte(self.nat_type, self.filter_type) + chr(self.natfw_version))
+
+        # Request a rendez-vous
+        if peer.filter_type != UDPHandler.FILTER_NONE:
+            if DEBUG:
+                debug("Rendez-vous needed")
+            # Pick a random advertising peer for rendez vous
+            rendezvous_peers = list(peer.advertised_by.iterkeys())
+            random.shuffle(rendezvous_peers)
+            rendezvous_addr = rendezvous_peers[0]
+            rendezvous = self.connections.get(rendezvous_addr)
+            if rendezvous:
+                if self.reporter:
+                    self.reporter.add_event("UDPPuncture", "OFWC:%s,%d,%s,%s" % (rendezvous.address[0],
+                        rendezvous.address[1], rendezvous.id.encode('hex'), peer.id.encode('hex')))
+                rendezvous.sendto(UDPHandler.FW_CONNECT_REQ + peer.id)
+
+        peer.connection_state = UDPConnection.CONNECT_SENT
+        peer.last_received = time.time()
+        self.connections[peer.address] = peer
+        return True
+
     def delete_closed_connection(self, connection):
         del self.connections[connection.address]
         orig_state = connection.connection_state
@@ -529,6 +547,7 @@ class UDPHandler:
         connection.natfw_version = 0
         connection.pex_add.clear()
         connection.pex_del.clear()
+        connection.connection_tries = -1
         if len(connection.advertised_by) == 0:
             try:
                 del self.known_peers[connection.id]
@@ -580,6 +599,7 @@ class UDPConnection:
         self.advertise_nat = False
         self.tracker = False
         self.id = id
+        self.connection_tries = -1
 
     def sendto(self, data):
         self.handler.sendto(data, self.address)
@@ -674,10 +694,17 @@ class UDPConnection:
                     if DEBUG:
                         debug("    Rendez vous requested for peer %s %s:%d" % (
                             remote.encode('hex'), connection.address[0], connection.address[1]))
+                    if self.handler.reporter:
+                        self.handler.reporter.add_event("UDPPuncture", "IFRQ:%s,%d,%s,%s,%d,%s" % (self.address[0],
+                            self.address[1], self.id.encode('hex'), connection.address[0], connection.address[1],
+                            remote[1:5].encode('hex')))
                 else:
                     if DEBUG:
                         debug("    Rendez vous requested for peer %s (unknown)" % (
                             remote.encode('hex')))
+                    if self.handler.reporter:
+                        self.handler.reporter.add_event("UDPPuncture", "IFRQ:%s,%d,%s,Unknown,Unknown,%s" % (self.address[0],
+                            self.address[1], self.id.encode('hex'), remote[1:5].encode('hex')))
 
                 if connection:
                     #FIXME: should we delay this action by some time to ensure the direct connect arives first?
@@ -703,6 +730,9 @@ class UDPConnection:
                 if connection:
                     pass
                 elif self.handler.check_connection_count():
+                    if self.handler.reporter:
+                        self.handler.reporter.add_event("UDPPuncture", "OCTM-IRRQ:%s,%d,%s" % (connection.address[0],
+                            connection.address[1], connection.id.encode('hex')))
                     self.handler.sendto(UDPHandler.CLOSE + UDPHandler.CLOSE_TOO_MANY, remote)
                 else:
                     self.handler.incoming_connect(remote, False) # Update NAT and Filter states
