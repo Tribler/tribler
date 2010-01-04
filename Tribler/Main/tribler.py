@@ -230,30 +230,15 @@ class ABCApp(wx.App):
 
             self.guiUtility.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
             self.guiUtility.mainSizer = self.guiUtility.scrollWindow.GetSizer()
-            self.frame.topBackgroundRight = xrc.XRCCTRL(self.frame, "topBG3")
-            self.frame.mainButtonPersons = xrc.XRCCTRL(self.frame, "mainButtonPersons")
-            self.frame.messageField = xrc.XRCCTRL(self.frame, "messageField")
-            self.frame.pageTitlePanel = xrc.XRCCTRL(self.frame, "pageTitlePanel")
             self.frame.standardDetails = xrc.XRCCTRL(self.frame, "standardDetails")
             self.frame.standardOverview = xrc.XRCCTRL(self.frame, "standardOverview")
-            self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
             
             # Make sure self.utility.frame is set
             self.startAPI()
-            ##self.guiUtility.initStandardOverview(self.frame.standardOverview)
-
-            self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
-            self.frame.search_icon = xrc.XRCCTRL(self.frame, "search_icon")
-            self.frame.files_friends = xrc.XRCCTRL(self.frame, "files_friends")
-            self.frame.top_image = xrc.XRCCTRL(self.frame, "top_image")
-            
             self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_search")
             self.frame.top_bg.set_frame(self.frame)
             self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
             self.frame.standardPager = xrc.XRCCTRL(self.frame,"standardPager")
-            self.frame.horizontal = xrc.XRCCTRL(self.frame, "horizontal")
-            self.frame.changePlay = xrc.XRCCTRL(self.frame, "changePlay")
- 
             self.frame.BL = xrc.XRCCTRL(self.frame, "BL")
             self.frame.BR = xrc.XRCCTRL(self.frame, "BR")
             self.frame.BL.Hide()
@@ -706,7 +691,8 @@ class ABCApp(wx.App):
             # Print stats on Console
             for ds in dslist:
                 # safename = `ds.get_download().get_def().get_name()`
-                print >>sys.stderr,"main: Stats: %s %.1f%% %s dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),safename,ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                if DEBUG:
+                    print >>sys.stderr,"main: Stats: %s %.1f%% dl %.1f ul %.1f n %d\n" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
                 # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                 if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                     print >>sys.stderr,"main: Error:",`ds.get_error()`

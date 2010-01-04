@@ -22,7 +22,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Utility.constants import COL_PROGRESS
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Video.VideoPlayer import VideoPlayer
-from Tribler.Main.vwxGUI.tribler_List import DLFilesList
+## from Tribler.Main.vwxGUI.tribler_List import DLFilesList
 ## from Tribler.Main.vwxGUI.FriendsItemPanel import peer2status
 
 from Tribler.Core.API import *

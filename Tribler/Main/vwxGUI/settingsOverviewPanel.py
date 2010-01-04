@@ -68,19 +68,11 @@ class SettingsOverviewPanel(wx.Panel):
             self.utf8="UTF-8"
 
         self.elements = {}
-        self.data = {} #data related to profile information, to be used in details panel
-        self.mypref = None
         self.currentPortValue = None
 
         self.callback=None
  
-        self.reload_counter = -1
-        self.reload_cache = [None, None, None]
         
-        # SELDOM cache
-        self.bartercast_db = None
-        self.barterup = 0
-        self.barterdown = 0
         
         if len(args) == 0: 
             pre = wx.PrePanel() 
@@ -102,24 +94,11 @@ class SettingsOverviewPanel(wx.Panel):
         #print >>sys.stderr,"settingsOverviewPanel: in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
-
         self.standardOverview = self.guiUtility.standardOverview
-
         self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-
-
         self.firewallStatus = xrc.XRCCTRL(self,"firewallStatus")  
-
-      
         self.utility = self.guiUtility.utility
-        # All mainthread, no need to close
-        self.torrent_db = self.guiUtility.utility.session.open_dbhandler(NTFY_TORRENTS)
-        self.peer_db = self.guiUtility.utility.session.open_dbhandler(NTFY_PEERS)
-        self.friend_db = self.guiUtility.utility.session.open_dbhandler(NTFY_FRIENDS)
-        self.bartercast_db = self.guiUtility.utility.session.open_dbhandler(NTFY_BARTERCAST)
-        self.mypref = self.guiUtility.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-#        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-#        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+
         for element in self.elementsName:
             xrcElement = xrc.XRCCTRL(self, element)
             if not xrcElement:
@@ -128,7 +107,6 @@ class SettingsOverviewPanel(wx.Panel):
 
         self.getNameMugshot()
         self.showNameMugshot()
-        #self.getGuiElement('myNameField').SetLabel('')
 
 
         #set fonts
@@ -155,23 +133,14 @@ class SettingsOverviewPanel(wx.Panel):
 
         self.elements['cSave'].Bind(wx.EVT_LEFT_UP, self.saveAll)
 
-     
-
-
         self.showPort()
         self.setCurrentPortValue()
-
-
-       
         self.showMaxDLRate()
         self.showMaxULRate()
 
         self.showDiskLocation() # sic
-
         self.initDone = True
         
-#        self.Update()
-#        self.initData()
         self.timer = None
         
         wx.CallAfter(self.Refresh)

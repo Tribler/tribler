@@ -25,7 +25,6 @@ from tribler_topButton import *
 from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
-from NewStaticText import NewStaticText
 from MyText import MyText
 from fontSizes import *
 
