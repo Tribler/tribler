@@ -16,7 +16,7 @@ import threading
 
 from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
+##from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 from Tribler.Main.Utility.constants import COL_PROGRESS

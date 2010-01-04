@@ -421,7 +421,6 @@ class FilesItemDetailsSummary(bgPanel):
         if self.currentPage > 0:
             self.erasevSizerContents()
             self.currentPage = self.currentPage - 1
-            print >> sys.stderr , self.currentPage
             self.displayTorrentContents()
 
 
@@ -430,7 +429,6 @@ class FilesItemDetailsSummary(bgPanel):
         if self.currentPage < self.lastPage:
             self.erasevSizerContents()
             self.currentPage = self.currentPage + 1
-            print >> sys.stderr , self.currentPage
             self.displayTorrentContents()
 
 

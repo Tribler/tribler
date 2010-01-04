@@ -18,11 +18,11 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.Session import Session
 
 from math import sqrt
-try:
-    import web2
-except ImportError:
-    print >>sys.stderr,'SearchGridManager: Could not import web2'
-    print_exc()
+##try:
+##    import web2
+##except ImportError:
+##    print >>sys.stderr,'SearchGridManager: Could not import web2'
+##    print_exc()
     
 
 DEBUG = False

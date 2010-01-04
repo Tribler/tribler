@@ -14,7 +14,7 @@ from Tribler.Main.Utility.constants import *
 from Tribler.Main.Utility import *
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.filesItemPanel import ThumbnailViewer, libraryModeThumbSize
+from Tribler.Main.vwxGUI.ItemPanel import ThumbnailViewer, libraryModeThumbSize
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Video.VideoPlayer import VideoPlayer
