@@ -71,7 +71,7 @@ class TopSearchPanel(bgPanel):
         else:
             self.utf8="UTF-8"
 
-
+        self.agfids=None
 
      
     def set_frame(self,frame):
@@ -432,6 +432,10 @@ class TopSearchPanel(bgPanel):
     def OnChannels(self,event):
         import time
         if event.LeftDown() and self.guiUtility.guiPage != 'channels':
+            if sys.platform=='darwin' and self.agfids is not None:
+                self.agfids.Stop()
+                self.agfids.Hide()
+
             T1 = time.time()
 
             try:
@@ -481,6 +485,9 @@ class TopSearchPanel(bgPanel):
 
     def OnSettings(self,event):
         if event.LeftDown() and self.guiUtility.guiPage != 'settings':
+            if sys.platform=='darwin' and self.agfids is not None:
+                self.agfids.Stop()
+                self.agfids.Hide()
             if self.needs_refresh:
                 self.guiUtility.frame.channelsDetails.reinitialize()
 #                self.needs_refresh = False
@@ -495,6 +502,9 @@ class TopSearchPanel(bgPanel):
 
     def OnLibrary(self,event):
         if event.LeftDown() and self.guiUtility.guiPage != 'my_files':
+            if sys.platform=='darwin' and self.agfids is not None:
+                self.agfids.Stop()
+                self.agfids.Hide()
             if self.needs_refresh:
                 self.guiUtility.frame.channelsDetails.reinitialize()
 #                self.needs_refresh = False

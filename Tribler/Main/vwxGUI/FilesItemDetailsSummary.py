@@ -177,15 +177,18 @@ class FilesItemDetailsSummary(bgPanel):
 
 
         # loading gif
-        ##ag_fname = os.path.join(self.utility.getPath(),LIBRARYNAME,'Main','vwxGUI','images','5.0','fids.gif')
-        ##self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
-        ##if sys.platform == 'darwin':
-        ##    wx.CallAfter(self.ag.Play)
-        ##else:
-        ##    self.ag.Play()
-        self.ag=customGif(self,-1, name='fids')
-        self.ag.Play()
+        ag_fname = os.path.join(self.utility.getPath(),LIBRARYNAME,'Main','vwxGUI','images','5.0','fids.gif')
+        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
+        if sys.platform == 'darwin':
+            wx.CallAfter(self.ag.Play)
+        else:
+            self.ag.Play()
 
+#        self.ag=customGif(self,-1, name='fids')
+#        self.ag.Play()
+
+
+        self.guiUtility.frame.top_bg.agfids=self.ag
 
         #self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
         #self.vSizer2.Add([0,10], 0, wx.FIXED_MINSIZE, 0)
@@ -266,11 +269,11 @@ class FilesItemDetailsSummary(bgPanel):
                     self.scrollRight.Show()
                 if sys.platform == 'darwin':
                     wx.CallAfter(self.ag.Stop)
-                    wx.CallAfter(self.ag.hide)
+                    wx.CallAfter(self.ag.Hide)
                 else:
                     #pass
                     self.ag.Stop()
-                    self.ag.hide()
+                    self.ag.Hide()
                 self.hSizermain.Detach(0)
                 self.hSizermain.Layout()
                 self.vSizer.Layout()
@@ -278,7 +281,7 @@ class FilesItemDetailsSummary(bgPanel):
                 self.Refresh()
             else: # torrent is not playable   
                 self.ag.Stop()
-                self.ag.hide()
+                self.ag.Hide()
                 self.scrollLeft.Hide()
                 self.scrollRight.Hide()
 
