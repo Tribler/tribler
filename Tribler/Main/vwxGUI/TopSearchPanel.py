@@ -71,6 +71,8 @@ class TopSearchPanel(bgPanel):
         else:
             self.utf8="UTF-8"
 
+
+
      
     def set_frame(self,frame):
         self.frame = frame
@@ -129,6 +131,7 @@ class TopSearchPanel(bgPanel):
             self.sharing_reputation.Bind(wx.EVT_LEFT_UP, self.sr_msgClick)
             
             
+
     def OnArrow(self, event):
             wx.CallAfter(self.file_sel.GetContainingSizer().Layout)
             if self.arrow_sel:
@@ -523,22 +526,40 @@ class TopSearchPanel(bgPanel):
             item.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8)) 
 
     def viewResults(self,event):
-        if sys.platform == 'darwin' and self.count < 100:
-            self.ag.Play()
-            self.ag.Show()
-        if not self.first:
+        if not self.first and self.guiUtility.guiPage != 'search_results':
+            if sys.platform == 'darwin' and self.count < 100:
+                self.ag.Play()
+                self.ag.Show()
             if self.search_mode == 'files':
                 self.guiUtility.standardFilesOverview()
                 self.guiUtility.loadInformation('filesMode', 'rameezmetric', erase=False)
             else:
+                
                 if self.guiUtility.frame.channelsDetails.origin != 'search_results':
                     erase=True 
                 else:
                     erase=False
-               # self.guiUtility.standardOverview.setMode('channelsMode')
+
+                oldpage=self.guiUtility.guiPage
                 self.guiUtility.guiPage = 'search_results'
                 self.guiUtility.channelsOverview(erase)
-                wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase=False)
+
+                if oldpage == 'channels':
+                    grid = self.guiUtility.standardOverview.getGrid()
+                    grid.gridManager.blockedRefresh=True
+                    grid2 = self.guiUtility.standardOverview.getGrid(2)
+                    grid.clearAllData()
+                    grid2.clearAllData()
+                    grid2.Hide()
+                    grid.gridManager.resizeGrid(grid)
+                    grid.gridManager.blockedRefresh=False
+                    wx.GetApp().Yield(True)
+ 
+
+                    self.guiUtility.frame.channelsDetails.mychannel = False
+                    wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase)
+
+
 
         self.results.setToggled(True)
         self.settings.setToggled(False)
@@ -569,6 +590,9 @@ class TopSearchPanel(bgPanel):
 
     def viewSettings(self,event):
         if self.guiUtility.guiPage != 'settings':
+            if self.needs_refresh:
+                self.guiUtility.frame.channelsDetails.reinitialize()
+#                self.needs_refresh = False
             self.guiUtility.settingsOverview()
         self.results.setToggled(False)
         self.settings.setToggled(True)
@@ -577,6 +601,9 @@ class TopSearchPanel(bgPanel):
 
     def viewLibrary(self,event):
         if self.guiUtility.guiPage != 'my_files':
+            if self.needs_refresh:
+                self.guiUtility.frame.channelsDetails.reinitialize()
+#                self.needs_refresh = False
             self.guiUtility.standardLibraryOverview()
             self.guiUtility.loadInformation('libraryMode', 'name', erase=False)
         self.results.setToggled(False)
@@ -809,7 +836,6 @@ class TopSearchPanel(bgPanel):
 
         object_20 = wx.BoxSizer(wx.VERTICAL)
         object_21 = wx.BoxSizer(wx.VERTICAL)
-        #object_22 = wx.BoxSizer(wx.HORIZONTAL)
 
 
 
@@ -833,7 +859,6 @@ class TopSearchPanel(bgPanel):
 
         object_21.Add(self.arrow, 0, 0, 0)
         object_21.Add((0, 2), 0, 0, 0)
-        #object_21.Add(object_22, 0, wx.LEFT, -70)
 
         object_21.Add(self.file_sel, 0, 0, 0)
         object_21.Add((2, 0), 0, 0, 0)
@@ -934,31 +959,7 @@ class TopSearchPanel(bgPanel):
 
 
 
-
-
-        #object_21.Add(object_17, 0, 0, 0)
-        #if sys.platform == 'win32':
-        #    object_21.Add((10, 0), 0, 0, 0)
-        #else:
-        #    object_21.Add((7, 0), 0, 0, 0)
-        #object_21.Add(object_11, 0, 0, 0)
-        #object_21.Add((7, 0), 0, 0, 0)
-        #object_21.Add(object_10, 0, 0, 0)
-        #object_21.Add((7, 0), 0, 0, 0)
-        #object_21.Add(object_18, 0, 0, 0)
-        #object_21.Add((7, 0), 0, 0, 0)
-        #object_21.Add(object_12, 0, 0, 0)
-        #object_21.Add((7, 0), 0, 0, 0)
-
-        #object_22.Add((160,0), 0, 0, 0)
-        #object_22.Add(self.channels, 0, 0, 0)
-
-
-        #object_20.Add(object_21, 0, 0, 0)
-        #object_20.Add((0,5), 0, 0, 0)
-        #object_20.Add(object_22, 0, 0, 0)
-
-
+        # results
         object_1.Add(object_17, 0, 0, 0)
 
         if sys.platform == 'win32':
@@ -966,26 +967,32 @@ class TopSearchPanel(bgPanel):
         else:
             object_1.Add((self.spaceLink, 0), 0, 0, 0)
 
+        # seperator
         object_1.Add(object_11, 0, 0, 0)
 
         object_1.Add((self.spaceLink, 0), 0, 0, 0)
 
+        # channels
         object_1.Add(object_19, 0, 0, 0)
 
         object_1.Add((self.spaceLink, 0), 0, 0, 0)
 
+        # seperator3
         object_1.Add(object_20, 0, 0, 0)
 
         object_1.Add((self.spaceLink, 0), 0, 0, 0)
 
+        # settings
         object_1.Add(object_10, 0, 0, 0)
 
         object_1.Add((self.spaceLink, 0), 0, 0, 0)
 
+        # seperator2
         object_1.Add(object_18, 0, 0, 0)
 
         object_1.Add((self.spaceLink, 0), 0, 0, 0)
 
+        # my files
         object_1.Add(object_12, 0, 0, 0)
 
         object_1.Add((self.spaceLink, 0), 0, 0, 0)
@@ -998,7 +1005,6 @@ class TopSearchPanel(bgPanel):
 
         object_1.Add(object_15, 0, 0, 0)
         object_1.Add((10, 0), 0, 0, 0)
-        ##object_13.Add(self.left, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
         object_13.Add(self.total_down, 0, 0, 0)
         if sys.platform == 'darwin':
@@ -1007,7 +1013,6 @@ class TopSearchPanel(bgPanel):
             object_13.Add((8, 0), 0, 0, 0)
         object_13.Add(self.total_up, 0, 0, 0)
         object_13.Add((0, 0), 0, 0, 0)
-        ##object_13.Add(self.right, 0, 0, 0)
         
         # OUR CODE  ARNO50: Check diff in defs
         if sys.platform != 'linux2':

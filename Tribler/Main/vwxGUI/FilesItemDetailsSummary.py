@@ -21,7 +21,7 @@ from Tribler.__init__ import LIBRARYNAME
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 
-
+from Tribler.Main.vwxGUI.customGif import customGif
 
 # font sizes
 if sys.platform == 'darwin':
@@ -177,12 +177,15 @@ class FilesItemDetailsSummary(bgPanel):
 
 
         # loading gif
-        ag_fname = os.path.join(self.utility.getPath(),LIBRARYNAME,'Main','vwxGUI','images','5.0','fids.gif')
-        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
-        if sys.platform == 'darwin':
-            wx.CallAfter(self.ag.Play)
-        else:
-            self.ag.Play()
+        ##ag_fname = os.path.join(self.utility.getPath(),LIBRARYNAME,'Main','vwxGUI','images','5.0','fids.gif')
+        ##self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
+        ##if sys.platform == 'darwin':
+        ##    wx.CallAfter(self.ag.Play)
+        ##else:
+        ##    self.ag.Play()
+        self.ag=customGif(self,-1, name='fids')
+        self.ag.Play()
+
 
         #self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
         #self.vSizer2.Add([0,10], 0, wx.FIXED_MINSIZE, 0)
@@ -263,10 +266,11 @@ class FilesItemDetailsSummary(bgPanel):
                     self.scrollRight.Show()
                 if sys.platform == 'darwin':
                     wx.CallAfter(self.ag.Stop)
-                    wx.CallAfter(self.ag.Hide)
+                    wx.CallAfter(self.ag.hide)
                 else:
+                    #pass
                     self.ag.Stop()
-                    self.ag.Hide()
+                    self.ag.hide()
                 self.hSizermain.Detach(0)
                 self.hSizermain.Layout()
                 self.vSizer.Layout()
@@ -274,7 +278,7 @@ class FilesItemDetailsSummary(bgPanel):
                 self.Refresh()
             else: # torrent is not playable   
                 self.ag.Stop()
-                self.ag.Hide()
+                self.ag.hide()
                 self.scrollLeft.Hide()
                 self.scrollRight.Hide()
 

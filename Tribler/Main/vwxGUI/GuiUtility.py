@@ -529,10 +529,13 @@ class GUIUtility:
 
         
     def channelsOverview(self, erase=False):
-        if sys.platform == 'darwin':
-            self.frame.top_bg.ag.Stop()
-        self.frame.top_bg.ag.Hide()
-             
+        if self.guiPage != 'search_results':
+            if sys.platform == 'darwin':
+                self.frame.top_bg.ag.Stop()
+            self.frame.top_bg.ag.Hide()
+        elif self.frame.top_bg.ag.IsPlaying():
+            self.frame.top_bg.ag.Show() 
+            
         if erase:
             self.frame.channelsDetails.reinitialize(force=True)
             self.frame.top_bg.indexMyChannel = -1
