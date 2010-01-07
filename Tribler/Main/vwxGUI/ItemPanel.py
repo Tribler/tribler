@@ -120,11 +120,11 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.h1 = TITLEHEIGHT
 
         if sys.platform == 'linux2':
-            self.titleMaxLength=395
+            self.titleMaxLength=405
         elif sys.platform == 'darwin':
             self.titleMaxLength=395
         else:
-            self.titleMaxLength=395
+            self.titleMaxLength=400
 
         self.addComponents()
         self.Show()
