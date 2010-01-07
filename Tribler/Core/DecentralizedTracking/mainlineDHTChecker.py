@@ -36,8 +36,14 @@ class mainlineDHTChecker:
             print >>sys.stderr,"mainlineDHTChecker: Lookup",`infohash`
 
         if self.dht is not None:
-            func = lambda p:self.got_peers_callback(infohash,p)
-            self.dht.getPeers(infohash,func)
+            try:
+                from Tribler.Core.DecentralizedTracking.kadtracker.identifier import Id, IdError
+                infohash_id = Id(infohash)
+                func = lambda p:self.got_peers_callback(infohash,p)
+                self.dht.get_peers(infohash_id,func)
+            except (IdError):
+                print >>sys.stderr,"Rerequester: _dht_rerequest: self.info_hash is not a valid identifier"
+                return
         elif DEBUG:
             print >>sys.stderr,"mainlineDHTChecker: No lookup, no DHT support loaded"
 
