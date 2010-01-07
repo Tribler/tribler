@@ -40,7 +40,7 @@ class KadTracker:
         The info_hash must be an identifier.Id object.
         
         The callback_f must expect one parameter. When peers are
-        discovered, the callback is called with a list of peers as paramenter.
+        discovered, the callback is called with a list of peers as parameter.
         The list of peers is a list of addresses (<IPv4, port> pairs).
 
         The bt_port parameter is optional. When provided, ANNOUNCE messages
