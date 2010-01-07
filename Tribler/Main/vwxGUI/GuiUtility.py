@@ -13,6 +13,7 @@ from time import time
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
+from Tribler.Core.Search.SearchManager import KEYWORDSPLIT_RE
 
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 #from Tribler.Subscriptions.rss_client import TorrentFeedThread
@@ -1095,7 +1096,7 @@ class GUIUtility:
             print >>sys.stderr,"GUIUtil: searchPersons:",input
         low = input.lower().strip()
         import re
-        wantkeywords = re.split(r'\W+', low)
+        wantkeywords = re.split(KEYWORDSPLIT_RE, low)
 
         self.peersearch_manager.setSearchKeywords(wantkeywords, mode)
         self.peersearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())

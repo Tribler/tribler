@@ -9,6 +9,9 @@ import sys
 
 DEBUG = False
 
+KEYWORDSPLIT_RE = r'[\W_]+' # i.e. split on alnum, not alnum+underscore
+
+
 class SearchManager:
     """ Arno: This is DB neutral. All it assumes is a DBHandler with
     a searchNames() method that returns records with at least a 'name' field

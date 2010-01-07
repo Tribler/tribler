@@ -31,6 +31,7 @@ from Notifier import Notifier
 from Tribler.Core.simpledefs import *
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.permid import sign_data, verify_data, permid_for_user
+from Tribler.Core.Search.SearchManager import KEYWORDSPLIT_RE
 from Tribler.Category.Category import Category
 
 # maxflow constants
@@ -1314,9 +1315,10 @@ class TorrentDBHandler(BasicDBHandler):
         #print >> sys.stderr, "##Adding torrent ", str(torrent_id)
         # adding in inverted index table
         
-        def remove_special_characters(filename):
+        def split_into_keywords(filename):
+            """ Arno: FIXME: function name bogus """
             filename = filename.lower()
-            return re.split(r'\W+', filename)             
+            return re.split(KEYWORDSPLIT_RE,filename)             
         
         if data.has_key('files'):                        
             files = []
@@ -1357,7 +1359,7 @@ class TorrentDBHandler(BasicDBHandler):
                     filepath = u"/".join(ls)
                     files.append((torrent_id, filepath, filelen))
 
-                    ls = remove_special_characters(dunno2unicode(filename))                  
+                    ls = split_into_keywords(dunno2unicode(filename))                  
                     for l in ls:
                         l = filter(lambda c: c.isalnum(), l)
                         termdoc.append((l,torrent_id))
@@ -1369,7 +1371,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         # Now include the 'name' field as well, which is common for both single-file and batch torrents     
         termdoc = []
-        ls = remove_special_characters(dunno2unicode(data['name']))
+        ls = split_into_keywords(dunno2unicode(data['name']))
         for l in ls:
             l = filter(lambda c: c.isalnum(), l)
             termdoc.append((l,torrent_id))
@@ -3325,7 +3327,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             q = query[2:].strip(" ")
             
             import re
-            kwlist = re.split(r"\W+", q)
+            kwlist = re.split(KEYWORDSPLIT_RE, q)
             #kwlist = q.split(" ")
             #print >>sys.stderr, "This is a keyword based search:", q, kwlist
             

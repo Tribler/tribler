@@ -60,8 +60,8 @@ def validVoteCastMsg(data):
         return False
     
     for record in data:
-        if DEBUG: 
-            print >>sys.stderr, "validvotecastmsg: ", repr(record)
+        #if DEBUG: 
+        #    print >>sys.stderr, "validvotecastmsg: ", repr(record)
         if not validPermid(record[0]):
             if DEBUG:
                 print >> sys.stderr, "not valid permid: ", repr(record[0]) 
@@ -83,15 +83,15 @@ def validChannelCastMsg(channelcast_data):
     for signature, ch in channelcast_data.items():
         if not isinstance(ch,dict):
             if DEBUG:
-                print >>sys.stderr,"rvalidChannelCastMsg: a: value not dict"
+                print >>sys.stderr,"validChannelCastMsg: value not dict"
             return False
         if len(ch) !=6:
             if DEBUG:
-                print >>sys.stderr,"rvalidChannelCastMsg: a: #keys!=6"
+                print >>sys.stderr,"validChannelCastMsg: #keys!=6"
             return False
         if not ('publisher_id' in ch and 'publisher_name' in ch and 'infohash' in ch and 'torrenthash' in ch and 'torrentname' in ch and 'time_stamp' in ch):
             if DEBUG:
-                print >>sys.stderr,"validChannelCastMsg: a: key missing, got",d.keys()
+                print >>sys.stderr,"validChannelCastMsg: key missing, got",d.keys()
             return False
         if not (validPermid(ch['publisher_id']) and (isinstance(ch['publisher_name'],str) or isinstance(ch['publisher_name'], unicode)) and validInfohash(ch['infohash']) and validInfohash(ch['torrenthash'])
                 and (isinstance(ch['torrentname'],str) or isinstance(ch['torrentname'],unicode)) and validTimestamp(ch['time_stamp'])):

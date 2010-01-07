@@ -8,7 +8,7 @@ from traceback import print_exc, print_stack
 from time import time
 
 from Tribler.Category.Category import Category
-from Tribler.Core.Search.SearchManager import SearchManager
+from Tribler.Core.Search.SearchManager import SearchManager, KEYWORDSPLIT_RE
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
@@ -396,7 +396,7 @@ class TorrentSearchGridManager:
                         filename = value['content_name']
                         filename = filename.lower()
                         import re
-                        ls = re.split(r'\W+', filename)
+                        ls = re.split(KEYWORDSPLIT_RE, filename)
                         flag = False
                         for kw in kws:
                             if kw not in ls:

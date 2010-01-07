@@ -30,6 +30,7 @@ from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NI
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Utilities.unicode import dunno2unicode
+from Tribler.Core.Search.SearchManager import KEYWORDSPLIT_RE
 
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
@@ -284,7 +285,7 @@ class RemoteQueryMsgHandler:
                     
             q = self.clean_netwq(q)
             q = dunno2unicode(q)
-            kws = re.split(r'\W+', q.lower())
+            kws = re.split(KEYWORDSPLIT_RE,q.lower())
             hits = self.search_torrents(kws, maxhits=MAX_RESULTS,sendtorrents=sendtorrents)
             p = self.create_remote_query_reply(d['id'],hits,selversion)
             
