@@ -119,7 +119,12 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
         self.h1 = TITLEHEIGHT
 
-
+        if sys.platform == 'linux2':
+            self.titleMaxLength=395
+        elif sys.platform == 'darwin':
+            self.titleMaxLength=395
+        else:
+            self.titleMaxLength=395
 
         self.addComponents()
         self.Show()
@@ -271,6 +276,26 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
             self.subscribed = False
 
 
+    def _setTitle(self, title):
+        self.title.SetToolTipString(title)
+        i=0
+        try:
+            while self.title.GetTextExtent(title[:i])[0] < self.titleMaxLength and i <= len(title):
+                i=i+1
+            self.title.SetLabel(title[:(i-1)])
+        except:
+            self.title.SetLabel(title)
+        self.Refresh()       
+
+    def setTitle(self, title):
+        """
+        Simple wrapper around _setTitle to handle unicode bugs
+        """
+        self.storedTitle = title
+        try:
+            self._setTitle(title)
+        except UnicodeDecodeError:
+            self._setTitle(`title`)
 
 
                  
@@ -294,7 +319,8 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
                 #print >> sys.stderr , title_new
                 self.title.Enable(True)
                 self.title.Show()
-                self.title.SetLabel(title)
+                self.setTitle(title)
+                #self.title.SetLabel(title)
                 if sys.platform != 'win32': # on windows causes a new line bug when title contains & symbol
                     self.title.Wrap(self.title.GetSize()[0])
                 self.title.SetToolTipString(titlefull)
