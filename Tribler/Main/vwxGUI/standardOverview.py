@@ -559,7 +559,7 @@ class standardOverview(wx.Panel):
         total = 0
         if self.mode == 'filesMode': 
             for el in self.results:
-                if el in ['remote', 'torrent', 'library']: 
+                if el in ['torrent', 'library']: ## removed 'remote'
                     if self.results[el] != -1:
                         total+=self.results[el]
         elif self.mode == 'channelsMode':
@@ -580,7 +580,7 @@ class standardOverview(wx.Panel):
                 self.keywords = keywords
 
         if finished:  
-            msg = self.guiUtility.utility.lang.get('finished_search') % (self.keywords, total)
+            msg = self.guiUtility.utility.lang.get('finished_search') % (self.fkeywords, total)
             self.guiUtility.stopSearch()
         else:
             msg = self.guiUtility.utility.lang.get('going_search') % (total)

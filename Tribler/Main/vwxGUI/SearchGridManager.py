@@ -31,6 +31,7 @@ SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
 SEARCHMODE_NONE = 3
 VOTE_LIMIT = -5
+MAX_HITS= 250 # maximum number of torrent hits to appear in GUI
 
 class TorrentSearchGridManager:
     # Code to make this a singleton
@@ -206,6 +207,7 @@ class TorrentSearchGridManager:
 
         if DEBUG:
             print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time()-beginsort))
+        self.hits=self.hits[:MAX_HITS]
         return [len(self.hits),self.hits[begin:end]]
                 
 
@@ -307,6 +309,7 @@ class TorrentSearchGridManager:
             return False
         
         self.hits = self.searchmgr.search(self.searchkeywords[mode])
+        self.hits=self.hits[:MAX_HITS]
         return True
 
     def addStoredRemoteResults(self, mode, cat):

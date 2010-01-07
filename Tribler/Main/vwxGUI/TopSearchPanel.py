@@ -330,11 +330,13 @@ class TopSearchPanel(bgPanel):
             # Arno: delay actual search so the painting is faster.
             wx.CallAfter(self.guiUtility.dosearch)
         else:
-            if not keycode == wx.WXK_BACK:
-                try:
-                    wx.CallAfter(self.autocomplete) 
-                except:
-                    pass # don't break the input field if something with autocomplete goes awkward
+            # autocompletion feature disabled
+
+            ##if not keycode == wx.WXK_BACK:
+            ##    try:
+            ##        wx.CallAfter(self.autocomplete) 
+            ##    except:
+            ##        pass # don't break the input field if something with autocomplete goes awkward
             event.Skip() # Nicolas: not enough into wx to know if this should stay even though we're doing someething in here now
             
     def autocomplete(self):
