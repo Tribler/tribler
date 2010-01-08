@@ -226,6 +226,7 @@ class RePEXer(RePEXerInterface):
         self.aborted = False # flag so we know the exact done-reason
         self.ready = False # flag so we know whether repex_ready has been called
         self.ready_ts = -1 # for logging purposes, store the time repex_ready event was triggered
+        self.end_ts = -1 # for logging purposes, store the time done or aborted was sent
         
         # Added robustness, check whether received SwarmCache is not None
         if self.starting_peertable is None:
@@ -277,6 +278,7 @@ class RePEXer(RePEXerInterface):
             print >>sys.stderr, "RePEXer: repex_aborted:", b2a_hex(infohash),status_string
         self.done = True
         self.aborted = True
+        self.end_ts = ts_now()
         for observer in self._observers:
             observer.repex_aborted(self, dlstatus)
         # Note that we do not need to close active connections
@@ -563,6 +565,7 @@ class RePEXer(RePEXerInterface):
     #
     def send_done(self):
         self.done = True
+        self.end_ts = ts_now()
         
         # Construct the new SwarmCache by removing excess peers
         swarmcache = dict(self.live_peers)
