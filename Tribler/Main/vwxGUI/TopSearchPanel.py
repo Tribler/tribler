@@ -786,7 +786,7 @@ class TopSearchPanel(bgPanel):
             self.results.SetForegroundColour(wx.Colour(255, 51, 0))
             self.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
             self.sr_msg.SetFont(wx.Font(FONT_SIZE_SR_MSG, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
-            self.search_results.SetMinSize((100,15))
+            self.search_results.SetMinSize((120,15))
             self.search_results.SetFont(wx.Font(FONT_SIZE_SEARCH_RESULTS, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))            
             self.files_friends.SetFont(wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
 
@@ -891,7 +891,7 @@ class TopSearchPanel(bgPanel):
         if sys.platform == 'win32':
             object_5.Add((150, 0), 1, 0, 0)
         else:
-            object_5.Add((120, 0), 1, 0, 0)
+            object_5.Add((100, 0), 1, 0, 0)
         if sys.platform == 'darwin':
             object_16.Add((0, 2), 0, 0, 0)
             object_16.Add(self.search_results, 0, 0, 0)

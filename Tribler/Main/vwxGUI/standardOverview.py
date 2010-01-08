@@ -10,7 +10,7 @@ from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
-from Tribler.Main.vwxGUI.standardGrid import filesGrid,libraryGrid,channelsGrid,popularGrid,chresultsGrid
+from Tribler.Main.vwxGUI.standardGrid import filesGrid,libraryGrid,channelsGrid,popularGrid
 from Tribler.Main.Utility.constants import *
 #from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue

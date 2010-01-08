@@ -14,8 +14,6 @@ from Tribler.Main.vwxGUI.LibraryItemPanel import LibraryItemPanel
 from Tribler.Main.vwxGUI.ChannelsItemPanel import ChannelsItemPanel
 from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Main.vwxGUI.PopularItemPanel import PopularItemPanel
-from Tribler.Main.vwxGUI.ChResultsItemPanel import ChResultsItemPanel
-
 
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
 from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
