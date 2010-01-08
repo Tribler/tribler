@@ -909,7 +909,8 @@ class RePEXLogger(RePEXerStatusCallback):
             print >>sys.stderr, 'RePEXLogger: repex_done: %s' % repexer
         self.repexlog.storeSwarmCache(repexer.infohash, swarmcache,
                                       (shufflecount,shufflepeers,bootstrapcount,datacost),
-                                      timestamp=repexer.ready_ts, commit=True)
+                                      timestamp=repexer.ready_ts, endtimestamp=repexer.end_ts,
+                                      commit=True)
 
 class RePEXLogDB:
     """
@@ -918,7 +919,7 @@ class RePEXLogDB:
     __single = None    # used for multithreaded singletons pattern
     lock = RLock()
     PEERDB_FILE = 'repexlog.pickle'
-    PEERDB_VERSION = '0.6'
+    PEERDB_VERSION = '0.7'
     MAX_HISTORY = 20480 # let's say 1K per SwarmCache, 20480 would be max 20 MB...
     
     @classmethod
@@ -966,7 +967,7 @@ class RePEXLogDB:
         finally:
             self.lock.release()
         
-    def storeSwarmCache(self, infohash, swarmcache, stats = None, timestamp=-1, commit=False):
+    def storeSwarmCache(self, infohash, swarmcache, stats = None, timestamp=-1, endtimestamp=-1, commit=False):
         """
         Stores the SwarmCache for a given infohash. Does not automatically
         commit the changes to file.
@@ -986,7 +987,7 @@ class RePEXLogDB:
                             b2a_hex(infohash), '', '') # less cluttered
         self.lock.acquire()
         try:
-            self.history.append((infohash,swarmcache,stats,timestamp))
+            self.history.append((infohash,swarmcache,stats,timestamp,endtimestamp))
             if len(self.history) > self.MAX_HISTORY:
                 del self.history[:-self.MAX_HISTORY]
             if commit:
@@ -1106,4 +1107,5 @@ class RePEXerTester(RePEXerStatusCallback):
         # Always log to RePEXLogDB
         self.peerdb.storeSwarmCache(repexer.infohash, swarmcache,
                                     (shufflecount,shufflepeers,bootstrapcount,datacost),
-                                    timestamp=repexer.ready_ts, commit=True)
+                                    timestamp=repexer.ready_ts, endtimestamp=repexer.end_ts,
+                                    commit=True)
