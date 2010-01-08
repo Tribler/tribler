@@ -23,7 +23,7 @@ DEBUG = False
 if sys.platform == "linux2" or sys.platform == "darwin":
     USE_VLC_RAW_INTERFACE = False
 else:
-    USE_VLC_RAW_INTERFACE = True # False for Next-Share
+    USE_VLC_RAW_INTERFACE = False # False for Next-Share
     
 
 class VideoPlayer:
@@ -582,6 +582,7 @@ class VideoPlayer:
                     
             if mimetype is None:
                 if ext == '.avi':
+                    # Arno, 2010-01-08: Hmmm... video/avi is not official registered at IANA
                     mimetype = 'video/avi'
                 elif ext == '.mpegts' or ext == '.ts':
                     mimetype = 'video/mp2t'

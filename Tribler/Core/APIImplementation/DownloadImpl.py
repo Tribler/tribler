@@ -631,6 +631,7 @@ class DownloadImpl:
         # if auto detect fails
         if mimetype is None:
             if ext == '.avi':
+                # Arno, 2010-01-08: Hmmm... video/avi is not official registered at IANA
                 mimetype = 'video/avi'
             elif ext == '.mpegts' or ext == '.ts':
                 mimetype = 'video/mp2t'
