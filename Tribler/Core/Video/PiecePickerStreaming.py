@@ -14,6 +14,7 @@ if __debug__:
 # percent piece loss to emulate -- we just don't request this percentage of the pieces
 # only implemented for live streaming
 PIECELOSS = 0
+TEST_VOD_OVERRIDE = False
 
 DEBUG = False
 DEBUG_CHUNKS = False
@@ -278,7 +279,7 @@ class PiecePickerStreaming(PiecePicker):
         p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con, slowpieces=slowpieces, willrequest=willrequest,connection=connection)
         if DEBUGPP and self.videostatus.prebuffering:
             print >>sys.stderr,"PiecePickerStreaming: original PP.next returns",p
-        if p is None and not self.videostatus.live_streaming:
+        if p is None and not self.videostatus.live_streaming or TEST_VOD_OVERRIDE:
             # When the file we selected from a multi-file torrent is complete,
             # we won't request anymore pieces, so the normal way of detecting 
             # we're done is not working and we won't tell the video player 
@@ -643,6 +644,10 @@ class PiecePickerStreaming(PiecePicker):
         #print >>sys.stderr,"PiecePickerStreaming: Live hooked in, or VOD, valid range set to subset"
         first,last = self.videostatus.download_range()
         return self.videostatus.generate_range((first,last))
+            
+            
+    def am_I_complete(self):
+        return self.done and not TEST_VOD_OVERRIDE
             
             
 PiecePickerVOD = PiecePickerStreaming

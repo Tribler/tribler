@@ -57,6 +57,8 @@ class MovieTransportStreamWrapper:
         # TODO: shift play_pos in PiecePicking + interpret whence
         print >>sys.stderr,"MovieTransportStreamWrapper: seek() CALLED",pos,"whence",whence
         self.mt.seek(pos,whence=whence)
+        # Arno, 2010-01-08: seek also means we've started.
+        self.started = True
     
     def close(self):
         self.mt.stop()

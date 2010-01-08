@@ -282,7 +282,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     else:
                         nbytes2send = lastbyte+1 - firstbyte
             
-                    crheader = "bytes "+str(firstbyte)+"-"+str(lastbyte)+"/"+str(nbytes2send)
+                    # Arno, 2010-01-08: Fixed bug, now return /length
+                    crheader = "bytes "+str(firstbyte)+"-"+str(lastbyte)+"/"+str(length)
             
                     self.send_response(206)
                     self.send_header("Content-Range",crheader)
@@ -325,7 +326,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         if len(data) == 0:
                             done = True
                         
-                        #print >>sys.stderr,"videoserv: HTTP: read",len(data),"bytes"
+                        #print >>sys.stderr,"videoserv: HTTP: read",len(data),"bytes",currentThread().getName()
                         
                         if length is None:
                             # If length unknown, use chunked encoding
@@ -352,15 +353,14 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                                 print >>sys.stderr,"videoserv: do_GET: stream reached EOF or range query's send limit",currentThread().getName() 
                             break
                             
-                    if DEBUG:
-                        print >>sys.stderr,"videoserv: do_GET: Done sending data",currentThread().getName()
-                        
                     if nbyteswritten != nbytes2send:
                         print >>sys.stderr,"videoserv: do_GET: Sent wrong amount, wanted",nbytes2send,"got",nbyteswritten,currentThread().getName()
-            
-                    stream.close()
-                    if self.server.statuscallback is not None:
-                        self.server.statuscallback("Done")
+
+                    # Arno, 2010-01-08: No close on Range queries
+                    if not range:
+                        stream.close()
+                        if self.server.statuscallback is not None:
+                            self.server.statuscallback("Done")
                     
             finally:
                 self.server.release_inputstream(self.path)

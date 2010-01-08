@@ -64,7 +64,7 @@ class VideoStatus:
         self.movie_range = ( (movie_begin/piecelen, movie_begin%piecelen),
                              (movie_end/piecelen, movie_end%piecelen) )
         self.first_piecelen = piecelen - self.movie_range[0][1]
-        self.last_piecelen  = self.movie_range[1][1]
+        self.last_piecelen  = self.movie_range[1][1]+1 # Arno, 2010-01-08: corrected off by one error
         self.first_piece = self.movie_range[0][0]
         self.last_piece = self.movie_range[1][0]
         self.movie_numpieces = self.last_piece - self.first_piece + 1
@@ -177,7 +177,8 @@ class VideoStatus:
             if self.wraparound:
                 self.playback_pos = self.first_piece
             else:
-                self.playback_pos = self.last_piece
+                # Arno, 2010-01-08: Adjusted EOF condition to work well with seeking/HTTP range queries
+                self.playback_pos = self.last_piece+1
 
         for o in self.playback_pos_observers:
             o( oldpos, self.playback_pos )

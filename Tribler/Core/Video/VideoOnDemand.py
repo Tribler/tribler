@@ -4,7 +4,7 @@
 import sys
 from math import ceil
 from threading import Condition,currentThread
-from traceback import print_exc
+from traceback import print_exc,print_stack
 from tempfile import mkstemp
 import collections
 import os
@@ -683,7 +683,9 @@ class MovieOnDemandTransporter(MovieTransport):
 
         vs = self.videostatus
 
-        oldpos = vs.playback_pos
+        # Arno,2010-01-08: if all was pushed to buffer (!= read by user!) 
+        # then playbackpos = last+1
+        oldpos = min(vs.playback_pos,vs.last_piece) 
         vs.playback_pos = pos
 
         if vs.wraparound:
@@ -838,6 +840,7 @@ class MovieOnDemandTransporter(MovieTransport):
         """ Read at most numbytes from the stream. If numbytes is not given,
             pieces are returned. The bytes read will be returned, or None in
             case of an error or end-of-stream. """
+            
         if not self.curpiece:
             # curpiece_pos could be set to something other than 0! 
             # for instance, a seek request sets curpiece_pos but does not
@@ -865,6 +868,7 @@ class MovieOnDemandTransporter(MovieTransport):
             self.curpiece_pos += numbytes
         else:
             # return remainder of the piece, could be less than numbytes
+            
             data = self.curpiece[curpos:]
 
             self.curpiece = ""
@@ -875,6 +879,9 @@ class MovieOnDemandTransporter(MovieTransport):
     def start( self, bytepos = 0, force = False ):
         """ Initialise to start playing at position `bytepos'. """
         self._event_reporter.add_event(self.b64_infohash, "play")
+
+        if DEBUG:
+            print >>sys.stderr,"vod: trans: start:",bytepos
 
         # ARNOTODO: we don't use start(bytepos != 0) at the moment. See if we 
         # should. Also see if we need the read numbytes here, or that it
@@ -920,7 +927,7 @@ class MovieOnDemandTransporter(MovieTransport):
                     offset = newbytepos % vs.piecelen
 
             if DEBUG:
-                print >>sys.stderr,"vod: trans: === START at offset %d (piece %d) (forced: %s) ===" % (bytepos,piece,force)
+                print >>sys.stderr,"vod: trans: === START at offset %d (piece %d) (forced: %s) ===" % (bytepos,piece,force),currentThread().getName()
 
             # Initialise all playing variables
             self.curpiece = "" # piece currently being popped
@@ -960,7 +967,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         vs = self.videostatus
         if DEBUG:
-            print >>sys.stderr,"vod: trans: === STOP  = player closed conn === "
+            print >>sys.stderr,"vod: trans: === STOP  = player closed conn === ",currentThread().getName()
         if not vs.playing:
             return
         vs.playing = False
@@ -1041,7 +1048,8 @@ class MovieOnDemandTransporter(MovieTransport):
         if vs.wraparound:
             return False
 
-        return vs.playback_pos == vs.last_piece+1 and self.curpiece_pos >= len(self.curpiece)
+        # Arno, 2010-01-08: Adjusted EOF condition to work well with seeking/HTTP range queries
+        return vs.playback_pos == vs.last_piece+1 and len(self.outbuf) == 0 and self.curpiece_pos == 0 and len(self.curpiece) == 0
 
     def seek(self,pos,whence=os.SEEK_SET):
         """ Seek to the given position, a number in bytes relative to both
