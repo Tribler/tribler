@@ -397,7 +397,7 @@ class Connection:
             if EXTEND_MSG_CS in self.extend_hs_dict['m']:
                 self.remote_supports_cs = True
                 self.cs_status_supported.inc()
-                if self.connection.locally_initiated:
+                if self.is_closed_swarm and self.connection.locally_initiated:
                     self.start_cs_handshake()
             else:
                 self.remote_supports_cs = False
