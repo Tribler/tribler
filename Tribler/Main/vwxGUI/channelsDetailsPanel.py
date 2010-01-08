@@ -563,7 +563,7 @@ class fileItem(bgPanel):
         self.Refresh()
 
 
-    def play_clicked(self):
+    def play_clicked(self,event=None):
         ds = self.GetParent().GetParent().torrent.get('ds')
         selectedinfilename = self.storedTitle
         videoplayer = self._get_videoplayer(exclude=ds) 
