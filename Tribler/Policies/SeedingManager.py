@@ -152,7 +152,9 @@ class SeedingManager:
     def is_conn_eligible(self, conn):
         if conn.use_g2g:
             self.g2g_eligible = self.g2g_policy.apply(conn, self.download_state, self.storage)
-            if DEBUG: print >>sys.stderr,"DenySeeding to g2g peer: ",self.download_state.get_download().get_dest_files()
+            if DEBUG:
+                if not self.g2g_eligible:
+                    print >>sys.stderr,"DenySeeding to g2g peer: ",self.download_state.get_download().get_dest_files()
 
             # stop download when neither t4t_eligible nor g2g_eligible
             if not (self.t4t_eligible or self.g2g_eligible):
@@ -163,8 +165,10 @@ class SeedingManager:
             
         else:
             self.t4t_eligible = self.t4t_policy.apply(conn, self.download_state, self.storage)
-            if DEBUG: print >>sys.stderr,"DenySeeding to t4t peer: ",self.download_state.get_download().get_dest_files()
             
+            if DEBUG:
+                if not self.t4t_eligible:
+                    print >>sys.stderr,"DenySeeding to t4t peer: ",self.download_state.get_download().get_dest_files()
             # stop download when neither t4t_eligible nor g2g_eligible
             if not (self.t4t_eligible or self.g2g_eligible):
                 if DEBUG: print >>sys.stderr,"Stop seedings: ",self.download_state.get_download().get_dest_files()
@@ -235,12 +239,14 @@ class TitForTatRatioBasedSeeding(SeedingPolicy):
         dl = storage["total_down"] + download_state.get_total_transferred(DOWNLOAD)
 
         if dl == 0L:
-            ratio = 0.0
+            # no download will result in no-upload to anyone
+            ratio = 1.0
         else:
             ratio = 1.0*ul/dl
 
         if DEBUG: print >>sys.stderr, "TitForTatRatioBasedSeeding: apply:", dl, ul, ratio
-        return ratio <= 1.0
+
+        return ratio < 1.0
 
 class GiveToGetRatioBasedSeeding(SeedingPolicy):
     def __init__(self, Read):
@@ -252,11 +258,12 @@ class GiveToGetRatioBasedSeeding(SeedingPolicy):
         dl = conn.download.measure.get_total()
         ul = conn.upload.measure.get_total()
 
-        if dl == 0:
-            ratio = 0.0
+        if dl == 0L:
+            # no download will result in no-upload to anyone
+            ratio = 1.0
         else:
             ratio = 1.0*ul/dl
     
         if DEBUG: print >>sys.stderr, "GiveToGetRatioBasedSeedingapply:", dl, ul, ratio, self.Read('g2g_ratio', "int")/100.0
-        return ratio <= self.Read('g2g_ratio', "int")/100.0
+        return ratio < self.Read('g2g_ratio', "int")/100.0
 
