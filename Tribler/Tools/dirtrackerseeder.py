@@ -19,6 +19,7 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.API import *
 from Tribler.Core.BitTornado.__init__ import version, report_email
 
+MAXUPLOAD = 200 # KB/s or None
 
 checkpointedwhenseeding = False
 sesjun = None
@@ -135,7 +136,8 @@ def main():
     # setup and start downloads
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(torrentsdir)
-    #dscfg.set_max_speed(UPLOAD,256) # FOR DEMO
+    if MAXUPLOAD is not None:
+        dscfg.set_max_speed(UPLOAD,MAXUPLOAD)
     
     ##dscfg.set_max_uploads(32)
     
@@ -168,6 +170,9 @@ def main():
                                 break
                         if existing:
                             print >>sys.stderr,"Ignoring existing Download",`tdef.get_name()`
+                            
+                            if MAXUPLOAD is not None:
+                                d.set_max_speed(UPLOAD,MAXUPLOAD)
                         else:
                             if tracking:
                                 s.add_to_internal_tracker(tdef)
