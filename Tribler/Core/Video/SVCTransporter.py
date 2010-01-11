@@ -181,27 +181,10 @@ class SVCTransporter(MovieOnDemandTransporter):
         
         # Arno: 2007-01-04: Changed to 1MB. It appears ffplay works better with some
         # decent prebuffering. We should replace this with a timing based thing, 
-        
-        if not self.doing_bitrate_est:
-            prebufsecs = self.PREBUF_SEC_VOD
-
-            # assumes first piece is whole (first_piecelen == piecelen)
-            piecesneeded = vs.time_to_pieces( prebufsecs )
-            bytesneeded = piecesneeded * vs.piecelen
-        else:
-            # Arno, 2007-01-08: for very high bitrate files e.g. 
-            # 850 kilobyte/s (500 MB for 10 min 20 secs) this is too small
-            # and we'll have packet loss because we start too soon.
-            bytesneeded = 1024 * 1024
-            piecesneeded = 1 + int(ceil((bytesneeded - vs.piecelen) / float(vs.piecelen)))
-
-        self.max_prebuf_packets = min(vs.movie_numpieces, piecesneeded)
-
-        if self.doing_ffmpeg_analysis and DEBUG:
-            print >>sys.stderr,"vod: trans: Want",self.max_prebuf_packets,"pieces for FFMPEG analysis, piecesize",vs.piecelen
+        # Boudewijn: 11/01/10: Buffer size is calculated in the videostatus
 
         if DEBUG:
-            print >>sys.stderr,"vod: trans: Want",self.max_prebuf_packets,"pieces for prebuffering"
+            print >>sys.stderr,"vod: trans: Want", self.videostatus.get_high_range_length(), "pieces for prebuffering. piecesize", self.videostatus.piecelen
 
         self.nreceived = 0
         
@@ -266,7 +249,7 @@ class SVCTransporter(MovieOnDemandTransporter):
 
 
     def parse_video(self):
-        """ Feeds the first max_prebuf_packets to ffmpeg to determine video bitrate. """
+        """ Feeds the first high-priority-range to ffmpeg to determine video bitrate. """
         vs = self.videostatus
         width = None
         height = None
@@ -382,8 +365,9 @@ class SVCTransporter(MovieOnDemandTransporter):
             print >>sys.stderr,"vod: trans: Still need pieces",missing_pieces,"for prebuffering/FFMPEG analysis"
 
         if vs.dropping:
-            if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > self.max_prebuf_packets:
-                perc = float(self.max_prebuf_packets)/10.0
+            high_range_length = self.videostatus.get_high_range_length()
+            if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > high_range_length:
+                perc = float(high_range_length)/10.0
                 if float(len(missing_pieces)) < perc or self.nreceived > (2*len(missing_pieces)):
                     # If less then 10% of packets missing, or we got 2 times the packets we need already,
                     # force start of playback
@@ -449,7 +433,7 @@ class SVCTransporter(MovieOnDemandTransporter):
 
         elif DEBUG:
             if self.doing_ffmpeg_analysis:
-                print >>sys.stderr,"vod: trans: Prebuffering: waiting to obtain the first %d packets" % (self.max_prebuf_packets)
+                print >>sys.stderr,"vod: trans: Prebuffering: waiting to obtain the first %d packets" % self.videostatus.get_high_range_length()
             else:
                 print >>sys.stderr,"vod: trans: Prebuffering: %.2f seconds left" % (self.expected_buffering_time())
         

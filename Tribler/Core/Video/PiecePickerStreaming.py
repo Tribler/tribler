@@ -17,7 +17,7 @@ PIECELOSS = 0
 TEST_VOD_OVERRIDE = False
 
 DEBUG = False
-DEBUG_CHUNKS = False
+DEBUG_CHUNKS = False # set DEBUG_CHUNKS in BT1.Downloader to True
 DEBUGPP = False
 
 def rarest_first( has_dict, rarity_list, filter = lambda x: True ):
@@ -417,7 +417,7 @@ class PiecePickerStreaming(PiecePicker):
         if vs.live_streaming:
             # first, make sure we know where to start downloading
             if vs.live_startpos is None:
-                self.transporter.calc_live_startpos( self.transporter.max_prebuf_packets, False )
+                self.transporter.calc_live_startpos( vs.get_high_range_length(), False )
                 print >>sys.stderr,"vod: pp determined startpos of",vs.live_startpos
 
             # select any interesting piece, rarest first
@@ -560,7 +560,7 @@ class PiecePickerStreaming(PiecePicker):
 
         if vs.prebuffering:
             f = first
-            t = vs.normalize( first + self.transporter.max_prebuf_packets )
+            t = vs.normalize( first + vs.get_high_range_length() )
             choice = pick_rarest_small_range(f,t)
             type = "high"
         else:

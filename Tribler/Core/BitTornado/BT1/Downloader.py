@@ -27,6 +27,7 @@ except:
     False = 0
 
 DEBUG = False
+DEBUG_CHUNKS = False # set DEBUG_CHUNKS in PiecePickerStreaming to True
 EXPIRE_TIME = 60 * 60
 
 # only define the following functions in __debug__. And only import
@@ -35,7 +36,7 @@ EXPIRE_TIME = 60 * 60
 #
 # Arno, 2009-06-15: Win32 binary versions have __debug__ True apparently, workaround.
 #
-if DEBUG:
+if DEBUG_CHUNKS:
     _ident_letters = {}
     _ident_letter_pool = None
     def get_ident_letter(download):
@@ -119,13 +120,15 @@ if DEBUG:
             else:
                 s_after = ""
 
-            #print >>sys.stderr, "Outstanding %s:%d:%d:%s [%s|%s|%s]" % (s_before, pieces[0], pieces[-1], s_after, "".join(map(print_chunks_helper, before)), "".join(map(print_chunks_helper, pieces)), "".join(map(print_chunks_helper, after)))
+            print >>sys.stderr, "Outstanding %s:%d:%d:%s [%s|%s|%s]" % (s_before, pieces[0], pieces[-1], s_after, "".join(map(print_chunks_helper, before)), "".join(map(print_chunks_helper, pieces)), "".join(map(print_chunks_helper, after)))
 
         else:
             print >>sys.stderr, "Outstanding 0:0 []"
+
 else:
     def print_chunks(downloader, pieces, before=(), after=(), compact=True):
         pass
+
 
 class PerIPStats:  
     def __init__(self, ip):
