@@ -552,6 +552,9 @@ class PlayerFrame(VideoFrame):
         print >>sys.stderr,"main: Closing done"
         # TODO: Show balloon in systray when closing window to indicate things continue there
 
+    def set_player_status(self,s):
+        pass
+
 
 class FileDropTarget(wx.FileDropTarget):
     """ To enable drag and drop of .tstream to window """

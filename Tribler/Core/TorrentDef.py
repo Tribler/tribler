@@ -8,6 +8,7 @@ import math
 from traceback import print_exc,print_stack
 from types import StringType,ListType,IntType,LongType
 
+import Tribler
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
 from Tribler.Core.exceptions import *

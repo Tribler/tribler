@@ -1049,9 +1049,6 @@ class SessionConfigInterface:
         """ File to log message to in super peer mode (default = No logging)
         @param value An absolute path name.
         """
-        
-        print_stack()
-        
         self.sessconfig['overlay_log'] = value
 
     def get_overlay_log(self):

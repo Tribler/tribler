@@ -50,7 +50,7 @@ from Tribler.Core.API import *
 from Tribler.Core.osutils import *
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
-from Tribler.Utilities.Instance2Instance import InstanceConnectionHandler,InstanceConnection
+from Tribler.Utilities.Instance2Instance import InstanceConnectionHandler,InstanceConnection, Instance2InstanceClient
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.Player.BaseApp import BaseApp
 from Tribler.Player.swarmplayer import get_status_msgs
