@@ -4,6 +4,7 @@
 
 import sys
 import time
+import socket
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
 from threading import RLock,Thread,currentThread
@@ -365,6 +366,10 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             finally:
                 self.server.release_inputstream(self.path)
             
+        except socket.error,e2:
+            #if DEBUG:
+            #    print >>sys.stderr,"videoserv: SocketError occured while serving",currentThread().getName()
+            pass
         except Exception,e:
             if DEBUG:
                 print >>sys.stderr,"videoserv: Error occured while serving",currentThread().getName()

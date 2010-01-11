@@ -753,7 +753,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         # the download time estimator is very inacurate when we only
         # have a few chunks left. therefore, we will put more emphesis
-        # on the overall_rate as the number of uncompleted_pieces does
+        # on the overall_rate as the number of uncompleted_pieces goes
         # down.
         total_length = vs.get_high_range_length()
         uncompleted_length = len(uncompleted_pieces)
