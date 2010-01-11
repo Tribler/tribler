@@ -37,8 +37,8 @@ if sys.platform == "win32":
                 # the following will fail on python 2.4, 2.5, 2.x this will
                 # always succeed on python 3.x
                 return os.path.expanduser(u"~")
-            except Exception, e:
-                unicode_error = e
+            except Exception, unicode_error:
+                pass
 
             # non-unicode home
             home = os.path.expanduser("~")
@@ -66,9 +66,9 @@ if sys.platform == "win32":
                 return os.path.join(head, udirs[0])
 
             # assume that the user has write access in her own
-            # directory. therefore we can filter out any nnon-writable
+            # directory. therefore we can filter out any non-writable
             # directories
-            writable_udir = [udir for udir in udirs if os.access(udir, ow.W_OK)]
+            writable_udir = [udir for udir in udirs if os.access(udir, os.W_OK)]
             if len(writable_udir) == 1:
                 return os.path.join(head, writable_udir[0])
 
@@ -79,7 +79,7 @@ if sys.platform == "win32":
                     return os.path.join(head, udir)
 
             # failure
-            raise unicode_exception
+            raise unicode_error
 
         def get_picture_dir():
             return get_home_dir()

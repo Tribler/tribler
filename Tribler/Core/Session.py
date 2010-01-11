@@ -30,56 +30,6 @@ except ImportError:
 
 DEBUG = False
 
-def get_home_dir():
-    try:
-        # when there are special unicode characters in the username,
-        # the following will fail on python 2.4, 2.5, 2.x this will
-        # always succeed on python 3.x
-        return os.path.expanduser(u"~")
-    except Exception, e:
-        unicode_error = e
-
-    # non-unicode home
-    home = os.path.expanduser("~")
-    head, tail = os.path.split(home)
-
-    dirs = os.listdir(head)
-    udirs = os.listdir(unicode(head))
-
-    # the character set may be different, but the string length is
-    # still the same
-    islen = lambda dir: len(dir) == len(tail)
-    dirs = filter(islen, dirs)
-    udirs = filter(islen, udirs)
-    if len(dirs) == 1 and len(udirs) == 1:
-        return os.path.join(head, udirs[0])
-
-    # remove all dirs that are equal in unicode and non-unicode. we
-    # know that we don't need these dirs because the initial
-    # expandusers would not have failed on them
-    for dir in dirs[:]:
-        if dir in udirs:
-            dirs.remove(dir)
-            udirs.remove(dir)
-    if len(dirs) == 1 and len(udirs) == 1:
-        return os.path.join(head, udirs[0])
-
-    # assume that the user has write access in her own
-    # directory. therefore we can filter out any non-writable
-    # directories
-    writable_udir = [udir for udir in udirs if os.access(udir, os.W_OK)]
-    if len(writable_udir) == 1:
-        return os.path.join(head, writable_udir[0])
-
-    # fallback: assume that the order of entries in dirs is the same
-    # as in udirs
-    for dir, udir in zip(dirs, udirs):
-        if dir == tail:
-            return os.path.join(head, udir)
-
-    # failure
-    raise unicode_exception
-
 class Session(SessionRuntimeConfig):
     """
     
