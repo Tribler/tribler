@@ -9,7 +9,7 @@ import time
 
 from Tribler.Core.simpledefs import *
 
-DEBUG = False
+DEBUG = True
 
 STORAGE_VERSION_ONE = 1
 STORAGE_VERSION_CURRENT = STORAGE_VERSION_ONE
@@ -153,7 +153,9 @@ class SeedingManager:
         if conn.use_g2g:
             self.g2g_eligible = self.g2g_policy.apply(conn, self.download_state, self.storage)
             if DEBUG:
-                if not self.g2g_eligible:
+                if self.g2g_eligible:
+                    print >>sys.stderr,"AllowSeeding to g2g peer: ",self.download_state.get_download().get_dest_files()
+                else:
                     print >>sys.stderr,"DenySeeding to g2g peer: ",self.download_state.get_download().get_dest_files()
 
             # stop download when neither t4t_eligible nor g2g_eligible
@@ -167,7 +169,9 @@ class SeedingManager:
             self.t4t_eligible = self.t4t_policy.apply(conn, self.download_state, self.storage)
             
             if DEBUG:
-                if not self.t4t_eligible:
+                if self.t4t_eligible:
+                    print >>sys.stderr,"AllowSeeding to t4t peer: ",self.download_state.get_download().get_dest_files()
+                else:
                     print >>sys.stderr,"DenySeeding to t4t peer: ",self.download_state.get_download().get_dest_files()
             # stop download when neither t4t_eligible nor g2g_eligible
             if not (self.t4t_eligible or self.g2g_eligible):

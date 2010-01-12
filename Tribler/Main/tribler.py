@@ -519,7 +519,7 @@ class ABCApp(wx.App):
  
 # SelectiveSeeding _       
         self.seedingmanager = GlobalSeedingManager(self.utility.config.Read, os.path.join(state_dir, STATEDIR_SEEDINGMANAGER_DIR))
-        self.seedingcount = 0 
+        # self.seedingcount = 0 
 # _SelectiveSeeding
 
         # seeding stats crawling
@@ -783,13 +783,13 @@ class ABCApp(wx.App):
             
 # SelectiveSeeding_
             # Apply seeding policy every 60 seconds, for performance
-            applyseedingpolicy = False
-            if self.seedingcount % 60 == 0:
-                applyseedingpolicy = True
-            self.seedingcount += 1
-    
-            if applyseedingpolicy:
-                self.seedingmanager.apply_seeding_policy(dslist)
+            # Boudewijn 12/01/10: apply seeding policies immediately
+            # applyseedingpolicy = False
+            # if self.seedingcount % 60 == 0:
+            #     applyseedingpolicy = True
+            # self.seedingcount += 1
+            # if applyseedingpolicy:
+            self.seedingmanager.apply_seeding_policy(dslist)
 # _SelectiveSeeding
             
 # Crawling Seeding Stats_
