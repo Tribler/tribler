@@ -37,7 +37,7 @@ QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
 MAX_PEERS_TO_QUERY = 20
 
-DEBUG = False
+DEBUG = True
 
 class FakeUtility:
     

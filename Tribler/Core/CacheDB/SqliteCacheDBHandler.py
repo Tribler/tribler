@@ -4118,7 +4118,44 @@ class TermDBHandler(BasicDBHandler):
         """use with caution,- for testing purposes"""
         return self.getAll("term_id, term", order_by="term_id")
     
+class SimilarityDBHandler:
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
     
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if SimilarityDBHandler.__single is None:
+            SimilarityDBHandler.lock.acquire()   
+            try:
+                if SimilarityDBHandler.__single is None:
+                    SimilarityDBHandler(*args, **kw)
+            finally:
+                SimilarityDBHandler.lock.release()
+        return SimilarityDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if SimilarityDBHandler.__single is not None:
+            raise RuntimeError, "SimilarityDBHandler is singleton"
+        SimilarityDBHandler.__single = self
+        self._db = SQLiteCacheDB.getInstance()
+    
+    def getOverlapWithPeer(self, peer_id, myprefs):
+        sql_get_overlap_with_peer = """SELECT Peer.peer_id, num_prefs, COUNT(torrent_id) FROM Peer
+                                        JOIN Preference ON Peer.peer_id = Preference.peer_id 
+                                        WHERE torrent_id IN("""+','.join(map(str,myprefs))+""") 
+                                        AND Peer.peer_id = ? GROUP BY Peer.peer_id"""
+        row = self._db.fetchone(sql_get_overlap_with_peer, (peer_id,))
+        return row
+    
+    def getPeersWithOverlap(self, not_peer_id, myprefs):
+        sql_get_peers_with_overlap = """SELECT Peer.peer_id, num_prefs, COUNT(torrent_id) FROM Peer
+                                        JOIN Preference ON Peer.peer_id = Preference.peer_id 
+                                        WHERE torrent_id IN("""+','.join(map(str,myprefs))+""") 
+                                        AND Peer.peer_id <> ? GROUP BY Peer.peer_id"""
+        row = self._db.fetchall(sql_get_peers_with_overlap, (not_peer_id,))
+        return row
+
 class SearchDBHandler(BasicDBHandler):
     
     __single = None    # used for multithreaded singletons pattern

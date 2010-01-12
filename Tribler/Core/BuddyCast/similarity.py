@@ -68,7 +68,6 @@ def P2PSimSorted(pref1, pref2):
     sim = int(_sim*1000)    # use integer for bencode
     return sim
 
-
 def P2PSimLM(peer_permid, my_pref, peer_pref, owners, total_prefs, mu=1.0):
     """
         Calculate similarity between two peers using Bayesian Smooth.
@@ -95,6 +94,40 @@ def P2PSimLM(peer_permid, my_pref, peer_pref, owners, total_prefs, mu=1.0):
         PbsUI = float(cUI + mu*PmlU)/(nowners + mu)
         peer_sim += PbsUI*PmlIU
     return peer_sim * 100000
+
+
+def P2PSim_Single(db_row, nmyprefs):
+    sim = 0
+    if db_row:
+        peer_id, nr_items, overlap = db_row
+        
+        #Cosine Similarity With Emphasis on users with profilelength >= 40
+        sim = overlap * ((1.0/(nmyprefs ** .5)) * (1.0/(nr_items ** .5)))
+        if nr_items < 40:
+            sim = (nr_items/40.0) * sim
+    return sim
+
+def P2PSim_Full(db_rows, nmyprefs):
+    similarity = {}  
+    for db_row in db_rows:
+        similarity[db_row[0]] = P2PSim_Single(db_row, nmyprefs)
+    return similarity
+
+def P2PSimColdStart(choose_from, not_in, nr):
+    """
+        choose_from has keys: ip port oversion num_torrents
+        not_in is [version, permid]
+        return a list containing [version, permid]
+    """
+    allready_choosen = [permid for version,sim,permid in not_in]
+    options = []
+    for permid in choose_from:
+        if permid not in allready_choosen:
+            options.append([choose_from[permid]['num_torrents'],[choose_from[permid]['oversion'],0.0,permid]])
+    options.sort()
+    options.reverse()
     
+    options = [row[1] for row in options[:nr]]
+    return options
     
     

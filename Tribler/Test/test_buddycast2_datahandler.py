@@ -86,6 +86,7 @@ class FakeLauchMany:
 
         self.votecast_db = VoteCastDBHandler.getInstance()
         self.votecast_db.registerSession(self.session)
+        self.simi_db        = SimilarityDBHandler.getInstance()
 
     def get_ext_ip(self):
         return None

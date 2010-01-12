@@ -173,7 +173,7 @@ from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND, NTFY_MYPR
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_ELEVENTH , OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
-from similarity import P2PSimLM
+from similarity import P2PSim_Single, P2PSim_Full, P2PSimColdStart
 from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollecting
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Statistics.Crawler import Crawler
@@ -204,7 +204,7 @@ REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in
 # used for datahandler.peers
 PEER_SIM_POS = 0
 PEER_LASTSEEN_POS = 1
-PEER_PREF_POS = 2
+#PEER_PREF_POS = 2 #not needed since new similarity function
 
 def now():
     return int(time())
@@ -1608,16 +1608,33 @@ class BuddyCastCore:
             sim = self.data_handler.getPeerSim(permid)            
             version = self.connected_connectable_peers[permid]['oversion']
             if sim > 0:
-                tmplist.append([version,permid])
+                tmplist.append([version,sim,permid])
             else:
                 rps.append(permid)
-        tmplist.sort()
-        tmplist.reverse()
         
         #ntb = self.max_conn_tb    # 10 tb & 10 rp
         ntb = min((nconnpeers+1)/2, self.max_conn_tb)    # half tb and half rp
+        
+        """ tmplist now contains all peers which have sim > 0, 
+            because of new similarity function we add X peers until ntb is reached
+        """
+        if len(tmplist) < ntb:
+            cold_start_peers = P2PSimColdStart(self.connected_connectable_peers, tmplist, ntb - len(tmplist))
+            tmplist.extend(cold_start_peers)
+            
+            #remove cold_start_peers from rps
+            for version, sim, permid in cold_start_peers: 
+                if permid in rps:
+                    rps.remove(permid) 
+        
+        """ sort tmplist, emphasis is on overlay version, then on similarity.
+            thus we try to select top-(self.max_conn_tb) with the highest overlay/similarity
+        """
+        tmplist.sort()
+        tmplist.reverse() 
+        
         if len(tmplist) > 0:
-            for version,permid in tmplist:
+            for version,sim,permid in tmplist:
                 if version >= OLPROTO_VER_CURRENT and better_version_peers<=3: #OLPROTO_VER_ELEVENTH
                     better_version_peers += 1
                     tmpverlist.append(permid)
@@ -1625,7 +1642,6 @@ class BuddyCastCore:
                     recent_version_peers += 1
                     tmpverlist.append(permid)
                 else:
-                    sim = self.data_handler.getPeerSim(permid)
                     tmplist2.append([sim,permid])
             tmplist2.sort()
             tmplist2.reverse()
@@ -2011,15 +2027,14 @@ class DataHandler:
         self.torrent_db = launchmany.torrent_db
         self.mypref_db = launchmany.mypref_db
         self.pref_db = launchmany.pref_db
+        self.simi_db = launchmany.simi_db
         # self.term_db = launchmany.term_db
         self.friend_db = launchmany.friend_db
         self.myfriends = Set() # FIXME: implement friends
         self.myprefs = []    # torrent ids
         self.peers = {}    # peer_id: [similarity, last_seen, prefs(array('l',[torrent_id])] 
         self.default_peer = [0, 0, None]
-        self.owners = {}    # torrent_ids_of_mine: Set(peer_id)
         self.permid = self.getMyPermid()
-        self.nprefs = 0
         self.ntorrents = 0
         self.last_check_ntorrents = 0
         #self.total_pref_changed = 0
@@ -2093,13 +2108,6 @@ class DataHandler:
         # get most recent preferences, and sort by torrent id
         res = self.mypref_db.getAll('torrent_id', order_by='creation_time desc', limit=num_pref)
         self.myprefs = [p[0] for p in res]
-        
-        for torrent_id in self.myprefs:
-            self.updateOwners(torrent_id)
-            
-    def updateOwners(self, torrent_id):
-        res = self.pref_db.getAll('peer_id', where='torrent_id=%d'%torrent_id)
-        self.owners[torrent_id] = Set([p[0] for p in res])
                 
     def loadAllPeers(self, num_peers=None):
         """ Read peers from db and put them in self.peers.
@@ -2109,12 +2117,11 @@ class DataHandler:
         peer_values = self.peer_db.getAll(['peer_id','similarity','last_seen'], order_by='last_connected desc', limit=num_peers)
         self.peers = dict(zip([p[0] for p in peer_values], [[p[1],p[2],array('l', [])] for p in peer_values])) 
 
+        """ Not needed due to new similarity function
         user_item_pairs = self.pref_db.getRecentPeersPrefs('last_connected',num_peers)
-        self.nprefs = len(user_item_pairs)
-
         for pid,tid in user_item_pairs:
             self.peers[pid][PEER_PREF_POS].append(tid)
-
+        """
         #print >> sys.stderr, '**************** loadAllPeers', len(self.peers)
 
 #        for pid in self.peers:
@@ -2122,7 +2129,9 @@ class DataHandler:
 
     def updateAllSim(self, delay=4, batch=50, update_interval=10):
         self._updateAllPeerSim(delay, batch, update_interval)    # 0.156 second
-        self._updateAllItemRel(delay, batch, update_interval)    # 0.875 second
+        
+        #Disabled Torrent Relevancy since 5.0
+        #self._updateAllItemRel(delay, batch, update_interval)    # 0.875 second
         # Tuning batch (without index relevance)
         
         # batch = 25:                             0.00 0.22 0.58
@@ -2170,23 +2179,20 @@ class DataHandler:
         
     def _updateAllPeerSim(self, delay, batch, update_interval):
         # update similarity to all peers to keep consistent
-
-        if self.old_peer_num == len(self.peers):    # if no new peers, don't update
-            return
-        starttime = time()
-        self.nprefs = 0    # total nprefs must be updated before compute similarity
-        for peer_id in self.peers:
-            self.nprefs += len(self.peers[peer_id][PEER_PREF_POS])
-            
+        #if self.old_peer_num == len(self.peers):    # if no new peers, don't update
+        #    return
+        
+        #call full_update
         updates = {}
-        for peer_id in self.peers:
-            oldsim = self.peers[peer_id][PEER_SIM_POS]
-            if not self.peers[peer_id][PEER_PREF_POS]:
-                continue
-            self.updateSimilarity(peer_id, False)
-            sim = self.peers[peer_id][PEER_SIM_POS]
-            if abs(sim - oldsim) > oldsim*0.05:
-                updates[peer_id] = sim
+        if len(self.myprefs) > 0:
+           not_peer_id = self.getPeerID(self.permid)
+           similarities = P2PSim_Full(self.simi_db.getPeersWithOverlap(not_peer_id, self.myprefs), len(self.myprefs))
+            
+           for peer_id in self.peers:
+               if peer_id in similarities:
+                   oldsim = self.peers[peer_id][PEER_SIM_POS]
+                   sim = similarities[peer_id]
+                   updates[peer_id] = sim
 
         #print >> sys.stderr, '****************** update peer sim', len(updates), len(self.peers)        
         if updates:
@@ -2196,6 +2202,10 @@ class DataHandler:
         # update all item's relevance
         # Relevance of I = Sum(Sim(Users who have I)) + Poplarity(I)
         # warning: this function may take 5 seconds to commit to the database
+        
+        """
+        Disabled, not in use since v5.0
+        
         if len(self.peers) == 0:
             return
         tids = {}
@@ -2231,7 +2241,7 @@ class DataHandler:
         #print >> sys.stderr, '**************--- update all item rel', len(tids), len(old_rels) #, len(self.peers), nsimpeers, tids.items()[:10]  # 37307 2500
         if tids:
             self.cacheSimUpdates('torrent', tids, delay, batch, update_interval)
-
+        """
 
     def sesscb_ntfy_myprefs(self,subject,changeType,objectID,*args):
         """ Called by SessionCallback thread """
@@ -2262,7 +2272,6 @@ class DataHandler:
         
         if torrent_id not in self.myprefs:
             insort(self.myprefs, torrent_id)
-            self.updateOwners(torrent_id)
             self.old_peer_num = 0
             self.updateAllSim() # time-consuming
             #self.total_pref_changed += self.update_i2i_threshold
@@ -2271,7 +2280,6 @@ class DataHandler:
         torrent_id = self.torrent_db.getTorrentID(infohash)
         if torrent_id in self.myprefs:
             self.myprefs.remove(torrent_id)
-            self.owners.pop(torrent_id)
             self.old_peer_num = 0
             self.updateAllSim()
             #self.total_pref_changed += self.update_i2i_threshold
@@ -2283,18 +2291,7 @@ class DataHandler:
             p[0] = str2bin(p[0])
             self.buddycast_core.addRemoteSearchPeer(*tuple(p))
         pass
-    
-        
-    def updatePeerPref(self, peer_permid, cur_prefs):
-        peer_id = self.getPeerID(peer_permid)
-        cur_prefs_array = array('l', cur_prefs)
-        self.peers[peer_id][PEER_PREF_POS] = cur_prefs_array
-            
-        overlap = Set(self.owners).intersection(Set(self.peers[peer_id][PEER_PREF_POS]))
-        if len(overlap) > 0:
-            for torrent_id in overlap:
-                self.owners[torrent_id].add(peer_id)
-    
+
     def getMyLivePreferences(self, selversion, num=0):
         """ Get a number of my preferences. Get all if num==0 """
         #Rahim
@@ -2318,7 +2315,7 @@ class DataHandler:
                 sim = self.peers[peer_id][PEER_SIM_POS]
         if sim is None:
             sim = 0
-        if not raw:    
+        if not raw:
             # negative value means it is calculated from other peers, 
             # not itself. See addRelativeSim()
             return abs(sim)
@@ -2339,11 +2336,7 @@ class DataHandler:
         """ Get a number of peer's preference list. Get all if num==0.
             If live==True, dead torrents won't include
         """
-        peer_id = self.getPeerID(peer_permid)
-        if peer_id not in self.peers:
-            return self.pref_db.getPrefList(peer_permid)
-        else:
-            return self.peers[peer_id][PEER_PREF_POS]
+        return self.pref_db.getPrefList(peer_permid)
     
 #    def addPeer(self, peer_permid, last_seen, peer_data=None, commit=True):  
 #        """ add a peer from buddycast message to both cache and db """
@@ -2430,8 +2423,6 @@ class DataHandler:
                 
         if len(prefs2add) > 0:
             self.pref_db.addPreferences(peer_permid, prefs2add, recvTime, is_torrent_id=True, commit=commit) 
-            self.updatePeerPref(peer_permid, cur_prefs)
-            self.nprefs += len(prefs2add)
             peer_id = self.getPeerID(peer_permid)
             self.updateSimilarity(peer_id, commit=commit)
             
@@ -2444,15 +2435,11 @@ class DataHandler:
         
         if len(self.myprefs) == 0:
             return
-        sim = self.LMP2PSimilarity(peer_id)
+        
+        sim = P2PSim_Single(self.simi_db.getOverlapWithPeer(peer_id, self.myprefs), len(self.myprefs));
         self.peers[peer_id][PEER_SIM_POS] = sim
         if update_db and sim>0:
             self.peer_db.updatePeerSims([(sim,peer_id)], commit=commit)
-
-    def LMP2PSimilarity(self, peer_id):
-        peer_pref = self.peers[peer_id][PEER_PREF_POS]
-        sim = P2PSimLM(peer_id, self.myprefs, peer_pref, self.owners, self.nprefs, mu=1.0)
-        return sim
     
 #    def increaseBuddyCastTimes(self, peer_permid, commit=True):
 #        self.peer_db.updateTimes(peer_permid, 'buddycast_times', 1, commit=False)

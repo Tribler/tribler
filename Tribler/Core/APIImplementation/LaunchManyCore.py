@@ -90,7 +90,7 @@ class TriblerLaunchMany(Thread):
         # do_cache -> do_overlay -> (do_buddycast, do_download_help)
         if config['megacache']:
             import Tribler.Core.CacheDB.cachedb as cachedb
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyDBHandler, PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, BarterCastDBHandler, VoteCastDBHandler, SearchDBHandler,TermDBHandler, CrawlerDBHandler, ChannelCastDBHandler      
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyDBHandler, PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, BarterCastDBHandler, VoteCastDBHandler, SearchDBHandler,TermDBHandler, CrawlerDBHandler, ChannelCastDBHandler, SimilarityDBHandler      
             from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import SeedingStatsDBHandler, SeedingStatsSettingsDBHandler
             from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
             from Tribler.Category.Category import Category
@@ -135,6 +135,7 @@ class TriblerLaunchMany(Thread):
             self.channelcast_db.registerSession(self.session)
             self.search_db      = SearchDBHandler.getInstance()
             self.term_db        = TermDBHandler.getInstance()
+            self.simi_db        = SimilarityDBHandler.getInstance()
 
             # Crawling 
             self.crawler_db     = CrawlerDBHandler.getInstance()
