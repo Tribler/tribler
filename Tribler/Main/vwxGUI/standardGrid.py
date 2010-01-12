@@ -845,7 +845,7 @@ class standardGrid(wx.Panel):
 
     def expandPanelFromIndex(self, index):
         if index == -1:
-            pass
+            self.deselectAllChannels()
         else:
             hSizer = self.vSizer.GetItem(index%self.currentRows+1).GetSizer()
             panel = hSizer.GetItem(index/self.currentRows).GetWindow()

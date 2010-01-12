@@ -3416,7 +3416,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         votecastdb = VoteCastDBHandler.getInstance()
         allrecords = []
 
-        t1 = time()
 
         sql = "select distinct publisher_id, publisher_name from ChannelCast"
         channel_records = self._db.fetchall(sql)
@@ -3544,6 +3543,8 @@ class ChannelCastDBHandler(BasicDBHandler):
 
         sql = "select distinct mod_id from VoteCast where voter_id='"+bin2str(self.my_permid)+"' and vote=2"
         subscribed_channels = self._db.fetchall(sql)
+
+
         
         subscribers = {}
         for record in subscribed_channels:
