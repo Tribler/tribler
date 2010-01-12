@@ -12,7 +12,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.ItemPanel import ItemPanel
 from Tribler.Main.vwxGUI.LibraryItemPanel import LibraryItemPanel
 from Tribler.Main.vwxGUI.ChannelsItemPanel import ChannelsItemPanel
-from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
+#from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Main.vwxGUI.PopularItemPanel import PopularItemPanel
 
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
