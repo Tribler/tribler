@@ -76,7 +76,7 @@ class TorrentFeedThread(Thread):
         
 
         # when rss feeds change, we have to restart the checking
-        self.feeds_changed = False
+        self.feeds_changed = Event()
 
     def getInstance(*args, **kw):
         if TorrentFeedThread.__single is None:
@@ -155,7 +155,7 @@ class TorrentFeedThread(Thread):
             if status == "active":
                 feed = TorrentFeedReader(url,self.gethistfilename(url))
                 self.feeds.append([feed, on_torrent_callback, callback])
-                self.feeds_changed = True
+                self.feeds_changed.set()
             if dowrite:
                 self.writefile()
         if callback:
@@ -218,7 +218,7 @@ class TorrentFeedThread(Thread):
                 if feed[0] == url:
                     del self.feeds[i]
                     print >> sys.stderr , "DELETE FEED"
-                    self.feeds_changed = True
+                    self.feeds_changed.set()
                     break
             self.writefile()
         self.lock.release()
@@ -230,7 +230,7 @@ class TorrentFeedThread(Thread):
         while not self.done.isSet():
             self.lock.acquire()
             cfeeds = self.feeds[:]
-            self.feeds_changed = False
+            self.feeds_changed.clear()
             self.lock.release()
             
             # feeds contains (rss_url, generator) pairs
@@ -300,7 +300,7 @@ class TorrentFeedThread(Thread):
 
                     self.lock.acquire()
                     try:
-                        if self.feeds_changed:
+                        if self.feeds_changed.isSet():
                             feeds = None
                             break
                     finally:
@@ -308,16 +308,7 @@ class TorrentFeedThread(Thread):
 
             # sleep for a relatively long time before downloading the
             # rss feeds again
-            for count in range(int(self.reloadfrequency / 10)):
-                self.lock.acquire()
-                try:
-                    if self.feeds_changed:
-                        break
-                finally:
-                    self.lock.release()
-
-                time.sleep(30)
-                        
+            self.feeds_changed.wait(self.reloadfrequency)
 
     def save_torrent(self,infohash,bdata,source=''):
         hexinfohash = binascii.hexlify(infohash)
