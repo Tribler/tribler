@@ -616,7 +616,7 @@ class channelsDetails(bgPanel):
                 if DEBUG:
                     print >> sys.stderr , torrent
                 wx.CallAfter(self.addTorrent, torrent, True)
-                wx.CallAfter(self.rssCtrl.SetFocus)
+                # wx.CallAfter(self.rssCtrl.SetFocus)
             except:
                 pass
 
@@ -647,28 +647,27 @@ class channelsDetails(bgPanel):
 
         print >> sys.stderr , "torrent" , torrent
 
+        if not torrent in self.torrentList:
 
-        self.erasevSizerContents()
+            self.erasevSizerContents()
 
-        self.torrentList.append(torrent)
-        self.totalItems = len(self.torrentList)
-        self.setLastPage()
-        self.parent.setTorrentList(self.torrentList)
-        self.showElements(self.subscribed)
+            self.torrentList.append(torrent)
+            self.totalItems = len(self.torrentList)
+            self.setLastPage()
+            self.parent.setTorrentList(self.torrentList)
+            self.showElements(self.subscribed)
 
-        item=channelsDetailsItem(self, -1)
-        item.reemove.Hide()
-        item.SetIndex(self.totalItems - 1)
-        self.torrents.append(item)
-        self.torrents[-1].setTitle(self.torrentList[-1]['name'])
-        self.torrents[-1].setTorrent(self.torrentList[-1])
-        self.torrents[-1].setMine(isMine)
-        self.torrents[-1].deselect()
-        self.torrents[-1].Hide()
+            item=channelsDetailsItem(self, -1)
+            item.reemove.Hide()
+            item.SetIndex(self.totalItems - 1)
+            item.setTitle(self.torrentList[-1]['name'])
+            item.setTorrent(self.torrentList[-1])
+            item.setMine(isMine)
+            item.deselect()
+            item.Hide()
+            self.torrents.append(item)
 
-        self.displayChannelContents()
-
-
+            self.displayChannelContents()
 
 
     def removeTorrent(self, index):

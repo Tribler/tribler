@@ -48,7 +48,7 @@ from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from urllib2 import Request, urlopen, URLError, HTTPError
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
-RSS_RELOAD_FREQUENCY = 2*60*60      # reload a rss source every n seconds
+RSS_RELOAD_FREQUENCY = 30*60      # reload a rss source every n seconds
 RSS_CHECK_FREQUENCY = 1  # test a potential .torrent in a rss source every n seconds
 
 DEBUG = False
