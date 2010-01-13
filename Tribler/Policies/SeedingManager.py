@@ -9,7 +9,7 @@ import time
 
 from Tribler.Core.simpledefs import *
 
-DEBUG = True
+DEBUG = False
 
 STORAGE_VERSION_ONE = 1
 STORAGE_VERSION_CURRENT = STORAGE_VERSION_ONE
@@ -29,7 +29,7 @@ class GlobalSeedingManager:
 
     def prepare_storage(self):
         if not os.path.exists(self.storage_dir):
-            if DEBUG: print >>sys.stderr, "SeedingManager: created storage_dir", storage_dir
+            if DEBUG: print >>sys.stderr, "SeedingManager: created storage_dir", self.storage_dir
             os.mkdir(self.storage_dir)
 
     def write_all_storage(self):
