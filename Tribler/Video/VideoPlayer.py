@@ -47,7 +47,7 @@ class VideoPlayer:
         # Must create the instance here, such that it won't get garbage collected
         self.videorawserv = VideoRawVLCServer.getInstance()
 
-        self.resume_by_system = 0
+        self.resume_by_system = 1
         self.user_download_choice = UserDownloadChoice.get_singleton()
         
     def getInstance(*args, **kw):
