@@ -208,7 +208,7 @@ class channelsDetailsItem(wx.Panel):
 
     def removeClicked(self, event):
         self.deselect()
-        self.channelcast_db.deleteOwnTorrent(bin2str(self.torrent['infohash']))
+        self.channelcast_db.deleteOwnTorrent(self.torrent['infohash'])
         cd = self.GetParent()
         cd.removeTorrent(self.index)
 
