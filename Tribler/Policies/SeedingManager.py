@@ -122,7 +122,7 @@ class GlobalSeedingManager:
                     download_state.get_download().set_seeding_policy(seeding_manager)
                     self.seeding_managers[infohash] = seeding_manager
         
-        if DEBUG: print >>sys.stderr,"GlobalSeedingManager: current seedings: ", len(self.seeding_managers), "out of", len(dslist), "downloads"
+        # if DEBUG: print >>sys.stderr,"GlobalSeedingManager: current seedings: ", len(self.seeding_managers), "out of", len(dslist), "downloads"
 
 class SeedingManager:
     def __init__(self, download_state, storage):
