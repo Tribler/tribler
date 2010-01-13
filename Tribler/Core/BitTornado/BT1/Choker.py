@@ -190,13 +190,14 @@ class Choker:
             if c in preferred:
                 to_unchoke.append(u)
             else:
-                # TODO: apply service policies to optimistic slot
                 if count < maxuploads or not hit:
-                    to_unchoke.append(u)
-                    if u.is_interested():
-                        count += 1
-                        if DEBUG and not hit: print  >>sys.stderr,"choker: OPTIMISTIC UNCHOKE",c
-                        hit = True
+                    if self.seeding_manager is None or self.seeding_manager.is_conn_eligible(c):
+                        to_unchoke.append(u)
+                        if u.is_interested():
+                            count += 1
+                            if DEBUG and not hit: print  >>sys.stderr,"choker: OPTIMISTIC UNCHOKE",c
+                            hit = True
+                        
                 else:
                     if not c.connection.is_coordinator_con() and not c.connection.is_helper_con():
                         u.choke()
