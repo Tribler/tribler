@@ -3,7 +3,7 @@
 """
 OS-independent utility functions
 
-get_home_dir()
+get_home_dir()      : Returns CSIDL_APPDATA i.e. App data directory on win32
 get_picture_dir()
 getfreespace(path)
 """
@@ -32,6 +32,16 @@ if sys.platform == "win32":
 
     except ImportError:
         def get_home_dir():
+            homedir = _get_home_dir()
+            # 5 = XP, 6 = Vista
+            if sys.getwindowsversion()[0] == 6:
+                appdir = os.path.join(homedir,u"AppData",u"Roaming")
+            else:
+                appdir = os.path.join(homedir,u"Application Data")
+            return appdir
+
+            
+        def _get_home_dir():
             try:
                 # when there are special unicode characters in the username,
                 # the following will fail on python 2.4, 2.5, 2.x this will

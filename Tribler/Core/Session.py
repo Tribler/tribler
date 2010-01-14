@@ -236,18 +236,8 @@ class Session(SessionRuntimeConfig):
         # characters. using the get_home_dir() function patches this
         # problem.
         #
-        homedir = get_home_dir()
-        
-        if sys.platform == "win32":
-            # 5 = XP, 6 = Vista
-            if sys.getwindowsversion()[0] == 6:
-                appdir = os.path.join(homedir,u"AppData",u"Roaming")
-            else:
-                appdir = os.path.join(homedir,u"Application Data")
-        else:
-            appdir = homedir
-
-        statedir = os.path.join(appdir, homedirpostfix)
+        homedir = get_home_dir() # Returns APPDATA dir on win32
+        statedir = os.path.join(homedir, homedirpostfix)
         return statedir
 
     get_default_state_dir = staticmethod(get_default_state_dir)
