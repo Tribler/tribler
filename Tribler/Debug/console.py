@@ -1,5 +1,3 @@
-# Written by Boudewijn Schoon
-# see LICENSE.txt for license information
 """
 Alternate stdout and stderr with much more protection
 """
@@ -11,7 +9,16 @@ class SafePrintStream:
         self._stream = stream
 
     def write(self, arg):
-        self._stream.write(arg.encode("ASCII", "backslashreplace"))
+        try:
+            self._stream.write(arg.encode("ASCII", "backslashreplace"))
+        except Exception, e:
+            try:
+                s = u"{%s}" % repr(arg)
+                self._stream.write(s)
+            except:
+                self._stream.write("TriblerConsole: ERROR printing\n")
+                self._stream.write(repr(e))
+                self._stream.write("\n")
         
     def flush(self):
         self._stream.flush()
@@ -32,5 +39,5 @@ class SafeLinePrintStream:
         self._parts = []
         self._stream.flush()
         
-sys.stderr = SafeLinePrintStream(sys.stderr)
+sys.stderr = SafePrintStream(sys.stderr)
 sys.stdout = sys.stderr

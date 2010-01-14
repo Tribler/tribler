@@ -37,11 +37,19 @@ if __name__ == "__main__":
         print "Usage:  ",get_usage(argsdef)
         sys.exit(0)
         
-    if os.path.isdir(config['source']):
-        raise ValueError("Creating torrent from directory not yet supported, sorry!")
+    if isinstance(config['source'],unicode):
+        usource = config['source']
+    else:
+        usource = config['source'].decode(sys.getfilesystemencoding())
         
     tdef = TorrentDef()
-    tdef.add_content(config['source'],playtime=config['duration'])
+    if os.path.isdir(usource):
+        for filename in os.listdir(usource):
+            path = os.path.join(usource,filename)
+            tdef.add_content(path,path,playtime=config['duration'])
+    else:
+        tdef.add_content(usource,playtime=config['duration'])
+        
     tdef.set_tracker(config['tracker'])
     tdef.set_piece_length(config['piecesize']) #TODO: auto based on bitrate?
     
