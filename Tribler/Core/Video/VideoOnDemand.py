@@ -76,7 +76,7 @@ class MovieOnDemandTransporter(MovieTransport):
     
     # polling interval to refill buffer
     #REFILL_INTERVAL = BUFFER_TIME * 0.75
-    # Arno: there's is no guarantee we got enough (=BUFFER_TIME secs worth) to write to output bug!
+    # Arno: there is no guarantee we got enough (=BUFFER_TIME secs worth) to write to output bug!
     REFILL_INTERVAL = 0.1
 
     # amount of time (seconds) to push a packet into

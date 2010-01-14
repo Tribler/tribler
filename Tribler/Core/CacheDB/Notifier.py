@@ -68,10 +68,15 @@ class Notifier:
         
         self.observerLock.acquire()
         for ofunc, osubject, ochangeTypes, oid in self.observers:
-            if (subject == osubject and
-                changeType in ochangeTypes and
-                (oid is None or oid == obj_id)):
-                tasks.append(ofunc)
+            try:
+                if (subject == osubject and
+                    changeType in ochangeTypes and
+                    (oid is None or oid == obj_id)):
+                    tasks.append(ofunc)
+            except:
+                print_exc()
+                print >>sys.stderr,"notify: OIDs were",`oid`,`obj_id`
+                
         self.observerLock.release()
         args = [subject, changeType, obj_id] + list(args)
         for task in tasks:
