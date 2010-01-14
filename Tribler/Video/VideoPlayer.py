@@ -406,9 +406,8 @@ class VideoPlayer:
         self.resume_by_system = 1
         if DEBUG: print >> sys.stderr, "VideoPlayer: manage_other_downloads"
 
-        policy_stop = othertorrentspolicy == OTHERTORRENTS_STOP or othertorrentspolicy == OTHERTORRENTS_STOP_RESTART
-        if not policy_stop and not targetd is None:
-            targetd.stop()
+        policy_stop = othertorrentspolicy == OTHERTORRENTS_STOP or \
+                      othertorrentspolicy == OTHERTORRENTS_STOP_RESTART
 
         for download in self.utility.session.get_downloads():
             if download.get_def().get_live():
@@ -420,6 +419,7 @@ class VideoPlayer:
 
             elif download == targetd:
                 if DEBUG: print >>sys.stderr,"VideoPlayer: manage_other_downloads: Leave", `download.get_def().get_name()`
+                download.stop()
                 
             elif policy_stop:
                 if DEBUG: print >>sys.stderr,"VideoPlayer: manage_other_downloads: Stop", `download.get_def().get_name()`
