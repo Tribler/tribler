@@ -547,7 +547,7 @@ class PiecePickerSVC(PiecePicker):
         # Ric: only prebuffering of the base layer
         if vs.prebuffering:
             f = first
-            t = vs.normalize( first + vs.get_high_range_length() )
+            t = vs.normalize( first + self.transporter.max_prebuf_packets )
             choice = pick_rarest_small_range(f,t)
             type = "high"
         else:

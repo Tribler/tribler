@@ -61,8 +61,7 @@ class PieceStats:
 class SVCTransporter(MovieOnDemandTransporter):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 
-    # seconds to prebuffer if bitrate is known
-    PREBUF_SEC_LIVE = 10
+    # seconds to prebuffer if bitrate is known (always for SVC)
     PREBUF_SEC_VOD  = 10
 
     # max number of seconds in queue to player
@@ -147,9 +146,6 @@ class SVCTransporter(MovieOnDemandTransporter):
         self.overall_rate = Measure(10)
         self.high_range_rate = Measure(2)
 
-        # boudewijn: increase the initial minimum buffer size
-        vs.increase_high_range()
-
         # buffer: a link to the piecepicker buffer
         self.has = self.piecepicker.has
 
@@ -164,27 +160,27 @@ class SVCTransporter(MovieOnDemandTransporter):
         # reasons
         
         # Arno: 2007-01-06: Since we use VideoLan player, videodimensions not important
-        if vs.bitrate_set:
-            self.doing_ffmpeg_analysis = False
-            self.doing_bitrate_est = False
-            self.videodim = None #self.movieselector.videodim
-        else:
-            self.doing_ffmpeg_analysis = True
-            self.doing_bitrate_est = True
-            self.videodim = None
+        assert vs.bitrate_set
+        self.doing_ffmpeg_analysis = False
+        self.doing_bitrate_est = False
+        self.videodim = None #self.movieselector.videodim
 
         self.player_opened_with_width_height = False
         self.ffmpeg_est_bitrate = None
         
-        # number of packets required to preparse the video
-        # I say we need 128 KB to sniff size and bitrate
-        
-        # Arno: 2007-01-04: Changed to 1MB. It appears ffplay works better with some
-        # decent prebuffering. We should replace this with a timing based thing, 
-        # Boudewijn: 11/01/10: Buffer size is calculated in the videostatus
+        prebufsecs = self.PREBUF_SEC_VOD
+
+        # assumes first piece is whole (first_piecelen == piecelen)
+        piecesneeded = vs.time_to_pieces( prebufsecs )
+        bytesneeded = piecesneeded * vs.piecelen
+
+        self.max_prebuf_packets = min(vs.movie_numpieces, piecesneeded)
+
+        if self.doing_ffmpeg_analysis and DEBUG:
+            print >>sys.stderr,"vod: trans: Want",self.max_prebuf_packets,"pieces for FFMPEG analysis, piecesize",vs.piecelen
 
         if DEBUG:
-            print >>sys.stderr,"vod: trans: Want", self.videostatus.get_high_range_length(), "pieces for prebuffering. piecesize", self.videostatus.piecelen
+            print >>sys.stderr,"vod: trans: Want",self.max_prebuf_packets,"pieces for prebuffering"
 
         self.nreceived = 0
         
@@ -249,7 +245,7 @@ class SVCTransporter(MovieOnDemandTransporter):
 
 
     def parse_video(self):
-        """ Feeds the first high-priority-range to ffmpeg to determine video bitrate. """
+        """ Feeds the first max_prebuf_packets to ffmpeg to determine video bitrate. """
         vs = self.videostatus
         width = None
         height = None
@@ -351,10 +347,21 @@ class SVCTransporter(MovieOnDemandTransporter):
         # for the prebuffer we keep track only of the base layer
         high_range = vs.generate_base_high_range()
         high_range_length = vs.get_base_high_range_length()
-        missing_pieces = filter(lambda i: not self.have_piece(i), high_range)
+
+        # Arno, 2010-01-13: This code is only used when *pre*buffering, not
+        # for in-playback buffering. See refill_buffer() for that.
+        # Restored original code here that looks at max_prebuf_packets
+        # and not highrange. The highrange solution didn't allow the prebuf
+        # time to be varied independently of highrange width. 
+        #
+        wantprebuflen = min(self.max_prebuf_packets,high_range_length)
+        high_range_list = list(high_range)
+        wantprebuflist = high_range_list[:wantprebuflen]
+        
+        missing_pieces = filter(lambda i: not self.have_piece(i), wantprebuflist)
         gotall = not missing_pieces
         if high_range_length:
-            self.prebufprogress = min(1, float(high_range_length - len(missing_pieces)) / max(1, high_range_length))
+            self.prebufprogress = min(1, float(wantprebuflen - len(missing_pieces)) / max(1, wantprebuflen))
         else:
             self.prebufprogress = 1.0
         
@@ -365,9 +372,8 @@ class SVCTransporter(MovieOnDemandTransporter):
             print >>sys.stderr,"vod: trans: Still need pieces",missing_pieces,"for prebuffering/FFMPEG analysis"
 
         if vs.dropping:
-            high_range_length = self.videostatus.get_high_range_length()
-            if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > high_range_length:
-                perc = float(high_range_length)/10.0
+            if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > self.max_prebuf_packets:
+                perc = float(self.max_prebuf_packets)/10.0
                 if float(len(missing_pieces)) < perc or self.nreceived > (2*len(missing_pieces)):
                     # If less then 10% of packets missing, or we got 2 times the packets we need already,
                     # force start of playback
@@ -433,7 +439,7 @@ class SVCTransporter(MovieOnDemandTransporter):
 
         elif DEBUG:
             if self.doing_ffmpeg_analysis:
-                print >>sys.stderr,"vod: trans: Prebuffering: waiting to obtain the first %d packets" % self.videostatus.get_high_range_length()
+                print >>sys.stderr,"vod: trans: Prebuffering: waiting to obtain the first %d packets" % (self.max_prebuf_packets)
             else:
                 print >>sys.stderr,"vod: trans: Prebuffering: %.2f seconds left" % (self.expected_buffering_time())
         
@@ -727,10 +733,6 @@ class SVCTransporter(MovieOnDemandTransporter):
             self.reset_bitrate_prediction()
             vs.playing = True
             self.playbackrate = Measure( 60 )
-
-            # boudewijn: decrease the initial minimum buffer size
-            vs.decrease_high_range()
-
         finally:
             self.data_ready.release()
 

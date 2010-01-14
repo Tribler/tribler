@@ -32,15 +32,16 @@ class SVCVideoStatus:
         self.selected_movie = []
 
         # size of high probability set, in seconds (piecepicker varies
-        # between the minmax values depending on network performance)
-        self.high_prob_min_time = 10
-        self.high_prob_min_time_limit = (10, 180)
+        # between the minmax values depending on network performance,
+        # performance, increases and decreases with step (min,max,step)
+        self.high_prob_curr_time = 10
+        self.high_prob_curr_time_limit = (10, 180,10)
 
         # minimal size of high probability set, in pieces (piecepicker
-        # varies between the minmax values depending on network
-        # performance)
-        self.high_prob_min_pieces = 5
-        self.high_prob_min_pieces_limit = (5, 50)
+        # varies between the limit values depending on network
+        # performance, increases and decreases with step (min,max,step)
+        self.high_prob_curr_pieces = 5
+        self.high_prob_curr_pieces_limit = (5, 50, 5)
 
         # Ric: keeps track of the current layer
         self.quality = 0
@@ -257,45 +258,45 @@ class SVCVideoStatus:
         Increase the high priority range (effectively enlarging the buffer size)
         """
         assert factor > 0
-        self.high_prob_min_time += factor * self.high_prob_min_time_limit[0]
-        if self.high_prob_min_time > self.high_prob_min_time_limit[1]:
-            self.high_prob_min_time = self.high_prob_min_time_limit[1]
+        self.high_prob_curr_time += factor * self.high_prob_curr_time_limit[2]
+        if self.high_prob_curr_time > self.high_prob_curr_time_limit[1]:
+            self.high_prob_curr_time = self.high_prob_curr_time_limit[1]
         
-        self.high_prob_min_pieces += int(factor * self.high_prob_min_pieces_limit[0])
-        if self.high_prob_min_pieces > self.high_prob_min_pieces_limit[1]:
-            self.high_prob_min_pieces = self.high_prob_min_pieces_limit[1]
+        self.high_prob_curr_pieces += int(factor * self.high_prob_curr_pieces_limit[2])
+        if self.high_prob_curr_pieces > self.high_prob_curr_pieces_limit[1]:
+            self.high_prob_curr_pieces = self.high_prob_curr_pieces_limit[1]
 
-        if DEBUG: print >>sys.stderr, "VideoStatus:increase_high_range", self.high_prob_min_time, "seconds or", self.high_prob_min_pieces, "pieces"
+        if DEBUG: print >>sys.stderr, "VideoStatus:increase_high_range", self.high_prob_curr_time, "seconds or", self.high_prob_curr_pieces, "pieces"
 
     def decrease_high_range(self, factor=1):
         """
         Decrease the high priority range (effectively reducing the buffer size)
         """
         assert factor > 0
-        self.high_prob_min_time -= factor * self.high_prob_min_time_limit[0]
-        if self.high_prob_min_time < self.high_prob_min_time_limit[0]:
-            self.high_prob_min_time = self.high_prob_min_time_limit[0]
+        self.high_prob_curr_time -= factor * self.high_prob_curr_time_limit[2]
+        if self.high_prob_curr_time < self.high_prob_curr_time_limit[0]:
+            self.high_prob_curr_time = self.high_prob_curr_time_limit[0]
         
-        self.high_prob_min_pieces -= int(factor * self.high_prob_min_pieces_limit[0])
-        if self.high_prob_min_pieces < self.high_prob_min_pieces_limit[0]:
-            self.high_prob_min_pieces = self.high_prob_min_pieces_limit[0]
+        self.high_prob_curr_pieces -= int(factor * self.high_prob_curr_pieces_limit[2])
+        if self.high_prob_curr_pieces < self.high_prob_curr_pieces_limit[0]:
+            self.high_prob_curr_pieces = self.high_prob_curr_pieces_limit[0]
 
-        if DEBUG: print >>sys.stderr, "VideoStatus:decrease_high_range", self.high_prob_min_time, "seconds or", self.high_prob_min_pieces, "pieces"
+        if DEBUG: print >>sys.stderr, "VideoStatus:decrease_high_range", self.high_prob_curr_time, "seconds or", self.high_prob_curr_pieces, "pieces"
 
     def set_high_range(self, seconds=None, pieces=None):
         """
         Set the minimum size of the high priority range. Can be given
         in seconds of pieces.
         """
-        if seconds: self.high_prob_min_time = seconds
-        if pieces: self.high_prob_min_pieces = pieces
+        if seconds: self.high_prob_curr_time = seconds
+        if pieces: self.high_prob_curr_pieces = pieces
 
     def get_high_range(self):
         """
         Returns [(first, last), (first, last), ..] list of tuples
         """
         download_range = self.download_range()
-        number_of_pieces = self.time_to_pieces(self.high_prob_min_time)
+        number_of_pieces = self.time_to_pieces(self.high_prob_curr_time)
 
         high_range = []
         for i in range(self.quality + 1):
@@ -305,8 +306,8 @@ class SVCVideoStatus:
                 # the first one
                 f, _ = download_range[0]
                 l = min(self.last_piece,                                                          # last piece
-                         1 + f + max(number_of_pieces, self.high_prob_min_pieces), # based on time OR pieces
-                         1 + f + self.high_prob_min_pieces_limit[1])               # hard-coded buffer maximum
+                         1 + f + max(number_of_pieces, self.high_prob_curr_pieces), # based on time OR pieces
+                         1 + f + self.high_prob_curr_pieces_limit[1])               # hard-coded buffer maximum
 
                 high_range.append((f, l))
 

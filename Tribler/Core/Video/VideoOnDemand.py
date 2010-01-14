@@ -21,7 +21,7 @@ from Tribler.Core.osutils import *
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
-DEBUG = False
+DEBUG = True
 DEBUGPP = False
 
 class PieceStats:
@@ -62,8 +62,12 @@ class MovieOnDemandTransporter(MovieTransport):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 
     # seconds to prebuffer if bitrate is known
-    PREBUF_SEC_LIVE = 10
-    PREBUF_SEC_VOD  = 10
+    PREBUF_SEC_LIVE = 10.0
+    PREBUF_SEC_VOD  = 10.0
+    
+    # Arno, 2010-01-14: prebuf is controlled with the above params. Buffering
+    # while playback for VOD is handled by increasing the high range, see
+    # VideoStatus self.high_prob_curr_*
 
     # max number of seconds in queue to player
     # Arno: < 2008-07-15: St*pid vlc apparently can't handle lots of data pushed to it
@@ -143,10 +147,6 @@ class MovieOnDemandTransporter(MovieTransport):
         self.overall_rate = Measure(10)
         self.high_range_rate = Measure(2)
 
-        # boudewijn: increase the initial minimum buffer size
-        if not vs.live_streaming:
-            vs.increase_high_range()
-
         # buffer: a link to the piecepicker buffer
         self.has = self.piecepicker.has
 
@@ -177,11 +177,32 @@ class MovieOnDemandTransporter(MovieTransport):
         # I say we need 128 KB to sniff size and bitrate
         
         # Arno: 2007-01-04: Changed to 1MB. It appears ffplay works better with some
-        # decent prebuffering. We should replace this with a timing based thing
-        # Boudewijn: 11/01/10: Buffer size is calculated in the videostatus
+        # decent prebuffering. We should replace this with a timing based thing, 
+        
+        if not self.doing_bitrate_est:
+            if vs.live_streaming:
+                prebufsecs = self.PREBUF_SEC_LIVE
+            else:
+                prebufsecs = self.PREBUF_SEC_VOD
+
+            # assumes first piece is whole (first_piecelen == piecelen)
+            piecesneeded = vs.time_to_pieces( prebufsecs )
+            bytesneeded = piecesneeded * vs.piecelen
+        else:
+            # Arno, 2010-01-13: For torrents with unknown bitrate, prebuf more
+            # following Boudewijn's heuristics
+            piecesneeded = 2 * vs.get_high_range_length()
+
+        if vs.wraparound:
+            self.max_prebuf_packets = min(vs.wraparound_delta, piecesneeded)
+        else:
+            self.max_prebuf_packets = min(vs.movie_numpieces, piecesneeded)
 
         if DEBUG:
-            print >>sys.stderr,"vod: trans: Want", self.videostatus.get_high_range_length(), "pieces for prebuffering. piecesize", self.videostatus.piecelen
+            if self.doing_ffmpeg_analysis:
+                print >>sys.stderr,"vod: trans: Want",self.max_prebuf_packets,"pieces for FFMPEG analysis, piecesize",vs.piecelen
+            else:
+                print >>sys.stderr,"vod: trans: Want",self.max_prebuf_packets,"pieces for prebuffering"
 
         self.nreceived = 0
         
@@ -391,7 +412,7 @@ class MovieOnDemandTransporter(MovieTransport):
         #    # Adjust it only once on what we see around us
         #    return
 
-        if self.calc_live_startpos(self.videostatus.get_high_range_length(), False ):
+        if self.calc_live_startpos( self.max_prebuf_packets, False ):
             # Adjust it only once on what we see around us
             #return
             pass
@@ -399,7 +420,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.rawserver.add_task( self.live_streaming_timer, 1 )
 
     def parse_video(self):
-        """ Feeds the first high-priority-range to ffmpeg to determine video bitrate. """
+        """ Feeds the first max_prebuf_packets to ffmpeg to determine video bitrate. """
 
         vs = self.videostatus
         width = None
@@ -504,25 +525,27 @@ class MovieOnDemandTransporter(MovieTransport):
         if received_piece:
             self.nreceived += 1
 
-        high_range = vs.generate_high_range()
-        high_range_length = vs.get_high_range_length()
-        missing_pieces = filter(lambda i: not self.have_piece(i), high_range)
+        # Arno, 2010-01-13: This code is only used when *pre*buffering, not
+        # for in-playback buffering. See refill_buffer() for that.
+        # Restored original code here that looks at max_prebuf_packets
+        # and not highrange. The highrange solution didn't allow the prebuf
+        # time to be varied independently of highrange width. 
+        #
+        f,t = vs.playback_pos, vs.normalize( vs.playback_pos + self.max_prebuf_packets )
+        prebufrange = vs.generate_range( (f, t) )
+        missing_pieces = filter( lambda i: not self.have_piece( i ), prebufrange)
         gotall = not missing_pieces
-        if high_range_length:
-            self.prebufprogress = min(1, float(high_range_length - len(missing_pieces)) / max(1, high_range_length))
-        else:
-            self.prebufprogress = 1.0
+        self.prebufprogress = float(self.max_prebuf_packets-len(missing_pieces))/float(self.max_prebuf_packets)
         
         if DEBUG:
-            print >>sys.stderr,"vod: trans: Already got",(self.prebufprogress*100.0),"% of prebuffer"
+            print >>sys.stderr,"vod: trans: Already got",(self.prebufprogress*100.0),"% of prebuffer",len(missing_pieces)
         
         if not gotall and DEBUG:
             print >>sys.stderr,"vod: trans: Still need pieces",missing_pieces,"for prebuffering/FFMPEG analysis"
 
         if vs.dropping:
-            high_range_length = self.videostatus.get_high_range_length()
-            if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > high_range_length:
-                perc = float(high_range_length)/10.0
+            if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > self.max_prebuf_packets:
+                perc = float(self.max_prebuf_packets)/10.0
                 if float(len(missing_pieces)) < perc or self.nreceived > (2*len(missing_pieces)):
                     # If less then 10% of packets missing, or we got 2 times the packets we need already,
                     # force start of playback
@@ -586,7 +609,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         elif DEBUG:
             if self.doing_ffmpeg_analysis:
-                print >>sys.stderr,"vod: trans: Prebuffering: waiting to obtain the first %d packets" % self.videostatus.get_high_range_length()
+                print >>sys.stderr,"vod: trans: Prebuffering: waiting to obtain the first %d packets" % (self.max_prebuf_packets)
             else:
                 print >>sys.stderr,"vod: trans: Prebuffering: %.2f seconds left" % (self.expected_buffering_time())
 
@@ -888,7 +911,7 @@ class MovieOnDemandTransporter(MovieTransport):
                 # Determine where to start playing. There may be several seconds
                 # between starting the download and starting playback, which we'll
                 # want to skip.
-                self.calc_live_startpos(self.videostatus.get_high_range_length(), True )
+                self.calc_live_startpos( self.max_prebuf_packets, True )
 
                 # override any position request by VLC, we only have live data
                 piece = vs.playback_pos
@@ -916,10 +939,6 @@ class MovieOnDemandTransporter(MovieTransport):
             self.reset_bitrate_prediction()
             vs.playing = True
             self.playbackrate = Measure( 60 )
-
-            # boudewijn: decrease the initial minimum buffer size
-            if not vs.live_streaming:
-                vs.decrease_high_range()
 
         finally:
             self.data_ready.release()
@@ -1282,7 +1301,7 @@ class MovieOnDemandTransporter(MovieTransport):
         def buffer_underrun():
             return self.outbuflen == 0 and self.start_playback and now - self.start_playback["local_ts"] > 1.0
 
-        if buffer_underrun():
+        if True: # buffer_underrun():
 
             if vs.dropping: # live
                 def sustainable():
@@ -1300,6 +1319,23 @@ class MovieOnDemandTransporter(MovieTransport):
                     return num_future_pieces * vs.piecelen >= goal
             else: # vod
                 def sustainable():
+                    # num_immediate_packets = 0
+                    # for piece in vs.generate_range( vs.download_range() ):
+                    #     if self.has[piece]:
+                    #         num_immediate_packets += 1
+                    #     else:
+                    #         break
+                    # else:
+                    #     # progress                                                                              
+                    #     self.prebufprogress = 1.0
+                    #     # completed loop without breaking, so we have everything we need                        
+                    #     return True
+                    #
+                    # # progress                                                                                  
+                    # self.prebufprogress = min(1.0,float(num_immediate_packets) / float(self.max_prebuf_packets))
+                    #
+                    # return num_immediate_packets >= self.max_prebuf_packets
+
                     self.sustainable_counter += 1
                     if self.sustainable_counter > 10:
                         self.sustainable_counter = 0
@@ -1335,12 +1371,13 @@ class MovieOnDemandTransporter(MovieTransport):
             if vs.pausable and not sus:
                 if DEBUG:
                     print >>sys.stderr,"vod: trans:                        BUFFER UNDERRUN -- PAUSING"
+                    
                 self.pause( autoresume = True )
                 self.autoresume( sustainable )
 
                 # boudewijn: increase the minimum buffer size
                 vs.increase_high_range()
-
+                        
                 self.data_ready.release()
                 return
             elif sus:
