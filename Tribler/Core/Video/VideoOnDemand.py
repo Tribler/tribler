@@ -1301,7 +1301,7 @@ class MovieOnDemandTransporter(MovieTransport):
         def buffer_underrun():
             return self.outbuflen == 0 and self.start_playback and now - self.start_playback["local_ts"] > 1.0
 
-        if True: # buffer_underrun():
+        if buffer_underrun():
 
             if vs.dropping: # live
                 def sustainable():
