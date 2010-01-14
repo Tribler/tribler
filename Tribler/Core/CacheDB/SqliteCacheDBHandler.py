@@ -1208,6 +1208,10 @@ class TorrentDBHandler(BasicDBHandler):
                 if li.has_key('length'):
                     length += li['length']
         torrent['length'] = length
+        if 'encoding' in metainfo:
+            torrent['encoding'] = metainfo['encoding']
+        else:
+            torrent['encoding'] = None
         torrent['num_files'] = nf
         torrent['announce'] = metainfo.get('announce', '')
         torrent['announce-list'] = metainfo.get('announce-list', '')
