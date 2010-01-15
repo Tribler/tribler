@@ -148,7 +148,7 @@ class VLCWrapper:
         
         if self.VLC_MEDIACONTROL_API_VERSION == "0.1":
             params += ["--http-reconnect"]
-        
+            
         #if sys.platform == 'win32':
         #    params += ["--plugin-path", "c:\\build\\mbvlc100\\vlc\\plugins" ]
 

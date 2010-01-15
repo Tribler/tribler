@@ -78,6 +78,8 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
+from Tribler.Video.VideoServer import SimpleServer
+
 
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
@@ -207,6 +209,11 @@ class ABCApp(wx.App):
             self.i2is.start()
 
             self.triblerStyles = TriblerStyles.getInstance()
+      
+      
+            # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
+            # Range: GETs causes performance problems in our code. Disable for now.
+            SimpleServer.RANGE_REQUESTS_ENABLED = False
             
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.

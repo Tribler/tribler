@@ -19,7 +19,7 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.API import *
 from Tribler.Core.BitTornado.__init__ import version, report_email
 
-MAXUPLOAD = 200 # KB/s or None
+MAXUPLOAD = 1000 # KB/s or None
 
 checkpointedwhenseeding = False
 sesjun = None

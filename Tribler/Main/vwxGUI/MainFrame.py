@@ -1,4 +1,3 @@
-#########################################################################
 #
 # Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
 #
@@ -373,9 +372,6 @@ class MainFrame(wx.Frame):
                 torrent.updateColor()
 
 
-    def taskbarCallback(self):
-        wx.CallAfter(self.onTaskBarActivate)
-
 
     #######################################
     # minimize to tray bar control
@@ -396,6 +392,8 @@ class MainFrame(wx.Frame):
     def onIconify(self, event = None):
         # This event handler is called both when being minimalized
         # and when being restored.
+        # Arno, 2010-01-15: on Win7 with wxPython2.8-win32-unicode-2.8.10.1-py26
+        # there is no event on restore :-(
         if DEBUG:
             if event is not None:
                 print  >> sys.stderr,"main: onIconify(",event.Iconized()

@@ -162,6 +162,7 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
 
 class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
+    RANGE_REQUESTS_ENABLED=True
     """
     def __init__(self,request, client_address, server):
         self.count = 0
@@ -227,9 +228,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 else:
                     lastbyte = None # to avoid print error below
     
-                
                 range = self.headers.getheader('range')
-                if range:
+                if self.RANGE_REQUESTS_ENABLED and range:
                     # Handle RANGE query
                     bad = False
                     type, seek = string.split(range,'=')

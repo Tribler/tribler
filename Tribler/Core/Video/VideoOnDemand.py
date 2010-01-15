@@ -538,7 +538,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.prebufprogress = float(self.max_prebuf_packets-len(missing_pieces))/float(self.max_prebuf_packets)
         
         if DEBUG:
-            print >>sys.stderr,"vod: trans: Already got",(self.prebufprogress*100.0),"% of prebuffer",len(missing_pieces)
+            print >>sys.stderr,"vod: trans: Already got",(self.prebufprogress*100.0),"% of prebuffer"
         
         if not gotall and DEBUG:
             print >>sys.stderr,"vod: trans: Still need pieces",missing_pieces,"for prebuffering/FFMPEG analysis"
@@ -607,11 +607,13 @@ class MovieOnDemandTransporter(MovieTransport):
             self.data_ready.notify()
             self.data_ready.release()
 
+        """
         elif DEBUG:
             if self.doing_ffmpeg_analysis:
                 print >>sys.stderr,"vod: trans: Prebuffering: waiting to obtain the first %d packets" % (self.max_prebuf_packets)
             else:
                 print >>sys.stderr,"vod: trans: Prebuffering: %.2f seconds left" % (self.expected_buffering_time())
+        """
 
     def got_have(self,piece):
         vs = self.videostatus
@@ -683,6 +685,8 @@ class MovieOnDemandTransporter(MovieTransport):
         on requested offset). """
 
         vs = self.videostatus
+
+        #print >>sys.stderr,"vod: trans: set_pos",vs.playback_pos,"->",pos
 
         # Arno,2010-01-08: if all was pushed to buffer (!= read by user!) 
         # then playbackpos = last+1

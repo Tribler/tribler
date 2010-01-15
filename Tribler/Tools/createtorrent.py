@@ -27,6 +27,8 @@ argsdef = [('source', '', 'source file or directory'),
 def get_usage(defs):
     return parseargs.formatDefinitions(defs,80)
     
+def progress(perc):
+    print int(100.0*perc),"%",
     
 if __name__ == "__main__":
 
@@ -59,7 +61,7 @@ if __name__ == "__main__":
     else:
         if len(config['thumb']) > 0:
             tdef.set_thumbnail(config['thumb'])
-    tdef.finalize()
+    tdef.finalize(userprogresscallback=progress)
     
     if config['url']:
         urlbasename = config['source']+'.url'
