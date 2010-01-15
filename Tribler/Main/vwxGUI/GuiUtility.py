@@ -13,7 +13,7 @@ from time import time
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
-from Tribler.Core.Search.SearchManager import KEYWORDSPLIT_RE
+from Tribler.Core.Search.SearchManager import split_into_keywords
 
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 #from Tribler.Subscriptions.rss_client import TorrentFeedThread
@@ -926,13 +926,10 @@ class GUIUtility:
 
 
     def searchFiles(self, mode, input):
-        
+        wantkeywords = split_into_keywords(input)
         if DEBUG:
-            print >>sys.stderr,"GUIUtil: searchFiles:",input
-        low = input.lower()
-        import re
-        p = re.compile(r'\W+')
-        wantkeywords = [i for i in p.split(low) if i]        
+            print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
+
         self.torrentsearch_manager.setSearchKeywords(wantkeywords, mode)
         self.torrentsearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
         #print "******** gui uti searchFiles", wantkeywords
@@ -972,12 +969,9 @@ class GUIUtility:
 
 
     def searchChannels(self, mode, input):
+        wantkeywords = split_into_keywords(input)
         if DEBUG:
-            print >>sys.stderr,"GUIUtil: searchChannels:",input
-        low = input.lower()
-        import re
-        p = re.compile(r'\W+')
-        wantkeywords = [i for i in p.split(low) if i]   
+            print >>sys.stderr,"GUIUtil: searchChannels:", wantkeywords
         self.channelsearch_manager.setSearchKeywords(wantkeywords, mode)
 
         ##### GUI specific code
@@ -1092,11 +1086,9 @@ class GUIUtility:
             self.standardOverview.filterChanged(gridState)
         
     def searchPersons(self, mode, input):
+        wantkeywords = split_into_keywords(input)
         if DEBUG:
-            print >>sys.stderr,"GUIUtil: searchPersons:",input
-        low = input.lower().strip()
-        import re
-        wantkeywords = re.split(KEYWORDSPLIT_RE, low)
+            print >>sys.stderr,"GUIUtil: searchPersons:", wantkeywords
 
         self.peersearch_manager.setSearchKeywords(wantkeywords, mode)
         self.peersearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())

@@ -7,7 +7,6 @@
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from unicode import name2unicode,dunno2unicode
 from copy import deepcopy,copy
-from sets import Set
 from traceback import print_exc
 from time import time
 from Tribler.Core.Utilities.Crypto import sha
@@ -31,7 +30,7 @@ from Notifier import Notifier
 from Tribler.Core.simpledefs import *
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.permid import sign_data, verify_data, permid_for_user
-from Tribler.Core.Search.SearchManager import KEYWORDSPLIT_RE
+from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Category.Category import Category
 
 # maxflow constants
@@ -1271,15 +1270,144 @@ class TorrentDBHandler(BasicDBHandler):
         return src_int
 
     def _addTorrentToDB(self, infohash, data, commit=True):        
+
+        def get_unicode_name(info):
+            """
+            Get the name of the .torrent as a unicode string
+
+            INFO must be the bdecoded .torrent file.  INFO must be a
+            dictionary containing a 'name' field and, optionally, a
+            'name-utf-8' field.
+            """
+            if "name.utf-8" in info:
+                # there is an utf-8 encoded name.  we assume that it
+                # is correctly encoded and use it normally
+                try:
+                    return unicode(info["name.utf-8"], "UTF-8")
+                except:
+                    pass
+
+            if "name" in info:
+                # try to use the 'encoding' field.  if it exists, it
+                # should contain something like 'utf-8'
+                if "encoding" in info:
+                    try:
+                        return unicode(info["name"], info["encoding"])
+                    except:
+                        pass
+
+                # try to convert the names in path to unicode
+                try:
+                    return unicode(info["name"])
+                except:
+                    pass
+
+                # try to convert the names in path to unicode,
+                # assuming that it was encoded as utf-8
+                try:
+                    return unicode(info["name"], "UTF-8")
+                except:
+                    pass
+
+                # convert the names in path to unicode by replacing
+                # out all characters that may -even remotely- cause
+                # problems with the '?' character
+                try:
+                    def filter_characters(name):
+                        def filter_character(char):
+                            if 0 < ord(char) < 128:
+                                return char
+                            else:
+                                if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum()
+                                return u"?"
+                        return u"".join([filter_character(char) for char in name])
+                    return unicode(filter_characters(info["name"]))
+                except:
+                    pass
+
+            # we failed.  returning an empty string
+            return u""
+        
+        def get_unicode_path(info, file_info):
+            """
+            Get list with unicode strings for a specific file in the
+            .torrent file.
+
+            INFO must be the bdecoded .torrent file.  INFO must be a
+            dictionary containing a 'name' field and, optionally, a
+            'name-utf-8' field.
+
+            FILE_INFO must be one of the elements in the 'files' list
+            from the bdecoded .torrent file.  FILE_INFO must be a
+            dictionary containing a 'path' field and, optionally, a
+            'path-utf-8' field.
+            """            
+            if "path.utf-8" in file_info:
+                # there is an utf-8 encoded list of names.  we
+                # assume that it is correctly encoded and use
+                # it normally
+                try:
+                    return [unicode(name, "UTF-8") for name in file_info["path.utf-8"]]
+                except:
+                    pass
+
+            if "path" in file_info:
+                # try to use the 'encoding' field.  if it exists, it
+                # should contain something like 'utf-8'
+                if "encoding" in info:
+                    try:
+                        return [unicode(name, info["encoding"]) for name in file_info["path"]]
+                    except:
+                        pass
+
+                # try to convert the names in path to unicode
+                try:
+                    return [unicode(name) for name in file_info["path"]]
+                except:
+                    pass
+
+                # try to convert the names in path to unicode,
+                # assuming that it was encoded as utf-8
+                try:
+                    return [unicode(name, "UTF-8") for name in file_info["path"]]
+                except:
+                    pass
+
+                # convert the names in path to unicode by replacing
+                # out all characters that may -even remotely- cause
+                # problems with the '?' character
+                try:
+                    def filter_characters(name):
+                        def filter_character(char):
+                            if 0 < ord(char) < 128:
+                                return char
+                            else:
+                                if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum()
+                                return u"?"
+                        return u"".join([filter_character(char) for char in name])
+                    return [unicode(filter_characters(name)) for name in file_info["path"]]
+                except:
+                    pass
+
+            # we failed.  returning an empty list
+            return []
+
+        # retrieve potential keywords from the torrent name, these
+        # will be used in the InvertedIndex table when searching
+        torrent_name = get_unicode_name(data)
+
+        # see if there is already a torrent in the database with this
+        # infohash
         torrent_id = self._db.getTorrentID(infohash)
+
         #print >> sys.stderr, "-------------- Adding torrent to DB..", bin2str(infohash), str(torrent_id)
         if torrent_id is None:    # not in db
             infohash_str = bin2str(infohash)
             self._db.insert('Torrent', 
                         commit=True,    # must commit to get the torrent id
                         infohash = infohash_str,
-                        name = dunno2unicode(data['name']),
-                        torrent_file_name = data['torrent_file_name'],
+                        name = torrent_name,
+                        torrent_file_name = data['torrent_file_name'], # todo: maybe there is a utf-8 version of the torrent_file_name?
                         length = data['length'], 
                         creation_date = data['creation_date'], 
                         num_files = data['num_files'], 
@@ -1300,7 +1428,7 @@ class TorrentDBHandler(BasicDBHandler):
             where = 'torrent_id = %d'%torrent_id
             self._db.update('Torrent', where = where,
                             commit=False,
-                            name = dunno2unicode(data['name']),
+                            name = torrent_name,
                             torrent_file_name = data['torrent_file_name'],
                             length = data['length'], 
                             creation_date = data['creation_date'], 
@@ -1316,80 +1444,32 @@ class TorrentDBHandler(BasicDBHandler):
                             num_leechers = data['num_leechers'], 
                             comment = dunno2unicode(data['comment']))
 
-        #print >> sys.stderr, "##Adding torrent ", str(torrent_id)
-        # adding in inverted index table
-        
-        def split_into_keywords(filename):
-            """ Arno: FIXME: function name bogus """
-            filename = filename.lower()
-            return re.split(KEYWORDSPLIT_RE,filename)             
-        
+        # boudewijn: we are using a Set to ensure that all keywords
+        # are unique.  no use having the database layer figuring this
+        # out when we can do it now, in memory
+        keywords = Set(split_into_keywords(torrent_name))
+
+        # search through the .torrent file for potential keywords in
+        # the filenames
         if data.has_key('files'):                        
-            files = []
-            termdoc = []
-            for li in data['files']:
-                if li.has_key('path') and li.has_key('length'):
-                    # boudewijn: the origional code is adapted for
-                    # readability, speed, and to remove a unicode bug
-                    #
-                    # ls = li['path']   # list representing file path
-                    # if len(ls) == 0:
-                    #     continue
-                    # filelen = li['length']
-                    # filename = ls[len(ls)-1]
-                    # filepath = ""
-                    # for l in ls:
-                    #     filepath += filter(lambda c: c.isalnum(), l) + "/"
-                    # filepath = filepath[:len(filepath)-1]                    
-                    # files.append((torrent_id,filepath,filelen))
+            for info in data['files']:
+                if info.has_key('path') and info.has_key('length'):
 
-                    # add filename that can cause a unicode bug
-                    # li['path'].append("_\x9f.test")
+                    # get the file path in unicode
+                    path = get_unicode_path(data, info)
+                    if len(path) > 0:
+                        filename = path[-1]
+                        keywords.update(split_into_keywords(filename))
 
-                    def filter_characters(s):
-                        def to_unicode(c):
-                            if 0 < ord(c) < 128:
-                                return c
-                            else:
-                                if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum(), "in", `s`
-                                return "?"
-                        return "".join(map(to_unicode, s))
-
-                    ls = map(filter_characters, li['path'])   # list representing file path
-                    if len(ls) == 0:
-                        continue
-                    filelen = li['length']
-                    filename = ls[-1]
-                    filepath = u"/".join(ls)
-                    files.append((torrent_id, filepath, filelen))
-
-                    ls = split_into_keywords(dunno2unicode(filename))                  
-                    for l in ls:
-                        l = filter(lambda c: c.isalnum(), l)
-                        termdoc.append((l,torrent_id))
-                           
-            if len(termdoc)>0:
-                sql1 = u"insert or replace into InvertedIndex values(?,?)"
-                self._db.executemany(sql1, termdoc, commit=True)           
-
-        
-        # Now include the 'name' field as well, which is common for both single-file and batch torrents     
-        termdoc = []
-        ls = split_into_keywords(dunno2unicode(data['name']))
-        for l in ls:
-            l = filter(lambda c: c.isalnum(), l)
-            termdoc.append((l,torrent_id))
-
-        if len(termdoc)>0:
-            sql1 = u"insert or replace into InvertedIndex values(?,?)"
-            self._db.executemany(sql1, termdoc, commit=True)           
-
-            #print >> sys.stderr, "Adding torrent files ", str(torrent_id)
+        # store the keywords in the InvertedIndex table in the database
+        if len(keywords) > 0:
+            values = [(keyword, torrent_id) for keyword in keywords]
+            self._db.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
+            print >> sys.stderr, "Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
         
         self._addTorrentTracker(torrent_id, data, commit=False)
         if commit:
             self.commit()    
-        self._db.show_execute = False
         return torrent_id
     
     def getInfohashFromTorrentName(self, name): ##
@@ -3328,12 +3408,8 @@ class ChannelCastDBHandler(BasicDBHandler):
         # query would be of the form: "k:barack obama" or "p:4fw342d23re2we2w3e23d2334d" permid
         value_name = deepcopy(self.value_name) ##
         if query[0] == 'k': # search torrents based on keywords
-            q = query[2:].strip(" ")
-            
-            import re
-            kwlist = re.split(KEYWORDSPLIT_RE, q)
-            #kwlist = q.split(" ")
-            #print >>sys.stderr, "This is a keyword based search:", q, kwlist
+            kwlist = re_keywordsplit(query[2:])
+            #print >>sys.stderr, "This is a keyword based search:", kwlist
             
             # there is a possibility that an older name (which was popular) might be changed.
             # in such case, it is good search for permid of such channels based on the keyword 

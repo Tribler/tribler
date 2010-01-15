@@ -3,13 +3,24 @@
 
 # ARNOCOMMENT: remove this now it doesn't use KeywordSearch anymore?
 
+import re
 import sys
 
 #from Tribler.Core.Search.KeywordSearch import KeywordSearch
 
 DEBUG = False
 
-KEYWORDSPLIT_RE = r'[\W_]+' # i.e. split on alnum, not alnum+underscore
+re_keywordsplit = re.compile(r"[\W_]", re.UNICODE)
+def split_into_keywords(string):
+    """
+    Takes a (unicode) string and returns a list of (unicode) lowercase
+    strings.  No empty strings are returned.
+
+    We currently split on non-alphanumeric characters and the
+    underscore.  This ensures that the keywords are SQL insertion
+    proof.
+    """
+    return [keyword for keyword in re_keywordsplit.split(string.lower()) if len(keyword) > 0]
 
 
 class SearchManager:

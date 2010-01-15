@@ -8,7 +8,7 @@ from traceback import print_exc, print_stack
 from time import time
 
 from Tribler.Category.Category import Category
-from Tribler.Core.Search.SearchManager import SearchManager, KEYWORDSPLIT_RE
+from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
@@ -396,10 +396,7 @@ class TorrentSearchGridManager:
                     if 'channel_permid' not in value:
                         # just to check if it is not OLPROTO_VER_ELEVENTH version
                         # if so, check word boundaries in the swarm name
-                        filename = value['content_name']
-                        filename = filename.lower()
-                        import re
-                        ls = re.split(KEYWORDSPLIT_RE, filename)
+                        ls = split_into_keywords(value['content_name'])
                         flag = False
                         for kw in kws:
                             if kw not in ls:
