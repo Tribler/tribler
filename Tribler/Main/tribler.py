@@ -502,6 +502,10 @@ class ABCApp(wx.App):
         self.ratelimiter = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
         self.rateadjustcount = 0 
 
+        # Counter to suppress console output containing download
+        # current statistics
+        self.rateprintcount = 0
+
         maxup = self.utility.config.Read('maxuploadrate', "int")
         if maxup == -1: # no upload
             self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
@@ -689,13 +693,15 @@ class ABCApp(wx.App):
         #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
             # Print stats on Console
-            for ds in dslist:
-                safename = `ds.get_download().get_def().get_name()`
-                if not DEBUG:
-                    print >>sys.stderr,"%s %s %.1f%% dl %.1f ul %.1f n %d" % (safename, dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
-                # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
-                if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                    print >>sys.stderr,"main: Error:",`ds.get_error()`
+            if True:
+                if self.rateprintcount % 5 == 0:
+                    for ds in dslist:
+                        safename = `ds.get_download().get_def().get_name()`
+                        print >>sys.stderr,"%s %s %.1f%% dl %.1f ul %.1f n %d" % (safename, dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
+                        # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
+                        if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+                            print >>sys.stderr,"main: Error:",`ds.get_error()`
+                self.rateprintcount += 1
 
             # Find State of currently playing video
             playds = None
