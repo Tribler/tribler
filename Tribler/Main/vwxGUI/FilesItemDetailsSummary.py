@@ -541,6 +541,7 @@ class fileItem(wx.Panel):
         self.play = tribler_topButton(self, -1, name='fids_play')
         self.play.mouseOver = False
         self.play.Refresh()
+        self.play.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
         self.hSizer.Add(self.play, 0, 0, 0)
         self.hSizer.Add((10,0), 0, 0, 0)
@@ -552,13 +553,13 @@ class fileItem(wx.Panel):
         self.Refresh()
 
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-        wl = []
-        for c in self.GetChildren():
-            wl.append(c)
-        for window in wl:
-            window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        if sys.platform != 'linux2':
-            self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+#        wl = []
+#        for c in self.GetChildren():
+#            wl.append(c)
+#        for window in wl:
+#            window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
+#        if sys.platform != 'linux2':
+        self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
 
     def _setTitle(self, title):

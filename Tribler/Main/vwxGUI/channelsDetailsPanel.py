@@ -572,7 +572,7 @@ class fileItem(bgPanel):
 
     def play_clicked(self,event=None):
         
-        print_stack()
+        #print_stack()
         
         ds = self.GetParent().GetParent().torrent.get('ds')
         selectedinfilename = self.storedTitle
