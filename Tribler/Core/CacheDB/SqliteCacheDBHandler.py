@@ -3872,7 +3872,7 @@ class PopularityDBHandler(BasicDBHandler):
                 result[listIndex][3] = timeNow - latest[2]+latest[3]  # age of the report
                 result[listIndex][4] = latest[6]   # num_sources
                     # print latest
-                if len(trackerSizeList[listIndex]) > 0:
+                if len(trackerSizeList[listIndex]) > 0 and len(trackerSizeList[listIndex][0]) > 0:
                     #if trackerSizeList[listIndex][0] is not None:
                     temp=trackerSizeList[listIndex][0]
                     tempAge = timeNow - temp[3]
@@ -3883,7 +3883,7 @@ class PopularityDBHandler(BasicDBHandler):
                         othersSeenSources = self.torrent_db.getLargestSourcesSeen(id, timeNow, averagePeerUpTime)
                         result[listIndex][4] = max(temp[4], othersSeenSources) # num_sources
 
-            elif len(trackerSizeList[listIndex]) > 0:
+            elif len(trackerSizeList[listIndex]) > 0 and len(trackerSizeList[listIndex][0]) > 0:
                 #if trackerSizeList[listIndex][0] is not None:
                temp=trackerSizeList[listIndex][0]
                result[listIndex][1] = temp[1] #num seeders
