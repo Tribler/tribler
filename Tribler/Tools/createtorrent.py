@@ -46,7 +46,7 @@ if __name__ == "__main__":
     if os.path.isdir(usource):
         for filename in os.listdir(usource):
             path = os.path.join(usource,filename)
-            tdef.add_content(path,path,playtime=config['duration'])
+            tdef.add_content(path,path,playtime=config['duration']) #TODO: only set duration on video file
     else:
         tdef.add_content(usource,playtime=config['duration'])
         

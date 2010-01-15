@@ -442,6 +442,9 @@ class channelsDetailsPanel(bgPanel):
 
 class fileItem(bgPanel):
     def __init__(self, *args,**kwds):
+        
+        self.tdef = None
+        
         if len(args) == 0:
             pre = wx.PrePanel()
             # the Create step is done by XRC.
@@ -568,6 +571,9 @@ class fileItem(bgPanel):
 
 
     def play_clicked(self,event=None):
+        
+        print_stack()
+        
         ds = self.GetParent().GetParent().torrent.get('ds')
         selectedinfilename = self.storedTitle
         videoplayer = self._get_videoplayer(exclude=ds) 
@@ -584,6 +590,12 @@ class fileItem(bgPanel):
             torrent_dir = self.utility.session.get_torrent_collecting_dir()
             torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
             tdef = TorrentDef.load(torrent_filename)
+
+            # Arno, 2010-01-14: Hack against double call
+            if self.tdef is None or self.tdef.get_infohash() != tdef.get_infohash():
+                self.tdef = tdef
+            else:
+                return
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()

@@ -19,7 +19,7 @@ from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeConfig
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
-from Tribler.Core.osutils import get_home_dir
+from Tribler.Core.osutils import get_appstate_dir
 GOTM2CRYPTO=False
 try:
     import M2Crypto
@@ -231,13 +231,8 @@ class Session(SessionRuntimeConfig):
         if statedir and statedir != statedirvar:
             return statedir
         
-        # Boudewijn: retrieving the homedir fails with python 2.x on
-        # windows when the username contains specific unicode
-        # characters. using the get_home_dir() function patches this
-        # problem.
-        #
-        homedir = get_home_dir() # Returns APPDATA dir on win32
-        statedir = os.path.join(homedir, homedirpostfix)
+        appdir = get_appstate_dir() 
+        statedir = os.path.join(appdir, homedirpostfix)
         return statedir
 
     get_default_state_dir = staticmethod(get_default_state_dir)

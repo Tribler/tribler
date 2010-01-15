@@ -19,7 +19,6 @@ from Tribler.Core.defaults import tdefdefaults as TorrentDefDefaults
 from Tribler.Core.BitTornado.parseargs import parseargs
 from Tribler.Core.BitTornado.zurllib import urlopen
 from Tribler.Core.BitTornado.__init__ import version_id
-from Tribler.Core.osutils import get_home_dir
 
 if sys.platform == 'win32':
     from Tribler.Main.Utility.regchecker import RegChecker
@@ -185,8 +184,6 @@ class Utility:
             defaults['videoplayerpath'] = progfilesdir+'\\Windows Media Player\\wmplayer.exe'
             defaults['videoanalyserpath'] = self.getPath()+'\\ffmpeg.exe'
         elif sys.platform == 'darwin':
-            profiledir = get_home_dir()
-            # profiledir = os.path.expandvars('${HOME}')
             defaults['mintray'] = '0'  # tray doesn't make sense on Mac
             vlcpath = find_prog_in_PATH("vlc")
             if vlcpath is None:

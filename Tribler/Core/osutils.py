@@ -20,28 +20,30 @@ if sys.platform == "win32":
         from win32com.shell import shell
         def get_home_dir():
             # http://www.mvps.org/access/api/api0054.htm
+            # CSIDL_PROFILE = &H28
+            # C:\Documents and Settings\username
+            return shell.SHGetSpecialFolderPath(0, 0x28)
+
+        def get_appstate_dir():
+            # http://www.mvps.org/access/api/api0054.htm
             # CSIDL_APPDATA = &H1A
             # C:\Documents and Settings\username\Application Data
             return shell.SHGetSpecialFolderPath(0, 0x1a)
 
         def get_picture_dir():
             # http://www.mvps.org/access/api/api0054.htm
-            # CSIDL_APPDATA = &H27
+            # CSIDL_MYPICTURES = &H27
             # C:\Documents and Settings\username\My Documents\My Pictures
             return shell.SHGetSpecialFolderPath(0, 0x27)
 
+        def get_desktop_dir():
+            # http://www.mvps.org/access/api/api0054.htm
+            # CSIDL_DESKTOPDIRECTORY = &H10
+            # C:\Documents and Settings\username\Desktop
+            return shell.SHGetSpecialFolderPath(0, 0x10)
+
     except ImportError:
         def get_home_dir():
-            homedir = _get_home_dir()
-            # 5 = XP, 6 = Vista
-            if sys.getwindowsversion()[0] == 6:
-                appdir = os.path.join(homedir,u"AppData",u"Roaming")
-            else:
-                appdir = os.path.join(homedir,u"Application Data")
-            return appdir
-
-            
-        def _get_home_dir():
             try:
                 # when there are special unicode characters in the username,
                 # the following will fail on python 2.4, 2.5, 2.x this will
@@ -91,15 +93,34 @@ if sys.platform == "win32":
             # failure
             raise unicode_error
 
+        def get_appstate_dir():
+            homedir = get_home_dir()
+            # 5 = XP, 6 = Vista
+            if sys.getwindowsversion()[0] == 6:
+                appdir = os.path.join(homedir,u"AppData",u"Roaming")
+            else:
+                appdir = os.path.join(homedir,u"Application Data")
+            return appdir
+
         def get_picture_dir():
             return get_home_dir()
+
+        def get_desktop_dir():
+            home = get_home_dir()
+            return os.path.join(home,u"Desktop")
             
 else:
     # linux or darwin (mac)
     def get_home_dir():
         return os.path.expanduser(u"~")
 
+    def get_appstate_dir():
+        return get_home_dir()
+
     def get_picture_dir():
+        return get_desktop_dir()
+
+    def get_desktop_dir():
         home = get_home_dir()
         desktop = os.path.join(home, "Desktop")
         if os.path.exists(desktop):

@@ -24,13 +24,8 @@ from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
 from Tribler.Core.APIImplementation.miscutils import *
 
-from Tribler.Core.osutils import getfreespace, get_home_dir
+from Tribler.Core.osutils import getfreespace, get_desktop_dir
 
-# importing get_home_dir from Tribler.Core.Session causes an
-# ImportError...
-def get_home_dir():
-    from Tribler.Core.Session import get_home_dir as session_get_home_dir
-    return session_get_home_dir()
 
 class DownloadConfigInterface:
     """
@@ -844,18 +839,6 @@ def get_default_dest_dir():
         else: Home\TriblerDownloads
     </pre>
     """
-    uhome = get_home_dir()
-
-    if sys.platform == 'win32':
-        tempdir = os.path.join(uhome, 'Desktop', 'TriblerDownloads')
-    elif sys.platform == 'darwin':
-        tempdir = os.path.join(uhome, 'Desktop', 'TriblerDownloads')
-    else:
-        tempdir = os.path.join(uhome, 'Desktop')
-        if not os.path.exists(tempdir):
-            tempdir = os.path.join(uhome, 'Desktop', 'TriblerDownloads')
-        else:
-            tempdir = os.path.join(uhome, 'TriblerDownloads')
-    return tempdir
+    uhome = get_desktop_dir()
+    return os.path.join(uhome,u'TriblerDownloads')
     
-

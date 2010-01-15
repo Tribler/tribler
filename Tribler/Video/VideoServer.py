@@ -437,7 +437,7 @@ class VideoRawVLCServer:
 
     def ReadDataCallback(self, bufc, buflen, sid):
         try:
-            print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: stream",sid,"wants", buflen,"thread",currentThread().getName()
+            #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: stream",sid,"wants", buflen,"thread",currentThread().getName()
             # workaround
             #sid = self.lastsid
             #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: stream override sid",sid
@@ -472,13 +472,12 @@ class VideoRawVLCServer:
         try:
             # WARNING: CURRENT 0.8.6h binaries have bug in vlcglue.c: pos is just a long int , not a long long int.
             
-            print >>sys.stderr,"VideoRawVLCServer: SeekDataCallback: stream",sid,"seeking to", pos,"oldsid",self.oldsid
+            #print >>sys.stderr,"VideoRawVLCServer: SeekDataCallback: stream",sid,"seeking to", pos,"oldsid",self.oldsid
             # Arno: TODO: add support for seeking
             if True:
                 streaminfo = self.get_inputstream(sid)
                 streaminfo['stream'].seek(pos,os.SEEK_SET)
                 return 0
-            
             
             return -1
         

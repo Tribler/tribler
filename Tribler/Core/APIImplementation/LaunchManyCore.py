@@ -271,19 +271,20 @@ class TriblerLaunchMany(Thread):
                 raise ValueError("TorrentDef not finalized")
             
             infohash = tdef.get_infohash()
-            d = Download(self.session,tdef)
             
             # Check if running or saved on disk
             if infohash in self.downloads:
                 raise DuplicateDownloadException()
-            elif pstate is None and not tdef.get_live(): # not already resuming
+
+            d = Download(self.session,tdef)            
+            
+            if pstate is None and not tdef.get_live(): # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
                     if DEBUG:
                         print >>sys.stderr,"tlm: add: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
             
             # Store in list of Downloads, always. 
-            infohash = d.get_def().get_infohash()
             self.downloads[infohash] = d
             d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_event_callback)
 
