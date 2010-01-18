@@ -155,19 +155,16 @@ class RemoteQueryMsgHandler:
         p = self.create_query(query,usercallback)
         m = QUERY+p
         query_conn_callback_lambda = lambda exc,dns,permid,selversion:self.conn_callback(exc,dns,permid,selversion,m)
-
+        
         if query.startswith("CHANNEL"):
             wantminoversion = OLPROTO_VER_ELEVENTH
-        else:
-            wantminoversion =  OLPROTO_VER_SIXTH
-            
-        if query.startswith("SIMPLE+METADATA"):
+        elif query.startswith("SIMPLE+METADATA"):
             wantminoversion = OLPROTO_VER_TWELFTH
         else:
             wantminoversion =  OLPROTO_VER_SIXTH
-
+            
         if DEBUG:
-            print >>sys.stderr,"rquery: send_query: Connected",len(self.connections),"peers"
+            print >>sys.stderr,"rquery: send_query: Connected",len(self.connections),"peers; minoversion=", wantminoversion
         
         #print "******** send query net cb:", query, len(self.connections), self.connections
         
@@ -185,7 +182,7 @@ class RemoteQueryMsgHandler:
                     peers_to_query += 1
         
         if DEBUG:
-            print >>sys.stderr,"rquery: send_query: Sent to",peers_to_query,"peers"
+            print >>sys.stderr,"rquery: send_query: Sent to",peers_to_query,"peers; query=", query
         
     def create_query(self,query,usercallback):
         d = {}
