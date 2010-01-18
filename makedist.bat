@@ -1,14 +1,13 @@
 REM @echo off
 REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
-set PYTHONHOME=C:\Python254
+set PYTHONHOME=\Python254
 REM Arno: Add .. to make it find khashmir. Add . to find our core (py 2.5)
 set PYTHONPATH=.;%PYTHONHOME%;..
 
 echo PYTHONPATH SET TO %PYTHONPATH%
 
-set NSIS="C:\Program Files\NSIS\makensis.exe"
-set IMGCFG="C:\Program Files\Imagecfg\imagecfg.exe"
+set NSIS="\Program Files\NSIS\makensis.exe"
 
 REM ----- Check for Python and essential site-packages
 

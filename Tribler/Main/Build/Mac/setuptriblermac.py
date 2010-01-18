@@ -16,7 +16,7 @@ includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml
 # gui panels to include
 includePanels=[
      "standardOverview","standardDetails","standardGrid","standardPager","TopSearchPanel", "settingsOverviewPanel",
-     "standardFilter"]# ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
+     "standardFilter","channelsDetails","channelsOverviewPanel"]# ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
 
 includeModules += ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 
