@@ -47,6 +47,7 @@ MAX_KEYWORD_LENGTH = 50
 MAX_POPULARITY_REC_PER_TORRENT = 5 # maximum number of records in popularity table for each torrent
 MAX_POPULARITY_REC_PER_TORRENT_PEER = 3 # maximum number of records per each combination of torrent and peer
 
+from Tribler.Core.Search.SearchManager import split_into_keywords
 
 def show_permid_shorter(permid):
     if not permid:
@@ -3408,7 +3409,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         # query would be of the form: "k:barack obama" or "p:4fw342d23re2we2w3e23d2334d" permid
         value_name = deepcopy(self.value_name) ##
         if query[0] == 'k': # search torrents based on keywords
-            kwlist = re_keywordsplit(query[2:])
+            kwlist = split_into_keywords(query[2:])
             #print >>sys.stderr, "This is a keyword based search:", kwlist
             
             # there is a possibility that an older name (which was popular) might be changed.
