@@ -100,11 +100,12 @@ def P2PSim_Single(db_row, nmyprefs):
     sim = 0
     if db_row:
         peer_id, nr_items, overlap = db_row
+
         # Arno, 2010-01-14: Safety catch for weird by reported by Johan
-        if nr_items is None:
-            nr_items = 0
-        if nmyprefs is None:
-            nmyprefs = 0
+        if (nr_items is None) or (nmyprefs is None):
+            return sim
+        if (nr_items is 0) or (nmyprefs is 0):
+            return sim
         
         #Cosine Similarity With Emphasis on users with profilelength >= 40
         sim = overlap * ((1.0/(nmyprefs ** .5)) * (1.0/(nr_items ** .5)))
