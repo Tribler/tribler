@@ -115,7 +115,7 @@ class VideoStatus:
             return self.piecelen
 
     def set_bitrate( self, bitrate ):
-        print >>sys.stderr,"vodstatus: set_bitrate",bitrate
+        #print >>sys.stderr,"vodstatus: set_bitrate",bitrate
         self.bitrate_set = True
         self.bitrate = bitrate
         self.sec_per_piece = 1.0 * bitrate / self.piecelen

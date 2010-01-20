@@ -439,6 +439,11 @@ class channelsDetailsPanel(bgPanel):
         for i in range(self.totalItems):
             self.files[i].deselect()
         
+    def deselectAllExceptSelected(self, selectedpanel): # windows only
+        for el in self.files:
+            if type(el) is not str and el!=selectedpanel:
+                el.deselect()
+
 
 class fileItem(bgPanel):
     def __init__(self, *args,**kwds):
@@ -510,13 +515,20 @@ class fileItem(bgPanel):
             self.play = tribler_topButton(self, -1, name='channels_play')
         else:
             self.play = tribler_topButton(self, -1, name='channels_play_win')
-
-
+            self.play.SetMinSize((17,18))
+            self.play.SetSize((17,18))
         self.play.mouseOver = False
         self.play.Refresh()
         #self.play.Bind(wx.EVT_LEFT_UP, self.play_clicked)
-        self.play.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-
+        if sys.platform=='win32':
+            self.play.Bind(wx.EVT_MOUSE_EVENTS, self.mouseActionWin)
+            self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseActionWin)
+            self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseActionWin)
+        else:
+            self.play.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            
         self.hSizer.Add(self.play, 0, 0, 0)
         self.hSizer.Add((10,0), 0, 0, 0)
         self.hSizer.Add(self.title, 0, 0, 0)
@@ -526,15 +538,12 @@ class fileItem(bgPanel):
         self.Layout()
         self.Refresh()
 
-        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         #wl = []
         #for c in self.GetChildren():
         #    wl.append(c)
         #for window in wl:
         #    window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
 
-        #if sys.platform != 'linux2':
-        self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
     def setTitle(self, title):
         self.storedTitle = title
@@ -549,24 +558,54 @@ class fileItem(bgPanel):
 
         self.Refresh()       
 
+    def showPlay(self, b=True):
+        self.play.mouseOver=b
+        self.play.Refresh()
 
-
-
+    def deselect(self): # windows only
+        self.title.SetForegroundColour(self.fileColour)
+        self.showPlay(False)
+        self.hSizer.Layout()
+        self.selected=False
+        
     def mouseAction(self, event):
         event.Skip()
         if event.Entering():
             self.title.SetForegroundColour(self.fileColourSel)
-            self.play.mouseOver = True
-            self.play.Refresh()
+            self.showPlay(True)
             self.hSizer.Layout()
         elif event.Leaving():
             self.title.SetForegroundColour(self.fileColour)
-            self.play.mouseOver = False
-            self.play.Refresh()
+            self.showPlay(False)
             self.hSizer.Layout()
         if event.LeftUp():
             self.play_clicked()
 
+        self.Refresh()
+
+
+
+    def mouseActionWin(self, event): # windows only
+        event.Skip()
+        if event.Entering() or event.Moving():
+            self.selected=True
+            if event.Entering():
+                self.enter=event.GetPositionTuple()
+            self.title.SetForegroundColour(self.fileColourSel)
+            self.showPlay(True)
+            self.hSizer.Layout()
+        elif event.Leaving():
+            self.leave=event.GetPositionTuple()
+            if self.enter!=self.leave and (self.enter[0]+27)!=self.leave[0] and (self.enter[0]-27)!=self.leave[0]:
+                self.title.SetForegroundColour(self.fileColour)
+                self.showPlay(False)
+                self.hSizer.Layout()
+            else:
+                wx.CallLater(5,self.showPlay)
+                pass                
+        if event.LeftUp():
+            self.play_clicked()
+        self.GetParent().deselectAllExceptSelected(selectedpanel=self)
         self.Refresh()
 
 

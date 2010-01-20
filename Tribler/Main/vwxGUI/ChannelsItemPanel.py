@@ -498,8 +498,8 @@ class ChannelsItemPanel(wx.Panel):
 #            else:
 #                self.channelsDetails.origin = 'my_channel'
             self.loadChannel()
-            wx.CallAfter(self.Refresh)
-            self.SetFocus()
+        wx.CallAfter(self.Refresh)
+        self.SetFocus()
             
     def loadChannel(self):
         self.channelsDetails.reinitialize(force=True)
