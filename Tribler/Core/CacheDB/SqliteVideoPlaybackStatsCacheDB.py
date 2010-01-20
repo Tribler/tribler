@@ -21,6 +21,7 @@ DB_FILE_NAME = 'tribler_videoplayback_stats.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 CURRENT_DB_VERSION = 2
 
+ENABLE_LOGGER = False
 DEBUG = False
 
 def init_videoplayback_stats(config, db_exception_handler = None):
@@ -132,18 +133,19 @@ class VideoPlaybackDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self, SQLiteVideoPlaybackStatsCacheDB.get_instance(), 'playback_event')
             
     def add_event(self, key, event):
-        assert type(key) in (str, unicode)
-        # assert not "'" in key # TODO: This assert is unnecessary and breaks for certain infohashes? (Raynor Vliegendhart)
-        assert type(event) in (str, unicode)
-        assert not "'" in event
+        if ENABLE_LOGGER:
+            assert type(key) in (str, unicode)
+            # assert not "'" in key # TODO: This assert is unnecessary and breaks for certain infohashes? (Raynor Vliegendhart)
+            assert type(event) in (str, unicode)
+            assert not "'" in event
 
-        # because the key usually an infohash, and because this is
-        # usually (and incorrectly) stored in a string instead of a
-        # unicode string, this will crash the database wrapper.
-        key = b64encode(key)
+            # because the key usually an infohash, and because this is
+            # usually (and incorrectly) stored in a string instead of a
+            # unicode string, this will crash the database wrapper.
+            key = b64encode(key)
 
-        if DEBUG: print >>sys.stderr, "VideoPlaybackDBHandler add_event", key, event
-        self._db.execute_write("INSERT INTO %s (key, timestamp, event) VALUES ('%s', %s, '%s')" % (self.table_name, key, time(), event))
+            if DEBUG: print >>sys.stderr, "VideoPlaybackDBHandler add_event", key, event
+            self._db.execute_write("INSERT INTO %s (key, timestamp, event) VALUES ('%s', %s, '%s')" % (self.table_name, key, time(), event))
 
     def flush(self):
         """
