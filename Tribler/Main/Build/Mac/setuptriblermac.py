@@ -118,7 +118,6 @@ setup(
             [(LIBRARYNAME+"/Lang", [LIBRARYNAME+"/Lang/english.lang"]),
              (LIBRARYNAME+"/Core", [LIBRARYNAME+"/Core/superpeer.txt"]),
              (LIBRARYNAME+"/Category", [LIBRARYNAME+"/Category/category.conf"]),
-             LIBRARYNAME+"/binary-LICENSE.txt", 
              LIBRARYNAME+"/readme.txt",
              LIBRARYNAME+"/Main/Build/Mac/TriblerDoc.icns",
            ]
