@@ -484,6 +484,10 @@ class FilesItemDetailsSummary(bgPanel):
         videoplayer.set_other_downloads(other_downloads)
         return videoplayer
 
+    def deselectAllExceptSelected(self, selectedpanel): # windows only
+        for el in self.files:
+            if type(el) is not str and el!=selectedpanel:
+                el.deselect()
 
 
 class fileItem(wx.Panel):
@@ -541,7 +545,16 @@ class fileItem(wx.Panel):
         self.play = tribler_topButton(self, -1, name='fids_play')
         self.play.mouseOver = False
         self.play.Refresh()
-        self.play.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+        #self.play.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+
+        if sys.platform=='win32':
+            self.play.Bind(wx.EVT_MOUSE_EVENTS, self.mouseActionWin)
+            self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseActionWin)
+            self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseActionWin)
+        else:
+            self.play.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
         self.hSizer.Add(self.play, 0, 0, 0)
         self.hSizer.Add((10,0), 0, 0, 0)
@@ -552,14 +565,14 @@ class fileItem(wx.Panel):
         self.Layout()
         self.Refresh()
 
-        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+        #self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 #        wl = []
 #        for c in self.GetChildren():
 #            wl.append(c)
 #        for window in wl:
 #            window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
 #        if sys.platform != 'linux2':
-        self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+        #self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
 
     def _setTitle(self, title):
@@ -582,6 +595,18 @@ class fileItem(wx.Panel):
             self._setTitle(title)
         except UnicodeDecodeError:
             self._setTitle(`title`)
+
+
+    def showPlay(self, b=True):
+        self.play.mouseOver=b
+        self.play.Refresh()
+
+    def deselect(self): # windows only
+        self.title.SetForegroundColour(self.fileColour)
+        self.showPlay(False)
+        self.hSizer.Layout()
+        self.selected=False
+
         
 
     def mouseAction(self, event):
@@ -604,6 +629,29 @@ class fileItem(wx.Panel):
 
         self.Refresh()
 
+    def mouseActionWin(self, event): # windows only
+        event.Skip()
+        if event.Entering() or event.Moving():
+            self.selected=True
+            if event.Entering():
+                self.enter=event.GetPositionTuple()
+            self.title.SetForegroundColour(self.fileColourSel)
+            self.showPlay(True)
+            self.hSizer.Layout()
+        elif event.Leaving():
+            self.leave=event.GetPositionTuple()
+            if self.enter!=self.leave and (self.enter[0]+27)!=self.leave[0] and (self.enter[0]-27)!=self.leave[0]:
+                self.title.SetForegroundColour(self.fileColour)
+                self.showPlay(False)
+                self.hSizer.Layout()
+            else:
+                wx.CallLater(5,self.showPlay)
+                pass                
+        if event.LeftUp():
+            self.play_clicked()
+
+        self.GetParent().deselectAllExceptSelected(selectedpanel=self)
+        self.Refresh()
 
     def setSummary(self, summary):
         self.summary = summary # filesitemdetailssummary
