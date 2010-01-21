@@ -571,6 +571,22 @@ class channelsDetails(bgPanel):
         self.scrollRight.Show()
         self.isempty = False
 
+
+
+    def checkDuplicates(self, event): # for testing
+        for el in range(len(self.torrentList)):
+            for el2 in range(len(self.torrentList)):
+                if el!=el2:
+                    i1 =self.torrentList[el]['infohash']
+                    i2 =self.torrentList[el2]['infohash']
+                    if i1==i2:
+                        print >> sys.stderr, el, el2
+        print >> sys.stderr , "DONE"
+                    
+                     
+
+
+
     def spamClicked(self, event):
         dialog = wx.MessageDialog(None, "Are sure you want to report %s as spam ?\nThis will remove all the torrents and possibly unsubscribe you from the channel. " % self.channelTitle.GetLabel(), "Report spam", wx.OK|wx.CANCEL|wx.ICON_WARNING)
         result = dialog.ShowModal()
@@ -596,6 +612,7 @@ class channelsDetails(bgPanel):
             if infohash is not None:
                 try:
                     torrent = self.torrent_db.getTorrent(infohash)
+
                     if DEBUG:
                         print >> sys.stderr , torrent
                     self.addTorrent(torrent, True)
@@ -638,17 +655,23 @@ class channelsDetails(bgPanel):
         return self.mychannel
 
 
+    def haveTorrent(self, infohash):
+        for el in self.torrentList:
+            if infohash==el['infohash']:
+                return True
+        return False    
+                
+
+
 
     def addTorrent(self, torrent, isMine = False):
         if DEBUG:
             print >> sys.stderr , "ADDTORRENT"
 
-#        isMine = self.parent.isMyChannel()
 
-        print >> sys.stderr , "torrent" , torrent
+        if not haveTorrent(torrent['infohash']):
 
-        if not torrent in self.torrentList:
-
+            print >> sys.stderr , "new torrent" , torrent
             self.erasevSizerContents()
 
             self.torrentList.append(torrent)
@@ -668,6 +691,10 @@ class channelsDetails(bgPanel):
             self.torrents.append(item)
 
             self.displayChannelContents()
+
+        elif DEBUG:
+            print >> sys.stderr , "Already have torrent : " , torrent
+
 
 
     def removeTorrent(self, index):
@@ -976,7 +1003,7 @@ class channelsDetails(bgPanel):
 
     def checkincomingtorrents(self):
         if self.publisher_id is not None:
-            hits = self.channelcast.hits
+            hits = self.channelcast.hits[:]
             non_added_hits=[]
             if DEBUG:
                 print >> sys.stderr , "NEW CHANNELCAST RECORDS : ", hits
@@ -992,7 +1019,7 @@ class channelsDetails(bgPanel):
                             wx.CallAfter(self.addTorrent, torrent, b)
                         else:
                             non_added_hits.append(hit)
-                    self.channelcast.hits = non_added_hits
+                    self.channelcast.hits = non_added_hits[:]
             except:
                 pass
 
