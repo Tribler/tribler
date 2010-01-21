@@ -1,7 +1,8 @@
 
 ver | find "Version 6." > nul
 if %ERRORLEVEL% == 0 goto IFDEFVISTA
-set APPDIR="Application Data"
+REM No quotes around this, otherwise we have double in the *DIR vars
+set APPDIR=Application Data
 goto general
 
 :IFDEFVISTA

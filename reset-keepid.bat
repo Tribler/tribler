@@ -1,7 +1,18 @@
 
+ver | find "Version 6." > nul
+if %ERRORLEVEL% == 0 goto IFDEFVISTA
+REM No quotes around this, otherwise we have double in the *DIR vars
+set APPDIR=%APPDIR%
+goto general
+
+:IFDEFVISTA
+set APPDIR=AppData\Roaming
+goto general
+
+:general
 
 
-set TDIR="%USERPROFILE%\Application Data\.Tribler"
+set TDIR="%USERPROFILE%\%APPDIR%\.Tribler"
 set DDIR="%USERPROFILE%\Desktop\TriblerDownloads"
 del %TDIR%\torrent*.* /S /F /Q
 REM rmdiriver us from Windows, *.* apparently does not include the following:
@@ -27,7 +38,7 @@ del %TDIR%\*.pickle
 rmdir %DDIR% /S /Q
 
 REM SwarmPlayer
-set TDIR="%USERPROFILE%\Application Data\.SwarmPlayer"
+set TDIR="%USERPROFILE%\%APPDIR%\.SwarmPlayer"
 del %TDIR%\torrent*.* /S /F /Q
 REM rmdiriver us from Windows, *.* apparently does not include the following:
 rmdir %TDIR%\torrent /S /Q
@@ -49,7 +60,7 @@ del %TDIR%\*.pickle
 
 
 REM SwarmPlugin
-set TDIR="%USERPROFILE%\Application Data\.SwarmPlugin"
+set TDIR="%USERPROFILE%\%APPDIR%\.SwarmPlugin"
 del %TDIR%\torrent*.* /S /F /Q
 REM rmdiriver us from Windows, *.* apparently does not include the following:
 rmdir %TDIR%\torrent /S /Q
