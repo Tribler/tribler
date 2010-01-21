@@ -669,7 +669,7 @@ class channelsDetails(bgPanel):
             print >> sys.stderr , "ADDTORRENT"
 
 
-        if not haveTorrent(torrent['infohash']):
+        if not self.haveTorrent(torrent['infohash']):
 
             print >> sys.stderr , "new torrent" , torrent
             self.erasevSizerContents()
