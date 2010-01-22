@@ -187,19 +187,33 @@ class ChannelCastCore:
         @param query: the query string
         @param hits: details of all matching results related to the query  
         """
+        #print >> sys.stderr , "RECEIVED HITS : " , hits
         records = []
+        self.hit = {}
         for k,v in hits.items():
             records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
         for hit in records:
+            print >> sys.stderr, "-----------------------------------------------------"
+            print >> sys.stderr, hit
             if self.channelcastdb.existsTorrent(hit[2]):
-                self.channelcastdb.addTorrent(hit)
-                self.hits.append(hit)
-            else:
-                def usercallback(infohash,metadata,filename):
-                    print >> sys.stderr , "USERCALLBACK" 
-                    self.channelcastdb.addTorrent(hit)
+                if self.channelcastdb.addTorrent(hit):
                     self.hits.append(hit)
-                self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),usercallback)
+            else:
+#                def usercallback(infohash,metadata,filename):
+#                    print >> sys.stderr , "USERCALLBACK", infohash, hit 
+#                    if self.channelcastdb.addTorrent(hit):
+#                        self.hits.append(hit)
+                self.hit[hit[2]] = hit
+                self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),self.usercallback)
+
+    def usercallback(self, infohash,metadata,filename):
+        hit=self.hit[bin2str(infohash)]
+        print >> sys.stderr , "USERCALLBACK", infohash, hit 
+        if self.channelcastdb.addTorrent(hit):
+            self.hits.append(hit)
+
+        del self.hit[bin2str(infohash)]
+
 
 
     def updateMySubscribedChannels(self):
