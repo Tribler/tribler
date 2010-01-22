@@ -3209,6 +3209,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         self.my_permid = session.get_permid()
         self.getMySubscribedChannels()
         self.getMostPopularUnsubscribedChannels()
+        self.ensureRecentNames()
         if DEBUG:
             print >> sys.stderr, "ChannelCast: My permid is",`self.my_permid`
         
@@ -3314,9 +3315,17 @@ class ChannelCastDBHandler(BasicDBHandler):
         print >> sys.stderr, "# hits:%d; search time:%s" % (len(torrent_list),time()-t1)
         return torrent_list
         
-    
+    def ensureRecentNames(self):
+        sql = "select distinct publisher_id from ChannelCast"
+        publisher_ids = self._db.fetchall(sql)
+        for publisher_id in publisher_ids:
+            sql = "select publisher_name from ChannelCast where publisher_id='" + publisher_id[0] + "' order by time_stamp desc limit 1"
+            latest_publisher_name = self._db.fetchone(sql)
+            sql = "update ChannelCast set publisher_name='" + latest_publisher_name + "' where publisher_id='" + publisher_id[0] + "'"
+            self._db.execute_write(sql)        
 
     def addOwnTorrent(self, infohash, torrentdata):
+        flag = False
         publisher_id = bin2str(self.my_permid)
         infohash = bin2str(infohash)
         sql = "select count(*) from ChannelCast where publisher_id='" + publisher_id + "' and infohash='" + infohash + "'"
@@ -3328,8 +3337,14 @@ class ChannelCastDBHandler(BasicDBHandler):
             self._sign(record)
             sql = 'insert into ChannelCast Values("' + record[0] + '","' + record[1] + '","' + record[2] + '","' + record[3] + '","' + record[4] + '","' + str(record[5]) + '","' + record[6] + '")'
             self._db.execute_write(sql)
-            return True
-        return False
+            #return True
+            flag = True
+        #return False
+        sql = "select publisher_name from ChannelCast where publisher_id='" + publisher_id + "' order by time_stamp desc limit 1"
+        latest_publisher_name = self._db.fetchone(sql)
+        sql = "update ChannelCast set publisher_name='" + latest_publisher_name + "' where publisher_id='" + publisher_id + "'"
+        self._db.execute_write(sql)
+        return flag
         
 
     def deleteOwnTorrent(self, infohash): ##
@@ -3345,6 +3360,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     
     def addTorrent(self,record):
+        flag = False
         sql = "select count(*) from ChannelCast where publisher_id='" + record[0] + "' and infohash='" + record[2] + "'"
         num_records = self._db.fetchone(sql)
         if num_records==0:
@@ -3352,8 +3368,14 @@ class ChannelCastDBHandler(BasicDBHandler):
             sql = 'insert into ChannelCast Values("' + record[0] + '","' + record[1] + '","' + record[2] + '","' + record[3] + '","' + record[4] + '","' + str(record[5]) + '","' + record[6] + '")'
             print sql
             self._db.execute_write(sql)
-            return True
-        return False
+            #return True
+            flag = True
+        #return False
+        sql = "select publisher_name from ChannelCast where publisher_id='" + record[0] + "' order by time_stamp desc limit 1"
+        latest_publisher_name = self._db.fetchone(sql)
+        sql = "update ChannelCast set publisher_name='" + latest_publisher_name + "' where publisher_id='" + record[0] + "'"
+        self._db.execute_write(sql)       
+        return flag
         
     def existsTorrent(self,infohash):
         sql = "select count(*) from Torrent where infohash='" + infohash + "' and name<>''"
