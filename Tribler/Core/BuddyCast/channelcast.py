@@ -57,6 +57,8 @@ class ChannelCastCore:
             self.overlay_log = OverlayLogger.getInstance(self.log)
             self.dnsindb = self.data_handler.get_dns_from_peerdb
         self.hits = []
+        self.hit = {}
+
     
     def initialized(self):
         return self.buddycast_core is not None
@@ -189,7 +191,6 @@ class ChannelCastCore:
         """
         #print >> sys.stderr , "RECEIVED HITS : " , hits
         records = []
-        self.hit = {}
         for k,v in hits.items():
             records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
         for hit in records:

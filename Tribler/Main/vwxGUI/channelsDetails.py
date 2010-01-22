@@ -656,8 +656,11 @@ class channelsDetails(bgPanel):
 
 
     def haveTorrent(self, infohash):
+        print >> sys.stderr , "HAVE TORRENT ------------------"
         for el in self.torrentList:
-            if infohash==el['infohash']:
+            
+            print >> sys.stderr , bin2str(infohash) , el['infohash']
+            if bin2str(infohash)==el['infohash']:
                 return True
         return False    
                 
@@ -745,7 +748,7 @@ class channelsDetails(bgPanel):
         self.torrents = torrentList[:] # make a shallow copy because we plan to
                               # modify this list
 
-        self.torrentList = torrentList
+        self.torrentList = torrentList[:]
         self.totalItems = len(self.torrentList)
         self.setLastPage()
         self.setSubscribed(subscribed)
