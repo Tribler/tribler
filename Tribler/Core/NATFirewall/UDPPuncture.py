@@ -76,6 +76,7 @@ else:
 
 class UDPHandler:
     TRACKER_ADDRESS = "m23trial-udp.tribler.org"
+    #~ TRACKER_ADDRESS = "localhost"
 
     # Define message types
     CONNECT = chr(0)  # Connection request, directly sent to target
@@ -546,9 +547,14 @@ class UDPHandler:
         connection.last_send = 0
         connection.last_received = 0
         connection.last_advert = 0
-        connection.nat_type = UDPHandler.NAT_UNKNOWN
-        connection.filter_type = UDPHandler.FILTER_UNKNOWN
-        connection.natfw_version = 0
+        if connection.id == "\0\0\0\0":
+            connection.nat_type = UDPHandler.NAT_NONE
+            connection.filter_type = UDPHandler.FILTER_NONE
+            connection.natfw_version = 0
+        else:
+            connection.nat_type = UDPHandler.NAT_UNKNOWN
+            connection.filter_type = UDPHandler.FILTER_UNKNOWN
+            connection.natfw_version = 0
         connection.pex_add.clear()
         connection.pex_del.clear()
         connection.connection_tries = -1
