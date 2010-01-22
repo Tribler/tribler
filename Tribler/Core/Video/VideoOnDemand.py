@@ -1129,6 +1129,7 @@ class MovieOnDemandTransporter(MovieTransport):
             cutoff = vs.piecelen - (vs.movie_range[1][1] + 1)
             length -= cutoff
 
+        #print >>sys.stderr,"get_piece",piece
         data = self.storagewrapper.do_get_piece(piece, begin, length)
         if data is None:
             return None

@@ -31,6 +31,7 @@ python test_url.py
 python test_url_metadata.py
 python test_status.py
 python test_closedswarm.py
+python test_cachingstream.py
 
 ./test_sqlitecachedbhandler.sh
 ./test_secure_overlay.sh

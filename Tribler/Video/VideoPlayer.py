@@ -18,6 +18,8 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
+from Tribler.Video.CachingStream import SmartCachingStream
+
 DEBUG = False
 
 if sys.platform == "linux2" or sys.platform == "darwin":
@@ -501,7 +503,30 @@ class VideoPlayer:
             if filename:
                 self.play_file(filename)
             else:
-                blocksize = d.get_def().get_piece_length()
+                if d.get_def().get_live():
+                    cachestream = stream
+                    blocksize = d.get_def().get_piece_length()
+                else:
+                    piecelen = d.get_def().get_piece_length()
+                    if piecelen > 2 ** 17:
+                        # Arno, 2010-01-21:
+                        # Workaround for streams with really large piece
+                        # sizes. For some content/containers, VLC can do
+                        # GET X-, GET X+10K-, GET X+20K HTTP requests
+                        # and we would answer these by putting megabytes
+                        # into the stream buffer, of which only 10K would be
+                        # used. This kills performance. Hence I add a caching
+                        # stream that tries to resolve answers from its internal
+                        # buffer, before reading the engine's stream.
+                        # This works, but only if the HTTP server doesn't
+                        # read too aggressively, i.e., uses small blocksize.
+                        #
+                        cachestream = SmartCachingStream(stream)
+
+                        blocksize = max(32768,piecelen/8)
+                    else:
+                        cachestream = stream
+                        blocksize = piecelen
                 
                 # Estimate duration. Video player (e.g. VLC) often can't tell
                 # when streaming.
@@ -514,7 +539,7 @@ class VideoPlayer:
                     if bitrate is not None:
                         estduration = float(length) / float(bitrate)
                     
-                streaminfo = {'mimetype':mimetype,'stream':stream,'length':length,'blocksize':blocksize,'estduration':estduration}
+                streaminfo = {'mimetype':mimetype,'stream':cachestream,'length':length,'blocksize':blocksize,'estduration':estduration}
                 self.play_stream(streaminfo)
                 
         elif event == VODEVENT_PAUSE:

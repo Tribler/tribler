@@ -26,6 +26,7 @@ python test_url.py
 python test_url_metadata.py
 python test_status.py
 python test_closedswarm.py
+python test_cachingstream.py
 
 CALL test_sqlitecachedbhandler.bat
 CALL test_secure_overlay.bat

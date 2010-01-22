@@ -179,7 +179,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
             if DEBUG:
                 print >>sys.stderr,"videoserv: do_GET: Got request",self.path,self.headers.getheader('range'),currentThread().getName()
-                print >>sys.stderr,"videoserv: do_GET: Range",self.headers.getrawheader('Range'),currentThread().getName()
+                #print >>sys.stderr,"videoserv: do_GET: Range",self.headers.getrawheader('Range'),currentThread().getName()
                 
             # 1. Get streaminfo for the data we should return in response
             nbytes2send = None
@@ -353,7 +353,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                             if DEBUG:
                                 print >>sys.stderr,"videoserv: do_GET: stream reached EOF or range query's send limit",currentThread().getName() 
                             break
-                            
+                        
                     if nbyteswritten != nbytes2send:
                         print >>sys.stderr,"videoserv: do_GET: Sent wrong amount, wanted",nbytes2send,"got",nbyteswritten,currentThread().getName()
 

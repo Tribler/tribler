@@ -213,7 +213,10 @@ class ABCApp(wx.App):
       
             # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
             # Range: GETs causes performance problems in our code. Disable for now.
-            SimpleServer.RANGE_REQUESTS_ENABLED = False
+            # Arno, 2010-01-22: With the addition of a CachingStream the problem
+            # is less severe (see VideoPlayer), so keep GET Range enabled.
+            #
+            #SimpleServer.RANGE_REQUESTS_ENABLED = False
             
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
