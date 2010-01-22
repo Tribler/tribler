@@ -1029,8 +1029,12 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",len(hits)
 
+        # 22/01/10 boudewijn: use the split_into_keywords function to
+        # split.  This will ensure that kws is unicode and splits on
+        # all 'splittable' characters
         kwstr = query[len('SIMPLE '):]
-        kws = kwstr.split()
+        kws = split_into_keywords(kwstr)
+
         wx.CallAfter(self.torrentsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
         
     def sesscb_got_channel_hits(self,permid,query,hits):
@@ -1038,9 +1042,12 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_channel_hits",len(hits)
 
-        #kwstr = query[2:]
+        # 22/01/10 boudewijn: use the split_into_keywords function to
+        # split.  This will ensure that kws is unicode and splits on
+        # all 'splittable' characters
         kwstr = query[len("CHANNEL x:"):]
-        kws = kwstr.split()
+        kws = split_into_keywords(kwstr)
+
         records = []
         for k,v in hits.items():
             records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
