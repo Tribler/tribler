@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import threading
+from traceback import print_exc, print_stack
 
 from Tribler.Core.simpledefs import *
 
@@ -74,6 +75,7 @@ class Notifier:
                     (oid is None or oid == obj_id)):
                     tasks.append(ofunc)
             except:
+                print_stack()
                 print_exc()
                 print >>sys.stderr,"notify: OIDs were",`oid`,`obj_id`
                 
