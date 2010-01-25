@@ -246,6 +246,8 @@ class TorrentFeedThread(Thread):
             # loop through the feeds and try one from each feed at a time
             while feeds:
                 for (rss_url, generator) in feeds.items():
+                    if rss_url is None or generator is None:
+                        break
 
                     # are there items left in this generator
                     try:
@@ -381,10 +383,15 @@ class TorrentFeedReader:
         if not self.urls_already_seen.readed:
             self.urls_already_seen.read()
             self.urls_already_seen.readed = True
-        
-        feed_socket = urlOpenTimeout(self.feed_url,timeout=20)
-        feed_xml = feed_socket.read()
-        feed_socket.close()
+
+        while True:
+            try:
+                feed_socket = urlOpenTimeout(self.feed_url,timeout=20)
+                feed_xml = feed_socket.read()
+                feed_socket.close()
+                break
+            except:
+                yield None, None
 
         # 14/07/08 boudewijn: some special characters and html code is
         # raises a parser exception. We filter out these character
@@ -481,8 +488,8 @@ class TorrentFeedReader:
                     print >>sys.stderr, "GENERATOREXIT"
                 # the generator is destroyed. we accept this by returning
                 return
-            except:
-                traceback.print_exc()
+            except Exception, e:
+                print >> sys.stderr, "rss_client:", e
                 yield title,None
 
     def shutdown(self):
