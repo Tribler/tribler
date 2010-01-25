@@ -303,7 +303,7 @@ class channelsDetails(bgPanel):
         # add Torrent button
         self.add_torrent = tribler_topButton(self, -1, name = "torrent_add")
         self.add_torrent.createBackgroundImage()
-        self.add_torrent.Bind(wx.EVT_LEFT_UP, self.addTorrentClicked)
+        self.add_torrent.Bind(wx.EVT_LEFT_UP, self.textentry)
         self.add_torrent.Hide()
 
 
@@ -622,6 +622,16 @@ class channelsDetails(bgPanel):
             else:
                 print >> sys.stderr , "No infohash. Could not add torrent"
 
+
+
+
+    def textentry(self, event):
+        dlg = wx.TextEntryDialog(self, 'Comment','Commentcast')
+        dlg.SetValue("Enter message here")
+        if dlg.ShowModal() == wx.ID_OK:
+            self.SetStatusText('You entered: %s\n' % dlg.GetValue())
+        dlg.Destroy()
+
             
 
     def nonUIThreadAddTorrent(self, rss_url, infohash, torrent_data):
@@ -656,14 +666,13 @@ class channelsDetails(bgPanel):
 
 
     def haveTorrent(self, infohash):
-        print >> sys.stderr , "HAVE TORRENT ------------------"
-        for el in self.torrentList:
-            
-            print >> sys.stderr , bin2str(infohash) , el['infohash']
-            if bin2str(infohash)==el['infohash']:
-                return True
-        return False    
-                
+        try:
+            for el in self.torrentList:
+                if bin2str(infohash)==el['infohash']:
+                    return True
+            return False    
+        except: # should something go wrong in comparisom return True
+            return True
 
 
 
@@ -677,7 +686,24 @@ class channelsDetails(bgPanel):
             print >> sys.stderr , "new torrent" , torrent
             self.erasevSizerContents()
 
-            self.torrentList.append(torrent)
+#            self.torrentList.append(torrent)
+#            self.totalItems = len(self.torrentList)
+#            self.setLastPage()
+#            self.parent.setTorrentList(self.torrentList)
+#            self.showElements(self.subscribed)
+
+#            item=channelsDetailsItem(self, -1)
+#            item.reemove.Hide()
+#            item.SetIndex(self.totalItems - 1)
+#            item.setTitle(self.torrentList[-1]['name'])
+#            item.setTorrent(self.torrentList[-1])
+#            item.setMine(isMine)
+#            item.deselect()
+#            item.Hide()
+#            self.torrents.append(item)
+
+
+            self.torrentList.insert(0, torrent)
             self.totalItems = len(self.torrentList)
             self.setLastPage()
             self.parent.setTorrentList(self.torrentList)
@@ -685,13 +711,22 @@ class channelsDetails(bgPanel):
 
             item=channelsDetailsItem(self, -1)
             item.reemove.Hide()
-            item.SetIndex(self.totalItems - 1)
-            item.setTitle(self.torrentList[-1]['name'])
-            item.setTorrent(self.torrentList[-1])
+            item.SetIndex(0)
+
+
+            for index in range(1,self.totalItems-1):
+                self.torrents[index].incrementIndex()
+            
+
+            item.setTitle(self.torrentList[0]['name'])
+            item.setTorrent(self.torrentList[0])
             item.setMine(isMine)
             item.deselect()
             item.Hide()
-            self.torrents.append(item)
+            self.torrents.insert(0, item)
+
+
+
 
             self.displayChannelContents()
 
