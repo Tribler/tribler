@@ -102,7 +102,12 @@ class SecureOverlay:
         self.myip = self.lm.get_ext_ip()
         self.myport = self.lm.session.get_listen_port()
         self.myid = create_my_peer_id(self.myport)
-        self.last_activity = time()
+
+        # 25/01/10 boudewijn: because there is no 'keep alive' message
+        # the last_activity check is prone to get false positives.
+        # The higher-ups decided that this feature should be removed
+        # entirely.
+        # self.last_activity = time()
 
     def resetSingleton(self):
         """ For testing purposes """
@@ -110,21 +115,24 @@ class SecureOverlay:
 
     def start_listening(self):
         self.overlay_rawserver.start_listening(self)
-        self.overlay_rawserver.add_task(self.secover_mon_netwact, 2)
+        # self.overlay_rawserver.add_task(self.secover_mon_netwact, 2)
 
-    def secover_mon_netwact(self):
-        """
-        periodically notify the network status
-        """
-        diff = time() - self.last_activity
-        if diff > 120 + 1:
-            # 120 is set as the check_period for buddycast until a
-            # KEEP_ALIVE message is send
-            msg = "no network"
-        else:
-            msg = "network active"
-        self.lm.set_activity(NTFY_ACT_ACTIVE, msg, diff)
-        self.overlay_rawserver.add_task(self.secover_mon_netwact, 2)
+    # 25/01/10 boudewijn: because there is no 'keep alive' message the
+    # last_activity check is prone to get false positives.  The
+    # higher-ups decided that this feature should be removed entirely.
+    # def secover_mon_netwact(self):
+    #     """
+    #     periodically notify the network status
+    #     """
+    #     diff = time() - self.last_activity
+    #     if diff > 120 + 1:
+    #         # 120 is set as the check_period for buddycast until a
+    #         # KEEP_ALIVE message is send
+    #         msg = "no network"
+    #     else:
+    #         msg = "network active"
+    #     self.lm.set_activity(NTFY_ACT_ACTIVE, msg, diff)
+    #     self.overlay_rawserver.add_task(self.secover_mon_netwact, 2)
 
     def connect_dns(self,dns,callback):
         """ Connects to the indicated endpoint and determines the permid 
@@ -353,7 +361,7 @@ class SecureOverlay:
         """ incoming connection (never used) """
         if DEBUG:
             print >> sys.stderr,"secover: external_connection_made",singsock.get_ip(),singsock.get_port()
-        self.last_activity = time()
+        # self.last_activity = time()
         oc = OverlayConnection(self,singsock,self.rawserver)
         singsock.set_handler(oc)
 
@@ -395,7 +403,7 @@ class SecureOverlay:
             self.cleanup_admin_and_callbacks(oc,Exception('closing because auth listen port not as expected'))
             return False
 
-        self.last_activity = time()
+        # self.last_activity = time()
 
         ret = True
         iplport = ip_and_port2str(oc.get_ip(),oc.get_auth_listen_port())
@@ -449,7 +457,7 @@ class SecureOverlay:
         if DEBUG:
             print >> sys.stderr,"secover: got_message",getMessageName(message[0]),\
                             "v"+str(selversion)
-        self.last_activity = time()
+        # self.last_activity = time()
         if self.usermsghandler is None:
             if DEBUG:
                 print >> sys.stderr,"secover: User receive callback not set"
