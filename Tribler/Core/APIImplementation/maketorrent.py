@@ -582,7 +582,7 @@ def get_files(metainfo,exts):
             if ext != '' and ext[0] == '.':
                 ext = ext[1:]
             #print >>sys.stderr,"TorrentDef: get_files: ext",ext
-            if exts is None or ext in exts:
+            if exts is None or ext.lower() in exts:
                 videofiles.append(filename)
     else:
         #print >>sys.stderr,"TorrentDef: get_files: Single-torrent file"
@@ -591,6 +591,6 @@ def get_files(metainfo,exts):
         (prefix,ext) = os.path.splitext(filename)
         if ext != '' and ext[0] == '.':
             ext = ext[1:]
-        if exts is None or ext in exts:
+        if exts is None or ext.lower() in exts:
             videofiles.append(filename)
     return videofiles
