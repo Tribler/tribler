@@ -303,7 +303,7 @@ class channelsDetails(bgPanel):
         # add Torrent button
         self.add_torrent = tribler_topButton(self, -1, name = "torrent_add")
         self.add_torrent.createBackgroundImage()
-        self.add_torrent.Bind(wx.EVT_LEFT_UP, self.textentry)
+        self.add_torrent.Bind(wx.EVT_LEFT_UP, self.addTorrentClicked)
         self.add_torrent.Hide()
 
 
@@ -347,6 +347,13 @@ class channelsDetails(bgPanel):
         self.spam.createBackgroundImage()
         self.spam.Bind(wx.EVT_LEFT_UP, self.spamClicked)
         self.spam.Hide()
+
+        # add delete all button
+#        self.deleteAll = tribler_topButton(self, -1, name = "deleteAll")
+#        self.deleteAll.SetPosition((196,100))
+#        self.deleteAll.createBackgroundImage()
+#        self.deleteAll.Bind(wx.EVT_LEFT_UP, self.deleteAllClicked)
+#        self.deleteAll.Hide()
 
         self.hSizer0.Add((20,0), 0, 0, 0)
         self.hSizer0.Add(self.channelTitle, 0, 0, 0)
@@ -462,6 +469,7 @@ class channelsDetails(bgPanel):
             self.rssFeedbackText.Hide()
             self.add_torrent.Hide()
             self.spam.Hide()
+#            self.deleteAll.Hide()
 
     def reinitialize(self, force = False):
         try:
@@ -544,6 +552,7 @@ class channelsDetails(bgPanel):
         self.rssFeedbackText.Hide()
         self.add_torrent.Hide()
         self.spam.Hide()
+#        self.deleteAll.Hide()
         if len(self.torrentList) != 1:
             self.foundText.SetLabel("Found %s files" % len(self.torrentList))
         else:
@@ -559,6 +568,9 @@ class channelsDetails(bgPanel):
             if self.rssFeed is not None:
                 self.rssCtrl.SetValue(self.rssFeed)
             self.addButton.Show()
+#            if self.totalItems > 0:
+#                self.deleteAll.Show()
+            
 
         else:
             if subscribed:
@@ -573,18 +585,15 @@ class channelsDetails(bgPanel):
 
 
 
-    def checkDuplicates(self, event): # for testing
-        for el in range(len(self.torrentList)):
-            for el2 in range(len(self.torrentList)):
-                if el!=el2:
-                    i1 =self.torrentList[el]['infohash']
-                    i2 =self.torrentList[el2]['infohash']
-                    if i1==i2:
-                        print >> sys.stderr, el, el2
-        print >> sys.stderr , "DONE"
                     
-                     
-
+    def deleteAllClicked(self, event):
+        if self.totalItems > 0:
+            dialog = wx.MessageDialog(None, "Are sure you want to delete all the files from your channel ?", "Delete all files", wx.OK|wx.CANCEL|wx.ICON_WARNING)
+            result = dialog.ShowModal()
+            dialog.Destroy()
+            if result == wx.ID_OK:
+                self.removeAllTorrents()    
+        
 
 
     def spamClicked(self, event):
@@ -624,13 +633,6 @@ class channelsDetails(bgPanel):
 
 
 
-
-    def textentry(self, event):
-        dlg = wx.TextEntryDialog(self, 'Comment','Commentcast')
-        dlg.SetValue("Enter message here")
-        if dlg.ShowModal() == wx.ID_OK:
-            self.SetStatusText('You entered: %s\n' % dlg.GetValue())
-        dlg.Destroy()
 
             
 
@@ -686,24 +688,7 @@ class channelsDetails(bgPanel):
             print >> sys.stderr , "new torrent" , torrent
             self.erasevSizerContents()
 
-#            self.torrentList.append(torrent)
-#            self.totalItems = len(self.torrentList)
-#            self.setLastPage()
-#            self.parent.setTorrentList(self.torrentList)
-#            self.showElements(self.subscribed)
-
-#            item=channelsDetailsItem(self, -1)
-#            item.reemove.Hide()
-#            item.SetIndex(self.totalItems - 1)
-#            item.setTitle(self.torrentList[-1]['name'])
-#            item.setTorrent(self.torrentList[-1])
-#            item.setMine(isMine)
-#            item.deselect()
-#            item.Hide()
-#            self.torrents.append(item)
-
-
-            self.torrentList.insert(0, torrent)
+            self.torrentList.append(torrent)
             self.totalItems = len(self.torrentList)
             self.setLastPage()
             self.parent.setTorrentList(self.torrentList)
@@ -711,19 +696,36 @@ class channelsDetails(bgPanel):
 
             item=channelsDetailsItem(self, -1)
             item.reemove.Hide()
-            item.SetIndex(0)
-
-
-            for index in range(1,self.totalItems-1):
-                self.torrents[index].incrementIndex()
-            
-
-            item.setTitle(self.torrentList[0]['name'])
-            item.setTorrent(self.torrentList[0])
+            item.SetIndex(self.totalItems - 1)
+            item.setTitle(self.torrentList[-1]['name'])
+            item.setTorrent(self.torrentList[-1])
             item.setMine(isMine)
             item.deselect()
             item.Hide()
-            self.torrents.insert(0, item)
+            self.torrents.append(item)
+
+
+#            self.torrentList.insert(0, torrent)
+#            self.totalItems = len(self.torrentList)
+#            self.setLastPage()
+#            self.parent.setTorrentList(self.torrentList)
+#            self.showElements(self.subscribed)
+
+#            item=channelsDetailsItem(self, -1)
+#            item.reemove.Hide()
+#            item.SetIndex(0)
+
+
+#            for index in range(1,self.totalItems-1):
+#                self.torrents[index].IncrementIndex()
+            
+
+#            item.setTitle(self.torrentList[0]['name'])
+#            item.setTorrent(self.torrentList[0])
+#            item.setMine(isMine)
+#            item.deselect()
+#            item.Hide()
+#            self.torrents.insert(0, item)
 
 
 
@@ -733,6 +735,35 @@ class channelsDetails(bgPanel):
         elif DEBUG:
             print >> sys.stderr , "Already have torrent : " , torrent
 
+
+    def removeAllTorrents(self):
+        self.erasevSizerContents()
+        if DEBUG:
+            print >> sys.stderr , "REMOVING ALL TORRENTS"
+
+
+        # delete torrents from ChannelCast Table
+        for el in self.torrentList:
+            self.channelcast_db.deleteOwnTorrent(el['infohash'])
+
+
+        # empty self.torrentList
+        self.torrentList = []
+        self.parent.setTorrentList(self.torrentList)
+        self.parent.setMyTitle()
+
+        # empty self.torrents
+        for i in range(0,self.totalItems-1):
+            if type (self.torrents[i]) is not dict:
+                self.torrents[i].Destroy()
+        self.torrents=[]
+
+        self.totalItems=0
+        self.setLastPage()
+        self.currentPage = 0
+
+        self.showElements(self.subscribed)
+        self.displayChannelContents()
 
 
     def removeTorrent(self, index):
@@ -1042,22 +1073,23 @@ class channelsDetails(bgPanel):
     def checkincomingtorrents(self):
         if self.publisher_id is not None:
             hits = self.channelcast.hits[:]
-            non_added_hits=[]
+            self.channelcast.hits = []            
+#            non_added_hits=[]
             if DEBUG:
                 print >> sys.stderr , "NEW CHANNELCAST RECORDS : ", hits
             try:
                 if len(hits) > 0: # new torrents
                     for hit in hits:
                         if self.publisher_id != hit[0]:
-                            non_added_hits.append(hit)
+#                            non_added_hits.append(hit)
                             continue
                         torrent = self.torrent_db.getTorrent(str2bin(hit[2]))
                         if torrent is not None:
                             b = self.publisher_id == bin2str(self.guiUtility.utility.session.get_permid())
                             wx.CallAfter(self.addTorrent, torrent, b)
-                        else:
-                            non_added_hits.append(hit)
-                    self.channelcast.hits = non_added_hits[:]
+#                        else:
+#                            non_added_hits.append(hit)
+#                    self.channelcast.hits = non_added_hits[:]
             except:
                 pass
 

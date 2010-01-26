@@ -202,6 +202,8 @@ class channelsDetailsItem(wx.Panel):
     def SetIndex(self, index):    
         self.index = index
 
+    def IncrementIndex(self): # used by channelsDetails
+        self.index+=1
 
     def saveClicked(self, event):
         self.guiUtility.frame.standardDetails.download(self.torrent)

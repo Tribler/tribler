@@ -258,11 +258,7 @@ class PopularItemPanel(wx.Panel):
             torrent_list.append(torrent)
         self.torrentList = torrent_list
 
-        print >> sys.stderr , "TORRENT INFOHASHES -----------"
-        print >> sys.stderr , "PUBLISHER NAME" , self.publisher_name
         
-        for torrent in self.torrentList:
-            print >> sys.stderr , torrent['infohash']
 
                
         self.Layout()
