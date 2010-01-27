@@ -31,6 +31,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.permid import sign_data, verify_data, permid_for_user
 from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Category.Category import Category
 
 # maxflow constants
@@ -1397,6 +1398,10 @@ class TorrentDBHandler(BasicDBHandler):
         # will be used in the InvertedIndex table when searching
         torrent_name = get_unicode_name(data)
 
+
+        # ARNOTODO: protect against injection attacks
+
+
         # see if there is already a torrent in the database with this
         # infohash
         torrent_id = self._db.getTorrentID(infohash)
@@ -1466,7 +1471,8 @@ class TorrentDBHandler(BasicDBHandler):
         if len(keywords) > 0:
             values = [(keyword, torrent_id) for keyword in keywords]
             self._db.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
-            print >> sys.stderr, "Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
+            if DEBUG:
+                print >> sys.stderr, "torrentdb: Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
         
         self._addTorrentTracker(torrent_id, data, commit=False)
         if commit:
@@ -3332,7 +3338,9 @@ class ChannelCastDBHandler(BasicDBHandler):
         num_records = self._db.fetchone(sql)
         if num_records==0:
             torrenthash = bin2str(sha(bencode(torrentdata)).digest())
-            torrentname = torrentdata['info']['name']
+            # Arno, 2010-01-27: sqlite don't like binary encoded names
+            # TODO: protect against injection attacks
+            (namekey,torrentname) = metainfoname2unicode(torrentdata)
             record = [publisher_id,self.session.get_nickname(),infohash,torrenthash,torrentname,now()]
             self._sign(record)
             sql = 'insert into ChannelCast Values("' + record[0] + '","' + record[1] + '","' + record[2] + '","' + record[3] + '","' + record[4] + '","' + str(record[5]) + '","' + record[6] + '")'
@@ -3349,14 +3357,12 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def deleteOwnTorrent(self, infohash): ##
         sql = 'Delete From ChannelCast where infohash==? and publisher_id==?'
-        self._db.execute_write(sql,(infohash,bin2str(self.my_permid),))
+        self._db.execute_write(sql,(bin2str(infohash),bin2str(self.my_permid),))
 
 
     def deleteTorrentsFromPublisherId(self, permid): ##
-        sql = "Delete From ChannelCast where publisher_id='" + permid + "'"
+        sql = "Delete From ChannelCast where publisher_id='" + bin2str(permid) + "'"
         self._db.execute_write(sql)
-    
-
 
     
     def addTorrent(self,record):

@@ -509,9 +509,9 @@ class SQLiteCacheDBBase:
             try:
                 self._execute(sql, args)
             except Exception,e:
-                self.commit_retry_if_busy_or_rollback(e,0)
+                self.commit_retry_if_busy_or_rollback(e,0,sql=sql)
             
-    def commit_retry_if_busy_or_rollback(self,e,tries):
+    def commit_retry_if_busy_or_rollback(self,e,tries,sql=None):
         """ 
         Arno:
         SQL_BUSY errors happen at the beginning of the experiment,
@@ -519,7 +519,7 @@ class SQLiteCacheDBBase:
         is not honoured for some reason. After the initial errors,
         they no longer occur.
         """
-        print >>sys.stderr,"sqlcachedb: commit_retry: after",str(e)
+        print >>sys.stderr,"sqlcachedb: commit_retry: after",str(e),repr(sql)
         
         if str(e).startswith("BusyError"):
             try:

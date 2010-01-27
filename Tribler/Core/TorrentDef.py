@@ -463,6 +463,9 @@ class TorrentDef(Serializable,Copyable):
         @return A number of bytes. """
         return self.input['piece length']
 
+    #
+    # ClosedSwarm fields
+    #
     def set_cs_keys(self, keys):
         self.input['cs_keys'] = keys
 

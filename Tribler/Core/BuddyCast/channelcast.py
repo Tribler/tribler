@@ -209,7 +209,8 @@ class ChannelCastCore:
 
     def usercallback(self, infohash,metadata,filename):
         hit=self.hit[bin2str(infohash)]
-        print >> sys.stderr , "USERCALLBACK", infohash, hit 
+        if DEBUG:
+            print >> sys.stderr , "ccast: USERCALLBACK", infohash, hit 
         if self.channelcastdb.addTorrent(hit):
             self.hits.append(hit)
 
