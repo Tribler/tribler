@@ -249,7 +249,7 @@ class channelsDetails(bgPanel):
         # rss ctrl
         self.rssCtrl = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER|wx.NO_BORDER)
         self.rssCtrl.SetFont(wx.Font(FS_RSS, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
-        self.rssCtrl.Bind(wx.EVT_KEY_DOWN, self.addRSS)
+        self.rssCtrl.Bind(wx.EVT_KEY_DOWN, self.updateRSS)
         self.rssCtrl.SetBackgroundColour((206,223,230))
         self.rssCtrl.Refresh()
         #self.rssCtrl.SetValue("http://www.legaltorrents.com/feeds/cat/netlabel-music.rss")
@@ -258,7 +258,7 @@ class channelsDetails(bgPanel):
         self.tf = TorrentFeedThread.getInstance()
         try:
             self.rssCtrl.SetValue(self.tf.mainURL)
-            self.rssFeed = self.rssCtrl.GetValue().strip()
+            #self.rssFeed = self.rssCtrl.GetValue().strip()
         except:
             pass
 
@@ -275,11 +275,11 @@ class channelsDetails(bgPanel):
 
 
 
-        # add Button
-        self.addButton = SwitchButton(self, -1, name = "addRSS")
-        self.addButton.createBackgroundImage()  
-        self.addButton.setToggled(True)
-        self.addButton.Bind(wx.EVT_LEFT_UP, self.addRSS)      
+        # update Button
+        self.updateButton = SwitchButton(self, -1, name = "addRSS")
+        self.updateButton.createBackgroundImage()  
+        self.updateButton.setToggled(True)
+        self.updateButton.Bind(wx.EVT_LEFT_UP, self.updateRSS)      
 
 
         self.rssFeedbackText = wx.StaticText(self,-1,"Updated",wx.Point(0,0),wx.Size(55,20))  
@@ -377,7 +377,7 @@ class channelsDetails(bgPanel):
             self.hSizer2.Add((10,0), 0, 0, 0)
         else:
             self.hSizer2.Add((5,0), 0, 0, 0)
-        self.hSizer2.Add(self.addButton, 0, 0, 0)
+        self.hSizer2.Add(self.updateButton, 0, 0, 0)
         self.hSizer2.Add((5,0), 0, 0, 0)
         self.hSizer2.Add(self.rssFeedbackText, 0, wx.TOP, 5)
 
@@ -465,7 +465,7 @@ class channelsDetails(bgPanel):
             self.foundText.Hide()
             self.rssText.Hide()
             self.rssCtrl.Hide()
-            self.addButton.Hide()
+            self.updateButton.Hide()
             self.rssFeedbackText.Hide()
             self.add_torrent.Hide()
             self.spam.Hide()
@@ -510,22 +510,22 @@ class channelsDetails(bgPanel):
         dc.DrawBitmap(self.br, 456, 490)
 
 
-    def addRSS(self, event):
+    def updateRSS(self, event):
         if event.GetEventObject().GetName() == 'text':        
             keycode = event.GetKeyCode()
         else:
             keycode = None
 
-        if self.rssCtrl.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'addRSS') and self.rssFeed != self.rssCtrl.GetValue().strip() and self.addButton.isToggled():
+        if self.rssCtrl.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'addRSS') and self.rssFeed != self.rssCtrl.GetValue().strip() and self.updateButton.isToggled():
             self.torrentfeed.deleteURL(self.rssFeed) 
             self.setRSSFeed(self.rssCtrl.GetValue().strip())
             self.torrentfeed.addURL(self.rssFeed, callback=self.nonUIThreadAddTorrent) 
-            self.addButton.setToggled(False)
-            self.updateRSS()
+            self.updateButton.setToggled(False)
+            self.updateRSSText()
         else:
             event.Skip()
             if event.GetEventObject().GetName() != 'addRSS':
-                self.addButton.setToggled(True)
+                self.updateButton.setToggled(True)
 
 
 
@@ -548,7 +548,7 @@ class channelsDetails(bgPanel):
         self.foundText.Show()
         self.rssText.Hide()
         self.rssCtrl.Hide()
-        self.addButton.Hide()
+        self.updateButton.Hide()
         self.rssFeedbackText.Hide()
         self.add_torrent.Hide()
         self.spam.Hide()
@@ -567,7 +567,7 @@ class channelsDetails(bgPanel):
             self.rssCtrl.Show()
             if self.rssFeed is not None:
                 self.rssCtrl.SetValue(self.rssFeed)
-            self.addButton.Show()
+            self.updateButton.Show()
 #            if self.totalItems > 0:
 #                self.deleteAll.Show()
             
@@ -1051,7 +1051,7 @@ class channelsDetails(bgPanel):
 
 
 
-    def updateRSS(self):
+    def updateRSSText(self):
         self.guiserver = GUITaskQueue.getInstance()
         self.guiserver.add_task(lambda:wx.CallAfter(self.showRSS), 0.0)
 
