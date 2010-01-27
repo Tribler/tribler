@@ -186,11 +186,7 @@ SectionEnd
 
 Section "Uninstall"
 
- Delete "$INSTDIR\${LIBRARYNAME}\*.*"
- RMDir "$INSTDIR\${LIBRARYNAME}"
-
- Delete "$INSTDIR\*.*"
- RMDir "$INSTDIR"
+ RMDir /r "$INSTDIR"
 
  Delete "$DESKTOP\${PRODUCT}.lnk"
  Delete "$SMPROGRAMS\${PRODUCT}\*.*"

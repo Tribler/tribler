@@ -213,17 +213,7 @@ SectionEnd
 
 Section "Uninstall"
 
- Delete "$INSTDIR\torrent\*.*"
- RMDir "$INSTDIR\torrent"
-
- Delete "$INSTDIR\icons\*.*"
- RMDir "$INSTDIR\icons"
-
- Delete "$INSTDIR\lang\*.*"
- RMDir "$INSTDIR\lang"
-
- Delete "$INSTDIR\*.*"
- RMDir "$INSTDIR"
+ RMDir /r "$INSTDIR"
 
  Delete "$DESKTOP\${PRODUCT}.lnk"
  Delete "$SMPROGRAMS\${PRODUCT}\*.*"

@@ -1172,9 +1172,11 @@ def run(params = None):
     
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
         sleep(1)
+        
     except:
         print_exc()
 
+        
     # This is the right place to close the database, unfortunately Linux has
     # a problem, see ABCFrame.OnCloseWindow
     #

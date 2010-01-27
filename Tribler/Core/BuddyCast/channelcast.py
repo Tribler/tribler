@@ -194,8 +194,10 @@ class ChannelCastCore:
         for k,v in hits.items():
             records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
         for hit in records:
-            print >> sys.stderr, "-----------------------------------------------------"
-            print >> sys.stderr, hit
+            if DEBUG:
+                print >> sys.stderr, "ccast: -----------------------------------------------------"
+                print >> sys.stderr, `hit`
+            
             if self.channelcastdb.existsTorrent(hit[2]):
                 if self.channelcastdb.addTorrent(hit):
                     self.hits.append(hit)
