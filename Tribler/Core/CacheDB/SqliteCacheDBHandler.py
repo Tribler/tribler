@@ -3365,6 +3365,13 @@ class ChannelCastDBHandler(BasicDBHandler):
         self._db.execute_write(sql)
 
     
+    def updateMyChannelName(self, name): ##
+        sql = "update ChannelCast set publisher_name='" + name + "'where publisher_id='" + bin2str(self.my_permid) + "'"
+        self._db.execute_write(sql)
+ 
+
+
+    
     def addTorrent(self,record):
         flag = False
         sql = "select count(*) from ChannelCast where publisher_id='" + record[0] + "' and infohash='" + record[2] + "'"

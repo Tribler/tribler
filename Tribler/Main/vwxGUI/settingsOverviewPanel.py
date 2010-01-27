@@ -13,6 +13,8 @@ from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from Tribler.Core.simpledefs import *
 
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
+
 
 
 #fonts
@@ -73,7 +75,6 @@ class SettingsOverviewPanel(wx.Panel):
         self.callback=None
  
         
-        
         if len(args) == 0: 
             pre = wx.PrePanel() 
             # the Create step is done by XRC. 
@@ -98,6 +99,7 @@ class SettingsOverviewPanel(wx.Panel):
         self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         self.firewallStatus = xrc.XRCCTRL(self,"firewallStatus")  
         self.utility = self.guiUtility.utility
+        self.channelcast_db = self.utility.session.open_dbhandler(NTFY_CHANNELCAST)       
 
         for element in self.elementsName:
             xrcElement = xrc.XRCCTRL(self, element)
@@ -417,6 +419,7 @@ class SettingsOverviewPanel(wx.Panel):
                 self.callback(self.name, self.icondata, self.iconmime, self.scfg, self.cfgfilename, self.utility.session)
 
             self.updateSaveIcon()
+            self.channelcast_db.updateMyChannelName(self.name)
 
    
         
