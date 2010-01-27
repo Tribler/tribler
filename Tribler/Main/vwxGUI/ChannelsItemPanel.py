@@ -25,6 +25,7 @@ from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 
 from Tribler.__init__ import LIBRARYNAME
 
@@ -289,6 +290,11 @@ class ChannelsItemPanel(wx.Panel):
 
             self.setMyTitle()
 
+            # convert infohashes to binary
+            for i in range(0,len(self.torrentList)):
+                self.torrentList[i]['infohash'] = str2bin(self.torrentList[i]['infohash'])
+            
+
 
         else:
             self.mychannel = False
@@ -373,7 +379,7 @@ class ChannelsItemPanel(wx.Panel):
         if self.num_votes == 0:
             ttstring = self.data[1] + " (No votes)"
         elif self.num_votes == 1: 
-            ttstring = self.data[1] + " (1 votes)"
+            ttstring = self.data[1] + " (1 vote)"
         else: 
             ttstring = self.data[1] + " (%s votes)" % self.num_votes
         self.title.SetToolTipString(ttstring)

@@ -624,7 +624,8 @@ class channelsDetails(bgPanel):
 
                     if DEBUG:
                         print >> sys.stderr , torrent
-                    self.addTorrent(torrent, True)
+                    
+                    self.addTorrent(torrent, True,allowDialog=True)
                 except:
                     print >> sys.stderr , "Could not add torrent"
                     pass
@@ -668,24 +669,35 @@ class channelsDetails(bgPanel):
 
 
     def haveTorrent(self, infohash):
+#        print >> sys.stderr , "INFOHASH" , infohash
         try:
             for el in self.torrentList:
-                if bin2str(infohash)==el['infohash']:
+#                print >> sys.stderr , "infohash : " , el['infohash']
+                if infohash==el['infohash']:
                     return True
             return False    
         except: # should something go wrong in comparisom return True
             return True
 
+    def alreadyHaveTorrentDialog(self):
+        title = "Adding Torrent"
+        msg = "You already have this torrent in your channel. Please add another torrent."
+            
+        dlg = wx.MessageDialog(None, msg, title, wx.OK|wx.ICON_INFORMATION)
+        result = dlg.ShowModal()
+        dlg.Destroy()
 
 
-    def addTorrent(self, torrent, isMine = False):
+
+    def addTorrent(self, torrent, isMine = False, allowDialog=False):
         if DEBUG:
             print >> sys.stderr , "ADDTORRENT"
 
 
         if not self.haveTorrent(torrent['infohash']):
 
-            print >> sys.stderr , "new torrent" , torrent
+            if DEBUG:
+                print >> sys.stderr , "new torrent" , torrent
             self.erasevSizerContents()
 
             self.torrentList.append(torrent)
@@ -732,9 +744,10 @@ class channelsDetails(bgPanel):
 
             self.displayChannelContents()
 
+        elif allowDialog:
+            self.alreadyHaveTorrentDialog()
         elif DEBUG:
             print >> sys.stderr , "Already have torrent : " , torrent
-
 
     def removeAllTorrents(self):
         self.erasevSizerContents()
