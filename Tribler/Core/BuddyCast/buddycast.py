@@ -1366,14 +1366,7 @@ class BuddyCastCore:
 
             # if the single prefs entries are lists, we have a more modern wire format
             # currently, there is only one possibility
-            if buddycast_data['oversion'] >= OLPROTO_VER_EIGHTH:
-                # create dictionary from list of lists
-                d = [dict({'infohash': pref[0],
-                           'search_terms': pref[1],
-                           'position': pref[2],
-                           'reranking_strategy': pref[3]}) 
-                     for pref in prefs]
-            elif buddycast_data['oversion'] == OLPROTO_VER_ELEVENTH:
+            if buddycast_data['oversion'] >= OLPROTO_VER_ELEVENTH:
                 # Rahim: This part extracts swarm size info from the BC message 
                 # and then returns it in the result list.
                 # create dictionary from list of lists
@@ -1386,8 +1379,14 @@ class BuddyCastCore:
                            'calc_age':pref[6],
                            'num_sources_seen':pref[7]}) 
                      for pref in prefs]
-                                 
                 
+            elif buddycast_data['oversion'] >= OLPROTO_VER_EIGHTH:
+                # create dictionary from list of lists
+                d = [dict({'infohash': pref[0],
+                           'search_terms': pref[1],
+                           'position': pref[2],
+                           'reranking_strategy': pref[3]}) 
+                     for pref in prefs]
             else:
                 raise RuntimeError, 'buddycast: unknown preference protocol, pref entries are lists but oversion= %s:\n%s' % (buddycast_data['oversion'], prefs)
 
