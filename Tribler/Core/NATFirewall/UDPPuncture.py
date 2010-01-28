@@ -137,6 +137,7 @@ class UDPHandler:
         self.keepalive_intvl = 100
         self.done = False
         self.reporter = None
+        self.last_sends = {}
 
         rawserver.start_listening_udp(self.socket, self)
 
@@ -234,7 +235,8 @@ class UDPHandler:
                 # set the address to the one we actually use.
                 connection.address = address
 
-            self.incoming_connect(address, True) # Update NAT and Filter states
+            if not address in self.last_sends:
+                self.incoming_connect(address, True) # Update NAT and Filter states
             self.connections[address] = connection
 
         if not connection.handle_msg(data):
@@ -396,6 +398,14 @@ class UDPHandler:
             return
 
         now = time.time()
+        
+        # Remove info about last sends after 5 minutes
+        close_list = []
+        for address in self.last_sends.iterkeys():
+            if self.last_sends[address] < now - 300:
+                close_list.append(address)
+        for address in close_list:
+            del self.last_sends[address]
 
         # Close connections older than 10 minutes, if the number of connections is more
         # than the connect threshold. However, only discard upto 1/3 of the connect
@@ -544,6 +554,10 @@ class UDPHandler:
         orig_state = connection.connection_state
         connection.connection_state = UDPConnection.CONNECT_NONE
         connection.last_comm = time.time()
+        # Save the fact that we have sent something to this address, to ensure that retries won't be
+        # counted as proper incomming connects without prior communication
+        if connection.last_send > time.time() - 300:
+            self.last_sends[connection.address] = connection.last_send
         connection.last_send = 0
         connection.last_received = 0
         connection.last_advert = 0
@@ -1014,6 +1028,10 @@ if __name__ == "__main__":
     else:
         port = int(sys.argv[1])
     udp_handler = UDPHandler(rawserver, port)
+    
+    if sys.argv == "12345":
+        udp_handler.connect_threshold = 0
+
     print "UDPHandler started, press enter to quit"
     sys.stdin.readline()
     udp_handler.shutdown()
