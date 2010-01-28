@@ -524,7 +524,7 @@ def isValidQuery(d,selversion):
         if DEBUG:
             print >> sys.stderr, "rqmh: some keys are missing", d.keys()
         return False
-    if not ((isinstance(d['q'],str) or isinstance(d['q'], unicode)) and isinstance(d['id'],str)):
+    if not (isinstance(d['q'],str) and isinstance(d['id'],str)):
         if DEBUG:
             print >> sys.stderr, "rqmh: d['q'] or d['id'] are not of string format", d['q'], d['id']
         return False
@@ -533,12 +533,18 @@ def isValidQuery(d,selversion):
             print >> sys.stderr, "rqmh: len(d['q']) == 0"
         return False
     if selversion < OLPROTO_VER_TWELFTH and d['q'].startswith('SIMPLE+METADATA'):
+        if DEBUG:
+            print >>sys.stderr,"rqmh: SIMPLE+METADATA but old olversion",`q`
         return False
     idx = d['q'].find(' ')
     if idx == -1:
+        if DEBUG:
+            print >>sys.stderr,"rqmh: no space in q",`q`
         return False
     keyw = d['q'][idx+1:]
     if not keyw.isalnum():
+        if DEBUG:
+            print >>sys.stderr,"rqmh: not alnum",`keyw`
         return False
     if len(d) > 2: # no other keys
         if DEBUG:

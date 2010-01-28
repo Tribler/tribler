@@ -44,6 +44,23 @@ def get_usage(defs):
     return parseargs.formatDefinitions(defs,80)
     
     
+    
+class HaltOnEOFStream:
+    def __init__(self,stream):
+        self.stream = stream
+    
+    def read(self,nbytes=None):
+        ret = self.stream.read(nbytes)
+        if len(ret) == 0:
+            # EOF
+            print >>sys.stderr,"createlivestream: Exiting on EOF input stream"
+            os._exit(1)
+        return ret
+        
+    def close(self):
+        self.stream.close()
+    
+    
 class FileLoopStream:
     
     def __init__(self,stream):
@@ -167,8 +184,10 @@ if __name__ == "__main__":
         else:
             source = stream
         dscfg.set_video_ratelimit(tdef.get_bitrate())
+
+    haltsource = HaltOnEOFStream(source)
         
-    dscfg.set_video_source(source,authcfg)
+    dscfg.set_video_source(haltsource,authcfg)
 
     dscfg.set_max_uploads(config['nuploads'])
 
