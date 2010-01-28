@@ -494,7 +494,11 @@ class PeerDBHandler(BasicDBHandler):
             peer_list.append(peer)
             
         if get_online:
-            self.checkOnline(peer_list)
+            # Arno, 2010-01-28: Disabled this. Maybe something wrong with setOnline
+            # observer.
+            #self.checkOnline(peer_list)
+            raise ValueError("getGUIPeers get_online parameter currently disabled")
+            
             
         # peer_list consumes about 1.5M for 1400 peers, and this function costs about 0.015 second
         
@@ -534,7 +538,10 @@ class PeerDBHandler(BasicDBHandler):
         #print >> sys.stderr, (('#'*50)+'\n')*5+'%d peers online' % len(self.online_peers)
 
     def registerConnectionUpdater(self, session):
-        session.add_observer(self.setOnline, NTFY_PEERS, [NTFY_CONNECTION], None)
+        # Arno, 2010-01-28: Disabled this. Maybe something wrong with setOnline
+        # observer. ThreadPool may somehow not be executing the calls to setOnline
+        # session.add_observer(self.setOnline, NTFY_PEERS, [NTFY_CONNECTION], None)
+        pass
     
     def updatePeerIcon(self, permid, icontype, icondata, updateFlag = True):
         # save thumb in db

@@ -159,18 +159,22 @@ class ThreadPoolThread(threading.Thread):
         it, calling the callback if any.  """
         
         while self.__isDying == False:
-            cmd, args, callback = self.__pool.getNextTask()
-            # If there's nothing to do, just sleep a bit
-            if cmd is None:
-                try:
-                    sleep(ThreadPoolThread.threadSleepTime)
-                except AttributeError: # raised during interpreter shutdown
-                    break
-            elif callback is None:
-                cmd(*args)
-            else:
-                callback(cmd(args))
-                
+            # Arno, 2010-01-28: add try catch block. Sometimes tasks lists grow,
+            # could be because all Threads are dying.
+            try:
+                cmd, args, callback = self.__pool.getNextTask()
+                # If there's nothing to do, just sleep a bit
+                if cmd is None:
+                    try:
+                        sleep(ThreadPoolThread.threadSleepTime)
+                    except AttributeError: # raised during interpreter shutdown
+                        break
+                elif callback is None:
+                    cmd(*args)
+                else:
+                    callback(cmd(args))
+            except:
+                print_exc()
             
     
     def goAway(self):
@@ -178,3 +182,4 @@ class ThreadPoolThread(threading.Thread):
         """ Exit the run loop next time through."""
         
         self.__isDying = True
+        
