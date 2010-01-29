@@ -669,6 +669,9 @@ class channelsDetails(bgPanel):
 
 
     def haveTorrent(self, infohash):
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == 20, "INFOHASH has invalid length %s" % type(infohash)
+
 #        print >> sys.stderr , "INFOHASH" , infohash
         try:
             for el in self.torrentList:
@@ -700,24 +703,7 @@ class channelsDetails(bgPanel):
                 print >> sys.stderr , "new torrent" , torrent
             self.erasevSizerContents()
 
-            self.torrentList.append(torrent)
-            self.totalItems = len(self.torrentList)
-            self.setLastPage()
-            self.parent.setTorrentList(self.torrentList)
-            self.showElements(self.subscribed)
-
-            item=channelsDetailsItem(self, -1)
-            item.reemove.Hide()
-            item.SetIndex(self.totalItems - 1)
-            item.setTitle(self.torrentList[-1]['name'])
-            item.setTorrent(self.torrentList[-1])
-            item.setMine(isMine)
-            item.deselect()
-            item.Hide()
-            self.torrents.append(item)
-
-
-#            self.torrentList.insert(0, torrent)
+#            self.torrentList.append(torrent)
 #            self.totalItems = len(self.torrentList)
 #            self.setLastPage()
 #            self.parent.setTorrentList(self.torrentList)
@@ -725,19 +711,38 @@ class channelsDetails(bgPanel):
 
 #            item=channelsDetailsItem(self, -1)
 #            item.reemove.Hide()
-#            item.SetIndex(0)
-
-
-#            for index in range(1,self.totalItems-1):
-#                self.torrents[index].IncrementIndex()
-            
-
-#            item.setTitle(self.torrentList[0]['name'])
-#            item.setTorrent(self.torrentList[0])
+#            item.SetIndex(self.totalItems - 1)
+#            item.setTitle(self.torrentList[-1]['name'])
+#            item.setTorrent(self.torrentList[-1])
 #            item.setMine(isMine)
 #            item.deselect()
 #            item.Hide()
-#            self.torrents.insert(0, item)
+#            self.torrents.append(item)
+
+
+            self.torrentList.insert(0, torrent)
+            self.totalItems = len(self.torrentList)
+            self.setLastPage()
+            self.parent.setTorrentList(self.torrentList)
+            self.showElements(self.subscribed)
+
+            item=channelsDetailsItem(self, -1)
+            item.remove.Hide()
+            item.SetIndex(0)
+
+
+            for index in range(1,self.totalItems-1):
+                try:
+                    self.torrents[index].IncrementIndex()
+                except:
+                    pass        
+
+            item.setTitle(self.torrentList[0]['name'])
+            item.setTorrent(self.torrentList[0])
+            item.setMine(isMine)
+            item.deselect()
+            item.Hide()
+            self.torrents.insert(0, item)
 
 
 
@@ -861,7 +866,7 @@ class channelsDetails(bgPanel):
             if DEBUG:
                 print >> sys.stderr , "item :" , i
             item=channelsDetailsItem(self, -1)
-            item.reemove.Hide()
+            item.remove.Hide()
             item.SetIndex(i)
             self.torrents.append(item)
             self.torrents[i].setTitle(self.torrentList[i]['name'])
@@ -888,7 +893,7 @@ class channelsDetails(bgPanel):
         for index in range(self.currentPage*self.torrentsPerPage, self.currentPage*self.torrentsPerPage+numItems):
             if type(self.torrents[index]) is dict:
                 item = channelsDetailsItem(self, -1)
-                item.reemove.Hide()
+                item.remove.Hide()
                 item.SetIndex(index)
                 self.torrents[index] = item
                 self.torrents[index].setTitle(self.torrentList[index]['name'])

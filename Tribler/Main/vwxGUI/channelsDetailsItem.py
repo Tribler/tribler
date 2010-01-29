@@ -116,14 +116,14 @@ class channelsDetailsItem(wx.Panel):
         #self.save.Hide()
 
         # remove button
-        self.reemove = tribler_topButton(self, -1, name = "reemove")
-        self.reemove.setBackground(self.backgroundColourSel)
-        self.reemove.Bind(wx.EVT_LEFT_UP, self.removeClicked)
-        self.reemove.Hide()
+        self.remove = tribler_topButton(self, -1, name = "reemove")
+        self.remove.setBackground(self.backgroundColourSel)
+        self.remove.Bind(wx.EVT_LEFT_UP, self.removeClicked)
+        self.remove.Hide()
 
 
         self.hSizer.Add(self.title, 0, wx.LEFT, 5)
-        self.hSizer.Add(self.reemove, 0, wx.TOP, 7)
+        self.hSizer.Add(self.remove, 0, wx.TOP, 7)
 
         self.vSizer.Add(self.hSizer, 0, 0, 0)
 
@@ -235,9 +235,9 @@ class channelsDetailsItem(wx.Panel):
             else:
                 self.vSizer.Layout()
             if self.isMine():
-                self.reemove.Show()
+                self.remove.Show()
             else:
-                self.reemove.Hide()
+                self.remove.Hide()
 
             
 
@@ -263,7 +263,7 @@ class channelsDetailsItem(wx.Panel):
         self.SetBackgroundColour(self.backgroundColour)
         self.selected = False
 
-        self.reemove.Hide()
+        self.remove.Hide()
         self.Refresh()
 
 

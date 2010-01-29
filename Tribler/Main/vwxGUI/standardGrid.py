@@ -62,8 +62,7 @@ class GridManager(object):
         self.peersearch_manager = utility.guiUtility.peersearch_manager
         self.peersearch_manager.register(self.peer_db,self.friend_db)
         self.guiserver = GUITaskQueue.getInstance()
-        
-        # Jie's hacks to avoid DB concurrency, REMOVE ASAP!!!!!!!!!!!!
+        self.guiserver.add_task(lambda:wx.CallAfter(self.channelrefresh), 0.0)      
         # ARNOCOMMENT
         #self.refresh_rate = 1.5   # how often to refresh the GUI in seconds
         
@@ -82,6 +81,15 @@ class GridManager(object):
             self.page = 0
         self.refresh(update_observer = True)
         
+    def channelrefresh(self):
+        if self.grid.name=='popularGrid':
+            if DEBUG:
+                print >> sys.stderr , "POPULAR GRID REFRESH"
+            wx.CallAfter(self.refresh)
+        self.guiserver.add_task(self.channelrefresh, 8.0)
+
+
+
     def refresh(self, update_observer = False):
         """
         Refresh the data of the grid
