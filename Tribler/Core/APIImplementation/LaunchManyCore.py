@@ -260,8 +260,8 @@ class TriblerLaunchMany(Thread):
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
 
-        # Disabled Gertjan's UDP code for M24.
-        #self.udppuncture_handler = UDPHandler(self.rawserver)
+        # Gertjan's UDP code
+        self.udppuncture_handler = UDPHandler(self.rawserver)
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """

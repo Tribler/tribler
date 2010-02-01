@@ -162,13 +162,14 @@ class UDPHandler:
             TimeoutFinder.TimeoutFinder(rawserver, False, self.timeout_report)
             TimeoutFinder.TimeoutFinder(rawserver, True, self.timeout_report)
 
-            from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
             if not DEBUG:
+                #~ from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+                from Tribler.Core.Statistics.PunctureCrawler import get_reporter_instance
                 self.reporter = get_reporter_instance()
 
         if self.reporter:
             my_wan_ip = guessip.get_my_wan_ip()
-            if sys.platform == 'win32' and my_wan_ip == None:
+            if my_wan_ip == None and sys.platform == 'win32':
                 try:
                     import os
                     for line in os.popen("netstat -nr").readlines():
