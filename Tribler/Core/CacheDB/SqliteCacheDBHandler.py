@@ -3049,10 +3049,12 @@ class VoteCastDBHandler(BasicDBHandler):
         return items   
     
     
-    def getVote(self,permid,peerid):
-        sql = 'select * from VoteCast where mod_id==? and voter_id==?'
-        item = self._db.fetchone(sql,(permid,peerid,))
-        return item
+################## method already exists below !
+#
+#    def getVote(self,permid,peerid):
+#        sql = 'select * from VoteCast where mod_id==? and voter_id==?'
+#        item = self._db.fetchone(sql,(permid,peerid,))
+#        return item
     
     def addVotes(self, votes):
         sql = 'insert into VoteCast Values (?,?,?,?)'
@@ -3569,7 +3571,8 @@ class ChannelCastDBHandler(BasicDBHandler):
                 else:
                     del publishers[mod_id]
         for k, v in publishers.items():
-            allrecords.append((k, v[0], v[1], {}))
+            if votecastdb.getVote(k, bin2str(self.my_permid)) != -1:
+                allrecords.append((k, v[0], v[1], {}))
         def compare(a,b):
             if a[2]>b[2] : return -1
             if a[2]<b[2] : return 1

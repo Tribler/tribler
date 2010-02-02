@@ -963,8 +963,14 @@ class channelsDetails(bgPanel):
             self.publisher_id = publisher_id
 
     def refreshScrollButtons(self):
-        self.scrollLeft.setSelected(self.currentPage==0)
-        self.scrollRight.setSelected(self.currentPage==self.lastPage)
+        if self.totalItems == 0:
+            self.scrollLeft.Hide()
+            self.scrollRight.Hide()
+        else:
+            self.scrollLeft.Show()
+            self.scrollRight.Show()
+            self.scrollLeft.setSelected(self.currentPage==0)
+            self.scrollRight.setSelected(self.currentPage==self.lastPage)
 
 
     def scrollLeftClicked(self, event):

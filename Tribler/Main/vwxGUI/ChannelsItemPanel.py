@@ -402,7 +402,7 @@ class ChannelsItemPanel(wx.Panel):
         if self.num_votes == 0:
             ttstring = "My Channel (No votes)"
         elif self.num_votes == 1: 
-            ttstring = "My Channel (1 votes)"
+            ttstring = "My Channel (1 vote)"
         else: 
             ttstring = "My Channel (%s votes)" % self.num_votes
         self.title.SetToolTipString(ttstring)
