@@ -353,7 +353,13 @@ class UDPHandler:
     def bootstrap(self):
         if DEBUG:
             debug("Starting bootstrap")
-        tracker = UDPConnection((socket.gethostbyname(UDPHandler.TRACKER_ADDRESS), 9473), "\0\0\0\0", self)
+        try:
+            address = socket.gethostbyname(UDPHandler.TRACKER_ADDRESS)
+        except:
+            return
+        if address == '130.161.211.245':
+            return # Don't connect to catch-all address
+        tracker = UDPConnection((address, 9473), "\0\0\0\0", self)
         # Make sure this is never removed, by setting an address that we will never receive
         tracker.advertised_by[("0.0.0.0", 0)] = 1e308
         tracker.nat_type = UDPHandler.NAT_NONE
