@@ -185,7 +185,8 @@ class SQLiteCacheDBBase:
             del self.cursor_table[thread_name]
             # Arno, 2010-01-25: Remove entry in cache_transaction_table for this thread
             try:
-                del self.cache_transaction_table[thread_name]
+                if thread_name in self.cache_transaction_table.keys(): 
+                    del self.cache_transaction_table[thread_name]
             except:
                 print_exc()
         if clean:    # used for test suite
