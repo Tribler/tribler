@@ -567,7 +567,7 @@ class ABCApp(wx.App):
         """ get the current reputation score"""
         bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
         reputation = bc_db.getMyReputation()
-        self.utility.session.close_dbhandler(bc_db)
+        #self.utility.session.close_dbhandler(bc_db)
         return reputation
 
     def get_total_down(self):
@@ -819,11 +819,11 @@ class ABCApp(wx.App):
                 if snapshot_seeding_stats:
                     bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
                     reputation = bc_db.getMyReputation()
-                    self.utility.session.close_dbhandler(bc_db)
+                    #self.utility.session.close_dbhandler(bc_db)
                     
                     seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
                     seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval) 
-                    self.utility.session.close_dbhandler(seedingstats_db)
+                    #self.utility.session.close_dbhandler(seedingstats_db)
 # _Crawling Seeding Stats
 
         except:
