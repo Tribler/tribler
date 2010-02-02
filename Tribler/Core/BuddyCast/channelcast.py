@@ -57,7 +57,6 @@ class ChannelCastCore:
             self.overlay_log = OverlayLogger.getInstance(self.log)
             self.dnsindb = self.data_handler.get_dns_from_peerdb
         self.hits = []
-        self.hit = {}
 
     
     def initialized(self):
@@ -190,33 +189,32 @@ class ChannelCastCore:
         @param hits: details of all matching results related to the query  
         """
         #print >> sys.stderr , "RECEIVED HITS : " , hits
-        records = []
-        for k,v in hits.items():
-            records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
-        for hit in records:
-            if DEBUG:
-                print >> sys.stderr, "ccast: -----------------------------------------------------"
-                print >> sys.stderr, `hit`
-            
-            if self.channelcastdb.existsTorrent(hit[2]):
+        tmp_hits = {} #"binary" key
+
+        def usercallback(infohash,metadata,filename):
+            if tmp_hits.has_key(infohash):
+                hit = tmp_hits[infohash]
                 if self.channelcastdb.addTorrent(hit):
                     self.hits.append(hit)
             else:
-#                def usercallback(infohash,metadata,filename):
-#                    print >> sys.stderr , "USERCALLBACK", infohash, hit 
-#                    if self.channelcastdb.addTorrent(hit):
-#                        self.hits.append(hit)
-                self.hit[hit[2]] = hit
-                self.rtorrent_handler.download_torrent(query_permid,str2bin(hit[2]),self.usercallback)
+                print >> sys.stderr, "updatechannel: could not find infohash", bin2str(infohash)
 
-    def usercallback(self, infohash,metadata,filename):
-        hit=self.hit[bin2str(infohash)]
-        if DEBUG:
-            print >> sys.stderr , "ccast: USERCALLBACK", infohash, hit 
-        if self.channelcastdb.addTorrent(hit):
-            self.hits.append(hit)
+        for k,v in hits.items():
+            #check if the record belongs to a channel who we have "reported spam" (negative vote)
+            if self.channelcastdb.getVote(bin2str(v['publisher_id']), bin2str(self.session.get_permid())) == -1:
+                # if so, ignore the incoming record
+                continue
+            
+            # make everything into "string" format, if "binary"
+            hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],k)
+            tmp_hits[v['infohash']] = hit 
+            # effectively v['infohash'] == str2bin(hit[2])
 
-        del self.hit[bin2str(infohash)]
+            if self.channelcastdb.existsTorrent(v['infohash']):
+                if self.channelcastdb.addTorrent(hit):
+                    self.hits.append(hit)
+            else:
+                self.rtorrent_handler.download_torrent(query_permid,v['infohash'],usercallback)
 
 
 
