@@ -104,22 +104,17 @@ class PunctureCrawler:
             # retrieve puncture history
             file = self.reporter.file
             try:
-                os.rename(self.reporter.path, self.reporter.path + '.crawl')
+                file.close()
                 self.reporter.file = None
-                file.seek(0, 0) # Should not be necessray, but just in case...
+                os.rename(self.reporter.path, self.reporter.path + '.crawl')
+                file = open(self.reporter.path + '.crawl', 'r')
                 result = ("%.2f CRAWL\n" % time.time()) + file.read()
                 result = zlib.compress(result)
                 reply_callback(result)
             except Exception, e:
                 reply_callback(str(e), error=1)
-            try:
-                file.close()
-            except:
-                pass
-            try:
-                os.remove(self.reporter.path + '.crawl')
-            except:
-                pass
+            file.close()
+            os.remove(self.reporter.path + '.crawl')
         finally:
             SimpleFileReporter.lock.release()
 
