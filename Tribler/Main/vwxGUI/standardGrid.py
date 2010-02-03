@@ -24,6 +24,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 DEBUG = False
 
+CHANNEL_REFRESH_RATE = 5
 
 class GridManager(object):
     """ Grid manager handles:
@@ -86,7 +87,7 @@ class GridManager(object):
             if DEBUG:
                 print >> sys.stderr , "POPULAR GRID REFRESH"
             wx.CallAfter(self.refresh)
-        self.guiserver.add_task(self.channelrefresh, 8.0)
+        self.guiserver.add_task(self.channelrefresh, CHANNEL_REFRESH_RATE)
 
 
 
@@ -539,6 +540,7 @@ class standardGrid(wx.Panel):
         self.viewmode = viewmode
         self.guiUtility = GUIUtility.getInstance()
         self.allowDeselectAll = True
+        self.selectedPublisherId = None
 
         self.guiUtility.standardGrid = self
  
@@ -739,7 +741,7 @@ class standardGrid(wx.Panel):
 
     def refreshPanels(self):
         "Refresh TorrentPanels with correct data and refresh pagerPanel"
-        if self.getStandardPager() and self.name not in ['channelsGrid', 'popularGrid', 'subscriptionsGrid']:
+        if self.getStandardPager() and self.name not in ['channelsGrid', 'popularGrid']:
             self.standardPager.refresh()
 
 
@@ -1052,28 +1054,31 @@ class standardGrid(wx.Panel):
 
 
     def deselectAllChannels(self):
-#        rowIndex = 0
-#        colIndex = 0
-#        for pan in self.Panels:
-#            if pan is not None:
-#                try:
-#                    pan.deselect(rowIndex,colIndex)
-#                except:
-#                    pass
-#            rowIndex += 1
-#        self.Layout()
         for i in range(0, self.items):
             hSizer = self.vSizer.GetItem(i%self.currentRows+1).GetSizer()
             panel = hSizer.GetItem(i/ self.currentRows).GetWindow()
             panel.deselect(0,0)
 
-    def reloadChannels(self, index= -1):
-        """Deselect all channels, but the one expanded (if any)
-        """
-        self.deselectAllChannels()
-        if index != -1:
-            self.Panels[index].select()
-        self.Layout()
+
+
+    def getSelectedPanel(self):
+        try:
+            if self.name == 'channelsGrid' and self.guiUtility.guiPage != 'search_results':
+                hSizer = self.vSizer.GetItem(1).GetSizer()
+                panel = hSizer.GetItem(0).GetWindow()
+                if panel.selected == True:
+                    return panel
+                return None
+            elif self.data is not None:
+                for i in xrange(0, len(self.data)):
+                    hSizer = self.vSizer.GetItem(i%self.currentRows+1).GetSizer()
+                    panel = hSizer.GetItem(i/ self.currentRows).GetWindow()
+                    if self.data[i][0] == self.selectedPublisherId:
+                        return panel
+                return None
+        except:
+            return None
+
 
 
     def showSelectedChannel(self):
@@ -1083,15 +1088,18 @@ class standardGrid(wx.Panel):
                 panel = hSizer.GetItem(0).GetWindow()
                 if panel.selected == True:
                     panel.select()
+                else:
+                    panel.deselect()
             elif self.data is not None:
                 for i in xrange(0, len(self.data)):
                     hSizer = self.vSizer.GetItem(i%self.currentRows+1).GetSizer()
                     panel = hSizer.GetItem(i/ self.currentRows).GetWindow()
-                    if panel.selected == True:
+                    if self.data[i][0] == self.selectedPublisherId:
                         panel.select()
+                    else:
+                        panel.deselect()
         except:
             pass
-
 
     def hasDetailPanel(self):
         if self.detailPanel:

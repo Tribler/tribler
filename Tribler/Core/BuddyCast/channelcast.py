@@ -14,7 +14,7 @@ from sha import sha
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.BitTornado.BT1.MessageID import CHANNELCAST, BUDDYCAST
-from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler, VoteCastDBHandler
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
@@ -43,6 +43,7 @@ class ChannelCastCore:
         self.log = log
         self.secure_overlay = secure_overlay
         self.channelcastdb = ChannelCastDBHandler.getInstance()
+        self.votecastdb = VoteCastDBHandler.getInstance()
         self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         self.my_permid = self.channelcastdb.my_permid
         self.session = session
@@ -201,7 +202,7 @@ class ChannelCastCore:
 
         for k,v in hits.items():
             #check if the record belongs to a channel who we have "reported spam" (negative vote)
-            if self.channelcastdb.getVote(bin2str(v['publisher_id']), bin2str(self.session.get_permid())) == -1:
+            if self.votecastdb.getVote(bin2str(v['publisher_id']), bin2str(self.session.get_permid())) == -1:
                 # if so, ignore the incoming record
                 continue
             

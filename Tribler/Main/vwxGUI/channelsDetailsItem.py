@@ -190,10 +190,6 @@ class channelsDetailsItem(wx.Panel):
                 self.GetParent().deselectAll()
             self.select()
 
-            if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
-                self.guiUtility.standardOverview.getGrid(2).expandPanelFromIndex(self.guiUtility.frame.top_bg.indexPopularChannels) 
-            else:
-                self.guiUtility.standardOverview.getGrid().expandPanelFromIndex(self.guiUtility.frame.top_bg.indexMyChannel) 
 
             self.GetParent().parent.select()
             self.GetParent().parent.parent.showSelectedChannel()

@@ -287,10 +287,9 @@ class FilesItemDetailsSummary(bgPanel):
 
 
     def belongstochanneltext_clicked(self, event):
-        self.guiUtility.standardOverview.channel = self.channel
+        #self.guiUtility.standardOverview.channel = self.channel
         self.guiUtility.guiPage = 'channels'
         self.guiUtility.frame.top_bg.indexMyChannel = -1
-        self.guiUtility.frame.top_bg.indexPopularChannels = -1
         self.guiUtility.channelsOverview(erase=False)
 
         # channelsearchmanager
@@ -323,33 +322,47 @@ class FilesItemDetailsSummary(bgPanel):
                  self.guiUtility.standardOverview.getGrid().refreshPanels()
                  self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data
                  self.guiUtility.standardOverview.getGrid(2).refreshPanels()
-                 wx.CallAfter(self.processLinkToChannel, 'grid2', index)
+                 wx.CallAfter(self.processLinkToChannel, 'grid2', self.channel[0])
                  return
 
+
+
         # channel isn't viewed yet. insert it in the popular unsubscribed channels section
-        self.guiUtility.frame.channelsDetails.mychannel = False
-        self.guiUtility.standardOverview.getGrid().data = mychannel_data
-        self.guiUtility.standardOverview.getGrid().refreshPanels()
-        popularchannels_data_copy.append(self.channel)
-        index= len(popularchannels_data_copy) - 1
-        popularchannels_data_copy.extend(sdata)
-        self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data_copy
-        self.guiUtility.standardOverview.getGrid(2).refreshPanels()
-        wx.CallAfter(self.processLinkToChannel, 'grid2', index)
+#        self.guiUtility.frame.channelsDetails.mychannel = False
+#        self.guiUtility.standardOverview.getGrid().data = mychannel_data
+#        self.guiUtility.standardOverview.getGrid().refreshPanels()
+#        popularchannels_data_copy.append(self.channel)
+#        index= len(popularchannels_data_copy) - 1
+#        popularchannels_data_copy.extend(sdata)
+#        self.guiUtility.standardOverview.getGrid(2).data = popularchannels_data_copy
+#        self.guiUtility.standardOverview.getGrid(2).refreshPanels()
+#        wx.CallAfter(self.processLinkToChannel, 'grid2', self.channel[0])
 
 
 
 
-    def processLinkToChannel(self, grid, index):
-        print >> sys.stderr , "index" , index
-        self.guiUtility.standardOverview.data['channelsMode'][grid].expandPanelFromIndex(index)
-        self.guiUtility.standardOverview.data['channelsMode'][grid].getPanelFromIndex(index).loadChannel()
+    def processLinkToChannel(self, grid, publisher_id):
+        g = self.guiUtility.standardOverview.data['channelsMode'][grid]
         if grid == 'grid': # my channel
+            self.guiUtility.standardOverview.data['channelsMode']['grid2'].selectedPublisherId = None
             self.guiUtility.frame.top_bg.indexMyChannel = 0
-            self.guiUtility.frame.top_bg.indexPopularChannels = -1
-        else:
+            g.getPanelFromIndex(0).selected = True
+        else: # popular channel
+            g.selectedPublisherId = publisher_id
             self.guiUtility.frame.top_bg.indexMyChannel = -1
-            self.guiUtility.frame.top_bg.indexPopularChannels = index
+        g.showSelectedChannel()
+        g.getSelectedPanel().loadChannel()
+
+
+
+#        self.guiUtility.standardOverview.data['channelsMode'][grid].expandPanelFromIndex(index)
+#        self.guiUtility.standardOverview.data['channelsMode'][grid].getPanelFromIndex(index).loadChannel()
+#        if grid == 'grid': # my channel
+#            self.guiUtility.frame.top_bg.indexMyChannel = 0
+#            self.guiUtility.frame.top_bg.indexPopularChannels = -1
+#        else:
+#            self.guiUtility.frame.top_bg.indexMyChannel = -1
+#            self.guiUtility.frame.top_bg.indexPopularChannels = index
 
 
 

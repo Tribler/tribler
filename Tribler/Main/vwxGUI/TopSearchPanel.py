@@ -62,7 +62,6 @@ class TopSearchPanel(bgPanel):
         self.search_mode = 'files' # 'files' or 'channels'
         self.reloadGrid = False
         self.indexMyChannel = -1       
-        self.indexPopularChannels = -1       
         self.indexSubscribedChannels = -1       
         self.needs_refresh = False
 
@@ -388,6 +387,16 @@ class TopSearchPanel(bgPanel):
         result = dlg.ShowModal()
         dlg.Destroy()
 
+    def clearChannelView(self):
+        self.indexMyChannel = -1
+        grid = self.guiUtility.standardOverview.data['channelsMode']['grid2']
+        grid.selectedPublisherId = None
+        grid.deselectAllChannels()
+        self.guiUtility.frame.channelsDetails.reinitialize()
+        
+
+
+
     def OnResults(self,event):
         if event.LeftDown() and not self.first and self.guiUtility.guiPage != 'search_results':
             if sys.platform == 'darwin' and self.count < 100:
@@ -453,7 +462,7 @@ class TopSearchPanel(bgPanel):
 
             if self.needs_refresh:
                 self.indexMyChannel = -1
-                self.indexPopularChannels = -1
+                self.guiUtility.standardOverview.data['channelsMode']['grid2'].selectedPublisherId = None
                 self.needs_refresh = False
             self.guiUtility.channelsOverview(erase)
 
@@ -466,8 +475,8 @@ class TopSearchPanel(bgPanel):
             wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase=False)
 
 
-            self.guiUtility.standardOverview.data['channelsMode']['grid'].expandPanelFromIndex(self.indexMyChannel)
-            self.guiUtility.standardOverview.data['channelsMode']['grid2'].expandPanelFromIndex(self.indexPopularChannels)
+            self.guiUtility.standardOverview.data['channelsMode']['grid'].showSelectedChannel()
+            self.guiUtility.standardOverview.data['channelsMode']['grid2'].showSelectedChannel()
 
             T2 = time.time()
             if DEBUG:
@@ -491,8 +500,8 @@ class TopSearchPanel(bgPanel):
                 self.agfids.Stop()
                 self.agfids.Hide()
             if self.needs_refresh:
-                self.guiUtility.frame.channelsDetails.reinitialize()
-#                self.needs_refresh = False
+                self.clearChannelView()
+                self.needs_refresh = False
             self.guiUtility.settingsOverview()
         colour = wx.Colour(0,105,156)
         self.settings.SetForegroundColour(colour)
@@ -508,8 +517,8 @@ class TopSearchPanel(bgPanel):
                 self.agfids.Stop()
                 self.agfids.Hide()
             if self.needs_refresh:
-                self.guiUtility.frame.channelsDetails.reinitialize()
-#                self.needs_refresh = False
+                self.clearChannelView()
+                self.needs_refresh = False
             self.guiUtility.standardLibraryOverview()
             self.guiUtility.loadInformation('libraryMode', 'name', erase=False)
         colour = wx.Colour(0,105,156)
@@ -592,7 +601,6 @@ class TopSearchPanel(bgPanel):
             self.guiUtility.loadInformation('channelsMode', 'name', erase=False)
             wx.Yield()
             self.guiUtility.standardOverview.data['channelsMode']['grid'].expandPanelFromIndex(self.indexMyChannel)
-            self.guiUtility.standardOverview.data['channelsMode']['grid2'].expandPanelFromIndex(self.indexPopularChannels)
 
 
         self.results.setToggled(False)

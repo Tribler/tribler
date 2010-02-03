@@ -335,6 +335,7 @@ class PopularItemPanel(wx.Panel):
         self.SubscriptionButton.Hide()
         self.setSubscribed()
         self.guiUtility.frame.top_bg.needs_refresh = True
+        self.parent.gridManager.refresh()
         try:
             wx.CallAfter(self.channelsDetails.SubscriptionText.SetLabel,"Subscribe")
             wx.CallAfter(self.channelsDetails.SubscriptionButton.setToggled, True)
@@ -377,37 +378,34 @@ class PopularItemPanel(wx.Panel):
 
         
         if event.LeftUp() and not self.selected:
-            self.channelsDetails.reinitialize(force=True)
-            self.parent.deselectAllChannels()
-            self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
-            self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
-            self.select()
+#            self.channelsDetails.reinitialize(force=True)
+#            self.parent.deselectAllChannels()
+#            self.parent.selectedPublisherId = self.data[0]
+#            self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
+#            self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
+#            self.select()
             #if not self.guiUtility.frame.top_bg.needs_refresh:
-            self.guiUtility.frame.top_bg.indexMyChannel=-1
-            self.guiUtility.frame.top_bg.indexPopularChannels=self.index
-            wx.CallAfter(self.channelsDetails.loadChannel, self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
-            self.channelsDetails.origin = 'popular_channel'
-
-
+#            self.guiUtility.frame.top_bg.indexMyChannel=-1
+#            wx.CallAfter(self.channelsDetails.loadChannel, self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
+#            self.channelsDetails.origin = 'popular_channel'
+            self.loadChannel()
         wx.CallAfter(self.Refresh)
-
         self.SetFocus()
             
-
 
     def loadChannel(self):
         self.channelsDetails.reinitialize(force=True)
         self.parent.deselectAllChannels()
+        self.guiUtility.standardOverview.data['channelsMode']['grid2'].selectedPublisherId = self.data[0]
         self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
         self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
         self.select()
-        self.guiUtility.frame.top_bg.indexMyChannel=0
-        self.guiUtility.frame.top_bg.indexPopularChannels=-1
+        self.guiUtility.frame.top_bg.indexMyChannel=-1
         wx.CallAfter(self.channelsDetails.loadChannel,self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
         if self.guiUtility.guiPage == 'search_results':
             self.channelsDetails.origin = 'search_results'
         else:
-            self.channelsDetails.origin = 'my_channel'
+            self.channelsDetails.origin = 'popular_channel'
 
 
 

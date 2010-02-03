@@ -604,12 +604,10 @@ class channelsDetails(bgPanel):
             self.reinitialize() 
             self.vcdb.spam(self.publisher_id)
             self.channelcast_db.deleteTorrentsFromPublisherId(self.publisher_id)
-            if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
-                wx.CallAfter(self.guiUtility.standardOverview.getGrid(2).clearAllData)
-                wx.CallAfter(self.guiUtility.standardOverview.getGrid(2).gridManager.refresh)
-            else:
-                wx.CallAfter(self.guiUtility.standardOverview.getGrid().clearAllData)
-                wx.CallAfter(self.guiUtility.standardOverview.getGrid().gridManager.refresh)
+            grid = self.guiUtility.standardOverview.getGrid(2)
+            grid.selectedPublisherId = None
+            wx.CallAfter(grid.clearAllData)
+            wx.CallAfter(grid.gridManager.refresh)
 
 
     def addTorrentClicked(self, event):
@@ -1048,12 +1046,19 @@ class channelsDetails(bgPanel):
 
 
 
-        if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
-            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).setSubscribed()       
-            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).resetTitle()      
-        else:
-            self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).setSubscribed()       
-            self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).resetTitle()       
+        selectedpopularpanel = self.guiUtility.standardOverview.getGrid(2).getSelectedPanel()
+        if selectedpopularpanel is not None:
+            selectedpopularpanel.setSubscribed()
+            selectedpopularpanel.resetTitle()
+
+        self.guiUtility.standardOverview.getGrid(2).gridManager.refresh()
+
+#        if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
+#            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).setSubscribed()       
+#            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).resetTitle()      
+#        else:
+#            self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).setSubscribed()       
+#            self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).resetTitle()       
 
 #        if self.guiUtility.frame.top_bg.needs_refresh:
 #            self.guiUtility.frame.top_bg.indexPopularChannels = -1

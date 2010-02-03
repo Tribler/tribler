@@ -510,11 +510,12 @@ class ChannelsItemPanel(wx.Panel):
     def loadChannel(self):
         self.channelsDetails.reinitialize(force=True)
         self.parent.deselectAllChannels()
+        self.guiUtility.standardOverview.data['channelsMode']['grid2'].selectedPublisherId = None
         self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
         self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
         self.select()
         self.guiUtility.frame.top_bg.indexMyChannel=self.index
-        self.guiUtility.frame.top_bg.indexPopularChannels=-1
+#        self.guiUtility.frame.top_bg.indexPopularChannels=-1
         wx.CallAfter(self.channelsDetails.loadChannel,self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
         if self.guiUtility.guiPage == 'search_results':
             self.channelsDetails.origin = 'search_results'
