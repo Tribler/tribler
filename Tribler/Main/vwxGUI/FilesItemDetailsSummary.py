@@ -12,6 +12,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButto
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.bgPanel import *
+from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from font import *
 
@@ -125,7 +126,10 @@ class FilesItemDetailsSummary(bgPanel):
 
         channel = self.chdb.getMostPopularChannelFromTorrent(self.torrenthash)
         if channel is not None:
-            self.belongstochanneltext.SetLabel("From %s's Channel" % channel[1])
+            if channel[0] == bin2str(self.utility.session.get_permid()): # my channel
+                self.belongstochanneltext.SetLabel("From my channel")
+            else:
+                self.belongstochanneltext.SetLabel("From %s's Channel" % channel[1])
             self.channel = channel
 
         self.vSizer.Add(self.belongstochanneltext, 0, wx.LEFT, 10)
@@ -292,6 +296,11 @@ class FilesItemDetailsSummary(bgPanel):
 #        self.guiUtility.frame.top_bg.indexMyChannel = -1
         self.guiUtility.channelsOverview(erase=False)
 
+        # hack !
+        gridState = GridState('channelsMode', 'all', 'name')
+        self.guiUtility.standardOverview.getGrid().gridManager.state = gridState
+        self.guiUtility.standardOverview.getGrid(2).gridManager.state = gridState
+        
         # channelsearchmanager
         channelsearch_manager = self.guiUtility.channelsearch_manager
  
@@ -303,6 +312,8 @@ class FilesItemDetailsSummary(bgPanel):
         [total_items,popularchannels_data] = channelsearch_manager.getPopularChannels('channelsMode', maximum=18-stotal_items)
         popularchannels_data_copy = popularchannels_data[:]
         popularchannels_data.extend(sdata)
+ 
+        wx.GetApp().Yield(True)
 
        # my channel check
         if self.channel[0] == bin2str(self.guiUtility.utility.session.get_permid()):
