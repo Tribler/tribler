@@ -310,7 +310,7 @@ class PeerDBHandler(BasicDBHandler):
         # add or update a peer
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
         # Jie: deepcopy(value)?
-        
+       
         _permid = _last_seen = _ip = _port = None
         if 'permid' in value:
             _permid = value.pop('permid')
@@ -1852,25 +1852,75 @@ class TorrentDBHandler(BasicDBHandler):
         """
         
         if candidate_list is None:
-            sql = """
-                select infohash 
-                from Torrent,Peer,Preference 
-                where Peer.permid==?
-                      and Peer.peer_id==Preference.peer_id 
-                      and Torrent.torrent_id==Preference.torrent_id 
-                      and torrent_file_name is NULL 
-                order by relevance desc 
-            """
+            sql = """SELECT similarity, infohash FROM Peer, Preference, Torrent
+                     WHERE Peer.peer_id = Preference.peer_id
+                     AND Torrent.torrent_id = Preference.torrent_id
+                     AND Peer.peer_id IN(Select peer_id from Peer WHERE similarity > 0 ORDER By similarity DESC,last_connected DESC Limit ?)
+                     AND Preference.torrent_id IN(Select torrent_id from Peer, Preference WHERE Peer.peer_id = Preference.peer_id AND Peer.permid = ?)
+                     AND torrent_file_name is NULL
+                  """
             permid_str = bin2str(permid)
-            res = self._db.fetchone(sql, (permid_str,))
+            results = self._db.fetchall(sql, (50, permid_str))
         else:
             #print >>sys.stderr,"torrentdb: selectTorrentToCollect: cands",`candidate_list`
             
             cand_str = [bin2str(infohash) for infohash in candidate_list]
             s = repr(cand_str).replace('[','(').replace(']',')')
-            sql = 'select infohash from Torrent where torrent_file_name is NULL and infohash in ' + s
-            sql += ' order by relevance desc'
-            res = self._db.fetchone(sql)
+            sql = """SELECT similarity, infohash FROM Peer, Preference, Torrent
+                     WHERE Peer.peer_id = Preference.peer_id
+                     AND Torrent.torrent_id = Preference.torrent_id
+                     AND Peer.peer_id IN(Select peer_id from Peer WHERE similarity > 0 ORDER By similarity DESC Limit ?)
+                     AND infohash in """+s+"""
+                     AND torrent_file_name is NULL
+                  """
+            results = self._db.fetchall(sql, (50,))
+        
+        res = None
+        #convert top-x similarities into item recommendations
+        infohashes = {}
+        for sim, infohash in results:
+            infohashes[infohash] = infohashes.get(infohash,0) + sim
+        
+        keys = infohashes.keys()
+        if len(keys) > 0:
+            keys.sort(lambda a,b: cmp(infohashes[b], infohashes[a]))
+            
+            #add all items with highest relevance to candidate_list
+            candidate_list = []
+            for infohash in keys:
+                if infohashes[infohash] == infohashes[keys[0]]:
+                    candidate_list.append(str2bin(infohash))
+
+            #if only 1 candidate use that as result
+            if len(candidate_list) == 1:
+                res = keys[0]
+                candidate_list = None
+                        
+        #No torrent found with relevance, fallback to most downloaded torrent
+        if res is None:
+            if candidate_list is None or len(candidate_list) == 0:
+                sql = """SELECT infohash FROM Torrent, Peer, Preference
+                         WHERE Peer.permid == ?  
+                         AND Peer.peer_id == Preference.peer_id 
+                         AND Torrent.torrent_id == Preference.torrent_id
+                         AND torrent_file_name is NULL
+                         GROUP BY Preference.torrent_id
+                         ORDER BY Count(Preference.torrent_id) DESC
+                         LIMIT 1"""
+                permid_str = bin2str(permid)
+                res = self._db.fetchone(sql, (permid_str,))
+            else:
+                cand_str = [bin2str(infohash) for infohash in candidate_list]
+                s = repr(cand_str).replace('[','(').replace(']',')')
+                sql = """SELECT infohash FROM Torrent, Preference
+                         WHERE Torrent.torrent_id == Preference.torrent_id
+                         AND torrent_file_name is NULL
+                         AND infohash IN """ + s + """
+                         GROUP BY Preference.torrent_id
+                         ORDER BY Count(Preference.torrent_id) DESC
+                         LIMIT 1"""
+                res = self._db.fetchone(sql)
+        
         if res is None:
             return None
         return str2bin(res)
@@ -4077,6 +4127,17 @@ class SimilarityDBHandler:
                                         AND Peer.peer_id <> ? GROUP BY Peer.peer_id"""
         row = self._db.fetchall(sql_get_peers_with_overlap, (not_peer_id,))
         return row
+    
+    def getTorrentsWithSimilarity(self, myprefs, top_x):
+        sql_get_torrents_with_similarity = """SELECT similarity, torrent_id FROM Peer
+                                              JOIN Preference ON Peer.peer_id = Preference.peer_id
+                                              WHERE Peer.peer_id IN(Select peer_id from Peer WHERE similarity > 0 ORDER By similarity DESC Limit ?)
+                                              AND torrent_id NOT IN(""" + ','.join(map(str,myprefs))+""")"""
+        row = self._db.fetchall(sql_get_torrents_with_similarity, (top_x,))
+        return row
+    
+                 
+                                        
 
 class SearchDBHandler(BasicDBHandler):
     

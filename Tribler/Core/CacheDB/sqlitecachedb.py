@@ -1046,6 +1046,7 @@ on InvertedIndex
 -- Set all similarity to zero because we are using a new similarity
 -- function and the old values no longer correspond to the new ones
 UPDATE Peer SET similarity = 0;
+UPDATE Torrent SET relevance = 0;
 
 """
             self.execute_write(sql, commit=False)
