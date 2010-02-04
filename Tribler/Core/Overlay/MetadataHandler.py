@@ -195,6 +195,8 @@ class MetadataHandler:
                 print >> sys.stderr,"metadata: GET_METADATA: Torrent was dead"
             return True
         if not torrent_file_name:
+            if DEBUG:
+                print >> sys.stderr,"metadata: GET_METADATA: no torrent file name"
             return True
         torrent_path = os.path.join(self.torrent_dir, torrent_file_name)
         if not os.path.isfile(torrent_path):
@@ -319,7 +321,13 @@ class MetadataHandler:
 
     def addTorrentToDB(self, filename, torrent_hash, metadata, source='BC', extra_info={}, hack=False):
         """ Arno: no need to delegate to olbridge, this is already run by OverlayThread """
-        torrent = self.torrent_db.addExternalTorrent(filename, source, extra_info)
+        # 03/02/10 Boudewijn: addExternalTorrent now requires a
+        # torrentdef, consequently we provide the filename through the
+        # extra_info dictionary
+        torrentdef = TorrentDef.load(filename)
+        if not 'filename' in extra_info:
+            extra_info['filename'] = filename
+        torrent = self.torrent_db.addExternalTorrent(torrentdef, source, extra_info)
         if torrent is None:
             return
 

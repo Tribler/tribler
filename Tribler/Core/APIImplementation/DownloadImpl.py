@@ -14,7 +14,6 @@ from Tribler.Core.exceptions import *
 from Tribler.Core.osutils import *
 from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
-from Tribler.Core.Utilities.unicode import metainfoname2unicode
 
 DEBUG = False
 
@@ -49,10 +48,10 @@ class DownloadImpl:
         try:
             self.dllock.acquire() # not really needed, no other threads know of this object
 
-            metainfo = self.get_def().get_metainfo()
+            torrentdef = self.get_def()
+            metainfo = torrentdef.get_metainfo()
             # H4xor this so the 'name' field is safe
-            (namekey,uniname) = metainfoname2unicode(metainfo)
-            self.correctedinfoname = fix_filebasename(uniname)
+            self.correctedinfoname = fix_filebasename(torrentdef.get_name_as_unicode())
 
             if DEBUG:
                 print >>sys.stderr,"Download: setup: piece size",metainfo['info']['piece length']
@@ -149,8 +148,9 @@ class DownloadImpl:
         metainfo = copy.deepcopy(self.get_def().get_metainfo())
         
         # H4xor this so the 'name' field is safe
-        (namekey,uniname) = metainfoname2unicode(metainfo)
-        metainfo['info'][namekey] = metainfo['info']['name'] = self.correctedinfoname 
+        metainfo['info']['name'] = self.correctedinfoname 
+        if 'name.utf-8' in metainfo['info']:
+            metainfo['info']['name.utf-8'] = self.correctedinfoname
         
         multihandler = self.session.lm.multihandler
         listenport = self.session.get_listen_port()

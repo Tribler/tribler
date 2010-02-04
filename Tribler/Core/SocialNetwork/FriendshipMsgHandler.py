@@ -492,7 +492,7 @@ class FriendshipMsgHandler:
             
             # FUTURE: add signatures on ip+port
             src = {'permid':mypermid,'ip':myip,'port':myport}
-            dst = {'permid':params['destpermid'],'ip':peer['ip'],'port':peer['port']}
+            dst = {'permid':params['destpermid'],'ip':str(peer['ip']),'port':peer['port']}
             d.update({'source':src,'dest':dst,'msg':params['msg']})
         return d
 

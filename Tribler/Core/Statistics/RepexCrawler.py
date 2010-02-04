@@ -34,7 +34,7 @@ class RepexCrawler:
             cls.__single = cls(*args, **kargs)
         return cls.__single
 
-    def __init__(self):
+    def __init__(self,session):
         crawler = Crawler.get_instance()
         if crawler.am_crawler():
             self._file = open("repexcrawler.txt", "a")
@@ -43,7 +43,7 @@ class RepexCrawler:
             self._repexlog = None
         else:
             self._file = None
-            self._repexlog = RePEXLogDB.getInstance()
+            self._repexlog = RePEXLogDB.getInstance(session)
 
     def query_initiator(self, permid, selversion, request_callback):
         """

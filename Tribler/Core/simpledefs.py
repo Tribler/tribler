@@ -156,3 +156,5 @@ TSTREAM_MIME_TYPE = "application/x-ns-stream"
 
 TRIBLER_TORRENT_EXT = ".tribe" # Unused
  
+# Infohashes are always 20 byte binary strings
+INFOHASH_LENGTH = 20

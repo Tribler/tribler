@@ -957,9 +957,13 @@ class GUIUtility:
         #
         # Query the peers we are connected to
         #
-        q = 'SIMPLE '
+        # Arno, 2010-02-03: Query starts as Unicode
+        q = u'SIMPLE '
         for kw in wantkeywords:
-            q += kw+' '
+            q += kw+u' '
+        q = q.strip()
+            
+        print >>sys.stderr,"GUIUtil: query",`q`
             
         self.utility.session.query_connected_peers(q,self.sesscb_got_remote_hits,self.max_remote_queries)
         self.standardOverview.setSearchFeedback('remote', False, 0, wantkeywords,self.frame.top_bg.search_results)

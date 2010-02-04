@@ -5,10 +5,10 @@
 # - try to connect first, than start the initiator. now we start the
 #   initiator and we often fail to connect
 
-from traceback import print_exc
-import random
 import sys
 import time
+import random
+from traceback import print_exc,print_stack
 
 from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_REQUEST, CRAWLER_REPLY, getMessageName
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler

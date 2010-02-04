@@ -124,7 +124,7 @@ class TestSocialOverlap(TestAsServer):
     def create_good_persinfo(self,name=None):
         pi = {}
         if name is not None:
-            pi['name'] = name
+            pi['name'] = name.encode("UTF-8")
         else:
             pi['name'] = 'Beurre Alexander Lucas'
         pi['icontype'] = 'image/jpeg'

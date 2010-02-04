@@ -273,6 +273,10 @@ def encode_dict(x, r):
     ilist = x.items()
     ilist.sort()
     for k, v in ilist:
+        
+        if DEBUG:
+            print >>sys.stderr,"bencode: Encoding",`k`,`v`
+        
         try:
             r.extend((str(len(k)), ':', k))
         except:
@@ -292,6 +296,9 @@ encode_func[TupleType] = encode_list
 encode_func[DictType] = encode_dict
 if BooleanType:
     encode_func[BooleanType] = encode_bool
+# Arno, 2010-01-27: No more implicit Unicode support.
+# We should disable this now and then to see if the higher layers properly
+# UTF-8 encode their fields before calling bencode    
 if UnicodeType:
     encode_func[UnicodeType] = encode_unicode
     
@@ -311,7 +318,7 @@ def bencode(x):
         if DEBUG:
             print >>sys.stderr,"bencode: join error",x
             for elem in r:
-                print "elem",elem,"has type",type(elem)
+                print >>sys.stderr,"elem",elem,"has type",type(elem)
             print_exc()
         return ''
 

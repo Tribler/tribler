@@ -121,13 +121,21 @@ class TorrentFeedThread(Thread):
     def addFile(self, filename):
         """ This function enables to add individual torrents, instead of a collection of torrents through RSS """
         try:
-            data = open(filename, 'rb').read()
-            torrent_data = bdecode(data)
+            bdata = open(filename, 'rb').read()
+            torrent_data = bdecode(bdata)
             infohash = sha.sha(bencode(torrent_data['info'])).digest()
             if DEBUG: print >>sys.stderr, "Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
-            self.save_torrent(infohash, data)
-            self.channelcast_db.addOwnTorrent(infohash, torrent_data)
-            return infohash
+            self.save_torrent(infohash, bdata, torrent_data)
+
+            # 01/02/10 Boudewijn: we should use the TorrendDef to read
+            # the .torrent file.  However, we will also write the
+            # torrent file, and the TorrentDef would do all sorts of
+            # checking that will take way to much time here.  So we
+            # won't for now...
+            torrentdef = TorrentDef.load(filename)
+
+            self.channelcast_db.addOwnTorrent(torrentdef)
+            return torrentdef.get_infohash()
         except:
             print >> sys.stderr, "Could not add torrent:", filename
             traceback.print_exc()
@@ -145,9 +153,14 @@ class TorrentFeedThread(Thread):
         self.feeds = []
         print >> sys.stderr , "callback", url, callback
         def on_torrent_callback(rss_url, infohash, torrent_data):
-            print >> sys.stderr , "rss_url" , rss_url
-            if DEBUG: print >>sys.stderr, "Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
-            self.channelcast_db.addOwnTorrent(infohash, torrent_data)
+            # 01/02/10 Boudewijn: we should use the TorrendDef to read
+            # the .torrent file.  However, we will also write the
+            # torrent file, and the TorrentDef would do all sorts of
+            # checking that will take way to much time here.  So we
+            # won't for now...
+            torrentdef = TorrentDef.load_from_dict(torrent_data)
+            if DEBUG: print >>sys.stderr, "Adding a torrent in my channel: %s" % torrentdef.get_name_as_unicode()
+            self.channelcast_db.addOwnTorrent(torrentdef)
 
         self.lock.acquire()
         if url not in self.urls:
@@ -262,27 +275,27 @@ class TorrentFeedThread(Thread):
 
                         bdata = urlopenobj.read()
                         urlopenobj.close()
-                        data = bdecode(bdata)
+                        torrent_data = bdecode(bdata)
                         
-                        #tdef = TorrentDef.load_from_dict(data)
+                        #tdef = TorrentDef.load_from_dict(torrent_data)
                         
-                        if 'info' in data:
-                            infohash = sha.sha(bencode(data['info'])).digest()
+                        if 'info' in torrent_data:
+                            infohash = sha.sha(bencode(torrent_data['info'])).digest()
                             if not self.torrent_db.hasTorrent(infohash):
                                 if DEBUG:
-                                    if "name" in data["info"]:
-                                        print >>sys.stderr, "Injecting", data["info"]["name"]
+                                    if "name" in torrent_data["info"]:
+                                        print >>sys.stderr, "Injecting", torrent_data["info"]["name"]
                                     else:
                                         print >>sys.stderr, "Injecting", title
-                                self.save_torrent(infohash, bdata, source=rss_url)
+                                self.save_torrent(infohash, bdata, torrent_data, source=rss_url)
                                 if on_torrent_callback:
                                     if DEBUG:
                                         print >> sys.stderr , "ON TORRENT CALLBACK"
-                                    on_torrent_callback(rss_url, infohash, data)
+                                    on_torrent_callback(rss_url, infohash, torrent_data)
                                 if user_callback:
                                     if DEBUG:
                                         print >> sys.stderr , "USER CALLBACK"
-                                    user_callback(rss_url, infohash, data)
+                                    user_callback(rss_url, infohash, torrent_data)
 
 
                     except StopIteration:
@@ -312,7 +325,7 @@ class TorrentFeedThread(Thread):
             # rss feeds again
             self.feeds_changed.wait(self.reloadfrequency)
 
-    def save_torrent(self,infohash,bdata,source=''):
+    def save_torrent(self,infohash,bdata,torrent_data,source=''):
         hexinfohash = binascii.hexlify(infohash)
         if DEBUG:
             print >>sys.stderr,"subscript: Writing",hexinfohash
@@ -325,7 +338,15 @@ class TorrentFeedThread(Thread):
         # Arno: hack, make sure these torrents are always good so they show up
         # in Torrent DBHandler.getTorrents()
         extra_info = {'status':'good'}
-        self.torrent_db.addExternalTorrent(filename,source=source,extra_info=extra_info)
+
+        # 01/02/10 Boudewijn: we should use the TorrendDef to write
+        # the .torrent file.  However, the TorrentDef would do all
+        # sorts of checking that will take way to much time here.  So
+        # we won't for now...
+        extra_info['filename'] = filename
+        torrentdef = TorrentDef.load_from_dict(torrent_data)
+
+        self.torrent_db.addExternalTorrent(torrentdef,source=source,extra_info=extra_info)
 
         # ARNOCOMMENT: remove later
         #self.torrent_db.commit()

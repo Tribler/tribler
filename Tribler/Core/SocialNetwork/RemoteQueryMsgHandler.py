@@ -144,7 +144,7 @@ class RemoteQueryMsgHandler:
         if max_peers_to_query is None:
             max_peers_to_query = MAX_PEERS_TO_QUERY
         if DEBUG:
-            print >>sys.stderr,"rquery: send_query",query
+            print >>sys.stderr,"rquery: send_query",`query`
         if max_peers_to_query > 0:
             send_query_func = lambda:self.network_send_query_callback(query,usercallback,max_peers_to_query)
             self.overlay_bridge.add_task(send_query_func,0)
@@ -186,7 +186,7 @@ class RemoteQueryMsgHandler:
         
     def create_query(self,query,usercallback):
         d = {}
-        d['q'] = query
+        d['q'] = query.strip().encode("UTF-8")
         d['id'] = self.create_and_register_query_id(query,usercallback)
         return bencode(d)
         
@@ -207,7 +207,7 @@ class RemoteQueryMsgHandler:
             self.overlay_bridge.send(permid,message,self.send_callback)
             
     def send_callback(self,exc,permid):
-        #print "******* queury was sent to", show_permid_short(permid), exc
+        #print "******* query was sent to", show_permid_short(permid), exc
         pass
     
     
@@ -280,17 +280,15 @@ class RemoteQueryMsgHandler:
             else:
                 q = d['q'][len('SIMPLE '):]
                     
-            q = self.clean_netwq(q)
-            q = dunno2unicode(q)
-            kws = split_into_keywords(q)
+            uq = self.clean_netwq(q)
+            kws = split_into_keywords(uq)
             hits = self.search_torrents(kws, maxhits=MAX_RESULTS,sendtorrents=sendtorrents)
             p = self.create_remote_query_reply(d['id'],hits,selversion)
             
         elif netwq.startswith("CHANNEL"): # channel query
             q = d['q'][len('CHANNEL '):]
-            q = self.clean_netwq(q)
-            q = dunno2unicode(q)
-            hits = self.channelcast_db.searchChannels(q)
+            uq = self.clean_netwq(q)
+            hits = self.channelcast_db.searchChannels(uq)
             p = self.create_channel_query_reply(d['id'],hits,selversion)
 
         # log incoming query, if logfile is set
@@ -314,10 +312,11 @@ class RemoteQueryMsgHandler:
 
     def clean_netwq(self,q):
         # Filter against bad input
+        uq = q.decode("UTF-8")
         newq = u''
-        for i in range(0,len(q)):
-            if q[i].isalnum():
-                newq += q[i]
+        for i in range(0,len(uq)):
+            if uq[i].isalnum() or uq[i] == ' ':
+                newq += uq[i]
         return newq
             
         
@@ -331,7 +330,8 @@ class RemoteQueryMsgHandler:
             r = {}
             # NEWDBSTANDARD. Do not rename r's fields: they are part of the 
             # rquery protocol spec.
-            r['content_name'] = torrent['name'] # According to TorrentDBHandler.addExternalTorrentencoded this is the original encoded name, TODO: standardize on UTF-8 encoding. 
+            # Arno, 2010-01-28: name DB record contains the Unicode object
+            r['content_name'] = torrent['name'].encode("UTF-8")  
             r['length'] = torrent['length']
             r['leecher'] = torrent['num_leechers']
             r['seeder'] = torrent['num_seeders']
@@ -514,7 +514,6 @@ class RemoteQueryMsgHandler:
         return hits
 
 
-
 def isValidQuery(d,selversion):
     if not isinstance(d,dict):
         if DEBUG:
@@ -541,8 +540,16 @@ def isValidQuery(d,selversion):
         if DEBUG:
             print >>sys.stderr,"rqmh: no space in q",`q`
         return False
-    keyw = d['q'][idx+1:]
-    if not keyw.isalnum():
+    try:
+        keyws = d['q'][idx+1:]
+        ukeyws = keyws.decode("UTF-8").strip().split()
+        for ukeyw in ukeyws:
+            if not ukeyw.isalnum():
+                if DEBUG:
+                    print >>sys.stderr,"rqmh: not alnum",`ukeyw`
+                    return False
+    except:
+        print_exc()
         if DEBUG:
             print >>sys.stderr,"rqmh: not alnum",`keyw`
         return False
@@ -551,6 +558,7 @@ def isValidQuery(d,selversion):
             print >> sys.stderr, "rqmh: d has more than 2 keys"
         return False
     return True
+
 
 def isValidQueryReply(d,selversion):
     if not isinstance(d,dict):

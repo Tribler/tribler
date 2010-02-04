@@ -58,18 +58,23 @@ def dunno2unicode(dunno):
     return newdunno
 
 
-def metainfoname2unicode(metadata):
+def name2unicode(metadata):
     if metadata['info'].has_key('name.utf-8'):
         namekey = 'name.utf-8'
     else:
         namekey = 'name'
     if metadata.has_key('encoding'):
         encoding = metadata['encoding']
-        name = bin2unicode(metadata['info'][namekey],encoding)
+        metadata['info'][namekey] = bin2unicode(metadata['info'][namekey],encoding)
     else:
-        name = bin2unicode(metadata['info'][namekey])
+        metadata['info'][namekey] = bin2unicode(metadata['info'][namekey])
 
-    return (namekey,name)
+    # change metainfo['info']['name'] to metainfo['info'][namekey], just in case...
+    # roer888 TODO: Never tested the following 2 lines 
+    if namekey != 'name':
+        metadata['info']['name'] = metadata['info'][namekey ]
+
+    return namekey
 
 
 def unicode2str(s):

@@ -934,15 +934,14 @@ class RePEXLogDB:
                 cls.lock.release()
         return cls.__single
     
-    def __init__(self, *args, **kargs):
+    def __init__(self,session):
         # always use getInstance() to create this object
         # ARNOCOMMENT: why isn't the lock used on this read?!
         if self.__single != None:
             raise RuntimeError, "RePEXLogDB is singleton"
         #SQLiteCacheDBBase.__init__(self, *args, **kargs)
         
-        from Tribler.Core.Session import Session # Circular import fix
-        state_dir = Session.get_instance().sessconfig['state_dir']
+        state_dir = session.get_state_dir()
         self.db = os.path.join(state_dir, self.PEERDB_FILE)
         if not os.path.exists(self.db):
             self.version = self.PEERDB_VERSION

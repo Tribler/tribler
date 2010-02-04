@@ -112,7 +112,8 @@ class OverlapMsgHandler:
         or from other peers (i.e. BUDDYCAST)
         """
 
-        persinfo = {'name':self.session.get_nickname()}
+        nickname = self.session.get_nickname().encode("UTF-8")
+        persinfo = {'name':nickname}
         # See if we can find icon
         iconmime, icondata = self.session.get_mugshot()
         if icondata:

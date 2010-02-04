@@ -671,6 +671,9 @@ class Multicast:
         True. Otherwise it returns False.
         """
         peer = self.peer_db.getPeer(permid, ('is_local',))
+        
+        print >>sys.stderr,"pdisc: flag_peer_as_local returns",peer
+        
         if not peer is None:
             if not peer[0] == is_local:
                 self.peer_db.setPeerLocalFlag(permid, is_local)

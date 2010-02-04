@@ -71,6 +71,62 @@ class OverlayApps:
         overlay_bridge.register_recv_callback(self.handleMessage)
         overlay_bridge.register_conns_callback(self.handleConnection)
 
+        # Arno, 2010-01-28: Start with crawler support, other mods depend on
+        # that, e.g. BuddyCast
+        i_am_crawler = False
+        if config['crawler']:
+            crawler = Crawler.get_instance(session)
+            self.register_msg_handler([CRAWLER_REQUEST], crawler.handle_request)
+
+            database_crawler = DatabaseCrawler.get_instance()
+            crawler.register_message_handler(CRAWLER_DATABASE_QUERY, database_crawler.handle_crawler_request, database_crawler.handle_crawler_reply)
+            seeding_stats_crawler = SeedingStatsCrawler.get_instance()
+            crawler.register_message_handler(CRAWLER_SEEDINGSTATS_QUERY, seeding_stats_crawler.handle_crawler_request, seeding_stats_crawler.handle_crawler_reply)
+            friendship_crawler = FriendshipCrawler.get_instance(session)
+            crawler.register_message_handler(CRAWLER_FRIENDSHIP_STATS, friendship_crawler.handle_crawler_request, friendship_crawler.handle_crawler_reply)
+            natcheck_handler = NatCheckMsgHandler.getInstance()
+            natcheck_handler.register(launchmany)
+            crawler.register_message_handler(CRAWLER_NATCHECK, natcheck_handler.gotDoNatCheckMessage, natcheck_handler.gotNatCheckReplyMessage)
+            crawler.register_message_handler(CRAWLER_NATTRAVERSAL, natcheck_handler.gotUdpConnectRequest, natcheck_handler.gotUdpConnectReply)
+            videoplayback_crawler = VideoPlaybackCrawler.get_instance()
+            crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, videoplayback_crawler.handle_event_crawler_request, videoplayback_crawler.handle_event_crawler_reply)
+            repex_crawler = RepexCrawler.get_instance(session)
+            crawler.register_message_handler(CRAWLER_REPEX_QUERY, repex_crawler.handle_crawler_request, repex_crawler.handle_crawler_reply)
+
+            if crawler.am_crawler():
+                i_am_crawler = True
+                # we will only accept CRAWLER_REPLY messages when we are actully a crawler
+                self.register_msg_handler([CRAWLER_REPLY], crawler.handle_reply)
+                self.register_connection_handler(crawler.handle_connection)
+
+                if "database" in sys.argv:
+                    # allows access to tribler database (boudewijn)
+                    crawler.register_crawl_initiator(database_crawler.query_initiator)
+
+                if "videoplayback" in sys.argv:
+                    # allows access to video-playback statistics (boudewijn)
+                    crawler.register_crawl_initiator(videoplayback_crawler.query_initiator)
+
+                if "seedingstats" in sys.argv:
+                    # allows access to seeding statistics (Boxun)
+                    crawler.register_crawl_initiator(seeding_stats_crawler.query_initiator, frequency=60*30)
+
+                if "friendship" in sys.argv:
+                    # allows access to friendship statistics (Ali)
+                    crawler.register_crawl_initiator(friendship_crawler.query_initiator)
+
+                if "natcheck" in sys.argv:
+                    # allows access to nat-check statistics (Lucia)
+                    crawler.register_crawl_initiator(natcheck_handler.doNatCheck, 3600)
+                
+                if "repex" in sys.argv:
+                    # allows access to RePEX log statistics (Raynor Vliegendhart)
+                    crawler.register_crawl_initiator(repex_crawler.query_initiator)
+
+        else:
+            self.register_msg_handler([CRAWLER_REQUEST, CRAWLER_REPLY], self.handleDisabledMessage)
+
+
         # Create handler for metadata messages in two parts, as 
         # download help needs to know the metadata_handler and we need
         # to know the download helper handler.
@@ -105,7 +161,7 @@ class OverlayApps:
                                     launchmany.rawserver_fatalerrorfunc,
                                     self.metadata_handler, 
                                     self.torrent_collecting_solution,
-                                    config['start_recommender'],config['buddycast_max_peers'])
+                                    config['start_recommender'],config['buddycast_max_peers'],i_am_crawler)
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
             self.register_connection_handler(self.buddycast.handleConnection)
 
@@ -135,64 +191,6 @@ class OverlayApps:
             self.rquery_handler.register(overlay_bridge,launchmany,config,self.buddycast,log=config['overlay_log'])
             self.register_msg_handler(RemoteQueryMessages,self.rquery_handler.handleMessage)
             self.register_connection_handler(self.rquery_handler.handleConnection)
-            
-        if config['crawler']:
-            crawler = Crawler.get_instance(session)
-            self.register_msg_handler([CRAWLER_REQUEST], crawler.handle_request)
-
-            database_crawler = DatabaseCrawler.get_instance()
-            crawler.register_message_handler(CRAWLER_DATABASE_QUERY, database_crawler.handle_crawler_request, database_crawler.handle_crawler_reply)
-            seeding_stats_crawler = SeedingStatsCrawler.get_instance()
-            crawler.register_message_handler(CRAWLER_SEEDINGSTATS_QUERY, seeding_stats_crawler.handle_crawler_request, seeding_stats_crawler.handle_crawler_reply)
-            friendship_crawler = FriendshipCrawler.get_instance(session)
-            crawler.register_message_handler(CRAWLER_FRIENDSHIP_STATS, friendship_crawler.handle_crawler_request, friendship_crawler.handle_crawler_reply)
-            natcheck_handler = NatCheckMsgHandler.getInstance()
-            natcheck_handler.register(launchmany)
-            crawler.register_message_handler(CRAWLER_NATCHECK, natcheck_handler.gotDoNatCheckMessage, natcheck_handler.gotNatCheckReplyMessage)
-            crawler.register_message_handler(CRAWLER_NATTRAVERSAL, natcheck_handler.gotUdpConnectRequest, natcheck_handler.gotUdpConnectReply)
-            videoplayback_crawler = VideoPlaybackCrawler.get_instance()
-            crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, videoplayback_crawler.handle_event_crawler_request, videoplayback_crawler.handle_event_crawler_reply)
-            repex_crawler = RepexCrawler.get_instance()
-            crawler.register_message_handler(CRAWLER_REPEX_QUERY, repex_crawler.handle_crawler_request, repex_crawler.handle_crawler_reply)
-            puncture_crawler = PunctureCrawler.get_instance()
-            crawler.register_message_handler(CRAWLER_PUNCTURE_QUERY, puncture_crawler.handle_crawler_request, puncture_crawler.handle_crawler_reply)
-
-            if crawler.am_crawler():
-
-                # we will only accept CRAWLER_REPLY messages when we are actully a crawler
-                self.register_msg_handler([CRAWLER_REPLY], crawler.handle_reply)
-                self.register_connection_handler(crawler.handle_connection)
-
-                if "database" in sys.argv:
-                    # allows access to tribler database (boudewijn)
-                    crawler.register_crawl_initiator(database_crawler.query_initiator)
-
-                if "videoplayback" in sys.argv:
-                    # allows access to video-playback statistics (boudewijn)
-                    crawler.register_crawl_initiator(videoplayback_crawler.query_initiator)
-
-                if "seedingstats" in sys.argv:
-                    # allows access to seeding statistics (Boxun)
-                    crawler.register_crawl_initiator(seeding_stats_crawler.query_initiator, frequency=60*30)
-
-                if "friendship" in sys.argv:
-                    # allows access to friendship statistics (Ali)
-                    crawler.register_crawl_initiator(friendship_crawler.query_initiator)
-
-                if "natcheck" in sys.argv:
-                    # allows access to nat-check statistics (Lucia)
-                    crawler.register_crawl_initiator(natcheck_handler.doNatCheck, 3600)
-                
-                if "repex" in sys.argv:
-                    # allows access to RePEX log statistics (Raynor Vliegendhart)
-                    crawler.register_crawl_initiator(repex_crawler.query_initiator)
-
-                if "puncture" in sys.argv:
-                    # allows access to UDPPuncture log statistics (Gertjan)
-                    crawler.register_crawl_initiator(puncture_crawler.query_initiator)
-                    
-        else:
-            self.register_msg_handler([CRAWLER_REQUEST, CRAWLER_REPLY], self.handleDisabledMessage)
         
         self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         self.rtorrent_handler.register(overlay_bridge,self.metadata_handler,session)

@@ -52,21 +52,23 @@ class TestQueryReplyActive(TestAsServer):
         self.hispermid = str(self.his_keypair.pub().get_der())
         self.my_permid = str(self.my_keypair.pub().get_der())
 
-        self.content_name = 'Hallo S22E44'
+    def pretest_simple(self,keyword):
+        self.pretest_q('SIMPLE',keyword)
+
+    def pretest_simpleplustorrents(self,keyword):
+        self.pretest_q('SIMPLE+METADATA',keyword)
+
+    def pretest_q(self,queryprefix,keyword):
+        
+        query = queryprefix+' '+keyword
+        
+        self.content_name = keyword.upper()+' S22E44'
         self.tdef = TorrentDef()
         self.tdef.set_tracker('http://localhost:0/announce')
         self.tdef.set_piece_length(2 ** 15)
         self.tdef.create_live(self.content_name,2 ** 16)
         self.tdef.finalize()
-
-
-    def pretest_simple(self):
-        self.pretest_q('SIMPLE hallo')
-
-    def pretest_simpleplustorrents(self):
-        self.pretest_q('SIMPLE+METADATA hallo')
-
-    def pretest_q(self,query):
+        
         # 1. First connect to Tribler
         self.openconn = OLConnection(self.my_keypair,'localhost',self.hisport)
         sleep(3)
@@ -90,14 +92,29 @@ class TestQueryReplyActive(TestAsServer):
     # Good SIMPLE QUERY, builds on TestQueryReply code
     #    
     def singtest_good_simple_reply(self):
-        self.pretest_simple()
+        self.pretest_simple('hallo')
         self._test_qreply(self.create_good_simple_reply,True)
 
     #
     # Good SIMPLE+METADATA QUERY, builds on TestQueryReply code
     #    
     def singtest_good_simpleplustorrents_reply(self):
-        self.pretest_simpleplustorrents()
+        self.pretest_simpleplustorrents('hallo')
+        self._test_qreply(self.create_good_simpleplustorrents_reply,True)
+
+
+    #
+    # Good SIMPLE QUERY Unicode, builds on TestQueryReply code
+    #    
+    def singtest_good_simple_reply_unicode(self):
+        self.pretest_simple(u'Ch\u00e8rie')
+        self._test_qreply(self.create_good_simple_reply,True)
+
+    #
+    # Good SIMPLE+METADATA QUERY Unicode, builds on TestQueryReply code
+    #    
+    def singtest_good_simpleplustorrents_reply_unicode(self):
+        self.pretest_simpleplustorrents(u'Ch\u00e8rie')
         self._test_qreply(self.create_good_simpleplustorrents_reply,True)
 
 
@@ -105,14 +122,14 @@ class TestQueryReplyActive(TestAsServer):
     # Bad QUERY, builds on TestQueryReply code
     #    
     def singtest_bad_not_bdecodable(self):
-        self.pretest_simple()
+        self.pretest_simple('hallo')
         self._test_qreply(self.create_not_bdecodable,False)
 
     #
     # Bad SIMPLE+METADATA QUERY, builds on TestQueryReply code
     #    
     def singtest_bad_not_bdecodable_torrentfile(self):
-        self.pretest_simpleplustorrents()
+        self.pretest_simpleplustorrents('hallo')
         self._test_qreply(self.create_not_bdecodable_torrentfile,False)
 
 
@@ -148,7 +165,7 @@ class TestQueryReplyActive(TestAsServer):
 
     def create_good_simple_reply_dict(self,id):
         r = {}
-        r['content_name'] = self.content_name
+        r['content_name'] = self.content_name.encode("UTF-8")
         r['length'] = LENGTH
         r['leecher'] = LEECHERS
         r['seeder'] = SEEDERS
@@ -188,7 +205,7 @@ class TestQueryReplyActive(TestAsServer):
         self.assert_(len(hits) == 1)
         self.assert_(hits.keys()[0] == self.tdef.get_infohash())
         hit = hits[self.tdef.get_infohash()]
-        self.assert_(hit['content_name'] == self.content_name)
+        self.assert_(hit['content_name'] == self.content_name.encode("UTF-8"))
         self.assert_(hit['length'] == LENGTH)
         self.assert_(hit['leecher'] == LEECHERS)
         self.assert_(hit['seeder'] == SEEDERS)
@@ -220,7 +237,7 @@ class TestQueryReplyActive(TestAsServer):
         id = d['id']
         self.assert_(type(id) == StringType)
 
-        self.assert_(q == self.query)
+        self.assert_(q == self.query.encode("UTF-8"))
         return d['id']
 
 
@@ -229,7 +246,7 @@ def test_suite():
     # We should run the tests in a separate Python interpreter to prevent 
     # problems with our singleton classes, e.g. SuperPeerDB, etc.
     if len(sys.argv) != 2:
-        print "Usage: python test_qra.py <method name>"
+        print "Usage: python test_rquery_active_reply.py <method name>"
     else:
         suite.addTest(TestQueryReplyActive(sys.argv[1]))
     

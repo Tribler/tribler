@@ -267,7 +267,7 @@ class TorrentSearchGridManager:
         
         self.searchkeywords[mode] = wantkeywords
         if mode == 'filesMode':
-            print >> sys.stderr, "query:", self.searchkeywords[mode],";time:%", time()
+            print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords[mode],";time:%", time()
             self.remoteHits = {}
             if self.dod:
                 self.dod.clear()

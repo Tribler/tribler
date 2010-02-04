@@ -5,7 +5,6 @@
 # Please reuse the functions in sqlitecachedb as much as possible
 
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
-from unicode import name2unicode,dunno2unicode
 from copy import deepcopy,copy
 from traceback import print_exc
 from time import time
@@ -31,7 +30,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.permid import sign_data, verify_data, permid_for_user
 from Tribler.Core.Search.SearchManager import split_into_keywords
-from Tribler.Core.Utilities.unicode import metainfoname2unicode
+from Tribler.Core.Utilities.unicode import name2unicode, dunno2unicode
 from Tribler.Category.Category import Category
 
 # maxflow constants
@@ -328,6 +327,7 @@ class PeerDBHandler(BasicDBHandler):
                 value['connected_times'] = 1
             else:
                 value['connected_times'] = old_connected + 1
+            
             
         peer_existed = self._db.insertPeer(permid, commit=commit, **value)
         
@@ -630,7 +630,7 @@ class SuperPeerDBHandler(BasicDBHandler):
                 superpeers_info.append(superpeer)
             except:
                 print_exc()
-                    
+                
         return superpeers_info
 
     def insertSuperPeers(self, superpeer_list, refresh=False):
@@ -789,6 +789,8 @@ class PreferenceDBHandler(BasicDBHandler):
         self._db.delete(self.table_name, commit=commit, peer_id=peer_id)
 
     def addPreference(self, permid, infohash, data={}, commit=True):           
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         # This function should be replaced by addPeerPreferences 
         # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
         # Nicolas: did not change this function as it seems addPreference*s* is getting called
@@ -822,6 +824,12 @@ class PreferenceDBHandler(BasicDBHandler):
         prefs = [type(pref) is str and {"infohash":pref} or pref
                  for pref
                  in prefs]
+
+        if __debug__:
+            for pref in prefs:
+                assert isinstance(pref["infohash"], str), "INFOHASH has invalid type: %s" % type(pref["infohash"])
+                assert len(pref["infohash"]) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(pref["infohash"])
+
         torrent_id_swarm_size =[]
         torrent_id_prefs =[]
         if is_torrent_id:
@@ -856,10 +864,7 @@ class PreferenceDBHandler(BasicDBHandler):
             # way that Nicolas has done.
             #torrent_id_swarm_size = []
             for pref in prefs:
-                if type(pref)==dict:
-                    infohash = pref["infohash"]
-                else:
-                    infohash = pref # Nicolas: from wherever this might come, we even handle old list of infohashes style
+                infohash = pref["infohash"]
                 torrent_id = self._db.getTorrentID(infohash)
                 if not torrent_id:
                     self._db.insertInfohash(infohash)
@@ -951,6 +956,10 @@ class PreferenceDBHandler(BasicDBHandler):
                  for pop
                  in pops]
         
+        if __debug__:
+            for pop in pops:
+                assert isinstance(pop["infohash"], str), "INFOHASH has invalid type: %s" % type(pop["infohash"])
+                assert len(pop["infohash"]) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(pop["infohash"])
         
         if is_torrent_id:
             #Rahim : Since overlay version 11 swarm size information is 
@@ -1125,30 +1134,18 @@ class TorrentDBHandler(BasicDBHandler):
     def register(self, category, torrent_dir):
         self.category = category
         self.torrent_dir = torrent_dir
-        return
-        # consider for migration    
-
-    def upgrade(self):
-        # insert the torrent details into InvertedIndex and TorrentFiles tables, if the DB is just migrated to a new version
-        sql = "select torrent_id, name, torrent_file_name from Torrent where torrent_file_name is not NULL"
-        records = self._db.fetchall(sql)
-        sql1 = "select count(*) from InvertedIndex"
-        num = self._db.fetchone(sql1)
-        if num==0 and len(records)>0: # this means its a new migration 
-            for record in records:
-                filename = os.path.join(self.torrent_dir, record[2])
-                infohash, torrent = self._readTorrentData(filename)
-                if infohash is not None:
-                    self.deleteTorrent(infohash)
-                    self._addTorrentToDB(infohash, torrent, commit=True)
         
     def getTorrentID(self, infohash):
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         return self._db.getTorrentID(infohash)
     
     def getInfohash(self, torrent_id):
         return self._db.getInfohash(torrent_id)
 
     def hasTorrent(self, infohash):
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if infohash in self.existed_torrents:    #to do: not thread safe
             return True
         infohash_str = bin2str(infohash)
@@ -1159,102 +1156,18 @@ class TorrentDBHandler(BasicDBHandler):
             self.existed_torrents.add(infohash)
             return True
     
-    def addExternalTorrent(self, filename, source='BC', extra_info={}, metatype=None, metadata=None, commit=True):
-        #print >> sys.stderr, "-------------- Adding external torrent..", filename
-        infohash, torrent = self._readTorrentData(filename, source, extra_info, metatype=metatype, metadata=metadata)
-        if infohash is None:
-            return torrent
-        if not self.hasTorrent(infohash):
-            self._addTorrentToDB(infohash, torrent, commit=commit)
-            self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
-
-        return torrent
-
-    def _readTorrentData(self, filename, source='BC', extra_info={}, metatype=None, metadata=None):
-        #print >> sys.stderr, "-------------- Reading external torrent..", filename
-        # prepare data to insert into database
-        try:
-            if metadata is None:
-                tdef = TorrentDef.load(filename)
-                metainfo = tdef.get_metainfo()
-            else:
-                if metatype == URL_MIME_TYPE:
-                    tdef = TorrentDef.load_from_url(metadata)
-                    metainfo = tdef.get_metainfo()
-                else:
-                    metainfo = bdecode(metadata)
-                    tdef = TorrentDef.load_from_dict(metainfo)
-
-            infohash = tdef.get_infohash()
-        except Exception,msg:
-            print_exc()
-            print >>sys.stderr,"torrentdb: _readTorrentData: Got bad torrent",`metadata`
-            return None,None
-        
-        #print >> sys.stderr, "------- Reading dictionary of torrent..", filename
-        
-        namekey = name2unicode(metainfo)  # convert info['name'] to type(unicode)
-        info = metainfo['info']
-        torrent = {'infohash': infohash}
-        if metatype == URL_MIME_TYPE:
-            torrent['torrent_file_name'] = metadata
-        else:
-            torrent['torrent_file_name'] = os.path.split(filename)[1]
-            
-        torrent['name'] = info.get(namekey, '')
-        
-        length = 0
-        nf = 0
-        if info.has_key('length'):
-            length = info.get('length', 0)
-            nf = 1
-        elif info.has_key('files'):
-            #print >> sys.stderr, "-------------- Adding torrent's files", repr(info['files'])
-            torrent['files'] = info['files']
-            for li in info['files']:
-                nf += 1
-                if li.has_key('length'):
-                    length += li['length']
-        torrent['length'] = length
-        if 'encoding' in metainfo:
-            torrent['encoding'] = metainfo['encoding']
-        else:
-            torrent['encoding'] = None
-        torrent['num_files'] = nf
-        torrent['announce'] = metainfo.get('announce', '')
-        torrent['announce-list'] = metainfo.get('announce-list', '')
-        torrent['creation_date'] = metainfo.get('creation date', 0)
-        
-        torrent['comment'] = metainfo.get('comment', None)
-        
-        torrent["ignore_number"] = 0
-        torrent["retry_number"] = 0
-        torrent["num_seeders"] = extra_info.get('seeder', -1)
-        torrent["num_leechers"] = extra_info.get('leecher', -1)
-        other_last_check = extra_info.get('last_check_time', -1)
-        if other_last_check >= 0:
-            torrent["last_check_time"] = int(time()) - other_last_check
-        else:
-            torrent["last_check_time"] = 0
-        torrent["status"] = self._getStatusID(extra_info.get('status', "unknown"))
-        
-        torrent["source"] = self._getSourceID(source)
-        torrent["insert_time"] = long(time())
-
-        torrent['category'] = self._getCategoryID(self.category.calculateCategory(metainfo, torrent['name']))
-        torrent['secret'] = 0 # to do: check if torrent is secret
-        torrent['relevance'] = 0.0
-        thumbnail = 0
-        if 'azureus_properties' in metainfo and 'Content' in metainfo['azureus_properties']:
-            if metainfo['azureus_properties']['Content'].get('Thumbnail',''):
-                thumbnail = 1
-        torrent['thumbnail'] = thumbnail
-        
-        #if (torrent['category'] != []):
-        #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
-        return infohash, torrent
+    def addExternalTorrent(self, torrentdef, source="BC", extra_info={}, commit=True):
+        assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
+        assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
+        if torrentdef.is_finalized():
+            infohash = torrentdef.get_infohash()
+            if not self.hasTorrent(infohash):
+                self._addTorrentToDB(torrentdef, source, extra_info, commit)
+                self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
         
     def addInfohash(self, infohash, commit=True):
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if self._db.getTorrentID(infohash) is None:
             self._db.insert('Torrent', commit=commit, infohash=bin2str(infohash))
 
@@ -1278,184 +1191,55 @@ class TorrentDBHandler(BasicDBHandler):
             self.id2src[src_int] = src
         return src_int
 
-    def _addTorrentToDB(self, infohash, data, commit=True):        
+    def _get_database_dict(self, torrentdef, source="BC", extra_info={}):
+        assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
+        assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
+        mime, thumb = torrentdef.get_thumbnail()
 
-        def get_unicode_name(info):
-            """
-            Get the name of the .torrent as a unicode string
+        return {"infohash":bin2str(torrentdef.get_infohash()),
+                "name":torrentdef.get_name_as_unicode(),
+                "torrent_file_name":extra_info.get("filename", None),
+                "length":torrentdef.get_length(),
+                "creation_date":torrentdef.get_creation_date(),
+                "num_files":len(torrentdef.get_files()),
+                "thumbnail":bool(thumb),
+                "insert_time":long(time()),
+                "secret":0, # todo: check if torrent is secret
+                "relevance":0.0,
+                "source_id":self._getSourceID(source),
+                # todo: the category_id is calculated directly from
+                # torrentdef.metainfo, the category checker should use
+                # the proper torrentdef api
+                "category_id":self._getCategoryID(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
+                "status_id":self._getStatusID(extra_info.get("status", "unknown")),
+                "num_seeders":extra_info.get("seeder", -1),
+                "num_leechers":extra_info.get("leecher", -1),
+                "comment":torrentdef.get_comment_as_unicode()}
+    
+    def _addTorrentToDB(self, torrentdef, source, extra_info, commit):
+        assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
+        assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
 
-            INFO must be the bdecoded .torrent file.  INFO must be a
-            dictionary containing a 'name' field and, optionally, a
-            'name-utf-8' field.
-            """
-            if "name.utf-8" in info:
-                # there is an utf-8 encoded name.  we assume that it
-                # is correctly encoded and use it normally
-                try:
-                    return unicode(info["name.utf-8"], "UTF-8")
-                except:
-                    pass
+        # ARNO: protect against injection attacks
+        # 27/01/10 Boudewijn: all inserts are done using '?' in the
+        # sql query.  The sqlite database will ensure that the values
+        # are properly escaped.
 
-            if "name" in info:
-                # try to use the 'encoding' field.  if it exists, it
-                # should contain something like 'utf-8'
-                if "encoding" in info:
-                    try:
-                        return unicode(info["name"], info["encoding"])
-                    except:
-                        pass
-
-                # try to convert the names in path to unicode
-                try:
-                    return unicode(info["name"])
-                except:
-                    pass
-
-                # try to convert the names in path to unicode,
-                # assuming that it was encoded as utf-8
-                try:
-                    return unicode(info["name"], "UTF-8")
-                except:
-                    pass
-
-                # convert the names in path to unicode by replacing
-                # out all characters that may -even remotely- cause
-                # problems with the '?' character
-                try:
-                    def filter_characters(name):
-                        def filter_character(char):
-                            if 0 < ord(char) < 128:
-                                return char
-                            else:
-                                if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum()
-                                return u"?"
-                        return u"".join([filter_character(char) for char in name])
-                    return unicode(filter_characters(info["name"]))
-                except:
-                    pass
-
-            # we failed.  returning an empty string
-            return u""
-        
-        def get_unicode_path(info, file_info):
-            """
-            Get list with unicode strings for a specific file in the
-            .torrent file.
-
-            INFO must be the bdecoded .torrent file.  INFO must be a
-            dictionary containing a 'name' field and, optionally, a
-            'name-utf-8' field.
-
-            FILE_INFO must be one of the elements in the 'files' list
-            from the bdecoded .torrent file.  FILE_INFO must be a
-            dictionary containing a 'path' field and, optionally, a
-            'path-utf-8' field.
-            """            
-            if "path.utf-8" in file_info:
-                # there is an utf-8 encoded list of names.  we
-                # assume that it is correctly encoded and use
-                # it normally
-                try:
-                    return [unicode(name, "UTF-8") for name in file_info["path.utf-8"]]
-                except:
-                    pass
-
-            if "path" in file_info:
-                # try to use the 'encoding' field.  if it exists, it
-                # should contain something like 'utf-8'
-                if "encoding" in info:
-                    try:
-                        return [unicode(name, info["encoding"]) for name in file_info["path"]]
-                    except:
-                        pass
-
-                # try to convert the names in path to unicode
-                try:
-                    return [unicode(name) for name in file_info["path"]]
-                except:
-                    pass
-
-                # try to convert the names in path to unicode,
-                # assuming that it was encoded as utf-8
-                try:
-                    return [unicode(name, "UTF-8") for name in file_info["path"]]
-                except:
-                    pass
-
-                # convert the names in path to unicode by replacing
-                # out all characters that may -even remotely- cause
-                # problems with the '?' character
-                try:
-                    def filter_characters(name):
-                        def filter_character(char):
-                            if 0 < ord(char) < 128:
-                                return char
-                            else:
-                                if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum()
-                                return u"?"
-                        return u"".join([filter_character(char) for char in name])
-                    return [unicode(filter_characters(name)) for name in file_info["path"]]
-                except:
-                    pass
-
-            # we failed.  returning an empty list
-            return []
-
-        # retrieve potential keywords from the torrent name, these
-        # will be used in the InvertedIndex table when searching
-        torrent_name = get_unicode_name(data)
-
-
-        # ARNOTODO: protect against injection attacks
-
+        infohash = torrentdef.get_infohash()
+        torrent_name = torrentdef.get_name_as_unicode()
+        database_dict = self._get_database_dict(torrentdef, source, extra_info)
 
         # see if there is already a torrent in the database with this
         # infohash
         torrent_id = self._db.getTorrentID(infohash)
 
-        #print >> sys.stderr, "-------------- Adding torrent to DB..", bin2str(infohash), str(torrent_id)
-        if torrent_id is None:    # not in db
-            infohash_str = bin2str(infohash)
-            self._db.insert('Torrent', 
-                        commit=True,    # must commit to get the torrent id
-                        infohash = infohash_str,
-                        name = torrent_name,
-                        torrent_file_name = data['torrent_file_name'], # todo: maybe there is a utf-8 version of the torrent_file_name?
-                        length = data['length'], 
-                        creation_date = data['creation_date'], 
-                        num_files = data['num_files'], 
-                        thumbnail = data['thumbnail'],
-                        insert_time = data['insert_time'], 
-                        secret = data['secret'], 
-                        relevance = data['relevance'],
-                        source_id = data['source'], 
-                        category_id = data['category'], 
-                        status_id = data['status'],
-                        num_seeders = data['num_seeders'], 
-                        num_leechers = data['num_leechers'], 
-                        comment = dunno2unicode(data['comment']))
+        if torrent_id is None:  # not in database
+            self._db.insert("Torrent", commit=True, **database_dict)
             torrent_id = self._db.getTorrentID(infohash)
-            # adding in TorrentFiles table
-            
+
         else:    # infohash in db
-            where = 'torrent_id = %d'%torrent_id
-            self._db.update('Torrent', where = where,
-                            commit=False,
-                            name = torrent_name,
-                            torrent_file_name = data['torrent_file_name'],
-                            length = data['length'], 
-                            creation_date = data['creation_date'], 
-                            num_files = data['num_files'], 
-                            thumbnail = data['thumbnail'],
-                            insert_time = data['insert_time'], 
-                            secret = data['secret'], 
-                            relevance = data['relevance'],
-                            source_id = data['source'], 
-                            category_id = data['category'], 
-                            status_id = data['status'],
-                            num_seeders = data['num_seeders'], 
-                            num_leechers = data['num_leechers'], 
-                            comment = dunno2unicode(data['comment']))
+            where = 'torrent_id = %d' % torrent_id
+            self._db.update('Torrent', where=where, commit=False, **database_dict)
 
         # boudewijn: we are using a Set to ensure that all keywords
         # are unique.  no use having the database layer figuring this
@@ -1464,15 +1248,8 @@ class TorrentDBHandler(BasicDBHandler):
 
         # search through the .torrent file for potential keywords in
         # the filenames
-        if data.has_key('files'):                        
-            for info in data['files']:
-                if info.has_key('path') and info.has_key('length'):
-
-                    # get the file path in unicode
-                    path = get_unicode_path(data, info)
-                    if len(path) > 0:
-                        filename = path[-1]
-                        keywords.update(split_into_keywords(filename))
+        for filename in torrentdef.get_files_as_unicode():
+            keywords.update(split_into_keywords(filename))
 
         # store the keywords in the InvertedIndex table in the database
         if len(keywords) > 0:
@@ -1481,19 +1258,15 @@ class TorrentDBHandler(BasicDBHandler):
             if DEBUG:
                 print >> sys.stderr, "torrentdb: Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
         
-        self._addTorrentTracker(torrent_id, data, commit=False)
+        self._addTorrentTracker(torrent_id, torrentdef, extra_info, commit=False)
         if commit:
             self.commit()    
         return torrent_id
-    
+
     def getInfohashFromTorrentName(self, name): ##
         sql = "select infohash from Torrent where name='" + str2bin(name) + "'"
         infohash = self._db.fetchone(sql)
         return infohash
-        
-
-
-
 
     def _insertNewSrc(self, src, commit=True):
         desc = ''
@@ -1503,19 +1276,26 @@ class TorrentDBHandler(BasicDBHandler):
         src_id = self._db.getOne('TorrentSource', 'source_id', name=src)
         return src_id
 
-    def _addTorrentTracker(self, torrent_id, data, add_all=False, commit=True):
+    def _addTorrentTracker(self, torrent_id, torrentdef, extra_info={}, add_all=False, commit=True):
         # Set add_all to True if you want to put all multi-trackers into db.
         # In the current version (4.2) only the main tracker is used.
         exist = self._db.getOne('TorrentTracker', 'tracker', torrent_id=torrent_id)
         if exist:
             return
         
-        announce = data['announce']
-        ignore_number = data['ignore_number']
-        retry_number = data['retry_number']
-        last_check_time = data['last_check_time']
-        
-        announce_list = data['announce-list']
+        # announce = data['announce']
+        # ignore_number = data['ignore_number']
+        # retry_number = data['retry_number']
+        # last_check_time = data['last_check_time']
+        # announce_list = data['announce-list']
+
+        announce = torrentdef.get_tracker()
+        announce_list = torrentdef.get_tracker_hierarchy()
+        ignore_number = 0
+        retry_number = 0
+        last_check_time = 0
+        if "last_check_time" in extra_info:
+            last_check_time = int(time() - extra_info["last_check_time"])
         
         sql_insert_torrent_tracker = """
         INSERT INTO TorrentTracker
@@ -1700,6 +1480,8 @@ class TorrentDBHandler(BasicDBHandler):
         return self.torrent_dir
     
     def getTorrent(self, infohash, keys=None, include_mypref=True):
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         # to do: replace keys like source -> source_id and status-> status_id ??
         
         if keys is None:
@@ -1711,7 +1493,7 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             keys = list(keys)
         where = 'C.torrent_id = T.torrent_id and announce_tier=1 '
-        
+
         res = self._db.getOne('CollectedTorrent C, TorrentTracker T', keys, where=where, infohash=bin2str(infohash))
         if not res:
             return None
@@ -2082,6 +1864,8 @@ class TorrentDBHandler(BasicDBHandler):
             permid_str = bin2str(permid)
             res = self._db.fetchone(sql, (permid_str,))
         else:
+            #print >>sys.stderr,"torrentdb: selectTorrentToCollect: cands",`candidate_list`
+            
             cand_str = [bin2str(infohash) for infohash in candidate_list]
             s = repr(cand_str).replace('[','(').replace(']',')')
             sql = 'select infohash from Torrent where torrent_file_name is NULL and infohash in ' + s
@@ -2212,6 +1996,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.status_table = {'good':1, 'unknown':0, 'dead':2}
         self.status_table.update(self._db.getTorrentStatusTable())
         self.status_good = self.status_table['good']
+        # Arno, 2010-02-04: ARNOCOMMENT ARNOTODO Get rid of this g*dd*mn caching
+        # or keep it consistent with the DB!
         self.recent_preflist = None
         self.recent_preflist_with_clicklog = None
         self.recent_preflist_with_swarmsize = None
@@ -2221,10 +2007,15 @@ class MyPreferenceDBHandler(BasicDBHandler):
         
         
     def loadData(self):
+        """ Arno, 2010-02-04: Brute force update method for the self.recent_
+        caches, because people don't seem to understand that caches need
+        to be kept consistent with the database. Caches are evil in the first place.
+        """
         self.rlock.acquire()
         try:
             self.recent_preflist = self._getRecentLivePrefList()
             self.recent_preflist_with_clicklog = self._getRecentLivePrefListWithClicklog()
+            self.recent_preflist_with_swarmsize = self._getRecentLivePrefListOL11()
         finally:
             self.rlock.release()
                 
@@ -2277,8 +2068,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
     def getRecentLivePrefListOL11(self, num=0):
         """
-        Returns OL 10 style preference list. It contains all infor from previous versions like clickLog info and some
-        additional info related to swarm size.
+        Returns OL 11 style preference list. It contains all info from previous 
+        versions like clickLog info and some additional info related to swarm size.
         @author: Rahim
         @param num: if num be equal to zero the lenghth of the return list is unlimited, otherwise it's maximum lenght will be num.
         @return: a list of lists. Each inner list is like:
@@ -2373,9 +2164,17 @@ class MyPreferenceDBHandler(BasicDBHandler):
         for pref in recent_preflist_with_clicklog:
             torrent_id = pref[1]
             search_terms = searchdb.getMyTorrentSearchTerms(torrent_id)
-            pref[1] = [termdb.getTerm(search_term) for search_term in search_terms]            
+            # Arno, 2010-02-02: Explicit encoding
+            pref[1] = self.searchterms2utf8pref(termdb,search_terms)
 
         return recent_preflist_with_clicklog
+
+    def searchterms2utf8pref(self,termdb,search_terms):            
+        terms = [termdb.getTerm(search_term) for search_term in search_terms]
+        eterms = []
+        for term in terms:
+            eterms.append(term.encode("UTF-8"))
+        return eterms
     
     
     def _getRecentLivePrefListOL11(self, num=0): 
@@ -2417,8 +2216,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             torrent_id = pref[1]
             tempTorrentList.append(torrent_id)
             search_terms = searchdb.getMyTorrentSearchTerms(torrent_id)
-            pref[1] = [termdb.getTerm(search_term) for search_term in search_terms]            
-        
+            # Arno, 2010-02-02: Explicit encoding
+            pref[1] = self.searchterms2utf8pref(termdb,search_terms)
         
         #Step 3: appending swarm size info to the end of the inner lists
         swarmSizeInfoList= self.popularity_db.calculateSwarmSize(tempTorrentList, 'TorrentIds', toBC=True) # returns a list of items [torrent_id, num_seeders, num_leechers, num_sources_seen]
@@ -2476,16 +2275,13 @@ class MyPreferenceDBHandler(BasicDBHandler):
         d['progress'] = data.get('progress', 0)
         d['creation_time'] = data.get('creation_time', int(time()))
         d['torrent_id'] = torrent_id
+
         self._db.insert(self.table_name, commit=commit, **d)
         self.notifier.notify(NTFY_MYPREFERENCES, NTFY_INSERT, infohash)
-        self.rlock.acquire()
-        try:
-            if self.recent_preflist is None:
-                self.recent_preflist = self._getRecentLivePrefList()
-            else:
-                self.recent_preflist.insert(0, infohash)
-        finally:
-            self.rlock.release()
+        
+        # Arno, 2010-02-04: Update self.recent_ caches :-(
+        self.loadData()
+
         return True
 
     def deletePreference(self, infohash, commit=True):
@@ -2496,12 +2292,9 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return
         self._db.delete(self.table_name, commit=commit, **{'torrent_id':torrent_id})
         self.notifier.notify(NTFY_MYPREFERENCES, NTFY_DELETE, infohash)
-        self.rlock.acquire()
-        try:
-            if self.recent_preflist is not None and infohash in self.recent_preflist:
-                self.recent_preflist.remove(infohash)
-        finally:
-            self.rlock.release()
+
+        # Arno, 2010-02-04: Update self.recent_ caches :-(
+        self.loadData()
             
             
     def updateProgress(self, infohash, progress, commit=True):
@@ -3232,8 +3025,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         assert record is not None
         r = (record[0],record[2],record[3],record[5])
         bencoding = bencode(r)
-        signature = bin2str(sign_data(bencoding, self.session.keypair))
-        record.append(signature)
+        return bin2str(sign_data(bencoding, self.session.keypair))
 
     def searchNames(self,kws): ##
         t1 = time()
@@ -3339,33 +3131,36 @@ class ChannelCastDBHandler(BasicDBHandler):
             sql = "update ChannelCast set publisher_name='" + latest_publisher_name + "' where publisher_id='" + publisher_id[0] + "'"
             self._db.execute_write(sql)        
 
-    def addOwnTorrent(self, infohash, torrentdata):
+    def addOwnTorrent(self, torrentdef): #infohash, torrentdata):
+        assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         flag = False
         publisher_id = bin2str(self.my_permid)
-        infohash = bin2str(infohash)
-        sql = "select count(*) from ChannelCast where publisher_id='" + publisher_id + "' and infohash='" + infohash + "'"
-        num_records = self._db.fetchone(sql)
+        infohash = bin2str(torrentdef.get_infohash())
+        sql = "SELECT COUNT(*) FROM ChannelCast WHERE publisher_id=? AND infohash=?"
+        num_records = self._db.fetchone(sql, (publisher_id, infohash))
         if num_records==0:
-            torrenthash = bin2str(sha(bencode(torrentdata)).digest())
+            torrenthash = bin2str(sha(bencode(torrentdef.get_metainfo())).digest())
             # Arno, 2010-01-27: sqlite don't like binary encoded names
-            # TODO: protect against injection attacks
-            (namekey,torrentname) = metainfoname2unicode(torrentdata)
-            record = [publisher_id,self.session.get_nickname(),infohash,torrenthash,torrentname,now()]
-            self._sign(record)
-            sql = 'insert into ChannelCast Values("' + record[0] + '","' + record[1] + '","' + record[2] + '","' + record[3] + '","' + record[4] + '","' + str(record[5]) + '","' + record[6] + '")'
-            self._db.execute_write(sql)
+            nickname = self.session.get_nickname().encode("UTF-8")
+            torrentname = torrentdef.get_name_as_unicode()
+            record = [publisher_id, nickname, infohash, torrenthash, torrentname, now()]
+            record.append(self._sign(record))
+            sql = """INSERT INTO ChannelCast
+                     (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)"""
+            self._db.execute_write(sql, record)
             #return True
             flag = True
         #return False
-        sql = "select publisher_name from ChannelCast where publisher_id='" + publisher_id + "' order by time_stamp desc limit 1"
-        latest_publisher_name = self._db.fetchone(sql)
-        sql = "update ChannelCast set publisher_name='" + latest_publisher_name + "' where publisher_id='" + publisher_id + "'"
-        self._db.execute_write(sql)
+        sql = "SELECT publisher_name FROM ChannelCast WHERE publisher_id=? ORDER BY time_stamp DESC LIMIT 1"
+        latest_publisher_name = self._db.fetchone(sql, (publisher_id,))
+        sql = "UPDATE ChannelCast SET publisher_name=? WHERE publisher_id=?"
+        self._db.execute_write(sql, (latest_publisher_name, publisher_id))
         return flag
         
 
     def deleteOwnTorrent(self, infohash): ##
-        sql = 'Delete From ChannelCast where infohash==? and publisher_id==?'
+        sql = 'Delete From ChannelCast where infohash=? and publisher_id=?'
         self._db.execute_write(sql,(bin2str(infohash),bin2str(self.my_permid),))
 
 

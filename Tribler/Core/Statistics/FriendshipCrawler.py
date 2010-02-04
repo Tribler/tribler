@@ -98,7 +98,22 @@ class FriendshipCrawler:
         return True 
         
     def getStaticsFromFriendshipStatisticsTable(self, mypermid, last_update_time):
-        return self.friendshipStatistics_db.getAllFriendshipStatistics(mypermid, last_update_time)
+        ulist = self.friendshipStatistics_db.getAllFriendshipStatistics(mypermid, last_update_time)
+        # Arno, 2010-02-04: Make sure Unicode B64 permids are converted to str, 
+        # bencode can't do that anymore.
+        elist = []
+        for utuple in ulist:
+            etuple = []
+            for uelem in utuple:
+                if isinstance(uelem,unicode):
+                    eelem = uelem.encode("UTF-8")
+                else:
+                    eelem = uelem
+                etuple.append(eelem)
+            elist.append(etuple)
+                
+        return elist
+        
     
     def saveFriendshipStatistics(self,permid,currentTime,stats):
         if stats:

@@ -563,6 +563,7 @@ def copy_metainfo_to_input(metainfo,input):
 
 
 def get_files(metainfo,exts):
+    # 01/02/10 Boudewijn: now returns (file, length) tuples instead of files
     
     videofiles = []
     if 'files' in metainfo['info']:
@@ -583,7 +584,7 @@ def get_files(metainfo,exts):
                 ext = ext[1:]
             #print >>sys.stderr,"TorrentDef: get_files: ext",ext
             if exts is None or ext.lower() in exts:
-                videofiles.append(filename)
+                videofiles.append((filename, file['length']))
     else:
         #print >>sys.stderr,"TorrentDef: get_files: Single-torrent file"
         
@@ -592,5 +593,5 @@ def get_files(metainfo,exts):
         if ext != '' and ext[0] == '.':
             ext = ext[1:]
         if exts is None or ext.lower() in exts:
-            videofiles.append(filename)
+            videofiles.append((filename, metainfo['info']['length']))
     return videofiles

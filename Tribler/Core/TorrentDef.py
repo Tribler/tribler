@@ -19,7 +19,7 @@ import Tribler.Core.APIImplementation.makeurl as makeurl
 from Tribler.Core.APIImplementation.miscutils import *
 
 from Tribler.Core.Utilities.utilities import validTorrentFile,isValidURL
-from Tribler.Core.Utilities.unicode import metainfoname2unicode
+from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.osutils import *
 from Tribler.Core.Utilities.Crypto import sha
@@ -45,7 +45,8 @@ class TorrentDef(Serializable,Copyable):
     def __init__(self,input=None,metainfo=None,infohash=None):
         """ Normal constructor for TorrentDef (The input, metainfo and infohash
         parameters are used internally to make this a copy constructor) """
-        
+        assert infohash is None or isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert infohash is None or len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         self.readonly = False
         if input is not None: # copy constructor
             self.input = input
@@ -119,6 +120,9 @@ class TorrentDef(Serializable,Copyable):
             # Two places where infohash calculated, here and in maketorrent.py
             # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
             t.infohash = sha(bencode(metainfo['info'])).digest()
+
+        assert isinstance(t.infohash, str), "INFOHASH has invalid type: %s" % type(t.infohash)
+        assert len(t.infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(t.infohash)
         
         #print >>sys.stderr,"INFOHASH",`t.infohash`
 
@@ -306,7 +310,6 @@ class TorrentDef(Serializable,Copyable):
         else:
             thumb = self.input['thumb'] # buffer/string immutable
             return ('image/jpeg',thumb)
-        
 
     def set_tracker(self,url):
         """ Sets the tracker (i.e. the torrent file's 'announce' field). 
@@ -405,6 +408,11 @@ class TorrentDef(Serializable,Copyable):
         """ Returns the comment field of the def.
         @return A Unicode string. """
         return self.input['comment']
+
+    def get_comment_as_unicode(self):
+        """ Returns the comment field of the def as a unicode string.
+        @return A Unicode string. """
+        return dunno2unicode(self.input['comment'])
 
     def set_created_by(self,value):
         """ Set 'created by' field.
@@ -668,6 +676,9 @@ class TorrentDef(Serializable,Copyable):
             self.input['piece length'] = metainfo['info']['piece length']
             self.metainfo_valid = True
 
+        assert self.infohash is None or isinstance(self.infohash, str), "INFOHASH has invalid type: %s" % type(self.infohash)
+        assert self.infohash is None or len(self.infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(self.infohash)
+
     def is_finalized(self):
         """ Returns whether the TorrentDef is finalized or not.
         @return Boolean. """
@@ -718,11 +729,63 @@ class TorrentDef(Serializable,Copyable):
     def get_name_as_unicode(self):
         """ Returns the info['name'] field as Unicode string.
         @return Unicode string. """
-        if self.metainfo_valid:
-            (namekey,uniname) = metainfoname2unicode(self.metainfo)
-            return uniname
-        else:
+        if not self.metainfo_valid:
             raise TorrentDefNotFinalizedException()
+
+        if "name.utf-8" in self.metainfo["info"]:
+            # There is an utf-8 encoded name.  We assume that it is
+            # correctly encoded and use it normally
+            try:
+                return unicode(self.metainfo["info"]["name.utf-8"], "UTF-8")
+            except UnicodeError:
+                pass
+
+        if "name" in self.metainfo["info"]:
+            # Try to use the 'encoding' field.  If it exists, it
+            # should contain something like 'utf-8'
+            if "encoding" in self.metainfo:
+                try:
+                    return unicode(self.metainfo["info"]["name"], self.metainfo["encoding"])
+                except UnicodeError:
+                    pass
+                except LookupError:
+                    # Some encodings are not supported by python.  For
+                    # instance, the MBCS codec which is used by
+                    # Windows is not supported (Jan 2010)
+                    pass
+
+            # Try to convert the names in path to unicode, without
+            # specifying the encoding
+            try:
+                return unicode(self.metainfo["info"]["name"])
+            except UnicodeError:
+                pass
+
+            # Try to convert the names in path to unicode, assuming
+            # that it was encoded as utf-8
+            try:
+                return unicode(self.metainfo["info"]["name"], "UTF-8")
+            except UnicodeError:
+                pass
+
+            # Convert the names in path to unicode by replacing out
+            # all characters that may -even remotely- cause problems
+            # with the '?' character
+            try:
+                def filter_characters(name):
+                    def filter_character(char):
+                        if 0 < ord(char) < 128:
+                            return char
+                        else:
+                            if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum()
+                            return u"?"
+                    return u"".join([filter_character(char) for char in name])
+                return unicode(filter_characters(self.metainfo["info"]["name"]))
+            except UnicodeError:
+                pass
+
+        # We failed.  Returning an empty string
+        return u""
 
     def verify_torrent_signature(self):
         """ Verify the signature on the finalized torrent definition. Returns
@@ -764,7 +827,95 @@ class TorrentDef(Serializable,Copyable):
 
         return maketorrent.get_bitrate_from_metainfo(file,self.metainfo)
 
+    def get_files_with_length(self,exts=None):
+        """ The list of files in the finalized torrent def.
+        @param exts (Optional) list of filename extensions (without leading .)
+        to search for.
+        @return A list of filenames.
+        """
+        return maketorrent.get_files(self.metainfo,exts)
+
     def get_files(self,exts=None):
+        """ The list of files in the finalized torrent def.
+        @param exts (Optional) list of filename extensions (without leading .)
+        to search for.
+        @return A list of filenames.
+        """
+        return [filename for filename, _ in maketorrent.get_files(self.metainfo, exts)]
+
+    def _get_all_files_as_unicode_with_length(self):
+        """ Get a generator for files in the torrent def. No filtering
+        is possible and all tricks are allowed to obtain a unicode
+        list of filenames.
+        @return A unicode filename generator.
+        """
+        assert self.metainfo_valid, "TorrentDef is not finalized"
+        if "files" in self.metainfo["info"]:
+            # Multi-file torrent
+            join = os.path.join
+            files = self.metainfo["info"]["files"]
+
+            for file_dict in files:
+                if "path.utf-8" in file_dict:
+                    # This file has an utf-8 encoded list of elements.
+                    # We assume that it is correctly encoded and use
+                    # it normally
+                    try:
+                        yield join(*[unicode(element, "UTF-8") for element in file_dict["path.utf-8"]]), file_dict["length"]
+                    except UnicodeError:
+                        pass
+
+                if "path" in file_dict:
+                    # Try to use the 'encoding' field.  If it exists,
+                    # it should contain something like 'utf-8'
+                    if "encoding" in self.metainfo:
+                        encoding = self.metainfo["encoding"]
+                        try:
+                            yield join(*[unicode(element, encoding) for element in file_dict["path"]]), file_dict["length"]
+                        except UnicodeError:
+                            pass
+                        except LookupError:
+                            # Some encodings are not supported by
+                            # python.  For instance, the MBCS codec
+                            # which is used by Windows is not
+                            # supported (Jan 2010)
+                            pass
+
+                    # Try to convert the names in path to unicode,
+                    # without specifying the encoding
+                    try:
+                        yield join(*[unicode(element) for element in file_dict["path"]]), file_dict["length"]
+                    except UnicodeError:
+                        pass
+
+                    # Try to convert the names in path to unicode,
+                    # assuming that it was encoded as utf-8
+                    try:
+                        yield join(*[unicode(element, "UTF-8") for element in file_dict["path"]]), file_dict["length"]
+                    except UnicodeError:
+                        pass
+
+                    # Convert the names in path to unicode by
+                    # replacing out all characters that may -even
+                    # remotely- cause problems with the '?' character
+                    try:
+                        def filter_characters(name):
+                            def filter_character(char):
+                                if 0 < ord(char) < 128:
+                                    return char
+                                else:
+                                    if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum()
+                                    return u"?"
+                            return u"".join([filter_character(char) for char in name])
+                        yield join(*[unicode(filter_characters(element)) for element in file_dict["path"]]), file_dict["length"]
+                    except UnicodeError:
+                        pass
+
+        else:
+            # Single-file torrent
+            yield self.get_name_as_unicode(), self.metainfo["info"]["length"]
+        
+    def get_files_as_unicode_with_length(self,exts=None):
         """ The list of files in the finalized torrent def.
         @param exts (Optional) list of filename extensions (without leading .)
         to search for.
@@ -772,8 +923,18 @@ class TorrentDef(Serializable,Copyable):
         """
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
-        
-        return maketorrent.get_files(self.metainfo,exts)
+
+        videofiles = []
+        for filename, length in self._get_all_files_as_unicode_with_length():
+            prefix, ext = os.path.splitext(filename)
+            if ext != "" and ext[0] == ".":
+                ext = ext[1:]
+            if exts is None or ext.lower() in exts:
+                videofiles.append((filename, length))
+        return videofiles
+
+    def get_files_as_unicode(self,exts=None):
+        return [filename for filename, _ in self.get_files_as_unicode_with_length(exts)]
 
     def get_length(self,selectedfiles=None):
         """ Returns the total size of the content in the torrent. If the
@@ -786,6 +947,12 @@ class TorrentDef(Serializable,Copyable):
         
         (length,filepieceranges) = maketorrent.get_length_filepieceranges_from_metainfo(self.metainfo,selectedfiles)
         return length
+
+    def get_creation_date(self,default=0):
+        if not self.metainfo_valid:
+            raise NotYetImplementedException() # must save first
+
+        return self.metainfo.get("creation date", default)
 
     def is_multifile_torrent(self):
         """ Returns whether this TorrentDef is a multi-file torrent.

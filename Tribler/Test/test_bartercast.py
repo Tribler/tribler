@@ -84,8 +84,13 @@ class TestBarterCast(TestAsServer):
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         msg = self.create_good_bartercast()
         s.send(msg)
-        resp = s.recv()
-        print >>sys.stderr,"test: reply message",getMessageName(resp[0])
+        while True:
+            resp = s.recv()
+            print >>sys.stderr,"test: reply message",getMessageName(resp[0])
+            if resp[0] == KEEP_ALIVE:
+                continue
+            else:
+                break
         self.assert_(resp[0] == BARTERCAST)
         self.check_bartercast(resp[1:])
         time.sleep(10)

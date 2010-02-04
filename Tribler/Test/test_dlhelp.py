@@ -268,14 +268,20 @@ class TestDownloadHelp(TestAsServer):
         
         if good:
             # 6. Await REQUEST on fake seeder
-            while True:
-                resp = s2.recv()
-                self.assert_(len(resp) > 0)
-                print "test: Fake seeder got message",getMessageName(resp[0])
-                if resp[0] == REQUEST:
-                    self.check_request(resp[1:],pieces)
-                    print >>sys.stderr,"test: Fake seeder got REQUEST for reserved piece, good"
-                    break
+            try:
+                while True:
+                    s2.s.settimeout(10.0)
+                    resp = s2.recv()
+                    self.assert_(len(resp) > 0)
+                    print "test: Fake seeder got message",getMessageName(resp[0])
+                    if resp[0] == REQUEST:
+                        self.check_request(resp[1:],pieces)
+                        print >>sys.stderr,"test: Fake seeder got REQUEST for reserved piece, good"
+                        break
+                    
+            except socket.timeout:
+                print >> sys.stderr,"test: Timeout, bad, fake seeder didn't reply with message"
+                self.assert_(False)
         else:
             resp = s.recv()
             self.assert_(len(resp)==0)

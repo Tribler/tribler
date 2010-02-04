@@ -431,13 +431,13 @@ class SessionConfigInterface:
 
     def set_nickname(self,value):
         """ The nickname you want to show to others.
-        @param value A string.
+        @param value A Unicode string.
         """
         self.sessconfig['nickname'] = value
 
     def get_nickname(self):
         """ Returns the set nickname.
-        @return String. """
+        @return A Unicode string. """
         return self.sessconfig['nickname']
 
     def set_mugshot(self,value, mime = 'image/jpeg'):

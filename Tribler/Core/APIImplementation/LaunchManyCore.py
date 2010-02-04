@@ -104,17 +104,6 @@ class TriblerLaunchMany(Thread):
                 
             cachedb.init(config, self.rawserver_fatalerrorfunc)
             
-            # ARNOCOMMENT, 2009-10-02: Should be moved out of core, used in Main client only.
-            # initialize SeedingStats database
-            cachedb.init_seeding_stats(config, self.rawserver_fatalerrorfunc)
-
-            if config['socnet']:
-                # initialize Friendship statistics database
-                cachedb.init_friendship_stats(config, self.rawserver_fatalerrorfunc)
-
-            # initialize VideoPlayback statistics database
-            cachedb.init_videoplayback_stats(config, self.rawserver_fatalerrorfunc)
-            
             self.my_db          = MyDBHandler.getInstance()
             self.peer_db        = PeerDBHandler.getInstance()
             # Register observer to update connection opened/closed to peer_db_handler
@@ -138,15 +127,31 @@ class TriblerLaunchMany(Thread):
             self.simi_db        = SimilarityDBHandler.getInstance()
 
             # Crawling 
-            self.crawler_db     = CrawlerDBHandler.getInstance()
-            self.crawler_db.loadCrawlers(config)
-            self.seedingstats_db = SeedingStatsDBHandler.getInstance()
-            self.seedingstatssettings_db = SeedingStatsSettingsDBHandler.getInstance()
-            
-            if config['socnet']:
-                self.friendship_statistics_db = FriendshipStatisticsDBHandler().getInstance()
+            if config['crawler']:
+                # ARNOCOMMENT, 2009-10-02: Should be moved out of core, used in Main client only.
+                # initialize SeedingStats database
+                cachedb.init_seeding_stats(config, self.rawserver_fatalerrorfunc)
+    
+                # initialize VideoPlayback statistics database
+                cachedb.init_videoplayback_stats(config, self.rawserver_fatalerrorfunc)
+                
+                self.crawler_db     = CrawlerDBHandler.getInstance()
+                self.crawler_db.loadCrawlers(config)
+                self.seedingstats_db = SeedingStatsDBHandler.getInstance()
+                self.seedingstatssettings_db = SeedingStatsSettingsDBHandler.getInstance()
+                
+                if config['socnet']:
+                    # initialize Friendship statistics database
+                    cachedb.init_friendship_stats(config, self.rawserver_fatalerrorfunc)
+
+                    self.friendship_statistics_db = FriendshipStatisticsDBHandler().getInstance()
+                else:
+                    self.friendship_statistics_db = None
             else:
+                self.crawler_db = None 
+                self.seedingstats_db = None
                 self.friendship_statistics_db = None
+
         else:
             config['overlay'] = 0    # turn overlay off
             config['torrent_checking'] = 0
@@ -300,7 +305,13 @@ class TriblerLaunchMany(Thread):
                 # hack, make sure these torrents are always good so they show up
                 # in TorrentDBHandler.getTorrents()
                 extra_info = {'status':'good'}
-                self.torrent_db.addExternalTorrent(save_path, source='',extra_info=extra_info)
+
+                # 03/02/10 Boudewijn: addExternalTorrent now requires
+                # a torrentdef, consequently we provide the filename
+                # through the extra_info dictionary
+                extra_info['filename'] = save_name
+
+                self.torrent_db.addExternalTorrent(tdef, source='',extra_info=extra_info)
                 dest_path = d.get_dest_dir()    
                 # TODO: if user renamed the dest_path for single-file-torrent
                 data = {'destination_path':dest_path}

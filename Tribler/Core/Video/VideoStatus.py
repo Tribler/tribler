@@ -239,7 +239,7 @@ class VideoStatus:
             return max( self.first_piece, min( x, self.last_piece ) )
 
     def time_to_pieces( self, sec ):
-        """ Returns the piece number that contains data for a few seconds down the road. """
+        """ Returns the number of pieces that are needed to hold "sec" seconds of content. """
 
         # TODO: take first and last piece into account, as they can have a different size
         return int(ceil(sec * self.sec_per_piece))

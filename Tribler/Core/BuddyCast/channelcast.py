@@ -110,15 +110,16 @@ class ChannelCastCore:
         # hits is of the form: [(mod_id, mod_name, infohash, torrenthash, torrent_name, time_stamp, signature)]
         d = {}
         for hit in hits:
+            # ARNOUNICODE: temp fixes until data is sent not Base64-encoded
             r = {}
-            r['publisher_id'] = hit[0]
-            r['publisher_name'] = hit[1]
-            r['infohash'] = hit[2]
-            r['torrenthash'] = hit[3]
-            r['torrentname'] = hit[4]
+            r['publisher_id'] = str(hit[0]) # ARNOUNICODE: must be str
+            r['publisher_name'] = hit[1].encode("UTF-8")  # ARNOUNICODE: must be explicitly UTF-8 encoded
+            r['infohash'] = str(hit[2])     # ARNOUNICODE: must be str
+            r['torrenthash'] = str(hit[3])  # ARNOUNICODE: must be str
+            r['torrentname'] = hit[4].encode("UTF-8") # ARNOUNICODE: must be explicitly UTF-8 encoded
             r['time_stamp'] = int(hit[5])
             # hit[6]: signature, which is unique for any torrent published by a user
-            signature = hit[6].encode('ascii','ignore')
+            signature = hit[6].encode('ascii','ignore')   # ARNOCOMMENT: won't this kill binary sigs?
             d[signature] = r
         #assert validChannelCastMsg(d)
         return d

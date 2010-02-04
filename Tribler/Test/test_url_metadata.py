@@ -56,9 +56,10 @@ class TestURLMetadata(TestAsServer):
         self.tdef2.save(self.torrentfn2)
 
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        extra_info = {'status':'good'}
-        self.torrent_db.addExternalTorrent(self.torrentfn1, source='',extra_info=extra_info)
-        self.torrent_db.addExternalTorrent(self.torrentfn2, source='',extra_info=extra_info)
+        extra_info = {'status':'good', 'filename':self.torrentfn1}
+        self.torrent_db.addExternalTorrent(self.tdef1, source='',extra_info=extra_info)
+        extra_info = {'status':'good', 'filename':self.torrentfn2}
+        self.torrent_db.addExternalTorrent(self.tdef2, source='',extra_info=extra_info)
          
         
     def tearDown(self):

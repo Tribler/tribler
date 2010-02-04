@@ -5,11 +5,12 @@ import sys
 import os
 from time import sleep
 from base64 import encodestring, decodestring
-from unicode import dunno2unicode
 import threading
 from traceback import print_exc, print_stack
 
+from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.__init__ import LIBRARYNAME
+from Tribler.Core.Utilities.unicode import dunno2unicode
 
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
@@ -434,7 +435,7 @@ class SQLiteCacheDBBase:
             else:
                 return cur.execute(sql, args)
         except Exception, msg:
-            if False:
+            if True:
                 print_exc()
                 print_stack()
                 print >> sys.stderr, "cachedb: execute error:", Exception, msg 
@@ -823,7 +824,8 @@ class SQLiteCacheDBBase:
     
     def insertInfohash(self, infohash, check_dup=False, commit=True):
         """ Insert an infohash. infohash is binary """
-        
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if infohash in self.infohash_id:
             if check_dup:
                 print >> sys.stderr, 'sqldb: infohash to insert already exists', `infohash`
@@ -838,6 +840,8 @@ class SQLiteCacheDBBase:
                 print >> sys.stderr, 'sqldb:', sqlite.IntegrityError, msg, `infohash`
     
     def deleteInfohash(self, infohash=None, torrent_id=None, commit=True):
+        assert infohash is None or isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert infohash is None or len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if torrent_id is None:
             torrent_id = self.getTorrentID(infohash)
             
@@ -847,7 +851,8 @@ class SQLiteCacheDBBase:
                 self.infohash_id.pop(infohash)
     
     def getTorrentID(self, infohash):
-        assert isinstance(infohash, str), infohash
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if infohash in self.infohash_id:
             return self.infohash_id[infohash]
         

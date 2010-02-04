@@ -139,8 +139,13 @@ class BTConnection:
             try:
                 data = self.s.recv(nwant)
             except socket.error, e:
-                if e[0] == 10035: # WSAEWOULDBLOCK on Windows
+                if e[0] == 10035: 
+                    # WSAEWOULDBLOCK on Windows
                     continue
+                elif e[0] == 10054: 
+                    # WSAECONNRESET on Windows
+                    print >>sys.stderr,"btconn:",e,"converted to EOF"
+                    return '' # convert to EOF
                 else:
                     raise e
             if DEBUG:

@@ -10,7 +10,7 @@ import os
 import copy
 from types import UnicodeType, StringType, LongType, IntType, ListType, DictType
 import urlparse
-from traceback import print_exc
+from traceback import print_exc,print_stack
 
 STRICT_CHECK = False
 DEBUG = False

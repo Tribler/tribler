@@ -42,16 +42,67 @@ class TestRemoteQuery(TestAsServer):
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         try:
             # Add two torrents that will match our query and one that shouldn't
-            self.bmetainfo1 = self.get_default_torrent('sumfilename1','Hallo S01E10')
-            dbrec= self.torrent_db.addExternalTorrent('sumfilename1',metadata=self.bmetainfo1)
-            self.infohash1 = dbrec['infohash']
+            tdef1, bmetainfo1 = self.get_default_torrent('sumfilename1','Hallo S01E10')
+            dbrec= self.torrent_db.addExternalTorrent(tdef1, extra_info={"filename":"sumfilename1"})
             
-            self.bmetainfo2 = self.get_default_torrent('sumfilename2','Hallo S02E01')
-            dbrec = self.torrent_db.addExternalTorrent('sumfilename2',metadata=self.bmetainfo2)
-            self.infohash2 = dbrec['infohash']
+            tdef2, bmetainfo2 = self.get_default_torrent('sumfilename2','Hallo S02E01')
+            dbrec = self.torrent_db.addExternalTorrent(tdef2, extra_info={"filename":"sumfilename2"})
     
-            self.bmetainfo3 = self.get_default_torrent('sumfilename3','Halo Demo')
-            self.torrent_db.addExternalTorrent('sumfilename3',metadata=self.bmetainfo3)
+            tdef3, bmetainfo3 = self.get_default_torrent('sumfilename3','Halo Demo')
+            self.torrent_db.addExternalTorrent(tdef3, extra_info={"filename":"sumfilename3"})
+            
+            self.goodtorrents_str = {}
+            self.goodtorrents_str[tdef1.get_infohash()] = bmetainfo1
+            self.goodtorrents_str[tdef2.get_infohash()] = bmetainfo2
+
+            # Unicode: Add two torrents that will match our query and one that shouldn't
+            tdef1, bmetainfo1 = self.get_default_torrent('usumfilename1',u'Ch\u00e8rie S01E10')
+            dbrec= self.torrent_db.addExternalTorrent(tdef1, extra_info={"filename":"usumfilename1"})
+            
+            tdef2, bmetainfo2 = self.get_default_torrent('usumfilename2',u'Ch\u00e8rie S02E01')
+            dbrec = self.torrent_db.addExternalTorrent(tdef2, extra_info={"filename":"usumfilename2"})
+    
+            tdef3, bmetainfo3 = self.get_default_torrent('usumfilename3',u'Cherie Demo')
+            self.torrent_db.addExternalTorrent(tdef3, extra_info={"filename":"usumfilename3"})
+
+            self.goodtorrents_unicode = {}
+            self.goodtorrents_unicode[tdef1.get_infohash()] = bmetainfo1
+            self.goodtorrents_unicode[tdef2.get_infohash()] = bmetainfo2
+
+            # Unicode: Add two multi-file torrents that will match our query 
+            # because the keyword occuring in a path and one that shouldn't
+            paths1 = ['SomeFile.mkv',u'Besan\u00e7on.txt']
+            tdef1, bmetainfo1 = self.get_default_torrent('psumfilename1',u'Path S01E10',paths=paths1)
+            dbrec= self.torrent_db.addExternalTorrent(tdef1, extra_info={"filename":"psumfilename1"})
+            
+            paths2 = ['SomeFile.mkv',u'Besan\u00e7on.doc']
+            tdef2, bmetainfo2 = self.get_default_torrent('psumfilename2',u'Path S02E01',paths=paths2)
+            dbrec = self.torrent_db.addExternalTorrent(tdef2, extra_info={"filename":"psumfilename2"})
+    
+            paths3 = ['SomeFile.mkv',u'Besancon']
+            tdef3, bmetainfo3 = self.get_default_torrent('psumfilename3',u'Path Demo',paths=paths3)
+            self.torrent_db.addExternalTorrent(tdef2, extra_info={"filename":"psumfilename3"})
+
+            self.goodtorrents_path = {}
+            self.goodtorrents_path[tdef1.get_infohash()] = bmetainfo1
+            self.goodtorrents_path[tdef2.get_infohash()] = bmetainfo2
+
+
+            # Add two torrents that will match our two-word query and one that shouldn't
+            tdef1, bmetainfo1 = self.get_default_torrent('ssumfilename1','One Two S01E10')
+            dbrec= self.torrent_db.addExternalTorrent(tdef1, extra_info={"filename":"ssumfilename1"})
+            
+            tdef2, bmetainfo2 = self.get_default_torrent('ssumfilename2','Two S02E01 One')
+            dbrec = self.torrent_db.addExternalTorrent(tdef2, extra_info={"filename":"ssumfilename2"})
+    
+            tdef3, bmetainfo3 = self.get_default_torrent('ssumfilename3','Two Demo')
+            self.torrent_db.addExternalTorrent(tdef3, extra_info={"filename":"ssumfilename3"})
+            
+            self.goodtorrents_two = {}
+            self.goodtorrents_two[tdef1.get_infohash()] = bmetainfo1
+            self.goodtorrents_two[tdef2.get_infohash()] = bmetainfo2
+
+        
         except:
             print_exc()
         
@@ -61,21 +112,32 @@ class TestRemoteQuery(TestAsServer):
         self.session.close_dbhandler(self.torrent_db)
       
 
-    def get_default_torrent(self,filename,title):
+    def get_default_torrent(self,filename,title,paths=None):
         metainfo = {}
         metainfo['announce'] = 'http://localhost:0/announce'
         metainfo['announce-list'] = []
         metainfo['creation date'] = int(time.time())
+        metainfo['encoding'] = 'UTF-8'
         info = {}
-        info['name'] = title
-        info['length'] = 481
+        info['name'] = title.encode("UTF-8")
         info['piece length'] = 2 ** 16
         info['pieces'] = '*' * 20
+        if paths is None:
+            info['length'] = 481
+        else:
+            d1 = {}
+            d1['path'] = [paths[0].encode("UTF-8")]
+            d1['length'] = 201
+            d2 = {}
+            d2['path'] = [paths[1].encode("UTF-8")]
+            d2['length'] = 280
+            info['files'] = [d1,d2]
+            
         metainfo['info'] = info
         path = os.path.join(self.config.get_torrent_collecting_dir(),filename)
         tdef = TorrentDef.load_from_dict(metainfo)
         tdef.save(path)
-        return bencode(metainfo)
+        return tdef, bencode(metainfo)
 
     def test_all(self):
         """ 
@@ -86,9 +148,20 @@ class TestRemoteQuery(TestAsServer):
             The code is constructed so unittest will show the name of the
             (sub)test where the error occured in the traceback it prints.
         """
+        
         # 1. test good QUERY
-        self.subtest_good_simple_query()
-        self.subtest_good_simpleplustorrents_query()
+        self.subtest_good_simple_query("hallo",self.goodtorrents_str)
+        time.sleep(5) # Concurrency between closing of previous olconn and new one, sleep to avoid
+        self.subtest_good_simpleplustorrents_query("hallo",self.goodtorrents_str)
+        time.sleep(5)
+        self.subtest_good_simple_query(u'ch\u00e8rie',self.goodtorrents_unicode)
+        time.sleep(5)
+        self.subtest_good_simpleplustorrents_query(u'ch\u00e8rie',self.goodtorrents_unicode)
+        time.sleep(5)
+        self.subtest_good_simple_query(u'besan\u00e7on',self.goodtorrents_path)
+        time.sleep(5)
+        self.subtest_good_simple_query('one two',self.goodtorrents_two)
+        time.sleep(5)
 
         # 2. test various bad QUERY messages
         self.subtest_bad_not_bdecodable()
@@ -103,54 +176,57 @@ class TestRemoteQuery(TestAsServer):
     #
     # Good QUERY
     #
-    def subtest_good_simple_query(self):
+    def subtest_good_simple_query(self,keyword,goodtorrents):
         """ 
             test good QUERY messages: SIMPLE
         """
-        print >>sys.stderr,"test: good QUERY SIMPLE"
+        print >>sys.stderr,"test: good QUERY SIMPLE",`keyword`
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
-        msg = self.create_good_simple_query()
+        msg = self.create_good_simple_query(keyword)
         s.send(msg)
         resp = s.recv()
         if len(resp) > 0:
             print >>sys.stderr,"test: good QUERY: got",getMessageName(resp[0])
         self.assert_(resp[0] == QUERY_REPLY)
-        self.check_rquery_reply("SIMPLE",resp[1:])
+        self.check_rquery_reply("SIMPLE",resp[1:],goodtorrents)
         time.sleep(10)
         # the other side should not have closed the connection, as
         # this is all valid, so this should not throw an exception:
         s.send('bla')
         s.close()
 
-    def create_good_simple_query(self):
+    def create_good_simple_query(self,keyword):
         d = {}
-        d['q'] = 'SIMPLE hallo'
+        if isinstance(keyword,unicode):
+            d['q'] = 'SIMPLE '+keyword.encode("UTF-8")
+        else:
+            d['q'] = 'SIMPLE '+keyword
         d['id'] = 'a' * 20
         return self.create_payload(d)
 
 
-    def subtest_good_simpleplustorrents_query(self):
+    def subtest_good_simpleplustorrents_query(self,keyword,goodtorrents):
         """ 
             test good QUERY messages: SIMPLE+METADATA
         """
-        print >>sys.stderr,"test: good QUERY SIMPLE+METADATA"
+        print >>sys.stderr,"test: good QUERY SIMPLE+METADATA",`keyword`
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
-        msg = self.create_good_simpleplustorrents_query()
+        msg = self.create_good_simpleplustorrents_query(keyword)
         s.send(msg)
         resp = s.recv()
         if len(resp) > 0:
             print >>sys.stderr,"test: good QUERY: got",getMessageName(resp[0])
         self.assert_(resp[0] == QUERY_REPLY)
-        self.check_rquery_reply("SIMPLE+METADATA",resp[1:])
+        self.check_rquery_reply("SIMPLE+METADATA",resp[1:],goodtorrents)
         time.sleep(10)
         # the other side should not have closed the connection, as
         # this is all valid, so this should not throw an exception:
         s.send('bla')
         s.close()
 
-    def create_good_simpleplustorrents_query(self):
+    def create_good_simpleplustorrents_query(self,keyword):
         d = {}
-        d['q'] = 'SIMPLE+METADATA hallo'
+        d['q'] = 'SIMPLE+METADATA '+keyword.encode("UTF-8")
         d['id'] = 'b' * 20
         return self.create_payload(d)
 
@@ -159,10 +235,10 @@ class TestRemoteQuery(TestAsServer):
     def create_payload(self,r):
         return QUERY+bencode(r)
 
-    def check_rquery_reply(self,querytype,data):
+    def check_rquery_reply(self,querytype,data,goodtorrents):
         d = bdecode(data)
         
-        print >>sys.stderr,"test: Got reply",`data`
+        print >>sys.stderr,"test: Got reply",`d`
         
         self.assert_(type(d) == DictType)
         self.assert_(d.has_key('a'))
@@ -173,30 +249,19 @@ class TestRemoteQuery(TestAsServer):
 
         k = d['a'].keys()
         self.assert_(len(k) == 2)
-        var1 = k[0] == (self.infohash1) and k[1] == (self.infohash2)
-        var2 = k[0] == (self.infohash2) and k[1] == (self.infohash1)
+        var1 = k[0] == goodtorrents.keys()[0] and k[1] == goodtorrents.keys()[1]
+        var2 = k[0] == goodtorrents.keys()[1] and k[1] == goodtorrents.keys()[0]
         self.assert_(var1 or var2)
 
         # OLPROTO_VER_NINETH must contain torrent_size
         for infohash, torrent in d['a'].iteritems():
-            if infohash == self.infohash1:
-                self.assert_(torrent['torrent_size'], len(self.bmetainfo1))
-            elif infohash == self.infohash2:
-                self.assert_(torrent['torrent_size'], len(self.bmetainfo2))
-            else:
-                self.assertFalse()
-
+            self.assert_(torrent['torrent_size'], goodtorrents[infohash])
             
         if querytype.startswith("SIMPLE+METADATA"):
             for infohash, torrent in d['a'].iteritems():
                 self.assert_('metadata' in torrent)
                 bmetainfo = torrent['metadata']
-                if infohash == self.infohash1:
-                    self.assert_(bmetainfo == self.bmetainfo1)
-                elif infohash == self.infohash2:
-                    self.assert_(bmetainfo == self.bmetainfo2)
-                else:
-                    self.assertFalse()
+                self.assert_(bmetainfo == goodtorrents[infohash])
 
 
     def check_adict(self,d):

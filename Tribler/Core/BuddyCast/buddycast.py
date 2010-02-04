@@ -212,14 +212,23 @@ def now():
 def ctime(t):
     return strftime("%Y-%m-%d.%H:%M:%S", gmtime(t))
 
-def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddyprefs=10):
+def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddyprefs=10, selversion=0):
     
+    #
+    #
     # Arno: TODO: make check version dependent
+    #
+    #
     
     def validPeer(peer):
         validPermid(peer['permid'])
         validIP(peer['ip'])
         validPort(peer['port'])
+
+    def validHisPeer(peer):
+        validIP(peer['ip'])
+        validPort(peer['port'])
+
     
     def validPref(pref, num):
         if not (isinstance(prefxchg, list) or isinstance(prefxchg, dict)):
@@ -229,14 +238,15 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
         for p in pref:
             validInfohash(p)
             
-    validPeer(prefxchg)
-    if not (isinstance(prefxchg['name'], str) or isinstance(prefxchg['name'], unicode)):
+    validHisPeer(prefxchg)
+    if not (isinstance(prefxchg['name'], str)):
         raise RuntimeError, "bc: invalid name type " + str(type(prefxchg['name']))
     
     # Nicolas: create a validity check that doesn't have to know about the version
     # just found out this function is not called anymore. well if it gets called one day, it should handle both
     prefs = prefxchg['preferences']
     if prefs:
+        # >= OLPROTO_VER_EIGHT
         if type(prefs[0])==list:
             # list of lists: this is the new wire protocol. entry 0 of each list contains infohash
             validPref([pref[0] for pref in prefs], nmyprefs)
@@ -261,11 +271,30 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
         # 'collected torrents' must contain a list with 20 byte infohashes
         if not isinstance(prefxchg['collected torrents'], list):
             raise RuntimeError, "bc: invalid 'collected torrents' type " + str(type(prefxchg['collected torrents']))
-        for infohash in prefxchg['collected torrents']:
-            if not (isinstance(infohash, str) or isinstance(infohash, unicode)):
-                raise RuntimeError, "bc: invalid infohash type " + str(type(infohash))
-            if not len(infohash) == 20:
-                raise RuntimeError, "bc: invalid infohash length " + str(len(infohash))
+        for value in prefxchg['collected torrents']:
+            if selversion >= OLPROTO_VER_ELEVENTH:
+                if not isinstance(value, list):
+                    raise RuntimeError, "bc: invalid 'collected torrents' type of list elem should be list, not " + str(type(value))
+                # infohash
+                # number of seeders
+                # number of leechers
+                # age of checking
+                # number of sources seen
+                if len(value) != 5:
+                    raise RuntimeError, "bc: invalid 'collected torrents' length of list elem should be 5"
+                infohash = value[0]
+                seeders = value[1]
+                leechers = value[2]
+                age = value[3]
+                sources = value[4]
+                if not len(infohash) == 20:
+                    raise RuntimeError, "bc: invalid infohash length " + str(len(infohash))
+            else: 
+                infohash = value
+                if not isinstance(infohash, str):
+                    raise RuntimeError, "bc: invalid infohash type " + str(type(infohash))
+                if not len(infohash) == 20:
+                    raise RuntimeError, "bc: invalid infohash length " + str(len(infohash))
         
     return True
 
@@ -298,7 +327,7 @@ class BuddyCastFactory:
     
     def register(self, overlay_bridge, launchmany, errorfunc, 
                  metadata_handler, torrent_collecting_solution, running,
-                 max_peers=2500):
+                 max_peers=2500,amcrawler=False):
         if self.registered:
             return
         self.overlay_bridge = overlay_bridge
@@ -310,6 +339,7 @@ class BuddyCastFactory:
         # BuddyCast is always started, but only active when this var is set.
         self.running = bool(running)
         self.max_peers = max_peers
+        self.amcrawler = amcrawler
         
         self.registered = True
 
@@ -335,7 +365,7 @@ class BuddyCastFactory:
             
         self.buddycast_core = BuddyCastCore(self.overlay_bridge, self.launchmany, 
                self.data_handler, self.buddycast_interval, self.superpeer,
-               self.metadata_handler, self.torrent_collecting_solution, self.bartercast_core, self.votecast_core, self.channelcast_core, self.log)
+               self.metadata_handler, self.torrent_collecting_solution, self.bartercast_core, self.votecast_core, self.channelcast_core, self.log, self.amcrawler)
         
         self.data_handler.register_buddycast_core(self.buddycast_core)
         
@@ -504,7 +534,7 @@ class BuddyCastCore:
     
     def __init__(self, overlay_bridge, launchmany, data_handler, 
                  buddycast_interval, superpeer, 
-                 metadata_handler, torrent_collecting_solution, bartercast_core, votecast_core, channelcast_core, log=None):
+                 metadata_handler, torrent_collecting_solution, bartercast_core, votecast_core, channelcast_core, log=None, amcrawler=False):
         self.overlay_bridge = overlay_bridge
         self.launchmany = launchmany
         self.data_handler = data_handler
@@ -520,11 +550,7 @@ class BuddyCastCore:
         self.ip = self.data_handler.getMyIp()
         self.port = self.data_handler.getMyPort()
         self.permid = self.data_handler.getMyPermid()
-        # Jie: we must trainsfer my name to unicode here before sent out
-        # because the receiver might not be able to transfer the name to unicode,
-        # but the receiver might be able to display the unicode str correctly
-        # in that he installed the character set and therefore unicode can map it
-        self.name = dunno2unicode(self.data_handler.getMyName())    # encode it to unicode
+        self.nameutf8 = self.data_handler.getMyName().encode("UTF-8")
         
         # --- parameters ---
         #self.timeout = 5*60
@@ -589,8 +615,7 @@ class BuddyCastCore:
         self.channelcast_core = channelcast_core
 
         # Crawler
-        crawler = Crawler.get_instance()
-        self.crawler = crawler.am_crawler()
+        self.amcrawler = amcrawler
         
                             
     def get_peer_info(self, target_permid, include_permid=True):
@@ -614,15 +639,15 @@ class BuddyCastCore:
         
     def work(self):
         """
-            The engineer of buddycast empidemic protocol.
+            The worker of buddycast epidemic protocol.
             In every round, it selects a target and initates a buddycast exchange,
-            or idels due to replying messages in the last rounds.
+            or idles due to replying messages in the last rounds.
         """
         
         try:
             self.round += 1
             if DEBUG:
-                print >> sys.stderr, 'bc: ************ working buddycast', currentThread().getName()
+                print >> sys.stderr, 'bc: Initiate exchange'
             self.print_debug_info('Active', 2)
             if self.log:
                 nPeer, nPref, nCc, nBs, nBr, nSO, nCo, nCt, nCr, nCu = self.get_stats()
@@ -773,7 +798,7 @@ class BuddyCastCore:
                  peer_permid in self.connected_unconnectable_peers):   
                 timeout_list.append(peer_permid)
 
-        if self.crawler:
+        if self.amcrawler:
             # since we are crawling, we are not interested in
             # retaining connections for a long time.
             for peer_permid in timeout_list:
@@ -812,7 +837,7 @@ class BuddyCastCore:
         if self.isConnected(peer_permid):
             if debug:
                 print >> sys.stderr, "bc: Got keep alive from", self.get_peer_info(peer_permid)
-            if self.crawler:
+            if self.amcrawler:
                 # since we are crawling, we are not interested in
                 # retaining connections for a long time.
                 if debug:
@@ -928,6 +953,8 @@ class BuddyCastCore:
         #print >>sys.stderr,"bc: SENDING BC to",show_permid_short(target_permid)
         #target_permid ="""MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAGbSaE3xVUvdMYGkj+x/mE24f/f4ZId7kNPVkALbAa2bQNjCKRDSPt+oE1nzr7It/CfxvCTK+sjOYAjr""" 
         
+        #selversion = 12 # for test
+        
         buddycast_data = self.createBuddyCastMessage(target_permid, selversion)
         if debug:
             print >> sys.stderr, "bc: createAndSendBuddyCastMessage", len(buddycast_data), currentThread().getName()
@@ -984,6 +1011,9 @@ class BuddyCastCore:
                     MSG_ID = 'PASSIVE_BC'
                 msg = repr(readableBuddyCastMsg(buddycast_data,selversion))    # from utilities
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
+                
+        #print >>sys.stderr,"bc: Created BC",`buddycast_data`
+                
         return buddycast_data # Nicolas: for testing
                 
     def createBuddyCastMessage(self, target_permid, selversion, target_ip=None, target_port=None):
@@ -1007,7 +1037,7 @@ class BuddyCastCore:
         random_peers = self.getRandomPeers(self.num_rps, target_permid, target_ip, target_port, selversion)    #{peer:last_seen}
         buddycast_data = {'ip':self.ip,
                          'port':self.port,
-                         'name':self.name,
+                         'name':self.nameutf8,
                          'preferences':my_pref,
                          'taste buddies':taste_buddies, 
                          'random peers':random_peers}
@@ -1050,6 +1080,8 @@ class BuddyCastCore:
                 continue
             peer['similarity'] = self.data_handler.getPeerSim(permid)
             peer['permid'] = permid
+            # Arno, 2010-01-28: St*pid Unicode handling causes IP addresses to be Unicode, fix.
+            peer['ip'] = str(peer['ip'])
             peers.append(peer)
         
 #        peers = self.data_handler.getPeers(tb_list, ['permid', 'ip', 'port', 'similarity', 'oversion', 'num_torrents'])
@@ -1120,6 +1152,8 @@ class BuddyCastCore:
                 continue
             peer['similarity'] = self.data_handler.getPeerSim(permid)
             peer['permid'] = permid
+            # Arno, 2010-01-28: St*pid Unicode handling causes IP addresses to be Unicode, fix.
+            peer['ip'] = str(peer['ip'])
             peers.append(peer)
             
 #        peers = self.data_handler.getPeers(rp_list, ['permid', 'ip', 'port', 'similarity', 'oversion', 'num_torrents'])
@@ -1254,7 +1288,7 @@ class BuddyCastCore:
 
             try:    # check buddycast message
                 validBuddyCastData(buddycast_data, 0, 
-                                   self.num_tbs, self.num_rps, self.num_tb_prefs)    # RCP 2            
+                                   self.num_tbs, self.num_rps, self.num_tb_prefs, selversion)    # RCP 2            
             except RuntimeError, msg:
                 try:
                     errmsg = str(msg)
@@ -1311,7 +1345,14 @@ class BuddyCastCore:
         
         # update torrent collecting module
         #self.data_handler.checkUpdate()
-        collected_infohashes = buddycast_data.get('collected torrents', [])
+        collectedtorrents = buddycast_data.get('collected torrents', [])
+        if selversion >= OLPROTO_VER_ELEVENTH:
+            collected_infohashes = [] 
+            for value in collectedtorrents:
+                infohash = value['infohash']
+                collected_infohashes.append(infohash)
+        else: 
+            collected_infohashes = collectedtorrents
             
         if self.torrent_collecting and not self.superpeer:
             collected_infohashes += self.getPreferenceHashes(buddycast_data)  
@@ -1330,9 +1371,7 @@ class BuddyCastCore:
         self.launchmany.set_activity(NTFY_ACT_RECOMMEND, buf)
         
         if DEBUG:
-            print >> sys.stderr, '*****************************************************************************************************'
-            print >> sys.stderr, "*  bc: Got BuddyCast Message from",self.get_peer_info(sender_permid),active
-            print >> sys.stderr, '******************************** Yahoo! *************************************************************'
+            print >> sys.stderr, "bc: Got BUDDYCAST message from",self.get_peer_info(sender_permid),active
         
         return True
 
@@ -1457,7 +1496,7 @@ class BuddyCastCore:
             new_peer_data['port'] = peer['port']
             new_peer_data['last_seen'] = last_seen
             if peer.has_key('name'):
-                new_peer_data['name'] = dunno2unicode(peer['name'])    # store in db as unicode
+                new_peer_data['name'] = dunno2unicode(peer['name']) # store in db as unicode
             cache_db_data['peer'][peer_permid] = new_peer_data
             #self.data_handler.addPeer(peer_permid, last_seen, new_peer_data, commit=True)    # new peer
 
@@ -1506,7 +1545,7 @@ class BuddyCastCore:
         """
         @author: Rahim
         @param buddycast_data: A dictionary structure that contains received buddycast message.
-        @param selversion: The selected budducast versiopn between peers.
+        @param selversion: The selected overlay version between peers.
         @return: The infohash of the collected torrents is returned as a list.
         """  
         return [collected.get('infohash',"") for collected in buddycast_data.get('collected torrents', [])] 
@@ -2370,7 +2409,7 @@ class DataHandler:
             new_peer_data['port'] = peer_data['port']
             new_peer_data['last_seen'] = peer_data['last_seen']
             if peer_data.has_key('name'):
-                new_peer_data['name'] = dunno2unicode(peer_data['name'])    # store in db as unicode
+                new_peer_data['name'] = dunno2unicode(peer_data['name']) # store in db as unicode
 
             self.peer_db.addPeer(peer_permid, new_peer_data, update_dns=True, commit=commit)
             
@@ -2603,10 +2642,13 @@ class DataHandler:
                                     cache_db_data['pref'], selversion, recvTime, 
                                     commit=True)
             
+        # Arno, 2010-02-04: Since when are collected torrents also a peer pref?
+        """
         if cache_db_data['coll']:
             self.addPeerPreferences(sender_permid, 
                                     cache_db_data['coll'], selversion, recvTime, 
                                     commit=True)
+        """
                 
             #print hash(k), peer_data[k]
         #cache_db_data['infohash']

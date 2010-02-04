@@ -93,7 +93,7 @@ class VoteCastCore:
 
         data = []        
         for record in records:            
-            data.append((record[0], record[1])) #mod_id, vote
+            data.append((str(record[0]), record[1])) #mod_id, vote
         if DEBUG: print >>sys.stderr, "votecast to be sent:", repr(data)
         return data
 

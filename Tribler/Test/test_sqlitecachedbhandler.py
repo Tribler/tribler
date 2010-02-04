@@ -6,6 +6,7 @@ from time import time
 from binascii import unhexlify
 from shutil import copy as copyFile, move
 
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, MyDBHandler, BasicDBHandler, PeerDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, PopularityDBHandler
 from Tribler.Category.Category import Category
@@ -81,7 +82,10 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
         assert name == 'Peer 1' and ip == '1.1.1.1' and lbt == 1193379432, (name, ip, lbt)
         
         values = db.getOne('*', peer_id=1)
-        results = (1, u'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr', u'Peer 1', u'1.1.1.1', 1, None, 2, 12.537961593122299, 0, 0, 1194966306, 1193379769, 1193379432, 1, 1, 0, 0, 0, 0, 0)
+        # 03/02/10 Boudewijn: In contrast to the content of the
+        # database, the similarity value is not 12.537961593122299 but
+        # 0 because it is reset as the database is upgraded.
+        results = (1, u'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr', u'Peer 1', u'1.1.1.1', 1, None, 2, 0, 0, 0, 1194966306, 1193379769, 1193379432, 1, 1, 0, 0, 0, 0, 0)
         
         for i in range(len(values)):
             assert values[i] == results[i], (i, values[i], results[i])
@@ -329,7 +333,10 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         permid_str = 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEACPJqLjmKeMNRwkCNKkPH51gjQ5e7u4s2vWv9I/AALXtpf+bFPtY8cyFv6OCzisYDo+brgqOxAtuNZwP'
         permid = str2bin(permid_str)
         sim = db.getPeerSim(permid)
-        assert sim == 5.82119645394964
+        # 03/02/10 Boudewijn: In contrast to the content of the
+        # database, the similarity value is not 5.82119645394964 but 0
+        # because it is reset as the database is upgraded.
+        assert sim == 0
         
         permid_str = 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAB0XbUrw5b8CrTrMZST1SPyrzjgSzIE6ynALtlZASGAb+figVXRRGpKW6MSal3KnEm1/q0P3JPWrhCE'
         permid = str2bin(permid_str)
@@ -604,8 +611,11 @@ class TestPreferenceDBHandler(unittest.TestCase):
         assert db.hasPeer(fake_permid_x)
         assert db.size() == oldsize+1, (db.size(), oldsize+1)
         
-        fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
-        fake_infoahsh2 = 'fake_infohash_2'+'0R0\x10\x00\x07*\x86H\xce=\x02'
+        # fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
+        # fake_infoahsh2 = 'fake_infohash_2'+'0R0\x10\x00\x07*\x86H\xce=\x02'
+        # 02/02/10 Boudewijn: infohashes must be 20 bytes long
+        fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00'
+        fake_infoahsh2 = 'fake_infohash_2'+'0R0\x10\x00'
         prefdb = PreferenceDBHandler.getInstance()
         oldpref_size = prefdb.size()
         prefdb.addPreference(fake_permid_x, fake_infoahsh)
@@ -675,8 +685,11 @@ class TestPreferenceDBHandler(unittest.TestCase):
         assert db.hasPeer(fake_permid_x)
         assert db.size() == oldsize+1, (db.size(), oldsize+1)
         
-        fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
-        fake_infoahsh2 = 'fake_infohash_2'+'0R0\x10\x00\x07*\x86H\xce=\x02'
+        # fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
+        # fake_infoahsh2 = 'fake_infohash_2'+'0R0\x10\x00\x07*\x86H\xce=\x02'
+        # 02/02/10 Boudewijn: infohashes must be 20 bytes long
+        fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00'
+        fake_infoahsh2 = 'fake_infohash_2'+'0R0\x10\x00'
         fi = [fake_infoahsh,fake_infoahsh2]
         prefdb = PreferenceDBHandler.getInstance()
         oldpref_size = prefdb.size()
@@ -990,7 +1003,6 @@ class TestTorrentDBHandler(unittest.TestCase):
         self.addTorrent()
         self.updateTorrent()
         self.deleteTorrent()
-        pass
                 
     def addTorrent(self):
         copyFile(S_TORRENT_PATH_BACKUP, S_TORRENT_PATH)
@@ -1011,14 +1023,14 @@ class TestTorrentDBHandler(unittest.TestCase):
         single_torrent_file_path = os.path.join(FILES_DIR, 'single.torrent')
         multiple_torrent_file_path = os.path.join(FILES_DIR, 'multiple.torrent')
         
-        single_infohash, single_torrent = db._readTorrentData(single_torrent_file_path)
-        assert s_infohash == single_infohash
+        single_tdef = TorrentDef.load(single_torrent_file_path)
+        assert s_infohash == single_tdef.get_infohash()
         src = 'http://www.rss.com/torrent.xml'
-        multiple_infohash, multiple_torrent = db._readTorrentData(multiple_torrent_file_path, src)
-        assert m_infohash == multiple_infohash
+        multiple_tdef = TorrentDef.load(multiple_torrent_file_path)
+        assert m_infohash == multiple_tdef.get_infohash()
         
-        db._addTorrentToDB(single_infohash, single_torrent)
-        db._addTorrentToDB(multiple_infohash, multiple_torrent)
+        db.addExternalTorrent(single_tdef, extra_info={'filename':single_torrent_file_path})
+        db.addExternalTorrent(multiple_tdef, source=src, extra_info={'filename':multiple_torrent_file_path})
         
         single_torrent_id = db._db.getTorrentID(s_infohash)
         multiple_torrent_id = db._db.getTorrentID(m_infohash)
@@ -1065,8 +1077,8 @@ class TestTorrentDBHandler(unittest.TestCase):
         
         s_torrent = db.getTorrent(s_infohash)
         m_torrent = db.getTorrent(m_infohash)
-        assert s_torrent['name'] == 'Tribler_4.1.7_src.zip'
-        assert m_torrent['name'] == 'Tribler_4.1.7_src'
+        assert s_torrent['name'] == 'Tribler_4.1.7_src.zip', s_torrent['name']
+        assert m_torrent['name'] == 'Tribler_4.1.7_src', m_torrent['name']
         assert m_torrent['last_check_time'] == 0
         assert len(s_torrent) == 16
         assert len(m_torrent) == 16 
@@ -1119,7 +1131,9 @@ class TestTorrentDBHandler(unittest.TestCase):
         m_trackers = db.getTracker(m_infohash, 0)
         assert len(m_trackers) == 0
         
-        fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
+        # fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
+        # 02/02/10 Boudewijn: infohashes must be 20 bytes long
+        fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00'
         assert not db.deleteTorrent(fake_infoahsh)
         
         my_infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
@@ -1184,7 +1198,9 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         db = MyPreferenceDBHandler.getInstance()
         assert db.hasMyPreference(str2bin(infohash_str_126))
         assert db.hasMyPreference(str2bin(infohash_str_1279))
-        fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
+        # fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
+        # 02/02/10 Boudewijn: infohashes must be 20 bytes long
+        fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00'
         assert not db.hasMyPreference(fake_infoahsh)
             
     def singtest_addMyPreference_deletePreference(self):

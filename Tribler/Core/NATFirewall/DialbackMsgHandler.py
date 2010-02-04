@@ -244,7 +244,7 @@ class DialbackMsgHandler:
             print_stack()
         
         if exc is None:
-            hisip = dns[0]
+            hisip = str(dns[0]) # Arno, 2010-01-28: protection against DB returning Unicode IPs 
             try:
                 reply = bencode(hisip)
                 if DEBUG:

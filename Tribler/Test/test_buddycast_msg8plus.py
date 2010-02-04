@@ -1,10 +1,20 @@
-# Written by Nicolas Neubauer, modified from test_bartercast.py
+# Written by Nicolas Neubauer, Arno Bakker
 # see LICENSE.txt for license information
+#
+# Test case for BuddyCast overlay version 12 (and 8). To be integrated into
+# test_buddycast_msg.py
+#
+# Very sensitive to the order in which things are put into DB,
+# so not a robust test
+
 
 import unittest
 import os
 import sys
 import time
+import tempfile
+import shutil
+from sha import sha
 from random import randint,shuffle
 from traceback import print_exc
 from types import StringType, ListType, DictType
@@ -12,25 +22,30 @@ from threading import Thread
 from time import sleep
 from M2Crypto import Rand,EC
 
+
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
+
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
+
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory, BuddyCastCore
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
+
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_ELEVENTH, OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
 from Tribler.Core.simpledefs import *
-from Tribler.Core.Utilities.Crypto import sha
+
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
 
 DEBUG=True
 
     
 
-class TestBuddyCast(TestAsServer):
+class TestBuddyCastMsg8Plus(TestAsServer):
     """ 
-    Testing BuddyCast 4 protocol interactions:
-      * clicklog exchange messages
+    Testing BuddyCast 5 / overlay protocol v12+v8 interactions:
+    swarm size info exchange.
     """
     
     def setUp(self):
@@ -46,6 +61,36 @@ class TestBuddyCast(TestAsServer):
         BuddyCastCore.TESTASSERVER = True
         self.config.set_start_recommender(True)
         self.config.set_bartercast(True)
+        
+        # Arno, 2010-02-02: Install empty superpeers.txt so no interference from 
+        # real BuddyCast.
+        self.config.set_crawler(False)
+        
+        # Write superpeers.txt
+        self.install_path = tempfile.mkdtemp()
+        spdir = os.path.join(self.install_path, LIBRARYNAME, 'Core')
+        os.makedirs(spdir)
+
+        statsdir = os.path.join(self.install_path, LIBRARYNAME, 'Core', 'Statistics')
+        os.makedirs(statsdir)
+        
+        superpeerfilename = os.path.join(spdir, 'superpeer.txt')
+        print >> sys.stderr,"test: writing empty superpeers to",superpeerfilename
+        f = open(superpeerfilename, "w")
+        f.write('# Leeg')
+        f.close()
+
+        self.config.set_install_dir(self.install_path)
+        
+        srcfiles = []
+        srcfiles.append(os.path.join(LIBRARYNAME,"schema_sdb_v4.sql"))
+        for srcfile in srcfiles:
+            sfn = os.path.join('..','..',srcfile)
+            dfn = os.path.join(self.install_path,srcfile)
+            print >>sys.stderr,"test: copying",sfn,dfn
+            shutil.copyfile(sfn,dfn)
+
+        
 
     def setUpPostSession(self):
         """ override TestAsServer """
@@ -80,9 +125,16 @@ class TestBuddyCast(TestAsServer):
             pass
 
 
-    # copied from test_bartercast.py up to here
+    def singtest_all_olproto_ver_current(self):
+        self._test_all(OLPROTO_VER_CURRENT)
 
-    def test_all(self):
+    def singtest_all_olproto_ver_11(self):
+        self._test_all(11)
+
+    def singtest_all_olproto_ver_8(self):
+        self._test_all(8)
+
+    def _test_all(self,myoversion):
         """ 
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
@@ -91,38 +143,59 @@ class TestBuddyCast(TestAsServer):
             The code is constructed so unittest will show the name of the
             (sub)test where the error occured in the traceback it prints.
         """
-        #1. test good buddycast messages
-        
-        
-        # please note that this may into problems when real buddycast is going on in paralllel
-        # you might want to turn actuallyTestGoodBuddyCast off once it has been ascertained
-        # (preferably wihout internet connection ;) that they work
-        actuallyTestGoodBuddyCast = True 
-        self.subtest_good_buddycast_clicklog(1, actuallyTestGoodBuddyCast)
-        self.subtest_good_buddycast_clicklog(2, actuallyTestGoodBuddyCast)
-        self.subtest_good_buddycast_clicklog(3, actuallyTestGoodBuddyCast)
-        self.subtest_terms()
+        # Arno, 2010-02-03: clicklog 1,2,3 must be run consecutively
+        # create_mypref() must be called after clicklog 1,2,3
+        self.subtest_good_buddycast_clicklog(1,myoversion)
+        self.subtest_good_buddycast_clicklog(2,myoversion)
+        self.subtest_good_buddycast_clicklog(3,myoversion)
+        self.subtest_terms(myoversion)
         self.subtest_create_mypref()
-        self.subtest_create_bc()
-
-
-        
-        
-        
-        
-        
+        self.subtest_create_bc(myoversion)
 
     
-    def get_good_clicklog_msg(self, n):
+    def get_good_clicklog_msg(self,n,myoversion=8):
         if n==1:
-            preferences = [["hash1", ["linux","ubuntu"], 1, 2]]
-            collected_torrents = ["hash"]
+            # OLv8:
+            # infohash
+            # search terms
+            # click position
+            # reranking strategy
+            # OLv11:
+            # number of seeders
+            # number of leechers
+            # age of checking
+            # number of sources seen'
+            prec = ["hash1hash1hash1hash1", ["linux","ubuntu"], 1, 2]
+            if myoversion >= 11:
+                prec += [400, 500, 1000, 50]
+            preferences = [prec]
+            if myoversion >= 11:
+                prec = ['hash0hash0hash0hash0', 300, 800, 5000, 30]
+                collected_torrents = [prec]
+            else:
+                collected_torrents = ['hash0hash0hash0hash0'] 
+
         elif n==2:
-            preferences = [["hash2", ["linux", "ubuntu"], 2, 2]]
-            collected_torrents = ["hash2"]            
+            prec = ["hash2hash2hash2hash2", ["linux", "ubuntu"], 2, 2]
+            if myoversion >= 11:
+                prec += [600, 700,20000,60]
+            preferences = [prec]
+            if myoversion >= 11:
+                prec = ['hash2hash2hash2hash2', 500, 200, 70000, 8000]
+                collected_torrents = [prec]
+            else:
+                collected_torrents = ["hash2hash2hash2hash2"]            
         elif n==3:
-            preferences = [["hash3", ["linux","redhat"],5,2]]
-            collected_torrents = ['hash3'] 
+            prec = ["hash3hash3hash3hash3", ["linux","redhat"], 5 ,2 ]
+            if myoversion >= 11:
+                prec += [800, 900, 30000, 70]
+            preferences = [prec]
+            if myoversion >= 11:
+                prec = ['hash3hash3hash3hash3', 700, 200, 45000, 75]
+                collected_torrents = [prec]
+            else:
+                collected_torrents = ['hash3hash3hash3hash3'] 
+
             
         return {
                 'preferences': preferences, 
@@ -141,24 +214,23 @@ class TestBuddyCast(TestAsServer):
 
             
             
-    def subtest_good_buddycast_clicklog(self, i, actuallyTest = True):
+    def subtest_good_buddycast_clicklog(self, i, myoversion):
         """sends two buddy cast messages containing clicklog data,
            then checks in the DB to find out whether the correct
            data was stored.
            
            This in fact checks quite a lot of things.
            For example, the messages always contain terms [1,2]
+        """
            
+        print >>sys.stderr,"\ntest: subtest_good_buddycast_clicklog",i,"selversion",myoversion    
            
-           later methods require DB setup from these methods
-           in order to perform the DB operations but not the tests
-           (which are still somewhat sensible to cooccuring network operations)
-           the actual testing can be turned of by actuallyTest=False
-           so later tests can still be executed successfully
-           """
-           
-        s = OLConnection(self.my_keypair,'localhost',self.hisport)
-        prefmsg = self.get_good_clicklog_msg(i)
+        s = OLConnection(self.my_keypair,'localhost',self.hisport,myoversion=myoversion)
+        
+        prefmsg = self.get_good_clicklog_msg(i,myoversion)
+        
+        print >>sys.stderr,myoversion,`prefmsg`
+        
         msg = self.create_payload(prefmsg)
         s.send(msg)
         resp = s.recv()
@@ -166,6 +238,7 @@ class TestBuddyCast(TestAsServer):
             print >>sys.stderr,"test: reply message %s:%s" % (getMessageName(resp[0]), resp[1:])
         else:
             print >>sys.stderr,"no reply message"
+        self.assert_(len(resp) > 0)
             
         #if we have survived this, check if the content of the remote database is correct
         search_db = self.session.open_dbhandler(NTFY_SEARCH)
@@ -173,14 +246,6 @@ class TestBuddyCast(TestAsServer):
         pref_db = self.session.open_dbhandler(NTFY_PREFERENCES)
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
 
-
-        # self.getAll("rowid, peer_id, torrent_id, click_position,reranking_strategy", order_by="peer_id, torrent_id")
-        real_prefs = pref_db.getAllEntries()
-        my_peer_id = real_prefs[0][1] 
-        real_terms = term_db.getAllEntries()
-        real_search = search_db.getAllEntries()
-        
-        
         torrent_id = None
         while not torrent_id:
             hash = prefmsg['preferences'][0][0]
@@ -192,24 +257,34 @@ class TestBuddyCast(TestAsServer):
                 print >> sys.stderr, "torrent not yet saved, waiting..."
                 sleep(1)
         
+
+        # self.getAll("rowid, peer_id, torrent_id, click_position,reranking_strategy", order_by="peer_id, torrent_id")
+        real_prefs = pref_db.getAllEntries()
+        print >>sys.stderr,"test: getAllEntries returned",real_prefs
         
+        my_peer_id = real_prefs[0][1] 
+        real_terms = term_db.getAllEntries()
+        real_search = search_db.getAllEntries()
         
+
         if i==1:
             wanted_prefs = [[1,my_peer_id,1,1,2]]
-            wanted_terms = [[1,str(u'linux')], [2,str(u'ubuntu')]]
+            wanted_terms = [[1,u'linux'], [2,u'ubuntu']]
             wanted_search = [[1,my_peer_id,'?',1,0],
                              [2,my_peer_id,'?',2,1]]
         elif i==2:
-            wanted_prefs = [[1,my_peer_id,'?',1,2], [2,my_peer_id,torrent_id,2,2]]
-            wanted_terms = [[1,str(u'linux')], [2,str(u'ubuntu')]]
+            # Arno, 2010-02-04: Nicolas assumed the collected torrent for i=1
+            # wouldn't be stored in DB?
+            wanted_prefs = [[1,my_peer_id,'?',1,2],[2,my_peer_id,torrent_id,2,2]]
+            wanted_terms = [[1,u'linux'], [2,u'ubuntu']]
             wanted_search = [[1,my_peer_id,'?',1,0],
                              [2,my_peer_id,'?',2,1],
                              [3,my_peer_id,'?',1,0],
                              [4,my_peer_id,'?',2,1]]
             
         elif i==3:
-            wanted_prefs = [[1,my_peer_id,'?',1,2], [2,my_peer_id,'?',2,2],[3,my_peer_id,torrent_id,5,2]]
-            wanted_terms = [[1,str(u'linux')], [2,str(u'ubuntu')], [3, str(u'redhat')]]
+            wanted_prefs = [[1,my_peer_id,'?',1,2],[2,my_peer_id,'?',2,2],[3,my_peer_id,torrent_id,5,2]]
+            wanted_terms = [[1,u'linux'], [2,u'ubuntu'], [3, u'redhat']]
             wanted_search = [[1,my_peer_id,'?',1,0],
                              [2,my_peer_id,'?',2,1],
                              [3,my_peer_id,'?',1,0],
@@ -227,24 +302,26 @@ class TestBuddyCast(TestAsServer):
         print >> sys.stderr, "wanted_terms: %s" % wanted_terms
         print >> sys.stderr, "wanted_search: %s " % wanted_search
 
-        if actuallyTest:
-            self.assert_(self.lol_equals(real_search, wanted_search, "good buddycast %d: search" % i))
-            self.assert_(self.lol_equals(real_terms, wanted_terms, "good buddycast %d: terms" % i))
-            self.assert_(self.lol_equals(real_prefs, wanted_prefs, "good buddycast %d: prefs" % i))
+        self.assert_(self.lol_equals(real_search, wanted_search, "good buddycast %d: search" % i))
+        self.assert_(self.lol_equals(real_terms, wanted_terms, "good buddycast %d: terms" % i))
+        self.assert_(self.lol_equals(real_prefs, wanted_prefs, "good buddycast %d: prefs" % i))
         
-    def subtest_terms(self):
+    def subtest_terms(self,myoversion):
         """assumes clicklog message 1 and 2 have been sent and digested"""
+        
+        print >>sys.stderr,"\ntest: subtest_terms"
         
         term_db = self.session.open_dbhandler(NTFY_TERM)
         
-        s = OLConnection(self.my_keypair,'localhost',self.hisport)        
-        msg = self.get_good_clicklog_msg(3)
+        s = OLConnection(self.my_keypair,'localhost',self.hisport,myoversion=myoversion)        
+        msg = self.get_good_clicklog_msg(3,myoversion)
         msg = self.create_payload(msg)
         s.send(msg)
         resp = s.recv()
+        self.assert_(len(resp) > 0)
         
-        termid = term_db.getTermID(str(u"linux"))
-        print >>sys.stderr, "TermID fuer Linux: %s" % termid
+        termid = term_db.getTermID(u"linux")
+        print >>sys.stderr, "TermID for Linux: %s" % termid
         #self.assert_(termid == 1)
         
         #self.assert_(term_db.getTerm(1)==bin2str(str(u"linux")))
@@ -252,33 +329,36 @@ class TestBuddyCast(TestAsServer):
         completedTerms = term_db.getTermsStartingWith("li")
         print >> sys.stderr, "terms starting with l: %s" % completedTerms  
         self.assert_(len(completedTerms)==1)
-        self.assert_(str(u'linux') in completedTerms)
+        self.assert_(u'linux' in completedTerms)
         
         term_db.insertTerm("asd#")
         completedTerms = term_db.getTermsStartingWith("asd")
         print >> sys.stderr, "terms starting with asd: %s" % completedTerms  
         self.assert_(len(completedTerms)==1)
-        self.assert_(str(u'asd') in completedTerms)
+        # Arno, 2010-02-03: Nicolas had 'asd' here, but I don't see any place
+        # where the # should have been stripped.
+        #
+        self.assert_(u'asd#' in completedTerms)
         
 
 
 
     def subtest_create_mypref(self):
-        print "creating test MyPreference data"
+        print >>sys.stderr,"\ntest: creating test MyPreference data"
         
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        torrent_db.addInfohash('myhash')
-        torrent_id = torrent_db.getTorrentID('myhash')
+        torrent_db.addInfohash('mhashmhashmhashmhash')
+        torrent_id = torrent_db.getTorrentID('mhashmhashmhashmhash')
         mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES)
         search_db = self.session.open_dbhandler(NTFY_SEARCH)
         
-        mypref_db.addMyPreference('myhash', {'destination_path':''}, commit=True)
+        mypref_db.addMyPreference('mhashmhashmhashmhash', {'destination_path':''}, commit=True)
         clicklog_data = {
                             'click_position': 1,
                             'reranking_strategy': 2,
                             'keywords': ['linux', 'fedora']
                         }
-        mypref_db.addClicklogToMyPreference('myhash', clicklog_data, commit=True)
+        mypref_db.addClicklogToMyPreference('mhashmhashmhashmhash', clicklog_data, commit=True)
         
         # self.getAll("torrent_id, click_position, reranking_strategy", order_by="torrent_id")
         allEntries = mypref_db.getAllEntries()
@@ -295,14 +375,22 @@ class TestBuddyCast(TestAsServer):
         self.assert_(self.lol_equals(real_search, wanted_search, "create mypref allown"))        
         
         
-    def subtest_create_bc(self):
+    def subtest_create_bc(self,myoversion):
+        print >>sys.stderr,"\ntest: creating test create_bc"
+        
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         torrent_db._db.update("Torrent", status_id=1)
         pref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES)
         pref_db.loadData()
-        msg = self.buddycast.buddycast_core.createBuddyCastMessage(0, 8, target_ip="127.0.0.1", target_port=80)
-        print >> sys.stderr, "created bc pref: %s" % msg        
-        self.assert_(msg['preferences']==[['myhash',['linux','fedora'],1,2]])
+        msg = self.buddycast.buddycast_core.createBuddyCastMessage(0, myoversion, target_ip="127.0.0.1", target_port=80)
+        print >> sys.stderr, "created bc pref: %s" % msg
+        
+        wantpref = ['mhashmhashmhashmhash',['linux','fedora'],1,2]
+        if myoversion >= OLPROTO_VER_ELEVENTH:
+            wantpref += [-1,-1,-1,-1]  
+        wantprefs = [wantpref]
+                
+        self.assert_(msg['preferences']==wantprefs)
         
 
                 
@@ -321,52 +409,23 @@ class TestBuddyCast(TestAsServer):
         return ok
         
 
-        
-    
-        
     def create_payload(self,r):
         return BUDDYCAST+bencode(r)
 
 
-        
-        
-    def subtest_bad_not_bdecodable(self):
-        self._test_bad(self.create_not_bdecodable)
-        
-    def create_not_bdecodable(self):
-        return BUDDYCAST+"bla"        
-        
-    def _test_bad(self,gen_soverlap_func):
-        print >>sys.stderr,"test: bad BUDDYCAST",gen_soverlap_func
-        s = OLConnection(self.my_keypair,'localhost',self.hisport)
-        msg = gen_soverlap_func()
-        s.send(msg)
-        time.sleep(5)
-        # the other side should not like this and close the connection
-        x = s.recv()
-        print "response: %s" % x
-        self.assert_(len(x)==0)
-        s.close()
-        
-        
-        
-        
 def test_suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestBuddyCast))
-    #suite.addTest(unittest.makeSuite(TestBuddyCastNonServer))
+    # We should run the tests in a separate Python interpreter to prevent 
+    # problems with our singleton classes, e.g. PeerDB, etc.
+    if len(sys.argv) != 2:
+        print "Usage: python test_buddycast_msg8plus.py <method name>"
+    else:
+        suite.addTest(TestBuddyCastMsg8Plus(sys.argv[1]))
+    
     return suite
 
-def sign_data(plaintext,keypair):
-    digest = sha(plaintext).digest()
-    return keypair.sign_dsa_asn1(digest)
-
-def verify_data(plaintext,permid,blob):
-    pubkey = EC.pub_key_from_der(permid)
-    digest = sha(plaintext).digest()
-    return pubkey.verify_dsa_asn1(digest,blob)
-
+def main():
+    unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])
 
 if __name__ == "__main__":
-    unittest.main()
-
+    main()
