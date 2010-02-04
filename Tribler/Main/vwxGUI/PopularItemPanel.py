@@ -400,7 +400,7 @@ class PopularItemPanel(wx.Panel):
         self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
         self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
         self.select()
-        self.guiUtility.frame.top_bg.indexMyChannel=-1
+#        self.guiUtility.frame.top_bg.indexMyChannel=-1
         wx.CallAfter(self.channelsDetails.loadChannel,self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
         if self.guiUtility.guiPage == 'search_results':
             self.channelsDetails.origin = 'search_results'

@@ -539,7 +539,7 @@ class GUIUtility:
             
         if erase:
             self.frame.channelsDetails.reinitialize(force=True)
-            self.frame.top_bg.indexMyChannel = -1
+#            self.frame.top_bg.indexMyChannel = -1
 
         self.frame.channelsDetails.Show()
         if self.guiPage == 'search_results':
@@ -989,7 +989,7 @@ class GUIUtility:
         grid.gridManager.blockedRefresh=False
 
 
-        self.frame.top_bg.indexMyChannel=-1
+#        self.frame.top_bg.indexMyChannel=-1
 
         self.frame.channelsDetails.Show()
         self.frame.channelsDetails.mychannel = False

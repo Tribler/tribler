@@ -61,7 +61,7 @@ class TopSearchPanel(bgPanel):
         self.arrow_sel = False
         self.search_mode = 'files' # 'files' or 'channels'
         self.reloadGrid = False
-        self.indexMyChannel = -1       
+#        self.indexMyChannel = -1       
         self.indexSubscribedChannels = -1       
         self.needs_refresh = False
 
@@ -388,7 +388,7 @@ class TopSearchPanel(bgPanel):
         dlg.Destroy()
 
     def clearChannelView(self):
-        self.indexMyChannel = -1
+#        self.indexMyChannel = -1
         grid = self.guiUtility.standardOverview.data['channelsMode']['grid2']
         grid.selectedPublisherId = None
         grid.deselectAllChannels()
@@ -461,7 +461,7 @@ class TopSearchPanel(bgPanel):
             self.guiUtility.guiPage = 'channels'
 
             if self.needs_refresh:
-                self.indexMyChannel = -1
+#                self.indexMyChannel = -1
                 self.guiUtility.standardOverview.data['channelsMode']['grid2'].selectedPublisherId = None
                 self.needs_refresh = False
             self.guiUtility.channelsOverview(erase)
@@ -600,7 +600,8 @@ class TopSearchPanel(bgPanel):
             self.guiUtility.channelsOverview(erase)
             self.guiUtility.loadInformation('channelsMode', 'name', erase=False)
             wx.Yield()
-            self.guiUtility.standardOverview.data['channelsMode']['grid'].expandPanelFromIndex(self.indexMyChannel)
+            self.guiUtility.standardOverview.data['channelsMode']['grid'].showSelectedChannel()
+            self.guiUtility.standardOverview.data['channelsMode']['grid2'].showSelectedChannel()
 
 
         self.results.setToggled(False)

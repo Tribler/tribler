@@ -289,7 +289,7 @@ class FilesItemDetailsSummary(bgPanel):
     def belongstochanneltext_clicked(self, event):
         #self.guiUtility.standardOverview.channel = self.channel
         self.guiUtility.guiPage = 'channels'
-        self.guiUtility.frame.top_bg.indexMyChannel = -1
+#        self.guiUtility.frame.top_bg.indexMyChannel = -1
         self.guiUtility.channelsOverview(erase=False)
 
         # channelsearchmanager
@@ -345,11 +345,11 @@ class FilesItemDetailsSummary(bgPanel):
         g = self.guiUtility.standardOverview.data['channelsMode'][grid]
         if grid == 'grid': # my channel
             self.guiUtility.standardOverview.data['channelsMode']['grid2'].selectedPublisherId = None
-            self.guiUtility.frame.top_bg.indexMyChannel = 0
+#            self.guiUtility.frame.top_bg.indexMyChannel = 0
             g.getPanelFromIndex(0).selected = True
         else: # popular channel
             g.selectedPublisherId = publisher_id
-            self.guiUtility.frame.top_bg.indexMyChannel = -1
+#            self.guiUtility.frame.top_bg.indexMyChannel = -1
         g.showSelectedChannel()
         g.getSelectedPanel().loadChannel()
 
