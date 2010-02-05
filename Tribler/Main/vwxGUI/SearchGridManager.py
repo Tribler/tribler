@@ -856,6 +856,11 @@ class ChannelSearchGridManager:
             # We got some replies. First check if they are for the current query
             if self.searchkeywords['channelsMode'] == kws:
                 numResults = 0
+                tmp_hits = {}
+                def usercallback(infohash,metadata,filename):
+                    if tmp_hits.has_key(bin2str(infohash)):
+                        el = tmp_hits[bin2str(infohash)]
+                        self.channelcast_db.addTorrent(el)           
                 for el in answers:  
                     
 #                    if self.channelcast_db.hasTorrent(infohash):
@@ -876,9 +881,11 @@ class ChannelSearchGridManager:
                     
                     self.remoteHits[el] = 1
                     numResults +=1
-                    def usercallback(infohash,metadata,filename):
-                        pass
-                    if not self.torrent_db.hasTorrent(str2bin(el[2])):
+                    tmp_hits[el[2]] = el
+
+                    if self.channelcast_db.existsTorrent(str2bin(el[2])):
+                        self.channelcast_db.addTorrent(el)
+                    else:
                         self.rtorrent_handler.download_torrent(permid,str2bin(el[2]),usercallback)
 #                    if newval['infohash'] in self.remoteHits:
 #                        # merge this result with previous results

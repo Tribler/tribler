@@ -554,8 +554,8 @@ class BuddyCastCore:
         
         # --- parameters ---
         #self.timeout = 5*60
-        self.block_interval = 60   # block interval for a peer to buddycast
-        self.short_block_interval = 60    # block interval if failed to connect the peer
+        self.block_interval = 4*60*60   # block interval for a peer to buddycast
+        self.short_block_interval = 4*60*60    # block interval if failed to connect the peer
         self.num_myprefs = 50       # num of my preferences in buddycast msg 
         self.max_collected_torrents = 50    # num of recently collected torrents (from BuddyCast 3)
         self.num_tbs = 10           # num of taste buddies in buddycast msg 
@@ -568,7 +568,7 @@ class BuddyCastCore:
         self.max_conn_rp = 10    # max number of connectable random peers
         self.max_conn_up = 10    # max number of unconnectable peers
         self.bootstrap_num = 10   # max number of peers to fill when bootstrapping
-        self.bootstrap_interval = 60    # 5 min
+        self.bootstrap_interval = 5*60    # 5 min
         self.network_delay = self.buddycast_interval*2    # 30 seconds
         self.check_period = 120    # how many seconds to send keep alive message and check updates
         self.num_search_cand = 10 # max number of remote search peer candidates
