@@ -217,7 +217,8 @@ class LibraryItemPanel(wx.Panel):
         self.pause_resume.Bind(wx.EVT_LEFT_UP, self.pause_resume_clicked)
 
         self.hSizer.Add(self.pause_resume, 0, wx.TOP,3)
-
+        if sys.platform == 'win32':
+            self.pause_resume.Hide()
 
 
         # remove from library button
@@ -225,7 +226,9 @@ class LibraryItemPanel(wx.Panel):
         self.remove.setBackground(wx.WHITE)
         self.remove.SetMinSize((17,17))
         self.remove.SetSize((17,17))
-        self.hSizer.Add(self.remove, 0, wx.TOP|wx.ALIGN_RIGHT, 2) 
+        self.hSizer.Add(self.remove, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
+        if sys.platform == 'win32':
+            self.remove.Hide()
 
         if sys.platform == 'win32':
             self.hSizer.Add([40,0],0,wx.FIXED_MINSIZE,0)        
@@ -245,13 +248,15 @@ class LibraryItemPanel(wx.Panel):
         self.speedDown2.SetForegroundColour(wx.BLACK) 
         self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.speedDown2.SetMinSize((size,12))        
-
+        
 
         self.speedUp2   = wx.StaticText(self,-1,"0.0 KB/s",wx.Point(274,3),wx.Size(size,12), wx.ST_NO_AUTORESIZE)                        
         self.speedUp2.SetForegroundColour(wx.BLACK) 
         self.speedUp2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.speedUp2.SetMinSize((size,12))
-
+        if sys.platform == 'win32':
+            self.speedDown2.Hide()
+            self.speedUp2.Hide()
 
         self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 4)
         self.hSizer.Add([18,0],0,0,0)
@@ -278,7 +283,7 @@ class LibraryItemPanel(wx.Panel):
                 
 
         # Percentage
-        self.percentage = wx.StaticText(self,-1,"?%",wx.Point(800,0),wx.Size(40,14))
+        self.percentage = wx.StaticText(self,-1,"",wx.Point(800,0),wx.Size(40,14))
         self.percentage.SetForegroundColour(self.triblerGrey)
         self.percentage.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
        

@@ -191,7 +191,8 @@ class channelsDetailsItem(wx.Panel):
             self.select()
 
 
-            self.GetParent().parent.select()
+            if sys.platform!='win32':
+                self.GetParent().parent.select()
             self.GetParent().parent.parent.showSelectedChannel()
         self.refresh()                                    
 
