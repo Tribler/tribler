@@ -14,7 +14,7 @@ from time import time
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Search.SearchManager import split_into_keywords
-
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 #from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
@@ -1047,12 +1047,12 @@ class GUIUtility:
         # 22/01/10 boudewijn: use the split_into_keywords function to
         # split.  This will ensure that kws is unicode and splits on
         # all 'splittable' characters
-        kwstr = query[len("CHANNEL x:"):]
+        kwstr = query[len("CHANNEL x "):]
         kws = split_into_keywords(kwstr)
 
         records = []
         for k,v in hits.items():
-            records.append((v['publisher_id'],v['publisher_name'],v['infohash'],v['torrenthash'],v['torrentname'],v['time_stamp'],k))
+            records.append((bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k)))
 
 
         if DEBUG:

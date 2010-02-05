@@ -26,7 +26,7 @@ from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler,PeerDBHandl
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINETH, OLPROTO_VER_ELEVENTH, OLPROTO_VER_TWELFTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINETH, OLPROTO_VER_ELEVENTH, OLPROTO_VER_TWELFTH, OLPROTO_VER_THIRTEENTH
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -157,7 +157,7 @@ class RemoteQueryMsgHandler:
         query_conn_callback_lambda = lambda exc,dns,permid,selversion:self.conn_callback(exc,dns,permid,selversion,m)
         
         if query.startswith("CHANNEL"):
-            wantminoversion = OLPROTO_VER_ELEVENTH
+            wantminoversion = OLPROTO_VER_THIRTEENTH  # channel queries and replies only for the latest version (13) 
         elif query.startswith("SIMPLE+METADATA"):
             wantminoversion = OLPROTO_VER_TWELFTH
         else:

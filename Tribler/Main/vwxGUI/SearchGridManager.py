@@ -800,22 +800,25 @@ class ChannelSearchGridManager:
         if len(self.searchkeywords[mode]) == 0 or len(self.searchkeywords[mode]) == 1 and self.searchkeywords[mode][0] == '':
             return False
 
-        query = "k:"
+        query = "k "
         for i in self.searchkeywords[mode]:
             query = query + i + ' '
         
         #self.hits = self.searchmgr.searchChannels(query)
         hits = self.searchmgr.searchChannels(query)
+        
+        # Nitin on Feb 5, 2010: temp fix: converting into string format coz most things in GUI use string forms.
+        # Fields like permid, infohash, torrenthash are in binary format in each record in 'hits' list.
         self.hits = {}
         for hit in hits:
-            if hit[0] not in hits:
+            if bin2str(hit[0]) not in self.hits:
                 torrents = {}                 
-                torrents[hit[2]] = (hit[4], hit[5]) # {infohash:(torrentname, timestamp)}
-                self.hits[hit[0]] = [hit[1], self.votecastdb.getEffectiveVote(hit[0]), torrents]
+                torrents[bin2str(hit[2])] = (hit[4], hit[5]) # {infohash:(torrentname, timestamp)}
+                self.hits[bin2str(hit[0])] = [hit[1], self.votecastdb.getEffectiveVote(bin2str(hit[0])), torrents]
             else:
-                torrents = self.hits[hit[0]][2]
-                if hit[2] not in torrents:
-                    torrents[hit[2]] = (hit[4], hit[5])
+                torrents = self.hits[bin2str(hit[0])][2]
+                if bin2str(hit[2]) not in torrents:
+                    torrents[bin2str(hit[2])] = (hit[4], hit[5])
                 
         print >> sys.stderr , " LOCAL HITS" , self.hits
         return True
