@@ -397,6 +397,10 @@ class TorrentSearchGridManager:
                         # just to check if it is not OLPROTO_VER_ELEVENTH version
                         # if so, check word boundaries in the swarm name
                         ls = split_into_keywords(value['content_name'])
+                        
+                        print >>sys.stderr,"ls is",`ls`
+                        print >>sys.stderr,"kws is",`kws`
+                        
                         flag = False
                         for kw in kws:
                             if kw not in ls:

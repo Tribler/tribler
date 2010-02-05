@@ -379,14 +379,21 @@ class Connection:
             if type(d['m']) != DictType:
                 raise ValueError('Key m does not map to a dict')
             m = d['m']
+            newm = {}
             for key,val in m.iteritems():
                 if type(val) != IntType:
-                    raise ValueError('Message ID in m-dict not int')
+                    # Fix for BitTorrent 4.27.2e
+                    if type(val) == StringType:
+                        newm[key]= ord(val)
+                        continue
+                    else:
+                        raise ValueError('Message ID in m-dict not int')
+                newm[key]= val
 
             if not 'm' in self.extend_hs_dict:
                 self.extend_hs_dict['m'] = {}
             # Note: we store the dict without converting the msg IDs to bytes.
-            self.extend_hs_dict['m'].update(d['m'])
+            self.extend_hs_dict['m'].update(newm)
             if self.connecter.overlay_enabled and EXTEND_MSG_OVERLAYSWARM in self.extend_hs_dict['m']:
                 # This peer understands our overlay swarm extension
                 if self.connection.locally_initiated:

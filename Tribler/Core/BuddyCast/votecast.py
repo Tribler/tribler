@@ -97,8 +97,9 @@ class VoteCastCore:
 
         data = {}
         for record in records:
-            # record is of the format: (publisher_id, vote, time_stamp) 
-            publisher_id = record[0].encode('ascii','ignore')
+            # record is of the format: (publisher_id, vote, time_stamp)
+            print >>sys.stderr,"votecast: publisher id",`record[0]`,type(record[0]) 
+            publisher_id = record[0]
             data[publisher_id] = {'vote':record[1], 'time_stamp':record[2]}
         if DEBUG: print >>sys.stderr, "votecast to be sent:", repr(data)
         return data
@@ -170,7 +171,7 @@ class VoteCastCore:
     def handleVoteCastMsg(self, sender_permid, data):
         """ Handles VoteCast message """
         if DEBUG: 
-            print >> sys.stderr, "Processing VOTECAST msg from: ", permid_for_user(sender_permid), "; data: ", repr(data)
+            print >> sys.stderr, "votecast: Processing VOTECAST msg from: ", permid_for_user(sender_permid), "; data: ", repr(data)
     
         for key, value in data.items():
             vote = {}
@@ -181,7 +182,7 @@ class VoteCastCore:
             self.votecastdb.addVote(vote)
             
         if DEBUG:
-            print >> sys.stderr,"Processing VOTECAST msg from: ", permid_for_user(sender_permid), "DONE; data:"
+            print >> sys.stderr,"votecast: Processing VOTECAST msg from: ", permid_for_user(sender_permid), "DONE; data:"
             
     def showAllVotes(self):
         """ Currently this function is only for testing, to show all votes """
