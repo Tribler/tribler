@@ -167,6 +167,8 @@ class TriblerLaunchMany(Thread):
             self.friendship_statistics_db = None
             self.friend_db      = None
             self.bartercast_db  = None
+            self.votecast_db = None
+            self.channelcast_db = None
             self.mm = None
 
         if config['overlay']:

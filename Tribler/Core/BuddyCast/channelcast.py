@@ -100,7 +100,7 @@ class ChannelCastCore:
         
         data = CHANNELCAST + channelcast_msg
         self.secure_overlay.send(target_permid, data, self.channelCastSendCallback)        
-        if DEBUG: print >> sys.stderr, "channelcast: Sent channelcastmsg",repr(channelcast_data)
+        #if DEBUG: print >> sys.stderr, "channelcast: Sent channelcastmsg",repr(channelcast_data)
     
     def createChannelCastMessage(self):
         """ Create a ChannelCast Message """

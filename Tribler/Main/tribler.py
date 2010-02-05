@@ -538,7 +538,10 @@ class ABCApp(wx.App):
 
         # seeding stats crawling
         self.seeding_snapshot_count = 0
-        self.seedingstats_settings = s.open_dbhandler(NTFY_SEEDINGSTATSSETTINGS).loadCrawlingSettings()
+        seedstatsdb = s.open_dbhandler(NTFY_SEEDINGSTATSSETTINGS)
+        if seedstatsdb is None:
+            raise ValueError("Seeding stats DB not created?!")
+        self.seedingstats_settings = seedstatsdb.loadCrawlingSettings()
         self.seedingstats_enabled = self.seedingstats_settings[0][2]
         self.seedingstats_interval = self.seedingstats_settings[0][1]
         
