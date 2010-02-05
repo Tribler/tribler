@@ -13,10 +13,10 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.BuddyCast.moderationcast_util import *
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_ELEVENTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRTEENTH
 
 DEBUG_UI = False
-DEBUG = False    #Default debug
+DEBUG = True    #Default debug
 debug = False    #For send-errors and other low-level stuff
 
 
@@ -25,6 +25,8 @@ SINGLE_VOTECAST_LENGTH = 130
 class VoteCastCore:
     """ VoteCastCore is responsible for sending and receiving VOTECAST-messages """
 
+    TESTASSERVER = False # for unit testing
+    
     ################################
     def __init__(self, data_handler, secure_overlay, session, buddycast_interval_function, log = '', dnsindb = None):
         """ Returns an instance of this class
@@ -55,15 +57,16 @@ class VoteCastCore:
     ################################
     def createAndSendVoteCastMessage(self, target_permid, selversion):
         """ Creates and sends a VOTECAST message """
-        if selversion < OLPROTO_VER_ELEVENTH:
+        # Arno, 2010-02-05: v12 uses a different on-the-wire format, ignore those.
+        if selversion < OLPROTO_VER_THIRTEENTH:
             if DEBUG:
-                print >> sys.stderr, "Do not send to lower version peer:", selversion
+                print >> sys.stderr, "votecast: Do not send to lower version peer:", selversion
             return
                 
         votecast_data = self.createVoteCastMessage()
         if len(votecast_data) == 0:
             if DEBUG:
-                print >>sys.stderr, "No votes there.. hence we do not send"            
+                print >>sys.stderr, "votecast: No votes there.. hence we do not send"            
             return
         
         votecast_msg = bencode(votecast_data)
@@ -76,24 +79,27 @@ class VoteCastCore:
                 msg = voteCastReplyMsgToString(votecast_data)
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
         
-        if DEBUG: print >> sys.stderr, "Sending votecastmsg",voteCastMsgToString(votecast_data)
-        data = VOTECAST+votecast_msg
-        self.secure_overlay.send(target_permid, data, self.voteCastSendCallback)        
+        if DEBUG: print >> sys.stderr, "votecast: Sending votecastmsg",voteCastMsgToString(votecast_data)
+#        data = VOTECAST + votecast_msg
+#        self.secure_overlay.send(target_permid, data, self.voteCastSendCallback)
+        self.secure_overlay.send(target_permid, VOTECAST + votecast_msg, self.voteCastSendCallback)           
         
 
     ################################
     def createVoteCastMessage(self):
         """ Create a VOTECAST message """
 
-        if DEBUG: print >> sys.stderr, "Creating votecastmsg..."        
+        if DEBUG: print >> sys.stderr, "votecast: Creating votecastmsg..."        
         
         NO_RANDOM_VOTES = self.session.get_votecast_random_votes()
         NO_RECENT_VOTES = self.session.get_votecast_recent_votes()
         records = self.votecastdb.getRecentAndRandomVotes()
 
-        data = []        
-        for record in records:            
-            data.append((str(record[0]), record[1])) #mod_id, vote
+        data = {}
+        for record in records:
+            # record is of the format: (publisher_id, vote, time_stamp) 
+            publisher_id = record[0].encode('ascii','ignore')
+            data[publisher_id] = {'vote':record[1], 'time_stamp':record[2]}
         if DEBUG: print >>sys.stderr, "votecast to be sent:", repr(data)
         return data
 
@@ -110,10 +116,11 @@ class VoteCastCore:
     def gotVoteCastMessage(self, recv_msg, sender_permid, selversion):
         """ Receives VoteCast message and handles it. """
         # VoteCast feature is renewed in eleventh version; hence, do not receive from lower version peers
-        if selversion < OLPROTO_VER_ELEVENTH:
+        # Arno, 2010-02-05: v12 uses a different on-the-wire format, ignore those.
+        if selversion < OLPROTO_VER_THIRTEENTH:
             if DEBUG:
-                print >> sys.stderr, "Do not receive from lower version peer:", selversion
-            return
+                print >> sys.stderr, "votecast: Do not receive from lower version peer:", selversion
+            return True
                 
         if DEBUG:
             print >> sys.stderr,'votecast: Received a msg from ', permid_for_user(sender_permid)
@@ -154,6 +161,8 @@ class VoteCastCore:
                 msg = voteCastMsgToString(votecast_data)
                 self.overlay_log('RECV_MSG', ip, port, show_permid(sender_permid), selversion, MSG_ID, msg)
  
+        if self.TESTASSERVER:
+            self.createAndSendVoteCastMessage(sender_permid, selversion)
         return True
 
     ################################
@@ -163,11 +172,12 @@ class VoteCastCore:
         if DEBUG: 
             print >> sys.stderr, "Processing VOTECAST msg from: ", permid_for_user(sender_permid), "; data: ", repr(data)
     
-        for value in data:
+        for key, value in data.items():
             vote = {}
-            vote['mod_id'] = value[0]
+            vote['mod_id'] = bin2str(key)
             vote['voter_id'] = permid_for_user(sender_permid)
-            vote['vote'] = value[1] 
+            vote['vote'] = value['vote']
+            vote['time_stamp'] = value['time_stamp'] 
             self.votecastdb.addVote(vote)
             
         if DEBUG:

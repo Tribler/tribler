@@ -30,7 +30,7 @@ def validInfohash(infohash):
 
 def validPermid(permid):
     """ Returns True iff permid is a valid Tribler Perm-ID """
-    r = (type(permid) == str or type(permid)== unicode) and len(permid) <= 125
+    r = type(permid) == str and len(permid) <= 125
     if not r:
         if DEBUG:
             print >>sys.stderr, "Invalid permid: type(permid) ==", str(type(permid))+\
@@ -55,22 +55,29 @@ def validVoteCastMsg(data):
         print >> sys.stderr, "data is None"
         return False
      
-    if not type(data) == ListType:
-        print >> sys.stderr, "data is not List"
+    if not type(data) == DictType:
+        print >> sys.stderr, "data is not Dictionary"
         return False
     
-    for record in data:
+    for key,value in data.items():
         #if DEBUG: 
         #    print >>sys.stderr, "validvotecastmsg: ", repr(record)
-        if not validPermid(record[0]):
+        if not validPermid(key):
             if DEBUG:
-                print >> sys.stderr, "not valid permid: ", repr(record[0]) 
+                print >> sys.stderr, "not valid permid: ", repr(key) 
             return False
-        if not type(record[1]) == int:
+        if not ('vote' in value and 'time_stamp' in value):
             if DEBUG:
-                print >> sys.stderr, "not int: ", repr(record[1]) 
+                print >> sys.stderr, "validVoteCastMsg: key missing, got", value.keys()
             return False
-    
+        if not type(value['vote']) == int:
+            if DEBUG:
+                print >> sys.stderr, "Vote is not int: ", repr(value['vote']) 
+            return False
+        if not type(value['time_stamp']) == int:
+            if DEBUG:
+                print >> sys.stderr, "time_stamp is not int: ", repr(value['time_stamp']) 
+            return False    
     return True
 
 
@@ -100,7 +107,7 @@ def validChannelCastMsg(channelcast_data):
             return False
         # now, verify signature
         l = (ch['publisher_id'],ch['infohash'], ch['torrenthash'], ch['time_stamp'])
-        if not verify_data(bencode(l),str2bin(ch['publisher_id']),str2bin(signature)):
+        if not verify_data(bencode(l),ch['publisher_id'],signature):
             if DEBUG:
                 print >>sys.stderr, "validChannelCastMsg: verification failed!"
             return False

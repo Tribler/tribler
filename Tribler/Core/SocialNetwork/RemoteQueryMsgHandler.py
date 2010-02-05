@@ -286,6 +286,8 @@ class RemoteQueryMsgHandler:
             p = self.create_remote_query_reply(d['id'],hits,selversion)
             
         elif netwq.startswith("CHANNEL"): # channel query
+            if DEBUG:
+                print>>sys.stderr, "Incoming channel query", d['q']
             q = d['q'][len('CHANNEL '):]
             uq = self.clean_netwq(q)
             hits = self.channelcast_db.searchChannels(uq)
@@ -309,7 +311,7 @@ class RemoteQueryMsgHandler:
         
         self.inc_peer_nqueries(permid)
 
-
+ # This function need not be used, since it is handled quite well by split_into_keywords 
     def clean_netwq(self,q):
         # Filter against bad input
         uq = q.decode("UTF-8")
@@ -366,7 +368,7 @@ class RemoteQueryMsgHandler:
             r['torrentname'] = hit[4]
             r['time_stamp'] = hit[5]
             # hit[6]: signature, which is unique for any torrent published by a user
-            signature = hit[6].encode('ascii','ignore')
+            signature = hit[6]
             d2[signature] = r
         d['a'] = d2
         return bencode(d)
@@ -548,7 +550,7 @@ def isValidQuery(d,selversion):
     except:
         print_exc()
         if DEBUG:
-            print >>sys.stderr,"rqmh: not alnum",`keyw`
+            print >>sys.stderr,"rqmh: not alnum query",`q`
         return False
     if len(d) > 2: # no other keys
         if DEBUG:

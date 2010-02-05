@@ -20,9 +20,9 @@ from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.BuddyCast.moderationcast_util import *
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_ELEVENTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRTEENTH
 
-DEBUG = False
+DEBUG = True
 
 NUM_OWN_RECENT_TORRENTS = 15
 NUM_OWN_RANDOM_TORRENTS = 10
@@ -33,6 +33,7 @@ RELOAD_FREQUENCY = 2*60*60
 
 class ChannelCastCore:
     __single = None
+    TESTASSERVER = False # for unit testing
 
     def __init__(self, data_handler, secure_overlay, session, buddycast_interval_function, log = '', dnsindb = None):
         """ Returns an instance of this class """
@@ -75,15 +76,16 @@ class ChannelCastCore:
     def createAndSendChannelCastMessage(self, target_permid, selversion):
         """ Create and send a ChannelCast Message """
         # ChannelCast feature starts from eleventh version; hence, do not send to lower version peers
-        if selversion < OLPROTO_VER_ELEVENTH:
+        # Arno, 2010-02-05: v12 uses a different on-the-wire format, ignore those.
+        if selversion < OLPROTO_VER_THIRTEENTH:
             if DEBUG:
-                print >> sys.stderr, "Do not send to lower version peer:", selversion
+                print >> sys.stderr, "channelcast: Do not send to lower version peer:", selversion
             return
         
         channelcast_data = self.createChannelCastMessage()
         if channelcast_data is None or len(channelcast_data)==0:
             if DEBUG:
-                print >>sys.stderr, "No channels there.. hence we do not send"
+                print >>sys.stderr, "channelcast: No channels there.. hence we do not send"
             #self.session.chquery_connected_peers('k:MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAf3BkHsZ6UdIpuIX441wjU5Ybe0HPjTDvS+iacFZABH20It9N9uwkwtpkS3uEvVvfcTX50jcFNXOSCwq')            
             return
         channelcast_msg = bencode(channelcast_data)
@@ -98,13 +100,13 @@ class ChannelCastCore:
         
         data = CHANNELCAST + channelcast_msg
         self.secure_overlay.send(target_permid, data, self.channelCastSendCallback)        
-        if DEBUG: print >> sys.stderr, "Sent channelcastmsg",repr(channelcast_msg)
+        if DEBUG: print >> sys.stderr, "channelcast: Sent channelcastmsg",repr(channelcast_data)
     
     def createChannelCastMessage(self):
         """ Create a ChannelCast Message """
         
         if DEBUG: 
-            print >> sys.stderr, "Creating channelcastmsg..."
+            print >> sys.stderr, "channelcast: Creating channelcastmsg..."
         
         hits = self.channelcastdb.getRecentAndRandomTorrents(NUM_OWN_RECENT_TORRENTS,NUM_OWN_RANDOM_TORRENTS,NUM_OTHERS_RECENT_TORRENTS,NUM_OTHERS_RECENT_TORRENTS)
         # hits is of the form: [(mod_id, mod_name, infohash, torrenthash, torrent_name, time_stamp, signature)]
@@ -119,7 +121,7 @@ class ChannelCastCore:
             r['torrentname'] = hit[4].encode("UTF-8") # ARNOUNICODE: must be explicitly UTF-8 encoded
             r['time_stamp'] = int(hit[5])
             # hit[6]: signature, which is unique for any torrent published by a user
-            signature = hit[6].encode('ascii','ignore')   # ARNOCOMMENT: won't this kill binary sigs?
+            signature = hit[6]
             d[signature] = r
         #assert validChannelCastMsg(d)
         return d
@@ -134,14 +136,15 @@ class ChannelCastCore:
     def gotChannelCastMessage(self, recv_msg, sender_permid, selversion):
         """ Receive and handle a ChannelCast message """
         # ChannelCast feature starts from eleventh version; hence, do not receive from lower version peers
-        if selversion < OLPROTO_VER_ELEVENTH:
+        # Arno, 2010-02-05: v12 uses a different on-the-wire format, ignore those.
+        if selversion < OLPROTO_VER_THIRTEENTH:
             if DEBUG:
-                print >> sys.stderr, "Do not receive from lower version peer:", selversion
-            return
+                print >> sys.stderr, "channelcast: Do not receive from lower version peer:", selversion
+            return True
                 
         if DEBUG:
             print >> sys.stderr,'channelcast: Received a msg from ', permid_for_user(sender_permid)
-            print >> sys.stderr," my_permid=", permid_for_user(self.my_permid)
+            print >> sys.stderr,"channelcast: my_permid=", permid_for_user(self.my_permid)
 
         if not sender_permid or sender_permid == self.my_permid:
             if DEBUG:
@@ -178,6 +181,9 @@ class ChannelCastCore:
                 msg = repr(channelcast_data)
                 self.overlay_log('RECV_MSG', ip, port, show_permid(sender_permid), selversion, MSG_ID, msg)
  
+        if self.TESTASSERVER:
+            self.createAndSendChannelCastMessage(sender_permid, selversion)
+            
         return True       
 
     def handleChannelCastMsg(self, sender_permid, data):
@@ -199,7 +205,7 @@ class ChannelCastCore:
                 if self.channelcastdb.addTorrent(hit):
                     self.hits.append(hit)
             else:
-                print >> sys.stderr, "updatechannel: could not find infohash", bin2str(infohash)
+                print >> sys.stderr, "channelcast: updatechannel: could not find infohash", bin2str(infohash)
 
         for k,v in hits.items():
             #check if the record belongs to a channel who we have "reported spam" (negative vote)
@@ -208,7 +214,7 @@ class ChannelCastCore:
                 continue
             
             # make everything into "string" format, if "binary"
-            hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],k)
+            hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
             tmp_hits[v['infohash']] = hit 
             # effectively v['infohash'] == str2bin(hit[2])
 

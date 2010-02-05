@@ -2891,20 +2891,11 @@ class VoteCastDBHandler(BasicDBHandler):
         items = self._db.fetchall(sql)
         return items   
     
-    
-################## method already exists below !
-#
-#    def getVote(self,permid,peerid):
-#        sql = 'select * from VoteCast where mod_id==? and voter_id==?'
-#        item = self._db.fetchone(sql,(permid,peerid,))
-#        return item
-    
     def addVotes(self, votes):
         sql = 'insert into VoteCast Values (?,?,?,?)'
         self._db.executemany(sql,votes,commit=True)
     
     def addVote(self, vote, clone=True):
-        vote['time_stamp'] = now()
         if self.hasVote(vote['mod_id'],vote['voter_id']):
             self.deleteVote(vote['mod_id'],vote['voter_id'])
         self._db.insert(self.table_name, **vote)        
@@ -2940,8 +2931,8 @@ class VoteCastDBHandler(BasicDBHandler):
     def getRecentAndRandomVotes(self, recent=25, random=25):
         allrecords = []
         
-        sql = "SELECT mod_id, vote, time_stamp from VoteCast where voter_id='"+permid_for_user(self.my_permid)+"' order by time_stamp desc limit " + str(recent)
-        myrecentvotes = self._db.fetchall(sql,)
+        sql = "SELECT mod_id, vote, time_stamp from VoteCast where voter_id==? order by time_stamp desc limit ?"
+        myrecentvotes = self._db.fetchall(sql,(permid_for_user(self.my_permid),recent,))
         allrecords.extend(myrecentvotes)
         
         if myrecentvotes is not None and len(myrecentvotes)>=recent:
@@ -2949,6 +2940,11 @@ class VoteCastDBHandler(BasicDBHandler):
             sql = "select mod_id, vote, time_stamp from VoteCast where voter_id==? and time_stamp<? order by random() limit ?"
             myrandomvotes = self._db.fetchall(sql,(permid_for_user(self.my_permid),t,random,))
             allrecords.extend(myrandomvotes)
+        
+        # Arno, 2010-02-04: Doesn't do anything. Nitin?
+        records = []
+        for record in allrecords:
+            records.append((str2bin(record[0]),record[1], record[2]))
             
         return allrecords
     
@@ -2964,61 +2960,60 @@ class VoteCastDBHandler(BasicDBHandler):
 
     def subscribe(self,permid):
         """insert/change the vote status to 2"""
-        sql = "select vote from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
-        vote = self._db.fetchone(sql)
+        sql = "select vote from VoteCast where mod_id==? and voter_id==?"
+        vote = self._db.fetchone(sql,(permid,bin2str(self.my_permid),))
         if vote is None:
-            sql = "insert into VoteCast Values('" + permid + "','" + bin2str(self.my_permid) + "','2','"+ str(now()) +"')"
-            self._db.execute_write(sql)
+            sql = "insert into VoteCast Values(?,?,'2',?)"
+            self._db.execute_write(sql,(permid,bin2str(self.my_permid),now(),))
         elif vote!=2:
-            sql = "update VoteCast set vote=2 where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
-            self._db.execute_write(sql)    
+            sql = "update VoteCast set vote=2 where mod_id==? and voter_id==?"
+            self._db.execute_write(sql,(permid,bin2str(self.my_permid),))    
 
     def unsubscribe(self, permid): ###
         """ change the vote status to 0, if unsubscribed"""
-        sql = "select vote from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
-        vote = self._db.fetchone(sql)
+        sql = "select vote from VoteCast where mod_id==? and voter_id==?"
+        vote = self._db.fetchone(sql,(permid,bin2str(self.my_permid),))
         if vote is not None and vote==2:
-            sql = "delete from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
-            #sql = "update VoteCast set vote=0 where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
-            self._db.execute_write(sql)
+            sql = "delete from VoteCast where mod_id==? and voter_id==?"
+            self._db.execute_write(sql,(permid,bin2str(self.my_permid),))
     
     def spam(self, permid):
         """ insert/change the vote status to -1"""
-        sql = "select vote from VoteCast where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
-        vote = self._db.fetchone(sql)
+        sql = "select vote from VoteCast where mod_id==? and voter_id==?"
+        vote = self._db.fetchone(sql,(permid,bin2str(self.my_permid),))
         if vote is None:
-            sql = "insert into VoteCast Values('" + permid + "','" + bin2str(self.my_permid) + "','-1','"+ str(now()) +"')"
-            self._db.execute_write(sql)
+            sql = "insert into VoteCast Values(?,?,'-1',?)"
+            self._db.execute_write(sql,(permid,bin2str(self.my_permid),now(),))
         elif vote>=0 and vote<=2:
-            sql = "update VoteCast set vote=-1 where mod_id='" + permid + "' and voter_id='" + bin2str(self.my_permid) + "'"
-            self._db.execute_write(sql)    
+            sql = "update VoteCast set vote=-1 where mod_id==? and voter_id==?"
+            self._db.execute_write(sql,(permid,bin2str(self.my_permid),))    
     
     def getVote(self,publisher_id,subscriber_id):
         """ return the vote status if such record exists, otherwise None  """
-        sql = "select vote from VoteCast where mod_id='"+publisher_id+"' and voter_id='"+subscriber_id+"'"
-        return self._db.fetchone(sql)    
+        sql = "select vote from VoteCast where mod_id==? and voter_id==?"
+        return self._db.fetchone(sql, (publisher_id,subscriber_id,))    
     
     def getNegVotes(self,publisher_id):
         """returns the number of negative votes in integer format"""
-        sql = "select count(*) from VoteCast where mod_id='"+publisher_id+"' and vote=-1"
-        return self._db.fetchone(sql)
+        sql = "select count(*) from VoteCast where mod_id==? and vote=-1"
+        return self._db.fetchone(sql, (publisher_id,))
     
     def getNumSubscriptions(self,publisher_id): ###
         """returns the number of subscribers in integer format"""
-        sql = "select count(*) from VoteCast where mod_id='"+publisher_id+"' and vote=2" # before select vote
-        return self._db.fetchone(sql)
+        sql = "select count(*) from VoteCast where mod_id==? and vote=2" # before select vote
+        return self._db.fetchone(sql, (publisher_id,))
     
     def getVotes(self, publisher_id):
         """ returns (sum, count) from VoteCast """
-        sql = "select sum(vote), count(*) from VoteCast where mod_id='"+publisher_id+"'"
-        return self._db.fetchone(sql)
+        sql = "select sum(vote), count(*) from VoteCast where mod_id==?"
+        return self._db.fetchone(sql, (publisher_id,))
 
     def getEffectiveVote(self, publisher_id):
         """ returns positive - negative votes """
-        sql = "select count(*) from VoteCast where mod_id='"+publisher_id+"' and vote=2" 
-        subscriptions = self._db.fetchone(sql)
-        sql = "select count(*) from VoteCast where mod_id='"+publisher_id+"' and vote=-1" 
-        negative_votes = self._db.fetchone(sql)
+        sql = "select count(*) from VoteCast where mod_id==? and vote=2" 
+        subscriptions = self._db.fetchone(sql, (publisher_id,))
+        sql = "select count(*) from VoteCast where mod_id==? and vote=-1" 
+        negative_votes = self._db.fetchone(sql, (publisher_id,))
         return (subscriptions - negative_votes)
           
 
@@ -3073,11 +3068,14 @@ class ChannelCastDBHandler(BasicDBHandler):
         
     def _sign(self, record):
         assert record is not None
-        r = (record[0],record[2],record[3],record[5])
+        r = (str2bin(record[0]),str2bin(record[2]),str2bin(record[3]),record[5])
         bencoding = bencode(r)
-        return bin2str(sign_data(bencoding, self.session.keypair))
+        signature = bin2str(sign_data(bencoding, self.session.keypair))
+        record.append(signature)
 
-    def searchNames(self,kws): ##
+
+    def searchNames(self,kws): ## 
+        # this function is not used.. Nitin 28.1.2010 
         t1 = time()
         value_name = ['torrent_id',
                       'infohash',
@@ -3176,36 +3174,32 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select distinct publisher_id from ChannelCast"
         publisher_ids = self._db.fetchall(sql)
         for publisher_id in publisher_ids:
-            sql = "select publisher_name from ChannelCast where publisher_id='" + publisher_id[0] + "' order by time_stamp desc limit 1"
-            latest_publisher_name = self._db.fetchone(sql)
-            sql = "update ChannelCast set publisher_name='" + latest_publisher_name + "' where publisher_id='" + publisher_id[0] + "'"
-            self._db.execute_write(sql)        
+            sql = "select publisher_name from ChannelCast where publisher_id==? order by time_stamp desc limit 1"
+            latest_publisher_name = self._db.fetchone(sql,(publisher_id[0],))
+            sql = "update ChannelCast set publisher_name==? where publisher_id==?"
+            self._db.execute_write(sql,(latest_publisher_name,publisher_id[0],))        
 
     def addOwnTorrent(self, torrentdef): #infohash, torrentdata):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         flag = False
         publisher_id = bin2str(self.my_permid)
         infohash = bin2str(torrentdef.get_infohash())
-        sql = "SELECT COUNT(*) FROM ChannelCast WHERE publisher_id=? AND infohash=?"
-        num_records = self._db.fetchone(sql, (publisher_id, infohash))
+        sql = "select count(*) from ChannelCast where publisher_id==? and infohash==?"
+        num_records = self._db.fetchone(sql, (publisher_id, infohash,))
         if num_records==0:
             torrenthash = bin2str(sha(bencode(torrentdef.get_metainfo())).digest())
             # Arno, 2010-01-27: sqlite don't like binary encoded names
             nickname = self.session.get_nickname().encode("UTF-8")
             torrentname = torrentdef.get_name_as_unicode()
-            record = [publisher_id, nickname, infohash, torrenthash, torrentname, now()]
-            record.append(self._sign(record))
-            sql = """INSERT INTO ChannelCast
-                     (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)"""
-            self._db.execute_write(sql, record)
-            #return True
+            record = [publisher_id,nickname,infohash,torrenthash,torrentname,now()]
+            self._sign(record)
+            sql = "insert into ChannelCast Values(?,?,?,?,?,?,?)"
+            self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=True)
             flag = True
-        #return False
-        sql = "SELECT publisher_name FROM ChannelCast WHERE publisher_id=? ORDER BY time_stamp DESC LIMIT 1"
-        latest_publisher_name = self._db.fetchone(sql, (publisher_id,))
-        sql = "UPDATE ChannelCast SET publisher_name=? WHERE publisher_id=?"
-        self._db.execute_write(sql, (latest_publisher_name, publisher_id))
+        sql = "select publisher_name from ChannelCast where publisher_id==? order by time_stamp desc limit 1"
+        latest_publisher_name = self._db.fetchone(sql,(publisher_id,))
+        sql = "update ChannelCast set publisher_name==? where publisher_id==?"
+        self._db.execute_write(sql,(latest_publisher_name,publisher_id,))        
         return flag
         
 
@@ -3215,15 +3209,13 @@ class ChannelCastDBHandler(BasicDBHandler):
 
 
     def deleteTorrentsFromPublisherId(self, permid): ##
-        sql = "Delete From ChannelCast where publisher_id='" + bin2str(permid) + "'"
-        self._db.execute_write(sql)
+        sql = "Delete From ChannelCast where publisher_id==?"
+        self._db.execute_write(sql,(bin2str(permid),))
 
     
     def updateMyChannelName(self, name): ##
-        sql = "update ChannelCast set publisher_name='" + name + "'where publisher_id='" + bin2str(self.my_permid) + "'"
-        self._db.execute_write(sql)
- 
-
+        sql = "update ChannelCast set publisher_name==? where publisher_id==?"
+        self._db.execute_write(sql,(name,bin2str(self.my_permid),))
 
     
     def addTorrent(self,record):
@@ -3231,22 +3223,18 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select count(*) from ChannelCast where publisher_id='" + record[0] + "' and infohash='" + record[2] + "'"
         num_records = self._db.fetchone(sql)
         if num_records==0:
-            #sql = 'insert into ChannelCast Values("' + str(record[0]) + '","' + str(record[1]) + '","' + str(record[2]) + '","' + str(record[3]) + '","' + str(record[4]) + '","' + str(record[5]) + '","' + str(record[6]) + '")'
-            sql = 'insert into ChannelCast Values("' + record[0] + '","' + record[1] + '","' + record[2] + '","' + record[3] + '","' + record[4] + '","' + str(record[5]) + '","' + record[6] + '")'
-            print sql
-            self._db.execute_write(sql)
-            #return True
+            sql = "insert into ChannelCast Values(?,?,?,?,?,?,?)"
+            self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=True)
             flag = True
-        #return False
-        sql = "select publisher_name from ChannelCast where publisher_id='" + record[0] + "' order by time_stamp desc limit 1"
-        latest_publisher_name = self._db.fetchone(sql)
-        sql = "update ChannelCast set publisher_name='" + latest_publisher_name + "' where publisher_id='" + record[0] + "'"
-        self._db.execute_write(sql)       
+        sql = "select publisher_name from ChannelCast where publisher_id==? order by time_stamp desc limit 1"
+        latest_publisher_name = self._db.fetchone(sql,(record[0],))
+        sql = "update ChannelCast set publisher_name==? where publisher_id==?"
+        self._db.execute_write(sql,(latest_publisher_name,record[0],)) 
         return flag
         
-    def existsTorrent(self,infohash):
-        sql = "select count(*) from Torrent where infohash='" + infohash + "' and name<>''"
-        num_records = self._db.fetchone(sql)
+    def existsTorrent(self, infohash):
+        sql = "select count(*) from Torrent where infohash==? and name<>''"
+        num_records = self._db.fetchone(sql, (bin2str(infohash),))
         if num_records > 0:
             return True
         return False
@@ -3274,35 +3262,30 @@ class ChannelCastDBHandler(BasicDBHandler):
             sql = "select * from ChannelCast where publisher_id in (select mod_id from VoteCast where voter_id=? and vote=2) and time_stamp<? order by random() limit ?"
             othersrandomtorrents = self._db.fetchall(sql,(permid_for_user(self.my_permid),t,NUM_OTHERS_RANDOM_TORRENTS,))
             allrecords.extend(othersrandomtorrents)
-        return allrecords
+        
+        records = []
+        for record in allrecords:
+            records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
+        
+        return records
     
 
     def getTorrentFromTorrenthash(self,torrenthash): ##
-        sql = "select * from Torrent where infohash='"+ bin2str(torrenthash) + "'"
-        torrent = self._db.fetchone(sql)
+        sql = "select * from Torrent where infohash==?"
+        torrent = self._db.fetchone(sql,(bin2str(torrenthash),))
         return torrent
 
     def getTorrentsFromPublisherId(self, publisher_id): ##
-        sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id='" + publisher_id + "' ) and name<>'' "
-        return self._db.fetchall(sql)
-        #records=[]
-        #sql = "select infohash from ChannelCast where publisher_id='"+ publisher_id + "'"
-        #res= self._db.fetchall(sql)
-        #for res_item in res:
-        #    torrentHash = res_item[0] 
-        #    records.append(self.getTorrentFromTorrenthash(str2bin(torrentHash)))
-        #return records
-
+        sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id==? ) and name<>'' "
+        return self._db.fetchall(sql,(publisher_id,))
 
     def searchChannels(self,query):
-        # query would be of the form: "k:barack obama" or "p:4fw342d23re2we2w3e23d2334d" permid
+        # query would be of the form: "k barack obama" or "p 4fw342d23re2we2w3e23d2334d" permid
         value_name = deepcopy(self.value_name) ##
         if query[0] == 'k': # search torrents based on keywords
-            kwlist = split_into_keywords(query[2:])
-            #print >>sys.stderr, "This is a keyword based search:", kwlist
             
-            # there is a possibility that an older name (which was popular) might be changed.
-            # in such case, it is good search for permid of such channels based on the keyword 
+            kwlist = split_into_keywords(query[2:])
+
             sql = "select publisher_id, publisher_name from ChannelCast where "
             count = 0
             for kw in kwlist:
@@ -3313,37 +3296,43 @@ class ChannelCastDBHandler(BasicDBHandler):
                 if count<len(kwlist):
                     sql += " and "
 
-            sql += " and publisher_id <> '" + bin2str(self.my_permid) + "'" ## remove own channel from channel results
-                    
             
             channellist = self._db.fetchall(sql)
             channels = {}
-            records = []
+            allrecords = []
             for channel in channellist:
                 if channel[0] in channels:
                     continue
                 channels[channel[0]] = channel[1]
                 #print >>sys.stderr, "channel:", repr(channel)
                 # now, retrieve the last 20 of each of these channels' torrents                             
-                s = "select * from ChannelCast where publisher_id='"+ channel[0] +"' order by time_stamp desc limit 20"
-                record = self._db.fetchall(s)
+                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
+                record = self._db.fetchall(s,(channel[0],))
                 if record is not None and len(record)>0:
-                    records.extend(record)
+                    allrecords.extend(record)
+
+            records = []
+            for record in allrecords:
+                records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
             return records         
         elif query[0] == 'p': # search channel's torrents based on permid
             q = query[2:]
             #print>>sys.stderr, "This is a permid-based search:", q            
-            s = "select * from ChannelCast where publisher_id='"+ q +"' order by time_stamp desc limit 20"
-            records = self._db.fetchall(s) ## before records = {'torrents':self._db.fetchall(s)}
+            s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
+            allrecords = self._db.fetchall(s,(q,)) ## before records = {'torrents':self._db.fetchall(s)}
             #channelList = self.valuelist2channellist(records,value_name)  
+            records = []
+            for record in allrecords:
+                records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
+            
             return records #channelList # 
         else:
             # Query is invalid: hence, it should not even come here
             return None
         
     def getTorrents(self, publisher_id):
-        sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id='"+publisher_id+"')"
-        return self._db.fetchall(sql)
+        sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id==?)"
+        return self._db.fetchall(sql,(publisher_id,))
         
     def valuelist2channellist(self,res_list,value_name): ##
         
@@ -3364,11 +3353,11 @@ class ChannelCastDBHandler(BasicDBHandler):
         # Inner query: First, identify the publishers you are subscribed to
         # Outer query: Get all publishers that are not in your publishers' list, along with the number of subscriptions
         ## sql = "select mod_id, count(*) from VoteCast where mod_id not in (select mod_id from VoteCast where voter_id='"+ bin2str(self.my_permid)+"' and vote=2) and mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id order by 2 desc"
-        sql = "select mod_id, count(*) from VoteCast where mod_id<>'"+bin2str(self.my_permid)+"' group by mod_id order by 2 desc" ## Richard : for now popular channels can contain channels i am subscribed to
-        votes = self._db.fetchall(sql)
+        sql = "select mod_id, count(*) from VoteCast where mod_id<>? group by mod_id order by 2 desc" ## Richard : for now popular channels can contain channels i am subscribed to
+        votes = self._db.fetchall(sql,(bin2str(self.my_permid),))
         for vote in votes:
-            sql = "select publisher_name, time_stamp from ChannelCast where publisher_id='"+vote[0]+"' order by 2 desc" 
-            record = self._db.fetchone(sql)
+            sql = "select publisher_name, time_stamp from ChannelCast where publisher_id==? order by 2 desc" 
+            record = self._db.fetchone(sql, (vote[0],))
             if not record is None:
                 mod_name = record[0]
                 records.append((vote[0],mod_name,vote[1], {}))
@@ -3393,8 +3382,8 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select mod_id, (2*sum(vote)-count(*))/3 from VoteCast group by mod_id order by 2 desc"
         votecast_records = self._db.fetchall(sql)
 
-        sql = "select distinct mod_id from VoteCast where voter_id='"+bin2str(self.my_permid)+"' and vote=2"
-        subscribed_channels = self._db.fetchall(sql)
+        sql = "select distinct mod_id from VoteCast where voter_id==? and vote=2"
+        subscribed_channels = self._db.fetchall(sql,(bin2str(self.my_permid),))
         
         subscribers = {}
         for record in subscribed_channels:
@@ -3434,8 +3423,8 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getMyChannel(self):
         mychannel = []
         votecastdb = VoteCastDBHandler.getInstance()
-        sql = "select publisher_id, publisher_name from ChannelCast where publisher_id ='" + bin2str(self.my_permid) + "'" + "group by publisher_id"
-        res = self._db.fetchall(sql) 
+        sql = "select publisher_id, publisher_name from ChannelCast where publisher_id==? group by publisher_id"
+        res = self._db.fetchall(sql,(bin2str(self.my_permid),)) 
         if res is not None:
             mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(bin2str(self.my_permid)) - votecastdb.getNegVotes(bin2str(self.my_permid)), {}))
         else:
@@ -3446,14 +3435,14 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def getSubscribersCount(self,permid):
         """returns the number of subscribers in integer format"""
-        sql = "select count(*) from VoteCast where mod_id='"+permid+"'" + " and vote=2"
-        numrecords = self._db.fetchone(sql)
+        sql = "select count(*) from VoteCast where mod_id==? and vote=2"
+        numrecords = self._db.fetchone(sql, (permid,))
         return numrecords
 
     def getMyNumberSubscriptions(self): ##
         """returns the number of subscribers in integer format"""
-        sql = "select count(*) from VoteCast where voter_id='"+ bin2str(self.my_permid) + "'" + " and vote=2"
-        numrecords = self._db.fetchone(sql)
+        sql = "select count(*) from VoteCast where voter_id==? and vote=2"
+        numrecords = self._db.fetchone(sql, (bin2str(self.my_permid),))
         return numrecords
     
 
@@ -3469,7 +3458,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             if channel[0] != bin2str(self.my_permid):
                 num_votes = self.getSubscribersCount(channel[0])
                 records.append((channel[0], channel[1], num_votes, {}))
-        print >> sys.stderr , "records" , records
+        if DEBUG: print >> sys.stderr , "records" , records
         return records
 
 
@@ -3512,8 +3501,8 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select mod_id, (2*sum(vote)-count(*))/3 from VoteCast group by mod_id order by 2 desc"
         votecast_records = self._db.fetchall(sql)
 
-        sql = "select distinct mod_id from VoteCast where voter_id='"+bin2str(self.my_permid)+"' and vote=2"
-        subscribed_channels = self._db.fetchall(sql)
+        sql = "select distinct mod_id from VoteCast where voter_id==? and vote=2"
+        subscribed_channels = self._db.fetchall(sql,(bin2str(self.my_permid),))
 
 
         
@@ -3549,8 +3538,8 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getMostPopularChannelFromTorrent(self, infohash): ##
         """Returns name of most popular channel if any"""
         vcdb = VoteCastDBHandler.getInstance()
-        sql = "select * from ChannelCast where infohash='"+bin2str(infohash)+"'" 
-        publishers = self._db.fetchall(sql)
+        sql = "select * from ChannelCast where infohash==?" 
+        publishers = self._db.fetchall(sql,(bin2str(infohash),))
         if len(publishers) == 0:
             return None
         else:

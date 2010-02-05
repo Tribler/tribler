@@ -1,226 +1,280 @@
+# Written by Arno Bakker
+# see LICENSE.txt for license information
+
+# TODO: let one hit to SIMPLE+METADATA be P2PURL
 import unittest
 import os
 import sys
 import time
-import socket
-from sha import sha
-from random import randint,shuffle
-from traceback import print_exc
-from types import StringType, ListType, DictType, IntType, BooleanType
-from time import sleep, time
-
 import tempfile
-from M2Crypto import Rand,EC
+import shutil
+from Tribler.Core.Utilities.Crypto import sha
+from types import StringType, DictType, IntType
+from M2Crypto import EC
 
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Core.Session import *
 from olconn import OLConnection
-import btconn
-from Tribler.Core.BuddyCast.channelcast import ChannelCastCore
-from Tribler.Core.BuddyCast.votecast import VoteCastCore
-from Tribler.Core.SocialNetwork.ChannelQueryMsgHandler import ChannelQueryMsgHandler
+from Tribler.Core.API import *
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
-from Tribler.Core.simpledefs import *
-from Tribler.Core.CacheDB.CacheDBHandler import *
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
-from Tribler.Core.Overlay.permid import sign_data, generate_keypair, permid_for_user
-import os
-import sys
-import time
+from Tribler.Core.BuddyCast.moderationcast_util import validChannelCastMsg, validVoteCastMsg
+from Tribler.Core.BuddyCast.channelcast import ChannelCastCore
+from Tribler.Core.BuddyCast.buddycast import BuddyCastCore
+from Tribler.Core.BuddyCast.votecast import VoteCastCore
+from Tribler.Core.CacheDB.sqlitecachedb import str2bin,bin2str
 DEBUG=True
 
-class FakeLaunchmany:
+
+class TestChannels(TestAsServer):
+    """ 
+    Testing QUERY message of Social Network extension V1
+    """
     
-    def __init__(self):
-        self.peer_db = PeerDBHandler.getInstance()
-        self.superpeer_db = SuperPeerDBHandler.getInstance()
-        self.torrent_db = TorrentDBHandler.getInstance()
-        self.mypref_db = MyPreferenceDBHandler.getInstance()
-        self.pref_db = PreferenceDBHandler.getInstance()
-        self.friend_db =  FriendDBHandler.getInstance()
-        self.listen_port = 6881
-        self.session = Session()
-
-    def get_ext_ip(self):
-        return '127.0.0.1'
-
-class FakeOverlayBridge:
-    def add_task(self, foo, sec=0):
-        foo()
-
-class TestChannelCast(TestAsServer):
-    """   Testing ChannelCast message    """
-    
-    
-    def setUp(self):
-        """ override TestAsServer """
-        # From TestAsServer.setUp(self): ignore singleton on
-        self.setUpPreSession()
-        self.session = Session(self.config,ignore_singleton=True)
-        self.hisport = self.session.get_listen_port()        
-        self.setUpPostSession()
-
-        # New code
-        self.channelcastdb = ChannelCastDBHandler.getInstance()
-        self.channelcastdb.registerSession(self.session) 
-        
-        self.votecastdb = VoteCastDBHandler.getInstance()
-        self.votecastdb.registerSession(self.session)       
-
     def setUpPreSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
-        # BuddyCast
         self.config.set_buddycast(True)
+        BuddyCastCore.TESTASSERVER = True
+        ChannelCastCore.TESTASSERVER = True
+        VoteCastCore.TESTASSERVER = True
         self.config.set_start_recommender(True)
+        self.config.set_bartercast(True) 
+        self.config.set_remote_query(True)
+        self.config.set_crawler(False)       
+        self.config.set_torrent_collecting_dir(os.path.join(self.config_path, "tmp_torrent_collecting"))
+
+        # Write superpeers.txt
+        self.install_path = tempfile.mkdtemp()
+        spdir = os.path.join(self.install_path, LIBRARYNAME, 'Core')
+        os.makedirs(spdir)
+
+        statsdir = os.path.join(self.install_path, LIBRARYNAME, 'Core', 'Statistics')
+        os.makedirs(statsdir)
         
-        fd,self.superpeerfilename = tempfile.mkstemp()
-        os.write(fd,'')
-        os.close(fd)
-        self.config.set_superpeer_file(self.superpeerfilename)
+        superpeerfilename = os.path.join(spdir, 'superpeer.txt')
+        print >> sys.stderr,"test: writing empty superpeers to",superpeerfilename
+        f = open(superpeerfilename, "w")
+        f.write('# Leeg')
+        f.close()
+
+        self.config.set_install_dir(self.install_path)
+        
+        srcfiles = []
+        srcfiles.append(os.path.join(LIBRARYNAME,"schema_sdb_v4.sql"))
+        for srcfile in srcfiles:
+            sfn = os.path.join('..','..',srcfile)
+            dfn = os.path.join(self.install_path,srcfile)
+            print >>sys.stderr,"test: copying",sfn,dfn
+            shutil.copyfile(sfn,dfn)
+
+
 
     def setUpPostSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPostSession(self)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
-        self.hispermid = str(self.his_keypair.pub().get_der())        
-        self.myhash = sha(self.mypermid).digest()
+        self.hispermid = str(self.his_keypair.pub().get_der())
+
         
-        
-    def tearDown(self):
-        """ override TestAsServer """
-        TestAsServer.tearDown(self)
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
+        self.votecast_db = self.session.open_dbhandler(NTFY_VOTECAST)
         try:
-            os.remove(self.superpeerfilename)
+            # Add some torrents belonging to own channel
+            tdef1, self.bmetainfo1 = self.get_default_torrent('sumfilename1','Hallo S01E10')
+            dbrec= self.torrent_db.addExternalTorrent(tdef1, extra_info={"filename":"sumfilename1"})
+            self.infohash1 = tdef1.get_infohash()
+            self.channelcast_db.addOwnTorrent(tdef1)
+            
+            tdef2, self.bmetainfo2 = self.get_default_torrent('sumfilename2','Hallo S02E01')
+            dbrec = self.torrent_db.addExternalTorrent(tdef2, extra_info={"filename":"sumfilename2"})
+            self.infohash2 = tdef2.get_infohash()
+            self.torrenthash2 = sha(self.bmetainfo2).digest()
+            self.channelcast_db.addOwnTorrent(tdef2)
+    
+            tdef3, self.bmetainfo3 = self.get_default_torrent('sumfilename3','Halo Demo')
+            self.torrent_db.addExternalTorrent(tdef3, extra_info={"filename":"sumfilename3"})
+            self.infohash3 = tdef3.get_infohash()
+            self.torrenthash3 = sha(self.bmetainfo3).digest()
+            self.channelcast_db.addOwnTorrent(tdef3)
+            
+            # Now, add some votes
+            self.votecast_db.subscribe("MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAIV8h+eS+vQ+0uqZNv3MYYTLo5s0JP+cmkvJ7U4JAHhfRv1wCqZSKIuY7Q+3ESezhRnnmmX4pbOVhKTU")
+            self.votecast_db.spam("MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAIV8h+eS+vQ+0uqZNv3MYYTLo5s0JP+cmkvJ7U4JAHhfRv1wCqZSKIuY7Q+3ESezhRnnmmX4pbOVhKTX")
+            vote = {'mod_id':"MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAIV8h+eS+vQ+0uqZNv3MYYTLo5s0JP+cmkvJ7U4JAHhfRv1wCqZSKIuY7Q+3ESezhRnnmmX4pbOVhKTU", 'voter_id':"MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAIV8h+eS+vQ+0uqZNv3MYYTLo5s0JP+cmkvJ7U4JAHhfRv1wCqZSKIuY7Q+3ESezhRnnmmX4pbOVhKTX",'vote':1, 'time_stamp':132314}
+            self.votecast_db.addVote(vote)
         except:
             print_exc()
+        
 
-    def test_channel_subscription(self):
-        self.votecastdb.unsubscribe(bin2str(self.mypermid))
-        self.assertEqual(self.votecastdb.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),None)
-        print >> sys.stderr, self.votecastdb.getAll()
+    def tearDown(self):
+        TestAsServer.tearDown(self)
+        self.session.close_dbhandler(self.torrent_db)
+      
 
-        self.votecastdb.spam(bin2str(self.mypermid))
-        self.assertEqual(self.votecastdb.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),-1)
-        print >> sys.stderr, self.votecastdb.getAll()
+    def get_default_torrent(self,filename,title,paths=None):
+        metainfo = {}
+        metainfo['announce'] = 'http://localhost:0/announce'
+        metainfo['announce-list'] = []
+        metainfo['creation date'] = int(time.time())
+        metainfo['encoding'] = 'UTF-8'
+        info = {}
+        info['name'] = title.encode("UTF-8")
+        info['piece length'] = 2 ** 16
+        info['pieces'] = '*' * 20
+        if paths is None:
+            info['length'] = 481
+        else:
+            d1 = {}
+            d1['path'] = [paths[0].encode("UTF-8")]
+            d1['length'] = 201
+            d2 = {}
+            d2['path'] = [paths[1].encode("UTF-8")]
+            d2['length'] = 280
+            info['files'] = [d1,d2]
+            
+        metainfo['info'] = info
+        path = os.path.join(self.config.get_torrent_collecting_dir(),filename)
+        tdef = TorrentDef.load_from_dict(metainfo)
+        tdef.save(path)
+        return tdef, bencode(metainfo)
+
+
+    def test_all(self):
+        """ 
+            I want to start a Tribler client once and then connect to
+            it many times. So there must be only one test method
+            to prevent setUp() from creating a new client every time.
+
+            The code is constructed so unittest will show the name of the
+            (sub)test where the error occured in the traceback it prints.
+        """
+        # test ChannelCast
+        self.subtest_channelcast()
+        
+        # test VoteCast
+        self.subtest_votecast()
+        
+        # test ChannelQuery-keyword
+        self.subtest_channel_keyword_query()
+        
+        # test ChannelQuery-permid
+        self.subtest_channel_permid_query()
+        
+        #test voting
+        self.subtest_voting()
+
+    def subtest_voting(self):
+        self.votecast_db.unsubscribe(bin2str(self.mypermid))
+        self.assertEqual(self.votecast_db.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),None)
+        #print >> sys.stderr, self.votecast_db.getAll()
+
+        self.votecast_db.spam(bin2str(self.mypermid))
+        self.assertEqual(self.votecast_db.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),-1)
+        #print >> sys.stderr, self.votecast_db.getAll()
                 
-        self.votecastdb.subscribe(bin2str(self.mypermid))
-        self.assertEqual(self.votecastdb.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),2)
-        print >> sys.stderr, self.votecastdb.getAll()
+        self.votecast_db.subscribe(bin2str(self.mypermid))
+        self.assertEqual(self.votecast_db.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),2)
+        #print >> sys.stderr, self.votecast_db.getAll()
         
-        self.votecastdb.unsubscribe(bin2str(self.mypermid))
-        self.assertEqual(self.votecastdb.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),0)
-        print >> sys.stderr, self.votecastdb.getAll()
+        self.votecast_db.unsubscribe(bin2str(self.mypermid))
+        self.assertEqual(self.votecast_db.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),None)
+        #print >> sys.stderr, self.votecast_db.getAll()
         
-        self.votecastdb.spam(bin2str(self.mypermid))
-        self.assertEqual(self.votecastdb.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),-1)
-        print >> sys.stderr, self.votecastdb.getAll()
+        self.votecast_db.spam(bin2str(self.mypermid))
+        self.assertEqual(self.votecast_db.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),-1)
+        #print >> sys.stderr, self.votecast_db.getAll()
         
-    def check_chquery_reply(self,data):
+    def check_chquery_reply(self, data):
         d = bdecode(data)
         self.assert_(type(d) == DictType)
         self.assert_(d.has_key('a'))
         self.assert_(d.has_key('id'))
         id = d['id']
-        self.assert_(type(id) == StringType)                
+        self.assert_(type(id) == StringType)
+        self.assert_(validChannelCastMsg(d['a'])==True)
 
-    def test_channelcast(self):
-        torrent_data = {'announce':"http://localhost", 'info':{'name':'Hello 123', 'files':[{'length':100, 'path':['license.txt']}]}}
-        infohash = bin2str(sha(bencode(torrent_data['info'])).digest())
-        self.channelcastdb.addOwnTorrent(infohash,torrent_data)
+    def subtest_channel_permid_query(self):
+        print >>sys.stderr,"test: chquery permid-----------------------------"
+        s = OLConnection(self.my_keypair,'localhost',self.hisport)
+        data = {}
+        data['q'] = 'CHANNEL p:'+ bin2str(self.hispermid)
+        data['id'] = 'b' * 20
+        msg = QUERY + bencode(data)
+        s.send(msg)
+        resp = s.recv()
+        #print >> sys.stderr, "printing resp", resp
+        if len(resp) > 0:
+            print >>sys.stderr,"test: chquery: got",getMessageName(resp[0])
+        self.assert_(resp[0]==QUERY_REPLY)
+        self.check_chquery_reply(resp[1:])
+        print>>sys.stderr,bdecode(resp[1:])
+        s.close()
         
+    def subtest_channel_keyword_query(self):
+        print >>sys.stderr,"test: chquery keyword-----------------------------"
+        s = OLConnection(self.my_keypair,'localhost',self.hisport)
+        data = {}
+        data['q'] = 'CHANNEL k:tu'
+        data['id'] = 'b' * 20
+        msg = QUERY + bencode(data)
+        s.send(msg)
+        resp = s.recv()
+        #print >> sys.stderr, "printing resp", resp
+        if len(resp) > 0:
+            print >>sys.stderr,"test: chquery: got",getMessageName(resp[0])
+        self.assert_(resp[0]==QUERY_REPLY)
+        self.check_chquery_reply(resp[1:])
+        print>>sys.stderr,bdecode(resp[1:])
+        s.close()
+        
+    def subtest_votecast(self):
+        print >>sys.stderr,"test: votecast-----------------------------"
+        s = OLConnection(self.my_keypair,'localhost',self.hisport)
+        vcast = VoteCastCore(None, s, self.session, None, log = '', dnsindb = None)
+        vdata = {}
+        print >> sys.stderr, "sending vmsg", vdata
+        msg = VOTECAST+bencode(vdata)
+        s.send(msg)
+        resp = s.recv()
+        #print >> sys.stderr, "printing resp", resp
+        if len(resp) > 0:
+            print >>sys.stderr,"test: votecast: got",getMessageName(resp[0])
+        self.assert_(resp[0]==VOTECAST)
+        print >>sys.stderr, "test: votecast: got msg", bdecode(resp[1:])
+        vdata_rcvd = bdecode(resp[1:])
+        self.assert_(validVoteCastMsg(vdata_rcvd)==True)
+        print>>sys.stderr, "End of votecast test"
+        s.close()        
+        
+    def subtest_channelcast(self):
+        print >>sys.stderr,"test: channelcast"
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         chcast = ChannelCastCore(None, s, self.session, None, log = '', dnsindb = None)
-        
-        # Good message
-        chdata =  chcast.createChannelCastMessage()
-        if chdata is None or len(chdata) ==0:
-            print "test: no subscriptions for us.. hence do not send"       
-        else:
-            msg = CHANNELCAST + bencode(chdata)        
-            print "test: channelcast msg created", repr(chdata)        
-            s.send(msg)
-        
-        time.sleep(3)
-        
-        # Bad message
-        if chdata is None or len(chdata)==0:
-            pass
-        else:
-            pub_id, pub_name, infohash, torrenthash, name, timestamp, signature = chdata[0]
-            chdata = [(pub_id, pub_name, infohash, torrenthash, name, 12343, signature)]
-            msg = CHANNELCAST + bencode(chdata)        
-            print "test: channelcast msg created", repr(chdata)        
-            s.send(msg)
-            time.sleep(20)
-            # the other side should have closed the connection, as it is invalid message
-        
-            
-        s.close()        
-        
-    def test_channel_query(self):
-        
-        s = OLConnection(self.my_keypair,'localhost',self.hisport)
-        msg = CHANNEL_QUERY+bencode({'q':'k:dutiet', 'id': 'a' * 20})
+        #chdata = chcast.createChannelCastMessage()
+        chdata = {}
+        print >> sys.stderr, "sending chmsg", chdata
+        msg = CHANNELCAST+bencode(chdata)
         s.send(msg)
         resp = s.recv()
+        #print >> sys.stderr, "printing resp", resp
         if len(resp) > 0:
-            print >>sys.stderr,"test: good CH_QUERY: got",getMessageName(resp[0])
-            self.assert_(resp[0] == CHANNEL_QUERY_REPLY)
-            self.check_chquery_reply(resp[1:])
-        time.sleep(10)
-        # the other side should not have closed the connection, as
-        # this is all valid, so this should not throw an exception:
-        #s.send('bla')
+            print >>sys.stderr,"test: channelcast: got",getMessageName(resp[0])
+        self.assert_(resp[0]==CHANNELCAST)
+        print >>sys.stderr, "test: channelcast: got msg", bdecode(resp[1:])
+        chdata_rcvd = bdecode(resp[1:])
+        self.assert_(validChannelCastMsg(chdata_rcvd)==True)
+        print>>sys.stderr, "End of channelcast test"
         s.close()        
-    
-    def test_channel_update(self):
-        s = OLConnection(self.my_keypair,'localhost',self.hisport)
-        msg = CHANNEL_QUERY+bencode({'q':'p:345fsdf34fe345ed344g5', 'id': 'a' * 20})
-        s.send(msg)
-        resp = s.recv()
-        if len(resp) > 0:
-            print >>sys.stderr,"test: good CH_QUERY: got",getMessageName(resp[0])
-            self.assert_(resp[0] == CHANNEL_QUERY_REPLY)
-            self.check_chquery_reply(resp[1:])
-        time.sleep(10)
-        # the other side should not have closed the connection, as
-        # this is all valid, so this should not throw an exception:
-        s.send('bla')
-        s.close()
-            
-    def test_votecast(self):
-        self.votecastdb.subscribe('nitin')
-        s = OLConnection(self.my_keypair,'localhost',self.hisport)
-        votecast = VoteCastCore(None, s, self.session, None, log = '', dnsindb = None)
-        data = votecast.createVoteCastMessage()
-        if data is None and len(data)==0:
-            print >>sys.stderr, "test: no votes"
-        else:
-            msg = VOTECAST + bencode(data)
-            s.send(msg)
-            s.close()
-            
         
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
-    # problems with our singleton classes, e.g. PeerDB, etc.
-    if len(sys.argv) != 2:
-        print "Usage: python test_channelcast.py <method name>"
-    else:
-        suite.addTest(TestChannelCast(sys.argv[1]))
+    suite.addTest(unittest.makeSuite(TestChannels))
     
     return suite
 
-def main():
-    unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])
-
 if __name__ == "__main__":
-    main()
+    unittest.main()
 
-def usercallback(permid,query,d):
-    print >> sys.stderr, "chquery_connected_peers: Processing reply:", permid, query, repr(d)
