@@ -1005,7 +1005,7 @@ class GUIUtility:
 
         
         if mode == 'channelsMode':
-            q = 'CHANNEL k:'
+            q = 'CHANNEL k '
             for kw in wantkeywords:
                 q += kw+' '
             

@@ -199,7 +199,7 @@ class TestChannels(TestAsServer):
         print >>sys.stderr,"test: chquery permid-----------------------------"
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         data = {}
-        data['q'] = 'CHANNEL p:'+ bin2str(self.hispermid)
+        data['q'] = 'CHANNEL p '+ bin2str(self.hispermid)
         data['id'] = 'b' * 20
         msg = QUERY + bencode(data)
         s.send(msg)
@@ -216,7 +216,7 @@ class TestChannels(TestAsServer):
         print >>sys.stderr,"test: chquery keyword-----------------------------"
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         data = {}
-        data['q'] = 'CHANNEL k:tu'
+        data['q'] = 'CHANNEL k tu'
         data['id'] = 'b' * 20
         msg = QUERY + bencode(data)
         s.send(msg)

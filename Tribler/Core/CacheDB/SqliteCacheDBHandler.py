@@ -3068,6 +3068,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         
     def _sign(self, record):
         assert record is not None
+        # Nitin on Feb 5, 2010: Signature is generated using binary forms of permid, infohash, torrenthash fields 
         r = (str2bin(record[0]),str2bin(record[2]),str2bin(record[3]),record[5])
         bencoding = bencode(r)
         signature = bin2str(sign_data(bencoding, self.session.keypair))

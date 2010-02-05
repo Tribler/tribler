@@ -106,6 +106,7 @@ def validChannelCastMsg(channelcast_data):
                 print >>sys.stderr,"validChannelCastMsg: something not valid"
             return False
         # now, verify signature
+        # Nitin on Feb 5, 2010: Signature is validated using binary forms of permid, infohash, torrenthash fields
         l = (ch['publisher_id'],ch['infohash'], ch['torrenthash'], ch['time_stamp'])
         if not verify_data(bencode(l),ch['publisher_id'],signature):
             if DEBUG:

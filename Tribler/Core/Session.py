@@ -669,11 +669,11 @@ class Session(SessionRuntimeConfig):
         by sending the query to connected peers. 
         
         The format of the query in the corresponding scenarios should be: 
-        a. keyword-based query: "CHANNEL k:bbc"     
-            ('k' stands for keyword-based and ':' is a separator followed by 
+        a. keyword-based query: "CHANNEL k bbc"     
+            ('k' stands for keyword-based and ' '{space} is a separator followed by 
             the keywords)
-        b. permid-based query: "CHANNEL p:f34wrf2345wfer2345wefd3r34r54" 
-            ('p' stands for permid-based and ':' is a separator followed by
+        b. permid-based query: "CHANNEL p f34wrf2345wfer2345wefd3r34r54" 
+            ('p' stands for permid-based and ' '{space} is a separator followed by
             the permid)
         
         In each of the above 2 cases, the format of the hits that is returned 

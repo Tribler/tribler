@@ -230,7 +230,7 @@ class ChannelCastCore:
         subscribed_channels = self.channelcastdb.getMySubscribedChannels(from_channelcast=True)
         for permid, channel_name, num_subscriptions, notused in subscribed_channels:
             # query the remote peers, based on permid, to update the channel content
-            q = "CHANNEL p:"+permid
+            q = "CHANNEL p "+permid
             self.session.query_connected_peers(q,usercallback=self.updateChannel)
         
         self.secure_overlay.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)        
