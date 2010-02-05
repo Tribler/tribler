@@ -36,11 +36,12 @@ OLPROTO_VER_SEVENTH = 7 # Sixth public release, >= 4.5.0, supports CRAWLER_REQUE
 OLPROTO_VER_EIGHTH = 8  # Seventh public release, >= 5.0, supporting BuddyCast with clicklog info.
 OLPROTO_VER_NINETH = 9  # Eighth public release, >= 5.1, additional torrent_size in remote search query reply.
 OLPROTO_VER_TENTH = 10  # Nineth public release, M18, simplified the VOD statistics (this code is not likely to be used in public, but still).
-OLPROTO_VER_ELEVENTH = 11  # Tenth public release >= 5.2, swarm size info part of BC message
-OLPROTO_VER_TWELFTH = 12  # 11th public release >= 5.x, SIMPLE+METADATA query
+OLPROTO_VER_ELEVENTH = 11  # Tenth public release, trial M23, swarm size info part of BC message
+OLPROTO_VER_TWELFTH = 12  # 11th public release M24, SIMPLE+METADATA query + ChannelCast BASE64.
+OLPROTO_VER_THIRTEENTH = 13 # 12th public release >= 5.2, ChannelCast binary.
 
 # Overlay-swarm protocol version numbers
-OLPROTO_VER_CURRENT = OLPROTO_VER_TWELFTH
+OLPROTO_VER_CURRENT = OLPROTO_VER_TWELFTH   # TODO: Move to 13 when Nitin commits
 
 OLPROTO_VER_LOWEST = OLPROTO_VER_SECOND
 SupportedVersions = range(OLPROTO_VER_LOWEST, OLPROTO_VER_CURRENT+1)
@@ -835,6 +836,11 @@ class OverlayConnection:
             return None
         elif DEBUG:
             print >> sys.stderr,"olconn: Selected protocol version",self.sel_proto_ver
+
+        if self.cur_proto_ver <= 2:
+            # Arno, 2010-02-04: Kick TorrentSwapper clones, still around 
+            print >>sys.stderr,"olconn: Kicking ancient peer",`self.unauth_peer_id`,self.get_ip()
+            return None
 
         self.state = STATE_AUTH_WAIT
         self.cr = ChallengeResponse(self.handler.get_my_keypair(),self.handler.get_my_peer_id(),self)

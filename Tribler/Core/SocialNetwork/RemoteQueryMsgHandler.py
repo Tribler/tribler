@@ -476,9 +476,6 @@ class RemoteQueryMsgHandler:
             print >>sys.stderr,"rquery: search for torrents matching",`kws`
         
         allhits = self.torrent_db.searchNames(kws,local=False)
-        
-        print >>sys.stderr,"rquery: got matches",`allhits`
-        
         if maxhits is None:
             hits = allhits
         else:

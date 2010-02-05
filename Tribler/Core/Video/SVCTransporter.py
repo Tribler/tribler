@@ -21,7 +21,7 @@ from Tribler.Core.Video.VideoOnDemand import *
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
-DEBUG = False
+DEBUG = True
 DEBUGPP = False
 
 class PieceStats:

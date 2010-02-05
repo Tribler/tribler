@@ -739,7 +739,6 @@ class ChannelSearchGridManager:
                 
     def getMyChannel(self, mode):
         if self.mychannel is None:
-            print >> sys.stderr , "FIRST"
             self.mychannel = self.channelcast_db.getMyChannel()
         mychannel = self.mychannel
         return [1, mychannel]

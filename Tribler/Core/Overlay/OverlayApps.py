@@ -262,7 +262,7 @@ class OverlayApps:
                 et = time()
                 diff = et - st
                 if diff > 0:
-                    print >> sys.stderr,"olapps: ",getMessageName(id_),"TOOK %.5f" % diff
+                    print >> sys.stderr,"olapps: ",getMessageName(id_),"returned",ret,"TOOK %.5f" % diff
                 return ret
             else:
                 return self.msg_handlers[id_](permid, selversion, message)

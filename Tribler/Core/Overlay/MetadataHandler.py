@@ -464,6 +464,9 @@ class MetadataHandler:
             infohash = message['torrent_hash']
             if not isValidInfohash(infohash):
                 return False
+            
+            
+            #print >>sys.stderr,"metadata: got_metadata: hexinfohash: get_collected_torrent_filename(infohash)
 
             if not infohash in self.requested_torrents:    # got a torrent which was not requested
                 return True
