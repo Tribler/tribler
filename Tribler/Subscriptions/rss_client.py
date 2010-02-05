@@ -70,10 +70,9 @@ class TorrentFeedThread(Thread):
         self.lock = RLock()
         self.done = Event()
 
-        # main url used for rc1
-        self.mainURL = None
-
-        
+        # a list containing methods that are called whenever a RSS
+        # feed on ANY of the urls is received
+        self.callbacks = []
 
         # when rss feeds change, we have to restart the checking
         self.feeds_changed = Event()
@@ -100,24 +99,12 @@ class TorrentFeedThread(Thread):
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        try:
-            f = open(filename,"rb")
-            for line in f.readlines():
-                for key in ['active','inactive']:
-                    if line.startswith(key):
-                        url = line[len(key)+1:-2] # remove \r\n
-                        self.mainURL = url
-                        if DEBUG:
-                            print >>sys.stderr,"subscrip: Add from file URL",url,"EOU"
-                        self.addURL(url,dowrite=False,status=key)
-            f.close()        
-        except:
-            pass
-            #traceback.print_exc()
-    
+        # read any rss feeds that are currently outstanding
+        self.readfile()
+
         #self.addURL('http://www.legaltorrents.com/feeds/cat/netlabel-music.rss')
         #self.addFile('ubuntu-9.04-desktop-i386.iso.torrent')
-    
+
     def addFile(self, filename):
         """ This function enables to add individual torrents, instead of a collection of torrents through RSS """
         try:
@@ -140,6 +127,21 @@ class TorrentFeedThread(Thread):
             print >> sys.stderr, "Could not add torrent:", filename
             traceback.print_exc()
             return None
+
+    def addCallback(self, callback):
+        self.lock.acquire()
+        try:
+            if not callback in self.callbacks:
+                self.callbacks.append(callback)
+        finally:
+            self.lock.release()
+
+    def removeCallback(self, callback):
+        self.lock.acquire()
+        try:
+            self.callbacks.remove(callback)
+        finally:
+            self.lock.release()
 
 #    def setURLCallback(self, url, callback):
 #        self.lock.acquire()
@@ -177,6 +179,21 @@ class TorrentFeedThread(Thread):
                    tup[2] = callback
         self.lock.release()
 
+    def readfile(self):
+        try:
+            filename = self.getfilename()
+            f = open(filename,"rb")
+            for line in f.readlines():
+                for key in ['active', 'inactive']:
+                    if line.startswith(key):
+                        url = line[len(key)+1:-2] # remove \r\n
+                        if DEBUG:
+                            print >>sys.stderr,"subscrip: Add from file URL",url,"EOU"
+                        self.addURL(url,dowrite=False,status=key)
+            f.close()        
+        except:
+            traceback.print_exc()
+    
     def writefile(self):
         filename = self.getfilename()
         f = open(filename,"wb")
@@ -184,7 +201,7 @@ class TorrentFeedThread(Thread):
             val = self.urls[url]
             f.write(val+' '+url+'\r\n')
         f.close()
-        
+
     def getfilename(self):
         return os.path.join(self.getdir(),"subscriptions.txt")
 
@@ -201,6 +218,16 @@ class TorrentFeedThread(Thread):
     def getdir(self):
         return os.path.join(self.session.get_state_dir(),"subscriptions")
         
+    def getUrls(self, status="active"):
+        """
+        returns a list with urls matching status
+        """
+        self.lock.acquire()
+        try:
+            return [url for url, url_status in self.urls.iteritems() if url_status == status]
+        finally:
+            self.lock.release()
+    
     def getURLs(self):
         return self.urls # doesn't need to be locked
         
@@ -297,6 +324,18 @@ class TorrentFeedThread(Thread):
                                         print >> sys.stderr , "USER CALLBACK"
                                     user_callback(rss_url, infohash, torrent_data)
 
+                                # perform all non-url-specific callbacks
+                                self.lock.acquire()
+                                callbacks = self.callbacks[:]
+                                self.lock.release()
+
+                                for callback in callbacks:
+                                    try:
+                                        if DEBUG:
+                                            print >> sys.stderr , "RSS CALLBACK"
+                                        callback(rss_url, infohash, torrent_data)
+                                    except:
+                                        traceback.print_exc()
 
                     except StopIteration:
                         # there are no more items in generator

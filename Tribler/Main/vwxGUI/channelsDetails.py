@@ -138,6 +138,7 @@ class channelsDetails(bgPanel):
 
         # rss
         self.torrentfeed = TorrentFeedThread.getInstance()
+        self.torrentfeed.addCallback(self.nonUIThreadAddTorrent)
         self.rssFeed = None
         self.oldrssFeed = 1
 
@@ -255,15 +256,15 @@ class channelsDetails(bgPanel):
         #self.rssCtrl.SetValue("http://www.legaltorrents.com/feeds/cat/netlabel-music.rss")
         self.rssCtrl.SetMinSize((self.x-205,23))
 
-        self.tf = TorrentFeedThread.getInstance()
-        try:
-            self.rssCtrl.SetValue(self.tf.mainURL)
+        urls = self.torrentfeed.getUrls("active")
+        # if there are more urls, we have no way to ensure we have the
+        # correct one...
+        if len(urls) > 0:
+            self.rssCtrl.SetValue(urls[0])
             #self.rssFeed = self.rssCtrl.GetValue().strip()
-        except:
-            pass
 
 
-        #self.tf.addURL(self.rssCtrl.GetValue().strip()) ## callback=self.nonUIThreadAddTorrent
+        #self.torrentfeed.addURL(self.rssCtrl.GetValue().strip()) ## callback=self.nonUIThreadAddTorrent
 
 
 
@@ -519,7 +520,7 @@ class channelsDetails(bgPanel):
         if self.rssCtrl.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'addRSS') and self.rssFeed != self.rssCtrl.GetValue().strip() and self.updateButton.isToggled():
             self.torrentfeed.deleteURL(self.rssFeed) 
             self.setRSSFeed(self.rssCtrl.GetValue().strip())
-            self.torrentfeed.addURL(self.rssFeed, callback=self.nonUIThreadAddTorrent) 
+            self.torrentfeed.addURL(self.rssFeed) 
             self.updateButton.setToggled(False)
             self.updateRSSText()
         else:
@@ -615,7 +616,7 @@ class channelsDetails(bgPanel):
         path = self.defaultDLConfig.get_dest_dir()
         dlg.SetPath(path)
         if dlg.ShowModal() == wx.ID_OK and os.path.isfile(dlg.GetPath()):
-            infohash = self.tf.addFile(dlg.GetPath())
+            infohash = self.torrentfeed.addFile(dlg.GetPath())
             if infohash is not None:
                 try:
                     torrent = self.torrent_db.getTorrent(infohash)
