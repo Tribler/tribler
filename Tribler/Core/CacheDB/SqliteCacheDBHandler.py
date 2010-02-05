@@ -2946,7 +2946,7 @@ class VoteCastDBHandler(BasicDBHandler):
         for record in allrecords:
             records.append((str2bin(record[0]),record[1], record[2]))
             
-        return allrecords
+        return records #allrecords... Nitin: should have been records
     
 
     def hasSubscription(self, permid, voter_peerid): ##
