@@ -978,6 +978,7 @@ class GUIUtility:
         self.channelsearch_manager.setSearchKeywords(wantkeywords, mode)
 
         ##### GUI specific code
+        self.channelsearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
 
         if self.standardOverview.getMode != 'channelsMode':
             self.standardOverview.setMode('channelsMode')
