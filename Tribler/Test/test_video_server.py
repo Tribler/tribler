@@ -28,7 +28,7 @@ class TestVideoHTTPServer(unittest.TestCase):
         self.serv.background_serve()
         self.serv.register(self.videoservthread_error_callback,self.videoservthread_set_status_callback)
         
-        self.sourcefn = os.path.join("API","file.wmv") # 82KB
+        self.sourcefn = os.path.join("API","file.wmv") # 82KB or 82948 bytes
         self.sourcesize = os.path.getsize(self.sourcefn)
          
     def tearDown(self):
@@ -52,17 +52,10 @@ class TestVideoHTTPServer(unittest.TestCase):
     def test_ranges(self):
         # Run single test, VideoHTTPServer is singleton at the moment and
         # doesn't like recreate.
-        try:
-            self.range_test(115,214,100)
-            self.range_test(self.sourcesize-100,None,100)
-            self.range_test(None,100,100)
-
-            self.range_test(115,214,100,setset=True)
-            
-        except Exception,e:
-            print_exc()
-            #raise e
-        
+        self.range_test(115,214,self.sourcesize)
+        self.range_test(self.sourcesize-100,None,self.sourcesize)
+        self.range_test(None,100,self.sourcesize)
+        self.range_test(115,214,self.sourcesize,setset=True)
 
     #
     # Internal
@@ -89,7 +82,7 @@ class TestVideoHTTPServer(unittest.TestCase):
             
         return head
 
-    def range_test(self,firstbyte,lastbyte,expsize,setset=False):
+    def range_test(self,firstbyte,lastbyte,sourcesize,setset=False):
         self.register_file_stream()
         
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -108,8 +101,6 @@ class TestVideoHTTPServer(unittest.TestCase):
         
         head += "\r\n"
         
-        s.send(head)
-
         if firstbyte is not None and lastbyte is None:
             # 100-
             expfirstbyte = firstbyte 
@@ -122,8 +113,11 @@ class TestVideoHTTPServer(unittest.TestCase):
             expfirstbyte = firstbyte
             explastbyte = lastbyte
 
-        print >>sys.stderr,"test: Expecting first",expfirstbyte,"last",explastbyte,"size",expsize
-        self.assert_(expfirstbyte+expsize == explastbyte+1)
+        # the amount of bytes actually requested. (Content-length)
+        expsize = explastbyte - expfirstbyte + 1
+
+        print >>sys.stderr,"test: Expecting first",expfirstbyte,"last",explastbyte,"size",sourcesize
+        s.send(head)
         
         # Parse header
         while True:
@@ -147,7 +141,7 @@ class TestVideoHTTPServer(unittest.TestCase):
                     return
 
             elif line.startswith("Content-Range:"):
-                expline = "Content-Range: bytes "+self.create_range_str(expfirstbyte,explastbyte)+"/"+str(expsize)+"\r\n"
+                expline = "Content-Range: bytes "+self.create_range_str(expfirstbyte,explastbyte)+"/"+str(sourcesize)+"\r\n"
                 self.assertEqual(expline,line)
                  
             elif line.startswith("Content-Type:"):

@@ -1,45 +1,84 @@
 
 set PYTHONPATH=..\..
 
-python test_sqlitecachedb.py
-REM python test_friend.py # Arno, 2008-10-17: need to convert to new DB structure
-python test_superpeers.py 
+REM python test_bsddb2sqlite.py # Arno, 2008-11-26: Alea jacta est.
 REM python test_buddycast.py # currently not working due to missing DataHandler functions, 2008-10-17
-REM python test_torrentcollecting.py # currently not working due to missing functions, 2009-12-04
+REM python test_friend.py # Arno, 2008-10-17: need to convert to new DB structure
 REM python test_sim.py # currently not working due to unfinished test functions, 2008-10-17
-python test_merkle.py
-python test_permid.py
-python test_permid_response1.py
+REM python test_torrentcollecting.py # currently not working due to missing functions, 2009-12-04
+python test_TimedTaskQueue.py
+python test_bartercast.py
+python test_cachingstream.py
+python test_closedswarm.py
+python test_connect_overlay.py singtest_connect_overlay
+python test_crawler.py
 python test_dialback_request.py
 python test_extend_hs.py
-python test_social_overlap.py
-python test_gui_server.py
-python test_remote_query.py
-python test_ut_pex.py
-python test_bartercast.py
-python test_g2g.py
-python test_TimedTaskQueue.py
-python test_crawler.py
 python test_friendship_crawler.py
+python test_g2g.py
+python test_gui_server.py
+python test_merkle.py
 python test_multicast.py
+python test_osutils.py
+python test_permid.py
+python test_permid_response1.py
+python test_remote_query.py
+python test_seeding_stats.py
+python test_social_overlap.py
+python test_sqlitecachedb.py
+python test_status.py
+python test_superpeers.py 
 python test_url.py
 python test_url_metadata.py
-python test_status.py
-python test_closedswarm.py
-python test_cachingstream.py
+python test_ut_pex.py
+python test_video_server.py
 
-CALL test_sqlitecachedbhandler.bat
-CALL test_secure_overlay.bat
-CALL test_dialback_reply_active.bat
-CALL test_dialback_conn_handler.bat
-CALL test_rquery_reply_active.bat
-CALL test_dlhelp.bat
-CALL test_buddycast_msg.bat 
 CALL test_buddycast2_datahandler.bat
+CALL test_buddycast_msg.bat 
+CALL test_dialback_conn_handler.bat
+CALL test_dialback_reply_active.bat
+CALL test_dlhelp.bat
 REM # See warning in test_friendship.py
-CALL test_friendship.bat
+CALL test_friendship.bat        
 CALL test_merkle_msg.bat
+CALL test_overlay_bridge.bat
+CALL test_rquery_reply_active.bat
+CALL test_secure_overlay.bat
+CALL test_sqlitecachedbhandler.bat
 CALL test_vod.bat
+CALL test_na_extend_hs.bat
 
 REM Takes a long time, do at end
 python test_natcheck.py
+
+REM ##### ARNO
+REM # wait till arno's fixes are merged
+REM # python test_buddycast5.py
+
+REM #### NITIN
+REM # wait till nitin fixes the testcase and the bin2str inconsistencies
+REM # ./test_channelcast.sh
+REM # python test_searchgridmanager.py
+
+REM ########### Not unittests
+REM #
+REM # 2010-02-03 Boudewijn: The stresstest works, but does not contain any
+REM # actual unittests... it just takes a long time to run
+REM # python test_buddycast4_stresstest.py
+REM #
+REM # 2010-02-03 Boudewijn: Doesn't look like this was ever a unittest
+REM # python test_tracker_checking.py
+
+REM ########### Obsolete
+REM #
+REM # 2010-02-03 Boudewijn: Obsolete. test_cachedb.py tests the old
+REM # bsdcachedb interface, no longer compatible with current code.
+REM # python test_cachedb.py 
+REM #
+REM # 2010-02-03 Boudewijn: Obsolete. test_cachedbhandler.py tests the old
+REM # bsdcachedb interface, no longer compatible with current code.
+REM # python test_cachedbhandler.py
+REM #
+REM # 2010-02-03 Boudewijn: OLD, not using anymore
+REM # python test_buddycast4.py 
+

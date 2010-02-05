@@ -5,7 +5,10 @@
 import sys
 import unittest
 import time
+import tempfile
+import os
 
+import Tribler.Core.CacheDB.sqlitecachedb as sqlitecachedb  
 from Tribler.Test.test_secure_overlay import TestSecureOverlay,Peer 
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
@@ -16,6 +19,15 @@ class TestOverlayThreadingBridge(TestSecureOverlay):
     def setUp(self):
         
         print >>sys.stderr,"test: TestOverlayThreadingBridge.setUp()"
+
+        self.config_path = tempfile.mkdtemp()
+        config = {}
+        config['state_dir'] = self.config_path
+        config['torrent_collecting_dir'] = self.config_path
+        config['install_dir'] = os.path.join('..','..')
+        config['peer_icon_path'] = os.path.join(self.config_path,'peer_icons')
+        config['superpeer'] = False
+        sqlitecachedb.init(config, self.rawserver_fatalerrorfunc)
         
         secover1 = SecureOverlay.getInstance()
         secover1.resetSingleton()
@@ -24,9 +36,11 @@ class TestOverlayThreadingBridge(TestSecureOverlay):
         
         overbridge1 = OverlayThreadingBridge()
         overbridge1.register_bridge(secover1,None)
+        overbridge1.resetSingleton()
 
         overbridge2 = OverlayThreadingBridge()
         overbridge2.register_bridge(secover2,None)
+        overbridge2.resetSingleton()
 
         
         self.peer1 = Peer(self,1234,overbridge1)

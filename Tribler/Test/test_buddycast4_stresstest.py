@@ -84,19 +84,19 @@ class TestBuddyCast(TestAsServer):
             The code is constructed so unittest will show the name of the
             (sub)test where the error occured in the traceback it prints.
         """
-        self.queryfile = "c:\\files\\workspace\\python\\MyTribler\\Tribler\\queries.txt"
+        self.queryfile = "test_buddycast4_stresstest_queries.txt"
         self.queries = []
         f = open(self.queryfile,"r")
         oldline = ""
         for line in f.xreadlines():
-            line = unicode(line[0:-1], 'Latin-1')
+            line = unicode(line[0:-1], 'UTF-8')
             if line==oldline:
                 continue
             if line.strip=="":
                 continue
             oldline= line
             self.queries.append(line)
-            print repr(line)
+            # print repr(line)
             
         print "queries: %d" % len(self.queries)
         self.stresstest()
@@ -120,16 +120,16 @@ class TestBuddyCast(TestAsServer):
                               for torrent_id 
                               in xrange(num_torrents)])
         
-        log= open("c:\\log.txt", "w")
+        # log= open("c:\\log.txt", "w")
         
         for peer_id in xrange(num_peers):
             store_times = []
             complete_times = []
             relterm_times = []
             
-            if peer_id%10==0:
-                print peer_id            
-                log.flush()
+            # if peer_id%10==0:
+            #     print peer_id            
+            #     log.flush()
                 
             
             # put a slight long-tail distribution over torrents such that we get more frequently and less
@@ -203,18 +203,18 @@ class TestBuddyCast(TestAsServer):
             termsindb = term_db.getNumTerms()
             print "terms: %d" % termsindb
                       
-            log.write("%d\t%f\t%f\t%f\t%f\t%f\t%f\t%d\n" % (peer_id,
-                                                             termtime+sum(store_times)+commit_time,
-                                                             termtime, 
-                                                             sum(store_times),
-                                                             commit_time, 
-                                                             self.mean(complete_times), 
-                                                             self.mean(relterm_times),
-                                                             termsindb))
+        #     log.write("%d\t%f\t%f\t%f\t%f\t%f\t%f\t%d\n" % (peer_id,
+        #                                                      termtime+sum(store_times)+commit_time,
+        #                                                      termtime, 
+        #                                                      sum(store_times),
+        #                                                      commit_time, 
+        #                                                      self.mean(complete_times), 
+        #                                                      self.mean(relterm_times),
+        #                                                      termsindb))
             
 
                 
-        log.close()            
+        # log.close()            
                 
             
 def test_suite():

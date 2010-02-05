@@ -34,6 +34,10 @@ import Tribler.Core.CacheDB.sqlitecachedb as sqlitecachedb
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 
+class FakeUserCallbackHandler:
+    def notify(*args):
+        pass
+
 class FakeSession:
     
     def __init__(self,lm,keypair,permid,listen_port):
@@ -41,6 +45,7 @@ class FakeSession:
         self.keypair = keypair
         self.permid = permid
         self.listen_port = listen_port
+        self.uch = FakeUserCallbackHandler()
 
     def get_permid(self):
         return self.permid
@@ -67,7 +72,7 @@ class Peer(Thread):
         config['bind'] = ''
         config['ipv6_binds_v4'] = 0
         config['max_message_length'] = 2 ** 23
-        config['state_dir'] = config['install_dir'] = tempfile.mkdtemp()
+        config['torrent_collecting_dir'] = config['state_dir'] = config['install_dir'] = tempfile.mkdtemp()
         config['peer_icon_path'] = 'icons'
 
         self.rawserver = RawServer(self.doneflag,
@@ -141,6 +146,7 @@ class TestSecureOverlay(unittest.TestCase):
         config = {}
         config['state_dir'] = self.config_path
         config['install_dir'] = os.path.join('..','..')
+        config['torrent_collecting_dir'] = self.config_path
         config['peer_icon_path'] = os.path.join(self.config_path,'peer_icons')
         config['superpeer'] = False
         sqlitecachedb.init(config, self.rawserver_fatalerrorfunc)
@@ -395,7 +401,7 @@ class TestSecureOverlay(unittest.TestCase):
         sleep(2) 
         self.assert_(len(self.peer1.secure_overlay.iplport2oc) == 0)
 
-    def send_remote_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns):
+    def send_remote_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns=None):
         print  >> sys.stderr,"test: send_remote_close_conns_callback",exc,show_permid_short(permid)
         if self.first:
             self.assert_(exc is None)
@@ -542,7 +548,7 @@ class TestSecureOverlay(unittest.TestCase):
         self.peer1.secure_overlay.send(permid,msg,self.receive_send_callback)
         print >> sys.stderr,"test: test_got_conn_incoming exiting"
 
-    def got_conn_incoming_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns):
+    def got_conn_incoming_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns=None):
         print  >> sys.stderr,"test: got_conn_incoming_conns_callback",exc,show_permid_short(permid)
         self.assert_(exc is None)
         self.assert_(permid == self.peer1.my_permid)
@@ -576,7 +582,7 @@ class TestSecureOverlay(unittest.TestCase):
         self.assert_(permid == self.peer2.my_permid)
         self.got2 = True
 
-    def got_conn_outgoing_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns):
+    def got_conn_outgoing_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns=None):
         print  >> sys.stderr,"test: got_conn_outgoing_conns_callback",exc,show_permid_short(permid)
         self.assert_(exc is None)
         self.assert_(permid == self.peer2.my_permid)
@@ -610,7 +616,7 @@ class TestSecureOverlay(unittest.TestCase):
         self.assert_(len(self.peer1.secure_overlay.iplport2oc) == 0)
 
 
-    def got_conn_local_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns):
+    def got_conn_local_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns=None):
         print  >> sys.stderr,"test: got_conn_local_close_conns_callback",exc,show_permid_short(permid)
         if self.first:
             self.assert_(exc is None)
@@ -646,7 +652,7 @@ class TestSecureOverlay(unittest.TestCase):
         sleep(2) 
         self.assert_(len(self.peer1.secure_overlay.iplport2oc) == 0)
 
-    def got_conn_remote_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns):
+    def got_conn_remote_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns=None):
         print  >> sys.stderr,"test: got_conn_remote_close_conns_callback",exc,show_permid_short(permid)
         if self.first:
             self.assert_(exc is None)

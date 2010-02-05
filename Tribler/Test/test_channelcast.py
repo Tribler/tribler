@@ -22,6 +22,7 @@ from Tribler.Core.BuddyCast.channelcast import ChannelCastCore
 from Tribler.Core.BuddyCast.buddycast import BuddyCastCore
 from Tribler.Core.BuddyCast.votecast import VoteCastCore
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin,bin2str
+
 DEBUG=True
 
 
@@ -277,4 +278,3 @@ def test_suite():
 
 if __name__ == "__main__":
     unittest.main()
-

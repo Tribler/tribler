@@ -48,7 +48,11 @@ class OverlayThreadingBridge:
                 OverlayThreadingBridge.lock.release()
         return OverlayThreadingBridge.__single
     getInstance = staticmethod(getInstance)
-    
+
+    def resetSingleton(self):
+        """ For testing purposes """
+        OverlayThreadingBridge.__single = None 
+
     def register_bridge(self,secover,olapps):
         """ Called by MainThread """
         self.secover = secover

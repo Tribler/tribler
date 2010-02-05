@@ -2,6 +2,9 @@
 # see LICENSE.txt for license information
 #
 # ARNOCOMMENT: outdated?
+# 04/02/10 Boudewijn: outdated? YES, this only tests the obsolete
+# bsdcachedb and now fails because that is no longer the default in
+# Tribler.Core.CacheDB.cachedb
 
 import os
 import tempfile
@@ -263,3 +266,5 @@ def test_suite():
     
     return suite        
         
+if __name__ == "__main__":
+    unittest.main()
