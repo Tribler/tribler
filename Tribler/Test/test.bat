@@ -9,6 +9,7 @@ REM python test_torrentcollecting.py # currently not working due to missing func
 python test_TimedTaskQueue.py
 python test_bartercast.py
 python test_cachingstream.py
+python test_channelcast.py
 python test_closedswarm.py
 python test_connect_overlay.py singtest_connect_overlay
 python test_crawler.py
@@ -56,8 +57,7 @@ REM # wait till arno's fixes are merged
 REM # python test_buddycast5.py
 
 REM #### NITIN
-REM # wait till nitin fixes the testcase and the bin2str inconsistencies
-REM # ./test_channelcast.sh
+REM # broken...
 REM # python test_searchgridmanager.py
 
 REM ########### Not unittests
