@@ -867,7 +867,9 @@ class ChannelSearchGridManager:
 #                        if DEBUG:
 #                            print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHist: Ignoring hit for",`value['content_name']`,"already got it"
 #                        continue # do not show results we have ourselves
-                    
+                    session = self.rtorrent_handler.session
+                    if self.votecastdb.getVote(el[0],bin2str(session.get_permid())) == -1:
+                        continue
                     # Convert answer fields as per 
                     # Session.chquery_connected_peers() spec. to NEWDB format
                     newval = {}
