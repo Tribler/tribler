@@ -192,7 +192,7 @@ class TorrentFeedThread(Thread):
                         self.addURL(url,dowrite=False,status=key)
             f.close()        
         except:
-            traceback.print_exc()
+            print >>sys.stderr, "rss_client: subscriptions.txt does not yet exist"
     
     def writefile(self):
         filename = self.getfilename()
