@@ -559,7 +559,7 @@ class standardOverview(wx.Panel):
         total = 0
         if self.mode == 'filesMode': 
             for el in self.results:
-                if el in ['torrent', 'library']: ## removed 'remote'
+                if el in ['remote', 'torrent', 'library']:
                     if self.results[el] != -1:
                         total+=self.results[el]
         elif self.mode == 'channelsMode':
