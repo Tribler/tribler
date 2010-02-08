@@ -22,7 +22,7 @@ from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRTEENTH
 
-DEBUG = True
+DEBUG = False
 
 NUM_OWN_RECENT_TORRENTS = 15
 NUM_OWN_RANDOM_TORRENTS = 10
@@ -196,7 +196,6 @@ class ChannelCastCore:
         @param query: the query string
         @param hits: details of all matching results related to the query  
         """
-        #print >> sys.stderr , "RECEIVED HITS : " , hits
         tmp_hits = {} #"binary" key
 
         def usercallback(infohash,metadata,filename):
@@ -214,7 +213,7 @@ class ChannelCastCore:
                 continue
             
             # make everything into "string" format, if "binary"
-            hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
+            hit = (bin2str(v['publisher_id']),v['publisher_name'].decode("UTF-8"),bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'].decode("UTF-8"),v['time_stamp'],bin2str(k))
             tmp_hits[v['infohash']] = hit 
             # effectively v['infohash'] == str2bin(hit[2])
 

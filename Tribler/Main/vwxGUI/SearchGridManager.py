@@ -859,8 +859,8 @@ class ChannelSearchGridManager:
                 tmp_hits = {}
                 def usercallback(infohash,metadata,filename):
                     if tmp_hits.has_key(bin2str(infohash)):
-                        el = tmp_hits[bin2str(infohash)]
-                        self.channelcast_db.addTorrent(el)           
+                        el_new = tmp_hits[bin2str(infohash)]
+                        self.channelcast_db.addTorrent(el_new)           
                 for el in answers:  
                     
 #                    if self.channelcast_db.hasTorrent(infohash):
@@ -881,9 +881,11 @@ class ChannelSearchGridManager:
                     newval['time_stamp'] = el[5]
                     newval['signature'] = el[6]
                     
-                    self.remoteHits[el] = 1
+                    el_new = (el[0], el[1].decode("UTF-8"),el[2],el[3],el[4].decode("UTF-8"),el[5],el[6])
+                    
+                    self.remoteHits[el_new] = 1
                     numResults +=1
-                    tmp_hits[el[2]] = el
+                    tmp_hits[el[2]] = el_new
 
                     if self.channelcast_db.existsTorrent(str2bin(el[2])):
                         self.channelcast_db.addTorrent(el)
