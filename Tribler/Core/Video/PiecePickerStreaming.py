@@ -535,7 +535,7 @@ class PiecePickerStreaming(PiecePicker):
             midprob_cutoff = vs.normalize(first + self.MU * vs.get_range_length(first, last))
         else:
             highprob_cutoff = last
-            midprob_cutoff = vs.normalize(first + self.MU * vs.high_prob_min_pieces)
+            midprob_cutoff = vs.normalize(first + self.MU * vs.high_prob_curr_pieces)
         # h = vs.time_to_pieces( self.HIGH_PROB_SETSIZE )
         # highprob_cutoff = vs.normalize(first + max(h, self.HIGH_PROB_MIN_PIECES))
         # midprob_cutoff = vs.normalize(first + max(self.MU * h, self.HIGH_PROB_MIN_PIECES))

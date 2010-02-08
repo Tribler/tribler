@@ -539,7 +539,7 @@ class PiecePickerSVC(PiecePicker):
             midprob_cutoff = vs.normalize(first + self.MU * vs.get_small_range_length(first, last))
         else:
             highprob_cutoff = last
-            midprob_cutoff = vs.normalize(first + self.MU * vs.high_prob_min_pieces)
+            midprob_cutoff = vs.normalize(first + self.MU * vs.high_prob_curr_pieces)
 
         # for VOD playback consider peers to be bad when they miss the deadline 1 time
         allow_based_on_performance = connection.download.bad_performance_counter < 1

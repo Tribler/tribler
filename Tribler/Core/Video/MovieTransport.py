@@ -42,6 +42,9 @@ class MovieTransportStreamWrapper:
         self.started = False
 
     def read(self,numbytes=None):
+        if DEBUG:
+            print >>sys.stderr,"MovieTransportStreamWrapper: read",numbytes
+
         if not self.started:
             self.mt.start(0)
             self.started = True
@@ -56,11 +59,13 @@ class MovieTransportStreamWrapper:
     def seek(self,pos,whence=os.SEEK_SET):
         # TODO: interpret whence
         if DEBUG:
-            print >>sys.stderr,"MovieTransportStreamWrapper: seek() CALLED",pos,"whence",whence
+            print >>sys.stderr,"MovieTransportStreamWrapper: seek:",pos,"whence",whence
         self.mt.seek(pos,whence=whence)
         # Arno, 2010-01-08: seek also means we've started.
         self.started = True
     
     def close(self):
+        if DEBUG:
+            print >>sys.stderr,"MovieTransportStreamWrapper: close"
         self.mt.stop()
         
