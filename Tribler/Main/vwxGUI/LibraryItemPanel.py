@@ -217,7 +217,7 @@ class LibraryItemPanel(wx.Panel):
         self.pause_resume.Bind(wx.EVT_LEFT_UP, self.pause_resume_clicked)
 
         self.hSizer.Add(self.pause_resume, 0, wx.TOP,3)
-        if sys.platform == 'win32':
+        if sys.platform == 'win32' or sys.platform == 'darwin':
             self.pause_resume.Hide()
 
 
@@ -227,7 +227,7 @@ class LibraryItemPanel(wx.Panel):
         self.remove.SetMinSize((17,17))
         self.remove.SetSize((17,17))
         self.hSizer.Add(self.remove, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
-        if sys.platform == 'win32':
+        if sys.platform == 'win32' or sys.platform == 'darwin':
             self.remove.Hide()
 
         if sys.platform == 'win32':
@@ -254,7 +254,7 @@ class LibraryItemPanel(wx.Panel):
         self.speedUp2.SetForegroundColour(wx.BLACK) 
         self.speedUp2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.speedUp2.SetMinSize((size,12))
-        if sys.platform == 'win32':
+        if sys.platform == 'win32' or sys.platform == 'darwin':
             self.speedDown2.Hide()
             self.speedUp2.Hide()
 
