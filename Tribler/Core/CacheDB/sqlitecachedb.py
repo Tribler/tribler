@@ -1070,200 +1070,76 @@ UPDATE Torrent SET relevance = 0;
         state_dir = session.get_state_dir()
         tmpfilename = os.path.join(state_dir,"upgradingdb.txt")
         if fromver < 4 or os.path.exists(tmpfilename):
+            def upgradeTorrents():
+                # fetch some un-inserted torrents to put into the InvertedIndex
+                sql = """
+                SELECT torrent_id, name, torrent_file_name
+                FROM Torrent
+                WHERE torrent_id NOT IN (SELECT DISTINCT torrent_id FROM InvertedIndex)
+                AND torrent_file_name IS NOT NULL
+                LIMIT 20"""
+                records = self.fetchall(sql)
+                
+                if len(records) == 0:
+                    # upgradation is complete and hence delete the temp file
+                    os.remove(tmpfilename) 
+                    if DEBUG: print >> sys.stderr, "DB Upgradation: temp-file deleted", tmpfilename
+                    return 
+                    
+                for torrent_id, name, torrent_file_name in records:
+                    try:
+                        abs_filename = os.path.join(session.get_torrent_collecting_dir(), torrent_file_name)
+                        if not os.path.exists(abs_filename):
+                            raise RuntimeError(".torrent file not found. Use fallback.")
+                        torrentdef = Torrentdef.load(abs_filename)
+                        torrent_name = torrentdef.get_name_as_unicode()
+                        keywords = Set(split_into_keywords(torrent_name))
+                        for filename in torrentdef.get_files_as_unicode():
+                            keywords.update(split_into_keywords(filename))
+
+                    except:
+                        # failure... most likely the .torrent file
+                        # is invalid
+
+                        # use keywords from the torrent name
+                        # stored in the database
+                        torrent_name = dunno2unicode(name)
+                        keywords = Set(split_into_keywords(torrent_name))
+
+                    # store the keywords in the InvertedIndex
+                    # table in the database
+                    if len(keywords) > 0:
+                        values = [(keyword, torrent_id) for keyword in keywords]
+                        self._db.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
+                        if DEBUG:
+                            print >> sys.stderr, "DB Upgradation: Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
+
+                # now commit, after parsing the batch of torrents
+                self.commit()
+                
+                # upgradation not yet complete; comeback after 5 sec
+                tqueue.add_task(upgradeTorrents, 5) 
+
+            
             # Create an empty file to mark the process of upgradation.
             # In case this process is terminated before completion of upgradation,
-            # this file remains even though fromver=4 and hence indicating that 
+            # this file remains even though fromver >= 4 and hence indicating that 
             # rest of the torrents need to be inserted into the InvertedIndex!
             
-            # ensure the file is created, if it is not already
+            # ensure the temp-file is created, if it is not already
             try:
-                f = open(tmpfilename, "r")
-                f.close()
-                if DEBUG: print >> sys.stderr, "DB Upgradation: file successfully created!!"
+                open(tmpfilename, "w")
+                if DEBUG: print >> sys.stderr, "DB Upgradation: temp-file successfully created"
             except:
-                if DEBUG: print >> sys.stderr, "DB Upgradation: file already present perhaps!!"
+                if DEBUG: print >> sys.stderr, "DB Upgradation: failed to create temp-file"
             
             if DEBUG: print >> sys.stderr, "Upgrading DB .. inserting into InvertedIndex"
-            from Tribler.Core.BitTornado.bencode import bencode, bdecode
             from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
             from sets import Set
             from Tribler.Core.Search.SearchManager import split_into_keywords
             from Tribler.Core.TorrentDef import TorrentDef
             
             tqueue = TimedTaskQueue("UpgradeDB")
-            
-            def get_unicode_name(info):
-                """
-                Get the name of the .torrent as a unicode string
-    
-                INFO must be the bdecoded .torrent file.  INFO must be a
-                dictionary containing a 'name' field and, optionally, a
-                'name-utf-8' field.
-                """
-                if "name.utf-8" in info:
-                    # there is an utf-8 encoded name.  we assume that it
-                    # is correctly encoded and use it normally
-                    try:
-                        return unicode(info["name.utf-8"], "UTF-8")
-                    except:
-                        pass
-    
-                if "name" in info:
-                    # try to use the 'encoding' field.  if it exists, it
-                    # should contain something like 'utf-8'
-                    if "encoding" in info:
-                        try:
-                            return unicode(info["name"], info["encoding"])
-                        except:
-                            pass
-    
-                    # try to convert the names in path to unicode
-                    try:
-                        return unicode(info["name"])
-                    except:
-                        pass
-    
-                    # try to convert the names in path to unicode,
-                    # assuming that it was encoded as utf-8
-                    try:
-                        return unicode(info["name"], "UTF-8")
-                    except:
-                        pass
-    
-                    # convert the names in path to unicode by replacing
-                    # out all characters that may -even remotely- cause
-                    # problems with the '?' character
-                    try:
-                        def filter_characters(name):
-                            def filter_character(char):
-                                if 0 < ord(char) < 128:
-                                    return char
-                                else:
-                                    if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum()
-                                    return u"?"
-                            return u"".join([filter_character(char) for char in name])
-                        return unicode(filter_characters(info["name"]))
-                    except:
-                        pass
-    
-                # we failed.  returning an empty string
-                return u""
-            
-            def get_unicode_path(info, file_info):
-                """
-                Get list with unicode strings for a specific file in the
-                .torrent file.
-    
-                INFO must be the bdecoded .torrent file.  INFO must be a
-                dictionary containing a 'name' field and, optionally, a
-                'name-utf-8' field.
-    
-                FILE_INFO must be one of the elements in the 'files' list
-                from the bdecoded .torrent file.  FILE_INFO must be a
-                dictionary containing a 'path' field and, optionally, a
-                'path-utf-8' field.
-                """            
-                if "path.utf-8" in file_info:
-                    # there is an utf-8 encoded list of names.  we
-                    # assume that it is correctly encoded and use
-                    # it normally
-                    try:
-                        return [unicode(name, "UTF-8") for name in file_info["path.utf-8"]]
-                    except:
-                        pass
-    
-                if "path" in file_info:
-                    # try to use the 'encoding' field.  if it exists, it
-                    # should contain something like 'utf-8'
-                    if "encoding" in info:
-                        try:
-                            return [unicode(name, info["encoding"]) for name in file_info["path"]]
-                        except:
-                            pass
-    
-                    # try to convert the names in path to unicode
-                    try:
-                        return [unicode(name) for name in file_info["path"]]
-                    except:
-                        pass
-    
-                    # try to convert the names in path to unicode,
-                    # assuming that it was encoded as utf-8
-                    try:
-                        return [unicode(name, "UTF-8") for name in file_info["path"]]
-                    except:
-                        pass
-    
-                    # convert the names in path to unicode by replacing
-                    # out all characters that may -even remotely- cause
-                    # problems with the '?' character
-                    try:
-                        def filter_characters(name):
-                            def filter_character(char):
-                                if 0 < ord(char) < 128:
-                                    return char
-                                else:
-                                    if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum()
-                                    return u"?"
-                            return u"".join([filter_character(char) for char in name])
-                        return [unicode(filter_characters(name)) for name in file_info["path"]]
-                    except:
-                        pass
-    
-                # we failed.  returning an empty list
-                return []
-    
-            # retrieve potential keywords from the torrent name, these
-            # will be used in the InvertedIndex table when searching
-            
-            def upgradeTorrents():
-                # inserting 50 torrents at a time into InvertedIndex
-                sql = "select torrent_id, torrent_file_name from Torrent where torrent_id not in (select distinct torrent_id from InvertedIndex) and torrent_file_name is not NULL limit 20"
-                records = self.fetchall(sql)
-                
-                if len(records)==0:
-                    os.remove(tmpfilename) # upgradation is complete and hence delete the temp file
-                    if DEBUG: print >> sys.stderr, "DB Upgradation: file successfully deleted!!", tmpfilename
-                    return 
-                    
-                for torrent_id, torrent_file_name in records:
-                    abs_filename = os.path.join(session.get_torrent_collecting_dir(),torrent_file_name)
-                    if os.path.exists(abs_filename):
-                        try:
-                            tdef = TorrentDef.load(abs_filename)
-                            metainfo = tdef.get_metainfo()
-                            data = metainfo['info']
-                            #print >> sys.stderr, "Loading torrent", abs_filename, repr(metainfo)
-                            torrent_name = get_unicode_name(data)
-                            keywords = Set(split_into_keywords(torrent_name))
-                            
-                            # search through the .torrent file for potential keywords in
-                            # the filenames
-                            if data.has_key('files'):                        
-                                for info in data['files']:
-                                    if info.has_key('path') and info.has_key('length'):
-                    
-                                        # get the file path in unicode
-                                        path = get_unicode_path(data, info)
-                                        if len(path) > 0:
-                                            filename = path[-1]
-                                            keywords.update(split_into_keywords(filename))
-                    
-                            # store the keywords in the InvertedIndex table in the database
-                            if len(keywords) > 0:
-                                values = [(keyword, torrent_id) for keyword in keywords]
-                                self.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
-                            if DEBUG: print >> sys.stderr, "DB Upgradation: file successfully inserted!!", torrent_id, len(keywords)
-                        except:
-                            pass
-                            if DEBUG: print >> sys.stderr, "DB Upgradation: file couldnt be inserted!!", torrent_id, abs_filename
-                            print_exc()
-                            
-                # now commit, after parsing 50 torrents at a time
-                self.commit()
-                
-                # upgradation not yet complete; comeback after 5 sec
-                tqueue.add_task(upgradeTorrents, 5) 
             
             # start the upgradation after 10 seconds
             tqueue.add_task(upgradeTorrents, 10)
