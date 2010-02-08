@@ -385,6 +385,11 @@ class ABCApp(wx.App):
             self.torrentfeed.register(self.utility.session)
             self.torrentfeed.start()             
 
+            # 08/02/10 Boudewijn: Working from home though console
+            # doesn't allow me to press close.  The statement below
+            # gracefully closes Tribler after 120 seconds.
+            # wx.CallLater(120*1000, wx.GetApp().Exit)
+
             # report client version
             from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
             reporter = get_reporter_instance()
@@ -935,7 +940,7 @@ class ABCApp(wx.App):
         
         #friends.done(self.utility.session)
         
-        #self.torrentfeed.shutdown()
+        self.torrentfeed.shutdown()
 
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py

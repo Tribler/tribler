@@ -398,10 +398,10 @@ class TorrentFeedThread(Thread):
         self.lock.acquire()
         cfeeds = self.feeds[:]
         self.lock.release()
-        for feed in cfeeds:
+        for feed, on_torrent_callback, callback in cfeeds:
             feed.shutdown()
             
-        self.utility.session.close_dbhandler(self.torrent_db)
+        # self.utility.session.close_dbhandler(self.torrent_db)
 
 """
     def process_statscopy(self,statscopy):
@@ -606,18 +606,21 @@ class URLHistory:
             # there is no cache available
             pass
         else:
-            data = file_handle.read()
-            file_handle.close()
-
+            re_line = re.compile("^\s*(\d+(?:[.]\d+)?)\s+(.+?)\s*$")
             now = time.time()
-            for timestamp, url in self.read_history_expression.findall(data):
-                timestamp = float(timestamp)
-                if not self.timedout(timestamp, now):
-                    if DEBUG:
-                        print >>sys.stderr,"subscrip: Cached url is",url
-                    self.urls[url] = timestamp
-                elif DEBUG:
-                    print >>sys.stderr,"subscrip: Timed out cached url is %s" % url
+            for line in file_handle.readlines():
+                match = re_line.match(line)
+                if match:
+                    timestamp, url = match.groups()
+                    timestamp = float(timestamp)
+                    if not self.timedout(timestamp, now):
+                        if DEBUG:
+                            print >>sys.stderr, "subscrip: Cached url is",url
+                        self.urls[url] = timestamp
+                    elif DEBUG:
+                        print >>sys.stderr,"subscrip: Timed out cached url is %s" % url                        
+
+            file_handle.close()
         
     def write(self):
         try:
