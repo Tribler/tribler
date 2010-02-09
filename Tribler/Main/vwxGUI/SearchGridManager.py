@@ -888,7 +888,7 @@ class ChannelSearchGridManager:
                     tmp_hits[el[2]] = el_new
 
                     if self.channelcast_db.existsTorrent(str2bin(el[2])):
-                        self.channelcast_db.addTorrent(el)
+                        self.channelcast_db.addTorrent(el_new)
                     else:
                         self.rtorrent_handler.download_torrent(permid,str2bin(el[2]),usercallback)
 #                    if newval['infohash'] in self.remoteHits:
