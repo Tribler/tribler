@@ -3190,9 +3190,9 @@ class ChannelCastDBHandler(BasicDBHandler):
         if num_records==0:
             torrenthash = bin2str(sha(bencode(torrentdef.get_metainfo())).digest())
             # Arno, 2010-01-27: sqlite don't like binary encoded names
-            nickname = self.session.get_nickname().encode("UTF-8")
-            torrentname = torrentdef.get_name_as_unicode()
-            record = [publisher_id,nickname,infohash,torrenthash,torrentname,now()]
+            unickname = self.session.get_nickname()
+            utorrentname = torrentdef.get_name_as_unicode()
+            record = [publisher_id,unickname,infohash,torrenthash,utorrentname,now()]
             self._sign(record)
             sql = "insert into ChannelCast Values(?,?,?,?,?,?,?)"
             self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=True)
@@ -3292,10 +3292,10 @@ class ChannelCastDBHandler(BasicDBHandler):
     def searchChannels(self,query):
         # query would be of the form: "k barack obama" or "p 4fw342d23re2we2w3e23d2334d" permid
         value_name = deepcopy(self.value_name) ##
-        if query[0] == 'k': # search torrents based on keywords
-            
-            kwlist = split_into_keywords(query[2:])
+        if query[0] == 'k': 
+            # search torrents based on keywords
 
+            kwlist = split_into_keywords(query[2:])
             sql = "select publisher_id, publisher_name from ChannelCast where "
             count = 0
             for kw in kwlist:
@@ -3325,9 +3325,10 @@ class ChannelCastDBHandler(BasicDBHandler):
             for record in allrecords:
                 records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
             return records         
-        elif query[0] == 'p': # search channel's torrents based on permid
+        elif query[0] == 'p': 
+            # search channel's torrents based on permid
             q = query[2:]
-            #print>>sys.stderr, "This is a permid-based search:", q            
+            #print>>sys.stderr, "ChannelCastDB: searchChannels: This is a permid-based search:", `q`            
             s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
             allrecords = self._db.fetchall(s,(q,)) ## before records = {'torrents':self._db.fetchall(s)}
             #channelList = self.valuelist2channellist(records,value_name)  

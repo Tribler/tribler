@@ -129,9 +129,9 @@ class ChannelCastCore:
     def channelCastSendCallback(self, exc, target_permid, other=0):
         if DEBUG:
             if exc is None:
-                print >> sys.stderr,"channelcast: *** msg was sent successfully to peer", permid_for_user(target_permid)
+                print >> sys.stderr,"channelcast: *** msg was sent successfully to peer", show_permid_short(target_permid)
             else:
-                print >> sys.stderr, "channelcast: *** warning - error in sending msg to", permid_for_user(target_permid), exc
+                print >> sys.stderr, "channelcast: *** warning - error in sending msg to", show_permid_short(target_permid), exc
  
     def gotChannelCastMessage(self, recv_msg, sender_permid, selversion):
         """ Receive and handle a ChannelCast message """
@@ -143,13 +143,13 @@ class ChannelCastCore:
             return True
                 
         if DEBUG:
-            print >> sys.stderr,'channelcast: Received a msg from ', permid_for_user(sender_permid)
-            print >> sys.stderr,"channelcast: my_permid=", permid_for_user(self.my_permid)
+            print >> sys.stderr,'channelcast: Received a msg from ', show_permid_short(sender_permid)
+            print >> sys.stderr,"channelcast: my_permid=", show_permid_short(self.my_permid)
 
         if not sender_permid or sender_permid == self.my_permid:
             if DEBUG:
                 print >> sys.stderr, "channelcast: warning - got channelcastMsg from a None/Self peer", \
-                        permid_for_user(sender_permid), recv_msg
+                        show_permid_short(sender_permid), recv_msg
             return False
 
         #if len(recv_msg) > self.max_length:

@@ -42,7 +42,14 @@ BrandingText "${PRODUCT}"
 !define MUI_LICENSEPAGE_RADIOBUTTONS
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I accept"
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "I decline"
-!define MUI_FINISHPAGE_RUN "$INSTDIR\tribler.exe"
+
+; Arno, 2010-02-09: On Vista+Win7 the default value for RequestExecutionLevel
+; is auto, so this installer will be run as Administrator. Hence also the
+; Tribler.exe that is launched by FINISHPAGE_RUN will be launched as that user. 
+; This is not what we want. We do want an admin-level install, in particular 
+; for configuring the Windows firewall automatically. Alternative is the
+; UAC plugin (http://nsis.sourceforge.net/UAC_plug-in) but that's still beta. 
+;    !define MUI_FINISHPAGE_RUN "$INSTDIR\tribler.exe"
 
 !insertmacro MUI_PAGE_LICENSE "binary-LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS

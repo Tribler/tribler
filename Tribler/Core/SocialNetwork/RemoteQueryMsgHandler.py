@@ -289,7 +289,7 @@ class RemoteQueryMsgHandler:
             if DEBUG:
                 print>>sys.stderr, "Incoming channel query", d['q']
             q = d['q'][len('CHANNEL '):]
-            uq = self.clean_netwq(q)
+            uq = self.clean_netwq(q,channelquery=True)
             hits = self.channelcast_db.searchChannels(uq)
             p = self.create_channel_query_reply(d['id'],hits,selversion)
 
@@ -312,12 +312,12 @@ class RemoteQueryMsgHandler:
         self.inc_peer_nqueries(permid)
 
  # This function need not be used, since it is handled quite well by split_into_keywords 
-    def clean_netwq(self,q):
+    def clean_netwq(self,q,channelquery=False):
         # Filter against bad input
         uq = q.decode("UTF-8")
         newq = u''
         for i in range(0,len(uq)):
-            if uq[i].isalnum() or uq[i] == ' ':
+            if uq[i].isalnum() or uq[i] == ' ' or (channelquery and uq[i] == '+') or (channelquery and uq[i] == '/'):
                 newq += uq[i]
         return newq
             

@@ -25,6 +25,8 @@ from Tribler.Core.CacheDB.sqlitecachedb import str2bin,bin2str
 
 DEBUG=True
 
+#NICKNAME = u"nick\u00f3"
+NICKNAME = "nick"
 
 class TestChannels(TestAsServer):
     """ 
@@ -43,8 +45,9 @@ class TestChannels(TestAsServer):
         self.config.set_remote_query(True)
         self.config.set_crawler(False)       
         self.config.set_torrent_collecting_dir(os.path.join(self.config_path, "tmp_torrent_collecting"))
+        self.config.set_nickname(NICKNAME)
 
-        # Write superpeers.txt
+        # Write superpeers.txt and DB schema
         self.install_path = tempfile.mkdtemp()
         spdir = os.path.join(self.install_path, LIBRARYNAME, 'Core')
         os.makedirs(spdir)
@@ -195,6 +198,10 @@ class TestChannels(TestAsServer):
         id = d['id']
         self.assert_(type(id) == StringType)
         self.assert_(validChannelCastMsg(d['a'])==True)
+        self.assert_(len(d['a']) > 0)
+        for key,val in d['a'].iteritems():
+            self.assert_(val['publisher_name'] == NICKNAME.encode("UTF-8"))
+            self.assert_(val['publisher_id'] == self.hispermid)
 
     def subtest_channel_permid_query(self):
         print >>sys.stderr,"test: chquery permid-----------------------------"
@@ -210,14 +217,15 @@ class TestChannels(TestAsServer):
             print >>sys.stderr,"test: chquery: got",getMessageName(resp[0])
         self.assert_(resp[0]==QUERY_REPLY)
         self.check_chquery_reply(resp[1:])
-        print>>sys.stderr,bdecode(resp[1:])
+        print >>sys.stderr,"test:",`bdecode(resp[1:])`
         s.close()
         
     def subtest_channel_keyword_query(self):
         print >>sys.stderr,"test: chquery keyword-----------------------------"
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         data = {}
-        data['q'] = 'CHANNEL k tu'
+        uq = u'CHANNEL k '+NICKNAME
+        data['q'] = uq.encode("UTF-8")
         data['id'] = 'b' * 20
         msg = QUERY + bencode(data)
         s.send(msg)
@@ -227,7 +235,7 @@ class TestChannels(TestAsServer):
             print >>sys.stderr,"test: chquery: got",getMessageName(resp[0])
         self.assert_(resp[0]==QUERY_REPLY)
         self.check_chquery_reply(resp[1:])
-        print>>sys.stderr,bdecode(resp[1:])
+        print >>sys.stderr,"test:",`bdecode(resp[1:])`
         s.close()
         
     def subtest_votecast(self):
@@ -235,7 +243,7 @@ class TestChannels(TestAsServer):
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         vcast = VoteCastCore(None, s, self.session, None, log = '', dnsindb = None)
         vdata = {}
-        print >> sys.stderr, "sending vmsg", vdata
+        print >> sys.stderr, "sending vmsg", `vdata`
         msg = VOTECAST+bencode(vdata)
         s.send(msg)
         resp = s.recv()
@@ -243,7 +251,7 @@ class TestChannels(TestAsServer):
         if len(resp) > 0:
             print >>sys.stderr,"test: votecast: got",getMessageName(resp[0])
         self.assert_(resp[0]==VOTECAST)
-        print >>sys.stderr, "test: votecast: got msg", bdecode(resp[1:])
+        print >>sys.stderr, "test: votecast: got msg", `bdecode(resp[1:])`
         vdata_rcvd = bdecode(resp[1:])
         self.assert_(validVoteCastMsg(vdata_rcvd)==True)
         print>>sys.stderr, "End of votecast test"
@@ -255,7 +263,7 @@ class TestChannels(TestAsServer):
         chcast = ChannelCastCore(None, s, self.session, None, log = '', dnsindb = None)
         #chdata = chcast.createChannelCastMessage()
         chdata = {}
-        print >> sys.stderr, "sending chmsg", chdata
+        print >> sys.stderr, "sending chmsg", `chdata`
         msg = CHANNELCAST+bencode(chdata)
         s.send(msg)
         resp = s.recv()
@@ -263,7 +271,7 @@ class TestChannels(TestAsServer):
         if len(resp) > 0:
             print >>sys.stderr,"test: channelcast: got",getMessageName(resp[0])
         self.assert_(resp[0]==CHANNELCAST)
-        print >>sys.stderr, "test: channelcast: got msg", bdecode(resp[1:])
+        print >>sys.stderr, "test: channelcast: got msg", `bdecode(resp[1:])`
         chdata_rcvd = bdecode(resp[1:])
         self.assert_(validChannelCastMsg(chdata_rcvd)==True)
         print>>sys.stderr, "End of channelcast test"

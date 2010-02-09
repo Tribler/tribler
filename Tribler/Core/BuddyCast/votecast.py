@@ -109,9 +109,9 @@ class VoteCastCore:
     def voteCastSendCallback(self, exc, target_permid, other=0):
         if DEBUG:
             if exc is None:
-                print >> sys.stderr,"votecast: *** msg was sent successfully to peer", permid_for_user(target_permid)
+                print >> sys.stderr,"votecast: *** msg was sent successfully to peer", show_permid_short(target_permid)
             else:
-                print >> sys.stderr, "votecast: *** warning - error in sending msg to", permid_for_user(target_permid), exc
+                print >> sys.stderr, "votecast: *** warning - error in sending msg to", show_permid_short(target_permid), exc
 
     ################################
     def gotVoteCastMessage(self, recv_msg, sender_permid, selversion):
@@ -124,13 +124,13 @@ class VoteCastCore:
             return True
                 
         if DEBUG:
-            print >> sys.stderr,'votecast: Received a msg from ', permid_for_user(sender_permid)
+            print >> sys.stderr,'votecast: Received a msg from ', show_permid_short(sender_permid)
 
         if not sender_permid or sender_permid == self.my_permid:
             if DEBUG:
 
                 print >> sys.stderr, "votecast: error - got votecastMsg from a None peer", \
-                        permid_for_user(sender_permid), recv_msg
+                        show_permid_short(sender_permid), recv_msg
             return False
 
         if self.max_length > 0 and len(recv_msg) > self.max_length:
@@ -171,7 +171,7 @@ class VoteCastCore:
     def handleVoteCastMsg(self, sender_permid, data):
         """ Handles VoteCast message """
         if DEBUG: 
-            print >> sys.stderr, "votecast: Processing VOTECAST msg from: ", permid_for_user(sender_permid), "; data: ", repr(data)
+            print >> sys.stderr, "votecast: Processing VOTECAST msg from: ", show_permid_short(sender_permid), "; data: ", repr(data)
     
         for key, value in data.items():
             vote = {}
@@ -182,7 +182,7 @@ class VoteCastCore:
             self.votecastdb.addVote(vote)
             
         if DEBUG:
-            print >> sys.stderr,"votecast: Processing VOTECAST msg from: ", permid_for_user(sender_permid), "DONE; data:"
+            print >> sys.stderr,"votecast: Processing VOTECAST msg from: ", show_permid_short(sender_permid), "DONE; data:"
             
     def showAllVotes(self):
         """ Currently this function is only for testing, to show all votes """

@@ -675,7 +675,12 @@ class Multicast:
         print >>sys.stderr,"pdisc: flag_peer_as_local returns",peer
         
         if not peer is None:
-            if not peer[0] == is_local:
+            # Arno, 2010-02-09: Somehow return value is not std.
+            if isinstance(peer,list):
+                flag = peer[0]
+            else:
+                flag = peer
+            if not flag == is_local:
                 self.peer_db.setPeerLocalFlag(permid, is_local)
             return True
         return False
