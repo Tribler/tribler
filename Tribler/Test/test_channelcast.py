@@ -11,7 +11,7 @@ import shutil
 from Tribler.Core.Utilities.Crypto import sha
 from types import StringType, DictType, IntType
 from M2Crypto import EC
-
+from copy import deepcopy
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from Tribler.Core.API import *
@@ -216,7 +216,8 @@ class TestChannels(TestAsServer):
         print >>sys.stderr,"test: chquery permid-----------------------------"
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         data = {}
-        data['q'] = 'CHANNEL p '+ bin2str(self.hispermid)
+        uq = u'CHANNEL p '+ bin2str(self.hispermid)
+        data['q'] = uq.encode("UTF-8")
         data['id'] = 'b' * 20
         msg = QUERY + bencode(data)
         s.send(msg)
@@ -251,8 +252,10 @@ class TestChannels(TestAsServer):
         print >>sys.stderr,"test: votecast-----------------------------"
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         vcast = VoteCastCore(None, s, self.session, None, log = '', dnsindb = None)
-        vdata = {}
-        print >> sys.stderr, "sending vmsg", `vdata`
+        
+        #Send Good VoteCast message
+        vdata = {self.hispermid:{'vote':-1,'time_stamp':12345345}}
+        print >> sys.stderr, "Test Good VoteCast", `vdata`
         msg = VOTECAST+bencode(vdata)
         s.send(msg)
         resp = s.recv()
@@ -263,29 +266,93 @@ class TestChannels(TestAsServer):
         print >>sys.stderr, "test: votecast: got msg", `bdecode(resp[1:])`
         vdata_rcvd = bdecode(resp[1:])
         self.assert_(validVoteCastMsg(vdata_rcvd)==True)
-        print>>sys.stderr, "End of votecast test"
-        s.close()        
+        s.close()
         
+        #Now, send a bad ChannelCast messages
+        # The other side should close the connection
+        
+        #Bad time_stamp: it can only int
+        vdata = {bin2str(self.hispermid):{'vote':-1,'time_stamp':'halo'}}
+        self.subtest_bad_votecast(vdata)
+        
+        #Bad Vote: Vote can only -1 or 2
+        vdata = {bin2str(self.hispermid):{'vote':-15,'time_stamp':12345345}}
+        self.subtest_bad_votecast(vdata)
+        
+        # Bad Message format ... Correct format is 'time_stamp'
+        vdata = {bin2str(self.hispermid):{'vote':-15,'timestamp':12345345}}
+        self.subtest_bad_votecast(vdata)
+        
+        print>>sys.stderr, "End of votecast test"
+    
+    def subtest_bad_votecast(self, vdata):
+        s = OLConnection(self.my_keypair,'localhost',self.hisport)
+        vcast = VoteCastCore(None, s, self.session, None, log = '', dnsindb = None)
+        print >> sys.stderr, "Test Bad VoteCast", `vdata`
+        msg = VOTECAST+bencode(vdata)
+        s.send(msg)
+        self.assert_(len(s.recv())==0)
+        s.close()
+                    
     def subtest_channelcast(self):
-        print >>sys.stderr,"test: channelcast"
+        print >>sys.stderr,"test: channelcast----------------------"
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         chcast = ChannelCastCore(None, s, self.session, None, log = '', dnsindb = None)
-        #chdata = chcast.createChannelCastMessage()
+        
+        #Send Empty ChannelCast message
         chdata = {}
-        print >> sys.stderr, "sending chmsg", `chdata`
+        print >> sys.stderr, "Test Good ChannelCast", `chdata`
         msg = CHANNELCAST+bencode(chdata)
         s.send(msg)
         resp = s.recv()
-        #print >> sys.stderr, "printing resp", resp
         if len(resp) > 0:
             print >>sys.stderr,"test: channelcast: got",getMessageName(resp[0])
         self.assert_(resp[0]==CHANNELCAST)
         print >>sys.stderr, "test: channelcast: got msg", `bdecode(resp[1:])`
         chdata_rcvd = bdecode(resp[1:])
         self.assert_(validChannelCastMsg(chdata_rcvd)==True)
-        print>>sys.stderr, "End of channelcast test"
-        s.close()        
+        s.close() 
         
+        #Now, send a bad ChannelCast message.
+        # The other side should close the connection
+        # Create bad message by manipulating a good one
+        #bad infohash
+        chdata = deepcopy(chdata_rcvd)
+        for k,v in chdata.items():
+            v['infohash'] = 234
+        self.subtest_bad_channelcast(chdata)
+        
+        #bad torrentname
+        chdata = deepcopy(chdata_rcvd)
+        for k,v in chdata.items():
+            v['torrentname'] = 1231
+        self.subtest_bad_channelcast(chdata)
+        
+        #bad signature.. temporarily disabled. 
+        # Got to enable when signature validation in validChannelCastMsg are enabled
+#        chdata = deepcopy(chdata_rcvd)
+#        value_list = chdata.values()
+#        if len(value_list)>0:
+#            chdata['sdfg234sadf'] = value_list[0]
+#            self.subtest_bad_channelcast(chdata)
+                
+        #Bad message format
+        chdata = {'2343ww34':''}
+        self.subtest_bad_channelcast(chdata)
+        
+        #Bad 
+        print>>sys.stderr, "End of channelcast test---------------------------"
+               
+    
+    def subtest_bad_channelcast(self, chdata):
+        s = OLConnection(self.my_keypair,'localhost',self.hisport)
+        chcast = ChannelCastCore(None, s, self.session, None, log = '', dnsindb = None)
+        print >> sys.stderr, "Test Bad ChannelCast", `chdata`
+        msg = CHANNELCAST+bencode(chdata)
+        s.send(msg)
+        self.assert_(len(s.recv())==0)
+        s.close()
+            
 
 
 def test_suite():

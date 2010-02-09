@@ -25,7 +25,7 @@ def validInfohash(infohash):
     if not r:
         if DEBUG:
             print >>sys.stderr, "Invalid infohash: type(infohash) ==", str(type(infohash))+\
-            ", len(infohash) ==", str(len(infohash))
+            ", infohash ==", `infohash`
     return r
 
 def validPermid(permid):
@@ -34,7 +34,7 @@ def validPermid(permid):
     if not r:
         if DEBUG:
             print >>sys.stderr, "Invalid permid: type(permid) ==", str(type(permid))+\
-            ", len(permid) ==", str(len(permid))
+            ", permid ==", `permid`
     return r
 
 def now():
