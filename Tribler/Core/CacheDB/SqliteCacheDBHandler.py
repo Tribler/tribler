@@ -3233,7 +3233,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select count(*) from ChannelCast where publisher_id='" + record[0] + "' and infohash='" + record[2] + "'"
         num_records = self._db.fetchone(sql)
         if num_records==0:
-            sql = "insert into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, timestamp, signature) Values(?,?,?,?,?,?,?)"
+            sql = "insert into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
             self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=True)
             flag = True
         sql = "select publisher_name from ChannelCast where publisher_id==? order by time_stamp desc limit 1"
