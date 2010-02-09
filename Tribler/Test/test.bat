@@ -48,6 +48,7 @@ CALL test_secure_overlay.bat
 CALL test_sqlitecachedbhandler.bat
 CALL test_vod.bat
 CALL test_na_extend_hs.bat
+CALL test_channelcast.bat
 
 REM Takes a long time, do at end
 python test_natcheck.py

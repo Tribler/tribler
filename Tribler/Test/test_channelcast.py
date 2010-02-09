@@ -25,9 +25,6 @@ from Tribler.Core.CacheDB.sqlitecachedb import str2bin,bin2str
 
 DEBUG=True
 
-#NICKNAME = u"nick\u00f3"
-NICKNAME = "nick"
-
 class TestChannels(TestAsServer):
     """ 
     Testing QUERY message of Social Network extension V1
@@ -45,7 +42,6 @@ class TestChannels(TestAsServer):
         self.config.set_remote_query(True)
         self.config.set_crawler(False)       
         self.config.set_torrent_collecting_dir(os.path.join(self.config_path, "tmp_torrent_collecting"))
-        self.config.set_nickname(NICKNAME)
 
         # Write superpeers.txt and DB schema
         self.install_path = tempfile.mkdtemp()
@@ -72,7 +68,6 @@ class TestChannels(TestAsServer):
             shutil.copyfile(sfn,dfn)
 
 
-
     def setUpPostSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPostSession(self)
@@ -80,6 +75,10 @@ class TestChannels(TestAsServer):
         self.mypermid = str(self.my_keypair.pub().get_der())
         self.hispermid = str(self.his_keypair.pub().get_der())
 
+        
+    def setupDB(self,nickname):
+        # Change at runtime. Must be set before DB inserts
+        self.session.set_nickname(nickname)
         
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
@@ -145,7 +144,14 @@ class TestChannels(TestAsServer):
         return tdef, bencode(metainfo)
 
 
-    def test_all(self):
+    def singtest_plain_nickname(self):
+        self._test_all("nick")
+        
+    def singtest_unicode_nickname(self):
+        self._test_all(u"nick\u00f3")
+
+
+    def _test_all(self,nickname):
         """ 
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
@@ -154,6 +160,9 @@ class TestChannels(TestAsServer):
             The code is constructed so unittest will show the name of the
             (sub)test where the error occured in the traceback it prints.
         """
+        
+        self.setupDB(nickname)
+        
         # test ChannelCast
         self.subtest_channelcast()
         
@@ -161,10 +170,10 @@ class TestChannels(TestAsServer):
         self.subtest_votecast()
         
         # test ChannelQuery-keyword
-        self.subtest_channel_keyword_query()
+        self.subtest_channel_keyword_query(nickname)
         
         # test ChannelQuery-permid
-        self.subtest_channel_permid_query()
+        self.subtest_channel_permid_query(nickname)
         
         #test voting
         self.subtest_voting()
@@ -190,7 +199,7 @@ class TestChannels(TestAsServer):
         self.assertEqual(self.votecast_db.getVote(bin2str(self.mypermid),bin2str(self.hispermid)),-1)
         #print >> sys.stderr, self.votecast_db.getAll()
         
-    def check_chquery_reply(self, data):
+    def check_chquery_reply(self, data, nickname):
         d = bdecode(data)
         self.assert_(type(d) == DictType)
         self.assert_(d.has_key('a'))
@@ -200,10 +209,10 @@ class TestChannels(TestAsServer):
         self.assert_(validChannelCastMsg(d['a'])==True)
         self.assert_(len(d['a']) > 0)
         for key,val in d['a'].iteritems():
-            self.assert_(val['publisher_name'] == NICKNAME.encode("UTF-8"))
+            self.assert_(val['publisher_name'] == nickname.encode("UTF-8"))
             self.assert_(val['publisher_id'] == self.hispermid)
 
-    def subtest_channel_permid_query(self):
+    def subtest_channel_permid_query(self,nickname):
         print >>sys.stderr,"test: chquery permid-----------------------------"
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         data = {}
@@ -216,15 +225,15 @@ class TestChannels(TestAsServer):
         if len(resp) > 0:
             print >>sys.stderr,"test: chquery: got",getMessageName(resp[0])
         self.assert_(resp[0]==QUERY_REPLY)
-        self.check_chquery_reply(resp[1:])
+        self.check_chquery_reply(resp[1:],nickname)
         print >>sys.stderr,"test:",`bdecode(resp[1:])`
         s.close()
         
-    def subtest_channel_keyword_query(self):
+    def subtest_channel_keyword_query(self,nickname):
         print >>sys.stderr,"test: chquery keyword-----------------------------"
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
         data = {}
-        uq = u'CHANNEL k '+NICKNAME
+        uq = u'CHANNEL k '+nickname
         data['q'] = uq.encode("UTF-8")
         data['id'] = 'b' * 20
         msg = QUERY + bencode(data)
@@ -234,7 +243,7 @@ class TestChannels(TestAsServer):
         if len(resp) > 0:
             print >>sys.stderr,"test: chquery: got",getMessageName(resp[0])
         self.assert_(resp[0]==QUERY_REPLY)
-        self.check_chquery_reply(resp[1:])
+        self.check_chquery_reply(resp[1:],nickname)
         print >>sys.stderr,"test:",`bdecode(resp[1:])`
         s.close()
         
@@ -278,11 +287,20 @@ class TestChannels(TestAsServer):
         s.close()        
         
 
+
 def test_suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestChannels))
+    # We should run the tests in a separate Python interpreter to prevent 
+    # problems with our singleton classes, e.g. PeerDB, etc.
+    if len(sys.argv) != 2:
+        print "Usage: python test_channelcasst.py <method name>"
+    else:
+        suite.addTest(TestChannels(sys.argv[1]))
     
     return suite
 
+def main():
+    unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])
+
 if __name__ == "__main__":
-    unittest.main()
+    main()

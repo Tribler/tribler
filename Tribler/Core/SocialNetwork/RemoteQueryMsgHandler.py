@@ -544,8 +544,11 @@ def isValidQuery(d,selversion):
         ukeyws = keyws.decode("UTF-8").strip().split()
         for ukeyw in ukeyws:
             if not ukeyw.isalnum():
-                if DEBUG:
-                    print >>sys.stderr,"rqmh: not alnum",`ukeyw`
+                # Arno, 2010-02-09: Allow for BASE64-encoded permid in CHANNEL queries
+                rep = ukeyw.replace("+","p").replace("/","s")
+                if not rep.isalnum():
+                    if DEBUG:
+                        print >>sys.stderr,"rqmh: not alnum",`ukeyw`
                     return False
     except:
         print_exc()

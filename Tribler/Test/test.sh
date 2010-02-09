@@ -51,6 +51,7 @@ export PYTHONPATH=../..:"$PYTHONPATH"
 # ./test_sqlitecachedbhandler.sh
 # ./test_vod.sh
 # sh ./test_na_extend_hs.sh
+# ./test_channelcast.sh
 
 # # Takes a long time, do at end
 # python test_natcheck.py
