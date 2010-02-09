@@ -2828,7 +2828,7 @@ class VoteCastDBHandler(BasicDBHandler):
         try:
             db = SQLiteCacheDB.getInstance()
             BasicDBHandler.__init__(self,db,'VoteCast')
-            print >> sys.stderr, "votecast: DB made" 
+            if DEBUG: print >> sys.stderr, "votecast: DB made" 
         except: 
             print >> sys.stderr, "votecast: couldn't make the table"
         

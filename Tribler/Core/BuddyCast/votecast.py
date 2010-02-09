@@ -16,7 +16,7 @@ from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRTEENTH
 
 DEBUG_UI = False
-DEBUG = True    #Default debug
+DEBUG = False    #Default debug
 debug = False    #For send-errors and other low-level stuff
 
 
