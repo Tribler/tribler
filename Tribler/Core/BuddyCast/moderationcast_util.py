@@ -74,6 +74,10 @@ def validVoteCastMsg(data):
             if DEBUG:
                 print >> sys.stderr, "Vote is not int: ", repr(value['vote']) 
             return False
+        if not(value['vote']==2 or value['vote']==-1):
+            if DEBUG:
+                print >> sys.stderr, "Vote is not -1 or 2: ", repr(value['vote']) 
+            return False
         if not type(value['time_stamp']) == int:
             if DEBUG:
                 print >> sys.stderr, "time_stamp is not int: ", repr(value['time_stamp']) 
