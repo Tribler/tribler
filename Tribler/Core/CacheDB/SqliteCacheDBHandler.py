@@ -3220,11 +3220,20 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     
     def addTorrent(self,record):
+        if __debug__:
+            assert len(record) == 7, "RECORD has invalid length: %d" % len(record)
+            publisher_id, publisher_name, infohash, torrenthash, torrentname, timestamp, signature = record
+            assert isinstance(publisher_id, str), "PUBLISHER_ID has invalid type: %s" % type(publisher_id)
+            assert isinstance(publisher_name, unicode), "PUBLISHER_NAME has invalid type: %s" % type(publisher_name)
+            assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+            assert isinstance(torrentname, unicode), "TORRENTNAME has invalid type: %s" % type(torrentname)
+            assert isinstance(timestamp, int), "TIMESTAMP has invalid type: %s" % type(timestamp)
+            assert isinstance(signature, str), "SIGNATURE has invalid type: %s" % type(signature)
         flag = False
         sql = "select count(*) from ChannelCast where publisher_id='" + record[0] + "' and infohash='" + record[2] + "'"
         num_records = self._db.fetchone(sql)
         if num_records==0:
-            sql = "insert into ChannelCast Values(?,?,?,?,?,?,?)"
+            sql = "insert into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, timestamp, signature) Values(?,?,?,?,?,?,?)"
             self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=True)
             flag = True
         sql = "select publisher_name from ChannelCast where publisher_id==? order by time_stamp desc limit 1"
