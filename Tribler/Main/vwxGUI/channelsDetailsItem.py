@@ -1,4 +1,5 @@
-# Written by Richard Gwin 
+# Written by Richard Gwin
+# see LICENSE.txt for license information
 
 import wx
 import wx.xrc as xrc

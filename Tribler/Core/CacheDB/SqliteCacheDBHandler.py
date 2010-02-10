@@ -3283,10 +3283,12 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getTorrentFromTorrenthash(self,torrenthash): ##
         sql = "select * from Torrent where infohash==?"
         torrent = self._db.fetchone(sql,(bin2str(torrenthash),))
+        # Arno, 2010-02-10: TODO: convert infohash to binary
         return torrent
 
     def getTorrentsFromPublisherId(self, publisher_id): ##
         sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id==? ) and name<>'' "
+        # Arno, 2010-02-10: TODO: convert infohash to binary
         return self._db.fetchall(sql,(publisher_id,))
 
     def searchChannels(self,query):

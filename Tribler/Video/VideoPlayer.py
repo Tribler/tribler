@@ -268,14 +268,14 @@ class VideoPlayer:
                 selectedinfilename = videofiles[0][0]
                 selectedoutfilename = videofiles[0][1]
         else:
-            print >> sys.stderr , "selectedinfilename not None" , selectedinfilename , len(selectedinfilename)
+            print >> sys.stderr , "videoplay: play: selectedinfilename not None" , selectedinfilename , len(selectedinfilename)
             if index is not None:
                 selectedinfilename = videofiles[index][0]
             for infilename,diskfilename in videofiles:
                 if infilename == selectedinfilename:
                     selectedoutfilename = diskfilename
 
-        print >> sys.stderr , "PROGRESS" , ds.get_progress()
+        print >> sys.stderr , "videoplay: play: PROGRESS" , ds.get_progress()
         complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
 
         bitrate = tdef.get_bitrate(selectedinfilename)
