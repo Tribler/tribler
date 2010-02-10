@@ -4,6 +4,8 @@
 
 from nose.tools import ok_, eq_, assert_raises
 
+import logging, logging_conf
+
 import minitwisted
 import message
 import test_const as tc
@@ -11,6 +13,8 @@ import test_const as tc
 import rpc_manager
 
 
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
 #FIXME: more tests!!!!
 
 class TestRPCManager:

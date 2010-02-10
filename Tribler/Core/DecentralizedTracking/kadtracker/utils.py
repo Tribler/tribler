@@ -3,10 +3,6 @@
 # See LICENSE.txt for more information
 
 import socket
-import logging
-
-log = logging.getLogger('dht')
-log.setLevel(logging.ERROR)
 
 
 class AddrError(Exception):

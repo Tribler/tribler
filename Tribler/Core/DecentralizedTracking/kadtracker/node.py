@@ -32,6 +32,10 @@ class Node(object):
     def compact_addr(self):
         return self._compact_addr
 
+    @property
+    def ip(self):
+        return self._addr[0]
+    
     def __eq__(self, other):
         try:
             return self.addr == other.addr and self.id == other.id

@@ -5,11 +5,14 @@
 from nose.tools import *
 
 import node
-from utils import log
+import logging, logging_conf
 
 import test_const as tc
 import message
 from message import *
+
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
 
 
 class TestMsg:
@@ -22,7 +25,7 @@ class TestMsg:
         for bs in bin_strs:
             i = bin_to_int(bs)
             bs2 = int_to_bin(i)
-            log.debug('bs: %s, bin_to_int(bs): %d, bs2: %s' % (bs,
+            logger.debug('bs: %s, bin_to_int(bs): %d, bs2: %s' % (bs,
                                                                    i, bs2))
             assert bs == bs2
 
@@ -55,9 +58,9 @@ class TestMsg:
         BIN_PORT = int_to_bin(PORT)
         c_nodes2 = [tc.CLIENT_ID.bin_id + ip + BIN_PORT for ip in bin_ipv6s]
         nodes2 = [node.Node(('1.2.3.4', PORT), tc.CLIENT_ID)]
-        log.debug(message._uncompact_nodes2(c_nodes2))
+        logger.debug(message._uncompact_nodes2(c_nodes2))
         assert message._uncompact_nodes2(c_nodes2) == nodes2 
-        log.warning(
+        logger.warning(
             "**IGNORE WARNING LOG** This exception was raised by a test")
        
 
@@ -105,26 +108,26 @@ class TestMsg:
         #outgoing_query.tid = tc.TID
         # TID and ARGS ID are None
         assert_raises(MsgError, outgoing_query.encode)
-        log.error(
+        logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
 
         outgoing_query = OutgoingPingQuery()
         outgoing_query.my_id = tc.CLIENT_ID
         #outgoing_query.tid = tc.TID
         assert_raises(MsgError, outgoing_query.encode)
-        log.error(
+        logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
 
         outgoing_query = OutgoingPingQuery()
         #outgoing_query.my_id = tc.CLIENT_ID
         outgoing_query.tid = tc.TID
         assert_raises(MsgError, outgoing_query.encode)
-        log.error(
+        logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
         
         outgoing_query = OutgoingPingQuery()
         assert_raises(MsgError, outgoing_query.__setattr__, 'my_id', '')
-        log.error(
+        logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
                 
         outgoing_query = OutgoingPingQuery()
@@ -132,7 +135,7 @@ class TestMsg:
         outgoing_query.tid = 567
         data = outgoing_query.encode()
         assert_raises(MsgError, decode, data)
-        log.error(
+        logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
 
         outgoing_query = OutgoingPingQuery()
@@ -141,7 +144,7 @@ class TestMsg:
         data = outgoing_query.encode()
         data += 'this string ruins the bencoded msg'
         assert_raises(MsgError, decode, data)
-        log.error(
+        logger.error(
             "**IGNORE 2 ERROR LOGS** This exception was raised by a test")
 
 
@@ -150,7 +153,7 @@ class TestMsg:
         outgoing_response = OutgoingPingResponse(tc.TID, tc.SERVER_ID)
         outgoing_response.tid = None
         assert_raises(MsgError, outgoing_response.encode)
-        log.error(
+        logger.error(
             "**IGNORE ERROR LOGS** This exception was raised by a test")
 
             
@@ -249,7 +252,7 @@ class TestMsg:
         data = outgoing_error_msg.encode()
         tid, msg_type, msg_dict = decode(data)
         incoming_error_msg = IncomingErrorMsg(msg_dict)
-        log.debug(incoming_error_msg.error)
+        logger.debug(incoming_error_msg.error)
         assert incoming_error_msg.error == GENERIC_E
 
 
@@ -310,7 +313,7 @@ class TestIncomingMsg:
         error_code = (999, "some weird error string")
         b_err = OutgoingErrorMsg(error_code).encode(tc.TID)
         
-        log.info(
+        logger.info(
             "TEST LOGGING ** IGNORE EXPECTED INFO ** Unknown error: %r",
             error_code)
         _ = IncomingMsg(b_err)

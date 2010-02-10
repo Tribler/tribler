@@ -6,7 +6,6 @@ import time
 import sys
 
 import logging, logging_conf
-from utils import log
 
 import identifier
 import kadtracker
@@ -23,7 +22,7 @@ def lookup_done():
     print 'Type an info_hash (in hex digits):'
 
 if len(sys.argv) == 5 and sys.argv[1] == 'interactive_dht':
-    log.critical('argv %r' % sys.argv)
+    logging.critical('argv %r' % sys.argv)
     assert 0
     RUN_DHT = True
     my_addr = (sys.argv[1], sys.argv[2]) #('192.16.125.242', 7000)

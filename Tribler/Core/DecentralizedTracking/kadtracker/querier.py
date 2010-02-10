@@ -4,10 +4,13 @@
 
 import sys
 
-from utils import log
+import logging
 
 import message
 import identifier
+
+logger = logging.getLogger('dht')
+
 
 TIMEOUT_DELAY = 3
 
@@ -19,9 +22,9 @@ class Query(object):
                  notify_routing_m_on_error_f,
                  notify_routing_m_on_timeout_f,
                  notify_routing_m_on_nodes_found_f):
-        assert on_response_f
-        assert on_error_f
-        assert on_timeout_f
+        #assert on_response_f
+        #assert on_error_f
+        #assert on_timeout_f
         #assert notify_routing_m_on_response_f
         #assert notify_routing_m_on_error_f
         #assert notify_routing_m_on_timeout_f
@@ -47,7 +50,7 @@ class Query(object):
         try:
             response_msg.sanitize_response(self.query)
         except (message.MsgError):
-            log.exception(
+            logger.exception(
                 "We don't like dirty reponses: %r|nresponse ignored"
                 % response_msg)
             return # Response ignored 
@@ -59,7 +62,7 @@ class Query(object):
             self.node.id = response_msg.sender_id
         #TODO2: think whether late responses should be accepted
         if self.timeout_task.cancelled:
-            log.warning(
+            logger.warning(
                 "Response recevived but it's too late!!\n%r, %r" %
                 (response_msg,
                 self.timeout_task))
@@ -86,17 +89,20 @@ class Query(object):
         if self.notify_routing_m_on_response_f:
             self.notify_routing_m_on_response_f(self.node)
         # Do callback to whomever did the query
-        self.on_response_f(response_msg, self.node)
+        if self.on_response_f:
+            self.on_response_f(response_msg, self.node)
         return True # the response was fine
 
     def on_error_received(self, error_msg):
-        self.on_error_f(error_msg, self.node)
+        if self.on_error_f:
+            self.on_error_f(error_msg, self.node)
         if self.notify_routing_m_on_error_f:
             self.notify_routing_m_on_error_f(self.node)
 
     def on_timeout(self):
         # Careful here. Node might not have ID.
-        self.on_timeout_f(self.node)
+        if self.on_timeout_f:
+            self.on_timeout_f(self.node)
         if self.notify_routing_m_on_timeout_f:
             self.notify_routing_m_on_timeout_f(self.node)
 
@@ -142,7 +148,7 @@ class Querier(object):
                    timeout_delay=None):
         timeout_delay = timeout_delay or self.default_timeout_delay
         tid = self._next_tid()
-        log.debug('sending to node: %r\n%r' % (node_, msg))
+        logger.debug('sending to node: %r\n%r' % (node_, msg))
         query = Query(tid, msg.query, node_,
                       on_response_f, on_error_f,
                       on_timeout_f,
@@ -171,16 +177,16 @@ class Querier(object):
         
     def on_response_received(self, response_msg, addr):
         # TYPE and TID already sanitized by rpc_manager
-        log.debug('response received: %s' % repr(response_msg))
+        logger.debug('response received: %s' % repr(response_msg))
         try:
             addr_query_list = self.pending[addr]
         except (KeyError):
-            log.warning('No pending queries for %s', addr)
+            logger.warning('No pending queries for %s', addr)
             return # Ignore response
         # There are pending queries from node (let's find the right one (TID)
         query_found = False
         for query_index, query in enumerate(addr_query_list):
-            log.debug('response node: %s, query:\n(%s, %s)' % (
+            logger.debug('response node: %s, query:\n(%s, %s)' % (
                 `addr`,
                 `query.tid`,
                 `query.query`))
@@ -188,7 +194,7 @@ class Querier(object):
                 query_found = True
                 break
         if not query_found:
-            log.warning('No query for this response\n%s\nsource: %s' % (
+            logger.warning('No query for this response\n%s\nsource: %s' % (
                 response_msg, addr))
             return # ignore response 
         # This response matches query. Trigger query's callback
@@ -201,11 +207,11 @@ class Querier(object):
             else:
                 del addr_query_list[query_index]
         else:
-            log.warning('Bad response from %r\n%r' % (addr,
+            logger.warning('Bad response from %r\n%r' % (addr,
                                                           response_msg))
 
     def on_error_received(self, error_msg, addr):
-        log.warning('Error message received:\n%s\nSource: %s',
+        logger.warning('Error message received:\n%s\nSource: %s',
                         `error_msg`,
                         `addr`)
         # TODO2: find query (with TID)
@@ -215,7 +221,7 @@ class Querier(object):
         #try
         addr_query_list = self.pending[addr]
         #except (KeyError):
-        #    log.warning('No pending queries for %s', addr)
+        #    logger.warning('No pending queries for %s', addr)
         #    return # Ignore response
         # There are pending queries from node (oldest query)
         query = addr_query_list.pop(0)

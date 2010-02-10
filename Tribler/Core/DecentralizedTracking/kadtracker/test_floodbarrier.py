@@ -3,19 +3,20 @@
 # See LICENSE.txt for more information
 
 import time
-
-from utils import log
+import logging, logging_conf
 
 from test_const import *
 
 from floodbarrier import FloodBarrier
 
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
 
 
 class TestFloodBarrier:
 
     def setup(self):
-        #log.critical('************* BEGIN **************')
+        #logger.critical('************* BEGIN **************')
         pass
 
     def test(self):

@@ -4,7 +4,7 @@
 
 import time
 
-from utils import log
+import logging, logging_conf
 
 import identifier
 import message
@@ -19,39 +19,43 @@ from message import QUERY, RESPONSE, ERROR, OutgoingGetPeersQuery
 from lookup_manager import LookupManager
 from node import Node
 
+logger = logging.getLogger('dht')
+
 class Controller:
     
     def __init__(self, dht_addr):
-        self.my_addr = dht_addr
-        self.my_id = identifier.RandomId()
-        self.my_node = Node(self.my_addr, self.my_id)
-        self.tracker = tracker.Tracker()
-        self.token_m = token_manager.TokenManager()
+        my_addr = dht_addr
+        my_id = identifier.RandomId()
+        my_node = Node(my_addr, my_id)
+        tracker_ = tracker.Tracker()
+        token_m = token_manager.TokenManager()
 
         self.reactor = ThreadedReactor()
-        self.rpc_m = RPCManager(self.reactor, self.my_addr[1])
-        self.querier = Querier(self.rpc_m, self.my_id)
-        self.routing_m = RoutingManager(self.my_node, self.querier,
-                                        bootstrap_nodes)
-        self.responder = Responder(self.my_id, self.routing_m,
-                                   self.tracker, self.token_m)
+        rpc_m = RPCManager(self.reactor, my_addr[1])
+        querier_ = Querier(rpc_m, my_id)
+        routing_m = RoutingManager(my_node, querier_,
+                                   bootstrap_nodes)
+        responder_ = Responder(my_id, routing_m,
+                              tracker_, token_m)
 
-        self.responder.set_on_query_received_callback(
-            self.routing_m.on_query_received)
-        self.querier.set_on_response_received_callback(
-            self.routing_m.on_response_received)
-        self.querier.set_on_error_received_callback(
-            self.routing_m.on_error_received)
-        self.querier.set_on_timeout_callback(self.routing_m.on_timeout)
-        self.querier.set_on_nodes_found_callback(self.routing_m.on_nodes_found)
+        responder_.set_on_query_received_callback(
+            routing_m.on_query_received)
+        querier_.set_on_response_received_callback(
+            routing_m.on_response_received)
+        querier_.set_on_error_received_callback(
+            routing_m.on_error_received)
+        querier_.set_on_timeout_callback(routing_m.on_timeout)
+        querier_.set_on_nodes_found_callback(routing_m.on_nodes_found)
 
-        self.routing_m.do_bootstrap()
+        routing_m.do_bootstrap()
 
-        self.rpc_m.add_msg_callback(QUERY,
-                                    self.responder.on_query_received)
+        rpc_m.add_msg_callback(QUERY,
+                               responder_.on_query_received)
 
-        self.lookup_m = LookupManager(self.my_id, self.querier,
-                                      self.routing_m)
+        self.lookup_m = LookupManager(my_id, querier_,
+                                      routing_m)
+        self._routing_m = routing_m
+        
 
     def start(self):
         self.reactor.start()
@@ -63,6 +67,8 @@ class Controller:
     def get_peers(self, info_hash, callback_f, bt_port=None):
         return self.lookup_m.get_peers(info_hash, callback_f, bt_port)
 
+    def print_routing_table_stats(self):
+        self._routing_m.print_stats()
     
 bootstrap_nodes = (
     

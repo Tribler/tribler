@@ -13,6 +13,11 @@ import message
 
 from routing_manager import RoutingManager, RoutingManagerMock
 
+import logging, logging_conf
+
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
+
 
 class TestRoutingManager:
 

@@ -5,7 +5,6 @@
 import random
 
 import logging, logging_conf
-from utils import log
 
 from nose.tools import eq_, ok_, assert_raises, raises
 import test_const as tc
@@ -14,7 +13,9 @@ import identifier
 from identifier import Id, RandomId, IdError
 from identifier import ID_SIZE_BYTES, ID_SIZE_BITS, BITS_PER_BYTE
 
-test_logger = logging.getLogger('test_node')
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
+
 
 BIN_ID0 = '\x00' * ID_SIZE_BYTES
 BIN_ID1 = '\x01' * ID_SIZE_BYTES
@@ -51,7 +52,7 @@ class TestId(object):
         str1 = '0' * ID_SIZE_BYTES
         for i in range(ID_SIZE_BYTES):
             str2 = '0' * i + '1' * (ID_SIZE_BYTES - i)
-            log.debug('test_num: %d, _first_different_byte: %d' % (
+            logger.debug('test_num: %d, _first_different_byte: %d' % (
                 i, identifier._first_different_byte(str1, str2)))
             assert identifier._first_different_byte(str1, str2) == i
         assert_raises(IndexError,
@@ -136,8 +137,8 @@ class TestId(object):
             )
 
         for (id_, log_) in id_log:
-            log.debug('log_distance: %d' % id0.log_distance(id_))
-            log.debug('expected: %d' % log_)
+            logger.debug('log_distance: %d' % id0.log_distance(id_))
+            logger.debug('expected: %d' % log_)
             eq_(id0.log_distance(id_), log_)
         for id1, id2, expected in id2_log:
             eq_(id1.log_distance(id2), expected)
@@ -167,22 +168,22 @@ class TestId(object):
 
         random_list_copy = random_list[:]
 
-        log.debug('ordered list')
-        for e in ordered_list: log.debug('%s' % e)
-        log.debug('random order')
-        for e in random_list: log.debug('%s' % e)
+        logger.debug('ordered list')
+        for e in ordered_list: logger.debug('%s' % e)
+        logger.debug('random order')
+        for e in random_list: logger.debug('%s' % e)
 
         result_list = id0.order_closest(random_list)
-        log.debug('order_closest result')
-        for e in result_list: log.debug('%s' % e)
-        log.debug('random order (it should not change)')
-        for e in random_list: log.debug('%s' % e)
+        logger.debug('order_closest result')
+        for e in result_list: logger.debug('%s' % e)
+        logger.debug('random order (it should not change)')
+        for e in random_list: logger.debug('%s' % e)
 
         # make sure order_closest does not modify random_list
         assert random_list == random_list_copy
         
         for i, ordered_id in enumerate(ordered_list):
-            log.debug('%d, %s, %s' % (i, ordered_id, result_list[i]))
+            logger.debug('%d, %s, %s' % (i, ordered_id, result_list[i]))
             assert ordered_id.bin_id == result_list[i].bin_id
             # Notice that 'assert ordered_id is result_id'
             # do not work when two Id instances have the same bin_id

@@ -9,6 +9,11 @@ import time
 import tracker
 import minitwisted
 
+import logging, logging_conf
+
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
+
 
 keys = ('1','2')
 peers = (('1.2.3.4', 1234), ('2.3.4.5', 2222))

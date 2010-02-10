@@ -6,6 +6,8 @@ from nose.tools import *
 
 import token_manager
 
+
+
 token_str = '123'
 invalid_token_str = ''
 

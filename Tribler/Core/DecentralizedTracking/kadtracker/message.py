@@ -15,11 +15,14 @@ sanitized before attempting to use message's attributes.
 
 import sys
 
-from utils import log
+import logging
 
 import bencode
 from identifier import Id, ID_SIZE_BYTES, IdError
 from node import Node
+
+
+logger = logging.getLogger('dht')
 
 
 NEXTSHARE = 'NS\0\0\0'
@@ -113,7 +116,7 @@ def compact_addr(addr):
 
 def uncompact_addr(c_addr):
     if c_addr[-2:] == '\0\0':
-        log.warning('c_addr: %r > port is ZERO' % c_addr)
+        logger.warning('c_addr: %r > port is ZERO' % c_addr)
         raise AddrError
     return (bin_to_ip(c_addr[:-2]), bin_to_int(c_addr[-2:]))
 
@@ -121,7 +124,13 @@ def _compact_peers(peers):
     return [compact_addr(peer) for peer in peers]
 
 def _uncompact_peers(c_peers):
-    return [uncompact_addr(c_peer) for c_peer in c_peers]
+    peers = []
+    for c_peer in c_peers:
+        try:
+            peers.append(uncompact_addr(c_peer))
+        except (AddrError):
+            pass
+    return peers
 
 def _compact_nodes(nodes):
     return ''.join([node.id.bin_id + compact_addr(node.addr) \
@@ -155,9 +164,7 @@ def _uncompact_nodes2(c_nodes):
         try:
             node_addr = uncompact_addr(c_node[ID_SIZE_BYTES:]) 
         except (AddrError):
-            log.warning('IPv6 addr in nodes2: %s' % c_node)
-        except (AddrError):
-            pass
+            logger.warning('IPv6 addr in nodes2: %s' % c_node)
         else:
             node = Node(node_addr, node_id)
             nodes.append(node)
@@ -369,7 +376,7 @@ class IncomingMsg(object):
         try:
             self._msg_dict = bencode.decode(bencoded_msg)
         except (bencode.DecodeError):
-            log.exception('invalid bencode')
+            logger.exception('invalid bencode')
             raise MsgError, 'invalid bencode'
         # Make sure the decoded data is a dict and has a TID key
         try:
@@ -477,13 +484,13 @@ class IncomingMsg(object):
                 self.nodes2 = _uncompact_nodes2(
                     self._msg_dict[RESPONSE][NODES2])
                 if nodes_found:
-                    log.info('Both nodes and nodes2 found')
+                    logger.info('Both nodes and nodes2 found')
                 nodes_found = True
             except (KeyError):
                 pass
         if query == FIND_NODE:
             if not nodes_found:
-                log.warning('No nodes in find_node response')
+                logger.warning('No nodes in find_node response')
                 raise MsgError, 'No nodes in find_node response'
         elif query == GET_PEERS:
             # peers
@@ -491,11 +498,11 @@ class IncomingMsg(object):
                 self.peers = _uncompact_peers(
                     self._msg_dict[RESPONSE][VALUES])
                 if nodes_found:
-                    log.warning(
+                    logger.debug(
                         'Nodes and peers found in get_peers response')
             except (KeyError):
                 if not nodes_found:
-                    log.warning(
+                    logger.warning(
                         'No nodes or peers found in get_peers response')
                     raise (MsgError,
                            'No nodes or peers found in get_peers response')
@@ -510,5 +517,5 @@ class IncomingMsg(object):
         except (KeyError, IndexError, ValueError, TypeError):
             raise MsgError, 'Invalid error message'
         if self.error not in [GENERIC_E, SERVER_E, PROTOCOL_E, UNKNOWN_E]:
-            log.info('Unknown error: %s', self.error)
+            logger.info('Unknown error: %s', self.error)
             

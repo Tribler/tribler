@@ -16,6 +16,7 @@ BEFORE importing this module. See the examples above for details.
 """
 
 import controller
+import logging, logging_conf
 
 class KadTracker:
     """KadTracker is the interface for the whole package.
@@ -27,6 +28,7 @@ class KadTracker:
 
     """
     def __init__(self, dht_addr, logs_path):
+        logging_conf.setup(logs_path, logging.DEBUG)
         self.controller = controller.Controller(dht_addr)
         self.controller.start()
 
@@ -48,6 +50,9 @@ class KadTracker:
 
         """
         return self.controller.get_peers(info_hash, callback_f, bt_port)
+
+    def print_routing_table_stats(self):
+        self.controller.print_routing_table_stats()
 
 
     #TODO2: Future Work

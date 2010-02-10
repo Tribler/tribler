@@ -4,12 +4,16 @@
 
 import random
 
-from utils import log
+import logging
 
 import identifier as identifier
 import message as message
 from node import Node, RoutingNode
 from routing_table import RoutingTable, RnodeNotFound, BucketFullError
+
+
+logger = logging.getLogger('dht')
+
 
 #TODO2: Stop expelling nodes from tables when there are many consecutive
 # timeouts (and enter off-line mode)
@@ -86,9 +90,9 @@ class RoutingManager(object):
                                    len(self.bootstrap_nodes) - 1)
             self.querier.send_query(self.find_node_msg,
                                     self.bootstrap_nodes[index],
-                                    self._do_nothing,
-                                    self._do_nothing,
-                                    self._do_nothing)
+                                    None,
+                                    None,
+                                    None)
             del self.bootstrap_nodes[index]
         #TODO2: Don't use querier's rpc_m
         self.querier.rpc_m.call_later(BOOTSTRAP_DELAY,
@@ -207,14 +211,14 @@ class RoutingManager(object):
     def on_nodes_found(self, nodes):
         #FIXME: this will send ping at exponential rate
         #not good!!!!
-        log.debug('nodes found: %r', nodes)
+        logger.debug('nodes found: %r', nodes)
         for node_ in nodes:
             try:
                 rnode = self.main.get_rnode(node_)
             except RnodeNotFound:
                 # Not in the main: ping it if there is room in main
                 if self.main.there_is_room(node_):
-                    log.debug('pinging node found: %r', node_)
+                    logger.debug('pinging node found: %r', node_)
                     self._refresh_now(node_, NO_PRIORITY)
                     #TODO2: prefer NS
 
@@ -224,6 +228,13 @@ class RoutingManager(object):
     def get_all_rnodes(self):
         return (self.main.get_all_rnodes(),
                 self.replacement.get_all_rnodes())
+
+    def print_stats(self):
+        print '=== MAIN ==='
+        self.main.print_stats()
+        print '=== REPLACEMENT ==='
+        self.replacement.print_stats()
+        print '=== ==='
 
     def _refresh_now(self, node_, priority=PRIORITY):
         if priority == NO_PRIORITY and \
@@ -251,9 +262,9 @@ class RoutingManager(object):
         return self.querier.send_query_later(delay,
                                              self.find_node_msg,
                                              rnode,
-                                             self._do_nothing,
-                                             self._do_nothing,
-                                             self._do_nothing)
+                                             None,
+                                             None,
+                                             None)
     def _do_nothing(self, *args, **kwargs):
         pass
 

@@ -6,7 +6,7 @@ from nose.tools import ok_, eq_
 
 import sys
 import time
-from utils import log
+import logging, logging_conf
 
 import node
 import identifier
@@ -16,6 +16,10 @@ import rpc_manager
 import test_const as tc
 
 import querier
+
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
+
 
 RUN_CPU_INTENSIVE_TESTS = False
 RUN_NETWORK_TESTS = False # Requires a running external DHT node
@@ -117,7 +121,7 @@ class TestQuery:
         pong_msg = message.IncomingMsg(pong_data)
         # querier notifies of the message (but it's too late)
         self.query.on_response_received(pong_msg)
-        log.warning(
+        logger.warning(
             "**IGNORE WARNING LOG**")
         assert not self.got_response and not self.got_error \
                and self.got_timeout
@@ -126,7 +130,7 @@ class TestQuery:
         # Response received is invalid
         self.ping_r_in._msg_dict[message.RESPONSE] = 'zz'
         ok_(not self.got_response) 
-        log.warning(
+        logger.warning(
             "**IGNORE WARNING LOG**")
         self.query.on_response_received(self.ping_r_in)
         ok_(not self.got_response)

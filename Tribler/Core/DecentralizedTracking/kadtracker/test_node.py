@@ -5,11 +5,15 @@
 from nose.tools import ok_, eq_, raises, assert_raises
 import test_const as tc
 
+import logging, logging_conf
+
 import utils
 from identifier import Id, ID_SIZE_BYTES
 from node import Node, RoutingNode
 from node import LAST_RTT_W
 
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
 
 
 

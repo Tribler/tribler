@@ -18,9 +18,12 @@ import socket
 import threading
 import time
 
-from utils import log
+import logging
 
 from floodbarrier import FloodBarrier
+
+logger = logging.getLogger('dht')
+
 
 BUFFER_SIZE = 1024
 
@@ -50,11 +53,18 @@ class Task(object):
         return self._cancelled
     
     def fire_callbacks(self):
-        """Fire a callback (if it hasn't been cancelled)"""
-        if self._cancelled:
-            return
-        for callback_f in self.callback_fs:
-            callback_f(*self.args, **self.kwds)
+        """Fire a callback (if it hasn't been cancelled)."""
+        if not self._cancelled:
+            for callback_f in self.callback_fs:
+                callback_f(*self.args, **self.kwds)
+        '''
+        Tasks usually have arguments which reference to the objects which
+        created the task. That is, they create a memory cycle. In order
+        to break the memoery cycle, those arguments are deleted.
+        '''
+        del self.callback_fs
+        del self.args
+        del self.kwds
 
     def cancel(self):
         """Cancel a task (callback won't be called when fired)"""
@@ -150,21 +160,21 @@ class ThreadedReactor(threading.Thread):
             try:
                 data, addr = self.s.recvfrom(BUFFER_SIZE)
             except (AttributeError):
-                log.warning('udp_listen has not been called')
+                logger.warning('udp_listen has not been called')
                 time.sleep(self.task_interval)
                 #TODO2: try using Event and wait
                 timeout_raised = True
             except (socket.timeout):
                 timeout_raised = True
             except (socket.error), e:
-                log.critical(
+                logger.critical(
                     'Got socket.error when receiving (more info follows)')
-                log.exception('See critical log above')
+                logger.exception('See critical log above')
             else:
                 ip_is_blocked = self.floodbarrier_active and \
                                 self.floodbarrier.ip_blocked(addr[0])
                 if ip_is_blocked:
-                    log.warning('%s blocked' % `addr`)
+                    logger.warning('%s blocked' % `addr`)
                 else:
                     self.datagram_received_f(data, addr)
 
@@ -177,11 +187,12 @@ class ThreadedReactor(threading.Thread):
                         task = self.tasks.consume_task()
                         if task is None:
                             break
+#                        logger.critical('TASK COUNT 2 %d' % sys.getrefcount(task))
                         task.fire_callbacks()
                     stop_flag = self.stop_flag
                 finally:
                     self._lock.release()
-        log.debug('Reactor stopped')
+        logger.debug('Reactor stopped')
             
     def stop(self):
         """Stop the thread. It cannot be resumed afterwards????"""
@@ -224,7 +235,9 @@ class ThreadedReactor(threading.Thread):
         self._lock.acquire()
         try:
             task = Task(delay, callback_fs, *args, **kwds)
+#            logger.critical('TASK COUNT CREATION 2 %d' % sys.getrefcount(task))
             self.tasks.add(task)
+#            logger.critical('TASK COUNT CREATION 3 %d' % sys.getrefcount(task))
         finally:
             self._lock.release()
         return task
@@ -242,17 +255,17 @@ class ThreadedReactor(threading.Thread):
             try:
                 bytes_sent = self.s.sendto(data, addr)
                 if bytes_sent != len(data):
-                    log.critical(
+                    logger.critical(
                         'Just %d bytes sent out of %d (Data follows)' % (
                             bytes_sent,
                             len(data)))
-                    log.critical('Data: %s' % data)
+                    logger.critical('Data: %s' % data)
             except (socket.error):
-                log.critical(
+                logger.critical(
                     'Got socket.error when sending (more info follows)')
-                log.critical('Sending data to %r\n%r' % (addr,
+                logger.critical('Sending data to %r\n%r' % (addr,
                                                              data))
-                log.exception('See critical log above')
+                logger.exception('See critical log above')
         finally:
             self._lock.release()
 

@@ -10,7 +10,6 @@ logs_path = '.'
 logs_level = logging.DEBUG # This generates HUGE (and useful) logs
 #logs_level = logging.INFO # This generates some (useful) logs
 #logs_level = logging.WARNING # This generates warning and error logs
-logging_conf.setup(logs_path, logs_level)
 
 import identifier
 import kadtracker
@@ -26,6 +25,7 @@ def lookup_done():
     print 'Type an info_hash (in hex digits): ',
 
 if len(sys.argv) == 4 and sys.argv[0] == 'interactive_dht.py':
+    logging_conf.setup(logs_path, logs_level)
     RUN_DHT = True
     my_addr = (sys.argv[1], int(sys.argv[2])) #('192.16.125.242', 7000)
     logs_path = sys.argv[3]

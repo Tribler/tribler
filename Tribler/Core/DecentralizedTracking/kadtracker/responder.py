@@ -6,7 +6,10 @@ import message
 import node
 import sys
 
-from utils import log
+import logging
+
+logger = logging.getLogger('dht')
+
 
 class Responder(object ):
     "docstring for Responder"
@@ -26,12 +29,12 @@ class Responder(object ):
         self.notify_routing_m_on_query = callback_f
         
     def on_query_received(self, query_msg, addr):
-        log.debug('query received\n%s\nSource: %s' % (`query_msg`,
+        logger.debug('query received\n%s\nSource: %s' % (`query_msg`,
                                                           `addr`))
         try:
             handler = self.query_handler[query_msg.query]
         except (KeyError, ValueError):
-            log.exception('Invalid QUERY')
+            logger.exception('Invalid QUERY')
             return # ignore query #TODO2: send error back?
         response_msg = handler(query_msg)
         self.notify_routing_m_on_query(node.Node(addr,

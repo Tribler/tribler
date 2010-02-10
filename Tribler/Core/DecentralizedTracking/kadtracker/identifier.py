@@ -10,6 +10,11 @@ This module provides the Id object and necessary tools.
 import sys
 import random
 
+import logging
+
+logger = logging.getLogger('dht')
+
+
 BITS_PER_BYTE = 8
 ID_SIZE_BYTES = 20
 ID_SIZE_BITS = ID_SIZE_BYTES * BITS_PER_BYTE

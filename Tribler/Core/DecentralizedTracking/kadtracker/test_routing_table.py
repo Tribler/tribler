@@ -2,6 +2,8 @@
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
+import logging, logging_conf
+
 from nose.tools import eq_, ok_, assert_raises
 
 import test_const as tc
@@ -9,6 +11,9 @@ import test_const as tc
 import node
 
 from routing_table import *
+
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
 
 
 class TestRoutingTable:

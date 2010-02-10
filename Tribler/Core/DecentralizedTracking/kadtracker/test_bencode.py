@@ -5,11 +5,12 @@
 from nose.tools import assert_raises, raises
 
 import cStringIO
-
-from utils import log
+import logging, logging_conf
 
 from bencode import *
 
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
 
 test_data = [
     # strings
@@ -50,7 +51,7 @@ test_data_encode_error = [
     ({1:1}, EncodeError),
     ({None:1}, EncodeError),
     ({(1,2):1}, EncodeError),
-#    ({1: {1: {1: {1: {}}}}}, RecursionDepthError), no recursion limit encoding
+    # There is no recursion limit when encoding
     ]
 
 test_data_decode_error = [
@@ -63,22 +64,21 @@ test_data_decode_error = [
     ('li2eee', DecodeError), # extra end
     ('d3:KEYe', DecodeError), # value missing
     ('lllll', RecursionDepthError),
-    ('ddddd', RecursionDepthError),
+    ('ddddd', DecodeError), # Notice that a dictionary is NOT a valid KEY.
     ]
 
 
 def debug_print(test_num, input_, expected, output):
-    log.debug('test_num: %d' % test_num)
-    log.debug('input:    %s' % input_)
-    log.debug('expected: %s' % expected)
-    log.debug('output:   %s' % output)
+    logger.debug('''test_num: %d
+    input:    %s
+    expected: %s
+    output:   %s''' % (test_num, input_, expected, output))
        
 
 class TestEncode():
 
     def setup(self):
         pass
-#        log.critical('************* BEGIN **************')
 
     def test_encode(self):
         for i, (data, expected) in enumerate(test_data):
@@ -92,27 +92,26 @@ class TestEncode():
                 debug_print(i, data, expected, bencoded)
                 assert False
 
-
     def test_encode_error(self):
         for i, (data, expected) in enumerate(test_data_encode_error):
+            logger.debug(
+                '>>>>>>>>>>>EXPECTED ERROR LOG: %r' % expected)
             try:
                 encode(data)
             except expected:
-                log.error(
-                    "**IGNORE ERROR LOG** This exception was raised by a test")
+                pass # Good. We got the expected exception.
             except (Exception), e:
                 debug_print(i, data, expected, e)
-                raise
+                raise # Fail. We got some other exception.
             else:
                 debug_print(i, data, expected, 'NO EXCEPTION RAISED')
-                assert False
-#            assert_raises(expected, encode_list, data, output)
-       
+                assert False # Fail. We got no exception at all.
+
+                
 class TestDecode:
 
     def setup(self):
         pass
-#        log.critical('************* BEGIN **************')
 
     def test_decode(self):
         for i, (expected, bencoded) in enumerate(test_data):
@@ -121,7 +120,7 @@ class TestDecode:
                 data = decode(bencoded)
             except (Exception), e:
                 debug_print(i, bencoded, expected, e)
-                #raise
+                raise
             else:
                 if data != expected:
                     debug_print(i, bencoded, expected, data)
@@ -139,6 +138,3 @@ class TestDecode:
             else:
                 debug_print(i, bencoded, expected, 'NO EXCEPTION RAISED')
                 assert False
-#            assert_raises(expected, decode, data)
-
-            

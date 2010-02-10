@@ -2,6 +2,11 @@
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
+import logging
+
+logger = logging.getLogger('dht')
+
+
 class BucketFullError(Exception):
     pass
 class RnodeNotFound(IndexError):
@@ -29,6 +34,9 @@ class Bucket(object):
         
     def __repr__(self):
         return '\n'.join([repr(rnode) for rnode in self.rnodes])
+
+    def __len__(self):
+        return len(self.rnodes)
 
     def is_full(self):
         return len(self.rnodes) == self.max_nodes
@@ -96,6 +104,14 @@ class RoutingTable(object):
         for bucket in self.buckets:
             rnodes.extend(bucket.rnodes)
         return rnodes
+
+    def print_stats(self):
+        num_nodes = 0
+        for i, bucket in enumerate(self.buckets):
+            if len(bucket):
+                print i, len(bucket)
+                num_nodes += len(bucket)
+        print 'Total:', num_nodes
     
     def __repr__(self):
         msg = ['==============RoutingTable============= BEGIN']

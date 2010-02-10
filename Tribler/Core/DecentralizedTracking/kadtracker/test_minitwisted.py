@@ -6,10 +6,14 @@ from __future__ import with_statement
 import threading
 import time
 
-from utils import log
+import logging, logging_conf
 
 from nose.tools import eq_, ok_, assert_raises
 import test_const as tc
+
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
+
 
 from minitwisted import Task, TaskManager, \
      ThreadedReactor, ThreadedReactorMock, \
@@ -38,7 +42,7 @@ class TestTaskManager:
             if task is None:
                 break
             task.fire_callback()
-        log.debug('%s' % self.callback_order)
+        logger.debug('%s' % self.callback_order)
         assert self.callback_order == []
         time.sleep(.01)
         while True:
@@ -60,7 +64,7 @@ class TestTaskManager:
             if task is None:
                 break
             task.fire_callback()
-        log.debug('%s' % self.callback_order)
+        logger.debug('%s' % self.callback_order)
         assert self.callback_order == []
         ok_(not c_task.cancelled)
         c_task.cancel()
@@ -72,7 +76,7 @@ class TestTaskManager:
             if task is None:
                 break
             task.fire_callbacks()
-        log.debug('%s' % self.callback_order)
+        logger.debug('%s' % self.callback_order)
         assert self.callback_order == [0,1,2,3,4,  6,7,8,9]
         # task 5 was cancelled        
 
@@ -100,7 +104,7 @@ class TestTaskManager:
                 if task is None:
                     break
                 task.fire_callbacks()
-            log.debug('#: %d, result: %s, expected: %s' % (i,
+            logger.debug('#: %d, result: %s, expected: %s' % (i,
                                               self.callback_order, expected))
             assert self.callback_order == expected
             self.callback_order = []
@@ -152,7 +156,7 @@ class TestMinitwisted:
     def test_listen_upd(self):
         r = ThreadedReactor()
         r.start()
-        log.warning(''.join(
+        logger.warning(''.join(
             ('TESTING LOGS ** IGNORE EXPECTED WARNING ** ',
              '(udp_listen has not been called)')))
         self.client_r.sendto(DATA, tc.SERVER_ADDR)
@@ -163,7 +167,7 @@ class TestMinitwisted:
             time.sleep(tc.TASK_INTERVAL)
         with self.lock:
             first_datagram = self.datagrams_received.pop(0)
-            log.debug('first_datagram: %s, %s' % (
+            logger.debug('first_datagram: %s, %s' % (
                     first_datagram,
                     (DATA, tc.CLIENT_ADDR)))
             assert first_datagram, (DATA, tc.CLIENT_ADDR)
@@ -174,7 +178,7 @@ class TestMinitwisted:
         time.sleep(tc.TASK_INTERVAL)
         with self.lock:
             first_datagram = self.datagrams_received.pop(0)
-            log.debug('first_datagram: %s, %s' % (
+            logger.debug('first_datagram: %s, %s' % (
                     first_datagram,
                     (DATA, tc.CLIENT_ADDR)))
             assert first_datagram, (DATA, tc.CLIENT_ADDR)
@@ -185,11 +189,11 @@ class TestMinitwisted:
             self.client_r.sendto(DATA, tc.SERVER_ADDR)
         for _ in xrange(10):
             self.client_r.sendto(DATA, tc.SERVER_ADDR)
-            log.warning(
+            logger.warning(
                 "TESTING LOGS ** IGNORE EXPECTED WARNING **")
         time.sleep(tc.TASK_INTERVAL)
         with self.lock:
-            log.debug('datagram processed: %d/%d' % (
+            logger.debug('datagram processed: %d/%d' % (
                               len(self.datagrams_received),
                               FLOOD_LIMIT))
             assert len(self.datagrams_received) <= FLOOD_LIMIT
@@ -202,20 +206,20 @@ class TestMinitwisted:
         task4.cancel()
         time.sleep(.03)
         with self.lock:
-            log.debug('callback_order: %s' % self.callback_order)
+            logger.debug('callback_order: %s' % self.callback_order)
             assert self.callback_order == [3]
             self.callback_order = []
         self.client_r.call_now(self.callback_f, 5)
         time.sleep(.03)
         with self.lock:
-            log.debug('callback_order: %s' % self.callback_order)
+            logger.debug('callback_order: %s' % self.callback_order)
             assert self.callback_order == [5]
             self.callback_order = []
         task6 = self.client_r.call_later(.03, self.callback_f, 6)
         task6.cancel()
         time.sleep(.1)
         with self.lock:
-            log.debug('callback_order: %s' % self.callback_order)
+            logger.debug('callback_order: %s' % self.callback_order)
             assert self.callback_order == [2, 1]
 
     def test_network_and_delayed(self):
@@ -223,20 +227,20 @@ class TestMinitwisted:
         self.client_r.call_now(self.callback_f, 1)
         task2 = self.client_r.call_later(.2, self.callback_f, 2)
         with self.lock:
-            assert self.callback_order == []
+            eq_(self.callback_order, [])
         time.sleep(.1)
 
         with self.lock:
-            log.debug('callback_order: %s' % self.callback_order)
+            logger.debug('callback_order: %s' % self.callback_order)
             assert self.callback_order == [1]
             self.callback_order = []
             assert not self.datagrams_received
         self.server_r.sendto(DATA, tc.CLIENT_ADDR)
         time.sleep(.02) # wait for network interruption
         with self.lock:
-            log.debug('callback_order: %s' % self.callback_order)
+            logger.debug('callback_order: %s' % self.callback_order)
             assert self.callback_order == []
-            log.debug('callback_order: %s' % self.callback_order)
+            logger.debug('callback_order: %s' % self.callback_order)
             assert self.datagrams_received.pop(0) == (DATA, tc.SERVER_ADDR)
             task2.cancel() #inside critical region??
         time.sleep(.1) # wait for task 0 (task 2 should be cancelled)
@@ -245,7 +249,7 @@ class TestMinitwisted:
             assert not self.datagrams_received
 
     def test_sendto_socket_error(self): 
-        log.critical('TESTING: IGNORE CRITICAL MESSAGE')
+        logger.critical('TESTING: IGNORE CRITICAL MESSAGE')
         self.client_r.sendto('z', (tc.NO_ADDR[0], 0))
 
     def teardown(self):
@@ -263,14 +267,14 @@ class TestSocketErrors:
         self.r.listen_udp(tc.CLIENT_ADDR[1], lambda x,y:None)
 
     def test_sendto(self):
-        log.critical('TESTING: IGNORE CRITICAL MESSAGE')
+        logger.critical('TESTING: IGNORE CRITICAL MESSAGE')
         self.r.sendto('z', tc.NO_ADDR)
 
     def test_recvfrom(self):
         self.r.start()
         r2 = ThreadedReactor()
         r2.listen_udp(tc.SERVER_ADDR[1], lambda x,y:None)
-        log.critical('TESTING: IGNORE CRITICAL MESSAGE')
+        logger.critical('TESTING: IGNORE CRITICAL MESSAGE')
         r2.sendto('z', tc.CLIENT_ADDR)
         # self.r will call recvfrom (which raises socket.error)
         time.sleep(tc.TASK_INTERVAL)
@@ -278,7 +282,7 @@ class TestSocketErrors:
         self.r.stop()
 
     def test_sendto_too_large_data_string(self):
-        log.critical('TESTING: IGNORE CRITICAL MESSAGE')
+        logger.critical('TESTING: IGNORE CRITICAL MESSAGE')
         self.r.sendto('z'*12345, tc.NO_ADDR)
             
 

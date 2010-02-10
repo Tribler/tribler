@@ -6,12 +6,16 @@ from nose.tools import *
 
 import  message
 
+import logging, logging_conf
 import test_const as tc
 
 import routing_manager
 import token_manager
 import tracker
 import responder
+
+logging_conf.testing_setup(__name__)
+logger = logging.getLogger('dht')
 
 
 class TestResponder:

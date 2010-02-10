@@ -2,9 +2,12 @@
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
-from utils import log
+
+import logging
 
 import message
+
+logger = logging.getLogger('dht')
 
 
 class RPCManager(object):
@@ -42,14 +45,14 @@ class RPCManager(object):
         try:
             msg = message.IncomingMsg(data)
         except (message.MsgError):
-            log.info('MsgError when decoding\n%s\nsouce: %s' % (
+            logger.info('MsgError when decoding\n%s\nsouce: %s' % (
                 data, addr))
             return # ignore message
         try:
             # callback according to message's type
             callback_fs = self.msg_callbacks_d[msg.type]
         except (KeyError):
-            log.info('Key TYPE has an invalid value\n%s\nsouce: %s' % (
+            logger.info('Key TYPE has an invalid value\n%s\nsouce: %s' % (
                 data, addr))
             return #ignore message
         # Call the proper callback (selected according msg's TYPE)
