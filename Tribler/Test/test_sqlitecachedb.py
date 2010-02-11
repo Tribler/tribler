@@ -325,7 +325,7 @@ class TestSQLitePerformance(unittest.TestCase):
         
     def test_benchmark_db(self):
         sqlite_test = SQLitePerformanceTest()
-        sqlite_test.initDB(TRIBLER_DB_PATH, None, CREATE_SQL_FILE)
+        sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
         sqlite_test.test()
         sqlite_test.close(clean=True)
     
@@ -333,28 +333,28 @@ class TestSQLitePerformance(unittest.TestCase):
         class Worker1(Thread):
             def run(self):
                 sqlite_test = SQLitePerformanceTest()
-                sqlite_test.initDB(TRIBLER_DB_PATH, None, CREATE_SQL_FILE)
+                sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
                 sqlite_test.testBrowse()
                 sqlite_test.close()
         
         class Worker2(Thread):
             def run(self):
                 sqlite_test = SQLitePerformanceTest()
-                sqlite_test.initDB(TRIBLER_DB_PATH, None, CREATE_SQL_FILE)
+                sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
                 sqlite_test.testBrowseCategory()
                 sqlite_test.close()
         
         class Worker3(Thread):
             def run(self):
                 sqlite_test = SQLitePerformanceTest()
-                sqlite_test.initDB(TRIBLER_DB_PATH, None, CREATE_SQL_FILE)
+                sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
                 sqlite_test.testGetSimilarTorrents(200)
                 sqlite_test.close()
         
         class Worker4(Thread):
             def run(self):
                 sqlite_test = SQLitePerformanceTest()
-                sqlite_test.initDB(TRIBLER_DB_PATH, None, CREATE_SQL_FILE)
+                sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
                 sqlite_test.testGetPeerHistory(2000)
                 sqlite_test.close()
         

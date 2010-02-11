@@ -3,6 +3,7 @@
 from bencode import bencode, bdecode
 from BT1.btformats import check_info
 import os
+import sys
 
 from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from Tribler.Core.TorrentDef import TorrentDef

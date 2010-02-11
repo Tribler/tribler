@@ -43,6 +43,7 @@ class GUIUtility:
         GUIUtility.__single = self 
         # do other init
         self.xrcResource = None
+        self.scrollWindow = None # set from tribler.py
         self.utility = utility
         self.vwxGUI_path = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI')
         self.utility.guiUtility = self
@@ -111,7 +112,6 @@ class GUIUtility:
         
        
         self.gridViewMode = 'thumbnails' 
-        self.thumbnailViewer = None
 #        self.standardOverview = standardOverview()
         
         self.selectedColour = wx.Colour(216,233,240) ## 155,200,187
@@ -157,7 +157,6 @@ class GUIUtility:
             print >>sys.stderr,'GUIUtil: Button clicked %s' % name
             #print_stack()
         
-        
         if name == 'moreFileInfo':
             self.standardFileDetailsOverview()
         elif name == 'moreFileInfoPlaylist':
@@ -167,29 +166,8 @@ class GUIUtility:
             self.standardPersonDetailsOverview()                      
         elif name == 'backButton':            
             self.standardStartpage() 
-            
         elif name == 'All popular files':            
-            self.standardFilesOverview()  ##
-            
-        elif name == 'viewThumbs' or name == 'viewList':
-#            print 'currentpanel = %s' % self.standardOverview.currentPanel.GetName()
-#            self.viewThumbs = xrc.XRCCTRL(self.frame, "viewThumbs")
-#            self.viewList = xrc.XRCCTRL(self.frame, "viewList")  
-            
-            grid = self.standardOverview.data[self.standardOverview.mode].get('grid')
-            if name == 'viewThumbs':
-                self.viewThumbs.setSelected(True)
-                self.viewList.setSelected(False)                
-                grid.onViewModeChange(mode='thumbnails')
-                self.gridViewMode = 'thumbnails'
-            elif name == 'viewList':
-                self.viewThumbs.setSelected(False)
-                self.viewList.setSelected(True)                
-                grid.onViewModeChange(mode='list')               
-                self.gridViewMode = 'list'
-
-        elif name.lower().find('detailstab') > -1:
-            self.detailsTabClicked(name)
+            self.standardFilesOverview()
         elif name == 'refresh':
             self.refreshTracker()
         elif name == "addAsFriend" or name == 'deleteFriend':
@@ -206,13 +184,10 @@ class GUIUtility:
             self.emailFriend(event)
             #else:
             #    print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is None"
-            
         elif name == 'browse':
             self.standardOverview.currentPanel.sendClick(event)
-
-        elif (name == 'edit' or name == "top10Sharers" or name.startswith('bgPanel')) and obj.GetParent().GetName() == "profileOverview":
+        elif name == 'edit':
             self.standardOverview.currentPanel.sendClick(event)
-            self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
         elif name == "takeMeThere0" : #a button to go to preferences was clicked
             panel_name = self.standardDetails.currentPanel.GetName()
             if panel_name == "profileDetails_Files":
@@ -245,49 +220,12 @@ class GUIUtility:
             if panel_name == "profileDetails_Download":
                 URL = 'http://www.tribler.org/'
                 webbrowser.open(URL)                
-        elif name == 'subscribe':
-            self.subscribe()
         elif name == 'firewallStatus':
             self.firewallStatusClick()
         elif name == 'options':            
             self.standardDetails.rightMouseButton(event)
         elif name == 'viewModus':            
             self.onChangeViewModus()
-        elif name == 'searchClear':
-            # this has to be a callafter to avoid segmentation fault
-            # otherwise the panel with the event generating button is destroyed
-            # in the execution of the event.
-            self.clearSearch()
-                        
-            wx.CallAfter(self.standardOverview.toggleSearchDetailsPanel, False)
-        elif name == 'familyfilter':
-            catobj = Category.getInstance()
-            ff_enabled = not catobj.family_filter_enabled()
-            print 'Setting family filter to: %s' % ff_enabled
-            ccatobj.set_family_filter(ff_enabled)
-            self.familyButton.setToggled()
-#            obj.setToggled(ff_enabled)
-            for filtername in ['filesFilter', 'libraryFilter']:
-                filterCombo = xrc.XRCCTRL(self.frame, filtername)
-                if filterCombo:
-                    filterCombo.refresh()
-
-        elif name == 'familyFilterOn' or name == 'familyFilterOff': ## not used anymore
-            if ((self.familyButtonOn.isToggled() and name == 'familyFilterOff') or
-                (self.familyButtonOff.isToggled() and name == 'familyFilterOn')):
-
-                catobj = Category.getInstance()
-                ff_enabled = not catobj.family_filter_enabled()
-                print 'Setting family filter to: %s' % ff_enabled
-                catobj.set_family_filter(ff_enabled)
-                self.familyButtonOn.setToggled()
-                self.familyButtonOff.setToggled()
-#                obj.setToggled(ff_enabled)
-                for filtername in ['filesFilter', 'libraryFilter']:
-                    filterCombo = xrc.XRCCTRL(self.frame, filtername)
-                    if filterCombo:
-                        filterCombo.refresh()
-
         elif name == 'playAdd' or name == 'play' or name == 'playAdd1' or name == 'play1':   
             playableFiles = self.standardOverview.data['fileDetailsMode']['panel'].selectedFiles[:]
             
@@ -297,18 +235,6 @@ class GUIUtility:
             for p in playableFiles:
                 if p != '':
                     self.standardDetails.addToPlaylist(name = p.GetLabel(), add=True)
-
-        elif name == 'advancedFiltering':    
-            if self.filterStandard.visible:
-                self.filterStandard.Hide()
-                self.filterStandard.visible = False
-                self.standardOverview.GetParent().Layout()
-                #                self.frame.Refresh()
-            else:
-                self.filterStandard.Show()
-                self.filterStandard.visible = True
-                self.standardOverview.GetParent().Layout()
-                #                self.frame.Refresh()
 
         elif name == 'fake':    
             self.realButton.setState(False) # disabled real button
@@ -361,11 +287,6 @@ class GUIUtility:
         ##elif name == 'my_files':
         ##    self.standardLibraryOverview()
 
-        elif name == 'edit':
-            self.standardOverview.currentPanel.sendClick(event)
-            self.detailsTabClicked(name)
-
-             
         elif DEBUG:
             print >> sys.stderr, 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
@@ -409,32 +330,6 @@ class GUIUtility:
         if search_mode not in ('files', 'channels'):
             return
         self.search_mode = search_mode
-
-    
-
-    def LibraryClicked(self, event):
-        self.DELETE_TORRENT_ASK_OLD = self.DELETE_TORRENT_ASK
-        self.DELETE_TORRENT_PREF = 1
-        self.dialogFrame.Close()
-        self.standardOverview.Refresh()
-        wx.CallAfter(self.onDeleteTorrentFromLibrary)
-         
-    def HardDiskClicked(self, event):
-        self.DELETE_TORRENT_ASK_OLD = self.DELETE_TORRENT_ASK
-        self.DELETE_TORRENT_PREF = 2
-        self.dialogFrame.Close()
-        self.standardOverview.Refresh()
-        wx.CallAfter(self.onDeleteTorrentFromDisk)
-        
-
-    def CancelClicked(self, event):
-        self.DELETE_TORRENT_ASK = self.DELETE_TORRENT_ASK_OLD
-        self.dialogFrame.Close()
-        self.standardOverview.Refresh()
-
-    def checkboxClicked(self, event):
-        self.DELETE_TORRENT_ASK = not self.DELETE_TORRENT_ASK 
-
 
     def set_port_number(self, port_number):
         self.port_number = port_number
@@ -733,11 +628,8 @@ class GUIUtility:
         self.standardOverview = standardOverview
 #        self.standardFilesOverview(filters = ['all', 'seeder'])
 
-
         self.standardStartpage()
         self.standardOverview.Show(True)
-        wx.CallAfter(self.refreshOnResize)
-        
 
         self.gridViewMode = 'list'
         
@@ -747,12 +639,6 @@ class GUIUtility:
         catobj = Category.getInstance()
         print >> sys.stderr , "FAMILY FILTER :" , self.utility.config.Read('family_filter', "boolean")
 
-        
-    def initFilterStandard(self, filterStandard):
-        self.filterStandard = filterStandard
-        self.advancedFiltering = xrc.XRCCTRL(self.frame, "advancedFiltering")
-            
-     
     def getOverviewElement(self):
         """should get the last selected item for the current standard overview, or
         the first one if none was previously selected"""
@@ -795,32 +681,6 @@ class GUIUtility:
         self.standardDetails.setData(sub_data)
         self.standardOverview.updateSelection()
             
-    def detailsTabClicked(self, name):
-        "A tab in the detailsPanel was clicked"
-        self.standardDetails.tabClicked(name)
-        
-    def refreshOnResize(self):
-#        print 'tb > REFRESH ON RESIZE'
-#        print self.standardOverview.GetContainingSizer().GetItem(0)
-
-#        self.standardOverview.GetContainingSizer().GetItem(self.standardOverview).SetProportion(1)
-#        self.standardOverview.SetProportion(1)
-        try:
-            if DEBUG:
-                print >>sys.stderr,'GuiUtility: explicit refresh'
-            self.mainSizer.FitInside(self.frame)
-            self.standardDetails.Refresh()
-            self.frame.topBackgroundRight.Refresh()
-            self.frame.topBackgroundRight.GetSizer().Layout()
-            self.frame.topBackgroundRight.GetContainingSizer().Layout()
-            self.updateSizeOfStandardOverview()
-            self.standardDetails.Layout()
-            self.standardDetail.GetContainingSizer.Layout()
-            self.standardOverview.Refresh()
-            
-        except:
-            pass # When resize is done before panels are loaded: no refresh
-    
     def updateSizeOfStandardOverview(self):
         print 'tb > SetProportion'
         self.standardOverview.SetProportion(1)
@@ -1119,49 +979,8 @@ class GUIUtility:
         else:
             event.Skip()     
 
-    def OnSubscribeKeyDown(self,event):
-        keycode = event.GetKeyCode()
-        if keycode == wx.WXK_RETURN:
-            self.subscribe()
-        event.Skip()     
-
-    def OnSubscribeMouseAction(self,event):
-        obj = event.GetEventObject()
-
-        # TODO: smarter behavior
-        obj.SetSelection(-1,-1)
-        event.Skip()
-
-
-    """
-    def subscribe(self):
-        rssurlctrl = self.standardOverview.getRSSUrlCtrl()
-        url = rssurlctrl.GetValue()
-        if not url:
-            return
-        if not "://" in url:
-            url = "http://" + url
-
-        if DEBUG:
-            print >>sys.stderr,"GUIUtil: subscribe:",url
-        try:
-            stream = urllib2.urlopen(url)
-            stream.close()
-        except Exception,e:
-            dlg = wx.MessageDialog(self.standardOverview, "Could not resolve URL:\n\n"+str(e), 'Tribler Warning',wx.OK | wx.ICON_WARNING)
-            result = dlg.ShowModal()
-            dlg.Destroy()
-            return
-        
-        torrentfeed = TorrentFeedThread.getInstance()
-        torrentfeed.addURL(url)
-        self.standardOverview.loadSubscriptionData()
-        self.standardOverview.refreshData()
-    """
-
     def set_firewall_restart(self,b):
         self.firewall_restart = b
-
 
     def firewallStatusClick(self,event=None):
         title = self.utility.lang.get('tribler_information')
@@ -1207,7 +1026,7 @@ class GUIUtility:
         changeViewModus = wx.Menu() 
         self.utility.makePopup(changeViewModus, None, 'rChangeViewModusThumb', type="checkitem", status="active")
         self.utility.makePopup(changeViewModus, None, 'rChangeViewModusList', type="checkitem") 
-        return (changeViewMouse)
+        return changeViewModus
         
         
         
@@ -1364,14 +1183,6 @@ class GUIUtility:
         ret = dialog.ShowModal()
         dialog.Destroy()
         event.Skip()
-        
-       
-    def getGuiElement(self, name):
-        if not self.elements.has_key(name) or not self.elements[name]:
-            return None
-        return self.elements[name]
-    
-
 
     
 # =========END ========= actions for rightMouse button ==========================================

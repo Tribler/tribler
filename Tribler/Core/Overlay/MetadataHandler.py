@@ -478,7 +478,7 @@ class MetadataHandler:
             if selversion >= OLPROTO_VER_ELEVENTH:
                 if 'metatype' in message and message['metatype'] == URL_MIME_TYPE:
                     try:
-                        tdef = TorrentDef.load_from_url(metadata['metadata'])
+                        tdef = TorrentDef.load_from_url(message['metadata'])
                         # Internal storage format is still .torrent file
                         metainfo = tdef.get_metainfo()
                         metadata = bencode(metainfo)

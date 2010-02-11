@@ -777,7 +777,7 @@ class TorrentDef(Serializable,Copyable):
                         if 0 < ord(char) < 128:
                             return char
                         else:
-                            if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum()
+                            if DEBUG: print >> sys.stderr, "Bad character filter", ord(char), "isalnum?", char.isalnum()
                             return u"?"
                     return u"".join([filter_character(char) for char in name])
                 return unicode(filter_characters(self.metainfo["info"]["name"]))
@@ -904,7 +904,7 @@ class TorrentDef(Serializable,Copyable):
                                 if 0 < ord(char) < 128:
                                     return char
                                 else:
-                                    if DEBUG: print >> sys.stderr, "Bad character filter", ord(c), "isalnum?", c.isalnum()
+                                    if DEBUG: print >> sys.stderr, "Bad character filter", ord(char), "isalnum?", char.isalnum()
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
                         yield join(*[unicode(filter_characters(element)) for element in file_dict["path"]]), file_dict["length"]

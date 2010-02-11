@@ -76,8 +76,8 @@ class VoteCastCore:
             if dns:
                 ip,port = dns
                 MSG_ID = "VOTECAST"
-                msg = voteCastReplyMsgToString(votecast_data)
-                self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
+                # msg = voteCastReplyMsgToString(votecast_data)
+                self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID)
         
         if DEBUG: print >> sys.stderr, "votecast: Sending votecastmsg",voteCastMsgToString(votecast_data)
 #        data = VOTECAST + votecast_msg
@@ -98,7 +98,8 @@ class VoteCastCore:
         data = {}
         for record in records:
             # record is of the format: (publisher_id, vote, time_stamp)
-            print >>sys.stderr,"votecast: publisher id",`record[0]`,type(record[0]) 
+            if DEBUG:
+                print >>sys.stderr,"votecast: publisher id",`record[0]`,type(record[0]) 
             publisher_id = record[0]
             data[publisher_id] = {'vote':record[1], 'time_stamp':record[2]}
         if DEBUG: print >>sys.stderr, "votecast to be sent:", repr(data)

@@ -392,12 +392,6 @@ class ABCApp(wx.App):
 
         return True
 
-
-
-    def OnSearchResultsPressed(self, event):
-        self.guiUtility.OnResultsClicked()
-
-
     def helpClick(self,event=None):
         title = self.utility.lang.get('sharing_reputation_information_title')
         msg = self.utility.lang.get('sharing_reputation_information_message')
@@ -472,8 +466,6 @@ class ABCApp(wx.App):
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_friends,NTFY_PEERS,[NTFY_UPDATE])
-
 
         # set port number in GuiUtility
         if DEBUG:
@@ -868,31 +860,6 @@ class ABCApp(wx.App):
     
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
         wx.CallAfter(self.frame.standardOverview.onReachable)
-
-
-    def sesscb_ntfy_friends(self,subject,changeType,objectID,*args):
-        """ Called by SessionCallback thread """
-        if subject == NTFY_PEERS:
-            peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-            peer = peerdb.getPeer(objectID)
-            #self.utility.session.close_dbhandler(peerdb)
-        else:
-            peer = None
-        wx.CallAfter(self.gui_ntfy_friends,subject,changeType,objectID,args,peer)
-
-    def gui_ntfy_friends(self,subject,changeType,objectID,args,peer):
-        """ A change in friendship status, report via message window """
-        if len(args) == 2:
-            if args[0] == 'friend':
-                fs = args[1]
-                if fs != FS_I_INVITED and fs != FS_I_DENIED and fs != FS_NOFRIEND:
-                    fstext = fs2text(fs)
-                    if peer['name'] is None or peer['name'] == '':
-                        name = show_permid_short(objectID)
-                    else:
-                        name = peer['name']
-                    msg = name + u" " + fstext
-                    wx.CallAfter(self.frame.setActivity,NTFY_ACT_NONE,msg)
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

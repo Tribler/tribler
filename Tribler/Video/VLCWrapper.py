@@ -111,7 +111,9 @@ class VLCWrapper:
             print >>sys.stderr,"VLCWrapper: set_window, XID=",xid
             
         if sys.platform == 'darwin':
+            # pylint: disable-msg=E1101
             self.media.set_visual_macosx_type(self.vlc.DrawableControlRef)
+            # pylint: enable-msg=E1101
         self.media.set_visual(xid)
         
     
@@ -166,8 +168,10 @@ class VLCWrapper:
         if sys.platform == "win32":
             try:
                 # 5 = XP, 6 = Vista
+                # pylint: disable-msg=E1101
                 if sys.getwindowsversion()[0] == 6:
                     params += ["--vout","vout_directx"]
+                # pylint: enable-msg=E1101
             except:
                 print_exc()
 

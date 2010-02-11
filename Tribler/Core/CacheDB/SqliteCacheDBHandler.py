@@ -2843,9 +2843,6 @@ class VoteCastDBHandler(BasicDBHandler):
         if DEBUG:
             print >> sys.stderr, "votecast: My permid is",`self.my_permid`
 
-    def __len__(self):
-        return sum([db._size() for db in self.dbs])
-    
     def getAllVotes(self, permid):
         sql = 'select * from VoteCast where mod_id==?'
         
@@ -3074,103 +3071,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         signature = bin2str(sign_data(bencoding, self.session.keypair))
         record.append(signature)
 
-
-    def searchNames(self,kws): ## 
-        # this function is not used.. Nitin 28.1.2010 
-        t1 = time()
-        value_name = ['torrent_id',
-                      'infohash',
-                      'name',
-                       'torrent_file_name',                        
-                       'length', 
-                       'creation_date', 
-                       'num_files',
-                       'thumbnail',                       
-                      'insert_time', 
-                      'secret', 
-                      'relevance',  
-                      'source_id', 
-                      'category_id', 
-                       'status_id',
-                       'num_seeders',
-                      'num_leechers', 
-                      'comment']        
-        
-        
-        
-        #import re
-        #kws = kws.lower()
-        #words = re.split(r'\s+', kws)
-        sql = ""
-        count = 0
-        for word in kws:
-            word = word.lower()
-            count += 1
-            sql += " select torrent_id from InvertedIndex where word='" + word + "' "
-            if count < len(kws):
-                sql += " intersect "
-        
-        torrent_list = []
-        
-        mainsql = "select * from ChannelCast where torrent_id in (" + sql + ") order by num_seeders desc"
-        records = self._db.fetchall(mainsql)
-        #print >> sys.stderr, "mainsql records:", len(records) 
-        
-        for record in records:
-            torrent = dict(zip(value_name,record))
-            try:
-                torrent['source'] = self.id2src[torrent['source_id']]
-            except:
-                print_exc()
-                # Arno: RSS subscription and id2src issue
-                torrent['source'] = 'http://some/RSS/feed'
-            
-            torrent['category'] = [self.id2category[torrent['category_id']]]
-            torrent['status'] = self.id2status[torrent['status_id']]
-            torrent['simRank'] = ranksfind(None,torrent['infohash'])
-            torrent['infohash'] = str2bin(torrent['infohash'])
-            #torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers']
-            torrent['last_check_time'] = 0 #torrent['last_check']
-            #del torrent['last_check']
-            del torrent['source_id']
-            del torrent['category_id']
-            del torrent['status_id']
-            torrent_id = torrent['torrent_id']
-            mypref_stats = self.mypref_db.getMyPrefStats(torrent_id)    
-            #print >> sys.stderr, "my_pref:", repr(mypref_stats)
-            #print >> sys.stderr, "torrent_id:", torrent_id
-            #print >> sys.stderr, "status:", torrent['status']     
-            if mypref_stats is not None and torrent_id in mypref_stats:
-                # add extra info for torrent in mypref
-                print >> sys.stderr, "# add extra info for torrent in mypref"
-                torrent['myDownloadHistory'] = True
-                data = mypref_stats[torrent_id]  #(create_time,progress,destdir)
-                torrent['download_started'] = data[0]
-                torrent['progress'] = data[1]
-                torrent['destdir'] = data[2]            
-                
-                
-            # Adding #votes and #subscriptions of the moderator of this torrent
-            torrent['votes'] = 0
-            torrent['subscriptions'] = 0
-            
-            
-            moderationcastdb = ModerationCastDBHandler.getInstance()            
-            moderation = moderationcastdb.getModeration(bin2str(torrent['infohash']))
-            if moderation is not None:
-                votecastdb = VoteCastDBHandler.getInstance()                
-                votes = votecastdb.getPosNegVotes(moderation[0])
-                if votes is not None and len(votes) == 2:
-                    torrent['votes'] = votes[0] + votes[1]      
-            
-                channelcastdb = ChannelCastDBHandler.getInstance()
-                torrent['subscriptions'] = channelcastdb.getSubscribersCount(moderation[0])
-                
-            torrent_list.append(torrent)
-        
-        print >> sys.stderr, "# hits:%d; search time:%s" % (len(torrent_list),time()-t1)
-        return torrent_list
-        
     def ensureRecentNames(self):
         sql = "select distinct publisher_id from ChannelCast"
         publisher_ids = self._db.fetchall(sql)

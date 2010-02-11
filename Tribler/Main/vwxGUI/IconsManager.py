@@ -97,29 +97,9 @@ class IconsManager:
     
             
     def getDownloadButton(self, mode):
-        if mode == 'play':
-            return self.DOWNLOAD_BUTTON_PLAY, self.DOWNLOAD_BUTTON_PLAY_S
-        elif mode == 'download':
+        if mode == 'download':
             return self.DOWNLOAD_BUTTON_DOWNLOAD, self.DOWNLOAD_BUTTON_DOWNLOAD_S
-        elif mode == 'library':
-            return self.DOWNLOAD_BUTTON_LIBRARY, self.DOWNLOAD_BUTTON_LIBRARY_S
-        else:
-            raise Exception('No such mode')
-        
-    def getSourceIcon(self, source):
-        if source == 'tribler':
-            return self.SOURCE_ICON_TRIBLER
-        elif source == 'youtube':
-            return self.SOURCE_ICON_YOUTUBE
-        elif source == 'liveleak':
-            return self.SOURCE_ICON_LIVELEAK
-        elif source == 'remote':
-            return self.SOURCE_ICON_REMOTE
-        elif not source:
-            return None
-        else:
-            raise Exception('No such source')
-
+        raise Exception('No such mode')
         
     def create_wxImageList(self,peerswpermid,setindex=False):
         """ peerswpermid is a list of dictionaries that contain the
@@ -147,20 +127,6 @@ class IconsManager:
             if setindex:
                 peer['tempiconindex'] = index
         return imgList
-
-
-    def create_from_file(self,permid,srcfilename):
-        """ srcfilename must point to an image file processable by wx.Image """
-        try:
-            sim = wx.Image(srcfilename).Scale(ICON_MAX_DIM,ICON_MAX_DIM)
-            sim.SaveFile(dstfilename,wx.BITMAP_TYPE_JPEG)
-            f = cStringIO.StringIO()
-            sim.SaveStream(f,wx.BITMAP_TYPE_JPEG)
-            self.peer_db.updatePeerIcon('image/jpeg',f.getvalue())
-            f.close()
-        except:
-            if DEBUG:
-                print_exc()
 
     def load_wxBitmap(self,permid, dim = ICON_MAX_DIM):
         [_mimetype,data] = self.peer_db.getPeerIcon(permid)

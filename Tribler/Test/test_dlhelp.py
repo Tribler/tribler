@@ -88,9 +88,10 @@ class TestDownloadHelp(TestAsServer):
         self.torrentfile = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
 
         # Add us as friend, so he will accept the DOWNLOAD_HELP
-        if False:  # TEMP
-            friendsdb = FriendDBHandler.getInstance()
-            friendsdb.addFriend(self.mypermid)
+        if False:  # TEMP: friendsdb doesn't have an addFriend method
+            # friendsdb = FriendDBHandler.getInstance()
+            # friendsdb.addFriend(self.mypermid)
+            pass
         else:
             self.session.set_overlay_request_policy(AllowAllRequestPolicy())
           

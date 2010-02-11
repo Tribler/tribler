@@ -185,10 +185,6 @@ class ChannelsItemPanel(wx.Panel):
     def refreshData(self):
         self.setData(self.data)
         
-    def addLine(self):
-        vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,0),wx.LI_VERTICAL)
-        self.vSizer1.Add(vLine, 0, wx.LEFT|wx.RIGHT, 3)
-       
     def setdslist(self, dslist):
         self.dslist = dslist
 
@@ -540,30 +536,3 @@ class ChannelsItemPanel(wx.Panel):
 #            dc.DrawText(self.title.GetLabel(), 0, 0)
             dc.DrawText('online', 38, 64)
             self.title.Hide()
-
-
-    def guiservthread_loadMetadata(self, torrent,torrent_filename):
-        """ Called by separate non-GUI thread """
-        
-        isVideo = False 
-        try:
-            if os.path.isfile(torrent_filename):
-                if DEBUG:
-                    print >>sys.stderr,"lip: Reading",torrent_filename,"to see if contains video"
-                tdef = TorrentDef.load(torrent_filename)
-                isVideo = bool(tdef.get_files(exts=videoextdefaults))
-        except:
-            print_exc()
-            
-        if torrent['infohash'] == self.data['infohash']:
-            self.containsvideo = isVideo
-            wx.CallAfter(self.metadata_loaded,torrent,None)
-
-             
-    def metadata_loaded(self,torrent,metadata):
-        """ Called by GUI thread """
-        try:
-            if torrent['infohash'] == self.data['infohash']:
-                self.library_play.setEnabled(self.containsvideo)
-        except wx.PyDeadObjectError:
-            pass

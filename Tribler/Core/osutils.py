@@ -96,7 +96,11 @@ if sys.platform == "win32":
         def get_appstate_dir():
             homedir = get_home_dir()
             # 5 = XP, 6 = Vista
-            if sys.getwindowsversion()[0] == 6:
+            # [E1101] Module 'sys' has no 'getwindowsversion' member
+            # pylint: disable-msg=E1101
+            winversion = sys.getwindowsversion()
+            # pylint: enable-msg=E1101
+            if winversion[0] == 6:
                 appdir = os.path.join(homedir,u"AppData",u"Roaming")
             else:
                 appdir = os.path.join(homedir,u"Application Data")

@@ -441,17 +441,7 @@ class MainFrame(wx.Frame):
         
 
         # Refresh subscreens
-        self.refreshNeeded = True
         #self.guiUtility.refreshOnResize()
-        
-    def onIdle(self, event = None):
-        """
-        Only refresh screens (especially detailsPanel) when resizes are finished
-        This gives less flickering, but doesnt look pretty, so i commented it out
-        """
-        if self.refreshNeeded:
-            self.guiUtility.refreshOnResize()
-            self.refreshNeeded = False
         
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")

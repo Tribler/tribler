@@ -34,8 +34,10 @@ import Tribler.Core.CacheDB.sqlitecachedb as sqlitecachedb
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 
+DEBUG = False
+
 class FakeUserCallbackHandler:
-    def notify(*args):
+    def notify(self, *args):
         pass
 
 class FakeSession:

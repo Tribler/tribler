@@ -132,29 +132,6 @@ class MakeFriendsDialog(wx.Dialog):
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
-        """
-        # picture
-        box = wx.BoxSizer(wx.HORIZONTAL)
-
-        label = wx.StaticText(self, -1, self.utility.lang.get('icon'))
-        #label.SetHelpText("")
-        box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
-
-        if editfriend is not None and editfriend.has_key('icon'):
-            icon = str(editfriend['icon'])
-        else:   
-            icon = ''
-        self.icon_path = wx.TextCtrl(self, -1, icon, size=(80,-1))
-        ## self.icon_path.SetHelpText(self.utility.lang.get('friendsicon_help'))
-        box.Add(self.icon_path, 3, wx.ALIGN_CENTRE|wx.ALL, 5)
-        
-        iconbtn = wx.Button(self, -1, label=self.utility.lang.get('browsebtn'))
-        box.Add(iconbtn, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
-        self.Bind(wx.EVT_BUTTON, self.OnIconButton, iconbtn)
-
-        sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        """  
-        
         box = wx.BoxSizer(wx.HORIZONTAL)
         line = wx.StaticLine(self, -1, size=(20,-1), style=wx.LI_HORIZONTAL)
         sizer.Add(line, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.TOP, 5)
@@ -227,40 +204,6 @@ class MakeFriendsDialog(wx.Dialog):
             
             event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
             self.Destroy()
-
-        """            
-        elif icon != '' and not os.path.exists(icon):
-            self.show_inputerror(self.utility.lang.get('fiendsiconnotfound_error'))
-        else:
-            newiconfilename = ''
-            if icon != '':
-                ret = self.mm.create_from_file(permid,icon)
-                if not ret:
-                    self.show_inputerror(self.utility.lang.get('friendsiconnotbmp_error'))
-                    return
-        """
-
-        
-    def OnIconButton(self, evt):
-        # get current working directory
-        # TODO: record the last opened path in config file
-        try:
-            path = os.path.join(os.getcwd(), 'icons')
-            path = os.path.join(path, 'mugshots')
-        except Exception, msg:
-            path = ''
-            
-        # open the image browser dialog
-        dlg = ib.ImageDialog(self, path)
-
-        dlg.Centre()
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.icon_path.SetValue(dlg.GetFile())
-        else:
-            pass
-
-        dlg.Destroy()        
 
     def show_inputerror(self,txt):
         dlg = wx.MessageDialog(self, txt, 'Invalid Input', wx.OK | wx.ICON_INFORMATION)

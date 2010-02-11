@@ -45,13 +45,13 @@ def init():
 
 class FakeSession:
     sessconfig = {}
-    def get_permid(*args, **kargs):
+    def get_permid(self, *args, **kargs):
         return base64.decodestring('MG0CAQEEHR/bQNvwga7Ury5+8vg/DTGgmMpGCz35Zs/2iz7coAcGBSuBBAAaoUADPgAEAL2I5yVc1+dWVEx3nbriRKJmOSlQePZ9LU7yYQoGABMvU1uGHvqnT9t+53eaCGziV12MZ1g2p0GLmZP9\n' )
 
-    def get_moderationcast_moderations_per_have(*args, **kargs):
+    def get_moderationcast_moderations_per_have(self, *args, **kargs):
         return 100
 
-    def add_observer(*args, **kargs):
+    def add_observer(self, *args, **kargs):
         pass
 
     def get_votecast_recent_votes(self):

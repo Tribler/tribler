@@ -7,6 +7,12 @@ from traceback import print_exc
 from Tribler.Core.exceptions import *
 from Tribler.Core.SessionConfig import SessionConfigInterface
 
+# 10/02/10 Boudewijn: pylint points out that member variables used in
+# SessionRuntimeConfig do not exist.  This is because they are set in
+# Tribler.Core.Session which is a subclass of SessionRuntimeConfig.
+#
+# We disable this error
+# pylint: disable-msg=E1101
 
 class SessionRuntimeConfig(SessionConfigInterface):
     """

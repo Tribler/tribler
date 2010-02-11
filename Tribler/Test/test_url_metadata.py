@@ -93,13 +93,6 @@ class TestURLMetadata(TestAsServer):
 
         s.close()
 
-    def create_good_dlhelp(self):
-        return DOWNLOAD_HELP+self.infohash
-
-    def check_get_metadata(self,data):
-        infohash = bdecode(data) # is bencoded for unknown reason, can't change it
-        self.assert_(infohash == self.infohash)
-
     def create_good_get_metadata(self,infohash):
         bd = bencode(infohash)
         return GET_METADATA+bd

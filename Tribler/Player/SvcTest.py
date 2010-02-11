@@ -1,3 +1,4 @@
+import wx
 import sys
 import time
 from traceback import print_exc

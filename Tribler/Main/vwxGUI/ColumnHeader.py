@@ -264,19 +264,6 @@ class ColumnHeaderBar(wx.Panel):
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(True)
         
-
-    def roundCorners(self, x):
-        self.x=x
-        wx.EVT_PAINT(self, self.OnPaint)
-
-
-    def OnPaint(self, event):
-        dc = wx.PaintDC(self)
-        dc.DrawBitmap(self.tl, 0, 0)
-        dc.DrawBitmap(self.tr, self.x, 0)
-
-
-
     def setOrdering(self, column, ordering):
         for header in self.columns:
             if header != column:
@@ -289,7 +276,7 @@ class ColumnHeaderBar(wx.Panel):
         if oldfilter:
             self.sorting = oldfilter.getState().copy()
         else:
-            from Tribler.Main.vwxGUI.standardGrid import GridState
+            from Tribler.Main.vwxGUI.GridState import GridState
             self.sorting = GridState(self.guiUtility.standardOverview.mode, 'all', None) # peerview has no filter
         
         self.sorting.sort = column.sorting

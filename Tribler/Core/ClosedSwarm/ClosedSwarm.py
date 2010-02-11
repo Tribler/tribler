@@ -409,7 +409,7 @@ class ClosedSwarm:
         """
 
         if len(list) != 7:
-            raise BadMessageExecption("Require 7 elements, got %d"%len(list))
+            raise BadMessageException("Require 7 elements, got %d"%len(list))
         
 
         poa = POA.deserialize_from_list(list[1:-1])
@@ -512,73 +512,73 @@ class ClosedSwarm:
         self.remote_node_authorized = True
 
 
-    def create_initiator_response(self, nonce_b):
-        """
-        Create the response from the initiator after having the
-        remote node perform the initial challenge.
-        """
-        assert self.state == self.SEND_INITIATOR_RESPONSE
-        self.state = self.COMPLETED
+    # def create_initiator_response(self, nonce_b):
+    #     """
+    #     Create the response from the initiator after having the
+    #     remote node perform the initial challenge.
+    #     """
+    #     assert self.state == self.SEND_INITIATOR_RESPONSE
+    #     self.state = self.COMPLETED
 
-        assert nonce_b
+    #     assert nonce_b
         
-        msg = [CS_INITIATOR_RESPONSE, nonce_b]
+    #     msg = [CS_INITIATOR_RESPONSE, nonce_b]
 
-        # Provide the certificate 
-        if not self.poa:
-            raise MissingCertificateException()
-        msg.append(self.torrent_id)
-        msg.append(self.poa.torrent_pub_key)
-        msg.append(self.pub_permid)
-        msg.append(self.poa.serialize())
-        # Sign it
-        list = [nonce_b,
-                self.torrent_id,
-                self.poa.torrent_pub_key,
-                self.pub_permid,
-                self.poa.serialize()]
-        b_list = bencode(list)
-        digest = permid.sha(b_list).digest()
-        sig = self.my_keypair.sign_dsa_asn1(digest)
-        msg.append(sig)
-        return msg
+    #     # Provide the certificate 
+    #     if not self.poa:
+    #         raise MissingCertificateException()
+    #     msg.append(self.torrent_id)
+    #     msg.append(self.poa.torrent_pub_key)
+    #     msg.append(self.pub_permid)
+    #     msg.append(self.poa.serialize())
+    #     # Sign it
+    #     list = [nonce_b,
+    #             self.torrent_id,
+    #             self.poa.torrent_pub_key,
+    #             self.pub_permid,
+    #             self.poa.serialize()]
+    #     b_list = bencode(list)
+    #     digest = permid.sha(b_list).digest()
+    #     sig = self.my_keypair.sign_dsa_asn1(digest)
+    #     msg.append(sig)
+    #     return msg
 
-    def check_initiator_response(self, list):
-        """
-        Verify the response from the initiator to our challenge
-        """
-        assert self.state == self.EXPECTING_INITIATOR_RESPONSE
-        self.state = self.COMPLETED
+    # def check_initiator_response(self, list):
+    #     """
+    #     Verify the response from the initiator to our challenge
+    #     """
+    #     assert self.state == self.EXPECTING_INITIATOR_RESPONSE
+    #     self.state = self.COMPLETED
 
-        assert list
-        if len(list) != 7:
-            raise BadMessageException("Expected 7 message elements, but got %s"%len(list))
-        [nonce_b, torrent_id, torrent_pubkey, pub_permid, poa, sig] = list[1:]
-        if torrent_id != self.torrent_id:
-            raise WrongSwarmException()
-        if nonce_b != self.nonce_b:
-            raise BadMessageException("Got the wrong nonce")
+    #     assert list
+    #     if len(list) != 7:
+    #         raise BadMessageException("Expected 7 message elements, but got %s"%len(list))
+    #     [nonce_b, torrent_id, torrent_pubkey, pub_permid, poa, sig] = list[1:]
+    #     if torrent_id != self.torrent_id:
+    #         raise WrongSwarmException()
+    #     if nonce_b != self.nonce_b:
+    #         raise BadMessageException("Got the wrong nonce")
         
-        remote_poa = POA.deserialize(poa)
-        if not remote_poa.get_torrent_pub_key() in self.torrent_pubkeys:
-            import sys
-            print >>sys.stderr,"Pub key:",remote_poa.get_torrent_pub_key(),"not in",self.torrent_pubkeys
+    #     remote_poa = POA.deserialize(poa)
+    #     if not remote_poa.get_torrent_pub_key() in self.torrent_pubkeys:
+    #         import sys
+    #         print >>sys.stderr,"Pub key:",remote_poa.get_torrent_pub_key(),"not in",self.torrent_pubkeys
             
-            raise InvalidPOAException("Bad POA for this swarm")
+    #         raise InvalidPOAException("Bad POA for this swarm")
         
-        # Check the signature
-        new_list = [self.nonce_b,
-                    self.torrent_id,
-                    torrent_pubkey,
-                    pub_permid,
-                    poa]
-        b_list = bencode(new_list)
-        digest = permid.sha(b_list).digest()
-        pub = permid.EC.pub_key_from_der(pub_permid)
-        if not pub.verify_dsa_asn1(digest, sig):
-            raise InvalidSignatureException("Message freshness failed")
-        # Passed the freshness test, now check the certificate
-        remote_poa.verify()
+    #     # Check the signature
+    #     new_list = [self.nonce_b,
+    #                 self.torrent_id,
+    #                 torrent_pubkey,
+    #                 pub_permid,
+    #                 poa]
+    #     b_list = bencode(new_list)
+    #     digest = permid.sha(b_list).digest()
+    #     pub = permid.EC.pub_key_from_der(pub_permid)
+    #     if not pub.verify_dsa_asn1(digest, sig):
+    #         raise InvalidSignatureException("Message freshness failed")
+    #     # Passed the freshness test, now check the certificate
+    #     remote_poa.verify()
         
-        self.remote_node_authorized = True
+    #     self.remote_node_authorized = True
 

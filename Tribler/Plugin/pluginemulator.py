@@ -28,7 +28,7 @@ class PluginEmulator:
             elif data.startswith("PLAY"):
                 url = data[len("PLAY "):]
                 p = urlparse.urlparse(url)
-                path  = p.path
+                path  = p[2]
                 readbufsize = 100
                 break
 

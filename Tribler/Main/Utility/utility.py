@@ -212,7 +212,9 @@ class Utility:
         self.config = ConfigReader(configfilepath, "ABC", defaults)
 
     @staticmethod
-    def _convert__helper_4_1__4_2(abc_config, set_config_func, name, convert=lambda x:x):
+    def _convert__helper_4_1__4_2(abc_config, set_config_func, name, convert=None):
+        if convert is None:
+            convert = lambda x: x
         if abc_config.Exists(name):
             v = abc_config.Read(name)
             try:

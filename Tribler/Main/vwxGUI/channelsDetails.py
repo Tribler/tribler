@@ -445,16 +445,8 @@ class channelsDetails(bgPanel):
         self.vSizer.Layout()
         self.Layout()
 
-    def guiservthread_refresh_torrents(self):
-        records = self.channelcast.getNewRecords()
-        print >> sys.stderr , "RECORD : " , records
-        self.guiserver.add_task(self.guiservthread_refresh_torrents,5.0)
-
-
     def setType(self, Type):
         self.type = Type
-
-
 
     def hideElements(self, force = False):
         if self.initialized == True or force==True:

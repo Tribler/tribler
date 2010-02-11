@@ -46,6 +46,10 @@ def main():
     if opt.port: sscfg.set_listen_port(opt.port)
     if opt.nickname: sscfg.set_nickname(opt.nickname)
     
+    # set_moderationcast_promote_own() will ensure your moderations on
+    # the RSS feed items are sent to any peer you connect to on the
+    # overlay.
+
     # Agressively promote own moderations:
     sscfg.set_moderationcast_promote_own(True)
 
@@ -85,11 +89,6 @@ def main():
         for rss in opt.rss.split(";"):
             print >>sys.stderr, "Adding RSS: %s" % rss
             torrent_feed_thread.addURL(rss, on_torrent_callback=on_torrent_callback)
-
-
-        # set_moderationcast_promote_own() will ensure your moderations on
-        # the RSS feed items are sent to any peer you connect to on the
-        # overlay.
 
         torrent_feed_thread.start()
 

@@ -113,7 +113,7 @@ def get_my_wan_ip_linux():
         if len(words) >= 2:
             if words[0] == gwif:
                 flag = True
-            elif words[0] == 'inet' and flag:
+            elif words[0] == 'inet':
                 words2 = words[1].split(':') # "inet addr:130.37.192.1" line
                 if len(words2) == 2:
                     mywanip = words2[1]

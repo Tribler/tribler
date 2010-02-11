@@ -147,8 +147,6 @@ class standardOverview(wx.Panel):
             
     def getMode(self):
         return self.mode
-        
-        self.guiUtility.filterStandard.SetData(self.mode)
             
     def refreshMode(self,refreshGrid=True):
         # load xrc
@@ -573,14 +571,12 @@ class standardOverview(wx.Panel):
 
         wx.CallAfter(self.guiUtility.frame.standardPager.Show,(total > 0))
         self.guiUtility.frame.pagerPanel.Refresh()
-        if keywords:
-            if type(keywords) == list:
-                self.keywords = " ".join(keywords)
-            else:
-                self.keywords = keywords
 
         if finished:  
-            msg = self.guiUtility.utility.lang.get('finished_search') % (self.fkeywords, total)
+            # keywords must be a string
+            if isinstance(keywords, list):
+                keywords = " ".join(keywords)
+            msg = self.guiUtility.utility.lang.get('finished_search') % (keywords, total)
             self.guiUtility.stopSearch()
         else:
             msg = self.guiUtility.utility.lang.get('going_search') % (total)
@@ -610,8 +606,6 @@ class standardOverview(wx.Panel):
         self.SetMinSize(newSize)
         self.GetSizer().Layout()
         self.GetContainingSizer().Layout()
-        self.guiUtility.scrollWindow.FitInside()
-        self.guiUtility.refreshOnResize()
         
     def removeTorrentFromLibrary(self, torrent):
         infohash = torrent['infohash']
@@ -635,79 +629,13 @@ class standardOverview(wx.Panel):
                 gridmgr.refresh()
                 self.guiUtility.frame.standardPager.Show(gridmgr.get_total_items()>0)
 
-        
-    def toggleLoadingDetailsPanel(self, visible):
-        loadingDetails = self.data[self.mode].get('loadingDetailsPanel')
-        sizer = self.data[self.mode]['grid'].GetContainingSizer()
-        if visible:
-            if not loadingDetails:
-                loadingDetails = LoadingDetailsPanel(self.data[self.mode]['panel'])
-                                
-                sizer.Insert(3,loadingDetails, 0, wx.ALL|wx.EXPAND, 0)
-                self.data[self.mode]['loadingDetailsPanel'] = loadingDetails
-                loadingDetails.Show()
-            else:
-                loadingDetails.startSearch()
-                loadingDetails.Show()
-                
-        else:
-            if loadingDetails:
-                #print 'standardOverview: removing loading details'
-                sizer.Detach(loadingDetails)
-                loadingDetails.Destroy()
-                self.data[self.mode]['loadingDetailsPanel'] = None
-        sizer.Layout()
-        self.data[self.mode]['panel'].Refresh()
-        self.hSizer.Layout()
-
     def setLoadingCount(self,count):
         loadingDetails = self.data[self.mode].get('loadingDetailsPanel')
         if not loadingDetails:
             return
         loadingDetails.setMessage('loaded '+str(count)+' more files from database (not yet shown)')
 
-
-    def toggleSearchDetailsPanel(self, visible):
-        searchDetails = self.data[self.mode].get('searchDetailsPanel')
-        sizer = self.data[self.mode]['grid'].GetContainingSizer()
-        #print 'standardOverview: Sizer: %s' % sizer
-        #print 'standardOverview: SearchDetails: %s' % searchDetails
-        #if searchDetails:
-        #    print 'standardOverview: %s, %s' % (str(searchDetails.GetSize()), str(searchDetails.GetMinSize()))
-        
-        if visible:
-            if not searchDetails:
-                searchDetails = SearchDetailsPanel(self.data[self.mode]['panel'])
-                
-                #print 'standardOverview: Inserting search details'
-                sizer.Insert(3,searchDetails, 0, wx.ALL|wx.EXPAND, 0)
-                #sizer.Layout()
-                #self.data[self.mode]['panel'].Refresh()
-#                print 'Size: %s' % str(self.searchDetails.GetSize())
-#                print 'Parent: %s' % str(self.searchDetails.GetParent().GetName())
-#                print 'GParent: %s' % str(self.searchDetails.GetParent().GetParent().GetName())
-                self.data[self.mode]['searchDetailsPanel'] = searchDetails
-                searchDetails.Show()
-            else:
-                searchDetails.startSearch()
-                searchDetails.Show()
-                
-        else:
-            if searchDetails:
-                #print 'standardOverview: removing search details'
-                sizer.Detach(searchDetails)
-                searchDetails.Destroy()
-                self.data[self.mode]['searchDetailsPanel'] = None
-        sizer.Layout()
-        self.data[self.mode]['panel'].Refresh()
-        self.hSizer.Layout()
-
-
     def stopWeb2Search(self):
         grid = self.getGrid()
         if grid:
             grid.stopWeb2Search()
-        
-           
-        
-    

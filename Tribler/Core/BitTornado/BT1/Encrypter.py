@@ -68,7 +68,11 @@ if sys.platform == 'win32':
     #
     # Go Vista?! 
     #
+
+    # [E1101] Module 'sys' has no 'getwindowsversion' member
+    # pylint: disable-msg=E1101
     winvertuple = sys.getwindowsversion()
+    # pylint: enable-msg=E1101
     spstr = winvertuple[4]
     if winvertuple[0] == 5 or winvertuple[0] == 6 and spstr < "Service Pack 2":
         MAX_INCOMPLETE = 8 # safety margin. Even 9 gives video socket timeout, 10 is official limit

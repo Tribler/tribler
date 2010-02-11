@@ -105,7 +105,7 @@ class SearchPathMapper(AbstractPathMapper):
         
         print >>sys.stderr,"searchmap: Parsed",o
         
-        qdict = cgi.parse_qs(o.query)
+        qdict = cgi.parse_qs(o[4])
         print >>sys.stderr,"searchmap: qdict",qdict
         
         searchstr = qdict['q'][0]
@@ -665,14 +665,6 @@ def atomhits2atomxml(atomhits,searchstr,urlpathprefix,nextlinkpath=None):
     
     atom += '</feed>\n'
     return atom
-
-
-def now2formatRFC3339():
-    formatstr = "%Y-%m-%dT%H:%M:%S"
-    s = time.strftime(formatstr, time.gmtime())
-    s += 'Z'
-    return s 
-
 
 
 def hit2nsmetahit(hit,hiturlprefix,colltorrdir):

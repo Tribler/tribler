@@ -903,7 +903,7 @@ class VODWarningDialog(wx.Dialog):
 
         self.SetSizerAndFit(sizer)
 
-    def get_othertorrents_policypolicy(self):
+    def get_othertorrents_policy(self):
         if self.others_chooser:
             idx = self.others_chooser.GetSelection()
         else:
@@ -947,8 +947,10 @@ def return_feasible_playback_modes(syspath):
 
         if USE_VLC_RAW_INTERFACE:
             # check if the special raw interface is available
+            # pylint: disable-msg=E1101
             if not inspect.ismethoddescriptor(vlc.MediaControl.set_raw_callbacks):
                 raise Exception("Incorrect vlc plugin. This does not provide the set_raw_callbacks method")
+            # pylint: enable-msg=E1101
         vlcpath = os.path.join(syspath,"vlc")
         if sys.platform == 'win32':
             if os.path.isdir(vlcpath):

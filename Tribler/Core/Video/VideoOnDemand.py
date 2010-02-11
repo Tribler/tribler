@@ -1138,7 +1138,7 @@ class MovieOnDemandTransporter(MovieTransport):
                 if pos > 0:
                     raise ValueError("seeking beyond end of stream")
                 else:
-                    abspos = size+pos
+                    abspos = length+pos
             else: # SEEK_CUR
                 raise ValueError("seeking does not currently support SEEK_CUR")
             

@@ -151,7 +151,7 @@ class InstanceConnectionHandler:
             print_exc()
 
     def shutdown(self):
-        for ic in self.singsock2ic.value():
+        for ic in self.singsock2ic.values():
             ic.shutdown()
 
 

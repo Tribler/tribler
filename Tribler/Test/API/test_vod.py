@@ -1,6 +1,8 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
 
+from  threading import currentThread
+
 from Tribler.Core.API import *
 from Tribler.Video.VideoServer import VideoHTTPServer
 

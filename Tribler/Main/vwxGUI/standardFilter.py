@@ -25,7 +25,9 @@ class standardFilter(wx.Panel):
         # the Create step is done by XRC.
         self.PostCreate(pre)
         self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-        
+
+        # must be set in subclass
+        self.mode = None
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)

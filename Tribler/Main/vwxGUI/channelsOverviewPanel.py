@@ -42,38 +42,11 @@ class channelsOverviewPanel(wx.Panel):
 #        self.channelsDetails = self.guiUtility.frame.channelsDetails
 #        self.setMyChannelInfo()
 
-
-    def myChannelClicked(self, event):
-        self.channelsDetails.loadChannel(self, self.myTorrentList, self.utility.session.get_permid(), self.myChannelName, False)
-
-
     def setTorrentList(self , torrentlist):
         self.myTorrentList = torrentlist
 
     def isMyChannel(self):
         return True
-
-
-    def setMyChannelInfo(self):
-        # get torrent list
-        torrentList = self.channelcast_db.getTorrentsFromPublisherId(bin2str(self.utility.session.get_permid()))
-        self.torrentList = torrentList
-
-        # convert torrentList to proper format (dictionnary)
-        torrent_list = []
-        for item in self.torrentList:
-            torrent = dict(zip(self.torrent_db.value_name_for_channel, item))
-            torrent_list.append(torrent)
-        self.myTorrentList = torrent_list
-
-        self.num_votes = self.channelcast_db.getSubscribersCount(bin2str(self.utility.session.get_permid()))
-
-        if self.num_votes == 0:
-            self.myChannelName = "My Channel (No subscribers)"
-        elif self.num_votes == 1:
-            self.myChannelName = "My Channel (1 subscriber)" 
-        else:
-            self.myChannelName = "My Channel (%s subscribers)" % self.num_votes 
 
 
 

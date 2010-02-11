@@ -17,32 +17,31 @@ import select
 from Tribler.Core.Multicast import *
 
 
-#class MyLoggerTest(unittest.TestCase):
-class DoNotRunThisNow:
+# class MyLoggerTest(unittest.TestCase):
 
-    """
-    Test the MyLogger class
-    
-    """
+#     """
+#     Test the MyLogger class
+   
+#     """
 
-    def setUp(self):
-        self.log = MyLogger()
-        self.conn = BTConnection('localhost',self.hisport)
+#     def setUp(self):
+#         self.log = MyLogger()
+#         self.conn = BTConnection('localhost',self.hisport)
 
-    def testLog(self):
+#     def testLog(self):
 
-        self.log.debug("DEBUG message")
+#         self.log.debug("DEBUG message")
 
-        self.log.info("INFO message")
+#         self.log.info("INFO message")
 
-        self.log.warning("WARNING message")
+#         self.log.warning("WARNING message")
 
-        self.log.fatal("FATAL message")
+#         self.log.fatal("FATAL message")
 
-        try:
-            raise Exception("Exception text")
-        except:
-            self.log.exception("Should have a traceback below here:")
+#         try:
+#             raise Exception("Exception text")
+#         except:
+#             self.log.exception("Should have a traceback below here:")
 
 
 class FakeOverlayBridge:
@@ -51,10 +50,10 @@ class FakeOverlayBridge:
 
 class FakePeerDBHandler:
     
-    def addPeer(self,permid,peer_data,update_dns=True,update_connected=True,commit=True):
+    def addPeer(self, *args, **kargs):
         pass
     
-    def setPeerLocalFlag(permid,is_local):
+    def setPeerLocalFlag(self, *args):
         pass
     
 

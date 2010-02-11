@@ -695,9 +695,6 @@ class BT1Download:
     def getConfig(self):
         return self.config
 
-    def getDefaults(self):
-        return defaultargs(defaults)
-
     def reannounce(self, special = None):
         try:
             def r(self = self, special = special):

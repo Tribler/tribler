@@ -81,7 +81,7 @@ class StatusHolder:
         try:
             if not name in self.reporters:
                 raise Exception("No such reporter '%s'"%name)
-            return self.reporter[name]
+            return self.reporters[name]
         finally:
             self.lock.release()
             

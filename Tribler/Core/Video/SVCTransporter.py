@@ -24,40 +24,6 @@ FAKEPLAYBACK = False
 DEBUG = True
 DEBUGPP = False
 
-class PieceStats:
-    """ Keeps track of statistics for each piece as it flows through the system. """
-
-    def __init__(self):
-        self.pieces = {}
-        self.completed = {}
-
-    def set(self,piece,stat,value,firstonly=True):
-        if piece not in self.pieces:
-            self.pieces[piece] = {}
-
-        if firstonly and stat in self.pieces[piece]:
-            return
-
-        self.pieces[piece][stat] = value
-
-    def complete(self,piece):
-        self.completed[piece] = 1
-
-    def reset(self):
-        for x in self.completed:
-            self.pieces.pop(x,0)
-
-        self.completed = {}
-
-    def pop_completed(self):
-        completed = {}
-
-        for x in self.completed:
-            completed[x] = self.pieces.pop(x,{})
-
-        self.completed = {}
-        return completed
-
 class SVCTransporter(MovieOnDemandTransporter):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 

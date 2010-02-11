@@ -14,7 +14,6 @@ from Tribler.Main.Utility.constants import *
 from Tribler.Main.Utility import *
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.ItemPanel import ThumbnailViewer, libraryModeThumbSize
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -94,7 +93,6 @@ class LibraryItemPanel(wx.Panel):
         self.triblerGrey = wx.Colour(128,128,128)
         
         #self.statusTorrent = TorrentStatus(self)
-        self.ThumbnailViewer = ThumbnailViewer
 #        self.listItem = True # library always in listmode
         self.data = None
         self.status = None
@@ -415,11 +413,6 @@ class LibraryItemPanel(wx.Panel):
     def refreshData(self):
         self.setData(self.data)
         
-    def addLine(self):
-        vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,0),wx.LI_VERTICAL)
-#        vLine.Show(False)
-        self.vSizer1.Add(vLine, 0, wx.LEFT|wx.RIGHT, 3)
-        
     def updateProgress(self, infohash, progress):
         #print >> sys.stderr, 'Lib: updateProgress: %s %s' % (self.title.GetLabel(), progress)
         
@@ -561,9 +554,7 @@ class LibraryItemPanel(wx.Panel):
             
             if not self.listItem:
                 #self.pb.setEnabled(False)
-                self.downSpeed2.Hide()
                 self.speedDown2.SetLabel('--')
-                self.upSpeed.Hide()            
                 self.speedUp2.SetLabel('--')
                 self.library_play.setEnabled(False)
             else:
@@ -676,7 +667,7 @@ class LibraryItemPanel(wx.Panel):
                 # ARNOCOMMENT: need to get/store/cache current status of Download somehow
                 if ds.get_status() == DLSTATUS_STOPPED or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                     if ds.get_download().get_def().get_live():
-                        self.switch_to_vod(ds)
+                        print >> sys.stderr, "TODO: restart live playback?" 
                     else:
                         ds.get_download().restart()
                         obj.setToggled(False)

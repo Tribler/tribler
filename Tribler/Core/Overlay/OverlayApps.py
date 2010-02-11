@@ -271,7 +271,7 @@ class OverlayApps:
             print_exc()
             return False
 
-    def handleDisabledMessage(*args):
+    def handleDisabledMessage(self, *args):
         return True
 
     def handleConnection(self,exc,permid,selversion,locally_initiated):

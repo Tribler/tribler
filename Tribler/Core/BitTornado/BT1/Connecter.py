@@ -124,9 +124,8 @@ class Connection:
         self.last_perc_sent = {}
 
         config = self.connecter.config
-        self.forward_speeds = [0] * 2
-        self.forward_speeds[0] = Measure(config['max_rate_period'], config['upload_rate_fudge'])
-        self.forward_speeds[1] = Measure(config['max_rate_period'], config['upload_rate_fudge'])
+        self.forward_speeds = [Measure(config['max_rate_period'], config['upload_rate_fudge']),
+                               Measure(config['max_rate_period'], config['upload_rate_fudge'])]
         
         # BarterCast counters
         self.total_downloaded = 0
@@ -586,24 +585,6 @@ class Connection:
             if DEBUG_UT_PEX:
                 print >>sys.stderr,"connecter: Starting ut_pex conns to",len(sample_added_peers_with_id)
             self.connection.Encoder.start_connections(sample_added_peers_with_id)
-
-    def get_extend_encryption(self):
-        return self.extend_hs_dict.get('e',0)
-    
-    def get_extend_listenport(self):
-        return self.extend_hs_dict.get('p')
-
-    def send_extend_handshake(self):
-        
-        d = {}
-        d['m'] = self.connecter.EXTEND_HANDSHAKE_M_DICT
-        d['p'] = self.connecter.mylistenport
-        ver = version_short.replace('-',' ',1)
-        d['v'] = ver
-        d['e'] = 0  # Apparently this means we don't like uTorrent encryption
-        self._send_message(EXTEND + EXTEND_MSG_HANDSHAKE_ID + bencode(d))
-        if DEBUG:
-            print >>sys.stderr,'connecter: sent extend: id=0+',d
 
     def send_extend_ut_pex(self,payload):
         msg = EXTEND+self.his_extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX)+payload
@@ -1348,7 +1329,7 @@ class Connecter:
                 c.download.got_have_bitfield(b)
         elif t == REQUEST:
             if not c.can_send_to():
-                self.cs_status_unauth_requests.inc()
+                c.cs_status_unauth_requests.inc()
                 print >> sys.stderr,"Got REQUEST but remote node is not authenticated"
                 return # TODO: Do this better
 

@@ -27,7 +27,6 @@ CREATE_SQL_FILE = None
 CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v'+str(CURRENT_MAIN_DB_VERSION)+'.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
-BSDDB_DIR_NAME = 'bsddb'
 DEFAULT_BUSY_TIMEOUT = 10000
 MAX_SQL_BATCHED_TO_TRANSACTION = 1000   # don't change it unless carefully tested. A transaction with 1000 batched updates took 1.5 seconds
 NULL = None
@@ -59,15 +58,11 @@ def init(config, db_exception_handler = None):
         sqlite_db_path = ':memory:'
     else:   
         sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
-        
-    
-        
-    bsddb_path = os.path.join(config_dir, BSDDB_DIR_NAME)
+    print >>sys.stderr,"cachedb: init: SQL FILE",sqlite_db_path        
+
     icon_dir = os.path.abspath(config['peer_icon_path'])
-    
-    print >>sys.stderr,"cachedb: init: SQL FILE",sqlite_db_path
-    
-    sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE, bsddb_path)  # the first place to create db in Tribler
+
+    sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE)  # the first place to create db in Tribler
     return sqlitedb
         
 def done(config_dir):
@@ -160,6 +155,7 @@ class safe_dict(dict):
             self.lock.release()
 
 class SQLiteCacheDBBase:
+    lock = threading.RLock()
 
     def __init__(self,db_exception_handler=None):
         self.exception_handler = db_exception_handler
@@ -276,7 +272,6 @@ class SQLiteCacheDBBase:
 
     def initDB(self, sqlite_filepath,
                create_sql_filename = None, 
-               bsddb_dirpath = None, 
                busytimeout = DEFAULT_BUSY_TIMEOUT,
                check_version = True,
                current_db_version = CURRENT_MAIN_DB_VERSION):
@@ -305,8 +300,6 @@ class SQLiteCacheDBBase:
             else:
                 if class_db_path is None:   # the first time to open db path, store it
 
-                    if bsddb_dirpath != None and os.path.isdir(bsddb_dirpath) and not os.path.exists(sqlite_filepath):
-                        self.convertFromBsd(bsddb_dirpath, sqlite_filepath, create_sql_filename)    # only one chance to convert from bsddb
                     #print 'quit now'
                     #sys.exit(0)
                     # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
@@ -386,12 +379,6 @@ class SQLiteCacheDBBase:
             
         if check_version:
             self.checkDB(sqlite_db_version, current_db_version)
-
-    def report_exception(e):
-        #return  # Jie: don't show the error window to bother users
-        if self.exception_handler != None:
-            self.exception_handler(e)
-    report_exception = staticmethod(report_exception) 
 
     def checkDB(self, db_ver, curr_ver):
         # read MyDB and check the version number.
@@ -750,26 +737,6 @@ class SQLiteCacheDBBase:
     
     # ----- Tribler DB operations ----
 
-    def convertFromBsd(self, bsddb_dirpath, dbfile_path, sql_filename, delete_bsd=False):
-        # convert bsddb data to sqlite db. return false if cannot find or convert the db
-        peerdb_filepath = os.path.join(bsddb_dirpath, 'peers.bsd')
-        if not os.path.isfile(peerdb_filepath):
-            return False
-        else:
-            print >> sys.stderr, "sqldb: ************ convert bsddb to sqlite", sql_filename
-            converted = convert_db(bsddb_dirpath, dbfile_path, sql_filename)
-            if converted is True and delete_bsd is True:
-                print >> sys.stderr, "sqldb: delete bsddb directory"
-                for filename in os.listdir(bsddb_dirpath):
-                    if filename.endswith('.bsd'):
-                        abs_path = os.path.join(bsddb_dirpath, filename)
-                        os.remove(abs_path)
-                try:
-                    os.removedirs(bsddb_dirpath)   
-                except:     # the dir is not empty
-                    pass
-        
-
     #------------- useful functions for multiple handlers ----------
     def insertPeer(self, permid, update=True, commit=True, **argv):
         """ Insert a peer. permid is the binary permid.
@@ -840,11 +807,7 @@ class SQLiteCacheDBBase:
         
         infohash_str = bin2str(infohash)
         sql_insert_torrent = "INSERT INTO Torrent (infohash) VALUES (?)"
-        try:
-            self.execute_write(sql_insert_torrent, (infohash_str,), commit)
-        except sqlite.IntegrityError, msg:
-            if check_dup:
-                print >> sys.stderr, 'sqldb:', sqlite.IntegrityError, msg, `infohash`
+        self.execute_write(sql_insert_torrent, (infohash_str,), commit)
     
     def deleteInfohash(self, infohash=None, torrent_id=None, commit=True):
         assert infohash is None or isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -1091,7 +1054,7 @@ UPDATE Torrent SET relevance = 0;
                         abs_filename = os.path.join(session.get_torrent_collecting_dir(), torrent_file_name)
                         if not os.path.exists(abs_filename):
                             raise RuntimeError(".torrent file not found. Use fallback.")
-                        torrentdef = Torrentdef.load(abs_filename)
+                        torrentdef = TorrentDef.load(abs_filename)
                         torrent_name = torrentdef.get_name_as_unicode()
                         keywords = Set(split_into_keywords(torrent_name))
                         for filename in torrentdef.get_files_as_unicode():
@@ -1110,6 +1073,8 @@ UPDATE Torrent SET relevance = 0;
                     # table in the database
                     if len(keywords) > 0:
                         values = [(keyword, torrent_id) for keyword in keywords]
+                        # self._db is set by the subclass
+                        # pylint: disable-msg=E1101
                         self._db.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
                         if DEBUG:
                             print >> sys.stderr, "DB Upgradation: Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
@@ -1120,7 +1085,7 @@ UPDATE Torrent SET relevance = 0;
                 # upgradation not yet complete; comeback after 5 sec
                 tqueue.add_task(upgradeTorrents, 5) 
 
-            
+
             # Create an empty file to mark the process of upgradation.
             # In case this process is terminated before completion of upgradation,
             # this file remains even though fromver >= 4 and hence indicating that 
@@ -1138,15 +1103,13 @@ UPDATE Torrent SET relevance = 0;
             from sets import Set
             from Tribler.Core.Search.SearchManager import split_into_keywords
             from Tribler.Core.TorrentDef import TorrentDef
-            
-            tqueue = TimedTaskQueue("UpgradeDB")
-            
+
             # start the upgradation after 10 seconds
+            tqueue = TimedTaskQueue("UpgradeDB")
             tqueue.add_task(upgradeTorrents, 10)
 
 class SQLiteCacheDB(SQLiteCacheDBV4):
     __single = None    # used for multithreaded singletons pattern
-    lock = threading.RLock()
 
     @classmethod
     def getInstance(cls, *args, **kw):
@@ -1170,17 +1133,6 @@ class SQLiteCacheDB(SQLiteCacheDBV4):
             raise RuntimeError, "SQLiteCacheDB is singleton"
         SQLiteCacheDBBase.__init__(self, *args, **kargs)
     
-
-def convert_db(bsddb_dir, dbfile_path, sql_filename):
-    # Jie: here I can convert the database created by the new Core version, but
-    # what we should consider is to convert the database created by the old version
-    # under .Tribler directory.
-    print >>sys.stderr, "sqldb: start converting db from", bsddb_dir, "to", dbfile_path
-    from bsddb2sqlite import Bsddb2Sqlite
-    bsddb2sqlite = Bsddb2Sqlite(bsddb_dir, dbfile_path, sql_filename)
-    global icon_dir
-    return bsddb2sqlite.run(icon_dir=icon_dir)   
-
 if __name__ == '__main__':
     configure_dir = sys.argv[1]
     config = {}

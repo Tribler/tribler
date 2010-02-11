@@ -319,7 +319,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def Seek(self, evt=None):
         if DEBUG:
-            print >>sys.stderr,"embedplay: Seek", pos
+            print >>sys.stderr,"embedplay: Seek"
         
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
@@ -370,18 +370,6 @@ class EmbeddedPlayerPanel(wx.Panel):
         if self.vlcwrap and self.fullscreen_enabled:
             self.vlcwrap.set_fullscreen(True)
 
-    def Mute(self, evt = None):
-        # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
-        if self.vlcwrap:
-            if self.volumeicon.isToggled():
-                if self.oldvolume is not None:
-                    self.vlcwrap.sound_set_volume(self.oldvolume)
-                self.volumeicon.setToggled(False)
-            else:
-                self.oldvolume = self.vlcwrap.sound_get_volume()
-                self.vlcwrap.sound_set_volume(0.0) # mute sound
-                self.volumeicon.setToggled(True)
-        
     def Save(self, evt = None):
         # save media content in different directory
         if self.save_button.isToggled():
@@ -390,7 +378,7 @@ class EmbeddedPlayerPanel(wx.Panel):
     
     def SetVolume(self, volume, evt = None):
         if DEBUG:
-            print >> sys.stderr, "embedplay: SetVolume:",self.volume.GetValue()
+            print >> sys.stderr, "embedplay: SetVolume:",self.volume
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             self.vlcwrap.sound_set_volume(volume)  ## float(self.volume.GetValue()) / 100
@@ -527,18 +515,6 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def ShowLoading(self):
         self.vlcwin.show_loading()
-
-
-
-    def keyDown(self, event):
-        Level = event.StopPropagation()
-        event.ResumePropagation(10)
-
-        event.Skip()
-        self.gg()
-
-
-
 
 class VLCLogoWindow(wx.Panel):
     """ A wx.Window to be passed to the vlc.MediaControl to draw the video
@@ -714,24 +690,11 @@ class VLCLogoWindow(wx.Panel):
             bmy = max(20,txty-20-self.contentbm.GetHeight())
             dc.DrawBitmap(self.contentbm,30,bmy,True)
 
-
         dc.DrawBitmap(self.tl, 0, 0)
         dc.DrawBitmap(self.tr, 310, 0)
         dc.DrawBitmap(self.bl, 0, 230)
         dc.DrawBitmap(self.br, 310, 230)
 
-
-        
         dc.EndDrawing()
         if evt is not None:
             evt.Skip(True)
-
-
-    def keyDown(self, event):
-        Level = event.StopPropagation()
-        event.ResumePropagation(10)
-
-        event.Skip()
-
-
-

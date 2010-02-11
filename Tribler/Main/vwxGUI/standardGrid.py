@@ -447,8 +447,8 @@ class GridManager(object):
             id_name = 'permid'
         elif subject in (NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_SUPERPEERS):
             id_name = 'infohash'
-        elif subject in (NTFY_YOUTUBE):
-            raise Exception('Not yet implemented')
+        else:
+            raise Exception('Unknown subject: %s' % str(subject))
         
         return objectID in [a[id_name] for a in self.data]
        
@@ -669,17 +669,11 @@ class standardGrid(wx.Panel):
             self.guiUtility.updateSizeOfStandardOverview()
             self.SetMinSize((-1, 20))
         else:
-            try:
-                wantedRows = int(value) / self.cols
-                self.SetSize((-1, wantedRows * self.subPanelHeight))
-                self.SetMinSize((-1, wantedRows * self.subPanelHeight))
-                self.guiUtility.standardOverview.growWithGrid()
-                self.guiUtility.standardOverview.Refresh()
-            except:
-                #print 'Exception!'
-                
-                raise
-                
+            wantedRows = int(value) / self.cols
+            self.SetSize((-1, wantedRows * self.subPanelHeight))
+            self.SetMinSize((-1, wantedRows * self.subPanelHeight))
+            self.guiUtility.standardOverview.growWithGrid()
+            self.guiUtility.standardOverview.Refresh()
         
     def refreshData(self):
         self.setData(self.data)
@@ -791,20 +785,11 @@ class standardGrid(wx.Panel):
     def getSubPanel(self, keyfun=None):
         raise NotImplementedError('Method getSubPanel should be subclassed')
 
-
     def setDSLists(self):
-        for i in xrange(0, self.items):
-            if i < len(self.data):
-                try:
-                    hSizer = self.vSizer.GetItem(panelNumber%self.currentRows+1).GetSizer()
-                    panel = hSizer.GetItem(panelNumber/ self.currentRows).GetWindow()
-                    panel.setdslist(self.gridManager.dslist)
-                except:
-                    pass
-
-
-
-
+        for panelNumber in xrange(0, min(len(self.data), self.items)):
+            hSizer = self.vSizer.GetItem(panelNumber%self.currentRows+1).GetSizer()
+            panel = hSizer.GetItem(panelNumber/ self.currentRows).GetWindow()
+            panel.setdslist(self.gridManager.dslist)
 
     def setDataOfPanel(self, panelNumber, data):
 
@@ -1251,25 +1236,6 @@ class channelsGrid(standardGrid):
             
     def getSubPanel(self, keyfun):
         return ChannelsItemPanel(self, keyfun)
-
-class chresultsGrid(standardGrid):
-    def __init__(self,parent=None):
-        columns = (1,1)
-        subPanelHeight = (22, 22) # This will be update after first refresh
-        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="chresultsGrid")
-            
-    def getSubPanel(self, keyfun):
-        return ChResultsItemPanel(self, keyfun)
-
-
-class subscriptionsGrid(standardGrid):
-    def __init__(self,parent=None):
-        columns = (1,1)
-        subPanelHeight = (22, 22) # This will be update after first refresh
-        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="subscriptionsGrid")
-            
-    def getSubPanel(self, keyfun):
-        return SubscriptionsItemPanel(self, keyfun)
 
 class popularGrid(standardGrid):
     def __init__(self,parent=None):

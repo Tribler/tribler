@@ -9,6 +9,13 @@ from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 
 DEBUG = False
 
+# 10/02/10 Boudewijn: pylint points out that member variables used in
+# DownloadRuntimeConfig do not exist.  This is because they are set in
+# Tribler.Core.Download which is a subclass of DownloadRuntimeConfig.
+#
+# We disable this error
+# pylint: disable-msg=E1101
+
 class DownloadRuntimeConfig(DownloadConfigInterface):
     """
     Implements the Tribler.Core.DownloadConfig.DownloadConfigInterface

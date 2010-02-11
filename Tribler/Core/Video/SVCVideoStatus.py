@@ -80,6 +80,9 @@ class SVCVideoStatus:
         # da rimuovere serve a video on demand
         self.live_streaming = videoinfo['live']
 
+        self.first_piecelen = 0
+        self.last_piecelen = 0
+
         
         # Ric: derive generic layers parameters
         # TODO check if we can assume piece bounderies
@@ -91,8 +94,8 @@ class SVCVideoStatus:
             # movie_range = (bpiece,offset),(epiece,offset), inclusive
             movie_range = ( (movie_begin/piecelen, movie_begin%piecelen),
                                  (movie_end/piecelen, movie_end%piecelen) )
-            first_piecelen = piecelen - movie_range[0][1]
-            last_piecelen  = movie_range[1][1]
+            # first_piecelen = piecelen - movie_range[0][1]
+            # last_piecelen  = movie_range[1][1]
             first_piece = movie_range[0][0]
             last_piece = movie_range[1][0]
             movie_numpieces = last_piece - first_piece + 1

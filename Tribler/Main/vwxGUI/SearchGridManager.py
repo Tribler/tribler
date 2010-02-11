@@ -267,7 +267,8 @@ class TorrentSearchGridManager:
         
         self.searchkeywords[mode] = wantkeywords
         if mode == 'filesMode':
-            print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords[mode],";time:%", time()
+            if DEBUG:
+                print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords[mode],";time:%", time()
             self.remoteHits = {}
             if self.dod:
                 self.dod.clear()
@@ -397,9 +398,10 @@ class TorrentSearchGridManager:
                         # just to check if it is not OLPROTO_VER_ELEVENTH version
                         # if so, check word boundaries in the swarm name
                         ls = split_into_keywords(value['content_name'])
-                        
-                        print >>sys.stderr,"ls is",`ls`
-                        print >>sys.stderr,"kws is",`kws`
+
+                        if DEBUG:
+                            print >>sys.stderr,"TorrentSearchGridManager: ls is",`ls`
+                            print >>sys.stderr,"TorrentSearchGridManager: kws is",`kws`
                         
                         flag = False
                         for kw in kws:
@@ -488,107 +490,6 @@ class TorrentSearchGridManager:
             #print >>sys.stderr,"TorrentSearchGridManager: refreshGrid: gridmgr refresh"
             self.gridmgr.refresh()
 
-            
-    #
-    # Move to Web2SearchGridManager
-    #
-    def searchWeb2(self,initialnum):
-        
-        if DEBUG:
-            print >>sys.stderr,"TorrentSearchGridManager: searchWeb2:",initialnum
-        
-        if self.dod:
-            self.dod.stop()
-        self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords['filesMode']),guiutil=self.guiUtility)
-        self.dod.request(initialnum)
-        self.dod.register(self.tthread_gotWeb2Hit)
-        
-    def tthread_gotWeb2Hit(self,item):
-        """ Called by Web2DBSearchThread*s* """
-        #if DEBUG:
-        print >>sys.stderr,"TorrentSearchGridManager: tthread_gotWeb2Hit",`item['content_name']`
-
-        wx.CallAfter(self.refreshGrid)
-        
-    def web2tonewdb(self,value):
-        try:
-            # Added protection against missing values
-            newval = {}
-            newval['infohash'] = value['infohash']
-            newval['name'] = value['content_name']
-            newval['status'] = value.get('status','unknown')
-            newval['description'] = value.get('description','')
-            newval['tags'] = value.get('tags',[])
-            newval['url'] = value.get('url','')
-            newval['num_leechers'] = value.get('leecher',1)
-            newval['num_seeders'] = value.get('views',1)
-            newval['creation_date'] = value.get('date','')
-            newval['views'] = value.get('views',0)
-            newval['web2'] = value.get('web2',True)
-            newval['length'] = value.get('length',1)
-            if 'preview' in value: # Apparently not always present
-                newval['preview'] = value['preview']
-            return newval
-        except:
-            print_exc()
-            return None
-
-    def addStoredWeb2Results(self,mode,categorykey,range):
-        web2on = self.guiUtility.utility.config.Read('enableweb2search',"boolean")
-        
-        #if DEBUG:
-        #    print >>sys.stderr,"TorrentSearchGridManager: getCategory: mode",mode,"webon",web2on,"insearch",self.getSearchMode(mode),"catekey",categorykey
-        
-        if mode == 'filesMode' and web2on and self.getSearchMode(mode) == SEARCHMODE_SEARCHING and \
-            categorykey in ['video', 'all']:
-            # if we are searching in filesmode
-            #self.standardOverview.setSearchFeedback('web2', False, 0)
-            
-            if self.dod:
-                # Arno: ask for more when needed (=only one page left to display)
-                if DEBUG:
-                    print >>sys.stderr,"TorrentSearchManager: web2: requestMore?",range[1],self.dod.getNumRequested()
-                pagesize = range[1] - range[0]
-                #diff = self.dod.getNumRequested() - range[1]
-                #if diff <= pagesize:
-                # JelleComment: above code doesnt work, because other search results are also on pages
-                # so we might have 100 pages of local search results. If range is related to 80th page
-                # websearch will try to get 80xpagesize youtube videos
-                # Set it steady to 3 pages
-                if self.dod.getNumRequested() < 3*pagesize:
-                    if DEBUG:
-                        print >>sys.stderr,"TorrentSearchManager: web2: requestMore diff",pagesize
-                    self.dod.requestMore(pagesize)
-                    
-                data = self.dod.getData()
-                if DEBUG:
-                    print >>sys.stderr,"TorrentSearchManager: getHitsInCat: web2: Got total",len(data)
-                numResults = 0
-                for value in data:
-                    
-                    # Translate to NEWDB/FileItemPanel format, doing this in 
-                    # web2/video/genericsearch.py breaks something
-                    newval = self.web2tonewdb(value)
-                    if newval is None:
-                        continue
-
-                    known = False
-                    for item in self.hits:
-                        if item['infohash'] == newval['infohash']:
-                            known = True
-                            break
-                    if not known:
-                        self.hits.append(newval)
-                        numResults += 1
-
-                self.standardOverview.setSearchFeedback('web2', self.stopped, numResults, self.searchkeywords[mode])
-        #    else:
-        #        print >>sys.stderr,"TorrentSearchManager: No web2 hits, no self.dod"
-                
-        #else:
-        #    print >>sys.stderr,"TorrentSearchManager: No web2 hits, mode",mode,"web2on",web2on,"in search",self.getSearchMode(mode),"catkey",categorykey
-    
-    
     #Rameez: The following code will call normalization functions and then 
     #sort and merge the torrent results
     def sort(self):
@@ -917,106 +818,6 @@ class ChannelSearchGridManager:
         if self.gridmgr is not None:
             print >>sys.stderr,"ChannelSearchGridManager: refreshGrid: gridmgr refresh"
             self.gridmgr.refresh()
-
-            
-    #
-    # Move to Web2SearchGridManager
-    #
-    def searchWeb2(self,initialnum):
-        
-        if DEBUG:
-            print >>sys.stderr,"ChannelSearchGridManager: searchWeb2:",initialnum
-        
-        if self.dod:
-            self.dod.stop()
-        self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords['filesMode']),guiutil=self.guiUtility)
-        self.dod.request(initialnum)
-        self.dod.register(self.tthread_gotWeb2Hit)
-        
-    def tthread_gotWeb2Hit(self,item):
-        """ Called by Web2DBSearchThread*s* """
-        #if DEBUG:
-        print >>sys.stderr,"ChannelSearchGridManager: tthread_gotWeb2Hit",`item['content_name']`
-
-        wx.CallAfter(self.refreshGrid)
-        
-    def web2tonewdb(self,value):
-        try:
-            # Added protection against missing values
-            newval = {}
-            newval['infohash'] = value['infohash']
-            newval['name'] = value['content_name']
-            newval['status'] = value.get('status','unknown')
-            newval['description'] = value.get('description','')
-            newval['tags'] = value.get('tags',[])
-            newval['url'] = value.get('url','')
-            newval['num_leechers'] = value.get('leecher',1)
-            newval['num_seeders'] = value.get('views',1)
-            newval['creation_date'] = value.get('date','')
-            newval['views'] = value.get('views',0)
-            newval['web2'] = value.get('web2',True)
-            newval['length'] = value.get('length',1)
-            if 'preview' in value: # Apparently not always present
-                newval['preview'] = value['preview']
-            return newval
-        except:
-            print_exc()
-            return None
-
-    def addStoredWeb2Results(self,mode,categorykey,range):
-        web2on = self.guiUtility.utility.config.Read('enableweb2search',"boolean")
-        
-        #if DEBUG:
-        #    print >>sys.stderr,"TorrentSearchGridManager: getCategory: mode",mode,"webon",web2on,"insearch",self.getSearchMode(mode),"catekey",categorykey
-        
-        if mode == 'filesMode' and web2on and self.getSearchMode(mode) == SEARCHMODE_SEARCHING and \
-            categorykey in ['video', 'all']:
-            # if we are searching in filesmode
-            #self.standardOverview.setSearchFeedback('web2', False, 0)
-            
-            if self.dod:
-                # Arno: ask for more when needed (=only one page left to display)
-                if DEBUG:
-                    print >>sys.stderr,"ChannelSearchManager: web2: requestMore?",range[1],self.dod.getNumRequested()
-                pagesize = range[1] - range[0]
-                #diff = self.dod.getNumRequested() - range[1]
-                #if diff <= pagesize:
-                # JelleComment: above code doesnt work, because other search results are also on pages
-                # so we might have 100 pages of local search results. If range is related to 80th page
-                # websearch will try to get 80xpagesize youtube videos
-                # Set it steady to 3 pages
-                if self.dod.getNumRequested() < 3*pagesize:
-                    if DEBUG:
-                        print >>sys.stderr,"ChannelSearchManager: web2: requestMore diff",pagesize
-                    self.dod.requestMore(pagesize)
-                    
-                data = self.dod.getData()
-                if DEBUG:
-                    print >>sys.stderr,"ChannelSearchManager: getHitsInCat: web2: Got total",len(data)
-                numResults = 0
-                for value in data:
-                    
-                    # Translate to NEWDB/FileItemPanel format, doing this in 
-                    # web2/video/genericsearch.py breaks something
-                    newval = self.web2tonewdb(value)
-                    if newval is None:
-                        continue
-
-                    known = False
-                    for item in self.hits:
-                        if item['infohash'] == newval['infohash']:
-                            known = True
-                            break
-                    if not known:
-                        self.hits.append(newval)
-                        numResults += 1
-
-                self.standardOverview.setSearchFeedback('web2', self.stopped, numResults, self.searchkeywords[mode])
-        #    else:
-        #        print >>sys.stderr,"TorrentSearchManager: No web2 hits, no self.dod"
-                
-        #else:
-        #    print >>sys.stderr,"TorrentSearchManager: No web2 hits, mode",mode,"web2on",web2on,"in search",self.getSearchMode(mode),"catkey",categorykey
     
     #Rameez: The following code will call normalization functions and then 
     #sort and merge the combine torrent and youtube results

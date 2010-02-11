@@ -532,12 +532,12 @@ def isValidQuery(d,selversion):
         return False
     if selversion < OLPROTO_VER_TWELFTH and d['q'].startswith('SIMPLE+METADATA'):
         if DEBUG:
-            print >>sys.stderr,"rqmh: SIMPLE+METADATA but old olversion",`q`
+            print >>sys.stderr,"rqmh: SIMPLE+METADATA but old olversion",`d['q']`
         return False
     idx = d['q'].find(' ')
     if idx == -1:
         if DEBUG:
-            print >>sys.stderr,"rqmh: no space in q",`q`
+            print >>sys.stderr,"rqmh: no space in q",`d['q']`
         return False
     try:
         keyws = d['q'][idx+1:]
@@ -553,7 +553,7 @@ def isValidQuery(d,selversion):
     except:
         print_exc()
         if DEBUG:
-            print >>sys.stderr,"rqmh: not alnum query",`q`
+            print >>sys.stderr,"rqmh: not alnum query",`d['q']`
         return False
     if len(d) > 2: # no other keys
         if DEBUG:

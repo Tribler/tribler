@@ -3,7 +3,7 @@
 
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 
-from Tribler.Core.Status import *
+from Tribler.Core.Status.Status import get_status_holder
 
 import sys
 
@@ -77,7 +77,7 @@ class Upload:
                 else:
                     connection.send_bitfield(self.storage.get_have_list())
         else:
-            if storage.do_I_have_anything():
+            if self.storage.do_I_have_anything():
                 connection.send_bitfield(self.storage.get_have_list())
 
 
@@ -129,7 +129,7 @@ class Upload:
         self.measure.update_rate(len(piece))
         self.totalup.update_rate(len(piece))
 
-        status = Status.get_status_holder("LivingLab")
+        status = get_status_holder("LivingLab")
         s_upload = status.get_or_create_status_element("uploaded",0)
         s_upload.inc(len(piece))
 

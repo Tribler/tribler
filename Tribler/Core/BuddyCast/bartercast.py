@@ -146,7 +146,7 @@ class BarterCastCore:
             return False
         
         if MAX_BARTERCAST_LENGTH > 0 and len(recv_msg) > MAX_BARTERCAST_LENGTH:
-            print >> sys.stderr, "bartercast: warning - got large BarterCastMsg", len(t)
+            print >> sys.stderr, "bartercast: warning - got large BarterCastMsg", len(recv_msg)
             return False
 
         bartercast_data = {}

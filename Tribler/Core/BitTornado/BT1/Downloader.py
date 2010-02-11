@@ -16,7 +16,7 @@ except ImportError:
             pass
         
 
-from Tribler.Core.Status import *
+from Tribler.Core.Status.Status import get_status_holder
 
 import sys
 
@@ -310,7 +310,7 @@ class SingleDownload(SingleDownloadHelperInterface):
         self.last2 = clock()
         self.measure.update_rate(length)
         # Update statistic gatherer
-        status = Status.get_status_holder("LivingLab")
+        status = get_status_holder("LivingLab")
         s_download = status.get_or_create_status_element("downloaded",0)
         s_download.inc(length)
         self.short_term_measure.update_rate(length)

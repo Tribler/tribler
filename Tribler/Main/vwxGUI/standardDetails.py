@@ -188,45 +188,6 @@ class standardDetails(wx.Panel):
     def getMode(self):
         return self.mode
             
-    def refreshMode(self):
-        # load xrc
-        self.oldpanel = self.currentPanel
-        #self.Show(False)
-        
-        self.currentPanel = self.loadPanel()
-        assert self.currentPanel, "Panel could not be loaded"
-        self.currentPanel.Layout()
-        self.currentPanel.SetAutoLayout(1)
-        #self.currentPanel.Enable(True)
-#        self.currentPanel.SetBackgroundColour("red")
-        
-        
-        self.currentPanel.Show(True)
-#        print self.mode
-        
-
-        if self.mode == 'filesMode' or self.mode == 'libraryMode' or self.mode=='personsMode' or self.mode == 'friendsMode' or self.mode == 'profileMode' or self.mode == 'subscriptionsMode' or self.mode == 'fileDetailsMode' :
-#            print 'tb'
-            self.currentPanel.SetSize((-1,5))
-            self.currentPanel.Hide()
-            
-#        
-        if self.oldpanel:
-            self.hSizer.Detach(self.oldpanel)
-            self.oldpanel.Hide()
-            #self.oldpanel.Disable()
-        
-        
-        self.hSizer.Insert(0, self.currentPanel, 0, wx.ALL|wx.EXPAND, 0)
-        
-            
-#        self.currentPanel.Layout()
-        wx.CallAfter(self.hSizer.Layout)
-        wx.CallAfter(self.refreshStandardDetailsHeight)
-#        wx.CallAfter(self.currentPanel.Refresh)
-        #self.Show(True)
-        
-
     def refreshStatusPanel(self, show):
         pass
         ##if show:
@@ -266,26 +227,26 @@ class standardDetails(wx.Panel):
             # Arno, 2008-08-21: wxPython 2.8.8.1 doesn't like LC_REPORT anymore,
             # for unknown reasons. Our hack around is this exception handler,
             # and we MANUALLY added the style parameters to the .xrc files.
-            """
-            Traceback (most recent call last):
-              File "C:\Python252\Lib\site-packages\wx-2.8-msw-unicode\wx\_core.py", line 14555, in <lambda>
-                lambda event: event.callable(*event.args, **event.kw) )
-              File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 131, in _PostInit
-                self.guiUtility.initStandardDetails(self)
-              File "C:\build\mainbranch\Tribler\Main\vwxGUI\GuiUtility.py", line 294, in initStandardDetails
-                self.standardDetails.setMode('filesMode', firstItem)        
-              File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 155, in setMode
-                self.refreshMode()
-              File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 171, in refreshMode
-                self.currentPanel = self.loadPanel()
-              File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 269, in loadPanel
-                self.setListAspect2OneColumn("peopleWhoField")
-              File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 220, in setListAspect2OneColumn
-                ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
-              File "C:\Python252\Lib\site-packages\wx-2.8-msw-unicode\wx\_core.py", line 9140, in SetWindowStyleFlag
-                return _core_.Window_SetWindowStyleFlag(*args, **kwargs)
-            wx._core.PyAssertionError: C++ assertion "nModes == 1" failed at ..\..\src\msw\listctrl.cpp(380) in wxListCtrl::MSWGetStyle(): wxListCtrl style should have exactly one mode bit set            
-            """
+            # """
+            # Traceback (most recent call last):
+            #   File "C:\Python252\Lib\site-packages\wx-2.8-msw-unicode\wx\_core.py", line 14555, in <lambda>
+            #     lambda event: event.callable(*event.args, **event.kw) )
+            #   File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 131, in _PostInit
+            #     self.guiUtility.initStandardDetails(self)
+            #   File "C:\build\mainbranch\Tribler\Main\vwxGUI\GuiUtility.py", line 294, in initStandardDetails
+            #     self.standardDetails.setMode('filesMode', firstItem)        
+            #   File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 155, in setMode
+            #     self.refreshMode()
+            #   File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 171, in refreshMode
+            #     self.currentPanel = self.loadPanel()
+            #   File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 269, in loadPanel
+            #     self.setListAspect2OneColumn("peopleWhoField")
+            #   File "C:\build\mainbranch\Tribler\Main\vwxGUI\standardDetails.py", line 220, in setListAspect2OneColumn
+            #     ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
+            #   File "C:\Python252\Lib\site-packages\wx-2.8-msw-unicode\wx\_core.py", line 9140, in SetWindowStyleFlag
+            #     return _core_.Window_SetWindowStyleFlag(*args, **kwargs)
+            # wx._core.PyAssertionError: C++ assertion "nModes == 1" failed at ..\..\src\msw\listctrl.cpp(380) in wxListCtrl::MSWGetStyle(): wxListCtrl style should have exactly one mode bit set            
+            # """
             print_exc()
         
 
@@ -524,108 +485,6 @@ class standardDetails(wx.Panel):
             ##titleField.Wrap(-1) # doesn't appear to work
             
 #            self.setTorrentThumb(self.mode, torrent, self.getGuiObj('thumbField'))        
-            
-        elif self.mode in ['personsMode', 'friendsMode']:
-            #check if this is a corresponding item from type point of view
-#            if item.get('permid') is None:
-#                return #no valid torrent
-            
-            titleField = self.getGuiObj('titleField')
-            titleField.SetLabel(item.get('name') or '')
-            titleField.Wrap(-1)
-            
-            #set the picture
-            try:
-                bmp = None
-                # Check if we have already read the thumbnail and metadata information from this torrent file
-                if item.get('metadata'):
-                    bmp = item['metadata'].get('ThumbnailBitmap')
-                elif 'permid' in item:
-                    mime, icondata = self.peer_db.getPeerIcon(item['permid'])
-                    if icondata:
-                        bmp = data2wxBitmap(mime,icondata)
-                        
-                if not bmp:
-                    superpeers = self.superpeer_db.getSuperPeers()
-                    if 'permid' in item and item['permid'] in superpeers:
-                        bmp = self.iconsManager.get_default('personsMode','SUPERPEER_BITMAP')
-                    else:
-                        bmp = self.iconsManager.get_default('personsMode','DEFAULT_THUMB')
-                
-                thumbField = self.getGuiObj("thumbField")
-                thumbField.setBitmap(bmp)
-                width, height = thumbField.GetSize()
-                d = 1
-                thumbField.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
-                thumbField.Refresh()
-#                wx.CallAfter(thumbField.Refresh)
-                
-            except:
-                print_exc()
-            
-
-            if self.getGuiObj('info_detailsTab').isSelected():
-                
-                if item.get('simRank'):
-                    if DEBUG:
-                        print >> sys.stderr, 'SimRank of peer: %s' % item['simRank']
-                    self.setRankToRecommendationField(item['simRank'])
-                    self.getGuiObj('TasteHeart').setRank(item['simRank'])
-                
-
-                # Peer status = online status + frienstatus
-                label = peer2status(item)
-                self.getGuiObj('statusField').SetLabel(label) 
-
-                if 'num_peers' in item:
-                    n = unicode(item['num_peers'])
-                    if not n or n=='0':
-                        n = '?'
-                    self.getGuiObj('discPersonsField').SetLabel(n)
-                if 'num_torrents' in item:
-                    n = unicode(item['num_torrents'])
-                    if not n or n == '0':
-                        n = '?'
-                    self.getGuiObj('discFilesField').SetLabel(n)
-                
-                if 'friend' in item:
-                    fs = item.get('friend') 
-                    if fs == FS_MUTUAL or fs == FS_I_INVITED:
-                        isfriend = self.iconsManager.get_default('personsMode','ISFRIEND_BITMAP')
-                        isfriend_clicked = self.iconsManager.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
-                        self.getGuiObj('addAsFriend').switchTo(isfriend,isfriend_clicked)
-                    else:
-                        self.getGuiObj('addAsFriend').switchBack()
-                    
-                self.fillTorrentLists()
-                
-            elif self.getGuiObj('advanced_detailsTab').isSelected():
-                if item.get('last_connected') is not None:
-                    if item['last_connected'] < 0:
-                        self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel("never seen online")
-                    else:
-                        self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel('%s %s'%(friendly_time(item['last_connected']),'ago'))
-                else:
-                    self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel('')
-                if item.get("connected_times") is not None:
-                    self.getGuiObj('timesConnectedField', tab = 'personsTab_advanced').SetLabel(str(item["connected_times"]))
-                else:
-                    self.getGuiObj('timesConnectedField', tab = 'personsTab_advanced').SetLabel("")
-                if item.get("similarity") is not None:
-                    self.getGuiObj('similarityValueField', tab = 'personsTab_advanced').SetLabel("%.1f" % item["similarity"])
-                else:
-                    self.getGuiObj('similarityValueField', tab = 'personsTab_advanced').SetLabel("")
-                
-                addAsFriend = self.getGuiObj('addAsFriend', tab = 'personsTab_advanced')
-                if addAsFriend.initDone:
-                    if item.get('friend') is not None:
-                        fs = item['friend']
-                        if fs == FS_MUTUAL or fs == FS_I_INVITED:
-                            isfriend = self.iconsManager.get_default('personsMode','ISFRIEND_BITMAP')
-                            isfriend_clicked = self.iconsManager.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
-                            addAsFriend.switchTo(isfriend,isfriend_clicked)
-                        else:
-                            addAsFriend.switchBack()
             
         elif self.mode == 'subscriptionsMode':
             if item.get('url') is None:
@@ -930,23 +789,6 @@ class standardDetails(wx.Panel):
         except:
             print_exc()
         return bElementMoved
-    
-    def setDownloadbutton(self, torrent, tab = None, item = ''):
-        if item == '':
-            self.downloadButton2 = self.getGuiObj('download', tab = tab)
-        else:
-            self.downloadButton2 = item
-            
-        if self.downloadButton2:
-            if torrent.get('myDownloadHistory', False):              
-                bitmap, bitmap2 = self.iconsManager.getDownloadButton('library')
-            elif torrent.get('web2'):               
-                bitmap, bitmap2 = self.iconsManager.getDownloadButton('play')
-            else:                             
-                bitmap, bitmap2 = self.iconsManager.getDownloadButton('download')
-                
-            self.downloadButton2.setBitmaps(bitmap, bitmap2)
-            self.downloadButton2.Refresh()
                  
     def getGuiObj(self, obj_name, tab=None, mode=None):
         """handy function to retreive an object based on it's name for the current mode"""
@@ -1230,145 +1072,6 @@ class standardDetails(wx.Panel):
                 return
         graph_panel.setVisible(False)
     
-    def tabClicked(self, name):
-        if DEBUG:
-            print >> sys.stderr,'standardDetails: tabClicked: %s' % name
-        #self.checkGraphTabVisible(selectedTab=name)
-
-        if self.mode == 'libraryMode':
-            tabButtons = { 'files_detailsTab':self.getGuiObj('files_detailsTab'),
-                          'info_detailsTab':self.getGuiObj('info_detailsTab'),
-                          'upload_detailsTab':self.getGuiObj('upload_detailsTab')}
-                          # 'graphs_detailsTab':self.getGuiObj('graphs_detailsTab') }
-            tabPanelNames = { 'files_detailsTab':'filesTab_files', 
-                             'info_detailsTab':'details',
-                             'upload_detailsTab':'uploadTab_details'}
-                             #'graphs_detailsTab':'Tab_graphs'}
-            #TODO: change from currentPanel to the string name of the current selected details panel
-            #get the currently selected panel 
-            current_name = 'details'
-            panel_name = 'details'
-            for key in tabButtons.keys():
-                if name == key:
-                    panel_name = tabPanelNames[key]
-                if tabButtons[key].isSelected():
-                    current_name = tabPanelNames[key]
-            panel1 = self.getGuiObj(current_name)
-            panel2 = self.getGuiObj(panel_name)
-            if panel1 is not None and panel2 is not None and panel1 != panel2:
-                if DEBUG:
-                    print >>sys.stderr,"standardDetails: <mluc> switching from "+current_name+" to "+panel_name
-                self.swapPanel(panel1, panel2)
-                
-                for key in tabButtons.keys():
-                    try:
-                        if key == name:
-                            tabButtons[key].setSelected(True)
-                        else:
-                            tabButtons[key].setSelected(False)
-                    except:
-                        print "tab %s has no button??" % key
-                self.currentPanel.SetAutoLayout(1)
-                self.currentPanel.Layout()
-                self.hSizer.Layout()
-        elif self.mode == 'filesMode':
-            tabFiles = self.getGuiObj('files_detailsTab')
-            tabInfo = self.getGuiObj('info_detailsTab')
-            infoPanel = self.getGuiObj('details')
- #            sizer = infoPanel.GetContainingSizer()
-            filesPanel = self.getGuiObj('filesTab_files')
-            
-            if name == 'files_detailsTab' and not tabFiles.isSelected():
-                tabFiles.setSelected(True)
-                tabInfo.setSelected(False)
-                self.swapPanel( infoPanel, filesPanel)#, sizer, 3)
-                
-            elif name == 'info_detailsTab' and not tabInfo.isSelected():
-                tabFiles.setSelected(False)
-                tabInfo.setSelected(True)
-                self.swapPanel( filesPanel, infoPanel)#, sizer, 3)
-            else:
-                if DEBUG:
-                    print >> sys.stderr,'standardDetails: %s: Unknown tab %s' % (self.mode,name)
-                return
-#                relayout the details panel to accomodate the new panel
-           
-            
-            self.currentPanel.SetAutoLayout(1)
-            self.currentPanel.Layout()
-            self.hSizer.Layout()    
-
-        elif self.mode in ["personsMode","friendsMode"]:
-            tabAdvanced = self.getGuiObj('advanced_detailsTab')
-            tabInfo = self.getGuiObj('info_detailsTab')
-            infoPanel = self.getGuiObj('detailsC')
-            advancedPanel = self.getGuiObj('personsTab_advanced')
-            if name == 'advanced_detailsTab' and not tabAdvanced.isSelected():
-                tabAdvanced.setSelected(True)
-                tabInfo.setSelected(False)
-                self.swapPanel( infoPanel, advancedPanel)
-            elif name == 'info_detailsTab' and not tabInfo.isSelected():
-                tabAdvanced.setSelected(False)
-                tabInfo.setSelected(True)
-                self.swapPanel( advancedPanel, infoPanel)
-            else:
-                if DEBUG:
-                    print >>sys.stderr,'standardDetails: %s: Unknown tab %s' % (self.mode,name)
-                return
-#            print "<mluc> advanced tab has label:",tabAdvanced.GetLabel()
-
-            #relayout the details panel to accomodate the new panel
-            self.currentPanel.SetAutoLayout(1)
-            self.currentPanel.Layout()
-            self.hSizer.Layout()
-
-        elif self.mode == "profileMode":
-#            print "<mluc> try to switch to",name
-            if name.startswith("bgPanel"):
-                name = "profileDetails"+name[7:]
-#            if name == "profileDetails_Overall":
-#                name = 'panel'
-#            print "<mluc> current panel is:",self.item
-#            if self.item is None:
-#                self.item = 'panel'
-            panel1 = self.currentPanel #getGuiObj(self.item)
-            panel2 = self.getGuiObj(name)
-            if panel1 is not None and panel2 is not None and panel1 != panel2:
-#===============================================================================
-#                print "<mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
-#                if isinstance(panel1,tribler_topButton):
-#                    print "<mluc> set unselected for",panel1.GetName()
-#                    panel1.setSelected(False)
-#                else:
-#                    print "<mluc> panel1 ",panel1.GetName()," is of type ",panel1.__class__.__name__
-#                if panel2.__class__.__name__.endswith("tribler_topButton"):
-#                    print "<mluc> set selected for",panel2.GetName()
-#                    panel2.setSelected(True)
-#                else:
-#                    print "<mluc> panel2 ",panel2.GetName()," is of type ",panel2.__class__.__name__
-#===============================================================================
-                self.swapPanel(panel1, panel2)
-                #each time the panel changes, update the 'panel' reference in data list
-                self.data[self.mode]['panel'] = panel2
-                #actually, update the currentPanel reference
-                self.currentPanel = panel2
-#                self.item = name
-#            else:
-#                print "<mluc> can't switch, one of the panel is None or the same panel"
-#                self.currentPanel.Layout()
-#                self.currentPanel.SetAutoLayout(1)
-#                self.hSizer.Layout()
-                if DEBUG:
-                    print >>sys.stderr,"standardDetails: <mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
-        else:
-            if DEBUG:
-                print >>sys.stderr,'standardDetails: Tab (%s) for this mode (%s) not yet implemented' % (name,self.mode)
-            return
-        
-        self.setData(self.item)
-        self.refreshStandardDetailsHeight()
-
-            
     def swapPanel(self, oldpanel, newpanel, sizer=None, index=-1):
         """replaces in a sizer a panel with another one to simulate tabs"""
         if sizer is None:
@@ -1424,32 +1127,6 @@ class standardDetails(wx.Panel):
             
             return panel
         
-    def mouseAction(self, event):
-        """ Arno: apparently not used, see GUIUtility.buttonClicked() """ 
-        if DEBUG:
-            print >>sys.stderr,'standardDetails: mouseAction'
-        
-        obj = event.GetEventObject()
-        #print obj
-        
-        if not self.data:
-            return
-        if obj == self.downloadButton:
-            self.download(self.data)            
-            # --tb--
-#        if obj == self.optionsButtonLibrary:
-#            # zelfde menu als rechterMuisKnop
-#            print "optionsButton"
-#            self.rightMouseAction(event)
-        elif obj == self.refreshButton: 
-            #and self.refreshButton.isEnabled():
-            if DEBUG:
-                print >>sys.stderr,"standardDetails: refresh seeders and leechers"
-            #self.swarmText.SetLabel(self.utility.lang.get('refreshing')+'...')
-            #self.swarmText.Refresh()
-            
-            self.refresh(self.data)
-            
     def rightMouseButton(self, event):
         if DEBUG:
             print >>sys.stderr,'standardDetails: --tb-- keydown function(2)'  
@@ -1610,12 +1287,12 @@ class standardDetails(wx.Panel):
             
         #print "**** standdetail: download", `torrent`
             
-        if torrent.get('web2'):
-            if DEBUG:
-                print >>sys.stderr,"standardDetails: download: Playing WEB2 video: " + torrent['url']
-            self.videoplayer.play_url(torrent['url'])
-            self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
-            return True
+        # if torrent.get('web2'):
+        #     if DEBUG:
+        #         print >>sys.stderr,"standardDetails: download: Playing WEB2 video: " + torrent['url']
+        #     self.videoplayer.play_url(torrent['url'])
+        #     self.setDownloadbutton(torrent=self.item, item = self.downloadButton2)
+        #     return True
 
         if 'query_permids' in torrent and not torrent.get('myDownloadHistory'):
             sesscb_got_requested_torrent_lambda = lambda infohash,metadata,filename:self.sesscb_got_requested_torrent(torrent,infohash,metadata,filename,vodmode)
@@ -1731,22 +1408,6 @@ class standardDetails(wx.Panel):
     def tfdownload_timeout_error(self):
         self.videoplayer.set_player_status("Error starting download. Could not get metadata from remote peer.")
 
-    def setTorrentThumb(self, mode, torrent, thumbPanel, size = 'large'):
-        
-        if not thumbPanel:
-            return 
-        
-        thumbPanel.setBackground(wx.BLACK)
-        if mode in  ['filesMode', 'libraryMode']:
-            self.getThumbnailLarge(torrent,thumbPanel, size)
-        elif mode in ['personsMode', 'friendMode']:
-            # get thumbimage of person
-            if False:
-                pass
-            else:
-                default = self.iconsManager.get_default('personsMode','DEFAULT_THUMB')
-                thumbPanel.setBitmap(default)
-                
     def addAsFriend(self):
         # add the current user selected in details panel as a friend or delete
         if self.mode in ["personsMode","friendsMode"]:
@@ -1902,103 +1563,6 @@ class standardDetails(wx.Panel):
                 self.getGuiObj('refresh').SetToolTipString('%s: %s' % (self.utility.lang.get('last_checked'), friendly_time(last_time)))
         event.Skip()
         
-    """
-    def subscrNeedsGUIUpdate(self,todayl,yesterdayl):
-        update = True
-        if len(todayl) > 0:
-            if self.subscrDataCopy_today_top is not None and self.subscrDataCopy_today_top == todayl[0]:
-               update = False
-            self.subscrDataCopy_today_top = todayl[0]
-            
-        if len(yesterdayl) > 0:
-            if self.subscrDataCopy_yday_top is not None and self.subscrDataCopy_yday_top == yesterdayl[0]:
-               update = False
-            self.subscrDataCopy_yday_top = yesterdayl[0]
-        return update
-    """
-            
-    def getThumbnailLarge(self,torrent,thumbPanel, size='large'):
-        readable = torrent.get('metadata',{}).get('ThumbReadable')
-        if readable == False:
-            default = self.iconsManager.getCategoryIcon('filesMode',torrent.get('category'), 'large')
-            thumbPanel.setBitmap(default)
-            return
-
-        if 'preview' in torrent:
-            thumbnailString = torrent['preview']
-        else:
-            # Arno: Read big image on demand
-            torrent_dir = self.utility.session.get_torrent_collecting_dir()
-            torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
-            metadata = loadAzureusMetadataFromTorrent(torrent_filename)
-            if metadata:
-                thumbnailString = metadata.get('Thumbnail')
-               
-            else:
-                thumbnailString = None
-
-
-        if 'metadata' not in torrent:
-            # Dump the raw data
-            if thumbnailString:
-                del metadata['Thumbnail']
-            
-            torrent['metadata'] = metadata
-            
-        if thumbnailString:
-            img = createThumbImage(thumbnailString)
-
-            #print 'Found thumbnail: %s' % thumbnailString
-            iw, ih = img.GetSize()
-            w, h = thumbPanel.GetSize()
-            if (iw/float(ih)) > (w/float(h)):
-                nw = w
-                nh = int(ih * w/float(iw))
-            else:
-                nh = h
-                nw = int(iw * h/float(ih))
-            if nw != iw or nh != ih:
-                #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-                try:
-                    # if wx >= 2.7, use Bicubic scaling
-                    img.Rescale(nw, nh, quality = wx.IMAGE_QUALITY_HIGH)
-                except:
-                    img.Rescale(nw, nh)
-            bmp = wx.BitmapFromImage(img)
-             
-            thumbPanel.setBitmap(bmp)
-            torrent['metadata']['ThumbReadable'] = True
-        else:
-            #print 'Torrent: %s' % torrent
-            torrent['metadata']['ThumbReadable'] = False
-            
-            #print "****** torrent", torrent
-            
-            default = self.iconsManager.getCategoryIcon('filesMode',torrent.get('category','all'), 'large')
-            thumbPanel.setBitmap(default)
-
-    def refreshStandardDetailsHeight(self, panel = None):
-        if not panel:
-            panel = self.currentPanel
-        margin = 6
-        if self.data.get('status',{}).get('panel'):
-            statusPanelHeight = self.data['status']['panel'].GetSize()[1]
-        else:
-            statusPanelHeight = 0
-        
-        newHeight = panel.GetSize()[1] + statusPanelHeight + margin
-#        size = (20,newHeight)
-#        self.SetSize(size)
-#        self.SetMinSize(size)
-#        self.SetMaxSize(size)
-        self.GetContainingSizer().Layout()
-        # Resize scrollWindow to make scrollbars update to new windowsize
-        self.guiUtility.scrollWindow.FitInside()
-        self.Refresh()
-        
-        if DEBUG:
-            print 'StandardDetails: setting height of stand.details to: %s' % str(newHeight)
-            
     def topNListText(self, tab):
         
         #print >>sys.stderr,"standardDetails: topNListText ^^^^^^^^^"

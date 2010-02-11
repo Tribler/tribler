@@ -8,6 +8,8 @@ import re
 import urllib
 import urllib2
 
+from ClosedSwarm import read_poa_from_file
+
 def wx_get_poa(root_window=None):
     """
     Pop up a graphical file selector

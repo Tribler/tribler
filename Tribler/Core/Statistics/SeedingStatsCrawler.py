@@ -155,7 +155,7 @@ class SeedingStatsCrawler:
         sql_update = cPickle.loads(message)
         
         try:
-            self._sqlite_cache_db.execute_write(sql_query)
+            self._sqlite_cache_db.execute_write(sql_update)
         except Exception, e:
             reply_callback(str(e), 1)
         else:

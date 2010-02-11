@@ -34,7 +34,7 @@ class FriendshipCrawler:
         """
         if DEBUG: 
             print >>sys.stderr, "FriendshipCrawler: friendship_query_initiator"
-        
+
         get_last_updated_time = self.friendshipStatistics_db.getLastUpdateTimeOfThePeer(permid)
          
         msg_dict = {'current time':get_last_updated_time}
@@ -132,5 +132,5 @@ class FriendshipCrawler:
         
         mypermid = self.session.get_permid()
         
-        return self.friendshipStatistics_db.getLastUpdatedTime(permid)
+        return self.friendshipStatistics_db.getLastUpdateTimeOfThePeer(permid)
         

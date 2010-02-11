@@ -223,16 +223,6 @@ def test_suite():
     #suite.addTest(unittest.makeSuite(TestBuddyCastNonServer))
     return suite
 
-def sign_data(plaintext,keypair):
-    digest = sha(plaintext).digest()
-    return keypair.sign_dsa_asn1(digest)
-
-def verify_data(plaintext,permid,blob):
-    pubkey = EC.pub_key_from_der(permid)
-    digest = sha(plaintext).digest()
-    return pubkey.verify_dsa_asn1(digest,blob)
-
-
 if __name__ == "__main__":
     unittest.main()
 

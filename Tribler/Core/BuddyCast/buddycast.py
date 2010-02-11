@@ -2132,16 +2132,13 @@ class DataHandler:
         if isinstance(infohash, int) and infohash > 0:
             return infohash
         else:
-            return self.peer_db.getPeerID(permid)
+            return self.torrent_db.getTorrentID(infohash)
     
     def getPeerPermid(self, peer_id):
         return self.peer_db.getPermid(peer_id)
 
     def getLocalPeerList(self, max_peers,minoversion=None):
         return self.peer_db.getLocalPeerList(max_peers,minoversion=minoversion)
-        
-    def updatePort(self, port):
-        self.my_db.put('port', port)
   
     def postInit(self, delay=4, batch=50, update_interval=10, npeers=None, updatesim=True):
         # build up a cache layer between app and db

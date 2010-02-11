@@ -4,6 +4,7 @@
 import os
 import sys
 
+from Tribler.Core.Utilities.unicode import unicode2str
 if (sys.platform == 'win32'):
     from Tribler.Core.Utilities.win32regchecker import Win32RegChecker,HKLM
 

@@ -799,7 +799,11 @@ class RePEXScheduler(RePEXerStatusCallback):
                 exception = e
         finally:
             self.lock.release()
-        if exception is not None: raise exception
+        if exception is not None:
+            # [E0702, RePEXScheduler.network_scan] Raising NoneType
+            # while only classes, instances or string are allowed
+            # pylint: disable-msg=E0702
+            raise exception
     
     def network_stop_repex(self, dslist):
         """Called by network thread.

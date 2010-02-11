@@ -434,7 +434,7 @@ class Multicast:
         try:
             self._sendMulticast(msg)
         except:
-            self.log.error("Could not send announce message to %s"%str(addr))
+            self.log.error("Could not send announce message")
 
 
     def setNodeAnnounceHandler(self, handler):

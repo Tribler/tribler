@@ -4,12 +4,10 @@ set PYTHONPATH=..\..
 REM python test_bsddb2sqlite.py # Arno, 2008-11-26: Alea jacta est.
 REM python test_buddycast.py # currently not working due to missing DataHandler functions, 2008-10-17
 REM python test_friend.py # Arno, 2008-10-17: need to convert to new DB structure
-REM python test_sim.py # currently not working due to unfinished test functions, 2008-10-17
 REM python test_torrentcollecting.py # currently not working due to missing functions, 2009-12-04
 python test_TimedTaskQueue.py
 python test_bartercast.py
 python test_cachingstream.py
-python test_channelcast.py
 python test_closedswarm.py
 python test_connect_overlay.py singtest_connect_overlay
 python test_crawler.py
@@ -71,14 +69,6 @@ REM # 2010-02-03 Boudewijn: Doesn't look like this was ever a unittest
 REM # python test_tracker_checking.py
 
 REM ########### Obsolete
-REM #
-REM # 2010-02-03 Boudewijn: Obsolete. test_cachedb.py tests the old
-REM # bsdcachedb interface, no longer compatible with current code.
-REM # python test_cachedb.py 
-REM #
-REM # 2010-02-03 Boudewijn: Obsolete. test_cachedbhandler.py tests the old
-REM # bsdcachedb interface, no longer compatible with current code.
-REM # python test_cachedbhandler.py
 REM #
 REM # 2010-02-03 Boudewijn: OLD, not using anymore
 REM # python test_buddycast4.py 
