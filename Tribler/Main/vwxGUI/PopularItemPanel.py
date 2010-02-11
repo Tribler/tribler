@@ -241,9 +241,9 @@ class PopularItemPanel(wx.Panel):
 
 
         # add download states
-        torrentList = self.torrentList
-        torrentList = self.addDownloadStates(torrentList)
-        self.torrentList = torrentList
+        torrentList = self.torrentList[:]
+        torrentList = self.addDownloadStates(torrentList[:])
+        self.torrentList = torrentList[:]
 
 
         # convert torrentList to proper format (dictionnary)

@@ -73,7 +73,7 @@ class GridManager(object):
 
         self.blockedRefresh=False
 
-
+        self.torrentIndex = None
         self.old_data = None
         
     def set_state(self, state, reset_page = False):
@@ -83,7 +83,7 @@ class GridManager(object):
         self.refresh(update_observer = True)
         
     def channelrefresh(self):
-        if self.grid.name=='popularGrid':
+        if self.grid.name=='popularGrid' and self.grid.guiUtility.guiPage == 'channels':
             if DEBUG:
                 print >> sys.stderr , "POPULAR GRID REFRESH"
             wx.CallAfter(self.refresh)
@@ -288,7 +288,6 @@ class GridManager(object):
 
 
                 if self.grid.name == 'popularGrid':
-
 
                     [stotal_items,sdata] = self.channelsearch_manager.getSubscriptions(state.db)
                     [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db, maximum=18-stotal_items)
@@ -751,6 +750,8 @@ class standardGrid(wx.Panel):
             else:
                 for i in xrange(0, self.items):
                     if i < len(self.data):
+                        if i == self.gridManager.torrentIndex:
+                            pass
                         self.setDataOfPanel(i, self.data[i])
                     else:
                         self.setDataOfPanel(i, None)
@@ -796,6 +797,11 @@ class standardGrid(wx.Panel):
 
         #if DEBUG:
         #    print >> sys.stderr, 'Set data of panel %d with data: %s' % (panelNumber, data)
+
+#        if panelNumber == self.gridManager.torrentIndex:
+#            print >> sys.stderr , "PASS -----------------------------", panelNumber
+#            pass
+
         try:
             if self.orientation == 'vertical':
                 hSizer = self.vSizer.GetItem(panelNumber%self.currentRows+1).GetSizer()

@@ -507,6 +507,7 @@ class ChannelsItemPanel(wx.Panel):
         self.channelsDetails.reinitialize(force=True)
         self.parent.deselectAllChannels()
         self.guiUtility.standardOverview.data['channelsMode']['grid2'].selectedPublisherId = None
+        self.guiUtility.standardOverview.data['channelsMode']['grid'].selectedPublisherId = self.data[0]
         self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
         self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
         self.select()

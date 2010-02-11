@@ -64,6 +64,8 @@ class TopSearchPanel(bgPanel):
 #        self.indexMyChannel = -1       
         self.indexSubscribedChannels = -1       
         self.needs_refresh = False
+     
+        self.lastChannelPage = None
 
         if sys.platform == 'darwin':
             self.utf8=""
@@ -318,7 +320,9 @@ class TopSearchPanel(bgPanel):
             else:
                 self.guiUtility.channelsOverview()
                 grid = self.guiUtility.standardOverview.getGrid()
+                grid.selectedPublisherId = None
                 grid.clearAllData()
+                self.lastChannelPage = 'search_results'
 
             if sys.platform == 'win32':
                 self.Refresh()
@@ -388,13 +392,16 @@ class TopSearchPanel(bgPanel):
         dlg.Destroy()
 
     def clearChannelView(self):
-#        self.indexMyChannel = -1
-        grid = self.guiUtility.standardOverview.data['channelsMode']['grid2']
+        grid = self.guiUtility.standardOverview.data['channelsMode']['grid']
+        grid2 = self.guiUtility.standardOverview.data['channelsMode']['grid2']
         grid.selectedPublisherId = None
+        grid2.selectedPublisherId = None
+        grid.clearAllData()
+        grid2.clearAllData()
         grid.deselectAllChannels()
+        grid2.deselectAllChannels()
+        grid2.Hide()
         self.guiUtility.frame.channelsDetails.reinitialize()
-        
-
 
 
     def OnResults(self,event):
@@ -412,24 +419,26 @@ class TopSearchPanel(bgPanel):
                 else:
                     erase=False
 
-                oldpage=self.guiUtility.guiPage
                 self.guiUtility.guiPage = 'search_results'
                 self.guiUtility.channelsOverview(erase)
 
-                if oldpage == 'channels':
+                if self.lastChannelPage == 'channels':
                     grid = self.guiUtility.standardOverview.getGrid()
                     grid.gridManager.blockedRefresh=True
                     grid2 = self.guiUtility.standardOverview.getGrid(2)
-                    grid.clearAllData()
-                    grid2.clearAllData()
+#                    grid.clearAllData()
                     grid2.Hide()
+#                    grid2.clearAllData()
                     grid.gridManager.resizeGrid(grid)
                     grid.gridManager.blockedRefresh=False
-                    wx.GetApp().Yield(True)
+                    #wx.GetApp().Yield(True)
  
 
                     self.guiUtility.frame.channelsDetails.mychannel = False
                     wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase)
+
+
+                self.lastChannelPage = 'search_results'
 
 
         colour = wx.Colour(0,105,156)
@@ -457,7 +466,10 @@ class TopSearchPanel(bgPanel):
             except:
                 erase=False
 
-            oldpage=self.guiUtility.guiPage
+            if self.lastChannelPage == 'search_results':
+                self.clearChannelView()
+                
+            self.lastChannelPage = 'channels'
             self.guiUtility.guiPage = 'channels'
 
             if self.needs_refresh:
@@ -466,7 +478,7 @@ class TopSearchPanel(bgPanel):
                 self.needs_refresh = False
             self.guiUtility.channelsOverview(erase)
 
-            if oldpage == 'search_results':
+            if self.lastChannelPage == 'search_results':
                 grid = self.guiUtility.standardOverview.getGrid()
                 grid.deselectAllChannels()
             
@@ -499,9 +511,8 @@ class TopSearchPanel(bgPanel):
             if sys.platform=='darwin' and self.agfids is not None:
                 self.agfids.Stop()
                 self.agfids.Hide()
-            if self.needs_refresh:
+            if self.lastChannelPage == 'channels':
                 self.clearChannelView()
-                self.needs_refresh = False
             self.guiUtility.settingsOverview()
         colour = wx.Colour(0,105,156)
         self.settings.SetForegroundColour(colour)
@@ -516,9 +527,9 @@ class TopSearchPanel(bgPanel):
             if sys.platform=='darwin' and self.agfids is not None:
                 self.agfids.Stop()
                 self.agfids.Hide()
-            if self.needs_refresh:
-                self.clearChannelView()
-                self.needs_refresh = False
+#            if self.needs_refresh:
+            self.clearChannelView()
+#                self.needs_refresh = False
             self.guiUtility.standardLibraryOverview()
             self.guiUtility.loadInformation('libraryMode', 'name', erase=False)
         colour = wx.Colour(0,105,156)

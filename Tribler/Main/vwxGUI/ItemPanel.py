@@ -302,6 +302,11 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
             data = {}
 
         #self.thumb.Hide() ## should not be shown
+        try:
+            if self.index == self.parent.gridManager.torrentIndex:
+                return
+        except:
+            pass
 
 
         if self.type == 'torrent':
@@ -542,6 +547,7 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
 
         if self.data and (event.LeftUp() or event.RightDown()):
+            self.guiUtility.standardOverview.getGrid().gridManager.torrentIndex = self.index
             self.guiUtility.selectTorrent(self.data)
 
            

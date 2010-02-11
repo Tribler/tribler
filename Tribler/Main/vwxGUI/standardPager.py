@@ -110,6 +110,7 @@ class standardPager(wx.Panel):
         leftDots = self.beginPage != 0
         self.setPageNumbers(self.beginPage, min(self.numPages,self.totalPages) , self.currentPage, leftDots, rightDots)
         if self.hasGrid():
+            self.grid.gridManager.torrentIndex = None
             self.grid.gridManager.set_page(self.currentPage)
             self.grid.deselectAll()
         

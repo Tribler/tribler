@@ -609,15 +609,21 @@ class fileItem(bgPanel):
         self.Refresh()
 
 
+    def new_video_load(self):
+        videoplayer = self._get_videoplayer(exclude=ds) 
+        videoplayer.stop_playback() # stop current playback
+        videoplayer.show_loading()
+
+
+
+
     def play_clicked(self,event=None):
         
         #print_stack()
         
         ds = self.GetParent().GetParent().torrent.get('ds')
         selectedinfilename = self.storedTitle
-        videoplayer = self._get_videoplayer(exclude=ds) 
-        videoplayer.stop_playback() # stop current playback
-        videoplayer.show_loading()
+#        self.new_video_load()
 
         if ds is not None:
             self._get_videoplayer(exclude=ds).play(ds, selectedinfilename)
@@ -633,13 +639,21 @@ class fileItem(bgPanel):
             # Arno, 2010-01-14: Hack against double call
             if self.tdef is None or self.tdef.get_infohash() != tdef.get_infohash():
                 self.tdef = tdef
+                self.new_video_load()
             else:
                 return
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
 
-            self._get_videoplayer().start_and_play(tdef, dscfg, selectedinfilename)
+            # Richard : try and retrieve download state from list of infohashes in LaunchManyCore to avoid Duplicate Download Exception
+            for download in self.utility.session.lm.get_downloads():
+                if download.get_def().get_infohash() == tdef.get_infohash():
+                    ds = download.network_get_state(None, None, sessioncalling=True)
+            if ds is not None:
+                self._get_videoplayer(exclude=ds).play(ds, selectedinfilename)
+            else:
+                self._get_videoplayer().start_and_play(tdef, dscfg, selectedinfilename)
 
 
         self.guiUtility.standardDetails.setVideodata(self.guiUtility.standardDetails.getData())
