@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
+import time
 from math import ceil
 from sets import Set
 
@@ -131,13 +132,14 @@ class VideoStatus:
         self.playback_pos = pos
         for o in self.playback_pos_observers:
             o( None, pos )
-        
+
         if self.wraparound:
             newrange = self.live_get_valid_range()
             print >>sys.stderr,"vodstatus: set_live_pos: new",newrange
             return self.get_range_diff(oldrange,newrange)
         else:
-            return Set()
+            return (Set(),[])
+
 
     def get_live_startpos(self):
         return self.live_startpos
@@ -222,9 +224,28 @@ class VideoStatus:
     def get_range_diff(self,oldrange,newrange):
         """ Returns the diff between oldrange and newrange as a Set.
         """
+        rlist = []
+        if oldrange[0] == 0 and oldrange[1] == self.movie_numpieces-1:
+            # Optimize for case where there is no playback pos yet, for STB.
+            if newrange[0] < newrange[1]:
+                # 100-500, diff is 0-99 + 501-7200
+                a = (oldrange[0],newrange[0]-1)
+                b = (newrange[1]+1,oldrange[1])
+                #print >>sys.stderr,"get_range_diff: ranges",a,b
+                rlist = [a,b]
+                return (None,rlist)
+                #return Set(range(a[0],a[1]) + range(b[0],b[1]))
+            else:
+                # 500-100, diff is 101-499
+                a = (newrange[1]+1,newrange[0]-1)
+                #print >>sys.stderr,"get_range_diff: range",a
+                rlist = [a]
+                return (None,rlist)
+                #return Set(xrange(a[0],a[1]))
+             
         oldset = range2set(oldrange,self.movie_numpieces)
         newset = range2set(newrange,self.movie_numpieces)
-        return oldset - newset
+        return (oldset - newset,rlist)
     
     def normalize( self, x ):
         """ Caps or wraps a piece number. """
@@ -339,7 +360,7 @@ class VideoStatus:
 
 def range2set(range,maxrange):    
     if range[0] <= range[1]:
-        set = Set(xrange(range[0],range[1]))
+        set = Set(xrange(range[0],range[1]+1))
     else:
-        set = Set(xrange(range[0],maxrange)) | Set(xrange(0,range[1]))
+        set = Set(xrange(range[0],maxrange)) | Set(xrange(0,range[1]+1))
     return set

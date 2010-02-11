@@ -25,9 +25,9 @@ def vod_event_callback(d,event,params):
                 
             grandtotal += total
             et = time.time()
-            diff = et - st
+            diff = max(et - st,0.00001)
             grandrate = float(grandtotal) / diff
-            print >>sys.stderr,"bitbucket: grandrate",grandrate,"~",RATE
+            print >>sys.stderr,"bitbucket: grandrate",grandrate,"~",RATE,"avail",stream.available()
             time.sleep(1.0)
 
 def state_callback(ds):

@@ -92,6 +92,7 @@ class ECDSAAuthenticator(Authenticator):
         else:
             self.pubkey = None
         self.seqnum = 0L
+        self.startts = None
 
     def get_content_blocksize(self):
         return self.contentblocksize
@@ -159,8 +160,14 @@ class ECDSAAuthenticator(Authenticator):
                 elif mod != index:
                     print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"expected",mod
                     return False 
+                elif self.startts is not None and rtstamp < self.startts:
+                    print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"older than oldest known ts",rtstamp,self.startts
+                    return False
                 else:
                     self.seqnum = max(self.seqnum,seqnum)
+                    if self.startts is None:
+                        self.startts = rtstamp-300.0 # minus 5 min in case we read piece N+1 before piece N
+                        print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@: startts",self.startts
             else:
                 print >>sys.stderr,"ECDSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ piece",index,"failed sig"
             
@@ -231,6 +238,7 @@ class RSAAuthenticator(Authenticator):
             self.pubkey = self.keypair
         self.contentblocksize = piecelen-self.our_sigsize()
         self.seqnum = 0L
+        self.startts = None
 
     def get_content_blocksize(self):
         return self.contentblocksize
@@ -278,9 +286,15 @@ class RSAAuthenticator(Authenticator):
                     return False
                 elif mod != index:
                     print >>sys.stderr,"RSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"expected",mod
-                    return False 
+                    return False
+                elif self.startts is not None and rtstamp < self.startts:
+                    print >>sys.stderr,"RSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed piece",index,"older than oldest known ts",rtstamp,self.startts
+                    return False
                 else:
                     self.seqnum = max(self.seqnum,seqnum)
+                    if self.startts is None:
+                        self.startts = rtstamp-300.0 # minus 5 min in case we read piece N+1 before piece N
+                        print >>sys.stderr,"RSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@: startts",self.startts
             else:
                 print >>sys.stderr,"RSAAuth: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ piece",index,"failed sig"
             
@@ -343,6 +357,9 @@ class AuthStreamWrapper:
 
     def read(self,numbytes=None):
         rawdata = self._readn(self.piecelen)
+        if len(rawdata) == 0:
+            # EOF
+            return rawdata
         content = self.authenticator.get_content(rawdata)
         self.last_rtstamp = self.authenticator.get_rtstamp(rawdata)
         if numbytes is None or numbytes < 0:
@@ -365,6 +382,10 @@ class AuthStreamWrapper:
 
     def close(self):
         self.inputstream.close()
+
+    def available(self):
+        return self.inputstream.available()
+
 
     # Internal method
     def _readn(self,n):
@@ -410,6 +431,9 @@ class VariableReadAuthStreamWrapper:
         
     def close(self):
         self.inputstream.close()
+
+    def available(self):
+        return self.inputstream.available()
 
     # Internal method
     def _readn(self,nwant):

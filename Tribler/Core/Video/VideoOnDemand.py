@@ -21,7 +21,7 @@ from Tribler.Core.osutils import *
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
-DEBUG = False
+DEBUG = True
 DEBUGPP = False
 
 class PieceStats:
@@ -88,6 +88,11 @@ class MovieOnDemandTransporter(MovieTransport):
     # bitrate (in KByte/s) that the playback birate-estimator must have to make us
     # set the bitrate in movieselector.
     MINPLAYBACKRATE = 32*1024
+    
+    # If not yet playing and if the difference between the peer's first chosen
+    # hookin time and the newly calculated hookin time is larger than 
+    # PREBUF_REHOOKIN_SECS (because his peer environment changed), then rehookin. 
+    PREBUF_REHOOKIN_SECS = 5.0
 
     # maximum delay between pops before we force a restart (seconds)
     MAX_POP_TIME = 60
@@ -197,7 +202,7 @@ class MovieOnDemandTransporter(MovieTransport):
             self.max_prebuf_packets = min(vs.wraparound_delta, piecesneeded)
         else:
             self.max_prebuf_packets = min(vs.movie_numpieces, piecesneeded)
-
+            
         if DEBUG:
             if self.doing_ffmpeg_analysis:
                 print >>sys.stderr,"vod: trans: Want",self.max_prebuf_packets,"pieces for FFMPEG analysis, piecesize",vs.piecelen
@@ -223,6 +228,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.curpiece = ""
         self.curpiece_pos = 0
         self.outbuf = []
+        self.outbuflen = None
         #self.last_pop = None # time of last pop
         self.reset_bitrate_prediction()
 
@@ -233,7 +239,6 @@ class MovieOnDemandTransporter(MovieTransport):
         self.playable = False
         self.usernotified = False
         
-        self.outbuflen = None
 
         # LIVESOURCEAUTH
         if vs.live_streaming:
@@ -281,26 +286,44 @@ class MovieOnDemandTransporter(MovieTransport):
             self.live_streaming_timer()
 
     def calc_live_startpos(self,prebufsize=2,have=False):
-        """ If watching a live stream, determine where to 'hook in'. Adjusts self.download_range[0]
-            accordingly, never decreasing it. If 'have' is true, we need to have the data
-            ourself. If 'have' is false, we look at availability at our neighbours.
+        """ When watching a live stream, determine where to 'hook in'. Adjusts 
+            self.download_range[0] accordingly, never decreasing it. If 'have' 
+            is true, we need to have the data ourself. If 'have' is false, we 
+            look at availability at our neighbours.
 
-            Return True if succesful, False if more data has to be collected. """
+            Return True if successful, False if more data has to be collected. 
+            
+            This is called periodically until playback has started. After that,
+            the hookin point / playback position is either fixed, or determined 
+            by active pausing and resuming of the playback by this class, see
+            refill_buffer().
+        """
 
         # ----- determine highest known piece number
         if have:
+            # I am already hooked in and downloaded stuff, now do the final
+            # hookin based on what I have.
             numseeds = 0
             numhaves = self.piecepicker.has 
             totalhaves = self.piecepicker.numgot
+            sourcehave = None
 
             threshold = 1
         else:
+            # Check neighbours playback pos to see where I should hookin.
             numseeds = self.piecepicker.seeds_connected
             numhaves = self.piecepicker.numhaves # excludes seeds
             totalhaves = self.piecepicker.totalcount # excludes seeds
+            sourcehave = self.piecepicker.get_live_source_have()
 
             numconns = self.piecepicker.num_nonempty_neighbours()
-            threshold = max( 1, numconns/2 )
+            if sourcehave is None:
+                # We don't have a connection to the source, must get at least 2 votes 
+                threshold = max( 2, numconns/2 )
+            else:
+                if DEBUG:
+                    print >>sys.stderr,"vod: calc_live_offset: Connected to source, hookin on that" 
+                threshold = 1
 
         # FUDGE: number of pieces we subtract from maximum known/have,
         # to start playback with some buffer present. We need enough
@@ -322,27 +345,39 @@ class MovieOnDemandTransporter(MovieTransport):
         bpiece = vs.first_piece
         epiece = vs.last_piece
 
-        if numseeds > 0 or (not vs.wraparound and numhaves[epiece] > 0):
-            # special: if full video is available, do nothing and enter VoD mode
-            if DEBUG:
-                print >>sys.stderr,"vod: calc_live_offset: vod mode"
-            vs.set_live_startpos( 0 )
-            return True
+        if not vs.wraparound:
+            if numseeds > 0 or numhaves[epiece] > 0:
+                # special: if full video is available, do nothing and enter VoD mode
+                if DEBUG:
+                    print >>sys.stderr,"vod: calc_live_offset: vod mode"
+                vs.set_live_startpos( 0 )
+                return True
 
         # maxnum = highest existing piece number owned by more than half of the neighbours
         maxnum = None
+        if sourcehave is None:
+            # Look at peer neighbourhood
+            inspecthave = numhaves
+        else:
+            # Just look at source
+            inspecthave = sourcehave
+        
         for i in xrange(epiece,bpiece-1,-1):
             #if DEBUG:
-            #    if 0 < numhaves[i] < threshold:
-            #        print >>sys.stderr,"vod: calc_live_offset: discarding piece %d as it is owned by only %d<%d neighbours" % (i,numhaves[i],threshold)
+            #    if 0 < inspecthave[i] < threshold:
+            #        print >>sys.stderr,"vod: calc_live_offset: discarding piece %d as it is owned by only %d<%d neighbours" % (i,inspecthave[i],threshold)
 
-            if numhaves[i] >= threshold:
+            if inspecthave[i] >= threshold:
                 maxnum = i
                 if DEBUG:
-                    print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours" % (i,numhaves[i],threshold)
+                    if inspecthave == numhaves:
+                        print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours (prewrap)" % (i,inspecthave[i],threshold)
+                    else:
+                        print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by the source (prewrap)" % (i)
                 break
 
         if maxnum is None:
+            print >>sys.stderr,"vod: calc_live_offset: Failed to find quorum for any piece"
             return False
 
         # if there is wraparound, newest piece may actually have wrapped
@@ -350,12 +385,17 @@ class MovieOnDemandTransporter(MovieTransport):
             delta_left = vs.wraparound_delta - (epiece-maxnum)
 
             for i in xrange( vs.first_piece+delta_left-1, vs.first_piece-1, -1 ):
-                if numhaves[i] >= threshold:
+                if inspecthave[i] >= threshold:
                     maxnum = i
                     if DEBUG:
-                        print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours" % (i,numhaves[i],threshold)
+                        if inspecthave == numhaves:
+                            print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours (wrap)" % (i,inspecthave[i],threshold)
+                        else:
+                            print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by the source (wrap)" % (i)
                     break
 
+        print >>sys.stderr,"vod: calc_live_offset: hookin candidate (unfudged)",maxnum
+        
         # start watching from maximum piece number, adjusted by fudge.
         if vs.wraparound:
             maxnum = vs.normalize( maxnum - FUDGE )
@@ -364,7 +404,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
             # start at a piece known to exist to avoid waiting for something that won't appear
             # for another round. guaranteed to succeed since we would have bailed if noone had anything
-            while not numhaves[maxnum]:
+            while not inspecthave[maxnum]:
                 maxnum = vs.normalize( maxnum + 1 )
         else:
             maxnum = max( bpiece, maxnum - FUDGE )
@@ -374,20 +414,26 @@ class MovieOnDemandTransporter(MovieTransport):
                 return True
 
         # If we're connected to the source, and already hooked in,
-        # don't change the hooking point unless it is really far
+        # don't change the hooking point unless it is really far off
         oldstartpos = vs.get_live_startpos()
         if not have and threshold == 1 and oldstartpos is not None:
             diff = vs.dist_range(oldstartpos,maxnum)
-            print >>sys.stderr,"vod: calc_live_offset: m o",maxnum,oldstartpos,"diff",diff
-            if diff < 8:
-                return True    
+            diffs = float(diff) * float(vs.piecelen) / vs.bitrate
+            print >>sys.stderr,"vod: calc_live_offset: m o",maxnum,oldstartpos,"diff",diff,"diffs",diffs
+            if diffs < self.PREBUF_REHOOKIN_SECS: 
+                return True
             
 
         print >>sys.stderr,"vod: === HOOKING IN AT PIECE %d (based on have: %s) ===" % (maxnum,have)
-        toinvalidateset = vs.set_live_startpos( maxnum )
+
+        (toinvalidateset,toinvalidateranges) = vs.set_live_startpos( maxnum )
         #print >>sys.stderr,"vod: invalidateset is",`toinvalidateset`
-        for piece in toinvalidateset:
-            self.live_invalidate_piece_globally(piece)
+        mevirgin = oldstartpos is None
+        if len(toinvalidateranges) == 0 or (len(toinvalidateranges) == 0 and not mevirgin): # LAST condition is bugcatch
+            for piece in toinvalidateset:
+                self.live_invalidate_piece_globally(piece,mevirgin)
+        else:
+            self.live_invalidate_piece_ranges_globally(toinvalidateranges,toinvalidateset)
 
         try:
             self._event_reporter.add_event(self.b64_infohash, "live-hookin:%d" % maxnum)
@@ -399,10 +445,11 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def live_streaming_timer(self):
         """ Background 'thread' to check where to hook in if live streaming. """
-
         print >>sys.stderr,"vod: live_streaming_timer: Finding hookin"
+        
         if self.videostatus.playing:
-            # Stop adjusting the download range
+            # Stop adjusting the download range via this mechanism, see 
+            # refill_buffer() for the new pause/resume mechanism.
             return
 
         # JD:keep checking correct playback pos since it can change if we switch neighbours
@@ -412,10 +459,13 @@ class MovieOnDemandTransporter(MovieTransport):
         #    # Adjust it only once on what we see around us
         #    return
 
-        if self.calc_live_startpos( self.max_prebuf_packets, False ):
-            # Adjust it only once on what we see around us
-            #return
-            pass
+        try:
+            if self.calc_live_startpos( self.max_prebuf_packets, False ):
+                # Adjust it only once on what we see around us
+                #return
+                pass
+        except:
+            print_exc()
 
         self.rawserver.add_task( self.live_streaming_timer, 1 )
 
@@ -534,6 +584,7 @@ class MovieOnDemandTransporter(MovieTransport):
         f,t = vs.playback_pos, vs.normalize( vs.playback_pos + self.max_prebuf_packets )
         prebufrange = vs.generate_range( (f, t) )
         missing_pieces = filter( lambda i: not self.have_piece( i ), prebufrange)
+
         gotall = not missing_pieces
         self.prebufprogress = float(self.max_prebuf_packets-len(missing_pieces))/float(self.max_prebuf_packets)
         
@@ -851,11 +902,11 @@ class MovieOnDemandTransporter(MovieTransport):
             # for instance, a seek request sets curpiece_pos but does not
             # set curpiece.
 
-            x = self.pop()
-            if x is None:
+            piecetup = self.pop()
+            if piecetup is None:
                 return None
             
-            piecenr,self.curpiece = x
+            piecenr,self.curpiece = piecetup
             if DEBUG:
                 print >>sys.stderr,"vod: trans: %d: popped piece to transport to player" % piecenr
 
@@ -1103,6 +1154,15 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def set_mimetype(self,mimetype):
         self.mimetype = mimetype
+        
+    def available(self):
+        self.data_ready.acquire()
+        try:
+            return self.outbuflen    
+        finally:
+            self.data_ready.release()
+        
+        
     #
     # End of MovieTransport interface
     #
@@ -1159,7 +1219,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         if seqnum < s["absnr"] or source_ts < s["source_ts"]:
             # old packet???
-            print >>sys.stderr,"vod: trans: **** INVALID PIECE #%s **** seqnum=%d but we started at seqnum=%d" % (i,seqnum,s["absnr"])
+            print >>sys.stderr,"vod: trans: **** INVALID PIECE #%s **** seqnum=%d but we started at seqnum=%d, ts=%f but we started at %f" % (i,seqnum,s["absnr"],source_ts,s["source_ts"])
             return False
 
         return True
@@ -1454,7 +1514,7 @@ class MovieOnDemandTransporter(MovieTransport):
                 if not vs.dropping and forcedrop:
                     print >>sys.stderr,"vod: trans: DROPPING INVALID PIECE #%s, even though we shouldn't drop anything." % piece
                 if vs.dropping or forcedrop:
-                    if time.time() >= self.piece_due( piece ) or buffer_underrun() or forcedrop:
+                    if time.time() >= self.piece_due( piece ) or (vs.pausable and buffer_underrun()) or forcedrop:
                         # piece is too late or we have an empty buffer (and future data to play, otherwise we would have paused) -- drop packet
                         drop( piece )
                     else:
@@ -1492,10 +1552,12 @@ class MovieOnDemandTransporter(MovieTransport):
             self.data_ready.wait()
 
         if not self.outbuf:
-            piece = None
+            piecetup = None
         else:
-            piece = self.outbuf.pop( 0 ) # nr,data pair
-            self.playbackrate.update_rate( len(piece[1]) )
+            piecetup = self.outbuf.pop( 0 ) # nr,data pair
+            # Arno, 2010-02-01: Grrrr...
+            self.outbuflen -= len(piecetup[1])
+            self.playbackrate.update_rate( len(piecetup[1]) )
 
         #self.last_pop = time.time()
 
@@ -1503,10 +1565,11 @@ class MovieOnDemandTransporter(MovieTransport):
 
         self.data_ready.release()
 
-        if piece:
-            self.stat_pieces.set( piece[0], "toplayer", time.time() )
-            self.stat_pieces.complete( piece[0] )
+        if piecetup:
+            self.stat_pieces.set( piecetup[0], "toplayer", time.time() )
+            self.stat_pieces.complete( piecetup[0] )
 
+        # Arno, 2010-02-11: STBSPEEDMERGE: Do we want this for STB?
         if True:
             # 23/06/09 Boudewijn: because of vlc buffering the self.outbuf
             # almost always gets emptied. This results in periodic (every
@@ -1518,7 +1581,7 @@ class MovieOnDemandTransporter(MovieTransport):
             #
             # 24/06/09 Boudewijn: smaller is (much) better for live as
             # they never get over a certain amount of outstanding
-            # pieces. So this will need to be made dependeont. VOD can be
+            # pieces. So this will need to be made dependent. VOD can be
             # higher than live.
             if lenoutbuf < 5:
                 if lenoutbuf > 0:
@@ -1528,7 +1591,8 @@ class MovieOnDemandTransporter(MovieTransport):
                 if DEBUG: print >>sys.stderr, "Vod: Delaying pop to VLC by", delay, "seconds"
                 time.sleep(delay)
 
-        return piece
+        return piecetup
+
 
     def notify_playable(self):
         """ Tell user he can play the media, 
@@ -1615,12 +1679,32 @@ class MovieOnDemandTransporter(MovieTransport):
     #
     # Live streaming
     #
-    def live_invalidate_piece_globally(self, piece):
-        """ Make piece disappear from this peer's view of BT world """
+    def live_invalidate_piece_globally(self, piece, mevirgin=False):
+        """ Make piece disappear from this peer's view of BT world.
+        mevirgen indicates whether we already downloaded stuff,
+        skipping some cleanup if not.
+        """
         #print >>sys.stderr,"vod: trans: live_invalidate",piece
                  
         self.piecepicker.invalidate_piece(piece)
-        self.piecepicker.downloader.live_invalidate(piece)
+        self.piecepicker.downloader.live_invalidate(piece, mevirgin)
+
+    def live_invalidate_piece_ranges_globally(self,toinvalidateranges,toinvalidateset):
+        # STBSPEED optimization
+        # v = Set()
+        for s,e in toinvalidateranges:
+            for piece in xrange(s,e+1):
+                # v.add(piece)
+                self.piecepicker.invalidate_piece(piece)
+                
+        """
+        diffleft = v.difference(toinvalidateset)
+        diffright = toinvalidateset.difference(v)
+        print >>sys.stderr,"vod: live_invalidate_piece_ranges_globally: diff: in v",diffleft,"in invset",diffright
+        assert v == toinvalidateset
+        """
+        self.piecepicker.downloader.live_invalidate_ranges(toinvalidateranges,toinvalidateset)
+
 
     # LIVESOURCEAUTH
     def piece_from_live_source(self,index,data):

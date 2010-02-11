@@ -429,7 +429,7 @@ class BT1Download:
         self.connecter = Connecter(self._make_upload, self.downloader, self.choker, 
                             self.len_pieces, self.piecesize, self.upmeasure, self.config, 
                             self.ratelimiter, self.info.has_key('root hash'),
-                            self.rawserver.add_task, self.coordinator, self.helper, self.get_extip_func, self.port, self.use_g2g,self.infohash,self.response.get('announce',None))
+                            self.rawserver.add_task, self.coordinator, self.helper, self.get_extip_func, self.port, self.use_g2g,self.infohash,self.response.get('announce',None),self.info.has_key('live'))
 # _2fastbt
         self.encoder = Encoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 

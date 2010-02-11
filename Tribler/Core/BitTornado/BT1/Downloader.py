@@ -582,15 +582,56 @@ class SingleDownload(SingleDownloadHelperInterface):
             # Arno: He is seed
             self.downloader.picker.got_seed()
         else:
-            # Arno: LIVEWRAP: filter out valid pieces
-            # TODO: may be slow with 32K pieces.
+            # Arno: pass on HAVE knowledge to PiecePicker and if LIVEWRAP: 
+            # filter out valid pieces
+            
+            st = time.time()
+            
+            # STBSPEED: if we haven't hooked in yet, don't iterate over whole range
+            # just over the active ranges in the received Bitfield
+            activerangeiterators = []
+            if self.downloader.picker.videostatus and self.downloader.picker.videostatus.live_streaming and self.downloader.picker.videostatus.get_live_startpos() is None:
+                # Not hooked in
+                activeranges = have.get_active_ranges()
+                
+                if len(activeranges) == 0:
+                    # Bug, fallback to whole range
+                    activerangeiterators = [self.downloader.picker.get_valid_range_iterator()]
+                else:
+                    # Create iterators for the active ranges
+                    for (s,e) in activeranges:
+                        activerangeiterators.append(xrange(s,e+1))
+            else:
+                # Hooked in, use own valid range as active range
+                activerangeiterators = [self.downloader.picker.get_valid_range_iterator()]
+                
+            print >>sys.stderr,"Downloader: got_have_field: live: Filtering bitfield",activerangeiterators 
+
+            # Transfer HAVE knowledge to PiecePicker and filter pieces if live
             validhave = Bitfield(self.downloader.numpieces)
+            for iterator in activerangeiterators:
+                for i in iterator:
+                    if have[i]:
+                        validhave[i] = True
+                        self.downloader.picker.got_have(i,self.connection)
+
+            """
+            # SANITY CHECK
+            checkhave = Bitfield(self.downloader.numpieces)
             for i in self.downloader.picker.get_valid_range_iterator():
                 if have[i]:
-                    validhave[i] = True
-                    self.downloader.picker.got_have(i,self.connection)
+                    checkhave[i] = True
+
+            assert validhave.tostring() == checkhave.tostring()
+            """
+                    
+            # Store filtered bitfield instead of received one
             have = validhave
-        # Store filtered bitfield
+                
+            et = time.time()
+            diff = et - st
+            print >>sys.stderr,"Downloader: got_have_field: took",diff
+
         self.have = have
         
         #print >>sys.stderr,"Downloader: got_have_bitfield: valid",`have.toboollist()`
@@ -993,9 +1034,64 @@ class Downloader:
                 if d.interested and not d.choked:
                     d._request_more()
 
-    def live_invalidate(self,piece): # Arno: LIVEWRAP
+    def live_invalidate(self,piece,mevirgin=False): # Arno: LIVEWRAP
         #print >>sys.stderr,"Downloader: live_invalidate",piece
         for d in self.downloads:
             d.have[piece] = False
-        self.storage.live_invalidate(piece)
+        # STBSPEED: If I have no pieces yet, no need to loop to invalidate them.
+        if not mevirgin:
+            self.storage.live_invalidate(piece)
         
+    def live_invalidate_ranges(self,toinvalidateranges,toinvalidateset):
+        """ STBPEED: Faster version of live_invalidate that copies have arrays
+        rather than iterate over them for clearing
+        """
+        if len(toinvalidateranges) == 1:
+            (s,e) = toinvalidateranges[0]
+            emptyrange = [False for piece in xrange(s,e+1)]
+            assert len(emptyrange) == e+1-s
+            
+            for d in self.downloads:
+                newhave = d.have[0:s] + emptyrange + d.have[e+1:]
+
+                #oldhave = d.have
+                d.have = Bitfield(length=len(newhave),fromarray=newhave)
+                #assert oldhave.tostring() == d.have.tostring()
+                """
+                for piece in toinvalidateset:
+                    d.have[piece] = False
+                print >>sys.stderr,"d len",len(d.have)
+                print >>sys.stderr,"new len",len(newhave)
+                    
+                for i in xrange(0,len(newhave)):
+                    if d.have[i] != newhave[i]:
+                        print >>sys.stderr,"newhave diff",i
+                        assert False
+                """
+                
+        else:
+            (s1,e1) = toinvalidateranges[0]
+            (s2,e2) = toinvalidateranges[1]
+            emptyrange1 = [False for piece in xrange(s1,e1+1)]
+            emptyrange2 = [False for piece in xrange(s2,e2+1)]
+            
+            assert len(emptyrange1) == e1+1-s1
+            assert len(emptyrange2) == e2+1-s2
+            
+            for d in self.downloads:
+                newhave = emptyrange1 + d.have[e1+1:s2] + emptyrange2
+                
+                #oldhave = d.have
+                d.have = Bitfield(length=len(newhave),fromarray=newhave)
+                #assert oldhave.tostring() == d.have.tostring()
+                """
+                for piece in toinvalidateset:
+                    d.have[piece] = False
+                print >>sys.stderr,"d len",len(d.have)
+                print >>sys.stderr,"new len",len(newhave)
+                for i in xrange(0,len(newhave)):
+                    if d.have[i] != newhave[i]:
+                        print >>sys.stderr,"newhave diff",i
+                        assert False
+                """
+                

@@ -13,10 +13,10 @@ if __debug__:
 
 # percent piece loss to emulate -- we just don't request this percentage of the pieces
 # only implemented for live streaming
-PIECELOSS = 0
+#PIECELOSS = 0
 TEST_VOD_OVERRIDE = False
 
-DEBUG = False
+DEBUG = True
 DEBUG_CHUNKS = False # set DEBUG_CHUNKS in BT1.Downloader to True
 DEBUGPP = False
 
@@ -111,9 +111,9 @@ class PiecePickerStreaming(PiecePicker):
         #
         # The offset gives a grace period that is taken into account
         # when choosing to cancel a request. For instance, when the
-        # peer download speed is to low to receive the chunk within 10
+        # peer download speed is too low to receive the chunk within 10
         # seconds, a grace offset of 15 would ensure that the chunk is
-        # NOT canceled (usefull while buffering)
+        # NOT canceled (useful while buffering)
         self.playing_delay = (5, 20, -0.5)
         self.buffering_delay = (7.5, 30, 10)
         
@@ -134,8 +134,8 @@ class PiecePickerStreaming(PiecePicker):
         videostatus.add_playback_pos_observer( self.change_playback_pos )
 
     def is_interesting(self,piece):
-        if PIECELOSS and piece % 100 < PIECELOSS:
-            return False
+        #if PIECELOSS and piece % 100 < PIECELOSS:
+        #    return False
 
         if self.has[piece]:
             return False
@@ -153,7 +153,11 @@ class PiecePickerStreaming(PiecePicker):
             for d in self.peer_connections.values():
                 interesting = {}
                 has = d["connection"].download.have
-                for i in xrange(self.videostatus.first_piece,self.videostatus.last_piece+1):
+                
+                # Arno, 2009-11-07: STBSPEED: iterator over just valid range, that's
+                # what we'll be interested in.
+                #for i in xrange(self.videostatus.first_piece,self.videostatus.last_piece+1):
+                for i in self.get_valid_range_iterator():
                     if has[i] and valid(i):
                         interesting[i] = 1
 
@@ -644,6 +648,13 @@ class PiecePickerStreaming(PiecePicker):
         #print >>sys.stderr,"PiecePickerStreaming: Live hooked in, or VOD, valid range set to subset"
         first,last = self.videostatus.download_range()
         return self.videostatus.generate_range((first,last))
+
+    def get_live_source_have(self):
+        for d in self.peer_connections.values():
+            if d["connection"].is_live_source():
+                return d["connection"].download.have
+        return None
+    
             
             
     def am_I_complete(self):

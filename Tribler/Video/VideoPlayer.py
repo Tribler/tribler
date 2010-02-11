@@ -236,7 +236,7 @@ class VideoPlayer:
             self.videoframe.hide_videoframe()
         self.set_vod_download(None)
 
-    def play(self,ds, selectedinfilename=None, index=None):
+    def play(self,ds, selectedinfilename=None):
         """ Used by Tribler Main """
         self.determine_playbackmode()
         
@@ -251,7 +251,8 @@ class VideoPlayer:
             
             
         selectedoutfilename= None
-        if selectedinfilename == None:
+        if selectedinfilename is None:
+            # User didn't select file to play, select if there is a single, or ask
             if len(videofiles) > 1:
                 infilenames = []
                 for infilename,diskfilename in videofiles:
@@ -268,9 +269,7 @@ class VideoPlayer:
                 selectedinfilename = videofiles[0][0]
                 selectedoutfilename = videofiles[0][1]
         else:
-            print >> sys.stderr , "videoplay: play: selectedinfilename not None" , selectedinfilename , len(selectedinfilename)
-            if index is not None:
-                selectedinfilename = videofiles[index][0]
+            #print >> sys.stderr , "videoplay: play: selectedinfilename not None" , selectedinfilename , len(selectedinfilename)
             for infilename,diskfilename in videofiles:
                 if infilename == selectedinfilename:
                     selectedoutfilename = diskfilename

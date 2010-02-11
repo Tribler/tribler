@@ -1,6 +1,8 @@
 # Written by Bram Cohen, Uoti Urpala, and John Hoffman
 # see LICENSE.txt for license information
 
+import sys
+
 try:
     True
 except:
@@ -30,7 +32,16 @@ for i in xrange(256):
 
 
 class Bitfield:
-    def __init__(self, length = None, bitstring = None, copyfrom = None):
+    def __init__(self, length = None, bitstring = None, copyfrom = None, fromarray = None, calcactiveranges=False):
+        """
+        STBSPEED 
+        @param calcactivetanges   Calculate which parts of the piece-space 
+        are non-zero, used an optimization for hooking in whilst live streaming.
+        Only works in combination with bitstring parameter.
+        """
+        
+        self.activeranges = []
+        
         if copyfrom is not None:
             self.length = copyfrom.length
             self.array = copyfrom.array[:]
@@ -45,14 +56,51 @@ class Bitfield:
                 raise ValueError
             t = lookup_table
             r = []
+            
+            chr0 = chr(0)
+            inrange = False
+            startpiece = 0
+            countpiece = 0
             for c in bitstring:
                 r.extend(t[ord(c)])
+        
+                # STBSPEED        
+                if calcactiveranges:
+                    if c != chr0:
+                        # Non-zero value, either start or continuation of range
+                        if inrange:
+                            # Stay in activerange
+                            pass
+                        else:
+                            # Start activerange
+                            startpiece = countpiece
+                            inrange = True
+                    else:
+                        # Zero, either end or continuation of zeroness
+                        if inrange:
+                            # End of activerange
+                            self.activeranges.append((startpiece,countpiece))
+                            inrange = False
+                        else:
+                            # Stay in zero
+                            pass
+                    countpiece += 8
+
+            if calcactiveranges:
+                if inrange:
+                    # activerange ended at end of piece space 
+                    self.activeranges.append((startpiece,min(countpiece,self.length-1)))
+                       
             if extra > 0:
                 if r[-extra:] != [0] * extra:
                     raise ValueError
                 del r[-extra:]
             self.array = r
             self.numfalse = negsum(r)
+            
+        elif fromarray is not None:
+            self.array = fromarray
+            self.numfalse = negsum(self.array)
         else:
             self.array = [False] * length
             self.numfalse = length
@@ -88,6 +136,10 @@ class Bitfield:
         for piece in range(0,self.length):
             bools[piece] = self.array[piece]
         return bools
+
+    def get_active_ranges(self):
+        # STBSPEED
+        return self.activeranges
 
 
 def test_bitfield():

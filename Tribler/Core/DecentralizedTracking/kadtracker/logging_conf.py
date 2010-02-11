@@ -2,17 +2,20 @@
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
-import logging
+import sys
 import os
+import logging
 
 FORMAT = '%(asctime)s %(levelname)s %(filename)s:%(lineno)s - %(funcName)s()\n\
 %(message)s\n'
 
+devnullstream = open(os.devnull,"w")
+devnullstreamhandler = logging.StreamHandler(devnullstream)
+
 logging.basicConfig(level=logging.CRITICAL,
                     format='%(asctime)s %(levelname)-8s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
-                    filename=os.devnull,
-                    filemode='w')
+                    stream=devnullstreamhandler)
 
 def testing_setup(module_name):
     logger = logging.getLogger('dht')

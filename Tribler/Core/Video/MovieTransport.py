@@ -34,6 +34,9 @@ class MovieTransport:
     def set_mimetype(self,mimetype):
         pass
 
+    def available(self):
+        pass
+    
  
 class MovieTransportStreamWrapper:
     """ Provide a file-like interface """
@@ -68,4 +71,11 @@ class MovieTransportStreamWrapper:
         if DEBUG:
             print >>sys.stderr,"MovieTransportStreamWrapper: close"
         self.mt.stop()
-        
+
+    def available(self):
+        return self.mt.available()
+    
+    def get_generation_time(self):
+        # Overrriden by AuthStreamWrapper normally. Added to give sane warning
+        # when playing unauthenticated stream as if it had auth.
+        raise ValueError("This is an unauthenticated stream that provides no timestamp")

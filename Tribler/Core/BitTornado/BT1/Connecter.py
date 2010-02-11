@@ -902,13 +902,19 @@ class Connection:
 
     def na_get_address_distance(self):
         return self.connection.na_get_address_distance()
+
+    def is_live_source(self):
+        if self.connecter.live_streaming:
+            if self.get_ip() == self.connecter.tracker_ip:
+                return True
+        return False
             
 
 class Connecter:
 # 2fastbt_
     def __init__(self, make_upload, downloader, choker, numpieces, piece_size,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
-            coordinator = None, helper = None, get_extip_func = lambda: None, mylistenport = None, use_g2g = False, infohash=None, tracker=None):
+            coordinator = None, helper = None, get_extip_func = lambda: None, mylistenport = None, use_g2g = False, infohash=None, tracker=None, live_streaming = False):
 
         self.downloader = downloader
         self.make_upload = make_upload
@@ -932,8 +938,8 @@ class Connecter:
         self.get_extip_func = get_extip_func
         self.mylistenport = mylistenport
         self.infohash = infohash
+        self.live_streaming = live_streaming
         self.tracker = tracker
-
         try:
             (scheme, netloc, path, pars, query, _fragment) = urlparse.urlparse(self.tracker)
             host = netloc.split(':')[0] 
@@ -941,7 +947,6 @@ class Connecter:
         except:
             print_exc()
             self.tracker_ip = None
-            
         #print >>sys.stderr,"Connecter: live: source/tracker is",self.tracker_ip
         
         self.overlay_enabled = 0
@@ -1333,7 +1338,7 @@ class Connecter:
             if DEBUG_NORMAL_MSGS:
                 print >>sys.stderr,"connecter: Got BITFIELD from",connection.get_ip()
             try:
-                b = Bitfield(self.numpieces, message[1:])
+                b = Bitfield(self.numpieces, message[1:],calcactiveranges=self.live_streaming)
             except ValueError:
                 if DEBUG:
                     print >>sys.stderr,"Close on bad BITFIELD"

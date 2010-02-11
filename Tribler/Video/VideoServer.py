@@ -15,7 +15,7 @@ from cStringIO import StringIO
 import os
 import Tribler.Core.osutils
 
-DEBUG = True
+DEBUG = False
         
         
 def bytestr2int(b):
@@ -169,6 +169,9 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         BaseHTTPServer.BaseHTTPRequestHandler.__init__(self,request,client_address,server)
     """
 
+    def log_message(self, format, *args):
+        pass
+
     def do_GET(self):
         """ 
         Handle HTTP GET request. See remark about VLC's use of HTTP GET RANGE
@@ -218,7 +221,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         
                 #mimetype = 'application/x-mms-framed'
                 #mimetype = 'video/H264'
-                print >>sys.stderr,"videoserv: do_GET: MIME type is",mimetype,"length",length,"blocksize",blocksize,currentThread().getName()
+                if DEBUG:
+                    print >>sys.stderr,"videoserv: do_GET: MIME type is",mimetype,"length",length,"blocksize",blocksize,currentThread().getName()
     
                 # 3. Support for HTTP range queries: 
                 # http://tools.ietf.org/html/rfc2616#section-14.35
@@ -294,7 +298,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.send_response(200)
             
             
-                print >>sys.stderr,"videoserv: do_GET: final range",firstbyte,lastbyte,nbytes2send,currentThread().getName()
+                if DEBUG:
+                    print >>sys.stderr,"videoserv: do_GET: final range",firstbyte,lastbyte,nbytes2send,currentThread().getName()
             
             
                 # 4. Seek in stream to desired offset

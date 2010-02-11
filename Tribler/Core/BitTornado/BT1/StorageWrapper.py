@@ -6,6 +6,7 @@ from random import randrange
 from copy import deepcopy
 import pickle
 import traceback, sys
+import time
 
 from Tribler.Core.Merkle.merkle import MerkleTree
 from Tribler.Core.Utilities.Crypto import sha
@@ -76,7 +77,9 @@ class StorageWrapper:
             piece_from_live_source_func = lambda i,d: None, 
             backfunc = None, 
             config = {}, unpauseflag = fakeflag(True)):
-        if DEBUG: print >>sys.stderr, "StorageWrapper: __init__: wrapped around", storage.files
+        
+        if DEBUG: 
+            print >>sys.stderr, "StorageWrapper: __init__: wrapped around", storage.files
         self.videoinfo = videoinfo
         self.storage = storage
         self.request_size = long(request_size)
@@ -136,10 +139,16 @@ class StorageWrapper:
         self.write_buf_size = 0L
         self.write_buf = {}   # structure:  piece: [(start, data), ...]
         self.write_buf_list = []
+        
         # Merkle:
         self.merkle_torrent = (root_hash is not None)
         self.root_hash = root_hash
-        self.initial_hashes = deepcopy(self.hashes)
+        # STBSPEED: no hashchecking for live, so no need for this expensive op.
+        if self.live_streaming:
+            self.initial_hashes = None
+        else:
+            self.initial_hashes = deepcopy(self.hashes)
+        
         if self.merkle_torrent:
             self.hashes_unpickled = False
             # Must see if we're initial seeder
@@ -159,6 +168,7 @@ class StorageWrapper:
 
         # Arno: move starting of periodic _bgalloc to init_alloc
         self.backfunc(self._bgsync, max(self.config['auto_flush']*60, 60))
+
 
     def _bgsync(self):
         if self.config['auto_flush']:
@@ -233,6 +243,12 @@ class StorageWrapper:
         take a bit of work to ensure it works correctly, so in the mean
         time we'll use this fix.
         """
+        
+        # Arno, STBSPEED: potentially we can just call 
+        #       self.initialize_done(success=True)
+        # here for live, but we need to check if all variables are set correctly
+        # (also if different disk allocation policies are used, etc.
+        # 
         self.backfunc(self._initialize, id = RARE_RAWSERVER_TASKID)
 
     def _initialize(self):
@@ -267,6 +283,20 @@ class StorageWrapper:
         self.backfunc(self._initialize)
 
     def init_hashcheck(self):
+        
+        if self.live_streaming:
+            # STBSPEED by Milton
+            self.check_targets = {}
+            self.check_list = []
+            self.check_total = len(self.check_list)
+            self.check_numchecked = 0.0
+            self.lastlen = self._piecelen(len(self.hashes) - 1)
+            self.numchecked = 0.0
+            self.check_targets[self.hashes[0]] = [0]
+            self.holes = range(len(self.hashes))
+            return False
+
+        # Non-live streaming
         if self.flag.isSet():
             if DEBUG:
                 print >>sys.stderr,"StorageWrapper: init_hashcheck: FLAG IS SET"
@@ -297,13 +327,13 @@ class StorageWrapper:
                     self.out_of_place += 1
             if got.has_key(i):
                 continue
-            if self._waspre(i) and not self.live_streaming:
+            if self._waspre(i):
                 if self.blocked[i]:
                     self.places[i] = i
                 else:
                     self.check_list.append(i)
                 continue
-            if not self.live_streaming and not self.check_hashes:
+            if not self.check_hashes:
                 self.failed('file supposed to be complete on start-up, but data is missing')
                 return False
             self.holes.append(i)
@@ -335,11 +365,11 @@ class StorageWrapper:
 
     def hashcheckfunc(self):
         try:
+            if self.live_streaming:
+                return None
             if self.flag.isSet():
                 return None
             if not self.check_list:
-                return None
-            if self.live_streaming:
                 return None
 
             i = self.check_list.pop(0)
