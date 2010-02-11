@@ -10,12 +10,11 @@ FORMAT = '%(asctime)s %(levelname)s %(filename)s:%(lineno)s - %(funcName)s()\n\
 %(message)s\n'
 
 devnullstream = open(os.devnull,"w")
-devnullstreamhandler = logging.StreamHandler(devnullstream)
 
 logging.basicConfig(level=logging.CRITICAL,
                     format='%(asctime)s %(levelname)-8s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
-                    stream=devnullstreamhandler)
+                    stream=devnullstream)
 
 def testing_setup(module_name):
     logger = logging.getLogger('dht')
