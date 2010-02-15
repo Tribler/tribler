@@ -383,6 +383,12 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
+    def set_internal_tracker_url(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+
+    #def get_internal_tracker_url(self):
+        """ Implemented in Session.py """
+
     def set_mainline_dht(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
