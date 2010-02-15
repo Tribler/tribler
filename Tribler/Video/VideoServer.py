@@ -129,7 +129,6 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
 
 
     def del_inputstream(self,urlpath):
-        
         streaminfo = self.acquire_inputstream(urlpath)
         
         self.lock.acquire()

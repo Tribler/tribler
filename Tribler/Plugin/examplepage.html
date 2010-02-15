@@ -8,7 +8,7 @@
 
 <object classid="clsid:1800B8AF-4E33-43C0-AFC7-894433C13538"
         width="380" height="320" id="vlc" events="True" target=''>
-<param name="Src" value="http://www.legaltorrents.com/get/140-big-buck-bunny-480p.torrent" />
+<param name="Src" value="http://www.cs.vu.nl/~arno/vod/route2.tstream" />
 <param name="ShowDisplay" value="True" />
 <param name="Loop" value="False" />
 <param name="AutoPlay" value="True" />
@@ -59,6 +59,18 @@ function seek(percentage)
 	document.vlc.input.position = percentage
 }
 
+function switchtorrent(url)
+{
+	document.vlc.playlist.stop();
+	document.vlc.playlist.clear();
+	document.vlc.playlist.items.clear();
+	while (document.vlc.playlist.items.count != 0)
+		;
+	
+	document.vlc.input.set_p2ptarget(url);
+}
+
+
 </script>
 
 
@@ -69,6 +81,10 @@ function seek(percentage)
 <input type=button value="Debug" onclick='debugonclick();'>
 <input type=button value="Seek 25%" onclick='seek(.25);'>
 <input type=button value="Seek 50%" onclick='seek(.5);'>
+
+<input type=button value="Switch 2" onClick='switchtorrent("http://www.cs.vu.nl/~arno/vod/field2.tstream");'>
+<input type=button value="Switch 3" onClick='switchtorrent("http://www.cs.vu.nl/~arno/vod/star2.tstream");'>
+
 <br/>
 
 

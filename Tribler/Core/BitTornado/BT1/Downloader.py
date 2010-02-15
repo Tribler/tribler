@@ -585,8 +585,6 @@ class SingleDownload(SingleDownloadHelperInterface):
             # Arno: pass on HAVE knowledge to PiecePicker and if LIVEWRAP: 
             # filter out valid pieces
             
-            # st = time.time()
-            
             # STBSPEED: if we haven't hooked in yet, don't iterate over whole range
             # just over the active ranges in the received Bitfield
             activerangeiterators = []
@@ -604,8 +602,9 @@ class SingleDownload(SingleDownloadHelperInterface):
             else:
                 # Hooked in, use own valid range as active range
                 activerangeiterators = [self.downloader.picker.get_valid_range_iterator()]
-                
-            print >>sys.stderr,"Downloader: got_have_field: live: Filtering bitfield",activerangeiterators 
+
+            if DEBUG:
+                print >>sys.stderr,"Downloader: got_have_field: live: Filtering bitfield",activerangeiterators 
 
             # Transfer HAVE knowledge to PiecePicker and filter pieces if live
             validhave = Bitfield(self.downloader.numpieces)
@@ -628,10 +627,6 @@ class SingleDownload(SingleDownloadHelperInterface):
             # Store filtered bitfield instead of received one
             have = validhave
                 
-            # et = time.time()
-            # diff = et - st
-            # print >>sys.stderr,"Downloader: got_have_field: took",diff
-
         self.have = have
         
         #print >>sys.stderr,"Downloader: got_have_bitfield: valid",`have.toboollist()`

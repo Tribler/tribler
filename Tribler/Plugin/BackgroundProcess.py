@@ -168,50 +168,57 @@ class BackgroundApp(BaseApp):
         InstanceConnectionHandler.connection_lost(self,s)
         wx.CallAfter(self.gui_connection_lost,ic)
         
-    def gui_connection_lost(self,ic):
+    def gui_connection_lost(self,ic,switchp2ptarget=False):
+        # Find which download ic was interested in
+        d2remove = None
+        for d,duser in self.dusers.iteritems():
+            if duser['uic'] == ic:
+                duser['uic'] = None
+                d2remove = d
+                break
+        
         # IC may or may not have been shutdown:
         # Not: sudden browser crashes
         # Yes: controlled stop via ic.shutdown()
-        ic.shutdown() # idempotent
+        ic.shutdown(switchp2ptarget) # idempotent
         
-        # Now apply cleanup policy to the Download, but only after X seconds
-        # so if the plugin comes back with a new request for the same stuff
-        # we can give it to him pronto. This is expected to happen a lot due
-        # to page reloads / history navigation.
-        #
-        ic_delayed_remove_if_lambda = lambda:self.i2ithread_delayed_remove_if_not_complete(ic)
-        # h4x0r, abuse Istance2Instance server task queue for the delay
-        self.i2is.add_task(ic_delayed_remove_if_lambda,20.0)
+        if d2remove is not None:
+            # Now apply cleanup policy to the Download, but only after X seconds
+            # so if the plugin comes back with a new request for the same stuff
+            # we can give it to him pronto. This is expected to happen a lot due
+            # to page reloads / history navigation.
+            #
+            d_delayed_remove_if_lambda = lambda:self.i2ithread_delayed_remove_if_not_complete(d2remove)
+            # h4x0r, abuse Istance2Instance server task queue for the delay
+            self.i2is.add_task(d_delayed_remove_if_lambda,10.0)
         
-    def i2ithread_delayed_remove_if_not_complete(self,ic):
+    def i2ithread_delayed_remove_if_not_complete(self,d2remove):
         if DEBUG:
             print >>sys.stderr,"bg: i2ithread_delayed_remove_if_not_complete"
-        wx.CallAfter(self.gui_delayed_remove_if_not_complete,ic)
+        d2remove.set_state_callback(self.sesscb_remove_playing_callback)
         
-    def gui_delayed_remove_if_not_complete(self,ic):
-        for d,duser in self.dusers.iteritems():
-            if duser['uic'] == ic:
-                # should not remove download if in the meantime a
-                # new request for this content has been made.
-                # In this case the Download is still used by the old IC.
-                d.set_state_callback(self.sesscb_remove_playing_callback)
-                break
-            
     def remove_playing_download(self,d2remove):
         """ Called when sesscb_remove_playing_callback has determined that
         we should remove this Download, because it would take too much
-        bandwidth to download it and the user is apparently no longer
-        interested. 
+        bandwidth to download it. However, we must check in another user has not
+        become interested. 
         """
-        BaseApp.remove_playing_download(self,d2remove)
+        if DEBUG:
+            print >>sys.stderr,"bg: remove_playing_download @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
         if d2remove in self.dusers:
-            if DEBUG:
-                print >>sys.stderr,"bg: remove_playing_download"
-            if 'streaminfo' in self.dusers[d2remove]:
-                stream = self.dusers[d2remove]['streaminfo']['stream']
-                stream.close() # Close original stream. 
-            del self.dusers[d2remove]
-        
+            duser = self.dusers[d2remove]
+            if duser['uic'] is None:
+                # No interest
+                if DEBUG:
+                    print >>sys.stderr,"bg: remove_playing_download: Yes, no interest"
+                BaseApp.remove_playing_download(self,d2remove)
+                if 'streaminfo' in duser:
+                    stream = duser['streaminfo']['stream']
+                    stream.close() # Close original stream. 
+                del self.dusers[d2remove]
+            elif DEBUG:
+                print >>sys.stderr,"bg: remove_playing_download: No, someone interested",`duser['uic']`
+
         
     def i2ithread_readlinecallback(self,ic,cmd):
         """ Called by Instance2Instance thread """
@@ -229,6 +236,12 @@ class BackgroundApp(BaseApp):
                 if torrenturl is None:
                     raise ValueError('bg: Unformatted START command')
                 else:
+                    # SWITCHP2PTARGET: See if already downloading/playing something
+                    for d,duser in self.dusers.iteritems():
+                        if duser['uic'] == ic:
+                            # Stop current
+                            self.gui_connection_lost(ic,switchp2ptarget=True)
+                    
                     self.get_torrent_start_download(ic,torrenturl)
         
             # SHUTDOWN command
@@ -329,13 +342,13 @@ class BackgroundApp(BaseApp):
             d = ds.get_download()
             duser = self.dusers[d]
             uic = duser['uic']
-            
-            # Generate info string for all
-            [topmsg,msg,duser['said_start_playback'],duser['decodeprogress']] = get_status_msgs(ds,self.approxplayerstate,self.appname,duser['said_start_playback'],duser['decodeprogress'],totalhelping,totalspeed)
-            info = msg
-            #if DEBUG:
-            #    print >>sys.stderr, 'bg: 4INFO: Sending',info
-            uic.info(info)
+            if uic is not None:
+                # Generate info string for all
+                [topmsg,msg,duser['said_start_playback'],duser['decodeprogress']] = get_status_msgs(ds,self.approxplayerstate,self.appname,duser['said_start_playback'],duser['decodeprogress'],totalhelping,totalspeed)
+                info = msg
+                #if DEBUG:
+                #    print >>sys.stderr, 'bg: 4INFO: Sending',info
+                uic.info(info)
             
     def sesscb_vod_event_callback( self, d, event, params ):
         """ Registered by BaseApp. Called by SessionCallbackThread """
@@ -479,22 +492,26 @@ class BGInstanceConnection(InstanceConnection):
         print >>sys.stderr,"SENDING SEARCHURL 2 PLUGIN"
         self.write( 'SEARCHURL '+searchurl+'\r\n' )
 
-    def shutdown(self):
+    def shutdown(self,switchp2ptarget=False):
         # SHUTDOWN Service
         if DEBUG:
             print >>sys.stderr,'bg: Shutting down connection to Plugin'
         if not self.shutteddown:
-            self.shutteddown = True
+            if not switchp2ptarget:
+                self.shutteddown = True
+            
             # Cause HTTP server thread to receive EOF on inputstream
             if len(self.cstreaminfo) != 0:
                 self.cstreaminfo['stream'].close()
                 self.videoHTTPServer.del_inputstream(self.urlpath)
             
-            self.write( 'SHUTDOWN\r\n' )
-            # Will cause BaseApp.connection_lost() to be called, where we'll
-            # handle what to do about the Download that was started for this
-            # IC.
-            self.close() 
+            if not switchp2ptarget:
+                self.write( 'SHUTDOWN\r\n' )
+                # Will cause BaseApp.connection_lost() to be called, where we'll
+                # handle what to do about the Download that was started for this
+                # IC.
+            
+                self.close()
 
 
 class ControlledStream:

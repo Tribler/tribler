@@ -488,9 +488,9 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         name = d.get_def().get_name()
         if (ds.get_status() == DLSTATUS_DOWNLOADING and ds.get_progress() >= 0.9) or ds.get_status() == DLSTATUS_SEEDING:
             pass
-            print >>sys.stderr,"main: sesscb_remove_playing_callback: KEEPING",`name`            
+            print >>sys.stderr,"main: sesscb_remove_playing_callback: voting for KEEPING",`name`            
         else:
-            print >>sys.stderr,"main: sesscb_remove_playing_callback: REMOVING",`name`
+            print >>sys.stderr,"main: sesscb_remove_playing_callback: voting for REMOVING",`name`
             wx.CallAfter(self.remove_playing_download,d)
         
         return (-1.0,False)

@@ -16,7 +16,7 @@ if __debug__:
 #PIECELOSS = 0
 TEST_VOD_OVERRIDE = False
 
-DEBUG = True
+DEBUG = False
 DEBUG_CHUNKS = False # set DEBUG_CHUNKS in BT1.Downloader to True
 DEBUGPP = False
 
