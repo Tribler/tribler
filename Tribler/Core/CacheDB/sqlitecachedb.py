@@ -1075,7 +1075,7 @@ UPDATE Torrent SET relevance = 0;
                         values = [(keyword, torrent_id) for keyword in keywords]
                         # self._db is set by the subclass
                         # pylint: disable-msg=E1101
-                        self._db.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
+                        self.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
                         if DEBUG:
                             print >> sys.stderr, "DB Upgradation: Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
 
