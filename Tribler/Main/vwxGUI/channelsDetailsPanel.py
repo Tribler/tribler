@@ -609,13 +609,11 @@ class fileItem(bgPanel):
         self.Refresh()
 
 
-    def new_video_load(self):
-        videoplayer = self._get_videoplayer(exclude=ds) 
+    def new_video_load(self, exclude=None):
+        assert isinstance(exclude, DownloadState), "EXCLUDE has invalid type: %s" % type(exclude)
+        videoplayer = self._get_videoplayer(exclude=exclude) 
         videoplayer.stop_playback() # stop current playback
         videoplayer.show_loading()
-
-
-
 
     def play_clicked(self,event=None):
         
@@ -639,7 +637,7 @@ class fileItem(bgPanel):
             # Arno, 2010-01-14: Hack against double call
             if self.tdef is None or self.tdef.get_infohash() != tdef.get_infohash():
                 self.tdef = tdef
-                self.new_video_load()
+                self.new_video_load(exclude=ds)
             else:
                 return
 

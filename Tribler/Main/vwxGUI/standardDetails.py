@@ -1034,8 +1034,8 @@ class standardDetails(wx.Panel):
     def errorLoadData(self, obj_name):
         flist = self.getGuiObj(obj_name)
         flist.DeleteAllItems()
-        if isinstance(flist, DLFilesList):
-            flist.setInfoHashList(None)      
+        # if isinstance(flist, DLFilesList):
+        #     flist.setInfoHashList(None)      
         index = flist.InsertStringItem(sys.maxint, "Error: cannot load the data")
         flist.SetItemTextColour(index, "#222222")
         
