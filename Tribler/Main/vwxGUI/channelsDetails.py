@@ -685,9 +685,12 @@ class channelsDetails(bgPanel):
 
 
     def addTorrent(self, torrent, isMine = False, allowDialog=False):
+        assert isinstance(torrent, dict), "TORRENT has invalid type: %s" % type(torrent)
+        assert "infohash" in torrent, "TORRENT does not contain INFOHASH"
+        assert isinstance(torrent["infohash"], str), "INFOHASH has invalid type: %s" % type(torrent["infohash"])
+        assert len(torrent["infohash"]) == 20, "INFOHASH has invalid length %s" % type(torrent["infohash"])
         if DEBUG:
             print >> sys.stderr , "ADDTORRENT"
-
 
         if not self.haveTorrent(torrent['infohash']):
 
@@ -729,8 +732,8 @@ class channelsDetails(bgPanel):
                 except:
                     pass        
 
-            item.setTitle(self.torrentList[0]['name'])
-            item.setTorrent(self.torrentList[0])
+            item.setTitle(torrent['name'])
+            item.setTorrent(torrent)
             item.setMine(isMine)
             item.deselect()
             item.Hide()
