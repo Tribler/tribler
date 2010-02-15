@@ -585,7 +585,7 @@ class SingleDownload(SingleDownloadHelperInterface):
             # Arno: pass on HAVE knowledge to PiecePicker and if LIVEWRAP: 
             # filter out valid pieces
             
-            st = time.time()
+            # st = time.time()
             
             # STBSPEED: if we haven't hooked in yet, don't iterate over whole range
             # just over the active ranges in the received Bitfield
@@ -628,9 +628,9 @@ class SingleDownload(SingleDownloadHelperInterface):
             # Store filtered bitfield instead of received one
             have = validhave
                 
-            et = time.time()
-            diff = et - st
-            print >>sys.stderr,"Downloader: got_have_field: took",diff
+            # et = time.time()
+            # diff = et - st
+            # print >>sys.stderr,"Downloader: got_have_field: took",diff
 
         self.have = have
         
