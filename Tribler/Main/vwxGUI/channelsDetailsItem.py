@@ -148,6 +148,7 @@ class channelsDetailsItem(wx.Panel):
 
 
     def setTitle(self, title):
+        self.title.SetToolTipString(title) 
         self.title.SetLabel(title)
         self.Refresh()
 

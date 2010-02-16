@@ -413,7 +413,6 @@ class TopSearchPanel(bgPanel):
                 self.guiUtility.standardFilesOverview()
                 self.guiUtility.loadInformation('filesMode', 'rameezmetric', erase=False)
             else:
-                
                 if self.guiUtility.frame.channelsDetails.origin != 'search_results':
                     erase=True 
                 else:
@@ -430,12 +429,12 @@ class TopSearchPanel(bgPanel):
                     grid2.Hide()
 #                    grid2.clearAllData()
                     grid.gridManager.resizeGrid(grid)
+                    wx.GetApp().Yield(True)
                     grid.gridManager.blockedRefresh=False
-                    #wx.GetApp().Yield(True)
  
 
-                    self.guiUtility.frame.channelsDetails.mychannel = False
-                    wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase)
+                self.guiUtility.frame.channelsDetails.mychannel = False
+                wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase)
 
 
                 self.lastChannelPage = 'search_results'

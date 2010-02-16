@@ -25,7 +25,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 DEBUG = False
 
 CHANNEL_REFRESH_RATE = 5
-CHANNEL_REFRESH_ENABLED = True
+CHANNEL_REFRESH_ENABLED = False
 
 class GridManager(object):
     """ Grid manager handles:
@@ -137,9 +137,21 @@ class GridManager(object):
                 if sys.platform == 'darwin':
                     grid.SetMinSize((218,500))
                     grid.SetSize((218,500))
+
                 else:
                     grid.SetMinSize((210,500))
                     grid.SetSize((210,500))
+                panel0 = grid.getPanelFromIndex(0)
+                if sys.platform == 'darwin':
+                    panel0.SetMinSize((218,22))
+                    panel0.SetSize((218,22))
+                else:
+                    panel0.SetMinSize((210,22))
+                    panel0.SetSize((210,22))
+                panel0.Layout()
+                panel0.Refresh()
+                grid.vSizer.Layout()
+                grid.Refresh()
                 if sys.platform != 'darwin':
                     grid.calculateRows()
             if grid.name == 'popularGrid':
@@ -147,7 +159,6 @@ class GridManager(object):
                     wx.CallAfter(grid.Hide)
                 else:
                     grid.Hide()
-                    
         else:
             if grid.name == 'channelsGrid':
                 if sys.platform == 'darwin':
@@ -276,7 +287,6 @@ class GridManager(object):
 
             if self.grid.guiUtility.guiPage == 'search_results':
                 if self.grid.name == 'channelsGrid':
-
                     [total_items,res] = self.channelsearch_manager.getChannelHits(state.db)
                     data = []
                     channels = []

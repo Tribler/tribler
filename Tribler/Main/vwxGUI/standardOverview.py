@@ -156,7 +156,7 @@ class standardOverview(wx.Panel):
 
         assert self.currentPanel, "standardOverview: Panel could not be loaded"
         self.currentPanel.Show(True)
-        if self.data[self.mode].get('grid') and refreshGrid:
+        if self.data[self.mode].get('grid') and refreshGrid and self.data[self.mode].get('grid').GetName() != 'channelsGrid':
             self.data[self.mode]['grid'].gridManager.reactivate()
         
         if self.oldpanel and self.oldpanel != self.currentPanel:
