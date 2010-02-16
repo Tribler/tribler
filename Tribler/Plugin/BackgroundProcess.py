@@ -309,7 +309,8 @@ class BackgroundApp(BaseApp):
             #
             duser = self.dusers[d]
             olduic = duser['uic']
-            olduic.shutdown()
+            if olduic is not None:
+                olduic.shutdown()
             duser['uic'] = ic
             if 'streaminfo' not in duser:
                 # Hasn't started playing yet, ignore.
@@ -371,10 +372,14 @@ class BackgroundApp(BaseApp):
 
             duser = self.dusers[d]
             duser['streaminfo'] = streaminfo
-            duser['uic'].set_streaminfo(duser['streaminfo'])
-            duser['uic'].start_playback(d.get_def().get_infohash())
+            if duser['uic'] is not None:
+                # Only if playback wasn't canceled since starting
+                duser['uic'].set_streaminfo(duser['streaminfo'])
+                duser['uic'].start_playback(d.get_def().get_infohash())
             
-            self.approxplayerstate = MEDIASTATE_PLAYING
+                self.approxplayerstate = MEDIASTATE_PLAYING
+            else:
+                self.approxplayerstate = MEDIASTATE_STOPPED
             
         elif event == VODEVENT_PAUSE:
             duser = self.dusers[d]
@@ -503,7 +508,10 @@ class BGInstanceConnection(InstanceConnection):
             # Cause HTTP server thread to receive EOF on inputstream
             if len(self.cstreaminfo) != 0:
                 self.cstreaminfo['stream'].close()
-                self.videoHTTPServer.del_inputstream(self.urlpath)
+                try:
+                    self.videoHTTPServer.del_inputstream(self.urlpath)
+                except:
+                    print_exc()
             
             if not switchp2ptarget:
                 self.write( 'SHUTDOWN\r\n' )
