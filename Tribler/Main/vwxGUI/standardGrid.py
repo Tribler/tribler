@@ -25,6 +25,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 DEBUG = False
 
 CHANNEL_REFRESH_RATE = 5
+CHANNEL_REFRESH_ENABLED = True
 
 class GridManager(object):
     """ Grid manager handles:
@@ -63,7 +64,9 @@ class GridManager(object):
         self.peersearch_manager = utility.guiUtility.peersearch_manager
         self.peersearch_manager.register(self.peer_db,self.friend_db)
         self.guiserver = GUITaskQueue.getInstance()
-        self.guiserver.add_task(lambda:wx.CallAfter(self.channelrefresh), 0.0)      
+
+        if CHANNEL_REFRESH_ENABLED:
+            self.guiserver.add_task(lambda:wx.CallAfter(self.channelrefresh), 0.0)      
         # ARNOCOMMENT
         #self.refresh_rate = 1.5   # how often to refresh the GUI in seconds
         
@@ -288,7 +291,6 @@ class GridManager(object):
 
 
                 if self.grid.name == 'popularGrid':
-
                     [stotal_items,sdata] = self.channelsearch_manager.getSubscriptions(state.db)
                     [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db, maximum=18-stotal_items)
                     channel = self.grid.guiUtility.standardOverview.channel

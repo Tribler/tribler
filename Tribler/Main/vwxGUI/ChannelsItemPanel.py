@@ -286,9 +286,9 @@ class ChannelsItemPanel(wx.Panel):
 
             self.setMyTitle()
 
-            # convert infohashes to binary
-            for i in range(0,len(self.torrentList)):
-                self.torrentList[i]['infohash'] = str2bin(self.torrentList[i]['infohash'])
+            # convert infohashes to binary -> already done in getTorrentsFromPublisherId
+#            for i in range(0,len(self.torrentList)):
+#                self.torrentList[i]['infohash'] = str2bin(self.torrentList[i]['infohash'])
             
 
 

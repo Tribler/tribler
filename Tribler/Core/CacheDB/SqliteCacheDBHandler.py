@@ -1463,7 +1463,7 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['progress'] = stats[tid][1]
                 torrent['destination_path'] = stats[tid][2]
                 
-                
+              
         return torrent
 
     def getNumberTorrents(self, category_name = 'all', library = False):
@@ -3121,16 +3121,20 @@ class ChannelCastDBHandler(BasicDBHandler):
         return records
     
 
-    def getTorrentFromTorrenthash(self,torrenthash): ##
-        sql = "select * from Torrent where infohash==?"
-        torrent = self._db.fetchone(sql,(bin2str(torrenthash),))
-        # Arno, 2010-02-10: TODO: convert infohash to binary
-        return torrent
 
     def getTorrentsFromPublisherId(self, publisher_id): ##
         sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id==? ) and name<>'' "
-        # Arno, 2010-02-10: TODO: convert infohash to binary
-        return self._db.fetchall(sql,(publisher_id,))
+        torrent_results = self._db.fetchall(sql,(publisher_id,))
+        results=[]
+
+        # convert infohashes to binary
+        for torrent in torrent_results: 
+            t_list = list(torrent)
+            infohash = str2bin(t_list[1])
+            t_list[1] = infohash
+            t_tuple = tuple(t_list)
+            results.append(t_tuple)
+        return results
 
     def searchChannels(self,query):
         # query would be of the form: "k barack obama" or "p 4fw342d23re2we2w3e23d2334d" permid

@@ -314,15 +314,16 @@ class PopularItemPanel(wx.Panel):
 
         
     def deselect(self, i=None, j=None):
-        self.selected = False
-        self.SubscriptionButton.setBackground(wx.WHITE)
-        self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        colour = self.backgroundColour
-        channelColour = self.channelTitleUnselectedColour
-        self.title.SetBackgroundColour(colour)
-        self.title.SetForegroundColour(channelColour)
-        self.SetBackgroundColour(colour)
-        self.Refresh()
+        if self.selected:
+            self.selected = False
+            self.SubscriptionButton.setBackground(wx.WHITE)
+            self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            colour = self.backgroundColour
+            channelColour = self.channelTitleUnselectedColour
+            self.title.SetBackgroundColour(colour)
+            self.title.SetForegroundColour(channelColour)
+            self.SetBackgroundColour(colour)
+            self.Refresh()
        
 
     def SubscriptionClicked(self, event):
