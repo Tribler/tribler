@@ -610,7 +610,8 @@ class fileItem(bgPanel):
 
 
     def new_video_load(self, exclude=None):
-        assert isinstance(exclude, DownloadState), "EXCLUDE has invalid type: %s" % type(exclude)
+        if exclude is not None:
+            assert isinstance(exclude, DownloadState), "EXCLUDE has invalid type: %s" % type(exclude)
         videoplayer = self._get_videoplayer(exclude=exclude) 
         videoplayer.stop_playback() # stop current playback
         videoplayer.show_loading()
