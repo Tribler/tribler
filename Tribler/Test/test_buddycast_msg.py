@@ -89,9 +89,12 @@ class TestBuddyCastMsg(TestAsServer):
             print_exc()
 
 
+    """
+    Arno, 2010-02-16: we now kick v2 peers, so can't test anymore.
     def singtest_good_buddycast2(self):
         """ I want a fresh Tribler for this """
         self.subtest_good_buddycast(2)
+    """
         
     def singtest_good_buddycast3(self):
         """ I want a fresh Tribler for this """

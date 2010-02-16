@@ -2078,6 +2078,7 @@ class DataHandler:
         self.simi_db = launchmany.simi_db
         # self.term_db = launchmany.term_db
         self.friend_db = launchmany.friend_db
+        self.pops_db = launchmany.pops_db
         self.myfriends = Set() # FIXME: implement friends
         self.myprefs = []    # torrent ids
         self.peers = {}    # peer_id: [similarity, last_seen, prefs(array('l',[torrent_id])] 
@@ -2445,13 +2446,13 @@ class DataHandler:
             cur_prefs = []
         prefs2add = []
         #Rahim: It is possible that, a peer receive info about same torrent in
-        # different round. New torrents are handled by adding them to prefs2add 
-        # list and adding them. If the peer receive same torrent for more than 
-        # one time, the current version will ignore it. But the swarm size is 
+        # different rounds. New torrents are handled by adding them to prefs2add 
+        # list and adding them. If the peer receive same torrent more than 
+        # once, the current version ignores it. But the swarm size is 
         # dynamic so the next torrents may have different swarm size info. So 
         # we should handle them as well.
         #
-        pops2update = [] # a new list that will contain already available torrents.  
+        pops2update = [] # a new list that contains already available torrents.  
         for pref in prefs:
             infohash = pref['infohash'] # Nicolas: new dictionary format of OL 8 preferences
             torrent_id = self.torrent_db.getTorrentID(infohash)
@@ -2472,8 +2473,39 @@ class DataHandler:
             self.updateSimilarity(peer_id, commit=commit)
             
         if len(pops2update)>0:
-            self.pref_db.addPopularityRecord(peer_permid, pops2update, selversion, recvTime, is_torrent_id=True, commit=commit)
+            self.pops_db.addPopularityRecord(peer_permid, pops2update, selversion, recvTime, is_torrent_id=True, commit=commit)
+    
+    def addCollectedTorrentsPopularity(self, peer_permid, colls, selversion, recvTime, commit=True):
+        """
+        This method adds/updats the popularity of the collected torrents that is received 
+        through BuddyCast message.  
+        @param peer_permid: perm_id of the sender of BC message. 
+        @param param: colls: A dictionary that contains a subset of collected torrents by the sender of BC.
+        @param selversion: The overlay protocol version that both sides agreed on. 
+        @param recvTime: receive time of the message. 
+        @param commit: whether or not to do database commit. 
+        @author: Rahim 11-02-2010
+        """
+        if peer_permid == self.permid:
+            return 0
+    
+        if selversion < OLPROTO_VER_ELEVENTH:
+            return 0 
+        
+        pops2update = []
+        
+        for coll in colls:
+            infohash = coll['infohash']
+            torrent_id = self.torrent_db.getTorrentID(infohash)
+            if not torrent_id:
+                print >> sys.stderr, "buddycast: DB Warning: infohash", bin2str(infohash), "should have been inserted into db, but was not found"
+                continue
+            coll['torrent_id'] = torrent_id
+            pops2update.append(coll) 
             
+        if len(pops2update)>0:
+            self.pops_db.addPopularityRecord(peer_permid, pops2update, selversion, recvTime, is_torrent_id=True, commit=commit)
+    
             
     def updateSimilarity(self, peer_id, update_db=True, commit=True):
         """ update a peer's similarity """
@@ -2650,13 +2682,13 @@ class DataHandler:
                                     commit=True)
             
         # Arno, 2010-02-04: Since when are collected torrents also a peer pref?
-        """
+
         if cache_db_data['coll']:
-            self.addPeerPreferences(sender_permid, 
+            self.addCollectedTorrentsPopularity(sender_permid, 
                                     cache_db_data['coll'], selversion, recvTime, 
                                     commit=True)
-        """
+        
                 
-            #print hash(k), peer_data[k]
+        #print hash(k), peer_data[k]
         #cache_db_data['infohash']
         #cache_db_data['pref']

@@ -758,6 +758,9 @@ class PreferenceDBHandler(BasicDBHandler):
         PreferenceDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self,db, 'Preference') ## self,db,'Preference'
+        
+        self.popularity_db = PopularityDBHandler.getInstance()
+        
             
     def _getTorrentOwnersID(self, torrent_id):
         sql_get_torrent_owners_id = u"SELECT peer_id FROM Preference WHERE torrent_id==?"
@@ -943,68 +946,6 @@ class PreferenceDBHandler(BasicDBHandler):
         if commit:
             searchdb.commit()
     
-    def addPopularityRecord(self, peer_permid, pops, selversion, recvTime, is_torrent_id=False, commit=True):
-        """
-        """       
-       
-        peer_id = self._db.getPeerID(peer_permid)
-        if peer_id is None:
-            print >> sys.stderr, 'PreferenceDBHandler: update preference of a peer which is not existed in Peer table', `peer_permid`
-            return
-
-        pops = [type(pop) is str and {"infohash":pop} or pop
-                 for pop
-                 in pops]
-        
-        if __debug__:
-            for pop in pops:
-                assert isinstance(pop["infohash"], str), "INFOHASH has invalid type: %s" % type(pop["infohash"])
-                assert len(pop["infohash"]) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(pop["infohash"])
-        
-        if is_torrent_id:
-            #Rahim : Since overlay version 11 swarm size information is 
-            # appended and should be added to the database . The codes below 
-            # does this. torrent_id, recv_time, calc_age, num_seeders, 
-            # num_leechers, num_sources
-            #
-            torrent_id_swarm_size =[]
-            for pop in pops:
-                if pop is not None:
-                    tempAge = pop.get('calc_age')
-                    tempSeeders = pop.get('num_seeders')
-                    tempLeechers = pop.get('num_leechers')
-                    if tempAge > 0 and tempSeeders >= 0 and tempLeechers >= 0:
-                        torrent_id_swarm_size.append( [pop['torrent_id'],
-                                     recvTime, 
-                                     tempAge,  
-                                     tempSeeders,
-                                     tempLeechers,
-                                     pop.get('num_sources_seen', -1)]# -1 means invalud value 
-                                     )
-        else:
-            torrent_id_swarm_size = []
-            for pop in pops:
-                if type(pop)==dict:
-                    infohash = pop["infohash"]
-                else:
-                    # Nicolas: from wherever this might come, we even handle 
-                    # old list of infohashes style
-                    infohash = pop 
-                torrent_id = self._db.getTorrentID(infohash)
-                if not torrent_id:
-                    self._db.insertInfohash(infohash)
-                    torrent_id = self._db.getTorrentID(infohash)
-                #Rahim: Amended for handling and adding swarm size info.
-                #torrent_id_swarm_size.append((torrent_id, timeNow,0, -1, -1, -1))
-        
-        if len(torrent_id_swarm_size) > 0:
-            try:
-                popularity_db = PopularityDBHandler.getInstance()
-                popularity_db.storePeerPopularity(peer_id, torrent_id_swarm_size, commit=commit)
-            except Exception, msg:    
-                print_exc()
-                print >> sys.stderr, 'dbhandler: updatePreferences:', Exception, msg 
-            
     def getAllEntries(self):
         """use with caution,- for testing purposes"""
         return self.getAll("rowid, peer_id, torrent_id, click_position,reranking_strategy", order_by="peer_id, torrent_id")
@@ -3753,8 +3694,10 @@ class PopularityDBHandler(BasicDBHandler):
         if validateTorrentId: #checks whether the torrent is valid or not
             if not self.checkTorrentValidity(torrent_id):
                 return None
+               
+        sql_delete_already_existing_record = u"""DELETE FROM Popularity WHERE torrent_id=? AND peer_id=? AND msg_receive_time=?"""
+        self._db.execute_write(sql_delete_already_existing_record, (torrent_id, peer_id, recv_time), commit=commit)
 
-        
         
         sql_insert_new_populairty = u"""INSERT INTO Popularity (torrent_id, peer_id, msg_receive_time, size_calc_age, num_seeders,
                                         num_leechers, num_of_sources) VALUES (?,?,?,?,?,?,?)"""
@@ -3896,6 +3839,70 @@ class PopularityDBHandler(BasicDBHandler):
          popularityList = self._db.fetchall(sql_getPopList)
          
          return popularityList 
+     
+    ###----------------------------------------------------------------------------------------------------------------------
+    
+    def addPopularityRecord(self, peer_permid, pops, selversion, recvTime, is_torrent_id=False, commit=True):
+        """
+        """       
+       
+        peer_id = self._db.getPeerID(peer_permid)
+        if peer_id is None:
+            print >> sys.stderr, 'PopularityDBHandler: update received popularity list from a peer that is not existed in Peer table', `peer_permid`
+            return
+
+        pops = [type(pop) is str and {"infohash":pop} or pop
+                 for pop
+                 in pops]
+        
+        if __debug__:
+            for pop in pops:
+                assert isinstance(pop["infohash"], str), "INFOHASH has invalid type: %s" % type(pop["infohash"])
+                assert len(pop["infohash"]) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(pop["infohash"])
+        
+        if is_torrent_id:
+            #Rahim : Since overlay version 11 swarm size information is 
+            # appended and should be added to the database . The codes below 
+            # does this. torrent_id, recv_time, calc_age, num_seeders, 
+            # num_leechers, num_sources
+            #
+            torrent_id_swarm_size =[]
+            for pop in pops:
+                if pop is not None:
+                    tempAge = pop.get('calc_age')
+                    tempSeeders = pop.get('num_seeders')
+                    tempLeechers = pop.get('num_leechers')
+                    if tempAge > 0 and tempSeeders >= 0 and tempLeechers >= 0:
+                        torrent_id_swarm_size.append( [pop['torrent_id'],
+                                     recvTime, 
+                                     tempAge,  
+                                     tempSeeders,
+                                     tempLeechers,
+                                     pop.get('num_sources_seen', -1)]# -1 means invalud value 
+                                     )
+        else:
+            torrent_id_swarm_size = []
+            for pop in pops:
+                if type(pop)==dict:
+                    infohash = pop["infohash"]
+                else:
+                    # Nicolas: from wherever this might come, we even handle 
+                    # old list of infohashes style
+                    infohash = pop 
+                torrent_id = self._db.getTorrentID(infohash)
+                if not torrent_id:
+                    self._db.insertInfohash(infohash)
+                    torrent_id = self._db.getTorrentID(infohash)
+                #Rahim: Amended for handling and adding swarm size info.
+                #torrent_id_swarm_size.append((torrent_id, timeNow,0, -1, -1, -1))
+        if len(torrent_id_swarm_size) > 0:
+            try:
+                #popularity_db = PopularityDBHandler.getInstance()
+                #popularity_db.storePeerPopularity(peer_id, torrent_id_swarm_size, commit=commit)
+                self.storePeerPopularity(peer_id, torrent_id_swarm_size, commit=commit)
+            except Exception, msg:    
+                print_exc()
+                print >> sys.stderr, 'dbhandler: updatePopularity:', Exception, msg 
 
 class TermDBHandler(BasicDBHandler):
     
