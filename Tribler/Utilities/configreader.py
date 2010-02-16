@@ -357,7 +357,7 @@ class ConfigReader(ConfigParser):
         cursect = None                            # None, or a dictionary
         optname = None
         lineno = 0
-        e = Exception("No error")                 # None, or an exception
+        e = None                                  # None, or an exception
         firstline = True            
         while True:
             line = fp.readline()
