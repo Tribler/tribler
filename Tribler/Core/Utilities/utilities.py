@@ -12,7 +12,7 @@ from types import UnicodeType, StringType, LongType, IntType, ListType, DictType
 import urlparse
 from traceback import print_exc,print_stack
 
-STRICT_CHECK = False
+STRICT_CHECK = True
 DEBUG = False
 
 permid_len = 112

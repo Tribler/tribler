@@ -4,6 +4,12 @@
 # Arno, pychecker-ing: the addTarget and getTarget methods of JobQueue are
 # no longer there, this code needs to be updated.
 
+# 17/02/10 Boudewijn: this test reads a superpeer log to get actual
+# buddycast messages.  However, these messages were wrtten to the log
+# using readableBuddyCastMsg(...) and are NOT made back into normal
+# buddycast messages.  This causes some buddycast messages to be
+# silently dropped.
+
 import os
 import sys
 import unittest
@@ -189,6 +195,7 @@ class TestBuddyCast(unittest.TestCase):
         for permid, selversion, msg in get_buddycast_data(os.path.join(FILES_DIR,'superpeer120070902sp7001.log')):
             message = bencode(msg)
             #print 'got msg:', permid, selversion, message
+
             try:
                 s = time()
                 self.bc.gotBuddyCastMessage(message, permid, selversion)
@@ -197,6 +204,7 @@ class TestBuddyCast(unittest.TestCase):
             except:
                 print_exc()
                 break
+
             print 'got msg: %d %.2f %.2f %.2f %.2f' %(len(costs), cost, min(costs), sum(costs)/len(costs), max(costs))
         # with all indices, min/avg/max:  0.00 1.78 4.57 seconds
         # without index, min/avg/max:  0.00 1.38 3.43 seconds  (58)

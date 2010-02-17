@@ -11,6 +11,7 @@ export PYTHONPATH=../..:"$PYTHONPATH"
 # python test_torrentcollecting.py # currently not working due to missing functions, 2009-12-04
 python test_TimedTaskQueue.py
 python test_bartercast.py
+python test_buddycast2_datahandler.py
 python test_cachingstream.py
 python test_closedswarm.py
 python test_connect_overlay.py singtest_connect_overlay
@@ -36,7 +37,6 @@ python test_url_metadata.py
 python test_ut_pex.py
 python test_video_server.py
 
-./test_buddycast2_datahandler.sh
 ./test_buddycast_msg.sh
 ./test_dialback_conn_handler.sh
 ./test_dialback_reply_active.sh
