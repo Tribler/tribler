@@ -15,7 +15,6 @@ from traceback import print_exc,print_stack
 STRICT_CHECK = True
 DEBUG = False
 
-permid_len = 112
 infohash_len = 20
 
 def bin2str(bin):
@@ -54,15 +53,14 @@ def validIP(ip):
 def validPermid(permid):
     if not isinstance(permid, str):
         raise RuntimeError, "invalid permid: " + permid
-    if STRICT_CHECK and len(permid) != permid_len:
-        raise RuntimeError, "invalid permid: " + permid
+    # Arno,2010-02-17: permid is ASN.1 encoded data that is NOT fixed length
     return True
 
 def validInfohash(infohash):
     if not isinstance(infohash, str):
         raise RuntimeError, "invalid infohash " + infohash
     if STRICT_CHECK and len(infohash) != infohash_len:
-        raise RuntimeError, "invalid infohash " + infohash
+        raise RuntimeError, "invalid length infohash " + infohash
     return True
     
 def isValidPermid(permid):
