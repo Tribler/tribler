@@ -57,7 +57,6 @@ binary-indep: build install
 	dh_installman
 
 	mkdir -p debian/tribler/usr/share/tribler/
-	cp -rf `ls -1d Tribler khashmir` debian/tribler/usr/share/tribler/
 	rm -rf debian/tribler/usr/share/tribler/Tribler/Test
 	# add other files
 	mkdir -p debian/tribler/usr/bin

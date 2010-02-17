@@ -35,7 +35,8 @@ class FSCacheDBBaseV2(SQLiteCacheDBBase):
     """
     
     def updateDB(self,fromver,tover):
-        print >>sys.stderr,"fscachedb2: Upgrading",fromver,tover
+        if DEBUG:
+            print >>sys.stderr,"fscachedb2: Upgrading",fromver,tover
         if fromver == 1 and tover == 2:
             # Do ALTER TABLE stuff to add crawler_permid field.
             sql = "ALTER TABLE FriendshipStatistics ADD COLUMN crawled_permid TEXT DEFAULT client NOT NULL;"

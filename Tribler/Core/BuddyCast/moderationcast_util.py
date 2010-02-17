@@ -14,7 +14,7 @@ from Tribler.Core.Overlay.permid import verify_data
 from os.path import exists, isfile
 
 
-DEBUG = True
+DEBUG = False
 
 TIMESTAMP_IN_FUTURE = 5 * 60    # 5 minutes is okay
 

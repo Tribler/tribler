@@ -2,9 +2,8 @@ REM @echo off
 set LIBRARYNAME=Tribler
 
 set PYTHONHOME=\Python254
-REM Arno: Add .. to make it find khashmir. Add . to find us (python 2.5)
-set PYTHONPATH=.;%PYTHONHOME%;..
-
+REM Arno: Add . to find our core (py 2.5)
+set PYTHONPATH=.;%PYTHONHOME%
 echo PYTHONPATH SET TO %PYTHONPATH%
 
 set NSIS="\Program Files\NSIS\makensis.exe"

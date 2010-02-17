@@ -58,7 +58,6 @@ binary-indep: build install
 	dh_installman
 
 	mkdir -p debian/swarmplayer/usr/share/swarmplayer/
-	cp -rf `ls -1d ${LIBRARYNAME} khashmir` debian/swarmplayer/usr/share/swarmplayer/
 	rm -rf debian/swarmplayer/usr/share/swarmplayer/${LIBRARYNAME}/Test
 	# add other files
 	mkdir -p debian/swarmplayer/usr/bin

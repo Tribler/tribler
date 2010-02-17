@@ -7,37 +7,13 @@ import random
 from traceback import print_exc,print_stack
 from threading import currentThread
 
-#
-# 16/06/09 boudewijn: it appears that under Ubuntu importing and using
-# VLC must be delayed until the GUI is ready for it. We define 'the
-# GUI is ready for it' to be when the user is able to perform actions
-# such as play. Only then will vlc be imported and the wrapper
-# initialized.
-#
-
-# import vlc
-
-# #
-# # With VLC 0.9.x came changes to the MediaControl API. In particular,
-# # there is no longer a concept of a playlist. The VLCWrapper can now
-# # deal with both versions of the API.
-# #
-# try:
-#     vlc.Instance
-#     VLC_MEDIACONTROL_API_VERSION = "0.2"
-# except:
-#     #print_exc()
-#     VLC_MEDIACONTROL_API_VERSION = "0.1"
-
-# from Tribler.Video.VideoServer import VideoRawVLCServer
-
 # vlcstatusmap = {vlc.PlayingStatus:'vlc.PlayingStatus',
 #                 vlc.PauseStatus:'vlc.PauseStatus',
 #                 vlc.InitStatus:'vlc.InitStatus',
 #                 vlc.EndStatus:'vlc.EndStatus',
 #                 vlc.UndefinedStatus:'vlc.UndefinedStatus'}
 
-DEBUG = True
+DEBUG = False
 VLC_MAXVOLUME = 200
 
 def check_threading():
@@ -63,7 +39,7 @@ class VLCWrapper:
         """
         To avoid a bug on Ubuntu Intrepid and Jaunty that causes the
         GUI to instantly exit, we need to delay importing vlc and
-        seting the window.
+        setting the window.
         """
         import vlc
         from Tribler.Video.VideoServer import VideoRawVLCServer

@@ -1,15 +1,12 @@
 REM @echo off
 set LIBRARYNAME=Tribler
 
-set PYTHONHOME=C:\Python254
-REM Arno: Add .. to make it find khashmir. Add . to find us (python 2.5)
-set PYTHONPATH=.;%PYTHONHOME%;..
-
+set PYTHONHOME=\Python254
+REM Arno: Add . to find our core (py 2.5)
+set PYTHONPATH=.;%PYTHONHOME%
 echo PYTHONPATH SET TO %PYTHONPATH%
 
 set NSIS="C:\Program Files\NSIS\makensis.exe"
-REM Diego: what that for? (imagecfg)
-set IMGCFG="C:\Program Files\Imagecfg\imagecfg.exe"
 
 REM ----- Check for Python and essential site-packages
 
