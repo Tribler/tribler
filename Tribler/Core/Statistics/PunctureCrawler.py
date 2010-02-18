@@ -39,13 +39,14 @@ class SimpleFileReporter:
     def add_event(self, ignore, msg):
         SimpleFileReporter.lock.acquire()
         try:
-            if not self.file:
-                self.file = open(self.path, 'a+b')
-            self.file.write('%.2f %s\n' %(time.time(), msg))
-            self.file.flush()
-        except:
-            if DEBUG:
-                print >>sys.stderr, 'Error writing puncture log'
+            try:
+                if not self.file:
+                    self.file = open(self.path, 'a+b')
+                self.file.write('%.2f %s\n' %(time.time(), msg))
+                self.file.flush()
+            except:
+                if DEBUG:
+                    print >>sys.stderr, 'Error writing puncture log'
         finally:
             SimpleFileReporter.lock.release()
 
