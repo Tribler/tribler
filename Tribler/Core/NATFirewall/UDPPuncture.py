@@ -118,9 +118,17 @@ class UDPHandler:
     FIXED_THRESHOLD = 7
 
     def __init__(self, rawserver, port = 0):
+        # initialise connections now because it is used in shutdown which will
+        # be called for Crawler instances as well
+        self.connections = {}
+        
+        from Tribler.Core.Statistics.Crawler import Crawler
+        crawler = Crawler.get_instance()
+        if crawler.am_crawler():
+            return
+        
         self.rawserver = rawserver
         self.socket = rawserver.create_udpsocket(port, "0.0.0.0")
-        self.connections = {}
         self.known_peers = {}
         self.nat_type = UDPHandler.NAT_UNKNOWN
         self.filter_type = UDPHandler.FILTER_UNKNOWN

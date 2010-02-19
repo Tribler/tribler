@@ -92,6 +92,8 @@ class OverlayApps:
             crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, videoplayback_crawler.handle_event_crawler_request, videoplayback_crawler.handle_event_crawler_reply)
             repex_crawler = RepexCrawler.get_instance(session)
             crawler.register_message_handler(CRAWLER_REPEX_QUERY, repex_crawler.handle_crawler_request, repex_crawler.handle_crawler_reply)
+            puncture_crawler = PunctureCrawler.get_instance()
+            crawler.register_message_handler(CRAWLER_PUNCTURE_QUERY, puncture_crawler.handle_crawler_request, puncture_crawler.handle_crawler_reply)
 
             if crawler.am_crawler():
                 i_am_crawler = True
@@ -122,6 +124,10 @@ class OverlayApps:
                 if "repex" in sys.argv:
                     # allows access to RePEX log statistics (Raynor Vliegendhart)
                     crawler.register_crawl_initiator(repex_crawler.query_initiator)
+
+                if "puncture" in sys.argv:
+                    # allows access to UDPPuncture log statistics (Gertjan)
+                    crawler.register_crawl_initiator(puncture_crawler.query_initiator)
 
         else:
             self.register_msg_handler([CRAWLER_REQUEST, CRAWLER_REPLY], self.handleDisabledMessage)
