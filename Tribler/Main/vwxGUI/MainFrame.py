@@ -30,6 +30,11 @@ import wx
 from wx import xrc
 #import hotshot
 
+import subprocess
+import atexit
+import re
+import urlparse
+
 from threading import Thread, Event,currentThread,enumerate
 import time
 from traceback import print_exc, print_stack
@@ -109,6 +114,7 @@ class MainFrame(wx.Frame):
         self.utility.frame = self
         self.torrentfeed = None
         self.category = Category.getInstance()
+        self.shutdown_and_upgrade_notes = None
         
         title = self.utility.lang.get('title') + \
                 " " + \
@@ -301,29 +307,166 @@ class MainFrame(wx.Frame):
         
     def checkVersion(self):
         guiserver = GUITaskQueue.getInstance()
-        guiserver.add_task(self._checkVersion,10.0)
+        guiserver.add_task(self._checkVersion, 5.0)
 
     def _checkVersion(self):
         # Called by GUITaskQueue thread
         my_version = self.utility.getVersion()
         try:
-            curr_status = urllib.urlopen('http://tribler.org/version/').readlines()
+            curr_status = urllib.urlopen('http://tribler.org/version').readlines()
             line1 = curr_status[0]
             if len(curr_status) > 1:
                 self.update_url = curr_status[1].strip()
             else:
                 self.update_url = 'http://tribler.org'
+
+            info = {}
+            if len(curr_status) > 2:
+                # the version file contains additional information in
+                # "KEY:VALUE\n" format
+                pattern = re.compile("^\s*(?<!#)\s*([^:\s]+)\s*:\s*(.+?)\s*$")
+                for line in curr_status[2:]:
+                    match = pattern.match(line)
+                    if match:
+                        key, value = match.group(1, 2)
+                        if key in info:
+                            info[key] += "\n" + value
+                        else:
+                            info[key] = value
+
             _curr_status = line1.split()
             self.curr_version = _curr_status[0]
             if self.newversion(self.curr_version, my_version):
                 # Arno: we are a separate thread, delegate GUI updates to MainThread
                 self.upgradeCallback()
+
+                # Boudewijn: start some background downloads to
+                # upgrade on this seperate thread
+                self._upgradeVersion(my_version, self.curr_version, info)
             
             # Also check new version of web2definitions for youtube etc. search
             ##Web2Updater(self.utility).checkUpdate()
         except Exception,e:
             print >> sys.stderr, "Tribler: Version check failed", time.ctime(time.time()), str(e)
             #print_exc()
+
+    def _upgradeVersion(self, my_version, latest_version, info):
+        # check if there is a .torrent for our OS
+        torrent_key = "torrent-%s" % sys.platform
+        notes_key = "notes-txt-%s" % sys.platform
+        if torrent_key in info:
+            print >> sys.stderr, "-- Upgrade", my_version, "->", latest_version
+            notes = []
+            if "notes-txt" in info:
+                notes.append(info["notes-txt"])
+            if notes_key in info:
+                notes.append(info[notes_key])
+            notes = "\n".join(notes)
+            if notes:
+                for line in notes.split("\n"):
+                    print >> sys.stderr, "-- Notes:", line
+            else:
+                notes = "No release notes found"
+            print >> sys.stderr, "-- Downloading", info[torrent_key], "for upgrade"
+
+            # prepare directort and .torrent file
+            location = os.path.join(self.utility.session.get_state_dir(), "upgrade")
+            if not os.path.exists(location):
+                os.mkdir(location)
+            print >> sys.stderr, "-- Dir:", location
+            filename = os.path.join(location, os.path.basename(urlparse.urlparse(info[torrent_key])[2]))
+            print >> sys.stderr, "-- File:", filename
+            if not os.path.exists(filename):
+                urllib.urlretrieve(info[torrent_key], filename)
+
+            # torrent def
+            tdef = TorrentDef.load(filename)
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            dscfg = defaultDLConfig.copy()
+
+            # figure out what file to start once download is complete
+            files = tdef.get_files_as_unicode()
+            executable = None
+            for file_ in files:
+                if sys.platform == "win32" and file_.endswith(u".exe"):
+                    print >> sys.stderr, "-- exe:", file_
+                    executable = file_
+                    break
+
+                elif sys.platform == "linux2" and file_.endswith(u".deb"):
+                    print >> sys.stderr, "-- deb:", file_
+                    executable = file_
+                    break
+
+                elif sys.platform == "darwin" and file_.endswith(u".dmg"):
+                    print >> sys.stderr, "-- dmg:", file_
+                    executable = file_
+                    break
+
+            if not executable:
+                print >> sys.stderr, "-- Abort upgrade: no file found"
+                return
+                
+            # start download
+            try:
+                download = self.utility.session.start_download(tdef)
+
+            except DuplicateDownloadException:
+                print >> sys.stderr, "-- Duplicate download"
+                download = None
+                for random_download in self.utility.session.get_downloads():
+                    if random_download.get_def().get_infohash() == tdef.get_infohash():
+                        download = random_download
+                        break
+
+            # continue until download is finished
+            if download:
+                def start_upgrade():
+                    """
+                    Called by python when everything is shutdown.  We
+                    can now start the downloaded file that will
+                    upgrade tribler.
+                    """
+                    executable_path = os.path.join(download.get_dest_dir(), executable)
+
+                    if sys.platform == "win32":
+                        args = [executable_path]
+
+                    elif sys.platform == "linux2":
+                        args = ["gdebi-gtk", executable_path]
+
+                    elif sys.platform == "darwin":
+                        args = ["open", executable_path]
+                    
+                    print >> sys.stderr, "-- Tribler closed, starting upgrade"
+                    print >> sys.stderr, "-- Start:", args
+                    subprocess.Popen(args)
+
+                def wxthread_upgrade():
+                    """
+                    Called on the wx thread when the .torrent file is
+                    downloaded.  Will ask the user if Tribler can be
+                    shutdown for the upgrade now.
+                    """
+                    if self.Close():
+                        atexit.register(start_upgrade)
+                    else:
+                        self.shutdown_and_upgrade_notes = None
+
+                def state_callback(state):
+                    """
+                    Called every n seconds with an update on the
+                    .torrent download that we need to upgrade
+                    """
+                    if DEBUG: print >> sys.stderr, "-- State:", dlstatus_strings[state.get_status()], state.get_progress()
+                    # todo: does DLSTATUS_STOPPED mean it has completely downloaded?
+                    if state.get_status() == DLSTATUS_SEEDING:
+                        self.shutdown_and_upgrade_notes = notes
+                        wx.CallAfter(wxthread_upgrade)
+                        return (0.0, False)
+                    return (1.0, False)
+
+                download.set_state_callback(state_callback)
             
     def newversion(self, curr_version, my_version):
         curr = curr_version.split('.')
@@ -509,7 +652,14 @@ class MainFrame(wx.Frame):
         if event is not None:
             try:
                 if isinstance(event,wx.CloseEvent) and event.CanVeto() and self.utility.config.Read('confirmonclose', "boolean") and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
-                    dialog = wx.MessageDialog(None, self.utility.lang.get('confirmmsg'), self.utility.lang.get('confirm'), wx.OK|wx.CANCEL)
+                    if self.shutdown_and_upgrade_notes:
+                        confirmmsg = self.utility.lang.get('confirmupgrademsg') + "\n\n" + self.shutdown_and_upgrade_notes
+                        confirmtitle = self.utility.lang.get('confirmupgrade')
+                    else:
+                        confirmmsg = self.utility.lang.get('confirmmsg')
+                        confirmtitle = self.utility.lang.get('confirm')
+
+                    dialog = wx.MessageDialog(None, confirmmsg, confirmtitle, wx.OK|wx.CANCEL)
                     result = dialog.ShowModal()
                     dialog.Destroy()
                     if result != wx.ID_OK:
