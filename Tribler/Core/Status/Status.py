@@ -23,12 +23,21 @@ def get_status_holder(name):
         status_lock.release()
 
 class StatusException(Exception):
+    """
+    Parent exception for all status based exceptions
+    """
     pass
 
 class NoSuchElementException(StatusException):
+    """
+    No such element found
+    """
     pass
 
 class NoSuchReporterException(StatusException):
+    """
+    Unknown reporter
+    """
     pass
 
 # Policies
@@ -94,7 +103,8 @@ class StatusHolder:
         self.lock.acquire()
         try:
             if reporter.name in self.reporters:
-                raise Exception("Already have reporter '%s' registered"%reporter.name)
+                raise Exception("Already have reporter '%s' registered"% \
+                                reporter.name)
             self.reporters[reporter.name] = reporter
 
             # The reporter must contact me later
@@ -102,8 +112,8 @@ class StatusHolder:
             
             # If we have any other reporters, copy the elements
             # to the new one
-            #for element in self.elements.values():
-            #    reporter.add_element(element)
+            for element in self.elements.values():
+                reporter.add_element(element)
         finally:
             self.lock.release()
             
@@ -268,7 +278,24 @@ class BaseElement:
 
     def get_name(self):
         return self.name
+
                            
+    def _updated(self):
+        """
+        When a status element is changed, this method must be called to
+        notify any reporters
+        """
+
+        # TODO: Lock or make a copy?
+        
+        for callback in self.callbacks:
+            try:
+                callback(self)
+            except Exception, e:
+                import sys
+                print >> sys.stderr, "Exception in callback", \
+                      callback,"for parameter",self.name,":",e
+
         
 class StatusElement(BaseElement):
     """
@@ -290,11 +317,7 @@ class StatusElement(BaseElement):
         """
         
         self.value = value
-        for callback in self.callbacks:
-            try:
-                callback(self)
-            except:
-                print "Exception in callback",callback,"for parameter",self.name
+        self._updated()
         
     def get_value(self):
         return self.value
@@ -306,6 +329,7 @@ class StatusElement(BaseElement):
         self.lock.acquire()
         try:
             self.value += value
+            self._updated()
         except:
             raise Exception("Can only increment numbers")
         finally:
@@ -318,6 +342,7 @@ class StatusElement(BaseElement):
         self.lock.acquire()
         try:
             self.value -= value
+            self._updated()
         except:
             raise Exception("Can only increment numbers")
         finally:
@@ -348,7 +373,8 @@ class EventElement(BaseElement):
 
     def get_values(self):
         """
-        Return the values as a copy to ensure that there are no synchronization issues
+        Return the values as a copy to ensure that there are no
+        synchronization issues
         """
         self.lock.acquire()
         try:
@@ -380,7 +406,8 @@ class RangeElement(BaseElement):
             
     def get_values(self):
         """
-        Return the values as a copy to ensure that there are no synchronization issues
+        Return the values as a copy to ensure that there are no
+        synchronization issues
         """
         self.lock()
         try:
@@ -399,7 +426,7 @@ class StatusReporter:
         self.name = name
         self.lock = threading.Lock()
         self.status_holders = []
-
+        
     def add_status_holder(self, holder):
         if not holder in self.status_holders:
             self.status_holders.append(holder)
@@ -422,34 +449,6 @@ class StatusReporter:
             events += holder.get_events()
         return events
 
-    def add_element(self, element):
-        """
-        Add a status element to this reporter
-        """
-        return
-    
-        raise Exception("Deprecated")
-        self.lock.acquire()
-        try:
-            if element in self.elements:
-                raise Exception("Element %s already registered"%element.name)
-            self.elements.append(element)
-        finally:
-            self.lock.release()
-
-    def remove_element(self, element):
-        """
-        Remove a status element from this reporter
-        """
-        return 
-        raise Exception("Deprecated")
-        self.lock.acquire()
-        try:
-            if not element in self.elements:
-                raise NoSuchElementException("Element %s unknown"%element.name)
-            self.elements.remove(element)
-        finally:
-            self.lock.release()
 
 class OnChangeStatusReporter(StatusReporter):
     """
@@ -521,6 +520,14 @@ class PeriodicStatusReporter(StatusReporter):
         """
         raise Exception("Not implemented")
 
+    def add_element(self, element):
+        """
+        Overload if you want your periodic reporter to only
+        report certain elements of a holder. Normally this does
+        nothing, but report fetches all elements
+        """
+        pass
+
     def on_time_event(self):
         """
         Callback function for timers
@@ -532,14 +539,14 @@ class PeriodicStatusReporter(StatusReporter):
 
             try:
                 self.report()
-            except Exception,e:
+            except Exception, e:
                 if self.error_handler:
                     try:
                         self.error_handler(0, str(e))
                     except:
                         pass
                 else:
-                    print "Error but no error handler:",e
+                    print "Error but no error handler:", e
                     #import traceback
                     #traceback.print_stack()
         

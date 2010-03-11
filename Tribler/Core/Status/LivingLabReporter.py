@@ -8,7 +8,6 @@
 import time
 import sys
 
-import urllib
 import httplib
 
 import XmlPrinter
@@ -23,15 +22,32 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
     """
     
     host = "p2pnext-statistics.comp.lancs.ac.uk"
-    path = "/testpost/"
-    num_reports = 0
+    #path = "/testpost/"
+    path = "/post/"
     
-    def __init__(self, name, frequency, id, error_handler=None):
-        Status.PeriodicStatusReporter.__init__(self, name, frequency, error_handler)
+    def __init__(self, name, frequency, id, error_handler=None,
+                 print_post=False):
+        """
+        Periodically report to the P2P-Next living lab status service
+
+        name: The name of this reporter (ignored)
+        frequency: How often (in seconds) to report
+        id: The ID of this device (e.g. permid)
+        error_handler: Optional error handler that will be called if the
+        port fails
+        print_post: Print post to stderr when posting to the lab (largely
+        useful for debugging)
+        
+        """
+        Status.PeriodicStatusReporter.__init__(self,
+                                               name,
+                                               frequency,
+                                               error_handler)
         self.device_id = id
+        self.print_post = print_post 
+        self.num_reports = 0
 
-
-    def newElement(self, doc, name, value):
+    def new_element(self, doc, name, value):
         """
         Helper function to save some lines of code
         """
@@ -55,12 +71,12 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         # Create the header
         header = doc.createElement("header")
         root.appendChild(header)
-        header.appendChild(self.newElement(doc, "deviceid", self.device_id))
-        header.appendChild(self.newElement(doc, "timestamp",
+        header.appendChild(self.new_element(doc, "deviceid", self.device_id))
+        header.appendChild(self.new_element(doc, "timestamp",
                                            long(round(time.time()))))
         
-        version = "cs_v1b"
-        header.appendChild(self.newElement(doc, "swversion", version))
+        version = "cs_v2a"
+        header.appendChild(self.new_element(doc, "swversion", version))
         
 
         elements = self.get_elements()
@@ -71,12 +87,13 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
                 report = doc.createElement("event")
                 root.appendChild(report)
 
-                report.appendChild(self.newElement(doc, "attribute", "statusreport"))
-                report.appendChild(self.newElement(doc, "timestamp",
+                report.appendChild(self.new_element(doc, "attribute",
+                                                   "statusreport"))
+                report.appendChild(self.new_element(doc, "timestamp",
                                                    long(round(time.time()))))
                 for element in elements:
                     print element.__class__
-                    report.appendChild(self.newElement(doc,
+                    report.appendChild(self.new_element(doc,
                                                        element.get_name(),
                                                        element.get_value()))
 
@@ -85,22 +102,27 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
             for event in events:
                 report = doc.createElement(event.get_type())
                 root.appendChild(report)
-                report.appendChild(self.newElement(doc, "attribute", event.get_name()))
+                report.appendChild(self.new_element(doc, "attribute",
+                                                   event.get_name()))
                 if event.__class__ == Status.EventElement:
-                    report.appendChild(self.newElement(doc, "timestamp", event.get_time()))
+                    report.appendChild(self.new_element(doc, "timestamp",
+                                                       event.get_time()))
                 elif event.__class__ == Status.RangeElement:
-                    report.appendChild(self.newElement(doc, "starttimestamp", event.get_start_time()))
+                    report.appendChild(self.new_element(doc, "starttimestamp",
+                                                       event.get_start_time()))
                     
-                    report.appendChild(self.newElement(doc, "endtimestamp", event.get_end_time()))
+                    report.appendChild(self.new_element(doc, "endtimestamp",
+                                                       event.get_end_time()))
                 for value in event.get_values():
-                    report.appendChild(self.newElement(doc, "value", value))            
-
+                    report.appendChild(self.new_element(doc, "value", value))
+                    
         if len(elements) == 0 and len(events) == 0:
             return # Was nothing here for us
         
         # all done
         xml_printer = XmlPrinter.XmlPrinter(root)
-        print >>sys.stderr, xml_printer.to_pretty_xml()
+        if self.print_post:
+            print >> sys.stderr, xml_printer.to_pretty_xml()
         xml_str = xml_printer.to_xml()
 
         # Now we send this to the service using a HTTP POST
@@ -133,10 +155,10 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
 
         h = httplib.HTTP(self.host)
         h.putrequest("POST", self.path)
-        h.putheader("Host",self.host)
-        h.putheader("User-Agent","NextShare status reporter 2009.4")
+        h.putheader("Host", self.host)
+        h.putheader("User-Agent", "NextShare status reporter 2009.4")
         h.putheader("Content-Type", "multipart/form-data; boundary=" + boundary)
-        h.putheader("content-length",str(len(body)))
+        h.putheader("content-length", str(len(body)))
         h.endheaders()
         h.send(body)
         
@@ -147,10 +169,11 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
             if self.error_handler:
                 try:
                     self.error_handler(errcode, h.file.read())
-                except Exception,e:
+                except Exception, e:
                     pass
             else:
-                print >>sys.stderr, "Error posting but no error handler:", errcode, h.file.read()
+                print >> sys.stderr, "Error posting but no error handler:", \
+                      errcode, h.file.read()
         
 
 if __name__ == "__main__":
@@ -159,9 +182,14 @@ if __name__ == "__main__":
     """
 
     status = Status.get_status_holder("UnitTest")
-    def error_handler(code, message):
-        print "Error:",code,message
-    reporter = LivingLabPeriodicReporter("Living lab test reporter", 1.0, error_handler)
+    def test_error_handler(code, message):
+        """
+        Test error-handler
+        """
+        print "Error:", code, message
+        
+    reporter = LivingLabPeriodicReporter("Living lab test reporter",
+                                         1.0, test_error_handler)
     status.add_reporter(reporter)
     s = status.create_status_element("TestString", "A test string")
     s.set_value("Hi from Njaal")
@@ -171,4 +199,4 @@ if __name__ == "__main__":
     print "Stopping reporter"
     reporter.stop()
 
-    print "Sent %d reports"%reporter.num_reports
+    print "Sent %d reports"% reporter.num_reports

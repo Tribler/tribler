@@ -3,7 +3,7 @@
 import wx, math, time, os, sys, threading
 from traceback import print_exc,print_stack
 from copy import deepcopy
-from wx.lib.stattext import GenStaticText as StaticText
+# from wx.lib.stattext import GenStaticText as StaticText
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.unicode import *
@@ -17,6 +17,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButto
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
+from Tribler.Main.vwxGUI.CustomStaticText import CustomStaticText
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Video.utils import videoextdefaults
@@ -28,27 +29,33 @@ from Tribler.Main.Utility.constants import *
 from Tribler.Main.Utility import *
 from Tribler.__init__ import LIBRARYNAME
 
-
 DEBUG = False
 
+
+if sys.platform == 'linux2':
+    MAX_TITLE_LENGTH = 130
+    MAX_TITLE_LENGTH_SELECTED = 160
+else:
+    MAX_TITLE_LENGTH = 110
+    MAX_TITLE_LENGTH_SELECTED = 140
+
+
 # font sizes
-
-
 if sys.platform == 'darwin':
     FS_MY_CHANNEL_TITLE = 13
-    FS_SUBSCRIPTION = 10
     FONTFAMILY_MY_CHANNEL=wx.SWISS
     FS_TITLE = 10
-    FS_PERC = 9
-    FS_SPEED = 9
-else:
+    TITLE_HEIGHT = 10
+elif sys.platform == 'linux2':
     FS_MY_CHANNEL_TITLE = 11
-    FS_SUBSCRIPTION = 8
     FONTFAMILY_MY_CHANNEL=wx.SWISS
     FS_TITLE = 8
-    FS_PERC = 7
-    FS_SPEED = 7
-    
+    TITLE_HEIGHT = 15
+else:
+    FS_MY_CHANNEL_TITLE = 11
+    FONTFAMILY_MY_CHANNEL=wx.SWISS
+    FS_TITLE = 8
+    TITLE_HEIGHT = 10
 
 class PopularItemPanel(wx.Panel):
     def __init__(self, parent, keyTypedFun = None, name='regular'):
@@ -61,7 +68,7 @@ class PopularItemPanel(wx.Panel):
         self.guiserver = parent.guiserver
         
         self.data = None
-        self.titleLength = 40 # num characters
+        self.titleLength = 16 # num characters
         self.selected = False
         self.name = name
 
@@ -87,6 +94,8 @@ class PopularItemPanel(wx.Panel):
         self.torrentList = [] # list of torrents within the channel
 
         self.index=-1
+
+        self.maxNumChar = -1
 
         self.dslist = None
         self.addComponents()
@@ -121,13 +130,14 @@ class PopularItemPanel(wx.Panel):
         # Add title
         if sys.platform == 'linux2':
             TITLELENGTH=160
+        elif sys.platform == 'darwin':
+            TITLELENGTH=160
         else:
-            TITLELENGTH=140
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(TITLELENGTH,16))        
+            TITLELENGTH=160
+        self.title = CustomStaticText(self, -1, "", wx.Point(0,0), wx.Size(TITLELENGTH,-1))
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((TITLELENGTH,16))
-
+#        self.title.SetMinSize((TITLELENGTH,TITLE_HEIGHT))
 
 
         self.hSizer.Add(self.title, 0, wx.TOP,3)
@@ -138,20 +148,18 @@ class PopularItemPanel(wx.Panel):
 
 
         # Add subscription button
-        self.SubscriptionButton = tribler_topButton(self, -1, name = "SubscriptionButton_small")
-        self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
-        self.SubscriptionButton.setBackground(wx.WHITE)
-          
-        self.SubscriptionButton.Hide()
-        self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 2)
-
-
+#       self.SubscriptionButton = tribler_topButton(self, -1, name = "SubscriptionButton_small")
+#       self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
+#       self.SubscriptionButton.setBackground(wx.WHITE)
+#       self.SubscriptionButton.Hide()
+#       self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 2)
+#       self.SubscriptionButton.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         if sys.platform != 'linux2':
             self.title.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-        self.SubscriptionButton.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
             
 
-         
+        wx.CallLater(5 ,self.addSubscriptionButton)
+        
         # Add Refresh        
         self.SetSizer(self.vSizerOverall);
         self.SetAutoLayout(1);
@@ -165,6 +173,15 @@ class PopularItemPanel(wx.Panel):
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
             
+
+    def addSubscriptionButton(self):
+        self.SubscriptionButton = tribler_topButton(self, -1, name = "SubscriptionButton_small")
+        self.SubscriptionButton.Bind(wx.EVT_LEFT_UP, self.SubscriptionClicked)
+        self.SubscriptionButton.setBackground(wx.WHITE)
+        self.SubscriptionButton.Hide()
+        self.hSizer.Add(self.SubscriptionButton, 0, wx.TOP, 2)
+        self.SubscriptionButton.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+
     def getColumns(self):
         return [{'sort':'name', 'reverse':True, 'title':'Most Popular', 'width':200,'tip':self.utility.lang.get('C_filename'), 'order':'down'}
                 ]     
@@ -185,6 +202,36 @@ class PopularItemPanel(wx.Panel):
                     torrent['ds'] = ds
                     break
         return liblist
+
+
+    def _setTitle(self, title):
+        self.title.SetToolTipString(title)
+        if self.selected:
+            title_length = MAX_TITLE_LENGTH_SELECTED
+        else:
+            title_length = MAX_TITLE_LENGTH
+
+#        if self.maxNumChar != -1:
+#            self.title.SetLabel(title[:self.maxNumChar])
+#            return
+        i=0
+        try:
+            while self.title.GetTextExtent(title[:i])[0] < title_length and i <= len(title):
+                i=i+1
+            self.title.SetLabel(title[:(i-1)])
+        except:
+            self.title.SetLabel(title)
+        self.Refresh()       
+
+    def setTitle(self, title):
+        """
+        Simple wrapper around _setTitle to handle unicode bugs
+        """
+        #try:
+        self._setTitle(title)
+        #except UnicodeDecodeError:
+        #    self._setTitle(`title`)
+
 
        
     def setData(self, data):
@@ -217,16 +264,21 @@ class PopularItemPanel(wx.Panel):
 
 
         if data: # and oldinfohash != self.data[0]:
-            title = data[1][:self.titleLength] + " (%s)" % self.num_votes
+
+            title = data[1][:] + " (%s)" % self.num_votes
+#            self.setTitle(title)
+#            self.title.Wrap(-1)
+
             self.title.Show()
             self.title.SetLabel(title)
-            self.title.Wrap(self.title.GetSize()[0])
+#            self.title.Wrap(-1)
+#            self.title.Wrap(self.title.GetSize()[0])
             if self.num_votes == 0:
-                ttstring = data[1] + " (No votes)"
+                ttstring = data[1] + " (No subscriptions)"
             elif self.num_votes == 1: 
-                ttstring = data[1] + " (1 vote)"
+                ttstring = data[1] + " (1 subscription)"
             else: 
-                ttstring = data[1] + " (%s votes)" % self.num_votes
+                ttstring = data[1] + " (%s subscriptions)" % self.num_votes
             self.title.SetToolTipString(ttstring)
 
 
@@ -263,10 +315,6 @@ class PopularItemPanel(wx.Panel):
         self.parent.Refresh()
         
 
-    def resetNumVotes(self):
-        pass
-
-
 
     def setSubscribed(self):
         if self.vcdb.hasSubscription(self.publisher_id, bin2str(self.utility.session.get_permid())):
@@ -278,20 +326,21 @@ class PopularItemPanel(wx.Panel):
         self.hSizer.Layout()
 
     def getVotes(self):
-        return self.vcdb.getEffectiveVote(self.publisher_id)
+        return self.vcdb.getNumSubscriptions(self.publisher_id)
 
 
     def resetTitle(self):
         self.num_votes = self.getVotes()
-        title = self.data[1][:self.titleLength] + " (%s)" % self.num_votes
+        title = self.data[1][:] + " (%s)" % self.num_votes
+#        self.setTitle(title)
         self.title.SetLabel(title)
-        self.title.Wrap(self.title.GetSize()[0])
+#        self.title.Wrap(self.title.GetSize()[0])
         if self.num_votes == 0:
-            ttstring = self.data[1] + " (No votes)"
+            ttstring = self.data[1] + " (No subscriptions)"
         elif self.num_votes == 1: 
-            ttstring = self.data[1] + " (1 vote)"
+            ttstring = self.data[1] + " (1 subscription)"
         else: 
-            ttstring = self.data[1] + " (%s votes)" % self.num_votes
+            ttstring = self.data[1] + " (%s subscriptions)" % self.num_votes
         self.title.SetToolTipString(ttstring)
         self.hSizer.Layout()
         #self.Refresh()
@@ -304,7 +353,7 @@ class PopularItemPanel(wx.Panel):
     def select(self, i=None, j=None):
         self.selected = True        
         self.SubscriptionButton.setBackground((216,233,240))
-        self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
+        self.title.SetFontWeight(wx.BOLD)
         colour = self.selectedColour
         channelColour = self.channelTitleSelectedColour
         self.title.SetBackgroundColour(colour)
@@ -317,7 +366,7 @@ class PopularItemPanel(wx.Panel):
         if self.selected:
             self.selected = False
             self.SubscriptionButton.setBackground(wx.WHITE)
-            self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.title.SetFontWeight(wx.NORMAL)
             colour = self.backgroundColour
             channelColour = self.channelTitleUnselectedColour
             self.title.SetBackgroundColour(colour)
@@ -394,10 +443,10 @@ class PopularItemPanel(wx.Panel):
         self.channelsDetails.reinitialize(force=True)
         self.parent.deselectAllChannels()
         self.guiUtility.standardOverview.data['channelsMode']['grid2'].selectedPublisherId = self.data[0]
+        self.guiUtility.standardOverview.data['channelsMode']['grid'].selectedPublisherId = None
         self.guiUtility.standardOverview.data['channelsMode']['grid'].deselectAll()
         self.guiUtility.standardOverview.data['channelsMode']['grid2'].deselectAll()
         self.select()
-#        self.guiUtility.frame.top_bg.indexMyChannel=-1
         wx.CallAfter(self.channelsDetails.loadChannel,self, self.torrentList, self.publisher_id, self.publisher_name, self.subscribed)
         if self.guiUtility.guiPage == 'search_results':
             self.channelsDetails.origin = 'search_results'
@@ -418,7 +467,7 @@ class PopularItemPanel(wx.Panel):
         
         if self.title:
 #            print 'tb > self.title.GetLabel() = %s' % self.title.GetLabel()
-            dc.SetFont(wx.Font(14,FONTFAMILY,FONTWEIGHT, wx.BOLD, False,FONTFACE))
+            # dc.SetFont(wx.Font(14,FONTFAMILY,FONTWEIGHT, wx.BOLD, False,FONTFACE))
             dc.SetTextForeground('#007303')
 #            dc.DrawText(self.title.GetLabel(), 0, 0)
             dc.DrawText('online', 38, 64)

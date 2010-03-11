@@ -269,7 +269,7 @@ class TriblerLaunchMany(Thread):
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
 
         # Gertjan's UDP code
-        self.udppuncture_handler = UDPHandler(self.rawserver)
+        self.udppuncture_handler = UDPHandler(self.rawserver, config['overlay'] and config['crawler'])
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """

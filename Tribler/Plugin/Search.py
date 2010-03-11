@@ -55,6 +55,9 @@
 #       Arno, 2009-12-4: At the moment, setting the window size to (0,0) and
 #       not providing a URL of a torrent works.
 # 
+# - query_connected_peers() now returns Unicode names, make sure these are
+#   properly handled when generating HTML output.
+
 
 import sys
 import time

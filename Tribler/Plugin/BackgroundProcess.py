@@ -31,7 +31,7 @@ import binascii
 import tempfile
 import urllib
 from cStringIO import StringIO
-from base64 import b64encode
+from base64 import b64encode, encodestring
 from traceback import print_exc,print_stack
 from threading import Thread,currentThread,Lock
 
@@ -63,6 +63,7 @@ from Tribler.Video.utils import videoextdefaults
 from Tribler.Video.VideoServer import VideoHTTPServer,MultiHTTPServer
 
 from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+from Tribler.Core.Status import Status,LivingLabReporter
 
 
 DEBUG = True
@@ -256,7 +257,6 @@ class BackgroundApp(BaseApp):
             print_exc()
             ic.shutdown()
     
-    
     def get_torrent_start_download(self,ic,url):
         """ Retrieve torrent file from url and start it in VOD mode, if not already """
         tdef  = TorrentDef.load_from_url(url)
@@ -275,6 +275,12 @@ class BackgroundApp(BaseApp):
 
         if DEBUG:
             print >>sys.stderr,"bg: get_torrent_start_download: Found video file",dlfile
+
+        # Closed swarms?
+        poa = None
+        if tdef.get_cs_keys():
+            # This is a closed swarm, try to get a POA
+            poa = self._get_poa(tdef)
 
         infohash = tdef.get_infohash()
         oldd = None
@@ -298,7 +304,7 @@ class BackgroundApp(BaseApp):
                 else:
                     print >>sys.stderr,"bg: get_torrent_start_download: Restarting old Download in VOD mode"
             
-            d = self.start_download(tdef,dlfile)
+            d = self.start_download(tdef,dlfile,poa)
             duser = {'uic':ic}
             self.dusers[d] = duser
         else:
@@ -582,8 +588,17 @@ def run_bgapp(appname,params = None):
 
     # Launch first single instance
     app = BackgroundApp(0, appname, params, single_instance_checker, installdir, I2I_LISTENPORT, BG_LISTENPORT)
+
+    status = Status.get_status_holder("LivingLab")
+    s = app.s 
+    id = encodestring(s.get_permid()).replace("\n","")
+    reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes 
+    status.add_reporter(reporter)
+
     app.MainLoop()
-    
+
+    reporter.stop()
+
     print >>sys.stderr,"Sleeping seconds to let other threads finish"
     time.sleep(2)
 

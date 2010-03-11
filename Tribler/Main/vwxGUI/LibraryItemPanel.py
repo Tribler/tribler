@@ -582,7 +582,7 @@ class LibraryItemPanel(wx.Panel):
                 title = torrent['name'][:self.titleLength]
                 self.title.Show()
                 self.title.SetLabel(title)
-                self.title.Wrap(self.title.GetSize()[0])
+                # self.title.Wrap(self.title.GetSize()[0])
                 self.title.SetToolTipString(torrent['name'])
     
                 # Only reload thumb when changing torrent displayed

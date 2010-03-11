@@ -27,6 +27,7 @@ from Tribler.Core.Statistics.SeedingStatsCrawler import SeedingStatsCrawler
 from Tribler.Core.Statistics.VideoPlaybackCrawler import VideoPlaybackCrawler
 from Tribler.Core.Statistics.RepexCrawler import RepexCrawler
 from Tribler.Core.Statistics.PunctureCrawler import PunctureCrawler
+from Tribler.Core.Statistics.ChannelCrawler import ChannelCrawler
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
 
@@ -94,6 +95,8 @@ class OverlayApps:
             crawler.register_message_handler(CRAWLER_REPEX_QUERY, repex_crawler.handle_crawler_request, repex_crawler.handle_crawler_reply)
             puncture_crawler = PunctureCrawler.get_instance()
             crawler.register_message_handler(CRAWLER_PUNCTURE_QUERY, puncture_crawler.handle_crawler_request, puncture_crawler.handle_crawler_reply)
+            channel_crawler = ChannelCrawler.get_instance()
+            crawler.register_message_handler(CRAWLER_CHANNEL_QUERY, channel_crawler.handle_crawler_request, channel_crawler.handle_crawler_reply)
 
             if crawler.am_crawler():
                 i_am_crawler = True
@@ -128,7 +131,10 @@ class OverlayApps:
                 if "puncture" in sys.argv:
                     # allows access to UDPPuncture log statistics (Gertjan)
                     crawler.register_crawl_initiator(puncture_crawler.query_initiator)
-
+                
+                if "channel" in sys.argv:
+                    # allows access to tribler channels' database (nitin)
+                    crawler.register_crawl_initiator(channel_crawler.query_initiator)
         else:
             self.register_msg_handler([CRAWLER_REQUEST, CRAWLER_REPLY], self.handleDisabledMessage)
 

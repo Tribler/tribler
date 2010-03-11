@@ -328,6 +328,8 @@ class channelsDetailsPanel(bgPanel):
     def erasevSizerContents(self):
         if self.currentPage == self.lastPage:
             numItems = self.totalItems % self.itemsPerPage
+            if numItems == 0:
+                numItems = self.itemsPerPage
         else:
             numItems = self.itemsPerPage    
         for index in range(self.currentPage*self.itemsPerPage, self.currentPage*self.itemsPerPage+numItems):

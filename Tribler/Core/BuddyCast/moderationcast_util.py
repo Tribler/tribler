@@ -21,7 +21,7 @@ TIMESTAMP_IN_FUTURE = 5 * 60    # 5 minutes is okay
 #*****************Validity-checks*****************
 def validInfohash(infohash):
     """ Returns True iff infohash is a valid infohash """
-    r = ( type(infohash) == str or type(infohash) == unicode)
+    r = isinstance(infohash, str) and len(infohash) == 20
     if not r:
         if DEBUG:
             print >>sys.stderr, "Invalid infohash: type(infohash) ==", str(type(infohash))+\
@@ -104,8 +104,8 @@ def validChannelCastMsg(channelcast_data):
             if DEBUG:
                 print >>sys.stderr,"validChannelCastMsg: key missing"
             return False
-        if not (validPermid(ch['publisher_id']) and (isinstance(ch['publisher_name'],str) or isinstance(ch['publisher_name'], unicode)) and validInfohash(ch['infohash']) and validInfohash(ch['torrenthash'])
-                and (isinstance(ch['torrentname'],str) or isinstance(ch['torrentname'],unicode)) and validTimestamp(ch['time_stamp'])):
+        if not (validPermid(ch['publisher_id']) and isinstance(ch['publisher_name'],str) and validInfohash(ch['infohash']) and validInfohash(ch['torrenthash'])
+                and isinstance(ch['torrentname'],str) and validTimestamp(ch['time_stamp'])):
             if DEBUG:
                 print >>sys.stderr,"validChannelCastMsg: something not valid"
             return False

@@ -543,7 +543,7 @@ class PeerDBHandler(BasicDBHandler):
         # session.add_observer(self.setOnline, NTFY_PEERS, [NTFY_CONNECTION], None)
         pass
     
-    def updatePeerIcon(self, permid, icontype, icondata, updateFlag = True):
+    def updatePeerIcon(self, permid, icontype, icondata, commit = True):
         # save thumb in db
         self.updatePeer(permid, thumbnail=bin2str(icondata))
         #if self.mm is not None:
@@ -1730,8 +1730,8 @@ class TorrentDBHandler(BasicDBHandler):
                 # check if this channel has votes and if so, is it better than previous channel
                 if torrent['channel_permid'] in votes:
                     sum, count = votes[torrent['channel_permid']] 
-                    negvotes = (sum + count)/3
-                    numsubscriptions = (2*count-sum)/3
+                    numsubscriptions = (sum + count)/3
+                    negvotes = (2*count-sum)/3
                     if numsubscriptions-negvotes > old_record['subscriptions'] - old_record['neg_votes']:
                         #print >> sys.stderr, "overridden", torrent['channel_name'], old_record['channel_name']
                         old_record['channel_permid'] = torrent['channel_permid']
@@ -1770,8 +1770,8 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['subscriptions']=0
             if torrent['channel_permid'] in votes:
                 sum, count = votes[torrent['channel_permid']]
-                negvotes = (sum + count)/3
-                numsubscriptions = (2*count-sum)/3                
+                numsubscriptions = (sum + count)/3
+                negvotes = (2*count-sum)/3                
                 torrent['neg_votes']=negvotes
                 torrent['subscriptions']=numsubscriptions
             
@@ -1956,7 +1956,7 @@ class TorrentDBHandler(BasicDBHandler):
         
     def setSecret(self,infohash,secret):
         kw = {'secret': secret}
-        self.updateTorrent(infohash, updateFlag=True, **kw)
+        self.updateTorrent(infohash, commit=True, **kw)
         
 
 class MyPreferenceDBHandler(BasicDBHandler):
@@ -3129,6 +3129,15 @@ class ChannelCastDBHandler(BasicDBHandler):
 
         # convert infohashes to binary
         for torrent in torrent_results: 
+            t_name = torrent[2]
+
+            # check if torrent name contains only white spaces
+            index=0
+            while index <= len(t_name) - 1 and t_name[index] == ' ':
+                index += 1
+            if index == len(t_name):
+                continue
+
             t_list = list(torrent)
             infohash = str2bin(t_list[1])
             t_list[1] = infohash
@@ -3226,9 +3235,9 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getMostPopularUnsubscribedChannels(self,from_channelcast=False): ##
         """return a list of tuples: [(permid,channel_name,#votes)]"""
         
-        if not self.firstQueryPopularChannels and not from_channelcast:
-            self.firstQueryPopularChannels=True
-            return self.allRecordsPopularChannels
+        #if not self.firstQueryPopularChannels and not from_channelcast:
+        #    self.firstQueryPopularChannels=True
+        #    return self.allRecordsPopularChannels
 
         votecastdb = VoteCastDBHandler.getInstance()
         allrecords = []
@@ -3237,7 +3246,9 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select distinct publisher_id, publisher_name from ChannelCast"
         channel_records = self._db.fetchall(sql)
 
-        sql = "select mod_id, (2*sum(vote)-count(*))/3 from VoteCast group by mod_id order by 2 desc"
+#        sql = "select mod_id, (2*sum(vote)-count(*))/3 from VoteCast group by mod_id order by 2 desc"
+        sql = "select mod_id, sum(vote-1) from VoteCast group by mod_id order by 2 desc" # only subscriptions, not spam votes
+
         votecast_records = self._db.fetchall(sql)
 
         sql = "select distinct mod_id from VoteCast where voter_id==? and vote=2"
@@ -3271,10 +3282,12 @@ class ChannelCastDBHandler(BasicDBHandler):
             return 0
         allrecords.sort(compare)
         #print >> sys.stderr, "getMostPopularUnsubscribedChannels: execution times %.3f, %.3f, %.3f" %(t2-t1, t3-t2, time()-t3)
-        if not from_channelcast:
-            if self.allRecordsPopularChannels is None:
-                self.firstQueryPopularChannels=False
-            self.allRecordsPopularChannels=allrecords
+        
+        
+        #if not from_channelcast:
+        #    if self.allRecordsPopularChannels is None:
+        #        self.firstQueryPopularChannels=False
+        #    self.allRecordsPopularChannels=allrecords
         return allrecords
     
 
@@ -3284,7 +3297,11 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select publisher_id, publisher_name from ChannelCast where publisher_id==? group by publisher_id"
         res = self._db.fetchall(sql,(bin2str(self.my_permid),)) 
         if res is not None:
-            mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(bin2str(self.my_permid)) - votecastdb.getNegVotes(bin2str(self.my_permid)), {}))
+            # mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(bin2str(self.my_permid)) - votecastdb.getNegVotes(bin2str(self.my_permid)), {}))
+            # for now only count subscriptions, not negative votes
+            mychannel.append((self.my_permid,"MyChannel" , votecastdb.getNumSubscriptions(bin2str(self.my_permid)),{}))
+
+
         else:
             mychannel.append((self.my_permid,"MyChannel" , 0, {}))
         return mychannel
@@ -3356,7 +3373,8 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select distinct publisher_id, publisher_name from ChannelCast"
         channel_records = self._db.fetchall(sql)
 
-        sql = "select mod_id, (2*sum(vote)-count(*))/3 from VoteCast group by mod_id order by 2 desc"
+#        sql = "select mod_id, (2*sum(vote)-count(*))/3 from VoteCast group by mod_id order by 2 desc"
+        sql = "select mod_id, sum(vote-1) from VoteCast group by mod_id order by 2 desc" # only subscriptions, not spam votes
         votecast_records = self._db.fetchall(sql)
 
         sql = "select distinct mod_id from VoteCast where voter_id==? and vote=2"

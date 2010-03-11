@@ -114,7 +114,7 @@ class DownloadImpl:
             self.dlconfig['cs_keys'] = self.tdef.get_cs_keys_as_ders()
             self.dlconfig['permid'] = self.session.get_permid()
             if self.dlconfig['cs_keys']:
-                print >> sys.stderr,"This is a CLOSED SWARM"
+                print >> sys.stderr,"DownloadImpl: setup: This is a closed swarm"
                 #if dcfg.get_poa():
                 #    self.dlconfig['poa'] = dcfg.get_poa()
                 #else:

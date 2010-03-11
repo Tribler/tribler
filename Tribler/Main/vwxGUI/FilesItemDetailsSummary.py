@@ -419,8 +419,10 @@ class FilesItemDetailsSummary(bgPanel):
     def erasevSizerContents(self):
         if self.currentPage == self.lastPage:
             numItems = self.totalItems % self.filesPerPage
+            if numItems == 0:
+                numItems = self.filesPerPage
         else:
-            numItems = self.filesPerPage    
+            numItems = self.filesPerPage
         for index in range(self.currentPage*self.filesPerPage, self.currentPage*self.filesPerPage+numItems):
             if not type(self.files[index]) is str:
                 self.files[index].Hide()

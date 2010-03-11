@@ -261,9 +261,9 @@ def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo
         # Arno, 2008-08-22: to avoid UnicodeDecode errors when commiting 
         # on sqlite
         name = str2unicode(persinfo['name'])
-        
-        
-        print >> sys.stderr,"socnet: SOCIAL_OVERLAP",show_permid_short(permid),`name`
+
+        if DEBUG:
+            print >> sys.stderr,"socnet: SOCIAL_OVERLAP",show_permid_short(permid),`name`
         
         if self.peer_db.hasPeer(permid):
             self.peer_db.updatePeer(permid, name=name)

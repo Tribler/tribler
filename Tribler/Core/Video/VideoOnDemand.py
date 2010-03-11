@@ -94,8 +94,8 @@ class MovieOnDemandTransporter(MovieTransport):
     # PREBUF_REHOOKIN_SECS (because his peer environment changed), then rehookin. 
     PREBUF_REHOOKIN_SECS = 5.0
 
-    # maximum delay between pops before we force a restart (seconds)
-    MAX_POP_TIME = 60
+    # maximum delay between pops when live streaming before we force a restart (seconds)
+    MAX_POP_TIME = 30
 
     def __init__(self,bt1download,videostatus,videoinfo,videoanalyserpath,vodeventfunc):
 
@@ -229,7 +229,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.curpiece_pos = 0
         self.outbuf = []
         self.outbuflen = None
-        #self.last_pop = None # time of last pop
+        self.last_pop = None # time of last pop
         self.reset_bitrate_prediction()
 
         self.lasttime=0
@@ -990,7 +990,7 @@ class MovieOnDemandTransporter(MovieTransport):
             self.curpiece_pos = offset
             self.set_pos( piece )
             self.outbuf = []
-            #self.last_pop = time.time()
+            self.last_pop = time.time()
             self.reset_bitrate_prediction()
             vs.playing = True
             self.playbackrate = Measure( 60 )
@@ -1027,7 +1027,7 @@ class MovieOnDemandTransporter(MovieTransport):
         # clear buffer and notify possible readers
         self.data_ready.acquire()
         self.outbuf = []
-        #self.last_pop = None
+        self.last_pop = None
         vs.prebuffering = False
         self.data_ready.notify()
         self.data_ready.release()
@@ -1348,12 +1348,15 @@ class MovieOnDemandTransporter(MovieTransport):
             self.data_ready.release()
             return
 
-        #if self.last_pop is not None and time.time() - self.last_pop > self.MAX_POP_TIME:
-        #    # last pop too long ago, restart
-        #    self.data_ready.release()
-        #    self.stop()
-        #    self.start(force=True)
-        #    return
+        # Arno, 2010-03-04: Reactivate protection for live.
+        if vs.live_streaming and self.last_pop is not None and time.time() - self.last_pop > self.MAX_POP_TIME:
+            # Live: last pop too long ago, rehook-in
+            self.data_ready.release()
+            print >>sys.stderr,"vod: trans: Live stalled too long, REHOOK-in !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+            self.last_pop = time.time()
+            self.calc_live_startpos( self.max_prebuf_packets, False )
+            return
+
 
         if vs.paused:
             self.data_ready.release()
@@ -1559,7 +1562,7 @@ class MovieOnDemandTransporter(MovieTransport):
             self.outbuflen -= len(piecetup[1])
             self.playbackrate.update_rate( len(piecetup[1]) )
 
-        #self.last_pop = time.time()
+        self.last_pop = time.time()
 
         lenoutbuf = len(self.outbuf)
 

@@ -321,8 +321,8 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
                 self.title.Show()
                 self.setTitle(title)
                 #self.title.SetLabel(title)
-                if sys.platform != 'win32': # on windows causes a new line bug when title contains & symbol
-                    self.title.Wrap(self.title.GetSize()[0])
+                # if sys.platform != 'win32': # on windows causes a new line bug when title contains & symbol
+                #     self.title.Wrap(self.title.GetSize()[0])
                 self.title.SetToolTipString(titlefull)
                
 
@@ -374,8 +374,8 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
                     title = string.replace(title,'&','&&')
                 self.title.Enable(True)
                 self.title.SetLabel(title)
-                if sys.platform != 'win32': # on windows causes a new line bug when title contains & symbol
-                    self.title.Wrap(self.title.GetSize()[0])
+                # if sys.platform != 'win32': # on windows causes a new line bug when title contains & symbol
+                #     self.title.Wrap(self.title.GetSize()[0])
                 self.title.SetToolTipString(title)
 
 

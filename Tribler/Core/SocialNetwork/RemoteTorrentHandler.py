@@ -7,6 +7,7 @@
 
 import sys
 
+from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 DEBUG = False
@@ -39,6 +40,8 @@ class RemoteTorrentHandler:
         reply. Try to obtain the actual .torrent file from the peer and then 
         start the actual download. 
         """
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         # Called by GUI thread 
 
         olthread_remote_torrent_download_lambda = lambda:self.olthread_download_torrent_callback(permid,infohash,usercallback)
@@ -46,6 +49,8 @@ class RemoteTorrentHandler:
         
     def olthread_download_torrent_callback(self,permid,infohash,usercallback):
         """ Called by overlay thread """
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
     
         #if infohash in self.requestedtorrents:
         #    return    # TODO RS:the previous request could have failed
@@ -58,6 +63,9 @@ class RemoteTorrentHandler:
        
     def metadatahandler_got_torrent(self,infohash,metadata,filename):
         """ Called by MetadataHandler when the requested torrent comes in """
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
+
         #Called by overlay thread
 
         if DEBUG:

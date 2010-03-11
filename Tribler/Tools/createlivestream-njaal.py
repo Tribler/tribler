@@ -153,7 +153,7 @@ if __name__ == "__main__":
         # Will also create POA for this node - which will seed it!
     if len(config['cs_keys']) > 0:
         print >>sys.stderr,"Setting torrent keys to:",config['cs_keys'].split(";")
-        tdef.set_cs_keys(config['cs_keys'])
+        tdef.set_cs_keys(config['cs_keys'].split(";"))
     else:
         print >>sys.stderr,"No keys"
     #tdef2 = TorrentDef.load(torrentfilename)

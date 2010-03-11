@@ -23,7 +23,7 @@ if __name__ == "__main__":
     opt, args = command_line_parser.parse_args()
 
     # what types of crawlers do we have?
-    options = ["database", "seedingstats", "friendship", "natcheck", "videoplayback", "repex", "puncture"]
+    options = ["database", "seedingstats", "friendship", "natcheck", "videoplayback", "repex", "puncture", "channel"]
     options.sort()
 
     # at least on crawler type should be started

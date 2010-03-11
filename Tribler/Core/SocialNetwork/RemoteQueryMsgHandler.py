@@ -344,7 +344,8 @@ class RemoteQueryMsgHandler:
                 r['torrent_size'] = getsize(join(self.torrent_dir, torrent['torrent_file_name']))
             if selversion >= OLPROTO_VER_ELEVENTH:
                 r['channel_permid'] = torrent['channel_permid']
-                r['channel_name'] = torrent['channel_name']
+                # Arno, 2010-01-28: name DB record contains the Unicode object
+                r['channel_name'] = torrent['channel_name'].encode("UTF-8")
             if selversion >= OLPROTO_VER_TWELFTH and 'metadata' in torrent:
                 if DEBUG:
                     print >>sys.stderr,"rqmh: create_query_reply: Adding torrent file"
@@ -447,11 +448,22 @@ class RemoteQueryMsgHandler:
             print >>sys.stderr,"rquery: process_query_reply:",show_permid_short(permid),query,d
         
         if len(d['a']) > 0:
+            self.unidecode_hits(query,d)
             remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
             self.session.uch.perform_usercallback(remote_query_usercallback_lambda)
         elif DEBUG:
             print >>sys.stderr,"rquery: QUERY_REPLY: no results found"
 
+
+    def unidecode_hits(self,query,d):
+        if query.startswith("SIMPLE"):
+            for infohash,r in d['a'].iteritems():
+                r['content_name'] = r['content_name'].decode("UTF-8")
+        elif query.startswith("CHANNEL"):
+            for signature,r in d['a'].iteritems():
+                r['publisher_name'] = r['publisher_name'].decode("UTF-8")
+                r['torrentname'] = r['publisher_name'].decode("UTF-8")
+            
 
     def inc_peer_nqueries(self, permid):
         peer = self.peer_db.getPeer(permid)

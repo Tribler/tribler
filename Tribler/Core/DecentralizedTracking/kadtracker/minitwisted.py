@@ -140,6 +140,7 @@ class ThreadedReactor(threading.Thread):
     """
     def __init__(self, task_interval=0.1, floodbarrier_active=True):
         threading.Thread.__init__(self)
+        self.setName("KADTracker"+self.getName())
         self.setDaemon(True)
         
         self.stop_flag = False

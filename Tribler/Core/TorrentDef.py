@@ -65,7 +65,6 @@ class TorrentDef(Serializable,Copyable):
 
         self.input['files'] = []
 
-        
         self.metainfo_valid = False
         self.metainfo = None # copy of loaded or last saved torrent dict
         self.infohash = None # only valid if metainfo_valid
@@ -475,14 +474,22 @@ class TorrentDef(Serializable,Copyable):
     # ClosedSwarm fields
     #
     def set_cs_keys(self, keys):
-        self.input['cs_keys'] = keys
+        """ Keys is a list of DER encoded keys
+        """
+        self.input['cs_keys'] = ",".join(keys)
 
     def get_cs_keys_as_ders(self):
-        if 'cs_keys' in self.input:
+        """Returns a list of DER encoded keys
+        @return A list of DER encoded keys or [] if not a CS
+        """
+        if 'cs_keys' in self.input and len(self.input['cs_keys']) > 0:
             return self.input['cs_keys'].split(",")
         return []
             
     def get_cs_keys(self):
+        """ Get the Closed swarm keys for this torrent.
+        @return A list of key objects ready to be used or [] if not a CS
+        """
         if 'cs_keys' in self.input:
             keys = self.input['cs_keys'].split(",")
             
@@ -491,7 +498,7 @@ class TorrentDef(Serializable,Copyable):
                 k = ClosedSwarm.pubkey_from_der(key)
                 cs_keys.append(k)
             return cs_keys
-        return None
+        return []
 
     def set_add_md5hash(self,value):
         """ Whether to add an end-to-end MD5 checksum to the def.
@@ -536,13 +543,6 @@ class TorrentDef(Serializable,Copyable):
         """ Returns whether to add an end-to-end SHA1 checksum to the def. 
         @return Boolean."""
         return self.input['makehash_sha1']
-
-    def add_cs_key(self, key):
-        if not 'cs_keys' in self.input:
-            self.input['cs_keys'] = []
-
-        self.input['cs_keys'].append(key)
-
     
     def set_create_merkle_torrent(self,value):
         """ Create a Merkle torrent instead of a regular BT torrent. A Merkle
@@ -644,7 +644,8 @@ class TorrentDef(Serializable,Copyable):
             pl = float(self.get_piece_length())
             length = float(self.input['bps']*secs)
 
-            print >>sys.stderr,"TorrentDef: finalize",length,pl
+            if DEBUG:
+                print >>sys.stderr,"TorrentDef: finalize: length",length,"piecelen",pl
             diff = length % pl
             add = (pl - diff) % pl
             newlen = int(length + add)
@@ -1015,4 +1016,5 @@ class TorrentDef(Serializable,Copyable):
         infohash = self.infohash
         t = TorrentDef(input,metainfo,infohash)
         t.metainfo_valid = self.metainfo_valid
+        t.set_cs_keys(self.get_cs_keys_as_ders())
         return t

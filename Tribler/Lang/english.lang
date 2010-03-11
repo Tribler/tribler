@@ -1194,7 +1194,11 @@ videoplayerstartfailure = "Problem while starting video player:"
 videoplayernotfound = "Could not find video player:"
 videoplayernotfoundfor = "Could not find video player for file:"
 videoanalysernotfound = "Could not find video analyser:"
-videoanalyserwhereset = "Set it to FFMPEG in the Preferences / Video menu"
+
+# PREFERENCES/VIDEO MENU DOES NOT EXIST ANYMORE
+# videoanalyserwhereset = "Set it to FFMPEG in the Preferences / Video menu"
+videoanalyserwhereset = ""
+
 videonotcomplete = "The video cannot yet be played as it has not been completely downloaded:"
 notvideotorrent = "Nothing to play, no video files found in torrent"
 videoplaycontentnotfound = "Cannot find video file on disk"
@@ -1403,7 +1407,7 @@ DLSTATUS_SEEDING = "completed/sharing"
 DLSTATUS_STOPPED = "stopped"
 DLSTATUS_STOPPED_ON_ERROR = "stopped/error"
 
-duplicate_download_msg = "You are already downloading this torrent, see your library."
+duplicate_download_msg = "You are already downloading this torrent, see the My Files section."
 duplicate_download_title = "Duplicate download"
 
 invalid_torrent_no_playable_files_msg = "You are attempting to play files from a torrent that does not contain any playable files."

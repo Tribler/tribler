@@ -30,6 +30,7 @@ import shutil
 from traceback import print_exc
 from cStringIO import StringIO
 from threading import Thread
+from base64 import encodestring
 
 if sys.platform == "darwin":
     # on Mac, we can only load VLC/OpenSSL libraries
@@ -56,6 +57,8 @@ from Tribler.Utilities.Instance2Instance import Instance2InstanceClient
 from Tribler.Player.PlayerVideoFrame import VideoFrame
 from Tribler.Player.BaseApp import BaseApp
 
+from Tribler.Core.Status import *
+
 DEBUG = True
 ONSCREENDEBUG = False
 ALLOW_MULTIPLE = False
@@ -65,6 +68,10 @@ PLAYER_VERSION = '1.1.0'
 I2I_LISTENPORT = 57894
 PLAYER_LISTENPORT = 8620
 VIDEOHTTP_LISTENPORT = 6879
+
+# Arno, 2010-03-08: declaration here gives warning, can't get rid of it.
+START_TIME = 0
+
 
 class PlayerApp(BaseApp):
     def __init__(self, redirectstderrout, appname, params, single_instance_checker, installdir, i2iport, sport):
@@ -163,6 +170,10 @@ class PlayerApp(BaseApp):
         else: 
             tdef = TorrentDef.load(torrentfilename)
         print >>sys.stderr,"main: Starting download, infohash is",`tdef.get_infohash()`
+        poa = None
+        if tdef.get_cs_keys():
+            # This is a closed swarm, try to get a POA
+            poa = self._get_poa(tdef)
         
         # Select which video to play (if multiple)
         videofiles = tdef.get_files(exts=videoextdefaults)
@@ -212,7 +223,7 @@ class PlayerApp(BaseApp):
 
 
         # Start actual download
-        self.start_download(tdef,dlfile)
+        self.start_download(tdef,dlfile, poa)
         return True
 
 
@@ -388,8 +399,6 @@ class PlayerApp(BaseApp):
             print_exc()
         BaseApp.clear_session_state(self)
 
-
-
 def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
 
     intime = "Not playing for quite some time."
@@ -410,6 +419,36 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     preprogress = ds.get_vod_prebuffering_progress()
     playable = ds.get_vod_playable()
     t = ds.get_vod_playable_after()
+
+    # Instrumentation
+    # Status elements (reported periodically):
+    #   playable: True if playable
+    #   prebuffering: float of percentage full?
+    #
+    # Events:
+    #   failed_after: Failed to play after X seconds (since starting to play)
+    #   playable_in: Started playing after X seconds
+    status = Status.get_status_holder("LivingLab")
+
+    s_play = status.get_or_create_status_element("playable", False)
+    if playable:
+        if preprogress < 1.0:
+            if s_play.get_value() == True:
+                global START_TIME
+                status.create_and_add_event("failed_after", [time.time() - START_TIME])
+                START_TIME = time.time()
+                
+            s_play.set_value(False)
+
+        elif s_play.get_value() == False:
+            s_play.set_value(True)
+            global START_TIME
+            status.create_and_add_event("playable_in", [time.time() - START_TIME])
+            START_TIME = time.time()
+
+    elif preprogress < 1.0:
+        status.get_or_create_status_element("prebuffering").set_value(preprogress)
+    # /Instrumentation
 
     intime = ETA[0][1]
     for eta_time, eta_msg in ETA:
@@ -577,6 +616,9 @@ class FileDropTarget(wx.FileDropTarget):
 #
 ##############################################################
 def run_playerapp(appname,params = None):
+    global START_TIME
+    START_TIME = time.time()
+    
     if params is None:
         params = [""]
     
@@ -615,7 +657,18 @@ def run_playerapp(appname,params = None):
 
     # Launch first single instance
     app = PlayerApp(0, appname, params, single_instance_checker, installdir, I2I_LISTENPORT, PLAYER_LISTENPORT)
+
+    # Setup the statistic reporter while waiting for proper integration
+    status = Status.get_status_holder("LivingLab")
+    s = Session.get_instance()
+    id = encodestring(s.get_permid()).replace("\n","")
+    #reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
+    reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 30, id) # Report every 30 seconds - ONLY FOR TESTING
+    status.add_reporter(reporter)
+
     app.MainLoop()
+
+    reporter.stop()
     
     print >>sys.stderr,"Sleeping seconds to let other threads finish"
     time.sleep(2)

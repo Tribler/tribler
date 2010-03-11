@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 import sys
 import os.path
+from base64 import decodestring
 
 import Tribler.Core.BitTornado.parseargs as parseargs
 
@@ -32,13 +33,24 @@ def create_poa(torrent, torrent_keypair, node_id, target_file):
     if not good_key:
         raise Exception("Bad key given for this torrent")
 
-    # Got the right key, now create POA
-    poa = ClosedSwarm.create_poa(t.infohash, torrent_keypair, node_id)
-    
-    f = open(target_file, "wb")
-    f.write(poa.serialize())
+    # if the node_id is base64 encoded, decode it
+    try:
+        actual_node_id = decodestring(node_id)
+        print "Node ID was base64 encoded"
+    except:
+        actual_node_id = node_id
 
-    print "Proof of access written to file '%s'"%target_file
+    # Got the right key, now create POA
+    poa = ClosedSwarm.create_poa(t.infohash, torrent_keypair, actual_node_id)
+
+    # Now we save it
+    if target_file:
+        ClosedSwarm.write_poa_to_file(target_file)
+        tf = target_file
+    else:
+        tf = ClosedSwarm.trivial_save_poa("./", decodestring(node_id), t.infohash, poa)
+    
+    print "Proof of access written to file '%s'"%tf
 
 def get_usage(defs):
     print "Usage: ",sys.argv[0],"<torrentfile> [options]\n"
@@ -86,13 +98,7 @@ if __name__ == "__main__":
     if not config['node_id']:
         print "Missing nodeid"
         raise SystemExit(1)
-    
-    if not config['output_file']:
-        config['output_file'] = os.path.join(config['node_id'], ".poa")
-        config['output_file'] = config['output_file'].replace("/","")
-        config['output_file'] = config['output_file'].replace("\\","")
 
-        
     create_poa(t, torrent_keypair, 
                config['node_id'], config['output_file'])
     

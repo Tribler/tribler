@@ -12,7 +12,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.ItemPanel import ItemPanel
 from Tribler.Main.vwxGUI.LibraryItemPanel import LibraryItemPanel
 from Tribler.Main.vwxGUI.ChannelsItemPanel import ChannelsItemPanel
-#from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Main.vwxGUI.PopularItemPanel import PopularItemPanel
 
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
@@ -24,8 +23,8 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 DEBUG = False
 
-CHANNEL_REFRESH_RATE = 5
-CHANNEL_REFRESH_ENABLED = False
+CHANNEL_REFRESH_RATE = 90
+CHANNEL_REFRESH_ENABLED = True
 
 class GridManager(object):
     """ Grid manager handles:
@@ -245,12 +244,16 @@ class GridManager(object):
                 sortcol = state.sort
                 if sortcol == "rameezmetric":
                     sortcol = "name"
-                data = self.torrent_db.getTorrents(category_name = state.category, 
+                library_data = self.torrent_db.getTorrents(category_name = state.category, 
                                                        sort = sortcol,
-                                                       range = range,
+                                                       range = None,
                                                        library = (state.db == 'libraryMode'),
                                                        reverse = state.reverse)
 
+
+                total_items = len(library_data)
+
+                data = library_data[range[0]:range[1]]
 
                 #print >> sys.stderr, "GridManager: _getData: DB returned",len(data)
 
@@ -266,13 +269,14 @@ class GridManager(object):
                 
                 #print >> sys.stderr, "GridManager: _getData: filter returned",len(data)
                 
-                total_items = len(data)
+#                total_items = len(data)
             else: # files mode
                 [total_items,data] = self.torrentsearch_manager.getHitsInCategory(state.db,state.category,range,state.sort,state.reverse)
                 
             #if state.db == 'libraryMode':
             if data is not None:
                 data = self.addDownloadStates(data)
+
  
         elif state.db == 'channelsMode':
 
@@ -301,41 +305,46 @@ class GridManager(object):
 
 
                 if self.grid.name == 'popularGrid':
-                    [stotal_items,sdata] = self.channelsearch_manager.getSubscriptions(state.db)
-                    [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db, maximum=18-stotal_items)
-                    channel = self.grid.guiUtility.standardOverview.channel
-                    if channel is not None:
-                        if not self.votecast_db.hasSubscription(channel[0], bin2str(self.grid.guiUtility.utility.session.get_permid())):
-                            data.append(channel)
-                            total_items+=1
-                        else:
-                            self.grid.guiUtility.standardOverview.channel = None
-                    data.extend(sdata)
-                    total_items+=stotal_items
+                    if self.grid.oldData is None:
+                        [stotal_items,sdata] = self.channelsearch_manager.getSubscriptions(state.db)
+                        [total_items,data] = self.channelsearch_manager.getPopularChannels(state.db, maximum=18-stotal_items)
+                        channel = self.grid.guiUtility.standardOverview.channel
+                        if channel is not None:
+                            if not self.votecast_db.hasSubscription(channel[0], bin2str(self.grid.guiUtility.utility.session.get_permid())):
+                                data.append(channel)
+                                total_items+=1
+                            else:
+                                self.grid.guiUtility.standardOverview.channel = None
+                        data.extend(sdata)
+                        total_items+=stotal_items
+                    else:
+                        data = self.grid.oldData
+                        self.grid.oldData = None
+                        total_items = len(data)
+                        
 
 
-
-        elif state.db in ('personsMode', 'friendsMode'):
-            if state.db == 'friendsMode':
-                state.category = 'friend'
-                
-            if self.peersearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE:
-                #print >>sys.stderr,"GET GUI PEERS #################################################################################"
-                total_items = self.get_number_peers(state)
-                data = self.peer_db.getGUIPeers(category_name = state.category, 
-                                                        sort = state.sort,
-                                                        reverse = state.reverse,
-                                                        range = range,
-                                                        get_online = True)
-            else:
-                #print >>sys.stderr,"SEARCH GUI PEERS $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
-                try:
-                    [total_items,data] = self.peersearch_manager.getHits(state.db,range)
-                except:
-                    print_exc()
-
-            if state.db == 'friendsMode':
-                data = self.addCoopDLStatus(data)
+#        elif state.db in ('personsMode', 'friendsMode'):
+#            if state.db == 'friendsMode':
+#                state.category = 'friend'
+#                
+#            if self.peersearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE:
+#                #print >>sys.stderr,"GET GUI PEERS #################################################################################"
+#                total_items = self.get_number_peers(state)
+#                data = self.peer_db.getGUIPeers(category_name = state.category, 
+#                                                        sort = state.sort,
+#                                                        reverse = state.reverse,
+#                                                        range = range,
+#                                                        get_online = True)
+#            else:
+#                #print >>sys.stderr,"SEARCH GUI PEERS $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+#                try:
+#                    [total_items,data] = self.peersearch_manager.getHits(state.db,range)
+#                except:
+#                    print_exc()
+#
+#            if state.db == 'friendsMode':
+#                data = self.addCoopDLStatus(data)
 
         else:
             raise Exception('Unknown data db in GridManager: %s' % state.db)
@@ -553,6 +562,8 @@ class standardGrid(wx.Panel):
         self.allowDeselectAll = True
         self.selectedPublisherId = None
 
+        self.oldData = None
+
         self.guiUtility.standardGrid = self
  
         self.utility = self.guiUtility.utility
@@ -767,7 +778,7 @@ class standardGrid(wx.Panel):
                         self.setDataOfPanel(i, self.data[i])
                     else:
                         self.setDataOfPanel(i, None)
-                    wx.GetApp().Yield(True)
+#                    wx.GetApp().Yield(True)
 
 
        
@@ -1040,7 +1051,7 @@ class standardGrid(wx.Panel):
                     number += 1
                     colIndex += 1
                 rowIndex += 1
-            self.Layout()
+#            self.Layout()
         except:
             # I sometimes get UnicodeErrors here somewhere
             print_exc()
@@ -1196,10 +1207,8 @@ class standardGrid(wx.Panel):
             if panel:
                 if self.name == 'channelsGrid':
                     self.columnHeader = ColumnHeaderBar(self, panel, name = 'channelheader')
-                elif self.name == 'subscriptionsGrid':
-                    self.columnHeader = ColumnHeaderBar(self, panel, name = 'popularheader')
                 elif self.name == 'popularGrid':
-                    self.columnHeader = ColumnHeaderBar(self, panel, name = 'subscriptionsheader')
+                    self.columnHeader = ColumnHeaderBar(self, panel, name = 'popularheader')
                 else:
                     self.columnHeader = ColumnHeaderBar(self, panel, name = 'filesheader')
 

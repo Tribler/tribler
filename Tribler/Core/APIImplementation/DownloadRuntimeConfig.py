@@ -34,7 +34,7 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
             # Don't need to throw an exception when stopped, we then just save the new value and
             # use it at (re)startup.
             if self.sd is not None:
-                set_max_speed_lambda = lambda:self.sd.set_max_speed(direct,speed,None)
+                set_max_speed_lambda = lambda:self.sd is not None and self.sd.set_max_speed(direct,speed,None)
                 self.session.lm.rawserver.add_task(set_max_speed_lambda,0)
                 
             # At the moment we can't catch any errors in the engine that this 
@@ -119,7 +119,7 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
         self.dllock.acquire()
         try:
             if self.sd is not None:
-                set_max_conns2init_lambda = lambda:self.sd.set_max_conns_to_initiate(nconns,None)
+                set_max_conns2init_lambda = lambda:self.sd is not None and self.sd.set_max_conns_to_initiate(nconns,None)
                 self.session.lm.rawserver.add_task(set_max_conns2init_lambda,0.0)
             DownloadConfigInterface.set_max_conns_to_initiate(self,nconns)
         finally:
@@ -136,7 +136,7 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
         self.dllock.acquire()
         try:
             if self.sd is not None:
-                set_max_conns_lambda = lambda:self.sd.set_max_conns(nconns,None)
+                set_max_conns_lambda = lambda:self.sd is not None and self.sd.set_max_conns(nconns,None)
                 self.session.lm.rawserver.add_task(set_max_conns_lambda,0.0)
             DownloadConfigInterface.set_max_conns(self,nconns)
         finally:

@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 #
 import time
-from base64 import encodestring
+from base64 import encodestring,decodestring
 
 import unittest
 
@@ -18,7 +18,6 @@ class ClosedSwarmTest(unittest.TestCase):
         self.keyfiles = [".node_a_keypair",".node_b_keypair",".torrent_keypair"]
         for filename in self.keyfiles:
             if not os.path.exists(filename):
-                print "Generating",filename
                 keypair = permid.generate_keypair()
                 permid.save_keypair(keypair, filename)
                 
@@ -69,11 +68,16 @@ class ClosedSwarmTest(unittest.TestCase):
         
     def test_poa_serialization(self):
 
+
         serialized = self.poa_a.serialize()
         deserialized = ClosedSwarm.POA.deserialize(serialized)
         self._verify_poas(self.poa_a, deserialized)
         deserialized.verify()
 
+        self.poa_a.save("poa.tmp")
+        new_poa = ClosedSwarm.POA.load("poa.tmp")
+        new_poa.verify()
+        
         # Also serialize/deserialize using lists
         serialized = self.poa_a.serialize_to_list()
         deserialized = self.poa_a.deserialize_from_list(serialized)
@@ -220,7 +224,7 @@ class ClosedSwarmTest(unittest.TestCase):
         msg_3 = self.cs_a.a_provide_poa_message(msg_2)
         msg_4 = self.cs_b.b_provide_poa_message(msg_3)
         self.cs_a.a_check_poa_message(msg_4)
-
+        
         self.assertTrue(self.cs_a.is_remote_node_authorized())
         self.assertFalse(self.cs_b.is_remote_node_authorized())
         

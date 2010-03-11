@@ -20,33 +20,60 @@ from Tribler.Core.BitTornado.BT1.MessageID import *
 # Parent exception - all exceptions thrown by the ClosedSwarm class
 # are children of this class
 class ClosedSwarmException(Exception):
+    """
+    Base class for closed swarm related exceptions
+    """
     pass
 
 # Specialized exceptions
 class MissingKeyException(ClosedSwarmException):
+    """
+    No key was available for the operation
+    """
     pass
 
 class MissingCertificateException(ClosedSwarmException):
+    """
+    A required certificate was not found
+    """
     pass
 
 class BadMessageException(ClosedSwarmException):
+    """
+    A bad closed swarm message was received
+    """
     pass
 
 class WrongSwarmException(ClosedSwarmException):
+    """
+    The wrong swarm was specified
+    """
     pass
 
 class InvalidSignatureException(ClosedSwarmException):
+    """
+    Invalid signature
+    """
     pass
 
 class InvalidPOAException(ClosedSwarmException):
+    """
+    The Proof-of-Access was invalid
+    """
     pass
 
 class POAExpiredException(ClosedSwarmException):
+    """
+    The Proof-of-Access has timed out
+    """
     pass
     
 # Some helper functions
 
 def pubkey_from_der(der_key):
+    """
+    Return a public key object from a DER encoded key
+    """
     return pub_key_from_der(decodestring(der_key))
 
 def generate_cs_keypair(keypair_filename=None, pubkey_filename=None):
@@ -79,10 +106,18 @@ def read_cs_pubkey(pubkey_filename):
     return open(pubkey_filename,"r").read()
 
 def write_poa_to_file(filename, poa):
+    """
+    Dump the POA to the given file in serialized form
+    """
     target = open(filename,"wb")
     target.write(poa.serialize())
+    return filename
 
 def read_poa_from_file(filename):
+    """
+    Read and return a POA object from a file. Throws exception if
+    the file was not found or the POA could not be deserialized
+    """
     if not os.path.exists(filename):
         raise Exception("File '%s' not found"%filename)
     
@@ -90,12 +125,11 @@ def read_poa_from_file(filename):
     return POA.deserialize(data)
 
 # Some POA helpers
-def trivial_get_poa(dir, permid, swarm_id):
+def trivial_get_poa(path, perm_id, swarm_id):
     """
     Look for a POA file for the given permid,swarm_id
     """
-    import sys
-    filename = encodestring(permid).replace("\n","")
+    filename = encodestring(perm_id).replace("\n","")
     filename = filename.replace("/","")
     filename = filename.replace("\\","")
 
@@ -103,17 +137,15 @@ def trivial_get_poa(dir, permid, swarm_id):
     t_id = t_id.replace("/","")
     t_id = t_id.replace("/","")
 
-    poa_path = os.path.join(dir, filename + "." + t_id + ".poa")
+    poa_path = os.path.join(path, filename + "." + t_id + ".poa")
 
     return read_poa_from_file(poa_path)
         
-def trivial_save_poa(dir, permid, swarm_id, poa):
+def trivial_save_poa(path, perm_id, swarm_id, poa):
     """
     Save POA
     """
-    import sys
-    
-    filename = encodestring(permid).replace("\n","")
+    filename = encodestring(perm_id).replace("\n","")
     filename = filename.replace("/","")
     filename = filename.replace("\\","")
 
@@ -121,7 +153,7 @@ def trivial_save_poa(dir, permid, swarm_id, poa):
     t_id = t_id.replace("/","")
     t_id = t_id.replace("/","")
 
-    poa_path = os.path.join(dir, filename + "." + t_id + ".poa")
+    poa_path = os.path.join(path, filename + "." + t_id + ".poa")
     return write_poa_to_file(poa_path, poa)
 
 
@@ -130,7 +162,11 @@ class POA:
     Proof of access wrapper
     """
     
-    def __init__(self, torrent_id, torrent_pub_key, node_pub_key, signature="", expire_time=0):
+    def __init__(self, torrent_id, torrent_pub_key, node_pub_key,
+                 signature="", expire_time=0):
+        """
+        Create a new POA for this torrent
+        """
         self.torrent_id = torrent_id
         self.torrent_pub_key = torrent_pub_key
         self.node_pub_key = node_pub_key
@@ -147,46 +183,57 @@ class POA:
                 self.expire_time,
                 self.signature]
         
-    def deserialize_from_list(list):
+    def deserialize_from_list(lst):
         """
         Deserialize a POA from a list of elements.
 
         The POA object should be verified after deserializing
         """
-        if not list or len(list) < 5:
+        if not lst or len(lst) < 5:
             raise InvalidPOAException("Bad list")
 
-        torrent_id = list[0]
-        torrent_pub_key = list[1]
-        node_pub_key = list[2]
-        expire_time = list[3]
-        signature = list[4]
-        return POA(torrent_id, torrent_pub_key, node_pub_key, signature, expire_time)
-    
+        torrent_id = lst[0]
+        torrent_pub_key = lst[1]
+        node_pub_key = lst[2]
+        expire_time = lst[3]
+        signature = lst[4]
+        return POA(torrent_id, torrent_pub_key,
+                   node_pub_key, signature, expire_time)
+
     deserialize_from_list = staticmethod(deserialize_from_list)
     
     def serialize(self):
-        list = [self.torrent_id,
-                self.torrent_pub_key,
-                self.node_pub_key,
-                self.expire_time,
-                self.signature]
-        return bencode(list)
+        """
+        Return a bencoded, serialized POA
+        """
+        lst = [self.torrent_id,
+               self.torrent_pub_key,
+               self.node_pub_key,
+               self.expire_time,
+               self.signature]
+        return bencode(lst)
 
     def deserialize(encoded):
+        """
+        De-serialize a serialized POA. Returns a POA object, or raises
+        InvalidPOAException if the POA was bad
+        """
         if not encoded:
             raise InvalidPOAException("Cannot deserialize nothing")
         
         try:
-            list = bdecode(encoded)
-            if len(list) < 5:
-                raise InvalidPOAException("Too few entries (got %d, expected 5)"%len(list))
-                
-            return POA(list[0], list[1],
-                       list[2], expire_time=list[3], signature=list[4])
-        except Exception,e:
+            lst = bdecode(encoded)
+            if len(lst) < 5:
+                raise InvalidPOAException("Too few entries (got %d, "
+                                          "expected 5)"%len(lst))
+            return POA(lst[0], lst[1],
+                       lst[2], expire_time=lst[3], signature=lst[4])
+        except Exception, e:
             raise InvalidPOAException("De-serialization failed (%s)"%e)
+
+
     deserialize = staticmethod(deserialize)
+
         
     def get_torrent_pub_key(self):
         """
@@ -199,30 +246,54 @@ class POA:
         Throws an exception if the POA does not hold or has expired
         """
 
-        if self.expire_time and self.expire_time<time.mktime(time.gmtime()):
+        if self.expire_time and \
+               self.expire_time < time.mktime(time.gmtime()):
             raise POAExpiredException()
         
         try:
-            list = [self.torrent_id, 
-                    self.torrent_pub_key, 
-                    self.node_pub_key]
-            b_list = bencode(list)
+            lst = [self.torrent_id, 
+                   self.torrent_pub_key, 
+                   self.node_pub_key]
+            b_list = bencode(lst)
             digest = permid.sha(b_list).digest()
-            pub = permid.EC.pub_key_from_der(self.torrent_pub_key)
+            pub = pub_key_from_der(self.torrent_pub_key)
             if not pub.verify_dsa_asn1(digest, self.signature):
                 raise InvalidPOAException("Proof of access verification failed")
-        except Exception,e:
+        except Exception, e:
             raise InvalidPOAException("Bad POA: %s"%e)
         
     def sign(self, torrent_key_pair):
+        """
+        Sign the POA
+        """
         
-        list = [self.torrent_id, 
+        lst = [self.torrent_id, 
                 self.torrent_pub_key, 
                 self.node_pub_key]
-        b_list = bencode(list)
+        b_list = bencode(lst)
         digest = permid.sha(b_list).digest()
 
         self.signature = torrent_key_pair.sign_dsa_asn1(digest)
+
+    def save(self, filename):
+        target = open(filename,"wb")
+        target.write(self.serialize())
+        target.close()
+        return filename
+
+    def load(filename):
+        """
+        Read and return a POA object from a file. Throws exception if
+        the file was not found or the POA could not be deserialized
+        """
+        if not os.path.exists(filename):
+            raise Exception("File '%s' not found"%filename)
+    
+        data = open(filename,"rb").read()
+        return POA.deserialize(data)
+
+    load = staticmethod(load)
+
         
         
 def create_poa(torrent_id, torrent_keypair, pub_permid, expire_time=0):
@@ -249,30 +320,27 @@ class ClosedSwarm:
     How to use:
     For the initiator:
     cs = ClosedSwarm(my_keypair, torrent_id, torrent_pubkey, poa)
-    initial_challenge = cs.create_initial_challenge()
-    send(initial_challenge)
-    initial_challenge_response = receive() # OR wait for CS_RETURN_CHALLENGE
-    challenge = cs.check_initial_challenge_response(initial_challenge_response)
-    initiator_response = cs.create_initiator_response(challenge)
-    send(initiator_response)
 
-    if cs.is_remote_node_authorized():
-      print "The remote node is authorized to receive data from us"
+    node a (initiator)                | node b
+    msg1 = cs_a.a_create_challenge()  |  
+    send(msg1)                        | msg1 = recv()
+                                      | msg2 = cs.b_create_challenge(msg1)
+    msg2 = recv()                     | send(msg2)
+    msg3 = cs.a_provide_poa_message(msg2)|
+    send(msg3)                        | msg3 = recv()
+                                      | msg4 = b_provide_poa_message(msg3)
+    msg4 = recv()                     | send(msg4)
+    cs.a_check_poa_message(msg4)      |
+    if cs.is_remote_node_authorized():| if cs.is_remote_node_authorized():
+    ...
+
+    The protocol is allowed to stop after msg3, which means that node b
+    will not be authorized. This will happen if node b is seeding, or is
+    not authorized.
     
-    For the remote node (the accepting node):
-
-    process_message(initial_challenge):
-    initial_challenge_response = cs.create_reply_to_initial_challenge(buffer)
-    send(initial_challenge_response)
-    initiator_response = recv(1400) # OR wait for CS_INITIATOR_RESPONSE
-    cs.check_initiator_response(initiator_response)
+    If something bad happens (bad messages, invalid signatures or keys etc),
+    exceptions are thrown.
     
-    if cs.is_remote_node_authorized():
-      print "Remote node is allowed receive to data from us"
-
-    Notice that for the initiator, the protocol might complete without "is_remote_node_authorized()" returning True - the node might for example be a seed.
-    For the accepting node, this will not happen, as exceptions will be thrown.
-
     All exceptions thrown are children of ClosedSwarmException
         
     """
@@ -302,16 +370,27 @@ class ClosedSwarm:
         self.poa = poa
         self.remote_node_authorized = False
 
+        self.nonce_a = None
+        self.nonce_b = None
+        self.remote_nonce = None # Shortcut
+        self.my_nonce = None # Shortcut
+        
         if self.poa: # Allow nodes to support CS but not have a POA (e.g. if they are seeding)
             if self.poa.get_torrent_pub_key() not in self.torrent_pubkeys:
                 import sys
-                print >> sys.stderr,"Bad POA for this torrent (wrong torrent key!)"
+                print >> sys.stderr, "Bad POA for this torrent (wrong torrent key!)"
                 self.poa = None
-        
+                
     def is_remote_node_authorized(self):
+        """
+        Returns True iff the remote node is authorized to receive traffic
+        """
         return self.remote_node_authorized
 
     def set_poa(self, poa):
+        """
+        Set the POA of the closed swarm run
+        """
         assert poa.__class__ == POA
         self.poa = poa
         
@@ -331,7 +410,7 @@ class ClosedSwarm:
         """
         Create the first message (from both nodes)
         """
-        [self.my_nonce, self.my_nonce_bencoded] = permid.generate_challenge()
+        [self.my_nonce, my_nonce_bencoded] = permid.generate_challenge()
         # Serialize this message
         return [msg_id,
                 self.torrent_id,
@@ -347,12 +426,10 @@ class ClosedSwarm:
         self.state = self.EXPECTING_RETURN_CHALLENGE
         return self._create_challenge_msg(CS_CHALLENGE_A)
 
-    def b_create_challenge(self, list):
+    def b_create_challenge(self, lst):
         """
         2nd message
         Return a message that can be sent in reply to the given challenge.
-        i_am_seeding should be set to True if seeding - we will not be allowed
-        any data from the remote node, but will save some cycles
         Throws exception on bad message or if this cannot be done
         BadMessageException - Message was bad
         MissingKeyException - Don't have the necessary keys
@@ -362,11 +439,11 @@ class ClosedSwarm:
         self.state = self.EXPECTING_INITIATOR_RESPONSE
 
         # List should be [INITIAL_CHALLENGE, torrent_id, nonce]
-        if len(list) != 3:
-            raise BadMessageException("Bad number of elements in message, expected 2, got %d"%len(list))
-        if list[0] != CS_CHALLENGE_A:
+        if len(lst) != 3:
+            raise BadMessageException("Bad number of elements in message, expected 2, got %d"%len(lst))
+        if lst[0] != CS_CHALLENGE_A:
             raise BadMessageException("Expected initial challenge, got something else")
-        [torrent_id, nonce_a] = list[1:]
+        [torrent_id, nonce_a] = lst[1:]
 
         # Now we generate the response
         if self.torrent_id != torrent_id:
@@ -383,7 +460,11 @@ class ClosedSwarm:
         """
         Create the POA exchange message (messages 3 and 4).
         """
-
+        assert msg_id
+        assert nonce_a
+        assert nonce_b
+        assert self.poa
+        
         # Provide the certificate 
         if not self.poa:
             raise MissingCertificateException()
@@ -391,60 +472,61 @@ class ClosedSwarm:
         msg = [msg_id] + self.poa.serialize_to_list()
 
         # Add signature
-        list = [nonce_a,
-                nonce_b,
-                self.poa.serialize()]
-
-        b_list = bencode(list)
+        lst = [nonce_a,
+               nonce_b,
+               self.poa.serialize()]
+        
+        b_list = bencode(lst)
         digest = permid.sha(b_list).digest()
         sig = self.my_keypair.sign_dsa_asn1(digest)
         msg.append(sig)
 
         return msg
 
-    def _validate_poa_message(self, list, nonce_a, nonce_b):
+    def _validate_poa_message(self, lst, nonce_a, nonce_b):
         """
         Validate an incoming POA message - throw exception if bad.
         Returns the POA if successful
         """
-
-        if len(list) != 7:
-            raise BadMessageException("Require 7 elements, got %d"%len(list))
+        assert nonce_a
+        assert nonce_b
         
-
-        poa = POA.deserialize_from_list(list[1:-1])
-        sig = list[-1]
-
-        # Debug
-        self.remote_poa = poa
-
+        if len(lst) != 7:
+            raise BadMessageException("Require 7 elements, got %d"%len(lst))
+        
+        poa = POA.deserialize_from_list(lst[1:-1])
+        sig = lst[-1]
+        assert poa.node_pub_key
+        
         if poa.torrent_id != self.torrent_id:
             raise WrongSwarmException()
 
         if poa.get_torrent_pub_key() not in self.torrent_pubkeys:
-            import sys
-            print >>sys.stderr,"Pub key:",poa.get_torrent_pub_key()
-            print >>sys.stderr,"Torrent keys:",self.torrent_pubkeys
             raise InvalidPOAException("Bad POA for this torrent")
 
         # Check the signature
-        list = [nonce_a,
-                nonce_b,
-                poa.serialize()]
-
-        b_list = bencode(list)
+        lst = [nonce_a,
+               nonce_b,
+               poa.serialize()]
+        import sys
+        b_list = bencode(lst)
         digest = permid.sha(b_list).digest()
-        pub = permid.EC.pub_key_from_der(poa.node_pub_key)
+        try:
+            pub = pub_key_from_der(poa.node_pub_key)
+        except:
+            print >> sys.stderr, "The node_pub_key is no good"
+            print >> sys.stderr, poa.node_pub_key
+            raise Exception("JIKES!")
+            
         if not pub.verify_dsa_asn1(digest, sig):
             raise InvalidSignatureException("Freshness test failed")
             
         # Passed the freshness test, now check the certificate
         poa.verify() # Throws exception if bad
-
         return poa
 
     
-    def a_provide_poa_message(self, list, i_am_seeding=False):
+    def a_provide_poa_message(self, lst):
         """
         3rd message
         Got a reply to an initial challenge.  Returns
@@ -452,43 +534,42 @@ class ClosedSwarm:
         """
         assert self.state == self.EXPECTING_RETURN_CHALLENGE
         self.state = self.SEND_INITIATOR_RESPONSE
-
-        nonce_b = None
-        if len(list) != 3:
+        if len(lst) != 3:
             raise BadMessageException("Require 3 elements, got %d"%\
-                                     len(list))
-
-        if list[0] != CS_CHALLENGE_B:
-            raise BadMessageException("Expected RETURN_CHALLENGE, got '%s'"%list[0])
-        
-        if list[1] != self.torrent_id:
+                                     len(lst))
+        if lst[0] != CS_CHALLENGE_B:
+            raise BadMessageException("Expected RETURN_CHALLENGE, got '%s'"%lst[0])
+        if lst[1] != self.torrent_id:
             raise WrongSwarmException()
 
-        self.remote_nonce = list[2]
+        self.remote_nonce = lst[2]
         msg = self._create_poa_message(CS_POA_EXCHANGE_A, self.my_nonce, self.remote_nonce)
         return msg
             
 
-    def b_provide_poa_message(self, list, i_am_seeding=False):
+    def b_provide_poa_message(self, lst, i_am_seeding=False):
         """
         4rd message
         Got a reply to an initial challenge.  Returns
         the challenge sent by the remote node or None if i_am_seeding is true
         """
-
         assert self.state == self.EXPECTING_INITIATOR_RESPONSE
         self.state = self.COMPLETED
 
-        if list[0] != CS_POA_EXCHANGE_A:
+        if lst[0] != CS_POA_EXCHANGE_A:
+            import sys
+            print >> sys.stderr, "Not CS_POA_EXCHANGE_A"
             raise BadMessageException("Expected POA EXCHANGE")
 
         try:
-            remote_poa = self._validate_poa_message(list, self.remote_nonce, self.my_nonce)
+            self._validate_poa_message(lst, self.remote_nonce,
+                                       self.my_nonce)
             self.remote_node_authorized = True
-        except Exception,e:
+        except Exception, e:
             self.remote_node_authorized = False
-            #import sys
-            #print >>sys.stderr, "Error validating POA from A",e
+            import sys
+            print >> sys.stderr, "POA could not be validated:",e
+            #raise e // The remote node failed, but we can still make it!
 
         if i_am_seeding:
             return None
@@ -496,89 +577,18 @@ class ClosedSwarm:
         msg = self._create_poa_message(CS_POA_EXCHANGE_B, self.remote_nonce, self.my_nonce)
         return msg
 
-    def a_check_poa_message(self, list):
+    def a_check_poa_message(self, lst):
         """
         Verify receiption of 4th message
         """
         assert self.state == self.SEND_INITIATOR_RESPONSE
         self.state = self.COMPLETED
 
-        if list[0] != CS_POA_EXCHANGE_B:
+        if lst[0] != CS_POA_EXCHANGE_B:
             raise BadMessageException("Expected POA EXCHANGE")
 
-        self._validate_poa_message(list, self.my_nonce, self.remote_nonce)
+        self._validate_poa_message(lst, self.my_nonce, self.remote_nonce)
 
         # Remote node authorized!
         self.remote_node_authorized = True
-
-
-    # def create_initiator_response(self, nonce_b):
-    #     """
-    #     Create the response from the initiator after having the
-    #     remote node perform the initial challenge.
-    #     """
-    #     assert self.state == self.SEND_INITIATOR_RESPONSE
-    #     self.state = self.COMPLETED
-
-    #     assert nonce_b
-        
-    #     msg = [CS_INITIATOR_RESPONSE, nonce_b]
-
-    #     # Provide the certificate 
-    #     if not self.poa:
-    #         raise MissingCertificateException()
-    #     msg.append(self.torrent_id)
-    #     msg.append(self.poa.torrent_pub_key)
-    #     msg.append(self.pub_permid)
-    #     msg.append(self.poa.serialize())
-    #     # Sign it
-    #     list = [nonce_b,
-    #             self.torrent_id,
-    #             self.poa.torrent_pub_key,
-    #             self.pub_permid,
-    #             self.poa.serialize()]
-    #     b_list = bencode(list)
-    #     digest = permid.sha(b_list).digest()
-    #     sig = self.my_keypair.sign_dsa_asn1(digest)
-    #     msg.append(sig)
-    #     return msg
-
-    # def check_initiator_response(self, list):
-    #     """
-    #     Verify the response from the initiator to our challenge
-    #     """
-    #     assert self.state == self.EXPECTING_INITIATOR_RESPONSE
-    #     self.state = self.COMPLETED
-
-    #     assert list
-    #     if len(list) != 7:
-    #         raise BadMessageException("Expected 7 message elements, but got %s"%len(list))
-    #     [nonce_b, torrent_id, torrent_pubkey, pub_permid, poa, sig] = list[1:]
-    #     if torrent_id != self.torrent_id:
-    #         raise WrongSwarmException()
-    #     if nonce_b != self.nonce_b:
-    #         raise BadMessageException("Got the wrong nonce")
-        
-    #     remote_poa = POA.deserialize(poa)
-    #     if not remote_poa.get_torrent_pub_key() in self.torrent_pubkeys:
-    #         import sys
-    #         print >>sys.stderr,"Pub key:",remote_poa.get_torrent_pub_key(),"not in",self.torrent_pubkeys
-            
-    #         raise InvalidPOAException("Bad POA for this swarm")
-        
-    #     # Check the signature
-    #     new_list = [self.nonce_b,
-    #                 self.torrent_id,
-    #                 torrent_pubkey,
-    #                 pub_permid,
-    #                 poa]
-    #     b_list = bencode(new_list)
-    #     digest = permid.sha(b_list).digest()
-    #     pub = permid.EC.pub_key_from_der(pub_permid)
-    #     if not pub.verify_dsa_asn1(digest, sig):
-    #         raise InvalidSignatureException("Message freshness failed")
-    #     # Passed the freshness test, now check the certificate
-    #     remote_poa.verify()
-        
-    #     self.remote_node_authorized = True
 

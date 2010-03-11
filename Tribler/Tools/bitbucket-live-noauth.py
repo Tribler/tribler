@@ -3,6 +3,7 @@ import time
 import random
 import tempfile
 from traceback import print_exc
+from base64 import encodestring
 
 from Tribler.Core.API import *
 
@@ -61,6 +62,17 @@ RATE = tdef.get_bitrate()
 
 dscfg = DownloadStartupConfig()
 dscfg.set_video_event_callback( vod_event_callback )
+
+# A Closed swarm - load the POA. Will throw an exception if no POA is available
+if tdef.get_cs_keys():
+    print >>sys.stderr, "Is a closed swarm, reading POA"
+    try:
+        poa = ClosedSwarm.trivial_get_poa(s.get_default_state_dir(),
+                                          s.get_permid(),
+                                          tdef.infohash)
+    except Exception,e:
+        print >>sys.stderr, "Failed to load POA for swarm",encodestring(tdef.infohash).replace("\n",""),"from",s.get_default_state_dir(),"(my permid is %s)"%encodestring(s.get_permid()).replace("\n",""),"Error was:",e
+        raise SystemExit("Failed to load POA, aborting")
 
 d = s.start_download( tdef, dscfg )
 

@@ -313,6 +313,7 @@ class SingleDownload(SingleDownloadHelperInterface):
         status = get_status_holder("LivingLab")
         s_download = status.get_or_create_status_element("downloaded",0)
         s_download.inc(length)
+        
         self.short_term_measure.update_rate(length)
         self.downloader.measurefunc(length)
         if not self.downloader.storage.piece_came_in(index, begin, hashlist, piece, self.guard):
@@ -801,7 +802,7 @@ class Downloader:
         self._event_reporter.add_event(self.b64_infohash, "connection-upload:%s,%d" % (ip, download.connection.total_uploaded))
         self._event_reporter.add_event(self.b64_infohash, "connection-download:%s,%d" % (ip, download.connection.total_downloaded))
         self._event_reporter.add_event(self.b64_infohash, "connection-lost:%s" % ip)
-
+        
     def _reset_endgame(self):            
         if DEBUG: print >>sys.stderr, "Downloader: _reset_endgame"
         self.storage.reset_endgame(self.all_requests)

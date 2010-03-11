@@ -37,7 +37,7 @@ DEBUG = False
 DEBUG_NORMAL_MSGS = False
 DEBUG_UT_PEX = False
 DEBUG_MESSAGE_HANDLING = False
-DEBUG_CS = False # Debug closed swarms
+DEBUG_CS = True # Debug closed swarms
 
 UNAUTH_PERMID_PERIOD = 3600
 
@@ -152,7 +152,7 @@ class Connection:
         self.cs_status_not_supported = status.get_or_create_status_element("nodes_not_supporting_cs", 0)
         
         if self.connecter.is_closed_swarm:
-            if DEBUG:
+            if DEBUG_CS:
                 print >>sys.stderr,"connecter: conn: CS: This is a closed swarm"
             self.is_closed_swarm = True
             if 'poa' in self.connecter.config:
@@ -269,6 +269,8 @@ class Connection:
     def send_have(self, index):
         if self.can_send_to():
             self._send_message(HAVE + tobinary(index))
+        #elif DEBUG_CS:
+        #    print >>sys.stderr,"Supressing HAVE messages"
 
     def send_keepalive(self):
         self._send_message('')
@@ -403,12 +405,17 @@ class Connection:
             if EXTEND_MSG_CS in self.extend_hs_dict['m']:
                 self.remote_supports_cs = True
                 self.cs_status_supported.inc()
+                if DEBUG_CS:
+                    print >>sys.stderr,"connecter: Peer supports Closed swarms"
+
                 if self.is_closed_swarm and self.connection.locally_initiated:
+                    if DEBUG_CS:
+                        print >>sys.stderr,"connecter: Initiating Closed swarm handshake"
                     self.start_cs_handshake()
             else:
                 self.remote_supports_cs = False
                 self.cs_status_not_supported.inc()
-                if DEBUG:
+                if DEBUG_CS:
                     print >>sys.stderr,"connecter: conn: Remote node does not support CS, flagging CS as done"
                 self.connecter.cs_handshake_completed()
                 status = Status.get_status_holder("LivingLab")
@@ -598,14 +605,10 @@ class Connection:
             return False
 
     def _send_cs_message(self, cs_list):
-        if DEBUG_CS:
-            print >>sys.stderr,"connecter: conn: _send_cs_message",cs_list[0]
         blist = bencode(cs_list)
         self._send_message(EXTEND + self.his_extend_msg_name_to_id(EXTEND_MSG_CS) + blist)
         
     def got_cs_message(self, cs_list):
-        if DEBUG_CS:
-            print >>sys.stderr,"connecter: conn: got_cs_message",cs_list[0]
         if not self.is_closed_swarm:
             raise Exception("Got ClosedSwarm message, but this swarm is not closed")
 
@@ -627,9 +630,8 @@ class Connection:
                 print >>sys.stderr,"connecter: conn: CS: Got return challenge"
             try:
                 response = self.closed_swarm_protocol.a_provide_poa_message(cs_list)
-                self.remote_is_authenticated = self.closed_swarm_protocol.is_remote_node_authorized()
-                if DEBUG_CS:
-                    print >>sys.stderr,"connecter: conn: CS: Remote node authorized:",self.remote_is_authenticated
+                if DEBUG_CS and not response:
+                    print >> sys.stderr, "connecter: I'm not intererested in data"
                 self._send_cs_message(response)
             except Exception,e:
                 self.cs_status.add_value("CS_bad_return_challenge")
@@ -1529,7 +1531,7 @@ class Connecter:
                     connection.send_have(i)
                 i += 1
             #connection.upload.send_bitfield(connection)
-            connection.got_anyUpohing = False
+            connection.got_anything = False
             self.choker.start_connection(connection)
         except Exception,e:
             print >> sys.stderr,"Error restarting after CS handshake:",e

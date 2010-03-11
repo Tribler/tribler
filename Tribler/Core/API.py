@@ -4,9 +4,14 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.4, Dec 2009. Import this to use the API """
+""" Tribler Core API v1.0.5, Feb 2010. Import this to use the API """
 
 # History:
+#
+# 1.0.5      Released with Tribler 5.2.0
+#
+# 1.0.5rc1   Session.query_connected_peers() retuns all names as Unicode 
+#            strings.
 #
 # 1.0.4      Released with Next-Share M24
 #

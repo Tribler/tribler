@@ -11,11 +11,7 @@ from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wx
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
-from Tribler.Core.simpledefs import *
-
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
-
-
+from Tribler.Core.API import *
 
 #fonts
 if sys.platform == 'darwin':
@@ -63,7 +59,7 @@ class SettingsOverviewPanel(wx.Panel):
                              'iconSaved', \
                              'cSave']
 
-
+        self.myname = None
         if sys.platform == 'darwin':
             self.utf8=""
         else:
@@ -394,7 +390,8 @@ class SettingsOverviewPanel(wx.Panel):
 
             # disk location
             if diskLocation:
-                self.defaultDLConfig.set_dest_dir(self.elements['diskLocationCtrl'].GetValue())
+                newLocation = self.elements['diskLocationCtrl'].GetValue()
+                self.defaultDLConfig.set_dest_dir(newLocation)
                 self.saveDefaultDownloadConfig()
 
 
@@ -416,10 +413,10 @@ class SettingsOverviewPanel(wx.Panel):
 
             #profile info
             if self.callback is not None:
-                self.callback(self.name, self.icondata, self.iconmime, self.scfg, self.cfgfilename, self.utility.session)
+                self.callback(self.myname, self.icondata, self.iconmime, self.scfg, self.cfgfilename, self.utility.session)
 
             self.updateSaveIcon()
-            self.channelcast_db.updateMyChannelName(self.name)
+            self.channelcast_db.updateMyChannelName(self.myname)
 
    
         
@@ -436,8 +433,28 @@ class SettingsOverviewPanel(wx.Panel):
 
 
     def saveDefaultDownloadConfig(self):
+        # Save DownloadStartupConfig
         dlcfgfilename = get_default_dscfg_filename(self.utility.session)
         self.defaultDLConfig.save(dlcfgfilename)
+        
+        # Arno, 2010-03-08: Apparently not copied correctly from abcoptions.py
+        # Save SessionStartupConfig
+        # Also change torrent collecting dir, which is by default in the default destdir
+        state_dir = self.utility.session.get_state_dir()
+        cfgfilename = Session.get_default_config_filename(state_dir)
+        scfg = SessionStartupConfig.load(cfgfilename)
+
+        defaultdestdir = self.defaultDLConfig.get_dest_dir()
+        dirname = os.path.join(defaultdestdir,STATEDIR_TORRENTCOLL_DIR)
+        for target in [scfg,self.utility.session]:
+            try:
+                target.set_torrent_collecting_dir(dirname)
+            except:
+                print_exc()
+
+        # TODO: set_download_help_dir()
+
+        scfg.save(cfgfilename)
 
 
     def OnMyInfoWizard(self, event = None):
@@ -458,7 +475,7 @@ class SettingsOverviewPanel(wx.Panel):
         thumbpanel.createBackgroundImage()
         thumbpanel.setBitmap(self.mugshot)
 
-        self.name=name
+        self.myname=name
         self.icondata=icondata
         self.iconmime=iconmime
         self.scfg=scfg

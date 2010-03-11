@@ -53,40 +53,6 @@ class MyWebServer(BaseHTTPServer.HTTPServer):
             return (None, None)
 
 
-class MySecureWebServer(MyWebServer):
-    """
-    SSL enabled web server
-    """
-
-    def __init__(self, config, server_address, RequestHandlerClass):
-
-        """
-        Config must contain "SSL.KeyFile", "SSL.CertFile"
-        """
-
-        for key in ["SSL.KeyFile", "SSL.CertFile"]:
-            if not key in config:
-                raise Exception("Missing configuration '%s'"%key)
-
-        MyWebServer.__init__(self, server_address, RequestHandlerClass)
-
-        ctx = SSL.Context(SSL.SSLv23_METHOD)
-
-        # Verify config
-        if not os.path.exists(config["SSL.KeyFile"]):
-            raise Exception("Missing SSL Key File '%s'"%config["SSL.KeyFile"])
-            
-        if not os.path.exists(config["SSL.CertFile"]):
-            raise Exception("Missing SSL Certificate File '%s'"%config["SSL.CertFile"])
-        
-        ctx.use_privatekey_file (config["SSL.KeyFile"])
-        ctx.use_certificate_file(config["SSL.CertFile"])
-
-        self.socket = SSL.Connection(ctx, socket.socket(self.address_family,
-                                                        self.socket_type))
-        self.server_bind()
-        self.server_activate()
-
 
 
 class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):

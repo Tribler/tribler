@@ -641,19 +641,26 @@ class Session(SessionRuntimeConfig):
         (infohash,torrentrecord) pairs. The torrentrecord is a 
         dictionary that contains the following keys:
         <pre>
-        * 'content_name': The 'name' field of the torrent.
+        * 'content_name': The 'name' field of the torrent as Unicode string.
         * 'length': The total size of the content in the torrent.
         * 'leecher': The currently known number of downloaders.
         * 'seeder': The currently known number of seeders.
         * 'category': A list of category strings the torrent was classified into
           by the remote peer.
         </pre>
-
+        
         From Session API version 1.0.2 the following keys were added
         to the torrentrecord:
         <pre>
         * 'torrent_size': The size of the .torrent file.
         </pre>
+
+        From Session API version 1.0.4 the following keys were added
+        to the torrentrecord:
+        <pre>
+        * 'channel_permid': PermID of the channel this torrent belongs to (or '')
+        * 'channel_name': channel name as Unicode string (or '').
+       
 
         For SIMPLE+METADATA queries there is an extra field
         <pre>
@@ -679,7 +686,14 @@ class Session(SessionRuntimeConfig):
         In each of the above 2 cases, the format of the hits that is returned 
         by the queried peer is a dictionary of hits of (signature,channelrecord). 
         The channelrecord is a dictionary the contains following keys: 
-        {publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp}
+        <pre>
+        * 'publisher_id': a PermID
+        * 'publisher_name': as Unicode string
+        * 'infohash': 20-byte SHA1 hash
+        * 'torrenthash': 20-byte SHA1 hash
+        * 'torrentname': as Unicode string
+        * 'time_stamp': as integer
+        </pre>
 
         
         @param query A Unicode query string adhering to the above spec.

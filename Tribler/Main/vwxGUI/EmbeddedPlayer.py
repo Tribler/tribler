@@ -84,8 +84,6 @@ class EmbeddedPlayerPanel(wx.Panel):
         #self.videoinfotext.SetForegroundColour(wx.BLACK)
         #self.videoinfotext.SetBackgroundColour(wx.WHITE)
 
-
-
         if vlcwrap is not None:
             ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
             #self.slider = wx.Slider(self, -1)
@@ -238,28 +236,31 @@ class EmbeddedPlayerPanel(wx.Panel):
     def Load(self,url,streaminfo = None):
         if DEBUG:
             print >>sys.stderr,"embedplay: Load:",url,streaminfo,currentThread().getName()
-        # Arno: hack: disable dragging when not playing from file.
-        if url is None or url.startswith('http:'):
-           self.slider.DisableDragging()
-        else:
-           self.slider.EnableDragging()
+
         ##self.SetPlayerStatus('')
         if streaminfo is not None:
             self.estduration = streaminfo.get('estduration',None)
 
-        # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
+        # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
+        # 26/05/09 Boudewijn: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
+            # Arno: hack: disable dragging when not playing from file.
+            if url is None or url.startswith('http:'):
+                self.slider.DisableDragging()
+            else:
+                self.slider.EnableDragging()
+
             # Arno, 2009-02-17: If we don't do this VLC gets the wrong playlist somehow
             self.vlcwrap.stop()
             self.vlcwrap.playlist_clear()
             self.vlcwrap.load(url,streaminfo=streaminfo)
         
-        # Enable update of progress slider
-        self.update = True
-        wx.CallAfter(self.slider.SetValue,0)
-        if self.timer is None:
-            self.timer = wx.Timer(self)
-            self.Bind(wx.EVT_TIMER, self.UpdateSlider)
+            # Enable update of progress slider
+            self.update = True
+            wx.CallAfter(self.slider.SetValue,0)
+            if self.timer is None:
+                self.timer = wx.Timer(self)
+                self.Bind(wx.EVT_TIMER, self.UpdateSlider)
             
         self.timer.Start(200)
         if sys.platform != 'darwin':
@@ -342,11 +343,15 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def enableScroll(self):
         self.scroll_enabled = True
-        self.slider.EnableDragging()
+        # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
+        if self.vlcwrap:
+            self.slider.EnableDragging()
 
     def disableScroll(self):
         self.scroll_enabled = False
-        self.slider.DisableDragging()
+        # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
+        if self.vlcwrap:
+            self.slider.DisableDragging()
 
     def enablePlay(self):
         self.play_enabled = True
@@ -468,18 +473,24 @@ class EmbeddedPlayerPanel(wx.Panel):
     #
     def EnableInput(self):
         self.ppbtn.Enable(True)
-        self.slider.Enable(True)
+        # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
+        if self.vlcwrap:
+            self.slider.Enable(True)
         self.fsbtn.Enable(True)
 
     def UpdateProgressSlider(self, pieces_complete):
-        self.slider.setBufferFromPieces(pieces_complete)
-        self.slider.Refresh()
+        # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
+        if self.vlcwrap:
+            self.slider.setBufferFromPieces(pieces_complete)
+            self.slider.Refresh()
         
     def DisableInput(self):
         # return # Not currently used
         
         self.ppbtn.Disable()
-        self.slider.Disable()
+        # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
+        if self.vlcwrap:
+            self.slider.Disable()
         self.fsbtn.Disable()
 
     def UpdateSlider(self, evt):

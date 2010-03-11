@@ -4,6 +4,7 @@
 
 import sys
 from time import time
+from sets import Set
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Statistics.Logger import OverlayLogger
@@ -14,6 +15,8 @@ from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRTEENTH
+from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.simpledefs import NTFY_VOTECAST, NTFY_UPDATE
 
 DEBUG_UI = False
 DEBUG = False    #Default debug
@@ -46,6 +49,9 @@ class VoteCastCore:
         #Reference to buddycast-core, set by the buddycast-core (as it is created by the
         #buddycast-factory after calling this constructor).
         self.buddycast_core = None
+        
+        
+        self.notifier = Notifier.getInstance()
         
         #Extend logging with VoteCast-messages and status
         if self.log:
@@ -173,7 +179,8 @@ class VoteCastCore:
         """ Handles VoteCast message """
         if DEBUG: 
             print >> sys.stderr, "votecast: Processing VOTECAST msg from: ", show_permid_short(sender_permid), "; data: ", repr(data)
-    
+
+        mod_ids = Set()
         for key, value in data.items():
             vote = {}
             vote['mod_id'] = bin2str(key)
@@ -181,6 +188,15 @@ class VoteCastCore:
             vote['vote'] = value['vote']
             vote['time_stamp'] = value['time_stamp'] 
             self.votecastdb.addVote(vote)
+            
+            mod_ids.add(vote['mod_id'])
+
+        # Arno, 2010-02-24: Generate event
+        for mod_id in mod_ids:
+            try:
+                self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, mod_id)
+            except:
+                print_exc()
             
         if DEBUG:
             print >> sys.stderr,"votecast: Processing VOTECAST msg from: ", show_permid_short(sender_permid), "DONE; data:"

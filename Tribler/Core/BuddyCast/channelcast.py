@@ -4,23 +4,26 @@
 import sys
 from time import time, ctime, sleep
 from zlib import compress, decompress
-from base64 import decodestring, encodestring
 from binascii import hexlify
 from traceback import print_exc, print_stack
 from types import StringType, ListType, DictType
 from random import randint, sample, seed, random
 from sha import sha
+from sets import Set
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.BitTornado.BT1.MessageID import CHANNELCAST, BUDDYCAST
 from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler, VoteCastDBHandler
+from Tribler.Core.Utilities.unicode import str2unicode
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRTEENTH
+from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_UPDATE
 
 DEBUG = False
 
@@ -35,14 +38,14 @@ class ChannelCastCore:
     __single = None
     TESTASSERVER = False # for unit testing
 
-    def __init__(self, data_handler, secure_overlay, session, buddycast_interval_function, log = '', dnsindb = None):
+    def __init__(self, data_handler, overlay_bridge, session, buddycast_interval_function, log = '', dnsindb = None):
         """ Returns an instance of this class """
         #Keep reference to interval-function of BuddycastFactory
         self.interval = buddycast_interval_function
         self.data_handler = data_handler
         self.dnsindb = dnsindb
         self.log = log
-        self.secure_overlay = secure_overlay
+        self.overlay_bridge = overlay_bridge
         self.channelcastdb = ChannelCastDBHandler.getInstance()
         self.votecastdb = VoteCastDBHandler.getInstance()
         self.rtorrent_handler = RemoteTorrentHandler.getInstance()
@@ -59,6 +62,8 @@ class ChannelCastCore:
             self.overlay_log = OverlayLogger.getInstance(self.log)
             self.dnsindb = self.data_handler.get_dns_from_peerdb
         self.hits = []
+        
+        self.notifier = Notifier.getInstance()
 
     
     def initialized(self):
@@ -86,7 +91,6 @@ class ChannelCastCore:
         if channelcast_data is None or len(channelcast_data)==0:
             if DEBUG:
                 print >>sys.stderr, "channelcast: No channels there.. hence we do not send"
-            #self.session.chquery_connected_peers('k:MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAf3BkHsZ6UdIpuIX441wjU5Ybe0HPjTDvS+iacFZABH20It9N9uwkwtpkS3uEvVvfcTX50jcFNXOSCwq')            
             return
         channelcast_msg = bencode(channelcast_data)
         
@@ -99,7 +103,7 @@ class ChannelCastCore:
                 self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
         
         data = CHANNELCAST + channelcast_msg
-        self.secure_overlay.send(target_permid, data, self.channelCastSendCallback)        
+        self.overlay_bridge.send(target_permid, data, self.channelCastSendCallback)        
         #if DEBUG: print >> sys.stderr, "channelcast: Sent channelcastmsg",repr(channelcast_data)
     
     def createChannelCastMessage(self):
@@ -169,7 +173,17 @@ class ChannelCastCore:
         if not validChannelCastMsg(channelcast_data):
             print >> sys.stderr, "channelcast: invalid channelcast_message"
             return False
-        
+
+        # 19/02/10 Boudewijn: validChannelCastMsg passes when
+        # PUBLISHER_NAME and TORRENTNAME are either string or
+        # unicode-string.  However, all further code requires that
+        # these are unicode!
+        for ch in channelcast_data.values():
+            if isinstance(ch["publisher_name"], str):
+                ch["publisher_name"] = str2unicode(ch["publisher_name"])
+            if isinstance(ch["torrentname"], str):
+                ch["torrentname"] = str2unicode(ch["torrentname"])
+
         self.handleChannelCastMsg(sender_permid, channelcast_data)
         
         #Log RECV_MSG of uncompressed message
@@ -206,6 +220,7 @@ class ChannelCastCore:
             else:
                 print >> sys.stderr, "channelcast: updatechannel: could not find infohash", bin2str(infohash)
 
+        publisher_ids = Set()
         for k,v in hits.items():
             #check if the record belongs to a channel who we have "reported spam" (negative vote)
             if self.votecastdb.getVote(bin2str(v['publisher_id']), bin2str(self.session.get_permid())) == -1:
@@ -213,9 +228,11 @@ class ChannelCastCore:
                 continue
             
             # make everything into "string" format, if "binary"
-            hit = (bin2str(v['publisher_id']),v['publisher_name'].decode("UTF-8"),bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'].decode("UTF-8"),v['time_stamp'],bin2str(k))
+            hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
             tmp_hits[v['infohash']] = hit 
             # effectively v['infohash'] == str2bin(hit[2])
+
+            publisher_ids.add(hit[0])
 
             if self.channelcastdb.existsTorrent(v['infohash']):
                 if self.channelcastdb.addTorrent(hit):
@@ -223,6 +240,12 @@ class ChannelCastCore:
             else:
                 self.rtorrent_handler.download_torrent(query_permid,v['infohash'],usercallback)
 
+        # Arno, 2010-02-24: Generate event
+        for publisher_id in publisher_ids:
+            try:
+                self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, publisher_id)
+            except:
+                print_exc()
 
 
     def updateMySubscribedChannels(self):
@@ -232,4 +255,4 @@ class ChannelCastCore:
             q = "CHANNEL p "+permid
             self.session.query_connected_peers(q,usercallback=self.updateChannel)
         
-        self.secure_overlay.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)        
+        self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)        

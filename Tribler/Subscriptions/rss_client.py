@@ -153,7 +153,7 @@ class TorrentFeedThread(Thread):
     def addURL(self, url, dowrite=True, status="active", callback=None):
         # reinitialize feeds
         self.feeds = []
-        print >> sys.stderr , "callback", url, callback
+        if DEBUG: print >> sys.stderr , "callback", url, callback
         def on_torrent_callback(rss_url, infohash, torrent_data):
             # 01/02/10 Boudewijn: we should use the TorrendDef to read
             # the .torrent file.  However, we will also write the

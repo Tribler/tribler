@@ -105,10 +105,10 @@ class channelsDetailsItem(wx.Panel):
         
 
         # torrent title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.expandedValue,18))
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.expandedValue,16))
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))        
         self.title.SetForegroundColour(self.torrentColour)
-        self.title.SetMinSize((self.expandedValue-31,18))
+        self.title.SetMinSize((self.expandedValue-31,16))
        
         # save button
         #self.save = tribler_topButton(self, -1, name = "downloadFromChannel")

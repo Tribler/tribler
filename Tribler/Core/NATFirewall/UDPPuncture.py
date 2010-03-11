@@ -117,7 +117,17 @@ class UDPHandler:
     # peer's idea of its filtering type.
     FIXED_THRESHOLD = 7
 
-    def __init__(self, rawserver, port = 0):
+    def __init__(self, rawserver, check_crawler, port = 0):
+        # initialise connections now because it is used in shutdown which will
+        # be called for Crawler instances as well
+        self.connections = {}
+        
+        if check_crawler:
+            from Tribler.Core.Statistics.Crawler import Crawler
+            crawler = Crawler.get_instance()
+            if crawler.am_crawler():
+                return
+
         # initialise connections now because it is used in shutdown which will
         # be called for Crawler instances as well
         self.connections = {}
@@ -171,9 +181,10 @@ class UDPHandler:
             TimeoutFinder.TimeoutFinder(rawserver, True, self.timeout_report)
 
             if not DEBUG:
-                #~ from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
-                from Tribler.Core.Statistics.PunctureCrawler import get_reporter_instance
-                self.reporter = get_reporter_instance()
+                if check_crawler:
+                    #~ from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+                    from Tribler.Core.Statistics.PunctureCrawler import get_reporter_instance
+                    self.reporter = get_reporter_instance()
 
         if self.reporter:
             my_wan_ip = guessip.get_my_wan_ip()
@@ -1042,7 +1053,7 @@ if __name__ == "__main__":
         port = 0
     else:
         port = int(sys.argv[1])
-    udp_handler = UDPHandler(rawserver, port)
+    udp_handler = UDPHandler(rawserver, False, port)
     
     if sys.argv == "12345":
         udp_handler.connect_threshold = 0

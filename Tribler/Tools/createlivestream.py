@@ -30,7 +30,9 @@ argsdef = [('name', '', 'name of the stream'),
 
 def state_callback(ds):
     d = ds.get_download()
-    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
+    #print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
+    # Arno, 2010-03-04: more compact
+    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],"%3.1f %%" % (ds.get_progress()),ds.get_error(),"up %.1f down %.1f" % (ds.get_current_speed(UPLOAD),ds.get_current_speed(DOWNLOAD))
 
     return (1.0,False)
 

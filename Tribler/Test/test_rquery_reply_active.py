@@ -205,7 +205,7 @@ class TestQueryReplyActive(TestAsServer):
         self.assert_(len(hits) == 1)
         self.assert_(hits.keys()[0] == self.tdef.get_infohash())
         hit = hits[self.tdef.get_infohash()]
-        self.assert_(hit['content_name'] == self.content_name.encode("UTF-8"))
+        self.assert_(hit['content_name'] == self.content_name)
         self.assert_(hit['length'] == LENGTH)
         self.assert_(hit['leecher'] == LEECHERS)
         self.assert_(hit['seeder'] == SEEDERS)

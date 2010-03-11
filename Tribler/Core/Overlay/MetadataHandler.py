@@ -100,6 +100,8 @@ class MetadataHandler:
             return False
 
     def send_metadata_request(self, permid, infohash, selversion=-1, caller="BC"):
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if DEBUG:
             print >> sys.stderr,"metadata: Connect to send GET_METADATA to",show_permid_short(permid)
         if not isValidInfohash(infohash):
@@ -260,7 +262,7 @@ class MetadataHandler:
 
             return self.do_send_metadata(permid, torrent, selversion)
         else:    # deleted before sending it
-            self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
+            self.torrent_db.deleteTorrent(infohash, delete_file=True, commit=True)
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: no torrent data to send"
             return 0
@@ -463,8 +465,13 @@ class MetadataHandler:
         try:
             infohash = message['torrent_hash']
             if not isValidInfohash(infohash):
+                # 19/02/10 Boudewijn: isValidInfohash either returns
+                # True or raises a ValueError. So this part of the
+                # code will never be reached...
                 return False
             
+            assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+            assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
             
             #print >>sys.stderr,"metadata: got_metadata: hexinfohash: get_collected_torrent_filename(infohash)
 
@@ -538,6 +545,8 @@ class MetadataHandler:
         return True
 
     def notify_torrent_is_in(self,infohash,metadata,filename):
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if self.dlhelper is not None:
             self.dlhelper.metadatahandler_received_torrent(infohash, metadata)
         if self.rquerytorrenthandler is not None:

@@ -373,7 +373,7 @@ class TorrentSearchGridManager:
                     # Convert answer fields as per 
                     # Session.query_connected_peers() spec. to NEWDB format
                     newval = {}
-                    newval['name'] = value['content_name']                    
+                    newval['name'] = value['content_name']                
                     newval['infohash'] = key
                     newval['torrent_file_name'] = ''
                     newval['length'] = value['length']
@@ -397,7 +397,7 @@ class TorrentSearchGridManager:
                     if 'channel_permid' not in value:
                         # just to check if it is not OLPROTO_VER_ELEVENTH version
                         # if so, check word boundaries in the swarm name
-                        ls = split_into_keywords(value['content_name'])
+                        ls = split_into_keywords(newval['name'])
 
                         if DEBUG:
                             print >>sys.stderr,"TorrentSearchGridManager: ls is",`ls`
@@ -721,7 +721,8 @@ class ChannelSearchGridManager:
                 if bin2str(hit[2]) not in torrents:
                     torrents[bin2str(hit[2])] = (hit[4], hit[5])
                 
-        print >> sys.stderr , " LOCAL HITS" , self.hits
+        if DEBUG:
+            print >> sys.stderr , " LOCAL HITS" , self.hits
         return True
 
 
@@ -782,7 +783,7 @@ class ChannelSearchGridManager:
                     newval['time_stamp'] = el[5]
                     newval['signature'] = el[6]
                     
-                    el_new = (el[0], el[1].decode("UTF-8"),el[2],el[3],el[4].decode("UTF-8"),el[5],el[6])
+                    el_new = (el[0], el[1],el[2],el[3],el[4],el[5],el[6])
                     
                     self.remoteHits[el_new] = 1
                     numResults +=1

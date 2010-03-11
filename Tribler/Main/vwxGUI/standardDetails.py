@@ -500,7 +500,7 @@ class standardDetails(wx.Panel):
             
             titleField = self.getGuiObj('titleField')
             titleField.SetLabel(rssurl)
-            titleField.Wrap(-1)
+            # titleField.Wrap(-1)
 
             bcsub = self.utility.lang.get('buddycastsubscription')
             if rssurl == bcsub:
@@ -771,7 +771,7 @@ class standardDetails(wx.Panel):
 #                            print >> sys.stderr,"standardDetails: <mluc> element",elementName,"has style",style
                         #print 'Style if %s has flag: %s' % (elementName, (style & wx.ST_NO_AUTORESIZE))
                         if (style & wx.ST_NO_AUTORESIZE)==0 :
-                            currentElement.Wrap(284)
+                            # currentElement.Wrap(284)
                             bElementMoved = True
                     prevElement = None
                     if prevElement is not None:

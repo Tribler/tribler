@@ -57,108 +57,106 @@ class Category:
         self.utility = utility
         self.set_family_filter(None) # init family filter to saved state
 
-    """
-    # check to see whether need to resort torrent file
-    # return bool
-    def checkResort(self, data_manager):
-        data = data_manager.data
-#===============================================================================
-#        if not data:
-#            data = data_manager.torrent_db.getRecommendedTorrents(all = True)
-#===============================================================================
-        if not data:
-            return False
 
-#        data = data_manager.torrent_db.getRecommendedTorrents(all = True)
-#        self.reSortAll(data)
-#        return True
-        torrent = data[0]
-        if torrent["category"] == ["?"]:
-            #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
-            self.reSortAll(data)
-#            del data
-            return True
+#     # check to see whether need to resort torrent file
+#     # return bool
+#     def checkResort(self, data_manager):
+#         data = data_manager.data
+# #===============================================================================
+# #        if not data:
+# #            data = data_manager.torrent_db.getRecommendedTorrents(all = True)
+# #===============================================================================
+#         if not data:
+#             return False
+
+# #        data = data_manager.torrent_db.getRecommendedTorrents(all = True)
+# #        self.reSortAll(data)
+# #        return True
+#         torrent = data[0]
+#         if torrent["category"] == ["?"]:
+#             #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
+#             self.reSortAll(data)
+# #            del data
+#             return True
         
-        begin = time()
-        for item in data:
-            if len(item['category']) > 1:
-                #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
-                self.reSortAll(data)
-#                del data
-                return True
-        if DEBUG:
-            print >>sys.stderr,'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)
-        return False
+#         begin = time()
+#         for item in data:
+#             if len(item['category']) > 1:
+#                 #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
+#                 self.reSortAll(data)
+# #                del data
+#                 return True
+#         if DEBUG:
+#             print >>sys.stderr,'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)
+#         return False
         
-    # recalculate category of all torrents, remove torrents from db if not existed
-    def reSortAll(self, data, parent = None):
+#     # recalculate category of all torrents, remove torrents from db if not existed
+#     def reSortAll(self, data, parent = None):
          
-        max = len(data)
-        if max == 0:
-            return
-        import wx
-        dlgHolder = []
-        event = Event()
-        def makeDialog():
-            dlg = wx.ProgressDialog("Upgrading Database",
-                                    "Upgrading Old Database to New Database",
-                                    maximum = max,
-                                    parent = None,
-                                    style = wx.PD_AUTO_HIDE 
-                                    | wx.PD_ELAPSED_TIME
-                                    | wx.PD_REMAINING_TIME
-                                    )
-            dlgHolder.append(dlg)
-            event.set()
+#         max = len(data)
+#         if max == 0:
+#             return
+#         import wx
+#         dlgHolder = []
+#         event = Event()
+#         def makeDialog():
+#             dlg = wx.ProgressDialog("Upgrading Database",
+#                                     "Upgrading Old Database to New Database",
+#                                     maximum = max,
+#                                     parent = None,
+#                                     style = wx.PD_AUTO_HIDE 
+#                                     | wx.PD_ELAPSED_TIME
+#                                     | wx.PD_REMAINING_TIME
+#                                     )
+#             dlgHolder.append(dlg)
+#             event.set()
             
             
-        wx.CallAfter(makeDialog)
+#         wx.CallAfter(makeDialog)
         
-        # Wait for dialog to be ready
-        event.wait()
-        dlg = dlgHolder[0]
+#         # Wait for dialog to be ready
+#         event.wait()
+#         dlg = dlgHolder[0]
         
-        count = 0
-        step = int(float(max) / 20) + 1
+#         count = 0
+#         step = int(float(max) / 20) + 1
         
-        # sort each torrent file
-        for i in xrange(len(data)):
-            count += 1
-            if count % step == 0:
-                wx.CallAfter(dlg.Update, [count])
-            try:
-                # try alternative dir if bsddb doesnt match with current Tribler install
-                rec = data[i]
-                (torrent_dir,torrent_name) = self.metadata_handler.get_std_torrent_dir_name(rec)
+#         # sort each torrent file
+#         for i in xrange(len(data)):
+#             count += 1
+#             if count % step == 0:
+#                 wx.CallAfter(dlg.Update, [count])
+#             try:
+#                 # try alternative dir if bsddb doesnt match with current Tribler install
+#                 rec = data[i]
+#                 (torrent_dir,torrent_name) = self.metadata_handler.get_std_torrent_dir_name(rec)
                     
-                # read the torrent file
-                filesrc = os.path.join(torrent_dir,torrent_name)
+#                 # read the torrent file
+#                 filesrc = os.path.join(torrent_dir,torrent_name)
                 
-#                print filesrc
-                f = open(filesrc, "rb")
-                torrentdata = f.read()          # torrent decoded string
-                f.close()
-            except IOError:                     # torrent file not found
-                # delete the info from db
-                self.torrent_db.deleteTorrent(data[i]['infohash'])
-                continue   
+# #                print filesrc
+#                 f = open(filesrc, "rb")
+#                 torrentdata = f.read()          # torrent decoded string
+#                 f.close()
+#             except IOError:                     # torrent file not found
+#                 # delete the info from db
+#                 self.torrent_db.deleteTorrent(data[i]['infohash'])
+#                 continue   
             
-            # decode the data
-            torrent_dict = bencode.bdecode(torrentdata)
-            content_name = dunno2unicode(torrent_dict["info"].get('name', '?'))
+#             # decode the data
+#             torrent_dict = bencode.bdecode(torrentdata)
+#             content_name = dunno2unicode(torrent_dict["info"].get('name', '?'))
             
-            category_belong = []
-            category_belong = self.calculateCategory(torrent_dict, content_name)
+#             category_belong = []
+#             category_belong = self.calculateCategory(torrent_dict, content_name)
             
-            if (category_belong == []):
-                category_belong = ['other']
+#             if (category_belong == []):
+#                 category_belong = ['other']
             
-            data[i]['category'] = category_belong    # should have updated self.data
-            self.torrent_db.updateTorrent(data[i]['infohash'], updateFlag=False, category=category_belong)
-        self.torrent_db.sync()
-        wx.CallAfter(dlg.Destroy)   
-    """   
-   
+#             data[i]['category'] = category_belong    # should have updated self.data
+#             self.torrent_db.updateTorrent(data[i]['infohash'], updateFlag=False, category=category_belong)
+#         self.torrent_db.sync()
+#         wx.CallAfter(dlg.Destroy)   
     
     def getCategoryKeys(self):
         if self.category_info is None:

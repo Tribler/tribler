@@ -41,6 +41,7 @@ from Tribler.__init__ import LIBRARYNAME
 DETAILS_MODES = ['filesMode',  'libraryMode', 'channelsMode']
 
 DEBUG = False
+MAX_TITLE_LENGTH = 320
 
 
 # font sizes
@@ -76,7 +77,7 @@ else:
     FS_CONTAIN_TEXT = 8
     FS_UPDATE_TEXT = 4
     FS_FILETITLE_SEL = 10 
-    FS_MAX_SUBSCRIPTION_TEXT = 5
+    FS_MAX_SUBSCRIPTION_TEXT = 7
 
 
 
@@ -161,7 +162,7 @@ class channelsDetails(bgPanel):
         self.guiserver = GUITaskQueue.getInstance()
 #        self.guiserver.add_task(self.guiservthread_refresh_torrents, 0)
         self.guiserver.add_task(self.guiservthread_updateincomingtorrents, 0)
-        self.x=466
+        self.mainSizeValue=466
         self.addComponents()
 
 
@@ -215,14 +216,16 @@ class channelsDetails(bgPanel):
 
         # vSizerContents
         self.vSizerContents = wx.BoxSizer(wx.VERTICAL) ## list of items within a particular channel
-        self.vSizerContents.SetMinSize((self.x - 87,100))
+        self.vSizerContents.SetMinSize((self.mainSizeValue - 87,100))
 
         # channel title
-        self.channelTitle =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.x-135,36))        
+        self.channelTitle =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.mainSizeValue-135,36))        
         self.channelTitle.SetBackgroundColour((216,233,240))
         self.channelTitle.SetForegroundColour(wx.BLACK)
         self.channelTitle.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
-        self.channelTitle.SetMinSize((self.x-135,36))
+        self.channelTitle.SetMinSize((self.mainSizeValue-135,36))
+        self.channelTitle.SetSize((self.mainSizeValue-135,36))
+
 
         # subscription text
         self.SubscriptionText = wx.StaticText(self,-1,"Unsubscribe",wx.Point(0,0),wx.Size(70,36),wx.ALIGN_RIGHT)  
@@ -255,7 +258,7 @@ class channelsDetails(bgPanel):
         self.rssCtrl.SetBackgroundColour((206,223,230))
         self.rssCtrl.Refresh()
         #self.rssCtrl.SetValue("http://www.legaltorrents.com/feeds/cat/netlabel-music.rss")
-        self.rssCtrl.SetMinSize((self.x-205,23))
+        self.rssCtrl.SetMinSize((self.mainSizeValue-205,23))
 
         urls = self.torrentfeed.getUrls("active")
         # if there are more urls, we have no way to ensure we have the
@@ -273,7 +276,7 @@ class channelsDetails(bgPanel):
         #self.torrentCtrl = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER|wx.NO_BORDER)
         #self.torrentCtrl.SetFont(wx.Font(FS_RSS, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
         #self.torrentCtrl.SetBackgroundColour((206,223,230))
-        #self.torrentCtrl.SetMinSize((self.x-205,23))
+        #self.torrentCtrl.SetMinSize((self.mainSizeValue-205,23))
 
 
 
@@ -821,6 +824,7 @@ class channelsDetails(bgPanel):
 
 
     def loadChannel(self, parent, torrentList, publisher_id, publisher_name, subscribed):
+        self.maxNumChar = -1
         self.currentPage = 0
         self.parent = parent
         self.mychannel = self.parent.mychannel
@@ -929,6 +933,20 @@ class channelsDetails(bgPanel):
         self.vSizer.Layout()
         self.Layout()
 
+    def _setTitle(self, title):
+        self.channelTitle.SetToolTipString(title)
+        if self.maxNumChar != -1:
+            self.channelTitle.SetLabel(title[:self.maxNumChar])
+            return
+        i=0
+        try:
+            while self.channelTitle.GetTextExtent(title[:i])[0] < MAX_TITLE_LENGTH and i <= len(title):
+                i=i+1
+            self.channelTitle.SetLabel(title[:(i-1)])
+            self.maxNumChar = i-1
+        except:
+            self.channelTitle.SetLabel(title)
+        self.Refresh()       
 
 
 
@@ -936,7 +954,7 @@ class channelsDetails(bgPanel):
         if self.parent.isMyChannel():
             self.channelTitle.SetLabel(title)
         else:
-            self.channelTitle.SetLabel(title  + "'s channel")
+            self._setTitle(title + "'s channel" )
         self.Refresh()
 
 
@@ -1043,12 +1061,18 @@ class channelsDetails(bgPanel):
 
 
 
-        selectedpopularpanel = self.guiUtility.standardOverview.getGrid(2).getSelectedPanel()
+        if self.guiUtility.guiPage == 'search_results':
+            selectedpopularpanel = self.guiUtility.standardOverview.getGrid().getSelectedPanel()
+        else:
+            selectedpopularpanel = self.guiUtility.standardOverview.getGrid(2).getSelectedPanel()
         if selectedpopularpanel is not None:
             selectedpopularpanel.setSubscribed()
             selectedpopularpanel.resetTitle()
 
-        self.guiUtility.standardOverview.getGrid(2).gridManager.refresh()
+        if self.guiUtility.guiPage == 'search_results':
+            self.guiUtility.standardOverview.getGrid().gridManager.refresh()
+        else:
+            self.guiUtility.standardOverview.getGrid(2).gridManager.refresh()
 
 #        if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
 #            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).setSubscribed()       

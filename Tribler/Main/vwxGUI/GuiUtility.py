@@ -456,7 +456,7 @@ class GUIUtility:
         self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
         self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
 
-        self.frame.top_bg.Refresh()
+#        self.frame.top_bg.Refresh()
 
 
 
@@ -581,8 +581,10 @@ class GUIUtility:
             
         self.standardDetails.setMode('libraryMode')
 
-        wx.CallAfter(self.frame.standardPager.Show,self.standardOverview.getGrid().getGridManager().get_total_items()>0)
-
+        try:
+            wx.CallAfter(self.frame.standardPager.Show,self.standardOverview.getGrid().getGridManager().get_total_items()>0)
+        except:
+            pass
 
         
     def standardSubscriptionsOverview(self):

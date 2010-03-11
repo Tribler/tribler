@@ -91,6 +91,7 @@ from time import time, sleep
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6878
 SESSION_CHECKPOINT_INTERVAL = 1800.0 # seconds
+CHANNELMODE_REFRESH_INTERVAL = 5.0
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -116,6 +117,7 @@ class ABCApp(wx.App):
         self.decodeprogress = 0
 
         self.old_reputation = 0
+        self.lastchannelrefresh = -1.0
 
         try:
             import sys
@@ -472,13 +474,15 @@ class ABCApp(wx.App):
         self.utility.session = s
 
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-        UserDownloadChoice.get_singleton().set_session_dir(self.utility.session.sessconfig["state_dir"])
+        UserDownloadChoice.get_singleton().set_session_dir(self.utility.session.get_state_dir())
         
 
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
 
         # set port number in GuiUtility
         if DEBUG:
@@ -883,6 +887,20 @@ class ABCApp(wx.App):
     
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
         wx.CallAfter(self.frame.standardOverview.onReachable)
+
+    def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
+        #print >>sys.stderr,"main: Got CHANNELCAST/VOTECAST event",`subject`,`changeType`,`objectID`
+        wx.CallAfter(self.gui_ntfy_channelupdates,subject,changeType,objectID)
+        
+    def gui_ntfy_channelupdates(self,subject,changeType,objectID,*args):
+        try:
+            now = time()
+            if now > self.lastchannelrefresh+CHANNELMODE_REFRESH_INTERVAL:
+                self.lastchannelrefresh = now
+                if 'grid2' in self.frame.standardOverview.data['channelsMode']:
+                    self.frame.standardOverview.data['channelsMode']['grid2'].gridManager.refresh()
+        except:
+            print_exc()
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

@@ -16,6 +16,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButto
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
+from Tribler.Main.vwxGUI.CustomStaticText import CustomStaticText
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Video.utils import videoextdefaults
@@ -30,6 +31,10 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.__init__ import LIBRARYNAME
 
 DEBUG = False
+if sys.platform == 'linux2':
+    MAX_TITLE_LENGTH = 130
+else:
+    MAX_TITLE_LENGTH = 110
 
 # font sizes
 
@@ -39,15 +44,17 @@ if sys.platform == 'darwin':
     FS_SUBSCRIPTION = 10
     FONTFAMILY_MY_CHANNEL=wx.SWISS
     FS_TITLE = 10
-    FS_PERC = 9
-    FS_SPEED = 9
-else:
+    TITLE_HEIGHT = 10
+elif sys.platform == 'linux2':
     FS_MY_CHANNEL_TITLE = 11
-    FS_SUBSCRIPTION = 8
     FONTFAMILY_MY_CHANNEL=wx.SWISS
     FS_TITLE = 8
-    FS_PERC = 7
-    FS_SPEED = 7
+    TITLE_HEIGHT = 15
+else:
+    FS_MY_CHANNEL_TITLE = 11
+    FONTFAMILY_MY_CHANNEL=wx.SWISS
+    FS_TITLE = 8
+    TITLE_HEIGHT = 10
 
 
 class ChannelsItemPanel(wx.Panel):
@@ -61,7 +68,7 @@ class ChannelsItemPanel(wx.Panel):
         self.guiserver = parent.guiserver
         
         self.data = None
-        self.titleLength = 40 # num characters
+        self.titleLength = 16 # num characters
         self.selected = False
         self.name = name
 
@@ -85,6 +92,8 @@ class ChannelsItemPanel(wx.Panel):
         self.vcdb = self.session.open_dbhandler(NTFY_VOTECAST)
         
         self.torrentList = [] # list of torrents within the channel
+
+        self.maxNumChar = -1
  
         self.dslist = None
         self.addComponents()
@@ -118,20 +127,23 @@ class ChannelsItemPanel(wx.Panel):
         self.hSizer.Add([10,0],0,wx.FIXED_MINSIZE,0)        
 
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(160,16))        
+        if sys.platform == 'linux2':
+            TITLELENGTH=160
+        elif sys.platform == 'darwin':
+            TITLELENGTH=160
+        else:
+            TITLELENGTH=160
+        self.title = CustomStaticText(self,-1,"",wx.Point(0,0),wx.Size(TITLELENGTH,-1))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((160,16))
-
-        #self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
-        #self.vSizerTitle.Add((
+#        self.title.SetMinSize((TITLELENGTH, 16))
 
 
         self.hSizer.Add(self.title, 0, wx.TOP,3)
 
 
         # Add Spacer
-        self.hSizer.Add([10,0],0,0,0)        
+        self.hSizer.Add([170-TITLELENGTH,0],0,0,0)        
 
 
 
@@ -199,6 +211,30 @@ class ChannelsItemPanel(wx.Panel):
                     break
         return liblist
 
+    def _setTitle(self, title):
+        self.title.SetToolTipString(title)
+        if self.maxNumChar != -1:
+            self.title.SetLabel(title[:self.maxNumChar])
+            return
+        i=0
+        try:
+            while self.title.GetTextExtent(title[:i])[0] < MAX_TITLE_LENGTH and i <= len(title):
+                i=i+1
+            self.title.SetLabel(title[:(i-1)])
+            self.maxNumChar = i-1
+        except:
+            self.title.SetLabel(title)
+        self.Refresh()       
+
+    def setTitle(self, title):
+        """
+        Simple wrapper around _setTitle to handle unicode bugs
+        """
+        self.storedTitle = title
+        try:
+            self._setTitle(title)
+        except UnicodeDecodeError:
+            self._setTitle(`title`)
 
 
     def setData(self, data):
@@ -217,7 +253,7 @@ class ChannelsItemPanel(wx.Panel):
         if self.guiUtility.guiPage == 'search_results':
             self.SetMinSize((660,22))
             self.SetSize((660,22))
-            self.Refresh()
+#            self.Refresh()
         elif sys.platform != 'win32':
             self.SetMinSize((660,30))
             self.SetSize((660,30))
@@ -245,12 +281,12 @@ class ChannelsItemPanel(wx.Panel):
             self.backgroundColour = wx.Colour(255,255,255)
             self.channelTitleSelectedColour = wx.BLACK
 
-            if sys.platform == 'linux2':
-                self.title.SetMinSize((150,16))
-                self.title.SetSize((150,16))
-            else:
-                self.title.SetMinSize((150,18))
-                self.title.SetSize((150,18))
+#            if sys.platform == 'linux2':
+#                self.title.SetMinSize((TITLELENGTH,16))
+#                self.title.SetSize((TITLELENGTH,16))
+#            else:
+#                self.title.SetMinSize((TITLELENGTH,18))
+#                self.title.SetSize((TITLELENGTH,18))
             self.SubscriptionButton.Hide()
 
 
@@ -278,11 +314,11 @@ class ChannelsItemPanel(wx.Panel):
             self.torrentList = torrentList
 
             if self.num_votes == 0:
-                self.publisher_name = "My Channel (No votes)"
+                self.publisher_name = "My Channel (No subscriptions)"
             elif self.num_votes == 1:
-                self.publisher_name = "My Channel (1 vote)" 
+                self.publisher_name = "My Channel (1 subscription)" 
             else:
-                self.publisher_name = "My Channel (%s votes)" % self.num_votes 
+                self.publisher_name = "My Channel (%s subscriptions)" % self.num_votes 
 
             self.setMyTitle()
 
@@ -295,31 +331,35 @@ class ChannelsItemPanel(wx.Panel):
         else:
             self.mychannel = False
 
-            self.title.SetMinSize((160,16))
-            self.title.SetSize((160,16))
+#            self.title.SetMinSize((160,16))
+#            self.title.SetSize((160,16))
 
             self.publisher_id, self.publisher_name, self.num_votes, torrents = data
 
 
             # recalculate number of votes from database
-            self.num_votes=self.vcdb.getEffectiveVote(self.publisher_id)
+            # self.num_votes=self.vcdb.getEffectiveVote(self.publisher_id)
+
+            # for now get number subscriptions (no spam votes)
+            self.num_votes=self.vcdb.getNumSubscriptions(self.publisher_id)
 
 
-            if data and oldinfohash != self.data[0]:
-                title = data[1][:self.titleLength] + " (%s)" % self.num_votes
+            if data:
+                title = data[1][:] + " (%s)" % self.num_votes
+#                self.setTitle(title)
                 self.title.Show()
                 self.title.SetLabel(title)
                 self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
-                self.title.Wrap(self.title.GetSize()[0])
-                self.title.SetToolTipString(data[1])
+#                self.title.Wrap(self.title.GetSize()[0])
+#               self.title.SetToolTipString(data[1])
         
 
             if self.num_votes == 0:
-                ttstring = data[1] + " (No votes)"
+                ttstring = data[1] + " (No subscriptions)"
             elif self.num_votes == 1: 
-                ttstring = data[1] + " (1 vote)"
+                ttstring = data[1] + " (1 subscription)"
             else: 
-                ttstring = data[1] + " (%s votes)" % self.num_votes
+                ttstring = data[1] + " (%s subscriptions)" % self.num_votes
             self.title.SetToolTipString(ttstring)
 
 
@@ -363,21 +403,21 @@ class ChannelsItemPanel(wx.Panel):
         
 
     def getVotes(self):
-        return self.vcdb.getEffectiveVote(self.publisher_id)
+        return self.vcdb.getNumSubscriptions(self.publisher_id)
 
 
 
     def resetTitle(self):
         self.num_votes = self.getVotes()
-        title = self.data[1][:self.titleLength] + " (%s)" % self.num_votes
+        title = self.data[1][:] + " (%s)" % self.num_votes
         self.title.SetLabel(title)
-        self.title.Wrap(self.title.GetSize()[0])
+#        self.title.Wrap(self.title.GetSize()[0])
         if self.num_votes == 0:
-            ttstring = self.data[1] + " (No votes)"
+            ttstring = self.data[1] + " (No subscriptions)"
         elif self.num_votes == 1: 
-            ttstring = self.data[1] + " (1 vote)"
+            ttstring = self.data[1] + " (1 subscription)"
         else: 
-            ttstring = self.data[1] + " (%s votes)" % self.num_votes
+            ttstring = self.data[1] + " (%s subscriptions)" % self.num_votes
         self.title.SetToolTipString(ttstring)
         self.hSizer.Layout()
 
@@ -394,13 +434,13 @@ class ChannelsItemPanel(wx.Panel):
         else:
             self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
 
-        self.title.Wrap(self.title.GetSize()[0])
+        # self.title.Wrap(self.title.GetSize()[0])
         if self.num_votes == 0:
-            ttstring = "My Channel (No votes)"
+            ttstring = "My Channel (No subscriptions)"
         elif self.num_votes == 1: 
-            ttstring = "My Channel (1 vote)"
+            ttstring = "My Channel (1 subscription)"
         else: 
-            ttstring = "My Channel (%s votes)" % self.num_votes
+            ttstring = "My Channel (%s subscriptions)" % self.num_votes
         self.title.SetToolTipString(ttstring)
 
 
@@ -410,9 +450,11 @@ class ChannelsItemPanel(wx.Panel):
         self.selected = True   
         self.SubscriptionButton.setBackground((216,233,240))
         if self.isMyChannel():
+            
             self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.BOLD, False,FONTFACE))
         else:
             self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
+#        self.title.SetFontWeight(wx.BOLD)
         colour = self.selectedColour
         channelColour = self.channelTitleSelectedColour
         self.title.SetBackgroundColour(colour)
@@ -422,18 +464,20 @@ class ChannelsItemPanel(wx.Panel):
 
         
     def deselect(self, i=None, j=None):
-        self.selected = False
-        self.SubscriptionButton.setBackground(wx.WHITE)
-        if self.isMyChannel():
-            self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
-        else:
-            self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        colour = self.backgroundColour
-        channelColour = self.channelTitleUnselectedColour
-        self.title.SetBackgroundColour(colour)
-        self.title.SetForegroundColour(channelColour)
-        self.SetBackgroundColour(colour)
-        self.Refresh()
+        if self.selected:
+            self.selected = False
+            self.SubscriptionButton.setBackground(wx.WHITE)
+            if self.isMyChannel():
+                self.title.SetFont(wx.Font(FS_MY_CHANNEL_TITLE,FONTFAMILY_MY_CHANNEL,FONTWEIGHT,wx.NORMAL, False,FONTFACE))
+            else:
+                self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+#            self.title.SetFontWeight(wx.NORMAL)
+            colour = self.backgroundColour
+            channelColour = self.channelTitleUnselectedColour
+            self.title.SetBackgroundColour(colour)
+            self.title.SetForegroundColour(channelColour)
+            self.SetBackgroundColour(colour)
+            self.Refresh()
        
 
     def SubscriptionClicked(self, event):
