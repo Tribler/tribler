@@ -131,11 +131,13 @@ class UDPHandler:
         # initialise connections now because it is used in shutdown which will
         # be called for Crawler instances as well
         self.connections = {}
-        
-        from Tribler.Core.Statistics.Crawler import Crawler
-        crawler = Crawler.get_instance()
-        if crawler.am_crawler():
-            return
+
+        # 17/03/10 Boudewijn: obsolete code, see the same code a few
+        # lines above that include the check_crawler if/else check
+        # from Tribler.Core.Statistics.Crawler import Crawler
+        # crawler = Crawler.get_instance()
+        # if crawler.am_crawler():
+        #     return
         
         self.rawserver = rawserver
         self.socket = rawserver.create_udpsocket(port, "0.0.0.0")
