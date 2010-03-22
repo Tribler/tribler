@@ -14,6 +14,9 @@ from bak_tribler_sdb import *
     
 CREATE_SQL_FILE = os.path.join('..', 'schema_sdb_v4.sql')
 
+import Tribler.Core.CacheDB.sqlitecachedb
+Tribler.Core.CacheDB.sqlitecachedb.TEST_SQLITECACHEDB_UPGRADE = True
+
 def init():
     init_bak_tribler_sdb()
 

@@ -23,6 +23,7 @@ import apsw
 
 CURRENT_MAIN_DB_VERSION = 4
 
+TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
 CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v'+str(CURRENT_MAIN_DB_VERSION)+'.sql')
 DB_FILE_NAME = 'tribler.sdb'
@@ -388,7 +389,8 @@ class SQLiteCacheDBBase:
         db_ver = int(db_ver)
         curr_ver = int(curr_ver)
         #print "check db", db_ver, curr_ver
-        if db_ver != curr_ver or os.path.exists(os.path.join(config_dir, "upgradingdb.txt")):    # TODO
+        if db_ver != curr_ver or \
+               (not config_dir is None and os.path.exists(os.path.join(config_dir, "upgradingdb.txt"))): 
             self.updateDB(db_ver,curr_ver)
             
     def updateDB(self,db_ver,curr_ver):
@@ -1028,9 +1030,12 @@ UPDATE Torrent SET relevance = 0;
         
         # now the start the process of parsing the torrents to insert into 
         # InvertedIndex table. 
-        from Tribler.Core.Session import Session
-        session = Session.get_instance()
-        state_dir = session.get_state_dir()
+        if TEST_SQLITECACHEDB_UPGRADE:
+            state_dir = "."
+        else:
+            from Tribler.Core.Session import Session
+            session = Session.get_instance()
+            state_dir = session.get_state_dir()
         tmpfilename = os.path.join(state_dir,"upgradingdb.txt")
         if fromver < 4 or os.path.exists(tmpfilename):
             def upgradeTorrents():
