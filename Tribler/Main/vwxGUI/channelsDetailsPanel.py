@@ -429,13 +429,6 @@ class channelsDetailsPanel(bgPanel):
         cd = self.GetParent().GetParent()
         cd.removeTorrent(self.GetParent().index)
 
-    def refreshItems(self):
-        for i in range(self.totalItems):
-            if self.files[i].selected:
-                self.files[i].select()
-            else:
-                self.files[i].deselect()
-
 
     def deselectAll(self):
         for i in range(self.totalItems):

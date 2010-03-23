@@ -448,8 +448,6 @@ class channelsDetails(bgPanel):
         self.vSizer.Layout()
         self.Layout()
 
-    def setType(self, Type):
-        self.type = Type
 
     def hideElements(self, force = False):
         if self.initialized == True or force==True:
@@ -528,10 +526,6 @@ class channelsDetails(bgPanel):
 
     def setRSSFeed(self, rssfeed):
         self.rssFeed = rssfeed
-
-    def getRSSFeed(self):
-        return self.rssFeed
-
 
 
     def setSubscribed(self, subscribed):
@@ -644,20 +638,7 @@ class channelsDetails(bgPanel):
                 # wx.CallAfter(self.rssCtrl.SetFocus)
             except:
                 pass
-
-
-    def getNumItemsCurrentPage(self):
-        if self.totalItems == 0:
-            return 0
-        else:
-            if self.currentPage != self.lastPage:
-                return self.torrentsPerPage
-            else:
-                numItems = self.totalItems % self.torrentsPerPage
-                if numItems == 0:
-                    numItems = self.torrentsPerPage
-                return numItems
-                
+             
             
     def isMyChannel(self):
         return self.mychannel
@@ -1000,14 +981,6 @@ class channelsDetails(bgPanel):
 
 
 
-
-    def refreshItems(self):
-        for i in range(self.totalItems):
-            if self.torrents[i].selected:
-                self.torrents[i].select()
-            else:
-                self.torrents[i].deselect()
-
     def deselectAllExceptSelected(self, index): ## for mac os x
         for i in range(self.totalItems):
             if i <> index and type(self.torrents[i]) is not dict:
@@ -1029,21 +1002,10 @@ class channelsDetails(bgPanel):
                 self.vcdb.subscribe(self.publisher_id)
                 self.SubscriptionText.SetLabel("Unsubscribe")
                 self.SubscriptionButton.setToggled(False)
-
                 self.guiUtility.frame.top_bg.needs_refresh = True
-
-#                if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
-#                    self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes+=1    
-#                else:
-#                    self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes+=1
-#                    print >> sys.stderr , self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes
-
 
             else: # maximum number of subscriptions reached
                 self.updateSubscriptionLimitText()
-
-
-
 
         else: # unsubscribe
             self.vcdb.unsubscribe(self.publisher_id)
@@ -1051,15 +1013,6 @@ class channelsDetails(bgPanel):
             self.SubscriptionButton.setToggled(True)
 
             self.guiUtility.frame.top_bg.needs_refresh = True
-
-
-#            if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
-#                self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).num_votes-=1    
-#            else:
-#                self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes-=1
-#                print >> sys.stderr , self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).num_votes
-
-
 
         if self.guiUtility.guiPage == 'search_results':
             selectedpopularpanel = self.guiUtility.standardOverview.getGrid().getSelectedPanel()
@@ -1074,16 +1027,6 @@ class channelsDetails(bgPanel):
         else:
             self.guiUtility.standardOverview.getGrid(2).gridManager.refresh()
 
-#        if self.guiUtility.frame.top_bg.indexPopularChannels != -1:
-#            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).setSubscribed()       
-#            self.guiUtility.standardOverview.getGrid(2).getPanelFromIndex(self.parent.index).resetTitle()      
-#        else:
-#            self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).setSubscribed()       
-#            self.guiUtility.standardOverview.getGrid().getPanelFromIndex(self.parent.index).resetTitle()       
-
-#        if self.guiUtility.frame.top_bg.needs_refresh:
-#            self.guiUtility.frame.top_bg.indexPopularChannels = -1
-#            self.guiUtility.frame.top_bg.indexMyChannel = -1
 
 
     def updateSubscriptionLimitText(self):

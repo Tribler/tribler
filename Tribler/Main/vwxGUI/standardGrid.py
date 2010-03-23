@@ -11,11 +11,13 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.ItemPanel import ItemPanel
 from Tribler.Main.vwxGUI.LibraryItemPanel import LibraryItemPanel
-from Tribler.Main.vwxGUI.ChannelsItemPanel import ChannelsItemPanel
-from Tribler.Main.vwxGUI.PopularItemPanel import PopularItemPanel
+#from Tribler.Main.vwxGUI.ChannelsItemPanel import ChannelsItemPanel
+#from Tribler.Main.vwxGUI.PopularItemPanel import PopularItemPanel
+from Tribler.Main.vwxGUI.ChannelsPanel import *
+
 
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
-from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE, SEARCHMODE_SEARCHING, SEARCHMODE_STOPPED
+from Tribler.Main.vwxGUI.SearchGridManager import SEARCHMODE_NONE
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Category.Category import Category
 
@@ -36,11 +38,9 @@ class GridManager(object):
     def __init__(self, grid, utility):
         self.session = utility.session
         
-        self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.votecast_db = self.session.open_dbhandler(NTFY_VOTECAST)
-        self.friend_db = self.session.open_dbhandler(NTFY_FRIENDS)
         self.pref_db = self.session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES) 
         self.search_db = self.session.open_dbhandler(NTFY_SEARCH) 
@@ -60,8 +60,6 @@ class GridManager(object):
         self.channelsearch_manager = utility.guiUtility.channelsearch_manager
         self.channelsearch_manager.register(self.channelcast_db, self.pref_db, self.mypref_db, self.search_db, self.votecast_db, self.torrent_db)
 
-        self.peersearch_manager = utility.guiUtility.peersearch_manager
-        self.peersearch_manager.register(self.peer_db,self.friend_db)
         self.guiserver = GUITaskQueue.getInstance()
 
         if CHANNEL_REFRESH_ENABLED:
@@ -205,29 +203,9 @@ class GridManager(object):
             #print >> sys.stderr, '***** update get_number_torrents', ntorrents, self.cache_ntorrent_interval, time()-now
         
         return self.cache_numbers[key][0]
-    
-
-    def get_number_subscriptions(self):
-        
-        return 
 
 
-    def get_number_peers(self, state):
-        # cache the numbers to avoid loading db, which is a heavy operation
-        category_name = state.category
-        library = 'peer'
-        key = (category_name, library)
-        
-        if (key not in self.cache_numbers or
-            time() - self.cache_numbers[key][1] > self.cache_npeer_interval):
-            
-            # print >> sys.stderr, '*********** get_number_peers', key, self.cache_numbers[key], now - self.last_npeer_cache, self.cache_npeer_interval, self.grid.items
-            npeers = self.peer_db.getNumberPeers(category_name = category_name)
-            self.cache_numbers[key] = [npeers, time()]
-            #print >> sys.stderr, '***** update get_number_peers', npeers, self.cache_npeer_interval, time()-now
-        
-        return self.cache_numbers[key][0]
-    
+   
     def _getData(self, state):
         #import threading
         #print >> sys.stderr, 'threading>>','****'*10, threading.currentThread().getName()
@@ -324,35 +302,12 @@ class GridManager(object):
                         
 
 
-#        elif state.db in ('personsMode', 'friendsMode'):
-#            if state.db == 'friendsMode':
-#                state.category = 'friend'
-#                
-#            if self.peersearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE:
-#                #print >>sys.stderr,"GET GUI PEERS #################################################################################"
-#                total_items = self.get_number_peers(state)
-#                data = self.peer_db.getGUIPeers(category_name = state.category, 
-#                                                        sort = state.sort,
-#                                                        reverse = state.reverse,
-#                                                        range = range,
-#                                                        get_online = True)
-#            else:
-#                #print >>sys.stderr,"SEARCH GUI PEERS $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
-#                try:
-#                    [total_items,data] = self.peersearch_manager.getHits(state.db,range)
-#                except:
-#                    print_exc()
-#
-#            if state.db == 'friendsMode':
-#                data = self.addCoopDLStatus(data)
 
         else:
             raise Exception('Unknown data db in GridManager: %s' % state.db)
 
         return data, total_items
     
-    def _last_page(self):
-        return self.total_items == 0 or (0 < len(self.data) < self.grid.items)
     
     def setObserver(self):
         if self.state.db == 'libraryMode' or self.state.db == 'filesMode':
@@ -373,71 +328,7 @@ class GridManager(object):
             # also refresh normally on resize (otherwise new rows cannot be added
             self.refresh()
             
-#    def download_state_network_callback(self, *args):
-#        """ Called by SessionThread from ABCApp """
-#        if self.download_states_callback_set:
-#            if self.grid.isShowByOverview():
-#                wx.CallAfter(self.download_state_gui_callback, *args)
-#            else:
-#                self.callbacks_disabled = True
-#                self.download_states_callback_set = False
         
-    def item_network_callback(self, *args):
-        #print >>sys.stderr,"standardGrid: item_network_callback",`args`
-        # print >> sys.stderr, '***** searchmode: ', self.torrentsearch_manager.getSearchMode(self.state.db)
-        
-        # only handle network callbacks when grid is shown
-        if not self.grid.isShowByOverview():
-            self.callbacks_disabled = True
-            self.session.remove_observer(self.item_network_callback) #unsubscribe this function
-        else:
-            # 15/07/08 Boudewijn: only change grid when still searching
-            #if self.torrentsearch_manager.inSearchMode(self.state.db):    # 25/07/08 Jie: it causes GUI never updated when not in search mode
-            self.itemChanged(*args)
-             
-        
-    def itemChanged(self,subject,changeType,objectID,*args):
-        "called by GuiThread"
-        if changeType == NTFY_INSERT:
-            self.itemAdded(subject, objectID, args)
-        elif changeType in (NTFY_UPDATE, NTFY_CONNECTION):
-            self.itemUpdated(subject, objectID, args)
-        elif changeType == NTFY_DELETE:
-            self.itemDeleted(subject, objectID, args)
-        else:
-            raise Exception('Unknown notify.changeType')
-    
-    def itemAdded(self,subject, objectID, args):
-        #if self._last_page(): # This doesn't work as the pager is not updated if page becomes full
-        #print >> sys.stderr, '******* standard Grid: itemAdded:', objectID, args, 'search?', self.torrentsearch_manager.inSearchMode(self.state.db) 
-        if self.torrentsearch_manager.getSearchMode(self.state.db) == SEARCHMODE_SEARCHING:
-            #print >> sys.stderr, 'Grid refresh because search item added!!!============================='
-            wx.CallAfter(self.refresh)
-        elif self.isRelevantItem(subject, objectID):
-            ##task_id = str(subject) + str(int(time()/self.refresh_rate))
-            ##self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
-            # that's important to add the task 3 seconds later, to ensure the task will be executed at proper time  
-            self.refresh()
-    
-    def itemUpdated(self,subject, objectID, args):
-        # Both in torrent grid and peergrid, changed items can make new items appear on the screen
-        # Peers: when first buddycast
-        # Friends: if just became new friend
-        # Torrent: when status changes to 'good'
-        # So we have to alway refresh here
-        
-        #if (self._objectOnPage(subject, objectID)
-        if self.torrentsearch_manager.getSearchMode(self.state.db) == SEARCHMODE_NONE:
-            ##task_id = str(subject) + str(int(time()/self.refresh_rate))
-            #print >>sys.stderr,"standardGrid: itemUpdated",subject,`objectID`,`args`
-            ##self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
-            self.refresh()
-    
-    def itemDeleted(self,subject, objectID, args):
-        if self._objectOnPage(subject, objectID):
-            ##task_id = str(subject) + str(int(time()/self.refresh_rate))
-            ##self.guiserver.add_task(lambda:wx.CallAfter(self.refresh), self.refresh_rate, id=task_id)
-            self.refresh()
     
     def download_state_gui_callback(self, dslist):
         """
@@ -472,27 +363,6 @@ class GridManager(object):
         
         return objectID in [a[id_name] for a in self.data]
        
-    def isRelevantItem(self, subject, objectID):
-        return True #Jie: let DB decide if the notifier should be sent
-    
-        db_handler = self.session.open_dbhandler(subject)
-        if subject == NTFY_PEERS:
-            peer = db_handler.getPeer(objectID)
-            ok = peer and (peer['last_connected']>0 or peer['friend'])
-            #if not ok:
-            #    print >> sys.stderr, 'Gridmanager: Peer is not relevant: %s' % peer
-            return ok
-        elif subject in (NTFY_TORRENTS):
-            id_name = 'infohash'
-            torrent = db_handler.getTorrent(objectID)
-            ok = torrent is not None and torrent['status'] == 'good' and Category.getInstance().hasActiveCategory(torrent)
-            #if not ok:
-            #    print >> sys.stderr, 'Gridmanager: Torrent is not relevant: %s' % torrent
-            return ok
-        elif subject == NTFY_MYPREFERENCES:
-            return True
-        
-        raise Exception('not yet implemented')
     
     def addDownloadStates(self, liblist):
         # Add downloadstate data to list of torrent dicts
@@ -500,37 +370,15 @@ class GridManager(object):
             infohash = ds.get_download().get_def().get_infohash()
             for torrent in liblist:
                 if torrent['infohash'] == infohash:
-                    #if DEBUG:
-                    #print >>sys.stderr,"standardGrid: addDownloadStates: adding ds for",`ds.get_download().get_def().get_name()`
-                    #print >>sys.stderr,"standardGrid: addDownloadStates: adding ds for",`bin2str(ds.get_download().get_def().get_infohash())`
                     torrent['ds'] = ds
                     break
         return liblist
 
    
-    def addCoopDLStatus(self, liblist):
-        # Add downloadstate data to list of friend dicts
-        for ds in self.dslist:
-            helpers = ds.get_coopdl_helpers()
-            coordinator = ds.get_coopdl_coordinator()
-            
-            for friend in liblist:
-                if friend['permid'] in helpers:
-                    # Friend is helping us
-                    friend['coopdlstatus'] = u'Helping you with '+ds.get_download().get_def().get_name_as_unicode()
-                elif friend['permid'] == coordinator:
-                    # Friend is getting help from us
-                    friend['coopdlstatus'] = u'You help with '+ds.get_download().get_def().get_name_as_unicode()
-                #else:
-                #    friend['coopdlstatus'] = u'Sleeping'
-                    
-        return liblist
 
     def inSearchMode(self, state):
         if state.db in ('filesMode', 'libraryMode'):
             return self.torrentsearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE
-        elif state.db in ('personsMode', 'friendsMode'):
-            return self.peersearch_manager.getSearchMode(state.db) == SEARCHMODE_NONE
         else:
             return False
         
@@ -617,8 +465,7 @@ class standardGrid(wx.Panel):
 
         self.SetBackgroundColour(wx.WHITE)
         
-        #self.cols = 5
-        
+       
         self.Bind(wx.EVT_SIZE, self.onResize)
         
         self.addComponents()
@@ -643,15 +490,7 @@ class standardGrid(wx.Panel):
         self.vSizer.Add(self.columnHeaderSizer, 0, wx.ALL|wx.EXPAND, 0)
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
-        #self.Layout();
-        #self.Refresh(True)
-        #self.Update()
-        #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
 
-    
-    #def Show(self, s):
-    #    print >> sys.stderr, '%s is show(%s)' % (self, s)
-        #wx.Panel.Show(self, s)
         
     def onViewModeChange(self, event=None, mode = None):
         if not self.initReady:
@@ -680,22 +519,6 @@ class standardGrid(wx.Panel):
             self.gridManager.refresh()
             self.toggleColumnHeaders(mode == 'list')
         
-    def onSizeChange(self, event=None):
-        if type(event.GetEventObject()) == wx.Choice:
-            value = event.GetEventObject().GetStringSelection()
-        else:
-            value = event.GetEventObject().GetValue()
-            
-        self.sizeMode = value
-        if value == 'auto':
-            self.guiUtility.updateSizeOfStandardOverview()
-            self.SetMinSize((-1, 20))
-        else:
-            wantedRows = int(value) / self.cols
-            self.SetSize((-1, wantedRows * self.subPanelHeight))
-            self.SetMinSize((-1, wantedRows * self.subPanelHeight))
-            self.guiUtility.standardOverview.growWithGrid()
-            self.guiUtility.standardOverview.Refresh()
         
     def refreshData(self):
         self.setData(self.data)
@@ -720,39 +543,6 @@ class standardGrid(wx.Panel):
         #        self.cols,'rows:',self.currentRows,'items:',self.items
 
         self.Layout()
-        
-    def updateItem(self, item, delete = False, onlyupdate = False):
-        "Add or update an item in the grid"
-        
-        if not item:
-            return
-        
-        # Get key to compare this item to others
-        key = None
-        for tempkey in ['infohash', 'permid', 'content_name']:
-            if item.has_key(tempkey):
-                key = tempkey
-                break
-        if not key:
-            if DEBUG:
-                print >>sys.stderr,'standardGrid: Error, could not find key to compare item: %s' % item
-            return
-        #get the current data source
-        if len(self.data)>0 and self.data[0].has_key("permid"):
-            print >>sys.stderr,"\n*****************************************************\n\
-*                   big problem                     *\n\
-*     in torrentGrid, working on peer data!!!!!     *\n\
-*                                                   *\n\
-*****************************************************\n"
-        i = find_content_in_dictlist(self.data, item, key)
-        if i != -1:
-            if not delete:
-                self.data[i] = item
-            else:
-                self.data.remove(item)
-        elif not onlyupdate:
-            self.data.append(item)
-        self.refreshData()
         
 
     def refreshPanels(self):
@@ -906,26 +696,6 @@ class standardGrid(wx.Panel):
             self.gridResized(self.currentRows)
         
         
-    def updateCols(self, oldCols, newCols):
-        
-        self.items = newCols * self.currentRows
-        if newCols > oldCols:
-            numNew = newCols - oldCols
-            for row in xrange(len(self.panels)):
-                hSizer = self.vSizer.GetItem(row).GetSizer()
-                for i in xrange(numNew):
-                    dataPanel = self.getSubPanel(self.keyTypedOnGridItem)
-                    self.subPanelClass = dataPanel.__class__
-                    self.panels[row].append(dataPanel)
-                    hSizer.Add(dataPanel, 1, wx.ALIGN_CENTER|wx.ALL|wx.GROW, 0)
-        elif newCols < oldCols:
-            numDelete = oldCols - newCols
-            for row in self.panels:
-                for i in xrange(numDelete):
-                    panel = row[newCols]
-                    panel.Destroy()
-                    del row[newCols]
-                    
         
     
     def updatePanel(self, oldRows, newRows):
@@ -939,10 +709,9 @@ class standardGrid(wx.Panel):
                 self.panels.append([])
                 
                 for panel in range(0, self.cols):
-                    dataPanel = self.getSubPanel(self.keyTypedOnGridItem)
+                    dataPanel = self.getSubPanel()
                     self.subPanelClass = dataPanel.__class__
                     # add keylistener for arrow selection
-                    #dataPanel.Bind(wx.EVT_KEY_UP, self.keyTypedOnGridItem)
                     self.panels[i].append(dataPanel)
                     #dataPanel.SetSize((-1, self.subPanelHeight))
                     hSizer.Add(dataPanel, 1, wx.ALIGN_CENTER|wx.ALL|wx.GROW, 0)
@@ -1124,72 +893,6 @@ class standardGrid(wx.Panel):
             pass
         return self.detailPanel is not None
 
-    def keyTypedOnGridItem(self, event):
-        obj = event.GetEventObject()
-        if DEBUG:
-            print >>sys.stderr,'standardGrid: keyTyped: in %s' % obj.__class__.__name__
-        while obj.__class__ != self.subPanelClass:
-            obj = obj.GetParent()
-        
-        # Jelle: Turn of key navigation under windows. Windows already has a focus traversal policy and changes 
-        # the focus of panel.
-        if sys.platform == 'win32': 
-            return
-        
-        if not obj.selected and sys.platform != 'win32':
-            return
-
-        keyCode = event.GetKeyCode()
-        # Get coord of keytyped panel
-        rowIndex = 0
-        xpan = ypan = None
-        for row in self.panels:
-            colIndex = 0    
-            for pan in row:
-                if obj == pan:
-                    (xpan, ypan) = colIndex, rowIndex
-                    if DEBUG:
-                        print >>sys.stderr,'standardGrid: keyTyped: found: %d, %d' % (colIndex, rowIndex)
-                    break
-                colIndex += 1
-            rowIndex += 1
-        if xpan == None:
-            raise Exception('Could not find selected panel')
-        xpanold = xpan
-        ypanold = ypan
-        if sys.platform != 'win32':
-            if keyCode == wx.WXK_UP:
-                ypan = max(0, ypan-1)
-            elif keyCode == wx.WXK_DOWN:
-                ypan = min(self.currentRows-1, ypan+1)
-            elif keyCode == wx.WXK_LEFT:
-                xpan = max(0, xpan -1)
-            elif keyCode == wx.WXK_RIGHT:
-                xpan = min(self.cols-1, xpan+1)
-        else:
-            if keyCode == wx.WXK_UP:
-                if xpan == self.cols-1:
-                    xpan = 0
-                else:
-                    xpan+=1
-                    ypan = max(0, ypan-1)
-            elif keyCode == wx.WXK_DOWN:
-                if xpan == 0:
-                    xpan = self.cols-1
-                else:
-                    xpan = xpan -1
-                    ypan = min(self.currentRows-1, ypan+1)
-        # Get data of new panel
-        if DEBUG:
-            print >>sys.stderr,'standardGrid: Old: %s, New: %s' % ((xpanold, ypanold), (xpan, ypan))
-        if xpanold != xpan or ypanold != ypan or sys.platform =='win32':
-            newpanel = self.panels[ypan][xpan]
-            if newpanel.data != None:
-                # select new panel
-                #newpanel.SetFocus()
-                self.guiUtility.selectData(newpanel.data)
-        event.Skip()
-                
     def getFirstPanel(self):
         try:
             hSizer = self.vSizer.GetItem(1).GetSizer()
@@ -1223,14 +926,7 @@ class standardGrid(wx.Panel):
             self.columnHeaderSizer.Layout()
         self.vSizer.Layout()
     
-            
-    def isShowByOverview(self):
-        name = self.__class__.__name__
-        mode = self.guiUtility.standardOverview.mode
-        index = name.find('Grid')
-        isshown = name[:index] == mode[:index]
-        return isshown
-    
+   
     def getGridManager(self):
         return self.gridManager
     
@@ -1243,8 +939,8 @@ class filesGrid(standardGrid):
         subPanelHeight = (5*22, 22)
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical',parent=parent,name="filesGrid")
         
-    def getSubPanel(self, keyfun):
-        return ItemPanel(self, keyfun)
+    def getSubPanel(self):
+        return ItemPanel(self)
 
 class libraryGrid(standardGrid):
     def __init__(self,parent=None):
@@ -1252,8 +948,8 @@ class libraryGrid(standardGrid):
         subPanelHeight = (22, 22) # This will be update after first refresh
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="libraryGrid")
             
-    def getSubPanel(self, keyfun):
-        return LibraryItemPanel(self, keyfun)
+    def getSubPanel(self):
+        return LibraryItemPanel(self)
 
 class channelsGrid(standardGrid):
     def __init__(self,parent=None):
@@ -1261,8 +957,8 @@ class channelsGrid(standardGrid):
         subPanelHeight = (22, 22) # This will be update after first refresh
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="channelsGrid")
             
-    def getSubPanel(self, keyfun):
-        return ChannelsItemPanel(self, keyfun)
+    def getSubPanel(self):
+        return ChannelsItemPanel(self)
 
 class popularGrid(standardGrid):
     def __init__(self,parent=None):
@@ -1270,8 +966,8 @@ class popularGrid(standardGrid):
         subPanelHeight = (22, 22) # This will be update after first refresh
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list',parent=parent,name="popularGrid")
             
-    def getSubPanel(self, keyfun):
-        return PopularItemPanel(self, keyfun)
+    def getSubPanel(self):
+        return PopularItemPanel(self)
 
 
 

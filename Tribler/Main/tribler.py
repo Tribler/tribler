@@ -415,11 +415,6 @@ class ABCApp(wx.App):
         result = dlg.ShowModal()
         dlg.Destroy()
 
-    def viewSettings(self,event):
-        self.guiUtility.settingsOverview()
-
-    def viewLibrary(self,event):
-        self.guiUtility.standardLibraryOverview()
 
     def toggleFamilyFilter(self,event):
         self.guiUtility.toggleFamilyFilter()
@@ -797,10 +792,10 @@ class ABCApp(wx.App):
                 self.ratelimiter.adjust_speeds()
                 
             # Update stats in lower right overview box
-            self.guiUtility.refreshTorrentStats(dslist)
+            # self.guiUtility.refreshTorrentStats(dslist)
             
             # Upload overall upload states
-            self.guiUtility.refreshUploadStats(dslist)
+            # self.guiUtility.refreshUploadStats(dslist)
             
 # SelectiveSeeding_
             # Apply seeding policy every 60 seconds, for performance

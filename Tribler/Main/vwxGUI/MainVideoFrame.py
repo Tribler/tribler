@@ -87,9 +87,6 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
     def get_videopanel(self):
         return self.videopanel
 
-    def delete_videopanel(self):
-        self.videopanel = None
-
     def get_window(self):
         return self
 
@@ -140,8 +137,6 @@ class VideoDummyFrame(VideoBaseFrame):
     def get_videopanel(self):
         return self.videopanel
 
-    def delete_videopanel(self):
-        self.videopanel = None
 
     def get_window(self):
         return self.parent

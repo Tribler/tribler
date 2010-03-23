@@ -15,13 +15,10 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-#from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Category.Category import Category
-from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog, InviteFriendsDialog
 from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.vwxGUI.GridState import GridState
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager, ChannelSearchGridManager, PeerSearchGridManager
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager, ChannelSearchGridManager
 from Tribler.Main.Utility.constants import *
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
@@ -49,18 +46,8 @@ class GUIUtility:
         self.utility.guiUtility = self
         self.params = params
         self.frame = None
-        self.selectedMainButton = None
         self.standardOverview = None
         self.standardDetails = None
-        self.reachable = False
-        self.DELETE_TORRENT_ASK = True
-        self.DELETE_TORRENT_ASK_OLD = True
-        self.DELETE_TORRENT_PREF = 1 # 1 : from Library
-                                     # 2 : from Library and Harddisk
-
-
-        self.fakeButton = None
-        self.realButton = None
 
        # videoplayer
         self.videoplayer = VideoPlayer.getInstance()
@@ -70,7 +57,6 @@ class GUIUtility:
 
         # standardGrid
         self.standardGrid = None
- 
 
         # port number
         self.port_number = None
@@ -81,17 +67,11 @@ class GUIUtility:
         else:
             self.utf8 = "UTF-8"
 
-
         # search mode
         self.search_mode = 'files' # 'files' or 'channels'
 
-
         # first channel search
         self.firstchannelsearch = True
-
-        # page Title
-        self.pageTitle = None
-
 
         # number subsciptions
         self.nb_subscriptions = None
@@ -106,24 +86,15 @@ class GUIUtility:
         # of the standardGrid.GridManager
         self.torrentsearch_manager = TorrentSearchGridManager.getInstance(self)
         self.channelsearch_manager = ChannelSearchGridManager.getInstance(self)
-        self.peersearch_manager = PeerSearchGridManager.getInstance(self)
         
         self.guiOpen = Event()
-        
-       
-        self.gridViewMode = 'thumbnails' 
-#        self.standardOverview = standardOverview()
-        
+     
+      
         self.selectedColour = wx.Colour(216,233,240) ## 155,200,187
         self.unselectedColour = wx.Colour(255,255,255) ## 102,102,102      
         self.unselectedColour2 = wx.Colour(255,255,255) ## 230,230,230       
-        self.unselectedColourDownload = wx.Colour(198,226,147)        
-        self.unselectedColour2Download = wx.Colour(190,209,139)
-        self.selectedColourDownload = wx.Colour(145,173,78)
         self.selectedColourPending = wx.Colour(216,233,240)  ## 208,251,244
-        self.triblerRed = wx.Colour(255, 51, 0)
         self.bgColour = wx.Colour(102,102,102)
-        self.darkTextColour = wx.Colour(51,51,51)
         
         # Recall improves by 20-25% by increasing the number of peers to query to 20 from 10 !
         self.max_remote_queries = 20    # max number of remote peers to query
@@ -157,175 +128,21 @@ class GUIUtility:
             print >>sys.stderr,'GUIUtil: Button clicked %s' % name
             #print_stack()
         
-        if name == 'moreFileInfo':
-            self.standardFileDetailsOverview()
-        elif name == 'moreFileInfoPlaylist':
-            self.standardFileDetailsOverview()
-#            self.standardPlaylistOverview()
-        elif name == 'more info >': 
-            self.standardPersonDetailsOverview()                      
-        elif name == 'backButton':            
-            self.standardStartpage() 
-        elif name == 'All popular files':            
-            self.standardFilesOverview()
-        elif name == 'refresh':
-            self.refreshTracker()
-        elif name == "addAsFriend" or name == 'deleteFriend':
-            self.standardDetails.addAsFriend()
-
         elif name in ['save','save_big', 'save_medium']: 
             self.standardDetails.download()
-        elif name == 'addFriend':
-            #print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
-            dialog = MakeFriendsDialog(obj,self.utility)
-            ret = dialog.ShowModal()
-            dialog.Destroy()
-        elif name == 'inviteFriends':
-            self.emailFriend(event)
-            #else:
-            #    print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is None"
         elif name == 'browse':
             self.standardOverview.currentPanel.sendClick(event)
         elif name == 'edit':
             self.standardOverview.currentPanel.sendClick(event)
-        elif name == "takeMeThere0" : #a button to go to preferences was clicked
-            panel_name = self.standardDetails.currentPanel.GetName()
-            if panel_name == "profileDetails_Files":
-                #self.utility.actions[ACTION_PREFERENCES].action()
-                self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
-                self.selectData(self.standardDetails.getData())
-            if panel_name == "profileDetails_Download":
-                #self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
-                self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('videosetting'))
-                self.selectData(self.standardDetails.getData())
-            elif panel_name == "profileDetails_Presence":
-                self.emailFriend(event)
-                #self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
-            #generate event to change page -> this should be done as a parameter to action because is modal
-            #event = wx.TreeEvent(wx.EVT_TREE_ITEM_ACTIVATED)
-            #wx.PostEvent()
-        elif name == "takeMeThere1": #switch to another view
-            panel_name = self.standardDetails.currentPanel.GetName()
-            if panel_name == "profileDetails_Download":
-                self.emailFriend(event)
-                #self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
-            if panel_name == "profileDetails_Presence": 
-                URL = 'http://www.tribler.org/'
-                webbrowser.open(URL)  
-            else:
-                print >>sys.stderr,'GUIUtil: A button was clicked, but no action is defined for: %s' % name
-                
-        elif name == "takeMeThere2": #switch to another view
-            panel_name = self.standardDetails.currentPanel.GetName()
-            if panel_name == "profileDetails_Download":
-                URL = 'http://www.tribler.org/'
-                webbrowser.open(URL)                
         elif name == 'firewallStatus':
             self.firewallStatusClick()
-        elif name == 'options':            
-            self.standardDetails.rightMouseButton(event)
-        elif name == 'viewModus':            
-            self.onChangeViewModus()
-        elif name == 'playAdd' or name == 'play' or name == 'playAdd1' or name == 'play1':   
-            playableFiles = self.standardOverview.data['fileDetailsMode']['panel'].selectedFiles[:]
-            
-            if name == 'play' or name == 'play1':
-                self.standardDetails.addToPlaylist(name = '', add=False)
-            
-            for p in playableFiles:
-                if p != '':
-                    self.standardDetails.addToPlaylist(name = p.GetLabel(), add=True)
-
-        elif name == 'fake':    
-            self.realButton.setState(False) # disabled real button
-            # TODO: write code for positive code
-
-        elif name == 'real':    
-            self.fakeButton.setState(False) # disable fake button
-            # TODO: write code for positive code
-
-
-
         elif name == 'remove':
-
-            ##if self.DELETE_TORRENT_ASK:
-            ##    xrcResource = os.path.join(self.vwxGUI_path, 'deleteTorrent.xrc')
-            ##    res = xrc.XmlResource(xrcResource)
-            ##    self.dialogFrame = res.LoadFrame(None, "torrentDialog")
- 
-                #self.dialogFrame.SetFocus()
-            ##    self.dialogFrame.Centre()
-            ##    self.dialogFrame.Show(True)
-
-            ##    self.dialogFrame.Library = xrc.XRCCTRL(self.dialogFrame,c "Library") 
-            ##    self.dialogFrame.LibraryHardDisk = xrc.XRCCTRL(self.dialogFrame, "LibraryHardDisk") 
-            ##    self.dialogFrame.Cancel = xrc.XRCCTRL(self.dialogFrame, "Cancel") 
-            ##    self.dialogFrame.checkbox = xrc.XRCCTRL(self.dialogFrame, "checkBox")
-
-
-            ##    self.dialogFrame.Library.Bind(wx.EVT_BUTTON, self.LibraryClicked)
-            ##    self.dialogFrame.LibraryHardDisk.Bind(wx.EVT_BUTTON, self.HardDiskClicked)
-            ##    self.dialogFrame.Cancel.Bind(wx.EVT_BUTTON, self.CancelClicked)
-            ##    self.dialogFrame.checkbox.Bind(wx.EVT_CHECKBOX, self.checkboxClicked)
-
-
-
-            ##elif self.DELETE_TORRENT_PREF == 1: 
-            ##   self.onDeleteTorrentFromLibrary()
-            ##else:
-            ##   self.onDeleteTorrentFromDisk()
-            self.onDeleteTorrentFromDisk() # default behaviour for preview 1
-            
-
- 
-
-
-        ##elif name == 'settings':
-        ##    self.settingsOverview()
-
-
-        ##elif name == 'my_files':
-        ##    self.standardLibraryOverview()
+           self.onDeleteTorrentFromDisk() # default behaviour for preview 1
 
         elif DEBUG:
             print >> sys.stderr, 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
-        
-#    def mainButtonClicked(self, name, button):
-#        "One of the mainbuttons in the top has been clicked"
-#        
-#        if not button.isSelected():
-#            if self.selectedMainButton:
-#                self.selectedMainButton.setSelected(False)
-#            button.setSelected(True)
-#            self.selectedMainButton = button
-#
-#        if name == 'mainButtonStartpage':
-#            self.standardStartpage()
-#        if name == 'mainButtonStats':
-#            self.standardStats()
-#        elif name == 'mainButtonFiles':
-#            self.standardFilesOverview()
-#        elif name == 'mainButtonPersons':
-#            self.standardPersonsOverview()
-#        elif name == 'mainButtonProfile':
-#            self.standardProfileOverview()
-#        elif name == 'mainButtonLibrary':
-#            self.standardLibraryOverview()
-#        elif name == 'mainButtonFriends':
-#            self.standardFriendsOverview()
-#        elif name == 'mainButtonRss':
-#            self.standardSubscriptionsOverview()
-#        elif name == 'mainButtonFileDetails':
-#            self.standardFileDetailsOverview()
-##            print 'tb debug> guiUtility button press ready'
-#        elif name == 'mainButtonPersonDetails':
-#            self.standardPersonDetailsOverview()
-#        elif name == 'mainButtonMessages':
-#            self.standardMessagesOverview()
-#        elif DEBUG:
-#            print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
-
+ 
     def setSearchMode(self, search_mode):
         if search_mode not in ('files', 'channels'):
             return
@@ -354,7 +171,6 @@ class GUIUtility:
                 self.frame.top_bg.familyfilter.SetLabel('Family Filter:ON')
             else:
                 self.frame.top_bg.familyfilter.SetLabel('Family Filter:OFF')
-        #obj.setToggled(ff_enabled)
         for filtername in ['filesFilter', 'libraryFilter']:
             filterCombo = xrc.XRCCTRL(self.frame, filtername)
             if filterCombo:
@@ -364,14 +180,8 @@ class GUIUtility:
 
 
     def standardStartpage(self, filters = ['','']):
-        ##self.frame.pageTitle.SetLabel('START PAGE')               
-        filesDetailsList = []
         self.standardOverview.setMode('startpageMode')
 
-    def standardStats(self, filters = ['','']):
-        self.frame.pageTitle.SetLabel('STATS')               
-#        filesDetailsList = []
-        self.standardOverview.setMode('statsMode')
             
     def standardFilesOverview(self):
         self.guiPage = 'search_results'
@@ -585,67 +395,17 @@ class GUIUtility:
             wx.CallAfter(self.frame.standardPager.Show,self.standardOverview.getGrid().getGridManager().get_total_items()>0)
         except:
             pass
-
-        
-    def standardSubscriptionsOverview(self):
-        self.frame.pageTitle.SetLabel('SUBSCRIPTIONS')       
-        self.standardOverview.setMode('subscriptionsMode')
-        gridState = GridState('subscriptionMode', 'all', 'name')
-        self.standardOverview.filterChanged(gridState)
-        self.standardDetails.setMode('subscriptionsMode')
-    
-    def standardFileDetailsOverview(self, filters = ['','']):               
-        filesDetailsList = []
-        self.standardOverview.setMode('fileDetailsMode')
-#        print 'tb > self.standardOverview.GetSize() 1= %s ' % self.standardOverview.GetSize()
-#        print 'tb > self.frame = %s ' % self.frame.GetSize()
-        
-        frameSize = self.frame.GetSize()
-#        self.standardOverview.SetMinSize((1000,2000))
-#        self.scrollWindow.FitInside()
-#        print 'tb > self.standardOverview.GetSize() 2= %s ' % self.standardOverview.GetSize()
-#        self.scrollWindow.SetScrollbars(1,1,1024,2000)
-        
-##        self.scrollWindow.SetScrollbars(1,1,frameSize[0],frameSize[1])
-#        self.standardOverview.SetSize((-1, 2000))
-#        print 'tb > self.standardOverview.GetSize() = %s' % self.standardOverview.GetSize()
-#        self.standardOverview.filterChanged(filters)
-#        self.standardDetails.setMode('fileDetails')
-    def standardPlaylistOverview(self, filters = ['','']):               
-        filesDetailsList = []
-        self.standardOverview.setMode('playlistMode')
-        
-
-    def standardPersonDetailsOverview(self, filters = ['','']):               
-        filesDetailsList = []
-        self.standardOverview.setMode('personDetailsMode')
-         
-    def standardMessagesOverview(self):
-        if DEBUG:
-            print >>sys.stderr,'GUIUtil: standardMessagesOverview: Not yet implemented;'
-  
-            
+           
     def initStandardOverview(self, standardOverview):
         "Called by standardOverview when ready with init"
         self.standardOverview = standardOverview
-#        self.standardFilesOverview(filters = ['all', 'seeder'])
-
         self.standardStartpage()
         self.standardOverview.Show(True)
 
-        self.gridViewMode = 'list'
-        
-        #self.filterStandard.Hide() ## hide the standardOverview at startup
-        
         # Family filter initialized from configuration file
         catobj = Category.getInstance()
         print >> sys.stderr , "FAMILY FILTER :" , self.utility.config.Read('family_filter', "boolean")
 
-    def getOverviewElement(self):
-        """should get the last selected item for the current standard overview, or
-        the first one if none was previously selected"""
-        firstItem = self.standardOverview.getFirstItem()
-        return firstItem
         
     def initStandardDetails(self, standardDetails):
         "Called by standardDetails when ready with init"
@@ -653,15 +413,7 @@ class GUIUtility:
         firstItem = self.standardOverview.getFirstItem()
         self.standardDetails.setMode('filesMode', firstItem)        
         self.guiOpen.set()
-        
-    def deleteSubscription(self,subscrip):
-        self.standardOverview.loadSubscriptionData()
-        self.standardOverview.refreshData()
-    
-    def addTorrentAsHelper(self):
-        if self.standardOverview.mode == 'libraryMode':
-            self.standardOverview.filterChanged(None)
-            #self.standardOverview.refreshData()
+
     
     def selectData(self, data):
         "User clicked on item. Has to be selected in detailPanel"
@@ -673,15 +425,6 @@ class GUIUtility:
         self.standardDetails.setData(torrent)
         self.standardOverview.updateSelection()
 
-    def selectPeer(self, peer_data):
-        "User clicked on peer. Has to be selected in detailPanel"
-        self.standardDetails.setData(peer_data)
-        self.standardOverview.updateSelection()
-
-    def selectSubscription(self, sub_data):
-        "User clicked on subscription. Has to be selected in detailPanel"
-        self.standardDetails.setData(sub_data)
-        self.standardOverview.updateSelection()
             
     def updateSizeOfStandardOverview(self):
         print 'tb > SetProportion'
@@ -707,69 +450,7 @@ class GUIUtility:
         #print 'Overview is now: %s' % str(self.standardOverview.GetSize())
         self.standardOverview.GetContainingSizer().Layout()
             
-    def refreshTracker(self):
-        torrent = self.standardDetails.getData()
-        if not torrent:
-            return
-        if DEBUG:
-            print >>sys.stderr,'GUIUtility: refresh ' + repr(torrent.get('content_name', 'no_name'))
-        if torrent:
-            check = TorrentChecking(torrent['infohash'])
-            check.start()
             
-            
-    def refreshTorrentStats(self,dslist):
-        """ Called from ABCApp by MainThread to refresh statistics of downloading torrents"""
-        pass
-        ##try:
-        ##    if self.guiOpen.isSet():
-        ##        self.standardDetails.refreshTorrentStats(dslist)
-        ##except:
-        ##    print_exc()
-    
-    def refreshUploadStats(self, dslist):
-        pass
-        ##try:
-        ##    if self.guiOpen.isSet():
-        ##        self.standardDetails.refreshUploadStats(dslist)
-        ##except:
-        ##    print_exc()
-   
-    def emailFriend(self, event):
-        ip = self.utility.config.Read('bind')
-        if ip is None or ip == '':
-            ip = self.utility.session.get_external_ip()
-        mypermid = self.utility.session.get_permid()
-
-        permid_txt = self.utility.lang.get('permid')+": "+show_permid(mypermid)
-        ip_txt = self.utility.lang.get('ipaddress')+": "+ip
-
-        port = self.utility.session.get_listen_port()
-        port_txt = self.utility.lang.get('portnumber')+" "+str(port)
-
-        subject = self.utility.lang.get('invitation_subject')
-        invitation_body = self.utility.lang.get('invitation_body')
-        invitation_body = invitation_body.replace('\\n', '\n')
-        invitation_body += ip_txt + '\n\r'
-        invitation_body += port_txt + '\n\r'
-        invitation_body += permid_txt + '\n\r\n\r\n\r'
-       
-        if sys.platform == "darwin":
-            body = invitation_body.replace('\\r','')
-            body = body.replace('\r','')
-        else:
-            body = urllib.quote(invitation_body)
-        mailToURL = 'mailto:%s?subject=%s&body=%s'%('', subject, body)
-        try:
-            webbrowser.open(mailToURL)
-        except:
-            text = invitation_body.split("\n")
-            InviteFriendsDialog(text)
-
-    def get_nat_type(self, callback=None):
-        return self.utility.session.get_nat_type(callback=callback)
-
-
 
     def dosearch(self):
         sf = self.frame.top_bg.searchField
@@ -929,58 +610,6 @@ class GUIUtility:
         wx.CallAfter(self.channelsearch_manager.gotRemoteHits,permid,kws,records,self.standardOverview.getMode())
         
 
-    def stopSearch(self):
-        self.frame.go.setToggled(False)
-        self.frame.top_bg.createBackgroundImage()
-        self.frame.top_bg.Refresh()
-        self.frame.top_bg.Update()
-        self.frame.search.SetFocus()
-        mode = self.standardOverview.getMode() 
-        if mode == 'filesMode' or mode == 'libraryMode':
-            self.torrentsearch_manager.stopSearch()
-        if mode == 'personsMode' or mode == 'friendsMode':
-            self.peersearch_manager.stopSearch()
-        
-    def clearSearch(self):
-        mode = self.standardOverview.getMode()
-        self.standardOverview.data[mode]['search'].Clear()
-        if mode == 'filesMode'  or mode == 'libraryMode':
-            self.torrentsearch_manager.setSearchKeywords([],mode)
-            gridState = self.standardOverview.getFilter().getState()
-            if not gridState or not gridState.isValid():
-                gridState = GridState(mode, 'all', 'num_seeders')
-            if DEBUG:
-                print >> sys.stderr, 'GUIUtil: clearSearch, back to: %s' % gridState
-            self.standardOverview.filterChanged(gridState)
-        if mode == 'personsMode'  or mode == 'friendsMode':
-            self.peersearch_manager.setSearchKeywords([],mode)
-            gridState = GridState(mode, 'all', 'last_connected', reverse=False)
-            self.standardOverview.filterChanged(gridState)
-        
-    def searchPersons(self, mode, input):
-        wantkeywords = split_into_keywords(input)
-        if DEBUG:
-            print >>sys.stderr,"GUIUtil: searchPersons:", wantkeywords
-
-        self.peersearch_manager.setSearchKeywords(wantkeywords, mode)
-        self.peersearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
-        #print "******** gui uti searchFiles", wantkeywords
-        gridstate = GridState(self.standardOverview.mode, 'all', 'last_connected')
-        self.standardOverview.filterChanged(gridstate)
-   
-
-    def OnSearchKeyDown(self,event):
-        
-        keycode = event.GetKeyCode()
-        #if event.CmdDown():
-        #print "OnSearchKeyDown: keycode",keycode
-        if keycode == wx.WXK_RETURN:
-            self.frame.Hide()
-            self.standardFilesOverview()
-            self.dosearch()
-        else:
-            event.Skip()     
-
     def set_firewall_restart(self,b):
         self.firewall_restart = b
 
@@ -1000,131 +629,13 @@ class GUIUtility:
         result = dlg.ShowModal()
         dlg.Destroy()
 
-    def OnSearchMouseAction(self,event):
-        sf = self.standardOverview.getSearchField()
-        if sf is None:
-            return
-
-        eventType = event.GetEventType()
-        #print 'event: %s, double: %s, leftup: %s' % (eventType, wx.EVT_LEFT_DCLICK, wx.EVT_LEFT_UP)
-        #print 'value: "%s", 1: "%s", 2: "%s"' % (sf.GetValue(), self.utility.lang.get('filesdefaultsearchweb2txt'),self.utility.lang.get('filesdefaultsearchtxt')) 
-        if event.LeftDClick() or \
-           ( event.LeftUp() and sf.GetValue() in [self.utility.lang.get('filesdefaultsearchweb2txt'),self.utility.lang.get('filesdefaultsearchtxt')]):
-            ##print 'select'
-            sf.SetSelection(-1,-1)
-            
-        if not event.LeftDClick():
-            event.Skip()
-
     def getSearchField(self,mode=None):
         return self.standardOverview.getSearchField(mode=mode)
    
     def isReachable(self):
         return self.utility.session.get_externally_reachable()
    
-   
-    def onChangeViewModus(self):
-        # clicked on changemodus button in title bar of overviewPanel
-        changeViewModus = wx.Menu() 
-        self.utility.makePopup(changeViewModus, None, 'rChangeViewModusThumb', type="checkitem", status="active")
-        self.utility.makePopup(changeViewModus, None, 'rChangeViewModusList', type="checkitem") 
-        return changeViewModus
-        
-        
-        
-    def OnRightMouseAction(self,event):
-        # called from  "*ItemPanel" or from "standardDetails"
-        item = self.standardDetails.getData()
-        if not item:
-            if DEBUG:
-                print >>sys.stderr,'GUIUtil: Used right mouse menu, but no item in DetailWindow'
-            return
-        
-        rightMouse = wx.Menu()        
-
-        
-        
-        if self.standardOverview.mode == "filesMode" and not item.get('myDownloadHistory', False):
-            self.utility.makePopup(rightMouse, None, 'rOptions')
-            if item.get('web2'):
-                self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rPlay')
-            else:
-                #self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
-                #if secret:
-                self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
-                #else:
-                #self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
-            
-            # if in library:
-        elif self.standardOverview.mode == "libraryMode" or item.get('myDownloadHistory'):
-            #self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
-            #rightMouse.AppendSeparator()
-            self.utility.makePopup(rightMouse, None, 'rLibraryOptions')
-            self.utility.makePopup(rightMouse, self.onOpenFileDest, 'rOpenfilename')
-            self.utility.makePopup(rightMouse, self.onOpenDest, 'rOpenfiledestination')
-            self.utility.makePopup(rightMouse, self.onDeleteTorrentFromLibrary, 'rRemoveFromList')
-            self.utility.makePopup(rightMouse, self.onDeleteTorrentFromDisk, 'rRemoveFromListAndHD') 
-            #rightMouse.AppendSeparator()
-            #self.utility.makePopup(rightMouse, self.onAdvancedInfoInLibrary, 'rAdvancedInfo')
-        elif self.standardOverview.mode == "personsMode" or self.standardOverview.mode == "friendsMode":     
-            self.utility.makePopup(rightMouse, None, 'rOptions')
-            fs = item.get('friend') 
-            if fs == FS_MUTUAL or fs == FS_I_INVITED:
-                self.utility.makePopup(rightMouse, self.onChangeFriendStatus, 'rRemoveAsFriend')
-                self.utility.makePopup(rightMouse, self.onChangeFriendInfo, 'rChangeInfo')
-            else:
-                self.utility.makePopup(rightMouse, self.onChangeFriendStatus, 'rAddAsFriend')
-            
-            # if in friends:
-##            if self.standardOverview.mode == "friendsMode":
-##                rightMouse.AppendSeparator()
-##                self.utility.makePopup(rightMouse, None, 'rFriendsOptions')
-##                self.utility.makePopup(rightMouse, None, 'rSendAMessage')
-        elif self.standardOverview.mode == "subscriptionsMode":
-            event.Skip()
-##            self.utility.makePopup(rightMouse, None, 'rOptions')
-##            self.utility.makePopup(rightMouse, None, 'rChangeSubscrTitle')
-##            self.utility.makePopup(rightMouse, None, 'rRemoveSubscr')
-            
-
-        
-        return (rightMouse)
-        #self.PopupMenu(rightMouse, (-1,-1))  
-        
-# ================== actions for rightMouse button ========================================== 
-    def onOpenFileDest(self, event = None):
-        # open File
-        self.onOpenDest(event, openFile=True)
-  
-    def onOpenDest(self, event = None, openFile=False):
-        # open Destination
-        item = self.standardDetails.getData()
-        state = item.get('ds')
-        
-        if state:
-            dest = state.get_download().get_dest_dir()
-            if openFile:
-                destfiles = state.get_download().get_dest_files()
-                if len(destfiles) == 1:
-                    dest = destfiles[0][1]
-            if sys.platform == 'darwin':
-                dest = 'file://%s' % dest
-            
-            print >> sys.stderr,"GUIUtil: onOpenDest",dest
-            complete = True
-            # check if destination exists
-            assert dest is not None and os.access(dest, os.R_OK), 'Could not retrieve destination'
-            try:
-                t = Thread(target = open_new, args=(str(dest),))
-                t.setName( "FilesOpenNew"+t.getName() )
-                t.setDaemon(True)
-                t.start()
-            except:
-                print_exc()
-                
-        elif DEBUG:
-            print >>sys.stderr,'GUIUtil: onOpenFileDest failed: no torrent selected'
-            
+          
     def onDeleteTorrentFromDisk(self, event = None):
         item = self.standardDetails.getData()
         
@@ -1133,10 +644,6 @@ class GUIUtility:
             self.user_download_choice.remove_download_state(item['ds'].get_download().get_def().get_infohash())
             
         self.standardOverview.removeTorrentFromLibrary(item)
-        #wx.CallAfter(self.frame.standardPager.Show,self.standardOverview.getGrid().getGridManager().get_total_items()>0)
-
-
-
                 
     def onDeleteTorrentFromLibrary(self, event = None):
         item = self.standardDetails.getData()
@@ -1146,54 +653,3 @@ class GUIUtility:
             
         self.standardOverview.removeTorrentFromLibrary(item)
     
-
-    def onAdvancedInfoInLibrary(self, event = None):
-        # open torrent details frame
-        item = self.standardDetails.getData()
-        abctorrent = item.get('abctorrent')
-        if abctorrent:
-            abctorrent.dialogs.advancedDetails(item)
-            
-        event.Skip()
-        
-    def onModerate(self, event = None):
-        if DEBUG:
-            print >>sys.stderr,'GUIUtil: ---tb--- Moderate event'
-            print >>sys.stderr,event
-        # todo
-        event.Skip()
-    
-    def onRecommend(self, event = None):
-        # todo
-        event.Skip()
-   
-    def onDownloadOpen(self, event = None):
-        self.standardDetails.download()
-        event.Skip()
-    
-    def onDownloadSecret(self, event = None):
-        self.standardDetails.download(secret=True)
-        event.Skip()
-        
-    def onChangeFriendStatus(self, event = None):
-        self.standardDetails.addAsFriend()
-        event.Skip()
-
-    def onChangeFriendInfo(self, event = None):
-        item = self.standardDetails.getData()       
-        dialog = MakeFriendsDialog(self.frame,self.utility, item)
-        ret = dialog.ShowModal()
-        dialog.Destroy()
-        event.Skip()
-
-    
-# =========END ========= actions for rightMouse button ==========================================
-    
-    def superRefresh(self, sizer):
-        print 'supersizer to the rescue'
-        for item in sizer.GetChildren():
-            if item.IsSizer():
-                self.superRefresh(item.GetSizer())
-                item.GetSizer().Layout()
-            elif item.IsWindow():
-                item.GetWindow().Refresh()

@@ -428,12 +428,6 @@ class EmbeddedPlayerPanel(wx.Panel):
         else:
             return MEDIASTATE_STOPPED
 
-    def EnableSaveButton(self, b, callback):
-        self.save_button.setToggled(b)
-        if b:
-            self.save_callback = callback
-        else:
-            self.save_callback = lambda:None
 
     def Reset(self):
         #self.DisableInput()
@@ -471,13 +465,6 @@ class EmbeddedPlayerPanel(wx.Panel):
     #
     # Internal methods
     #
-    def EnableInput(self):
-        self.ppbtn.Enable(True)
-        # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
-        if self.vlcwrap:
-            self.slider.Enable(True)
-        self.fsbtn.Enable(True)
-
     def UpdateProgressSlider(self, pieces_complete):
         # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
         if self.vlcwrap:

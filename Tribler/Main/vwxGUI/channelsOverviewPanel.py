@@ -7,11 +7,6 @@ from time import time
 import urllib
 import cStringIO
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
-
-
-
 class channelsOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
         self.utility = None
@@ -31,23 +26,7 @@ class channelsOverviewPanel(wx.Panel):
         return True
     
     def _PostInit(self):
-        self.guiUtility = GUIUtility.getInstance()
-        self.utility = self.guiUtility.utility
-
-#        self.standardOverview = self.guiUtility.standardOverview
-#        self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-#        self.channelcast_db = self.utility.session.open_dbhandler(NTFY_CHANNELCAST)
-#        self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-#        self.vcdb = self.utility.session.open_dbhandler(NTFY_VOTECAST)
-#        self.channelsDetails = self.guiUtility.frame.channelsDetails
-#        self.setMyChannelInfo()
-
-    def setTorrentList(self , torrentlist):
-        self.myTorrentList = torrentlist
-
-    def isMyChannel(self):
-        return True
-
+        pass
 
 
 

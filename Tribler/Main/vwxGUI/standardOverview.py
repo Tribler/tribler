@@ -12,34 +12,16 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 from Tribler.Main.vwxGUI.standardGrid import filesGrid,libraryGrid,channelsGrid,popularGrid
 from Tribler.Main.Utility.constants import *
-#from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-
-from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
-
-
 from Tribler.Core.Utilities.unicode import *
 
 from time import time
 
 from font import *
 
-OVERVIEW_MODES = ['startpageMode','basicMode', 'filesMode', 'settingsMode', 'channelsMode',
+OVERVIEW_MODES = ['startpageMode', 'filesMode', 'settingsMode', 'channelsMode',
                   'libraryMode']
 
-# font sizes
-if sys.platform == 'darwin':
-    FS_FILETITLE = 10
-    FS_SIMILARITY = 10
-    FS_HEARTRANK = 8
-elif sys.platform == 'linux2':
-    FS_FILETITLE = 8
-    FS_SIMILARITY = 7
-    FS_HEARTRANK = 7
-else:
-    FS_FILETITLE = 8
-    FS_SIMILARITY = 10
-    FS_HEARTRANK = 7
 
 DEBUG = False
 
@@ -70,19 +52,11 @@ class standardOverview(wx.Panel):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
-        self.categorykey = None
-      
-        self.triblerStyles = TriblerStyles.getInstance()
-
         self.search_results = self.guiUtility.frame.top_bg.search_results
         self.results = {}
         
-#        self.SetBackgroundColour((255,255,90))
-  
-#        self.Bind(wx.EVT_SIZE, self.standardOverviewResize)
         self.mode = None        
         self.selectedTorrent = None
-        self.selectedPeer = None
         self.data = {} #keeps gui elements for each mode
         for mode in OVERVIEW_MODES:
             self.data[mode] = {} #each mode has a dictionary of gui elements with name and reference
@@ -103,15 +77,8 @@ class standardOverview(wx.Panel):
 
         self.addComponents()
         #self.Refresh()
-        
-#        self.guiUtility.frame.Bind(wx.EVT_SIZE, self.standardOverviewResize())
-#        self.Bind(wx.EVT_SIZE, self.standardOverviewResize)
 
-        #print >>sys.stderr,"standardOverview: __init__: Setting GUIUtil"
         self.guiUtility.initStandardOverview(self)    # show file panel
-        #self.toggleLoadingDetailsPanel(True)
-        
-        #print >> sys.stderr, '[StartUpDebug]----------- standardOverview is in postinit ----------', currentThread().getName(), '\n\n'
         
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
@@ -120,28 +87,11 @@ class standardOverview(wx.Panel):
         self.Layout()
 
                     
-    def standardOverviewResize(self, event=None):
-#        self.SetAutoLayout(0) 
-#        self.SetSize((-1,(self.guiUtility.frame.GetSize()[1]-200)))
-#        self.SetWindowStyleFlag(wx)
-#        self.Layout()
-#        self.currentPanel.SetSize((-1, (self.GetSize()[1]-250)))
-#        print 'tb > standardOverviewResize Resize'     
-#        print self.currentPanel.GetSize()
-#        self.SetSize((-1, 1000))
-#        
-
-#        print self.GetSize() 
-        if event:
-            event.Skip()
-        
-        self.SetAutoLayout(1)
-        self.Layout()
-        
+       
     def setMode(self, mode, refreshGrid=True):
         # switch to another view, 
-        # mode is one of the [filesMode, personsMode, friendsMode, profileMode, libraryMode, subscriptionsMode]
-        if self.mode != mode or mode == 'fileDetailsMode' or mode == 'playlistMode':
+        # mode is one of the [filesMode,  libraryMode, channelsMode]
+        if self.mode != mode:
             self.mode = mode
             self.refreshMode(refreshGrid=refreshGrid)
             
@@ -279,9 +229,7 @@ class standardOverview(wx.Panel):
 
     def loadPanel(self):        
         currentPanel = self.data[self.mode].get('panel',None)
-        #print >> sys.stderr, 'standardOverview: currentPanel' , currentPanel
         modeString = self.mode[:-4]
-        #print >> sys.stderr, 'standardOverview: modestring' , modeString
         if DEBUG:
             print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
 
@@ -355,27 +303,11 @@ class standardOverview(wx.Panel):
             self.iconSaved = xrc.XRCCTRL(currentPanel, 'iconSaved')
             wx.CallAfter(self.updateFirewall)
 
-                        
+      
         
-        
-        if self.mode in ['filesMode', 'personsMode']:
+        if self.mode == 'filesMode':
             grid = self.data[self.mode].get('grid') 
-            if self.guiUtility.gridViewMode != grid.viewmode :
-                grid.onViewModeChange(mode=self.guiUtility.gridViewMode)
                 
-                  
-                
-        if self.mode == 'fileDetailsMode':
-            print 'tb > fileDetailsMode'
-            self.data[self.mode]['panel'].setData(self.selectedTorrent)
-            
-        if self.mode == 'playlistMode':
-            print 'tb > playlistMode'
-            self.data[self.mode]['panel'].setData(self.selectedTorrent)
-        
-        if self.mode == 'personDetailsMode':
-            self.data[self.mode]['panel'].setData(self.selectedPeer)
-
         return currentPanel
      
     def refreshData(self):        
@@ -461,41 +393,6 @@ class standardOverview(wx.Panel):
         else:
             print >> sys.stderr, 'standardOverview: Invalid Filterstate:', filterState
     
-    """
-    def loadSubscriptionData(self):
-        if DEBUG:
-            print >> sys.stderr, 'load subscription data'
-            
-        torrentfeed = TorrentFeedThread.getInstance()
-        urls = torrentfeed.getURLs()
-        
-        bcsub = self.utility.lang.get('buddycastsubscription')
-        web2sub = self.utility.lang.get('web2subscription')
-        
-        bcactive = self.utility.session.get_buddycast() and self.utility.session.get_start_recommender()
-        bcstatus = 'inactive'
-        if bcactive:
-            bcstatus = 'active'
-        web2active = self.utility.config.Read('enableweb2search', "boolean")
-        web2status = 'inactive'
-        if web2active:
-            web2status = 'active'
-        
-        reclist = []
-        record = {'url':bcsub,'status':bcstatus,'persistent':'BC'}
-        reclist.append(record)
-        record = {'url':web2sub,'status':web2status,'persistent':'Web2.0'}
-        reclist.append(record)
-        for url in urls:
-            record = {}
-            record['url'] = url
-            record['status'] = urls[url]
-            reclist.append(record)
-        self.data[self.mode]['data'] = reclist
-        self.data[self.mode]['grid'].setData(reclist)
-    """    
-   
-
   
     
     def getSearchField(self,mode=None):
@@ -507,24 +404,10 @@ class standardOverview(wx.Panel):
         if num == 2:
             return self.data.get(self.mode, {}).get('grid2')
         return self.data.get(self.mode, {}).get('grid')
-    
-        
-    def getSorting(self):
-        fs = self.data[self.mode].get('filterState')
-        if fs:
-            return fs.sort
-        else:
-            return None
-    
-    def getFilter(self):
-        return self.data[self.mode]['filter']
 
     def getPager(self):
         return self.data[self.mode]['pager']
         
-    def getRSSUrlCtrl(self):
-        return self.data[self.mode]['rssurlctrl']
-    
     def gridIsAutoResizing(self):
         return self.getGrid().sizeMode == 'auto'
         
@@ -540,15 +423,9 @@ class standardOverview(wx.Panel):
             return searchDetailsPanel.searchBusy
         else:
             return False
+
     def _setSearchFeedback(self, type, finished, num, keywords = [], searchresults = None):
-        #print 'standardOverview: _setSearchFeedback called by', currentThread().getName()
-
         self.setMessage(type, finished, num, keywords)
-
-
-        ##searchDetailsPanel = self.data[self.mode].get('searchDetailsPanel')
-        ##if searchDetailsPanel:
-        ##    searchDetailsPanel.setMessage(type, finished, num, searchresults, keywords)
 
     def setMessage(self, stype, finished, num, keywords = []):
         if stype:
@@ -629,13 +506,3 @@ class standardOverview(wx.Panel):
                 gridmgr.refresh()
                 self.guiUtility.frame.standardPager.Show(gridmgr.get_total_items()>0)
 
-    def setLoadingCount(self,count):
-        loadingDetails = self.data[self.mode].get('loadingDetailsPanel')
-        if not loadingDetails:
-            return
-        loadingDetails.setMessage('loaded '+str(count)+' more files from database (not yet shown)')
-
-    def stopWeb2Search(self):
-        grid = self.getGrid()
-        if grid:
-            grid.stopWeb2Search()

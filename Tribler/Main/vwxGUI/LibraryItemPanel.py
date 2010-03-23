@@ -31,22 +31,8 @@ from Tribler.__init__ import LIBRARYNAME
 
 DEBUG = False
 
-[ID_MENU_1418,ID_MENU_1419,ID_MENU_1420] = 1418,1419,1420
 
 # font sizes
-
-#if sys.platform == 'darwin':
-#    FS_FRIENDTITLE = 11
-#    FS_STATUS = 10
-#    FS_SIMILARITY = 10
-#    FS_HEARTRANK = 10
-#    FS_ONLINE = 10
-#else:
-#    FS_FRIENDTITLE = 11
-#    FS_STATUS = 9
-#    FS_SIMILARITY = 10
-#    FS_HEARTRANK = 7
-#    FS_ONLINE = 8
 
 if sys.platform == 'darwin':
     FS_TITLE = 10
@@ -64,19 +50,10 @@ else:
     FS_SPEED = 7
     FS_PAUSE = 7
     
-    
-statusLibrary  = {"downloading"     : "LibStatus_downloading.png",
-                  "stopped"         : "LibStatus_stopped.png",
-                  "boosting"        : "LibStatus_boosting.png",
-                  "completed"       : "LibStatus_completed.png",
-                  "seeding"         : "LibSatus_seeding.png"}
 
 
 class LibraryItemPanel(wx.Panel):
     def __init__(self, parent, keyTypedFun = None, name='regular'):
-
-        global TORRENTPANEL_BACKGROUND
-        
         wx.Panel.__init__(self, parent, -1)
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
@@ -109,28 +86,18 @@ class LibraryItemPanel(wx.Panel):
         
         self.addComponents()
             
-        #self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
-        
-#        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        #self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)   
         self.cache_progress = {}
         self.gui_server = GUITaskQueue.getInstance()
 
         self.user_download_choice = UserDownloadChoice.get_singleton()
 
-
-#        self.SetMinSize((-1, 130))
         self.selected = False
         self.Show()
         self.Refresh()
         self.Layout()
-        
-        
-
         self.triblerStyles = TriblerStyles.getInstance()
+
     def addComponents(self):
-
-
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)        
         self.Show(False)
 
@@ -160,14 +127,6 @@ class LibraryItemPanel(wx.Panel):
         
         # Add Spacer
         self.hSizer.Add([5,0],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
-        
-        
-        # Add thumb
-        #self.thumb = ThumbnailViewer(self, 'libraryMode')
-        #self.thumb.setBackground(wx.BLACK)
-        #self.thumb.SetSize(libraryModeThumbSize)
-        #self.thumb.Hide()
-        #self.hSizer.Add(self.thumb, 0, wx.ALL, 2)
         
 
         # add play button
@@ -301,55 +260,6 @@ class LibraryItemPanel(wx.Panel):
       
 
         
-        # V Line                
-        ## self.addLine()
-                
-        # Status Icon
-##        self.statusIcon = ImagePanel(self, -1, name="LibStatus_boosting")        
-##        self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
-##
-##        self.hSizer.Add(self.statusIcon, 0, wx.TOP|wx.RIGHT|wx.EXPAND, 2)
-        
-        # Status message
-        ##self.statusField = wx.StaticText(self, -1,'', wx.Point(),wx.Size())
-        ##self.statusField.SetForegroundColour(self.triblerGrey)        
-        ##self.statusField.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        ##self.statusField.SetMinSize((60,12))
-#        self.statusField.SetMinSize((125,12))
-        ##self.hSizer.Add(self.statusField, 0, wx.TOP, 4)
-
-        ##self.hSizer.Add([20,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
-        
-        # V Line
-        ## self.addLine()
-
-        # Boost button
-        ##self.boost = SwitchButton(self, name="boost")
-        ##self.boost.setBackground(wx.WHITE)
-        ##self.boost.SetSize((50,16))
-        ##self.boost.setEnabled(False)
-        ##self.hSizer.Add(self.boost, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
-        ##self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
-
-        # Play Fast
-        ##self.playFast = SwitchButton(self, name="playFast")
-        ##self.playFast.setBackground(wx.WHITE)
-        ##self.playFast.SetSize((39,16))
-        ##self.playFast.setEnabled(False)
-        ##self.hSizer.Add(self.playFast, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
-        ##self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)   
-
-        # Play
-        ##self.playsmall = SwitchButton(self, name="playsmall") ## before libraryPlay
-        ##self.playsmall.setBackground(wx.WHITE)
-        ##self.playsmall.SetSize((16,16))
-        ##self.playsmall.setEnabled(True)
-        ##self.hSizer.Add(self.playsmall, 1, wx.TOP|wx.ALIGN_RIGHT, 2)          
-
-        ##self.hSizerSummary = wx.BoxSizer(wx.HORIZONTAL) ##
-        ##self.vSizerOverall.Add(self.hSizerSummary, 1, wx.FIXED_MINSIZE|wx.EXPAND, 0) ##           
-
-        
        
             
         # Add Refresh        
@@ -366,13 +276,6 @@ class LibraryItemPanel(wx.Panel):
             wl.append(c)
         for window in wl:
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-            #window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
-            # Arno, 2009-03-05: this binding persists, so even when results page
-            # is shown after libView, hitting the delete button generates
-            # an event in this class.
-            #window.Bind(wx.EVT_KEY_UP, self.keyTyped)                         
-            #window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
-
             
     def getColumns(self):
         if sys.platform == 'win32':
@@ -431,14 +334,6 @@ class LibraryItemPanel(wx.Panel):
             print_exc()    # lock error
         
     def setData(self, torrent):
-        # set bitmap, rating, title
-        
-        #print_stack()
-        #print >>sys.stderr,"lip: setData called"       
-
-        #if torrent == None and self.library_play is not None:
-        #    self.library_play.Destroy()
-        
         if threading.currentThread().getName() != "MainThread":
             print >>sys.stderr,"lip: setData called by nonMainThread!",threading.currentThread().getName()
             print_stack()
@@ -451,8 +346,6 @@ class LibraryItemPanel(wx.Panel):
         self.data = torrent
         
         if torrent is None:
-            #for child in self.GetChildren():
-            #    child.Hide()
             self.title.Hide()
             self.pb.Hide()
             self.percentage.Hide()
@@ -472,12 +365,7 @@ class LibraryItemPanel(wx.Panel):
             self.containsvideo = None
             
         if torrent.get('ds'):
-            #print '%s is an active torrent' % torrent['name']
             ds = torrent['ds']
-            #abctorrent.setLibraryPanel(self)
-            
-            # Check if torrent just finished for resort
-            #abctorrent.status.checkJustFinished()
 
             if ds.get_status() in (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING):
                 self.pause_resume.SetLabel('Pause')
@@ -490,11 +378,8 @@ class LibraryItemPanel(wx.Panel):
                 self.pause_resume.SetLabel('Resume')
 
             
-            #self.pb.setEnabled(True)
             self.pb.Show()
-#            self.downSpeed.Show()
             self.speedDown2.Show()
-#            self.upSpeed.Show()
             self.speedUp2.Show()
             
             dls = ds.get_current_speed(DOWNLOAD)*1024 # speed_format needs byte/s
@@ -613,18 +498,7 @@ class LibraryItemPanel(wx.Panel):
         self.hLine.Show()
         self.selected = False
         
-    def keyTyped(self, event):
-        if self.selected:
-            key = event.GetKeyCode()
-            if (key == wx.WXK_DELETE):
-                if self.data:
-                    if DEBUG:
-                        print >>sys.stderr,'lib: deleting'
-                    # Arno; 2007-05-11: TODO: use right method here, deleteTorrent does nothing at the 
-                    # moment, see below for right method
-                    #self.guiUtility.deleteTorrent(self.data)
-        event.Skip()
-        
+       
     def setIndex(self, index):
         self.index=index
 
@@ -755,14 +629,6 @@ class LibraryItemPanel(wx.Panel):
         #if event.RightDown():
         #    self.rightMouseButton(event)
    
-   
-    def rightMouseButton(self, event):     
-        # Open right-click menu (windows menu key)
-        # >>makePopup(self, menu, event = None, label = "", extralabel = "", bindto = None):
-
-        menu = self.guiUtility.OnRightMouseAction(event)
-        if menu is not None:
-            self.PopupMenu(menu, (-1,-1))        
         
         
     def getIdentifier(self):

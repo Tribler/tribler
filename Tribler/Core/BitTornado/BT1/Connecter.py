@@ -37,7 +37,7 @@ DEBUG = False
 DEBUG_NORMAL_MSGS = False
 DEBUG_UT_PEX = False
 DEBUG_MESSAGE_HANDLING = False
-DEBUG_CS = True # Debug closed swarms
+DEBUG_CS = False # Debug closed swarms
 
 UNAUTH_PERMID_PERIOD = 3600
 

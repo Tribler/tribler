@@ -56,78 +56,7 @@ class IconsManager:
     def get_default(self,mode,name):
         return self.defaults[mode][name]
     
-    def getCategoryIcon(self, mode, cat, thumbtype = 'normal', web2 = False):
-        #print "**** getCategoryIcon", mode, cat, thumbtype, web2
-        
-        categoryConverter = {'picture':'other', 
-                             'videoclips':'video',
-                             'document':'other'}
-        thumbType = {'normal':'defaultThumb_%s.png',
-                     'large':'defaultThumbL_%s.png',
-                     'small':'defaultThumbS_%s.png',
-                     'icon':'icon_%s.png'
-                     }
-        if type(cat) == list:
-            cat = cat[0]
-        if web2:
-            cat = 'video'
-        elif cat == None:
-            return None
-        
-        cat = cat.lower()
-        
-        if cat in categoryConverter:
-            cat = categoryConverter[cat]
-        
-                
-        if self.categoryThumbs.get((cat, thumbtype)):
-            return self.categoryThumbs[(cat, thumbtype)]
-        else:
-            filename = thumbType[thumbtype] % cat
-            pathname = os.path.join(self.guiImagePath, filename)
             
-            #print >> sys.stderr, 'iconm: Looking for category image:',pathname
-            if os.path.isfile(pathname):
-                bm = wx.Bitmap(pathname)
-            else:
-                bm = None
-                print >> sys.stderr, 'iconm: No thumb found for category: %s' % cat
-            self.categoryThumbs[(cat, thumbtype)] = bm
-            return bm
-    
-            
-    def getDownloadButton(self, mode):
-        if mode == 'download':
-            return self.DOWNLOAD_BUTTON_DOWNLOAD, self.DOWNLOAD_BUTTON_DOWNLOAD_S
-        raise Exception('No such mode')
-        
-    def create_wxImageList(self,peerswpermid,setindex=False):
-        """ peerswpermid is a list of dictionaries that contain the
-            name and permid of a peer
-        """
-        if len(peerswpermid) == 0:
-            return None
-
-        # scale default to proper size
-        defaultThumb = self.get_default('personsMode','DEFAULT_THUMB')
-        defaultThumb = wx.BitmapFromImage(defaultThumb.ConvertToImage().Scale(SMALL_ICON_MAX_DIM,SMALL_ICON_MAX_DIM))
-
-        list = []
-        for peer in peerswpermid:
-            bm = self.load_wxBitmap(peer['permid'], SMALL_ICON_MAX_DIM)
-            if bm is None:
-                bm = defaultThumb
-            list.append(bm)
-        imgList = wx.ImageList(SMALL_ICON_MAX_DIM,SMALL_ICON_MAX_DIM)
-        if imgList is None:
-            return None
-        for peer in peerswpermid:
-            bm = list.pop(0)
-            index = imgList.Add(bm)
-            if setindex:
-                peer['tempiconindex'] = index
-        return imgList
-
     def load_wxBitmap(self,permid, dim = ICON_MAX_DIM):
         [_mimetype,data] = self.peer_db.getPeerIcon(permid)
         if data is None:

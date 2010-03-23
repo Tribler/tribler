@@ -58,10 +58,6 @@ class MyText(wx.Panel):
         self.font = font
         wx.EVT_PAINT(self,self.onPaint)
 
-    def SetColour(self, colour):
-        self.colour = colour
-        wx.EVT_PAINT(self,self.onPaint)
-
     def refresh(self):
         wx.EVT_PAINT(self,self.onPaint)
 

@@ -5,15 +5,8 @@ from traceback import print_exc,print_stack
 
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
-from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Core.Utilities.unicode import *
-from Tribler.Main.Utility.utility import getMetainfo, similarTorrent, copyTorrent
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-
-from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
-import urllib
 import cStringIO
 import string
 
@@ -26,15 +19,12 @@ from font import *
 from Tribler.Core.simpledefs import *
 
 from Tribler.Main.vwxGUI.FilesItemDetailsSummary import FilesItemDetailsSummary
-from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
 
 from Tribler.__init__ import LIBRARYNAME
 
 
 DEBUG = False
-
-AUTOMODERATION_SAVE_WEBSEARCH_IMAGE_TO_TORRENT = False
 
 # font sizes
 if sys.platform == 'darwin':
@@ -43,8 +33,6 @@ if sys.platform == 'darwin':
     FS_FILESIZE = 10
     FS_SEEDERS = 10
     FS_LEECHERS = 10
-    FS_SIMILARITY = 10
-    FS_HEARTRANK = 8
     TITLELENGTH = 80
     TITLEHEIGHT = 18
     TITLEHEIGHTEXP = 18
@@ -55,8 +43,6 @@ elif sys.platform == 'linux2':
     FS_FILESIZE = 8
     FS_SEEDERS = 8
     FS_LEECHERS = 8
-    FS_SIMILARITY = 7
-    FS_HEARTRANK = 7
     TITLELENGTH = 164
     TITLEHEIGHT = 12
     TITLEHEIGHTEXP = 18
@@ -66,23 +52,16 @@ else:
     FS_FILESIZE = 8
     FS_SEEDERS = 8
     FS_LEECHERS = 8
-    FS_SIMILARITY = 10
-    FS_HEARTRANK = 7
     TITLELENGTH = 80
     TITLEHEIGHT = 18
     TITLEHEIGHTEXP = 18
 
 
-filesModeThumbSize = (125, 70)
-#filesModeThumbSizeList = (32, 18)
-libraryModeThumbSize = (32,18)#(43,24)#(66, 37)
-
-
-class ItemPanel(wx.Panel): # can be a torrent item or a channel item
+class ItemPanel(wx.Panel): #torrent item
     """
     This Panel shows one content item inside the GridPanel
     """
-    def __init__(self, parent, keyfun, name='regular'):
+    def __init__(self, parent, name='regular'):
         
         wx.Panel.__init__(self, parent, -1)
         self.guiUtility = GUIUtility.getInstance()
@@ -92,14 +71,10 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.data = None
         self.datacopy = {}
         self.titleLength = TITLELENGTH # num characters
-        self.triblerGrey = wx.Colour(200,200,200)
         self.selected = False
-        self.warningMode = False
         self.summary = None
-        self.oldCategoryLabel = None
+        self.titleMaxLength=None
 
-        self.guiImagePath = os.path.join(self.guiUtility.utility.getPath(),LIBRARYNAME , 'Main', 'vwxGUI', 'images')
-        
         if self.parent.GetName() == 'filesGrid':
             self.listItem = (self.parent.viewmode == 'list')
             self.guiserver = parent.guiserver
@@ -130,7 +105,6 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.Show()
         self.Refresh()
         self.Layout()
-        self.gridKeyTyped = keyfun
 
         self.type = 'torrent' # channel or torrent
 
@@ -142,11 +116,9 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
     def addComponents(self):
         
         self.Show(False)
-        self.triblerStyles = TriblerStyles.getInstance()
-
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
-        
+       
         self.SetBackgroundColour(self.unselectedColour)
        
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
@@ -170,11 +142,6 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
         self.hSizer.Add([10,5],0,wx.FIXED_MINSIZE,0)
         self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND, 0)
-
-        #self.thumb = ThumbnailViewer(self, 'filesMode')
-        #self.thumb.setBackground(wx.BLACK)
-        #self.thumb.SetSize((32,18))
-        #self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
 
         # Add title
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(300,self.h1))        
@@ -234,7 +201,7 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
 
 
            
-        self.SetSizer(self.vSizerOverall); ## self.hSizer
+        self.SetSizer(self.vSizerOverall);
             
         self.SetAutoLayout(1);
         self.Layout();
@@ -246,10 +213,6 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
             wl.append(c)
         for window in wl:
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-            window.Bind(wx.EVT_KEY_UP, self.keyTyped)
-#            window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
-#            window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
-            #window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)  
             
     def getColumns(self):
         return [{'sort':'name', 'reverse':True, 'title':'Name', 'width':self.w1,'tip':self.utility.lang.get('C_filename')},
@@ -257,18 +220,6 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
                 {'sort':'length', 'title':'Seeders', 'width':self.w3, 'tip':self.utility.lang.get('C_uploaders')},
                 {'sort':'length', 'title':'Leechers', 'width':self.w4, 'tip':self.utility.lang.get('C_downloaders')},
                 ]
-
-    def setType(self, type):
-        if type not in ('torrent', 'channel'):
-            return
-        self.type = type
-
-
-    def setSubscriptionState(self):
-        if self.vcdb.hasVote(self.data['permid'], self.utility.session.get_permid()):
-            self.subscribed = True
-        else:
-            self.subscribed = False
 
 
     def _setTitle(self, title):
@@ -301,120 +252,61 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         if not data:
             data = {}
 
-        #self.thumb.Hide() ## should not be shown
         try:
-            if self.index == self.parent.gridManager.torrentIndex:
+            if self.selected:
+                if DEBUG :
+                    print >> sys.stderr , "Torrent already selected. Not refreshing individual item."
                 return
         except:
             pass
 
 
-        if self.type == 'torrent':
-            if data.get('name'):
-                titlefull = data['name']
-                title = data['name'][:self.titleLength]
-                if sys.platform == 'win32':
-                    title = string.replace(title,'&','&&')
-                #print >> sys.stderr , title
-                #print >> sys.stderr , title_new
-                self.title.Enable(True)
-                self.title.Show()
-                self.setTitle(title)
-                #self.title.SetLabel(title)
-                # if sys.platform != 'win32': # on windows causes a new line bug when title contains & symbol
-                #     self.title.Wrap(self.title.GetSize()[0])
-                self.title.SetToolTipString(titlefull)
+        if data.get('name'):
+            titlefull = data['name']
+            title = data['name'][:self.titleLength]
+            if sys.platform == 'win32':
+                title = string.replace(title,'&','&&')
+            self.title.Enable(True)
+            self.title.Show()
+            self.setTitle(title)
+            self.title.SetToolTipString(titlefull)
                
 
 
-                if self.listItem:
-                    self.fileSize.Enable(True)
-                    if data.get('web2'):
-                        self.fileSize.SetLabel('%s s' % data['length'])
-                    else:
-                        self.fileSize.SetLabel(self.utility.size_format(data['length']))
+            if self.listItem:
+                self.fileSize.Enable(True)
+                if data.get('web2'):
+                    self.fileSize.SetLabel('%s s' % data['length'])
+                else:
+                    self.fileSize.SetLabel(self.utility.size_format(data['length']))
 
-                    if data['num_seeders'] < 0:
-                        self.seeders.SetForegroundColour((200, 200, 200))
-                        self.seeders.SetLabel("?")                
-                    else:
-                        self.seeders.SetForegroundColour(wx.BLACK)
-                        self.seeders.SetLabel("%s " % data['num_seeders'])                
+                if data['num_seeders'] < 0:
+                    self.seeders.SetForegroundColour((200, 200, 200))
+                    self.seeders.SetLabel("?")                
+                else:
+                    self.seeders.SetForegroundColour(wx.BLACK)
+                    self.seeders.SetLabel("%s " % data['num_seeders'])                
 
-                    if data['num_leechers'] < 0:
-                        self.leechers.SetForegroundColour((200, 200, 200))
-                        self.leechers.SetLabel("?")                
-                    else:
-                        self.leechers.SetForegroundColour(wx.BLACK)
-                        self.leechers.SetLabel("%s " % data['num_leechers'])                
-
-   
-                    self.hLine.Show()
+                if data['num_leechers'] < 0:
+                    self.leechers.SetForegroundColour((200, 200, 200))
+                    self.leechers.SetLabel("?")                
+                else:
+                    self.leechers.SetForegroundColour(wx.BLACK)
+                    self.leechers.SetLabel("%s " % data['num_leechers'])                
+                self.hLine.Show()
 
                 
                 
-            else:
-                self.title.SetLabel('')
-                self.title.SetToolTipString('')
-                self.title.Enable(False)
-                self.title.Hide()
-                self.seeders.SetLabel('')                
-                self.leechers.SetLabel('')                
-                if self.listItem:
-                    # -- if list VIEW --
-                    self.fileSize.SetLabel('')
- 
-
-            
-        else: # channel
-           
-            if data.get('name'):
-                title = data['name'][:self.titleLength]
-                if sys.platform == 'win32':
-                    title = string.replace(title,'&','&&')
-                self.title.Enable(True)
-                self.title.SetLabel(title)
-                # if sys.platform != 'win32': # on windows causes a new line bug when title contains & symbol
-                #     self.title.Wrap(self.title.GetSize()[0])
-                self.title.SetToolTipString(title)
-
-
-                # determine whether subscribed to channel
-                self.setSubscriptionState()
-
-
-                # get torrent list
-                self.torrentList = self.channelcast_db.getTorrentsFromPublisherId(data['permid'])
-
-
-                # convert torrentList to proper format (dictionnary)
-                torrent_list = []
-                for item in self.torrentList:
-                    torrent = dict(zip(self.torrent_db.value_name_for_channel, item))
-                    torrent_list.append(torrent)
-                self.torrentList = torrent_list
-
-
-
-
-
-
-                if self.listItem:
-                    self.fileSize.Enable(True)
-                    self.hLine.Show()
-
-                
-                
-            else:
-                self.title.SetLabel('')
-                self.title.SetToolTipString('')
-                self.title.Enable(False)
+        else:
+            self.title.SetLabel('')
+            self.title.SetToolTipString('')
+            self.title.Enable(False)
+            self.title.Hide()
+            self.seeders.SetLabel('')                
+            self.leechers.SetLabel('')                
+            if self.listItem:
                 self.fileSize.SetLabel('')
-                self.seeders.SetLabel('')
-                self.leechers.SetLabel('')
-                ##if self.popularity:
-                ##    self.popularity.Hide()
-
+ 
 
         self.Layout()
 
@@ -480,49 +372,12 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
         self.toggleItemDetailsSummary(False)
         self.Refresh()
         
-    def keyTyped(self, event):
-        if self.selected:
-            key = event.GetKeyCode()
-            if (key == wx.WXK_DELETE):
-                if self.data:
-                    if DEBUG:
-                        print >>sys.stderr,'fip: deleting'
-                    #self.guiUtility.deleteTorrent(self.data)
-        event.Skip()
-        try:
-            self.gridKeyTyped(event)
-        except:
-            print 'Exception in keytyped'
             
-    def popularityOver(self, event):
-        
-        event.Skip()
-        colour = wx.Colour(216,233,240)
-
-        if self.data is None:
-            colour = self.guiUtility.unselectedColour
-
-        elif event.Entering() and self.data is not None:
-            colour = self.guiUtility.selectedColour
-    
-
-
-        self.title.SetBackgroundColour(colour)
-        self.fileSize.SetBackgroundColour(colour)
-        self.SetBackgroundColour(colour)
-        wx.CallAfter(self.Refresh)
-
-
-        if self.data and (event.LeftUp() or event.RightDown()):
-            # torrent data is sent to guiUtility > standardDetails.setData
-            self.guiUtility.selectTorrent(self.data)
             
     def setIndex(self, index):
         self.index=index
 
-
-            
-        
+       
     def mouseAction(self, event):   
 
         event.Skip()
@@ -550,15 +405,6 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
             self.guiUtility.standardOverview.getGrid().gridManager.torrentIndex = self.index
             self.guiUtility.selectTorrent(self.data)
 
-           
-
-    def rightMouseButton(self, event):       
-        menu = self.guiUtility.OnRightMouseAction(event)
-        if menu is not None:
-            self.PopupMenu(menu, (-1,-1)) 
-
-    def doubleClicked(self, event):
-        self.guiUtility.standardDetails.download(self.data)
         
     def getIdentifier(self):
         return self.data['infohash']
@@ -588,133 +434,4 @@ class ItemPanel(wx.Panel): # can be a torrent item or a channel item
             self.summary = None
             self.SetMinSize((-1,22))               
 
-def loadAzureusMetadataFromTorrent(torrent_filename):
-    metadata = getMetainfo(torrent_filename)
-    if not metadata:
-        return None
-            
-    newmetadata = metadata.get('azureus_properties', {}).get('Content',{})
-    for key in ['encoding','comment','comment-utf8']: # 'created by'
-        if key in metadata:
-            newmetadata[key] = metadata[key]
-    return newmetadata
-
-
-def createThumbImage(imgdata):
-    try:
-        # Simple protection against bad parsing of websites, if the
-        # image data is HTML, ignore it.
-        
-        low = imgdata[:5].lower()
-        if low == '<html' or low == '<!doc':
-            return None
-    except:
-        #print_exc()
-        pass
-    
-    stream = cStringIO.StringIO(imgdata)
-    img =  wx.ImageFromStream(stream)
-    if not img.Ok():
-        return None
-    return img
-
-def getResizedBitmapFromImage(img, size):
-        "Resize image to size of self"
-        iw, ih = img.GetSize()
-        w, h = size
-
-        if iw == 0 or ih == 0:
-            # Can happen when there is no handler for image type
-            return None
-        
-        if (iw/float(ih)) > (w/float(h)):
-            nw = w
-            nh = int(ih * w/float(iw))
-        else:
-            nh = h
-            nw = int(iw * h/float(ih))
-        if nw != iw or nh != ih:
-            #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-            img.Rescale(nw, nh)
-        bmp = wx.BitmapFromImage(img)
-        return bmp
-
-def google_image_search(name):
-    try:
-        rname = name.replace('.',' ')
-        rname = rname.replace('-',' ')
-        rname = rname.replace('_',' ')
-        rname = rname.replace('[',' ')
-        rname = rname.replace(']',' ')
-        if DEBUG:
-            print >>sys.stderr,"fip: automod: Name becomes keywords",rname
-        
-        qname = urllib.quote(rname)
-
-        # 1. Query Google Image search
-        url = 'http://www.searchmash.com/results/images:'+qname+''
-        if DEBUG:
-            print >>sys.stderr,"fip: automod: Query URL",url
-        f = urlOpenTimeout(url,timeout=2)
-        resp = f.read()
-        f.close()
-        
-        start = 0
-        while True:
-            #print >>sys.stderr,"fip: automod: Searching from idx",start
-            i = resp.find("imageUrl",start)
-            if i == -1:
-                break
-            else:
-                i += len("imageUrl\":\"")
-                j = resp.find("\"",i)
-                if j == -1:
-                    break
-                else:
-                    # 2. Found an Image, see if we can guess MIME type
-                    imgurl = resp[i:j]
-                    if DEBUG:
-                        print >>sys.stderr,"fip: automod: Found image",imgurl
-
-                    iconmime = mimetypes.guess_type(imgurl)[0]
-                    if iconmime is None:
-                        start = j
-                        continue
-                    
-                    # 3. Load the image
-                    try:
-                        f = urlOpenTimeout(imgurl,timeout=2)
-                        imgresp = f.read()
-                        f.close()
-                        
-                        if imgresp == '':
-                            start = j
-                            continue
-                        
-                        return (iconmime,imgresp)
-                    except:
-                        print_exc()
-                        start = j
-                        continue
-    except:
-        print_exc()
-    return (None,None)
-
-def saveAzureusMetadataToTorrent(torrentfilename,scaledthumbdata):
-    try:
-        f = open(torrentfilename,"rb")
-        data = f.read()
-        f.close()
-        d = bdecode(data)
-        
-        d['azureus_properties'] = {}
-        d['azureus_properties']['Content'] = {}
-        d['azureus_properties']['Content']['Thumbnail'] = scaledthumbdata
-        
-        newdata = bencode(d)
-        f = open(torrentfilename,"wb")
-        f.write(newdata)
-        f.close()
-    except:
-        print_exc()
-        
+       

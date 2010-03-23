@@ -292,8 +292,6 @@ class TorrentSearchGridManager:
         if self.dod:
             self.dod.stop()
      
-    def getCurrentHitsLen(self):
-        return len(self.hits)
     
     def searchLocalDatabase(self,mode):
         """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """
@@ -684,8 +682,6 @@ class ChannelSearchGridManager:
         if self.dod:
             self.dod.stop()
      
-    def getCurrentHitsLen(self):
-        return len(self.hits)
     
     def searchLocalDatabase(self,mode):
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """

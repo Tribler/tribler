@@ -3,7 +3,6 @@ from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
-from Tribler.Main.vwxGUI.standardFilter import filesFilter
 
 from Tribler.__init__ import LIBRARYNAME
 
@@ -91,12 +90,8 @@ class ColumnHeader(wx.Panel):
         self.SetAutoLayout(True)
         self.hSizer.Layout()
 
-
-
         
-    def setText(self, t):
-        self.text.SetLabel(t)
-        
+       
     def setOrdering(self, type):
         # up, down or none
         #print 'Set ordering to %s' % type
@@ -209,7 +204,8 @@ class ColumnHeaderBar(wx.Panel):
 
         
         columns = self.itemPanel.getColumns()
-        currentSorting = self.guiUtility.standardOverview.getSorting()
+#        currentSorting = self.guiUtility.standardOverview.getSorting()
+        currentSorting = None
         comboboxSortChoices = []
         #print 'currentSorting: %s' % str(currentSorting)
         for dict in columns:
@@ -292,14 +288,6 @@ class ColumnHeaderBar(wx.Panel):
         self.dynamicColumnName = selectedColumn[0].sorting
         selectedColumn[0].clicked(event)
         
-    def getCategoryCombo(self):
-        for header in self.columns:
-            try:
-                return header.filesFilter
-            except:
-                pass
-        return None
-            
     
     
      

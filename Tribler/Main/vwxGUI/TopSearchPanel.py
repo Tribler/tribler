@@ -168,23 +168,6 @@ class TopSearchPanel(bgPanel):
 #            self.arrow_sel = not self.arrow_sel
 
 
-    def Flicker(self, item, interval, length, colour1, colour2, mode):
-        if mode == 'foreground':
-            for i in range(length):
-                item.SetForegroundColour(colour1)
-                self.frame.Update()
-                time.sleep(interval)
-                item.SetForegroundColour(colour2)
-                self.frame.Update()
-                time.sleep(interval)
-        else:
-            for i in range(length):
-                item.SetBackgroundColour(colour1)
-                self.frame.Update()
-                time.sleep(interval)
-                item.SetBackgroundColour(colour2)
-                self.frame.Update()
-                time.sleep(interval)
 
     def Fade(self, item, intervals, step, wait, colour, mode):
         #colour = wx.Colour(colour)
@@ -357,8 +340,6 @@ class TopSearchPanel(bgPanel):
                 self.searchField.SetValue(input + completion)
                 self.searchField.SetSelection(l,l+len(completion))
 
-    ##def OnSearchResultsPressed(self, event):
-    ##    self.guiUtility.OnResultsClicked()
 
     def OnAGTimer(self,event):
         self.count = self.count + 1    

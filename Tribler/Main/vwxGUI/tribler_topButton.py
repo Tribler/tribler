@@ -91,32 +91,9 @@ class tribler_topButton(wx.Panel):
                 print_exc()
             i+=1         
            
-    def setBitmaps(self, normalBitmap, selectedBitmap=None):
-        # This function does not protect you as switch* do.
-        self.bitmaps=[normalBitmap,selectedBitmap]
-        self.Refresh()
-           
-    def switchTo(self, normalBitmap, selectedBitmap=None):
-        if self.old_bitmaps is not None:
-            if DEBUG:
-                print >>sys.stderr,"tribler_TopButton: First should switchBack..."
-        else:
-            #save the initial bitmaps
-            self.old_bitmaps = self.bitmaps
-        self.bitmaps=[normalBitmap,selectedBitmap]
-        #should Refresh?
-        self.Refresh()
+          
     
-    def switchBack(self):
-        if self.old_bitmaps!=None:
-            self.bitmaps = self.old_bitmaps
-            self.old_bitmaps=None
-            self.Refresh()
-        else:
-            if DEBUG:
-                print >>sys.stderr,"TopButton: Nothing to switch back to..."
-        
-        
+       
     def createBackgroundImage(self):
         if self.bitmaps[0]:
             wx.EVT_PAINT(self, self.OnPaint)
@@ -493,14 +470,6 @@ class TestButton(tribler_topButton):
             dc.DrawBitmap(self.bitmaps[1], 0,0, True)
         if self.enabled and self.bitmaps[0]:
             dc.DrawBitmap(self.bitmaps[0], 0,0, True)
-
-
-    def toggleState(self):
-        if self.enabled == False:
-            self.enabled = True
-        else:
-            self.enabled = False
-        self.Refresh()
 
 
     def setState(self,state):

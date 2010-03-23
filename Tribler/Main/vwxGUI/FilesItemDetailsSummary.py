@@ -22,26 +22,23 @@ from Tribler.__init__ import LIBRARYNAME
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 
-from Tribler.Main.vwxGUI.customGif import customGif
+
+
+MAX_COUNT=500 # Animated gif delay
 
 # font sizes
 if sys.platform == 'darwin':
-    FS_PLAYTEXT = 10
-    FS_SAVETEXT = 10
     FS_TORRENT = 11
     FS_BELONGS_TO_CHANNEL = 8
-
+    FS_DELAY_TEXT = 9
 elif sys.platform == 'linux2':
-    FS_PLAYTEXT = 7
-    FS_SAVETEXT = 7
     FS_TORRENT = 9
     FS_BELONGS_TO_CHANNEL = 7
-
+    FS_DELAY_TEXT = 8
 else: # windows
-    FS_PLAYTEXT = 7
-    FS_SAVETEXT = 7
     FS_TORRENT = 9
     FS_BELONGS_TO_CHANNEL = 7
+    FS_DELAY_TEXT = 8
 
 
 class FilesItemDetailsSummary(bgPanel):
@@ -72,6 +69,19 @@ class FilesItemDetailsSummary(bgPanel):
         # list of files within the torrent
         self.files=[] 
 
+
+        # timer used to prevent the animated gif from continuously rendering
+        self.count = 0
+        self.agtimer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.OnAGTimer)
+
+
+        # if true displays a text message advising the user to try again later
+        self.delayedLoading = False
+
+
+        # becomes true when we receive the .torrent file
+        self.finishedLoading = False
 
         #self.refreshScrollButtons()
 
@@ -119,7 +129,6 @@ class FilesItemDetailsSummary(bgPanel):
         self.belongstochanneltext = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(180,14))        
         self.belongstochanneltext.SetBackgroundColour((216, 233, 240))
         self.belongstochanneltext.SetForegroundColour((255,51,0))
-        self.belongstochanneltext.Bind(wx.EVT_LEFT_UP, self.belongstochanneltext_clicked)
         self.belongstochanneltext.SetFont(wx.Font(FS_BELONGS_TO_CHANNEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
         self.belongstochanneltext.SetMinSize((180,14))
 
@@ -131,6 +140,7 @@ class FilesItemDetailsSummary(bgPanel):
             else:
                 self.belongstochanneltext.SetLabel("From %s's Channel" % channel[1])
             self.channel = channel
+            self.belongstochanneltext.Bind(wx.EVT_LEFT_UP, self.belongstochanneltext_clicked)
 
         self.vSizer.Add(self.belongstochanneltext, 0, wx.LEFT, 10)
 
@@ -161,7 +171,12 @@ class FilesItemDetailsSummary(bgPanel):
         self.scrollRight.Hide()
 
 
-
+        self.delayText = wx.StaticText(self,-1,"Unable to load contents. Please try again later",wx.Point(0,0),wx.Size(300,20))
+        self.delayText.SetBackgroundColour((216, 233, 240))
+        self.delayText.SetForegroundColour((0,110,149))
+        self.delayText.SetFont(wx.Font(FS_DELAY_TEXT,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
+        self.delayText.SetPosition((190,15))
+        self.delayText.Hide()
 
         self.download = tribler_topButton(self, -1, name='save_medium')
         self.download.SetMinSize((62,32))
@@ -178,7 +193,8 @@ class FilesItemDetailsSummary(bgPanel):
         self.play_big.SetPosition((580,20))
         self.download.SetPosition((615,28))
 
-
+        # start timer
+        self.agtimer.Start(10)
 
         # loading gif
         ag_fname = os.path.join(self.utility.getPath(),LIBRARYNAME,'Main','vwxGUI','images','5.0','fids.gif')
@@ -194,14 +210,7 @@ class FilesItemDetailsSummary(bgPanel):
 
         self.guiUtility.frame.top_bg.agfids=self.ag
 
-        #self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
-        #self.vSizer2.Add([0,10], 0, wx.FIXED_MINSIZE, 0)
-        #self.vSizer2.Add(self.play_big, 0, wx.FIXED_MINSIZE, 4)
-        
-        #self.vSizer3 = wx.BoxSizer(wx.VERTICAL)
-        #self.vSizer3.Add([0,18], 0, wx.FIXED_MINSIZE, 0)
-        #self.vSizer3.Add(self.download, 0, wx.FIXED_MINSIZE, 4)
-
+ 
             
         self.vSizerLeft.Add((0,3), 0, 0, 0)
         self.vSizerLeft.Add(self.scrollLeft, 0, 0, 0)
@@ -247,6 +256,20 @@ class FilesItemDetailsSummary(bgPanel):
         playable = self.guiUtility.standardDetails.torrent_is_playable(callback=is_playable_callback)
         self.setPlayableStatus(playable)
 
+    def OnAGTimer(self,event):
+        if self.finishedLoading: # if torrent details already visible no need to display delayed info text
+            return
+        self.count = self.count + 1    
+        if self.count == MAX_COUNT:
+            self.ag.Stop()
+            self.ag.Hide()
+            self.agtimer.Stop()
+            self.hSizermain.Layout()
+            self.vSizer.Layout()
+            self.Layout()
+            self.Refresh()
+            self.delayText.Show()
+            self.delayedLoading = True
 
 
     def setPlayableStatus(self, playable):
@@ -255,6 +278,8 @@ class FilesItemDetailsSummary(bgPanel):
         2 : Torrent is playable and contains 1 file
         3 : Torrent is playable and contains multiple files
         """
+        if self.delayedLoading: # the delayed info text has been displayed, can't display torrent details
+            return
         if playable[0] is None:
             # we don't know yet. display the animation
             pass
@@ -288,7 +313,7 @@ class FilesItemDetailsSummary(bgPanel):
                 self.ag.Hide()
                 self.scrollLeft.Hide()
                 self.scrollRight.Hide()
-
+            self.finishedLoading = True
 
     def belongstochanneltext_clicked(self, event):
         #self.guiUtility.standardOverview.channel = self.channel
