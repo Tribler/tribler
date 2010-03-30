@@ -110,6 +110,8 @@ def c2infohash_dns(connection):
     """
     Utility function to retrieve the infohash and dns of a Encrypter or
     Connecter Connection.
+    
+    Note, if the returned dns is None, it is an incoming connection. 
     """
     # luckily the same interface
     infohash = connection.connecter.infohash 
@@ -303,7 +305,7 @@ class RePEXer(RePEXerInterface):
  
     def connection_timeout(self, connection):
         infohash, dns = c2infohash_dns(connection)
-        if infohash != self.infohash:
+        if infohash != self.infohash or dns is None:
             return
         if DEBUG:
             print >>sys.stderr, "RePEXer: connection_timeout: %s:%s" % dns
@@ -317,7 +319,7 @@ class RePEXer(RePEXerInterface):
         if hasattr(connection, 'got_ut_pex'):
             c = connection
             connection = c.connection # Encrypter.Connection
-        if infohash != self.infohash:
+        if infohash != self.infohash or dns is None:
             return
         if DEBUG:
             print >>sys.stderr, "RePEXer: connection_closed: %s:%s" % dns
@@ -361,7 +363,7 @@ class RePEXer(RePEXerInterface):
     
     def connection_made(self, connection, ext_support):
         infohash, dns = c2infohash_dns(connection)
-        if infohash != self.infohash:
+        if infohash != self.infohash or dns is None:
             return
         if DEBUG:
             print >>sys.stderr, "RePEXer: connection_made: %s:%s ext_support = %s" % (dns + (ext_support,))
@@ -390,7 +392,7 @@ class RePEXer(RePEXerInterface):
     def got_extend_handshake(self, connection, version=None):
         infohash, dns = c2infohash_dns(connection)
         ut_pex_support = connection.supports_extend_msg('ut_pex')
-        if infohash != self.infohash:
+        if infohash != self.infohash or dns is None:
             return
         if DEBUG:
             print >>sys.stderr, "RePEXer: got_extend_handshake: %s:%s version = %s ut_pex_support = %s" % (dns + (`version`,ut_pex_support ))
@@ -408,7 +410,7 @@ class RePEXer(RePEXerInterface):
         addedf.extend( [0]*(len(added)-len(addedf)) )
         IS_SEED = 2
         IS_SAME = 4
-        if infohash != self.infohash:
+        if infohash != self.infohash or dns is None:
             return
         if DEBUG:
             print >>sys.stderr, "RePEXer: got_ut_pex: %s:%s pex_size = %s" % (dns + (len(added),))
