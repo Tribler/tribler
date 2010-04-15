@@ -15,6 +15,7 @@ from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from font import *
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.utils import videoextdefaults
@@ -22,23 +23,26 @@ from Tribler.__init__ import LIBRARYNAME
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 
-
-
 MAX_COUNT=500 # Animated gif delay
 
 # font sizes
 if sys.platform == 'darwin':
     FS_TORRENT = 11
+    FS_DELAY_TEXT = 10
     FS_BELONGS_TO_CHANNEL = 8
-    FS_DELAY_TEXT = 9
+    FS_DOWNLOADED_TEXT = 8
+
 elif sys.platform == 'linux2':
     FS_TORRENT = 9
-    FS_BELONGS_TO_CHANNEL = 7
     FS_DELAY_TEXT = 8
+    FS_BELONGS_TO_CHANNEL = 7
+    FS_DOWNLOADED_TEXT = 8
+
 else: # windows
     FS_TORRENT = 9
-    FS_BELONGS_TO_CHANNEL = 7
     FS_DELAY_TEXT = 8
+    FS_BELONGS_TO_CHANNEL = 7
+    FS_DOWNLOADED_TEXT = 7
 
 
 class FilesItemDetailsSummary(bgPanel):
@@ -69,16 +73,13 @@ class FilesItemDetailsSummary(bgPanel):
         # list of files within the torrent
         self.files=[] 
 
-
         # timer used to prevent the animated gif from continuously rendering
         self.count = 0
         self.agtimer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnAGTimer)
 
-
         # if true displays a text message advising the user to try again later
         self.delayedLoading = False
-
 
         # becomes true when we receive the .torrent file
         self.finishedLoading = False
@@ -86,9 +87,12 @@ class FilesItemDetailsSummary(bgPanel):
         #self.refreshScrollButtons()
 
 
+        # GUI server
+        self.guiserver = GUITaskQueue.getInstance()
+
+
         # most popular channel (if any) this torrent belongs to
         self.channel = None
-
 
 
         self.infohash = torrentHash
@@ -126,11 +130,11 @@ class FilesItemDetailsSummary(bgPanel):
 
 
         # belongs to channel text
-        self.belongstochanneltext = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(180,14))        
+        self.belongstochanneltext = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(400,14))        
         self.belongstochanneltext.SetBackgroundColour((216, 233, 240))
         self.belongstochanneltext.SetForegroundColour((255,51,0))
         self.belongstochanneltext.SetFont(wx.Font(FS_BELONGS_TO_CHANNEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
-        self.belongstochanneltext.SetMinSize((180,14))
+        self.belongstochanneltext.SetMinSize((400,14))
 
 
         channel = self.chdb.getMostPopularChannelFromTorrent(self.torrenthash)
@@ -170,6 +174,14 @@ class FilesItemDetailsSummary(bgPanel):
         self.scrollRight.Bind(wx.EVT_LEFT_UP, self.scrollRightClicked)      
         self.scrollRight.Hide()
 
+#        self.delayText = wx.StaticText(self,-1,"Unable to load contents. Please try again later",wx.Point(0,0),wx.Size(300,20))
+        self.delayText = wx.StaticText(self,-1,"Still trying...",wx.Point(0,0),wx.Size(100,20))
+        self.delayText.SetBackgroundColour((216, 233, 240))
+        self.delayText.SetForegroundColour((0,110,149))
+#        self.delayText.SetForegroundColour(wx.BLACK)
+        self.delayText.SetFont(wx.Font(FS_DELAY_TEXT,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
+        self.delayText.SetPosition((140,25))
+        self.delayText.Hide()
 
         self.delayText = wx.StaticText(self,-1,"Unable to load contents. Please try again later",wx.Point(0,0),wx.Size(300,20))
         self.delayText.SetBackgroundColour((216, 233, 240))
@@ -179,9 +191,10 @@ class FilesItemDetailsSummary(bgPanel):
         self.delayText.Hide()
 
         self.download = tribler_topButton(self, -1, name='save_medium')
-        self.download.SetMinSize((62,32))
-        self.download.SetSize((62,32))
+        self.download.SetMinSize((40,24))
+        self.download.SetSize((40,24))
         self.download.Hide()
+
 
         self.play_big = SwitchButton(self, -1, name='playbig')
         self.play_big.setToggled(False) # default
@@ -190,8 +203,8 @@ class FilesItemDetailsSummary(bgPanel):
 
 
 
-        self.play_big.SetPosition((580,20))
-        self.download.SetPosition((615,28))
+        self.play_big.SetPosition((575,20))
+        self.download.SetPosition((610,28))
 
         # start timer
         self.agtimer.Start(10)
@@ -210,7 +223,6 @@ class FilesItemDetailsSummary(bgPanel):
 
         self.guiUtility.frame.top_bg.agfids=self.ag
 
- 
             
         self.vSizerLeft.Add((0,3), 0, 0, 0)
         self.vSizerLeft.Add(self.scrollLeft, 0, 0, 0)
@@ -226,14 +238,7 @@ class FilesItemDetailsSummary(bgPanel):
         self.hSizer0.Add(self.vSizerContents, 0, wx.TOP, 0)
         self.hSizer0.Add((10,0), 0, 0, 0)
         self.hSizer0.Add(self.vSizerRight, 0, 0, 0)
-        #self.hSizer0.Add((80,0), 0, 0, 0)
-        #self.hSizer0.Add(self.vSizer2, 0, 0, 0)
-        #self.hSizer0.Add((3,0), 0, 0, 0)
-        #self.hSizer0.Add(self.vSizer3, 0, 0, 0)
-
-
-
-
+ 
         self.hSizer1.Add((300,0), 0, 0, 0)
         self.hSizer1.Add(self.ag, 0, 0, 0)
 
@@ -246,7 +251,6 @@ class FilesItemDetailsSummary(bgPanel):
         self.SetSizer(self.vSizer)
         self.SetAutoLayout(1);  
         self.Layout()
-
 
 
         def is_playable_callback(torrent, playable):
@@ -272,14 +276,31 @@ class FilesItemDetailsSummary(bgPanel):
             self.delayedLoading = True
 
 
+    def OnAGTimer(self,event):
+        if self.finishedLoading: # if torrent details already visible no need to display delayed info text
+            return
+        self.count = self.count + 1    
+        if self.count == MAX_COUNT:
+#            self.ag.Stop()
+#            self.ag.Hide()
+#            self.agtimer.Stop()
+            self.hSizermain.Layout()
+            self.vSizer.Layout()
+            self.Layout()
+            self.Refresh()
+            self.delayText.Show()
+            self.delayedLoading = True
+            
+
+
     def setPlayableStatus(self, playable):
         """ Three playablestatus options : 
         1 : Torrent is not playable
         2 : Torrent is playable and contains 1 file
         3 : Torrent is playable and contains multiple files
         """
-        if self.delayedLoading: # the delayed info text has been displayed, can't display torrent details
-            return
+#        if not self.delayedLoading: # the delayed info text has been displayed, can't display torrent details
+#            return
         if playable[0] is None:
             # we don't know yet. display the animation
             pass
@@ -287,6 +308,8 @@ class FilesItemDetailsSummary(bgPanel):
             self.play_big.Show()
             self.download.Show()
             if playable[0]:
+                if self.delayedLoading:
+                    self.delayText.Hide()
                 self.fileList=playable[1]
                 if len(self.fileList) == 1: # torrent contains only one file
                     self.play_big.setToggled(True)
@@ -308,12 +331,17 @@ class FilesItemDetailsSummary(bgPanel):
                 self.vSizer.Layout()
                 self.Layout()
                 self.Refresh()
-            else: # torrent is not playable   
-                self.ag.Stop()
-                self.ag.Hide()
+            else: # torrent is not playable
+                if sys.platform == 'darwin':
+                    wx.CallAfter(self.ag.Stop)
+                    wx.CallAfter(self.ag.Hide)
+                else:
+                    self.ag.Stop()
+                    self.ag.Hide()
                 self.scrollLeft.Hide()
                 self.scrollRight.Hide()
             self.finishedLoading = True
+
 
     def belongstochanneltext_clicked(self, event):
         #self.guiUtility.standardOverview.channel = self.channel
@@ -388,19 +416,6 @@ class FilesItemDetailsSummary(bgPanel):
 #            self.guiUtility.frame.top_bg.indexMyChannel = -1
         g.showSelectedChannel()
         g.getSelectedPanel().loadChannel()
-
-
-
-#        self.guiUtility.standardOverview.data['channelsMode'][grid].expandPanelFromIndex(index)
-#        self.guiUtility.standardOverview.data['channelsMode'][grid].getPanelFromIndex(index).loadChannel()
-#        if grid == 'grid': # my channel
-#            self.guiUtility.frame.top_bg.indexMyChannel = 0
-#            self.guiUtility.frame.top_bg.indexPopularChannels = -1
-#        else:
-#            self.guiUtility.frame.top_bg.indexMyChannel = -1
-#            self.guiUtility.frame.top_bg.indexPopularChannels = index
-
-
 
 
 
@@ -488,6 +503,17 @@ class FilesItemDetailsSummary(bgPanel):
             self.displayTorrentContents()
 
 
+    def show_downloaded_text(self):
+        self.downloaded_text.Show()
+        try:
+            self.guiserver.add_task(lambda:wx.CallAfter(self.hide_downloaded_text), 5.0)
+        except:
+            pass
+
+    def hide_downloaded_text(self):
+        self.downloaded_text.Hide()
+
+
 
     def playbig_clicked(self,event):
         if self.play_big.isToggled():
@@ -498,15 +524,13 @@ class FilesItemDetailsSummary(bgPanel):
             videoplayer.stop_playback() # stop current playback
             videoplayer.show_loading()
 
-            ##self.play_big.setToggled()
-            ##self.guiUtility.buttonClicked(event)
             if ds is None:
                 self.guiUtility.standardDetails.download(vodmode=True)
             else:
                 self.play(ds)
 
             self.guiUtility.standardDetails.setVideodata(self.guiUtility.standardDetails.getData())
-            self._get_videoplayer(exclude=ds).videoframe.get_videopanel().SetLoadingText(self.guiUtility.standardDetails.getVideodata()['name'])
+#            self._get_videoplayer(exclude=ds).videoframe.get_videopanel().SetLoadingText(self.guiUtility.standardDetails.getVideodata()['name'])
             if sys.platform == 'darwin':
                 self._get_videoplayer(exclude=ds).videoframe.show_videoframe()
                 self._get_videoplayer(exclude=ds).videoframe.get_videopanel().Refresh()
@@ -734,7 +758,8 @@ class fileItem(wx.Panel):
 
 
         self.guiUtility.standardDetails.setVideodata(self.guiUtility.standardDetails.getData())
-        self.summary._get_videoplayer(exclude=ds).videoframe.get_videopanel().SetLoadingText(self.guiUtility.standardDetails.getVideodata()['name'])
+#        self.summary._get_videoplayer(exclude=ds).videoframe.get_videopanel().SetLoadingText(self.guiUtility.standardDetails.getVideodata()['name'])
+#        self.summary._get_videoplayer(exclude=ds).videoframe.get_videopanel().SetLoadingText(selectedinfilename)
         if sys.platform == 'darwin':
             self.summary._get_videoplayer(exclude=ds).videoframe.show_videoframe()
             self.summary._get_videoplayer(exclude=ds).videoframe.get_videopanel().Refresh()

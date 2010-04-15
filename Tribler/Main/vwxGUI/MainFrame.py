@@ -116,6 +116,7 @@ class MainFrame(wx.Frame):
         self.category = Category.getInstance()
         self.shutdown_and_upgrade_notes = None
         
+        self.guiserver = GUITaskQueue.getInstance()
         title = self.utility.lang.get('title') + \
                 " " + \
                 self.utility.lang.get('version')
@@ -259,8 +260,7 @@ class MainFrame(wx.Frame):
                 result = self.utility.session.start_download(tdef,dscfg)
             if result:
                 # ARNO50: Richard will look at this   
-                self.guiserver = GUITaskQueue.getInstance()
-                self.guiserver.add_task(lambda:wx.CallAfter(self.show_saved), 0.2)
+                self.show_saved()
             
             # store result because we want to store clicklog data
             # right after download was started, then return result
@@ -287,7 +287,6 @@ class MainFrame(wx.Frame):
                     if d.get_def().get_infohash() == tdef.get_infohash():
                         d.restart()
                         break
-
         except Exception,e:
             print_exc()
             self.onWarning(e)

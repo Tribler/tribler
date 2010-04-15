@@ -273,6 +273,15 @@ class VideoPlayer:
             for infilename,diskfilename in videofiles:
                 if infilename == selectedinfilename:
                     selectedoutfilename = diskfilename
+        if self.videoframe is not None:
+            self.videoframe.get_videopanel().SetLoadingText(selectedinfilename)
+                
+        # 23/02/10 Boudewijn: This Download does not contain the
+        # selectedinfilename in the available files.  It is likely
+        # that this is a multifile torrent and that another file was
+        # previously selected for download.
+        if selectedoutfilename is None:
+            return self.play_vod(ds, selectedinfilename)
 
         print >> sys.stderr , "videoplay: play: PROGRESS" , ds.get_progress()
         complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
@@ -474,9 +483,14 @@ class VideoPlayer:
             dscfg.set_video_events(self.get_supported_vod_events())
             print >>sys.stderr,"videoplay: Starting new VOD/live Download",`tdef.get_name()`
 
-            d = self.utility.session.start_download(tdef,dscfg)
-            self.set_vod_download(d)
-            return d
+            download = self.utility.session.start_download(tdef,dscfg)
+   
+            if self.videoframe is not None:         
+                self.videoframe.get_videopanel().SetLoadingText(selectedinfilename)
+            
+
+            self.set_vod_download(download)
+            return download
         else:
             return None
         

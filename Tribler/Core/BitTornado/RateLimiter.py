@@ -16,7 +16,7 @@ try:
 except:
     sum = lambda a: reduce(lambda x, y: x+y, a, 0)
 
-DEBUG = False
+DEBUG = True
 
 MAX_RATE_PERIOD = 20.0
 MAX_RATE = 10e10
@@ -47,6 +47,7 @@ class RateLimiter:
     def set_upload_rate(self, rate):
         if DEBUG: 
             print >>sys.stderr, "RateLimiter: set_upload_rate", rate
+            
         # rate = -1 # test automatic
         if rate < 0:
             if self.autoadjust:
@@ -113,10 +114,19 @@ class RateLimiter:
                     pass
 # _2fastbt
         else:
-            self.sched(self.try_send, self.bytes_sent / self.upload_rate)
+            # 01/04/10 Boudewijn: because we use a -very- small value
+            # to indicate a 0bps rate, we will schedule the call to be
+            # made in a very long time.  This results in no upload for
+            # a very long time.
+            #
+            # the try_send method has protection again calling to
+            # soon, so we can simply schedule the call to be made
+            # sooner.
+            delay = min(5.0, self.bytes_sent / self.upload_rate)
+            self.sched(self.try_send, delay)
 
     def adjust_sent(self, bytes):
-        if DEBUG: print >>sys.stderr, "RateLimiter: adjust_sent", bytes
+        # if DEBUG: print >>sys.stderr, "RateLimiter: adjust_sent", bytes
         self.bytes_sent = min(self.bytes_sent+bytes, self.upload_rate*3)
         self.measure.update_rate(bytes)
 

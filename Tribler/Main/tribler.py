@@ -465,6 +465,9 @@ class ABCApp(wx.App):
         # 22/08/08 boudewijn: convert abc.conf to SessionConfig
         self.utility.convert__presession_4_1__4_2(self.sconfig)
         
+        # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
+        self.sconfig.set_torrent_collecting_max_torrents(50000)
+        
         s = Session(self.sconfig)
         self.utility.session = s
 
@@ -512,19 +515,23 @@ class ABCApp(wx.App):
         # current statistics
         self.rateprintcount = 0
 
+        # boudewijn 01/04/2010: hack to fix the seedupload speed that
+        # was never used and defaulted to 0 (unlimited upload)
         maxup = self.utility.config.Read('maxuploadrate', "int")
         if maxup == -1: # no upload
             self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
+            self.ratelimiter.set_global_max_seedupload_speed(0.00001)
         else:
             self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
+            self.ratelimiter.set_global_max_seedupload_speed(maxup)
 
 
         maxdown = self.utility.config.Read('maxdownloadrate', "int")
         self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
 
 
-        maxupseed = self.utility.config.Read('maxseeduploadrate', "int")
-        self.ratelimiter.set_global_max_seedupload_speed(maxupseed)
+#        maxupseed = self.utility.config.Read('maxseeduploadrate', "int")
+#        self.ratelimiter.set_global_max_seedupload_speed(maxupseed)
         self.utility.ratelimiter = self.ratelimiter
  
 # SelectiveSeeding _       

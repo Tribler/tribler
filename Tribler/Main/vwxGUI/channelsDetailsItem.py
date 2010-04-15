@@ -80,8 +80,10 @@ class channelsDetailsItem(wx.Panel):
         self.expandedValue = 377
         self.SetMinSize((self.expandedValue,18))
         self.SetSize((self.expandedValue,18))
-        self.torrentColour=(255,51,0)
-        self.torrentColourSel=(0,105,156)
+#        self.torrentColour=(255,51,0)
+        self.torrentColour = wx.BLACK
+#        self.torrentColourSel=(0,105,156)
+        self.torrentColourSel=wx.BLACK
         self.expandedSize=(self.expandedValue,100)
         self.panelSize=(self.expandedValue,self.expandedSize[1]-18)
         self.index = 0 # used for torrent deletion

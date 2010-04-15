@@ -1,4 +1,4 @@
-# wRIsten by Jan David Mol, Arno Bakker
+# Written by Jan David Mol, Arno Bakker
 # see LICENSE.txt for license information
 
 import sys
@@ -285,7 +285,7 @@ class PiecePickerStreaming(PiecePicker):
             print >>sys.stderr,"PiecePickerStreaming: original PP.next returns",p
         # Arno, 2010-03-11: Njaal's CS something causes this to return None
         # when we're not complete: added check
-        if p is None and not self.videostatus.live_streaming and self.am_I_complete():
+        if p is None and not self.videostatus.live_streaming and self.am_I_complete() or TEST_VOD_OVERRIDE:
             # When the file we selected from a multi-file torrent is complete,
             # we won't request anymore pieces, so the normal way of detecting 
             # we're done is not working and we won't tell the video player 

@@ -336,15 +336,21 @@ class SettingsOverviewPanel(wx.Panel):
             if valup == 'unlimited':
                 maxupload = 'unlimited'
                 self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
+                self.utility.ratelimiter.set_global_max_seedupload_speed(0)
                 self.guiUtility.utility.config.Write('maxuploadrate', '0')
+                self.guiUtility.utility.config.Write('maxseeduploadrate', '0')
             elif valup == '0':
                 maxupload = '0'
                 self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0.0001)
+                self.utility.ratelimiter.set_global_max_seedupload_speed(0.0001)
                 self.guiUtility.utility.config.Write('maxuploadrate', '-1')
+                self.guiUtility.utility.config.Write('maxseeduploadrate', '-1')
             elif valup.isdigit():
                 maxupload = 'value'
                 self.utility.ratelimiter.set_global_max_speed(UPLOAD, int(valup))
+                self.utility.ratelimiter.set_global_max_seedupload_speed(int(valup))
                 self.guiUtility.utility.config.Write('maxuploadrate', valup)
+                self.guiUtility.utility.config.Write('maxseeduploadrate', valup)
             else:
                 saved = False
                 if sys.platform != 'darwin': # on mac can't reset the font colour ack to black again
@@ -380,13 +386,19 @@ class SettingsOverviewPanel(wx.Panel):
             if upload:
                 if maxupload == 'unlimited':
                     self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
+                    self.utility.ratelimiter.set_global_max_seedupload_speed(0)
                     self.guiUtility.utility.config.Write('maxuploadrate', '0')
+                    self.guiUtility.utility.config.Write('maxseeduploadrate', '0')
                 elif maxupload == '0':
                     self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0.0001)
+                    self.utility.ratelimiter.set_global_max_seedupload_speed(0.0001)
                     self.guiUtility.utility.config.Write('maxuploadrate', '-1')
+                    self.guiUtility.utility.config.Write('maxseeduploadrate', '-1')
                 else: 
                     self.utility.ratelimiter.set_global_max_speed(UPLOAD, int(valup))
+                    self.utility.ratelimiter.set_global_max_seedupload_speed(int(valup))
                     self.guiUtility.utility.config.Write('maxuploadrate', valup)
+                    self.guiUtility.utility.config.Write('maxseeduploadrate', valup)
 
             # disk location
             if diskLocation:

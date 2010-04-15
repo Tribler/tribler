@@ -273,6 +273,13 @@ class ItemPanel(wx.Panel): #torrent item
         except:
             pass
 
+        try:
+            if self.selected:
+                if DEBUG :
+                    print >> sys.stderr , "Torrent already selected. Not refreshing individual item."
+                return
+        except:
+            pass
 
         if data.get('name'):
             titlefull = data['name']

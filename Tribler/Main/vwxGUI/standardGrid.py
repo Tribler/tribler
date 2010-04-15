@@ -874,13 +874,18 @@ class standardGrid(wx.Panel):
                 else:
                     panel.deselect()
             elif self.data is not None:
+                nochannelselected = True
                 for i in xrange(0, len(self.data)):
                     hSizer = self.vSizer.GetItem(i%self.currentRows+1).GetSizer()
                     panel = hSizer.GetItem(i/ self.currentRows).GetWindow()
                     if self.data[i][0] == self.selectedPublisherId:
+                        nochannelselected=False
                         panel.select()
                     else:
                         panel.deselect()
+                if nochannelselected:
+                    self.selectedPublisherId = None
+                    self.guiUtility.frame.channelsDetails.reinitialize()
         except:
             pass
 
@@ -937,6 +942,7 @@ class filesGrid(standardGrid):
 #        self.subPanelHeight = 108 # This will be update after first refresh
         columns = (5, 1)
         subPanelHeight = (5*22, 22)
+        self.library_data = None
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical',parent=parent,name="filesGrid")
         
     def getSubPanel(self):
