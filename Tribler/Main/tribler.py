@@ -257,16 +257,16 @@ class ABCApp(wx.App):
             self.frame.BR.Hide()
 
 
-            self.frame.blvideo = xrc.XRCCTRL(self.frame, "blvideo")
-            self.frame.brvideo = xrc.XRCCTRL(self.frame, "brvideo")
-            self.frame.tlvideo = xrc.XRCCTRL(self.frame, "tlvideo")
-            self.frame.trvideo = xrc.XRCCTRL(self.frame, "trvideo")
+#            self.frame.blvideo = xrc.XRCCTRL(self.frame, "blvideo")
+#            self.frame.brvideo = xrc.XRCCTRL(self.frame, "brvideo")
+#            self.frame.tlvideo = xrc.XRCCTRL(self.frame, "tlvideo")
+#            self.frame.trvideo = xrc.XRCCTRL(self.frame, "trvideo")
 
-            if sys.platform != 'darwin':
-                self.frame.blvideo.Hide()
-                self.frame.brvideo.Hide()
-                self.frame.tlvideo.Hide()
-                self.frame.trvideo.Hide()
+#            if sys.platform != 'darwin':
+#                self.frame.blvideo.Hide()
+#                self.frame.brvideo.Hide()
+#                self.frame.tlvideo.Hide()
+#                self.frame.trvideo.Hide()
 
 
             self.frame.channelsDetails = xrc.XRCCTRL(self.frame, "channelsDetails")

@@ -373,15 +373,19 @@ class TopSearchPanel(bgPanel):
         dlg.Destroy()
 
     def clearChannelView(self):
-        grid = self.guiUtility.standardOverview.data['channelsMode']['grid']
-        grid2 = self.guiUtility.standardOverview.data['channelsMode']['grid2']
-        grid.selectedPublisherId = None
-        grid2.selectedPublisherId = None
-        grid.clearAllData()
-        grid2.clearAllData()
-        grid.deselectAllChannels()
-        grid2.deselectAllChannels()
-        grid2.Hide()
+        # 19/02/10 boudewijn: data['channelsMode'] can be an empty
+        # dictionary when this mode has not yet been displayed
+        channelsMode = self.guiUtility.standardOverview.data['channelsMode']
+        if channelsMode:
+            grid = self.guiUtility.standardOverview.data['channelsMode']['grid']
+            grid2 = self.guiUtility.standardOverview.data['channelsMode']['grid2']
+            grid.selectedPublisherId = None
+            grid2.selectedPublisherId = None
+            grid.clearAllData()
+            grid2.clearAllData()
+            grid.deselectAllChannels()
+            grid2.deselectAllChannels()
+            grid2.Hide()
         self.guiUtility.frame.channelsDetails.reinitialize()
 
 

@@ -41,7 +41,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
 
 
-        self.Bind(wx.EVT_KEY_DOWN, self.keyDown)
+        #self.Bind(wx.EVT_KEY_DOWN, self.keyDown)
 
 
         mainbox = wx.BoxSizer(wx.VERTICAL)
@@ -531,7 +531,7 @@ class VLCLogoWindow(wx.Panel):
         self.vlcwrap = vlcwrap
         self.animation_running = False
        
-        self.Bind(wx.EVT_KEY_UP, self.keyDown)
+        #self.Bind(wx.EVT_KEY_UP, self.keyDown)
 
         if logopath is not None and not animate:
             self.logo = wx.BitmapFromImage(wx.Image(logopath),-1)

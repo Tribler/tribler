@@ -22,6 +22,7 @@ from Tribler.Video.utils import videoextdefaults
 from bgPanel import *
 from font import *
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *
