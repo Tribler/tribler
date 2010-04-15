@@ -111,7 +111,7 @@ class TorrentFeedThread(Thread):
             bdata = open(filename, 'rb').read()
             torrent_data = bdecode(bdata)
             infohash = sha.sha(bencode(torrent_data['info'])).digest()
-            if DEBUG: print >>sys.stderr, "Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
+            if DEBUG: print >>sys.stderr,"subscrip:Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
             self.save_torrent(infohash, bdata, torrent_data)
 
             # 01/02/10 Boudewijn: we should use the TorrendDef to read
@@ -159,7 +159,7 @@ class TorrentFeedThread(Thread):
             # checking that will take way to much time here.  So we
             # won't for now...
             torrentdef = TorrentDef.load_from_dict(torrent_data)
-            if DEBUG: print >>sys.stderr, "Adding a torrent in my channel: %s" % torrentdef.get_name_as_unicode()
+            if DEBUG: print >>sys.stderr,"subscrip:Adding a torrent in my channel: %s" % torrentdef.get_name_as_unicode()
             self.channelcast_db.addOwnTorrent(torrentdef)
 
         self.lock.acquire()
@@ -288,10 +288,10 @@ class TorrentFeedThread(Thread):
                     try:
                         title, urlopenobj = generator.next()
                         if not urlopenobj:
-                            print >>sys.stderr, "urlopenobj NONE: torrent not found", title
+                            if DEBUG: print >>sys.stderr,"subscrip:urlopenobj NONE: torrent not found", title
                             continue
-                        else:
-                            print >>sys.stderr, "urlopenobj : torrent found", title 
+                        elif DEBUG:
+                            print >>sys.stderr,"subscrip:urlopenobj : torrent found", title 
 
                         bdata = urlopenobj.read()
                         urlopenobj.close()
@@ -304,15 +304,15 @@ class TorrentFeedThread(Thread):
                             if not self.torrent_db.hasTorrent(infohash):
                                 if DEBUG:
                                     if "name" in torrent_data["info"]:
-                                        print >>sys.stderr, "Injecting", torrent_data["info"]["name"]
+                                        print >>sys.stderr,"subscrip:Injecting", torrent_data["info"]["name"]
                                     else:
-                                        print >>sys.stderr, "Injecting", title
+                                        print >>sys.stderr,"subscrip:Injecting", title
                                 self.save_torrent(infohash, bdata, torrent_data, source=rss_url)
                                 if on_torrent_callback:
-                                    print >> sys.stderr , "ON TORRENT CALLBACK"
+                                    if DEBUG: print >> sys.stderr , "ON TORRENT CALLBACK"
                                     on_torrent_callback(rss_url, infohash, torrent_data)
                                 if user_callback:
-                                    print >> sys.stderr , "USER CALLBACK"
+                                    if DEBUG: print >> sys.stderr , "USER CALLBACK"
                                     user_callback(rss_url, infohash, torrent_data)
 
                                 # perform all non-url-specific callbacks
@@ -334,10 +334,10 @@ class TorrentFeedThread(Thread):
 
                     except ValueError:
                         # the bdecode failed
-                        print >>sys.stderr, "Bdecode failed: ", rss_url
+                        print >>sys.stderr,"subscrip:Bdecode failed: ", rss_url
                     
                     except (ExpatError, HTTPError):
-                        print >>sys.stderr, "Invalid RSS: ", rss_url 
+                        print >>sys.stderr,"subscrip:Invalid RSS: ", rss_url 
 
                     # sleep in between torrent retrievals
                     #time.sleep(self.intertorrentinterval)
@@ -527,16 +527,16 @@ class TorrentFeedReader:
                             else:
                                 #its not a torrent after all, but just some html link
                                 if DEBUG:
-                                    print >>sys.stderr, "%s not a torrent" % url
+                                    print >>sys.stderr,"subscrip:%s not a torrent" % url
                         except:
                             #url didn't open
                             if DEBUG:
-                                print >>sys.stderr, "%s did not open" % url
+                                print >>sys.stderr,"subscrip:%s did not open" % url
                 if not found_torrent:
                     yield title,None
             except GeneratorExit:
                 if DEBUG:
-                    print >>sys.stderr, "GENERATOREXIT"
+                    print >>sys.stderr,"subscrip:GENERATOREXIT"
                 # the generator is destroyed. we accept this by returning
                 return
             except Exception, e:
