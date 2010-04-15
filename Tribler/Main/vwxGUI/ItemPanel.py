@@ -145,14 +145,6 @@ class ItemPanel(wx.Panel): #torrent item
         self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
         self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND, 0)
 
-<<<<<<< .working
-=======
-        self.thumb = ThumbnailViewer(self, 'filesMode')
-        self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize((32,18))
-        self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
-
->>>>>>> .merge-right.r15526
         # Add title
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.w1-5,self.h1))        
         self.title.SetBackgroundColour(wx.WHITE)
@@ -261,10 +253,6 @@ class ItemPanel(wx.Panel): #torrent item
         if not data:
             data = {}
 
-<<<<<<< .working
-=======
-        self.thumb.Hide() ## should not be shown
->>>>>>> .merge-right.r15526
         try:
             if self.selected:
                 if DEBUG :
