@@ -7,15 +7,12 @@ from traceback import print_exc
 
 dht_imported = False
 
-# Arno, 2010-02-26: Temporarily disabled DHT, this version has memory leaks
-"""
 if sys.version.split()[0] >= '2.5':
     try:
         from Tribler.Core.DecentralizedTracking.kadtracker.kadtracker import KadTracker
         dht_imported = True
     except (ImportError), e:
         print_exc()
-"""
 
 DEBUG = False
 
