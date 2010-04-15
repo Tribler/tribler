@@ -4,7 +4,7 @@ from traceback import print_exc
 
 from Tribler.Core.API import *
 
-DEBUG = True
+DEBUG = False
 
 
 def vod_event_callback(d,event,params):

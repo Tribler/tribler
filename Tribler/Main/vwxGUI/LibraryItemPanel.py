@@ -22,7 +22,6 @@ from Tribler.Video.utils import videoextdefaults
 from bgPanel import *
 from font import *
 from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
-from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.Main.Utility.constants import * 
 from Tribler.Main.Utility import *
@@ -91,6 +90,7 @@ class LibraryItemPanel(wx.Panel):
 
         self.user_download_choice = UserDownloadChoice.get_singleton()
 
+#        self.SetMinSize((-1, 130))
         self.selected = False
         self.Show()
         self.Refresh()
@@ -303,14 +303,14 @@ class LibraryItemPanel(wx.Panel):
         if self.data.get('ds'):
             ds = self.data.get('ds')
             ds.get_download().stop()
-        self.user_download_choice.set_download_state(self.data["infohash"], "stop")
+
+
 
     def resumeDownload(self):
         self.pause_resume.SetLabel('Pause')
         if self.data.get('ds'):
             ds = self.data.get('ds')
             ds.get_download().restart()
-        self.user_download_choice.set_download_state(self.data["infohash"], "restart")
 
                   
     def refreshData(self):
@@ -367,15 +367,14 @@ class LibraryItemPanel(wx.Panel):
         if torrent.get('ds'):
             ds = torrent['ds']
 
-            if ds.get_status() in (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING):
-                self.pause_resume.SetLabel('Pause')
-            else: 
-                # Resume will result in currently only the following allow the 'resume'
-                # option. 
-                # DLSTATUS_STOPPED              --> try download/seeding
-                # DLSTATUS_STOPPED_ON_ERROR     --> try download/seeding
-                # DLSTATUS_REPEXING             --> try seeding
+
+            # RePEX: a repexing download can also be resumed, which will just
+            # abort the repexing phase and returns the download to seeding 
+            if ds.get_status() in (DLSTATUS_STOPPED, DLSTATUS_REPEXING):
                 self.pause_resume.SetLabel('Resume')
+
+            if ds.get_status() in (DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING):
+                self.pause_resume.SetLabel('Pause')
 
             
             self.pb.Show()
@@ -626,8 +625,8 @@ class LibraryItemPanel(wx.Panel):
             # delete works for active and inactive torrents
             self.guiUtility.onDeleteTorrentFromLibrary()
             
-        #if event.RightDown():
-        #    self.rightMouseButton(event)
+        if event.RightDown():
+            self.rightMouseButton(event)
    
         
         

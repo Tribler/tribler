@@ -19,6 +19,8 @@ from font import *
 from Tribler.Core.simpledefs import *
 
 from Tribler.Main.vwxGUI.FilesItemDetailsSummary import FilesItemDetailsSummary
+from Tribler.Main.vwxGUI.ChannelsItemDetailsSummary import ChannelsItemDetailsSummary
+from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 
 
 from Tribler.__init__ import LIBRARYNAME
@@ -140,16 +142,23 @@ class ItemPanel(wx.Panel): #torrent item
             
             
 
-        self.hSizer.Add([10,5],0,wx.FIXED_MINSIZE,0)
+        self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
         self.vSizerOverall.Add(self.hSizer, 0, wx.EXPAND, 0)
 
+<<<<<<< .working
+=======
+        self.thumb = ThumbnailViewer(self, 'filesMode')
+        self.thumb.setBackground(wx.BLACK)
+        self.thumb.SetSize((32,18))
+        self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
+
+>>>>>>> .merge-right.r15526
         # Add title
-        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(300,self.h1))        
+        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.w1-5,self.h1))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetForegroundColour(wx.BLACK)
         self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((300,self.h1))
-        self.title.SetSize((300,self.h1))
+        self.title.SetMinSize((self.w1-5,self.h1))
 
         self.hSizer.Add(self.title, 0,wx.TOP|wx.BOTTOM, 3)  
   
@@ -157,7 +166,7 @@ class ItemPanel(wx.Panel): #torrent item
 
 
 
-        self.fileSize = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(self.w2-5,18), wx.ALIGN_LEFT | wx.ST_NO_AUTORESIZE)        
+        self.fileSize = wx.StaticText(self,-1,"size",wx.Point(0,0),wx.Size(self.w2-5,18), wx.ALIGN_LEFT | wx.ST_NO_AUTORESIZE)        
         self.fileSize.SetBackgroundColour(wx.WHITE)
         self.fileSize.SetForegroundColour(wx.BLACK) 
         self.fileSize.SetFont(wx.Font(FS_FILESIZE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
@@ -252,6 +261,10 @@ class ItemPanel(wx.Panel): #torrent item
         if not data:
             data = {}
 
+<<<<<<< .working
+=======
+        self.thumb.Hide() ## should not be shown
+>>>>>>> .merge-right.r15526
         try:
             if self.selected:
                 if DEBUG :
@@ -327,8 +340,8 @@ class ItemPanel(wx.Panel): #torrent item
 
         self.title.SetBackgroundColour(colour)
         self.title.SetFont(wx.Font(FS_FILETITLE_SEL,FONTFAMILY,FONTWEIGHT,wx.BOLD,False,FONTFACE))
-        self.title.SetMinSize((self.w1-5, TITLEHEIGHTEXP))
-        self.title.SetSize((self.w1-5, TITLEHEIGHTEXP))
+        self.title.SetMinSize((self.w1, TITLEHEIGHTEXP))
+        self.title.SetSize((self.w1, TITLEHEIGHTEXP))
         
         
         self.SetBackgroundColour(colour)
@@ -361,8 +374,8 @@ class ItemPanel(wx.Panel): #torrent item
             
         self.title.SetBackgroundColour(colour)
         self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((self.w1-5, TITLEHEIGHT))
-        self.title.SetSize((self.w1-5, TITLEHEIGHT))
+        self.title.SetMinSize((self.w1, TITLEHEIGHT))
+        self.title.SetSize((self.w1, TITLEHEIGHT))
 
         self.SetBackgroundColour(colour)
         self.fileSize.SetBackgroundColour(colour)
@@ -412,11 +425,18 @@ class ItemPanel(wx.Panel): #torrent item
 
     def toggleItemDetailsSummary(self, visible):
         if visible and not self.summary:            
-            if not self.data.get('web2'):                
-                self.guiUtility.moderatedinfohash = self.data['infohash']
-                self.summary = FilesItemDetailsSummary(self, torrentHash = self.data['infohash'], torrent = self.data)
-            else:
-                self.summary = FilesItemDetailsSummary(self, torrentHash = None, torrent = self.data, web2data = self.data)
+            if self.type == 'torrent':
+                if not self.data.get('web2'):                
+                    self.guiUtility.moderatedinfohash = self.data['infohash']
+                    self.summary = FilesItemDetailsSummary(self, torrentHash = self.data['infohash'], torrent = self.data)
+                else:
+                    self.summary = FilesItemDetailsSummary(self, torrentHash = None, torrent = self.data, web2data = self.data)
+            else: # channel
+                if not self.data.get('web2'):                
+                    ##self.guiUtility.moderatedinfohash = self.data['infohash'] ?
+                    self.summary = ChannelsItemDetailsSummary(self, torrentList = self.torrentList, subscribed = self.subscribed)
+                else:
+                    self.summary = ChannelsItemDetailsSummary(self, torrentHash = None, torrent = self.data, web2data = self.data) # not used ?
             self.hSizerSummary.Add(self.summary, 1, wx.ALL|wx.EXPAND, 0)
             if sys.platform == 'win32':
                 self.SetMinSize((-1,97))

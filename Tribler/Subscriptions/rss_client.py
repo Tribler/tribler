@@ -151,8 +151,6 @@ class TorrentFeedThread(Thread):
 #        self.lock.release()
     
     def addURL(self, url, dowrite=True, status="active", callback=None):
-        # reinitialize feeds
-        self.feeds = []
         if DEBUG: print >> sys.stderr , "callback", url, callback
         def on_torrent_callback(rss_url, infohash, torrent_data):
             # 01/02/10 Boudewijn: we should use the TorrendDef to read
@@ -250,14 +248,11 @@ class TorrentFeedThread(Thread):
     def deleteURL(self,url):
         self.lock.acquire()
         if url in self.urls:
-            print >> sys.stderr , "DELETE URL"
             del self.urls[url]
             for i in range(len(self.feeds)):
                 feed = self.feeds[i]
-                print >> sys.stderr , "feed : " , feed[0]
                 if feed[0] == url:
                     del self.feeds[i]
-                    print >> sys.stderr , "DELETE FEED"
                     self.feeds_changed.set()
                     break
             self.writefile()
@@ -293,12 +288,10 @@ class TorrentFeedThread(Thread):
                     try:
                         title, urlopenobj = generator.next()
                         if not urlopenobj:
-                            if DEBUG:
-                                print >>sys.stderr, "urlopenobj NONE: torrent not found", title
+                            print >>sys.stderr, "urlopenobj NONE: torrent not found", title
                             continue
                         else:
-                            if DEBUG:
-                                print >>sys.stderr, "urlopenobj : torrent found", title 
+                            print >>sys.stderr, "urlopenobj : torrent found", title 
 
                         bdata = urlopenobj.read()
                         urlopenobj.close()
@@ -316,12 +309,10 @@ class TorrentFeedThread(Thread):
                                         print >>sys.stderr, "Injecting", title
                                 self.save_torrent(infohash, bdata, torrent_data, source=rss_url)
                                 if on_torrent_callback:
-                                    if DEBUG:
-                                        print >> sys.stderr , "ON TORRENT CALLBACK"
+                                    print >> sys.stderr , "ON TORRENT CALLBACK"
                                     on_torrent_callback(rss_url, infohash, torrent_data)
                                 if user_callback:
-                                    if DEBUG:
-                                        print >> sys.stderr , "USER CALLBACK"
+                                    print >> sys.stderr , "USER CALLBACK"
                                     user_callback(rss_url, infohash, torrent_data)
 
                                 # perform all non-url-specific callbacks

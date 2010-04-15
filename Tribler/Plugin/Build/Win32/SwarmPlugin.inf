@@ -8,19 +8,19 @@
 
 [Add.Code]
   axvlc.dll=axvlc.dll
-  SwarmPlugin_1.0.3.exe=SwarmPlugin_1.0.3.exe
+  SwarmPlugin_1.0.5.exe=SwarmPlugin_1.0.5.exe
 
 [axvlc.dll]
-  FileVersion=1,0,3,0
+  FileVersion=1,0,5,0
   clsid={1800B8AF-4E33-43C0-AFC7-894433C13538}
   RegisterServer=no
   Hook=runinstaller
 
-[SwarmPlugin_1.0.3.exe]
-  FileVersion=1,0,3,0
-  file-win32-x86=http://trial.p2p-next.org/download/SwarmPlugin_1.0.3.exe
+[SwarmPlugin_1.0.5.exe]
+  FileVersion=1,0,5,0
+  file-win32-x86=http://trial.p2p-next.org/download/SwarmPlugin_1.0.5.exe
 
 [runinstaller]
-  run=%EXTRACT_DIR%\SwarmPlugin_1.0.3.exe
+  run=%EXTRACT_DIR%\SwarmPlugin_1.0.5.exe
 
 

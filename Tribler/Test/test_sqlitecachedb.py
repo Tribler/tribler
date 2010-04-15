@@ -9,9 +9,10 @@ import math
 from random import shuffle
 import apsw
 
+
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT
 from bak_tribler_sdb import *    
-    
+
 CREATE_SQL_FILE = os.path.join('..', 'schema_sdb_v4.sql')
 
 import Tribler.Core.CacheDB.sqlitecachedb

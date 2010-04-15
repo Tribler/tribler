@@ -4,8 +4,10 @@
 # TODO:
 #
 
+import sys
 import unittest
 import os
+import tempfile
 
 from Tribler.Core.API import TorrentDef
 from Tribler.Core.BitTornado.bencode import bdecode
@@ -72,6 +74,22 @@ class TestTorrentDef(unittest.TestCase):
     def test_add_content_file_save(self):
         self.subtest_add_content_file_save(merkle=False)
         self.subtest_add_content_file_save(merkle=True)
+
+    def test_ns_metadata(self):
+        dummydata = "HalloWereld"
+        t = TorrentDef()
+        t.set_metadata(dummydata)
+        fn = os.path.join(os.getcwd(),"file.wmv")
+        t.add_content(fn)
+        t.set_tracker(TRACKER)
+        t.finalize()
+
+        [handle,filename] = tempfile.mkstemp()
+        os.close(handle)
+        t.save(filename)
+        
+        t2 = TorrentDef.load(filename)
+        self.assert_(t2.get_metadata() == dummydata)
 
 
     def subtest_add_content_file(self,merkle=True):

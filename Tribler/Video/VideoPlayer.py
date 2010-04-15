@@ -16,7 +16,6 @@ from Tribler.Video.utils import win32_retrieve_video_play_command,win32_retrieve
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
-from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.Video.CachingStream import SmartCachingStream
 
@@ -50,6 +49,7 @@ class VideoPlayer:
         self.videorawserv = VideoRawVLCServer.getInstance()
 
         self.resume_by_system = 1
+        from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
         self.user_download_choice = UserDownloadChoice.get_singleton()
         
     def getInstance(*args, **kw):
@@ -123,18 +123,19 @@ class VideoPlayer:
             print >>sys.stderr,"videoplay: Playing file with Unicode filename via HTTP"
 
         (prefix,ext) = os.path.splitext(dest)
-        urlpath = '/'+os.path.basename(prefix+ext)
-        videourl = self.create_url(self.videohttpserv,urlpath)
+        videourl = self.create_url(self.videohttpserv,'/'+os.path.basename(prefix+ext))
         [mimetype,cmd] = self.get_video_player(ext,videourl)
 
         stream = open(dest,"rb")
         stats = os.stat(dest)
         length = stats.st_size
         streaminfo = {'mimetype':mimetype,'stream':stream,'length':length}
-        self.videohttpserv.set_inputstream(streaminfo,urlpath)
+        self.videohttpserv.set_inputstream(streaminfo)
         
         self.launch_video_player(cmd)
 
+
+ 
     def play_url(self,url):
         """ Play video file from network or disk """
         if DEBUG:
@@ -272,13 +273,6 @@ class VideoPlayer:
             for infilename,diskfilename in videofiles:
                 if infilename == selectedinfilename:
                     selectedoutfilename = diskfilename
-                
-        # 23/02/10 Boudewijn: This Download does not contain the
-        # selectedinfilename in the available files.  It is likely
-        # that this is a multifile torrent and that another file was
-        # previously selected for download.
-        if selectedoutfilename is None:
-            return self.play_vod(ds, selectedinfilename)
 
         print >> sys.stderr , "videoplay: play: PROGRESS" , ds.get_progress()
         complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
@@ -325,9 +319,10 @@ class VideoPlayer:
         # 1. (Re)Start torrent in VOD mode
         switchfile = (oldselectedfile is not None and oldselectedfile != infilename) 
 
-        print >> sys.stderr, "videoplay: play_vod: VOD:", ds.is_vod(), "SWITCH:", switchfile, "LIVE:", tdef.get_live()
+        print >> sys.stderr, ds.is_vod() , switchfile , tdef.get_live()
         if not ds.is_vod() or switchfile or tdef.get_live():
 
+            
             if switchfile:
                 if self.playbackmode == PLAYBACKMODE_INTERNAL:
                     self.videoframe.get_videopanel().Reset()
@@ -468,27 +463,20 @@ class VideoPlayer:
                     selectedinfilename = self.ask_user_to_select_video(videofiles)
 
         if selectedinfilename or tdef.get_live():
-            othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
-            self.manage_other_downloads(othertorrentspolicy,targetd = None)
-
-            for download in self.utility.session.get_downloads():
-                if download.get_def().get_infohash() == tdef.get_infohash():
-                    print >> sys.stderr, "videoplay: start_and_play: Temporarily removing existing download"
-                    self.utility.session.remove_download(download, removecontent=False)
-                    break
-
             if tdef.is_multifile_torrent():
                 dscfg.set_selected_files([selectedinfilename])
+
+            othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
+            self.manage_other_downloads(othertorrentspolicy,targetd = None)
 
             # Restart download
             dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
             dscfg.set_video_events(self.get_supported_vod_events())
             print >>sys.stderr,"videoplay: Starting new VOD/live Download",`tdef.get_name()`
 
-            download = self.utility.session.start_download(tdef,dscfg)
-
-            self.set_vod_download(download)
-            return download
+            d = self.utility.session.start_download(tdef,dscfg)
+            self.set_vod_download(d)
+            return d
         else:
             return None
         
@@ -579,8 +567,8 @@ class VideoPlayer:
         try:
             filename.encode('ascii','strict')
             return True
-        except UnicodeError:
-            # print_exc()
+        except:
+            print_exc()
             return False
 
     def warn_user(self,ds,infilename):

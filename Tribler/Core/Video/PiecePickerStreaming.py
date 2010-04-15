@@ -283,7 +283,9 @@ class PiecePickerStreaming(PiecePicker):
         p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con, slowpieces=slowpieces, willrequest=willrequest,connection=connection)
         if DEBUGPP and self.videostatus.prebuffering:
             print >>sys.stderr,"PiecePickerStreaming: original PP.next returns",p
-        if p is None and not self.videostatus.live_streaming or TEST_VOD_OVERRIDE:
+        # Arno, 2010-03-11: Njaal's CS something causes this to return None
+        # when we're not complete: added check
+        if p is None and not self.videostatus.live_streaming and self.am_I_complete():
             # When the file we selected from a multi-file torrent is complete,
             # we won't request anymore pieces, so the normal way of detecting 
             # we're done is not working and we won't tell the video player 

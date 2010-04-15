@@ -95,7 +95,7 @@ class PaymentDialog(wx.Dialog):
         self.phone_number = None
         self.poa = None
 
-        self.label_0 = wx.StaticText(self, -1, "\nRegister your phone number to get high speed access\nto the resource '" + swarm_title + "'\n")
+        self.label_0 = wx.StaticText(self, -1, "\nRegister your phone number (with country code) to get \nhigh speed access to the resource '" + swarm_title + "'\n")
         
         self.label_1 = wx.StaticText(self, -1, "Phone number")
         self.txt_phone_number = wx.TextCtrl(self, -1, "")

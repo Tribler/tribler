@@ -95,7 +95,7 @@ class MovieOnDemandTransporter(MovieTransport):
     PREBUF_REHOOKIN_SECS = 5.0
 
     # maximum delay between pops when live streaming before we force a restart (seconds)
-    MAX_POP_TIME = 30
+    MAX_POP_TIME = 20
 
     def __init__(self,bt1download,videostatus,videoinfo,videoanalyserpath,vodeventfunc):
 
@@ -230,6 +230,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.outbuf = []
         self.outbuflen = None
         self.last_pop = None # time of last pop
+        self.rehookin = False
         self.reset_bitrate_prediction()
 
         self.lasttime=0
@@ -445,29 +446,40 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def live_streaming_timer(self):
         """ Background 'thread' to check where to hook in if live streaming. """
-        print >>sys.stderr,"vod: live_streaming_timer: Finding hookin"
         
-        if self.videostatus.playing:
-            # Stop adjusting the download range via this mechanism, see 
-            # refill_buffer() for the new pause/resume mechanism.
-            return
-
-        # JD:keep checking correct playback pos since it can change if we switch neighbours
-        # due to faulty peers etc
-
-        #if not (self.videostatus.live_startpos is None):
-        #    # Adjust it only once on what we see around us
-        #    return
-
+        if DEBUG:
+            print >>sys.stderr,"vod: live_streaming_timer: Finding hookin"
+        nextt = 1
         try:
+            vs = self.videostatus
+        
+            if vs.playing and not self.rehookin:
+                # Stop adjusting the download range via this mechanism, see 
+                # refill_buffer() for the new pause/resume mechanism.
+                
+                # Arno, 2010-03-04: Reactivate protection for live.
+                if vs.live_streaming and self.last_pop is not None and time.time() - self.last_pop > self.MAX_POP_TIME:
+                    # Live: last pop too long ago, rehook-in
+                    print >>sys.stderr,"vod: live_streaming_timer: Live stalled too long, reaanounce and REHOOK-in !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                    self.last_pop = time.time()
+                    
+                    # H4x0r: if conn to source was broken, reconnect
+                    self.bt1download.reannounce()
+                    
+                    # Give some time to connect to new peers, so rehookin in 2 seconds
+                    nextt = 2 
+                    self.rehookin = True
+                return
+                
+            # JD:keep checking correct playback pos since it can change if we switch neighbours
+            # due to faulty peers etc
             if self.calc_live_startpos( self.max_prebuf_packets, False ):
-                # Adjust it only once on what we see around us
-                #return
-                pass
+                self.rehookin = False
         except:
             print_exc()
-
-        self.rawserver.add_task( self.live_streaming_timer, 1 )
+        finally:
+            # Always executed
+            self.rawserver.add_task( self.live_streaming_timer, nextt )
 
     def parse_video(self):
         """ Feeds the first max_prebuf_packets to ffmpeg to determine video bitrate. """
@@ -1347,16 +1359,6 @@ class MovieOnDemandTransporter(MovieTransport):
         if vs.prebuffering or not vs.playing:
             self.data_ready.release()
             return
-
-        # Arno, 2010-03-04: Reactivate protection for live.
-        if vs.live_streaming and self.last_pop is not None and time.time() - self.last_pop > self.MAX_POP_TIME:
-            # Live: last pop too long ago, rehook-in
-            self.data_ready.release()
-            print >>sys.stderr,"vod: trans: Live stalled too long, REHOOK-in !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-            self.last_pop = time.time()
-            self.calc_live_startpos( self.max_prebuf_packets, False )
-            return
-
 
         if vs.paused:
             self.data_ready.release()

@@ -17,6 +17,7 @@ def init():
     # FONTFACE := first existing font in FONTFACE_CANDIDATES array
     global FONTFACE
     fontnames = wx.FontEnumerator.GetFacenames()
+
     for f in FONTFACE_CANDIDATES:
         if f in fontnames:
             FONTFACE = f

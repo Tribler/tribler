@@ -127,7 +127,7 @@ class DownloadConfigInterface:
         # create a copy to avoid loosing the info
         self.dlconfig['vod_userevents'] = events[:]
 
-    def set_video_source(self,videosource,authconfig=None):
+    def set_video_source(self,videosource,authconfig=None,restartstatefilename=None):
         """ Provides the live video source for this torrent from an external
         source.
         
@@ -135,6 +135,8 @@ class DownloadConfigInterface:
         (i.e., supports read() and close())
         @param authconfig The key information for source authentication of
         packets. See LiveSourceAuthConfig and TorrentDef.create_live_torrent()
+        @param restartstatefilename A filename to read/write state needed for a
+        graceful restart of the source.
         """
         self.dlconfig['video_source'] = videosource
         if authconfig is None:
@@ -142,6 +144,7 @@ class DownloadConfigInterface:
 
             authconfig = LiveSourceAuthConfig(LIVE_AUTHMETHOD_NONE)
         self.dlconfig['video_source_authconfig'] = authconfig
+        self.dlconfig['video_source_restartstatefilename'] = restartstatefilename
 
     def set_video_ratelimit(self,ratelimit):
         """ Sets a limit on the speed at which the video stream is to be read.

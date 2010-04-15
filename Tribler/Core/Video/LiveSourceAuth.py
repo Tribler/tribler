@@ -19,6 +19,7 @@ class Authenticator:
     def __init__(self,piecelen,npieces):
         self.piecelen = piecelen
         self.npieces = npieces
+        self.seqnum = 0L
     
     def get_piece_length(self):
         return self.piecelen
@@ -37,6 +38,12 @@ class Authenticator:
     
     def get_content(self,piece):
         pass
+
+    def get_source_seqnum(self):
+        return self.seqnum
+
+    def set_source_seqnum(self,seqnum):
+        self.seqnum = seqnum
 
 
 class NullAuthenticator(Authenticator):
@@ -91,7 +98,6 @@ class ECDSAAuthenticator(Authenticator):
             self.pubkey = EC.pub_key_from_der(pubkeypem)
         else:
             self.pubkey = None
-        self.seqnum = 0L
         self.startts = None
 
     def get_content_blocksize(self):
@@ -237,7 +243,6 @@ class RSAAuthenticator(Authenticator):
         else:
             self.pubkey = self.keypair
         self.contentblocksize = piecelen-self.our_sigsize()
-        self.seqnum = 0L
         self.startts = None
 
     def get_content_blocksize(self):

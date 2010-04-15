@@ -37,6 +37,8 @@ costs = []
 cost_reads = []
 torrent_dir = None
 config_dir = None
+TEST_OVERRIDE = False
+
 
 DEBUG = False
 

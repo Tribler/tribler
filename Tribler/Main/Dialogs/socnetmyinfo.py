@@ -80,21 +80,7 @@ class MyInfoWizard(Wizard):
         cfgfilename = self.utility.session.get_default_config_filename(state_dir)
         scfg = SessionStartupConfig.load(cfgfilename)
         
-#        for target in [scfg,self.utility.session]:
-#            try:
-#                target.set_nickname(name)
-#                target.set_mugshot(icondata, mime=iconmime)
-#            except:
-#                print_exc()
-
-#        scfg.save(cfgfilename)
-
-        self.parent.WizardFinished(self, name, icondata, iconmime, scfg, cfgfilename, callback=self.saveInfo)
-
-
-
-    def saveInfo(self, name, icondata, iconmime, scfg, cfgfilename, session):
-        for target in [scfg,session]:
+        for target in [scfg,self.utility.session]:
             try:
                 target.set_nickname(name)
                 target.set_mugshot(icondata, mime=iconmime)
@@ -102,9 +88,8 @@ class MyInfoWizard(Wizard):
                 print_exc()
 
         scfg.save(cfgfilename)
-       
 
-
+        self.parent.WizardFinished(self)
 
     def getFirstPage(self):
         return self.page1

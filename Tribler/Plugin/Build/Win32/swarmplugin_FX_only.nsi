@@ -1,5 +1,5 @@
 !define PRODUCT "SwarmPlugin"
-!define VERSION "1.0.3"
+!define VERSION "1.0.5"
 !define BG "bgprocess"
 
 
@@ -120,8 +120,6 @@ Section "!Main EXE" SecMain
 
   ; Add an application to the firewall exception list - All Networks - All IP Version - Enabled
   SimpleFC::AddApplication "SwarmPluginBackgroundProcess" "$INSTDIR\bgprocess\BackgroundProcess.exe" 0 2 "" 1
-  ; M23TRIAL
-  SimpleFC::AddApplication "SwarmPluginVictorLeecher" "$INSTDIR\bgprocess\leecher.exe" 0 2 "" 1
   
   ; Pop $0 ; return error(1)/success(0)
 
@@ -150,8 +148,6 @@ Section "Uninstall"
 
  ; Remove an application from the firewall exception list
  SimpleFC::RemoveApplication "$INSTDIR\bgprocess\BackgroundProcess.exe"
- ; M23TRIAL
- SimpleFC::RemoveApplication "$INSTDIR\bgprocess\leecher.exe"
  
  ; Pop $0 ; return error(1)/success(0)
 

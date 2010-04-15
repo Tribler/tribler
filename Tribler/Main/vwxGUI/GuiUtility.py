@@ -20,7 +20,6 @@ from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentSearchGridManager, ChannelSearchGridManager
 from Tribler.Main.Utility.constants import *
-from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.Video.VideoPlayer import VideoPlayer
 from fontSizes import *
@@ -61,11 +60,6 @@ class GUIUtility:
         # port number
         self.port_number = None
 
-        # utf8
-        if sys.platform == 'darwin':
-            self.utf8 = ""
-        else:
-            self.utf8 = "UTF-8"
 
         # search mode
         self.search_mode = 'files' # 'files' or 'channels'
@@ -100,7 +94,6 @@ class GUIUtility:
         self.max_remote_queries = 20    # max number of remote peers to query
         self.remote_search_threshold = 20    # start remote search when results is less than this number
 
-        self.user_download_choice = UserDownloadChoice.get_singleton()
     
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -205,10 +198,10 @@ class GUIUtility:
         self.frame.top_bg.settings.SetForegroundColour((255,51,0))
         self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
 
-        self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+        self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
         self.frame.top_bg.search_results.Show()
 
@@ -232,6 +225,7 @@ class GUIUtility:
         except:
             pass
 
+        ##self.frame.pageTitlePanel.Show()
 
         
     def channelsOverview(self, erase=False):
@@ -247,24 +241,25 @@ class GUIUtility:
 #            self.frame.top_bg.indexMyChannel = -1
 
         self.frame.channelsDetails.Show()
+             
         if self.guiPage == 'search_results':
             self.frame.top_bg.channels.SetForegroundColour((255,51,0))
             self.frame.top_bg.results.SetForegroundColour((0,105,156))
-            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
             self.frame.top_bg.search_results.Show()
         elif self.guiPage == 'channels':
             self.frame.top_bg.channels.SetForegroundColour((0,105,156))
             self.frame.top_bg.results.SetForegroundColour((255,51,0))
-            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
             self.frame.top_bg.search_results.Hide()
 
         self.frame.top_bg.settings.SetForegroundColour((255,51,0))
         self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
 
-        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
 #        self.frame.top_bg.Refresh()
 
@@ -283,12 +278,16 @@ class GUIUtility:
         t1 = time()
 
         self.standardOverview.setMode('channelsMode')
-        
+
 
         t2 = time()
-        if DEBUG: 
-            print >> sys.stderr , "channelsMode" , t2 -t1
+        print >> sys.stderr , "channelsMode" , t2 -t1
 
+        self.standardOverview.data['channelsMode']['grid'].reloadChannels()
+        self.standardOverview.data['channelsMode']['grid2'].reloadChannels()
+
+
+        ##wx.CallAfter(self.frame.channelsDetails.reinitialize)
 
 
     def loadInformation(self, mode, sort, erase = False):
@@ -315,10 +314,10 @@ class GUIUtility:
         self.frame.top_bg.settings.SetForegroundColour((0,105,156))
         self.frame.top_bg.my_files.SetForegroundColour((255,51,0))
 
-        self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+        self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+        self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
 
         self.frame.videoframe.hide_videoframe()
@@ -339,8 +338,6 @@ class GUIUtility:
         self.frame.pagerPanel.Show(b)
         self.frame.BL.Show(b)
         self.frame.BR.Show(b)
-        self.frame.pagerPanel.Refresh()
-        self.frame.standardPager.Refresh()
         
 
     def standardLibraryOverview(self, filters = None, refresh=False):
@@ -355,10 +352,10 @@ class GUIUtility:
             self.frame.top_bg.channels.SetForegroundColour((255,51,0))
             self.frame.top_bg.settings.SetForegroundColour((255,51,0))
             self.frame.top_bg.my_files.SetForegroundColour((0,105,156))
-            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-            self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-            self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
+            self.frame.top_bg.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
+            self.frame.top_bg.my_files.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
 
             self.frame.channelsDetails.Hide()
 
@@ -461,10 +458,13 @@ class GUIUtility:
             return
 
         if self.search_mode == 'files':
+            ##wx.CallAfter(self.frame.pageTitlePanel.pageTitle.SetLabel, 'File search')
             self.searchFiles('filesMode', input)
         else:
+            ##wx.CallAfter(self.frame.pageTitlePanel.pageTitle.SetLabel, 'Channel search')
             self.searchChannels('channelsMode', input)
-     
+
+      
 
 
     def searchFiles(self, mode, input):
@@ -472,15 +472,18 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
 
+        #wantkeywords = [i for i in low.split(' ') if i]
         self.torrentsearch_manager.setSearchKeywords(wantkeywords, mode)
         self.torrentsearch_manager.set_gridmgr(self.standardOverview.getGrid().getGridManager())
         #print "******** gui uti searchFiles", wantkeywords
 
         self.frame.channelsDetails.Hide()
         self.frame.channelsDetails.mychannel = False
+        ##self.frame.pageTitlePanel.Show()
 
         self.standardOverview.setMode('filesMode')
 
+        ##self.frame.pageTitlePanel.pageTitle.SetMinSize((665,20))
         self.frame.standardOverview.SetMinSize((300,490)) # 476
 
         self.showPager(True)
@@ -496,7 +499,8 @@ class GUIUtility:
         self.standardOverview.getGrid().clearAllData()
         gridstate = GridState('filesMode', 'all', 'rameezmetric')
         self.standardOverview.filterChanged(gridstate)
- 
+        #self.standardOverview.getGrid().Refresh()        
+
         #
         # Query the peers we are connected to
         #
@@ -518,6 +522,7 @@ class GUIUtility:
         wantkeywords = split_into_keywords(input)
         if DEBUG:
             print >>sys.stderr,"GUIUtil: searchChannels:", wantkeywords
+        #wantkeywords = [i for i in low.split(' ') if i]
         self.channelsearch_manager.setSearchKeywords(wantkeywords, mode)
 
         ##### GUI specific code
@@ -525,16 +530,6 @@ class GUIUtility:
 
         if self.standardOverview.getMode != 'channelsMode':
             self.standardOverview.setMode('channelsMode')
-
-        self.standardOverview.setSearchFeedback('channels', False, -1, self.channelsearch_manager.searchkeywords[mode])
-
-        grid2 = self.standardOverview.getGrid(2)
-        grid2.Hide()
-        grid = self.standardOverview.getGrid()
-        grid.gridManager.blockedRefresh=True
-
-        grid.gridManager.resizeGrid(grid)
-        grid.gridManager.blockedRefresh=False
 
 
 #        self.frame.top_bg.indexMyChannel=-1
@@ -544,8 +539,9 @@ class GUIUtility:
         if not self.frame.channelsDetails.isEmpty():
             self.frame.channelsDetails.reinitialize()
         self.showPager(False)
-        wx.GetApp().Yield()
+
         self.loadInformation('channelsMode', 'name', erase=True)
+
 
         
         if mode == 'channelsMode':
@@ -641,7 +637,6 @@ class GUIUtility:
         
         if item.get('ds'):
             self.utility.session.remove_download(item['ds'].get_download(),removecontent = True)
-            self.user_download_choice.remove_download_state(item['ds'].get_download().get_def().get_infohash())
             
         self.standardOverview.removeTorrentFromLibrary(item)
                 

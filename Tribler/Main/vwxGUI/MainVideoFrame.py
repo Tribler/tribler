@@ -28,7 +28,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
             size = (800,150)
         else:
             if sys.platform == 'darwin':
-                size = (800,520)
+                size = (320,240)
             else:
                 size = (800,520) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
         wx.Frame.__init__(self, None, -1, title, size=size) 

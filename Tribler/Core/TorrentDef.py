@@ -614,6 +614,21 @@ class TorrentDef(Serializable,Copyable):
         return 'url-compat' in self.input and self.input['url-compat']
         
 
+    def set_metadata(self,value):
+        """ Set the P2P-Next metadata 
+        @param value binary string """
+        
+        self.input['ns-metadata'] = value
+
+    def get_metadata(self):
+        """ Returns the stored P2P-Next metadata or None.
+        @return binary string. """
+        if 'ns-metadata' in self.input:
+            return self.input['ns-metadata']
+        else:
+            return None
+
+
     def finalize(self,userabortflag=None,userprogresscallback=None):
         """ Create BT torrent file by reading the files added with
         add_content() and calculate the torrent file's infohash. 

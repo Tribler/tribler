@@ -189,7 +189,8 @@ if __name__ == "__main__":
 
     haltsource = HaltOnEOFStream(source)
         
-    dscfg.set_video_source(haltsource,authcfg)
+    restartstatefilename = config['name']+'.restart' 
+    dscfg.set_video_source(haltsource,authcfg,restartstatefilename=restartstatefilename)
 
     dscfg.set_max_uploads(config['nuploads'])
 

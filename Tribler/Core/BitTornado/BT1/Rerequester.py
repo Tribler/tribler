@@ -417,10 +417,14 @@ class Rerequester:
             from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
             
             if DialbackMsgHandler.getInstance().isConnectable():
+                if DEBUG_DHT:
+                    print >>sys.stderr,"Rerequester: _dht_rerequest: get_peers AND announce"
                 self.dht.get_peers(info_hash_id, self._dht_got_peers, self.port)
                 return
                 #raul: I added this return so when the peer is NOT connectable
                 # it does a get_peers lookup but it does not announce
+        if DEBUG_DHT:
+            print >>sys.stderr,"Rerequester: _dht_rerequest: JUST get_peers, DO NOT announce"
         self.dht.get_peers(info_hash_id, self._dht_got_peers)
 
 

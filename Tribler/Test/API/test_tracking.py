@@ -27,8 +27,9 @@ class TestTracking(TestAsServer):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
         
-        self.config.set_overlay(False)
+        self.config.set_megacache(False)
         self.config.set_internal_tracker(True)
+        
         
     def test_add_remove_torrent(self):
         tdef = TorrentDef()

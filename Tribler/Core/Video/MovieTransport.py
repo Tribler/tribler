@@ -60,7 +60,7 @@ class MovieTransportStreamWrapper:
         return data
 
     def seek(self,pos,whence=os.SEEK_SET):
-        # TODO: interpret whence
+        # TODO: shift play_pos in PiecePicking + interpret whence
         if DEBUG:
             print >>sys.stderr,"MovieTransportStreamWrapper: seek:",pos,"whence",whence
         self.mt.seek(pos,whence=whence)

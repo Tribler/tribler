@@ -35,9 +35,10 @@ class SimpleThread(Thread):
 class VideoSourceTransporter:
     """ Reads data from an external source and turns it into BitTorrent chunks. """
 
-    def __init__(self, stream, bt1download, authconfig):
+    def __init__(self, stream, bt1download, authconfig,restartstatefilename):
         self.stream = stream
         self.bt1download = bt1download
+        self.restartstatefilename = restartstatefilename
         self.exiting = False
 
         # shortcuts to the parts we use
@@ -55,6 +56,7 @@ class VideoSourceTransporter:
         self.buflen = 0
         self.bufferlock = RLock()
         self.handling_pieces = False
+        self.readlastseqnum = False
 
         # LIVESOURCEAUTH
         if authconfig.get_method() == LIVE_AUTHMETHOD_ECDSA:
@@ -63,7 +65,6 @@ class VideoSourceTransporter:
             self.authenticator = RSAAuthenticator(self.videostatus.piecelen,self.bt1download.len_pieces,keypair=authconfig.get_keypair())
         else:
             self.authenticator = NullAuthenticator(self.videostatus.piecelen,self.bt1download.len_pieces)
-            
 
     def start(self):
         """ Start transporting data. """
@@ -170,11 +171,38 @@ class VideoSourceTransporter:
             # invalidate old piece
             self.del_piece( vs.live_piece_to_invalidate() )
 
+            try:
+                lastseqnum = self.authenticator.get_source_seqnum()
+                f = open(self.restartstatefilename,"wb")
+                f.write(str(lastseqnum))
+                f.close()
+            except:
+                print_exc()
+
             # advance pointer
             vs.inc_playback_pos()
-
+            
             return True
 
+        if not self.readlastseqnum:
+            self.readlastseqnum = True
+            try:
+                f = open(self.restartstatefilename,"rb")
+                data = f.read()
+                f.close()
+                lastseqnum = int(data)
+                
+                print >>sys.stderr,"VideoSource: Restarting stream at abs.piece",lastseqnum
+                
+                # Set playback pos of source and absolute piece nr.
+                lastpiecenum = lastseqnum % self.authenticator.get_npieces()
+                self.authenticator.set_source_seqnum(lastseqnum+1L)
+                
+                self.videostatus.set_live_startpos(lastpiecenum)
+                self.videostatus.inc_playback_pos()
+            except:
+                print_exc()
+            
         self.bufferlock.acquire()
         try:
             while handle_one_piece():

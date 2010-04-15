@@ -153,7 +153,12 @@ def trivial_save_poa(path, perm_id, swarm_id, poa):
     t_id = t_id.replace("/","")
     t_id = t_id.replace("/","")
 
+    # if the path does not exist, try to create it
+    if not os.path.exists(path):
+        os.makedirs(path)
+
     poa_path = os.path.join(path, filename + "." + t_id + ".poa")
+    
     return write_poa_to_file(poa_path, poa)
 
 

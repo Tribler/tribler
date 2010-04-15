@@ -36,8 +36,9 @@ class TestSeeding(TestAsServer):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
         
-        self.config.set_overlay(False)
+        self.config.set_megacache(False)        
         self.config.set_internal_tracker(True)
+        #self.config.set_tracker_nat_check(0)
         
         self.mylistenport = 4810
 
@@ -63,6 +64,10 @@ class TestSeeding(TestAsServer):
         
         d.set_state_callback(self.seeder_state_callback)
         
+        print >>sys.stderr,"test: Giving Download time to startup"
+        time.sleep(5)
+
+
     def seeder_state_callback(self,ds):
         d = ds.get_download()
         print >>sys.stderr,"test: seeder:",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress()
@@ -79,7 +84,7 @@ class TestSeeding(TestAsServer):
             (sub)test where the error occured in the traceback it prints.
         """
         self.setup_seeder(False)
-        #self.subtest_is_seeding()
+        self.subtest_is_seeding()
         self.subtest_download()
 
     def test_merkle_torrent(self):
@@ -89,12 +94,15 @@ class TestSeeding(TestAsServer):
 
     def subtest_is_seeding(self):
         infohash = self.tdef.get_infohash()
-        s = BTConnection('localhost',self.hisport,user_infohash=infohash)
+        print >> sys.stderr,"test: Connect to see if seeding this infohash"
+        myid = '*' * 20
+        s = BTConnection('localhost',self.hisport,myid=myid,user_infohash=infohash)
         s.read_handshake_medium_rare()
         
         s.send(CHOKE)
         try:
             s.s.settimeout(10.0)
+            print >> sys.stderr,"test: Receive to see if seeding this infohash"
             resp = s.recv()
             self.assert_(len(resp) > 0)
             self.assert_(resp[0] == EXTEND)

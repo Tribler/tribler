@@ -78,7 +78,7 @@
       BaseLib/Core/Video/SVCTransporter.py
       BaseLib/Core/Video/SVCVideoStatus.py
       BaseLib/schema_sdb_v4.sql
-      vlc4plugin-1.0.1-r13995-renum.patch (except bindings/python)
+      vlc-1.0.5-swarmplugin-switch-src-feb2010-r14777-renum105.patch (except bindings/python)
       BaseLib/Core/APIImplementation/makeurl.py
       BaseLib/Core/BuddyCast/channelcast.py
       BaseLib/Core/DecentralizedTracking/repex.py

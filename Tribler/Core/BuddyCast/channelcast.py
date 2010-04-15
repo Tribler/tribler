@@ -249,7 +249,7 @@ class ChannelCastCore:
 
 
     def updateMySubscribedChannels(self):
-        subscribed_channels = self.channelcastdb.getMySubscribedChannels(from_channelcast=True)
+        subscribed_channels = self.channelcastdb.getMySubscribedChannels()
         for permid, channel_name, num_subscriptions, notused in subscribed_channels:
             # query the remote peers, based on permid, to update the channel content
             q = "CHANNEL p "+permid

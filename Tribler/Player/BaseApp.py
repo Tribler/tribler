@@ -165,14 +165,14 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         from Tribler.Core.ClosedSwarm import ClosedSwarm,PaymentIntegration
         print >>sys.stderr, "Swarm_id:",encodestring(tdef.infohash).replace("\n","")
         try:
-            poa = ClosedSwarm.trivial_get_poa(self.s.get_default_state_dir(),
+            poa = ClosedSwarm.trivial_get_poa(self.s.get_state_dir(),
                                               self.s.get_permid(),
                                               tdef.infohash)
             
             poa.verify()
             if not poa.torrent_id == tdef.infohash:
                 raise Exception("Bad POA - wrong infohash")
-            print >> sys.stderr,"Loaded poa from ",self.s.get_default_state_dir()
+            print >> sys.stderr,"Loaded poa from ",self.s.get_state_dir()
         except:
             # Try to get it or just let the plugin handle it?
             swarm_id = encodestring(tdef.infohash).replace("\n","")
@@ -188,7 +188,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
                 poa = None
 
         try:
-            ClosedSwarm.trivial_save_poa(self.s.get_default_state_dir(),
+            ClosedSwarm.trivial_save_poa(self.s.get_state_dir(),
                                          self.s.get_permid(),
                                          tdef.infohash,
                                          poa)
@@ -280,6 +280,11 @@ class BaseApp(wx.App,InstanceConnectionHandler):
                 # Alternative is to set VOD callback, etc. at Runtime:
                 print >>sys.stderr,"main: Reusing old duplicate Download",`infohash`
                 newd = d
+                                    
+                # If we have a POA, we add it to the existing download
+                if poa:
+                    d.set_poa(poa)
+
             if d not in self.downloads_in_vodmode:
                 d.stop()
 
@@ -463,7 +468,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         #         print_exc()
 
         # Set systray icon tooltip. This has limited size on Win32!
-        txt = self.appname+' 1.0.3\n\n'
+        txt = self.appname+' 1.0.5\n\n'
         txt += 'DL: %.1f\n' % (totalspeed[DOWNLOAD])
         txt += 'UL:   %.1f\n' % (totalspeed[UPLOAD])
         txt += 'Helping: %d\n' % (totalhelping) 

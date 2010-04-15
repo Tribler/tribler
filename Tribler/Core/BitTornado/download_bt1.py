@@ -500,9 +500,9 @@ class BT1Download:
             if DEBUG:
                 print >>sys.stderr,"BT1Download: startEngine: Acting as VideoSource"
             if self.config['video_ratelimit']:
-                self.videosourcetransporter = RateLimitedVideoSourceTransporter(self.config['video_ratelimit'],self.config['video_source'],self,self.config['video_source_authconfig'])
+                self.videosourcetransporter = RateLimitedVideoSourceTransporter(self.config['video_ratelimit'],self.config['video_source'],self,self.config['video_source_authconfig'],self.config['video_source_restartstatefilename'])
             else:
-                self.videosourcetransporter = VideoSourceTransporter(self.config['video_source'],self,self.config['video_source_authconfig'])
+                self.videosourcetransporter = VideoSourceTransporter(self.config['video_source'],self,self.config['video_source_authconfig'],self.config['video_source_restartstatefilename'])
             self.videosourcetransporter.start()
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Not a VideoSource"

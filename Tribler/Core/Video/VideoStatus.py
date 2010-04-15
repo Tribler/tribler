@@ -41,8 +41,12 @@ class VideoStatus:
         # varies between the limit values depending on network
         # performance, increases and decreases are in the specified step 
         # (min,max,step).
+        # Arno, 2010-03-10: max 50 pieces too little for 32K piece-sized
+        # VOD streams.
+        #
         self.high_prob_curr_pieces = 5
-        self.high_prob_curr_pieces_limit = (5, 50,5)
+        self.high_prob_curr_pieces_limit = (5, 1800,5)
+
 
         # ----- locate selected movie in fileinfo
         index = self.videoinfo['index']
@@ -127,7 +131,8 @@ class VideoStatus:
                 oldrange = self.first_piece,self.last_piece
             else:
                 oldrange = self.live_get_valid_range()
-            print >>sys.stderr,"vodstatus: set_live_pos: old",oldrange
+            if DEBUG:
+                print >>sys.stderr,"vodstatus: set_live_pos: old",oldrange
         self.live_startpos = pos
         self.playback_pos = pos
         for o in self.playback_pos_observers:
@@ -135,7 +140,8 @@ class VideoStatus:
 
         if self.wraparound:
             newrange = self.live_get_valid_range()
-            print >>sys.stderr,"vodstatus: set_live_pos: new",newrange
+            if DEBUG:
+                print >>sys.stderr,"vodstatus: set_live_pos: new",newrange
             return self.get_range_diff(oldrange,newrange)
         else:
             return (Set(),[])
