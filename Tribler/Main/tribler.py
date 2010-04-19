@@ -83,6 +83,9 @@ from Tribler.Video.VideoServer import SimpleServer
 
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
+from Tribler.Core.Status.LivingLabReporter import LivingLabPeriodicReporter
+from Tribler.Core.Status.Status import get_status_holder
+
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
 from time import time, sleep
@@ -1163,6 +1166,14 @@ def run(params = None):
             # Launch first abc single instance
             app = ABCApp(False, params, single_instance_checker, installdir)
             configpath = app.getConfigPath()
+
+            # Setup the statistic reporter while waiting for proper integration
+            status = get_status_holder("LivingLab")
+            id = "Tribler client"
+            reporter = LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
+            # reporter = LivingLabPeriodicReporter("Living lab CS reporter", 30, id) # Report every 30 seconds - ONLY FOR TESTING
+            status.add_reporter(reporter)
+
             app.MainLoop()
     
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
