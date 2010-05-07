@@ -16,7 +16,7 @@ try:
 except:
     sum = lambda a: reduce(lambda x, y: x+y, a, 0)
 
-DEBUG = True
+DEBUG = False
 
 MAX_RATE_PERIOD = 20.0
 MAX_RATE = 10e10
