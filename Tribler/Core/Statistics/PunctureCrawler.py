@@ -34,7 +34,7 @@ class SimpleFileReporter:
     
     def __init__(self):
         self.file = None
-        self.path = os.path.join(Session.get_default_state_dir(), "udppuncture.log")
+        self.path = os.path.join(Session.get_instance().get_state_dir(), "udppuncture.log")
 
     def add_event(self, ignore, msg):
         SimpleFileReporter.lock.acquire()
