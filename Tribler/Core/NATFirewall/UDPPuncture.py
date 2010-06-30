@@ -749,14 +749,14 @@ class UDPConnection:
                     if self.handler.reporter:
                         self.handler.reporter.add_event("UDPPuncture", "IFRQ:%s,%d,%s,%s,%d,%s" % (self.address[0],
                             self.address[1], self.id.encode('hex'), connection.address[0], connection.address[1],
-                            remote[1:5].encode('hex')))
+                            remote.encode('hex')))
                 else:
                     if DEBUG:
                         debug("    Rendez vous requested for peer %s (unknown)" % (
                             remote.encode('hex')))
                     if self.handler.reporter:
                         self.handler.reporter.add_event("UDPPuncture", "IFRQ:%s,%d,%s,Unknown,Unknown,%s" % (self.address[0],
-                            self.address[1], self.id.encode('hex'), remote[1:5].encode('hex')))
+                            self.address[1], self.id.encode('hex'), remote.encode('hex')))
 
                 if connection:
                     #FIXME: should we delay this action by some time to ensure the direct connect arives first?
