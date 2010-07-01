@@ -26,7 +26,7 @@ if __name__ == "__main__":
     options = ["database", "seedingstats", "friendship", "natcheck", "videoplayback", "repex", "puncture", "channel"]
     options.sort()
 
-    # at least on crawler type should be started
+    # at least one crawler type should be started
     if not filter(lambda type_:type_ in args, options):
         print "Usage: python Tribler/Main/crawler.py"
         print "  --statedir STATEDIR                    (optional)"
