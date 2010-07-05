@@ -68,7 +68,7 @@ class CommonRequestPolicy(AbstractRequestPolicy):
     def isCrawler(self, permid):
         """
         @param permid The permid of the sending peer.
-        @return Whether of not the specified permid is a superpeer.
+        @return Whether of not the specified permid is a crawler.
         """
         return permid in self.session.lm.crawler_db.getCrawlers()
 
