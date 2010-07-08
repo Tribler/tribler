@@ -614,7 +614,7 @@ class TriblerLaunchMany(Thread):
             ts = enumerate()
             print >>sys.stderr,"tlm: Number of threads still running",len(ts)
             for t in ts:
-                print >>sys.stderr,"tlm: Thread still running",t.getName(),"daemon",t.isDaemon()
+                print >>sys.stderr,"tlm: Thread still running",t.getName(),"daemon",t.isDaemon(), "instance:", t
         except:
             print_exc()
         

@@ -335,9 +335,10 @@ class LibraryItemPanel(wx.Panel):
             print_exc()    # lock error
         
     def setData(self, torrent):
-        if threading.currentThread().getName() != "MainThread":
-            print >>sys.stderr,"lip: setData called by nonMainThread!",threading.currentThread().getName()
-            print_stack()
+        # Richard should fix this bug. annoying to see it all the time.
+        # if threading.currentThread().getName() != "MainThread":
+        #     print >>sys.stderr,"lip: setData called by nonMainThread!",threading.currentThread().getName()
+        #     print_stack()
 
         if self.data is None:
             oldinfohash = None

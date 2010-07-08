@@ -499,6 +499,8 @@ class PeriodicStatusReporter(StatusReporter):
         # Set up the timer
         self.running = True
         self.timer = threading.Timer(self.frequency, self.on_time_event)
+        self.timer.setName("PeriodicStatusReporter (2)")
+        self.timer.setDaemon(True)
         self.timer.start()
 
     def stop(self, block=False):
