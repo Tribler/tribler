@@ -133,6 +133,8 @@ class OverlayThreadingBridge:
                 print_exc()
                 ret = False
             if ret == False:
+                if DEBUG:
+                    print >>sys.stderr,"olbridge: olbridge_handle_msg_func closing!",show_permid_short(permid),selversion,getMessageName(message[0]),currentThread().getName()
                 self.close(permid)
                 
         self.tqueue.add_task(olbridge_handle_msg_func,0)

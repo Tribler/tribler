@@ -798,14 +798,11 @@ class BuddyCastCore:
                  peer_permid in self.connected_unconnectable_peers):   
                 timeout_list.append(peer_permid)
 
-        if self.amcrawler:
-            # since we are crawling, we are not interested in
-            # retaining connections for a long time.
-            for peer_permid in timeout_list:
-                self.closeConnection(peer_permid, "a crawler does not retain connections for long")
-        else:
-            for peer_permid in timeout_list:
-                self.sendKeepAliveMsg(peer_permid)
+        # 04/08/10 boudewijn: a crawler can no longer disconnect.
+        # Staying connected means that the crawler is returned in
+        # buddycast messages, otherwise not.
+        for peer_permid in timeout_list:
+            self.sendKeepAliveMsg(peer_permid)
                 
     def sendKeepAliveMsg(self, peer_permid):
         """ Send keep alive message to a peer, and extend its expiration """
@@ -837,12 +834,9 @@ class BuddyCastCore:
         if self.isConnected(peer_permid):
             if debug:
                 print >> sys.stderr, "bc: Got keep alive from", self.get_peer_info(peer_permid)
-            if self.amcrawler:
-                # since we are crawling, we are not interested in
-                # retaining connections for a long time.
-                if debug:
-                    print >> sys.stderr, "bc: Got keep alive from", self.get_peer_info(peer_permid), "closing connection because we are a crawler"
-                return False
+            # 04/08/10 boudewijn: a crawler can no longer disconnect.
+            # Staying connected means that the crawler is returned in
+            # buddycast messages, otherwise not.
             return True
         else:
             if DEBUG:
@@ -927,12 +921,22 @@ class BuddyCastCore:
         
     def buddycastConnectCallback(self, exc, dns, target_permid, selversion):
         if exc is None:
+            self.addConnection(target_permid, selversion, True)
+
             ## Create message depending on selected protocol version
             try:
-                if not self.isConnected(target_permid):
-                    if debug:
-                        raise RuntimeError, 'buddycast: not connected while calling connect_callback'
-                    return
+                # 04/08/10 boudewijn: the self.isConnected check fails
+                # in certain threading conditions, namely when the
+                # callback to self.buddycastConnectCallback is made
+                # before the callback to self.handleConnection where
+                # the peer is put in the connection list.  However,
+                # since self.buddycastConnectCallback already
+                # indicates a successfull connection, this check is
+                # not needed.
+                # if not self.isConnected(target_permid):
+                #     if debug:
+                #         raise RuntimeError, 'buddycast: not connected while calling connect_callback'
+                #     return
                 
                 self.print_debug_info('Active', 15, target_permid, selversion)
                         
@@ -1467,9 +1471,16 @@ class BuddyCastCore:
         tbs = buddycast_data.pop('taste buddies')
         rps = buddycast_data.pop('random peers')
         buddycast_data['oversion'] = selversion
+
+        # print >> sys.stderr, "bc: \n" * 10 
+        # print >> sys.stderr, "bc: received", len(tbs), "and", len(rps), "tastebudies and randompeers, respectively"
+        # for peer in tbs:
+        #     print >> sys.stderr, "bc: tastebuddy", peer
+        # for peer in rps:
+        #     print >> sys.stderr, "bc: randompeer", peer
         
         max_tb_sim = 1
-                
+
         # include sender itself
         bc_data = [buddycast_data] + tbs + rps 
         for peer in bc_data:

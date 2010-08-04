@@ -91,6 +91,7 @@ class OverlayApps:
             crawler.register_message_handler(CRAWLER_NATTRAVERSAL, natcheck_handler.gotUdpConnectRequest, natcheck_handler.gotUdpConnectReply)
             videoplayback_crawler = VideoPlaybackCrawler.get_instance()
             crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_EVENT_QUERY, videoplayback_crawler.handle_event_crawler_request, videoplayback_crawler.handle_event_crawler_reply)
+            crawler.register_message_handler(CRAWLER_VIDEOPLAYBACK_INFO_QUERY, videoplayback_crawler.handle_info_crawler_request, videoplayback_crawler.handle_info_crawler_reply)
             repex_crawler = RepexCrawler.get_instance(session)
             crawler.register_message_handler(CRAWLER_REPEX_QUERY, repex_crawler.handle_crawler_request, repex_crawler.handle_crawler_reply)
             puncture_crawler = PunctureCrawler.get_instance()
@@ -253,6 +254,8 @@ class OverlayApps:
         
         # Check auth
         if not self.requestAllowed(permid, message[0]):
+            if DEBUG:
+                print >> sys.stderr, "olapps: Message not allowed", getMessageName(message[0])
             return False
 
         if message[0] in self.msg_handlers:

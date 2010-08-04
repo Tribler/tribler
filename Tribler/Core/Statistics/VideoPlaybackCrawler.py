@@ -85,7 +85,10 @@ class VideoPlaybackCrawler:
             self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), "INFO REQUEST", show_permid(permid), "\n")))
             self._file.flush()
 
-    def handle_info_crawler_reply(self, permid, selversion, channel_id, error, message, request_callback):
+    def handle_info_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
+        pass
+
+    def handle_info_crawler_reply(self, permid, selversion, channel_id, channel_data, error, message, request_callback):
         """
         <<Crawler-side>>
         Received a CRAWLER_VIDEOPLAYBACK_INFO_QUERY reply.
