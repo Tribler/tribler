@@ -147,9 +147,18 @@ class PunctureCrawler:
             else:
                 if DEBUG:
                     print >> sys.stderr, "puncturecrawler: handle_crawler_reply", show_permid_short(permid)
-                
+
+                # 25/05/10 Boudewijn: We found that, for unknown
+                # reasons, the decompressed(message) contains many
+                # gigabytes worth of \0 characters.  For now we filter
+                # them out until Gert Jan can determine the actual
+                # cause.
+                data = zlib.decompress(message)
+                filtered = filter(lambda char: char != "\0", data)
+
                 self._file.write("REPLY %s %.2f\n" % (show_permid(permid), time.time()))
-                self._file.write(zlib.decompress(message))
+                self._file.write("# reply sizes: on-the-wire=%d, decompressed=%d, filtered=%d\n" % (len(message), len(data), len(filtered)))
+                self._file.write(filtered)
                 self._file.flush()
         except:
             if DEBUG:

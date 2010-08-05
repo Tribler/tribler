@@ -466,12 +466,14 @@ class Crawler:
     def handle_connection(self, exc, permid, selversion, locally_initiated):
         """
         Called when overlay received a connection. Note that this
-        method is only registered with OverlayApps when the command
-        line option 'crawl' is used.
+        method is only registered with OverlayApps when running as a
+        crawler (determined by our public key).
         """
         if exc:
             # connection lost
-            if DEBUG: print >>sys.stderr, "crawler: overlay connection lost", show_permid_short(permid), exc
+            if DEBUG:
+                print >>sys.stderr, "crawler: overlay connection lost", show_permid_short(permid), exc
+                print >>sys.stderr, repr(permid)
 
         elif selversion >= OLPROTO_VER_SEVENTH:
             # verify that we do not already have deadlines for this permid
@@ -482,7 +484,9 @@ class Crawler:
                     break
 
             if not already_known:
-                if DEBUG: print >>sys.stderr, "crawler: new overlay connection", show_permid_short(permid)
+                if DEBUG:
+                    print >>sys.stderr, "crawler: new overlay connection", show_permid_short(permid)
+                    print >>sys.stderr, repr(permid)
                 for initiator_callback, frequency, accept_frequency in self._crawl_initiators:
                     self._initiator_deadlines.append([0, frequency, accept_frequency, initiator_callback, permid, selversion, 0])
 
@@ -491,7 +495,9 @@ class Crawler:
                 # Start sending crawler requests
                 self._check_deadlines(False)
         else:
-            if DEBUG: print >>sys.stderr, "crawler: new overlay connection (can not use version %d)" % selversion, show_permid_short(permid)
+            if DEBUG:
+                print >>sys.stderr, "crawler: new overlay connection (can not use version %d)" % selversion, show_permid_short(permid)
+                print >>sys.stderr, repr(permid)
             
     def _check_deadlines(self, resubmit):
         """

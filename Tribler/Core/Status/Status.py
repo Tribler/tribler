@@ -328,10 +328,10 @@ class StatusElement(BaseElement):
         """
         self.lock.acquire()
         try:
-            self.value += value
-            self._updated()
-        except:
-            raise Exception("Can only increment numbers")
+            try:
+                self.value += value
+            except:
+                raise Exception("Can only increment numbers")
         finally:
             self.lock.release()
 
@@ -341,10 +341,10 @@ class StatusElement(BaseElement):
         """
         self.lock.acquire()
         try:
-            self.value -= value
-            self._updated()
-        except:
-            raise Exception("Can only increment numbers")
+            try:
+                self.value -= value
+            except:
+                raise Exception("Can only increment numbers")
         finally:
             self.lock.release()
 
