@@ -86,7 +86,29 @@ class VideoPlaybackCrawler:
             self._file.flush()
 
     def handle_info_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
-        pass
+        """
+        <<Peer-side>>
+        Received a CRAWLER_VIDEOPLAYBACK_INFO_QUERY request.
+        @param permid The Crawler permid
+        @param selversion The overlay protocol version
+        @param channel_id Identifies a CRAWLER_REQUEST/CRAWLER_REPLY pair
+        @param message The message payload
+        @param reply_callback Call this function once to send the reply: reply_callback(payload [, error=123])
+        """
+        if DEBUG:
+            print >> sys.stderr, "videoplaybackcrawler: handle_info_crawler_request", show_permid_short(permid), message
+
+        # execute the sql
+        try:
+            cursor = self._event_db._db.execute_read(message)
+
+        except Exception, e:
+            reply_callback(str(e), error=1)
+        else:
+            if cursor:
+                reply_callback(zlib.compress(cPickle.dumps(list(cursor), 2), 9))
+            else:
+                reply_callback("error", error=2)
 
     def handle_info_crawler_reply(self, permid, selversion, channel_id, channel_data, error, message, request_callback):
         """
@@ -144,7 +166,7 @@ DELETE FROM playback_info WHERE key = '%s';
         """
         if not exc:
             if DEBUG: print >>sys.stderr, "videoplaybackcrawler: request send to", show_permid_short(permid)
-            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), " INFO REQUEST", show_permid(permid), "\n")))
+            self._file.write("; ".join((strftime("%Y/%m/%d %H:%M:%S"), " EVENT REQUEST", show_permid(permid), "\n")))
             self._file.flush()
 
     def handle_event_crawler_reply(self, permid, selversion, channel_id, channel_data, error, message, request_callback):
