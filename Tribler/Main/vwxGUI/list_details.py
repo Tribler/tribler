@@ -391,6 +391,8 @@ class TorrentDetails(wx.Panel):
                 self.guiutility.showChannel(channel[1], channel[0])    
     
     def UpdateStatus(self):
+        if 'torrent_id' not in self.torrent:
+            self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
         swarmInfo = self.guiutility.torrentsearch_manager.torrent_db.getSwarmInfo(self.torrent['torrent_id'])[0]
         self.torrent['num_seeders'] = swarmInfo[1]
         self.torrent['num_leechers'] = swarmInfo[2]
@@ -832,11 +834,12 @@ class SwarmHealth(wx.Panel):
                 
         dc.SetPen(wx.TRANSPARENT_PEN)
         dc.SetBrush(wx.Brush((self.red, self.green, 0), wx.SOLID))
+        
         if self.ratio == 0:
-            width = width - 2
+            colorwidth = width - 2
         else:
-            width = (width - 2) * min(self.ratio,1)
-        dc.DrawRectangle(xpos + 1, 1, width , height-2)
+            colorwidth = (width - 2) * min(self.ratio,1)
+        dc.DrawRectangle(xpos + 1, 1, colorwidth , height-2)
         
         dc.SetPen(wx.WHITE_PEN)
         for i in range(1,10):

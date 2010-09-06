@@ -721,6 +721,9 @@ class ABCApp(wx.App):
     def gui_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
         manager = self.frame.searchlist.GetManager()
         manager.torrentUpdated(objectID)
+        
+        manager = self.frame.selectedchannellist.GetManager()
+        manager.torrentUpdated(objectID)
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

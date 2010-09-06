@@ -878,6 +878,9 @@ class ChannelSearchGridManager:
     def getTorrentsFromMyChannel(self):
         return self.getTorrentsFromPublisherId(bin2str(self.votecastdb.my_permid))
     
+    def getTorrentFromPublisherId(self, publisher_id, infohash):
+        return self.channelcast_db.getTorrentFromPublisherId(publisher_id, infohash)
+    
     def getTorrentsFromPublisherId(self, publisher_id):
         hits = self.channelcast_db.getTorrentsFromPublisherId(publisher_id)
         

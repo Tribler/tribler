@@ -139,6 +139,11 @@ class ChannelManager():
             torrent_details = item.GetExpandedPanel()
             torrent_details.ShowDownloadProgress()
 
+    def torrentUpdated(self, infohash):
+        if self.list.InList(infohash):
+            data = self.channelsearch_manager.getTorrentFromPublisherId(self.list.publisher_id, bin2str(infohash))
+            self.list.RefreshData(infohash, data)
+
 class MyChannelManager():
     def __init__(self, list):
         self.list = list
@@ -769,7 +774,7 @@ class SelectedChannelList(SearchList):
         images = ("tl4.png", "tr4.png", "bl2.png", "br2.png")
         images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0",image) for image in images]
         
-        List.__init__(self, columns, images, LISTCOLOR, [7,7], name = 'SelectedChannelList')
+        List.__init__(self, columns, images, LISTCOLOR, [7,7], True, name = 'SelectedChannelList')
         
     def CreateHeader(self):
         header = ChannelHeader(self, self.images[0], self.images[1], self.background, self.columns)
@@ -812,14 +817,23 @@ class SelectedChannelList(SearchList):
     
     def SetData(self, data):
         #data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], file['num_seeders'], file['num_leechers']], file) for file in data]
-        data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0], file) for file in data]
+        data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
         self.list.SetData(data)
         
         if len(data) == 1:
             self.header.SetSubTitle('Discovered %d torrent'%1)
         else:
             self.header.SetSubTitle('Discovered %d torrents'%len(data))
+    
+    def RefreshData(self, key, data):
+        data = (data['infohash'],[data['name'], data['time_stamp'], data['length'], 0, 0], data)
+        self.list.RefreshData(key, data)
         
+        item = self.list.GetItem(key)
+        panel = item.GetExpandedPanel()
+        if panel:
+            panel.UpdateStatus()
+    
     def OnExpand(self, item):
         panel = SearchList.OnExpand(self, item)
         panel.ShowChannelAd(False)

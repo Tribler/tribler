@@ -3127,7 +3127,36 @@ class ChannelCastDBHandler(BasicDBHandler):
         
         return records
     
-
+    def getTorrentFromPublisherId(self, publisher_id, infohash):
+        value_name = ['torrent_id',
+                      'T.infohash',
+                      'name',
+                       'torrent_file_name',                        
+                       'length', 
+                       'creation_date', 
+                       'num_files',
+                       'thumbnail',                       
+                      'insert_time', 
+                      'secret', 
+                      'relevance',  
+                      'source_id', 
+                      'category_id', 
+                       'status_id',
+                       'num_seeders',
+                      'num_leechers', 
+                      'comment',
+                      'time_stamp'] 
+        
+        where = "T.infohash == C.infohash AND publisher_id=='%s' AND t.infohash=='%s' AND name<>''"% (publisher_id, infohash)
+        
+        result = self._db.getOne('Torrent T, ChannelCast C', value_name, where)
+        value_name[1] = 'infohash'
+        torrent = dict(zip(value_name,result))
+        torrent['infohash'] = str2bin(torrent['infohash'])
+        torrent['category'] = [self.torrent_db.id2category[torrent['category_id']]]
+        torrent['status'] = self.torrent_db.id2status[torrent['status_id']]
+        del result
+        return torrent
 
     def getTorrentsFromPublisherId(self, publisher_id): ##
         value_name = ['torrent_id',
