@@ -718,6 +718,7 @@ class ABCApp(wx.App):
     def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
         if self.ready:
             wx.CallAfter(self.gui_ntfy_torrentupdates,subject,changeType,objectID)
+    
     def gui_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
         manager = self.frame.searchlist.GetManager()
         manager.torrentUpdated(objectID)
@@ -742,6 +743,7 @@ class ABCApp(wx.App):
 
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
+        self.ready = False
 
         # write all persistent data to disk
         self.seedingmanager.write_all_storage()

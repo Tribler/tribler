@@ -272,7 +272,12 @@ class TorrentDetails(wx.Panel):
         self.buttonSizer.AddStretchSpacer()
         
         if not self.noChannel:
+            #prefer local channel result
             channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
+            if channel is None:
+                if 'channel_permid' in self.torrent:
+                    channel = (self.torrent['channel_permid'], self.torrent['channel_name'], self.torrent['subscriptions'], {})
+            
             if channel is not None:
                 if channel[0] == bin2str(self.guiutility.utility.session.get_permid()):
                     label = "This torrent is part of My Channel."
@@ -295,7 +300,6 @@ class TorrentDetails(wx.Panel):
                 if sys.platform != 'linux2':
                     self.channeltext.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
                 self.buttonSizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
-        
         self.buttonPanel.Layout()
     
     def ShowDownloadProgress(self):

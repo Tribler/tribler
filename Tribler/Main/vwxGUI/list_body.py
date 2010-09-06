@@ -470,13 +470,20 @@ class AbstractListBody():
             self.items[key].RefreshData(data)
     
     def SetData(self, data):
+        keys = [item[0] for item in data]
+        
         #clean item cache
-        self.keys = [item[0] for item in data]
-        for key in self.items.keys():
-            if key not in self.keys:
+        removed_items = False
+        for key, item in self.items.iteritems():
+            if key not in keys:
                 self.items[key].Hide()
                 self.items[key].Destroy()
                 del self.items[key]
+                removed_items = True
+        
+        #no change
+        if not removed_items and len(keys) == len(self.items):
+            return
         
         self.vSizer.Clear()
         if len(self.items) == 0 and len(data) > LIST_ITEM_BATCH_SIZE:
