@@ -259,6 +259,9 @@ class Crawler:
     def handle_request(self, permid, selversion, message):
         """
         Received CRAWLER_REQUEST message from OverlayApps
+
+        This callback is only allowed when PERMID is a valid crawler.
+        This is dictated in Core/RequestPolicy.py
         """
         if selversion >= OLPROTO_VER_SEVENTH and len(message) >= 5:
 
