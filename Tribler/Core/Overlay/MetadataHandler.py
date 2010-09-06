@@ -4,6 +4,7 @@ import sys
 import os
 import stat
 import random
+import itertools
 from Tribler.Core.Utilities.Crypto import sha
 from time import time, ctime
 from traceback import print_exc, print_stack
@@ -103,11 +104,15 @@ class MetadataHandler:
         get_stat = os.stat
         ST_MTIME = stat.ST_MTIME
         items = [(get_stat(filename)[ST_MTIME], filename) for filename in items]
-        items.sort()
+        items.sort(reverse=True)
 
         # get last NUM_RECENT and NUM_RANDOM randomly choses items
-        recent_items = items[-num_recent:]
-        random_items = random.sample(items[:-num_recent], num_random)
+        if len(items) >= num_recent:
+            recent_items = items[:num_recent]
+            random_items = random.sample(items[num_recent:], num_random)
+        else:
+            recent_items = items
+            random_items = []
 
         # append the NUM_RECENT to the list
         append = self.recently_collected_torrents.append
