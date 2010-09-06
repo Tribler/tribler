@@ -1784,7 +1784,7 @@ class TorrentDBHandler(BasicDBHandler):
         return torrent_list
 
 
-    def selectTorrentToCollect(self, permid, candidate_list=None):
+    def selectTorrentsToCollect(self, permid, candidate_list=None, similarity_list_size=50, list_size=1):
         """ 
         select a torrent to collect from a given candidate list
         If candidate_list is not present or None, all torrents of 
@@ -1801,7 +1801,7 @@ class TorrentDBHandler(BasicDBHandler):
                      AND torrent_file_name is NULL
                   """
             permid_str = bin2str(permid)
-            results = self._db.fetchall(sql, (50, permid_str))
+            results = self._db.fetchall(sql, (similarity_list_size, permid_str))
         else:
             #print >>sys.stderr,"torrentdb: selectTorrentToCollect: cands",`candidate_list`
             
@@ -1814,14 +1814,14 @@ class TorrentDBHandler(BasicDBHandler):
                      AND infohash in """+s+"""
                      AND torrent_file_name is NULL
                   """
-            results = self._db.fetchall(sql, (50,))
+            results = self._db.fetchall(sql, (similarity_list_size,))
         
-        res = None
         #convert top-x similarities into item recommendations
         infohashes = {}
         for sim, infohash in results:
             infohashes[infohash] = infohashes.get(infohash,0) + sim
         
+        res = []
         keys = infohashes.keys()
         if len(keys) > 0:
             keys.sort(lambda a,b: cmp(infohashes[b], infohashes[a]))
@@ -1833,12 +1833,12 @@ class TorrentDBHandler(BasicDBHandler):
                     candidate_list.append(str2bin(infohash))
 
             #if only 1 candidate use that as result
-            if len(candidate_list) == 1:
-                res = keys[0]
+            if len(candidate_list) <= list_size:
+                res = filter(lambda x: not x is None, keys[:list_size])
                 candidate_list = None
-                        
+
         #No torrent found with relevance, fallback to most downloaded torrent
-        if res is None:
+        if len(res) < list_size:
             if candidate_list is None or len(candidate_list) == 0:
                 sql = """SELECT infohash FROM Torrent, Peer, Preference
                          WHERE Peer.permid == ?  
@@ -1847,9 +1847,9 @@ class TorrentDBHandler(BasicDBHandler):
                          AND torrent_file_name is NULL
                          GROUP BY Preference.torrent_id
                          ORDER BY Count(Preference.torrent_id) DESC
-                         LIMIT 1"""
+                         LIMIT ?"""
                 permid_str = bin2str(permid)
-                res = self._db.fetchone(sql, (permid_str,))
+                res.extend([infohash for infohash, in self._db.fetchall(sql, (permid_str, list_size - len(res)))])
             else:
                 cand_str = [bin2str(infohash) for infohash in candidate_list]
                 s = repr(cand_str).replace('[','(').replace(']',')')
@@ -1859,12 +1859,11 @@ class TorrentDBHandler(BasicDBHandler):
                          AND infohash IN """ + s + """
                          GROUP BY Preference.torrent_id
                          ORDER BY Count(Preference.torrent_id) DESC
-                         LIMIT 1"""
-                res = self._db.fetchone(sql)
-        
-        if res is None:
-            return None
-        return str2bin(res)
+                         LIMIT ?"""
+                res.extend([infohash for infohash, in self._db.fetchall(sql, (list_size - len(res),))])
+
+        print >> sys.stderr, res
+        return [str2bin(infohash) for infohash in res if not infohash is None]
         
     def selectTorrentToCheck(self, policy='random', infohash=None, return_value=None):    # for tracker checking
         """ select a torrent to update tracker info (number of seeders and leechers)

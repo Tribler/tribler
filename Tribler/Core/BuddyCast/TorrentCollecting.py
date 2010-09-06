@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 DEBUG = False
-    
+
 class SimpleTorrentCollecting:
     """
         Simplest torrent collecting policy: randomly collect a torrent when received
@@ -17,10 +17,8 @@ class SimpleTorrentCollecting:
         self.cache_pool = {}
         
         
-    def trigger(self, permid, selversion, collect_candidate=None):
-        infohash = self.torrent_db.selectTorrentToCollect(permid, collect_candidate)
-        #print >> sys.stderr, '*****-----------***** trigger torrent collecting', `infohash`
-        if infohash and self.metadata_handler:
-            self.metadata_handler.send_metadata_request(permid, infohash, selversion)
-
-
+    def trigger(self, permid, selversion, collect_candidate=[]):
+        assert isinstance(collect_candidate, list)
+        if self.metadata_handler:
+            for infohash in self.torrent_db.selectTorrentsToCollect(permid, collect_candidate, 50, 50):
+                self.metadata_handler.send_metadata_request(permid, infohash, selversion)

@@ -2,6 +2,8 @@
 # see LICENSE.txt for license information
 import sys
 import os
+import stat
+import random
 from Tribler.Core.Utilities.Crypto import sha
 from time import time, ctime
 from traceback import print_exc, print_stack
@@ -71,12 +73,53 @@ class MetadataHandler:
         self.upload_rate = 1024 * int(self.config['torrent_collecting_rate'])   # 5KB/s
         self.num_collected_torrents = 0
         self.recently_collected_torrents = [] # list of infohashes
+        self.load_recently_collected_torrents(10, 40)
         self.upload_queue = []
         self.requested_torrents = Set()
         self.next_upload_time = 0
         self.initialized = True
         self.rquerytorrenthandler = None
         self.delayed_check_overflow(5)
+
+    def load_recently_collected_torrents(self, num_recent, num_random):
+        """
+        The self.recently_collected_torrents is used to inform other
+        peers of existing torrent files.  This list should also
+        contain torrent files that have been collected in the past
+        (not just this running session).
+
+        Hence, this function loads torrent files from the database.
+
+        NUM_RECENT is the number of recent torrent files, and
+        NUM_RANDOM is the number or random torrent files that will end
+        up in the self.recently_collected_torrents list.
+        """
+        # collect all torrents on disk
+        torrent_dir = self.torrent_db.getTorrentDir()
+        join = os.path.join
+        items = [join(torrent_dir, filename) for filename in os.listdir(torrent_dir)]
+
+        # sort all torrents by creation/modification time
+        get_stat = os.stat
+        ST_MTIME = stat.ST_MTIME
+        items = [(get_stat(filename)[ST_MTIME], filename) for filename in items]
+        items.sort()
+
+        # get last NUM_RECENT and NUM_RANDOM randomly choses items
+        recent_items = items[-num_recent:]
+        random_items = random.sample(items[:-num_recent], num_random)
+
+        # append the NUM_RECENT to the list
+        append = self.recently_collected_torrents.append
+        load = TorrentDef.load
+        for _, filename in recent_items:
+            torrent_def = load(filename)
+            append(torrent_def.get_infohash())
+
+        # append the NUM_RANDOM to the list
+        for _, filename in random_items:
+            torrent_def = load(filename)
+            append(torrent_def.get_infohash())
 
     def register2(self,rquerytorrenthandler):
         self.rquerytorrenthandler = rquerytorrenthandler
