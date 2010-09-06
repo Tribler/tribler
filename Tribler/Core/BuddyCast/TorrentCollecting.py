@@ -20,5 +20,5 @@ class SimpleTorrentCollecting:
     def trigger(self, permid, selversion, collect_candidate=[]):
         assert isinstance(collect_candidate, list)
         if self.metadata_handler:
-            for infohash in self.torrent_db.selectTorrentsToCollect(permid, collect_candidate, 50, 50):
+            for infohash in self.torrent_db.selectTorrentsToCollect(permid, collect_candidate, 50, 10):
                 self.metadata_handler.send_metadata_request(permid, infohash, selversion)
