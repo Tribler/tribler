@@ -9,7 +9,7 @@
 import sys
 
 from threading import Thread,Condition
-from traceback import print_exc,print_stack
+from traceback import print_exc,print_stack,format_stack
 from time import time
 
 DEBUG = False
@@ -26,6 +26,9 @@ class TimedTaskQueue:
         self.thread.setDaemon(isDaemon)
         self.thread.setName( nameprefix+self.thread.getName() )
         self.thread.start()
+
+        if __debug__:
+            self.callstack = {} # callstack by self.count
         
     def add_task(self,task,t=0,id=None):
         """ t parameter is now usable, unlike before. 
@@ -35,11 +38,14 @@ class TimedTaskQueue:
         
         if task is None:
             print_stack()
-        
+
         self.cond.acquire()
         when = time()+t
         if DEBUG:
             print >>sys.stderr,"ttqueue: ADD EVENT",t,task
+
+        if __debug__:
+            self.callstack[self.count] = format_stack()
             
         if id != None:  # remove all redundant tasks
             self.queue = filter(lambda item:item[2]!=id, self.queue)
@@ -82,6 +88,9 @@ class TimedTaskQueue:
                     if DEBUG:
                         print >>sys.stderr,"ttqueue: EVENT DUE"
                     self.queue.pop(0)
+                    if __debug__:
+                        assert count in self.callstack
+                        stack = self.callstack.pop(count)
                     break
             self.cond.release()
             
@@ -101,5 +110,9 @@ class TimedTaskQueue:
                     task()        
             except:
                 print_exc()
-        
-        
+                if __debug__:
+                    print >> sys.stderr, "<<<<<<<<<<<<<<<<"
+                    print >> sys.stderr, "TASK QUEUED FROM"
+                    print >> sys.stderr, "".join(stack)
+                    print >> sys.stderr, ">>>>>>>>>>>>>>>>"
+
