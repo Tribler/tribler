@@ -89,7 +89,7 @@ class MyInfoWizard(Wizard):
 
         scfg.save(cfgfilename)
 
-        self.parent.WizardFinished(self)
+        self.parent.WizardFinished(self, name, icondata, iconmime, scfg, cfgfilename)
 
     def getFirstPage(self):
         return self.page1

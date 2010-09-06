@@ -169,8 +169,9 @@ class Utility:
             'g2g_hours': 0,
             'g2g_mins': 30,
             'family_filter': 1,
-            'window_x': 0,
-            'window_y': 0,
+            'window_x': "",
+            'window_y': "",
+            'popup_player': 0,
         }
 
         if sys.platform == 'win32':

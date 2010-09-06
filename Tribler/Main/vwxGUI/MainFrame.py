@@ -79,17 +79,42 @@ class FileDropTarget(wx.FileDropTarget):
       
     def OnDropFiles(self, x, y, filenames):
         for filename in filenames:
-            self.frame.startDownload(filename)
+            try:
+                self.FixTorrent(filename)
+                self.frame.startDownload(filename)
+            except IOError:
+                dlg = wx.MessageDialog(None,
+                           self.frame.utility.lang.get("filenotfound"),
+                           self.frame.utility.lang.get("tribler_warning"),
+                           wx.OK|wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
         return True
 
-
+    def FixTorrent(self, filename):
+        f = open(filename,"rb")
+        bdata = f.read()
+        f.close()
+        
+        #Check if correct bdata
+        try:
+            bdecode(bdata)
+        except ValueError:
+            #Try reading using sloppy
+            try:
+                bdata = bencode(bdecode(bdata, 1))
+                #Overwrite with non-sloppy torrent
+                f = open(filename,"wb")
+                f.write(bdata)
+                f.close()
+            except:
+                pass
 
 # Custom class loaded by XRC
 class MainFrame(wx.Frame):
     def __init__(self, *args):
-        self.firewallStatus = None
         self.utility = None
-
+        
         if len(args) == 0:
             pre = wx.PreFrame()
             # the Create step is done by XRC.
@@ -151,13 +176,6 @@ class MainFrame(wx.Frame):
         self.oldframe = None
         self.window = self.GetChildren()[0]
         self.window.utility = self.utility
-        self.buddyFrame = None
-        self.fileFrame = None
-        self.buddyFrame_page = 0
-        self.buddyFrame_size = (800, 500)
-        self.buddyFrame_pos = None
-        self.fileFrame_size = (800, 500)
-        self.fileFrame_pos = None
         
         # Menu Events 
         ############################
@@ -172,28 +190,34 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_QUERY_END_SESSION, self.OnCloseWindow)
         self.Bind(wx.EVT_END_SESSION, self.OnCloseWindow)
         
+        
+        findId = wx.NewId()
+        quitId = wx.NewId()
+        
+        self.Bind(wx.EVT_MENU, self.OnFind, id = findId)
+        self.Bind(wx.EVT_MENU, lambda event: self.Close(), id = quitId)
+        if sys.platform == 'linux2':
+            self.SetAcceleratorTable(wx.AcceleratorTable([(wx.ACCEL_CTRL, ord('q'), quitId)]))
+            self.SetAcceleratorTable(wx.AcceleratorTable([(wx.ACCEL_CTRL, ord('/'), findId)]))
+            self.SetAcceleratorTable(wx.AcceleratorTable([(wx.ACCEL_CTRL, ord('f'), findId)]))
+        else:
+            self.SetAcceleratorTable(wx.AcceleratorTable([(wx.ACCEL_CTRL, ord('f'), findId)]))
+            
         try:
             self.tbicon = ABCTaskBarIcon(self)
         except:
             print_exc()
         self.Bind(wx.EVT_ICONIZE, self.onIconify)
-        self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
+        #self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
         self.Bind(wx.EVT_SIZE, self.onSize)
         self.Bind(wx.EVT_MAXIMIZE, self.onSize)
         #self.Bind(wx.EVT_IDLE, self.onIdle)
 
-
-        # transparency
-        # self.SetTransparent(240)
-
-
         # Init video player
-        self.videoFrame = None
         sys.stdout.write('GUI Complete.\n')
 
         ##self.standardOverview.Show(True)
         self.Show(True)
-        
         
         # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb
 #        bartercastdb = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
@@ -252,14 +276,14 @@ class MainFrame(wx.Frame):
                     dlg = wx.MessageDialog(None,
                                self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
                                self.utility.lang.get("invalid_torrent_no_playable_files_title"),
-                               wx.OK|wx.ICON_INFORMATION)
+                               wx.OK|wx.ICON_ERROR)
                     dlg.ShowModal()
                     dlg.Destroy()
             else:
                 print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                 result = self.utility.session.start_download(tdef,dscfg)
+            
             if result:
-                # ARNO50: Richard will look at this   
                 self.show_saved()
             
             # store result because we want to store clicklog data
@@ -275,7 +299,7 @@ class MainFrame(wx.Frame):
             dlg = wx.MessageDialog(None,
                                    self.utility.lang.get('duplicate_download_msg'),
                                    self.utility.lang.get('duplicate_download_title'),
-                                   wx.OK|wx.ICON_INFORMATION)
+                                   wx.OK|wx.ICON_ERROR)
             result = dlg.ShowModal()
             dlg.Destroy()
             
@@ -294,16 +318,8 @@ class MainFrame(wx.Frame):
 
 
     def show_saved(self):
-
-        self.guiUtility.frame.top_bg.newFile.Show(True)
-        self.guiUtility.frame.top_bg.Layout()
-        self.guiserver.add_task(lambda:wx.CallAfter(self.hide_saved), 5.0)
-
-
-    def hide_saved(self):
-        self.guiUtility.frame.top_bg.newFile.Show(False)
-
-        
+        self.guiUtility.frame.top_bg.Notify("Download started", wx.ART_INFORMATION)
+       
     def checkVersion(self):
         guiserver = GUITaskQueue.getInstance()
         guiserver.add_task(self._checkVersion, 5.0)
@@ -341,7 +357,7 @@ class MainFrame(wx.Frame):
 
                 # Boudewijn: start some background downloads to
                 # upgrade on this seperate thread
-                self._upgradeVersion(my_version, self.curr_version, info)
+                ##self._upgradeVersion(my_version, self.curr_version, info)
             
             # Also check new version of web2definitions for youtube etc. search
             ##Web2Updater(self.utility).checkUpdate()
@@ -502,6 +518,9 @@ class MainFrame(wx.Frame):
         if event is not None:
             event.Skip()
         #self.window.getSelectedList(event).SetFocus()
+    
+    def OnFind(self, event):
+        self.guiUtility.frame.top_bg.SearchFocus()
         
     def setGUIupdate(self, update):
         oldval = self.GUIupdate
@@ -591,11 +610,11 @@ class MainFrame(wx.Frame):
         try:
             size = wx.Size(int(width), int(height))
         except:
-            size = wx.Size(710, 400)
+            size = wx.Size(1024, 670)
 
         x = self.utility.config.Read("window_x")
         y = self.utility.config.Read("window_y")
-        if (x == "" or y == ""):
+        if (x == "" or y == "" or x == 0 or y == 0):
             #position = wx.DefaultPosition
 
             # On Mac, the default position will be underneath the menu bar, so lookup (top,left) of
@@ -684,14 +703,10 @@ class MainFrame(wx.Frame):
             print_exc()
 
         try:
-            if self.buddyFrame is not None:
-                self.buddyFrame.Destroy()
-            if self.fileFrame is not None:
-                self.fileFrame.Destroy()
-            if self.videoFrame is not None:
-                self.videoFrame.Destroy()
+            if self.videoframe is not None:
+                self.videoframe.Destroy()
         except:
-            pass
+            print_exc()
         
         try:
             if self.tbicon is not None:
@@ -714,8 +729,7 @@ class MainFrame(wx.Frame):
             # a CommandEvent instead of EVT_CLOSE, wx.EVT_QUERY_END_SESSION or
             # wx.EVT_END_SESSION
             self.quit()
-
-
+        
     def onWarning(self,exc):
         msg = self.utility.lang.get('tribler_startup_nonfatalerror')
         msg += str(exc.__class__)+':'+str(exc)
@@ -810,8 +824,8 @@ class MainFrame(wx.Frame):
 
     def set_player_status(self,s):
         """ Called by VideoServer when using an external player """
-        if self.videoFrame is not None:
-            self.videoFrame.set_player_status(s)
+        if self.videoframe is not None:
+            self.videoframe.set_player_status(s)
 
     def set_wxapp(self,wxapp):
         self.wxapp = wxapp

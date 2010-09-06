@@ -1036,9 +1036,9 @@ warningopenfile = "Torrent is not completed yet, are you sure you want to open i
 upgradeabc = "Your software is outdated. Would you like to visit http://tribler.org to upgrade?"
 upgradeabctitle = "Update to Tribler "
 mainpage = "Tribler Main Page"
-sharing_reputation_information_title = "Sharing reputation information"
-sharing_reputation_information_message = "This progress bar shows your sharing reputation. You will have faster video playback by sharing more. Leaving Tribler running will improve your sharing reputation."
-sharing_reputation_poor = "Your current sharing reputation is low! This could affect your download speed. Please leave Tribler running to improve this."
+sharing_reputation_information_title = "Sharing Reputation"
+sharing_reputation_information_message = "<p><u>Sharing Reputation</u> indicates your involvement in the Peer 2 Peer community. It is derived from your upload divided by your download. <br />You should aim to get a <i>good</i> sharing reputation, because this will help the community aswell as improve your download speed.</p>"
+sharing_reputation_poor = "Your current sharing reputation is poor! This could affect your download speed. Please leave Tribler running to improve this."
 
 #############
 #Make Torrent
@@ -1346,7 +1346,7 @@ rssurldefaulttxt = "Paste your RSS link here"
 
 vlc_linux_start_bug_title = "No flash video streaming on Ubuntu Linux with VLC"
 vlc_linux_start_bug = "The current Ubuntu version of the VLC video player cannot stream Youtube.com movies. So be warned, they will not start playing until they have been completely downloaded. We have submitted a patch to Ubuntu."
-going_search = "        Results: %d"
+going_search = "Results: %d"
 #going_search = "Searching for '%s'... (%d results)"
 finished_search = "Finished search '%s'. (%d results)"
 search_web2 = "Web movies (%d results)"

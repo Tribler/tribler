@@ -30,6 +30,13 @@ class VideoBaseFrame:
 
     def get_window(self):
         pass
+    
+    def ShowLoading(self):
+        pass
+    def Stop(self):
+        pass
+    def Destroy(self):
+        pass
 
 
 # See Tribler/Main/vwxGUI/MainVideoFrame.py for Tribler 5.0

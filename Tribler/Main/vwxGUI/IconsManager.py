@@ -23,25 +23,11 @@ class IconsManager:
         self.guiUtility = GUIUtility.getInstance()
         self.guiImagePath = os.path.join(self.guiUtility.utility.getPath(), 'Tribler', 'Main', 'vwxGUI', 'images')
         self.defaults = {}
-        self.defaults['filesMode'] = {}        
         self.defaults['personsMode'] = {}
         self.defaults['personsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(self.guiImagePath, 'defaultThumbPeer.png'))
-
-    
-        self.DOWNLOAD_BUTTON_DOWNLOAD = wx.Bitmap(os.path.join(self.guiImagePath, 'download.png'))
-        self.DOWNLOAD_BUTTON_DOWNLOAD_S = wx.Bitmap(os.path.join(self.guiImagePath, 'download_clicked.png'))
-            
-        self.categoryThumbs = {}
-
-        # Added from mugshot manager to show items in left menu
-        #######################################################
-
         
         self.peer_db = self.guiUtility.utility.session.open_dbhandler(NTFY_PEERS)
-        
         IconsManager.__single = self
-        
-        
         
     def getInstance(*args, **kw):
         """ Returns the IconsManager singleton if it exists or otherwise

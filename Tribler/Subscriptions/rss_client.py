@@ -295,7 +295,10 @@ class TorrentFeedThread(Thread):
 
                         bdata = urlopenobj.read()
                         urlopenobj.close()
-                        torrent_data = bdecode(bdata)
+                        
+                        #Sloppy torrent import
+                        torrent_data = bdecode(bdata, 1)
+                        bdata = bencode(torrent_data)
                         
                         #tdef = TorrentDef.load_from_dict(torrent_data)
                         
@@ -416,7 +419,7 @@ class TorrentFeedReader:
         # the following filter is applied on the xml data because other characters crash the parser
         self.filter_xml_expression = re.compile("(&\w+;)|([^\w\d\s~`!@#$%^&*()-_=+{}[\]\\|:;\"'<,>.?/])", re.IGNORECASE)
 
-        self.torrent_types = ['application/x-bittorrent','application/x-download']
+        self.torrent_types = ['application/x-bittorrent','application/x-download', 'application/octet-stream']
 
     def isTorrentType(self,type):
         return type in self.torrent_types
@@ -480,7 +483,7 @@ class TorrentFeedReader:
                 child = child.nextSibling
 
             if title and links:
-                entries.extend([(title, link) for link in links])
+                entries.extend([(title, link) for link in links if not self.urls_already_seen.contains(link)])
 
         if DEBUG:
             print >>sys.stderr,"subscrip: Parse of RSS returned",len(entries),"previously unseen torrents"

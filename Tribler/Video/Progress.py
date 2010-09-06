@@ -120,8 +120,7 @@ class ProgressBar(wx.Control):
         self.pens    = [wx.Pen(c,0) for c in self.colours]
         self.brushes = [wx.Brush(c) for c in self.colours]
         self.reset()
-
-        style = wx.NO_BORDER
+        style = wx.SIMPLE_BORDER
         wx.Control.__init__(self, parent, -1, style=style)
         self.SetMaxSize((-1,6))
         self.SetMinSize((1,6))
@@ -199,6 +198,7 @@ class ProgressBar(wx.Control):
 class ProgressSlider(wx.Panel):
     
     def __init__(self, parent, utility, colours = ["#ffffff","#CBCBCB","#ff3300"], imgprefix= '', *args, **kwargs ):
+        
         self.colours = colours
         #self.backgroundImage = wx.Image('')
         self.progress      = 0.0
@@ -208,6 +208,7 @@ class ProgressSlider(wx.Panel):
         self.videoLength   = None
         #wx.Control.__init__(self, parent, -1)
         wx.Panel.__init__(self, parent, -1)
+        
         self.SetMaxSize((-1,25))
         self.SetMinSize((1,25))
         self.SetBackgroundColour(wx.WHITE)
@@ -369,12 +370,6 @@ class ProgressSlider(wx.Panel):
             dc.DrawBitmap(self.bgImage, i*bgSize[0],0)
         
         
-        self.sliderWidth = width-(3*self.margin+self.textWidth)
-        position = self.sliderWidth * self.progress
-        self.sliderPosition = position+self.margin, height/2
-        self.bufferlength = (self.videobuffer-self.progress) * self.sliderWidth
-        self.bufferlength = min(self.bufferlength, self.sliderWidth-position)
-        
         # Time strings
         if self.videoLength is not None:
             durationString = self.formatTime(self.videoLength)
@@ -384,8 +379,21 @@ class ProgressSlider(wx.Panel):
             timePositionString = self.formatTime(self.timeposition)
         else:
             timePositionString = '--:--'
+            
+        time = '%s / %s' % (timePositionString, durationString)
         
-        if width > 3*self.margin+self.textWidth:
+        font = self.GetFont()
+        font.SetPointSize(8)
+        dc.SetFont(font)
+        timeWidth = max(dc.GetTextExtent(time)[0], self.textWidth)
+        
+        self.sliderWidth = width-(3*self.margin+timeWidth)
+        position = self.sliderWidth * self.progress
+        self.sliderPosition = position+self.margin, height/2
+        self.bufferlength = (self.videobuffer-self.progress) * self.sliderWidth
+        self.bufferlength = min(self.bufferlength, self.sliderWidth-position)
+        
+        if width > 3*self.margin+timeWidth:
             # Draw slider rect
             dc.SetPen(wx.Pen(self.rectBorderColour, 2))
             dc.DrawRectangle(self.margin,height/2-self.rectHeight/2, self.sliderWidth, self.rectHeight)
@@ -403,12 +411,9 @@ class ProgressSlider(wx.Panel):
                 dc.DrawBitmap(self.dotImage_dis, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2, True)
             else:
                 dc.DrawBitmap(self.dotImage, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2, True)
-        if width > 2*self.margin+self.textWidth:
+        if width > 2*self.margin+timeWidth:
             # Draw times
-            font = self.GetFont()
-            font.SetPointSize(8)
-            dc.SetFont(font)
-            dc.DrawText('%s / %s' % (timePositionString, durationString), width-self.margin-self.textWidth, height/2-dc.GetCharHeight()/2)
+            dc.DrawText(time, width-self.margin-timeWidth, height/2-dc.GetCharHeight()/2)
 
         dc.EndDrawing()
 

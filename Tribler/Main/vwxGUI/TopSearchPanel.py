@@ -10,34 +10,27 @@
 # display the panel twice.
 #
 
-import sys
-import wx
-import os
-import math
-import time
+from GuiUtility import GUIUtility
+from Tribler.Main.Utility.utility import Utility
+from Tribler.__init__ import LIBRARYNAME
+from bgPanel import bgPanel
+from tribler_topButton import *
+from fontSizes import *
 from traceback import print_exc
+from wx.lib.buttons import GenBitmapButton as BitmapButton
+
+import math
+import os
+import sys
+import time
+import wx
+import wx.xrc as xrc
 
 # begin wx.Glade: extracode
 # end wx.Glade
 
-from bgPanel import bgPanel
-from tribler_topButton import *
-from GuiUtility import GUIUtility
-from Tribler.Main.Utility.utility import Utility
-from Tribler.__init__ import LIBRARYNAME
-from MyText import MyText
-from fontSizes import *
 
-
-from Tribler.Main.vwxGUI.GridState import GridState
-
-
-
-wx.SystemOptions_SetOption("msw.remap","1")
-
-
-
-
+wx.SystemOptions_SetOption("msw.remap", "1")
 
 DEBUG = False
 
@@ -45,286 +38,80 @@ class TopSearchPanel(bgPanel):
     def __init__(self, *args, **kwds):
         if DEBUG:
             print >> sys.stderr , "TopSearchPanel: __init__"
-        bgPanel.__init__(self,*args,**kwds)
+        bgPanel.__init__(self, *args, **kwds)
         self.init_ready = False
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility 
         self.installdir = self.utility.getPath()
-        self.frame = None
-        self.first = True
-        self.rep = 0
-        self.count=0
-        if sys.platform == 'win32':
-            self.spaceLink = 5
-        else:
-            self.spaceLink = 0
-        self.arrow_sel = False
-        self.search_mode = 'files' # 'files' or 'channels'
-        self.reloadGrid = False
-#        self.indexMyChannel = -1       
-        self.indexSubscribedChannels = -1       
-        self.needs_refresh = False
-     
-        self.lastChannelPage = None
-
-        if sys.platform == 'darwin':
-            self.utf8=""
-        else:
-            self.utf8="UTF-8"
-
-        self.agfids=None
-
-     
-    def set_frame(self,frame):
-        self.frame = frame
-
-    def custom_init(self):
-        # animated gif for search results
-        if sys.platform != 'darwin':
-            if sys.platform == 'win32':
-                ag_fname = os.path.join(self.utility.getPath(),LIBRARYNAME,'Main','vwxGUI','images','5.0','search_new_windows.gif')
-            else:
-                ag_fname = os.path.join(self.utility.getPath(),LIBRARYNAME,'Main','vwxGUI','images','5.0','search_new.gif')
-            self.ag = wx.animate.GIFAnimationCtrl(self.go.GetParent(), -1, ag_fname)
-            vsizer = wx.BoxSizer(wx.VERTICAL)
-            vsizer.AddSpacer(wx.Size(0,5))
-            vsizer.Add(self.ag,0, 0, 0)
-            hsizer = self.go.GetContainingSizer()
-            hsizer.Add(vsizer,0,0,0)
-            hsizer.Layout() 
-
-        hide_names = [self.ag,self.newFile,self.newChannel, self.seperator,self.file_sel,self.channel_sel]
-        for name in hide_names:
-            name.Hide()
-
-
-        # family filter
-        #print >> sys.stderr , "FF" , self.utility.config.Read('family_filter', "boolean")
-        if self.utility.config.Read('family_filter', "boolean"):
-            self.familyfilter.SetLabel('Family Filter:ON')
-        else:
-            self.familyfilter.SetLabel('Family Filter:OFF')
-
-
-
-        # binding events  
-        self.searchField.Bind(wx.EVT_KEY_DOWN, self.OnSearchKeyDown)
-        self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
-        self.help.Bind(wx.EVT_LEFT_UP, self.helpClick)
-        self.familyfilter.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
-        self.arrow.Bind(wx.EVT_LEFT_UP, self.OnArrow)
-        self.file_sel.Bind(wx.EVT_MOUSE_EVENTS, self.OnFileSel)
-        self.channel_sel.Bind(wx.EVT_MOUSE_EVENTS, self.OnChannelSel)
-
-
-        if sys.platform == 'linux2' or sys.platform == 'darwin': # mouse over implementation on linux and mac
-            self.results.Bind(wx.EVT_MOUSE_EVENTS, self.OnResults)
-            self.settings.Bind(wx.EVT_MOUSE_EVENTS, self.OnSettings)
-            self.my_files.Bind(wx.EVT_MOUSE_EVENTS, self.OnLibrary)
-            self.channels.Bind(wx.EVT_MOUSE_EVENTS, self.OnChannels)
-            self.Bind(wx.EVT_MOUSE_EVENTS, self.OnTopPanel)
-            self.sr_msg.Bind(wx.EVT_LEFT_UP, self.sr_msgClick)
-        else:
-            self.channels.Bind(wx.EVT_LEFT_UP, self.viewChannels)
-            self.results.Bind(wx.EVT_LEFT_UP, self.viewResults)
-            self.settings.Bind(wx.EVT_LEFT_UP, self.viewSettings)
-            self.my_files.Bind(wx.EVT_LEFT_UP, self.viewLibrary)
-            self.sharing_reputation.Bind(wx.EVT_LEFT_UP, self.sr_msgClick)
-            
-            
-
-    def OnArrow(self, event):
-            wx.CallAfter(self.file_sel.GetContainingSizer().Layout)
-            if self.arrow_sel:
-                self.file_sel.Hide()
-                self.channel_sel.Hide()
-            else:
-                self.file_sel.Show()
-                self.channel_sel.Show()
-                if self.search_mode == 'files':
-                    self.file_sel.SetForegroundColour((0, 105, 156))
-                    self.channel_sel.SetForegroundColour((255, 51, 0))
-                else: # channels
-                    self.file_sel.SetForegroundColour((255, 51, 0))
-                    self.channel_sel.SetForegroundColour((0, 105, 156))
-
-            self.arrow_sel = not self.arrow_sel
-
-#    def OnArrow(self, event):
-#            wx.CallAfter(self.file_sel.GetContainingSizer().Layout)
-#            if self.arrow_sel:
-#                self.file_sel.Hide()
-#                self.channel_sel.Hide()
-#            else:
-#                self.file_sel.Show()
-#                self.channel_sel.Show()
-#                if self.search_mode == 'files':
-#                    self.file_sel.setToggled(True)
-#                    self.channel_sel.setToggled(False)
-#                else: # channels
-#                    self.file_sel.setToggled(False)
-#                    self.channel_sel.setToggled(True)
-
-#            self.arrow_sel = not self.arrow_sel
-
-
-
-    def Fade(self, item, intervals, step, wait, colour, mode):
-        #colour = wx.Colour(colour)
-        if mode == 'foreground':
-            for i in range(intervals):
-                colour = wx.Colour(colour.Red() + step, colour.Green() + step, colour.Blue() + step)
-                item.SetForegroundColour(colour)
-                self.frame.Update()
-                time.sleep(wait)
-                
-            for i in range(intervals):
-                colour = wx.Colour(colour.Red() - step, colour.Green() - step, colour.Blue() - step)
-                item.SetForegroundColour(colour)
-                self.frame.Update()
-                time.sleep(wait)
-
-        else:
-
-            for i in range(intervals):
-                colour = wx.Colour(colour.Red() + step, colour.Green() + step, colour.Blue() + step)
-                item.SetBackgroundColour(colour)
-                self.frame.Update()
-                time.sleep(wait)
-                
-            for i in range(intervals):
-                colour = wx.Colour(colour.Red() - step, colour.Green() - step, colour.Blue() - step)
-                item.SetBackgroundColour(colour)
-                self.frame.Update()
-                time.sleep(wait)
-
-
-    def OnFileSel(self, event):
-        if event.LeftDown():
-            self.search_mode = 'files'
-            self.guiUtility.setSearchMode('files')
-            ##self.Fade(self.frame.pageTitlePanel, 5, 2, 0.05, wx.Colour(240, 240, 240), 'background')
-
-            self.file_sel.Hide()
-            self.channel_sel.Hide()
-            self.arrow_sel = False
-        self.file_sel.SetForegroundColour((0, 105, 156))
-
-
-
-    def OnChannelSel(self, event):
-        if event.LeftDown():
-            self.search_mode = 'channels'
-            self.guiUtility.setSearchMode('channels')
-            ##self.Fade(self.frame.pageTitlePanel, 5, 2, 0.05, wx.Colour(240, 240, 240), 'background')
-
-            self.file_sel.Hide()
-            self.channel_sel.Hide()
-            self.arrow_sel = False
-        self.channel_sel.SetForegroundColour((0, 105, 156))
-
-
-
-
-    def OnSearchKeyDown(self,event):
-        if DEBUG:
-            print >>sys.stderr,"TopSearchPanel: OnSearchKeyDown"
         
-        if event.GetEventObject().GetName() == 'text':        
-            keycode = event.GetKeyCode()
+        self.buttonsBackgroundColourSelected = wx.Colour(235, 233, 228)
+        self.buttonsBackgroundColour = wx.Colour(193, 188, 177)
+        self.buttonsForegroundColour = wx.BLACK
+     
+    def OnSearchKeyDown(self, event):
+        if DEBUG:
+            print >> sys.stderr, "TopSearchPanel: OnSearchKeyDown"
+            
+        if self.searchField.GetValue().strip() == '':
+            self.Notify('Please enter a search term', wx.ART_INFORMATION)
         else:
-            keycode = None
-
-        if self.searchField.GetValue().strip() != '' and (keycode == wx.WXK_RETURN or event.GetEventObject().GetName() == 'Search_new' or event.GetEventObject().GetName() == 'Search_new_win'): 
-            if self.first:
-                self.first=False
-                               
-                self.tribler_logo2.Show()
-                self.sharing_reputation.Show()
-                self.help.Show()
-                self.frame.hsizer = self.sr_indicator.GetContainingSizer()               
-                self.frame.Layout() 
-                if sys.platform == 'win32':
-                    self.createBackgroundImage()
-                self.srgradient.Show()
-                self.sr_indicator.Show()
-                self.frame.standardOverview.Show()
-                self.seperator.Show()
-                self.familyfilter.Show()
-                self.search_results.Show()
-                if sys.platform == 'win32':
-                    self.results.setBlank(False)
-                    self.results.setToggled(True)
-                else:
-                    self.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-                    self.results.SetLabel('Search Results')
-                    self.results.SetForegroundColour((0,105,156))
-
-            self.ag.Show() 
+            self.ag.Show()
+            self.go.GetContainingSizer().Layout()
             self.ag.Play()
                 
             # Timer to stop animation after 10 seconds. No results will come 
             # in after that
-            self.count = 0.
-            self.agtimer = wx.Timer(self)
-            self.Bind(wx.EVT_TIMER, self.OnAGTimer)
-            self.agtimer.Start(100) 
-
-            if sys.platform != 'darwin':
-                self.frame.videoframe.show_videoframe()   
-            self.frame.videoparentpanel.Show()           
-         
-            self.frame.pagerPanel.Show()
-
-
-            if sys.platform == 'win32':
-                self.channels.setToggled(False)
-                self.settings.setToggled(False)
-                self.my_files.setToggled(False)
-                self.results.setToggled(True)
-            else:
-                self.channels.SetForegroundColour((255,51,0))
-                self.settings.SetForegroundColour((255,51,0))
-                self.my_files.SetForegroundColour((255,51,0))
-                self.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
-                self.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
-                self.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
-
-
-            self.guiUtility.guiPage = 'search_results'
-
-            if self.needs_refresh:
-                self.guiUtility.frame.channelsDetails.reinitialize()
-                self.needs_refresh = False
-
-
-            if self.guiUtility.search_mode == 'files':
-                self.guiUtility.standardFilesOverview()
-            else:
-                self.guiUtility.channelsOverview()
-                grid = self.guiUtility.standardOverview.getGrid()
-                grid.selectedPublisherId = None
-                grid.clearAllData()
-                self.lastChannelPage = 'search_results'
-
-            if sys.platform == 'win32':
-                self.Refresh()
-                self.Layout()
-
-
+            self.guiUtility.frame.guiserver.add_task(lambda:wx.CallAfter(self.HideAnimation), 10.0)
+            
+            if not self.results.IsEnabled():
+                self.results.Enable()
+                      
+            self.selectTab('results')
+            self.results.SetValue(True)
 
             # Arno: delay actual search so the painting is faster.
             wx.CallAfter(self.guiUtility.dosearch)
-        else:
-            # autocompletion feature disabled
 
-            ##if not keycode == wx.WXK_BACK:
-            ##    try:
-            ##        wx.CallAfter(self.autocomplete) 
-            ##    except:
-            ##        pass # don't break the input field if something with autocomplete goes awkward
-            event.Skip() # Nicolas: not enough into wx to know if this should stay even though we're doing someething in here now
-            
+    def OnResults(self, event):
+        #onclick
+        if event.LeftDown():
+            if self.guiUtility.guiPage != 'search_results':
+                self.selectTab('results')
+                #Need to use callafter, to allow list to get focus
+                wx.CallAfter(self.guiUtility.ShowPage, 'search_results')
+            else: #Absorb event to prevent untoggle
+                event.Skip(False)
+
+    def OnChannels(self, event):
+        #onclick
+        if event.LeftDown():
+            if self.guiUtility.guiPage not in ['channels', 'selectedchannel', 'mychannel']:
+                self.selectTab('channels')
+                wx.CallAfter(self.guiUtility.ShowPage, 'channels')
+            else: #Absorb event to prevent untoggle
+                event.Skip(False)
+   
+    def OnSettings(self, event):
+        #onclick
+        if event.LeftDown():
+            wx.CallAfter(self.guiUtility.ShowPage, 'settings')
+            event.Skip(False)
+
+    def OnLibrary(self, event):
+        #onclick
+        if event.LeftDown():
+            if self.guiUtility.guiPage != 'my_files':
+                self.selectTab('my_files')
+                wx.CallAfter(self.guiUtility.ShowPage, 'my_files')
+            else: #Absorb event to prevent untoggle
+                event.Skip(False)
+
+    def selectTab(self, tab):
+        self.results.SetValue(tab == 'results')
+        self.channels.SetValue(tab == 'channels')
+        self.settings.SetValue(tab == 'settings')
+        self.my_files.SetValue(tab == 'my_files')
+        
     def autocomplete(self):
         """appends the most frequent completion according to
            buddycast clicklog to the current input.
@@ -333,712 +120,177 @@ class TopSearchPanel(bgPanel):
         input = self.searchField.GetValue()
         terms = input.split(" ")
         # only autocomplete if the last term in the input contains more than one character
-        if len(terms[-1])>1:
-            completion = self.guiUtility.complete(terms[-1])
+        if len(terms[-1]) > 1:
+            completion = self.complete(terms[-1])
             if completion:
                 l = len(input)
                 self.searchField.SetValue(input + completion)
-                self.searchField.SetSelection(l,l+len(completion))
-
-
-    def OnAGTimer(self,event):
-        self.count = self.count + 1    
-        # print >> sys.stderr, self.count
-        if self.count == 100:
-            self.ag.Stop()
-            self.ag.Hide()
-            self.agtimer.Stop()
-
-
-    def sr_msgClick(self,event=None):
-
-        if self.rep  < -0.33:
-            title = self.utility.lang.get('sharing_reputation_information_title')
-            msg = self.utility.lang.get('sharing_reputation_poor')
-            
-            dlg = wx.MessageDialog(None, msg, title, wx.OK|wx.ICON_WARNING)
- 
-
-            result = dlg.ShowModal()
-            dlg.Destroy()
-
-
-
-    def helpClick(self,event=None):
-        title = self.utility.lang.get('sharing_reputation_information_title')
-        msg = self.utility.lang.get('sharing_reputation_information_message')
-            
-        dlg = wx.MessageDialog(None, msg, title, wx.OK|wx.ICON_INFORMATION)
-        result = dlg.ShowModal()
-        dlg.Destroy()
-
-    def clearChannelView(self):
-        # 19/02/10 boudewijn: data['channelsMode'] can be an empty
-        # dictionary when this mode has not yet been displayed
-        channelsMode = self.guiUtility.standardOverview.data['channelsMode']
-        if channelsMode:
-            grid = self.guiUtility.standardOverview.data['channelsMode']['grid']
-            grid2 = self.guiUtility.standardOverview.data['channelsMode']['grid2']
-            grid.selectedPublisherId = None
-            grid2.selectedPublisherId = None
-            grid.clearAllData()
-            grid2.clearAllData()
-            grid.deselectAllChannels()
-            grid2.deselectAllChannels()
-            grid2.Hide()
-        self.guiUtility.frame.channelsDetails.reinitialize()
-
-
-    def OnResults(self,event):
-        if event.LeftDown() and not self.first and self.guiUtility.guiPage != 'search_results':
-            if sys.platform == 'darwin' and self.count < 100:
-                self.ag.Play()
-                self.ag.Show()
-            if self.search_mode == 'files':
-                self.guiUtility.standardFilesOverview()
-                self.guiUtility.loadInformation('filesMode', 'rameezmetric', erase=False)
-            else:
-                if self.guiUtility.frame.channelsDetails.origin != 'search_results':
-                    erase=True 
-                else:
-                    erase=False
-
-                self.guiUtility.guiPage = 'search_results'
-                self.guiUtility.channelsOverview(erase)
-
-                if self.lastChannelPage == 'channels':
-                    grid = self.guiUtility.standardOverview.getGrid()
-                    if sys.platform == 'darwin':
-                        grid.clearAllData()
-                    grid.gridManager.blockedRefresh=True
-                    grid2 = self.guiUtility.standardOverview.getGrid(2)
-#                    grid.clearAllData()
-                    grid2.Hide()
-#                    grid2.clearAllData()
-                    grid.gridManager.resizeGrid(grid)
-                    wx.GetApp().Yield(True)
-                    grid.gridManager.blockedRefresh=False
- 
-
-                self.guiUtility.frame.channelsDetails.mychannel = False
-                wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase)
-
-
-                self.lastChannelPage = 'search_results'
-
-
-        colour = wx.Colour(0,105,156)
-        self.results.SetForegroundColour(colour)
-        self.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.checkPage('settings', self.settings)
-        self.checkPage('my_files', self.my_files)
-        self.checkPage('channels', self.channels)
-
-
-    def OnChannels(self,event):
-        import time
-        if event.LeftDown() and self.guiUtility.guiPage != 'channels':
-            if sys.platform=='darwin' and self.agfids is not None:
-                self.agfids.Stop()
-                self.agfids.Hide()
-
-            T1 = time.time()
-
-            try:
-                if self.guiUtility.frame.channelsDetails.origin == 'search_results':
-                    erase=True 
-                else:
-                    erase=False
-            except:
-                erase=False
-
-            if self.lastChannelPage == 'search_results':
-                self.clearChannelView()
+                self.searchField.SetSelection(l, l + len(completion))
                 
-            self.lastChannelPage = 'channels'
-            self.guiUtility.guiPage = 'channels'
+    def complete(self, term):
+        """autocompletes term."""
+        completion = self.utility.session.open_dbhandler(NTFY_TERM).getTermsStartingWith(term, num=1)
+        if completion:
+            return completion[0][len(term):]
+        # boudewijn: may only return unicode compatible strings. While
+        # "" is unicode compatible it is better to return u"" to
+        # indicate that it must be unicode compatible.
+        return u""
 
-            if self.needs_refresh:
-#                self.indexMyChannel = -1
-                self.guiUtility.standardOverview.data['channelsMode']['grid2'].selectedPublisherId = None
-                self.needs_refresh = False
-            self.guiUtility.channelsOverview(erase)
+    def SearchFocus(self):
+        self.searchField.SetFocus()
+        self.searchField.SelectAll()
 
-            if self.lastChannelPage == 'search_results':
-                grid = self.guiUtility.standardOverview.getGrid()
-                grid.deselectAllChannels()
-            
-            wx.GetApp().Yield(True)
-
-            wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase=False)
-
-
-            self.guiUtility.standardOverview.data['channelsMode']['grid'].showSelectedChannel()
-            self.guiUtility.standardOverview.data['channelsMode']['grid2'].showSelectedChannel()
-
-            T2 = time.time()
-            if DEBUG:
-                print >> sys.stderr , "CHANNEL LOADING", T2 - T1
-    
-
-
-        colour = wx.Colour(0,105,156)
-        self.channels.SetForegroundColour(colour)
-        self.channels.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.checkPage('search_results', self.results)
-        self.checkPage('settings', self.settings)
-        self.checkPage('my_files', self.my_files)
-
-
-
-
-    def OnSettings(self,event):
-        if event.LeftDown() and self.guiUtility.guiPage != 'settings':
-            if sys.platform=='darwin' and self.agfids is not None:
-                self.agfids.Stop()
-                self.agfids.Hide()
-            if self.lastChannelPage == 'channels':
-                self.clearChannelView()
-            self.guiUtility.settingsOverview()
-        colour = wx.Colour(0,105,156)
-        self.settings.SetForegroundColour(colour)
-        self.settings.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.checkPage('search_results', self.results)
-        self.checkPage('my_files', self.my_files)
-        self.checkPage('channels', self.channels)
-
-
-    def OnLibrary(self,event):
-        if event.LeftDown() and self.guiUtility.guiPage != 'my_files':
-            if sys.platform=='darwin' and self.agfids is not None:
-                self.agfids.Stop()
-                self.agfids.Hide()
-#            if self.needs_refresh:
-            self.clearChannelView()
-#                self.needs_refresh = False
-            self.guiUtility.standardLibraryOverview()
-            self.guiUtility.loadInformation('libraryMode', 'name', erase=False)
-        colour = wx.Colour(0,105,156)
-        self.my_files.SetForegroundColour(colour)
-        self.my_files.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))
-        self.checkPage('search_results', self.results)
-        self.checkPage('settings', self.settings)
-        self.checkPage('channels', self.channels)
-
-
-    def OnTopPanel(self, event):
-        self.checkPage('search_results', self.results)
-        self.checkPage('settings', self.settings)
-        self.checkPage('my_files', self.my_files)
-        self.checkPage('channels', self.channels)
-        if self.search_mode != 'files':
-            self.file_sel.SetForegroundColour((255, 51, 0))
-        if self.search_mode != 'channels':
-            self.channel_sel.SetForegroundColour((255, 51, 0))
-
-        
-        
-    def checkPage(self, name, item):
-        if self.guiUtility.guiPage != name:
-            item.SetForegroundColour(wx.Colour(255,51,0))
-            item.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8)) 
-
-    def viewResults(self,event):
-        if self.first and self.guiUtility.guiPage != 'search_results':
-            if sys.platform == 'darwin' and self.count < 100:
-                self.ag.Play()
-                self.ag.Show()
-            if self.search_mode == 'files':
-                self.guiUtility.standardFilesOverview()
-                self.guiUtility.loadInformation('filesMode', 'rameezmetric', erase=False)
-            else:
-                
-                if self.guiUtility.frame.channelsDetails.origin != 'search_results':
-                    erase=True 
-                else:
-                    erase=False
-
-                oldpage=self.guiUtility.guiPage
-                self.guiUtility.guiPage = 'search_results'
-                self.guiUtility.channelsOverview(erase)
-
-                if oldpage == 'channels':
-                    grid = self.guiUtility.standardOverview.getGrid()
-                    grid.gridManager.blockedRefresh=True
-                    grid2 = self.guiUtility.standardOverview.getGrid(2)
-                    grid.clearAllData()
-                    grid2.clearAllData()
-                    grid2.Hide()
-                    grid.gridManager.resizeGrid(grid)
-                    grid.gridManager.blockedRefresh=False
-                    wx.GetApp().Yield(True)
- 
-
-                    self.guiUtility.frame.channelsDetails.mychannel = False
-                    wx.CallAfter(self.guiUtility.loadInformation,'channelsMode', 'name', erase)
-
-
-
-        self.results.setToggled(True)
-        self.settings.setToggled(False)
-        self.my_files.setToggled(False)
-        self.channels.setToggled(False)
-
-    def viewChannels(self,event):
-        if self.guiUtility.guiPage != 'channels':
-            T1 = time.time()
-            try:
-                if self.guiUtility.frame.channelsDetails.origin == 'search_results':
-                    erase=True 
-                else:
-                    erase=False
-            except:
-                erase=False
-            self.guiUtility.guiPage = 'channels'
-            self.guiUtility.channelsOverview(erase)
-            self.guiUtility.loadInformation('channelsMode', 'name', erase=False)
-            wx.Yield()
-            self.guiUtility.standardOverview.data['channelsMode']['grid'].showSelectedChannel()
-            self.guiUtility.standardOverview.data['channelsMode']['grid2'].showSelectedChannel()
-
-
-        self.results.setToggled(False)
-        self.settings.setToggled(False)
-        self.my_files.setToggled(False)
-        self.channels.setToggled(True)
-
-    def viewSettings(self,event):
-        if self.guiUtility.guiPage != 'settings':
-            if self.needs_refresh:
-                self.guiUtility.frame.channelsDetails.reinitialize()
-#                self.needs_refresh = False
-            self.guiUtility.settingsOverview()
-        self.results.setToggled(False)
-        self.settings.setToggled(True)
-        self.my_files.setToggled(False)
-        self.channels.setToggled(False)
-
-    def viewLibrary(self,event):
-        if self.guiUtility.guiPage != 'my_files':
-            if self.needs_refresh:
-                self.guiUtility.frame.channelsDetails.reinitialize()
-#                self.needs_refresh = False
-            self.guiUtility.standardLibraryOverview()
-            self.guiUtility.loadInformation('libraryMode', 'name', erase=False)
-        self.results.setToggled(False)
-        self.settings.setToggled(False)
-        self.my_files.setToggled(True)
-        self.channels.setToggled(False)
-
-    def toggleFamilyFilter(self,event):
-        self.guiUtility.toggleFamilyFilter()
-
-
-    def setReputation(self, rep):
-        self.rep = rep
-   
-
-    def updateReputation(self, rep): # used on windows only
-        self.setReputation(rep)
-        if rep < -0.33:
-            self.sharing_reputation.setState(0)
-        elif rep < 0.33:
-            self.sharing_reputation.setState(1)
-        else:
-            self.sharing_reputation.setState(2)
-        self.Refresh()
-
-        
-
-
-
-
-    def Bitmap(self,path,type):
+    def Bitmap(self, path, type):
         namelist = path.split("/")
-        path = os.path.join(self.installdir,LIBRARYNAME,"Main","vwxGUI",*namelist)
-        return wx.Bitmap(path,type)
+        path = os.path.join(self.installdir, LIBRARYNAME, "Main", "vwxGUI", *namelist)
+        return wx.Bitmap(path, type)
         
     def _PostInit(self):
         if DEBUG:
-            print >>sys.stderr,"TopSearchPanel: OnCreate"
+            print >> sys.stderr, "TopSearchPanel: OnCreate"
             
         bgPanel._PostInit(self)
-   
-# MAINLY GENERATED BELOW, replace wxStaticBitmap, etc. with wx.StaticBitmap 
-# and replace wx.BitMap with self.Bitmap
-#
-# What makes this code (either as Python or as XRC fail is the last statement:
-#       self.SetSizer(object_1)
-# should be
-#       self.SetSizerAndFit(object_1)
-# ----------------------------------------------------------------------------------------          
+        if sys.platform == 'linux2': #bug in linux for searchctrl, focus does not hide search text + text stays grey
+            self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
+        else:
+            self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
         
-        self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
-        self.newFile = wx.StaticBitmap(self, -1, self.Bitmap("images/iconSaved_state4.png", wx.BITMAP_TYPE_ANY))
-        self.newChannel = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/iconSaved.png", wx.BITMAP_TYPE_ANY))
-        self.total_down = wx.StaticText(self, -1, "0B Down")
-        self.total_up = wx.StaticText(self, -1, "0B Up")
-        self.file_sel = wx.StaticText(self, -1, "Files")
-        #self.file_sel = SwitchButton(self, -1, name = "chooseFiles")
-        self.channel_sel = wx.StaticText(self, -1, "Channels")
-        #self.channel_sel = SwitchButton(self, -1, name = "chooseChannels")
+        self.go = tribler_topButton(self,-1,name = 'Search_new')
+        self.channels = wx.ToggleButton(self, -1, label='Channels', name="Channels")
+        self.settings = wx.ToggleButton(self, -1, label='Settings', name="Settings")
+        self.my_files = wx.ToggleButton(self, -1, label='Library', name="My Files")
+        self.results = wx.ToggleButton(self, -1, label='Results', name="Results")
+        self.results.Disable()
 
         if sys.platform == 'win32':
-            self.search_results = MyText(self, "",wx.BLACK, wx.Font(FONT_SIZE_SEARCH_RESULTS, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
-            self.search_results.Hide()
             self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files_channels.png", wx.BITMAP_TYPE_ANY))
-            #self.files_friends = MyText(self, "Search Files",wx.BLACK, wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
-            self.go = tribler_topButton(self,-1,name = 'Search_new_win')
-            self.arrow = tribler_topButton(self, -1, name = 'arrow_down_win')
-            self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient_new_win.png", wx.BITMAP_TYPE_ANY))
-            self.familyfilter = SwitchButton(self, -1, name = 'familyfilter_win')
-            #self.familyfilter = NewStaticText(self, "Family Filter:", wx.BLACK, wx.Font(FONT_SIZE_FAMILY_FILTER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            #self.sharing_reputation = NewStaticText(self, "Sharing Reputation: ", wx.BLACK, wx.Font(FONT_SIZE_SHARING_REPUTATION, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L")) 
-            #self.sharing_reputation = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/sharing_reputation_win.png", wx.BITMAP_TYPE_ANY))
-            self.sharing_reputation = SharingButton(self, -1, name = 'sr')
-            self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help_win.png", wx.BITMAP_TYPE_ANY))
-            self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRind2_win.png", wx.BITMAP_TYPE_ANY))
-            self.channels = ClickButton(self, -1, name = "channels_win")
-            self.settings = ClickButton(self, -1 , name = 'settings_win')
-            #self.settings = NewStaticText(self, "Settings", wx.Colour(255,51,0), wx.Font(FONT_SIZE_SETTINGS, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.my_files = ClickButton(self, -1, name = "my_files_win")
-            #self.my_files = NewStaticText(self, "My Files", wx.Colour(255,51,0), wx.Font(FONT_SIZE_MY_FILES, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.results = ClickButton(self, -1, name = "results_win")
-            self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator_win.png", wx.BITMAP_TYPE_ANY)) 
-            self.seperator2 = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator_win.png", wx.BITMAP_TYPE_ANY)) 
-            self.seperator3 = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator_win.png", wx.BITMAP_TYPE_ANY)) 
             self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2_win.png", wx.BITMAP_TYPE_ANY))
         else:    
             self.files_friends = wx.StaticText(self, -1, "Search Files or Channels") 
-            self.go = tribler_topButton(self,-1,name = 'Search_new')
-            self.arrow = tribler_topButton(self, -1, name = 'arrow_down')
-            self.srgradient = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRgradient_new.png", wx.BITMAP_TYPE_ANY))
-            self.familyfilter = wx.StaticText(self, -1, "Family Filter:")
-            #if sys.platform == 'win32':
-            #    self.search_results = NewStaticText(self, "", wx.BLACK, wx.Font(FONT_SIZE_SEARCH_RESULTS, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "")) 
-            #else:
-            self.sharing_reputation = wx.StaticText(self, -1, "Sharing Reputation: ") 
-            self.sr_msg = wx.StaticText(self, -1, "")
-            self.help = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/help.png", wx.BITMAP_TYPE_ANY)) 
-            self.sr_indicator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/SRind2.png", wx.BITMAP_TYPE_ANY))
-            self.channels = wx.StaticText(self, -1, "Channels")
-            self.settings = wx.StaticText(self, -1, "Settings")
-            self.my_files = wx.StaticText(self, -1, "My Files")
-            self.results = wx.StaticText(self, -1, "              ")
-            self.seperator = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY)) 
-            self.seperator2 = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY)) 
-            self.seperator3 = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/seperator.png", wx.BITMAP_TYPE_ANY)) 
             self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
-            self.search_results = wx.StaticText(self, -1, "")
-        if sys.platform == 'darwin':
-            ag_fname = os.path.join(self.utility.getPath(),LIBRARYNAME,'Main','vwxGUI','images','5.0','search_new_windows.gif')
-            self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
-
+        
         self.__set_properties()
-
-
         self.__do_layout()
-        # end wx.Glade
 
         # OUR CODE
         self.custom_init()
-
-
-        self.Layout()
-        self.frame.Layout()
         self.init_ready = True
-
+        
+        self.Layout()
+        
     def __set_properties(self):
-        # begin wx.Glade: MyPanel.__set_properties
-        self.SetSize((1000,90))
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
-        self.searchField.SetMinSize((320,23))
-        self.searchField.SetForegroundColour(wx.Colour(0, 0, 0))
-        self.searchField.SetFont(wx.Font(FONT_SIZE_SEARCH, wx.MODERN, wx.NORMAL, wx.NORMAL, 0, "Verdana"))
+        
+        self.searchField.SetMinSize((400, -1))
         self.searchField.SetFocus()
-        self.go.SetMinSize((50,24))
-        self.go.SetBackgroundColour((230,230,230))
-        self.go.Refresh()
-        self.total_down.SetFont(wx.Font(FONT_SIZE_TOTAL_DOWN, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8)) # UTF-8
-        self.total_up.SetFont(wx.Font(FONT_SIZE_TOTAL_UP, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))     # UTF-8
-        self.results.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, self.utf8))          # UTF-8
-        self.total_down.SetToolTipString('Total Download')
-        self.total_up.SetToolTipString('Total Upload')
-        if sys.platform == 'win32':
-            self.results.setBlank(True) ##
-            self.settings.SetMinSize((50,14))
-            self.my_files.SetMinSize((45,14))
-            self.results.SetMinSize((91,11))
-            self.channels.SetMinSize((54,11)) ## needs checking
-            self.total_down.SetBackgroundColour((235,235,235))
-            self.total_down.SetMinSize((55,12))
-            self.total_up.SetMinSize((50,12))
-            self.total_up.SetBackgroundColour((235,235,235))
-            self.search_results.SetBackgroundColour(wx.Colour(wx.TRANSPARENT))
-            self.guiUtility.toggleFamilyFilter(True)
-        elif sys.platform == 'linux2':
-            self.familyfilter.SetMinSize((100,15))
-            self.familyfilter.SetFont(wx.Font(FONT_SIZE_FAMILY_FILTER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.settings.SetMinSize((60,15))
-            self.settings.SetForegroundColour(wx.Colour(255, 51, 0))
-            self.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.my_files.SetMinSize((60,15))
-            self.my_files.SetForegroundColour(wx.Colour(255, 51, 0))
-            self.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.channels.SetMinSize((65,15))
-            self.channels.SetForegroundColour(wx.Colour(255, 51, 0))
-            self.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.sharing_reputation.SetFont(wx.Font(FONT_SIZE_SHARING_REPUTATION, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
-            self.results.SetMinSize((100,15))
-            self.results.SetForegroundColour(wx.Colour(255, 51, 0))
-            self.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.sr_msg.SetFont(wx.Font(FONT_SIZE_SR_MSG, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
-            self.search_results.SetMinSize((120,15))
-            self.search_results.SetFont(wx.Font(FONT_SIZE_SEARCH_RESULTS, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))            
+        
+        self.go.SetMinSize((50, 24))
+        
+        if sys.platform == 'linux2':
             self.files_friends.SetFont(wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
-
-            self.file_sel.SetFont(wx.Font(FONT_SIZE_SEARCH_CHOICE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.file_sel.SetForegroundColour((255, 51, 0))
-            self.channel_sel.SetFont(wx.Font(FONT_SIZE_SEARCH_CHOICE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, "UTF-8"))
-            self.channel_sel.SetForegroundColour((255, 51, 0))
-        else: # mac
-            self.familyfilter.SetMinSize((100,15))
-            self.familyfilter.SetFont(wx.Font(FONT_SIZE_FAMILY_FILTER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
-            self.settings.SetMinSize((60,15))
-            self.settings.SetForegroundColour(wx.Colour(255, 51, 0))
-            self.settings.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
-            self.my_files.SetMinSize((60,15))
-            self.my_files.SetForegroundColour(wx.Colour(255, 51, 0))
-            self.my_files.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
-            self.channels.SetMinSize((65,15))
-            self.channels.SetForegroundColour(wx.Colour(255, 51, 0))
-            self.channels.SetFont(wx.Font(FONT_SIZE_PAGE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
-            self.sharing_reputation.SetFont(wx.Font(FONT_SIZE_SHARING_REPUTATION, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
-            self.results.SetMinSize((100,15))
-            self.results.SetForegroundColour(wx.Colour(255, 51, 0))
-            self.results.SetFont(wx.Font(FONT_SIZE_PAGE_OVER, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
-            self.sr_msg.SetFont(wx.Font(FONT_SIZE_SR_MSG, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
-            self.search_results.SetMinSize((100,15))
-            self.search_results.SetFont(wx.Font(FONT_SIZE_SEARCH_RESULTS, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))            
+                
+        elif sys.platform == 'darwin': # mac
             self.files_friends.SetFont(wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
-
-            self.file_sel.SetFont(wx.Font(FONT_SIZE_SEARCH_CHOICE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
-            self.file_sel.SetForegroundColour((255, 51, 0))
-            self.channel_sel.SetFont(wx.Font(FONT_SIZE_SEARCH_CHOICE, wx.SWISS, wx.NORMAL, wx.NORMAL, 0, ""))
-            self.channel_sel.SetForegroundColour((255, 51, 0))
-            
-
-        # end wx.Glade 
 
 
     def __do_layout(self):
-        # begin wx.Glade: MyPanel.__do_layout
-        object_1 = wx.BoxSizer(wx.HORIZONTAL)
-        object_2 = wx.BoxSizer(wx.HORIZONTAL)
-        object_3 = wx.BoxSizer(wx.VERTICAL)
-        object_4 = wx.BoxSizer(wx.HORIZONTAL)
-        object_5 = wx.BoxSizer(wx.HORIZONTAL)
-        object_6 = wx.BoxSizer(wx.VERTICAL)
-        object_7 = wx.BoxSizer(wx.VERTICAL)
-        object_8 = wx.BoxSizer(wx.HORIZONTAL)
-        object_9 = wx.BoxSizer(wx.HORIZONTAL)
-        object_10 = wx.BoxSizer(wx.VERTICAL)
-        object_11 = wx.BoxSizer(wx.VERTICAL)
-        object_12 = wx.BoxSizer(wx.VERTICAL)
-        object_13 = wx.BoxSizer(wx.HORIZONTAL)
-        object_14 = wx.BoxSizer(wx.HORIZONTAL)
-        object_15 = wx.BoxSizer(wx.VERTICAL)
-        object_16 = wx.BoxSizer(wx.VERTICAL)
-        object_17 = wx.BoxSizer(wx.VERTICAL)
-        object_18 = wx.BoxSizer(wx.VERTICAL)
-        object_19 = wx.BoxSizer(wx.VERTICAL)
-
-        object_20 = wx.BoxSizer(wx.VERTICAL)
-        object_21 = wx.BoxSizer(wx.VERTICAL)
-
-
-
-        object_1.Add((10, 0), 0, 0, 0)
-        object_3.Add((0, 20), 0, 0, 0)
-        object_3.Add(self.files_friends, 0, 0, 0)
-        if sys.platform == 'win32':
-            object_3.Add((0, 8), 0, 0, 0)
-        else:
-            object_3.Add((0, 5), 0, 0, 0)
-        object_4.Add(self.searchField, 0, wx.LEFT, -2)
-
-        if sys.platform == 'darwin':
-            object_4.Add((6, 0), 0, 0, 0)
-        else:
-            object_4.Add((2, 0), 0, 0, 0)
-
-
-        object_4.Add(self.go, 0, 0, 0)
-        object_4.Add((1,0), 0, 0, 0)
-
-        object_21.Add(self.arrow, 0, 0, 0)
-        object_21.Add((0, 2), 0, 0, 0)
-
-        object_21.Add(self.file_sel, 0, 0, 0)
-        object_21.Add((2, 0), 0, 0, 0)
-        object_21.Add(self.channel_sel, 0, 0, 0)
-
-        object_4.Add(object_21, 0, 0, 0)
-
-        object_4.Add((2,0), 0, 0, 0)
-        if sys.platform == 'darwin':
-            object_4.Add(self.ag, 0, wx.TOP, 5)
-        object_3.Add(object_4, 0, 0, 0)
-        if sys.platform == 'win32':
-            object_6.Add((0, 2), 0, 0, 0)
-        else:
-            object_6.Add((0, 0), 0, 0, 0)
-        object_6.Add(self.familyfilter, 0, 0, 0)
-        object_5.Add(object_6, 0, 0, 0)
-        if sys.platform == 'win32':
-            object_5.Add((150, 0), 1, 0, 0)
-        else:
-            object_5.Add((100, 0), 1, 0, 0)
-        if sys.platform == 'darwin':
-            object_16.Add((0, 2), 0, 0, 0)
-            object_16.Add(self.search_results, 0, 0, 0)
-            object_5.Add(object_16, 0, wx.ALIGN_RIGHT, 0)
-        else:
-            object_5.Add(self.search_results, 0, wx.ALIGN_RIGHT, 0)
-        object_3.Add(object_5, 0, 0, 0)
-        object_2.Add(object_3, 0, wx.EXPAND, 0)
-        if sys.platform == 'win32':
-            object_2.Add((45, 0), 0, 0, 0)
-        else:
-            object_2.Add((40, 0), 0, 0, 0)
-        object_7.Add((0, 20), 0, 0, 0)
-        object_7.Add(object_14, 0, 0, 0)
-        object_14.Add(self.sharing_reputation, 0, 0, 0)
-        if sys.platform != 'win32':
-            object_14.Add(self.sr_msg, 0, wx.LEFT, 10)
-        object_7.Add((0, 5), 0, 0, 0)
-        object_8.Add(self.srgradient, 0, 0, 0)
-        object_8.Add((5, 0), 0, 0, 0)
-        object_8.Add(self.help, 0, 0, 0)
-        object_7.Add(object_8, 0, 0, 0)
-        object_7.Add((0, 5), 0, 0, 0)
-        object_9.Add((50, 0), 0, 0, 0)
-        object_9.Add(self.sr_indicator, 0, wx.TOP, -16)
-        object_7.Add(object_9, 0, 0, 0)
-        if sys.platform == 'win32':
-            object_7.Add(object_13, 0, wx.TOP, -3)
-        else:
-            object_7.Add(object_13, 0, 0, 0)
-        object_2.Add(object_7, 0, wx.EXPAND, 0)
-        object_1.Add(object_2, 1, wx.EXPAND, 0)
-
-        if sys.platform == 'win32':
-            space = 9
-        elif sys.platform == 'linux2':
-            space = 7
-        else:
-            space = 48
-
-        object_1.Add((space, 0), 0, 0, 0) # Arno: set to a specific value to get right view on win32
-
-        # seperator
-        object_11.Add((0, 20), 0, 0, 0)
-        object_11.Add(self.seperator, 0, 0, 0)
-
-        # seperator2
-        object_18.Add((0, 20), 0, 0, 0)
-        object_18.Add(self.seperator2, 0, 0, 0)
-
-        # seperator3
-        object_20.Add((0, 20), 0, 0, 0)
-        object_20.Add(self.seperator3, 0, 0, 0)
-
-        # channels
-        object_19.Add((0, 20), 0, 0, 0)
-        object_19.Add(self.channels, 0, 0, 0)
-        object_19.Add((0, 0), 0, 0, 0)
-        object_19.Add(self.newChannel, 0, 0, 0)
-
-
-        # results
-        object_17.Add((0, 20), 0, 0, 0)
-        object_17.Add(self.results, 0, 0, 0)
-        object_17.Add((0, 0), 0, 0, 0)
-
-        # settings
-        object_10.Add((0, 20), 0, 0, 0)
-        object_10.Add(self.settings, 0, 0, 0)
-        object_10.Add((0, 0), 0, 0, 0)
-
-        # my files
-        object_12.Add((0, 20), 0, 0, 0)
-        object_12.Add(self.my_files, 0, 0, 0)
-        object_12.Add((0, 0), 0, 0, 0)
-        object_12.Add(self.newFile, 0, 0, 0)
-
-
-
-        # results
-        object_1.Add(object_17, 0, 0, 0)
-
-        if sys.platform == 'win32':
-            object_1.Add((10, 0), 0, 0, 0)
-        else:
-            object_1.Add((self.spaceLink, 0), 0, 0, 0)
-
-        # seperator
-        object_1.Add(object_11, 0, 0, 0)
-
-        object_1.Add((self.spaceLink, 0), 0, 0, 0)
-
-        # channels
-        object_1.Add(object_19, 0, 0, 0)
-
-        object_1.Add((self.spaceLink, 0), 0, 0, 0)
-
-        # seperator3
-        object_1.Add(object_20, 0, 0, 0)
-
-        object_1.Add((self.spaceLink, 0), 0, 0, 0)
-
-        # settings
-        object_1.Add(object_10, 0, 0, 0)
-
-        object_1.Add((self.spaceLink, 0), 0, 0, 0)
-
-        # seperator2
-        object_1.Add(object_18, 0, 0, 0)
-
-        object_1.Add((self.spaceLink, 0), 0, 0, 0)
-
-        # my files
-        object_1.Add(object_12, 0, 0, 0)
-
-        object_1.Add((self.spaceLink, 0), 0, 0, 0)
-
-        object_15.Add((0,3), 0, 0, 0)
-        object_15.Add(self.tribler_logo2, 0, 0, 0)
-
-
-
-
-        object_1.Add(object_15, 0, 0, 0)
-        object_1.Add((10, 0), 0, 0, 0)
-        object_13.Add((0, 0), 0, 0, 0)
-        object_13.Add(self.total_down, 0, 0, 0)
-        if sys.platform == 'darwin':
-            object_13.Add((14, 0), 0, 0, 0)
-        else:
-            object_13.Add((8, 0), 0, 0, 0)
-        object_13.Add(self.total_up, 0, 0, 0)
-        object_13.Add((0, 0), 0, 0, 0)
+        mainSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        # OUR CODE  ARNO50: Check diff in defs
-        if sys.platform != 'linux2':
-            self.SetSizerAndFit(object_1)
+        #Add searchbox etc.
+        searchSizer = wx.BoxSizer(wx.VERTICAL)
+
+        #Search for files or channels label
+        searchSizer.Add(self.files_friends, 0, wx.TOP, 20) 
+        if sys.platform == 'win32': #platform specific spacer
+            searchSizer.AddSpacer((0, 6))
         else:
-            self.SetSizer(object_1)
-        # end wx.Glade
+            searchSizer.AddSpacer((0, 3))
+        
+        searchBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
+        searchBoxSizer.Add(self.searchField, 1, wx.TOP, 1) #add searchbox
+        searchBoxSizer.Add(self.go, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5) #add searchbutton
 
-# end of class MyPanel
+        if sys.platform == 'darwin' or sys.platform == 'win32':
+            ag_fname = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', '5.0', 'search_new_windows.gif')
+        else:
+            ag_fname = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', '5.0', 'search_new.gif')
+        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
+        searchBoxSizer.Add(self.ag, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
+        searchSizer.Add(searchBoxSizer, 0, wx.EXPAND)
+        
+        #finished searchSizer, add to mainSizer
+        mainSizer.Add(searchSizer, 0, wx.LEFT, 10)
+        
+        #niels: add strechingspacer, all controls added before 
+        #this spacer will be aligned to the left of the screen
+        #all controls added after, will be to the right
+        mainSizer.AddStretchSpacer()
+        
+        #add buttons
+        self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        #add buttons horizontally
+        buttonBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonBoxSizer.Add(self.results, 0, wx.RIGHT, 5)
+        buttonBoxSizer.Add(self.channels, 0, wx.RIGHT, 5)
+        buttonBoxSizer.Add(self.settings, 0, wx.RIGHT, 5)
+        buttonBoxSizer.Add(self.my_files)
+        
+        self.buttonSizer.Add(buttonBoxSizer, 0, wx.TOP, 3)
+        
+        self.notifyPanel = wx.Panel(self)
+        self.notifyPanel.SetBackgroundColour("yellow")
+        self.notifyIcon = wx.StaticBitmap(self.notifyPanel, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION))
+        self.notify = wx.StaticText(self.notifyPanel)
+        
+        notifyS = wx.BoxSizer(wx.HORIZONTAL)
+        notifyS.Add(self.notifyIcon, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        notifyS.Add(self.notify, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        self.notifyPanel.SetSizer(notifyS)
+        
+        self.buttonSizer.Add(self.notifyPanel, 0, wx.ALIGN_RIGHT | wx.TOP, 5)
+        mainSizer.Add(self.buttonSizer)
+        
+        mainSizer.AddSpacer((15, 0))
+        
+        mainSizer.Add(self.tribler_logo2, 0, wx.TOP, 3)
+        mainSizer.AddSpacer((10, 0))
+        self.SetSizer(mainSizer)
+        
+    def custom_init(self):
+        hide_names = [self.ag, self.notifyPanel]
+        for name in hide_names:
+            name.Hide()
+        
+        # binding events  
+        self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
+        self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
+        self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
+        self.results.Bind(wx.EVT_MOUSE_EVENTS, self.OnResults)
+        self.settings.Bind(wx.EVT_MOUSE_EVENTS, self.OnSettings)
+        self.my_files.Bind(wx.EVT_MOUSE_EVENTS, self.OnLibrary)
+        self.channels.Bind(wx.EVT_MOUSE_EVENTS, self.OnChannels)     
+        
+    def Notify(self, msg, icon= -1):
+        self.notify.SetLabel(msg)
+        self.notify.SetSize(self.notify.GetBestSize())
+        
+        if icon != -1:
+            self.notifyIcon.Show()
+            self.notifyIcon.SetBitmap(wx.ArtProvider.GetBitmap(icon))
+        else:
+            self.notifyIcon.Hide()
+            
+        self.notifyPanel.Show()
+        
+        #NotifyLabel size changed, thus call Layout
+        self.buttonSizer.Layout()
+        self.guiUtility.frame.guiserver.add_task(lambda:wx.CallAfter(self.HideNotify), 5.0)
 
+    def HideNotify(self):
+        self.notifyPanel.Hide()
+        
+    def HideAnimation(self):
+        self.ag.Stop()
+        self.ag.Hide()

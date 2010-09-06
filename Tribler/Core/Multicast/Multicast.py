@@ -672,7 +672,7 @@ class Multicast:
         """
         peer = self.peer_db.getPeer(permid, ('is_local',))
         
-        print >>sys.stderr,"pdisc: flag_peer_as_local returns",peer
+        # print >>sys.stderr,"pdisc: flag_peer_as_local returns",peer
         
         if not peer is None:
             # Arno, 2010-02-09: Somehow return value is not std.

@@ -54,7 +54,6 @@ import urllib2
 import tempfile
 
 import Tribler.Main.vwxGUI.font as font
-from Tribler.Main.vwxGUI.TriblerStyles import TriblerStyles
 from Tribler.Main.vwxGUI.MainFrame import MainFrame # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame,VideoMacFrame
@@ -114,6 +113,7 @@ class ABCApp(wx.App):
         self.error = None
         self.last_update = 0
         self.update_freq = 0    # how often to update #peers/#torrents
+        self.ready = False
 
         self.guiserver = GUITaskQueue.getInstance()
         self.said_start_playback = False
@@ -197,13 +197,8 @@ class ABCApp(wx.App):
             
             # Initialise fonts
             font.init()
-
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
             
-            # H4x0r a bit
-            ## set_tasteheart_bitmaps(self.utility.getPath())
-            ## set_perfBar_bitmaps(self.utility.getPath())
-
             cat = Category.getInstance(self.utility.getPath())
             cat.init_from_main(self.utility)
 
@@ -213,9 +208,6 @@ class ABCApp(wx.App):
             self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2iconnhandler) 
             self.i2is.start()
 
-            self.triblerStyles = TriblerStyles.getInstance()
-      
-      
             # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
             # Range: GETs causes performance problems in our code. Disable for now.
             # Arno, 2010-01-22: With the addition of a CachingStream the problem
@@ -230,110 +222,51 @@ class ABCApp(wx.App):
             self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode)
 
             notification_init( self.utility )
-
+            
             #
             # Read and create GUI from .xrc files
             #
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
+            self.startAPI()
+            self.guiUtility.torrentsearch_manager.connect()
+            self.guiUtility.channelsearch_manager.connect()
+           
             self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
-            self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
             self.guiUtility.frame = self.frame
 
             self.frame.set_wxapp(self)
-      
-
-            self.guiUtility.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
-            self.guiUtility.mainSizer = self.guiUtility.scrollWindow.GetSizer()
-            self.frame.standardDetails = xrc.XRCCTRL(self.frame, "standardDetails")
-            self.frame.standardOverview = xrc.XRCCTRL(self.frame, "standardOverview")
-            
-            # Make sure self.utility.frame is set
-            self.startAPI()
             self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_search")
-            self.frame.top_bg.set_frame(self.frame)
-            self.frame.pagerPanel = xrc.XRCCTRL(self.frame,"pagerPanel")
-            self.frame.standardPager = xrc.XRCCTRL(self.frame,"standardPager")
-            self.frame.BL = xrc.XRCCTRL(self.frame, "BL")
-            self.frame.BR = xrc.XRCCTRL(self.frame, "BR")
-            self.frame.BL.Hide()
-            self.frame.BR.Hide()
-
-
-#            self.frame.blvideo = xrc.XRCCTRL(self.frame, "blvideo")
-#            self.frame.brvideo = xrc.XRCCTRL(self.frame, "brvideo")
-#            self.frame.tlvideo = xrc.XRCCTRL(self.frame, "tlvideo")
-#            self.frame.trvideo = xrc.XRCCTRL(self.frame, "trvideo")
-
-#            if sys.platform != 'darwin':
-#                self.frame.blvideo.Hide()
-#                self.frame.brvideo.Hide()
-#                self.frame.tlvideo.Hide()
-#                self.frame.trvideo.Hide()
-
-
-            self.frame.channelsDetails = xrc.XRCCTRL(self.frame, "channelsDetails")
-            if sys.platform == 'win32':
-                wx.CallAfter(self.frame.channelsDetails.Hide)
-            else:
-                self.frame.channelsDetails.Hide()
-            # on linux pagerpanel needs a SetMinSize call
-            if sys.platform == "linux2":
-                self.frame.pagerPanel.SetMinSize((626,20))
-            elif sys.platform == 'darwin':
-                self.frame.pagerPanel.SetMinSize((400,19))
-                self.frame.pagerPanel.SetSize((400,19))
-            else:
-                self.frame.pagerPanel.SetMinSize((626,20))
-
-
+            self.frame.SRstatusbar = xrc.XRCCTRL(self.frame, "SRstatusbar")
+            
+            self.frame.searchlist = xrc.XRCCTRL(self.frame, "searchlist")
+            self.frame.channellist = xrc.XRCCTRL(self.frame, "channellist")
+            self.frame.selectedchannellist = xrc.XRCCTRL(self.frame, "selchannellist")
+            self.frame.mychannel = xrc.XRCCTRL(self.frame, "mychannel")
+            self.frame.channelselector = xrc.XRCCTRL(self.frame, "channelSelector")
+            self.frame.channelcategories = xrc.XRCCTRL(self.frame, "channelcategories")
+            self.frame.channelcategories.SetQuicktip(xrc.XRCCTRL(self.frame, "quicktip"))
+            self.frame.librarylist = xrc.XRCCTRL(self.frame, "librarylist")
 
             # videopanel
-            self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
-            if sys.platform == 'darwin':
-                self.frame.videoparentpanel.SetBackgroundColour((216,233,240))
-                self.frame.videoparentpanel.Hide()
-            if sys.platform == "linux2":
-                self.frame.videoparentpanel.SetMinSize((363,400))
-            elif sys.platform == 'win32':
-                self.frame.videoparentpanel.SetMinSize((363,400))
-            else:
-                self.frame.videoparentpanel.SetMinSize((355,240))
-
-
-            logopath = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','video.gif')
-            if sys.platform == 'darwin':
-                self.frame.videoframe = VideoMacFrame(self.frame.videoparentpanel,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'),self.videoplayer.get_vlcwrap(),logopath)
+            self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean") or sys.platform == 'darwin' 
+            if self.guiUtility.useExternalVideo:
+                self.frame.videoparentpanel = None
+                
+                self.frame.videoframe = VideoMacFrame(self.frame,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'),self.videoplayer.get_vlcwrap())
                 self.videoplayer.set_videoframe(self.frame.videoframe)
             else:
-                self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,self.videoplayer.get_vlcwrap(),logopath)
+                self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
+                
+                self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,self.videoplayer.get_vlcwrap())
                 self.videoplayer.set_videoframe(self.frame.videoframe)
-
-            if sys.platform == "linux2":
-                # On Linux the _PostInit does not get called if the thing
-                # is not shown. We need the _PostInit to be called to set
-                # the GUIUtility.standardOverview, etc. member variables.
-                #
-                wx.CallAfter(self.frame.standardOverview.Hide)
-                wx.CallAfter(self.frame.standardDetails.Hide)
-                ##hide_names = [self.frame.pagerPanel, self.frame.pageTitlePanel]
-                hide_names = [self.frame.pagerPanel]
-            else:
-                hide_names = [self.frame.standardOverview,self.frame.standardDetails,self.frame.pagerPanel]
-
-
-            for name in hide_names:
-                name.Hide()
-            self.frame.videoframe.hide_videoframe()
-
-            self.frame.top_bg.createBackgroundImage()
-            ## self.frame.top_bg.setBackground((230,230,230))
-
-            self.frame.top_bg.Layout()
+        
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)
                 wx.CallAfter(self.frame.top_bg.Layout)
-
+            else:
+                self.frame.top_bg.Layout()
+            
             # reputation
             self.guiserver.add_task(self.guiservthread_update_reputation, .2)
           
@@ -361,30 +294,14 @@ class ABCApp(wx.App):
                 print_exc()
             
             # Must be after ABCLaunchMany is created
-            
-            #print "DIM",wx.GetDisplaySize()
-            #print "MM",wx.GetDisplaySizeMM()
-
-            #self.frame.Refresh()
-            #self.frame.Layout()
+        
             self.frame.Show(True)
 
-            #self.frame.pageTitlePanel.Show()
-            #wx.CallAfter(self.frame.pageTitlePanel.tl.Hide)
-            #wx.CallAfter(self.frame.pageTitlePanel.tr.Hide)
-
-
             wx.CallAfter(self.startWithRightView)
+            
             # Delay this so GUI has time to paint
             wx.CallAfter(self.loadSessionCheckpoint)
-                        
-
-            #self.sr_indicator_left_image = wx.Image(os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0", "SRindicator_left.png", wx.BITMAP_TYPE_ANY))            
-            #self.sr_indicator_left = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.sr_indicator_left_image))
-
-            #self.sr_indicator_right_image = wx.Image(os.path.join(self.utility.getPath(),"Tribler","Main","vwxGUI","images","5.0", "SRindicator_right.png", wx.BITMAP_TYPE_ANY))            
-            #self.sr_indicator_right = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.sr_indicator_right_image))
-
+            
             # start the torrent feed thread
             self.torrentfeed = TorrentFeedThread.getInstance()
             self.torrentfeed.register(self.utility.session)
@@ -401,7 +318,9 @@ class ABCApp(wx.App):
             reporter.add_event("client-startup", "version:" + self.utility.lang.get("version"))
             reporter.add_event("client-startup", "build:" + self.utility.lang.get("build"))
             reporter.add_event("client-startup", "build_date:" + self.utility.lang.get("build_date"))
-
+            
+            
+            self.ready = True
         except Exception,e:
             print_exc()
             self.error = e
@@ -409,19 +328,6 @@ class ABCApp(wx.App):
             return False
 
         return True
-
-    def helpClick(self,event=None):
-        title = self.utility.lang.get('sharing_reputation_information_title')
-        msg = self.utility.lang.get('sharing_reputation_information_message')
-            
-        dlg = wx.MessageDialog(None, msg, title, wx.OK|wx.ICON_INFORMATION)
-        result = dlg.ShowModal()
-        dlg.Destroy()
-
-
-    def toggleFamilyFilter(self,event):
-        self.guiUtility.toggleFamilyFilter()
-
 
     def startAPI(self):
         
@@ -476,14 +382,15 @@ class ABCApp(wx.App):
 
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
         UserDownloadChoice.get_singleton().set_session_dir(self.utility.session.get_state_dir())
-        
 
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
 
         # set port number in GuiUtility
         if DEBUG:
@@ -571,6 +478,15 @@ class ABCApp(wx.App):
         """ Called by SessionThread """
         wx.CallAfter(self.gui_states_callback,dslist)
         return(1.0, True)
+    
+    def sesscb_ntfy_myprefupdates(self, subject,changeType,objectID,*args):
+        wx.CallAfter(self.gui_ntfy_myprefupdates, objectID)
+    
+    def gui_ntfy_myprefupdates(self, infohash):
+        manager = self.frame.searchlist.GetManager()
+        manager.downloadStarted(infohash)
+        manager = self.frame.selectedchannellist.GetManager()
+        manager.downloadStarted(infohash)
 
     def get_reputation(self):
         """ get the current reputation score"""
@@ -590,100 +506,7 @@ class ABCApp(wx.App):
 
     def set_reputation(self):
         """ set the reputation in the GUI"""
-        reputation = self.get_reputation()
-        if sys.platform == 'win32':
-            self.frame.top_bg.updateReputation(reputation)
-        else:
-            self.frame.top_bg.rep = reputation 
-            if self.frame.top_bg.sr_msg:
-                if reputation < -0.33:
-                    self.frame.top_bg.sr_msg.SetLabel('Poor')
-                    self.frame.top_bg.sr_msg.SetForegroundColour((255,51,0))
-                elif reputation < 0.33:
-                    self.frame.top_bg.sr_msg.SetLabel('Average')
-                    self.frame.top_bg.sr_msg.SetForegroundColour(wx.BLACK)
-                else:
-                    self.frame.top_bg.sr_msg.SetLabel('Good')
-                    self.frame.top_bg.sr_msg.SetForegroundColour((0,80,120))
-
-
-
- 
-        if DEBUG:
-            print >> sys.stderr , "main: My Reputation",reputation
-        
-        self.frame.top_bg.help.SetToolTipString(self.utility.lang.get('help') % (reputation))
-
-        d = int(self.get_total_down()) * 1024.0
- 
-        if d < 10:
-            s = '%dB Down   ' % d         
-        elif d < 100:
-            s = '%dB Down  ' % d         
-        elif d < 1000:
-            s = '%dB Down ' % d
-        elif d < 1024:
-            s = '%1.1fKB Down' % (d/1024.0)
-        elif d < 10240:
-            s = '%dKB Down  ' % (d//1024)
-        elif d < 102400:
-            s = '%dKB Down ' % (d//1024)
-        elif d < 1022796:
-            s = '%dKB Down' % (d//1024)
-        elif d < 1048576:
-            s = '%1.1fMB Down' % (d//1048576.0)
-        elif d < 10485760:
-            s = '%dMB Down  ' % (d//1048576)
-        elif d < 104857600:
-            s = '%dMB Down ' % (d//1048576)
-        elif d < 1047527425:
-            s = '%dMB Down' % (d//1048576)
-        elif d < 1073741824:
-            s = '%1.1fGB Down' % (d//1073741824.0)
-        elif d < 10737418240:
-            s = '%dGB Down  ' % (d//1073741824)
-        elif d < 107374182400:
-            s = '%dGB Down ' % (d//1073741824)
-        else: 
-            s = '%dGB Down' % (d//1073741824)
-
-
-       
-        self.frame.top_bg.total_down.SetLabel(s)
-
-
-        u = self.get_total_up() * 1024.0
-
-
-        if u < 1000:
-            s = '%4dB Up' % u
-        elif u < 1024:
-            s = '%1.1fKB Up' % (u/1024.0)
-        elif u < 1022796:
-            s = '%3dKB Up' % (u//1024)
-        elif u < 1048576:
-            s = '%1.1fMB Up' % (u//1048576.0)
-        elif u < 1047527425:
-            s = '%3dMB Up' % (u//1048576)
-        elif u < 1073741824:
-            s = '%1.1fGB Up' % (u//1073741824.0)
-        else: 
-            s = '%3dGB Up' % (u//1073741824)
-
-
-
-        self.frame.top_bg.total_up.SetLabel(s)
-
-
-        self.frame.hsizer = self.frame.top_bg.sr_indicator.GetContainingSizer()
-        self.frame.hsizer.Remove(0)
-        self.frame.hsizer.Prepend(wx.Size(reputation*40+50,0),0,wx.LEFT,0)
-   
-        self.frame.hsizer.Layout()
-        if sys.platform=='linux2':
-            self.frame.top_bg.Layout()  
- 
-
+        self.frame.SRstatusbar.set_reputation(self.get_reputation(), self.get_total_down(), self.get_total_up())
 
     def guiservthread_update_reputation(self):
         """ update the reputation"""
@@ -695,7 +518,6 @@ class ABCApp(wx.App):
         if self.frame.top_bg.init_ready:
             wx.CallAfter(self.set_reputation)
             self.guiserver.add_task(self.guiservthread_update_reputation,10.0)
-
         else:
             self.guiserver.add_task(self.guiservthread_update_reputation,.2)
         
@@ -768,16 +590,7 @@ class ABCApp(wx.App):
             
             # Pass DownloadStates to libaryView
             try:
-                if self.guiUtility.standardOverview is not None:
-                    mode = self.guiUtility.standardOverview.mode 
-                    #if mode == 'libraryMode' or mode == 'friendsMode':
-                    # Also pass dslist to friendsView, for coopdl boosting info
-                    # Arno, 2009-02-11: We also need it in filesMode now.
-                    modedata = self.guiUtility.standardOverview.data[mode]
-                    grid = modedata.get('grid')
-                    if grid is not None:
-                        gm = grid.gridManager
-                        gm.download_state_gui_callback(dslist)
+                self.guiUtility.torrentsearch_manager.download_state_gui_callback(dslist)
             except KeyError:
                 # Apparently libraryMode only has has a 'grid' key when visible
                 print_exc()
@@ -883,29 +696,31 @@ class ABCApp(wx.App):
                 
         #self.frame.numberPersons.SetLabel('%d' % npeers)
         #self.frame.numberFiles.SetLabel('%d' % nfiles)
-        #print >> sys.stderr, "************>>>>>>>> setDBStats", npeers, nfiles
+        # print >> sys.stderr, "************>>>>>>>> setDBStats", npeers, nfiles
         
     def sesscb_ntfy_activities(self,subject,changeType,objectID,*args):
         # Called by SessionCallback thread
         #print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,"ct",changeType,"oid",objectID,"a",args
-        wx.CallAfter(self.frame.setActivity,objectID,*args)
+        if self.ready: 
+            wx.CallAfter(self.frame.setActivity,objectID,*args)
     
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
-        wx.CallAfter(self.frame.standardOverview.onReachable)
+        if self.ready:
+            wx.CallAfter(self.frame.SRstatusbar.onReachable)
 
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
-        #print >>sys.stderr,"main: Got CHANNELCAST/VOTECAST event",`subject`,`changeType`,`objectID`
-        wx.CallAfter(self.gui_ntfy_channelupdates,subject,changeType,objectID)
-        
+        if self.ready:
+            wx.CallAfter(self.gui_ntfy_channelupdates,subject,changeType,objectID)
     def gui_ntfy_channelupdates(self,subject,changeType,objectID,*args):
-        try:
-            now = time()
-            if now > self.lastchannelrefresh+CHANNELMODE_REFRESH_INTERVAL:
-                self.lastchannelrefresh = now
-                if 'grid2' in self.frame.standardOverview.data['channelsMode']:
-                    self.frame.standardOverview.data['channelsMode']['grid2'].gridManager.refresh()
-        except:
-            print_exc()
+        manager = self.frame.channellist.GetManager()
+        manager.channelUpdated(objectID)
+        
+    def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
+        if self.ready:
+            wx.CallAfter(self.gui_ntfy_torrentupdates,subject,changeType,objectID)
+    def gui_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
+        manager = self.frame.searchlist.GetManager()
+        manager.torrentUpdated(objectID)
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be
@@ -966,8 +781,7 @@ class ABCApp(wx.App):
 
     def startWithRightView(self):
         if self.params[0] != "":
-            self.guiUtility.standardLibraryOverview()
- 
+            self.guiUtility.ShowPage('my_files')
  
     def i2ithread_readlinecallback(self,ic,cmd):
         """ Called by Instance2Instance thread """
@@ -994,11 +808,9 @@ class ABCApp(wx.App):
             # New for 5.0: Start in VOD mode
             def start_asked_download():
                 self.frame.startDownload(torrentfilename,vodmode=True)
-                self.guiUtility.standardLibraryOverview(refresh=True)
+                self.guiUtility.ShowPage('my_files')
             
             wx.CallAfter(start_asked_download)
-    
-        
 
 def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
 

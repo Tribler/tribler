@@ -33,7 +33,7 @@ class SearchManager:
         self.dbhandler = dbhandler
         # self.keywordsearch = KeywordSearch()
     
-    def search(self,kws,maxhits=None):
+    def search(self, kws, maxhits=None):
         """ Called by any thread """
         if DEBUG:
             print >>sys.stderr,"SearchManager: search",kws
@@ -43,7 +43,10 @@ class SearchManager:
             return hits
         else:
             return hits[:maxhits]
-
+    
+    def searchLibrary(self):
+        return self.dbhandler.getTorrents(sort = "name", library = True)
+    
     def searchChannels(self, query): ##
         data = self.dbhandler.searchChannels(query) 
         return data

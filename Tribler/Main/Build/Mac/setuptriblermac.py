@@ -15,8 +15,8 @@ includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml
 
 # gui panels to include
 includePanels=[
-     "standardOverview","standardDetails","standardGrid","standardPager","TopSearchPanel", "settingsOverviewPanel",
-     "standardFilter","channelsDetails","channelsOverviewPanel"]# ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
+     "list","list_header","list_body","list_footer","list_details",
+     "settingsDialog","TopSearchPanel","SearchGridManager","SRstatusbar"]# ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
 
 includeModules += ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 
@@ -30,10 +30,11 @@ if sys.platform != "darwin":
 
 # ----- import and verify wxPython
 
+"""
 import wxversion
 
 wxversion.select('2.8-unicode')
-
+"""
 import wx
 
 v = wx.__version__

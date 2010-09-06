@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resource>
+    <object class="wxDialog" name="settingsDialog" subclass="Tribler.Main.vwxGUI.settingsDialog.SettingsDialog">
+        <style>wxDEFAULT_DIALOG_STYLE</style>
+        <title>Settings</title>
+        <size>600, 400</size>
+        <object class="wxBoxSizer">
+            <orient>wxVERTICAL</orient>
+            <object class="sizeritem">
+                <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem" name="tree">
+                        <minsize>150, -1</minsize>
+                        <object class="wxTreeCtrl" name="settings_tree">
+                            <style>wxTR_DEFAULT_STYLE|wxSUNKEN_BORDER|wxTR_HIDE_ROOT|wxTR_SINGLE</style>
+                        </object>
+                        <flag>wxEXPAND|wxRIGHT</flag>
+						<border>10</border>
+                    </object>
+                    <object class="sizeritem">
+                        <object class="wxPanel" name="general_panel">
+                            <object class="wxBoxSizer">
+                                <orient>wxVERTICAL</orient>
+                                <object class="sizeritem">
+                                    <object class="wxStaticText">
+                                        <label>General</label>
+                                        <font>
+                                            <weight>bold</weight>
+                                            <size>11</size>
+                                        </font>
+                                    </object>
+                                </object>
+								<object class="sizeritem">
+                                    <object class="wxStaticLine">
+                                        <size>-1, 1</size>
+                                        <style>wxLI_HORIZONTAL</style>
+                                    </object>
+                                    <flag>wxEXPAND|wxBOTTOM</flag>
+                                    <border>7</border>
+                                </object>
+                                <object class="sizeritem">
+                                    <object class="wxBoxSizer">
+                                        <orient>wxVERTICAL</orient>
+                                        <object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>Tribler Profile</label>
+                                                <font>
+                                                    <weight>bold</weight>
+                                                </font>
+                                            </object>
+											<flag>wxBOTTOM</flag>
+											<border>5</border>
+                                        </object>
+										<object class="sizeritem">
+											<object class="wxFlexGridSizer">
+												<cols>2</cols>
+												<growablecols>1</growablecols>
+												<object class="sizeritem">
+		                                            <object class="wxStaticText">
+		                                                <label>Nickname</label>
+		                                            </object>
+													<minsize>100,-1</minsize>
+		                                        </object>
+												<object class="sizeritem">
+		                                            <object class="wxTextCtrl" name="myNameField">
+		                                                <style>wxTE_PROCESS_ENTER</style>
+		                                            </object>
+													<flag>wxEXPAND</flag>
+													<option>1</option>
+		                                        </object>
+                                                <object class="sizeritem">
+		                                            <object class="wxStaticText">
+		                                                <label>Profile Image</label>
+		                                            </object>
+		                                        </object>
+		                                        <object class="sizeritem">
+		                                        	<object class="wxBoxSizer">
+		                                                <orient>wxVERTICAL</orient>
+		                                                <object class="sizeritem">
+				                                            <object class="wxPanel" name="thumb" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
+				                                                <size>80,80</size>
+				                                            </object>
+															<flag>wxLEFT</flag>
+															<border>1</border>
+				                                        </object>
+														<object class="sizeritem">
+				                                            <object class="wxButton" name="edit">
+				                                                <label>Change Image</label>
+				                                            </object>
+														</object>
+													</object>
+													<border>3</border>
+													<flag>wxTOP</flag>
+		                                        </object>
+											</object>
+											<flag>wxEXPAND</flag>
+										</object>
+                                        <object class="sizeritem">
+                                            <object class="wxStaticLine">
+                                                <size>-1, 1</size>
+                                                <style>wxLI_HORIZONTAL</style>
+                                            </object>
+                                            <flag>wxEXPAND|wxTOP|wxBOTTOM</flag>
+                                            <border>7</border>
+                                        </object>
+                                        <object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>File Information</label>
+                                                <font>
+                                                    <weight>bold</weight>
+                                                </font>
+                                            </object>
+                                        </object>
+                                        <object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>Save files to</label>
+                                            </object>
+                                        </object>
+                                        <object class="sizeritem">
+                                            <object class="wxBoxSizer">
+                                                <orient>wxHORIZONTAL</orient>
+                                                <object class="sizeritem">
+                                                    <object class="wxTextCtrl" name="diskLocationCtrl">
+                                                        <style>wxTE_PROCESS_ENTER</style>
+                                                    </object>
+													<option>1</option>
+                                                </object>
+                                                <object class="sizeritem">
+                                                    <object class="wxButton" name="browse">
+                                                        <label>Browse</label>
+                                                    </object>
+                                                </object>
+                                            </object>
+											<flag>wxEXPAND</flag>
+                                        </object>
+										<object class="sizeritem">
+                                            <object class="wxStaticLine">
+                                                <size>-1, 1</size>
+                                                <style>wxLI_HORIZONTAL</style>
+                                            </object>
+                                            <flag>wxEXPAND|wxTOP|wxBOTTOM</flag>
+                                            <border>7</border>
+                                        </object>
+										<object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>Family Filter</label>
+                                                <font>
+                                                    <weight>bold</weight>
+                                                </font>
+                                            </object>
+                                        </object>
+										<object class="sizeritem">
+											 <object class="wxBoxSizer">
+                                                <orient>wxHORIZONTAL</orient>
+                                                <object class="sizeritem">
+			                                    	<object class="wxStaticText">
+			                                        	<label>Filter search results</label>
+			                                    	</object>
+													<minsize>100,-1</minsize>
+													<flag>wxALIGN_CENTER_VERTICAL</flag>
+												</object>
+												<object class="sizeritem">
+													<object class="wxChoice" name="familyFilter">
+														<content>
+															<item>On</item>
+															<item>Off</item>
+														</content>
+													</object>
+												</object>
+											</object>
+										</object>
+									</object>
+									<flag>wxEXPAND</flag>
+                                </object>
+                            </object>
+                        </object>
+                        <flag>wxEXPAND</flag>
+                        <option>1</option>
+                    </object>
+                    <object class="sizeritem">
+                        <object class="wxPanel" name="bandwidth_panel">
+                            <hidden>1</hidden>
+                            <object class="wxBoxSizer">
+                                <orient>wxVERTICAL</orient>
+                                <object class="sizeritem">
+                                    <object class="wxStaticText">
+                                        <label>Bandwidth</label>
+                                        <font>
+                                            <weight>bold</weight>
+                                            <size>11</size>
+                                        </font>
+                                    </object>
+                                </object>
+								<object class="sizeritem">
+                                    <object class="wxStaticLine">
+                                        <size>-1, 1</size>
+                                        <style>wxLI_HORIZONTAL</style>
+                                    </object>
+                                    <flag>wxEXPAND|wxBOTTOM</flag>
+                                    <border>7</border>
+                                </object>
+								<object class="sizeritem">
+                                    <object class="wxBoxSizer">
+                                        <orient>wxVERTICAL</orient>
+                                        <object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>Bandwidth limits</label>
+                                                <font>
+                                                    <weight>bold</weight>
+                                                </font>
+                                            </object>
+											<flag>wxBOTTOM</flag>
+											<border>5</border>
+                                        </object>
+		                                <object class="sizeritem">
+		                                    <object class="wxStaticText">
+		                                        <label>Limit upload rate</label>
+		                                    </object>
+		                                </object>
+		                                <object class="sizeritem">
+		                                    <object class="wxBoxSizer">
+		                                        <orient>wxHORIZONTAL</orient>
+		                                        <object class="sizeritem">
+		                                            <object class="wxTextCtrl" name="uploadCtrl">
+		                                                <style>wxTE_PROCESS_ENTER|wxTE_RIGHT</style>
+		                                            </object>
+		                                        </object>
+		                                        <object class="sizeritem">
+		                                            <object class="wxStaticText">
+		                                                <label>KB/s</label>
+		                                            </object>
+													<flag>wxALIGN_CENTER_VERTICAL|wxLEFT</flag>
+													<border>3</border>
+		                                        </object>
+												<object class="spacer">
+													<option>1</option>
+												</object>
+		                                        <object class="sizeritem">
+		                                            <object class="wxButton" name="zeroUp">
+		                                                <label>0</label>
+		                                                <style>wxBU_EXACTFIT</style>
+		                                            </object>
+		                                        </object>
+		                                        <object class="sizeritem">
+		                                            <object class="wxButton" name="fiftyUp">
+		                                                <label>50</label>
+		                                                <style>wxBU_EXACTFIT</style>
+		                                            </object>
+		                                        </object>
+		                                        <object class="sizeritem">
+		                                            <object class="wxButton" name="hundredUp">
+		                                                <label>100</label>
+		                                                <style>wxBU_EXACTFIT</style>
+		                                            </object>
+		                                        </object>
+		                                        <object class="sizeritem">
+		                                            <object class="wxButton" name="unlimitedUp">
+		                                                <label>unlimited</label>
+		                                                <style>wxBU_EXACTFIT</style>
+		                                            </object>
+		                                        </object>
+		                                    </object>
+											<flag>wxEXPAND</flag>
+                                		</object>
+		                                <object class="sizeritem">
+		                                    <object class="wxStaticText" name="downloadText">
+		                                        <label>Limit download rate</label>
+		                                    </object>
+											<flag>wxTOP</flag>
+											<border>3</border>
+		                                </object>
+		                                <object class="sizeritem">
+		                                    <object class="wxBoxSizer">
+		                                        <orient>wxHORIZONTAL</orient>
+		                                        <object class="sizeritem">
+		                                            <object class="wxTextCtrl" name="downloadCtrl">
+		                                                <style>wxTE_PROCESS_ENTER|wxTE_RIGHT</style>
+		                                            </object>
+		                                        </object>
+		                                        <object class="sizeritem">
+		                                            <object class="wxStaticText">
+		                                                <label>KB/s</label>
+		                                            </object>
+													<flag>wxALIGN_CENTER_VERTICAL|wxLEFT</flag>
+													<border>3</border>
+		                                        </object>
+												<object class="spacer">
+													<option>1</option>
+												</object>
+		                                        <object class="sizeritem">
+		                                            <object class="wxButton" name="seventyfiveDown">
+		                                                <label>75</label>
+		                                                <style>wxBU_EXACTFIT</style>
+		                                            </object>
+		                                        </object>
+		                                        <object class="sizeritem">
+		                                            <object class="wxButton" name="threehundredDown">
+		                                                <label>300</label>
+		                                                <style>wxBU_EXACTFIT</style>
+		                                            </object>
+		                                        </object>
+		                                        <object class="sizeritem">
+		                                            <object class="wxButton" name="sixhundreddDown">
+		                                                <label>600</label>
+		                                                <style>wxBU_EXACTFIT</style>
+		                                            </object>
+		                                        </object>
+		                                        <object class="sizeritem">
+		                                            <object class="wxButton" name="unlimitedDown">
+		                                                <label>unlimited</label>
+		                                                <style>wxBU_EXACTFIT</style>
+		                                            </object>
+		                                        </object>
+		                                    </object>
+											<flag>wxEXPAND</flag>
+		                                </object>
+                            		</object>
+									<flag>wxEXPAND</flag>
+                        		</object>
+                        		<flag>wxEXPAND</flag>
+                    		</object>
+						</object>
+						<flag>wxEXPAND</flag>
+                        <option>1</option>
+					</object>
+                    <object class="sizeritem">
+                        <object class="wxPanel" name="connection_panel"> 
+                            <hidden>1</hidden>
+                            <object class="wxBoxSizer">
+                                <orient>wxVERTICAL</orient>
+                                <object class="sizeritem">
+                                    <object class="wxStaticText">
+                                        <label>Connection</label>
+                                        <font>
+                                            <weight>bold</weight>
+                                            <size>11</size>
+                                        </font>
+                                    </object>
+                                </object>
+								<object class="sizeritem">
+                                    <object class="wxStaticLine">
+                                        <size>-1, 1</size>
+                                        <style>wxLI_HORIZONTAL</style>
+                                    </object>
+                                    <flag>wxEXPAND|wxBOTTOM</flag>
+                                    <border>7</border>
+                                </object>
+								<object class="sizeritem">
+                                    <object class="wxBoxSizer">
+                                        <orient>wxVERTICAL</orient>
+                                        <object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>Firewall status</label>
+                                                <font>
+                                                    <weight>bold</weight>
+                                                </font>
+                                            </object>
+											<flag>wxBOTTOM</flag>
+											<border>5</border>
+                                        </object>
+		                                <object class="sizeritem">
+		                                	<object class="wxFlexGridSizer">
+		                                		<rows>2</rows>
+												<cols>2</cols>
+												<vgap>3</vgap>
+												<object class="sizeritem">
+			                                    	<object class="wxStaticText">
+			                                        	<label>Current port</label>
+			                                    	</object>
+													<minsize>100,-1</minsize>
+												</object>
+												<object class="sizeritem">
+													<object class="wxTextCtrl" name="firewallValue">
+		                                                <style>wxTE_PROCESS_ENTER</style>
+		                                            </object>
+												</object>
+												<object class="sizeritem">
+				                                    <object class="wxStaticText">
+				                                        <label>Status</label>
+				                                    </object>
+		                                        </object>
+												<object class="sizeritem">
+		                                            <object class="wxPanel" name="firewallStatus" subclass="Tribler.Main.vwxGUI.tribler_topButton.settingsButton">
+		                                                <size>33,32</size>
+		                                            </object>
+		                                        </object>
+												<object class="spacer"/>
+												<object class="sizeritem">
+                                                    <object class="wxStaticText" name="firewallStatusText">
+                                                        <label></label>
+                                                    </object>
+                                                </object>
+											</object>
+											<flag>wxEXPAND</flag>
+										</object>
+                                    </object>
+                                </object>
+                                <object class="sizeritem">
+                                    <object class="wxStaticText" name="portChange">
+                                        <label></label>
+                                        <size>200,50</size>
+                                    </object>
+                                    <flag>wxLEFT</flag>
+                                    <border>20</border>
+                                </object>
+                            </object>
+                        </object>
+                        <flag>wxEXPAND</flag>
+                        <option>1</option>
+                    </object>
+                	<object class="sizeritem">
+	                    <object class="wxPanel" name="misc_panel"> 
+	                        <hidden>1</hidden>
+	                        <object class="wxBoxSizer">
+	                            <orient>wxVERTICAL</orient>
+	                            <object class="sizeritem">
+	                                <object class="wxStaticText">
+	                                    <label>Misc</label>
+	                                    <font>
+	                                        <weight>bold</weight>
+	                                        <size>11</size>
+	                                    </font>
+	                                </object>
+	                            </object>
+								<object class="sizeritem">
+	                                <object class="wxStaticLine">
+	                                    <size>-1, 1</size>
+	                                    <style>wxLI_HORIZONTAL</style>
+	                                </object>
+	                                <flag>wxEXPAND|wxBOTTOM</flag>
+	                                <border>7</border>
+	                            </object>
+								<object class="sizeritem">
+	                                <object class="wxBoxSizer">
+	                                    <orient>wxVERTICAL</orient>
+	                                    <object class="sizeritem">
+	                                        <object class="wxStaticText">
+	                                            <label>Use popup player</label>
+	                                            <font>
+	                                                <weight>bold</weight>
+	                                            </font>
+	                                        </object>
+	                                    </object>
+										<object class="sizeritem">
+											<object class="wxCheckBox" name="externalplayer">
+												<label>Popup player</label>
+											</object>
+											<border>3</border>
+											<flag>wxTOP</flag>
+										</object>
+	                                </object>
+	                            </object>
+	                        </object>
+	                    </object>
+	                    <flag>wxEXPAND</flag>
+	                    <option>1</option>
+					</object>
+				</object>
+                <flag>wxEXPAND|wxALL</flag>
+                <border>10</border>
+                <option>1</option>
+            </object>
+            <object class="sizeritem">
+                <flag>wxALL|wxALIGN_RIGHT</flag>
+                <border>5</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                        <border>0</border>
+                        <option>0</option>
+                        <object class="wxButton" name="save">
+                            <stockitem>OK</stockitem>
+                            <label>&amp;OK</label>
+                        </object>
+                    </object>
+                    <object class="sizeritem">
+                        <flag>wxLEFT</flag>
+                        <border>10</border>
+                        <option>0</option>
+                        <object class="wxButton" name="close">
+                            <stockitem>CANCEL</stockitem>
+                            <label>&amp;Cancel</label>
+                        </object>
+                    </object>
+                </object>
+            </object>
+        </object>
+    </object>
+</resource>

@@ -222,6 +222,7 @@ class VideoPlayer:
         """ Stop playback in current video window """
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().Stop()
+            self.videoframe.Stop()
             if reset:
                 self.videoframe.get_videopanel().Reset()
         self.set_vod_download(None)
@@ -229,6 +230,7 @@ class VideoPlayer:
     def show_loading(self):
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().ShowLoading()
+            self.videoframe.ShowLoading()
 
     def close(self):
         """ Stop playback and close current video window """
