@@ -455,20 +455,19 @@ class LibraryDetails(TorrentDetails):
         self.mychannel_callback = mychannel_callback
     
     def ShowDownloadProgress(self):
-        header = wx.StaticText(self.buttonPanel, -1, "Did you enjoy this torrent?\nThen let other know by adding it to your channel.")
+        header = wx.StaticText(self.buttonPanel, -1, "Did you enjoy this torrent?\nThen let others know by adding it to your channel.")
         header.SetMinSize((1,-1))
         font = header.GetFont()
         font.SetPointSize(font.GetPointSize()+1)
         header.SetFont(font)
         self.buttonSizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
         
-        self.buttonSizer.AddStretchSpacer()
-        
         button = wx.Button(self.buttonPanel, -1, "Add to My Channel")
         button.Bind(wx.EVT_BUTTON, self.mychannel_callback)
         button.SetToolTipString('Add this torrent to your channel.')
+        self.buttonSizer.Add(button, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 5)
         
-        self.buttonSizer.Add(button, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        self.buttonSizer.AddStretchSpacer()
     
 class ProgressPanel(wx.Panel):
     def __init__(self, parent, item):

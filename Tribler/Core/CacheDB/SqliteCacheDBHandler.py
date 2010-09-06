@@ -1862,7 +1862,6 @@ class TorrentDBHandler(BasicDBHandler):
                          LIMIT ?"""
                 res.extend([infohash for infohash, in self._db.fetchall(sql, (list_size - len(res),))])
 
-        print >> sys.stderr, res
         return [str2bin(infohash) for infohash in res if not infohash is None]
         
     def selectTorrentToCheck(self, policy='random', infohash=None, return_value=None):    # for tracker checking
