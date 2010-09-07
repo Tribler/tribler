@@ -74,74 +74,72 @@ class TorrentDetails(wx.Panel):
         self.Freeze()
         self.messagePanel.Show(False)
         
-        self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
-        
-        #Create torrent overview
-        self.overview = wx.Panel(self.notebook)
-        self.overview.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        header = wx.StaticText(self.overview, -1, "Torrent Details")
-        font = header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        header.SetFont(font)
-        vSizer.Add(header,0, wx.BOTTOM, 5)
-        
-        torrentSizer = wx.FlexGridSizer(0, 2, 3, 3)
-        torrentSizer.AddGrowableCol(1)
-        
-        def add_row(name, value):
-            header = wx.StaticText(self.overview, -1, name)
-            font = header.GetFont()
-            font.SetWeight(wx.FONTWEIGHT_BOLD)
-            header.SetFont(font)
-            torrentSizer.Add(header, 0, wx.RIGHT, 10)
+        def create_tab(tabname, header = None):
+            panel = wx.Panel(self.notebook)
+            panel.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
+            self.notebook.AddPage(panel, tabname)
             
-            if not isinstance(value, wx.Object):
-                value = wx.StaticText(self.overview, -1, value)
-                value.SetMinSize((1,-1))
-            torrentSizer.Add(value, 1, wx.EXPAND)
+            vSizer = wx.BoxSizer(wx.VERTICAL)
+            panel.SetSizer(vSizer)
+            
+            if header:
+                header = wx.StaticText(panel, -1, header)
+                font = header.GetFont()
+                font.SetWeight(wx.FONTWEIGHT_BOLD)
+                header.SetFont(font)
+                vSizer.Add(header, 0, wx.BOTTOM, 5)
+            
+            scrollPanel = wx.lib.scrolledpanel.ScrolledPanel(panel)
+            scrollSizer = wx.BoxSizer(wx.VERTICAL)
+            scrollPanel.SetSizer(scrollSizer)
+            
+            vSizer.Add(scrollPanel, 1, wx.EXPAND|wx.ALL, 3)
+            return scrollPanel, scrollSizer
+        
+        def add_row(parent, sizer, name, value):
+            if name:
+                name = wx.StaticText(parent, -1, name)
+                font = name.GetFont()
+                font.SetWeight(wx.FONTWEIGHT_BOLD)
+                name.SetFont(font)
+                sizer.Add(name, 0, wx.RIGHT, 10)
+            
+            value = wx.StaticText(parent, -1, value)
+            value.SetMinSize((1,-1))
+            sizer.Add(value, 1, wx.EXPAND)
+            
+            return name, value
         
         def __format_time(val):
             discovered = date.fromtimestamp(val)
             return discovered.strftime('%d-%m-%y')
         
-        add_row("Name", torrent['name'])
+        self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
+        
+        #Create torrent overview
+        overview, vSizer = create_tab('Overview', 'Torrent Details')
         category = torrent['category']
         if isinstance(category,list):
             category = ', '.join(category)
-        add_row("Type", category.capitalize())
-        add_row("Uploaded", __format_time(torrent['creation_date']))
-        add_row("Filesize", self.guiutility.utility.size_format(torrent['length']) + " in " + str(len(information[2])) + " files")
         
-        self.statusSizer = wx.BoxSizer(wx.HORIZONTAL)
+        torrentSizer = wx.FlexGridSizer(0, 2, 3, 3)
+        torrentSizer.AddGrowableCol(1)
+        add_row(overview, torrentSizer, "Name", torrent['name'])
+        add_row(overview, torrentSizer, "Type", category.capitalize())
+        add_row(overview, torrentSizer, "Uploaded", __format_time(torrent['creation_date']))
+        add_row(overview, torrentSizer, "Filesize", self.guiutility.utility.size_format(torrent['length']) + " in " + str(len(information[2])) + " files")
+        
         seeders = torrent['num_seeders']
         leechers = torrent['num_leechers']
         if seeders <= 0 and leechers <= 0:
-            self.statusSizer.Add(wx.StaticText(self.overview, -1, "Unknown"))
+            _, self.status = add_row(overview, torrentSizer, "Status", "Unknown")
         else:
-            self.statusSizer.Add(wx.StaticText(self.overview, -1, "%s seeders, %s leechers"%(seeders,leechers)))
-        add_row("Status", self.statusSizer)
+            _, self.status = add_row(overview, torrentSizer, "Status", "%s seeders, %s leechers"%(seeders,leechers))
+        vSizer.Add(torrentSizer, 0, wx.EXPAND)
+        overview.SetupScrolling(rate_y = 5)
+        
+        #Refresh seeders/leechers
         self.torrentChecker.start()
-        
-        vSizer.Add(torrentSizer, 0, wx.EXPAND|wx.ALL, 3)
-        self.overview.SetSizer(vSizer)
-        self.notebook.AddPage(self.overview, "Overview")
-        
-        #Create description
-        if torrent['comment'] and torrent['comment'] != 'None':
-            descriptionPanel = wx.Panel(self.notebook)
-            descriptionPanel.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
-            vSizer = wx.BoxSizer(wx.VERTICAL)
-            header = wx.StaticText(descriptionPanel, -1, "Comment")
-            font = header.GetFont()
-            font.SetWeight(wx.FONTWEIGHT_BOLD)
-            header.SetFont(font)
-            vSizer.Add(header,0, wx.BOTTOM, 5)
-            comment_text = wx.StaticText(descriptionPanel, -1, torrent['comment'])
-            comment_text.SetMinSize((1, -1))
-            vSizer.Add(comment_text, 0, wx.ALL|wx.EXPAND, 3)
-            descriptionPanel.SetSizer(vSizer)
-            self.notebook.AddPage(descriptionPanel, "Description")
         
         #Create filelist
         self.listCtrl = SortedListCtrl(self.notebook, 2)
@@ -187,28 +185,21 @@ class TorrentDetails(wx.Panel):
         
         self.notebook.AddPage(self.listCtrl, "Files")
         
+        #Create description
+        if torrent['comment'] and torrent['comment'] != 'None':
+            descriptionPanel, vSizer = create_tab("Description", "Comment")
+            add_row(descriptionPanel, vSizer, None, torrent['comment'])
+            descriptionPanel.SetupScrolling(rate_y = 5)
+        
         #Create trackerlist
-        trackerPanel = wx.Panel(self.notebook)
-        trackerPanel.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        header = wx.StaticText(trackerPanel, -1, "Trackers")
-        font = header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        header.SetFont(font)
-        vSizer.Add(header,0, wx.BOTTOM, 5)
-        trackerlist = wx.lib.scrolledpanel.ScrolledPanel(trackerPanel)
-        trackerSizer = wx.BoxSizer(wx.VERTICAL)
+        trackerPanel, vSizer = create_tab("Trackers", "Trackers")
         for trackers in torrent['trackers']:
             for tracker in trackers:
-                trackerSizer.Add(wx.StaticText(trackerlist, -1, tracker), 0, wx.EXPAND|wx.ALL, 3)
-        trackerlist.SetSizer(trackerSizer)
-        trackerlist.SetupScrolling()
-        vSizer.Add(trackerlist, 1, wx.EXPAND)
-        trackerPanel.SetSizer(vSizer)
-        self.notebook.AddPage(trackerPanel, "Trackers")
+                add_row(trackerPanel, vSizer, None, tracker)
+        trackerPanel.SetupScrolling(rate_y = 5)
         
         #Set height depending on number of files present
-        minHeight = min(130, self.notebook.GetBestSize()[1])
+        minHeight = 130
         maxHeight = 180
         self.notebook.SetMinSize((-1, min(minHeight + len(information[2]) * 16, maxHeight)))
         self.details.Add(self.notebook, 6, wx.EXPAND|wx.ALL, 3)
@@ -404,10 +395,7 @@ class TorrentDetails(wx.Panel):
         wx.CallAfter(self.ShowStatus)
     
     def ShowStatus(self):
-        self.statusSizer.ShowItems(False)
-        self.statusSizer.Clear()
-        self.statusSizer.Add(wx.StaticText(self.overview, -1, "%s seeders, %s leechers"%(self.torrent['num_seeders'], self.torrent['num_leechers'])))
-        self.statusSizer.Layout()
+        self.status.SetLabel("%s seeders, %s leechers"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
            
     def OnRefresh(self, dslist):
         found = False
