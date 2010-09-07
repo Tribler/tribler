@@ -3118,6 +3118,11 @@ class ChannelCastDBHandler(BasicDBHandler):
             myrandomtorrents = self._db.fetchall(sql,(permid_for_user(self.my_permid),t,NUM_OWN_RANDOM_TORRENTS,))
             allrecords.extend(myrandomtorrents)
         
+        num_records = len(allrecords)
+        if num_records < NUM_OWN_RECENT_TORRENTS + NUM_OWN_RANDOM_TORRENTS:
+            NUM_OTHERS_RECENT_TORRENTS +=  (NUM_OWN_RECENT_TORRENTS + NUM_OWN_RANDOM_TORRENTS - num_records)/2
+            NUM_OTHERS_RANDOM_TORRENTS +=  (NUM_OWN_RECENT_TORRENTS + NUM_OWN_RANDOM_TORRENTS - num_records)/2
+        
         sql = "select * from ChannelCast where publisher_id in (select mod_id from VoteCast where voter_id=? and vote=2) order by time_stamp desc limit ?"
         othersrecenttorrents = self._db.fetchall(sql,(permid_for_user(self.my_permid),NUM_OTHERS_RECENT_TORRENTS,))
         if othersrecenttorrents is not None and len(othersrecenttorrents)>0: 
@@ -3128,7 +3133,11 @@ class ChannelCastDBHandler(BasicDBHandler):
             sql = "select * from ChannelCast where publisher_id in (select mod_id from VoteCast where voter_id=? and vote=2) and time_stamp<? order by random() limit ?"
             othersrandomtorrents = self._db.fetchall(sql,(permid_for_user(self.my_permid),t,NUM_OTHERS_RANDOM_TORRENTS,))
             allrecords.extend(othersrandomtorrents)
-        
+            
+        interesting_records = self.getInterestingChannelsTorrents(55-len(allrecords))    
+        if interesting_records is not None and len(interesting_records) > 0:
+            allrecords.extend(interesting_records)
+            
         records = []
         for record in allrecords:
             records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
@@ -3237,8 +3246,9 @@ class ChannelCastDBHandler(BasicDBHandler):
         elif query[0] == 'p': 
             # search channel's torrents based on permid
             q = query[2:]
-            #print>>sys.stderr, "ChannelCastDB: searchChannels: This is a permid-based search:", `q`            
-            s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
+            #print>>sys.stderr, "ChannelCastDB: searchChannels: This is a permid-based search:", `q`
+            # Sep 7, 2010 Nitin:  In order to more aggressively collect a channel's torrents, all its torrents in the DB are replied instead of using limiting factor.            
+            s = "select * from ChannelCast where publisher_id==?"
             allrecords = self._db.fetchall(s,(q,)) ## before records = {'torrents':self._db.fetchall(s)}
             #channelList = self.valuelist2channellist(records,value_name)  
             records = []
