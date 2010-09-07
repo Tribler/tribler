@@ -379,7 +379,7 @@ class SearchList(List):
             
             item.data[-2] = ratio
             
-            control = SwarmHealth(parent, 5)
+            control = SwarmHealth(parent)
             control.SetMinSize((self.columns[-2]['width'],7))
             control.SetBackgroundColour(wx.WHITE)
             control.SetRatio(ratio)
@@ -764,7 +764,7 @@ class SelectedChannelList(SearchList):
         self.channelsearch_manager = self.guiutility.channelsearch_manager 
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Discovered', 'width': 70, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time}, \
+                   {'name':'Discovered', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time}, \
                    {'name':'Size', 'width': 80, 'style': wx.ALIGN_RIGHT, 'fmt': self.utility.size_format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Swarmhealth'}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \

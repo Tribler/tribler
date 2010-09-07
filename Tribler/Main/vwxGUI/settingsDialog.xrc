@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resource>
     <object class="wxDialog" name="settingsDialog" subclass="Tribler.Main.vwxGUI.settingsDialog.SettingsDialog">
+    	<font platform="unix">
+  			<size>9</size>
+  		</font> 
         <style>wxDEFAULT_DIALOG_STYLE</style>
         <title>Settings</title>
         <size>600, 400</size>

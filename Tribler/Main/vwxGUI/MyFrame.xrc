@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource version="2.3.0.1" xmlns="http://www.wxwidgets.org/wxxrc">
   <object class="wxFrame" name="MyFrame" subclass="Tribler.Main.vwxGUI.MainFrame.MainFrame">
+  	<font platform="unix">
+  		<size>9</size>
+  	</font> 
     <title></title>
     <size>1024,670</size>
     <style>wxCAPTION|wxCLOSE_BOX|wxMINIMIZE_BOX|wxMAXIMIZE_BOX|wxTAB_TRAVERSAL|wxSYSTEM_MENU|wxRESIZE_BORDER</style>
