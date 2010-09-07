@@ -350,7 +350,7 @@ class SearchList(List):
             panel.UpdateStatus()
     
     def CreateDownloadButton(self, parent, item):
-        button = wx.Button(parent, -1, 'Download')
+        button = wx.Button(parent, -1, 'Download', style = wx.BU_EXACTFIT)
         button.item = item
         item.button = button
         
