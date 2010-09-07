@@ -1,4 +1,4 @@
-# Written by John Hoffman
+# Written by John Hoffman, George Milescu
 # see LICENSE.txt for license information
 
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
@@ -8,16 +8,18 @@ from httplib import HTTPConnection
 from urllib import quote
 from threading import Thread
 from Tribler.Core.BitTornado.__init__ import product_name,version_short
-# 2fastbt_
+
+# ProxyService_
+#
 try:
-    from Tribler.Core.CoopDownload.Helper import SingleDownloadHelperInterface
+    from Tribler.Core.ProxyService.Helper import SingleDownloadHelperInterface
 except ImportError:
     class SingleDownloadHelperInterface:
         
         def __init__(self):
             pass
-
-# _2fastbt
+#
+# ProxyService
 
 try:
     True

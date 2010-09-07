@@ -121,7 +121,6 @@ class UDPHandler:
         # initialise connections now because it is used in shutdown which will
         # be called for Crawler instances as well
         self.connections = {}
-        
         if check_crawler:
             from Tribler.Core.Statistics.Crawler import Crawler
             crawler = Crawler.get_instance()

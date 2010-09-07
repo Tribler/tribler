@@ -12,13 +12,14 @@ FORMAT = '%(asctime)s %(levelname)s %(filename)s:%(lineno)s - %(funcName)s()\n\
 devnullstream = open(os.devnull,"w")
 
 logging.basicConfig(level=logging.CRITICAL,
-                    format='%(asctime)s %(levelname)-8s %(message)s',
-                    datefmt='%a, %d %b %Y %H:%M:%S',
-                    stream=devnullstream)
+                   format='%(asctime)s %(levelname)-8s %(message)s',
+                   datefmt='%a, %d %b %Y %H:%M:%S',
+                   stream=devnullstream)
 
 def testing_setup(module_name):
     logger = logging.getLogger('dht')
-    logger.setLevel(logging.DEBUG)
+    # Arno, 2010-06-11: Alt way of disabling logging from DHT instead of global
+    logger.setLevel(logging.CRITICAL+100)
     filename = ''.join((str(module_name), '.log'))
     logger_file = os.path.join('test_logs', filename)
     

@@ -15,8 +15,12 @@ from cStringIO import StringIO
 import os
 import Tribler.Core.osutils
 
-DEBUG = False
-        
+# NOTE: DEBUG is set dynamically depending from DEBUGWEBUI and DEBUGCONTENT
+DEBUG = True
+DEBUGCONTENT = True
+DEBUGWEBUI = False
+DEBUGLOCK = False
+DEBUGBASESERV = False
         
 def bytestr2int(b):
     if b == "":
@@ -94,50 +98,78 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         self.statuscallback = statuscallback
 
     def set_inputstream(self,streaminfo,urlpath):
+        if DEBUGLOCK:
+            print >>sys.stderr,"vs: set_input: lock",urlpath,currentThread().getName()
         self.lock.acquire()
         streaminfo['lock'] = RLock()
         self.urlpath2streaminfo[urlpath] = streaminfo
+        if DEBUGLOCK:
+            print >>sys.stderr,"vs: set_input: unlock",urlpath,currentThread().getName()
         self.lock.release()
         
     def acquire_inputstream(self,urlpath):
+
+        streaminfo = None
+        # First check mappers, without locking, assuming video stream URL paths won't match mappers
+        for mapper in self.mappers:
+            streaminfo = mapper.get(urlpath)
+            # print >>sys.stderr,"videoserv: get_inputstream: Got streaminfo",`streaminfo`,"from",`mapper`
+            if streaminfo is not None and (streaminfo['statuscode'] == 200 or streaminfo['statuscode'] == 301):
+                return streaminfo
+
+        if DEBUGLOCK:
+            print >>sys.stderr,"vs: acq_input: lock",urlpath,currentThread().getName()
         self.lock.acquire()
         try:
             streaminfo = self.urlpath2streaminfo.get(urlpath,None)
-            if streaminfo is None:
-                for mapper in self.mappers:
-                    streaminfo = mapper.get(urlpath)
-                    # print >>sys.stderr,"videoserv: get_inputstream: Got streaminfo",`streaminfo`,"from",`mapper`
-                    if streaminfo is not None and streaminfo['statuscode'] == 200:
-                        break
         finally:
+            if DEBUGLOCK:
+                print >>sys.stderr,"vs: acq_input: unlock",urlpath,currentThread().getName()
             self.lock.release()
 
+        # Grab lock of video stream, such that other threads cannot read from it. Do outside self.lock
         if streaminfo is not None and 'lock' in streaminfo:
+            if DEBUGLOCK:
+                print >>sys.stderr,"vs: acq_input: stream: lock",urlpath,currentThread().getName()
             streaminfo['lock'].acquire()
         return streaminfo
 
 
     def release_inputstream(self,urlpath):
+        if DEBUGLOCK:
+            print >>sys.stderr,"vs: rel_input: lock",urlpath,currentThread().getName()
         self.lock.acquire()
         try:
             streaminfo = self.urlpath2streaminfo.get(urlpath,None)
         finally:
+            if DEBUGLOCK:
+                print >>sys.stderr,"vs: rel_input: unlock",urlpath,currentThread().getName()
             self.lock.release()
 
         if streaminfo is not None and 'lock' in streaminfo:
+            if DEBUGLOCK:
+                print >>sys.stderr,"vs: rel_input: stream: unlock",urlpath,currentThread().getName()
             streaminfo['lock'].release()
 
 
     def del_inputstream(self,urlpath):
+        if DEBUGLOCK:
+            print >>sys.stderr,"vs: del_input: enter",urlpath
         streaminfo = self.acquire_inputstream(urlpath)
         
+        if DEBUGLOCK:
+            print >>sys.stderr,"vs: del_input: lock",urlpath,currentThread().getName()
         self.lock.acquire()
         try:
             del self.urlpath2streaminfo[urlpath]
         finally:
+            if DEBUGLOCK:
+                print >>sys.stderr,"vs: del_input: unlock",urlpath,currentThread().getName()
             self.lock.release()
 
         if streaminfo is not None and 'lock' in streaminfo:
+            if DEBUGLOCK:
+                print >>sys.stderr,"vs: del_input: stream: unlock",urlpath,currentThread().getName()
             streaminfo['lock'].release()
 
 
@@ -145,18 +177,31 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         return self.port
 
     def add_path_mapper(self,mapper):
-        self.lock.acquire()
-        try:
-            self.mappers.append(mapper)
-        finally:
-            self.lock.release()
-        
+        """ WARNING: mappers cannot be added dynamically, must be registered before background_serve()
+        """
+        self.mappers.append(mapper)
 
     def shutdown(self):
         if DEBUG:
             print >>sys.stderr,"videoserv: Shutting down HTTP"
         # Stop by closing listening socket of HTTP server
         self.socket.close()
+
+    
+    def handle_error(self, request, client_address):
+        """ Error inside the BaseHTTPServer that reports errors like:
+          File "c:\Python265\lib\socket.py", line 406, in readline
+            data = self._sock.recv(self._rbufsize)
+          error: [Errno 10053] An established connection was aborted by the software in your host machine
+          
+          As this fill the log when VLC uses HTTP range requests in its brutal
+          way (send offset, close conn, send offset+10K-, close conn), 
+          only print when really wanted.
+        """
+        if DEBUGBASESERV:
+            print >>sys.stderr,"VideoHTTPServer: handle_error",request,client_address
+            print_exc()
+            
 
 
 class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -178,7 +223,13 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         
         Called by a separate thread for each request.
         """
+        global DEBUG
         try:
+            if self.path.startswith("/webUI"):
+                DEBUG = DEBUGWEBUI
+            else:
+                DEBUG = DEBUGCONTENT
+            
             if DEBUG:
                 print >>sys.stderr,"videoserv: do_GET: Got request",self.path,self.headers.getheader('range'),currentThread().getName()
                 #print >>sys.stderr,"videoserv: do_GET: Range",self.headers.getrawheader('Range'),currentThread().getName()
@@ -186,19 +237,33 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             # 1. Get streaminfo for the data we should return in response
             nbytes2send = None
             nbyteswritten= 0
-            streaminfo = self.server.acquire_inputstream(self.path)
+            try:
+                streaminfo = self.server.acquire_inputstream(self.path)
+            except:
+                streaminfo = None
             #print >>sys.stderr,"videoserv: do_GET: Got streaminfo",`streaminfo`
+            
+            # Ric: modified to create a persistent connection in case it's requested (HTML5)
+            if self.request_version == 'HTTP/1.1':
+                self.protocol_version = 'HTTP/1.1'
+                
             try:
                 if streaminfo is None or ('statuscode' in streaminfo and streaminfo['statuscode'] != 200):
                     # 2. Send error response
+                    if streaminfo is None:
+                        streaminfo = {'statuscode':500,'statusmsg':"Internal Server Error, couldn't find resource"}
                     if DEBUG:
                         print >>sys.stderr,"videoserv: do_GET: Cannot serve request",streaminfo['statuscode'],currentThread().getName()
                         
                     self.send_response(streaminfo['statuscode'])
-                    self.send_header("Content-Type","text/plain")
-                    self.send_header("Content-Length", len(streaminfo['statusmsg']))
-                    self.end_headers()
-                    self.wfile.write(streaminfo['statusmsg'])
+                    if streaminfo['statuscode'] == 301:
+                        self.send_header("Location", streaminfo['statusmsg'])
+                        self.end_headers()
+                    else:
+                        self.send_header("Content-Type","text/plain")
+                        self.send_header("Content-Length", len(streaminfo['statusmsg']))
+                        self.end_headers()
+                        self.wfile.write(streaminfo['statusmsg'])
                     return
                 else:
                     # 2. Prepare to send stream
@@ -232,7 +297,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     lastbyte = None # to avoid print error below
     
                 range = self.headers.getheader('range')
-                if self.RANGE_REQUESTS_ENABLED and range:
+                if self.RANGE_REQUESTS_ENABLED and length and range:
                     # Handle RANGE query
                     bad = False
                     type, seek = string.split(range,'=')
@@ -301,12 +366,34 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     print >>sys.stderr,"videoserv: do_GET: final range",firstbyte,lastbyte,nbytes2send,currentThread().getName()
             
             
-                # 4. Seek in stream to desired offset
+                # 4. Seek in stream to desired offset, unless svc
                 if not svc:
-                    stream.seek(firstbyte)
+                    try:
+                        stream.seek(firstbyte)
+                    except:
+                        # Arno, 2010-10-17: Live will throw harmless exception, 
+                        # Ogg live needs it to reset to "send header" first state.
+                        # Better solution is to have OggMagicStream with
+                        # ControlledStream in BackgroundProcess.py
+                        print_exc()
         
+                # For persistent connections keep the socket alive!
+                if self.request_version == 'HTTP/1.1':
+                    self.send_header("Connection", "Keep-Alive")
+                    # test.. to be adjusted depending on the request
+                    self.send_header("Keep-Alive", "timeout=15, max=100")
+                    
                 # 5. Send headers
                 self.send_header("Content-Type", mimetype)
+                self.send_header("Accept-Ranges", "bytes")
+
+
+                # Ric: bitrate needs to be detected even if the file is already completed
+                if streaminfo.has_key('bitrate') and length is not None:
+                    bitrate = streaminfo['bitrate']
+                    estduration = float(length) / float(bitrate)
+                    self.send_header("X-Content-Duration", estduration)
+
                 if length is not None:
                     self.send_header("Content-Length", nbytes2send)
                 else:
@@ -348,6 +435,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                             else:
                                 self.wfile.write(data)
                                 nbyteswritten += len(data)
+                            
+                            #print >>sys.stderr,"videoserv: HTTP: wrote total",nbyteswritten
                             
                         if length is None:
                             # If length unknown, use chunked encoding

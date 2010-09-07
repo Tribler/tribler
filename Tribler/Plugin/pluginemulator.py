@@ -25,12 +25,17 @@ class PluginEmulator:
             if len(data) == 0:
                 print >>sys.stderr,"pe: BG closes IC"
                 return
+            
+            s.send(msg)
+            
+            """
             elif data.startswith("PLAY"):
                 url = data[len("PLAY "):]
                 p = urlparse.urlparse(url)
                 path  = p[2]
                 readbufsize = 100
                 break
+            """
 
         #self.retrieve_path(path,recurse=False)
         

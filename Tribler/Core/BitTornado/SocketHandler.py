@@ -44,7 +44,7 @@ class InterruptSocket:
         self.socket_handler = socket_handler
         self.handler = InterruptSocketHandler
 
-        self.ip = "localhost"
+        self.ip = "127.0.0.1"
         self.port = None
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

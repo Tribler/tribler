@@ -9,8 +9,7 @@ from traceback import print_exc
 import wx
 
 from Tribler.Core.API import *
-from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
-
+from Tribler.Plugin.defs import *
 
 class PlayerTaskBarIcon(wx.TaskBarIcon):
     
@@ -22,10 +21,25 @@ class PlayerTaskBarIcon(wx.TaskBarIcon):
         self.icons.AddIconFromFile(iconfilename,wx.BITMAP_TYPE_ICO)
         self.icon = self.icons.GetIcon(wx.Size(-1,-1))
 
+        self.Bind(wx.EVT_TASKBAR_LEFT_UP, self.OnLeftClicked)
+
         if sys.platform != "darwin":
             # Mac already has the right icon set at startup
             self.SetIcon(self.icon,self.wxapp.appname)
-        
+        else:
+            menuBar = wx.MenuBar()
+
+            # Setting up the file menu.
+            filemenu = wx.Menu()
+            item = filemenu.Append(-1,'E&xit','Terminate the program')
+            self.Bind(wx.EVT_MENU, self.OnExit, item)
+
+            wx.App.SetMacExitMenuItemId(item.GetId())
+
+    def OnExit(self,e):
+        self.wxapp.ExitMainLoop()
+        # Close the frame.
+
     def CreatePopupMenu(self):        
         menu = wx.Menu()
         
@@ -55,6 +69,11 @@ class PlayerTaskBarIcon(wx.TaskBarIcon):
 
         self.SetIcon(self.icon,txt)
     
+    def OnLeftClicked(self,event=None):
+        import webbrowser
+        url = 'http://127.0.0.1:'+str(self.wxapp.httpport)+URLPATH_WEBIF_PREFIX
+        webbrowser.open_new_tab(url)
+            
 
     
 class PlayerOptionsDialog(wx.Dialog):
@@ -131,11 +150,11 @@ class PlayerOptionsDialog(wx.Dialog):
             scfg.save(cfgfilename)
         
         uploadrate = int(self.uploadratectrl.GetValue())
+        # Updates value for global rate limiter too
         self.wxapp.set_playerconfig('total_max_upload_rate',uploadrate)
         self.wxapp.save_playerconfig()
          
-        # TODO: For max upload, etc. we also have to modify the runtime Session.
-        if self.port != self.wxapp.s.get_listen_port():
+        if self.port is not None and self.port != self.wxapp.s.get_listen_port():
             dlg = wx.MessageDialog(None, "The SwarmPlugin will now exit to change the port. Reload the Web page to restart it", self.wxapp.appname+" Restart", wx.OK|wx.ICON_INFORMATION)
             result = dlg.ShowModal()
             dlg.Destroy()

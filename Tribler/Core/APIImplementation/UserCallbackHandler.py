@@ -82,6 +82,10 @@ class UserCallbackHandler:
             print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`contentdest`,removecontent
         self.sesslock.acquire()
         try:
+            if self.session.lm.download_exists(infohash):
+                print >>sys.stderr,"Session: sesscb_removestate: Download is back, restarted? Canceling removal!",`infohash`
+                return
+            
             dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
         finally:
             self.sesslock.release()

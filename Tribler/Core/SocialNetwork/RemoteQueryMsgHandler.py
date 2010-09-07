@@ -87,6 +87,14 @@ class RemoteQueryMsgHandler:
             self.overlay_log = OverlayLogger.getInstance(log)
         self.torrent_dir = os.path.abspath(self.config['torrent_collecting_dir'])
         self.registered = True
+        
+        # 14-04-2010, Andrea: limit the size of channel query results.
+        # see create_channel_query_reply (here) and process_query_reply
+        # for other details. (The whole thing is done to avoid freezes in the GUI
+        # when there are too many results)
+        self.max_channel_query_results = self.config['max_channel_query_results']
+        
+        
 
     #
     # Incoming messages
@@ -141,10 +149,10 @@ class RemoteQueryMsgHandler:
     # 
     def send_query(self,query,usercallback,max_peers_to_query=MAX_PEERS_TO_QUERY):
         """ Called by GUI Thread """
-        if max_peers_to_query is None:
+        if max_peers_to_query is None or max_peers_to_query > MAX_PEERS_TO_QUERY:
             max_peers_to_query = MAX_PEERS_TO_QUERY
         if DEBUG:
-            print >>sys.stderr,"rquery: send_query",`query`
+            print >>sys.stderr,"rquery: send_query",`query`,max_peers_to_query
         if max_peers_to_query > 0:
             send_query_func = lambda:self.network_send_query_callback(query,usercallback,max_peers_to_query)
             self.overlay_bridge.add_task(send_query_func,0)
@@ -168,14 +176,16 @@ class RemoteQueryMsgHandler:
         
         #print "******** send query net cb:", query, len(self.connections), self.connections
         
+        # 1. See how many peers we already know about from direct connections
         peers_to_query = 0
         for permid,selversion in self.connections.iteritems():
             if selversion >= wantminoversion:
                 self.overlay_bridge.connect(permid,query_conn_callback_lambda)
                 peers_to_query += 1
         
+        # 2. If not enough, get some remote-search capable peers from BC
         if peers_to_query < max_peers_to_query and self.bc_fac and self.bc_fac.buddycast_core:
-            query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(MAX_PEERS_TO_QUERY-peers_to_query,wantminoversion)
+            query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(max_peers_to_query-peers_to_query,wantminoversion)
             for permid in query_cand:
                 if permid not in self.connections:    # don't call twice
                     self.overlay_bridge.connect(permid,query_conn_callback_lambda)
@@ -359,19 +369,38 @@ class RemoteQueryMsgHandler:
     def create_channel_query_reply(self,id,hits,selversion):
         d = {}
         d['id'] = id
-        d2 = {}
-        for hit in hits:
-            r = {}
-            r['publisher_id'] = str(hit[0]) # ARNOUNICODE: must be str
-            r['publisher_name'] = hit[1].encode("UTF-8")  # ARNOUNICODE: must be explicitly UTF-8 encoded
-            r['infohash'] = str(hit[2])     # ARNOUNICODE: must be str
-            r['torrenthash'] = str(hit[3])  # ARNOUNICODE: must be str
-            r['torrentname'] = hit[4].encode("UTF-8") # ARNOUNICODE: must be explicitly UTF-8 encoded
-            r['time_stamp'] = int(hit[5])
-            # hit[6]: signature, which is unique for any torrent published by a user
-            signature = hit[6]
-            d2[signature] = r
-        d['a'] = d2
+        
+        # 14-04-2010, Andrea: sometimes apperently trivial queries like 'a' can produce
+        # enormouse amounts of hit that will keep the receiver busy in processing them.
+        # I made an "hack" in 'gotMessage" in ChannelSearchGridManager that drops results
+        # when they are more then a threshold. At this point is better to limit the results
+        # from the source to use less network bandwidth
+        hitslen = len(hits)
+        if hitslen > self.max_channel_query_results:
+            if DEBUG:
+                print >> sys.stderr, "Too many results for query (%d). Dropping to %d." % \
+                    (hitslen,self.max_channel_query_results) 
+            hits = hits[:self.max_channel_query_results] #hits are ordered by timestampe descending
+       
+        # 09-04-2010 Andrea: this code was exactly a duplicate copy of some
+        # code in channelcast module. Refactoring performed
+#        d2 = {}
+#        for hit in hits:
+#            r = {}
+#            r['publisher_id'] = str(hit[0]) # ARNOUNICODE: must be str
+#            r['publisher_name'] = hit[1].encode("UTF-8")  # ARNOUNICODE: must be explicitly UTF-8 encoded
+#            r['infohash'] = str(hit[2])     # ARNOUNICODE: must be str
+#            r['torrenthash'] = str(hit[3])  # ARNOUNICODE: must be str
+#            r['torrentname'] = hit[4].encode("UTF-8") # ARNOUNICODE: must be explicitly UTF-8 encoded
+#            r['time_stamp'] = int(hit[5])
+#            # hit[6]: signature, which is unique for any torrent published by a user
+#            signature = hit[6]
+#            d2[signature] = r
+        if self.bc_fac.channelcast_core is not None:
+            d2 = self.bc_fac.channelcast_core.buildChannelcastMessageFromHits(hits,selversion,fromQuery=True)
+            d['a'] = d2
+        else:
+            d['a'] = {}
         return bencode(d)
     
     #
@@ -449,7 +478,31 @@ class RemoteQueryMsgHandler:
         
         if len(d['a']) > 0:
             self.unidecode_hits(query,d)
-            remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
+            if query.startswith("CHANNEL"):
+                # 13-04-2010 Andrea: The gotRemoteHits in SearchGridManager is too slow.
+                # Since it is run by the GUIThread when there are too many hits the GUI
+                # gets freezed.
+                # dropping some random results if they are too many. 
+                # It is just an hack, a better method to improve performance should be found.
+                
+                if len(d['a']) > self.max_channel_query_results:
+                    if DEBUG:
+                        print >> sys.stderr, "DROPPING some answers: they where %d" % len(d['a'])
+                    newAnswers = {}
+                    newKeys = d['a'].keys()[:self.max_channel_query_results] 
+                    for key in newKeys:
+                        newAnswers[key] = d['a'][key]
+                    d['a'] = newAnswers
+                    
+                # Andrea 05-06-2010: updates the database through channelcast. Before this was
+                # done by the GUIThread in SearchGridManager    
+                self.bc_fac.channelcast_core.updateChannel(permid,query,d['a'])
+
+                # Inform user of remote channel hits
+                remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
+            else:
+                remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
+            
             self.session.uch.perform_usercallback(remote_query_usercallback_lambda)
         elif DEBUG:
             print >>sys.stderr,"rquery: QUERY_REPLY: no results found"

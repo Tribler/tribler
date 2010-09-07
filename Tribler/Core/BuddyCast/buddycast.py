@@ -156,7 +156,7 @@ Random Peers
 import sys
 from random import sample, randint, shuffle
 from time import time, gmtime, strftime
-from traceback import print_exc
+from traceback import print_exc,print_stack
 from sets import Set
 from array import array
 from bisect import insort
@@ -1045,7 +1045,7 @@ class BuddyCastCore:
         my_pref = self.data_handler.getMyLivePreferences(selversion, self.num_myprefs)       #[pref]
         
         if debug:
-             print >> sys.stderr, " bc:Amended preference list is:", str(my_pref)
+            print >> sys.stderr, " bc:Amended preference list is:", str(my_pref)
             
         taste_buddies = self.getTasteBuddies(self.num_tbs, self.num_tb_prefs, target_permid, target_ip, target_port, selversion)
         random_peers = self.getRandomPeers(self.num_rps, target_permid, target_ip, target_port, selversion)    #{peer:last_seen}
@@ -2056,6 +2056,7 @@ class BuddyCastCore:
                 self.remote_search_peer_candidates.pop(0)
                 
     def getRemoteSearchPeers(self, npeers,minoversion=None):
+        """ Return some peers that are remote-search capable """
         if len(self.remote_search_peer_candidates) > npeers:
             _peers = sample(self.remote_search_peer_candidates, npeers)    # randomly select
         else:

@@ -22,8 +22,13 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.BuddyCast.moderationcast_util import *
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRTEENTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRTEENTH,\
+    OLPROTO_VER_FOURTEENTH
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_UPDATE
+from Tribler.Core.Subtitles.RichMetadataInterceptor import RichMetadataInterceptor
+from Tribler.Core.CacheDB.MetadataDBHandler import MetadataDBHandler
+from Tribler.Core.Subtitles.PeerHaveManager import PeersHaveManager
+from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
 
 DEBUG = False
 
@@ -61,9 +66,25 @@ class ChannelCastCore:
         if self.log:
             self.overlay_log = OverlayLogger.getInstance(self.log)
             self.dnsindb = self.data_handler.get_dns_from_peerdb
+        
         self.hits = []
         
         self.notifier = Notifier.getInstance()
+
+        self.metadataDbHandler = MetadataDBHandler.getInstance()
+        
+        #subtitlesHandler = SubtitlesHandler.getInstance()
+        subtitleSupport = SubtitlesSupport.getInstance()
+        # better if an instance of RMDInterceptor was provided from the
+        # outside
+        self.peersHaveManger = PeersHaveManager.getInstance()
+        if not self.peersHaveManger.isRegistered():
+                self.peersHaveManger.register(self.metadataDbHandler, self.overlay_bridge)
+        self.richMetadataInterceptor = RichMetadataInterceptor(self.metadataDbHandler,self.votecastdb,
+                                                               self.my_permid, subtitleSupport, self.peersHaveManger,
+                                                               self.notifier)
+        
+        
 
     
     def initialized(self):
@@ -82,12 +103,19 @@ class ChannelCastCore:
         """ Create and send a ChannelCast Message """
         # ChannelCast feature starts from eleventh version; hence, do not send to lower version peers
         # Arno, 2010-02-05: v12 uses a different on-the-wire format, ignore those.
+        
+        # Andrea, 2010-04-08: sending the "old-style" channelcast message to older
+        # peers, and enriched channelcast messages to new versions, for full backward
+        # compatibility
         if selversion < OLPROTO_VER_THIRTEENTH:
             if DEBUG:
                 print >> sys.stderr, "channelcast: Do not send to lower version peer:", selversion
             return
         
-        channelcast_data = self.createChannelCastMessage()
+        # 3/5/2010 Andrea: adding the destination parameters to createChannelCastMessage for
+        # logging reasons only. When logging will be disabled, that parameter will
+        # become useless
+        channelcast_data = self.createChannelCastMessage(selversion, target_permid)
         if channelcast_data is None or len(channelcast_data)==0:
             if DEBUG:
                 print >>sys.stderr, "channelcast: No channels there.. hence we do not send"
@@ -106,28 +134,32 @@ class ChannelCastCore:
         self.overlay_bridge.send(target_permid, data, self.channelCastSendCallback)        
         #if DEBUG: print >> sys.stderr, "channelcast: Sent channelcastmsg",repr(channelcast_data)
     
-    def createChannelCastMessage(self):
-        """ Create a ChannelCast Message """
+    def createChannelCastMessage(self, selversion, dest_permid=None):
+        """ 
+        Create a ChannelCast Message 
+        
+        @param selversion: the protocol version of the destination
+        @param dest_permid: the destination of the message. Actually this parameter is not really needed. If 
+                            not none, it is used for logging purposes only
+                            
+        @return a channelcast message, possibly enrich with rich metadata content in the
+                case selversion is sufficiently high
+        """
+        # 09-04-2010 Andrea: I addedd the selversion param, to intercept and modify
+        # the ChannelCast message contents if the protocol version allows rich metadata
+        # enrichment
         
         if DEBUG: 
             print >> sys.stderr, "channelcast: Creating channelcastmsg..."
         
         hits = self.channelcastdb.getRecentAndRandomTorrents(NUM_OWN_RECENT_TORRENTS,NUM_OWN_RANDOM_TORRENTS,NUM_OTHERS_RECENT_TORRENTS,NUM_OTHERS_RECENT_TORRENTS)
+        # 3/5/2010 Andrea:  
         # hits is of the form: [(mod_id, mod_name, infohash, torrenthash, torrent_name, time_stamp, signature)]
-        d = {}
-        for hit in hits:
-            # ARNOUNICODE: temp fixes until data is sent not Base64-encoded
-            r = {}
-            r['publisher_id'] = str(hit[0]) # ARNOUNICODE: must be str
-            r['publisher_name'] = hit[1].encode("UTF-8")  # ARNOUNICODE: must be explicitly UTF-8 encoded
-            r['infohash'] = str(hit[2])     # ARNOUNICODE: must be str
-            r['torrenthash'] = str(hit[3])  # ARNOUNICODE: must be str
-            r['torrentname'] = hit[4].encode("UTF-8") # ARNOUNICODE: must be explicitly UTF-8 encoded
-            r['time_stamp'] = int(hit[5])
-            # hit[6]: signature, which is unique for any torrent published by a user
-            signature = hit[6]
-            d[signature] = r
-        #assert validChannelCastMsg(d)
+        # adding the destination parameter to buildChannelcastMessageFrom Hits for
+        # logging reasons only. When logging will be disabled, that parameter will
+        # become useless
+        d = self.buildChannelcastMessageFromHits(hits, selversion, dest_permid)
+#        #assert validChannelCastMsg(d)
         return d
     
     def channelCastSendCallback(self, exc, target_permid, other=0):
@@ -141,6 +173,8 @@ class ChannelCastCore:
         """ Receive and handle a ChannelCast message """
         # ChannelCast feature starts from eleventh version; hence, do not receive from lower version peers
         # Arno, 2010-02-05: v12 uses a different on-the-wire format, ignore those.
+        
+        # Andrea: 2010-04-08: v14 can still receive v13 channelcast messages
         if selversion < OLPROTO_VER_THIRTEENTH:
             if DEBUG:
                 print >> sys.stderr, "channelcast: Do not receive from lower version peer:", selversion
@@ -192,6 +226,7 @@ class ChannelCastCore:
             if dns:
                 ip,port = dns
                 MSG_ID = "CHANNELCAST"
+                # 08/04/10 Andrea: representing the whole channelcast  + metadata message
                 msg = repr(channelcast_data)
                 self.overlay_log('RECV_MSG', ip, port, show_permid(sender_permid), selversion, MSG_ID, msg)
  
@@ -201,15 +236,50 @@ class ChannelCastCore:
         return True       
 
     def handleChannelCastMsg(self, sender_permid, data):
-        self.updateChannel(sender_permid, None, data)
+        self._updateChannelInternal(sender_permid, None, data)
 
     def updateChannel(self,query_permid, query, hits):
         """
         This function is called when there is a reply from remote peer regarding updating of a channel
         @param query_permid: the peer who returned the results
-        @param query: the query string
-        @param hits: details of all matching results related to the query  
+        @param query: the query string (None if this is not the results of a query) 
+        @param hits: details of all matching results related to the query
         """
+        
+        return self._updateChannelInternal(query_permid, query, hits)
+    
+        
+        
+    def _updateChannelInternal(self, query_permid, query, hits):
+        listOfAdditions = list()
+        
+        # a single read from the db is more efficient
+        all_spam_channels = self.votecastdb.getPublishersWithNegVote(bin2str(self.session.get_permid()))
+        for k,v in hits.items():
+            #check if the record belongs to a channel who we have "reported spam" (negative vote)
+            if bin2str(v['publisher_id']) in all_spam_channels:
+                # if so, ignore the incoming record
+                continue
+            
+            # make everything into "string" format, if "binary"
+            hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
+
+            listOfAdditions.append(hit)
+
+        # Arno, 2010-06-11: We're on the OverlayThread
+        self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)
+        
+        ##return listOfAdditions
+                
+    
+    def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
+        
+        publisher_ids = Set()
+        
+        #08/04/10: Andrea: processing rich metadata part.
+        self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
+        
+        
         tmp_hits = {} #"binary" key
 
         def usercallback(infohash,metadata,filename):
@@ -220,32 +290,29 @@ class ChannelCastCore:
             else:
                 print >> sys.stderr, "channelcast: updatechannel: could not find infohash", bin2str(infohash)
 
-        publisher_ids = Set()
-        for k,v in hits.items():
-            #check if the record belongs to a channel who we have "reported spam" (negative vote)
-            if self.votecastdb.getVote(bin2str(v['publisher_id']), bin2str(self.session.get_permid())) == -1:
-                # if so, ignore the incoming record
-                continue
-            
-            # make everything into "string" format, if "binary"
-            hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
-            tmp_hits[v['infohash']] = hit 
+
+        for hit in listOfAdditions:
+            publisher_ids.add(hit[0])
+            infohash = str2bin(hit[2])
+            tmp_hits[infohash] = hit 
             # effectively v['infohash'] == str2bin(hit[2])
 
-            publisher_ids.add(hit[0])
 
-            if self.channelcastdb.existsTorrent(v['infohash']):
+            if self.channelcastdb.existsTorrent(infohash):
                 if self.channelcastdb.addTorrent(hit):
                     self.hits.append(hit)
             else:
-                self.rtorrent_handler.download_torrent(query_permid,v['infohash'],usercallback)
-
+                self.rtorrent_handler.download_torrent(query_permid,infohash,usercallback)
+        
         # Arno, 2010-02-24: Generate event
         for publisher_id in publisher_ids:
             try:
                 self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, publisher_id)
             except:
                 print_exc()
+
+                
+            
 
 
     def updateMySubscribedChannels(self):
@@ -255,4 +322,61 @@ class ChannelCastCore:
             q = "CHANNEL p "+permid
             self.session.query_connected_peers(q,usercallback=self.updateChannel)
         
-        self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)        
+        self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    
+
+
+    def buildChannelcastMessageFromHits(self, hits, selversion, dest_permid=None, fromQuery=False):
+        '''
+        Creates a channelcast message from database hits.
+        
+        This method is used to create channel results both when a channelcast message
+        is created in the "normal" buddycast epidemic protocol, and when a remote
+        query for channels arrives and is processed. It substitutes a lot of duplicated
+        code in the old versions.
+        
+        @param hits: a tuple (publisher_id, publisher_name, infohash, 
+                     torrenthash, torrentname, time_stamp, signature) representing
+                     a channelcast entry in the db
+        @param selversion: the protocol version of the destination
+        @param dest_permid: the permid of the destination of the message. Actually this parameter
+                            is used for logging purposes only, when not None. If None, nothing
+                            bad happens.
+        '''
+        # 09-04-2010 Andrea : I introduced this separate method because this code was 
+        # duplicated in RemoteQueryMessageHandler
+        enrichWithMetadata = False
+        
+        if selversion >= OLPROTO_VER_FOURTEENTH:
+            enrichWithMetadata = True
+            if DEBUG:
+                print >> sys.stderr, "channelcast: creating enriched messages"\
+                    "since peer has version: ", selversion
+        d = {}
+        for hit in hits:
+            # ARNOUNICODE: temp fixes until data is sent not Base64-encoded
+             
+            # 08/04/10 Andrea: I substituted the keys with constnats, otherwise a change here
+            # would break my code in the RichMetadataInterceptor
+            r = {}
+            r['publisher_id'] = str(hit[0]) # ARNOUNICODE: must be str
+            r['publisher_name'] = hit[1].encode("UTF-8")  # ARNOUNICODE: must be explicitly UTF-8 encoded
+            r['infohash'] = str(hit[2])     # ARNOUNICODE: must be str
+            r['torrenthash'] = str(hit[3])  # ARNOUNICODE: must be str
+            r['torrentname'] = hit[4].encode("UTF-8") # ARNOUNICODE: must be explicitly UTF-8 encoded
+            r['time_stamp'] = int(hit[5])
+            # hit[6]: signature, which is unique for any torrent published by a user
+            signature = hit[6]
+            d[signature] = r
+            
+
+        # 08/04/10 Andrea: intercepting a channelcast message and enriching it with
+        # subtitles information
+        # 3/5/2010 Andrea: adding the destination parameter to addRichMetadataContent for
+        # logging reasons only. When logging will be disabled, that parameter will
+        # become useless
+        if enrichWithMetadata:
+            d = self.richMetadataInterceptor.addRichMetadataContent(d, dest_permid, fromQuery)
+    
+        return d
+    
+        

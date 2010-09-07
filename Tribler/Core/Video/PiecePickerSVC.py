@@ -1,4 +1,4 @@
-# wRIsten by Jan David Mol, Arno Bakker, Riccardo Petrocco
+# wRIsten by Jan David Mol, Arno Bakker, Riccardo Petrocco, George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -75,9 +75,9 @@ class PiecePickerSVC(PiecePicker):
 
     def __init__(self, numpieces,
                  rarest_first_cutoff = 1, rarest_first_priority_cutoff = 3,
-                 priority_step = 20, helper = None, rate_predictor = None, piecesize = 0):
+                 priority_step = 20, helper = None, coordinator = None, rate_predictor = None, piecesize = 0):
         PiecePicker.__init__( self, numpieces, rarest_first_cutoff, rarest_first_priority_cutoff,
-                              priority_step, helper, rate_predictor )
+                              priority_step, helper, coordinator, rate_predictor )
 
         # maximum existing piece number, to avoid scanning beyond it in next()
         self.maxhave = 0
@@ -270,7 +270,7 @@ class PiecePickerSVC(PiecePicker):
     #   _next: selects next piece to download. completes partial downloads first, if needed, otherwise calls
     #     next_new: selects next piece to download. override this with the piece picking policy
 
-    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces=[], willrequest=True,connection=None):
+    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces=[], willrequest=True,connection=None,proxyhave=None):
         def newwantfunc( piece ):
             #print >>sys.stderr,"S",self.streaming_piece_filter( piece ),"!sP",not (piece in slowpieces),"w",wantfunc( piece )
             return not (piece in slowpieces) and wantfunc( piece )

@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker, George Milescu 
 # see LICENSE.txt for license information
 """ Controls how a TorrentDef is downloaded (rate, where on disk, etc.) """
 
@@ -76,14 +76,17 @@ class DownloadConfigInterface:
         VODEVENT_START:
             The params dictionary will contain the fields
         
-                mimetype,stream,filename,length
+                mimetype,stream,filename,length,bitrate
         
             If the filename is set, the video can be read from there. If not,
             the video can be read from the stream, which is a file-like object 
             supporting the read(),seek(), and close() operations. The MIME type
             of the video is given by "mimetype", the length of the stream in
             bytes by "length" which may be None if the length is unknown (e.g.
-            when live streaming).
+            when live streaming). bitrate is either the bitrate as specified
+            in the TorrentDef, or if that was lacking an dynamic estimate 
+            calculated using the videoanalyser (e.g. ffmpeg), see
+            SessionConfig.set_video_analyser_path()
         
             To fetch a specific file from a multi-file torrent, use the 
             set_selected_files() method. This method sets the mode to DLMODE_VOD 
@@ -284,7 +287,7 @@ class DownloadConfigInterface:
         return self.dlconfig['max_connections']
 
     #
-    # Cooperative Download parameters
+    # ProxyService_ parameters
     #
     def get_coopdl_role(self):
         """ Returns the role which the download plays in a cooperative download,
@@ -315,6 +318,41 @@ class DownloadConfigInterface:
 
     # See DownloadRuntime config for adding, removing and getting list of
     # helping peers.
+
+    def set_proxy_mode(self,value):
+        """ Set the proxymode for current download
+        .
+        @param value: the proxyservice mode: PROXY_MODE_OFF, PROXY_MODE_PRIVATE or PROXY_MODE_SPEED
+        """
+        if value == PROXY_MODE_OFF or value == PROXY_MODE_PRIVATE or value == PROXY_MODE_SPEED:
+            self.dlconfig['proxy_mode'] = value
+        else:
+            # If the method is called with an incorrect value, turn off the ProxyMode for this download
+            self.dlconfig['proxy_mode'] = PROXY_MODE_OFF
+
+    def get_proxy_mode(self):
+        """ Returns the proxymode of the client.
+        @return: one of the possible three values: PROXY_MODE_OFF, PROXY_MODE_PRIVATE, PROXY_MODE_SPEED
+        """
+        return self.dlconfig['proxy_mode']
+    
+    def set_no_helpers(self,value):
+        """ Set the maximum number of helpers used for a download.
+        @param value: a positive integer number
+        """
+        if value >= 0:
+            self.dlconfig['max_helpers'] = value
+        else:
+            self.dlconfig['max_helpers'] = 0
+
+    def get_no_helpers(self):
+        """ Returns the maximum number of helpers used for a download. 
+        @return: a positive integer number
+        """
+        return self.dlconfig['max_helpers']
+    #
+    # _ProxyService
+    #
         
 
     #

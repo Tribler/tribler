@@ -21,7 +21,8 @@ import apsw
 #assert apsw_version >= support_version, "Required APSW Version >= %d.%d.%d."%support_version + " But your version is %d.%d.%d.\n"%apsw_version + \
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
-CURRENT_MAIN_DB_VERSION = 4
+##Changed from 4 to 5 by andrea for subtitles support
+CURRENT_MAIN_DB_VERSION = 5
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -869,7 +870,7 @@ class SQLiteCacheDBBase:
         return (res1, res2)
 
 
-class SQLiteCacheDBV4(SQLiteCacheDBBase):
+class SQLiteCacheDBV5(SQLiteCacheDBBase):
     def updateDB(self, fromver, tover):
 
         # bring database up to version 2, if necessary        
@@ -1024,6 +1025,77 @@ UPDATE Torrent SET relevance = 0;
 
 """
             self.execute_write(sql, commit=False)
+        if fromver < 5:
+            sql=\
+"""
+--------------------------------------
+-- Creating Subtitles (future RichMetadata) DB
+----------------------------------
+CREATE TABLE Metadata (
+  metadata_id integer PRIMARY KEY ASC AUTOINCREMENT NOT NULL,
+  publisher_id text NOT NULL,
+  infohash text NOT NULL,
+  description text,
+  timestamp integer NOT NULL,
+  signature text NOT NULL,
+  UNIQUE (publisher_id, infohash),
+  FOREIGN KEY (publisher_id, infohash) 
+    REFERENCES ChannelCast(publisher_id, infohash) 
+    ON DELETE CASCADE -- the fk constraint is not enforced by sqlite
+);
+
+CREATE INDEX infohash_md_idx
+on Metadata(infohash);
+
+CREATE INDEX pub_md_idx
+on Metadata(publisher_id);
+
+
+CREATE TABLE Subtitles (
+  metadata_id_fk integer,
+  subtitle_lang text NOT NULL,
+  subtitle_location text,
+  checksum text NOT NULL,
+  UNIQUE (metadata_id_fk,subtitle_lang),
+  FOREIGN KEY (metadata_id_fk) 
+    REFERENCES Metadata(metadata_id) 
+    ON DELETE CASCADE, -- the fk constraint is not enforced by sqlite
+  
+  -- ISO639-2 uses 3 characters for lang codes
+  CONSTRAINT lang_code_length 
+    CHECK ( length(subtitle_lang) == 3 ) 
+);
+
+
+CREATE INDEX metadata_sub_idx
+on Subtitles(metadata_id_fk);
+
+-- Stores the subtitles that peers have as an integer bitmask
+ CREATE TABLE SubtitlesHave (
+    metadata_id_fk integer,
+    peer_id text NOT NULL,
+    have_mask integer NOT NULL,
+    received_ts integer NOT NULL, --timestamp indicating when the mask was received
+    UNIQUE (metadata_id_fk, peer_id),
+    FOREIGN KEY (metadata_id_fk)
+      REFERENCES Metadata(metadata_id)
+      ON DELETE CASCADE, -- the fk constraint is not enforced by sqlite
+
+    -- 32 bit unsigned integer
+    CONSTRAINT have_mask_length
+      CHECK (have_mask >= 0 AND have_mask < 4294967296)
+);
+
+CREATE INDEX subtitles_have_idx
+on SubtitlesHave(metadata_id_fk);
+
+-- this index can boost queries
+-- ordered by timestamp on the SubtitlesHave DB
+CREATE INDEX subtitles_have_ts
+on SubtitlesHave(received_ts);
+
+"""
+            self.execute_write(sql, commit=False)
             
         # updating version stepwise so if this works, we store it
         # regardless of later, potentially failing updates
@@ -1113,7 +1185,7 @@ UPDATE Torrent SET relevance = 0;
             tqueue = TimedTaskQueue("UpgradeDB")
             tqueue.add_task(upgradeTorrents, 10)
 
-class SQLiteCacheDB(SQLiteCacheDBV4):
+class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern
 
     @classmethod

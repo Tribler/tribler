@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker, George Milescu 
 # see LICENSE.txt for license information
 
 import sys
@@ -21,6 +21,7 @@ from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.Video.VideoStatus import VideoStatus
 from Tribler.Core.Video.SVCVideoStatus import SVCVideoStatus
 from Tribler.Core.DecentralizedTracking.repex import RePEXer
+from Tribler.Core.Statistics.Status.Status import get_status_holder
 
 
 SPECIAL_VALUE = 481
@@ -42,6 +43,7 @@ class SingleDownload:
         self._getstatsfunc = None
         self.infohash = infohash
         self.b64_infohash = b64encode(infohash)
+        self.repexer = None
         try:
             self.dldoneflag = Event()
             self.dlrawserver = multihandler.newRawServer(infohash,self.dldoneflag)
@@ -55,9 +57,8 @@ class SingleDownload:
             self.peerid = createPeerID()
             
             # LOGGING
-            from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
-            event_reporter = get_reporter_instance()
-            event_reporter.add_event(self.b64_infohash, "peerid:%s" % b64encode(self.peerid))
+            event_reporter = get_status_holder("LivingLab")
+            event_reporter.create_and_add_event("peerid", [self.b64_infohash, b64encode(self.peerid)])
             
             #print >>sys.stderr,"SingleDownload: __init__: My peer ID is",`peerid`
     
@@ -179,7 +180,24 @@ class SingleDownload:
             # RePEX: don't start the Rerequester in RePEX mode
             repexer = self.repexer
             if repexer is None:
-                self.dow.startRerequester()
+                # ProxyService_
+                #
+                # ProxyDevel
+                # If proxymode is PROXY_MODE_PRIVATE, deactivate the tracker support
+                download_config = self.get_bt1download().getConfig()
+                proxy_mode = download_config.get('proxy_mode',0)
+                
+                # Only activate the tracker if the proxy_mode is PROXY_MODE_OFF or PROXY_MODE_SPEED
+                if proxy_mode == PROXY_MODE_OFF or proxy_mode == PROXY_MODE_SPEED:
+                    self.dow.startRerequester()
+                    if DEBUG:
+                        print "Tracker class has been activated." + str(proxy_mode) 
+                else:
+                    #self.dow.startRerequester()
+                    if DEBUG:
+                        print "Tracker class has not been activated." + str(proxy_mode)
+                #
+                #_ProxyService
             else:
                 self.hook_repexer()
                 
@@ -351,11 +369,11 @@ class SingleDownload:
     #
     def ask_coopdl_helpers(self,peerreclist):
         if self.dow is not None:
-            self.dow.coordinator.network_request_help(peerreclist)
+            self.dow.coordinator.send_ask_for_help(peerreclist)
 
     def stop_coopdl_helpers(self,peerreclist):
         if self.dow is not None:
-            self.dow.coordinator.network_stop_help(peerreclist,force=True)
+            self.dow.coordinator.send_stop_helping(peerreclist,force=True)
 
     def get_coopdl_role_object(self,role):
         # Used by Coordinator/HelperMessageHandler indirectly

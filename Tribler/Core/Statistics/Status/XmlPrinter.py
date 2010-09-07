@@ -24,10 +24,6 @@ class XmlPrinter:
     An XML printer that will print XML *with namespaces*
 
     Why minidom.toxml() does not do so really makes absolutenly no sense
-
-    04/06/09: minidom.toxml() DOES print namespaces. Just use
-    createElementNS() instead of createElement(). I think this makes
-    the XmlPrinter obsolete.
     
     """
 
@@ -40,15 +36,13 @@ class XmlPrinter:
 
         self.root = doc
         self.namespace_counter=0
-
-    # 04/06/09: UTF8 should be UTF-8 to confirm to international standards
+        
     def to_xml(self, encoding="UTF8"):
         """
         Like minidom toxml, just using namespaces too
         """
         return self._toxml(self.root, indent='', newl='').encode(encoding, "replace")
     
-    # 04/06/09: UTF8 should be UTF-8 to confirm to international standards
     def to_pretty_xml(self, indent=' ', newl='\n', encoding="UTF8"):
         """
         Like minidom toxml, just using namespaces too
@@ -66,7 +60,6 @@ class XmlPrinter:
         self.namespace_counter += 1
         return ns_short
         
-    # 04/06/09: UTF8 should be UTF-8 to confirm to international standards
     def _toxml(self, element, indent=' ', newl='\n', encoding='UTF8', namespaces=None):
         """
         Recursive, internal function - do not use directly
@@ -90,7 +83,9 @@ class XmlPrinter:
         if element.nodeType == element.ELEMENT_NODE:
             ns = element.namespaceURI
             name = to_unicode(element.localName)
-
+            if name.find(" ") > -1:
+                raise Exception("Refusing spaces in tag names")
+            
             if namespaces.has_key(ns):
                 ns_short = namespaces[ns]
                 define_ns = False

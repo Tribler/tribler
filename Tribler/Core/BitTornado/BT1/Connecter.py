@@ -1,14 +1,16 @@
-# Written by Bram Cohen, Pawel Garbacki, Arno Bakker and Njaal Borch
+# Written by Bram Cohen, Pawel Garbacki, Arno Bakker and Njaal Borch, George Milescu
 # see LICENSE.txt for license information
 
 import time
 import sys
 from types import DictType,IntType,LongType,ListType,StringType
 from random import shuffle
-from traceback import print_exc
+from traceback import print_exc,print_stack
 from math import ceil
 import socket
 import urlparse
+
+from threading import Event # Wait for CS to complete
 
 from Tribler.Core.BitTornado.bitfield import Bitfield
 from Tribler.Core.BitTornado.clock import clock
@@ -16,20 +18,15 @@ from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.__init__ import version_short,decodePeerID,TRIBLER_PEERID_LETTER
 from Tribler.Core.BitTornado.BT1.convert import tobinary,toint
 
-from MessageID import *
+from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.DecentralizedTracking.MagnetLink.__init__ import *
 
 from Tribler.Core.DecentralizedTracking.ut_pex import *
 from Tribler.Core.BitTornado.BT1.track import compact_ip,decompact_ip
 
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 from Tribler.Core.ClosedSwarm import ClosedSwarm
-from Tribler.Core.Status import Status
-
-try:
-    True
-except:
-    True = 1
-    False = 0
+from Tribler.Core.Statistics.Status import Status
 
 KICK_OLD_CLIENTS=False
 
@@ -40,6 +37,13 @@ DEBUG_MESSAGE_HANDLING = False
 DEBUG_CS = False # Debug closed swarms
 
 UNAUTH_PERMID_PERIOD = 3600
+
+# allow FACTOR times the metadata to be uploaded each PERIOD.
+# Example:
+# FACTOR = 2 and PERIOD = 60 will allow all the metadata to be
+# uploaded 2 times every 60 seconds.
+UT_METADATA_FLOOD_FACTOR = 1            
+UT_METADATA_FLOOD_PERIOD = 5 * 60 * 60  
 
 """
 Arno: 2007-02-16:
@@ -142,6 +146,7 @@ class Connection:
         # Closed swarm stuff
         # Closed swarms
         self.is_closed_swarm = False
+        self.cs_complete = False # Arno, 2010-08-24; no need for thread safety
         self.remote_is_authenticated = False
         self.remote_supports_cs = False
         status = Status.get_status_holder("LivingLab")
@@ -150,7 +155,10 @@ class Connection:
         self.cs_status_unauth_requests = status.get_or_create_status_element("unauthorized_requests", 0)
         self.cs_status_supported = status.get_or_create_status_element("nodes_supporting_cs", 0)
         self.cs_status_not_supported = status.get_or_create_status_element("nodes_not_supporting_cs", 0)
-        
+
+        if not self.connecter.is_closed_swarm:
+            self.cs_complete = True # Don't block anything if we're not a CS
+
         if self.connecter.is_closed_swarm:
             if DEBUG_CS:
                 print >>sys.stderr,"connecter: conn: CS: This is a closed swarm"
@@ -232,6 +240,11 @@ class Connection:
             self.just_unchoked = 0
 
     def send_unchoke(self):
+        if not self.cs_complete:
+            if DEBUG_CS:
+                print >> sys.stderr, 'Connection: send_unchoke: Not sending UNCHOKE, closed swarm handshanke not done'
+            return False
+
         if self.send_choke_queued:
             self.send_choke_queued = False
             if DEBUG_NORMAL_MSGS:
@@ -243,6 +256,7 @@ class Connection:
                 self.just_unchoked = 0
             else:
                 self.just_unchoked = clock()
+        return True
 
     def send_request(self, index, begin, length):
         self._send_message(REQUEST + tobinary(index) + 
@@ -258,11 +272,15 @@ class Connection:
             print >>sys.stderr,'sent cancel: '+str(index)+': '+str(begin)+'-'+str(begin+length)
 
     def send_bitfield(self, bitfield):
+        if not self.cs_complete:
+            print >> sys.stderr, "Connection: send_bitfield: Not sending bitfield - CS handshake not done"
+            return 
+
         if self.can_send_to():
             self._send_message(BITFIELD + bitfield)
         else:
             self.cs_status_unauth_requests.inc()
-            print >>sys.stderr,"Sending empty bitfield to unauth node"
+            print >>sys.stderr,"Connection: send_bitfield: Sending empty bitfield to unauth node"
             self._send_message(BITFIELD + Bitfield(self.connecter.numpieces).tostring())
 
 
@@ -534,7 +552,10 @@ class Connection:
         if ipv4 is not None:
             # Only send IPv4 when necessary, we prefer this peer to use this addr.
             d['ipv4'] = compact_ip(ipv4) 
-        
+        if self.connecter.ut_metadata_enabled:
+            # todo: set correct size if known
+            d['metadata_size'] = self.connecter.ut_metadata_size
+            
         self._send_message(EXTEND + EXTEND_MSG_HANDSHAKE_ID + bencode(d))
         if DEBUG:
             print >>sys.stderr,'connecter: sent extend: id=0+',d,"yourip",hisip,"ipv4",ipv4
@@ -668,6 +689,7 @@ class Connection:
         if not self.closed_swarm_protocol.is_incomplete():
             self.connecter.cs_handshake_completed()
             status = Status.get_status_holder("LivingLab")
+            self.cs_complete = True  # Flag CS as completed
             # Don't need to add successful CS event
 
     #
@@ -895,7 +917,7 @@ class Connection:
 
 class Connecter:
 # 2fastbt_
-    def __init__(self, make_upload, downloader, choker, numpieces, piece_size,
+    def __init__(self, metadata, make_upload, downloader, choker, numpieces, piece_size,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
             coordinator = None, helper = None, get_extip_func = lambda: None, mylistenport = None, use_g2g = False, infohash=None, tracker=None, live_streaming = False):
 
@@ -923,15 +945,16 @@ class Connecter:
         self.infohash = infohash
         self.live_streaming = live_streaming
         self.tracker = tracker
-        try:
-            (scheme, netloc, path, pars, query, _fragment) = urlparse.urlparse(self.tracker)
-            host = netloc.split(':')[0] 
-            self.tracker_ip = socket.getaddrinfo(host,None)[0][4][0]
-        except:
-            print_exc()
-            self.tracker_ip = None
-        #print >>sys.stderr,"Connecter: live: source/tracker is",self.tracker_ip
-        
+        self.tracker_ip = None
+        if self.live_streaming:
+            try:
+                (scheme, netloc, path, pars, query, _fragment) = urlparse.urlparse(self.tracker)
+                host = netloc.split(':')[0] 
+                self.tracker_ip = socket.getaddrinfo(host,None)[0][4][0]
+            except:
+                print_exc()
+                self.tracker_ip = None
+            #print >>sys.stderr,"Connecter: live: source/tracker is",self.tracker_ip
         self.overlay_enabled = 0
         if self.config['overlay']:
             self.overlay_enabled = True
@@ -947,7 +970,20 @@ class Connecter:
             self.ut_pex_max_addrs_from_peer = self.config['ut_pex_max_addrs_from_peer']
             self.ut_pex_enabled = self.ut_pex_max_addrs_from_peer > 0
         self.ut_pex_previous_conns = [] # last value of 'added' field for all peers
-            
+
+        self.ut_metadata_enabled = self.config["magnetlink"]
+        if self.ut_metadata_enabled:
+            # metadata (or self.responce as its called in download_bt1) is
+            # a dic containing the metadata.  Ut_metadata shares the
+            # bencoded 'info' part of this metadata in 16kb pieces.
+            infodata = bencode(metadata["info"])
+            self.ut_metadata_size = len(infodata)
+            self.ut_metadata_list = [infodata[index:index+16*1024] for index in xrange(0, len(infodata), 16*1024)]
+            # history is a list containing previous request served (to
+            # limit our bandwidth usage)
+            self.ut_metadata_history = []
+            if DEBUG: print >> sys.stderr,"connecter.__init__: Enable ut_metadata"
+        
         if DEBUG_UT_PEX:
             if self.ut_pex_enabled:
                 print >>sys.stderr,"connecter: Enabling uTorrent PEX",self.ut_pex_max_addrs_from_peer
@@ -981,6 +1017,10 @@ class Connecter:
         if self.merkle_torrent:
             d = {EXTEND_MSG_HASHPIECE:ord(HASHPIECE)}
             self.EXTEND_HANDSHAKE_M_DICT.update(d)
+        if self.ut_metadata_enabled:
+            d = {EXTEND_MSG_METADATA:ord(EXTEND_MSG_METADATA_ID)}
+            self.EXTEND_HANDSHAKE_M_DICT.update(d)
+            
             
         # LIVEHACK
         livekey = EXTEND_MSG_LIVE_PREFIX+str(CURRENT_LIVE_VERSION)
@@ -1043,7 +1083,7 @@ class Connecter:
             [client,version] = decodePeerID(connection.id)
             
             if DEBUG:
-                print >>sys.stderr,"connecter: Peer is client",client,"version",version,c.get_ip()
+                print >>sys.stderr,"connecter: Peer is client",client,"version",version,c.get_ip(),c.get_port()
             
             if self.overlay_enabled and client == TRIBLER_PEERID_LETTER and version <= '3.5.0' and connection.locally_initiated:
                 # Old Tribler, establish overlay connection<
@@ -1184,7 +1224,58 @@ class Connecter:
         except:
             print_exc()
 
-            
+    def got_ut_metadata(self, connection, dic, message):
+        """
+        CONNECTION: The connection instance where we received this message
+        DIC: The bdecoded dictionary
+        MESSAGE: The entire message: <EXTEND-ID><METADATA-ID><BENCODED-DIC><OPTIONAL-DATA>
+        """
+        if DEBUG: print >> sys.stderr, "connecter.got_ut_metadata:", dic
+
+        msg_type = dic.get("msg_type", None)
+        if not type(msg_type) in (int, long):
+            raise ValueError("Invalid ut_metadata.msg_type")
+        piece = dic.get("piece", None)
+        if not type(piece) in (int, long):
+            raise ValueError("Invalid ut_metadata.piece type")
+        if not 0 <= piece < len(self.ut_metadata_list):
+            raise ValueError("Invalid ut_metadata.piece value")
+
+        if msg_type == 0: # request
+            if DEBUG: print >> sys.stderr, "connecter.got_ut_metadata: Received request for piece", piece
+
+            # our flood protection policy is to upload all metadata
+            # once every n minutes.
+            now = time.time()
+            deadline = now - UT_METADATA_FLOOD_PERIOD
+            # remove old history
+            self.ut_metadata_history = [timestamp for timestamp in self.ut_metadata_history if timestamp > deadline]
+
+            if len(self.ut_metadata_history) > UT_METADATA_FLOOD_FACTOR * len(self.ut_metadata_list):
+                # refuse to upload at this time
+                reply = bencode({"msg_type":2, "piece":piece})
+            else:
+                reply = bencode({"msg_type":1, "piece":piece, "data":self.ut_metadata_list[piece]})
+                self.ut_metadata_history.append(now)
+            connection._send_message(EXTEND + connection.his_extend_msg_name_to_id(EXTEND_MSG_METADATA) + reply)
+        
+        elif msg_type == 1: # data
+            # at this point in the code we must assume that the
+            # metadata is already there, everything is designed in
+            # such a way that metadata is required.  data replies can
+            # therefore never occur.
+            raise ValueError("Invalid ut_metadata: we did not request data")
+
+        elif msg_type == 2: # reject
+            # at this point in the code we must assume that the
+            # metadata is already there, everything is designed in
+            # such a way that metadata is required.  rejects can
+            # therefore never occur.
+            raise ValueError("Invalid ut_metadata: we did not request data that can be rejected")
+
+        else:
+            raise ValueError("Invalid ut_metadata.msg_type value")
+
     def got_hashpiece(self, connection, message):
         """ Process Merkle hashpiece message. Note: EXTEND byte has been 
         stripped, it starts with peer's Tr_hashpiece id for historic reasons ;-)
@@ -1466,6 +1557,20 @@ class Connecter:
                             print >>sys.stderr,"Close on bad EXTEND: payload of ut_pex is not a bencoded dict"
                         connection.close()
                         return
+                elif ext_msg_name == EXTEND_MSG_METADATA:
+                    if DEBUG:
+                        print >> sys.stderr, "Connecter.got_extend_message() ut_metadata"
+                    # bdecode sloppy will make bdecode ignore the data
+                    # in message that is placed -after- the bencoded
+                    # data (this is the case for a data message)
+                    d = bdecode(message[2:], sloppy=1)
+                    if type(d) == DictType:
+                        self.got_ut_metadata(c, d, message)
+                    else:
+                        if DEBUG:
+                            print >> sys.stderr, "Connecter.got_extend_message() close on bad ut_metadata message"
+                        connection.close()
+                        return
                 elif ext_msg_name == EXTEND_MSG_G2G_V2 and self.use_g2g:
                     ppdict = bdecode(message[2:])
                     if type(ppdict) != DictType:
@@ -1520,21 +1625,18 @@ class Connecter:
         """
         When completed, this is a callback function to reset the connection
         """
+        connection.cs_complete = True # Flag CS as completed
+
         try:
             # Can't send bitfield here, must loop and send a bunch of HAVEs
             # Get the bitfield from the uploader
             have_list = connection.upload.storage.get_have_list()
             bitfield = Bitfield(self.numpieces, have_list)
-            i = 0
-            for b in bitfield.toboollist():
-                if b:
-                    connection.send_have(i)
-                i += 1
-            #connection.upload.send_bitfield(connection)
+            connection.send_bitfield(bitfield.tostring())
             connection.got_anything = False
             self.choker.start_connection(connection)
         except Exception,e:
-            print >> sys.stderr,"Error restarting after CS handshake:",e
+            print >> sys.stderr,"connecter: CS: Error restarting after CS handshake:",e
         
     def cs_handshake_completed(self):
         if DEBUG_CS:

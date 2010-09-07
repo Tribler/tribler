@@ -1,4 +1,4 @@
-# Written by Arno Bakker
+# Written by Arno Bakker, George Milescu
 # see LICENSE.txt for license information
 #
 # This class bridges between the OverlayApps class and the SecureOverlay
@@ -114,6 +114,12 @@ class OverlayThreadingBridge:
         
     def handleMessage(self,permid,selversion,message):
         """ Called by NetworkThread """
+        #ProxyService_
+        #
+        # DEBUG
+        #print "### olbridge: handleMessage", show_permid_short(permid), selversion, getMessageName(message[0]), currentThread().getName()
+        #
+        #_ProxyService
         
         if DEBUG:
             print >>sys.stderr,"olbridge: handleMessage",show_permid_short(permid),selversion,getMessageName(message[0]),currentThread().getName()

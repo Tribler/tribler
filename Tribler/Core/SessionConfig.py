@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker, George Milescu 
 # see LICENSE.txt for license information
 """ Controls the operation of a Session """
 
@@ -291,7 +291,7 @@ class SessionConfigInterface:
         return self.sessconfig['buddycast_max_peers']
 
     #
-    # Download helper / cooperative download
+    # ProxyService_ parameters
     #
     def set_download_help(self,value):
         """ Enable download helping/cooperative download (default = True).
@@ -314,6 +314,28 @@ class SessionConfigInterface:
         """ Returns the directory for download helping storage. 
         @return An absolute path name. """
         return self.sessconfig['download_help_dir']
+
+    def set_proxyservice_status(self,value):
+        """ Set the status of the proxyservice (on or off).
+        
+        ProxyService off means the current node could not be used as a proxy. ProxyService on means other nodes will be able to use it as a proxy.
+        
+        @param value: one of the possible two values: PROXYSERVICE_OFF, PROXYSERVICE_ON
+        """
+        if value == PROXYSERVICE_OFF or value == PROXYSERVICE_ON:
+            self.sessconfig['proxyservice_status'] = value
+        else:
+            # If the method is called with an incorrect value, turn off the ProxyService
+            self.sessconfig['proxyservice_status'] = PROXYSERVICE_OFF
+
+    def get_proxyservice_status(self):
+        """ Returns the status of the proxyservice (on or off).
+        @return: one of the possible two values: PROXYSERVICE_OFF, PROXYSERVICE_ON
+        """
+        return self.sessconfig['proxyservice_status']
+    #
+    # _ProxyService
+    #
 
     #
     # Torrent file collecting
@@ -351,7 +373,7 @@ class SessionConfigInterface:
         """ Returns the directory to save collected torrents.
         @return An absolute path name. """
         return self.sessconfig['torrent_collecting_dir']
-
+    
     def set_torrent_collecting_rate(self,value):
         """ Maximum download rate to use for torrent collecting.
         @param value A rate in KB/s. """
@@ -395,7 +417,6 @@ class SessionConfigInterface:
         """ Returns the disk-space limit when to stop collecting torrents. 
         @return A number of megabytes. """
         return self.sessconfig['stop_collecting_threshold']
-
 
     #
     # The Tribler dialback mechanism is used to test whether a Session is
@@ -1218,6 +1239,43 @@ class SessionConfigInterface:
         """
         return self.sessconfig['channelcast_random_own_subscriptions']
     
+    #
+    # Subtitle collection via Andrea Reale's extension
+    #
+    def set_subtitles_collecting(self,value):
+        """ Automatically collect subtitles from peers in the network (default = 
+        False).
+        @param value Boolean. 
+        """
+        self.sessconfig['subtitles_collecting'] = value
+
+    def get_subtitles_collecting(self):
+        """ Returns whether to automatically collect subtitles.
+        @return Boolean. """
+        return self.sessconfig['subtitles_collecting']
+
+    def set_subtitles_collecting_dir(self,value):
+        """
+        Where to place collected subtitles? (default is state_dir + 'collected_subtitles_files')
+        @param value An absolute path.
+        """
+        self.sessconfig['subtitles_collecting_dir'] = value
+        
+    def get_subtitles_collecting_dir(self):
+        """ Returns the directory to save collected subtitles.
+        @return An absolute path name. """
+        return self.sessconfig['subtitles_collecting_dir']
+        
+    def set_subtitles_upload_rate(self,value):
+        """ Maximum upload rate to use for subtitles collecting.
+        @param value A rate in KB/s. """
+        self.sessconfig['subtitles_upload_rate'] = value
+    
+    def get_subtitles_upload_rate(self):
+        """ Returns the upload rate to use for subtitle collecting.
+        @return A rate in KB/s. """
+        return self.sessconfig['subtitles_upload_rate']
+
 
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  

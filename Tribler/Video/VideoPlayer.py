@@ -18,6 +18,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 
 from Tribler.Video.CachingStream import SmartCachingStream
+from Tribler.Video.Ogg import is_ogg,OggMagicLiveStream
 
 DEBUG = False
 
@@ -49,8 +50,7 @@ class VideoPlayer:
         self.videorawserv = VideoRawVLCServer.getInstance()
 
         self.resume_by_system = 1
-        from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-        self.user_download_choice = UserDownloadChoice.get_singleton()
+        self.user_download_choice = None
         
     def getInstance(*args, **kw):
         if VideoPlayer.__single is None:
@@ -405,6 +405,9 @@ class VideoPlayer:
                     download = download_state.get_download()
                     torrent_def = download.get_def()
                     infohash = torrent_def.get_infohash()
+                    
+                    from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+                    self.user_download_choice = UserDownloadChoice.get_singleton()
                     user_state = self.user_download_choice.get_download_state(infohash)
 
                     # resume a download unless the user explisitly
@@ -542,17 +545,39 @@ class VideoPlayer:
                     else:
                         cachestream = stream
                         blocksize = piecelen
+
+                if d.get_def().get_live() and is_ogg(d.get_def().get_name_as_unicode()):
+                    # Live Ogg stream. To support this we need to do
+                    # two things:
+                    # 1. Write Ogg headers (stored in .tstream)
+                    # 2. Find first Ogg page in stream.
+                    cachestream = OggMagicLiveStream(d.get_def(),stream)
+
                 
                 # Estimate duration. Video player (e.g. VLC) often can't tell
                 # when streaming.
                 estduration = None
-                if not d.get_def().get_live():
+                if d.get_def().get_live():
+                    # Set correct Ogg MIME type
+                    if is_ogg(d.get_def().get_name_as_unicode()):
+                        params['mimetype'] = 'application/ogg'
+                else:
                     file = None
                     if d.get_def().is_multifile_torrent():
                         file = d.get_selected_files()[0]
                     bitrate = d.get_def().get_bitrate(file)
                     if bitrate is not None:
                         estduration = float(length) / float(bitrate)
+                    
+                    # Set correct Ogg MIME type
+                    if file is None:
+                        if is_ogg(d.get_def().get_name_as_unicode()):
+                            params['mimetype'] = 'application/ogg'
+                    else:
+                        if is_ogg(file):
+                            params['mimetype'] = 'application/ogg'
+                        
+
                     
                 streaminfo = {'mimetype':mimetype,'stream':cachestream,'length':length,'blocksize':blocksize,'estduration':estduration}
                 self.play_stream(streaminfo)

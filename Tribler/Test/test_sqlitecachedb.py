@@ -10,12 +10,13 @@ from random import shuffle
 import apsw
 
 
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT,CURRENT_MAIN_DB_VERSION
 from bak_tribler_sdb import *    
 
-CREATE_SQL_FILE = os.path.join('..', 'schema_sdb_v4.sql')
+CREATE_SQL_FILE = os.path.join('..',"schema_sdb_v"+str(CURRENT_MAIN_DB_VERSION)+".sql")
 
 import Tribler.Core.CacheDB.sqlitecachedb
+print >>sys.stderr,"TEST: ENABLE DBUPGRADE HACK"
 Tribler.Core.CacheDB.sqlitecachedb.TEST_SQLITECACHEDB_UPGRADE = True
 
 def init():

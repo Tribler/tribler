@@ -12,6 +12,7 @@ from time import time
 from Tribler.Core.BitTornado.bencode import bencode
 from Tribler.Core.Overlay.permid import verify_data
 from os.path import exists, isfile
+from Tribler.Core.Subtitles.RichMetadataInterceptor import validMetadataEntry
 
 
 DEBUG = False
@@ -89,6 +90,8 @@ def validChannelCastMsg(channelcast_data):
     """ Returns true if ChannelCastMsg is valid,
     format: {'signature':{'publisher_id':, 'publisher_name':, 'infohash':, 'torrenthash':, 'torrent_name':, 'timestamp':, 'signature':}} 
      """
+     
+        
     if not isinstance(channelcast_data,dict):
         return False
     for signature, ch in channelcast_data.items():
@@ -96,15 +99,35 @@ def validChannelCastMsg(channelcast_data):
             if DEBUG:
                 print >>sys.stderr,"validChannelCastMsg: value not dict"
             return False
-        if len(ch) !=6:
+        
+        # 08-04-2010 We accept both 6 and 7 fields to allow
+        # compatibility with messages from older versions 
+        # the rich metadata field
+        length = len(ch)
+        if not 6 <= length <= 7:
             if DEBUG:
-                print >>sys.stderr,"validChannelCastMsg: #keys!=6"
+                print >>sys.stderr,"validChannelCastMsg: #keys!=7"
             return False
-        if not ('publisher_id' in ch and 'publisher_name' in ch and 'infohash' in ch and 'torrenthash' in ch and 'torrentname' in ch and 'time_stamp' in ch):
+        if not ('publisher_id' in ch and 'publisher_name' in ch and 'infohash' in ch and 'torrenthash' in ch \
+                and 'torrentname' in ch and 'time_stamp' in ch):
             if DEBUG:
                 print >>sys.stderr,"validChannelCastMsg: key missing"
             return False
-        if not (validPermid(ch['publisher_id']) and isinstance(ch['publisher_name'],str) and validInfohash(ch['infohash']) and validInfohash(ch['torrenthash'])
+        
+        if length == 7:
+            if 'rich_metadata' not in ch: #enriched Channelcast
+                if DEBUG:
+                    print >>sys.stderr,"validChannelCastMsg: key missing"
+                    return False
+            else:
+                if not validMetadataEntry(ch['rich_metadata']):
+                    print >> sys.stderr, "validChannelCastMsg: invalid rich metadata"
+                    return False
+                
+        
+        
+        if not (validPermid(ch['publisher_id']) and isinstance(ch['publisher_name'],str) \
+                and validInfohash(ch['infohash']) and validInfohash(ch['torrenthash'])
                 and isinstance(ch['torrentname'],str) and validTimestamp(ch['time_stamp'])):
             if DEBUG:
                 print >>sys.stderr,"validChannelCastMsg: something not valid"

@@ -6,7 +6,7 @@
 	   name="Microsoft.Winweb.SwarmPlugin"
 	   type="win32"
 	/>
-	<description>SwarmPlayer plugin for Internet Explorer</description>
+	<description>SwarmPlugin for Internet Explorer</description>
 	<dependency>
 	   <dependentAssembly>
 	     <assemblyIdentity

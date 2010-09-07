@@ -1,4 +1,4 @@
-# Written by Bram Cohen and Pawel Garbacki
+# Written by Bram Cohen, Pawel Garbacki, George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -14,7 +14,8 @@ from traceback import print_exc
 
 from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern
 from Tribler.Core.BitTornado.BT1.convert import toint
-
+from Tribler.Core.Statistics.Status.Status import get_status_holder
+from Tribler.Core.ProxyService.ProxyServiceUtil import *
 
 try:
     True
@@ -114,7 +115,7 @@ incompletecounter = IncompleteCounter()
 class Connection:
 # 2fastbt_
     def __init__(self, Encoder, connection, id, ext_handshake = False, 
-                  locally_initiated = None, dns = None, coord_con = False):
+                  locally_initiated = None, dns = None, coord_con = False, challenge = None):
 # _2fastbt
         self.Encoder = Encoder
         self.connection = connection    # SocketHandler.SingleSocket
@@ -122,6 +123,8 @@ class Connection:
         self.id = id
         self.readable_id = make_readable(id)
         self.coord_con = coord_con
+        # Challenge sent by the coordinator to identify the Helper
+        self.challenge = challenge
         if locally_initiated is not None:
             self.locally_initiated = locally_initiated
         elif coord_con:
@@ -156,7 +159,12 @@ class Connection:
         if ext_handshake:
             if DEBUG:
                 print >>sys.stderr,"Encoder.Connection: writing my peer-ID"
-            self.connection.write(self.Encoder.my_id)
+            if coord_con:
+                # on the helper-coordinator BT communication a special peer id is used
+                proxy_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
+                self.connection.write(proxy_peer_id)
+            else:
+                self.connection.write(self.Encoder.my_id)
             self.next_len, self.next_func = 20, self.read_peer_id
         else:
             self.next_len, self.next_func = 1, self.read_header_len
@@ -227,8 +235,13 @@ class Connection:
             return None
         if not self.locally_initiated:
             self.Encoder.connecter.external_connection_made += 1
-            self.connection.write(chr(len(protocol_name)) + protocol_name + 
-                option_pattern + self.Encoder.download_id + self.Encoder.my_id)
+            if self.coord_con:
+                # on the helper-coordinator BT communication a special peer id is used
+                proxy_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
+                self.connection.write(chr(len(protocol_name)) + protocol_name + option_pattern + self.Encoder.download_id + proxy_peer_id)
+            else:
+                self.connection.write(chr(len(protocol_name)) + protocol_name + option_pattern + self.Encoder.download_id + self.Encoder.my_id)
+
         return 20, self.read_peer_id
 
     def read_peer_id(self, s):
@@ -236,7 +249,7 @@ class Connection:
         """ In the scenario of locally initiating: 
         - I may or may not (normally not) get the remote peerid from a tracker before connecting. 
         - If I've gotten the remote peerid, set it as self.id, otherwise set self.id as 0.
-        - I send handshake message without my peerid. 
+        - I send handshake message without my peerid.
         - After I received peer's handshake message, if self.id isn't 0 (i.e., I had the remote peerid), 
         check the remote peerid, otherwise set self.id as the remote id. If the check is failed, drop the connection.
         - Then I send self.Encoder.my_id to the remote peer. 
@@ -265,7 +278,7 @@ class Connection:
         if not self.id:    # remote init or local init without remote peer's id or remote init
             self.id = s
             self.readable_id = make_readable(s)
-        else:    # locat init with remote id
+        else:    # local init with remote id
             if s != self.id:
                 if DEBUG:
                     print >>sys.stderr,"Encoder.Connection: read_peer_id: s != self.id, returning None"
@@ -281,7 +294,12 @@ class Connection:
                 print >>sys.stderr,"Encoder.Connection: read_peer_id: self not complete!!!, returning None"
             return None
         if self.locally_initiated:
-            self.connection.write(self.Encoder.my_id)
+            if self.coord_con:
+                # on the helper-coordinator BT communication a special peer id is used
+                proxy_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
+                self.connection.write(proxy_peer_id)
+            else:
+                self.connection.write(self.Encoder.my_id)
             incompletecounter.decrement()
             # Arno: open new conn from queue if at limit. Faster than RawServer task
             self.Encoder._start_connection_from_queue(sched=False)
@@ -311,7 +329,7 @@ class Connection:
             if DEBUG:
                 print >>sys.stderr,"encoder: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
 
-            self.Encoder._event_reporter.add_event(b64encode(self.Encoder.connecter.infohash), "connection-timeout:%s:%s" % (self.get_ip(), self.get_port()))
+            self.Encoder._event_reporter.create_and_add_event("connection-timeout", [b64encode(self.Encoder.connecter.infohash), self.get_ip(), self.get_port()])
 
             # RePEX: inform repexer of timeout
             repexer = self.Encoder.repexer
@@ -326,6 +344,7 @@ class Connection:
         if DEBUG:
             print >>sys.stderr,"encoder: closing connection",self.get_ip()
             #print_stack()
+        
         if not self.closed:
             self.connection.close()
             self.sever(closeall=closeall)
@@ -502,8 +521,8 @@ class Encoder:
         # import errors
         #
         # _event_reporter stores events that are logged somewhere...
-        from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
-        self._event_reporter = get_reporter_instance()
+        # from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+        self._event_reporter = get_status_holder("LivingLab")
 
         # the addresses that have already been reported
         self._known_addresses = {}
@@ -544,7 +563,7 @@ class Encoder:
                 new_addresses.append(address)
 
         if new_addresses:
-            self._event_reporter.add_event(b64encode(self.connecter.infohash), "known-hosts:%s" % ";".join(new_addresses))
+            self._event_reporter.create_and_add_event("known-hosts", [b64encode(self.connecter.infohash), ";".join(new_addresses)])
 
         # prevent 'to much' memory usage
         if len(known_addresses) > 2500:
@@ -591,7 +610,7 @@ class Encoder:
             print_exc()
             raise
 
-    def start_connection(self, dns, id, coord_con = False, forcenew = False):
+    def start_connection(self, dns, id, coord_con = False, forcenew = False, challenge = None):
         """ Locally initiated connection """
         if DEBUG:
             print >>sys.stderr,"encoder: start_connection:",dns
@@ -625,7 +644,7 @@ class Encoder:
             if DEBUG:
                 print >>sys.stderr,"encoder: start_connection: Setting up new to peer", dns,"id",`id`
             c = self.raw_server.start_connection(dns)
-            con = Connection(self, c, id, dns = dns, coord_con = coord_con)
+            con = Connection(self, c, id, dns = dns, coord_con = coord_con, challenge = challenge)
             self.connections[c] = con
             c.set_handler(con)
         except socketerror:

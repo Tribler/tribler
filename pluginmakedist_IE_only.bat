@@ -6,7 +6,7 @@ REM Arno: Add . to find our core (py 2.5)
 set PYTHONPATH=.;%PYTHONHOME%
 echo PYTHONPATH SET TO %PYTHONPATH%
 
-set NSIS="C:\Program Files\NSIS\makensis.exe"
+set NSIS="\Program Files\NSIS\makensis.exe"
 
 REM ----- Check for Python and essential site-packages
 
@@ -57,7 +57,13 @@ mkdir dist\installdir\bgprocess\%LIBRARYNAME%\Images
 REM Arno: Move py2exe results to installdir
 move dist\*.* dist\installdir\bgprocess
 copy %LIBRARYNAME%\Images\SwarmPluginIcon.ico dist\installdir\bgprocess\%LIBRARYNAME%\Images
+
 xcopy vlc4plugin\* dist\installdir /E /I
+
+REM Riccardo:  move the files needed for the WebUI
+xcopy %LIBRARYNAME%\WebUI dist\installdir\bgprocess\%LIBRARYNAME%\WebUI /S /I
+del dist\installdir\bgprocess\%LIBRARYNAME%\WebUI\*.py
+
 REM Diego: replace vlc *.txt with P2P-Next License.txt
 del dist\installdir\*.txt
 type %LIBRARYNAME%\ns-LICENSE.txt %LIBRARYNAME%\binary-LICENSE-postfix.txt > %LIBRARYNAME%\binary-LICENSE.txt
@@ -77,8 +83,8 @@ copy reset*.bat dist\installdir
 
 cd dist\installdir
 
-REM Arno: Win7 gives popup if BackgroundProcess is not signed
-"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "SwarmPlugin for Internet Explorer and Firefox" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" bgprocess\BackgroundProcess.exe
+REM Arno: Win7 gives popup if SwarmEngine is not signed
+"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "SwarmPlugin for Internet Explorer and Firefox" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" bgprocess\SwarmEngine.exe
 
 
 :makeinstaller

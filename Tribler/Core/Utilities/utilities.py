@@ -11,6 +11,7 @@ import copy
 from types import UnicodeType, StringType, LongType, IntType, ListType, DictType
 import urlparse
 from traceback import print_exc,print_stack
+import binascii
 
 STRICT_CHECK = True
 DEBUG = False
@@ -127,6 +128,20 @@ def validTorrentFile(metainfo):
 
     if not ('announce' in metainfo or 'nodes' in metainfo):
         raise ValueError('announce and nodes missing')
+
+    # 04/05/10 boudewijn: with the introduction of magnet links we
+    # also allow for peer addresses to be (temporarily) stored in the
+    # metadata.  Typically these addresses are recently gathered.
+    if "initial peers" in metainfo:
+        if not isinstance(metainfo["initial peers"], list):
+            raise ValueError("initial peers not list, but %s" % type(metainfo["initial peers"]))
+        for address in metainfo["initial peers"]:
+            if not (isinstance(address, tuple) and len(address) == 2):
+                raise ValueError("address not 2-item tuple, but %s" % type(address))
+            if not isinstance(address[0], str):
+                raise ValueError("address host not string, but %s" % type(address[0]))
+            if not isinstance(address[1], int):
+                raise ValueError("address port not int, but %s" % type(address[1]))
     
     info = metainfo['info']
     if type(info) != DictType:
@@ -222,8 +237,31 @@ def validTorrentFile(metainfo):
                     thumb = content['thumbnail']
                     if type(content) != StringType:
                         raise ValueError('azureus_properties content thumbnail is not string')
-    
-    
+
+    # Diego: perform check on httpseeds/url-list field
+    if 'url-list' in metainfo:
+        if 'files' in metainfo['info']:
+            # Diego: only single-file mode allowed for http seeding now
+            raise ValueError("Only single-file mode supported with HTTP seeding: remove url-list")
+        elif type( metainfo['url-list'] ) != ListType:
+            raise ValueError('url-list is not list, but '+`type(metainfo['url-list'])`)
+        else:
+            for url in metainfo['url-list']:
+                if not isValidURL(url):
+                    raise ValueError("url-list url is not valid: "+`url`)
+
+    if 'httpseeds' in metainfo:
+        if 'files' in metainfo['info']:
+            # Diego: only single-file mode allowed for http seeding now
+            raise ValueError("Only single-file mode supported with HTTP seeding: remove httpseeds")
+        elif type( metainfo['httpseeds'] ) != ListType:
+            raise ValueError('httpseeds is not list, but '+`type(metainfo['httpseeds'])`)
+        else:
+            for url in metainfo['httpseeds']:
+                if not isValidURL(url):
+                    raise ValueError("httpseeds url is not valid: "+`url`)
+
+
 def isValidTorrentFile(metainfo):
     try:
         validTorrentFile(metainfo)
@@ -527,6 +565,50 @@ def get_collected_torrent_filename(infohash):
     filename = sha(infohash).hexdigest()+'.torrent'    # notice: it's sha1-hash of infohash
     return filename
     # exceptions will be handled by got_metadata()
+    
+
+def uintToBinaryString(uint, length=4):
+    '''
+    Converts an unsigned integer into its binary representation.
+    
+    @type uint: int
+    @param uint: un unsigned intenger to convert into binary data.
+    
+    @type length: int
+    @param length: the number of bytes the the resulting binary
+                   string should have
+                   
+    @rtype: a binary string
+    @return: a binary string. Each element in the string is one byte 
+            of data.
+                   
+    @precondition: uint >= 0 and uint < 2**(length*8)
+    '''
+    assert 0 <= uint < 2**(length*8), "Cannot represent string"
+    hexlen = length*2
+    hexString =  "{0:0>{1}}".format(hex(uint)[2:], hexlen)
+    if hexString.endswith('L'):
+        hexString = hexString[:-1]
+    
+    binaryString = binascii.unhexlify(hexString)
+    return binaryString
+
+def binaryStringToUint(bstring):
+    '''
+    Converts a binary string into an unsigned integer
+    
+    @param bstring: a string of binary data
+    
+    @return a non-negative integer representing the 
+            value of the binary data interpreted as an
+            unsigned integer 
+    '''
+    hexstr = binascii.hexlify(bstring)
+    intval = int(hexstr,16)
+    return intval
+
+
+    
 
 
 if __name__=='__main__':

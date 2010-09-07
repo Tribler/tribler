@@ -158,3 +158,17 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         finally:
             self.dllock.release()
 # _SelectiveSeeding
+
+    def get_peer_id(self):
+        """ Return the BitTorrent peer ID used by this Download, or None, when
+        the download is STOPPED.
+        @return 20-byte peer ID. 
+        """
+        self.dllock.acquire()
+        try:
+            if self.sd is not None:
+                return self.sd.peerid
+            else:
+                return None
+        finally:
+            self.dllock.release()

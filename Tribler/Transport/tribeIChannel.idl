@@ -1,0 +1,8 @@
+#include "nsISupports.idl"
+
+[scriptable, uuid(bcb8d306-66cf-4358-8473-807981ff7366)]
+interface tribeIChannel : nsISupports
+{
+  void setTorrentUrl(in AString url);
+};
+

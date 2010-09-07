@@ -15,6 +15,7 @@ from Tribler.Core.BitTornado.bencode import bencode
 from Tribler.Core.BitTornado.BT1.MessageID import DIALBACK_REQUEST, DIALBACK_REPLY, getMessageName
 from Tribler.Core.Utilities.utilities import show_permid
 from Tribler.Core.NATFirewall.ReturnConnHandler import dialback_infohash
+from Tribler.Core.CacheDB.sqlitecachedb import CURRENT_MAIN_DB_VERSION
 
 from btconn import BTConnection
 from olconn import OLConnection
@@ -93,7 +94,7 @@ class TestDialbackReplyActive(TestAsServer):
         self.config.set_install_dir(self.install_path)
         
         srcfiles = []
-        srcfiles.append(os.path.join(LIBRARYNAME,"schema_sdb_v4.sql"))
+        srcfiles.append(os.path.join(LIBRARYNAME,"schema_sdb_v"+str(CURRENT_MAIN_DB_VERSION)+".sql"))
         srcfiles.append(os.path.join(LIBRARYNAME,"Core","Statistics","tribler_seedingstats_sdb.sql"))
         srcfiles.append(os.path.join(LIBRARYNAME,"Core","Statistics","tribler_friendship_stats_sdb.sql"))
         srcfiles.append(os.path.join(LIBRARYNAME,"Core","Statistics","tribler_videoplayback_stats.sql"))

@@ -5,8 +5,8 @@ import threading
 
 import time
 
-from Tribler.Core.Status import Status
-from Tribler.Core.Status import LivingLabReporter
+from Tribler.Core.Statistics.Status import Status
+from Tribler.Core.Statistics.Status import LivingLabReporter
 
 class TestOnChangeStatusReporter(Status.OnChangeStatusReporter):
     
@@ -159,6 +159,9 @@ class StatusTest(unittest.TestCase):
         status.add_reporter(reporter)
         i = status.create_status_element("TestInteger")
         i.set_value(1233)
+
+        b = status.create_status_element("Binary")
+        b.set_value("".join([chr(n) for n in range(0, 255)]))
         
         reporter.wait_for_post(5.0)
 
@@ -168,6 +171,7 @@ class StatusTest(unittest.TestCase):
         self.assertEquals(len(reporter.get_errors()), 0)
 
         status.remove_status_element(i)
+        status.remove_status_element(b)
 
     def test_LLReporter_event(self):
 

@@ -1,6 +1,12 @@
 # Written by Arno Bakker, Choopan RATTANAPOKA, Jie Yang
 # see LICENSE.txt for license information
 #
+# This is the main file for the SwarmPlayer V1, which is a standalone P2P-based 
+# video player. SwarmPlayer V2, the transport protocol for use with HTML5 can be
+# found in Transport/SwarmEngine.py (Sharing code with SwarmPlugin and v1,
+# confusing the code a bit).
+#
+#
 # TODO: 
 # * set 'download_slice_size' to 32K, such that pieces are no longer
 #   downloaded in 2 chunks. This particularly avoids a bad case where you
@@ -57,7 +63,7 @@ from Tribler.Utilities.Instance2Instance import Instance2InstanceClient
 from Tribler.Player.PlayerVideoFrame import VideoFrame
 from Tribler.Player.BaseApp import BaseApp
 
-from Tribler.Core.Status import *
+from Tribler.Core.Statistics.Status import *
 
 DEBUG = True
 ONSCREENDEBUG = False
@@ -74,9 +80,9 @@ START_TIME = 0
 
 
 class PlayerApp(BaseApp):
-    def __init__(self, redirectstderrout, appname, params, single_instance_checker, installdir, i2iport, sport):
+    def __init__(self, redirectstderrout, appname, appversion, params, single_instance_checker, installdir, i2iport, sport):
         self.videoFrame = None
-        BaseApp.__init__(self, redirectstderrout, appname, params, single_instance_checker, installdir, i2iport, sport)
+        BaseApp.__init__(self, redirectstderrout, appname, appversion, params, single_instance_checker, installdir, i2iport, sport)
 
         self.said_start_playback = False
         self.decodeprogress = 0
@@ -615,7 +621,7 @@ class FileDropTarget(wx.FileDropTarget):
 # Main Program Start Here
 #
 ##############################################################
-def run_playerapp(appname,params = None):
+def run_playerapp(appname,appversion,params = None):
     global START_TIME
     START_TIME = time.time()
     
@@ -656,7 +662,7 @@ def run_playerapp(appname,params = None):
         installdir = os.getcwd()  
 
     # Launch first single instance
-    app = PlayerApp(0, appname, params, single_instance_checker, installdir, I2I_LISTENPORT, PLAYER_LISTENPORT)
+    app = PlayerApp(0, appname, appversion, params, single_instance_checker, installdir, I2I_LISTENPORT, PLAYER_LISTENPORT)
 
     # Setup the statistic reporter while waiting for proper integration
     status = Status.get_status_holder("LivingLab")
@@ -678,5 +684,5 @@ def run_playerapp(appname,params = None):
 
 
 if __name__ == '__main__':
-    run_playerapp("SwarmPlayer")
+    run_playerapp("SwarmPlayer","1.1.0")
 

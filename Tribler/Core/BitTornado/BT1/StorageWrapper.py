@@ -1,11 +1,12 @@
-# Written by Bram Cohen, Arno Bakker
+# Written by Bram Cohen, Arno Bakker, George Milescu
 # see LICENSE.txt for license information
 
+import sys
 from traceback import print_exc
 from random import randrange
 from copy import deepcopy
 import pickle
-import traceback, sys
+import traceback
 import time
 
 from Tribler.Core.Merkle.merkle import MerkleTree
@@ -124,7 +125,7 @@ class StorageWrapper:
         self.blocked_movein = Olist()
         self.blocked_moveout = Olist()
         self.waschecked = [False] * len(hashes)
-        self.places = {}
+        self.places = {} # Arno, maps piece to actual position in files 
         self.holes = []
         self.stat_active = {}
         self.stat_new = {}
@@ -139,7 +140,9 @@ class StorageWrapper:
         self.write_buf_size = 0L
         self.write_buf = {}   # structure:  piece: [(start, data), ...]
         self.write_buf_list = []
-        
+        # Arno, 2010-04-23: STBSPEED: the piece that were correct on disk at start
+        self.pieces_on_disk_at_startup = []
+
         # Merkle:
         self.merkle_torrent = (root_hash is not None)
         self.root_hash = root_hash
@@ -276,24 +279,28 @@ class StorageWrapper:
             msg, done, init, next = self.initialize_tasks.pop(0)
             if DEBUG:
                 print >>sys.stderr,"StorageWrapper: _initialize performing task",msg
+            if DEBUG:
+                st = time.time()
             if init():
                 self.initialize_status(activity = msg, fractionDone = done)
                 self.initialize_next = next
+            if DEBUG:
+                et = time.time()
+                diff = et - st
+                print >>sys.stderr,"StorageWrapper: _initialize: task took",diff
 
         self.backfunc(self._initialize)
 
+
     def init_hashcheck(self):
+
+        if DEBUG:
+            print >>sys.stderr,"StorageWrapper: init_hashcheck: #hashes",len(self.hashes),"amountleft",self.amount_left
+
         
         if self.live_streaming:
             # STBSPEED by Milton
-            self.check_targets = {}
-            self.check_list = []
-            self.check_total = len(self.check_list)
-            self.check_numchecked = 0.0
-            self.lastlen = self._piecelen(len(self.hashes) - 1)
-            self.numchecked = 0.0
-            self.check_targets[self.hashes[0]] = [0]
-            self.holes = range(len(self.hashes))
+            self.set_nohashcheck()
             return False
 
         # Non-live streaming
@@ -314,20 +321,32 @@ class StorageWrapper:
 
         self.check_targets = {}
         got = {}
-        for p, v in self.places.items():
+        for p, v in self.places.iteritems():
             assert not got.has_key(v)
             got[v] = 1
+            
+        # Arno, 2010-04-16: STBSPEED: Avoid costly calculations if new VOD
+        if len(self.places) == 0 and self.storage.get_length_initial_content() == 0L:
+            self.set_nohashcheck()
+            return False
+            
+        # STBSPEED: TODO: optimize
         for i in xrange(len(self.hashes)):
-            if self.places.has_key(i):  # restored from pickled
-                self.check_targets[self.hashes[i]] = []
-                if self.places[i] == i:
+            # Arno, 2010-04-16: STBSPEED: Only execute if there is persistent 
+            # state (=self.places) on already hashchecked pieces.
+            if len(self.places) > 0:
+                if self.places.has_key(i):  # restored from pickled
+                    self.check_targets[self.hashes[i]] = []
+                    if self.places[i] == i:
+                        continue
+                    else:
+                        assert not got.has_key(i)
+                        self.out_of_place += 1
+                if got.has_key(i):
                     continue
-                else:
-                    assert not got.has_key(i)
-                    self.out_of_place += 1
-            if got.has_key(i):
-                continue
+                
             if self._waspre(i):
+                # Arno: If there is data on disk, check it
                 if self.blocked[i]:
                     self.places[i] = i
                 else:
@@ -350,11 +369,39 @@ class StorageWrapper:
             print "StorageWrapper: init_hashcheck: return self.check_total > 0 is ",(self.check_total > 0)
         return self.check_total > 0
 
+
+    def set_nohashcheck(self):
+        if DEBUG:
+            print "StorageWrapper: init_hashcheck: live or empty files, skipping"
+        self.places = {}
+        self.check_targets = {}
+        self.check_list = []
+        self.check_total = len(self.check_list)
+        self.check_numchecked = 0.0
+        self.lastlen = self._piecelen(len(self.hashes) - 1)
+        self.numchecked = 0.0
+        self.check_targets[self.hashes[0]] = [0]
+        self.holes = range(len(self.hashes))
+        
+        
+    # Arno, 2010-04-20: STBSPEED
+    def get_pieces_on_disk_at_startup(self):
+        """ Returns list of pieces currently on disk that were succesfully
+        hashchecked. If the file was complete on disk, this list is empty.
+        See download_bt1.py::BT1Download::startEngine for how this is dealt with.
+        """
+        if DEBUG:
+            print >>sys.stderr,"StorageWrapper: get_pieces_on_disk_at_startup: self.places len",len(self.places),"on disk",len(self.pieces_on_disk_at_startup)
+        
+        return self.pieces_on_disk_at_startup
+
+
     def _markgot(self, piece, pos):
         if DEBUG:
             print str(piece)+' at '+str(pos)
         self.places[piece] = pos
         self.have[piece] = True
+        self.pieces_on_disk_at_startup.append(piece)
         len = self._piecelen(piece)
         self.amount_obtained += len
         self.amount_left -= len
@@ -435,13 +482,14 @@ class StorageWrapper:
                         self.failed('download corrupted, hash tree does not compute; please delete and restart')
                         return 1
                 self.finished()
+                
             return (self.numchecked / self.check_total)
 
         except Exception, e:
             print_exc()
             self.failed('download corrupted: '+str(e)+'; please delete and restart')
     
-    
+
     def init_movedata(self):
         if self.flag.isSet():
             return False
@@ -490,7 +538,7 @@ class StorageWrapper:
         self.tomove -= 1
         return (self.tomove / self.out_of_place)
 
-        
+
     def init_alloc(self):
         if self.flag.isSet():
             return False
@@ -592,6 +640,10 @@ class StorageWrapper:
         return self.amount_left < self.total_length
 
     def _make_inactive(self, index):
+        """ Mark the blocks that form a piece and save that information to inactive_requests. Each block is marked with a (begin, length) pair.
+        
+        @param index: the index of the piece for which blocks are being calculated
+        """
         length = self._piecelen(index)
         l = []
         x = 0
@@ -644,6 +696,11 @@ class StorageWrapper:
         return self.amount_obtained, self.amount_desired, self.have
 
     def new_request(self, index):
+        """ Return a block mark to be downloaded from a piece
+        
+        @param index: the index of the piece for which a block will be downloaded
+        @return: a (begin, length) pair
+        """
         
         if DEBUG:
             print >>sys.stderr,"StorageWrapper: new_request",index,"#"
@@ -807,7 +864,7 @@ class StorageWrapper:
                 # automatically limited.
                 self.blocked_moveout.add(index)
             return False
-        for p, v in self.places.items():
+        for p, v in self.places.iteritems():
             if v == index:
                 break
         else:
@@ -1019,7 +1076,7 @@ class StorageWrapper:
         if not self.double_check:
             return
         sources = []
-        for p, v in self.places.items():
+        for p, v in self.places.iteritems():
             if pieces_to_check.has_key(v):
                 sources.append(p)
         assert len(sources) == len(pieces_to_check)
@@ -1074,7 +1131,7 @@ class StorageWrapper:
 
         self.blocked_movein = Olist()
         self.blocked_moveout = Olist()
-        for p, v in self.places.items():
+        for p, v in self.places.iteritems():
             if p != v:
                 if self.blocked[p] and not self.blocked[v]:
                     self.blocked_movein.add(p)

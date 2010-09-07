@@ -83,6 +83,7 @@ class TestVideoHTTPServer(unittest.TestCase):
         return head
 
     def range_test(self,firstbyte,lastbyte,sourcesize,setset=False):
+        print >>sys.stderr,"test: range_test:",firstbyte,lastbyte,sourcesize,"setset",setset
         self.register_file_stream()
         
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -120,6 +121,7 @@ class TestVideoHTTPServer(unittest.TestCase):
         s.send(head)
         
         # Parse header
+        s.settimeout(10.0)
         while True:
             line = self.readline(s)
             
@@ -169,11 +171,15 @@ class TestVideoHTTPServer(unittest.TestCase):
             expdata = f.read(expsize)
             f.close()
             self.assert_(data,expdata)
-                
-            # Readed body, reading more should EOF (we disabled persist conn)
-            data = s.recv(10240)
-            self.assert_(len(data) == 0)
+
+            try:
+                # Readed body, reading more should EOF (we disabled persist conn)
+                data = s.recv(10240)
+                self.assert_(len(data) == 0)
         
+            except socket.timeout:
+                print >> sys.stderr,"test: Timeout, video server didn't respond with requested bytes, possibly bug in Python impl of HTTP"
+                print_exc()
 
     def readline(self,s):
         line = ''

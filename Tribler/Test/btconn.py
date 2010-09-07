@@ -32,6 +32,12 @@ def tobinary(i):
 
 class BTConnection:
     def __init__(self,hostname,port,opensock=None,user_option_pattern=None,user_infohash=None,myid=None,mylistenport=None,myoversion=None):
+        assert user_option_pattern is None or isinstance(user_option_pattern, str)
+        assert user_option_pattern is None or len(user_option_pattern) == 8
+        assert user_infohash is None or isinstance(user_infohash, str)
+        assert user_infohash is None or len(user_infohash) == 20
+        assert myid is None or isinstance(myid, str)
+        assert myid is None or len(myid) == 20
         self.hisport = port
         self.buffer = StringIO()
         if mylistenport is None:

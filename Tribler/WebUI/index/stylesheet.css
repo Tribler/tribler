@@ -1,0 +1,400 @@
+
+html {
+	margin-left: auto;
+	margin-right: auto;
+	padding: 0;
+	height: 100%;
+	max-width: 1500px;
+	width: 80%;
+}
+
+body {
+	font: 62.5% "lucida grande", Tahoma, Verdana, Arial, Helvetica, sans-serif; /* Resets 1em to 10px */
+	color: #222 !important;
+	/*background: #606d80;*/
+	background: white;
+	text-align: center;
+	margin: 0 0 0;
+	overflow: auto;
+	z-index: 1;
+	height: 100%;
+}
+
+img {
+	border: none;
+}
+
+a {
+	outline: 0;
+	-moz-outline: none;
+}
+
+div.wrapper {
+
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    margin: 0 auto -2em;
+}
+
+
+/*--------------------------------------
+ *
+ * T O P   M E N U
+ *
+ *--------------------------------------*/
+
+div.head_menu {
+	width: 100%;
+	height: 90px;
+	margin: 0;
+	background: transparent url('../images/headBG.png') left top repeat-x;
+
+	-moz-border-radius-bottomright: 10px;
+	-moz-border-radius-bottomleft: 10px;
+
+    -webkit-border-bottom-right-radius: 10px;
+    -webkit-border-bottom-left-radius: 10px;
+    
+    border: 2px solid white;
+    
+}
+
+div.head_menu h1 {
+	height: inherit;
+	width: 205px;
+	text-indent: -9000px !important;
+	padding: 0;
+	margin: 0 0 0 5px;
+}
+
+
+div#p2p-next {
+	height: 45px;
+	width: 115px;
+	background-image: url('../images/p2p-next.png');
+	vertical-align: left;
+}
+
+div#head_buttons {
+	height: 64px;
+	margin: 0 auto;
+	padding: 0 7px;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
+	width: 260px;
+	vertical-align: middle;	   
+}
+
+div.head_menu ul {
+	height: 64px;
+	margin: 0 auto;
+	padding: 0 7px;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
+	width: 260px;
+	vertical-align: middle;	
+}
+
+
+div.head_menu ul li {
+	list-style-type: none;
+	list-style-image: none;
+	float: left;
+	padding: 0;
+	margin: 0;
+	vertical-align: middle;
+	height: 64px;
+}
+
+
+div.head_menu ul li > div {
+	color: #000;
+	font-size: 1.1em;
+	text-decoration: none;
+	padding: 2px 8px;
+	display: block;
+	margin: 0;
+	text-shadow: 0 1px 0 #ccc;
+	min-width: 64px;
+	cursor: pointer;
+}
+
+li#pause_all div div.head_button {
+	width: 120px;
+	height: 64px;
+	margin: 0 auto 5px;
+    background-image: url('../images/users_arrow_red_light.png');
+}
+
+li#resume_all div div.head_button {
+	width: 120px;
+	height: 64px;
+	margin: 0 auto 5px;
+    background-image: url('../images/users_arrow.png');
+}
+
+li#remove_all div div.head_button {
+	width: 64px;
+	height: 64px;
+	margin: 0 auto 5px;
+    background-image: url('../images/remove_big.png');
+}
+
+
+div.head_menu ul li.divider {
+	width: 0;
+	border-right: 1px dotted black;
+	opacity: 0.2;
+	margin: 14px 4px 0;
+	height: 49px;
+}
+
+
+/*--------------------------------------
+ *
+ * D O W N L O A D S   C O N T A I N E R
+ *
+ *--------------------------------------*/
+
+div#downloads_container {
+
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 5px;
+    border: 2px solid #CCC;
+    padding: 10px;
+    margin-top: 10px;
+    margin-bottom: 30px;
+
+}
+
+ul.downloads_list {
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    border: 2px solid #CCC;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	text-align: left;
+	cursor: default;
+    background-color: #CCC;
+}
+
+ul.downloads_list li {
+
+    height: 80px;
+	list-style-type: none;
+	list-style-image: none;
+	clear: both;
+	display: block;
+	vertical-align: middle;
+}
+
+ul.downloads_list li.dl {
+
+	border-bottom: 1px solid #ccc;
+	padding: 4px 120px 5px 10px; /* Make space for buttons on the right */
+	margin: 0 !important;
+	color: #666;
+}
+
+ul.downloads_list li.dl a img {
+	position: relative;
+	right: -10px;
+}
+
+
+ul.downloads_list li.dl div.dl_name {
+	font-size: 1.6em;
+	font-weight: bold;
+	word-wrap: break-word;
+	overflow: hidden;
+	color: #222;
+	margin-bottom: 2px;
+	margin-top: 2px;
+}
+
+ul.downloads_list li.dl.selected div.dl_name {
+	color: #fff;
+}
+
+ul.downloads_list li.dl div.dl_speeds {
+	font-size: 1.2em;
+}
+
+ul.downloads_list li.dl div.dl_progress_bar_container {
+    /*border-width: 1px;
+    border-style:solid;
+    border-color: black;*/
+
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    border: 2px solid white;
+
+	height: 15px;
+	margin: 3px 0;
+	float: left;
+	line-height: 1px;
+	font-size: 1px;
+	width: 100%;
+	
+}
+
+ul.downloads_list li.dl div.dl_progress_bar {
+/*	height: 10px;
+	margin: 3px 0;
+	float: left;
+	line-height: 1px;
+	background-color: transparent;
+	font-size: 1px; 
+	width: 100%;
+
+	background-repeat: repeat-x;
+	background: transparent url('../images/headBG.png') left top repeat-x;
+	background-color: blue;*/
+    -moz-border-radius-topleft: 10px;
+	-moz-border-radius-bottomleft: 10px;
+
+    -webkit-border-top-left-radius: 10px;
+    -webkit-border-bottom-left-radius: 10px;
+	background-image: url('../images/progress_blue.png');
+	width: 40%;
+	height: 15px;
+    opacity: 0.6;
+}
+
+ul.downloads_list li.dl div.control_container {
+	float: right;
+	position: relative;
+	right: -120px;
+	top: -42px;
+	height: 32px;
+	width: 108px;
+}
+
+
+li.dl a div.remove_dl {
+    cursor: pointer;
+	float: left; 
+	height: 32px;
+	width: 36px;
+    background: url('../images/remove.png') no-repeat;
+}
+
+li.dl a div.pause_dl {
+    cursor: pointer;
+	float: left; 
+	height: 32px;
+	width: 55px;
+    background: url('../images/pause.png') no-repeat;
+}
+
+li.dl a div.resume_dl {
+    cursor: pointer;
+	float: left; 
+	height: 32px;
+	width: 64px;
+    background: url('../images/resume.png') no-repeat;
+}
+
+/*
+li.dl a div.dl_pause {
+	background-position: left top;
+}
+
+li.dl a:hover div.dl_pause {
+	background-position: left center;
+}
+
+li.dl a:active div.dl_pause {
+	background-position: left bottom;
+}
+
+li.dl a div.dl_resume {
+	background-position: center top;
+}
+
+li.dl a:hover div.dl_resume {
+	background-position: center center;
+}
+
+li.dl a:active div.dl_resume {
+	background-position: center bottom;
+}*/
+
+/*--------------------------------------
+ *
+ * FOOTER
+ *
+ *--------------------------------------*/
+
+div.footer {
+	-moz-border-radius-topright: 10px;
+	-moz-border-radius-topleft: 10px;
+
+    /*-webkit-border-radius: 10px;*/
+    -webkit-border-top-right-radius: 10px;
+    -webkit-border-top-left-radius: 10px;
+    
+    border: 2px solid white;
+    
+	width: 100%;
+	height: 2em;
+	margin: 0;
+	background: #CCCCCC;
+	font-size: 1.1em;
+	font-weight: normal;
+	border-bottom: 1px solid #888;
+	color: #000;
+	text-shadow: 0 1px 0 #f4f4f4;
+}
+
+div.footer div {
+	padding: 0 10px 1px 10px;
+	margin: 4px 0 0 0;
+}
+
+div.footer div#logo {
+	float: left;
+	width: 51px;
+	height: 25px;
+	padding: 0;
+	margin: 2px 8px;
+}
+
+#logo_link {
+	width: 51px;
+	height: 20px;
+	cursor: pointer;
+	display: block;
+	background-image: url('../images/p2p-next.png')
+}
+
+div.footer div#num_downloads {
+	float: left;
+}
+
+div.footer div#total_upload {
+	float: right;
+	padding-left: 13px;
+}
+
+div.footer div#total_download {
+	float: right;
+	padding-left: 13px;
+}
+
+div.footer div#total_upload {
+	background: url('../images/arrows.png') left -12px no-repeat;
+}
+
+div.footer div#total_download {
+	background: url('../images/arrows.png') left 2px no-repeat;
+}
+
+
+
+
+

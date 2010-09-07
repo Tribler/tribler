@@ -6,9 +6,9 @@ __fool_epydoc = 481
 uTorrent Peer Exchange (PEX) Support:
 -------------------------------------
 As documented in
-    (link no longer availabe) http://transmission.m0k.org/trac/browser/trunk/misc/utorrent.txt 
-    http://trac.transmissionbt.com/browser/trunk/doc/extended-messaging.txt
+    https://trac.transmissionbt.com/browser/trunk/extras/extended-messaging.txt
     BitTorrent-5.0.8/BitTorrent/Connector.py
+    (link no longer available) http://transmission.m0k.org/trac/browser/trunk/misc/utorrent.txt 
     
 The PEX message payload is a bencoded dict with three keys:
  'added': the set of peers met since the last PEX

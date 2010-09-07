@@ -1,0 +1,17 @@
+Source: swarmplayer
+Section: web
+Priority: optional
+Maintainer: Arno Bakker <arno@cs.vu.nl>
+Build-Depends: debhelper (>= 7.0.50~), mozilla-devscripts (>= 0.19~)
+Standards-Version: 3.8.4
+Homepage: http://swarmplayer.p2p-next.org/
+
+Package: xul-ext-swarmplayer
+Architecture: all
+Depends: ${misc:Depends}, python, python-wxgtk2.8, python-m2crypto, python-apsw
+Recommends: ${xpi:Recommends}
+Provides: ${xpi:Provides}
+Enhances: ${xpi:Enhances}
+Description: Adds the P2P-based tribe:// transfer protocol to Firefox, which enables the use of torrent URLs inside e.g. the video tag.
+ .
+ Homepage: http://swarmplayer.p2p-next.org/

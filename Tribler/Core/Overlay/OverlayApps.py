@@ -1,4 +1,4 @@
-# Written by Arno Bakker
+# Written by Arno Bakker, George Milescu
 # see LICENSE.txt for license information
 #
 # All applications on top of the SecureOverlay should be started here.
@@ -12,8 +12,8 @@ import sys
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-from Tribler.Core.CoopDownload.CoordinatorMessageHandler import CoordinatorMessageHandler
-from Tribler.Core.CoopDownload.HelperMessageHandler import HelperMessageHandler
+from Tribler.Core.ProxyService.CoordinatorMessageHandler import CoordinatorMessageHandler
+from Tribler.Core.ProxyService.HelperMessageHandler import HelperMessageHandler
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.NATFirewall.NatCheckMsgHandler import NatCheckMsgHandler
 from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler 
@@ -30,6 +30,9 @@ from Tribler.Core.Statistics.PunctureCrawler import PunctureCrawler
 from Tribler.Core.Statistics.ChannelCrawler import ChannelCrawler
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
+from Tribler.Core.Subtitles.SubtitlesHandler import SubtitlesHandler
+from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
+from Tribler.Core.Subtitles.PeerHaveManager import PeersHaveManager
 
 DEBUG = False
 
@@ -160,6 +163,33 @@ class OverlayApps:
         self.metadata_handler.register(overlay_bridge, self.help_handler, launchmany, config)
         self.register_msg_handler(MetadataMessages, self.metadata_handler.handleMessage)
         
+        
+        # 13-04-2010 Andrea: subtitles collecting
+        if not config['subtitles_collecting'] : 
+            self.subtitles_handler = None
+        else:
+            self.subtitles_handler = SubtitlesHandler.getInstance()
+            self.subtitles_handler.register(self.overlay_bridge, self.launchmany.richmetadataDbHandler, self.launchmany.session)
+            
+            self.peersHaveManger = PeersHaveManager.getInstance()
+            if not self.peersHaveManger.isRegistered():
+                self.peersHaveManger.register(self.launchmany.richmetadataDbHandler, self.overlay_bridge)
+            # I'm not sure if this is the best place to init this
+            self.subtitle_support = SubtitlesSupport.getInstance()
+                                                           
+            keypair = self.launchmany.session.keypair
+            permid = self.launchmany.session.get_permid()
+            self.subtitle_support._register(self.launchmany.richmetadataDbHandler,
+                                           self.subtitles_handler, 
+                                           self.launchmany.channelcast_db, permid, 
+                                           keypair, self.peersHaveManger,
+                                           self.overlay_bridge)
+            
+            # cleanup the subtitles database at the first launch  
+            self.subtitle_support.runDBConsinstencyRoutine()
+            
+        
+        
         if not config['torrent_collecting']:
             self.torrent_collecting_solution = 0
         else:
@@ -175,6 +205,7 @@ class OverlayApps:
                                     self.metadata_handler, 
                                     self.torrent_collecting_solution,
                                     config['start_recommender'],config['buddycast_max_peers'],i_am_crawler)
+            
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
             self.register_connection_handler(self.buddycast.handleConnection)
 
@@ -204,6 +235,10 @@ class OverlayApps:
             self.rquery_handler.register(overlay_bridge,launchmany,config,self.buddycast,log=config['overlay_log'])
             self.register_msg_handler(RemoteQueryMessages,self.rquery_handler.handleMessage)
             self.register_connection_handler(self.rquery_handler.handleConnection)
+        
+        if config['subtitles_collecting']:
+            hndl = self.subtitles_handler.getMessageHandler()
+            self.register_msg_handler(SubtitleMessages, hndl)
         
         self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         self.rtorrent_handler.register(overlay_bridge,self.metadata_handler,session)

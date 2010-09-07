@@ -1,4 +1,4 @@
-# Written by Jie Yang, Arno Bakker
+# Written by Jie Yang, Arno Bakker, George Milescu
 # see LICENSE.txt for license information
 #
 # All message IDs in BitTorrent Protocol and our extensions 
@@ -53,7 +53,6 @@ RESPONSE1 = chr(252)
 # rdata2
 RESPONSE2 = chr(251)
 
-
 ## Merkle Hash Extension
 # Merkle: PIECE message with hashes
 HASHPIECE = chr(250)
@@ -67,20 +66,27 @@ GET_METADATA = chr(248)
 # {'torrent_hash', 'metadata', ... }
 METADATA = chr(247)
 
-## Cooperative Download Extension
-# torrent_hash
-DOWNLOAD_HELP = chr(246)
-# torrent_hash
-STOP_DOWNLOAD_HELP = chr(245)
-
+## ProxyService extension, reused from Cooperative Download (2fast)
 # For connectability test
 DIALBACK_REQUEST = chr(244)
 DIALBACK_REPLY = chr(243)
-
-# torrent_hash + 1-byte all_or_nothing + bencode([piece num,...])
-RESERVE_PIECES = chr(242)
+# torrent_hash
+ASK_FOR_HELP = chr(246)
+# torrent_hash
+STOP_HELPING = chr(245)
 # torrent_hash + bencode([piece num,...])
-PIECES_RESERVED = chr(241)
+REQUEST_PIECES = chr(242)
+# torrent_hash + bencode([piece num,...])
+CANCEL_PIECE = chr(241)
+# torrent_hash
+JOIN_HELPERS = chr(224)
+# torrent_hash
+RESIGN_AS_HELPER = chr(223)
+# torrent_hash + bencode([piece num,...])
+DROPPED_PIECE = chr(222)
+PROXY_HAVE = chr(221)
+PROXY_UNHAVE = chr(220)
+
 
 # SecureOverlay empty payload
 KEEP_ALIVE = chr(240)
@@ -105,18 +111,24 @@ FRIENDSHIP = chr(234)
 CRAWLER_REQUEST = chr(232)
 CRAWLER_REPLY = chr(231)
 
+VOTECAST = chr(226)
+CHANNELCAST = chr(225)
+
+GET_SUBS = chr(230)
+SUBS = chr(229)
+
+####### FREE ID = 227/228 + < 220
+
+
+#
+# EXTEND_MSG_CS sub-messages
+#
 # Closed swarms
 # CS  : removed, unused. Using CS_CHALLENGE_A message ID in extend handshake
 CS_CHALLENGE_A = chr(227)
 CS_CHALLENGE_B = chr(228)
 CS_POA_EXCHANGE_A = chr(229)
 CS_POA_EXCHANGE_B = chr(230)
-
-VOTECAST = chr(226)
-CHANNELCAST = chr(225)
-
-####### FREE ID = 224
-
 
 #
 # Crawler sub-messages
@@ -141,13 +153,14 @@ PermIDMessages = [CHALLENGE, RESPONSE1, RESPONSE2]
 BuddyCastMessages = [CHANNELCAST, VOTECAST, BARTERCAST, BUDDYCAST, KEEP_ALIVE]
 MetadataMessages = [GET_METADATA, METADATA]
 DialbackMessages = [DIALBACK_REQUEST,DIALBACK_REPLY]
-HelpCoordinatorMessages = [DOWNLOAD_HELP,STOP_DOWNLOAD_HELP,PIECES_RESERVED]
-HelpHelperMessages = [RESERVE_PIECES]
+HelpCoordinatorMessages = [ASK_FOR_HELP,STOP_HELPING,REQUEST_PIECES,CANCEL_PIECE]
+HelpHelperMessages = [JOIN_HELPERS,RESIGN_AS_HELPER,DROPPED_PIECE,PROXY_HAVE,PROXY_UNHAVE]
 SocialNetworkMessages = [SOCIAL_OVERLAP]
 RemoteQueryMessages = [QUERY,QUERY_REPLY]
 VoDMessages = [G2G_PIECE_XFER]
 FriendshipMessages = [FRIENDSHIP]
 CrawlerMessages = [CRAWLER_REQUEST, CRAWLER_REPLY]
+SubtitleMessages = [GET_SUBS, SUBS]
 
 # All overlay-swarm messages
 OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages
@@ -177,10 +190,15 @@ message_map = {
     BUDDYCAST:"BUDDYCAST",
     GET_METADATA:"GET_METADATA",
     METADATA:"METADATA",
-    DOWNLOAD_HELP:"DOWNLOAD_HELP",
-    STOP_DOWNLOAD_HELP:"STOP_DOWNLOAD_HELP",
-    PIECES_RESERVED:"PIECES_RESERVED",
-    RESERVE_PIECES:"RESERVE_PIECES",
+    ASK_FOR_HELP:"ASK_FOR_HELP",
+    STOP_HELPING:"STOP_HELPING",
+    REQUEST_PIECES:"REQUEST_PIECES",
+    CANCEL_PIECE:"CANCEL_PIECE",
+    JOIN_HELPERS:"JOIN_HELPERS",
+    RESIGN_AS_HELPER:"RESIGN_AS_HELPER",
+    DROPPED_PIECE:"DROPPED_PIECE",
+    PROXY_HAVE:"PROXY_HAVE",
+    PROXY_UNHAVE:"PROXY_UNHAVE",
     DIALBACK_REQUEST:"DIALBACK_REQUEST",
     DIALBACK_REPLY:"DIALBACK_REPLY",
     KEEP_ALIVE:"KEEP_ALIVE",

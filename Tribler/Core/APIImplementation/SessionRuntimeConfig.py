@@ -1,11 +1,13 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
 
+from __future__ import with_statement
 import sys
 from traceback import print_exc
 
 from Tribler.Core.exceptions import *
 from Tribler.Core.SessionConfig import SessionConfigInterface
+from Tribler.Core.Subtitles.SubtitlesHandler import SubtitlesHandler
 
 # 10/02/10 Boudewijn: pylint points out that member variables used in
 # SessionRuntimeConfig do not exist.  This is because they are set in
@@ -176,6 +178,9 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
+    #
+    # ProxyService_
+    #
     def set_download_help(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -185,6 +190,34 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_download_help(self)
         finally:
             self.sesslock.release()
+
+    def set_proxyservice_status(self,value):
+        """ Set the status of the proxyservice (on or off).
+        
+        ProxyService off means the current node could not be used as a proxy. ProxyService on means other nodes will be able to use it as a proxy.
+        
+        @param value: one of the possible two values: PROXYSERVICE_OFF, PROXYSERVICE_ON
+        """
+        self.sesslock.acquire()
+        try:
+            SessionConfigInterface.set_proxyservice_status(self, value)
+        finally:
+            self.sesslock.release()
+
+    def get_proxyservice_status(self):
+        """ Returns the status of the proxyservice (on or off).
+        @return: one of the possible two values: PROXYSERVICE_OFF, PROXYSERVICE_ON
+        """
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_proxyservice_status(self)
+        finally:
+            self.sesslock.release()
+    #
+    # _ProxyService
+    #
+
+
 
     def set_torrent_collecting(self,value):
         raise OperationNotPossibleAtRuntimeException()
@@ -206,6 +239,20 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_torrent_collecting_dir(self)
         finally:
             self.sesslock.release()
+            
+    def get_subtitles_collecting_dir(self):
+        with self.sesslock:
+            return SessionConfigInterface.get_subtitles_collecting_dir(self)
+    
+    def set_subtitles_upload_rate(self, value):
+        with self.sesslock:
+            SubtitlesHandler.getInstance().setUploadRate(value)
+            SessionConfigInterface.set_subtitles_uploade_rate(self, value)
+    
+    def get_subtitles_upload_rate(self):
+        with self.sesslock:
+            return SessionConfigInterface.get_subtitles_upload_rate(self)
+    
 
 
     def set_superpeer(self,value):

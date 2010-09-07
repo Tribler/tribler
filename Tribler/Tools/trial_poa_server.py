@@ -14,7 +14,7 @@ import random # Do not allow all nodes access
 
 
 from Tribler.Core.ClosedSwarm import ClosedSwarm,Tools
-from Tribler.Core.Status import *
+from Tribler.Core.Statistics.Status import *
 
 # Add SocketServer.ThreadingMixIn to get multithreaded
 class MyWebServer(BaseHTTPServer.HTTPServer):

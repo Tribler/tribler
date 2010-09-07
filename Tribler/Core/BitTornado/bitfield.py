@@ -141,6 +141,9 @@ class Bitfield:
         # STBSPEED
         return self.activeranges
 
+    def get_numtrue(self):
+        return self.length - self.numfalse
+
 
 def test_bitfield():
     try:

@@ -10,11 +10,12 @@ except:
     False = 0
 
 class DownloaderFeedback:
-    def __init__(self, choker, httpdl, add_task, upfunc, downfunc,
+    def __init__(self, choker, ghttpdl, hhttpdl, add_task, upfunc, downfunc,
             ratemeasure, leftfunc, file_length, finflag, sp, statistics,
             statusfunc = None, interval = None, infohash = None, voddownload=None):
         self.choker = choker
-        self.httpdl = httpdl
+        self.ghttpdl = ghttpdl
+        self.hhttpdl = hhttpdl
         self.add_task = add_task
         self.upfunc = upfunc
         self.downfunc = downfunc
@@ -89,7 +90,27 @@ class DownloaderFeedback:
             
             l.append(a)                                               
 
-        for dl in self.httpdl.get_downloads():
+        for dl in self.ghttpdl.get_downloads():
+            if dl.goodseed:
+                a = {}
+                a['id'] = 'url list'
+                a['ip'] = dl.baseurl
+                a['optimistic'] = False
+                a['direction'] = 'L'
+                a['uprate'] = 0
+                a['uinterested'] = False
+                a['uchoked'] = False
+                a['downrate'] = int(dl.measure.get_rate())
+                a['dinterested'] = True
+                a['dchoked'] = not dl.active
+                a['snubbed'] = not dl.active
+                a['utotal'] = None
+                a['dtotal'] = dl.measure.get_total()
+                a['completed'] = 1.0
+                a['speed'] = None
+
+                l.append(a)
+        for dl in self.hhttpdl.get_downloads():
             if dl.goodseed:
                 a = {}
                 a['id'] = 'http seed'
@@ -109,7 +130,6 @@ class DownloaderFeedback:
                 a['speed'] = None
 
                 l.append(a)
-
         return l
 
 

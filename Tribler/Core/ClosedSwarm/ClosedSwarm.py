@@ -13,7 +13,7 @@ from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
 
-# Constants to be put into BaseLib.Core.BitTornado.BT1.MessageID.py
+# Constants to be put into Tribler.Core.BitTornado.BT1.MessageID.py
 # Also update all the protocol stuff there (flag the extension)
 
 
@@ -98,6 +98,11 @@ def read_cs_keypair(keypair_filename):
     """
     return permid.read_keypair(keypair_filename)
 
+def save_cs_keypair(keypair, keypairfilename):
+    """
+    Save a CS keypair to a file
+    """
+    return keypair.save_key(keypairfilename, None)    
 
 def read_cs_pubkey(pubkey_filename):
     """
@@ -253,7 +258,7 @@ class POA:
 
         if self.expire_time and \
                self.expire_time < time.mktime(time.gmtime()):
-            raise POAExpiredException()
+            raise POAExpiredException("Expired")
         
         try:
             lst = [self.torrent_id, 
@@ -472,7 +477,7 @@ class ClosedSwarm:
         
         # Provide the certificate 
         if not self.poa:
-            raise MissingCertificateException()
+            raise MissingCertificateException("Missing certificate")
 
         msg = [msg_id] + self.poa.serialize_to_list()
 
@@ -504,7 +509,7 @@ class ClosedSwarm:
         assert poa.node_pub_key
         
         if poa.torrent_id != self.torrent_id:
-            raise WrongSwarmException()
+            raise WrongSwarmException("Wrong swarm")
 
         if poa.get_torrent_pub_key() not in self.torrent_pubkeys:
             raise InvalidPOAException("Bad POA for this torrent")
@@ -521,7 +526,7 @@ class ClosedSwarm:
         except:
             print >> sys.stderr, "The node_pub_key is no good"
             print >> sys.stderr, poa.node_pub_key
-            raise Exception("JIKES!")
+            raise Exception("Node's public key is no good...")
             
         if not pub.verify_dsa_asn1(digest, sig):
             raise InvalidSignatureException("Freshness test failed")
@@ -538,14 +543,15 @@ class ClosedSwarm:
         the challenge sent by the remote node
         """
         assert self.state == self.EXPECTING_RETURN_CHALLENGE
-        self.state = self.SEND_INITIATOR_RESPONSE
+        #self.state = self.SEND_INITIATOR_RESPONSE
+        self.state = self.COMPLETED # Not sure we get a POA from the remote node
         if len(lst) != 3:
             raise BadMessageException("Require 3 elements, got %d"%\
                                      len(lst))
         if lst[0] != CS_CHALLENGE_B:
             raise BadMessageException("Expected RETURN_CHALLENGE, got '%s'"%lst[0])
         if lst[1] != self.torrent_id:
-            raise WrongSwarmException()
+            raise WrongSwarmException("POA for wrong swarm")
 
         self.remote_nonce = lst[2]
         msg = self._create_poa_message(CS_POA_EXCHANGE_A, self.my_nonce, self.remote_nonce)

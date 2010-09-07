@@ -1,24 +1,26 @@
-# Written by Bram Cohen and Pawel Garbacki
+# Written by Bram Cohen and Pawel Garbacki, George Milescu
 # see LICENSE.txt for license information
 
+import sys
+import time
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 from Tribler.Core.BitTornado.bitfield import Bitfield
 from random import shuffle
 from base64 import b64encode
 from Tribler.Core.BitTornado.clock import clock
-# 2fastbt_
+from Tribler.Core.Statistics.Status.Status import get_status_holder
+
+#ProxyService_
+#
 try:
-    from Tribler.Core.CoopDownload.Helper import SingleDownloadHelperInterface
+    from Tribler.Core.ProxyService.Helper import SingleDownloadHelperInterface
 except ImportError:
     class SingleDownloadHelperInterface:
         
         def __init__(self):
             pass
-        
-
-from Tribler.Core.Status.Status import get_status_holder
-
-import sys
+#
+#_ProxyService
 
 try:
     True
@@ -27,6 +29,7 @@ except:
     False = 0
 
 DEBUG = False
+DEBUGBF = False
 DEBUG_CHUNKS = False # set DEBUG_CHUNKS in PiecePickerStreaming to True
 EXPIRE_TIME = 60 * 60
 
@@ -190,6 +193,7 @@ class SingleDownload(SingleDownloadHelperInterface):
         self.guard = BadDataGuard(self)
 # 2fastbt_
         self.helper = downloader.picker.helper
+        self.proxy_have = Bitfield(downloader.numpieces)
 # _2fastbt
 
         # boudewijn: VOD needs a download measurement that is not
@@ -324,6 +328,7 @@ class SingleDownload(SingleDownloadHelperInterface):
         # measurements on current download speed
         self.downloader.picker.got_piece(index, begin, length)
 
+#        print "Got piece=", index, "begin=", begin, "len=", length
         if self.downloader.storage.do_I_have(index):
             self.downloader.picker.complete(index)
 
@@ -418,12 +423,15 @@ class SingleDownload(SingleDownloadHelperInterface):
             #if DEBUG:
             #    print >>sys.stderr,"Downloader: Looking for interesting piece"
             #st = time.time()
+            #print "DOWNLOADER self.have=", self.have.toboollist()
+            
+            # This is the PiecePicker call is the current client is a Coordinator
             interest = self.downloader.picker.next(self.have,
                                self.downloader.storage.do_I_have_requests,
                                self,
                                self.downloader.too_many_partials(),
                                self.connection.connection.is_helper_con(),
-                               slowpieces = slowpieces, connection = self.connection)
+                               slowpieces = slowpieces, connection = self.connection, proxyhave = self.proxy_have)
             #et = time.time()
             #diff = et-st
             diff=-1
@@ -431,6 +439,19 @@ class SingleDownload(SingleDownloadHelperInterface):
                 print >>sys.stderr,"Downloader: _request_more: next() returned",interest,"took %.5f" % (diff)                               
             if interest is None:
                 break
+            
+            if self.helper and self.downloader.storage.inactive_requests[interest] is None:
+                # The current node is a helper and received a request from a coordinator for a piece it has already downloaded
+                # Should send a Have message to the coordinator
+                self.connection.send_have(interest)
+                break
+
+            if self.helper and self.downloader.storage.inactive_requests[interest] == []:
+                # The current node is a helper and received a request from a coordinator for a piece that is downloading
+                # (all blocks are requested to the swarm, and have not arrived yet)
+                break
+
+            
             self.example_interest = interest
             self.send_interested()
             loop = True
@@ -467,12 +488,25 @@ class SingleDownload(SingleDownloadHelperInterface):
                                    self.downloader.storage.do_I_have_requests,
                                    self, # Arno, 2008-05-22; self -> d? Original Pawel code
                                    self.downloader.too_many_partials(),
-                                   self.connection.connection.is_helper_con(), willrequest=False,connection=self.connection)
+                                   self.connection.connection.is_helper_con(), willrequest=False,connection=self.connection, proxyhave = self.proxy_have)
                 #et = time.time()
                 #diff = et-st
                 diff=-1
                 if DEBUG:                                   
                     print >>sys.stderr,"Downloader: _request_more: next()2 returned",interest,"took %.5f" % (diff)
+
+                if interest is not None:
+                    # The helper has at least one piece that the coordinator requested 
+                    if self.helper and self.downloader.storage.inactive_requests[interest] is None:
+                        # The current node is a helper and received a request from a coordinator for a piece it has already downloaded
+                        # Should send a Have message to the coordinator
+                        self.connection.send_have(interest)
+                        break
+                    if self.helper and self.downloader.storage.inactive_requests[interest] == []:
+                        # The current node is a helper and received a request from a coordinator for a piece that is downloading
+                        # (all blocks are requested to the swarm, and have not arrived yet)
+                        break
+
 # _2fastbt
                 if interest is None:
                     d.send_not_interested()
@@ -522,6 +556,7 @@ class SingleDownload(SingleDownloadHelperInterface):
 # _2fastbt
 
     def got_have(self, index):
+#        print >>sys.stderr,"Downloader: got_have",index
         if DEBUG:
             print >>sys.stderr,"Downloader: got_have",index
         if index == self.downloader.numpieces-1:
@@ -539,8 +574,17 @@ class SingleDownload(SingleDownloadHelperInterface):
         
         if self.have[index]:
             return
+        
         self.have[index] = True
         self.downloader.picker.got_have(index,self.connection)
+        # ProxyService_
+        #
+        # Aggregate the haves bitfields and send them to the coordinator
+        # If I am a coordinator, i will exit shortly
+        self.downloader.aggregate_and_send_haves()
+        #
+        # _ProxyService
+        
         if self.have.complete():
             self.downloader.picker.became_seed()
             if self.downloader.picker.am_I_complete():
@@ -568,7 +612,6 @@ class SingleDownload(SingleDownloadHelperInterface):
                 return
 
     def got_have_bitfield(self, have):
-        
         if self.downloader.picker.am_I_complete() and have.complete():
             # Arno: If we're both seeds
             if self.downloader.super_seeding:
@@ -577,8 +620,9 @@ class SingleDownload(SingleDownloadHelperInterface):
             self.downloader.add_disconnected_seed(self.connection.get_readable_id())
             return
 
-        #print >>sys.stderr,"Downloader: got_have_bitfield: VVV#############################################################################################VVVVVVVVVVVVVVVVVVVVVVVVV valid",self.downloader.picker.get_valid_range_iterator(),"len",self.downloader.numpieces
-        #print >>sys.stderr,"Downloader: got_have_bitfield: input",`have.toboollist()`
+        if DEBUGBF:
+            st = time.time()
+
         if have.complete():
             # Arno: He is seed
             self.downloader.picker.got_seed()
@@ -602,18 +646,41 @@ class SingleDownload(SingleDownloadHelperInterface):
                         activerangeiterators.append(xrange(s,e+1))
             else:
                 # Hooked in, use own valid range as active range
+
+                # Arno, 2010-04-20: Not correct for VOD with seeking, then we
+                # should store the HAVE info for things before playback too.
+                
                 activerangeiterators = [self.downloader.picker.get_valid_range_iterator()]
 
-            if DEBUG:
+            if DEBUGBF:
                 print >>sys.stderr,"Downloader: got_have_field: live: Filtering bitfield",activerangeiterators 
 
-            # Transfer HAVE knowledge to PiecePicker and filter pieces if live
-            validhave = Bitfield(self.downloader.numpieces)
-            for iterator in activerangeiterators:
-                for i in iterator:
+            if not self.downloader.picker.videostatus or self.downloader.picker.videostatus.live_streaming:
+                if DEBUGBF:
+                    print >>sys.stderr,"Downloader: got_have_field: live or normal filter"
+                # Transfer HAVE knowledge to PiecePicker and filter pieces if live
+                validhave = Bitfield(self.downloader.numpieces)
+                for iterator in activerangeiterators:
+                    for i in iterator:
+                        if have[i]:
+                            validhave[i] = True
+                            self.downloader.picker.got_have(i,self.connection)
+            else: # VOD
+                if DEBUGBF:
+                    print >>sys.stderr,"Downloader: got_have_field: VOD filter" 
+                validhave = Bitfield(self.downloader.numpieces)
+                (first,last) = self.downloader.picker.videostatus.download_range()
+                for i in xrange(first,last):
                     if have[i]:
                         validhave[i] = True
                         self.downloader.picker.got_have(i,self.connection)
+            # ProxyService_
+            #
+            # Aggregate the haves bitfields and send them to the coordinator
+            # ARNOPS: Shouldn't this be done after have = validhave?
+            self.downloader.aggregate_and_send_haves()
+            #
+            # _ProxyService
 
             """
             # SANITY CHECK
@@ -627,6 +694,12 @@ class SingleDownload(SingleDownloadHelperInterface):
                     
             # Store filtered bitfield instead of received one
             have = validhave
+
+        if DEBUGBF:
+            et = time.time()
+            diff = et - st
+            print >>sys.stderr,"Download: got_have_field: took",diff
+
                 
         self.have = have
         
@@ -704,8 +777,9 @@ class Downloader:
         # import errors
         #
         # _event_reporter stores events that are logged somewhere...
-        from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
-        self._event_reporter = get_reporter_instance()
+        # from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+        # self._event_reporter = get_reporter_instance()
+        self._event_reporter = get_status_holder("LivingLab")
 
         # check periodicaly
         self.scheduler(self.dlr_periodic_check, 1)
@@ -762,7 +836,7 @@ class Downloader:
         d = SingleDownload(self, connection)
         perip.lastdownload = d
         self.downloads.append(d)
-        self._event_reporter.add_event(self.b64_infohash, "connection-established:%s" % str(ip))
+        self._event_reporter.create_and_add_event("connection-established", [self.b64_infohash, str(ip)])
         return d
 
     def piece_flunked(self, index):
@@ -799,9 +873,9 @@ class Downloader:
         if self.endgamemode and not self.downloads: # all peers gone
             self._reset_endgame()
 
-        self._event_reporter.add_event(self.b64_infohash, "connection-upload:%s,%d" % (ip, download.connection.total_uploaded))
-        self._event_reporter.add_event(self.b64_infohash, "connection-download:%s,%d" % (ip, download.connection.total_downloaded))
-        self._event_reporter.add_event(self.b64_infohash, "connection-lost:%s" % ip)
+        self._event_reporter.create_and_add_event("connection-upload", [self.b64_infohash, ip, download.connection.total_uploaded])
+        self._event_reporter.create_and_add_event("connection-download", [self.b64_infohash, ip, download.connection.total_downloaded])
+        self._event_reporter.create_and_add_event("connection-lost", [self.b64_infohash, ip])
         
     def _reset_endgame(self):            
         if DEBUG: print >>sys.stderr, "Downloader: _reset_endgame"
@@ -870,13 +944,13 @@ class Downloader:
                     self.add_disconnected_seed(download.connection.get_readable_id())
                     download.connection.close()
 
-                    self._event_reporter.add_event(self.b64_infohash, "connection-seed:%s,%d" % (download.ip, download.connection.total_uploaded))
+                    self._event_reporter.create_and_add_event("connection-seed", [self.b64_infohash, download.ip, download.connection.total_uploaded])
                 else:
-                    self._event_reporter.add_event(self.b64_infohash, "connection-upload:%s,%d" % (download.ip, download.connection.total_uploaded))
-                    self._event_reporter.add_event(self.b64_infohash, "connection-download:%s,%d" % (download.ip, download.connection.total_downloaded))
+                    self._event_reporter.create_and_add_event("connection-upload", [self.b64_infohash, download.ip, download.connection.total_uploaded])
+                    self._event_reporter.create_and_add_event("connection-download", [self.b64_infohash, download.ip, download.connection.total_downloaded])
 
-            self._event_reporter.add_event(self.b64_infohash, "complete")
-            self._event_reporter.flush()
+            self._event_reporter.create_and_add_event("complete", [self.b64_infohash])
+            # self._event_reporter.flush()
                     
             return True
         return False
@@ -1091,3 +1165,32 @@ class Downloader:
                         assert False
                 """
                 
+    # ProxyService_
+    #
+    def aggregate_and_send_haves(self):
+        """ Aggregates the information from the haves bitfields for all the active connections,
+        then calls the helper class to send the aggregated information as a PROXY_HAVE message 
+        """
+        if self.picker.helper:
+            # The current node is a coordinator
+            if DEBUG:
+                print >> sys.stderr,"Downloader: aggregate_and_send_haves: helper None or helper conn"
+            
+            # haves_vector is a matrix, having on each line a Bitfield
+            haves_vector = [None] * len(self.downloads)
+            for i in range(0, len(self.downloads)):
+                haves_vector[i] = self.downloads[i].have
+            
+            #Calculate the aggregated haves
+            aggregated_haves = Bitfield(self.numpieces)
+            for piece in range (0, self.numpieces):
+                aggregated_value = False
+                # For every column in the haves_vector matrix
+                for d in range(0, len(self.downloads)):
+                    # For every active connection
+                    aggregated_value = aggregated_value or haves_vector[d][piece] # Logical OR operation 
+                aggregated_haves[piece] = aggregated_value
+            
+            self.picker.helper.send_proxy_have(aggregated_haves)
+    #
+    # _ProxyService

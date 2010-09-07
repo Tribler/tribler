@@ -1,4 +1,4 @@
-# Written by Arno Bakker, Bram Cohen, Jie Yang
+# Written by Arno Bakker, Bram Cohen, Jie Yang, George Milescu
 # see LICENSE.txt for license information
 #
 # Please apply networking code fixes also to DialbackConnHandler.py
@@ -39,9 +39,10 @@ OLPROTO_VER_TENTH = 10  # Nineth public release, M18, simplified the VOD statist
 OLPROTO_VER_ELEVENTH = 11  # Tenth public release, trial M23, swarm size info part of BC message
 OLPROTO_VER_TWELFTH = 12  # 11th public release M24, SIMPLE+METADATA query + ChannelCast BASE64.
 OLPROTO_VER_THIRTEENTH = 13 # 12th public release >= 5.2, ChannelCast binary.
+OLPROTO_VER_FOURTEENTH = 14 # 13th public release >= M30, ProxyService + Subtitle dissemination through ChannelCast + SUBS and GET_SUBS messages 
 
 # Overlay-swarm protocol version numbers
-OLPROTO_VER_CURRENT = OLPROTO_VER_THIRTEENTH
+OLPROTO_VER_CURRENT = OLPROTO_VER_FOURTEENTH
 
 OLPROTO_VER_LOWEST = OLPROTO_VER_SECOND
 SupportedVersions = range(OLPROTO_VER_LOWEST, OLPROTO_VER_CURRENT+1)
@@ -828,6 +829,7 @@ class OverlayConnection:
 
     def read_peer_id(self, s):
         self.unauth_peer_id = s
+        
         [self.low_proto_ver,self.cur_proto_ver] = get_proto_version_from_peer_id(self.unauth_peer_id)
         self.sel_proto_ver = select_supported_protoversion(self.low_proto_ver,self.cur_proto_ver)
         if not self.sel_proto_ver:

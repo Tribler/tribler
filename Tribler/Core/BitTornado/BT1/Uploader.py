@@ -2,8 +2,7 @@
 # see LICENSE.txt for license information
 
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
-
-from Tribler.Core.Status.Status import get_status_holder
+from Tribler.Core.Statistics.Status.Status import get_status_holder
 
 import sys
 
@@ -171,9 +170,9 @@ class Upload:
     def unchoke(self):
         if self.choked:
             try:
-                self.connection.send_unchoke() 
-                self.choked = False
-                self.cleared = False
+                if self.connection.send_unchoke():
+                    self.choked = False
+                    self.cleared = False
             except:
                 pass
         

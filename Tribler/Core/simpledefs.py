@@ -42,6 +42,9 @@ STATEDIR_ITRACKER_DIR = 'itracker'
 STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
 STATEDIR_PEERICON_DIR = 'icons'
 STATEDIR_TORRENTCOLL_DIR = 'collected_torrent_files'
+
+# 13-04-2010, Andrea: subtitles collecting dir default
+STATEDIR_SUBSCOLL_DIR = 'collected_subtitles_files'
 STATEDIR_SESSCONFIG = 'sessconfig.pickle'
 STATEDIR_SEEDINGMANAGER_DIR = 'seeding_manager_stats'
 DESTDIR_COOPDOWNLOAD = 'downloadhelp' 
@@ -61,6 +64,12 @@ NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
 NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
+# this corresponds to the event of a peer advertising
+# new rich metadata available (for now just subtitles)
+NTFY_RICH_METADATA = 'rich_metadata'
+# this corresponds to the event of a subtitle file (the actual .srt)
+# received from a remote peer
+NTFY_SUBTITLE_CONTENTS = 'subtitles_in'
 NTFY_SEARCH = 'clicklogsearch' # BuddyCast 4
 NTFY_TERM= 'clicklogterm'
 
@@ -158,3 +167,11 @@ TRIBLER_TORRENT_EXT = ".tribe" # Unused
  
 # Infohashes are always 20 byte binary strings
 INFOHASH_LENGTH = 20
+
+
+# ProxyService 
+PROXY_MODE_OFF = 0
+PROXY_MODE_PRIVATE = 1
+PROXY_MODE_SPEED= 2
+PROXYSERVICE_OFF = 0
+PROXYSERVICE_ON = 1

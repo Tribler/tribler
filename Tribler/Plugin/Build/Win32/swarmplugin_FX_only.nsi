@@ -1,5 +1,5 @@
 !define PRODUCT "SwarmPlugin"
-!define VERSION "1.0.5"
+!define VERSION "1.1.0"
 !define BG "bgprocess"
 
 
@@ -83,7 +83,7 @@ Section "!Main EXE" SecMain
  File /r osdmenu
  File /r http
 
- WriteRegStr HKLM "Software\${PRODUCT}" "BGProcessPath" "$INSTDIR\bgprocess\BackgroundProcess.exe"
+ WriteRegStr HKLM "Software\${PRODUCT}" "BGProcessPath" "$INSTDIR\bgprocess\SwarmEngine.exe"
  WriteRegStr HKLM "Software\${PRODUCT}" "InstallDir" "$INSTDIR"
 
  ; Register Firefox Plug-in
@@ -119,11 +119,17 @@ Section "!Main EXE" SecMain
  WriteUninstaller "$INSTDIR\Uninstall.exe"
 
   ; Add an application to the firewall exception list - All Networks - All IP Version - Enabled
-  SimpleFC::AddApplication "SwarmPluginBackgroundProcess" "$INSTDIR\bgprocess\BackgroundProcess.exe" 0 2 "" 1
+  SimpleFC::AddApplication "SwarmEngine" "$INSTDIR\bgprocess\SwarmEngine.exe" 0 2 "" 1
   
   ; Pop $0 ; return error(1)/success(0)
 
 
+SectionEnd
+
+Section "Startmenu Icons" SecStart
+   SetShellVarContext all
+   CreateDirectory "$SMPROGRAMS\${PRODUCT}"
+   CreateShortCut "$SMPROGRAMS\${PRODUCT}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
 SectionEnd
 
 ;--------------------------------
@@ -142,12 +148,16 @@ Section "Uninstall"
  DeleteRegKey HKEY_LOCAL_MACHINE "Software\MozillaPlugins\@P2P-Next.org/swarmplugin,version=${VERSION}"
  RMDir /r "$INSTDIR"
 
+ SetShellVarContext all
+ RMDir "$SMPROGRAMS\${PRODUCT}"
+ RMDir /r "$SMPROGRAMS\${PRODUCT}"
+
  DeleteRegKey HKEY_LOCAL_MACHINE "Software\Clients\Media\${PRODUCT}"
  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
 
  ; Remove an application from the firewall exception list
- SimpleFC::RemoveApplication "$INSTDIR\bgprocess\BackgroundProcess.exe"
+ SimpleFC::RemoveApplication "$INSTDIR\bgprocess\SwarmEngine.exe"
  
  ; Pop $0 ; return error(1)/success(0)
 

@@ -1,10 +1,10 @@
-# Written by Jan David Mol, Arno Bakker
+# Written by Jan David Mol, Arno Bakker, George Milescu
 # see LICENSE.txt for license information
 
 import sys
 import time
 import random
-from traceback import print_exc
+from traceback import print_exc,print_stack
 
 from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker 
 
@@ -77,9 +77,9 @@ class PiecePickerStreaming(PiecePicker):
 
     def __init__(self, numpieces,
                  rarest_first_cutoff = 1, rarest_first_priority_cutoff = 3,
-                 priority_step = 20, helper = None, rate_predictor = None, piecesize = 0):
+                 priority_step = 20, helper = None, coordinator = None, rate_predictor = None, piecesize = 0):
         PiecePicker.__init__( self, numpieces, rarest_first_cutoff, rarest_first_priority_cutoff,
-                              priority_step, helper, rate_predictor )
+                              priority_step, helper, coordinator, rate_predictor)
 
         # maximum existing piece number, to avoid scanning beyond it in next()
         self.maxhave = 0
@@ -116,34 +116,43 @@ class PiecePickerStreaming(PiecePicker):
         # NOT canceled (useful while buffering)
         self.playing_delay = (5, 20, -0.5)
         self.buffering_delay = (7.5, 30, 10)
-        
+
+        # Arno, 2010-04-20: STBSPEED: is_interesting is now a variable.
+        self.is_interesting  = self.is_interesting_normal
+
     def set_transporter(self, transporter):
         self.transporter = transporter
 
+        """
+        Arno, 2010-04-20: STBSPEED: Replaced by transporter.complete_from_persistent_state()
         # update its information -- pieces read from disk
         if not self.videostatus.live_streaming:
             for i in xrange(self.videostatus.first_piece,self.videostatus.last_piece+1):
                 if self.has[i]:
                     self.transporter.complete( i, downloaded=False )
+        """
 
     def set_videostatus(self,videostatus):
         """ Download in a wrap-around fashion between pieces [0,numpieces).
             Look at most delta pieces ahead from download_range[0].
         """
         self.videostatus = videostatus
+        
+        if self.videostatus.live_streaming:
+            self.is_interesting  = self.is_interesting_live
+        else:
+            self.is_interesting  = self.is_interesting_vod
         videostatus.add_playback_pos_observer( self.change_playback_pos )
 
-    def is_interesting(self,piece):
-        #if PIECELOSS and piece % 100 < PIECELOSS:
-        #    return False
+    def is_interesting_live(self,piece):
+        return self.videostatus.in_download_range( piece ) and not self.has[piece]
 
-        if self.has[piece]:
-            return False
+    def is_interesting_vod(self,piece):
+        return (self.videostatus.first_piece <= piece <= self.videostatus.last_piece) and not self.has[piece]
 
-        if not self.videostatus or self.videostatus.in_download_range( piece ):
-            return True
+    def is_interesting_normal(self,piece):
+        return not self.has[piece]
 
-        return False
 
     def change_playback_pos(self, oldpos, newpos):
         if oldpos is None:
@@ -171,12 +180,15 @@ class PiecePickerStreaming(PiecePicker):
         # if DEBUG:
         #     print >>sys.stderr,"PiecePickerStreaming: got_have:",piece
         self.maxhave = max(self.maxhave,piece)
-        PiecePicker.got_have( self, piece, connection )
-        if self.transporter:
-            self.transporter.got_have( piece )
 
-        if self.is_interesting(piece) and connection:
+        # Arno, 2010-04-15: STBSPEED Disabled, does nothing but stats.
+        #if self.transporter:
+        #    self.transporter.got_have( piece )
+        PiecePicker.got_have(self,piece,connection)
+
+        if self.is_interesting(piece):
             self.peer_connections[connection]["interesting"][piece] = 1
+
 
     def got_seed(self):
         self.maxhave = self.numpieces
@@ -200,8 +212,9 @@ class PiecePickerStreaming(PiecePicker):
             self.transporter.got_piece(*request)
 
     def complete(self, piece):
-        # if DEBUG:
-        #     print >>sys.stderr,"PiecePickerStreaming: complete:",piece
+        if DEBUG:
+            print >>sys.stderr,"PiecePickerStreaming: complete:",piece
+        
         PiecePicker.complete( self, piece )
         if self.transporter:
             self.transporter.complete( piece )
@@ -274,7 +287,7 @@ class PiecePickerStreaming(PiecePicker):
     #   _next: selects next piece to download. completes partial downloads first, if needed, otherwise calls
     #     next_new: selects next piece to download. override this with the piece picking policy
 
-    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces=[], willrequest=True,connection=None):
+    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces=[], willrequest=True,connection=None,proxyhave=None):
         def newwantfunc( piece ):
             #print >>sys.stderr,"S",self.streaming_piece_filter( piece ),"!sP",not (piece in slowpieces),"w",wantfunc( piece )
             return not (piece in slowpieces) and wantfunc( piece )
@@ -329,8 +342,8 @@ class PiecePickerStreaming(PiecePicker):
                 return best
 
         p = self.next_new(haves, wantfunc, complete_first, helper_con,willrequest=willrequest,connection=connection)
-        # if DEBUG:
-        #     print >>sys.stderr,"PiecePickerStreaming: next_new returns",p
+        if DEBUG:
+             print >>sys.stderr,"PiecePickerStreaming: next_new returns",p
         return p
 
     def check_outstanding_requests(self, downloads):
@@ -424,11 +437,14 @@ class PiecePickerStreaming(PiecePicker):
             # first, make sure we know where to start downloading
             if vs.live_startpos is None:
                 self.transporter.calc_live_startpos( self.transporter.max_prebuf_packets, False )
-                print >>sys.stderr,"vod: pp determined startpos of",vs.live_startpos
+                print >>sys.stderr,"vod: pp: determined startpos of",vs.live_startpos
 
             # select any interesting piece, rarest first
             if connection:
                 # Without 'connection', we don't know who we will request from.
+                
+                #print >>sys.stderr,"PiecePickerStreaming: pp",connection.get_ip(),"int",self.peer_connections[connection]["interesting"]
+                
                 return rarest_first( self.peer_connections[connection]["interesting"], self.numhaves, wantfunc )
 
         def pick_first( f, t ): # no shuffle
@@ -538,7 +554,8 @@ class PiecePickerStreaming(PiecePicker):
         if priority_first != priority_last:
             first = priority_first
             highprob_cutoff = vs.normalize(priority_last + 1)
-            midprob_cutoff = vs.normalize(first + self.MU * vs.get_range_length(first, last))
+            # Arno, 2010-08-10: Errr, mid = MU * high
+            midprob_cutoff = vs.normalize(first + self.MU * vs.get_range_length(first, highprob_cutoff))
         else:
             highprob_cutoff = last
             midprob_cutoff = vs.normalize(first + self.MU * vs.high_prob_curr_pieces)
@@ -562,7 +579,11 @@ class PiecePickerStreaming(PiecePicker):
             allow_based_on_performance = connection.download.bad_performance_counter < 5
         else:
             # for VOD playback consider peers to be bad when they miss the deadline 1 time
-            allow_based_on_performance = connection.download.bad_performance_counter < 1
+            # Diego : patch from Jan
+            if connection:
+                allow_based_on_performance = connection.download.bad_performance_counter < 1
+            else:
+                allow_based_on_performance = True
 
         if vs.prebuffering:
             f = first
@@ -607,7 +628,7 @@ class PiecePickerStreaming(PiecePicker):
             self.stats[type] += 1
 
         if DEBUG:
-            print >>sys.stderr,"vod: picked piece %s [type=%s] [%d,%d,%d,%d]" % (`choice`,type,first,highprob_cutoff,midprob_cutoff,last)
+            print >>sys.stderr,"vod: pp: picked piece %s [type=%s] [%d,%d,%d,%d]" % (`choice`,type,first,highprob_cutoff,midprob_cutoff,last)
 
         # 12/05/09, boudewijn: (1) The bad_performance_counter is
         # incremented whenever a piece download failed and decremented
@@ -633,8 +654,21 @@ class PiecePickerStreaming(PiecePicker):
                     # no other connection has it... then ignore the
                     # bad_performance_counter advice and attempt to
                     # download it from this connection anyway
-                    if DEBUG: print >>sys.stderr, "vod: the bad_performance_counter says this is a bad peer... but we have nothing better... requesting piece", high_priority_choice, "regardless."
+                    if DEBUG: print >>sys.stderr, "vod: pp: the bad_performance_counter says this is a bad peer... but we have nothing better... requesting piece", high_priority_choice, "regardless."
                     choice = high_priority_choice
+
+        if not vs.live_streaming:
+            if choice is None and not self.am_I_complete():
+                # Arno, 2010-02-24:
+                # VOD + seeking: we seeked into the future and played till end, 
+                # there is a gap between the old playback and the seek point
+                # which we didn't download, and otherwise never will.
+                #
+                secondchoice = pick_rarest(vs.first_piece,vs.last_piece)
+                if secondchoice is not None:
+                    if DEBUG:
+                        print >>sys.stderr,"vod: pp: Picking skipped-over piece",secondchoice 
+                    return secondchoice
 
         return choice
 

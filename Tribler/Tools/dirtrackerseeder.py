@@ -136,6 +136,8 @@ def main():
     # setup and start downloads
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(torrentsdir)
+    # Arno, 2010-04-16: STBSPEED: complete BITFIELDS are processed much faster
+    dscfg.set_breakup_seed_bitfield(False)
     if MAXUPLOAD is not None:
         dscfg.set_max_speed(UPLOAD,MAXUPLOAD)
     

@@ -72,18 +72,14 @@ from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid_short
- 
-#import Tribler.Core.CacheDB.friends as friends 
+from Tribler.Core.Statistics.Status.Status import get_status_holder
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoServer import SimpleServer
 
-
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
-from Tribler.Core.Status.LivingLabReporter import LivingLabPeriodicReporter
-from Tribler.Core.Status.Status import get_status_holder
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
@@ -91,7 +87,7 @@ from time import time, sleep
 
 
 I2I_LISTENPORT = 57891
-VIDEOHTTP_LISTENPORT = 6878
+VIDEOHTTP_LISTENPORT = 6875
 SESSION_CHECKPOINT_INTERVAL = 1800.0 # seconds
 CHANNELMODE_REFRESH_INTERVAL = 5.0
 
@@ -110,6 +106,7 @@ class ABCApp(wx.App):
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.installdir = installdir
+        self.state_dir = None
         self.error = None
         self.last_update = 0
         self.update_freq = 0    # how often to update #peers/#torrents
@@ -313,11 +310,11 @@ class ABCApp(wx.App):
             # wx.CallLater(120*1000, wx.GetApp().Exit)
 
             # report client version
-            from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
-            reporter = get_reporter_instance()
-            reporter.add_event("client-startup", "version:" + self.utility.lang.get("version"))
-            reporter.add_event("client-startup", "build:" + self.utility.lang.get("build"))
-            reporter.add_event("client-startup", "build_date:" + self.utility.lang.get("build_date"))
+            # from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+            reporter = get_status_holder("LivingLab")
+            reporter.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
+            reporter.create_and_add_event("client-startup-build", [self.utility.lang.get("build")])
+            reporter.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
             
             
             self.ready = True
@@ -347,6 +344,12 @@ class ABCApp(wx.App):
             destdir = get_default_dest_dir()
             torrcolldir = os.path.join(destdir,STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
+            
+            # 13-04-2010, Andrea: subtitles collecting dir definition
+            subscolldir = os.path.join(destdir, STATEDIR_SUBSCOLL_DIR)
+            self.sconfig.set_subtitles_collecting(True)
+            self.sconfig.set_subtitles_collecting_dir(subscolldir)
+            
             self.sconfig.set_nat_detect(True)
             
             # rename old collected torrent directory
@@ -812,9 +815,12 @@ class ABCApp(wx.App):
             # Switch to GUI thread
             # New for 5.0: Start in VOD mode
             def start_asked_download():
-                self.frame.startDownload(torrentfilename,vodmode=True)
+                if torrentfilename.startswith("magnet:"):
+                    self.frame.startDownloadFromMagnet(torrentfilename)
+                else:
+                    self.frame.startDownload(torrentfilename,vodmode=True)
                 self.guiUtility.ShowPage('my_files')
-            
+
             wx.CallAfter(start_asked_download)
 
 def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
@@ -984,12 +990,14 @@ def run(params = None):
             app = ABCApp(False, params, single_instance_checker, installdir)
             configpath = app.getConfigPath()
 
+            # Arno, 2010-06-18: Logging to ULANC disabled for Tribler Main
+            
             # Setup the statistic reporter while waiting for proper integration
-            status = get_status_holder("LivingLab")
-            id = "Tribler client"
-            reporter = LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
+            #status = get_status_holder("LivingLab")
+            #id = "Tribler client"
+            #reporter = LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
             # reporter = LivingLabPeriodicReporter("Living lab CS reporter", 30, id) # Report every 30 seconds - ONLY FOR TESTING
-            status.add_reporter(reporter)
+            #status.add_reporter(reporter)
 
             app.MainLoop()
     

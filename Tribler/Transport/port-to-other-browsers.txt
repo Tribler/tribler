@@ -1,0 +1,79 @@
+
+                  ==== Adding Custom URL Protocols to IE/Safari/Chrome ===
+
+
+Win32 Documentation:
+====================
+
+Custom URL protocols can be added to Windows by using Asynchronous Pluggable Protocols (APP):
+	
+    http://msdn.microsoft.com/en-us/library/aa767916%28VS.85%29.aspx
+    http://support.microsoft.com/?id=kb;en-us;303740
+    http://support.microsoft.com/kb/280522
+    http://social.msdn.microsoft.com/Forums/en-US/ieextensiondevelopment/thread/5edc4348-0752-490d-aa43-cd89d495858b
+    
+There is also Pluggable Protocol support specific to .Net, but I don't think that is usable.
+
+    http://msdn.microsoft.com/en-us/library/1f6c88af%28vs.71%29.aspx
+    http://support.microsoft.com/kb/812409    
+
+Lots of people are using APP, some examples:
+
+    http://www.codeproject.com/kb/aspnet/AspxProtocol.aspx  (C# example)
+    http://www.codeproject.com/KB/IP/DataProtocol.aspx      (C++ example)
+    http://gears.googlecode.com/svn/trunk/third_party/passthru_app/
+    http://www.blackfishsoftware.com/blog/don/passthroughapp_bho_toolbar_intercepting_requests_responses
+    
+
+
+
+Experience with Win32 Sample:
+=============================
+
+I played around with the code for this example:
+
+     http://www.codeproject.com/kb/aspnet/AspxProtocol.aspx
+
+which adds a echo: protocol and an aspx: protocol to Windows. I made the following notes:
+
+- Win7
+
+  * Open in VS 2008, Select Release and Build.
+  * Run install.cmd from bin\Release
+
+  >>> echo: works for IE8 and IE9 
+
+- Virgin XP
+
+  * Install with .Net 3.5 SP1 and SDK for SP1
+
+  * IE8 recognizes echo
+  * Chrome doesn't do anything on click
+  * Safari says: "Safari can't open "echo:Linked1Clicked" because Microsoft Windows doesn't recognize
+    Internet addresses starting with "echo:".
+
+  * Doing regasm /codebase doesn't help.
+
+So although APPs should extend Windows and any Windows app should be able to use them, Safari and Chrome
+do not.
+
+
+Safari:
+=======
+
+I found the following Web page on custom URL protocol handlers for Mac:
+
+   http://developer.apple.com/mac/library/documentation/Cocoa/Reference/Foundation/Classes/NSURLProtocol_Class/Reference/Reference.html
+   http://developer.apple.com/mac/library/samplecode/SpecialPictureProtocol/Introduction/Intro.html#//apple_ref/doc/uid/DTS10003816
+
+apparently also releated:
+   
+   http://developer.apple.com/mac/library/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html#//apple_ref/doc/uid/10000165i
+
+IE9 Preview 4:
+==============
+
+As mentioned above it works with APPs. Regarding container formats it appears to support just MP4 at
+the moment (test with H.264 and AAC content). MPEG-TS doesn't work. 
+
+So live P2P wouldn't work on IE9p4.

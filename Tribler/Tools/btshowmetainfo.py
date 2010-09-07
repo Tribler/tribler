@@ -99,6 +99,16 @@ for metainfo_name in argv[1:]:
         for i in list:
             liststring+=i
         print 'http seeds....: %s' % liststring
+    if metainfo.has_key('url-list'):
+        list = []
+        for seed in metainfo['url-list']:
+            list += [seed,'|']
+        del list[-1]
+        liststring = ''
+        for i in list:
+            liststring+=i
+        print 'url-list......: %s' % liststring
+
     # Torrent signature
     if metainfo.has_key('signature'):
         print 'signature.....: %s' % `metainfo['signature']`

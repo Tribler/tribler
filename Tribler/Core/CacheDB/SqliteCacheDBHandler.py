@@ -2930,6 +2930,15 @@ class VoteCastDBHandler(BasicDBHandler):
         sql = "select vote from VoteCast where mod_id==? and voter_id==?"
         return self._db.fetchone(sql, (publisher_id,subscriber_id,))    
     
+    def getPublishersWithNegVote(self, subscriber_id):
+        ''' return the publisher_ids having a negative vote from subscriber_id '''
+        sql = "select mod_id from VoteCast where voter_id==? and vote=-1"
+        res = self._db.fetchall(sql,(subscriber_id,))
+        result_list = Set()
+        for entry in res:
+            result_list.add(entry[0])
+        return result_list
+    
     def getNegVotes(self,publisher_id):
         """returns the number of negative votes in integer format"""
         sql = "select count(*) from VoteCast where mod_id==? and vote=-1"
@@ -3244,6 +3253,19 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getTorrents(self, publisher_id):
         sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id==?)"
         return self._db.fetchall(sql,(publisher_id,))
+    
+    def getInfohashesForChannel(self, publisher_id):
+        sql = "select infohash from ChannelCast where publisher_id==? ;"
+        return self._db.fetchall(sql,(publisher_id,))
+    
+    def isItemInChannel(self,publisher_id,infohash):
+        sql = "select count(*) from ChannelCast where publisher_id=? and infohash=? ;"
+        
+        isAvailable = self._db.fetchone(sql,(publisher_id,infohash))
+        if isAvailable:
+            return True
+        else:
+            return False
         
     def valuelist2channellist(self,res_list,value_name): ##
         

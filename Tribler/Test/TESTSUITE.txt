@@ -42,7 +42,7 @@ Feature: SecureOverlay
 Feature: Download Helper
 
 	Start a Tribler client, connect to it via the SecureOverlay API.
-	* Test whether it accepts valid and invalid DOWNLOAD_HELP,
+	* Test whether it accepts valid and invalid ASK_FOR_HELP,
 	RESERVE_PIECES, PIECES_RESERVED and STOP_DOWNLOAD_HELP messages.
 	* Test whether the client always stops helping on a STOP_DOWNLOAD_HELP
 	in various situations.

@@ -74,15 +74,16 @@ function switchtorrent(url)
 </script>
 
 
-
-<input type=button value="Play" onClick='document.vlc.playlist.play();'>
+<!-- Arno, 2010-05-26: using playlist.play() sometimes plays old items from 
+     a playlist that was just cleared?! -->
+<input type=button value="Play" onClick='document.vlc.playlist.playItem(0);'>
 <input type=button value="Pause" onClick='document.vlc.playlist.togglePause();'>
 <input type=button value="Stop" onclick='document.vlc.playlist.stop();'>
 <input type=button value="Debug" onclick='debugonclick();'>
 <input type=button value="Seek 25%" onclick='seek(.25);'>
 <input type=button value="Seek 50%" onclick='seek(.5);'>
 
-<input type=button value="Switch 2" onClick='switchtorrent("http://www.cs.vu.nl/~arno/vod/field2.tstream");'>
+<input type=button value="Switch 2" onClick='switchtorrent("http://www.cs.vu.nl/~arno/vod/BBCeen.tstream");'>
 <input type=button value="Switch 3" onClick='switchtorrent("http://www.cs.vu.nl/~arno/vod/star2.tstream");'>
 
 <br/>

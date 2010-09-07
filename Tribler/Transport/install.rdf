@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+  <Description about="urn:mozilla:install-manifest">
+	  <em:id>tribe@p2pnext.org</em:id>
+	  <em:version>2.0.0</em:version>
+	  <em:type>2</em:type>
+
+    <!-- Firefox -->
+    <em:targetApplication>
+      <Description>
+       	<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
+      	<em:minVersion>3.5</em:minVersion>
+      	<em:maxVersion>4.9.9</em:maxVersion>
+      </Description>
+    </em:targetApplication>		
+
+    <!-- Front End MetaData -->
+    <em:name>SwarmPlayer</em:name>
+    <em:description>The P2P-based tribe:// transfer protocol, enables use of torrent URLs inside e.g. the video tag.</em:description>
+    <em:creator>p2pnext.org</em:creator>
+    <em:homepageURL>http://www.p2pnext.org/</em:homepageURL>
+<!--
+    <em:iconURL>chrome://p2pnext/content/icon.png</em:iconURL>
+    <em:updateURL>http://p2pnext.org/update.rdf</em:updateURL>
+    <em:updateKey>
+    </em:updateKey>
+-->
+  </Description>
+</RDF>
+

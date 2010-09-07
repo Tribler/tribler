@@ -6,11 +6,13 @@ from traceback import print_exc
 from cStringIO import StringIO
 import struct
 import time
+import array
 
 from Tribler.Core.Utilities.Crypto import sha,RSA_pub_key_from_der
 from Tribler.Core.osutils import *
 from M2Crypto import EC
 from Tribler.Core.osutils import *
+from types import StringType
 
 DEBUG = False
 
@@ -153,7 +155,7 @@ class ECDSAAuthenticator(Authenticator):
         
             ret = ecdsa_verify_data_pubkeyobj(content,extra,self.pubkey,sig)
             if ret:
-                (seqnum, rtstamp) = struct.unpack('>Qd',extra)
+                (seqnum, rtstamp) = self._decode_extra(piece)
                 
                 if DEBUG:
                     print >>sys.stderr,"ECDSAAuth: verify piece",index,"seq",seqnum,"ts %.5f s" % rtstamp,"ls",lensig
@@ -196,6 +198,8 @@ class ECDSAAuthenticator(Authenticator):
         
     def _decode_extra(self,piece):
         extra = piece[-self.OUR_SIGSIZE:-self.OUR_SIGSIZE+self.EXTRA_SIZE]
+        if type(extra) == array.array:
+            extra = extra.tostring()
         return struct.unpack('>Qd',extra)
 
     
@@ -279,7 +283,7 @@ class RSAAuthenticator(Authenticator):
         
             ret = rsa_verify_data_pubkeyobj(content,extra,self.pubkey,sig)
             if ret:
-                (seqnum, rtstamp) = struct.unpack('>Qd',extra)
+                (seqnum, rtstamp) = self._decode_extra(piece)
                 
                 if DEBUG:
                     print >>sys.stderr,"RSAAuth: verify piece",index,"seq",seqnum,"ts %.5f s" % rtstamp
@@ -322,6 +326,8 @@ class RSAAuthenticator(Authenticator):
         
     def _decode_extra(self,piece):
         extra = piece[-self.our_sigsize():-self.our_sigsize()+self.EXTRA_SIZE]
+        if type(extra) == array.array:
+            extra = extra.tostring()
         return struct.unpack('>Qd',extra)
 
 

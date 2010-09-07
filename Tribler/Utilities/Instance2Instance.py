@@ -198,7 +198,12 @@ class InstanceConnection:
                     cmd = self.remain+data[0:i+1] 
                     self.remain = data[i+1:]
                     self.readlinecallback(self,cmd[:-2])# strip off \r\n
+                    if self.remain.endswith('\r\n'):
+                        cmd = self.remain
+                        self.remain = ''
+                        self.readlinecallback(self,cmd[:-2])# strip off \r\n
                     return
+                    
                 rflag = False
                 
         self.remain = self.remain + data

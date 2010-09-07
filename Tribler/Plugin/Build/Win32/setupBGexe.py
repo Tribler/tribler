@@ -8,7 +8,7 @@ from distutils.core import setup
 import py2exe # Not a superfluous import!
 
 from Tribler.__init__ import LIBRARYNAME
-mainfile = os.path.join(LIBRARYNAME,'Plugin','BackgroundProcess.py')
+mainfile = os.path.join(LIBRARYNAME,'Plugin','SwarmEngine.py')
 
 # Arno: 2009-06-09: changed from console= to make sure py2exe writes
 # a BackgroundProcess.exe.log

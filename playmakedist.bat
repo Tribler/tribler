@@ -6,7 +6,7 @@ REM Arno: Add . to find our core (py 2.5)
 set PYTHONPATH=.;%PYTHONHOME%
 echo PYTHONPATH SET TO %PYTHONPATH%
 
-set NSIS="C:\Program Files\NSIS\makensis.exe"
+set NSIS="\Program Files\NSIS\makensis.exe"
 
 REM ----- Check for Python and essential site-packages
 

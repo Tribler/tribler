@@ -6,9 +6,12 @@ import unittest
 import os
 import sys
 import time
-from urllib2 import urlopen # urllib blocks on reading, HTTP/1.1 persist conn problem?
+import urllib
+#from urllib2 import urlopen # urllib blocks on reading, HTTP/1.1 persist conn problem?
 from traceback import print_exc
+import urlparse
 
+from Tribler.Core.BitTornado.zurllib import urlopen
 from Tribler.Core.simpledefs import STATEDIR_ITRACKER_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.btconn import BTConnection
@@ -29,9 +32,15 @@ class TestTracking(TestAsServer):
         
         self.config.set_megacache(False)
         self.config.set_internal_tracker(True)
+     
+     
+    def test_all(self):
+        self.subtest_add_remove_torrent()
+        self.subtest_tlookup1()
+        self.subtest_tlookup2()
+   
         
-        
-    def test_add_remove_torrent(self):
+    def subtest_add_remove_torrent(self):
         tdef = TorrentDef()
         sourcefn = os.path.join(os.getcwd(),"file.wmv")
         tdef.add_content(sourcefn)
@@ -44,7 +53,7 @@ class TestTracking(TestAsServer):
         hexinfohash = binascii.hexlify(infohash)
         
         self.session.add_to_internal_tracker(tdef)
-
+        time.sleep(1)
         self.check_http_presence(hexinfohash,True)
         
         self.session.remove_from_internal_tracker(tdef)
@@ -78,6 +87,49 @@ class TestTracking(TestAsServer):
                     self.assert_(True)
                 else:
                     self.assert_(False)
+         
+         
+    #
+    # /tlookup?url
+    #
+    def subtest_tlookup1(self):
+        httpseeds = []
+        httpseeds.append('http://www.example.com/file.wmv')
+        self._test_tlookup(httpseeds)
+
+    def subtest_tlookup2(self):
+        httpseeds = []
+        httpseeds.append('http://www.example.com/file.wmv')
+        httpseeds.append('http://icecast.freezer.com/file.wmv')
+        self._test_tlookup(httpseeds)
+
+
+    def _test_tlookup(self,httpseedlist):
+        t = TorrentDef()
+        fn = os.path.join(os.getcwd(),"file.wmv")
+        t.add_content(fn)
+        t.set_tracker(self.session.get_internal_tracker_url())
+        t.set_urllist(httpseedlist)
+        t.finalize()
+        wantdata = bencode(t.get_metainfo())
+        
+        self.session.add_to_internal_tracker(t)
+        #time.sleep(30)
+        
+        (scheme, netloc, path, pars, query, fragment) = urlparse.urlparse(self.session.get_internal_tracker_url())
+        urlprefix = scheme+'://'+netloc+'/tlookup?'
+        for httpseed in httpseedlist:
+            quoted = urllib.quote(httpseed)
+            url = urlprefix+quoted
+            #url = "http://www.cs.vu.nl/~arno/index.html"
+            print >>sys.stderr,"test: Asking tracker for",url
+            # F*ing BitTornado/Python crap: using normal urlopen here results in
+            # an infinitely hanging read (even if read(1024))
+            conn = urlopen(url)
+            gotdata = conn.read()
+            print >>sys.stderr,"test: Tracker sent",len(gotdata)
+            conn.close()
+            self.assertEquals(wantdata,gotdata)
             
 
 def test_suite():

@@ -126,7 +126,7 @@ class TestBuddyCastDataHandler(unittest.TestCase):
         # prepare database
 
         launchmany = FakeLauchMany()
-        self.overlay_bridge = TimedTaskQueue(isDaemon=False) 
+        self.overlay_bridge = TimedTaskQueue() 
         #self.overlay_bridge = FakeOverlayBridge()
         self.data_handler = DataHandler(launchmany, self.overlay_bridge, max_num_peers=2500)
 
@@ -144,7 +144,7 @@ class TestBuddyCast(unittest.TestCase):
         # prepare database
 
         launchmany = FakeLauchMany()
-        self.overlay_bridge = TimedTaskQueue(isDaemon=False) 
+        self.overlay_bridge = TimedTaskQueue() 
         #self.overlay_bridge = FakeOverlayBridge()
         superpeer=False # enable it to test superpeer
         self.bc = BuddyCastFactory.getInstance(superpeer=superpeer)

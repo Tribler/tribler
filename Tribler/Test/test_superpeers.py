@@ -2,12 +2,16 @@ import os, sys
 import tempfile
 import unittest
 
-from Tribler.Core.CacheDB.cachedb import SQLiteCacheDB
-from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler, PeerDBHandler
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB,CURRENT_MAIN_DB_VERSION
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import SuperPeerDBHandler, PeerDBHandler
 
-CREATE_SQL_FILE = os.path.join('..', 'schema_sdb_v4.sql')
+CREATE_SQL_FILE = os.path.join('..',"schema_sdb_v"+str(CURRENT_MAIN_DB_VERSION)+".sql")
 assert os.path.isfile(CREATE_SQL_FILE)
     
+import Tribler.Core.CacheDB.sqlitecachedb
+print >>sys.stderr,"TEST: ENABLE DBUPGRADE HACK"
+Tribler.Core.CacheDB.sqlitecachedb.TEST_SQLITECACHEDB_UPGRADE = True
+
 
 lines = [
 'superpeer1.das2.ewi.tudelft.nl, 7001, MG0CAQEEHR/bQNvwga7Ury5+8vg/DTGgmMpGCz35Zs/2iz7coAcGBSuBBAAaoUADPgAEAL2I5yVc1+dWVEx3nbriRKJmOSlQePZ9LU7yYQoGABMvU1uGHvqnT9t+53eaCGziV12MZ1g2p0GLmZP9, superpeer1@TUD\n',

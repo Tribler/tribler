@@ -49,6 +49,7 @@ from Tribler.Utilities.Instance2Instance import *
 from Tribler.Player.systray import *
 # from Tribler.Player.Reporter import Reporter
 from Tribler.Player.UtilityStub import UtilityStub
+from Tribler.Core.Statistics.Status.Status import get_status_holder
 
 DEBUG = False
 RATELIMITADSL = False
@@ -57,8 +58,9 @@ DISKSPACE_LIMIT = 5L * 1024L * 1024L * 1024L  # 5 GB
 DEFAULT_MAX_UPLOAD_SEED_WHEN_SEEDING = 75 # KB/s
 
 class BaseApp(wx.App,InstanceConnectionHandler):
-    def __init__(self, redirectstderrout, appname, params, single_instance_checker, installdir, i2iport, sport):
+    def __init__(self, redirectstderrout, appname, appversion, params, single_instance_checker, installdir, i2iport, sport):
         self.appname = appname
+        self.appversion = appversion
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.installdir = installdir
@@ -104,9 +106,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         # Install systray icon
         # Note: setting this makes the program not exit when the videoFrame
         # is being closed.
-        
         self.tbicon = PlayerTaskBarIcon(self,self.iconpath)
-
         
         # Start Tribler Session
         cfgfilename = Session.get_default_config_filename(state_dir)
@@ -147,11 +147,11 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         self.i2is.start()
 
         # report client version
-        from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
-        reporter = get_reporter_instance()
-        reporter.add_event("client-startup", "version:" + self.utility.lang.get("version"))
-        reporter.add_event("client-startup", "build:" + self.utility.lang.get("build"))
-        reporter.add_event("client-startup", "build_date:" + self.utility.lang.get("build_date"))
+        # from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+        reporter = get_status_holder("LivingLab")
+        reporter.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
+        reporter.create_and_add_event("client-startup-build", [self.utility.lang.get("build")])
+        reporter.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
 
     def configure_session(self):
         # No overlay
@@ -202,11 +202,12 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         return poa
 
 
-    def start_download(self,tdef,dlfile,poa=None):
+    def start_download(self,tdef,dlfile,poa=None,supportedvodevents=None):
         """ Start download of torrent tdef and play video file dlfile from it """
         if poa:
             from Tribler.Core.ClosedSwarm import ClosedSwarm
-            assert poa.__class__ == ClosedSwarm.POA
+            if not poa.__class__ == ClosedSwarm.POA:
+                raise InvalidPOAException("Not a POA")
             
         # Free diskspace, if needed
         destdir = self.get_default_destdir()
@@ -235,7 +236,11 @@ class BaseApp(wx.App,InstanceConnectionHandler):
             dcfg.set_poa(None)
             
         # Delegate processing to VideoPlayer
-        dcfg.set_video_events(self.get_supported_vod_events())
+        if supportedvodevents is None:
+            supportedvodevents = self.get_supported_vod_events()
+            
+        print >>sys.stderr,"bg: VOD EVENTS",supportedvodevents
+        dcfg.set_video_events(supportedvodevents)
         
         # Ric: added svc
         if tdef.is_multifile_torrent():
@@ -387,6 +392,8 @@ class BaseApp(wx.App,InstanceConnectionHandler):
     def sesscb_states_callback(self,dslist):
         """ Called by Session thread """
 
+        #print >>sys.stderr,"bg: sesscb_states_callback",currentThread().getName()
+
         # Display some stats
         if (int(time.time()) % 5) == 0:
             for ds in dslist:
@@ -410,6 +417,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         # Arno: delegate to GUI thread. This makes some things (especially
         #access control to self.videoFrame easier
         #self.gui_states_callback(dslist)
+        #print >>sys.stderr,"bg: sesscb_states_callback: calling GUI",currentThread().getName()
         wx.CallAfter(self.gui_states_callback_wrapper,dslist,haspeerlist)
         
         #print >>sys.stderr,"main: SessStats:",self.getpeerlistcount,getpeerlist,haspeerlist
@@ -468,7 +476,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         #         print_exc()
 
         # Set systray icon tooltip. This has limited size on Win32!
-        txt = self.appname+' 1.0.5\n\n'
+        txt = self.appname+' '+self.appversion+'\n\n'
         txt += 'DL: %.1f\n' % (totalspeed[DOWNLOAD])
         txt += 'UL:   %.1f\n' % (totalspeed[UPLOAD])
         txt += 'Helping: %d\n' % (totalhelping) 
@@ -541,6 +549,11 @@ class BaseApp(wx.App,InstanceConnectionHandler):
             print >>sys.stderr,"main: sesscb_remove_playing_callback: voting for KEEPING",`name`            
         else:
             print >>sys.stderr,"main: sesscb_remove_playing_callback: voting for REMOVING",`name`
+            if self.shuttingdown:
+                # Arno, 2010-04-23: Do it now ourselves, wx won't do it anymore. Saves
+                # hashchecking on sparse file on Linux.
+                self.remove_playing_download(d)
+                
             wx.CallAfter(self.remove_playing_download,d)
         
         return (-1.0,False)
@@ -555,6 +568,15 @@ class BaseApp(wx.App,InstanceConnectionHandler):
                 self.downloads_in_vodmode.remove(d)
             except:
                 print_exc()
+
+    def stop_playing_download(self,d):
+        """ Called by MainThread """
+        print >>sys.stderr,"main: Stopping download",`d.get_def().get_name_as_unicode()`
+        try:
+            d.stop()
+            self.downloads_in_vodmode.remove(d)
+        except:
+            print_exc()
 
 
     #
@@ -625,7 +647,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
     # Shutdown
     #
     def OnExit(self):
-        print >>sys.stderr,"main: ONEXIT"
+        print >>sys.stderr,"main: ONEXIT",currentThread().getName()
         self.shuttingdown = True
         self.remove_downloads_in_vodmode_if_not_complete()
 

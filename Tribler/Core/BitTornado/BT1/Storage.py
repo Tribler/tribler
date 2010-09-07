@@ -50,7 +50,7 @@ class Storage:
         self.working_ranges = []
         numfiles = 0
         total = 0L
-        so_far = 0L
+        self.so_far = 0L
         self.handles = {}
         self.whandles = {}
         self.tops = {}
@@ -99,7 +99,7 @@ class Storage:
                     self.mtimes[file] = getmtime(file)
                 self.tops[file] = l
                 self.sizes[file] = length
-                so_far += l
+                self.so_far += l
 
         self.total_length = total
         self._reset_ranges()
@@ -141,6 +141,9 @@ class Storage:
         def _unlock_file(self, name, f):
             pass
 
+    # Arno, 2010-04-16: STBSPEED
+    def get_length_initial_content(self):
+        return self.so_far
 
     def was_preallocated(self, pos, length):
         for file, begin, end in self._intervals(pos, length):

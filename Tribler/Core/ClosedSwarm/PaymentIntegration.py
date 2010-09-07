@@ -248,7 +248,7 @@ if __name__ == "__main__":
     
 
     d = PaymentDialog("Test file",
-                      "http://localhost:9090",
+                      "http://127.0.0.1:9090",
                       "1234",
                       "myid")
 

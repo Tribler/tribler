@@ -2,12 +2,12 @@ import os
 import sys
 import unittest
 
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, str2bin
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, str2bin, CURRENT_MAIN_DB_VERSION
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PreferenceDBHandler, MyPreferenceDBHandler
 from Tribler.Core.BuddyCast.TorrentCollecting import SimpleTorrentCollecting
 from bak_tribler_sdb import *
     
-CREATE_SQL_FILE = os.path.join('..', 'schema_sdb_v4.sql')
+CREATE_SQL_FILE = os.path.join('..',"schema_sdb_v"+str(CURRENT_MAIN_DB_VERSION)+".sql"))
 assert os.path.isfile(CREATE_SQL_FILE)
 
 def init():

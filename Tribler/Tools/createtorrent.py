@@ -11,6 +11,7 @@ import random
 import urllib2
 from traceback import print_exc
 from threading import Condition
+from base64 import encodestring
 
 from Tribler.Core.API import *
 import Tribler.Core.BitTornado.parseargs as parseargs
@@ -21,11 +22,13 @@ argsdef = [('source', '', 'source file or directory'),
            ('duration', '1:00:00', 'duration of the stream in hh:mm:ss format'),           
            ('piecesize', 32768, 'transport piece size'),
            ('thumb', '', 'filename of image in JPEG format, preferably 171x96'),
+           ('url-list', [], 'a URL following BEP19 HTTP Seeding (TODO: support list)'),
             ('url', False, 'Create URL instead of torrent (cannot be used with thumb)'),
             ('cs_keys', '', 
             "Closed swarm torrent keys (semicolon separated if more than one)"),
             ('generate_cs', 'no',
-             "Create a closed swarm, generating the keys ('yes' to generate)")
+             "Create a closed swarm, generating the keys ('yes' to generate)"),
+           ('cs_publish_dir', '.', "Publish public CS key in what dir?")
             ]
 
 
@@ -51,8 +54,18 @@ def generate_key(config):
     keypair, pubkey = ClosedSwarm.generate_cs_keypair(target + ".tkey",
                                                       target + ".pub")
     
-    return pubkey
+    return keypair,pubkey
 
+def publish_key(torrent, keypair, target_directory = "."):
+ 
+    t = TorrentDef.load(torrent)
+    
+    filename = encodestring(t.infohash).replace("\n","")
+    filename = filename.replace("/","")
+    filename = filename.replace("\\","")
+    key_file = os.path.join(target_directory, filename + ".tkey")
+    ClosedSwarm.save_cs_keypair(keypair, key_file)
+    print "Key saved to:", key_file
 
 def progress(perc):
     print int(100.0*perc),"%",
@@ -83,13 +96,20 @@ if __name__ == "__main__":
     tdef.set_piece_length(config['piecesize']) #TODO: auto based on bitrate?
 
     # CLOSEDSWARM
+    cs_keypair = None # Save for publishing later
     if config['generate_cs'].lower() == "yes":
         if config['cs_keys']:
             print "Refusing to generate keys when key is given"
             raise SystemExit(1)
-        tdef.set_cs_keys([generate_key(config)])
+        cs_keypair, cs_pubkey = generate_key(config)
+        tdef.set_cs_keys([cs_pubkey])
     elif config['cs_keys']:
         config['cs_keys'] = config['cs_keys'].split(";")
+    
+    # TODO4DIEGO: DO BE CHANGED TO set_url_list() and support lists of URLs
+    if len(config['url-list']) > 0:
+        urllist = [config['url-list']]
+        tdef.set_urllist(urllist)
     
     if config['url']:
         tdef.set_create_merkle_torrent(1)
@@ -109,3 +129,6 @@ if __name__ == "__main__":
         torrentbasename = config['source']+'.tstream'
         torrentfilename = os.path.join(config['destdir'],torrentbasename)
         tdef.save(torrentfilename)
+        
+    if cs_keypair:
+        publish_key(torrentfilename, cs_keypair, config['cs_publish_dir'])

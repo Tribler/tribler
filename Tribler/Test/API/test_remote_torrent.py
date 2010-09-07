@@ -1,4 +1,4 @@
-# Written by Arno Bakker
+# Written by Arno Bakker, George Milescu
 # see LICENSE.txt for license information
 #
 # Like test_secure_overlay, we start a new python interpreter for each test.
@@ -98,13 +98,13 @@ class TestDownloadHelp(TestAsServer):
     #
     def singtest_good_2fast(self):
         genresdict = self.get_genresdict()
-        print >>sys.stderr,"test: good DOWNLOAD_HELP"
+        print >>sys.stderr,"test: good ASK_FOR_HELP"
         self._test_2fast(genresdict)
     
 
     def get_genresdict(self):
         genresdict = {}
-        genresdict[DOWNLOAD_HELP] = (self.create_good_dlhelp,True)
+        genresdict[ASK_FOR_HELP] = (self.create_good_dlhelp,True)
         genresdict[METADATA] = (self.create_good_metadata,True)
         genresdict[PIECES_RESERVED] = (self.create_good_pieces_reserved,True)
         genresdict[STOP_DOWNLOAD_HELP] = (self.create_good_stop_dlhelp,True)
@@ -115,7 +115,7 @@ class TestDownloadHelp(TestAsServer):
     #
     def singtest_bad_2fast_dlhelp(self):
         genresdict = self.get_genresdict()
-        genresdict[DOWNLOAD_HELP] = (self.create_bad_dlhelp_not_infohash,False)
+        genresdict[ASK_FOR_HELP] = (self.create_bad_dlhelp_not_infohash,False)
         print >>sys.stderr,"test: bad dlhelp"
         self._test_2fast(genresdict)
         
@@ -173,12 +173,12 @@ class TestDownloadHelp(TestAsServer):
     
     def _test_2fast(self,genresdict):
         """ 
-            test DOWNLOAD_HELP, METADATA, PIECES_RESERVED and STOP_DOWNLOAD_HELP sequence
+            test ASK_FOR_HELP, METADATA, PIECES_RESERVED and STOP_DOWNLOAD_HELP sequence
         """
         # 1. Establish overlay connection to Tribler
         s = OLConnection(self.my_keypair,'localhost',self.hisport,mylistenport=self.mylistenport2)
         
-        (func,good) = genresdict[DOWNLOAD_HELP]
+        (func,good) = genresdict[ASK_FOR_HELP]
         msg = func()
         s.send(msg)
         if good:
@@ -271,7 +271,7 @@ class TestDownloadHelp(TestAsServer):
         
 
     def create_good_dlhelp(self):
-        return DOWNLOAD_HELP+self.infohash
+        return ASK_FOR_HELP+self.infohash
 
     def check_get_metadata(self,data):
         infohash = bdecode(data) # is bencoded for unknown reason, can't change it
@@ -320,11 +320,11 @@ class TestDownloadHelp(TestAsServer):
 
 
     #
-    # Bad DOWNLOAD_HELP
+    # Bad ASK_FOR_HELP
     #    
 
     def create_bad_dlhelp_not_infohash(self):
-        return DOWNLOAD_HELP+"481"
+        return ASK_FOR_HELP+"481"
 
     #
     # Bad METADATA

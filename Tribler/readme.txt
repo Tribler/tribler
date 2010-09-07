@@ -20,14 +20,16 @@ Alternatively, look for our unofficial M2Crypto version 0.15-ab1 on the
 Tribler website.
 
 So make sure you have
-    Python >= 2.4 
-    OpenSSL >= 0.9.8
-    swig >= 1.3.25
-    wxPython >= 2.8 UNICODE (i.e., use --enable-unicode to build)
+    Python >= 2.5
     M2Crypto >= 0.16
+    wxPython >= 2.8 UNICODE (i.e., use --enable-unicode to build)
     APSW aka. python-apsw >= 3.6.x (Python wrappers for SQLite database)
     pywin32 >= Build 208 (Windows only, for e.g. UPnP support)
-    vlc >= 0.8.6a and its python bindings (optional, for internal video player)
+    vlc >= 1.0.1 and its python bindings (optional, for internal video player)
+    
+    xulrunner-sdk >= 1.9.1.5 < 1.9.2 (optional, to run SwarmTransport)
+    7-Zip >= 4.6.5 (optional, to build SwarmTransport)
+    
 
 Note that Tribler only works with wxPython UNICODE, not ANSI. With small
 adjustments it probably also works with wxPython 2.6.  Python 2.4 is prefered,
@@ -58,7 +60,7 @@ INSTALLING ON LINUX
 
 2. Unpack the main source code
 
-3. Tribler can now be started by running
+3. Tribler Main client can now be started by running
 
         PYTHONPATH=$PYTHONPATH:.
         export PYTHONPATH
@@ -143,7 +145,7 @@ on how to install that yourself.
 5. Download and uncompress Tribler source codes 
 
 6. Run 
-        C:\Python24\python2.4.exe abc.py
+        C:\Python24\python2.4.exe Tribler\Main\tribler.py
    from the source code directory.
 
 

@@ -14,7 +14,7 @@ from traceback import print_exc
 from threading import Condition
 
 from Tribler.Core.API import *
-from Tribler.Core.Status import *
+from Tribler.Core.Statistics.Status import *
 
 import Tribler.Core.BitTornado.parseargs as parseargs
 

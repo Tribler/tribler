@@ -1,12 +1,14 @@
 # Written by John Hoffman and Uoti Urpala
 # see LICENSE.txt for license information
-from bencode import bencode, bdecode
-from BT1.btformats import check_info
 import os
 import sys
+from traceback import print_exc
 
+from bencode import bencode, bdecode
+from BT1.btformats import check_info
 from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.Crypto import sha
 
 try:
     True
@@ -128,9 +130,18 @@ def parsedir(directory, parsed, files, blocked,
             setkey('failure reason')
             setkey('warning message')
             setkey('announce-list')
+            # Arno, LOOKUP SERVICE
+            if tdef.get_urllist() is not None:
+                httpseedhashes = []
+                for url in tdef.get_urllist():
+                    # TODO: normalize?
+                    urlhash = sha(url).digest()
+                    httpseedhashes.append(urlhash)
+                a['url-hash-list'] = httpseedhashes
             if return_metainfo:
                 a['metainfo'] = d
         except:
+            print_exc()
             errfunc('**warning** '+p+' has errors')
             new_blocked[p] = 1
             continue

@@ -1,4 +1,4 @@
-# Written by Arno Bakker and Bram Cohen 
+# Written by Arno Bakker and Bram Cohen, George Milescu 
 # see LICENSE.txt for license information
 """ Default values for all configurarable parameters of the Core"""
 #
@@ -47,6 +47,7 @@ sessdefaults['megacache'] = True
 sessdefaults['overlay'] = True
 sessdefaults['crawler'] = True
 sessdefaults['buddycast'] = True
+sessdefaults['magnetlink'] = True
 sessdefaults['start_recommender'] = True
 sessdefaults['download_help'] = True
 sessdefaults['torrent_collecting'] = True
@@ -90,6 +91,19 @@ sessdefaults['votecast_recent_votes']=25
 sessdefaults['votecast_random_votes']=25
 sessdefaults['channelcast_recent_own_subscriptions'] = 13
 sessdefaults['channelcast_random_own_subscriptions'] = 12 
+
+# 14-04-2010, Andrea: settings to limit the results for a remote query in channels
+# if there are too many results the gui got freezed for a considerable amount of
+# time
+sessdefaults['max_channel_query_results'] = 25
+
+# 13-04-2010 Andrea, config for subtitle dissemination subsytem
+sessdefaults['subtitles_collecting'] = False
+sessdefaults['subtitles_collecting_dir'] = None
+sessdefaults['subtitles_upload_rate'] = 1024 # KB/s 
+
+# ProxyService global config
+sessdefaults['proxyservice_status'] = PROXYSERVICE_OFF
 
 trackerdefaults = {}
 trackerdefaults['tracker_url'] = None
@@ -192,6 +206,8 @@ dldefaults['auto_flush'] = 0
 #
 dldefaults['coopdl_role'] = COOPDL_ROLE_COORDINATOR
 dldefaults['coopdl_coordinator_permid'] = ''
+dldefaults['proxy_mode'] = PROXY_MODE_OFF
+dldefaults['max_helpers'] = 10
 dldefaults['exclude_ips'] = ''
 dldefaults['mode'] = 0
 dldefaults['vod_usercallback'] = None
@@ -212,6 +228,7 @@ tdefdictdefaults['announce'] = None
 tdefdictdefaults['announce-list'] = None
 tdefdictdefaults['nodes'] = None # mainline DHT
 tdefdictdefaults['httpseeds'] = None
+tdefdictdefaults['url-list'] = None
 tdefdictdefaults['encoding'] = None
 
 tdefmetadefaults = {}

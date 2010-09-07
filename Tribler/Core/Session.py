@@ -93,6 +93,11 @@ class Session(SessionRuntimeConfig):
             collected_torrent_dir = os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR)
             self.sessconfig['torrent_collecting_dir'] = collected_torrent_dir
             
+        collected_subtitles_dir = self.sessconfig.get('subtitles_collecting_dir',None)
+        if not collected_subtitles_dir:
+            collected_subtitles_dir = os.path.join(self.sessconfig['state_dir'], STATEDIR_SUBSCOLL_DIR)
+            self.sessconfig['subtitles_collecting_dir'] = collected_subtitles_dir
+            
         if not os.path.exists(collected_torrent_dir):
             os.makedirs(collected_torrent_dir)
             
@@ -501,6 +506,7 @@ class Session(SessionRuntimeConfig):
         NTFY_TERM -> TermDBHandler
         NTFY_VOTECAST -> VotecastDBHandler
         NTFY_CHANNELCAST -> ChannelCastDBHandler
+        NTFY_RICH_METADATA -> MetadataDBHandler
         </pre>
         """ 
         # Called by any thread
@@ -532,6 +538,8 @@ class Session(SessionRuntimeConfig):
                 return self.lm.term_db
             elif subject == NTFY_CHANNELCAST:
                 return self.lm.channelcast_db
+            elif subject == NTFY_RICH_METADATA:
+                return self.lm.richmetadataDbHandler
             else:
                 raise ValueError('Cannot open DB subject: '+subject)
         finally:
@@ -598,7 +606,8 @@ class Session(SessionRuntimeConfig):
         # Called by any thread
         self.lm.early_shutdown()
         self.checkpoint_shutdown(stop=True,checkpoint=checkpoint,gracetime=gracetime,hacksessconfcheckpoint=hacksessconfcheckpoint)
-        self.uch.shutdown()
+        # Arno, 2010-08-09: now shutdown after gracetime
+        #self.uch.shutdown()
     
     def has_shutdown(self):
         """ Whether the Session has completely shutdown, i.e., its internal
@@ -887,3 +896,19 @@ class Session(SessionRuntimeConfig):
         finally:
             self.sesslock.release()
             
+            
+    # 02-06-2010 Andrea: returns a reference to SubtitleSupport instance, which
+    # is the facade (i.e. acts as the entry point) of the Subtitles subsystem
+    def get_subtitles_support_facade(self):
+        '''
+        Returns an instance of SubtitleSupport, which is intended to be used
+        by clients to interact with the subtitles subsystem.
+        
+        Subsequent calls to this method should always return the same instance.
+        
+        If the instance is not available, None will be returned
+        '''
+        try:
+            return self.lm.overlay_apps.subtitle_support
+        except:
+            return None

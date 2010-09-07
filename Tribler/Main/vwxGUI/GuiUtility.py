@@ -324,6 +324,13 @@ class GUIUtility:
         wx.CallAfter(self.torrentsearch_manager.gotRemoteHits, permid, kws, hits)
         
     def sesscb_got_channel_hits(self,permid,query,hits):
+        '''
+        Called by SessionCallback thread from RemoteQueryMsgHandler.process_query_reply.
+        
+        @param permid: the peer who returnd the answer to the query
+        @param query: the keywords of the query that originated the answer
+        @param hits: the complete answer retruned by the peer
+        '''
         # Called by SessionCallback thread 
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_channel_hits",len(hits)
@@ -334,26 +341,22 @@ class GUIUtility:
         kwstr = query[len("CHANNEL x "):]
         kws = split_into_keywords(kwstr)
 
-        records = []
-        for k,v in hits.items():
-            records.append((bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k)))
+        #Code that calls GUI
+        # 1. Grid needs to be updated with incoming hits, from each remote peer
+        # 2. Sorting should also be done by that function
+        wx.CallAfter(self.channelsearch_manager.gotRemoteHits,permid,kws,hits,self.standardOverview.getMode())
 
-        if DEBUG:
-            print >> sys.stderr , "CHANNEL HITS" , records
+    # def buttonClicked(self, event):
+    #     "Called by tribler_topButton.py"
+    #     event.Skip() #should let other handlers use this event!!!!!!!
 
-        self.channelsearch_manager.gotRemoteHits(permid,kws,records)
-    
-    def buttonClicked(self, event):
-        "Called by tribler_topButton.py"
-        event.Skip() #should let other handlers use this event!!!!!!!
-
-        obj = event.GetEventObject()
-        try:
-            name = obj.GetName()
-            if DEBUG:
-                print >>sys.stderr,'GUIUtil: Button clicked %s' % name
-        except:
-            print >>sys.stderr,'GUIUtil: Error: Could not get name of buttonObject: %s' % obj
+    #     obj = event.GetEventObject()
+    #     try:
+    #         name = obj.GetName()
+    #         if DEBUG:
+    #             print >>sys.stderr,'GUIUtil: Button clicked %s' % name
+    #     except:
+    #         print >>sys.stderr,'GUIUtil: Error: Could not get name of buttonObject: %s' % obj
 
     #TODO: should be somewhere else
     def set_port_number(self, port_number):
@@ -361,13 +364,13 @@ class GUIUtility:
     def get_port_number(self):
         return self.port_number
     
-    def toggleFamilyFilter(self, state = None):
-        catobj = Category.getInstance()
-        ff_enabled = not catobj.family_filter_enabled()
-        print 'Setting family filter to: %s' % ff_enabled
-        if state is not None:
-            ff_enabled = state    
-        catobj.set_family_filter(ff_enabled)
+    # def toggleFamilyFilter(self, state = None):
+    #     catobj = Category.getInstance()
+    #     ff_enabled = not catobj.family_filter_enabled()
+    #     print 'Setting family filter to: %s' % ff_enabled
+    #     if state is not None:
+    #         ff_enabled = state    
+    #     catobj.set_family_filter(ff_enabled)
         
     def getFamilyFilter(self):
         catobj = Category.getInstance()

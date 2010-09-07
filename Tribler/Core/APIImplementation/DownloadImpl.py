@@ -637,6 +637,12 @@ class DownloadImpl:
                 mimetype = 'video/mp2t'
             elif ext == '.mkv':
                 mimetype = 'video/x-matroska'
+            elif ext in ('.ogg', '.ogv'):
+                mimetype = 'video/ogg'
+            elif ext in ('.oga'):
+                mimetype = 'audio/ogg'
+            elif ext == '.webm':
+                mimetype = 'video/webm'
             else:
                 mimetype = 'video/mpeg'
         return mimetype

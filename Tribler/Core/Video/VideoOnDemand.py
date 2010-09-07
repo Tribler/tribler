@@ -17,12 +17,13 @@ from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 from Tribler.Core.Video.MovieTransport import MovieTransport,MovieTransportStreamWrapper
 from Tribler.Core.simpledefs import *
 from Tribler.Core.osutils import *
+from Tribler.Core.Statistics.Status.Status import get_status_holder
 
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
 DEBUG = False
-DEBUGPP = False
+DEBUG_HOOKIN = True
 
 class PieceStats:
     """ Keeps track of statistics for each piece as it flows through the system. """
@@ -95,9 +96,9 @@ class MovieOnDemandTransporter(MovieTransport):
     PREBUF_REHOOKIN_SECS = 5.0
 
     # maximum delay between pops when live streaming before we force a restart (seconds)
-    MAX_POP_TIME = 20
+    MAX_POP_TIME = 10
 
-    def __init__(self,bt1download,videostatus,videoinfo,videoanalyserpath,vodeventfunc):
+    def __init__(self,bt1download,videostatus,videoinfo,videoanalyserpath,vodeventfunc,httpsupport=None):
 
         # dirty hack to get the Tribler Session
         from Tribler.Core.Session import Session
@@ -108,19 +109,19 @@ class MovieOnDemandTransporter(MovieTransport):
         # import errors
         #
         # _event_reporter stores events that are logged somewhere...
-        from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
-        self._event_reporter = get_reporter_instance()
+        # from Tribler.Core.Statistics.StatusReporter import get_reporter_instance
+        self._event_reporter = get_status_holder("LivingLab")
         self.b64_infohash = b64encode(bt1download.infohash)
             
         # add an event to indicate that the user wants playback to
         # start
         def set_nat(nat):
-            self._event_reporter.add_event(self.b64_infohash, "nat:%s" % nat)
-        self._event_reporter.add_event(self.b64_infohash, "play-init")
-        self._event_reporter.add_event(self.b64_infohash, "piece-size:%d" % videostatus.piecelen)
-        self._event_reporter.add_event(self.b64_infohash, "num-pieces:%d" % videostatus.movie_numpieces)
-        self._event_reporter.add_event(self.b64_infohash, "bitrate:%d" % videostatus.bitrate)
-        self._event_reporter.add_event(self.b64_infohash, "nat:%s" % session.get_nat_type(callback=set_nat))
+            self._event_reporter.create_and_add_event("nat", [self.b64_infohash, nat])
+        self._event_reporter.create_and_add_event("play-init", [self.b64_infohash])
+        self._event_reporter.create_and_add_event("piece-size", [self.b64_infohash, videostatus.piecelen])
+        self._event_reporter.create_and_add_event("num-pieces", [self.b64_infohash, videostatus.movie_numpieces])
+        self._event_reporter.create_and_add_event("bitrate", [self.b64_infohash, videostatus.bitrate])
+        self._event_reporter.create_and_add_event("nat", [self.b64_infohash, session.get_nat_type(callback=set_nat)])
 
         # self._complete = False
         self.videoinfo = videoinfo
@@ -132,6 +133,10 @@ class MovieOnDemandTransporter(MovieTransport):
 
         self.vodeventfunc = vodeventfunc
         self.videostatus = vs = videostatus
+        # Diego : Http seeding video support
+        self.http_support = httpsupport
+        self.traker_peers_report = None
+        self.http_first_run = None
         
         # Add quotes around path, as that's what os.popen() wants on win32
         if sys.platform == "win32" and videoanalyserpath is not None and videoanalyserpath.find(' ') != -1:
@@ -190,9 +195,11 @@ class MovieOnDemandTransporter(MovieTransport):
             else:
                 prebufsecs = self.PREBUF_SEC_VOD
 
+            if vs.bitrate <=  (256 * 1024 / 8):
+                print >>sys.stderr,"vod: trans: Increasing prebuffer for low-bitrate feeds"
+                prebufsecs += 5.0
             # assumes first piece is whole (first_piecelen == piecelen)
             piecesneeded = vs.time_to_pieces( prebufsecs )
-            bytesneeded = piecesneeded * vs.piecelen
         else:
             # Arno, 2010-01-13: For torrents with unknown bitrate, prebuf more
             # following Boudewijn's heuristics
@@ -263,6 +270,8 @@ class MovieOnDemandTransporter(MovieTransport):
 
         # link to others (last thing to do)
         self.piecepicker.set_transporter( self )
+        if not vs.live_streaming:
+            self.complete_from_persistent_state(self.storagewrapper.get_pieces_on_disk_at_startup())
         #self.start()
 
         if FAKEPLAYBACK:
@@ -286,6 +295,8 @@ class MovieOnDemandTransporter(MovieTransport):
         if self.videostatus.live_streaming:
             self.live_streaming_timer()
 
+        self.update_prebuffering()
+
     def calc_live_startpos(self,prebufsize=2,have=False):
         """ When watching a live stream, determine where to 'hook in'. Adjusts 
             self.download_range[0] accordingly, never decreasing it. If 'have' 
@@ -299,6 +310,9 @@ class MovieOnDemandTransporter(MovieTransport):
             by active pausing and resuming of the playback by this class, see
             refill_buffer().
         """
+
+        if DEBUG_HOOKIN:
+            print >>sys.stderr,"vod: calc_live_startpos: prebuf",prebufsize,"have",have
 
         # ----- determine highest known piece number
         if have:
@@ -316,14 +330,22 @@ class MovieOnDemandTransporter(MovieTransport):
             numhaves = self.piecepicker.numhaves # excludes seeds
             totalhaves = self.piecepicker.totalcount # excludes seeds
             sourcehave = self.piecepicker.get_live_source_have()
+            
+            if DEBUG and DEBUG_HOOKIN:
+                if sourcehave is not None:
+                    print >>sys.stderr,"vod: calc_live_offset: DEBUG: testing for multiple clients at source IP (forbidden!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!, but used in CS testing). Source have numtrue",sourcehave.get_numtrue()
+                    if sourcehave.get_numtrue() < 100:
+                        print >>sys.stderr,"vod: calc_live_offset: Source sent near empty BITFIELD, CS testing bug? Not tuning in as source"
+                        sourcehave = None
 
             numconns = self.piecepicker.num_nonempty_neighbours()
             if sourcehave is None:
                 # We don't have a connection to the source, must get at least 2 votes 
                 threshold = max( 2, numconns/2 )
             else:
-                if DEBUG:
+                if DEBUG_HOOKIN:
                     print >>sys.stderr,"vod: calc_live_offset: Connected to source, hookin on that" 
+                    #print >>sys.stderr,"vod: calc_live_offset: sourcehave",`sourcehave.tostring()`
                 threshold = 1
 
         # FUDGE: number of pieces we subtract from maximum known/have,
@@ -336,7 +358,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         if numseeds == 0 and totalhaves == 0:
             # optimisation: without seeds or pieces, just wait
-            if DEBUG:
+            if DEBUG_HOOKIN:
                 print >>sys.stderr,"vod: calc_live_offset: no pieces"
             return False
 
@@ -349,7 +371,7 @@ class MovieOnDemandTransporter(MovieTransport):
         if not vs.wraparound:
             if numseeds > 0 or numhaves[epiece] > 0:
                 # special: if full video is available, do nothing and enter VoD mode
-                if DEBUG:
+                if DEBUG_HOOKIN:
                     print >>sys.stderr,"vod: calc_live_offset: vod mode"
                 vs.set_live_startpos( 0 )
                 return True
@@ -364,17 +386,20 @@ class MovieOnDemandTransporter(MovieTransport):
             inspecthave = sourcehave
         
         for i in xrange(epiece,bpiece-1,-1):
-            #if DEBUG:
+            #if DEBUG_HOOKIN:
             #    if 0 < inspecthave[i] < threshold:
             #        print >>sys.stderr,"vod: calc_live_offset: discarding piece %d as it is owned by only %d<%d neighbours" % (i,inspecthave[i],threshold)
 
             if inspecthave[i] >= threshold:
                 maxnum = i
-                if DEBUG:
+                if not have:
                     if inspecthave == numhaves:
                         print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours (prewrap)" % (i,inspecthave[i],threshold)
                     else:
                         print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by the source (prewrap)" % (i)
+                else:
+                    print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by me (prewrap)" % (i)
+                        
                 break
 
         if maxnum is None:
@@ -388,11 +413,15 @@ class MovieOnDemandTransporter(MovieTransport):
             for i in xrange( vs.first_piece+delta_left-1, vs.first_piece-1, -1 ):
                 if inspecthave[i] >= threshold:
                     maxnum = i
-                    if DEBUG:
-                        if inspecthave == numhaves:
-                            print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours (wrap)" % (i,inspecthave[i],threshold)
+                    if DEBUG_HOOKIN:
+                        if not have:
+                            if inspecthave == numhaves:
+                                print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by %d>=%d neighbours (wrap)" % (i,inspecthave[i],threshold)
+                            else:
+                                print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by the source (wrap)" % (i)
                         else:
-                            print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by the source (wrap)" % (i)
+                            print >>sys.stderr,"vod: calc_live_offset: chosing piece %d as it is owned by me (wrap)" % (i)
+                            
                     break
 
         print >>sys.stderr,"vod: calc_live_offset: hookin candidate (unfudged)",maxnum
@@ -437,7 +466,7 @@ class MovieOnDemandTransporter(MovieTransport):
             self.live_invalidate_piece_ranges_globally(toinvalidateranges,toinvalidateset)
 
         try:
-            self._event_reporter.add_event(self.b64_infohash, "live-hookin:%d" % maxnum)
+            self._event_reporter.create_and_add_event("live-hookin", [self.b64_infohash, maxnum])
         except:
             print_exc()
 
@@ -448,35 +477,36 @@ class MovieOnDemandTransporter(MovieTransport):
         """ Background 'thread' to check where to hook in if live streaming. """
         
         if DEBUG:
-            print >>sys.stderr,"vod: live_streaming_timer: Finding hookin"
+            print >>sys.stderr,"vod: live_streaming_timer: Checking hookin"
         nextt = 1
         try:
-            vs = self.videostatus
-        
-            if vs.playing and not self.rehookin:
-                # Stop adjusting the download range via this mechanism, see 
-                # refill_buffer() for the new pause/resume mechanism.
-                
-                # Arno, 2010-03-04: Reactivate protection for live.
-                if vs.live_streaming and self.last_pop is not None and time.time() - self.last_pop > self.MAX_POP_TIME:
-                    # Live: last pop too long ago, rehook-in
-                    print >>sys.stderr,"vod: live_streaming_timer: Live stalled too long, reaanounce and REHOOK-in !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-                    self.last_pop = time.time()
+            try:
+                vs = self.videostatus
+            
+                if vs.playing and not self.rehookin:
+                    # Stop adjusting the download range via this mechanism, see 
+                    # refill_buffer() for the new pause/resume mechanism.
                     
-                    # H4x0r: if conn to source was broken, reconnect
-                    self.bt1download.reannounce()
+                    # Arno, 2010-03-04: Reactivate protection for live.
+                    if vs.live_streaming and self.last_pop is not None and time.time() - self.last_pop > self.MAX_POP_TIME:
+                        # Live: last pop too long ago, rehook-in
+                        print >>sys.stderr,"vod: live_streaming_timer: Live stalled too long, reaanounce and REHOOK-in !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                        self.last_pop = time.time()
+                        
+                        # H4x0r: if conn to source was broken, reconnect
+                        self.bt1download.reannounce()
+                        
+                        # Give some time to connect to new peers, so rehookin in 2 seconds
+                        nextt = 2 
+                        self.rehookin = True
+                    return
                     
-                    # Give some time to connect to new peers, so rehookin in 2 seconds
-                    nextt = 2 
-                    self.rehookin = True
-                return
-                
-            # JD:keep checking correct playback pos since it can change if we switch neighbours
-            # due to faulty peers etc
-            if self.calc_live_startpos( self.max_prebuf_packets, False ):
-                self.rehookin = False
-        except:
-            print_exc()
+                # JD:keep checking correct playback pos since it can change if we switch neighbours
+                # due to faulty peers etc
+                if self.calc_live_startpos( self.max_prebuf_packets, False ):
+                    self.rehookin = False
+            except:
+                print_exc()
         finally:
             # Always executed
             self.rawserver.add_task( self.live_streaming_timer, nextt )
@@ -571,6 +601,14 @@ class MovieOnDemandTransporter(MovieTransport):
 
         return [bitrate,width,height]
 
+    def peers_from_tracker_report( self, num_peers ):
+        #print >>sys.stderr,"DIEGO DEBUG Got from tracker : ", num_peers
+        if self.traker_peers_report is None:
+            self.traker_peers_report = num_peers
+            self.update_prebuffering()
+        else:
+            self.traker_peers_report += num_peers
+
     def update_prebuffering(self,received_piece=None):
         """ Update prebuffering process. 'received_piece' is a hint that we just received this piece;
             keep at 'None' for an update in general. """
@@ -579,6 +617,34 @@ class MovieOnDemandTransporter(MovieTransport):
 
         if not vs.prebuffering:
             return
+        else:
+            if self.http_support is not None:
+                # Diego : Give the possibility to other peers to give bandwidth.
+                # Wait a few seconds depending on the tracker response and
+                # on the number of peers connected
+                if self.http_first_run is None:
+                    if self.traker_peers_report is None:
+                        self.rawserver.add_task( lambda: self.peers_from_tracker_report(0), 1 ) # wait 1 second for tracker response
+                    elif self.traker_peers_report:
+                        self.http_support.start_video_support( 0, 2 ) # wait 2 seconds for connecting to peers
+                        self.http_first_run = True
+                    else:
+                        self.http_support.start_video_support( 0 ) # no peers to connect to. start immediately
+                        self.http_first_run = True
+                elif self.http_first_run:
+                    if not self.http_support.is_slow_start():
+                        # Slow start is possible only if video support is off
+                        self.http_first_run = False
+                        self.http_support.stop_video_support()
+                        num_peers = len( self.piecepicker.peer_connections )
+                        if num_peers == 0: # no peers connected. start immediately
+                            self.http_support.start_video_support( 0 )
+                        elif num_peers <= 3: # few peers connected. wait 2 second to get bandwidth. TODO : Diego : tune peer threshold
+                            self.http_support.start_video_support( 0, 2 )
+                        else: # many peers connected. wait 5 seconds to get bandwidth.
+                            self.http_support.start_video_support( 0, 5 )
+                else:
+                    self.http_support.start_video_support( 0 )
 
         if vs.live_streaming and vs.live_startpos is None:
             # first determine where to hook in
@@ -609,7 +675,7 @@ class MovieOnDemandTransporter(MovieTransport):
         if vs.dropping:
             if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > self.max_prebuf_packets:
                 perc = float(self.max_prebuf_packets)/10.0
-                if float(len(missing_pieces)) < perc or self.nreceived > (2*len(missing_pieces)):
+                if float(len(missing_pieces)) < perc or self.nreceived > (2*self.max_prebuf_packets):
                     # If less then 10% of packets missing, or we got 2 times the packets we need already,
                     # force start of playback
                     gotall = True
@@ -630,7 +696,7 @@ class MovieOnDemandTransporter(MovieTransport):
                         print >>sys.stderr,"vod: trans: No bitrate info avail, wild guess: %.2f KByte/s" % (bitrate/1024)
 
                     vs.set_bitrate(bitrate)
-                    self._event_reporter.add_event(self.b64_infohash, "bitrate-guess:%d" % bitrate)
+                    self._event_reporter.create_and_add_event("bitrate-guess", [self.b64_infohash, bitrate])
             else:
                 if self.doing_bitrate_est:
                     # There was no playtime info in torrent, use what FFMPEG tells us
@@ -640,7 +706,7 @@ class MovieOnDemandTransporter(MovieTransport):
                         print >>sys.stderr,"vod: trans: Estimated bitrate: %.2f KByte/s" % (bitrate/1024)
 
                     vs.set_bitrate(bitrate)
-                    self._event_reporter.add_event(self.b64_infohash, "bitrate-ffmpeg:%d" % bitrate)
+                    self._event_reporter.create_and_add_event("bitrate-ffmpeg", [self.b64_infohash, bitrate])
 
             if width is not None and height is not None:
                 diff = False
@@ -664,8 +730,11 @@ class MovieOnDemandTransporter(MovieTransport):
                 print >>sys.stderr,"vod: trans: Prebuffering done",currentThread().getName()
             self.data_ready.acquire()
             vs.prebuffering = False
+
+            if self.http_support is not None:
+                self.http_support.stop_video_support()
             self.stat_prebuffertime = time.time() - self.prebufstart
-            self._event_reporter.add_event(self.b64_infohash, "prebuf:%d" % self.stat_prebuffertime)
+            self._event_reporter.create_and_add_event("prebuf", [self.b64_infohash, self.stat_prebuffertime])
             self.notify_playable()
             self.data_ready.notify()
             self.data_ready.release()
@@ -679,6 +748,7 @@ class MovieOnDemandTransporter(MovieTransport):
         """
 
     def got_have(self,piece):
+        # Arno, 2010-04-15: STBSPEED Not called anymore, to speedup VOD.
         vs = self.videostatus
 
         # update stats
@@ -703,20 +773,33 @@ class MovieOnDemandTransporter(MovieTransport):
         if self.videostatus.in_high_range(piece_id):
             self.high_range_rate.update_rate(length)
             # if DEBUG: print >>sys.stderr, "vod: high priority rate:", self.high_range_rate.get_rate()
+
+    def complete_from_persistent_state(self,myhavelist):
+        """ Arno, 2010-04-20: STBSPEED: Net effect of calling complete(piece,downloaded=False) 
+        for pieces available from disk """
+        vs = self.videostatus
+        for piece in myhavelist:
+            if vs.in_download_range(piece):
+                self.pieces_in_buffer += 1
+
+        self.update_prebuffering()
+
     
     def complete(self,piece,downloaded=True):
-        """ Called when a movie piece has been downloaded or was available from the start (disk). """
+        """ Called when a movie piece has been downloaded or was available from the start (disk).
+        Arno, 2010-04-20: STBSPEED: Never called anymore for available from start.  
+        """
 
         vs = self.videostatus
  
         if vs.in_high_range(piece):
-            self._event_reporter.add_event(self.b64_infohash, "hipiece:%d" % piece)
+            self._event_reporter.create_and_add_event("hipiece", [self.b64_infohash, piece])
         else:
-            self._event_reporter.add_event(self.b64_infohash, "piece:%d" % piece)
+            self._event_reporter.create_and_add_event("piece", [self.b64_infohash, piece])
 
         # if not self._complete and self.piecepicker.am_I_complete():
         #     self._complete = True
-        #     self._event_reporter.add_event(self.b64_infohash, "complete")
+        #     self._event_reporter.create_and_add_event(self.b64_infohash, "complete")
         #     self._event_reporter.flush()
 
         if vs.wraparound:
@@ -730,6 +813,7 @@ class MovieOnDemandTransporter(MovieTransport):
         if downloaded:
             self.overall_rate.update_rate( vs.real_piecelen( piece ) )
 
+        # Arno, 2010-04-20: STBSPEED: vs.in_download_range( piece ) is equiv to downloaded=False
         if vs.in_download_range( piece ):
             self.pieces_in_buffer += 1
         else:
@@ -946,7 +1030,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def start( self, bytepos = 0, force = False ):
         """ Initialise to start playing at position `bytepos'. """
-        self._event_reporter.add_event(self.b64_infohash, "play")
+        self._event_reporter.create_and_add_event("play", [self.b64_infohash])
 
         if DEBUG:
             print >>sys.stderr,"vod: trans: start:",bytepos
@@ -1026,8 +1110,8 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def stop( self ):
         """ Playback is stopped. """
-        self._event_reporter.add_event(self.b64_infohash, "stop")
-        self._event_reporter.flush()
+        self._event_reporter.create_and_add_event("stop", [self.b64_infohash])
+        # self._event_reporter.flush()
 
         vs = self.videostatus
         if DEBUG:
@@ -1047,7 +1131,7 @@ class MovieOnDemandTransporter(MovieTransport):
     def pause( self, autoresume = False ):
         """ Pause playback. If `autoresume' is set, playback is expected to be
         resumed automatically once enough data has arrived. """
-        self._event_reporter.add_event(self.b64_infohash, "pause")
+        self._event_reporter.create_and_add_event("pause", [self.b64_infohash])
 
         vs = self.videostatus
         if not vs.playing or not vs.pausable:
@@ -1068,7 +1152,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def resume( self ):
         """ Resume paused playback. """
-        self._event_reporter.add_event(self.b64_infohash, "resume")
+        self._event_reporter.create_and_add_event("resume", [self.b64_infohash])
 
         vs = self.videostatus
 
@@ -1140,10 +1224,8 @@ class MovieOnDemandTransporter(MovieTransport):
         self.data_ready.acquire()
         try:
             if vs.live_streaming:
-                if pos == 0 and whence == os.SEEK_SET:
-                    print >>sys.stderr,"vod: seek: Ignoring seek in live"
-                else:
-                    raise ValueError("seeking not possible for live")
+                # Arno, 2010-07-16: Raise error on seek, is clearer to stream user.
+                raise ValueError("seeking not possible for live")
             if whence == os.SEEK_SET:
                 abspos = pos
             elif whence == os.SEEK_END:
@@ -1351,6 +1433,10 @@ class MovieOnDemandTransporter(MovieTransport):
     def refill_buffer( self ):
         """ Push pieces into the player FIFO when needed and able. This counts as playing
             the pieces as far as playback_pos is concerned."""
+            
+        # HttpSeed policy: if the buffer is underrun we start asking pieces from http (always available)
+        # till the next refill_buffer call. As soon as refill_buffer is called again we stop asking http
+        # and start again in case the buffer is still underrun. We never stop asking till prefuffering.
 
         self.data_ready.acquire()
 
@@ -1368,10 +1454,22 @@ class MovieOnDemandTransporter(MovieTransport):
         self.outbuflen = sum( [len(d) for (p,d) in self.outbuf] )
         now = time.time()
 
+        if self.http_support is not None:
+            if self.outbuflen < ( mx / 4 ):
+                if not self.done(): # TODO : Diego : correct end test?
+                    self.http_support.start_video_support( 0 )
+                else:
+                    self.http_support.stop_video_support() # Download finished
+            else:
+                self.http_support.stop_video_support()
+
         def buffer_underrun():
             return self.outbuflen == 0 and self.start_playback and now - self.start_playback["local_ts"] > 1.0
 
-        if buffer_underrun():
+        # Arno, 2010-04-16: STBSPEED: simplified. If we cannot pause, we
+        # just push everything we got to the player this buys us time to 
+        # retrieve more data.
+        if buffer_underrun() and vs.pausable:
 
             if vs.dropping: # live
                 def sustainable():
@@ -1438,24 +1536,19 @@ class MovieOnDemandTransporter(MovieTransport):
                         return num_immediate_packets >= high_range_length
 
             sus = sustainable()
-            if vs.pausable and not sus:
+            if not sus:
                 if DEBUG:
                     print >>sys.stderr,"vod: trans:                        BUFFER UNDERRUN -- PAUSING"
                     
+                # TODO : Diego : The Http support level should be tuned according to the sustainability level
+                if self.http_support is not None:
+                    self.http_support.start_video_support( 0 ) # TODO : Diego : still needed? here the buffer is 0 so already asking for support
                 self.pause( autoresume = True )
                 self.autoresume( sustainable )
 
                 # boudewijn: increase the minimum buffer size
                 vs.increase_high_range()
                         
-                self.data_ready.release()
-                return
-            elif sus:
-                if DEBUG:
-                    print >>sys.stderr,"vod: trans:                        BUFFER UNDERRUN -- IGNORING, rate is sustainable"
-            else:
-                if DEBUG:
-                    print >>sys.stderr,"vod: trans:                         BUFFER UNDERRUN -- STALLING, cannot pause player to fall back some, so just wait for more pieces"
                 self.data_ready.release()
                 return
                     
@@ -1528,11 +1621,8 @@ class MovieOnDemandTransporter(MovieTransport):
                             print >>sys.stderr,"vod: trans: %d: due in %.2fs  pos=%d" % (piece,self.piece_due(piece)-time.time(),vs.playback_pos)
                     break
                 else: # not dropping
-                    if self.outbuflen == 0:
-                        print >>sys.stderr,"vod: trans: SHOULD NOT HAPPEN: missing piece but not dropping. should have paused. pausable=",vs.pausable,"player reading too fast looking for I-Frame?"
-                    else:
-                        if DEBUG:
-                            print >>sys.stderr,"vod: trans: prebuffering done, but could not fill buffer."
+                    if DEBUG:
+                        print >>sys.stderr,"vod: trans: %d: not enough pieces to fill buffer." % (piece)
                     break
 
         self.data_ready.release()
@@ -1575,7 +1665,7 @@ class MovieOnDemandTransporter(MovieTransport):
             self.stat_pieces.complete( piecetup[0] )
 
         # Arno, 2010-02-11: STBSPEEDMERGE: Do we want this for STB?
-        if True:
+        if vs.pausable:
             # 23/06/09 Boudewijn: because of vlc buffering the self.outbuf
             # almost always gets emptied. This results in periodic (every
             # few seconds) pause signals to VLC. 
@@ -1621,7 +1711,7 @@ class MovieOnDemandTransporter(MovieTransport):
         mimetype = self.get_mimetype()
         complete = self.piecepicker.am_I_complete()
         if complete:
-            stream = None
+            endstream = None
             filename = self.videoinfo["outpath"]
         else:
             stream = MovieTransportStreamWrapper(self)
@@ -1635,14 +1725,18 @@ class MovieOnDemandTransporter(MovieTransport):
             filename = None 
             
         # Call user callback
-        #print >>sys.stderr,"vod: trans: notify_playable: calling:",self.vodeventfunc
-        self.vodeventfunc( self.videoinfo, VODEVENT_START, {
-            "complete":  complete,
-            "filename":  filename,
-            "mimetype":  mimetype,
-            "stream":    endstream,
-            "length":      self.size(),
-        } )
+        print >>sys.stderr,"vod:::::::::: trans: notify_playable: calling:",self.vodeventfunc
+        try:
+            self.vodeventfunc( self.videoinfo, VODEVENT_START, {
+                "complete":  complete,
+                "filename":  filename,
+                "mimetype":  mimetype,
+                "stream":    endstream,
+                "length":      self.size(),
+                "bitrate":   self.videostatus.bitrate,
+            } )
+        except:
+            print_exc()
 
 
     #

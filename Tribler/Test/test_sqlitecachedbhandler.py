@@ -6,6 +6,17 @@ from time import time
 from binascii import unhexlify
 from shutil import copy as copyFile, move
 
+
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT,CURRENT_MAIN_DB_VERSION
+from bak_tribler_sdb import *    
+
+CREATE_SQL_FILE = os.path.join('..',"schema_sdb_v"+str(CURRENT_MAIN_DB_VERSION)+".sql")
+
+import Tribler.Core.CacheDB.sqlitecachedb
+print >>sys.stderr,"TEST: ENABLE DBUPGRADE HACK"
+Tribler.Core.CacheDB.sqlitecachedb.TEST_SQLITECACHEDB_UPGRADE = True
+
+
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, MyDBHandler, BasicDBHandler, PeerDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, PopularityDBHandler
@@ -139,7 +150,7 @@ class TestSqliteMyDBHandler(unittest.TestCase):
     def singtest_get(self):
         db = MyDBHandler.getInstance()
         value = db.get('version')
-        assert value == '4', value
+        assert value == str(CURRENT_MAIN_DB_VERSION), value
         
     def singtest_put(self):
         db = MyDBHandler.getInstance()

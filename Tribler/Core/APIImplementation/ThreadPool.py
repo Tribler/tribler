@@ -1,17 +1,10 @@
-# Written by Jelle Roozenburg
+# Written by Jelle Roozenburg, Arno Bakker
 # see LICENSE.txt for license information
 
 import sys
+import time
 from traceback import print_exc
 import threading
-from time import sleep
-
-# Ensure booleans exist (not needed for Python 2.2.1 or higher)
-try:
-    True
-except NameError:
-    False = 0
-    True = not False
 
 class ThreadPool:
 
@@ -25,8 +18,9 @@ class ThreadPool:
         
         self.__threads = []
         self.__resizeLock = threading.Condition(threading.Lock())
-        self.__taskLock = threading.Condition(threading.Lock())
+        self.__taskCond = threading.Condition(threading.Lock())
         self.__tasks = []
+        self.__isJoiningStopQueuing = False
         self.__isJoining = False
         self.setThreadCount(numThreads)
 
@@ -78,31 +72,35 @@ class ThreadPool:
         """Insert a task into the queue.  task must be callable;
         args and taskCallback can be None."""
         
-        if self.__isJoining == True:
+        if self.__isJoining == True or self.__isJoiningStopQueuing:
             return False
         if not callable(task):
             return False
         
-        self.__taskLock.acquire()
+        self.__taskCond.acquire()
         try:
             self.__tasks.append((task, args, taskCallback))
+            # Arno, 2010-04-07: Use proper notify()+wait()
+            self.__taskCond.notifyAll()
             return True
         finally:
-            self.__taskLock.release()
+            self.__taskCond.release()
 
     def getNextTask(self):
 
         """ Retrieve the next task from the task queue.  For use
         only by ThreadPoolThread objects contained in the pool."""
         
-        self.__taskLock.acquire()
+        self.__taskCond.acquire()
         try:
-            if self.__tasks == []:
+            while self.__tasks == [] and not self.__isJoining:
+                self.__taskCond.wait()
+            if self.__isJoining:
                 return (None, None, None)
             else:
                 return self.__tasks.pop(0)
         finally:
-            self.__taskLock.release()
+            self.__taskCond.release()
     
     def joinAll(self, waitForTasks = True, waitForThreads = True):
 
@@ -110,12 +108,15 @@ class ThreadPool:
         optionally allowing the tasks and threads to finish."""
         
         # Mark the pool as joining to prevent any more task queueing
-        self.__isJoining = True
+        self.__isJoiningStopQueuing = True
 
         # Wait for tasks to finish
         if waitForTasks:
             while self.__tasks != []:
-                sleep(.1)
+                time.sleep(.1)
+
+        # Mark the pool as joining to make all threads stop executing tasks
+        self.__isJoining = True
 
         # Tell all the threads to quit
         self.__resizeLock.acquire()
@@ -126,7 +127,6 @@ class ThreadPool:
             # Wait until all threads have exited
             if waitForThreads:
                 for t in self.__threads:
-                    t.goAway()
                     t.join()
                     del t
 
@@ -141,8 +141,6 @@ class ThreadPoolThread(threading.Thread):
 
     """ Pooled thread class. """
     
-    threadSleepTime = 0.1
-
     def __init__(self, pool):
 
         """ Initialize the thread and remember the pool. """
@@ -157,18 +155,15 @@ class ThreadPoolThread(threading.Thread):
 
         """ Until told to quit, retrieve the next task and execute
         it, calling the callback if any.  """
-        
+
+        # Arno, 2010-04-07: Dying only used when shrinking pool now. 
         while self.__isDying == False:
             # Arno, 2010-01-28: add try catch block. Sometimes tasks lists grow,
             # could be because all Threads are dying.
             try:
                 cmd, args, callback = self.__pool.getNextTask()
-                # If there's nothing to do, just sleep a bit
                 if cmd is None:
-                    try:
-                        sleep(ThreadPoolThread.threadSleepTime)
-                    except AttributeError: # raised during interpreter shutdown
-                        break
+                    break
                 elif callback is None:
                     cmd(*args)
                 else:

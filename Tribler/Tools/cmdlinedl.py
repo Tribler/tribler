@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker, George Milescu 
 # see LICENSE.txt for license information
 #
 # Razvan Deaconescu, 2008:
@@ -18,7 +18,7 @@ from traceback import print_exc
 from Tribler.Core.API import *
 from Tribler.Core.BitTornado.__init__ import version, report_email
 
-
+# Print usage message
 def usage():
     print "Usage: python cmdlinedl.py [options] torrentfile_or_url"
     print "Options:"
@@ -26,7 +26,7 @@ def usage():
     print "\t-p <port>\t\tuse <port> to listen for connections"
     print "\t\t\t\t(default is random value)"
     print "\t--output <output-dir>"
-    print "\t-o <output-dir>\t\tuse <output-dir for storing downloaded data"
+    print "\t-o <output-dir>\t\tuse <output-dir> for storing downloaded data"
     print "\t\t\t\t(default is current directory)"
     print "\t--version"
     print "\t-v\t\t\tprint version and exit"
@@ -35,9 +35,11 @@ def usage():
     print
     print "Report bugs to <" + report_email + ">"
 
+# Print version information
 def print_version():
     print version, "<" + report_email + ">"
 
+# Print torrent statistics
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
@@ -53,6 +55,8 @@ def state_callback(ds):
 
 def main():
     try:
+        # opts = a list of (option, value) pairs
+        # args = the list of program arguments left after the option list was stripped
         opts, args = getopt.getopt(sys.argv[1:], "hvo:p:", ["help", "version", "output-dir", "port"])
     except getopt.GetoptError, err:
         print str(err)
@@ -104,6 +108,7 @@ def main():
     # setup and start download
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(output_dir);
+    #dscfg.set_max_speed( UPLOAD, 10 )
 
     if torrentfile_or_url.startswith("http") or torrentfile_or_url.startswith(P2PURL_SCHEME):
         tdef = TorrentDef.load_from_url(torrentfile_or_url)

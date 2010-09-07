@@ -13,12 +13,13 @@ class Statistics_Response:
 
 
 class Statistics:
-    def __init__(self, upmeasure, downmeasure, connecter, httpdl, 
+    def __init__(self, upmeasure, downmeasure, connecter, ghttpdl, hhttpdl,
                  ratelimiter, rerequest_lastfailed, fdatflag):
         self.upmeasure = upmeasure
         self.downmeasure = downmeasure
         self.connecter = connecter
-        self.httpdl = httpdl
+        self.ghttpdl = ghttpdl
+        self.hhttpdl = hhttpdl
         self.ratelimiter = ratelimiter
         self.downloader = connecter.downloader
         self.picker = connecter.downloader.picker
@@ -95,8 +96,10 @@ class Statistics:
                     s.numCopies2+=1-float(i)/self.picker.numpieces
                     break
         s.discarded = self.downloader.discarded
-        s.numSeeds += self.httpdl.seedsfound
-        s.numOldSeeds += self.httpdl.seedsfound
+        s.numSeeds += self.ghttpdl.seedsfound
+        s.numSeeds += self.hhttpdl.seedsfound
+        s.numOldSeeds += self.ghttpdl.seedsfound
+        s.numOldSeeds += self.hhttpdl.seedsfound
         if s.numPeers == 0 or self.picker.numpieces == 0:
             s.percentDone = 0.0
         else:

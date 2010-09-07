@@ -37,6 +37,7 @@ from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SE
 from Tribler.Core.simpledefs import *
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import *
+from Tribler.Core.CacheDB.sqlitecachedb import CURRENT_MAIN_DB_VERSION
 
 DEBUG=True
 
@@ -83,7 +84,7 @@ class TestBuddyCastMsg8Plus(TestAsServer):
         self.config.set_install_dir(self.install_path)
         
         srcfiles = []
-        srcfiles.append(os.path.join(LIBRARYNAME,"schema_sdb_v4.sql"))
+        srcfiles.append(os.path.join(LIBRARYNAME,"schema_sdb_v"+str(CURRENT_MAIN_DB_VERSION)+".sql"))
         for srcfile in srcfiles:
             sfn = os.path.join('..','..',srcfile)
             dfn = os.path.join(self.install_path,srcfile)

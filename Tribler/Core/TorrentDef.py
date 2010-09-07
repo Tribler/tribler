@@ -25,6 +25,7 @@ from Tribler.Core.osutils import *
 from Tribler.Core.Utilities.Crypto import sha
 
 from Tribler.Core.ClosedSwarm import ClosedSwarm
+from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetLink
 
 class TorrentDef(Serializable,Copyable):
     """
@@ -128,6 +129,32 @@ class TorrentDef(Serializable,Copyable):
         return t
     
     _create = staticmethod(_create)
+
+    @staticmethod
+    def retrieve_from_magnet(url, callback):
+        """
+        If the URL conforms to a magnet link, the .torrent info is
+        downloaded and converted into a TorrentDef.  The resulting
+        TorrentDef is provided through CALLBACK.
+
+        Returns True when attempting to obtain the TorrentDef, in this
+        case CALLBACK will always be called.  Otherwise False is
+        returned, in this case CALLBACK will not be called.
+        
+        The thread making the callback should be used very briefly. 
+        """
+        assert isinstance(url, str), "URL has invalid type: %s" % type(url)
+        assert callable(callback), "CALLBACK must be callable"
+        def metainfo_retrieved(metadata):
+            tdef = TorrentDef.load_from_dict(metadata)
+            callback(tdef)
+
+        try:
+            magnet_link = MagnetLink(url, metainfo_retrieved)
+            return magnet_link.retrieve()
+        except:
+            # malformed url
+            return False
 
     def load_from_url(url):
         """
@@ -428,9 +455,29 @@ class TorrentDef(Serializable,Copyable):
         @return Unicode string. """
         return self.input['created by']
 
+    def set_urllist(self,value):
+        """ Set list of HTTP seeds following the BEP 19 spec (GetRight style):
+        http://www.bittorrent.org/beps/bep_0019.html
+        @param value A list of URLs.
+        """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        for url in value:
+            if not isValidURL(url):
+                raise ValueError("Invalid URL: "+`url`)
+
+        self.input['url-list'] = value
+        self.metainfo_valid = False
+
+    def get_urllist(self):
+        """ Returns the list of HTTP seeds.
+        @return A list of URLs. """
+        return self.input['url-list']
+
     def set_httpseeds(self,value):
-        """ Set list of HTTP seeds following the spec at
-        http://www.bittornado.com/docs/webseed-spec.txt
+        """ Set list of HTTP seeds following the BEP 17 spec (John Hoffman style):
+        http://www.bittorrent.org/beps/bep_0017.html
         @param value A list of URLs.
         """
         if self.readonly:
@@ -579,7 +626,8 @@ class TorrentDef(Serializable,Copyable):
     def get_live(self):
         """ Returns whether this definition is for a live torrent.
         @return Boolean. """
-        return 'live' in self.input and self.input['live']
+        return bool('live' in self.input and self.input['live'])
+
 
     def get_live_authmethod(self):
         """ Returns the method for authenticating the source.
@@ -613,7 +661,21 @@ class TorrentDef(Serializable,Copyable):
         @return Boolean. """
         return 'url-compat' in self.input and self.input['url-compat']
         
+    #
+    # For P2P-transported Ogg streams
+    #
+    def set_live_ogg_headers(self,value):
+        if self.get_url_compat():
+            raise ValueError("Cannot use P2PURLs for Ogg streams")
+        self.input['ogg-headers'] = value
 
+
+    def get_live_ogg_headers(self):
+        if 'ogg-headers' in self.input:
+            return self.input['ogg-headers']
+        else:
+            return None
+        
     def set_metadata(self,value):
         """ Set the P2P-Next metadata 
         @param value binary string """
@@ -627,6 +689,19 @@ class TorrentDef(Serializable,Copyable):
             return self.input['ns-metadata']
         else:
             return None
+
+    def set_initial_peers(self,value):
+        """ Set the initial peers to connect to. 
+        @param value List of (IP,port) tuples """
+        self.input['initial peers'] = value
+
+    def get_initial_peers(self):
+        """ Returns the list of initial peers.
+        @return List of (IP,port) tuples. """
+        if 'initial peers' in self.input:
+            return self.input['initial peers']
+        else:
+            return []
 
 
     def finalize(self,userabortflag=None,userprogresscallback=None):
@@ -817,7 +892,7 @@ class TorrentDef(Serializable,Copyable):
     def save(self,filename):
         """
         Finalizes the torrent def and writes a torrent file i.e., bencoded dict 
-        following BT spec) to the specified filename. Note this make take a
+        following BT spec) to the specified filename. Note this may take a
         long time when the torrent def is not yet finalized.
         
         @param filename An absolute Unicode path name.

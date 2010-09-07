@@ -32,11 +32,13 @@ python test_url.py
 python test_url_metadata.py
 python test_ut_pex.py
 python test_video_server.py
+python test_threadpool.py
+python test_miscutils.py
 
 CALL test_buddycast_msg.bat 
 CALL test_dialback_conn_handler.bat
 CALL test_dialback_reply_active.bat
-CALL test_dlhelp.bat
+REM # CALL test_dlhelp.bat       Arno, Disabled replaced with ProxyService
 REM # See warning in test_friendship.py
 CALL test_friendship.bat        
 CALL test_merkle_msg.bat
@@ -47,6 +49,9 @@ CALL test_sqlitecachedbhandler.bat
 CALL test_vod.bat
 CALL test_na_extend_hs.bat
 CALL test_channelcast.bat
+CALL test_subtitles.bat
+REM # CALL test_proxyservice.bat # Arno, not finished
+CALL test_proxyservice_as_coord.bat
 
 REM Takes a long time, do at end
 python test_natcheck.py

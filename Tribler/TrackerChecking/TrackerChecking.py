@@ -5,7 +5,7 @@
 import sys
 from Tribler.Core.BitTornado.bencode import bdecode
 from random import shuffle
-import urllib, httplib
+import urllib
 import socket
 import Tribler.Core.Utilities.timeouturlopen as timeouturlopen
 from time import time

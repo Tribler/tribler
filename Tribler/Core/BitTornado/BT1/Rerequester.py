@@ -18,6 +18,8 @@ from Tribler.Core.Utilities.Crypto import sha
 from time import time
 from struct import pack, unpack
 import binascii
+from Tribler.Core.simpledefs import *
+
 
 import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
 if mainlineDHT.dht_imported:
@@ -118,6 +120,7 @@ class Rerequester:
         self.infohash = infohash
         self.dht = mainlineDHT.dht
         self.config = config
+        self.notifiers = [] # Diego : warn who is interested about peers returned (only) by tracker
 
 
     def start(self):
@@ -160,7 +163,6 @@ class Rerequester:
         self.d(0)
 
     def announce(self, event = 3, callback = lambda: None, specialurl = None):
-
         # IPVSIX: Azureus 3.1.1.0 used as Ubuntu IPv6 tracker doesn't support BEP 7
         if ':' in self.ip:
             compact = 0
@@ -208,6 +210,20 @@ class Rerequester:
 
 
     def rerequest(self, s, callback):
+        # ProxyService_
+        #
+        proxy_mode = self.config.get('proxy_mode',0)
+        if DEBUG:
+            if proxy_mode == PROXY_MODE_PRIVATE:
+                if True:
+                    print "_rerequest exited."# + str(proxy_mode)
+                return
+            else:
+                if True:
+                    print "_rerequest did not exit"# + str(proxy_mode) 
+        #
+        # _ProxyService
+
         if not self.lock.isfinished():  # still waiting for prior cycle to complete??
             def retry(self = self, s = s, callback = callback):
                 self.rerequest(s, callback)
@@ -394,7 +410,7 @@ class Rerequester:
             # even if the attempt timed out, go ahead and process data
             def add(self = self, r = r, callback = callback):
                 #print >>sys.stderr,"Rerequester: add: postprocessing",r
-                self.postrequest(r, callback)
+                self.postrequest(r, callback, self.notifiers)
                 
             #print >>sys.stderr,"Rerequester: _request_single: scheduling processing of returned",r
             self.externalsched(add)
@@ -442,7 +458,10 @@ class Rerequester:
             self.externalsched(add)
 
 
-    def postrequest(self, r, callback):
+    def add_notifier( self, cb ):
+        self.notifiers.append( cb )
+
+    def postrequest(self, r, callback, notifiers = []):
         try:
             if r.has_key('warning message'):
                 self.errorfunc('warning from tracker - ' + r['warning message'])
@@ -512,6 +531,9 @@ class Rerequester:
             if peers:
                 shuffle(peers)
                 self.connect(peers)    # Encoder.start_connections(peers)
+                for notifier in notifiers:
+                    notifier( peers )
+                
             callback()
         except:
             print >>sys.stderr,"Rerequester: Error in postrequest"

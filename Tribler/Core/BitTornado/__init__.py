@@ -17,7 +17,7 @@ if LIBRARYNAME == "Tribler":
     # 'T' is BitTornado, 'A' is ABC, 'TR' is Transmission
     TRIBLER_PEERID_LETTER='R'
 else:
-    version_id = '2.4.2' # aka M24.2
+    version_id = '3.2.0' # aka M32
     product_name = 'NextShare'
     version_short = 'NextShare-' + version_id
     report_email = 'support@p2p-next.org'

@@ -49,7 +49,7 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
     if input['nodes'] is None and input['announce'] is None:
         raise ValueError('No tracker set')
     
-    for key in ['announce','announce-list','nodes','comment','created by','httpseeds']:
+    for key in ['announce','announce-list','nodes','comment','created by','httpseeds', 'url-list']:
         if input[key] is not None and len(input[key]) > 0:
             metainfo[key] = input[key]
             if key == 'comment':
@@ -78,7 +78,7 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
 
         if bitrate is not None:
             mdict['Progressive'] = 1
-            mdict['Speed Bps'] = bitrate
+            mdict['Speed Bps'] = int(bitrate) # bencode fails for float
         else:
             mdict['Progressive'] = 0
 
@@ -100,6 +100,18 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
 
     if 'url-compat' in input:
         metainfo['info']['url-compat'] = input['url-compat']
+     
+    # Arno, 2010-03-02:   
+    # Theoretically should go into 'info' field, to get infohash protection
+    # because the video won't play without them. In the future we'll sign
+    # the whole .torrent IMHO so it won't matter. Keeping it out of 'info'
+    # at the moment makes the .tstream files more stable (in case you restart
+    # the live source, and the Ogg header generated contains some date or
+    # what not, we'd need a new .tstream to be distributed to all.
+    #
+    if 'ogg-headers' in input:
+        metainfo['ogg-headers'] = input['ogg-headers']
+
 
     # Two places where infohash calculated, here and in TorrentDef.
     # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
@@ -519,7 +531,10 @@ def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
 
 def copy_metainfo_to_input(metainfo,input):
     
-    for key in tdefdictdefaults.keys():
+    keys = tdefdictdefaults.keys()
+    # Arno: For magnet link support
+    keys.append("initial peers")
+    for key in keys:
         if key in metainfo:
             input[key] = metainfo[key]
             
@@ -566,8 +581,18 @@ def copy_metainfo_to_input(metainfo,input):
     if 'url-compat' in metainfo['info']:
         input['url-compat'] = metainfo['info']['url-compat'] 
 
+    if 'ogg-headers' in metainfo:
+        input['ogg-headers'] = metainfo['ogg-headers']
+
     if 'ns-metadata' in metainfo['info']:
         input['ns-metadata'] = metainfo['info']['ns-metadata']
+
+    # Diego : we want web seeding
+    if 'url-list' in metainfo:
+        input['url-list'] = metainfo['url-list'] 
+
+    if 'httpseeds' in metainfo:
+        input['httpseeds'] = metainfo['httpseeds']
 
 
 def get_files(metainfo,exts):

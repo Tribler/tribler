@@ -1,0 +1,292 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="trial.css">
+<title>Wikipedia P2P Video Streaming Test</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+<!--
+body {
+        background-color: #FFFFFF;
+}
+.style4 {
+        font-size: 24pt;
+        color: #333333;
+}
+.style7 {color: #666666; font-style: italic;}
+-->
+</style>
+</head>
+<body>
+<table>
+<tr>
+  <td><a href="http://www.p2p-next.org/"><img src="images/p2p-next_logo.png" border=0></a></td>
+  <td class="header">Wikipedia P2P Video Streaming Test</td>
+  <td><a href="http://www.p2p-next.org/"><img src="images/p2p-next_logo.png" border=0></a></td>
+</tr>
+</table>
+<center>
+<table class="container">
+<tr><td valign="top">
+<table>
+
+
+<!-- Step 1 -->
+<script type="text/javascript">
+
+if (navigator.appName == "Netscape")
+{
+document.write('<tr>');
+document.write('  <td  class="nr"><img src="images/01_120px.png"  height="120"></td>');
+document.write('  <td><span class="title">Install SwarmTransport for Firefox</span>');
+document.write('    <span class="text">');
+document.write('    <ol type="a">');
+document.write('    <li> Open the <a href="http://www.tribler.org/trac/wiki/WikimediaCooperation">XPI for your platform</a> with Firefox');
+document.write('    <li> Restart Firefox, and revisit this page.');
+document.write('    </ol>');
+document.write('    For IE, visit this page using IE, or look in PageSource');
+document.write('    </span>');
+document.write('  </td>');
+document.write('</tr>');
+}
+else
+{
+document.write('<tr>');
+document.write('  <td  class="nr"><img src="images/01_120px.png"  height="120"></td>');
+document.write('  <td><span class="title">Install SwarmPlugin for Internet Explorer</span>');
+document.write('    <span class="text">');
+document.write('    <ol type="a">');
+document.write('    <li> Run the <a href="http://www.tribler.org/trac/wiki/WikimediaCooperation">SwarmPlugin-Ogg installer</a> for IE');
+document.write('    <li> Revisit this page.');
+document.write('    </ol>');
+document.write('    For Firefox, visit this page using Firefox, or look in PageSource');
+document.write('    </span>');
+document.write('  </td>');
+document.write('</tr>');
+}
+</script>
+
+
+<!-- Step 2 -->
+<tr>
+  <td class="nr"><img src="images/02_120px.png"  height="120" align="baseline"></td>
+  <td><span class="title">Watch these Wikipedia videos via P2P</span>
+    <span class="text"> </a> 
+</span>
+<p>
+
+
+
+<!-- NextShare Tstream Lookup Service -->
+<script src="http://wikipedia.p2p-next.org/tlookup.js"></script>
+
+
+<!-- NextShare Common Javascript Code -->
+<script>
+
+// Code for video tag error reporting 
+function failed(e) {
+   // video playback failed - show a message saying why
+   switch (e.target.error.code) {
+     case e.target.error.MEDIA_ERR_ABORTED:
+       alert('You aborted the video playback.');
+       break;
+     case e.target.error.MEDIA_ERR_NETWORK:
+       alert('A network error caused the video download to fail part-way.');
+       break;
+     case e.target.error.MEDIA_ERR_DECODE:
+       alert('The video playback was aborted due to a corruption problem or because the video used features your browser did not support.');
+       break;
+     case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+       alert('The video could not be loaded, either because the server or network failed or because the format is not supported.');
+       break;
+     default:
+       alert('An unknown error occurred, code:'+e.target.error.code);
+       break;
+   }
+ }
+
+// Code for IE8 SwarmPlugin
+function debugonclick(vlcobj)
+{
+    newwindow2=window.open('','name','height=400,width=640,scrollbars=1,resizable=1');
+    var tmp = newwindow2.document;
+    tmp.write('<html><head><title>popup</title>');
+    tmp.write('</head><body><p>SwarmPlugin Debugging Popup</p>');
+
+    tmp.write("Number of log messages "+vlcobj.log.messages.count);
+
+    var iter = vlcobj.log.messages.iterator();
+    while(iter.hasNext)
+    {
+        msg = iter.next();
+        tmp.write(msg.message+"<br>");
+    }
+
+    tmp.write('</body></html>');
+    tmp.close();
+
+}
+
+
+function seek(vlcobj,percentage)
+{
+    vlcobj.input.position = percentage
+}
+
+
+function writeplugin(vlcid,url)
+{
+	// 1. Write plugin HTML
+	writeobject(vlcid,url);
+	
+	// 2. Write statusline HTML
+	writestatusline(vlcid);
+	
+	// 3. Write controls HTML
+	document.write('<p class="center">');
+	writecontrols(vlcid);
+	document.write('</p>');
+	
+	// 4. Periodically retrieve p2pstatus from plugin and show on page
+	setInterval(function() { updatestatusline(vlcid); },100);
+}
+
+function writeobject(vlcid,url)
+{
+	document.write('<object classid="clsid:1800B8AF-4E33-43C0-AFC7-894433C13538" ');
+	//document.write('codebase="http://trial.p2p-next.org/download/SwarmPlugin_IE_1.0.5.cab"');
+	document.write('width="320" height="240" id="'+vlcid+'" name="'+vlcid+'" events="True" target="">');
+	document.write('<param name="Src" value="'+url+'" />');
+	document.write('<param name="ShowDisplay" value="True" />');
+	document.write('<param name="Loop" value="False" />');
+	document.write('<param name="AutoPlay" value="True" />');
+	document.write('<param name="Toolbar" value="True" />');
+	document.write('</object>');
+}
+
+function writestatusline(vlcid)
+{
+    document.write('<em><p id="'+vlcid+'p2pstatusline">Statusline</p></em>');
+}
+
+function updatestatusline(vlcid)
+{
+	vlcobj = document.getElementById(vlcid);
+    if (vlcobj.input != null)
+    {
+        line = vlcobj.input.p2pstatus
+        var p2pstatusline = document.getElementById(vlcid+"p2pstatusline");
+        p2pstatusline.innerHTML = line
+    }
+}
+
+function writecontrols(vlcid)
+{
+	vlcfullid = 'document.'+vlcid
+	document.write('<input type=button value="Play" onClick="');
+	                                          document.write(vlcid+'.playlist.play();">');
+	document.write('<input type=button value="Pause" onClick="');
+											  document.write(vlcid+'.playlist.togglePause();">');
+	document.write('<input type=button value="Stop" onclick="');
+	                                          document.write(vlcid+'.playlist.stop();">');
+	document.write('<input type=button value="Debug" onclick="debugonclick(');
+											  document.write(vlcid+');">');
+	document.write('<input type=button value="Seek 25%" onclick="seek(');
+											  document.write(vlcid+',.25);">');
+	document.write('<input type=button value="Seek 50%" onclick="seek(');
+											  document.write(vlcid+',.5);">');
+	document.write('<input type=button value="Fullscreen" onClick="');
+											  document.write(vlcid+'.video.toggleFullscreen();">');
+}
+
+function writep2pvideotag(videourl,posterurl)
+{
+    if (typeof swarmTransport != 'undefined')
+    {
+	    var tribeurl = "tribe://"+httpseed2tstream(videourl);
+	    document.write('<video controls="controls" onerror="failed(event)" autoplay="autoplay" poster="'+posterurl+'">');
+	    document.write('  <source src="'+tribeurl+'"/>');
+	    //document.write('  <source src="'+videourl+'"/>');
+	    document.write('</video>');
+    }
+    else
+    {
+    	// No SwarmTransport installed
+    	document.write('NO SWARMTRANSPORT');
+	    document.write('<video controls="controls" onerror="failed(event)" poster="'+posterurl+'">');
+	    document.write('  <source src="'+videourl+'"/>');
+	    document.write('</video>');
+    }
+}
+
+</script>
+
+<table border="1">
+
+<tr>
+<!-- Video 1 -->
+<td>
+
+<!-- NextShare: Generate video code for FX or IE -->
+<script type="text/javascript">
+if (navigator.appName == "Netscape")
+{
+    //
+    // FX: use HTML5 video tag and NextShare SwarmTransport
+    //
+    var posterurl = "http://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Welcome_to_globallives_2.0.ogv/seek%3D2-Welcome_to_globallives_2.0.ogv.jpg";
+    var videourl = "http://upload.wikimedia.org/wikipedia/commons/c/c3/Welcome_to_globallives_2.0.ogv";
+    writep2pvideotag(videourl,posterurl);
+}
+else
+{
+    //
+    // IE8: Fallback to NextShare SwarmPlugin
+    //
+    writeplugin("vlc1","http://tracker1.p2p-next.org:6970/file?info_hash=%3E7%F1%7F%F9%C7%20%9D%BE%3D%96%10%1B%7BK%3Bs%9C%06%7E");
+}
+</script>
+
+</td>
+
+<td><a href="http://globallives.org" rel="nofollow">GlobalLives.org</a> is a 
+collaboratively built video library of human life experience that reshapes how 
+we as both producers and viewers conceive of cultures, nations and people 
+outside of our own communities. More 
+<a href="http://globallives.org/about/" rel="nofollow">about global lives</a>.
+</td>
+</tr>
+
+
+
+
+<!-- End of 2-column table of videos -->
+</table>
+
+</tr>
+
+
+
+
+<!-- Step 3 -->
+<tr>
+  <td class="nr"><img src="images/03_120px.png"  height="120" lowsrc="images/03.png"></td>
+  <td><p class="title">Statistics</p>
+    <p class="text">Visit the <a href="http://tracker1.p2p-next.org:6970/">NextShare tracker</a> to see some statistics.</p>
+</tr>
+</table>
+</td>
+
+
+</tr>
+</table>
+<br>
+<table class="footer">
+<tr>
+  <td> Home |  <a href="legal.html">Legal</a> </td>
+</tr>
+</table>
+</center>
+</body>
+</html>
+

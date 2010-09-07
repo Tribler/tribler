@@ -33,7 +33,7 @@
 #  - BuddyCast hits: Create LIVE MPEG7 fields for live (i.e., livetimepoint) 
 #    and VOD MPEG7 fields for VOD. 
 #
-#  - Use separte HTTP server, Content-serving one needs to be single-threaded
+#  - Use separate HTTP server, Content-serving one needs to be single-threaded
 #    at the moment to prevent concurrent RANGE queries on same stream from VLC.
 #    Alternative is to put a Condition variable on a content stream.
 #
@@ -100,24 +100,25 @@ class SearchPathMapper(AbstractPathMapper):
         self.metafeedurl = None
         
     def get(self,urlpath):
+        """
+        Possible paths:
+        /search<application/x-www-form-urlencoded query>
+        """
         if not urlpath.startswith(URLPATH_SEARCH_PREFIX):
             return streaminfo404()
         
         fakeurl = 'http://127.0.0.1'+urlpath
         o = urlparse.urlparse(fakeurl)
-        
-        print >>sys.stderr,"searchmap: Parsed",o
-        
         qdict = cgi.parse_qs(o[4])
-        print >>sys.stderr,"searchmap: qdict",qdict
+        if DEBUG:
+            print >>sys.stderr,"searchmap: qdict",qdict
         
         searchstr = qdict['q'][0]
         searchstr = searchstr.strip()
         collection = qdict['collection'][0]
         metafeedurl = qdict['metafeed'][0]
         
-
-        print >>sys.stderr,"searchmap: searchstr",`searchstr`
+        print >>sys.stderr,"\nbg: search: Got search for",`searchstr`,"in",collection
         
         # Garbage collect:
         self.id2hits.garbage_collect_timestamp_smaller(time.time() - HITS_TIMEOUT)
@@ -174,7 +175,7 @@ class SearchPathMapper(AbstractPathMapper):
         # Parallel:  initiate remote query
         q = P2PQUERYTYPE+' '+searchstr
         
-        print >>sys.stderr,"bg: search: p2p: Remote query for",q
+        print >>sys.stderr,"bg: search: Send remote query for",q
         got_remote_hits_lambda = lambda permid,query,remotehits:self.sesscb_got_remote_hits(id,permid,query,remotehits)
         self.st = time.time()
         self.session.query_connected_peers(q,got_remote_hits_lambda,max_peers_to_query=20)
@@ -182,24 +183,31 @@ class SearchPathMapper(AbstractPathMapper):
         # Query local DB while waiting
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         localdbhits = torrent_db.searchNames(keywords)
-        print >>sys.stderr,"bg: Local hits",len(localdbhits)
+        print >>sys.stderr,"bg: search: Local hits",len(localdbhits)
         self.session.close_dbhandler(torrent_db)
         
         # Convert list to dict keyed by infohash
         localhits = localdbhits2hits(localdbhits)
         self.id2hits.add_hits(id,localhits)
-        
+
         # TODO ISSUE: incremental display of results to user? How to implement this?
         atomurlpathprefix = URLPATH_HITS_PREFIX+'/'+str(id)
         nextlinkpath = atomurlpathprefix  
         
-        atomhits = hits2atomhits(localhits,atomurlpathprefix)
-        atomxml = atomhits2atomxml(atomhits,searchstr,atomurlpathprefix,nextlinkpath=nextlinkpath)
-        
-        atomstream = StringIO(atomxml)
-        atomstreaminfo = { 'statuscode':200,'mimetype': 'application/atom+xml', 'stream': atomstream, 'length': len(atomxml)}
-        
-        return atomstreaminfo
+        if False: 
+            # Return ATOM feed directly
+            atomhits = hits2atomhits(localhits,atomurlpathprefix)
+            atomxml = atomhits2atomxml(atomhits,searchstr,atomurlpathprefix,nextlinkpath=nextlinkpath)
+            
+            atomstream = StringIO(atomxml)
+            atomstreaminfo = { 'statuscode':200,'mimetype': 'application/atom+xml', 'stream': atomstream, 'length': len(atomxml)}
+            
+            return atomstreaminfo
+        else:
+            # Return redirect to ATOM feed URL, this allows us to do a page 
+            # page reload to show remote queries that have come in (DEMO)
+            streaminfo = { 'statuscode':301,'statusmsg':nextlinkpath }
+            return streaminfo
         
 
     def sesscb_got_remote_hits(self,id,permid,query,remotehits):
@@ -208,7 +216,7 @@ class SearchPathMapper(AbstractPathMapper):
             
             et = time.time()
             diff = et - self.st
-            print >>sys.stderr,"bg: sesscb_got_remote_hits",len(remotehits),"after",diff
+            print >>sys.stderr,"bg: search: Got",len(remotehits),"remote hits" # ,"after",diff
 
             hits = remotehits2hits(remotehits)
             self.id2hits.add_hits(id,hits)
@@ -600,8 +608,8 @@ def hits2atomhits(hits,urlpathprefix):
 
 def localdbhit2atomhit(dbhit,urlpathprefix):
     atomhit = {}
-    atomhit['title'] = htmlfilter(unicode2iri(dbhit['name']))
-    atomhit['summary'] = htmlfilter(unicode2iri(dbhit['comment']))
+    atomhit['title'] = htmlfilter(dbhit['name'].encode("UTF-8"))
+    atomhit['summary'] = htmlfilter(dbhit['comment'].encode("UTF-8"))
     if dbhit['thumbnail']:
         urlpath = urlpathprefix+'/'+infohash2urlpath(dbhit['infohash'])+URLPATH_TORRENT_POSTFIX+URLPATH_THUMBNAIL_POSTFIX
         atomhit['p2pnext:image'] = urlpath
@@ -614,7 +622,7 @@ def remotehit2atomhit(remotehit,urlpathprefix):
     #print >>sys.stderr,"remotehit2atomhit: keys",remotehit.keys()
     
     atomhit = {}
-    atomhit['title'] = htmlfilter(remotehit['content_name'])
+    atomhit['title'] = htmlfilter(remotehit['content_name'].encode("UTF-8"))
     atomhit['summary'] = "Seeders: "+str(remotehit['seeder'])+" Leechers: "+str(remotehit['leecher'])
     if remotehit['metatype'] != URL_MIME_TYPE:
         # TODO: thumbnail, see if we can detect presence (see DB schema remark). 
@@ -637,7 +645,6 @@ def htmlfilter(s):
 def atomhits2atomxml(atomhits,searchstr,urlpathprefix,nextlinkpath=None):
     
     # TODO: use ElementTree parser here too, see AtomFeedParser:feedhits2atomxml
-    
     atom = ''
     atom += '<?xml version="1.0" encoding="UTF-8"?>\n'
     atom += '<feed xmlns="http://www.w3.org/2005/Atom" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sy="http://purl.org/rss/1.0/modules/syndication/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:p2pnext="urn:p2pnext:contentfeed:2009" xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/">\n'
@@ -667,6 +674,7 @@ def atomhits2atomxml(atomhits,searchstr,urlpathprefix,nextlinkpath=None):
         atom += '  </entry>\n'
     
     atom += '</feed>\n'
+
     return atom
 
 

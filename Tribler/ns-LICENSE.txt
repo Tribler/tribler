@@ -29,6 +29,8 @@
       BaseLib/Tools/createlivestream-njaal.py
       BaseLib/Tools/createpoa.py
       BaseLib/Tools/trial_poa_server.py
+      BaseLib/UPnP/*
+      BaseLib/Test/test_upnp.py
 
     The following library modules are Copyright (c) 2008-2012, DACC Systems AB; All rights reserved:
       DACC/transfer.php
@@ -77,25 +79,60 @@
       BaseLib/Core/Video/PiecePickerSVC.py
       BaseLib/Core/Video/SVCTransporter.py
       BaseLib/Core/Video/SVCVideoStatus.py
-      BaseLib/schema_sdb_v4.sql
-      vlc-1.0.5-swarmplugin-switch-src-feb2010-r14777-renum105.patch (except bindings/python)
+      BaseLib/schema_sdb_v5.sql
       BaseLib/Core/APIImplementation/makeurl.py
       BaseLib/Core/BuddyCast/channelcast.py
       BaseLib/Core/DecentralizedTracking/repex.py
       BaseLib/Core/NATFirewall/TimeoutFinder.py
       BaseLib/Core/NATFirewall/UDPPuncture.py
       BaseLib/Core/Statistics/RepexCrawler.py
-      BaseLib/Debug
+      BaseLib/Debug/*
       BaseLib/Tools/createtorrent.py
       BaseLib/Tools/pingbackserver.py
       BaseLib/Tools/seeking.py
       BaseLib/Tools/stunserver.py
-      TUD/swift-trial24Nov09-r702
+      lucid-xpicreate.sh
+      patentfreevlc.bat
+      BaseLib/Core/BitTornado/BT1/GetRightHTTPDownloader.py
+      BaseLib/Core/BitTornado/BT1/HoffmanHTTPDownloader.py
+      BaseLib/Core/CacheDB/MetadataDBHandler.py
+      BaseLib/Core/DecentralizedTracking/MagnetLink/*
+      BaseLib/Core/Subtitles/*
+      BaseLib/Images/SwarmServerIcon.ico
+      BaseLib/Main/Build/Ubuntu/tribler.gconf-defaults
+      BaseLib/Main/Utility/logging_util.py
+      BaseLib/Main/vwxGUI/ChannelsPanel.py
+      BaseLib/Main/vwxGUI/images/iconSaved_state4.png
+      BaseLib/schema_sdb_v5.sql
+      BaseLib/Test/Core/*
+      BaseLib/Test/extend_hs_dir/proxyservice.test.torrent
+      BaseLib/Test/subtitles_test_res
+      BaseLib/Test/test_channelcast_plus_subtitles.py
+      BaseLib/Test/test_magnetlink.py
+      BaseLib/Test/test_miscutils.py
+      BaseLib/Test/test_subtitles.bat
+      BaseLib/Test/test_subtitles_isolation.py
+      BaseLib/Test/test_subtitles_msgs.py
+      BaseLib/Test/test_subtitles.sh
+      BaseLib/Test/test_threadpool.py
+      BaseLib/Tools/dirtracker.py
+      BaseLib/Tools/duration2torrent.py
+      BaseLib/Tools/httpseeder.py
+      BaseLib/Transport/*
+      BaseLib/Video/Ogg.py
+      BaseLib/WebUI/*
+      xpitransmakedeb.sh
+      xpitransmakedist.bat
+      xpitransmakedist.sh
+      xpitransmakedistmac.sh
+      xie8transmakedist.bat
+      TUD/swift-spbackend-r1598/*
+      vlc-1.0.5-swarmplugin-switch-kcc-src-aug2010-r16968.patch (except bindings/python)
 
     The following library modules are Copyright (c) 2008-2012, STMicroelectronics S.r.l.; All rights reserved:
 
     The following library modules are Copyright (c) 2008-2012, Kungliga Tekniska Högskolan (The Royal Institute of Technology); All rights reserved:
-       BaseLib/Core/Core/DecentralizedTracking/kadtracker/*
+      BaseLib/Core/DecentralizedTracking/kadtracker/*
 
     The following library modules are Copyright (c) 2008-2012, Markenfilm GmbH & Co. KG; All rights reserved:
 
@@ -106,7 +143,7 @@
     The following library modules are Copyright (c) 2008-2012, Universitaet Klagenfurt; All rights reserved:
 
     The following library modules are Copyright (c) 2008-2012, AG Projects; All rights reserved:
-      AGP/sipsimple-20091028.tgz
+      AGP/sipsimple-20100621.tgz
       
     The following library modules are Copyright (c) 2008-2012, The British Broadcasting Corporation; All rights reserved:
 
@@ -117,6 +154,16 @@
     The following library modules are Copyright (c) 2008-2012, Fabchannel BV; All rights reserved:
 
     The following library modules are Copyright (c) 2008-2012, University Politehnica Bucharest; All rights reserved:
+      BaseLib/Core/ProxyService/*
+      BaseLib/Tools/proxy-cmdline.py
+      BaseLib/Test/test_proxyservice_as_coord.bat
+      BaseLib/Test/test_proxyservice_as_coord.py
+      BaseLib/Test/test_proxyservice_as_coord.sh
+      BaseLib/Test/test_proxyservice.bat
+      BaseLib/Test/test_proxyservice.py
+      BaseLib/Test/test_proxyservice.sh
+      BaseLib/Test/extend_hs_dir/proxyservice.test.torrent
+      
 
     The following library modules are Copyright (c) 2008-2012, EBU-UER; All rights reserved:
 
@@ -332,7 +379,47 @@
     Germany
 
 
+------------------------------------------------------------------------------
 
+    SwarmTransport/SwarmPlayer Firefox library.
+
+    The research leading to this library has received funding from the European
+    Community's Seventh Framework Programme in the P2P-Next project under grant
+    agreement no 216217.
+
+    All library modules are free software, unless stated otherwise; you can 
+    redistribute them and/or modify them under the terms of the GNU Lesser 
+    General Public License as published by the Free Software Foundation; in 
+    particular, version 2.1 of the License.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+
+    The following library modules are Copyright (c) 2008-2012, TECHNISCHE UNIVERSITEIT DELFT; 
+    and Jan Gerber; All rights reserved:
+      BaseLib/Transport/tribeIChannel.idl
+      BaseLib/Transport/tribeISwarmTransport.idl
+      BaseLib/Transport/components/TribeChannel.js
+      BaseLib/Transport/components/TribeProtocolHandler.js
+      BaseLib/Transport/components/SwarmTransport.js
+      BaseLib/Transport/install.rdf
+      BaseLib/Transport/chrome.manifest
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+    TECHNISCHE UNIVERSITEIT DELFT, 
+    Faculty of Electrical Engineering, Mathematics and Computer Science, 
+    Mekelweg 4, 
+    2628 CD Delft, 
+    The Netherlands
+    
+    Jan Gerber
+    j@thing.net
 
 -------------------------------------------------------------------------------
 

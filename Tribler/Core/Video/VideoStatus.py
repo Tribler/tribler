@@ -45,8 +45,7 @@ class VideoStatus:
         # VOD streams.
         #
         self.high_prob_curr_pieces = 5
-        self.high_prob_curr_pieces_limit = (5, 1800,5)
-
+        self.high_prob_curr_pieces_limit = (5, 1800 ,5) # Arno, 2010-03-11: with 32K pieces and 3 mbps we're talking 10 pieces / sec
 
         # ----- locate selected movie in fileinfo
         index = self.videoinfo['index']

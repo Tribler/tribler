@@ -4,9 +4,28 @@
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
-""" Tribler Core API v1.0.5, Mar 2010. Import this to use the API """
+""" Tribler Core API v1.0.7, Aug 2010. Import this to use the API """
 
 # History:
+#
+# 1.0.7      Released with Next-Share M32
+#
+# 1.0.7rc2   Added: get_peer_id() to Download, returning the BT peer ID when
+#            the download is not stopped.
+#
+# 1.0.7rc1   Added: set_proxy_mode/get_proxy_mode to DownloadConfig and 
+#            DownloadRuntimeConfig, set_proxyservice_status/
+#            get_proxyservice_status to SessionConfig and SessionRuntimeConfig
+#
+# 1.0.6      Released with Next-Share M30
+#
+# 1.0.6rc4   Added: TorrentDef.set_initial_peers() for magnet: links support.
+#
+#            Added: Session.get_subtitles_support_facade() to get access to
+#            the subtitle-gossiping subsystem.
+#
+# 1.0.6rc3   Added: TorrentDef.set_live_ogg_headers() for live streams
+#            in Ogg container format.
 #
 # 1.0.5      Released with Next-Share M24.2
 #
@@ -18,7 +37,7 @@
 # 1.0.5rc2   Added: TorrentDef.set_live_ogg_headers() for live streams
 #            in Ogg container format.
 #
-# 1.0.5rc1   Session.query_connected_peers() retuns all names as Unicode 
+# 1.0.5rc1   Session.query_connected_peers() returns all names as Unicode 
 #            strings.
 #
 # 1.0.4      Released with Next-Share M24

@@ -1,5 +1,19 @@
-# Written by Bram Cohen
+# Written by Bram Cohen, Arno Bakker
 # see LICENSE.txt for license information
+import sys, os
+import signal
+import re
+import pickle
+from threading import Event, Thread
+from urllib import quote, unquote
+from urlparse import urlparse
+from os.path import exists
+from cStringIO import StringIO
+from traceback import print_exc
+from time import time, gmtime, strftime, localtime
+from random import shuffle, seed
+from types import StringType, IntType, LongType, DictType
+from binascii import b2a_hex
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.BitTornado.parseargs import parseargs, formatDefinitions
@@ -8,27 +22,14 @@ from Tribler.Core.BitTornado.HTTPHandler import HTTPHandler, months
 from Tribler.Core.BitTornado.parsedir import parsedir
 from NatCheck import NatCheck
 from T2T import T2TList
+from Filter import Filter
 from Tribler.Core.BitTornado.subnetparse import IP_List, ipv6_to_ipv4, to_ipv4, is_valid_ip, is_ipv4
 from Tribler.Core.BitTornado.iprangeparse import IP_List as IP_Range_List
 from Tribler.Core.BitTornado.torrentlistparse import parsetorrentlist
-from threading import Event, Thread
 from Tribler.Core.BitTornado.bencode import bencode, bdecode, Bencached
 from Tribler.Core.BitTornado.zurllib import urlopen
-from urllib import quote, unquote
-from Filter import Filter
-from urlparse import urlparse
-from os.path import exists
-from cStringIO import StringIO
-from traceback import print_exc
-from time import time, gmtime, strftime, localtime
+from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.BitTornado.clock import clock
-from random import shuffle, seed
-from types import StringType, IntType, LongType, DictType
-from binascii import b2a_hex
-import sys, os
-import signal
-import re
-import pickle
 from Tribler.Core.BitTornado.__init__ import version_short, createPeerID
 from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 
@@ -410,7 +411,8 @@ class Tracker:
                                 if url:
                                     linkname = '<a href="' + url + '">' + name + '</a>'
                                 else:
-                                    linkname = '<a href="/file?info_hash=' + quote(hash) + '">' + name + '</a>'
+                                    #linkname = '<a href="/file?info_hash=' + quote(hash) + '">' + name + '</a>'
+                                    linkname = '<a href="/file?name=' + quote(name) + '">' + name + '</a>'
                             else:
                                 linkname = name
                             s.write('<tr><td><code>%s</code></td><td>%s</td><td align="right">%s</td><td align="right">%i</td><td align="right">%i</td><td align="right">%i</td><td align="right">%s</td></tr>\n' \
@@ -486,6 +488,13 @@ class Tracker:
         return (200, 'OK', {'Content-Type': 'text/plain'}, bencode({'files': fs}))
 
 
+    def get_file_by_name(self,name):
+        # Assumption: name is in UTF-8, as is the names in self.allowed
+        for hash,rec in self.allowed.iteritems():
+            if 'name' in rec and rec['name'] == name:
+                return self.get_file(hash)
+        return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
+
     def get_file(self, hash):
         if not self.allow_get:
             return (400, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
@@ -494,6 +503,34 @@ class Tracker:
             return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
         fname = self.allowed[hash]['file']
         fpath = self.allowed[hash]['path']
+        return (200, 'OK', {'Content-Type': 'application/x-bittorrent',
+            'Content-Disposition': 'attachment; filename=' + fname},
+            open(fpath, 'rb').read())
+
+
+    def get_tstream_from_httpseed(self, httpseedurl):
+        if not self.allow_get:
+            return (400, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
+                'get function is not available with this tracker.')
+            
+        # TODO: normalize?
+        wanturlhash = sha(httpseedurl).digest()
+        # TODO: reverse table?
+        found = False
+        for infohash,a in self.allowed.iteritems():
+            for goturlhash in a['url-hash-list']:
+                if goturlhash == wanturlhash:
+                    found = True
+                    break
+            if found:
+                break
+                 
+        if not found or not self.allowed.has_key(infohash):
+            return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
+            
+        fname = self.allowed[infohash]['file']
+        fpath = self.allowed[infohash]['path']
+        print >>sys.stderr,"tracker: get_stream: Sending",fname
         return (200, 'OK', {'Content-Type': 'application/x-bittorrent',
             'Content-Disposition': 'attachment; filename=' + fname},
             open(fpath, 'rb').read())
@@ -782,15 +819,27 @@ class Tracker:
             path = unquote(path)[1:]
             for s in query.split('&'):
                 if s:
-                    i = s.index('=')
+                    i = s.find('=')
+                    if i == -1:
+                        break
                     kw = unquote(s[:i])
                     paramslist.setdefault(kw, [])
                     paramslist[kw] += [unquote(s[i+1:])]
                     
+            if DEBUG:
+                print >>sys.stderr,"tracker: Got request /"+path+'?'+query
+                    
             if path == '' or path == 'index.html':
                 return self.get_infopage()
             if (path == 'file'):
-                return self.get_file(params('info_hash'))
+                # Arno: 2010-02-26: name based retrieval
+                if paramslist.has_key('name'):
+                    return self.get_file_by_name(params('name'))
+                else:
+                    return self.get_file(params('info_hash'))
+            
+            if path == 'tlookup':
+                return self.get_tstream_from_httpseed(unquote(query))
             if path == 'favicon.ico' and self.favicon is not None:
                 return (200, 'OK', {'Content-Type' : 'image/x-icon'}, self.favicon)
 

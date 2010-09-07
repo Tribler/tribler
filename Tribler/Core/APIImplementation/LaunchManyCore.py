@@ -8,7 +8,7 @@ import socket
 import binascii
 import time as timemod
 from threading import Event,Thread,enumerate
-from traceback import print_exc
+from traceback import print_exc, print_stack
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.BitTornado.RawServer import RawServer
@@ -25,6 +25,7 @@ from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
 from Tribler.Core.NATFirewall.UDPPuncture import UDPHandler
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.osutils import get_readable_torrent_name
+from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 
 SPECIAL_VALUE=481
 
@@ -95,6 +96,9 @@ class TriblerLaunchMany(Thread):
             from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
             from Tribler.Category.Category import Category
             
+           # 13-04-2010, Andrea: rich metadata (subtitle) db
+            from Tribler.Core.CacheDB.MetadataDBHandler import MetadataDBHandler
+            
             # init cache db
             if config['nickname'] == '__default_name__':
                 config['nickname']  = socket.gethostname()
@@ -126,6 +130,9 @@ class TriblerLaunchMany(Thread):
             self.term_db        = TermDBHandler.getInstance()
             self.simi_db        = SimilarityDBHandler.getInstance()
             self.pops_db = PopularityDBHandler.getInstance()
+            
+            # 13-04-2010, Andrea: rich metadata (subtitle) db
+            self.richmetadataDbHandler = MetadataDBHandler.getInstance()
 
             # Crawling 
             if config['crawler']:
@@ -171,6 +178,8 @@ class TriblerLaunchMany(Thread):
             self.votecast_db = None
             self.channelcast_db = None
             self.mm = None
+            # 13-04-2010, Andrea: rich metadata (subtitle) db
+            self.richmetadataDbHandler = None
 
         if config['overlay']:
             from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
@@ -246,9 +255,11 @@ class TriblerLaunchMany(Thread):
 
 
         if config['mainline_dht']:
-            import logging
+            #import logging
             # Arno,The equivalent of DEBUG=False for kadtracker
-            logging.disable(logging.CRITICAL)
+            #logging.disable(logging.CRITICAL)
+            # New: see DecentralizedTracking/kadtracker/logging_conf.py
+            
             # Start up KTH mainline DHT
             #TODO: Can I get the local IP number?
             mainlineDHT.init(('127.0.0.1', self.listen_port), config['state_dir'])
@@ -268,9 +279,15 @@ class TriblerLaunchMany(Thread):
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
 
-        if config['overlay'] and config['crawler']:
+        # Gertjan's UDP code
+        # OFF in P2P-Next
+        if False and config['overlay'] and config['crawler']:
             # Gertjan's UDP code
             self.udppuncture_handler = UDPHandler(self.rawserver, config['overlay'] and config['crawler'])
+
+        if config["magnetlink"]:
+            # initialise the first instance
+            MagnetHandler.get_instance(self.rawserver)
 
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
@@ -369,6 +386,14 @@ class TriblerLaunchMany(Thread):
             return self.downloads.values() #copy, is mutable
         finally:
             self.sesslock.release()
+    
+    def download_exists(self,infohash):
+        self.sesslock.acquire()
+        try:
+            return infohash in self.downloads
+        finally:
+            self.sesslock.release()
+    
     
     def rawserver_fatalerrorfunc(self,e):
         """ Called by network thread """
@@ -594,8 +619,8 @@ class TriblerLaunchMany(Thread):
         shutdown tasks that takes some time and that can run in parallel
         to checkpointing, etc.
         """
+        self.shutdownstarttime = timemod.time()
         if self.overlay_apps is not None:
-            self.shutdownstarttime = timemod.time()
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
         if self.udppuncture_handler is not None:
             self.udppuncture_handler.shutdown()
@@ -620,6 +645,8 @@ class TriblerLaunchMany(Thread):
         
         # Stop network thread
         self.sessdoneflag.set()
+        # Arno, 2010-08-09: Stop Session pool threads only after gracetime
+        self.session.uch.shutdown()
 
     def save_download_pstate(self,infohash,pstate):
         """ Called by network thread """
@@ -765,10 +792,12 @@ class TriblerLaunchMany(Thread):
 
         if DEBUG:
             print >>sys.stderr,"tlm: network_vod_event_callback: event %s, params %s" % (event,params)
-
         
-        # Call Session threadpool to call user's callback        
-        videoinfo['usercallback'](event,params)
+        # Call Session threadpool to call user's callback
+        try:        
+            videoinfo['usercallback'](event,params)
+        except:
+            print_exc()
 
 
     def update_torrent_checking_period(self):

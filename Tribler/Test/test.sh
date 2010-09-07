@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -x
 #
 # WARNING: this shell script must use \n as end-of-line, Windows
 # \r\n gives problems running this on Linux
@@ -36,11 +36,13 @@ python test_url.py
 python test_url_metadata.py
 python test_ut_pex.py
 python test_video_server.py
+python test_threadpool.py
+python test_miscutils.py
 
 ./test_buddycast_msg.sh
 ./test_dialback_conn_handler.sh
 ./test_dialback_reply_active.sh
-./test_dlhelp.sh
+# ./test_dlhelp.sh            # Arno, Disabled replaced with ProxyService
 ./test_friendship.sh          # See warning in test_friendship.py
 ./test_merkle_msg.sh
 ./test_overlay_bridge.sh
@@ -48,8 +50,12 @@ python test_video_server.py
 ./test_secure_overlay.sh
 ./test_sqlitecachedbhandler.sh
 ./test_vod.sh
-sh ./test_na_extend_hs.sh
+sh ./test_na_extend_hs.sh # sh should be superfluous
 sh ./test_channelcast.sh
+./test_subtitles.sh
+# ./test_proxyservice.sh  # Arno not finished
+./test_proxyservice_as_coord.sh
+
 
 # Takes a long time, do at end
 python test_natcheck.py
