@@ -3105,6 +3105,14 @@ class ChannelCastDBHandler(BasicDBHandler):
             return True
         return False
     
+    def getInterestingChannelsTorrents(self, NUM_INTERESTING_TORRENTS=10):
+        """ Gets torrents belonging to channels which the peer has not subscribed to, but have been downloaded from. """
+        """ This is done in the hope that channels spread faster even when not subscribed but downloaded, """
+        """ especially since people barely vote or provide feedback."""
+        sql = "select * from ChannelCast where publisher_id in (select distinct publisher_id from ChannelCast where infohash in (select infohash from Torrent where torrent_id in (select torrent_id from MyPreference))) order by time_stamp desc limit ?"
+        records = self._db.fetchall(sql,(NUM_INTERESTING_TORRENTS,))
+        return records    
+    
     def getRecentAndRandomTorrents(self,NUM_OWN_RECENT_TORRENTS=15,NUM_OWN_RANDOM_TORRENTS=10,NUM_OTHERS_RECENT_TORRENTS=15,NUM_OTHERS_RANDOM_TORRENTS=10):
         allrecords = []
         
