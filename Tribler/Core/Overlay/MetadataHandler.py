@@ -98,7 +98,7 @@ class MetadataHandler:
         # collect all torrents on disk
         torrent_dir = self.torrent_db.getTorrentDir()
         join = os.path.join
-        items = [join(torrent_dir, filename) for filename in os.listdir(torrent_dir)]
+        items = [join(torrent_dir, filename) for filename in os.listdir(torrent_dir) if filename.endswith(".torrent")]
 
         # sort all torrents by creation/modification time
         get_stat = os.stat
@@ -118,13 +118,21 @@ class MetadataHandler:
         append = self.recently_collected_torrents.append
         load = TorrentDef.load
         for _, filename in recent_items:
-            torrent_def = load(filename)
-            append(torrent_def.get_infohash())
+            try:
+                torrent_def = load(filename)
+            except:
+                print >> sys.stderr, "MetadataHandler.load_recently_collected_torrents() Invalid .torrent file", filename
+            else:
+                append(torrent_def.get_infohash())
 
         # append the NUM_RANDOM to the list
         for _, filename in random_items:
-            torrent_def = load(filename)
-            append(torrent_def.get_infohash())
+            try:
+                torrent_def = load(filename)
+            except:
+                print >> sys.stderr, "MetadataHandler.load_recently_collected_torrents() Invalid .torrent file", filename
+            else:
+                append(torrent_def.get_infohash())
 
     def register2(self,rquerytorrenthandler):
         self.rquerytorrenthandler = rquerytorrenthandler
@@ -194,7 +202,7 @@ class MetadataHandler:
         else:
             metadata = self.read_torrent(torrent_path)
             if not self.valid_metadata(infohash, metadata):
-                return None
+                return None,None
             self.addTorrentToDB(torrent_path, infohash, metadata, source="BC", extra_info={})
             return file_name, metadata
 
