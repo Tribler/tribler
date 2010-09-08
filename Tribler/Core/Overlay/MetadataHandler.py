@@ -109,7 +109,7 @@ class MetadataHandler:
         # get last NUM_RECENT and NUM_RANDOM randomly choses items
         if len(items) >= num_recent:
             recent_items = items[:num_recent]
-            random_items = random.sample(items[num_recent:], num_random)
+            random_items = random.sample(items[num_recent:], min(num_random, len(items) - num_recent))
         else:
             recent_items = items
             random_items = []
