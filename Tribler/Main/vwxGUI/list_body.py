@@ -6,6 +6,7 @@ import time
 import re
 
 LIST_ITEM_BATCH_SIZE = 35
+LIST_ITEM_MAX_SIZE = 250
 DEBUG = False
 
 class ListIcon:
@@ -330,10 +331,18 @@ class AbstractListBody():
         #messagePanel text
         self.messagePanel = wx.Panel(self.listpanel)
         self.messagePanel.SetBackgroundColour(wx.WHITE)
+        messageVSizer = wx.BoxSizer(wx.VERTICAL)
+        
         self.messageText = wx.StaticText(self.messagePanel)
+        self.loadNext = wx.Button(self.messagePanel, -1, "Show remaining items")
+        self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadAll)
+        self.loadNext.Hide()
+        messageVSizer.Add(self.messageText)
+        messageVSizer.Add(self.loadNext, 0, wx.ALIGN_CENTER)
+        
         messageSizer = wx.BoxSizer(wx.HORIZONTAL)
         messageSizer.AddStretchSpacer()
-        messageSizer.Add(self.messageText)
+        messageSizer.Add(messageVSizer)
         messageSizer.AddStretchSpacer()
         self.messagePanel.SetSizer(messageSizer)
         
@@ -354,13 +363,12 @@ class AbstractListBody():
         self.Scroll(-1, 0)
         self.Freeze()
         
-        items = sorted(self.items.values(), cmp= lambda b,a: cmp(a.GetColumn(column), b.GetColumn(column)), reverse=reverse)
-        self.vSizer.Clear()
-
-        for item in items:
-            self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
+        self.data = sorted(self.data, cmp = lambda b,a: cmp(a[1][column], b[1][column]), reverse=reverse)
         
-        self.vSizer.Layout()
+        self.vSizer.ShowItems(False)
+        self.vSizer.Clear()
+        self.CreateItems()
+        
         self.Thaw()
     
     def FilterItems(self, keyword, column = 0):
@@ -369,22 +377,15 @@ class AbstractListBody():
         
         self.Scroll(-1, 0)
         self.Freeze()
-        if self.filter != '':
-            items = filter(self.MatchFilter, self.items.values())
-        else:
-            items = self.items.values()
             
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
-        for item in items:
-            self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
-                
-        self.vSizer.ShowItems(True)
-        self.OnChange()
+        self.CreateItems()
+        
         self.Thaw()
         
     def MatchFilter(self, item):
-        return re.search(self.filter, item.GetColumn(self.filtercolumn).lower())
+        return re.search(self.filter, item[1][self.filtercolumn].lower())
     
     def OnExpand(self, item, raise_event = False):
         self.Freeze()
@@ -455,6 +456,7 @@ class AbstractListBody():
         self.Freeze()
         
         self.messageText.SetLabel(message)
+        self.loadNext.Hide()
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
 
@@ -496,14 +498,18 @@ class AbstractListBody():
                 pass
         
         self.data = data
-        self.CreateItems(LIST_ITEM_BATCH_SIZE)
+        self.CreateItems()
         
     def OnIdle(self, event):
         if not self.done:
-            self.CreateItems(LIST_ITEM_BATCH_SIZE)
+            self.CreateItems()
             event.RequestMore(not self.done)
 
-    def CreateItems(self, nr_items_to_create):
+    def OnLoadAll(self, event):
+        self.loadNext.Disable()
+        self.CreateItems(sys.maxint, sys.maxint)
+
+    def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = LIST_ITEM_MAX_SIZE):
         done = True
         t1 = time.time()
         self.Freeze()
@@ -512,25 +518,42 @@ class AbstractListBody():
         self.messagePanel.Hide()
         self.vSizer.Remove(self.messagePanel)
 
-        #Add created/cached items
-        for key, item, original_data in self.data:
-            if key in self.items:
-                item = self.items[key]
-            elif nr_items_to_create > 0:
-                self.items[key] = ListItem(self.listpanel, self, self.columns, item, original_data, self.leftSpacer, self.rightSpacer)
-                item = self.items[key]
-                
-                nr_items_to_create -= 1
-            else:
-                done = False
-                break
+        #Apply quickfilter 
+        if self.filter != '':
+            data = filter(self.MatchFilter, self.data)
+        else:
+            data = self.data
             
-            sizer = self.vSizer.GetItem(item)
-            if not sizer:
-                if self.filter == '' or self.MatchFilter(item):
-                    self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
+        #Add created/cached items
+        for key, item_data, original_data in data:
+            if nr_items_to_add > 0:
+                if key in self.items:
+                    item = self.items[key]
+                elif nr_items_to_create > 0:
+                    item = ListItem(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer)
+                    self.items[key] = item
+                    
+                    nr_items_to_create -= 1
                 else:
-                    item.Hide()
+                    done = False
+                    break
+                
+                sizer = self.vSizer.GetItem(item)
+                if not sizer:
+                    self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
+                    item.Show()
+                    nr_items_to_add -= 1
+                else:
+                    nr_items_to_add -= 1
+            else:
+                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nUse the quick filter to reduce the number of items, or'%(LIST_ITEM_MAX_SIZE, len(self.data)))
+                self.loadNext.Enable()
+                self.loadNext.Show()
+                self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
+                self.messagePanel.Layout()
+                self.messagePanel.Show()
+                done = True
+                break
             
         self.OnChange()
         self.Thaw()

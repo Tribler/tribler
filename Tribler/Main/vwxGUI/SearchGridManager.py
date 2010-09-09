@@ -30,7 +30,6 @@ SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
 SEARCHMODE_NONE = 3
 VOTE_LIMIT = -5
-MAX_HITS= 250 # maximum number of torrent hits to appear in GUI
 
 class TorrentManager:
     # Code to make this a singleton
@@ -192,7 +191,7 @@ class TorrentManager:
             if torrent.get('name'):
                 name = torrent['name']
             else:
-                name = showInfoHash(torrent['infohash'])
+                name = torrent['infohash']
             
             clicklog={'keywords': self.searchkeywords['filesMode'],
                       'reranking_strategy': self.rerankingStrategy['filesMode'].getID()}
@@ -484,7 +483,6 @@ class TorrentManager:
 
         if DEBUG:
             print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time() - beginsort))
-        self.hits = self.hits[:MAX_HITS]
         self.hits = self.addDownloadStates(self.hits)
 
         return [len(self.hits), self.hits]
@@ -561,7 +559,6 @@ class TorrentManager:
                 return False
             
             self.hits = self.searchmgr.search(self.searchkeywords[mode])
-            self.hits = self.hits[:MAX_HITS]
         else:
             self.hits = self.searchmgr.searchLibrary()
         return True
@@ -578,7 +575,6 @@ class TorrentManager:
                     icat = icat.lower()
                 else:
                     return False
-                return icat == cat or cat == 'all'
             
             #catResults = filter(catFilter, self.remoteHits.values())
             catResults = self.remoteHits.values()
@@ -733,7 +729,7 @@ class TorrentManager:
                         print >>sys.stderr,'TorrentSearchGridManager: gotRemoteHits: Refresh grid after new remote torrent hits came in'
                 return True
             elif DEBUG:
-                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords[mode]
+                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords
             return False
         except:
             print_exc()
@@ -935,7 +931,7 @@ class ChannelSearchGridManager:
         
         self.oldsearchkeywords = self.searchkeywords
         if DEBUG:
-            print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: Want",self.searchkeywords[mode]
+            print >>sys.stderr,"ChannelSearchGridManager: searchLocalDB: Want",self.searchkeywords
          
         if len(self.searchkeywords) == 0 or len(self.searchkeywords) == 1 and self.searchkeywords[0] == '':
             return False
@@ -972,9 +968,9 @@ class ChannelSearchGridManager:
         # I moved the code to update the Channelcast DB in RemoteQueryMsgHandler.process_query_reply
         # so that is no more the GUI thread that has to write in the db
             
-        # 09-04-2010 Andrea: answers now is exactly a ChannelCastMessage
+        #09-04-2010 Andrea: answers now is exactly a ChannelCastMessage
 
-        ##print >> sys.stderr , "answers" , answers
+        t1 = time()
         try:
             if DEBUG:
                 print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHist: got",len(answers),"for",kws
@@ -988,7 +984,7 @@ class ChannelSearchGridManager:
                 session = self.rtorrent_handler.session
                 my_permid = bin2str(session.get_permid())
                 
-                for signature, d in answers.iteritems():
+                for _, d in answers.iteritems():
                     #Is this channel marked as spam?
                     d['publisher_id'] = bin2str(d['publisher_id'])
                     
@@ -1013,7 +1009,7 @@ class ChannelSearchGridManager:
                         print >>sys.stderr,'ChannelSearchGridManager: gotRemoteHits: Refresh grid after new remote channel hits came in', "Took", time() - t1
                 return True
             elif DEBUG:
-                print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords[mode]
+                print >>sys.stderr,"ChannelSearchGridManager: gotRemoteHits: got hits for",kws,"but current search is for",self.searchkeywords
             return False
         except:
             print_exc()

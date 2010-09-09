@@ -629,9 +629,11 @@ class MyChannelTabs(wx.Panel):
         filespage.SetBackgroundColour(wx.WHITE)
         self.header = ListHeader(filespage, 7, 7, background, columns)
         self.list = ListBody(filespage, background, columns, spacers[0], spacers[1], singleSelect)
+        
         #small onexpand hack
         filespage.OnExpand = self.parent.OnExpand
         filespage.OnCollapse = self.parent.OnCollapse
+        filespage.OnSort = self.parent.OnSort
         
         listbuttons = wx.Panel(filespage)
         listbuttons.SetBackgroundColour(wx.WHITE)
@@ -734,7 +736,7 @@ class MyChannelTabs(wx.Panel):
         self.gridSizer.ShowItems(False)
         self.gridSizer.Clear()
         
-        rssPanel = self.BuildRssPanel(self.managepage, self.gridSizer)
+        self.BuildRssPanel(self.managepage, self.gridSizer)
         self.managepage.Layout()
     
     def createHtml(self, parent, text):
