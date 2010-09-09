@@ -1,6 +1,8 @@
 # Written by Feek Zindel
 # see LICENSE.txt for license information
 
+from gzip import GzipFile
+from StringIO import StringIO
 import sys
 import httplib
 import socket
@@ -40,10 +42,27 @@ def urlOpenTimeout(url,timeout=30,*data):
         def http_open(self, req):
             return self.do_open(TimeoutHTTPConnection, req)
 
+    # Boudewijn, 09/09/10: Now accepting gzip compressed HTTP trafic.
+    class GZipProcessor(urllib2.BaseHandler):
+        def http_request(self, req):
+            req.add_header("Accept-Encoding", "gzip")
+            return req
+        https_request = http_request
+
+        def http_response(self, req, resp):
+            if resp.headers.get("content-encoding") == "gzip":
+                gzip = GzipFile(fileobj=StringIO(resp.read()), mode="r")
+                prev_resp = resp
+                resp = urllib2.addinfourl(gzip, prev_resp.headers, prev_resp.url, prev_resp.code)
+                resp.msg = prev_resp.msg
+            return resp
+        https_response = http_response
+
     # Arno, 2010-03-09: ProxyHandler is implicit, so code already proxy aware.
-    opener = urllib2.build_opener(TimeoutHTTPHandler,
+    opener = urllib2.build_opener(GZipProcessor,
+                                  TimeoutHTTPHandler,
                                   urllib2.HTTPDefaultErrorHandler,
-                                  urllib2.HTTPRedirectHandler)
+                                  urllib2.HTTPRedirectHandler,)
     return opener.open(url,*data)
 
 
@@ -72,4 +91,9 @@ def find_proxy(url):
     return proxyhost
 
 
-#s = urlOpenTimeout("http://www.google.com",timeout=30)
+# s = urlOpenTimeout("http://torcache.com/torrent/F91DF2C0DC38FF530BB0B90E6FCD9BF0483F7936.torrent", timeout=10)
+# print len(s.read())
+
+# s = urlOpenTimeout("http://frayja.com", timeout=10)
+# print len(s.read())
+
