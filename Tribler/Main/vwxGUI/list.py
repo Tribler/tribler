@@ -110,13 +110,14 @@ class ChannelSearchManager:
             if self.list.InList(permid):
                 data = self.channelsearch_manager.getChannel(permid)
                 self.list.RefreshData(permid, data)
-            else:
-                #Show new channel
+            elif self.category != 'searchresults':
+                #Show new channel, but only if we are not showing search results
                 self.refresh()
 
 class ChannelManager():
     def __init__(self, list):
         self.list = list
+        self.list.publisher_id = 0
         self.guiutility = GUIUtility.getInstance()
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
@@ -127,10 +128,13 @@ class ChannelManager():
         
         self.list.footer.SetStates(vote == -1, vote == 2)
         self.list.publisher_id = permid
-        
-        torrentList = self.channelsearch_manager.getTorrentsFromPublisherId(permid)
-        torrentList = self.torrentsearch_manager.addDownloadStates(torrentList)
         self.list.SetFF(self.guiutility.getFamilyFilter())
+        
+        self._refresh_list()
+        
+    def _refresh_list(self):
+        torrentList = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id)
+        torrentList = self.torrentsearch_manager.addDownloadStates(torrentList)
         self.list.SetData(torrentList)
     
     def downloadStarted(self, infohash):
@@ -143,6 +147,10 @@ class ChannelManager():
         if self.list.InList(infohash):
             data = self.channelsearch_manager.getTorrentFromPublisherId(self.list.publisher_id, bin2str(infohash))
             self.list.RefreshData(infohash, data)
+            
+    def channelUpdated(self, permid):
+        if self.list.publisher_id == permid:
+            self._refresh_list()
 
 class MyChannelManager():
     def __init__(self, list):
@@ -282,7 +290,7 @@ class SearchList(List):
                    {'name':'Size', 'width': 80, 'style': wx.ALIGN_RIGHT, 'fmt': self.utility.size_format}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
-                   {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Swarmhealth'}, \
+                   {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
         images = ("tl4.png", "tr4.png", "bl2.png", "br2.png")
@@ -363,29 +371,18 @@ class SearchList(List):
     def CreateRatio(self, parent, item):
         seeders = int(item.original_data['num_seeders'])
         leechers = int(item.original_data['num_leechers'])
+        item.data[-2] = seeders + leechers
         
-        if seeders <= 0 and leechers <= 0:
-            ratio = wx.StaticText(parent, -1, "?", style = wx.ALIGN_RIGHT)
-            ratio.SetMinSize((self.columns[-2]['width'],-1))
-            item.data[-2] = -1
-            return ratio
+        control = SwarmHealth(parent)
+        control.SetMinSize((self.columns[-2]['width'],7))
+        control.SetBackgroundColour(wx.WHITE)
+        control.SetRatio(seeders, leechers)
+        if leechers < 0 and seeders < 0:
+            control.SetToolTipString('popularity unknown')
         else:
-            if leechers <= 0:
-                ratio = sys.maxint
-            elif seeders <= 0:
-                ratio = 0
-            else:  
-                ratio = seeders/(leechers*1.0)
-            
-            item.data[-2] = ratio
-            
-            control = SwarmHealth(parent)
-            control.SetMinSize((self.columns[-2]['width'],7))
-            control.SetBackgroundColour(wx.WHITE)
-            control.SetRatio(ratio)
             control.SetToolTipString('%s seeders, %s leechers'%(seeders,leechers))
-            return control
-    
+        return control
+        
     def OnDownload(self, event):
         if event.LeftUp():
             item = event.GetEventObject().item
@@ -766,7 +763,7 @@ class SelectedChannelList(SearchList):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    {'name':'Discovered', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time}, \
                    {'name':'Size', 'width': 80, 'style': wx.ALIGN_RIGHT, 'fmt': self.utility.size_format}, \
-                   {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Swarmhealth'}, \
+                   {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]

@@ -983,68 +983,32 @@ class ChannelSearchGridManager:
             # We got some replies. First check if they are for the current query
             if self.searchkeywords == kws:
                 numResults = 0
-# <<<<<<< .working
-#                 tmp_hits = {}
-#                 def usercallback(infohash,metadata,filename):
-#                     if tmp_hits.has_key(bin2str(infohash)):
-#                         el = tmp_hits[bin2str(infohash)]
-#                         self.channelcast_db.addTorrent(el)
-                        
-#                 t1 = time()
-#                 votecache = {}
+                votecache = {}
                 
-#                 session = self.rtorrent_handler.session
-#                 my_permid = bin2str(session.get_permid())
+                session = self.rtorrent_handler.session
+                my_permid = bin2str(session.get_permid())
                 
-#                 total_answers = len(answers)
-#                 for i in range(total_answers):
-#                     el = answers[i]
-#                     el = (el[0], el[1].decode("UTF-8"),el[2],el[3],el[4].decode("UTF-8"),el[5],el[6])
+                for signature, d in answers.iteritems():
+                    #Is this channel marked as spam?
+                    d['publisher_id'] = bin2str(d['publisher_id'])
                     
-#                     #Is this channel marked as spam?
-#                     if el[0] not in votecache:
-#                         votecache[el[0]] = (self.votecastdb.getVote(el[0],my_permid), self.channelcast_db.getSubscribersCount(el[0]))
-#                     if votecache[el[0]][0] == -1:
-#                         continue
+                    if d['publisher_id'] not in votecache:
+                        votecache[d['publisher_id']] = (self.votecastdb.getVote(d['publisher_id'],my_permid), self.channelcast_db.getSubscribersCount(d['publisher_id']))
+                    if votecache[d['publisher_id']][0] == -1:
+                        continue
                     
-#                     #Add to self.hits
-#                     if el[0] not in self.hits:
-#                         self.hits[el[0]] = [el[1], votecache[el[0]][1], {}]
+                    #Add to self.hits
+                    if d['publisher_id'] not in self.hits:
+                        self.hits[d['publisher_id']] = [d['publisher_name'], votecache[d['publisher_id']][1], {}]
                     
-#                     torrents = self.hits[el[0]][2]
-#                     if el[2] not in torrents:
-#                         torrents[el[2]] = (el[4], el[5])
-#                         numResults +=1
-                    
-#                     #Insert into database
-# =======
-
-# >>>>>>> .merge-right.r16872
-# <<<<<<< .working
-#                     if self.channelcast_db.existsTorrent(str2bin(el[2])):
-#                         self.channelcast_db.addTorrent(el, False)
-#                     else:
-#                         tmp_hits[el[2]] = el
-#                         self.rtorrent_handler.download_torrent(permid,str2bin(el[2]), usercallback)
+                    #Extend torrent dict for this channel
+                    torrents = self.hits[d['publisher_id']][2]
+                    if d['infohash'] not in torrents:
+                        torrents[d['infohash']] = (d['torrentname'], d['time_stamp'])
+                        numResults +=1
                 
-#                 self.channelcast_db.commit()
-                
-#                 if numResults > 0: #  and self.standardOverview.getSearchBusy():
-#                     wx.CallAfter(self.refreshGrid)
-# =======
-                # ARNO COMMENT: Get rid of this tuple crap, use dictionaries always
-                records = []
-                for k,v in answers.items():
-                    records.append((bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k)))
-                
-                for el_new in records:
-                    self.remoteHits[el_new] = 1
-                    # Arno TODO: should increase on new hits only. addStoredRemoteResults will filter.
-                    numResults += 1
-                    
-                if numResults > 0 and mode == 'channelsMode': #  and self.standardOverview.getSearchBusy():
-                    self.refreshGrid()
-# >>>>>>> .merge-right.r16872
+                if numResults > 0:
+                    wx.CallAfter(self.refreshGrid)
                     if DEBUG:
                         print >>sys.stderr,'ChannelSearchGridManager: gotRemoteHits: Refresh grid after new remote channel hits came in', "Took", time() - t1
                 return True

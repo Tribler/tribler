@@ -2994,6 +2994,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         
         self.peer_db = PeerDBHandler.getInstance()
         self.torrent_db = TorrentDBHandler.getInstance()
+        self.notifier = Notifier.getInstance()
         
         if DEBUG:
             print >> sys.stderr, "ChannelCast: "
@@ -3095,7 +3096,9 @@ class ChannelCastDBHandler(BasicDBHandler):
             sql = "select publisher_name from ChannelCast where publisher_id==? order by time_stamp desc limit 1"
             latest_publisher_name = self._db.fetchone(sql,(record[0],))
             sql = "update ChannelCast set publisher_name==? where publisher_id==?"
-            self._db.execute_write(sql,(latest_publisher_name,record[0],), commit) 
+            self._db.execute_write(sql,(latest_publisher_name,record[0],), commit)
+            
+            self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, publisher_id) 
         return flag
         
     def existsTorrent(self, infohash):

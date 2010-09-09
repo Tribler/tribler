@@ -312,8 +312,9 @@ class ChannelCastCore:
                 print_exc()
 
                 
-            
-
+    def updateAChannel(self, permid, peers):        
+        q = "CHANNEL p "+permid
+        self.session.query_peers(q,peers,usercallback=self.updateChannel)
 
     def updateMySubscribedChannels(self):
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()

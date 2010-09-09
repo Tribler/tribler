@@ -221,40 +221,6 @@ class SubTitleHeader(TitleHeader):
 
     def SetSubTitle(self, subtitle):
         self.subtitle.SetLabel(subtitle)
-
-class ChannelHeader(TitleHeader):
-    def GetRightTitlePanel(self, parent):
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.back = wx.Button(parent, wx.ID_BACKWARD, "Go back")
-        
-        hSizer.AddStretchSpacer()
-        hSizer.Add(self.back)
-        return hSizer
-
-    def GetTitlePanel(self, parent):
-        self.subtitle = wx.StaticText(parent)
-        return self.subtitle
-        
-    def GetSubTitlePanel(self, parent):
-        self.ff = wx.StaticText(parent)
-        self.ff.SetToolTipString('Click to toggle Family Filter.')
-        self.ff.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
-        return self.ff
-    
-    def SetFF(self, family_filter):
-        if family_filter:
-            self.ff.SetLabel('Family Filter is ON')
-        else:
-            self.ff.SetLabel('Family Filter is OFF')
-    
-    def SetSubTitle(self, subtitle):
-        self.subtitle.SetLabel('( '+subtitle+' )')
-    
-    def toggleFamilyFilter(self, event):
-        self.parent.toggleFamilyFilter()
-        
-    def SetEvents(self, back):
-        self.back.Bind(wx.EVT_BUTTON, back)
         
 class ButtonHeader(TitleHeader):
     def GetRightTitlePanel(self, parent):
@@ -367,7 +333,24 @@ class SearchHeader(TitleHeader):
     def Reset(self):
         TitleHeader.Reset(self)
         self.filter.Clear()
+
+class ChannelHeader(SearchHeader):
+    def GetRightTitlePanel(self, parent):
+        hSizer = SearchHeader.GetRightTitlePanel(self, parent)
+        self.back = wx.Button(parent, wx.ID_BACKWARD, "Go back")
+        hSizer.Add(self.back, 0, wx.LEFT, 5)
+        return hSizer
+
+    def GetTitlePanel(self, parent):
+        self.subtitle = wx.StaticText(parent)
+        return self.subtitle
+    
+    def SetSubTitle(self, subtitle):
+        self.subtitle.SetLabel('( '+subtitle+' )')
         
+    def SetEvents(self, back):
+        self.back.Bind(wx.EVT_BUTTON, back)
+
 class PlayerHeader(TitleHeader):
     def __init__(self, parent, leftImg, rightImg, background, columns, minimize, maximize):
         self.minimize = minimize

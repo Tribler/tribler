@@ -16,8 +16,8 @@ import os
 import Tribler.Core.osutils
 
 # NOTE: DEBUG is set dynamically depending from DEBUGWEBUI and DEBUGCONTENT
-DEBUG = True
-DEBUGCONTENT = True
+DEBUG = False
+DEBUGCONTENT = False
 DEBUGWEBUI = False
 DEBUGLOCK = False
 DEBUGBASESERV = False

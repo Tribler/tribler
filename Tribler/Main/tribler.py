@@ -714,8 +714,12 @@ class ABCApp(wx.App):
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
         if self.ready:
             wx.CallAfter(self.gui_ntfy_channelupdates,subject,changeType,objectID)
+    
     def gui_ntfy_channelupdates(self,subject,changeType,objectID,*args):
         manager = self.frame.channellist.GetManager()
+        manager.channelUpdated(objectID)
+        
+        manager = self.frame.selectedchannellist.GetManager()
         manager.channelUpdated(objectID)
         
     def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):

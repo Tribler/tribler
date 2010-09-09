@@ -425,7 +425,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             msg = "\n".join(wrap(s,64))
         else:
             msg = "\n".join(wrap(s,48))
-        self.statuslabel.SetLabel(msg)
+        self.SetLoadingText(msg)
 
     def SetContentName(self,s):
         self.vlcwin.set_content_name(s)
@@ -435,7 +435,8 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def SetLoadingText(self,text):
         if text:
-            self.statuslabel.SetLabel(text)
+            if text != self.statuslabel.GetLabel():
+                self.statuslabel.SetLabel(text)
 
     #
     # Internal methods

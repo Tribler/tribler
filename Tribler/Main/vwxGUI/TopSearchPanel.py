@@ -73,38 +73,30 @@ class TopSearchPanel(bgPanel):
             wx.CallAfter(self.guiUtility.dosearch)
 
     def OnResults(self, event):
-        #onclick
-        if event.LeftDown():
-            if self.guiUtility.guiPage != 'search_results':
-                self.selectTab('results')
-                #Need to use callafter, to allow list to get focus
-                wx.CallAfter(self.guiUtility.ShowPage, 'search_results')
-            else: #Absorb event to prevent untoggle
-                event.Skip(False)
-
-    def OnChannels(self, event):
-        #onclick
-        if event.LeftDown():
-            if self.guiUtility.guiPage not in ['channels', 'selectedchannel', 'mychannel']:
-                self.selectTab('channels')
-                wx.CallAfter(self.guiUtility.ShowPage, 'channels')
-            else: #Absorb event to prevent untoggle
-                event.Skip(False)
-   
-    def OnSettings(self, event):
-        #onclick
-        if event.LeftDown():
-            wx.CallAfter(self.guiUtility.ShowPage, 'settings')
+        if self.guiUtility.guiPage != 'search_results':
+            self.selectTab('results')
+            #Need to use callafter, to allow list to get focus
+            wx.CallAfter(self.guiUtility.ShowPage, 'search_results')
+        else: #Absorb event to prevent untoggle
             event.Skip(False)
 
+    def OnChannels(self, event):
+        if self.guiUtility.guiPage not in ['channels', 'selectedchannel', 'mychannel']:
+            self.selectTab('channels')
+            wx.CallAfter(self.guiUtility.ShowPage, 'channels')
+        else: #Absorb event to prevent untoggle
+            event.Skip(False)
+   
+    def OnSettings(self, event):
+        wx.CallAfter(self.guiUtility.ShowPage, 'settings')
+        event.Skip(False)
+
     def OnLibrary(self, event):
-        #onclick
-        if event.LeftDown():
-            if self.guiUtility.guiPage != 'my_files':
-                self.selectTab('my_files')
-                wx.CallAfter(self.guiUtility.ShowPage, 'my_files')
-            else: #Absorb event to prevent untoggle
-                event.Skip(False)
+        if self.guiUtility.guiPage != 'my_files':
+            self.selectTab('my_files')
+            wx.CallAfter(self.guiUtility.ShowPage, 'my_files')
+        else: #Absorb event to prevent untoggle
+            event.Skip(False)
 
     def selectTab(self, tab):
         self.results.SetValue(tab == 'results')
@@ -267,10 +259,10 @@ class TopSearchPanel(bgPanel):
         self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
         self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
         self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
-        self.results.Bind(wx.EVT_MOUSE_EVENTS, self.OnResults)
-        self.settings.Bind(wx.EVT_MOUSE_EVENTS, self.OnSettings)
-        self.my_files.Bind(wx.EVT_MOUSE_EVENTS, self.OnLibrary)
-        self.channels.Bind(wx.EVT_MOUSE_EVENTS, self.OnChannels)     
+        self.results.Bind(wx.EVT_LEFT_UP, self.OnResults)
+        self.settings.Bind(wx.EVT_LEFT_UP, self.OnSettings)
+        self.my_files.Bind(wx.EVT_LEFT_UP, self.OnLibrary)
+        self.channels.Bind(wx.EVT_LEFT_UP, self.OnChannels)     
         
     def Notify(self, msg, icon= -1):
         self.notify.SetLabel(msg)

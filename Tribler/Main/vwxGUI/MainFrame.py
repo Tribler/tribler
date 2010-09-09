@@ -525,6 +525,24 @@ class MainFrame(wx.Frame):
         guiserver = GUITaskQueue.getInstance()
         guiserver.add_task(self.upgradeCallback,10.0)
 
+    #Force restart of Tribler
+    def Restart(self):
+        path = os.getcwd()
+        if sys.platform == "win32":
+            executable = "tribler.exe"
+        elif sys.platform == "linux2":
+            executable = "tribler.sh"
+        elif sys.platform == "darwin":
+            executable = "?"
+        
+        executable = os.path.join(path, executable)
+        print >> sys.stderr, executable
+        def start_tribler():
+            subprocess.Popen(executable)
+
+        atexit.register(start_tribler)
+        self.guiUtility.frame.OnCloseWindow()
+    
     def onFocus(self, event = None):
         if event is not None:
             event.Skip()

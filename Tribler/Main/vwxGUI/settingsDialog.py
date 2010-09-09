@@ -6,6 +6,7 @@ import wx.lib.imagebrowser as ib
 import sys, os
 import cStringIO
 import tempfile
+import atexit
 
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -37,9 +38,7 @@ class SettingsDialog(wx.Dialog):
                              'unlimitedDown', \
                              'diskLocationCtrl', \
                              'portChange', \
-                             'externalplayer', \
-                             'save', \
-                             'close']
+                             'externalplayer']
 
         self.myname = None
         self.elements = {}
@@ -93,8 +92,8 @@ class SettingsDialog(wx.Dialog):
         self.elements['edit'].Bind(wx.EVT_BUTTON, self.EditClicked)
         self.elements['browse'].Bind(wx.EVT_BUTTON, self.BrowseClicked)
         
-        self.elements['save'].Bind(wx.EVT_BUTTON, self.saveAll)
-        self.elements['close'].Bind(wx.EVT_BUTTON, self.cancelAll)
+        self.Bind(wx.EVT_BUTTON, self.saveAll, id = xrc.XRCID("wxID_OK"))
+        self.Bind(wx.EVT_BUTTON, self.cancelAll, id = xrc.XRCID("wxID_CANCEL"))
         
         #Loading settings
         self.myname = self.utility.session.get_nickname()
@@ -150,7 +149,6 @@ class SettingsDialog(wx.Dialog):
             self.tree.GetItemData(new_item).GetData().Show(True)
             self.Layout()
         except:
-            print_exc()
             pass
 
     def setUp(self, value, event = None):
@@ -261,8 +259,9 @@ class SettingsDialog(wx.Dialog):
                 restart = True
             
             if restart:
-                dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.","Restart required", wx.OK|wx.ICON_INFORMATION)
-                dlg.ShowModal()
+                dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?","Restart required", wx.ICON_QUESTION|wx.YES_NO|wx.YES_DEFAULT)
+                if dlg.ShowModal() == wx.ID_YES:
+                    self.guiUtility.frame.Restart()
                 dlg.Destroy()
             self.EndModal(1)
         else:

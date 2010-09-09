@@ -290,7 +290,7 @@ class ProgressSlider(wx.Panel):
             #theEvent = wx.ScrollEvent(pos=self.progress)
             #self.GetEventHandler().ProcessEvent(theEvent)
             #print >> sys.stderr, 'Posted event'
-            print >> sys.stderr, 'ProgressSlider: Set progress to : %f' % self.progress
+            #print >> sys.stderr, 'ProgressSlider: Set progress to : %f' % self.progress
             self.sliderChangedAction()
             
     def sliderChangedAction(self):
@@ -329,7 +329,7 @@ class ProgressSlider(wx.Panel):
             self.Refresh()
         
     def GetValue(self):
-        print >>sys.stderr, 'ProgressSlider: %f, Range (%f, %f)' % (self.progress, self.range[0], self.range[1])
+        #print >>sys.stderr, 'ProgressSlider: %f, Range (%f, %f)' % (self.progress, self.range[0], self.range[1])
         return self.progress * (self.range[1] - self.range[0])+ self.range[0]
 
     def SetRange(self, a,b):
@@ -385,7 +385,7 @@ class ProgressSlider(wx.Panel):
         font = self.GetFont()
         font.SetPointSize(8)
         dc.SetFont(font)
-        timeWidth = max(dc.GetTextExtent(time)[0], self.textWidth)
+        timeWidth = dc.GetTextExtent(time)[0]
         
         self.sliderWidth = width-(3*self.margin+timeWidth)
         position = self.sliderWidth * self.progress

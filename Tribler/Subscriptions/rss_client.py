@@ -251,7 +251,7 @@ class TorrentFeedThread(Thread):
             del self.urls[url]
             for i in range(len(self.feeds)):
                 feed = self.feeds[i]
-                if feed[0] == url:
+                if feed[0].feed_url == url:
                     del self.feeds[i]
                     self.feeds_changed.set()
                     break

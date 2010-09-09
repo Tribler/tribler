@@ -87,14 +87,6 @@ class RemoteQueryMsgHandler:
             self.overlay_log = OverlayLogger.getInstance(log)
         self.torrent_dir = os.path.abspath(self.config['torrent_collecting_dir'])
         self.registered = True
-        
-        # 14-04-2010, Andrea: limit the size of channel query results.
-        # see create_channel_query_reply (here) and process_query_reply
-        # for other details. (The whole thing is done to avoid freezes in the GUI
-        # when there are too many results)
-        self.max_channel_query_results = self.config['max_channel_query_results']
-        
-        
 
     #
     # Incoming messages
@@ -156,7 +148,18 @@ class RemoteQueryMsgHandler:
         if max_peers_to_query > 0:
             send_query_func = lambda:self.network_send_query_callback(query,usercallback,max_peers_to_query)
             self.overlay_bridge.add_task(send_query_func,0)
-
+            
+    def send_query_to_peers(self,query,peers,usercallback):
+        """ Called by GUI Thread """
+        if len(peers) > MAX_PEERS_TO_QUERY:
+            import random
+            peers = random.sample(peers, MAX_PEERS_TO_QUERY)
+        
+        if DEBUG:
+            print >>sys.stderr,"rquery: send_query_to_peers",`query`,peers
+        if len(peers) > 0:
+            send_query_func = lambda:self.network_send_query_callback_to_peers(query,peers,usercallback)
+            self.overlay_bridge.add_task(send_query_func,0)
 
     def network_send_query_callback(self,query,usercallback,max_peers_to_query):
         """ Called by overlay thread """
@@ -193,6 +196,34 @@ class RemoteQueryMsgHandler:
         
         if DEBUG:
             print >>sys.stderr,"rquery: send_query: Sent to",peers_to_query,"peers; query=", query
+    
+    def network_send_query_callback_to_peers(self,query,peers,usercallback):
+        """ Called by overlay thread """
+        p = self.create_query(query,usercallback)
+        m = QUERY+p
+        
+        if query.startswith("CHANNEL"):
+            wantminoversion = OLPROTO_VER_THIRTEENTH  # channel queries and replies only for the latest version (13) 
+        elif query.startswith("SIMPLE+METADATA"):
+            wantminoversion = OLPROTO_VER_TWELFTH
+        else:
+            wantminoversion =  OLPROTO_VER_SIXTH
+            
+        def query_conn_callback(exc,dns,permid,selversion):
+            if selversion > wantminoversion:
+                self.conn_callback(exc,dns,permid,selversion,m)
+            
+        if DEBUG:
+            print >>sys.stderr,"rquery: send_query: Connected",len(self.connections),"peers; minoversion=", wantminoversion
+        
+        #print "******** send query net cb:", query, len(self.connections), self.connections
+        
+        for permid in peers:
+            if permid in self.connections:
+                self.overlay_bridge.connect(permid,query_conn_callback)
+        
+        if DEBUG:
+            print >>sys.stderr,"rquery: send_query: Sent to",peers,"peers; query=", query
         
     def create_query(self,query,usercallback):
         d = {}
@@ -370,32 +401,6 @@ class RemoteQueryMsgHandler:
         d = {}
         d['id'] = id
         
-        # 14-04-2010, Andrea: sometimes apperently trivial queries like 'a' can produce
-        # enormouse amounts of hit that will keep the receiver busy in processing them.
-        # I made an "hack" in 'gotMessage" in ChannelSearchGridManager that drops results
-        # when they are more then a threshold. At this point is better to limit the results
-        # from the source to use less network bandwidth
-        hitslen = len(hits)
-        if hitslen > self.max_channel_query_results:
-            if DEBUG:
-                print >> sys.stderr, "Too many results for query (%d). Dropping to %d." % \
-                    (hitslen,self.max_channel_query_results) 
-            hits = hits[:self.max_channel_query_results] #hits are ordered by timestampe descending
-       
-        # 09-04-2010 Andrea: this code was exactly a duplicate copy of some
-        # code in channelcast module. Refactoring performed
-#        d2 = {}
-#        for hit in hits:
-#            r = {}
-#            r['publisher_id'] = str(hit[0]) # ARNOUNICODE: must be str
-#            r['publisher_name'] = hit[1].encode("UTF-8")  # ARNOUNICODE: must be explicitly UTF-8 encoded
-#            r['infohash'] = str(hit[2])     # ARNOUNICODE: must be str
-#            r['torrenthash'] = str(hit[3])  # ARNOUNICODE: must be str
-#            r['torrentname'] = hit[4].encode("UTF-8") # ARNOUNICODE: must be explicitly UTF-8 encoded
-#            r['time_stamp'] = int(hit[5])
-#            # hit[6]: signature, which is unique for any torrent published by a user
-#            signature = hit[6]
-#            d2[signature] = r
         if self.bc_fac.channelcast_core is not None:
             d2 = self.bc_fac.channelcast_core.buildChannelcastMessageFromHits(hits,selversion,fromQuery=True)
             d['a'] = d2
@@ -479,21 +484,6 @@ class RemoteQueryMsgHandler:
         if len(d['a']) > 0:
             self.unidecode_hits(query,d)
             if query.startswith("CHANNEL"):
-                # 13-04-2010 Andrea: The gotRemoteHits in SearchGridManager is too slow.
-                # Since it is run by the GUIThread when there are too many hits the GUI
-                # gets freezed.
-                # dropping some random results if they are too many. 
-                # It is just an hack, a better method to improve performance should be found.
-                
-                if len(d['a']) > self.max_channel_query_results:
-                    if DEBUG:
-                        print >> sys.stderr, "DROPPING some answers: they where %d" % len(d['a'])
-                    newAnswers = {}
-                    newKeys = d['a'].keys()[:self.max_channel_query_results] 
-                    for key in newKeys:
-                        newAnswers[key] = d['a'][key]
-                    d['a'] = newAnswers
-                    
                 # Andrea 05-06-2010: updates the database through channelcast. Before this was
                 # done by the GUIThread in SearchGridManager    
                 self.bc_fac.channelcast_core.updateChannel(permid,query,d['a'])

@@ -722,7 +722,26 @@ class Session(SessionRuntimeConfig):
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:
             self.sesslock.release()
-            
+    
+    def query_peers(self,query,peers,usercallback):
+        """ Equal to query_connected_peers only now for a limited subset of peers.
+        If there is no active connnection to a peer in the list, a connection
+        will be made.
+        """
+        self.sesslock.acquire()
+        try:
+            if self.sessconfig['overlay']:
+                if not (query.startswith('SIMPLE ') or query.startswith('SIMPLE+METADATA ')) and not query.startswith('CHANNEL '):
+                    raise ValueError('Query does not start with SIMPLE or SIMPLE+METADATA or CHANNEL')
+                
+                from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
+                
+                rqmh = RemoteQueryMsgHandler.getInstance()
+                rqmh.send_query_to_peers(query,peers,usercallback)
+            else:
+                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
+        finally:
+            self.sesslock.release() 
     
     def download_torrentfile_from_peer(self,permid,infohash,usercallback):
         """ Ask the designated peer to send us the torrentfile for the torrent

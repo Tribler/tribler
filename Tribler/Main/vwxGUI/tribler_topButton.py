@@ -94,10 +94,7 @@ class tribler_topButton(wx.Panel):
         elif event.Leaving():
             self.state = self.state ^ tribler_topButton.MOUSE_OVER
             self.Refresh()
-            
-        elif event.LeftDown() and self.state & tribler_topButton.ENABLED:
-            self.guiUtility.buttonClicked(event)
-                
+                 
     def setParentBitmap(self, event = None):
         try:
             parent = self.GetParent()

@@ -17,6 +17,7 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 
 from list_header import ListHeader
 from list_body import ListBody
@@ -25,7 +26,7 @@ from font import *
 
 class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
     def __init__(self, parent, numColumns):
-        wx.ListCtrl.__init__(self, parent, -1, style=wx.LC_REPORT)
+        wx.ListCtrl.__init__(self, parent, -1, style=wx.LC_REPORT|wx.LC_NO_HEADER)
         
         ColumnSorterMixin.__init__(self, numColumns)
         ListCtrlAutoWidthMixin.__init__(self)
@@ -109,11 +110,7 @@ class TorrentDetails(wx.Panel):
             sizer.Add(value, 1, wx.EXPAND)
             
             return name, value
-        
-        def __format_time(val):
-            discovered = date.fromtimestamp(val)
-            return discovered.strftime('%d-%m-%y')
-        
+    
         self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
         
         #Create torrent overview
@@ -126,7 +123,7 @@ class TorrentDetails(wx.Panel):
         torrentSizer.AddGrowableCol(1)
         add_row(overview, torrentSizer, "Name", torrent['name'])
         add_row(overview, torrentSizer, "Type", category.capitalize())
-        add_row(overview, torrentSizer, "Uploaded", __format_time(torrent['creation_date']))
+        add_row(overview, torrentSizer, "Uploaded", date.fromtimestamp(torrent['creation_date']).strftime('%d-%m-%y'))
         add_row(overview, torrentSizer, "Filesize", self.guiutility.utility.size_format(torrent['length']) + " in " + str(len(information[2])) + " files")
         
         seeders = torrent['num_seeders']
@@ -199,9 +196,7 @@ class TorrentDetails(wx.Panel):
         trackerPanel.SetupScrolling(rate_y = 5)
         
         #Set height depending on number of files present
-        minHeight = 130
-        maxHeight = 180
-        self.notebook.SetMinSize((-1, min(minHeight + len(information[2]) * 16, maxHeight)))
+        self.notebook.SetMinSize((-1, 130))
         self.details.Add(self.notebook, 6, wx.EXPAND|wx.ALL, 3)
         
         self.buttonPanel = wx.Panel(self)
@@ -266,7 +261,7 @@ class TorrentDetails(wx.Panel):
             #prefer local channel result
             channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
             if channel is None:
-                if 'channel_permid' in self.torrent:
+                if 'channel_permid' in self.torrent and self.torrent['channel_permid'] != '':
                     channel = (self.torrent['channel_permid'], self.torrent['channel_name'], self.torrent['subscriptions'], {})
             
             if channel is not None:
@@ -337,7 +332,7 @@ class TorrentDetails(wx.Panel):
         
         if self.information[0]:
             self.buttonSizer.AddStretchSpacer()
-            self.play = wx.Button(self.buttonPanel, -1, "Play")
+            self.play = wx.Button(self.buttonPanel, -1, "Start playing this torrent")
             self.play.SetToolTipString('Start playing this torrent.')
             self.play.Bind(wx.EVT_BUTTON, self.OnPlay)
             self.buttonSizer.Add(self.play, 0, wx.BOTTOM, 5)
@@ -383,6 +378,10 @@ class TorrentDetails(wx.Panel):
             if channel[0] == bin2str(self.guiutility.utility.session.get_permid()):
                 self.guiutility.ShowPage('mychannel')
             else:
+                if self.torrent.get('channel_permid', '') == channel[0] and 'query_permids' in self.torrent:
+                    channelcast = BuddyCastFactory.getInstance().channelcast_core
+                    channelcast.updateAChannel(channel[0], self.torrent['query_permids'])
+                    
                 self.guiutility.showChannel(channel[1], channel[0])    
     
     def UpdateStatus(self):
@@ -799,11 +798,34 @@ class SwarmHealth(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
     
-    def SetRatio(self, ratio):
-        self.ratio = max(0, ratio)
-        
-        self.green = max(0, min(255, 125 + (self.ratio * 260)))
-        self.red = max(0, min(255, 125 + ((1 - self.ratio) * 260)))
+    def SetRatio(self, seeders, leechers):
+        self.blue = 0
+        if leechers < 0 and seeders < 0:
+            self.barwidth = 0
+            
+            self.green = 0
+            self.red = 0
+        else:
+            if leechers <= 0:
+                ratio = sys.maxint
+            elif seeders <= 0:
+                ratio = 0
+            else:  
+                ratio = seeders/(leechers*1.0)
+            
+            if ratio == 0:
+                self.barwidth = 1
+                self.green = 0
+                self.red = 0
+            else:
+                pop = seeders + leechers
+                if pop > 0:
+                    self.barwidth = max(math.log(pop,10) * 2, 1) / 10.0
+                else:
+                    self.barwidth = 1
+                
+                self.green = max(0, min(255, 125 + (ratio * 130)))
+                self.red = max(0, min(255, 125 + ((1 - ratio) * 130)))
         self.Refresh()
         
     def OnPaint(self, event):
@@ -824,18 +846,17 @@ class SwarmHealth(wx.Panel):
         dc.DrawRectangle(xpos, 0, width, height)
                 
         dc.SetPen(wx.TRANSPARENT_PEN)
-        dc.SetBrush(wx.Brush((self.red, self.green, 0), wx.SOLID))
         
-        if self.ratio == 0:
-            colorwidth = width - 2
-        else:
-            colorwidth = (width - 2) * min(self.ratio,1)
-        dc.DrawRectangle(xpos + 1, 1, colorwidth , height-2)
+        dc.SetBrush(wx.Brush((self.red, self.green, self.blue), wx.SOLID))
         
-        dc.SetPen(wx.WHITE_PEN)
-        for i in range(1,10):
-            x = xpos + (width/10) * i
-            dc.DrawLine(x, 1, x, height - 1)
+        if self.barwidth > 0:
+            dc.DrawRectangle(xpos + 1, 1,  self.barwidth * (width - 2), height-2)
+        
+        if self.green > 0 or self.red > 0:
+            dc.SetPen(wx.WHITE_PEN)
+            for i in range(1,10):
+                x = xpos + (width/10) * i
+                dc.DrawLine(x, 1, x, height - 1)
 
     def OnEraseBackground(self, event):
         pass

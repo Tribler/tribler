@@ -583,14 +583,9 @@ class ListBody(scrolled.ScrolledPanel, AbstractListBody):
         scrolled.ScrolledPanel.__init__(self, parent)
         AbstractListBody.__init__(self, parent, background, columns, leftSpacer, rightSpacer, singleExpanded)
         
-        #self.Bind(wx.EVT_SCROLLWIN, self.OnScroll)
         self.SetupScrolling(scroll_x = False)
         
     def OnChildFocus(self, event):
-        event.Skip()
-    
-    def OnScroll(self, event):
-        self.SetFocus()
         event.Skip()
     
 class FixedListBody(wx.Panel, AbstractListBody):

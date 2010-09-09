@@ -464,29 +464,21 @@
                 <option>1</option>
             </object>
             <object class="sizeritem">
-                <flag>wxALL|wxALIGN_RIGHT</flag>
+                <flag>wxALL|wxEXPAND</flag>
                 <border>5</border>
                 <option>0</option>
-                <object class="wxBoxSizer">
-                    <orient>wxHORIZONTAL</orient>
-                    <object class="sizeritem">
-                        <border>0</border>
-                        <option>0</option>
-                        <object class="wxButton" name="save">
-                            <stockitem>OK</stockitem>
-                            <label>&amp;OK</label>
-                        </object>
-                    </object>
-                    <object class="sizeritem">
-                        <flag>wxLEFT</flag>
-                        <border>10</border>
-                        <option>0</option>
-                        <object class="wxButton" name="close">
-                            <stockitem>CANCEL</stockitem>
-                            <label>&amp;Cancel</label>
-                        </object>
-                    </object>
-                </object>
+                <object class="wxStdDialogButtonSizer">
+				    <object class="button">
+				        <object class="wxButton" name="wxID_OK">
+				            <label>Save</label>
+				        </object>
+				    </object>
+				    <object class="button">
+				        <object class="wxButton" name="wxID_CANCEL">
+				            <label>Cancel</label>
+				        </object>
+				    </object>
+				</object>
             </object>
         </object>
     </object>
