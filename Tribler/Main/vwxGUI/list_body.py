@@ -472,21 +472,6 @@ class AbstractListBody():
             self.items[key].RefreshData(data)
     
     def SetData(self, data):
-        keys = [item[0] for item in data]
-        
-        #clean item cache
-        removed_items = False
-        for key, item in self.items.iteritems():
-            if key not in keys:
-                self.items[key].Hide()
-                self.items[key].Destroy()
-                del self.items[key]
-                removed_items = True
-        
-        #no change
-        if not removed_items and len(keys) == len(self.items):
-            return
-        
         self.vSizer.Clear()
         if len(self.items) == 0 and len(data) > LIST_ITEM_BATCH_SIZE:
             self.ShowMessage('Loading, please wait.')
@@ -507,6 +492,8 @@ class AbstractListBody():
 
     def OnLoadAll(self, event):
         self.loadNext.Disable()
+        
+        
         self.CreateItems(sys.maxint, sys.maxint)
 
     def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = LIST_ITEM_MAX_SIZE):
@@ -515,7 +502,7 @@ class AbstractListBody():
         self.Freeze()
         
         #Check if we need to clear vSizer
-        self.messagePanel.Hide()
+        self.messagePanel.Show(False)
         self.vSizer.Remove(self.messagePanel)
 
         #Apply quickfilter 
@@ -546,7 +533,7 @@ class AbstractListBody():
                 else:
                     nr_items_to_add -= 1
             else:
-                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nUse the quick filter to reduce the number of items, or'%(LIST_ITEM_MAX_SIZE, len(self.data)))
+                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nUse the filter to reduce the number of items, or'%(LIST_ITEM_MAX_SIZE, len(self.data)))
                 self.loadNext.Enable()
                 self.loadNext.Show()
                 self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
