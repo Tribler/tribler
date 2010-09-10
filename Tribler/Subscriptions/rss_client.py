@@ -446,7 +446,7 @@ class TorrentFeedReader:
                 break
             except:
                 yield None, None
-                break
+                return
 
         # 14/07/08 boudewijn: some special characters and html code is
         # raises a parser exception. We filter out these character
