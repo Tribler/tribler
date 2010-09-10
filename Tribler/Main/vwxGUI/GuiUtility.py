@@ -23,8 +23,6 @@ from Tribler.Main.Utility.constants import *
 
 
 from Tribler.Video.VideoPlayer import VideoPlayer
-from fontSizes import *
-
 from Tribler.__init__ import LIBRARYNAME
 
 

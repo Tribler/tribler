@@ -22,8 +22,6 @@ from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from list_header import ListHeader
 from list_body import ListBody
 
-from font import *
-
 class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
     def __init__(self, parent, numColumns):
         wx.ListCtrl.__init__(self, parent, -1, style=wx.LC_REPORT|wx.LC_NO_HEADER)
@@ -105,7 +103,7 @@ class TorrentDetails(wx.Panel):
                 name.SetFont(font)
                 sizer.Add(name, 0, wx.RIGHT, 10)
             
-            value = wx.StaticText(parent, -1, value)
+            value = wx.StaticText(parent, -1, unicode(value))
             value.SetMinSize((1,-1))
             sizer.Add(value, 1, wx.EXPAND)
             
@@ -139,61 +137,69 @@ class TorrentDetails(wx.Panel):
         self.torrentChecker.start()
         
         #Create filelist
-        self.listCtrl = SortedListCtrl(self.notebook, 2)
-        self.listCtrl.InsertColumn(0, 'Name')
-        self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
-        self.listCtrl.SetColumnWidth(1, 70)
-        self.listCtrl.setResizeColumn(1) #resize column starts at 1 instead of 0
-        self.listCtrl.SetMinSize((1,-1))
-        
-        self.il = wx.ImageList(16,16)
-        play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'library_play.png'), wx.BITMAP_TYPE_ANY))
-        file_img = self.il.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, size = (16,16)))
-        self.listCtrl.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
-        
-        #Add files
-        keywords = ' | '.join(self.guiutility.current_search_query)
-        def sort_by_keywords(a, b):
-            a_match = re.search(keywords, a[0].lower())
-            b_match = re.search(keywords, b[0].lower())
-            if a_match and not b_match:
-                return -1
-            if b_match and not a_match:
-                return 1
-            return cmp(a[0],b[0])
-        
-        information[2].sort(sort_by_keywords)
-        for filename, size in information[2]:
-            try:
-                pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
-            except:
-                filename = unicode(filename)
-                pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
-            self.listCtrl.SetItemData(pos, pos)
-            self.listCtrl.itemDataMap.setdefault(pos, [filename, size])
+        if len(information[2]) > 0:
+            self.listCtrl = SortedListCtrl(self.notebook, 2)
+            self.listCtrl.InsertColumn(0, 'Name')
+            self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
+            self.listCtrl.SetColumnWidth(1, 70)
+            self.listCtrl.setResizeColumn(1) #resize column starts at 1 instead of 0
+            self.listCtrl.SetMinSize((1,-1))
             
-            size = self.guiutility.utility.size_format(size)
-            self.listCtrl.SetStringItem(pos, 1, size)
+            self.il = wx.ImageList(16,16)
+            play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'library_play.png'), wx.BITMAP_TYPE_ANY))
+            file_img = self.il.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, size = (16,16)))
+            self.listCtrl.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
             
-            if filename in information[1]:
-                self.listCtrl.SetItemColumnImage(pos, 0, play_img)
-            else:
-                self.listCtrl.SetItemColumnImage(pos, 0, file_img)
-        
-        self.notebook.AddPage(self.listCtrl, "Files")
+            #Add files
+            keywords = ' | '.join(self.guiutility.current_search_query)
+            def sort_by_keywords(a, b):
+                a_match = re.search(keywords, a[0].lower())
+                b_match = re.search(keywords, b[0].lower())
+                if a_match and not b_match:
+                    return -1
+                if b_match and not a_match:
+                    return 1
+                return cmp(a[0],b[0])
+            
+            information[2].sort(sort_by_keywords)
+            for filename, size in information[2]:
+                try:
+                    pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
+                except:
+                    filename = unicode(filename)
+                    pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
+                self.listCtrl.SetItemData(pos, pos)
+                self.listCtrl.itemDataMap.setdefault(pos, [filename, size])
+                
+                size = self.guiutility.utility.size_format(size)
+                self.listCtrl.SetStringItem(pos, 1, size)
+                
+                if filename in information[1]:
+                    self.listCtrl.SetItemColumnImage(pos, 0, play_img)
+                else:
+                    self.listCtrl.SetItemColumnImage(pos, 0, file_img)
+            
+            self.notebook.AddPage(self.listCtrl, "Files")
         
         #Create description
-        if torrent['comment'] and torrent['comment'] != 'None':
+        if torrent.get('comment', 'None') != 'None':
             descriptionPanel, vSizer = create_tab("Description", "Comment")
             add_row(descriptionPanel, vSizer, None, torrent['comment'])
             descriptionPanel.SetupScrolling(rate_y = 5)
         
         #Create trackerlist
-        trackerPanel, vSizer = create_tab("Trackers", "Trackers")
-        for trackers in torrent['trackers']:
-            for tracker in trackers:
-                add_row(trackerPanel, vSizer, None, tracker)
-        trackerPanel.SetupScrolling(rate_y = 5)
+        if torrent.get('trackers', 'None') != 'None':
+            tracker_list = []
+            for trackers in torrent['trackers']:
+                for tracker in trackers:
+                    if tracker:
+                        tracker_list.append(tracker)
+                
+            if len(tracker_list) > 0:
+                trackerPanel, vSizer = create_tab("Trackers", "Trackers")
+                for tracker in tracker_list:
+                    add_row(trackerPanel, vSizer, None, tracker)
+                trackerPanel.SetupScrolling(rate_y = 5)
         
         #Set height depending on number of files present
         self.notebook.SetMinSize((-1, 130))
@@ -247,8 +253,11 @@ class TorrentDetails(wx.Panel):
         play = wx.Button(self.buttonPanel, -1, "Play")
         play.SetToolTipString('Start playing this torrent.')
         play.Bind(wx.EVT_BUTTON, self.OnPlay)
+        
         if not self.information[0]:
             play.Disable()
+        else:
+            self.listCtrl.Bind(wx.EVT_LEFT_DCLICK, self.OnPlaySelected)
         
         download_play_sizer.Add(download)
         download_play_sizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
@@ -366,6 +375,12 @@ class TorrentDetails(wx.Panel):
         elif len(playable_files) == 1:
             self.guiutility.torrentsearch_manager.playTorrent(self.torrent)
     
+    def OnPlaySelected(self, event):
+            selected = self.listCtrl.GetFirstSelected()
+            if selected != -1:
+                selected_file = self.listCtrl.GetItemText(selected)
+                self.guiutility.torrentsearch_manager.playTorrent(self.torrent, selected_file)            
+    
     def OnClick(self, event):
         label = event.GetEventObject()
         if label.target == 'my_files':
@@ -445,6 +460,9 @@ class LibraryDetails(TorrentDetails):
         TorrentDetails.__init__(self, parent, torrent)
         self.mychannel_callback = mychannel_callback
     
+    def ShowTorrentDetails(self):
+        self.ShowDownloadProgress()
+        
     def ShowDownloadProgress(self):
         header = wx.StaticText(self.buttonPanel, -1, "Did you enjoy this torrent?\nThen let others know by adding it to your channel.")
         header.SetMinSize((1,-1))
@@ -728,9 +746,15 @@ class MyChannelTabs(wx.Panel):
         
         #manual
         sizer.Add(self.createHeader(parent, "Manually import a .torrent file:","(downloaded from another source)"), 0, wx.EXPAND)
-        browseButton = wx.Button(parent, -1, "Browse")
+        browseButton = wx.Button(parent, -1, "Browse for .torrent files")
         browseButton.Bind(wx.EVT_BUTTON, self.OnManualAdd)
-        sizer.Add(browseButton, 0, wx.ALIGN_RIGHT|wx.LEFT|wx.TOP, 10)
+        browseButton2 = wx.Button(parent, -1, "Browse for a directory")
+        browseButton2.Bind(wx.EVT_BUTTON, self.OnManualDirAdd)
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(browseButton)
+        hSizer.Add(browseButton2, 0, wx.LEFT, 5)
+        sizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.LEFT|wx.TOP, 10)
     
     def RebuildRssPanel(self):
         self.gridSizer.ShowItems(False)
@@ -777,15 +801,40 @@ class MyChannelTabs(wx.Panel):
         self.RebuildRssPanel()
         
     def OnManualAdd(self, event):
-        dlg = wx.FileDialog(self,"Choose .torrent file", wildcard = "BitTorrent file (*.torrent) |*.torrent", style = wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.FileDialog(self,"Choose .torrent file", wildcard = "BitTorrent file (*.torrent) |*.torrent", style = wx.DEFAULT_DIALOG_STYLE|wx.FD_MULTIPLE)
         
         path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
         dlg.SetPath(path)
-        if dlg.ShowModal() == wx.ID_OK and os.path.isfile(dlg.GetPath()):
-            self.torrentfeed.addFile(dlg.GetPath())
-            self.parent.manager.refresh()
+        if dlg.ShowModal() == wx.ID_OK:
+            files = dlg.GetPaths()
+            self._import_torrents(files)
             
-            self.guiutility.frame.top_bg.Notify('New .torrent added to My Channel', wx.ART_INFORMATION)
+    def OnManualDirAdd(self, event):
+        dlg = wx.DirDialog(self,"Choose a directory containing the .torrent files", style = wx.wx.DD_DIR_MUST_EXIST)
+        
+        path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
+        dlg.SetPath(path)
+        
+        if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
+            full_files = []
+            files = os.listdir(dlg.GetPath())
+            for file in files:
+                full_files.append(os.path.join(dlg.GetPath(), file))
+            self._import_torrents(full_files)
+    
+    def _import_torrents(self, files):
+        nr_imported = 0
+        for file in files:
+            if file.endswith(".torrent"):
+                self.torrentfeed.addFile(file)
+                nr_imported += 1
+        
+        if nr_imported > 0:
+            self.parent.manager.refresh()
+            if nr_imported == 1:
+                self.guiutility.frame.top_bg.Notify('New .torrent added to My Channel', wx.ART_INFORMATION)
+            else:
+                self.guiutility.frame.top_bg.Notify('Added %d .torrents to your Channel'%nr_imported, wx.ART_INFORMATION)
     
     def OnRssItem(self, rss_url, infohash, torrent_data):
         #this is called from another non-gui thread, thus we wrap it using wx.callafter

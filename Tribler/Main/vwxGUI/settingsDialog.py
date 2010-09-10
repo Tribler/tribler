@@ -148,6 +148,7 @@ class SettingsDialog(wx.Dialog):
             self.tree.GetItemData(old_item).GetData().Hide()
             self.tree.GetItemData(new_item).GetData().Show(True)
             self.Layout()
+            self.Refresh()
         except:
             pass
 
@@ -298,8 +299,6 @@ class SettingsDialog(wx.Dialog):
         dlcfgfilename = get_default_dscfg_filename(self.utility.session)
         self.defaultDLConfig.save(dlcfgfilename)
         
-        #TODO: 5.3 should the .torrents be moved aswell
-        
         # Arno, 2010-03-08: Apparently not copied correctly from abcoptions.py
         # Save SessionStartupConfig
         # Also change torrent collecting dir, which is by default in the default destdir
@@ -314,14 +313,24 @@ class SettingsDialog(wx.Dialog):
                 target.set_torrent_collecting_dir(dirname)
             except:
                 print_exc()
-        # TODO: set_download_help_dir()
-
         scfg.save(cfgfilename)
     
     def moveCollectedTorrents(self, old_dir, new_dir):
+        #physical move
         old_dir = os.path.join(old_dir, 'collected_torrent_files')
         new_dir = os.path.join(new_dir, 'collected_torrent_files')
         os.renames(old_dir, new_dir)
+        
+        old_dir = os.path.join(old_dir, 'collected_subtitles_files')
+        new_dir = os.path.join(new_dir, 'collected_subtitles_files')
+        os.renames(old_dir, new_dir)
+        
+        old_dir = os.path.join(old_dir, 'downloadhelp')
+        new_dir = os.path.join(new_dir, 'downloadhelp')
+        os.renames(old_dir, new_dir)
+        
+        #update db
+        self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(new_dir)
         
     def process_input(self):
         try:

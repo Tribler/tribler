@@ -15,7 +15,6 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
 from bgPanel import bgPanel
 from tribler_topButton import *
-from fontSizes import *
 from traceback import print_exc
 from wx.lib.buttons import GenBitmapButton as BitmapButton
 
@@ -156,7 +155,7 @@ class TopSearchPanel(bgPanel):
         self.results.Disable()
 
         if sys.platform == 'win32':
-            self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/5.0/search_files_channels.png", wx.BITMAP_TYPE_ANY))
+            self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/search_files_channels.png", wx.BITMAP_TYPE_ANY))
             self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2_win.png", wx.BITMAP_TYPE_ANY))
         else:    
             self.files_friends = wx.StaticText(self, -1, "Search Files or Channels") 
@@ -180,10 +179,10 @@ class TopSearchPanel(bgPanel):
         self.go.SetMinSize((50, 24))
         
         if sys.platform == 'linux2':
-            self.files_friends.SetFont(wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
+            self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
                 
         elif sys.platform == 'darwin': # mac
-            self.files_friends.SetFont(wx.Font(FONT_SIZE_FILES_FRIENDS, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
+            self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
 
 
     def __do_layout(self):
@@ -204,9 +203,9 @@ class TopSearchPanel(bgPanel):
         searchBoxSizer.Add(self.go, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5) #add searchbutton
 
         if sys.platform == 'darwin' or sys.platform == 'win32':
-            ag_fname = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', '5.0', 'search_new_windows.gif')
+            ag_fname = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new_windows.gif')
         else:
-            ag_fname = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', '5.0', 'search_new.gif')
+            ag_fname = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
         self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
         searchBoxSizer.Add(self.ag, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
         searchSizer.Add(searchBoxSizer, 0, wx.EXPAND)

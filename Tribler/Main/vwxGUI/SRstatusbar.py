@@ -17,7 +17,7 @@ class SRstatusbar(wx.Panel):
                              'total_down', \
                              'total_up', \
                              'SRvalue', \
-                             'firewallStatus16']
+                             'firewallStatus14']
 
         if len(args) == 0: 
             pre = wx.PrePanel() 
@@ -91,14 +91,13 @@ class SRstatusbar(wx.Panel):
         self.Layout()
         
     def onReachable(self,event=None):
-        
         if not self.guiUtility.firewall_restart:
-            self.elements['firewallStatus16'].setSelected(2)
-            self.elements['firewallStatus16'].SetToolTipString('Port is working')
+            self.elements['firewallStatus14'].setSelected(2)
+            self.elements['firewallStatus14'].SetToolTipString('Port is working')
     
     def IsReachable(self):
         if not self.guiUtility.firewall_restart:
-            return self.elements['firewallStatus16'].getSelected() == 2
+            return self.elements['firewallStatus14'].getSelected() == 2
         return False
     
     def format_bytes(self, bytes):

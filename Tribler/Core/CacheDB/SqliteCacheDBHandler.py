@@ -1420,6 +1420,21 @@ class TorrentDBHandler(BasicDBHandler):
     def getTorrentDir(self):
         return self.torrent_dir
     
+    def updateTorrentDir(self, torrent_dir):
+        sql = "SELECT torrent_id, torrent_file_name FROM Torrent WHERE torrent_file_name not NULL"
+        results = self._db.fetchall(sql)
+        
+        updates = []
+        for result in results:
+            head, tail = os.path.split(result[1])
+            new_file_name = os.path.join(torrent_dir, tail)
+            
+            updates.append((new_file_name, result[0]))
+        sql = "UPDATE TORRENT SET torrent_file_name = ? WHERE torrent_id = ?"
+        self._db.executemany(sql, updates)
+        
+        self.torrent_dir = torrent_dir
+    
     def getTorrent(self, infohash, keys=None, include_mypref=True):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)

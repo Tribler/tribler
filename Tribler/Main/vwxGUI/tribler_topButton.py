@@ -109,6 +109,11 @@ class tribler_topButton(wx.Panel):
                 self.location = location
         except:
             self.parentBitmap = None
+            try:
+                parent = self.GetParent()
+                self.parentColor = parent.GetBackgroundColour()
+            except:
+                self.parentColor = None
  
     def getBitmapSlice(self, bitmap, rect):
         try:
@@ -194,6 +199,11 @@ class tribler_topButton(wx.Panel):
                 dc.SetBrush(wx.BrushFromBitmap(self.parentBitmap))
                 w, h = self.GetClientSize()
                 dc.DrawRectangle(0, 0, w, h)
+            elif self.parentColor:
+                dc.SetPen(wx.TRANSPARENT_PEN)
+                dc.SetBrush(wx.Brush(self.parentColor))
+                w, h = self.GetClientSize()
+                dc.DrawRectangle(0, 0, w, h)
             
             if not self.IsEnabled():
                 return
@@ -250,9 +260,11 @@ class settingsButton(tribler_topButton):
     Button with three states in the settings overview
     """
     __bitmapCache = {}
-    
-    def _PostInit(self):
+    def __init__(self, *args, **kw):
+        tribler_topButton.__init__(self, *args, **kw)
         self.selected = 1
+        
+    def _PostInit(self):
         tribler_topButton._PostInit(self)
     
     def loadBitmaps(self):
@@ -289,4 +301,4 @@ class settingsButton(tribler_topButton):
         pass
     
     def GetBitmap(self):
-        return self.bitmaps[self.getSelected()]
+        return self.bitmaps[self.selected]

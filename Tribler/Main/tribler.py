@@ -53,7 +53,6 @@ from traceback import print_exc
 import urllib2
 import tempfile
 
-import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.MainFrame import MainFrame # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame,VideoMacFrame
@@ -192,8 +191,6 @@ class ABCApp(wx.App):
             # On Linux: allow painting of splash screen first.
             wx.Yield()
             
-            # Initialise fonts
-            font.init()
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
             
             cat = Category.getInstance(self.utility.getPath())

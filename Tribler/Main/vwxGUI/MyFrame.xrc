@@ -48,7 +48,7 @@
             </object>
             <object class="sizeritem">
               <object class="wxStaticBitmap" name="help">
-                <bitmap>Tribler/Main/vwxGUI/images/5.0/help.png</bitmap>
+                <bitmap>Tribler/Main/vwxGUI/images/help.png</bitmap>
               </object>
               <flag>wxALIGN_CENTER_VERTICAL</flag>
             </object>
@@ -96,7 +96,7 @@
               <option>1</option>
 			</object>
 			<object class="sizeritem">
-                <object class="wxPanel" name="firewallStatus16" subclass="Tribler.Main.vwxGUI.tribler_topButton.settingsButton">
+                <object class="wxPanel" name="firewallStatus14" subclass="Tribler.Main.vwxGUI.tribler_topButton.settingsButton">
                     <size>14,14</size>
                 </object>
             </object>

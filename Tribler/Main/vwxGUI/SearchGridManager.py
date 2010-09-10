@@ -4,6 +4,7 @@
 import sys
 import wx
 import os
+from binascii import hexlify
 from traceback import print_exc, print_stack
 from time import time
 
@@ -102,9 +103,18 @@ class TorrentManager:
         
         #.torrent not found, try to download from peers
         if 'query_permids' in torrent and not torrent.get('myDownloadHistory'):
-            return self.downloadTorrentfileFromPeers(torrent, callback)
-    
-        return False
+            if self.downloadTorrentfileFromPeers(torrent, callback):
+                return True
+        
+        #.torrent still not found, try magnet link
+        
+        
+        magnetlink = "magnet:?xt=urn:btih:"+hexlify(torrent['infohash'])
+        def torrentdef_retrieved(tdef):
+            tdef.save(torrent_filename)
+            callback(torrent['infohash'], torrent, torrent_filename)
+            
+        return TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved)
              
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True):
         """

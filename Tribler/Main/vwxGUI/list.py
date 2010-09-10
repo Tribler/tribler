@@ -293,8 +293,8 @@ class SearchList(List):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        images = ("tl4.png", "tr4.png", "bl2.png", "br2.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0",image) for image in images]
+        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
+        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
         List.__init__(self, columns, images, LISTCOLOR, [7,7], True, name = 'SearchList')
     
@@ -425,9 +425,8 @@ class LibaryList(List):
                    {'type':'method', 'name':'Down', 'width': 70, 'method': self.CreateDown, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
         
-        #TODO: top and bottom images should have same width (bottom currently 10px wide instead of 7px)
-        images = ("tl4.png", "tr4.png", "bl2.png", "br2.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0",image) for image in images]
+        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
+        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
         List.__init__(self, columns, images, LISTCOLOR, [7,7], True, name = 'LibraryList')
     
@@ -655,7 +654,7 @@ class ChannelList(List):
                    {'name':'Files', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT}]
         
         images = ("tl.png", "tr.png", "bl.png", "br.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0",image) for image in images]
+        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
         self.favorite = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         self.normal = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
@@ -663,7 +662,7 @@ class ChannelList(List):
         
         self.select_popular = True
         self.my_permid = bin2str(self.guiutility.channelsearch_manager.channelcast_db.my_permid)
-        List.__init__(self, columns, images, '#D8E9F0', [10,10], name = 'ChannelList')
+        List.__init__(self, columns, images, '#D8E9F0', [7,7], name = 'ChannelList')
     
     def __favorite_icon(self, item):
         if item.original_data[0] == self.my_permid:
@@ -768,8 +767,8 @@ class SelectedChannelList(SearchList):
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        images = ("tl4.png", "tr4.png", "bl2.png", "br2.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0",image) for image in images]
+        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
+        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
         List.__init__(self, columns, images, LISTCOLOR, [7,7], True, name = 'SelectedChannelList')
         
@@ -863,9 +862,9 @@ class MyChannelList(List):
                    {'name':'Added', 'width': 70, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time}]
         
         images = ("tl.png", "tr.png", "bl.png", "br.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0",image) for image in images]
+        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
-        List.__init__(self, columns, images, '#D8E9F0', [10,10], name = 'MyChannelList')
+        List.__init__(self, columns, images, '#D8E9F0', [7,7], name = 'MyChannelList')
     
     def __format_time(self, val):
         today = date.today()
@@ -936,8 +935,8 @@ class ChannelCategoriesList(List):
         self.utility = self.guiutility.utility
         columns = [{'width': wx.LIST_AUTOSIZE}]
         
-        images = ("tl4.png", "tr4.png", "bl2.png", "br2.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0",image) for image in images]
+        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
+        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
         List.__init__(self, columns, images, LISTCOLOR, [7,7], True, name = 'ChannelCategoriesList')
     

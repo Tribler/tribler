@@ -54,8 +54,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         if border:
             self.SetMinSize((34,-1))
-            images = ("tl4.png", "tr4.png", "bl2.png", "br2.png", "minimize.png", "maximize.png")
-            images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","5.0",image) for image in images]
+            images = ("tl2.png", "tr2.png", "bl2.png", "br2.png", "minimize.png", "maximize.png")
+            images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
             self.header  = PlayerHeader(self, images[0], images[1], bg, [], images[4], images[5])
             
             vSizer.Add(self.header, 0, wx.EXPAND)
@@ -86,7 +86,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwrap = vlcwrap
             
             if border:
-                player_img = os.path.join(self.utility.getPath(), LIBRARYNAME,"Main","vwxGUI",'images','5.0', 'player.png')
+                player_img = os.path.join(self.utility.getPath(), LIBRARYNAME,"Main","vwxGUI",'images','player.png')
                 self.player_img = wx.StaticBitmap(self, -1, wx.BitmapFromImage(wx.Image(player_img, wx.BITMAP_TYPE_ANY)))
                 mainbox.Add(self.player_img, 0, wx.ALIGN_CENTER|wx.TOP, 5)
             mainbox.Add(self.vlcwin, 1, wx.EXPAND, 0)
@@ -537,7 +537,7 @@ class VLCLogoWindow(wx.Panel):
             self.vsizer.Add((0,70),0,0,0)
         
         if animate:
-            animation = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','5.0','video_grey.gif')
+            animation = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','video_grey.gif')
             
             if sys.platform == 'darwin':
                 self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, animation)

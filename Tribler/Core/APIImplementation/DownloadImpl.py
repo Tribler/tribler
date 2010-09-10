@@ -64,19 +64,19 @@ class DownloadImpl:
             
             if DEBUG:
                 print >>sys.stderr,"Download: setup: internal tracker?",metainfo['announce'],itrackerurl,"#"
-
+            
             if itrackerurl.endswith('/'):
                 slashless = itrackerurl[:-1]
             else:
                 slashless = itrackerurl
-            if metainfo['announce'] == itrackerurl or metainfo['announce'] == slashless:
+            if 'announce' in metainfo and (metainfo['announce'] == itrackerurl or metainfo['announce'] == slashless):
                 usingitracker = True
             elif 'announce-list' in metainfo:
                 for tier in metainfo['announce-list']:
                     if itrackerurl in tier or slashless in tier:
                          usingitracker = True
                          break
-                     
+                  
             if usingitracker:
                 if DEBUG:
                     print >>sys.stderr,"Download: setup: Using internal tracker"

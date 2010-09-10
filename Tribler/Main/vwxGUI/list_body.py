@@ -372,17 +372,19 @@ class AbstractListBody():
         self.Thaw()
     
     def FilterItems(self, keyword, column = 0):
-        self.filter = keyword.lower()
-        self.filtercolumn = column
-        
-        self.Scroll(-1, 0)
-        self.Freeze()
+        new_filter = keyword.lower()
+        if new_filter != self.filter or column != self.filtercolumn:
+            self.filter = new_filter
+            self.filtercolumn = column
             
-        self.vSizer.ShowItems(False)
-        self.vSizer.Clear()
-        self.CreateItems()
-        
-        self.Thaw()
+            self.Scroll(-1, 0)
+            self.Freeze()
+                
+            self.vSizer.ShowItems(False)
+            self.vSizer.Clear()
+            self.CreateItems()
+            
+            self.Thaw()
         
     def MatchFilter(self, item):
         return re.search(self.filter, item[1][self.filtercolumn].lower())
@@ -472,13 +474,16 @@ class AbstractListBody():
             self.items[key].RefreshData(data)
     
     def SetData(self, data):
+        if DEBUG:
+            print >> sys.stderr, "ListBody: new data"
+        
         self.vSizer.Clear()
         if len(self.items) == 0 and len(data) > LIST_ITEM_BATCH_SIZE:
             self.ShowMessage('Loading, please wait.')
             
             #Try to yield, allows us to show loading text
             try:
-                wx.Yield()
+                wx.SafeYield()
             except:
                 pass
         
@@ -492,11 +497,12 @@ class AbstractListBody():
 
     def OnLoadAll(self, event):
         self.loadNext.Disable()
-        
-        
         self.CreateItems(sys.maxint, sys.maxint)
 
     def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = LIST_ITEM_MAX_SIZE):
+        if DEBUG:
+            print >> sys.stderr, "ListBody: Creating items"
+        
         done = True
         t1 = time.time()
         self.Freeze()
@@ -533,7 +539,7 @@ class AbstractListBody():
                 else:
                     nr_items_to_add -= 1
             else:
-                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nUse the filter to reduce the number of items, or'%(LIST_ITEM_MAX_SIZE, len(self.data)))
+                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nUse the filter to reduce the number of items, or click the button below.'%(LIST_ITEM_MAX_SIZE, len(self.data)))
                 self.loadNext.Enable()
                 self.loadNext.Show()
                 self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
