@@ -900,6 +900,13 @@ class TorrentDef(Serializable,Copyable):
         if not self.readonly:
             self.finalize()
 
+        # Boudewijn, 10/09/10: do not save the 'initial peers'.  (1)
+        # they should not be saved, as they are unlikely to be there
+        # the next time, and (2) bencode does not understand tuples
+        # and converts the (addres,port) tuple into a list.
+        if 'initial peers' in self.metainfo:
+            del self.metainfo['initial peers']
+
         bdata = bencode(self.metainfo)
         f = open(filename,"wb")
         f.write(bdata)
