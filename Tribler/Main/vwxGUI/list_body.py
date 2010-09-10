@@ -420,6 +420,7 @@ class AbstractListBody():
         
     def OnChange(self, scrollToTop = False):
         self.Layout()
+        self.vSizer.Layout()
         
         #Determine scrollrate
         if not self.rate:
@@ -471,6 +472,8 @@ class AbstractListBody():
     
     def RefreshData(self, key, data):
         if key in self.items:
+            if DEBUG:
+                print >> sys.stderr, "ListBody: refresh item"
             self.items[key].RefreshData(data)
     
     def SetData(self, data):
@@ -483,7 +486,7 @@ class AbstractListBody():
             
             #Try to yield, allows us to show loading text
             try:
-                wx.SafeYield()
+                wx.Yield()
             except:
                 pass
         
@@ -505,13 +508,14 @@ class AbstractListBody():
         
         done = True
         t1 = time.time()
+
         self.Freeze()
         
         #Check if we need to clear vSizer
         self.messagePanel.Show(False)
         self.vSizer.Remove(self.messagePanel)
 
-        #Apply quickfilter 
+        #Apply quickfilter
         if self.filter != '':
             data = filter(self.MatchFilter, self.data)
         else:
@@ -547,11 +551,10 @@ class AbstractListBody():
                 self.messagePanel.Show()
                 done = True
                 break
-            
+        
         self.OnChange()
         self.Thaw()
         self.done = done
-        
         if DEBUG:
             print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time.time() - t1
         

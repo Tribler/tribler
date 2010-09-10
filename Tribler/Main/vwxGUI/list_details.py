@@ -182,7 +182,7 @@ class TorrentDetails(wx.Panel):
             self.notebook.AddPage(self.listCtrl, "Files")
         
         #Create description
-        if torrent.get('comment', 'None') != 'None':
+        if torrent.get('comment', 'None') != 'None' and torrent['comment'] != '':
             descriptionPanel, vSizer = create_tab("Description", "Comment")
             add_row(descriptionPanel, vSizer, None, torrent['comment'])
             descriptionPanel.SetupScrolling(rate_y = 5)
