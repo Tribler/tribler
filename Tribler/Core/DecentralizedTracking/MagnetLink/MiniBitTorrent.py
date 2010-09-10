@@ -453,7 +453,7 @@ class MiniSwarm:
                     # by most recently connected
                     peers = [(timestamp, address) for address, timestamp in self._good_peers.iteritems()]
                     peers.sort(reverse=True)
-                    peers = [address for timestamp, address in peers]
+                    peers = [address for _, address in peers]
 
                     self._callback(bdecode(metadata), peers)
 

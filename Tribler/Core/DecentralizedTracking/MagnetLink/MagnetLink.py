@@ -147,6 +147,8 @@ class MagnetLink:
         assert isinstance(peers, list)
         if __debug__:
             for address in peers:
+                assert isinstance(address, tuple)
+                assert len(address) == 2
                 assert isinstance(address[0], str)
                 assert isinstance(address[1], int)
 
