@@ -32,7 +32,7 @@ METADATA_PIECE_SIZE = 16 * 1024
 MAX_CONNECTIONS = 30
 MAX_TIME_INACTIVE = 30
 
-DEBUG = True
+DEBUG = False
 
 # todo: extend testcases
 # todo: add tracker support
@@ -53,8 +53,8 @@ class Connection:
 
         self._her_ut_metadata_id = chr(0)
 
-        # outstanding requests for pieces
-        self._metadata_requests = []
+        # outstanding requests for pieces in piece-id:piece-length pairs
+        self._metadata_requests = {}
 
         if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent: New connection"
         self._socket = raw_server.start_connection(address, self)
@@ -135,10 +135,10 @@ class Connection:
 
     def _request_some_metadata_piece(self):
         if not self._closed:
-            piece = self._swarm.reserve_metadata_piece()
-            if isinstance(piece, int):
+            piece, length = self._swarm.reserve_metadata_piece()
+            if isinstance(piece, (int, long)):
                 if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.got_extend_message() Requesting metadata piece", piece
-                self._metadata_requests.append(piece)
+                self._metadata_requests[piece] = length
                 self.write_extend_message(self._her_ut_metadata_id, {"msg_type":0, "piece":piece})
 
             else:
@@ -193,19 +193,21 @@ class Connection:
                     if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.got_extend_message() Rejecting request for piece", message["piece"]
                     self.write_extend_message(self._her_ut_metadata_id, {"msg_type":2, "piece":message["piece"]})
 
-                elif message["msg_type"] == 1 and \
-                         "piece" in message and (isinstance(message["piece"], int) or isinstance(message["piece"], long)) and message["piece"] in self._metadata_requests and \
-                         "total_size" in message and (isinstance(message["total_size"], int) or isinstance(message["total_size"], long)) and message["total_size"] <= METADATA_PIECE_SIZE:
-                    # Received a metadata piece
+                elif message["msg_type"] == 1:
+                    if not ("piece" in message and isinstance(message["piece"], (int, long)) and message["piece"] in self._metadata_requests):
+                        if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.got_extend_message() No or invalid piece number", message.get("piece", -1), "?", message.get("piece", -1) in self._metadata_requests
+                        return False
+
                     if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.got_extend_message() Received metadata piece", message["piece"]
-                    self._metadata_requests.remove(message["piece"])
-                    self._swarm.add_metadata_piece(message["piece"], data[-message["total_size"]:])
+                    length = self._metadata_requests[message["piece"]]
+                    self._swarm.add_metadata_piece(message["piece"], data[-length:])
+                    del self._metadata_requests[message["piece"]]
                     self._request_some_metadata_piece()
 
                 elif message["msg_type"] == 2 and "piece" in message and isinstance(message["piece"], int) and message["piece"] in self._metadata_requests:
                     # Received a reject
                     if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.got_extend_message() Our request for", message["piece"], "was rejected"
-                    self._metadata_requests.remove(message["piece"])
+                    del self._metadata_requests[message["piece"]]
                     self._swarm.unreserve_metadata_piece(message["piece"])
 
                     # Register a task to run in 'some time' to start
@@ -393,8 +395,14 @@ class MiniSwarm:
             if block_tuple[2] is None:
                 block_tuple[0] += 1
                 self._metadata_blocks.sort()
-                return block_tuple[1]
-        return None
+
+                if block_tuple[1] < len(self._metadata_blocks) - 1:
+                    length = METADATA_PIECE_SIZE
+                else:
+                    length = self._metadata_size % METADATA_PIECE_SIZE
+
+                return block_tuple[1], length
+        return None, None
 
     def unreserve_metadata_piece(self, piece):
         """
@@ -431,7 +439,11 @@ class MiniSwarm:
                     break
 
             else:
-                metadata = "".join([data for requested, piece, data in self._metadata_blocks])
+                # _metadata_blocks is sorted by requested count.  we need to sort it by piece-id
+                metadata_blocks = [(piece, data) for _, piece, data in self._metadata_blocks]
+                metadata_blocks.sort()
+
+                metadata = "".join([data for _, data in metadata_blocks])
                 info_hash = sha(metadata).digest()
 
                 if info_hash == self._info_hash:
@@ -446,9 +458,13 @@ class MiniSwarm:
                     self._callback(bdecode(metadata), peers)
 
                 else:
+                    # for piece, data in metadata_blocks:
+                    #     open("failed-hash-{0}.data".format(piece), "w+").write(data)
+
                     # todo: hash failed... now what?
                     # quick solution... remove everything and try again
-                    self._metadata_blocks = [(requested, piece, None) for requested, piece, data in self._metadata_blocks]
+                    if DEBUG: print >> sys.stderr, "MiniBitTorrent.add_metadata_piece() Failed hashcheck! Restarting all over again :("
+                    self._metadata_blocks = [[requested, piece, None] for requested, piece, data in self._metadata_blocks]
  
     def add_potential_peers(self, addresses):
         if not self._closed:
