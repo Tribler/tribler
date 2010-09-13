@@ -331,7 +331,8 @@ class SearchList(List):
                 self.header.SetTitle('Got 1 result for "%s"'%keywords)
             else:
                 self.header.SetTitle('Got %d results for "%s"'%(nr, keywords))
-        
+            self.total_results = nr
+            
         if isinstance(nr_channels, int):
             if nr_channels == 0:
                 self.footer.SetMessage('No matching channels for "%s"'%keywords)
@@ -417,8 +418,14 @@ class SearchList(List):
             panel.Destroy()
         
     def OnFilter(self, keyword):
-        self.list.FilterItems(keyword)
+        self.header.FilterCorrect(self.list.FilterItems(keyword))
         
+    def SetFilteredResults(self, nr):
+        if nr != self.total_results: 
+            self.header.SetNrResults(nr)
+        else:
+            self.header.SetNrResults()
+                    
     def format(self, val):
         val = int(val)
         if val < 0:
@@ -663,7 +670,7 @@ class ChannelList(List):
                    {'name':'Latest update', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time}, \
                    #{'name':'Popularity', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format}, \
                    {'type':'method', 'width': 65, 'method': self.CreatePopularity, 'name':'Popularity'}, \
-                   {'name':'Files', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT}]
+                   {'name':'Torrents', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT}]
         
         images = ("tl.png", "tr.png", "bl.png", "br.png")
         images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
@@ -717,7 +724,7 @@ class ChannelList(List):
         control.SetMinSize((self.columns[2]['width'],15))
         control.SetBackgroundColour(wx.WHITE)
         control.SetVotes(ratio)
-        control.SetToolTipString('%s votes'%pop)
+        control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
         return control
     
     def OnExpand(self, item):
@@ -828,10 +835,12 @@ class SelectedChannelList(SearchList):
         data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
         self.list.SetData(data)
         
-        if len(data) == 1:
+        self.total_results = len(data)
+        
+        if self.total_results == 1:
             self.header.SetSubTitle('Discovered %d torrent'%1)
         else:
-            self.header.SetSubTitle('Discovered %d torrents'%len(data))
+            self.header.SetSubTitle('Discovered %d torrents'%self.total_results)
     
     def RefreshData(self, key, data):
         data = (data['infohash'],[data['name'], data['time_stamp'], data['length'], 0, 0], data)

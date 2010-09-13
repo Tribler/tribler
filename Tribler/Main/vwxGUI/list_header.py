@@ -280,7 +280,7 @@ class MyChannelHeader(SubTitleHeader):
         return self.name
         
     def SetName(self, name):
-        self.name.SetLabel('( '+name+'\'s Channel )')
+        self.name.SetLabel('( %s\'s Channel )'%name)
         
     def SetNrTorrents(self, nr, nr_favorites):
         subtitle = ''
@@ -301,6 +301,10 @@ class MyChannelHeader(SubTitleHeader):
         SubTitleHeader.AddColumns(self, sizer, parent, [])
 
 class SearchHeader(TitleHeader):
+    def GetTitlePanel(self, parent):
+        self.filteredResults = wx.StaticText(parent)
+        return self.filteredResults
+    
     def GetRightTitlePanel(self, parent):
         self.filter = wx.SearchCtrl(parent)
         self.filter.SetDescriptiveText('Filter results')
@@ -327,12 +331,23 @@ class SearchHeader(TitleHeader):
     def toggleFamilyFilter(self, event):
         self.parent.toggleFamilyFilter()
     
+    def FilterCorrect(self, regex_correct):
+        pass
+    def SetNrResults(self, nr = None):
+        if nr:
+            self.filteredResults.SetLabel('( %d after applying the filter )'%nr)
+        else:
+            self.filteredResults.SetLabel('')
+        self.Layout()
+    
     def OnKey(self, event):
         self.parent.OnFilter(self.filter.GetValue().strip())
     
     def Reset(self):
         TitleHeader.Reset(self)
+        
         self.filter.Clear()
+        self.filteredResults.SetLabel('')
 
 class ChannelHeader(SearchHeader):
     def GetRightTitlePanel(self, parent):
@@ -342,11 +357,14 @@ class ChannelHeader(SearchHeader):
         return hSizer
 
     def GetTitlePanel(self, parent):
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.subtitle = wx.StaticText(parent)
-        return self.subtitle
+        hSizer.Add(self.subtitle)
+        hSizer.Add(SearchHeader.GetTitlePanel(self, parent))
+        return hSizer
     
     def SetSubTitle(self, subtitle):
-        self.subtitle.SetLabel('( '+subtitle+' )')
+        self.subtitle.SetLabel('( %s )'%subtitle)
         
     def SetEvents(self, back):
         self.back.Bind(wx.EVT_BUTTON, back)

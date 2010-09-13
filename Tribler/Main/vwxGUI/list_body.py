@@ -377,14 +377,20 @@ class AbstractListBody():
             self.filter = new_filter
             self.filtercolumn = column
             
-            self.Scroll(-1, 0)
-            self.Freeze()
+            try:
+                re.compile(self.filter)
                 
-            self.vSizer.ShowItems(False)
-            self.vSizer.Clear()
-            self.CreateItems()
-            
-            self.Thaw()
+                self.Scroll(-1, 0)
+                self.Freeze()
+                    
+                self.vSizer.ShowItems(False)
+                self.vSizer.Clear()
+                self.CreateItems()
+                
+                self.Thaw()
+            except: #regex incorrect
+                return False
+        return True
         
     def MatchFilter(self, item):
         return re.search(self.filter, item[1][self.filtercolumn].lower())
@@ -518,6 +524,7 @@ class AbstractListBody():
         #Apply quickfilter
         if self.filter != '':
             data = filter(self.MatchFilter, self.data)
+            self.parent_list.SetFilteredResults(len(data))
         else:
             data = self.data
             
@@ -543,7 +550,7 @@ class AbstractListBody():
                 else:
                     nr_items_to_add -= 1
             else:
-                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nUse the filter to reduce the number of items, or click the button below.'%(LIST_ITEM_MAX_SIZE, len(self.data)))
+                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nUse the filter to reduce the number of items, or click the button below.'%(LIST_ITEM_MAX_SIZE, len(data)))
                 self.loadNext.Enable()
                 self.loadNext.Show()
                 self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
@@ -556,7 +563,7 @@ class AbstractListBody():
         self.Thaw()
         self.done = done
         if DEBUG:
-            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time.time() - t1
+            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(data),"took", time.time() - t1
         
     def GetItem(self, key):
         return self.items[key]
