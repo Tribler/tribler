@@ -166,7 +166,7 @@ class TorrentDetails(wx.Panel):
                 try:
                     pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
                 except:
-                    filename = unicode(filename)
+                    filename = filename.decode('utf-8','ignore')
                     pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
                 self.listCtrl.SetItemData(pos, pos)
                 self.listCtrl.itemDataMap.setdefault(pos, [filename, size])
@@ -718,7 +718,7 @@ class MyChannelTabs(wx.Panel):
             for url in urls:
                 rowSizer = wx.BoxSizer(wx.HORIZONTAL)
                 
-                rsstext = wx.StaticText(parent, -1, url)
+                rsstext = wx.StaticText(parent, -1, url.replace('&', '&&'))
                 rsstext.SetMinSize((1,-1))
                 
                 deleteButton = wx.Button(parent, -1, "Delete")

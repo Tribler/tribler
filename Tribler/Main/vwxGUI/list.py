@@ -70,7 +70,7 @@ class LocalSearchManager:
 class ChannelSearchManager:
     def __init__(self, list):
         self.list = list
-        self.category = 'Popular'
+        self.category = ''
         
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
 
@@ -102,8 +102,14 @@ class ChannelSearchManager:
         self.list.SetFocus()
         
     def SetCategory(self, category):
-        self.category = category
-        self.list.Reset()
+        if category != self.category:
+            self.category = category
+            self.list.Reset()
+            
+            if category != 'searchresults':
+                self.refresh()
+        else:
+            self.list.DeselectAll()
         
     def channelUpdated(self, permid):
         if self.list.ready:
@@ -280,6 +286,12 @@ class List(wx.Panel):
     def Focus(self):
         if self.ready:
             self.list.SetFocus()
+    
+    def DeselectAll(self):
+        self.list.DeselectAll()
+        
+    def Select(self, key, raise_event = True):
+        self.list.Select(key, raise_event)
     
 class SearchList(List):
     def __init__(self):
@@ -964,10 +976,6 @@ class ChannelCategoriesList(List):
         #Show highlight
         return True
     
-    def Select(self, key, raise_event = True):
-        self.list.Select(key, raise_event)
-    def DeselectAll(self):
-        self.list.DeselectAll()
     def GetSelectedCategory(self):
         category = self.list.GetExpandedItem()
         if category:

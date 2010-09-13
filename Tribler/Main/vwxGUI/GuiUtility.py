@@ -253,29 +253,29 @@ class GUIUtility:
     def showChannelCategory(self, category):
         self.frame.channellist.Freeze()
         
-        self.frame.channellist.Reset()
-        self.ShowPage('channels')
-        
-        self.frame.channellist.Thaw()
-        
         manager = self.frame.channellist.GetManager()
         manager.SetCategory(category)
-        manager.refresh()
+        
+        self.ShowPage('channels')
+        self.frame.channellist.Thaw()
     
     def showChannel(self, channelname, channel_permid):
         self.frame.selectedchannellist.Freeze()
         
+        self.frame.selectedchannellist.Reset()
         self.frame.selectedchannellist.SetTitle(channelname)
-        self.frame.selectedchannellist.GetManager().refresh(channel_permid)
+        self.ShowPage('selectedchannel')
         
         description_list = ["Marking a channel as your favorite will help to distribute it.", "If many Tribler users mark a channel as their favorite, it is considered popular."]
         self.frame.channelcategories.Quicktip(random.choice(description_list))
-        
-        self.ShowPage('selectedchannel')
         self.frame.selectedchannellist.Thaw()
+        
+        manager = self.frame.selectedchannellist.GetManager()
+        manager.refresh(channel_permid)
     
     def showChannelResults(self, data_channel):
         self.frame.channellist.Freeze()
+        
         self.frame.top_bg.selectTab('channels')
         self.frame.channelcategories.DeselectAll()
         
