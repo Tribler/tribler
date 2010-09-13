@@ -855,6 +855,10 @@ class SelectedChannelList(SearchList):
         self.channelsearch_manager.favorite(self.publisher_id)
         self.footer.SetStates(False, True)
         
+        #Request all items from connected peers
+        channelcast = BuddyCastFactory.getInstance().channelcast_core
+        channelcast.updateAChannel(self.publisher_id)
+        
     def OnSpam(self, event):
         dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dialog.ShowModal() == wx.ID_YES:
