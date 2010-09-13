@@ -3227,7 +3227,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         
         where = "T.infohash == C.infohash AND publisher_id=='%s' AND name<>''"% publisher_id
         
-        results = self._db.getAll('Torrent T, ChannelCast C', value_name, where, order_by = "time_stamp DESC")
+        results = self._db.getAll('CollectedTorrent T, ChannelCast C', value_name, where, order_by = "time_stamp DESC")
         value_name[1] = 'infohash'
         torrent_list = [dict(zip(value_name,result)) for result in results]
         for torrent in torrent_list:
@@ -3291,11 +3291,11 @@ class ChannelCastDBHandler(BasicDBHandler):
             return None
         
     def getTorrents(self, publisher_id):
-        sql = "select * from Torrent where infohash in (select infohash from ChannelCast where publisher_id==?)"
+        sql = "select * from Torrent where infohash in (select distinct infohash from ChannelCast where publisher_id==?)"
         return self._db.fetchall(sql,(publisher_id,))
     
     def getInfohashesForChannel(self, publisher_id):
-        sql = "select infohash from ChannelCast where publisher_id==? ;"
+        sql = "select disctinct infohash from ChannelCast where publisher_id==? ;"
         return self._db.fetchall(sql,(publisher_id,))
     
     def isItemInChannel(self,publisher_id,infohash):
