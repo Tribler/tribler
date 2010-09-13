@@ -74,7 +74,7 @@ class TorrentDetails(wx.Panel):
         self.messagePanel.Show(False)
         
         def create_tab(tabname, header = None):
-            panel = wx.Panel(self.notebook)
+            panel = wx.lib.scrolledpanel.ScrolledPanel(self.notebook)
             panel.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
             self.notebook.AddPage(panel, tabname)
             
@@ -86,14 +86,9 @@ class TorrentDetails(wx.Panel):
                 font = header.GetFont()
                 font.SetWeight(wx.FONTWEIGHT_BOLD)
                 header.SetFont(font)
-                vSizer.Add(header, 0, wx.BOTTOM, 5)
+                vSizer.Add(header, 0, wx.BOTTOM, 3)
             
-            scrollPanel = wx.lib.scrolledpanel.ScrolledPanel(panel)
-            scrollSizer = wx.BoxSizer(wx.VERTICAL)
-            scrollPanel.SetSizer(scrollSizer)
-            
-            vSizer.Add(scrollPanel, 1, wx.EXPAND|wx.ALL, 3)
-            return scrollPanel, scrollSizer
+            return panel, vSizer
         
         def add_row(parent, sizer, name, value):
             if name:
@@ -141,9 +136,6 @@ class TorrentDetails(wx.Panel):
             self.listCtrl = SortedListCtrl(self.notebook, 2)
             self.listCtrl.InsertColumn(0, 'Name')
             self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
-            self.listCtrl.SetColumnWidth(1, 70)
-            self.listCtrl.setResizeColumn(1) #resize column starts at 1 instead of 0
-            self.listCtrl.SetMinSize((1,-1))
             
             self.il = wx.ImageList(16,16)
             play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'library_play.png'), wx.BITMAP_TYPE_ANY))
@@ -182,6 +174,9 @@ class TorrentDetails(wx.Panel):
                 else:
                     self.listCtrl.SetItemColumnImage(pos, 0, file_img)
             
+            self.listCtrl.setResizeColumn(1) #resize column starts at 1 instead of 0
+            self.listCtrl.SetMinSize((1,-1))
+            self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
             self.notebook.AddPage(self.listCtrl, "Files")
         
         #Create description

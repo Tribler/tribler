@@ -1245,7 +1245,10 @@ class TorrentDBHandler(BasicDBHandler):
         VALUES (?,?,?, ?,?,?)
         """
         
-        values = [(torrent_id, announce, 1, ignore_number, retry_number, last_check_time)]
+        values = []
+        if announce != None:
+            values.append((torrent_id, announce, 1, ignore_number, retry_number, last_check_time))
+        
         # each torrent only has one announce with tier number 1
         tier_num = 2
         trackers = {announce:None}
@@ -1258,8 +1261,9 @@ class TorrentDBHandler(BasicDBHandler):
                     values.append(value)
                     trackers[tracker] = None
                 tier_num += 1
-            
-        self._db.executemany(sql_insert_torrent_tracker, values, commit=commit)
+        
+        if len(values) > 0:
+            self._db.executemany(sql_insert_torrent_tracker, values, commit=commit)
         
     def updateTorrent(self, infohash, commit=True, **kw):    # watch the schema of database
         if 'category' in kw:
