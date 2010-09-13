@@ -3295,7 +3295,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         return self._db.fetchall(sql,(publisher_id,))
     
     def getInfohashesForChannel(self, publisher_id):
-        sql = "select disctinct infohash from ChannelCast where publisher_id==? ;"
+        sql = "select distinct infohash from ChannelCast where publisher_id==? ;"
         return self._db.fetchall(sql,(publisher_id,))
     
     def isItemInChannel(self,publisher_id,infohash):
