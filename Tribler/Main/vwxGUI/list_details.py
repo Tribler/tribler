@@ -166,8 +166,11 @@ class TorrentDetails(wx.Panel):
                 try:
                     pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
                 except:
-                    filename = filename.decode('utf-8','ignore')
-                    pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
+                    try:
+                        filename = filename.decode('utf-8','ignore')
+                        pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
+                    except:
+                        print >> sys.stderr, "Could not format filename", torrent['name']
                 self.listCtrl.SetItemData(pos, pos)
                 self.listCtrl.itemDataMap.setdefault(pos, [filename, size])
                 
