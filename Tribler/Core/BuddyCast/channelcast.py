@@ -66,9 +66,7 @@ class ChannelCastCore:
         if self.log:
             self.overlay_log = OverlayLogger.getInstance(self.log)
             self.dnsindb = self.data_handler.get_dns_from_peerdb
-        
-        self.hits = []
-        
+
         self.notifier = Notifier.getInstance()
 
         self.metadataDbHandler = MetadataDBHandler.getInstance()
@@ -285,8 +283,7 @@ class ChannelCastCore:
         def usercallback(infohash,metadata,filename):
             if tmp_hits.has_key(infohash):
                 hit = tmp_hits[infohash]
-                if self.channelcastdb.addTorrent(hit):
-                    self.hits.append(hit)
+                self.channelcastdb.addTorrent(hit)
             else:
                 print >> sys.stderr, "channelcast: updatechannel: could not find infohash", bin2str(infohash)
 
@@ -299,8 +296,7 @@ class ChannelCastCore:
 
 
             if self.channelcastdb.existsTorrent(infohash):
-                if self.channelcastdb.addTorrent(hit):
-                    self.hits.append(hit)
+                self.channelcastdb.addTorrent(hit)
             else:
                 self.rtorrent_handler.download_torrent(query_permid,infohash,usercallback)
         

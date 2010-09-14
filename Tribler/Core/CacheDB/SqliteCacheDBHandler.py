@@ -3227,7 +3227,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         
         where = "T.infohash == C.infohash AND publisher_id=='%s' AND name<>''"% publisher_id
         
-        results = self._db.getAll('CollectedTorrent T, ChannelCast C', value_name, where, order_by = "time_stamp DESC")
+        results = self._db.getAll('CollectedTorrent T, ChannelCast C', value_name, where, group_by = 'T.infohash', order_by = "time_stamp DESC")
         value_name[1] = 'infohash'
         torrent_list = [dict(zip(value_name,result)) for result in results]
         for torrent in torrent_list:
@@ -3397,7 +3397,7 @@ class ChannelCastDBHandler(BasicDBHandler):
     
     def getMySubscribedChannels(self, from_channelcast=False):
         """return a list of tuples: [(permid,channel_name, mindate, maxdate, #votes, #files)]"""
-        sql = 'Select publisher_id, publisher_name, min(ChannelCast.time_stamp), max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2) Group By publisher_id Order By subscribers DESC, max(ChannelCast.time_stamp) DESC' 
+        sql = 'Select publisher_id, publisher_name, min(ChannelCast.time_stamp), max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash AND publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2) Group By publisher_id Order By subscribers DESC, max(ChannelCast.time_stamp) DESC' 
         return self._db.fetchall(sql, (bin2str(self.my_permid),))
 
     def getMostPopularChannelFromTorrent(self, infohash): ##

@@ -779,7 +779,8 @@ class SelectedChannelList(SearchList):
         self.channelsearch_manager = self.guiutility.channelsearch_manager 
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Discovered', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time}, \
+                   #{'name':'Created', 'width': -1, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time},\
+                   {'name':'Date Added', 'width': 80, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time}, \
                    {'name':'Size', 'width': 80, 'style': wx.ALIGN_RIGHT, 'fmt': self.utility.size_format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
@@ -813,17 +814,41 @@ class SelectedChannelList(SearchList):
         self.guiutility.showChannel(self.title, self.publisher_id)
    
     def __format_time(self, val):
-        today = date.today()
-        discovered = date.fromtimestamp(val)
-        
-        if discovered.year < today.year:
-            return discovered.strftime('%d-%m-%y')
-        
-        if discovered < today:
-            return str(discovered.day) + discovered.strftime(' %b').lower()
-        
+        today = datetime.today()
         discovered = datetime.fromtimestamp(val)
-        return discovered.strftime('%H:%M')
+        
+        delta = today - discovered
+        years = delta.days / 365
+        
+        if years > 0:
+            if years > 1:
+                return "%d years ago"%years
+            return "%d year ago"%years
+        
+        months = delta.days / 31
+        if months > 0:
+            if months > 1:
+                return "%d months ago"%months
+            return "%d month ago"%months
+        
+        if delta.days > 0:
+            if delta.days > 1:
+                return "%d days ago"%delta.days
+            return "%d day ago"%delta.days
+        
+        hours = delta.seconds / 3600
+        if hours > 0:
+            if hours > 1:
+                return "%d hours ago"%hours
+            return "%d hour ago"%hours
+        
+        minutes = delta.seconds / 60
+        if minutes > 0:
+            if minutes > 1:
+                return "%d minutes ago"%minutes
+            return "%d minute ago"%minutes
+        
+        return "%d seconds ago"%delta.seconds
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -832,6 +857,7 @@ class SelectedChannelList(SearchList):
     
     def SetData(self, data):
         #data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], file['num_seeders'], file['num_leechers']], file) for file in data]
+        #data = [(file['infohash'],[file['name'], file['creation_date'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
         data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
         self.list.SetData(data)
         
