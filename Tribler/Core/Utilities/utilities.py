@@ -238,28 +238,32 @@ def validTorrentFile(metainfo):
                     if type(content) != StringType:
                         raise ValueError('azureus_properties content thumbnail is not string')
 
-    # Diego: perform check on httpseeds/url-list field
+    # Perform check on httpseeds/url-list fields
     if 'url-list' in metainfo:
         if 'files' in metainfo['info']:
-            # Diego: only single-file mode allowed for http seeding now
-            raise ValueError("Only single-file mode supported with HTTP seeding: remove url-list")
+            # Only single-file mode allowed for http seeding
+            del metainfo['url-list']
+            print >>sys.stderr, "Warning: Only single-file mode supported with HTTP seeding. HTTP seeding disabled"
         elif type( metainfo['url-list'] ) != ListType:
-            raise ValueError('url-list is not list, but '+`type(metainfo['url-list'])`)
+            del metainfo['url-list']
+            print >>sys.stderr, "Warning: url-list is not of type list. HTTP seeding disabled"
         else:
             for url in metainfo['url-list']:
                 if not isValidURL(url):
-                    raise ValueError("url-list url is not valid: "+`url`)
+                    del metainfo['url-list']
+                    print >>sys.stderr, "Warning: url-list url is not valid: ",`url`, "HTTP seeding disabled"
+                    break
 
     if 'httpseeds' in metainfo:
-        if 'files' in metainfo['info']:
-            # Diego: only single-file mode allowed for http seeding now
-            raise ValueError("Only single-file mode supported with HTTP seeding: remove httpseeds")
-        elif type( metainfo['httpseeds'] ) != ListType:
-            raise ValueError('httpseeds is not list, but '+`type(metainfo['httpseeds'])`)
+        if type( metainfo['httpseeds'] ) != ListType:
+            del metainfo['httpseeds']
+            print >>sys.stderr, "Warning: httpseeds is not of type list. HTTP seeding disabled"
         else:
             for url in metainfo['httpseeds']:
                 if not isValidURL(url):
-                    raise ValueError("httpseeds url is not valid: "+`url`)
+                    del metainfo['httpseeds']
+                    print >>sys.stderr, "Warning: httpseeds url is not valid: ",`url`, "HTTP seeding disabled"
+                    break
 
 
 def isValidTorrentFile(metainfo):

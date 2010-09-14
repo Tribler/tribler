@@ -1,4 +1,4 @@
-# Written by Arno Bakker, Diego Rabioli
+# Written by Arno Bakker, Diego Rabaioli
 # see LICENSE.txt for license information
 #
 # Implements the BackgroundProcess, i.e. SwarmEngine for SwarmPlugin and 
