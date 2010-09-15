@@ -363,7 +363,20 @@ class AbstractListBody():
         self.Scroll(-1, 0)
         self.Freeze()
         
-        self.data = sorted(self.data, cmp = lambda b,a: cmp(a[1][column], b[1][column]), reverse=reverse)
+        def sortby(b, a):
+            if a[0] in self.items:
+                a = self.items[a[0]].data[column]
+            else:
+                a = a[1][column]
+                
+            if b[0] in self.items:
+                b = self.items[b[0]].data[column]
+            else:
+                b = b[1][column] 
+            
+            return cmp(a, b)
+
+        self.data = sorted(self.data, cmp = sortby, reverse=reverse)
         
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()

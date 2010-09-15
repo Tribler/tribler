@@ -338,7 +338,7 @@ class SearchList(List):
         self.utility = self.guiutility.utility
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Size', 'width': 60, 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
+                   {'name':'Size', 'width': 80, 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
@@ -708,7 +708,7 @@ class ChannelList(List):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': self.__favorite_icon, 'sortAsc': True}, \
                    {'name':'Latest Update', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'fmt': self.format_time}, \
                    #{'name':'Popularity', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format}, \
-                   {'type':'method', 'width': 65, 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}, \
+                   {'type':'method', 'width': 75, 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}, \
                    {'name':'Torrents', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT}]
         
         images = ("tl.png", "tr.png", "bl.png", "br.png")
@@ -806,8 +806,8 @@ class SelectedChannelList(SearchList):
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    #{'name':'Created', 'width': -1, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time},\
-                   {'name':'Date Added', 'width': 70, 'fmt': self.format_time, 'defaultSorted': True}, \
-                   {'name':'Size', 'width': 60, 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
+                   {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}, \
+                   {'name':'Size', 'width': 70, 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
@@ -899,7 +899,7 @@ class MyChannelList(List):
         self.utility = self.guiutility.utility
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}, \
-                   {'name':'Date Added', 'width': 70, 'fmt': self.format_time, 'defaultSorted': True}]
+                   {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}]
         
         images = ("tl.png", "tr.png", "bl.png", "br.png")
         images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]

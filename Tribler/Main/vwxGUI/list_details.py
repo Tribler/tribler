@@ -884,9 +884,10 @@ class SwarmHealth(wx.Panel):
         
         width, height = self.GetClientSize()
         width -= self.bordersize * 2
+        width -= 1
         width -= width % 10
         width += 1
-
+        
         xpos = (self.GetClientSize()[0] - width) / 2
             
         dc.SetPen(wx.BLACK_PEN)
@@ -929,11 +930,13 @@ class ChannelPopularity(wx.Panel):
         dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
         dc.Clear()
         
+        bitmapWidth, bitmapHeight = self.bitmap.GetSize()
+        
         width, height = self.GetClientSize()
         width -= self.bordersize * 2
+        width = min(width, 5 * bitmapWidth)
         
-        bitmapWidth, bitmapHeight = self.bitmap.GetSize()
-        xpos = (self.GetClientSize()[0] - width) / 2
+        xpos = self.bordersize
         ypos = (height - bitmapHeight) / 2
 
         for i in range(5):
