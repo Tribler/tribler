@@ -287,12 +287,10 @@ class GUIUtility:
             
             if torrents > 0:
                 timestamps = [value[1] for torrent, value in data_channel[permid][2].iteritems()]
-                min_timestamp = min(timestamps)
                 max_timestamp = max(timestamps)
             else:
-                min_timestamp = -1
                 max_timestamp = -1
-            data.append([permid, channel_name, min_timestamp, max_timestamp, subscribers, torrents])
+            data.append([permid, channel_name, max_timestamp, subscribers, torrents])
         def subscribe_latestupdate_sort(b, a):
             val = cmp(a[4], b[4])
             if val == 0:
