@@ -181,6 +181,28 @@ class MyChannelManager():
 
 class List(wx.Panel):
     def __init__(self, columns, images, background, spacers = [0,0], singleSelect = False, name = False):
+        """
+        Column alignment:
+        
+        Text should usually be left-aligned, though if there are only a small number of possible values and 
+        they are all short, then centre alignment can work well.
+        
+        Numbers should usually be right-aligned with each other.
+        
+        Numbers with decimal points should have the same number of digits to the right of the point. They 
+        should be right-aligned (so the decimal points are all aligned).
+        
+        Numbers are right-aligned to make it easy to visually compare magnitudes. So in cases where the 
+        magnitude is irrelevant (for example, listing the team numbers of football players) you could consider left- or centre-alignment.
+        For the same reason, numbers representing magnitudes should use the same units. For example, Mac OS "helpfully" displays file sizes 
+        in differing units (kB, MB). This makes it very easy to miss a 3MB file in a listing of 3kB files. If it were listed as 3000kB then it would stand out appropriately.
+        
+        Headings often look good if they are aligned the same as their data. You could consider alternatives such as centre-alignment, but 
+        avoid situations where a column heading is not actually above the data in the column (e.g. a wide column with left-aligned header and right-aligned data).
+        
+        taken from: http://uxexchange.com/questions/2249/text-alignment-in-tables-legibility
+        """
+        
         self.columns = columns
         self.images = images
         self.background = background
@@ -237,6 +259,19 @@ class List(wx.Panel):
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
         self.ready = True
     
+    def format_time(self, val):
+        today = datetime.today()
+        discovered = datetime.fromtimestamp(val)
+        
+        diff = today - discovered
+        if diff.days > 0 or today.day != discovered.day:
+            return discovered.strftime('%d-%m-%Y')
+        return discovered.strftime('Today %H:%M')
+
+    def format_size(self, val):
+        size = (val/1048576.0)
+        return "%.1f MB"%size
+    
     def CreateHeader(self):
         return ListHeader(self, self.images[0], self.images[1], self.background, self.columns)
     
@@ -286,6 +321,10 @@ class List(wx.Panel):
     def Focus(self):
         if self.ready:
             self.list.SetFocus()
+        
+    def ScrollToEnd(self, scroll_to_end):
+        if self.ready:
+            self.list.ScrollToEnd(scroll_to_end)
     
     def DeselectAll(self):
         self.list.DeselectAll()
@@ -299,7 +338,7 @@ class SearchList(List):
         self.utility = self.guiutility.utility
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Size', 'width': 80, 'style': wx.ALIGN_RIGHT, 'fmt': self.utility.size_format}, \
+                   {'name':'Size', 'width': 60, 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
@@ -667,9 +706,9 @@ class ChannelList(List):
         self.utility = self.guiutility.utility
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': self.__favorite_icon, 'sortAsc': True}, \
-                   {'name':'Latest update', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time}, \
+                   {'name':'Latest Update', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'fmt': self.format_time}, \
                    #{'name':'Popularity', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format}, \
-                   {'type':'method', 'width': 65, 'method': self.CreatePopularity, 'name':'Popularity'}, \
+                   {'type':'method', 'width': 65, 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}, \
                    {'name':'Torrents', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT}]
         
         images = ("tl.png", "tr.png", "bl.png", "br.png")
@@ -695,19 +734,6 @@ class ChannelList(List):
         if val <= 0:
             return "New"
         return str(val)
-    
-    def __format_time(self, val):
-        today = date.today()
-        discovered = date.fromtimestamp(val)
-        
-        if discovered.year < today.year:
-            return discovered.strftime('%d-%m-%y')
-        
-        if discovered < today:
-            return str(discovered.day) + discovered.strftime(' %b').lower()
-        
-        discovered = datetime.fromtimestamp(val)
-        return discovered.strftime('%H:%M')
     
     def CreateHeader(self):
         return SubTitleHeader(self, self.images[0], self.images[1], self.background, self.columns)
@@ -780,8 +806,8 @@ class SelectedChannelList(SearchList):
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    #{'name':'Created', 'width': -1, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time},\
-                   {'name':'Date Added', 'width': 80, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time}, \
-                   {'name':'Size', 'width': 80, 'style': wx.ALIGN_RIGHT, 'fmt': self.utility.size_format}, \
+                   {'name':'Date Added', 'width': 70, 'fmt': self.format_time, 'defaultSorted': True}, \
+                   {'name':'Size', 'width': 60, 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
@@ -813,43 +839,6 @@ class SelectedChannelList(SearchList):
         self.guiutility.toggleFamilyFilter()
         self.guiutility.showChannel(self.title, self.publisher_id)
    
-    def __format_time(self, val):
-        today = datetime.today()
-        discovered = datetime.fromtimestamp(val)
-        
-        delta = today - discovered
-        years = delta.days / 365
-        
-        if years > 0:
-            if years > 1:
-                return "%d years ago"%years
-            return "%d year ago"%years
-        
-        months = delta.days / 31
-        if months > 0:
-            if months > 1:
-                return "%d months ago"%months
-            return "%d month ago"%months
-        
-        if delta.days > 0:
-            if delta.days > 1:
-                return "%d days ago"%delta.days
-            return "%d day ago"%delta.days
-        
-        hours = delta.seconds / 3600
-        if hours > 0:
-            if hours > 1:
-                return "%d hours ago"%hours
-            return "%d hour ago"%hours
-        
-        minutes = delta.seconds / 60
-        if minutes > 0:
-            if minutes > 1:
-                return "%d minutes ago"%minutes
-            return "%d minute ago"%minutes
-        
-        return "%d seconds ago"%delta.seconds
-    
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
             self.manager = ChannelManager(self) 
@@ -910,26 +899,13 @@ class MyChannelList(List):
         self.utility = self.guiutility.utility
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}, \
-                   {'name':'Added', 'width': 70, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time}]
+                   {'name':'Date Added', 'width': 70, 'fmt': self.format_time, 'defaultSorted': True}]
         
         images = ("tl.png", "tr.png", "bl.png", "br.png")
         images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
         List.__init__(self, columns, images, '#D8E9F0', [7,7], name = 'MyChannelList')
-    
-    def __format_time(self, val):
-        today = date.today()
-        discovered = date.fromtimestamp(val)
-        
-        if discovered.year < today.year:
-            return discovered.strftime('%d-%m-%y')
-        
-        if discovered < today:
-            return str(discovered.day) + discovered.strftime(' %b').lower()
-        
-        discovered = datetime.fromtimestamp(val)
-        return discovered.strftime('%H:%M')
-    
+      
     def CreateHeader(self):
         self.myheader = MyChannelHeader(self, self.images[0], self.images[1], self.background, self.columns)
         self.myheader.SetName(self.utility.session.get_nickname())

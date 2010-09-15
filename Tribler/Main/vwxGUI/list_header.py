@@ -1,6 +1,50 @@
 import wx
 import sys
 
+class ListHeaderIcon:
+    __single = None
+    def __init__(self):
+        if ListHeaderIcon.__single:
+            raise RuntimeError, "ListHeaderIcon is singleton"
+        ListHeaderIcon.__single = self
+        
+    def getInstance(*args, **kw):
+        if ListHeaderIcon.__single is None:
+            ListHeaderIcon(*args, **kw)
+        return ListHeaderIcon.__single
+    getInstance = staticmethod(getInstance)
+    
+    def getBitmaps(self, parent, background):
+        if not getattr(self, 'icons', False):
+            self.icons = self.__createBitmap(parent, background, 'arrow')
+        return self.icons
+    
+    def __createBitmap(self, parent, background, type, flag=0):
+        #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
+        #Thus we create a larger bmp, allowing for borders
+        bmp = wx.EmptyBitmap(24,24) 
+        dc = wx.MemoryDC(bmp)
+        dc.SetBackground(wx.Brush(background))
+        dc.Clear()
+        
+        if type == 'arrow':
+            wx.RendererNative.Get().DrawDropArrow(parent, dc, (4, 4, 16, 16), flag) #max size is 16x16, using 4px as a border
+        dc.SelectObject(wx.NullBitmap)
+        
+        #determine actual size of drawn icon, and return this subbitmap
+        bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
+        down = bmp.GetSubBitmap(bb)
+        
+        img = down.ConvertToImage()
+        up = img.Rotate90().Rotate90().ConvertToBitmap()
+        
+        empty = wx.EmptyBitmap(up.GetWidth(), up.GetHeight())
+        dc = wx.MemoryDC(empty)
+        dc.SetBackground(wx.Brush(background))
+        dc.Clear()
+        dc.SelectObject(wx.NullBitmap)
+        return [down, up, empty]
+
 class ListHeader(wx.Panel):
     def __init__(self, parent, leftImg, rightImg, background, columns):
         wx.Panel.__init__(self, parent)
@@ -9,10 +53,11 @@ class ListHeader(wx.Panel):
         self.SetBackgroundColour(background)
         self.columns = columns
 
-        self.AddComponents(leftImg, rightImg, columns)
-        
         self.sortedColumn = -1
+        self.defaultSort = -1
         self.sortedDirection = False
+
+        self.AddComponents(leftImg, rightImg, columns)
 
     def AddComponents(self, leftImg, rightImg, columns):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -38,26 +83,41 @@ class ListHeader(wx.Panel):
     def AddColumns(self, sizer, parent, columns):
         self.columnHeaders = []
         
+        down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.background)
         for i in xrange(len(columns)):
             if columns[i].get('name', '') != '':
                 if columns[i]['width'] == wx.LIST_AUTOSIZE:
                     option = 1
-                    size = wx.DefaultSize
-                elif columns[i]['width'] == wx.LIST_AUTOSIZE_USEHEADER:
-                    option = 0
-                    size = wx.DefaultSize
                 else:
                     option = 0
-                    size = (columns[i]['width'],-1)
                      
-                label = wx.StaticText(parent, i, columns[i]['name'], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE, size = size)
+                label = wx.StaticText(parent, i, columns[i]['name'], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
                 label.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
                 label.SetToolTipString('Click to sort table by %s.'%columns[i]['name'])
                 label.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-                sizer.Add(label, option, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+                sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+                
+                if columns[i].get('defaultSorted', False):
+                    label.sortIcon = wx.StaticBitmap(self, -1, down)
+                    self.sortedColumn = i
+                    self.defaultSort = i
+                else:
+                    label.sortIcon = wx.StaticBitmap(self, -1, empty)
+                sizer.Add(label.sortIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.TOP|wx.BOTTOM, 3)
                 
                 if columns[i]['width'] == wx.LIST_AUTOSIZE_USEHEADER:
-                    columns[i]['width'] = label.GetBestSize()[0]
+                    columns[i]['width'] = label.GetBestSize()[0] + down.GetWidth()
+                    
+                elif columns[i]['width'] == wx.LIST_AUTOSIZE:
+                    sizer.AddStretchSpacer()
+                    
+                else:
+                    remainingWidth = columns[i]['width'] - (label.GetBestSize()[0] + down.GetWidth())
+                    if remainingWidth > 0:
+                        sizer.AddSpacer((remainingWidth, 1))
+                    else:
+                        print >> sys.stderr, "LIST_HEADER: specified width is too small", columns[i]['name'], columns[i]['width']
+                        label.SetSize((label.GetBestSize()[0] + remainingWidth, -1))
                     
                 self.columnHeaders.append(label)
             else:
@@ -139,16 +199,41 @@ class ListHeader(wx.Panel):
         event.Skip() #Allow for windows button hovering
     
     def OnClick(self, event):
+        newColumn = event.Id
+        
         if event.Id == self.sortedColumn:
-            self.sortedDirection = not self.sortedDirection
+            newDirection = not self.sortedDirection
         else:
-            self.sortedColumn = event.Id
-            self.sortedDirection = self.columns[event.Id].get('sortAsc',False)
-            
-        self.GetParent().OnSort(event.Id, self.sortedDirection)
+            newDirection = self.columns[newColumn].get('sortAsc', False)
+        
+        self.GetParent().OnSort(newColumn, newDirection)
+        self._SetSortedIcon(newColumn, newDirection)
     
+    def _SetSortedIcon(self, newColumn, newDirection):
+        down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.background)
+        
+        if self.sortedColumn != -1 and newColumn != self.sortedColumn:
+            prevSort = self.columnHeaders[self.sortedColumn].sortIcon
+            prevSort.SetBitmap(empty)
+            prevSort.Refresh()
+        
+        if newColumn != -1:
+            newSort = self.columnHeaders[newColumn].sortIcon
+            if newDirection: 
+                newSort.SetBitmap(up)
+            else:
+                newSort.SetBitmap(down)
+            newSort.Refresh()
+        
+        self.sortedColumn = newColumn
+        self.sortedDirection = newDirection
+        
     def Reset(self):
-        pass
+        if self.defaultSort != -1:
+            defaultDirection = self.columns[self.defaultSort].get('sortAsc', False)
+        else:
+            defaultDirection = False
+        self._SetSortedIcon(self.defaultSort, defaultDirection)
         
 class TitleHeader(ListHeader):
     def __init__(self, parent, leftImg, rightImg, background, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD):

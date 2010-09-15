@@ -460,6 +460,12 @@ class AbstractListBody():
     
     def InList(self, key):
         return key in self.items
+
+    def ScrollToEnd(self, scroll_to_end):
+        if scroll_to_end:
+            self.Scroll(-1, self.vSizer.GetSize()[1])
+        else:
+            self.Scroll(-1, 0)
     
     def ShowMessage(self, message):
         self.Freeze()

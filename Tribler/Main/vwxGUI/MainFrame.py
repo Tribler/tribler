@@ -192,16 +192,23 @@ class MainFrame(wx.Frame):
         
         findId = wx.NewId()
         quitId = wx.NewId()
+        homeId = wx.NewId()
+        endId = wx.NewId()
         
         self.Bind(wx.EVT_MENU, self.OnFind, id = findId)
         self.Bind(wx.EVT_MENU, lambda event: self.Close(), id = quitId)
+        self.Bind(wx.EVT_MENU, lambda event: self.guiUtility.OnList(False), id = homeId)
+        self.Bind(wx.EVT_MENU, lambda event: self.guiUtility.OnList(True), id = endId)
+        
+        accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_HOME, homeId))
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_END, endId))
+        
         if sys.platform == 'linux2':
-            self.SetAcceleratorTable(wx.AcceleratorTable([(wx.ACCEL_CTRL, ord('q'), quitId)]))
-            self.SetAcceleratorTable(wx.AcceleratorTable([(wx.ACCEL_CTRL, ord('/'), findId)]))
-            self.SetAcceleratorTable(wx.AcceleratorTable([(wx.ACCEL_CTRL, ord('f'), findId)]))
-        else:
-            self.SetAcceleratorTable(wx.AcceleratorTable([(wx.ACCEL_CTRL, ord('f'), findId)]))
-            
+            accelerators.append((wx.ACCEL_CTRL, ord('q'), quitId))
+            accelerators.append((wx.ACCEL_CTRL, ord('/'), findId))
+        self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
+        
         try:
             self.tbicon = ABCTaskBarIcon(self)
         except:

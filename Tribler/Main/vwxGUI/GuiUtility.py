@@ -307,6 +307,12 @@ class GUIUtility:
         self.ShowPage('channels')
         self.frame.channellist.Thaw()
         
+    def OnList(self, goto_end):
+        lists = {'channels': self.frame.channellist,'selectedchannel': self.frame.selectedchannellist ,'mychannel': self.frame.mychannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
+        if self.guiPage in lists:
+            lists[self.guiPage].ScrollToEnd(goto_end)
+            
+        
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
 
