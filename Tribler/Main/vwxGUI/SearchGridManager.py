@@ -955,12 +955,13 @@ class ChannelSearchGridManager:
         
         # Nitin on Feb 5, 2010: temp fix: converting into string format coz most things in GUI use string forms.
         # Fields like permid, infohash, torrenthash are in binary format in each record in 'hits' list.
+        votecache = {}
         self.hits = {}
         for hit in hits:
             if bin2str(hit[0]) not in self.hits:
                 torrents = {}                 
                 torrents[bin2str(hit[2])] = (hit[4], hit[5]) # {infohash:(torrentname, timestamp)}
-                self.hits[bin2str(hit[0])] = [hit[1], self.votecastdb.getEffectiveVote(bin2str(hit[0])), torrents]
+                self.hits[bin2str(hit[0])] = [hit[1], votecache.setdefault(hit[0], self.votecastdb.getEffectiveVote(bin2str(hit[0]))), torrents]
             else:
                 torrents = self.hits[bin2str(hit[0])][2]
                 if bin2str(hit[2]) not in torrents:

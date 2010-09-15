@@ -3338,21 +3338,21 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def getNewChannels(self):
         """ Returns all newest unsubscribed channels, ie the ones with no votes (positive or negative)"""
-        sql = 'Select publisher_id, publisher_name, min(ChannelCast.time_stamp), max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On publisher_id == mod_id WHERE ChannelCast.infohash = CollectedTorrent.infohash AND publisher_id <> ? Group By publisher_id Having count(voter_id) = 0 Order By max(ChannelCast.time_stamp) DESC' 
+        sql = 'Select publisher_id, publisher_name, max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On publisher_id == mod_id WHERE ChannelCast.infohash = CollectedTorrent.infohash AND publisher_id <> ? Group By publisher_id Having count(voter_id) = 0 Order By max(ChannelCast.time_stamp) DESC' 
         return self._db.fetchall(sql,(bin2str(self.my_permid),))
 
     def getAllChannels(self):
         """ Returns all the channels """
-        sql = 'Select publisher_id, publisher_name, min(ChannelCast.time_stamp), max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash Group By publisher_id Order By subscribers DESC, max(ChannelCast.time_stamp) DESC' 
+        sql = 'Select publisher_id, publisher_name, max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash Group By publisher_id Order By subscribers DESC, max(ChannelCast.time_stamp) DESC' 
         return self._db.fetchall(sql)
     
     def getChannel(self, permid):
-        sql = 'Select publisher_id, publisher_name, min(ChannelCast.time_stamp), max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash AND publisher_id == ?' 
+        sql = 'Select publisher_id, publisher_name, max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash AND publisher_id == ?' 
         return self._db.fetchone(sql,(permid,))
 
     def getChannelsFromList(self, permids):
         permids = '"' + '", "'.join(permids)+ '"'
-        sql = 'Select publisher_id, publisher_name, min(ChannelCast.time_stamp), max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash AND publisher_id IN ('+permids+')'
+        sql = 'Select publisher_id, publisher_name, max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash AND publisher_id IN ('+permids+')'
         print >> sys.stderr, sql 
         
         return self._db.fetchall(sql)
@@ -3360,7 +3360,7 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getMostPopularUnsubscribedChannels(self,from_channelcast=False): ##
         """return a list of tuples: [(permid,channel_name, mindate, maxdate, #votes, #files)]"""
         
-        sql = 'Select publisher_id, publisher_name, min(ChannelCast.time_stamp), max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash Group By publisher_id Order By subscribers DESC, max(ChannelCast.time_stamp) DESC Limit 20' 
+        sql = 'Select publisher_id, publisher_name, max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash Group By publisher_id Order By subscribers DESC, max(ChannelCast.time_stamp) DESC Limit 20' 
         return self._db.fetchall(sql)
 
     def getMyChannel(self):
@@ -3397,7 +3397,7 @@ class ChannelCastDBHandler(BasicDBHandler):
     
     def getMySubscribedChannels(self, from_channelcast=False):
         """return a list of tuples: [(permid,channel_name, mindate, maxdate, #votes, #files)]"""
-        sql = 'Select publisher_id, publisher_name, min(ChannelCast.time_stamp), max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash AND publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2) Group By publisher_id Order By subscribers DESC, max(ChannelCast.time_stamp) DESC' 
+        sql = 'Select publisher_id, publisher_name, max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash AND publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2) Group By publisher_id Order By subscribers DESC, max(ChannelCast.time_stamp) DESC' 
         return self._db.fetchall(sql, (bin2str(self.my_permid),))
 
     def getMostPopularChannelFromTorrent(self, infohash): ##

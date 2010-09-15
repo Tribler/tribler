@@ -769,13 +769,13 @@ class ChannelList(List):
         if len(data) > 0:
             self.favorites = [file[0] for file in favorites]
             
-            data = [(file[0],[file[1], file[3], file[4], file[5]], file) for file in data]
+            data = [(file[0],[file[1], file[2], file[3], file[4]], file) for file in data]
             self.list.SetData(data)
         else:
             self.list.ShowMessage('No channels are discovered for this category.')
         
     def RefreshData(self, key, data):
-        data = (data[0],[data[1], data[3], data[4], data[5]], data)
+        data = (data[0],[data[1], data[2], data[3], data[4]], data)
         self.list.RefreshData(key, data)
         
     def SetTitle(self, title, nr):

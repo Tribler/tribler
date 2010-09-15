@@ -100,7 +100,7 @@ class TorrentDetails(wx.Panel):
             
             value = wx.StaticText(parent, -1, unicode(value))
             value.SetMinSize((1,-1))
-            sizer.Add(value, 1, wx.EXPAND|wx.LEFT, 10)
+            sizer.Add(value, 0, wx.EXPAND|wx.LEFT, 10)
             
             return name, value
     
