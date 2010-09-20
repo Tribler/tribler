@@ -143,7 +143,7 @@ class TorrentFeedThread(Thread):
                 self.feeds_changed.set()
             if dowrite:
                 self.writefile()
-        if callback:
+        elif callback: #replace callback
             for tup in self.feeds:
                 if tup[0].feed_url == url:
                    tup[2] = callback
@@ -257,7 +257,7 @@ class TorrentFeedThread(Thread):
             
             # feeds contains (rss_url, generator) pairs
             feeds = {}
-            for feed, on_torrent_callback, user_callback in cfeeds:
+            for feed, _, _ in cfeeds:
                 try:
                     sugestion_generator = feed.refresh()
                 except:
@@ -317,10 +317,7 @@ class TorrentFeedThread(Thread):
             infohash = sha.sha(bencode(torrent_data['info'])).digest()
             if not self.torrent_db.hasTorrent(infohash):
                 if DEBUG:
-                    if "name" in torrent_data["info"]:
-                        print >>sys.stderr,"subscrip:Injecting", torrent_data["info"]["name"]
-                    else:
-                        print >>sys.stderr,"subscrip:Injecting", title
+                    print >>sys.stderr,"subscrip:Injecting", torrent_data["info"].get("name", infohash)
                 
                 hexinfohash = binascii.hexlify(infohash)
                 if DEBUG:
@@ -340,15 +337,17 @@ class TorrentFeedThread(Thread):
                 self.torrent_db.addExternalTorrent(torrentdef,source=source,extra_info=extra_info)
                         
             # perform all url-specific callbacks
-            if on_torrent_callback:
-                if DEBUG: 
-                    print >> sys.stderr , "ON TORRENT CALLBACK"
-                on_torrent_callback(source, infohash, torrent_data)
-            
-            if user_callback:
-                if DEBUG: 
-                    print >> sys.stderr , "USER CALLBACK"
-                user_callback(source, infohash, torrent_data)
+            for feed, on_torrent_callback, callback in self.feeds:
+                if feed.feed_url == source:
+                    if on_torrent_callback:
+                        if DEBUG: 
+                            print >> sys.stderr , "ON TORRENT CALLBACK"
+                        on_torrent_callback(source, infohash, torrent_data)
+                    if callback:
+                        if DEBUG: 
+                            print >> sys.stderr , "USER CALLBACK"
+                        callback(source, infohash, torrent_data)
+                    break
 
             # perform all non-url-specific callbacks
             self.lock.acquire()
@@ -367,11 +366,11 @@ class TorrentFeedThread(Thread):
         if DEBUG:
             print >>sys.stderr,"subscrip: Shutting down subscriptions module"
         self.done.set()
+
         self.lock.acquire()
-        cfeeds = self.feeds[:]
-        self.lock.release()
-        for feed, on_torrent_callback, callback in cfeeds:
+        for feed, _, _ in self.feeds:
             feed.shutdown()
+        self.lock.release()
 
 class TorrentFeedReader:
     def __init__(self,feed_url,histfilename):
