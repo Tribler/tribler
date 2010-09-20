@@ -111,55 +111,27 @@ class TorrentFeedThread(Thread):
             bdata = open(filename, 'rb').read()
             torrent_data = bdecode(bdata)
             infohash = sha.sha(bencode(torrent_data['info'])).digest()
-            if DEBUG: print >>sys.stderr,"subscrip:Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
-            self.save_torrent(infohash, bdata, torrent_data)
+            if DEBUG:
+                print >>sys.stderr,"subscrip:Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
+            
+            self.save_torrent(infohash, torrent_data)
 
-            # 01/02/10 Boudewijn: we should use the TorrendDef to read
-            # the .torrent file.  However, we will also write the
-            # torrent file, and the TorrentDef would do all sorts of
-            # checking that will take way to much time here.  So we
-            # won't for now...
             torrentdef = TorrentDef.load(filename)
-
             self.channelcast_db.addOwnTorrent(torrentdef)
             return torrentdef.get_infohash()
         except:
             print >> sys.stderr, "Could not add torrent:", filename
             traceback.print_exc()
             return None
-
-    def addCallback(self, callback):
-        self.lock.acquire()
-        try:
-            if not callback in self.callbacks:
-                self.callbacks.append(callback)
-        finally:
-            self.lock.release()
-
-    def removeCallback(self, callback):
-        self.lock.acquire()
-        try:
-            self.callbacks.remove(callback)
-        finally:
-            self.lock.release()
-
-#    def setURLCallback(self, url, callback):
-#        self.lock.acquire()
-#	for tup in self.feeds:
-#            if tup[0].feed_url == url:
-#               tup[2] = callback
-#        self.lock.release()
-    
+        
     def addURL(self, url, dowrite=True, status="active", callback=None):
-        if DEBUG: print >> sys.stderr , "callback", url, callback
+        if DEBUG: 
+            print >> sys.stderr , "callback", url, callback
+            
         def on_torrent_callback(rss_url, infohash, torrent_data):
-            # 01/02/10 Boudewijn: we should use the TorrendDef to read
-            # the .torrent file.  However, we will also write the
-            # torrent file, and the TorrentDef would do all sorts of
-            # checking that will take way to much time here.  So we
-            # won't for now...
             torrentdef = TorrentDef.load_from_dict(torrent_data)
-            if DEBUG: print >>sys.stderr,"subscrip:Adding a torrent in my channel: %s" % torrentdef.get_name_as_unicode()
+            if DEBUG: 
+                print >>sys.stderr,"subscrip:Adding a torrent in my channel: %s" % torrentdef.get_name_as_unicode()
             self.channelcast_db.addOwnTorrent(torrentdef)
 
         self.lock.acquire()
@@ -177,6 +149,21 @@ class TorrentFeedThread(Thread):
                    tup[2] = callback
         self.lock.release()
 
+    def addCallback(self, callback):
+        self.lock.acquire()
+        try:
+            if not callback in self.callbacks:
+                self.callbacks.append(callback)
+        finally:
+            self.lock.release()
+
+    def removeCallback(self, callback):
+        self.lock.acquire()
+        try:
+            self.callbacks.remove(callback)
+        finally:
+            self.lock.release()
+
     def readfile(self):
         try:
             filename = self.getfilename()
@@ -190,16 +177,9 @@ class TorrentFeedThread(Thread):
                         self.addURL(url,dowrite=False,status=key)
             f.close()        
         except:
-            print >>sys.stderr, "rss_client: subscriptions.txt does not yet exist"
+            if DEBUG:
+                print >>sys.stderr, "rss_client: subscriptions.txt does not yet exist"
     
-    def writefile(self):
-        filename = self.getfilename()
-        f = open(filename,"wb")
-        for url in self.urls:
-            val = self.urls[url]
-            f.write(val+' '+url+'\r\n')
-        f.close()
-
     def getfilename(self):
         return os.path.join(self.getdir(),"subscriptions.txt")
 
@@ -207,11 +187,6 @@ class TorrentFeedThread(Thread):
         # TODO: url2pathname or something that gives a readable filename
         h = sha.sha(url).hexdigest()
         return os.path.join(self.getdir(),h+'.txt')
-    
-    """    
-    def getdir(self):
-        return os.path.join(self.utility.getConfigPath(),"subscriptions")
-    """
     
     def getdir(self):
         return os.path.join(self.session.get_state_dir(),"subscriptions")
@@ -227,28 +202,32 @@ class TorrentFeedThread(Thread):
             self.lock.release()
     
     def getURLs(self):
-        return self.urls # doesn't need to be locked
+        return self.urls
         
     def setURLStatus(self,url,newstatus):
         self.lock.acquire()
-        if DEBUG:
-            print >>sys.stderr,"subscrip: setURLStatus",url,newstatus
+
         newtxt = "active"
         if newstatus == False:
             newtxt = "inactive"
-        if DEBUG:
-            print >>sys.stderr,"subscrip: setURLStatus: newstatus set to",url,newtxt
+            
         if url in self.urls:
             self.urls[url] = newtxt
             self.writefile()
+            
+            if DEBUG:
+                print >>sys.stderr,"subscrip: setURLStatus: newstatus set to",url,newtxt
         elif DEBUG:
             print >>sys.stderr,"subscrip: setURLStatus: unknown URL?",url
+            
         self.lock.release()
     
     def deleteURL(self,url):
         self.lock.acquire()
+        
         if url in self.urls:
             del self.urls[url]
+            
             for i in range(len(self.feeds)):
                 feed = self.feeds[i]
                 if feed[0].feed_url == url:
@@ -256,12 +235,20 @@ class TorrentFeedThread(Thread):
                     self.feeds_changed.set()
                     break
             self.writefile()
+            
         self.lock.release()
-    
-       
+        
+    def writefile(self):
+        filename = self.getfilename()
+        f = open(filename,"wb")
+        for url in self.urls:
+            val = self.urls[url]
+            f.write(val+' '+url+'\r\n')
+        f.close()
         
     def run(self):
         time.sleep(10) # Let other Tribler components, in particular, Session startup
+        
         while not self.done.isSet():
             self.lock.acquire()
             cfeeds = self.feeds[:]
@@ -298,38 +285,7 @@ class TorrentFeedThread(Thread):
                         
                         #Sloppy torrent import
                         torrent_data = bdecode(bdata, 1)
-                        bdata = bencode(torrent_data)
-                        
-                        #tdef = TorrentDef.load_from_dict(torrent_data)
-                        
-                        if 'info' in torrent_data:
-                            infohash = sha.sha(bencode(torrent_data['info'])).digest()
-                            if not self.torrent_db.hasTorrent(infohash):
-                                if DEBUG:
-                                    if "name" in torrent_data["info"]:
-                                        print >>sys.stderr,"subscrip:Injecting", torrent_data["info"]["name"]
-                                    else:
-                                        print >>sys.stderr,"subscrip:Injecting", title
-                                self.save_torrent(infohash, bdata, torrent_data, source=rss_url)
-                                if on_torrent_callback:
-                                    if DEBUG: print >> sys.stderr , "ON TORRENT CALLBACK"
-                                    on_torrent_callback(rss_url, infohash, torrent_data)
-                                if user_callback:
-                                    if DEBUG: print >> sys.stderr , "USER CALLBACK"
-                                    user_callback(rss_url, infohash, torrent_data)
-
-                                # perform all non-url-specific callbacks
-                                self.lock.acquire()
-                                callbacks = self.callbacks[:]
-                                self.lock.release()
-
-                                for callback in callbacks:
-                                    try:
-                                        if DEBUG:
-                                            print >> sys.stderr , "RSS CALLBACK"
-                                        callback(rss_url, infohash, torrent_data)
-                                    except:
-                                        traceback.print_exc()
+                        self.save_torrent(torrent_data, rss_url)
 
                     except StopIteration:
                         # there are no more items in generator
@@ -343,7 +299,6 @@ class TorrentFeedThread(Thread):
                         print >>sys.stderr,"subscrip:Invalid RSS: ", rss_url 
 
                     # sleep in between torrent retrievals
-                    #time.sleep(self.intertorrentinterval)
                     time.sleep(self.checkfrequency)
 
                     self.lock.acquire()
@@ -354,36 +309,59 @@ class TorrentFeedThread(Thread):
                     finally:
                         self.lock.release()
 
-            # sleep for a relatively long time before downloading the
-            # rss feeds again
+            # sleep for a relatively long time before downloading the rss feeds again
             self.feeds_changed.wait(self.reloadfrequency)
 
-    def save_torrent(self,infohash,bdata,torrent_data,source=''):
-        hexinfohash = binascii.hexlify(infohash)
-        if DEBUG:
-            print >>sys.stderr,"subscript: Writing",hexinfohash
+    def save_torrent(self, torrent_data, source = ''):
+        if 'info' in torrent_data:
+            infohash = sha.sha(bencode(torrent_data['info'])).digest()
+            if not self.torrent_db.hasTorrent(infohash):
+                if DEBUG:
+                    if "name" in torrent_data["info"]:
+                        print >>sys.stderr,"subscrip:Injecting", torrent_data["info"]["name"]
+                    else:
+                        print >>sys.stderr,"subscrip:Injecting", title
+                
+                hexinfohash = binascii.hexlify(infohash)
+                if DEBUG:
+                    print >>sys.stderr,"subscript: Writing",hexinfohash
+        
+                filename = os.path.join(self.torrent_dir, hexinfohash+'.torrent' )
+                f = open(filename,"wb")
+                f.write(bencode(torrent_data))
+                f.close()
+        
+                # Arno: hack, make sure these torrents are always good so they show up
+                # in Torrent DBHandler.getTorrents()
+                extra_info = {'status':'good'}
+                extra_info['filename'] = filename
+                
+                torrentdef = TorrentDef.load_from_dict(torrent_data)
+                self.torrent_db.addExternalTorrent(torrentdef,source=source,extra_info=extra_info)
+                        
+            # perform all url-specific callbacks
+            if on_torrent_callback:
+                if DEBUG: 
+                    print >> sys.stderr , "ON TORRENT CALLBACK"
+                on_torrent_callback(source, infohash, torrent_data)
+            
+            if user_callback:
+                if DEBUG: 
+                    print >> sys.stderr , "USER CALLBACK"
+                user_callback(source, infohash, torrent_data)
 
-        filename = os.path.join(self.torrent_dir, hexinfohash+'.torrent' )
-        f = open(filename,"wb")
-        f.write(bdata)
-        f.close()
-
-        # Arno: hack, make sure these torrents are always good so they show up
-        # in Torrent DBHandler.getTorrents()
-        extra_info = {'status':'good'}
-
-        # 01/02/10 Boudewijn: we should use the TorrendDef to write
-        # the .torrent file.  However, the TorrentDef would do all
-        # sorts of checking that will take way to much time here.  So
-        # we won't for now...
-        extra_info['filename'] = filename
-        torrentdef = TorrentDef.load_from_dict(torrent_data)
-
-        self.torrent_db.addExternalTorrent(torrentdef,source=source,extra_info=extra_info)
-
-        # ARNOCOMMENT: remove later
-        #self.torrent_db.commit()
-
+            # perform all non-url-specific callbacks
+            self.lock.acquire()
+            callbacks = self.callbacks[:]
+            self.lock.release()
+            
+            for callback in callbacks:
+                try:
+                    if DEBUG:
+                        print >> sys.stderr , "RSS CALLBACK"
+                    callback(source, infohash, torrent_data)
+                except:
+                    traceback.print_exc()
 
     def shutdown(self):
         if DEBUG:
@@ -394,21 +372,6 @@ class TorrentFeedThread(Thread):
         self.lock.release()
         for feed, on_torrent_callback, callback in cfeeds:
             feed.shutdown()
-            
-        # self.utility.session.close_dbhandler(self.torrent_db)
-
-"""
-    def process_statscopy(self,statscopy):
-        today = []
-        yesterday = []
-        now = int(time())
-        sotoday = math.floor(now / (24*3600.0))*24*3600.0
-        soyester = sotday - (24*3600.0)
-        for rss in statscopy:
-            for url,t in statscopy[rss]:
-                if t > sotoday:
-                    today.append(url)
-"""        
 
 class TorrentFeedReader:
     def __init__(self,feed_url,histfilename):
@@ -498,12 +461,14 @@ class TorrentFeedReader:
                 html_or_tor = urlOpenTimeout(link,timeout=20)
                 found_torrent = False
                 tor_type = html_or_tor.headers.gettype()
+                
                 if self.isTorrentType(tor_type):
                     torrent = html_or_tor
                     found_torrent = True
                     if DEBUG:
                         print >>sys.stderr,"subscrip: torrent1: Yielding",link
                     yield title,torrent
+                    
                 elif False: # 'html' in tor_type:
                     html = html_or_tor.read()
                     hrefs = [match.group(1) for match in self.href_re.finditer(html)]
@@ -638,6 +603,3 @@ class URLHistory:
             return link
         else:
             return link[:idx]
-    
-def usercallback(infohash,metadata,filename):
-    pass
