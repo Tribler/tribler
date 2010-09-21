@@ -180,7 +180,7 @@ class MyChannelManager():
         self.refresh()
 
 class List(wx.Panel):
-    def __init__(self, columns, images, background, spacers = [0,0], singleSelect = False, name = False):
+    def __init__(self, columns, images, background, spacers = [0,0], singleSelect = False, showChange = False):
         """
         Column alignment:
         
@@ -208,7 +208,7 @@ class List(wx.Panel):
         self.background = background
         self.spacers = spacers
         self.singleSelect = singleSelect
-        self.name = name
+        self.showChange = showChange
         self.ready = False
         
         pre = wx.PrePanel()
@@ -230,8 +230,8 @@ class List(wx.Panel):
     
     def _PostInit(self):
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        utility = GUIUtility.getInstance().utility
+
+        self.guiutility = GUIUtility.getInstance()
         
         self.header = self.CreateHeader()
         vSizer.Add(self.header, 0, wx.EXPAND)
@@ -276,7 +276,7 @@ class List(wx.Panel):
         return ListHeader(self, self.images[0], self.images[1], self.background, self.columns)
     
     def CreateList(self):
-        return ListBody(self, self.background, self.columns, self.spacers[0], self.spacers[1], self.singleSelect)
+        return ListBody(self, self.background, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
     
     def CreateFooter(self):
         return ListFooter(self, self.images[2], self.images[3], self.background)
@@ -347,7 +347,7 @@ class SearchList(List):
         images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
         images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
-        List.__init__(self, columns, images, LISTCOLOR, [7,7], True, name = 'SearchList')
+        List.__init__(self, columns, images, LISTCOLOR, [7,7], True)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -486,7 +486,7 @@ class LibaryList(List):
         images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
         images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
-        List.__init__(self, columns, images, LISTCOLOR, [7,7], True, name = 'LibraryList')
+        List.__init__(self, columns, images, LISTCOLOR, [7,7], True)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -607,12 +607,12 @@ class LibaryList(List):
         hSizer.Add(wx.StaticText(dlg, -1, "Do you want to remove '%s'\nfrom your library or also from your computer?"%item.data[0]))
         vSizer.Add(hSizer)
         
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer = wx.StdDialogButtonSizer()
         hSizer.AddStretchSpacer()
         hSizer.Add(wx.Button(dlg, wx.ID_CANCEL))
         hSizer.Add(wx.Button(dlg, wx.ID_DEFAULT, 'Only delete from library'))
         hSizer.Add(wx.Button(dlg, wx.ID_DELETE, 'Also delete from computer'))
-        vSizer.Add(hSizer, 0, wx.TOP, 5)
+        vSizer.Add(hSizer, 0, wx.TOP|wx.EXPAND, 5)
         
         border = wx.BoxSizer()
         border.Add(vSizer, 1, wx.ALL|wx.EXPAND, 10)
@@ -630,6 +630,9 @@ class LibaryList(List):
             self.torrent_manager.deleteTorrent(item.original_data, True)
             self.header.SetStates(False, False, False, False) #nothing selected
             self.list.RemoveItem(item)
+        
+        if self.list.IsEmpty():
+            self.SetData([])
         
     def OnMyChannel(self, event):
         item = self.list.GetExpandedItem()
@@ -689,8 +692,13 @@ class LibaryList(List):
                 self.footer.SetTotal(key, totals[key])
         
     def SetData(self, data):
-        data = [(file['infohash'], [file['name'], [0,0], None, None, None], file) for file in data]
-        self.list.SetData(data)
+        if len(data) > 0:
+            data = [(file['infohash'], [file['name'], [0,0], None, None, None], file) for file in data]
+            self.list.SetData(data)
+        else:
+            message = "Currently not downloading any torrents.\n"
+            message += "You can find torrents by using our integrated search, discover them using a channel or drag and drop an .torrent file from an external source."
+            self.list.ShowMessage(message) 
 
     def Show(self):
         List.Show(self)
@@ -720,7 +728,7 @@ class ChannelList(List):
         
         self.select_popular = True
         self.my_permid = bin2str(self.guiutility.channelsearch_manager.channelcast_db.my_permid)
-        List.__init__(self, columns, images, '#D8E9F0', [7,7], name = 'ChannelList')
+        List.__init__(self, columns, images, '#D8E9F0', [7,7], showChange = True)
     
     def __favorite_icon(self, item):
         if item.original_data[0] == self.my_permid:
@@ -784,6 +792,9 @@ class ChannelList(List):
             self.header.SetSubTitle("Showing the %d most popular channels" % nr)
         elif title == 'Your Favorites':
             self.header.SetSubTitle("You marked %d channels as a favorite" % nr)
+        elif title == 'New Channels':
+            self.header.ShowSortedBy(1)
+            self.header.SetSubTitle("Discovered %d new channels (no votes yet and updated within the last 2 months)"% nr)
         else:
             if nr == 1:
                 self.header.SetSubTitle("Discovered %d channel" % nr)
@@ -816,7 +827,7 @@ class SelectedChannelList(SearchList):
         images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
         images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
-        List.__init__(self, columns, images, LISTCOLOR, [7,7], True, name = 'SelectedChannelList')
+        List.__init__(self, columns, images, LISTCOLOR, [7,7], True)
         
     def CreateHeader(self):
         header = ChannelHeader(self, self.images[0], self.images[1], self.background, self.columns)
@@ -904,7 +915,7 @@ class MyChannelList(List):
         images = ("tl.png", "tr.png", "bl.png", "br.png")
         images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
-        List.__init__(self, columns, images, '#D8E9F0', [7,7], name = 'MyChannelList')
+        List.__init__(self, columns, images, '#D8E9F0', [7,7])
       
     def CreateHeader(self):
         self.myheader = MyChannelHeader(self, self.images[0], self.images[1], self.background, self.columns)
@@ -965,7 +976,7 @@ class ChannelCategoriesList(List):
         images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
         images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
-        List.__init__(self, columns, images, LISTCOLOR, [7,7], True, name = 'ChannelCategoriesList')
+        List.__init__(self, columns, images, LISTCOLOR, [7,7], True)
     
     def CreateHeader(self):
         title = TitleHeader(self, self.images[0], self.images[1], self.background, self.columns, 1, wx.FONTWEIGHT_NORMAL)

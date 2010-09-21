@@ -15,6 +15,7 @@ class ListIcon:
         if ListIcon.__single:
             raise RuntimeError, "ListIcon is singleton"
         ListIcon.__single = self
+        self.icons = {}
         
     def getInstance(*args, **kw):
         if ListIcon.__single is None:
@@ -22,23 +23,20 @@ class ListIcon:
         return ListIcon.__single
     getInstance = staticmethod(getInstance)
     
-    def getBitmaps(self, parent, type, selectedcolor, deselectedcolor):
-        if not getattr(self, 'icons', False):
-            self.icons = {}
-            self.icons['tree'] = self.__createBitmaps('tree', parent, selectedcolor, deselectedcolor)
-            self.icons['checkbox'] = self.__createBitmaps('checkbox', parent, selectedcolor, deselectedcolor)
-        return self.icons[type]
-    
-    def __createBitmaps(self, type, parent, selectedcolor, deselectedcolor):
-        unselectedcol = self.__createBitmap(parent, deselectedcolor, type)
-        selectedcol = self.__createBitmap(parent, selectedcolor, type)
+    def getBitmap(self, parent, type, background, state):
+        icons = self.icons.setdefault(type, {}).setdefault(background, {})
+        if state not in icons:
+            icons[state] = self.__createBitmap(parent, background, type, state)
         
-        if type == 'tree':
-            expanded = self.__createBitmap(parent, selectedcolor, type, wx.CONTROL_EXPANDED)
-        else:
-            expanded = self.__createBitmap(parent, selectedcolor, type, wx.CONTROL_CHECKED)
-        return [unselectedcol, selectedcol, expanded]
-    def __createBitmap(self, parent, background, type, flag=0):
+        return icons[state]
+    
+    def __createBitmap(self, parent, background, type, state):
+        if state == 1:
+            if type == 'tree':
+                state = wx.CONTROL_EXPANDED
+            else:
+                state = wx.CONTROL_CHECKED
+        
         #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
         #Thus we create a larger bmp, allowing for borders
         bmp = wx.EmptyBitmap(24,24) 
@@ -46,10 +44,11 @@ class ListIcon:
         dc.SetBackground(wx.Brush(background))
         dc.Clear()
         
+        #max size is 16x16, using 4px as a border
         if type == 'checkbox':
-            wx.RendererNative.Get().DrawCheckBox(parent, dc, (4, 4, 16, 16), flag) #max size is 16x16, using 4px as a border
+            wx.RendererNative.Get().DrawCheckBox(parent, dc, (4, 4, 16, 16), state)
         elif type == 'tree':
-            wx.RendererNative.Get().DrawTreeItemButton(parent, dc, (4, 4, 16, 16), flag)
+            wx.RendererNative.Get().DrawTreeItemButton(parent, dc, (4, 4, 16, 16), state)
         dc.SelectObject(wx.NullBitmap)
         
         #determine actual size of drawn icon, and return this subbitmap
@@ -57,15 +56,17 @@ class ListIcon:
         return bmp.GetSubBitmap(bb)
 
 class ListItem(wx.Panel):
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0):
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False):
          wx.Panel.__init__(self, parent)
          
          self.parent_list = parent_list
+         self.taskserver = parent_list.parent_list.guiutility.frame.guiserver
          self.columns = columns
          self.data = data
          self.original_data = original_data
          self.leftSpacer = leftSpacer
          self.rightSpacer = rightSpacer
+         self.showChange = showChange
          
          self.selectedColor = wx.Colour(216,233,240)
          self.deselectedColor = wx.WHITE
@@ -90,8 +91,8 @@ class ListItem(wx.Panel):
          for i in xrange(len(self.columns)):
              if self.columns[i].get('icon', False):
                  if self.columns[i]['icon'] == 'checkbox' or self.columns[i]['icon'] == 'tree':
-
-                     self.expandedState = wx.StaticBitmap(self, -1, self.GetIcons(self.columns[i]['icon']))
+                     self.icontype = self.columns[i]['icon']
+                     self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(self.deselectedColor, 0))
                      self.expandedState.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
                      self.expandedState.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
                      self.hSizer.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
@@ -149,9 +150,8 @@ class ListItem(wx.Panel):
 
          self.hSizer.Layout()
          
-    def GetIcons(self, type):
-        self.uncheckimage, self.mouseoveruncheckimage, self.checkimage = ListIcon.getInstance().getBitmaps(self, type, self.selectedColor, self.deselectedColor)
-        return self.uncheckimage
+    def GetIcon(self, background, state):
+        return ListIcon.getInstance().getBitmap(self, self.icontype, background, state)
         
     def RefreshData(self, data):
         if isinstance(data[2], dict): #update original_data
@@ -161,7 +161,9 @@ class ListItem(wx.Panel):
             self.original_data = data[2]
         
         control_index = 0
+        
         new_controls = False
+        has_changed = False
         
         for i in xrange(len(self.columns)):
             type = self.columns[i].get('type','label')
@@ -171,6 +173,8 @@ class ListItem(wx.Panel):
                 if str_data != self.controls[control_index].GetLabel():
                     self.controls[control_index].SetLabel(str_data)
                     self.controls[control_index].Refresh()
+                    
+                    has_changed = True
                 control_index += 1
             
             elif type == 'method':
@@ -200,12 +204,19 @@ class ListItem(wx.Panel):
                         self.controls[control_index].Destroy()
                         self.controls[control_index] = control
                         new_controls = True
+                        has_changed = True
                 control_index += 1
             
         if new_controls:
             self.hSizer.Layout()
-            self.ShowSelected()
         
+        if self.showChange and has_changed:
+            self.BackgroundColor("yellow")
+            self.taskserver.add_task(lambda:wx.CallAfter(self.ShowSelected), 3.0, data[0])
+            
+        elif new_controls:
+            self.ShowSelected()
+            
         self.data = data[1]
          
     def ShowSelected(self):
@@ -227,7 +238,9 @@ class ListItem(wx.Panel):
             color = self.selectedColor
         else:
             color = self.deselectedColor
-            
+        self.BackgroundColor(color)
+    
+    def BackgroundColor(self, color):
         self.SetBackgroundColour(color)
         for sizeritem in self.hSizer.GetChildren():
             if sizeritem.IsWindow():
@@ -235,12 +248,10 @@ class ListItem(wx.Panel):
                 if isinstance(child, wx.Panel):
                     child.SetBackgroundColour(color)
         
-        #If this item has a checkbox and it is not checked
-        if getattr(self, 'expandedState', False) and not getattr(self, 'expanded', False): 
-            if selected: #then show mouseover version upon select
-                self.expandedState.SetBitmap(self.mouseoveruncheckimage)
-            else:
-                self.expandedState.SetBitmap(self.uncheckimage)
+        #If this item has a icon and it is not checked
+        if getattr(self, 'expandedState', False) and not getattr(self, 'expanded', False):
+            self.expandedState.SetBitmap(self.GetIcon(color, 0))
+        
         self.Refresh()
     
     def Deselect(self):
@@ -277,13 +288,13 @@ class ListItem(wx.Panel):
                 self.expanded = True
             
                 if getattr(self, 'expandedState', False):
-                    self.expandedState.SetBitmap(self.checkimage)
+                    self.expandedState.SetBitmap(self.GetIcon(self.selectedColor, 1))
         else:
             self.parent_list.OnCollapse(self)
             self.expanded = False
             
             if getattr(self, 'expandedState', False):
-                self.expandedState.SetBitmap(self.mouseoveruncheckimage)
+                self.expandedState.SetBitmap(self.GetIcon(self.selectedColor, 0))
         
     def Expand(self, panel):
         if getattr(panel, 'SetCursor', False):
@@ -309,7 +320,7 @@ class ListItem(wx.Panel):
             return item
         
 class AbstractListBody():
-    def __init__(self, parent, background, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False):
+    def __init__(self, parent, background, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         self.columns = columns
         self.leftSpacer = leftSpacer
         self.rightSpacer = rightSpacer
@@ -624,9 +635,9 @@ class AbstractListBody():
             item.Deselect()
  
 class ListBody(scrolled.ScrolledPanel, AbstractListBody):
-    def __init__(self, parent, background, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False):
+    def __init__(self, parent, background, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         scrolled.ScrolledPanel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent, background, columns, leftSpacer, rightSpacer, singleExpanded)
+        AbstractListBody.__init__(self, parent, background, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
         
         self.SetupScrolling(scroll_x = False)
         
@@ -634,9 +645,9 @@ class ListBody(scrolled.ScrolledPanel, AbstractListBody):
         event.Skip()
     
 class FixedListBody(wx.Panel, AbstractListBody):
-    def __init__(self, parent, background, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False):
+    def __init__(self, parent, background, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         wx.Panel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent, background, columns, leftSpacer, rightSpacer, singleExpanded)
+        AbstractListBody.__init__(self, parent, background, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
     
     def Scroll(self, x, y):
         pass

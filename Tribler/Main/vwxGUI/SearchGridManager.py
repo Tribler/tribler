@@ -82,8 +82,8 @@ class TorrentManager:
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
         
-        Returns a filename, if filename is known or a boolean describing
-        if the torrent is requested
+        Returns a filename, if filename is known or a boolean + request_type
+        describing if the torrent is requested
         """
         torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
         
@@ -104,17 +104,15 @@ class TorrentManager:
         #.torrent not found, try to download from peers
         if 'query_permids' in torrent and not torrent.get('myDownloadHistory'):
             if self.downloadTorrentfileFromPeers(torrent, callback):
-                return True
+                return (True, "from peers")
         
         #.torrent still not found, try magnet link
-        
-        
         magnetlink = "magnet:?xt=urn:btih:"+hexlify(torrent['infohash'])
         def torrentdef_retrieved(tdef):
             tdef.save(torrent_filename)
             callback(torrent['infohash'], torrent, torrent_filename)
             
-        return TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved)
+        return (TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved), "from dht")
              
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True):
         """
@@ -195,7 +193,7 @@ class TorrentManager:
         callback = lambda infohash, metadata, filename: self.downloadTorrent(torrent, dest, secret, vodmode)
         torrent_filename = self.getTorrent(torrent, callback)
         
-        if not isinstance(torrent_filename, bool):
+        if isinstance(torrent_filename, basestring):
             #got actual filename
             
             if torrent.get('name'):
@@ -219,15 +217,9 @@ class TorrentManager:
                     print >>sys.stderr,'standardDetails: download: download started'
                
                 torrent['myDownloadHistory'] = True
-        elif torrent_filename:
+        elif torrent_filename[0]:
             #torrent is being requested from peers, using callback this function will be called again
-            """
-             # Show error if torrent file does not come in
-            tfdownload_timeout_lambda = lambda:self.guiserv_tfdownload_timeout(torrent)
-            guiserver = GUITaskQueue.getInstance()
-            guiserver.add_task(tfdownload_timeout_lambda,20)
-            """
-            pass
+            return torrent_filename[1]
         else:
             #torrent not found
             str = self.guiUtility.utility.lang.get('delete_torrent') % torrent['name']
@@ -260,7 +252,7 @@ class TorrentManager:
         torrent_callback = lambda infohash, metadata, filename: self.isTorrentPlayable(torrent, default, callback)
         torrent_filename = self.getTorrent(torrent, torrent_callback)
         
-        if not isinstance(torrent_filename, bool):
+        if isinstance(torrent_filename, basestring):
             #got actual filename
             tdef = TorrentDef.load(torrent_filename)
             
@@ -277,11 +269,13 @@ class TorrentManager:
             if not callback is None:
                 wx.CallAfter(callback, torrent, (playable, files, allfiles))
             else:
-                return (playable, files, allfiles) 
-        elif not torrent_filename:
+                return (playable, files, allfiles)
+        elif not torrent_filename[0]:
             if DEBUG:
                 print >>sys.stderr, "standardDetails:torrent_is_playable returning default", default
             wx.CallAfter(callback, torrent, default)
+        else:
+            return torrent_filename[1]
     
     def playTorrent(self, torrent, selectedinfilename = None):
         ds = torrent.get('ds')
@@ -295,7 +289,7 @@ class TorrentManager:
             callback = lambda infohash, metadata, filename: self.playTorrent(torrent)
             filename = self.getTorrent(torrent, callback)
             
-            if not isinstance(filename, bool):
+            if isinstance(filename, str):
                 #got actual filename, load torrentdef and create downloadconfig
                 
                 tdef = TorrentDef.load(filename)
@@ -865,7 +859,10 @@ class ChannelSearchGridManager:
         return [1, mychannel]
 
     def getNewChannels(self):
-        newchannels = self.channelcast_db.getNewChannels()
+        #all channels with no votes + updated since
+        two_months = time() - 5259487
+        
+        newchannels = self.channelcast_db.getNewChannels(two_months)
         return [len(newchannels), newchannels]
 
     def getAllChannels(self):

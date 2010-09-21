@@ -209,6 +209,10 @@ class ListHeader(wx.Panel):
         self.GetParent().OnSort(newColumn, newDirection)
         self._SetSortedIcon(newColumn, newDirection)
     
+    def ShowSortedBy(self, column):
+        direction = self.columns[column].get('sortAsc', False)
+        self._SetSortedIcon(column, direction)
+    
     def _SetSortedIcon(self, newColumn, newDirection):
         down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.background)
         

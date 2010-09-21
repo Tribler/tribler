@@ -272,12 +272,13 @@ class TopSearchPanel(bgPanel):
             self.notifyIcon.SetBitmap(wx.ArtProvider.GetBitmap(icon))
         else:
             self.notifyIcon.Hide()
-            
-        self.notifyPanel.Show()
         
+        self.Freeze()
+        self.notifyPanel.Show()
         #NotifyLabel size changed, thus call Layout
         self.buttonSizer.Layout()
         self.guiUtility.frame.guiserver.add_task(lambda:wx.CallAfter(self.HideNotify), 5.0)
+        self.Thaw()
 
     def HideNotify(self):
         self.notifyPanel.Hide()

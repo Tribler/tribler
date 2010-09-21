@@ -64,7 +64,13 @@ class TorrentDetails(wx.Panel):
         self.torrentChecker = TorrentChecking(self.torrent['infohash'])
         
     def loadTorrent(self):
-        self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
+        requesttype = self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
+        if requesttype:
+            self.messagePanel.SetLabel("Loading details, please wait.\nThe torrentfile is requested %s."%requesttype)
+
+            self.Layout()
+            self.parent.parent_list.OnChange()
+
     
     def showTorrent(self, torrent, information):
         self.torrent = torrent
@@ -295,56 +301,60 @@ class TorrentDetails(wx.Panel):
         self.buttonPanel.Layout()
     
     def ShowDownloadProgress(self):
-        #Disable parent download button
-        self.parent.button.Enable(False)
-        
-        self.buttonSizer.ShowItems(False)
-        self.buttonSizer.DeleteWindows()
-        self.buttonSizer.Clear()
-        
-        self.downloadText = wx.StaticText(self.buttonPanel, -1, "This torrent is in your library.")
-        self.downloadText.SetToolTipString("Click to go to your library.")
-        font = self.downloadText.GetFont()
-        font.SetPointSize(font.GetPointSize()+1)
-        font.SetUnderlined(True)
-        self.downloadText.SetFont(font)
-        self.downloadText.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
-        self.downloadText.target = 'my_files'
-        
-        if sys.platform != 'linux2':
-            self.downloadText.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        self.buttonSizer.Add(self.downloadText, 0, wx.ALL, 3)
-        
-        class tmp_object():
-            def __init__(self, data, original_data):
-                self.data = data
-                self.original_data = original_data
-        self.item = tmp_object(['',[0,0],[0,0],0,0],self.torrent)
-        self.progressPanel = ProgressPanel(self.buttonPanel, self.item)
-        self.buttonSizer.Add(self.progressPanel, 0, wx.ALL, 3)
-        
-        self.downText = wx.StaticText(self.buttonPanel)
-        self.upText = wx.StaticText(self.buttonPanel)
-        self.downSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.downSizer.Add(wx.StaticText(self.buttonPanel, -1, 'Download:'), 1)
-        self.downSizer.Add(self.downText)
-        
-        self.upSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.upSizer.Add(wx.StaticText(self.buttonPanel, -1, "Upload:"), 1)
-        self.upSizer.Add(self.upText)
-
-        self.buttonSizer.Add(self.downSizer, 0, wx.ALL|wx.EXPAND, 3)
-        self.buttonSizer.Add(self.upSizer, 0, wx.ALL|wx.EXPAND, 3)
-        
-        if self.information[0]:
-            self.buttonSizer.AddStretchSpacer()
-            self.play = wx.Button(self.buttonPanel, -1, "Start playing this torrent")
-            self.play.SetToolTipString('Start playing this torrent.')
-            self.play.Bind(wx.EVT_BUTTON, self.OnPlay)
-            self.buttonSizer.Add(self.play, 0, wx.BOTTOM, 5)
+        if getattr(self, 'buttonSizer', False):
+            #Disable parent download button
+            self.parent.button.Enable(False)
             
-        self.buttonPanel.Layout()
-        self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
+            self.buttonSizer.ShowItems(False)
+            self.buttonSizer.DeleteWindows()
+            self.buttonSizer.Clear()
+            
+            self.downloadText = wx.StaticText(self.buttonPanel, -1, "This torrent is in your library.")
+            self.downloadText.SetToolTipString("Click to go to your library.")
+            font = self.downloadText.GetFont()
+            font.SetPointSize(font.GetPointSize()+1)
+            font.SetUnderlined(True)
+            self.downloadText.SetFont(font)
+            self.downloadText.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
+            self.downloadText.target = 'my_files'
+            
+            if sys.platform != 'linux2':
+                self.downloadText.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+            self.buttonSizer.Add(self.downloadText, 0, wx.ALL, 3)
+            
+            class tmp_object():
+                def __init__(self, data, original_data):
+                    self.data = data
+                    self.original_data = original_data
+            self.item = tmp_object(['',[0,0],[0,0],0,0],self.torrent)
+            self.progressPanel = ProgressPanel(self.buttonPanel, self.item)
+            self.buttonSizer.Add(self.progressPanel, 0, wx.ALL, 3)
+            
+            self.downText = wx.StaticText(self.buttonPanel)
+            self.upText = wx.StaticText(self.buttonPanel)
+            self.downSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.downSizer.Add(wx.StaticText(self.buttonPanel, -1, 'Download:'), 1)
+            self.downSizer.Add(self.downText)
+            
+            self.upSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.upSizer.Add(wx.StaticText(self.buttonPanel, -1, "Upload:"), 1)
+            self.upSizer.Add(self.upText)
+    
+            self.buttonSizer.Add(self.downSizer, 0, wx.ALL|wx.EXPAND, 3)
+            self.buttonSizer.Add(self.upSizer, 0, wx.ALL|wx.EXPAND, 3)
+            
+            if self.information[0]:
+                self.buttonSizer.AddStretchSpacer()
+                self.play = wx.Button(self.buttonPanel, -1, "Start playing this torrent")
+                self.play.SetToolTipString('Start playing this torrent.')
+                self.play.Bind(wx.EVT_BUTTON, self.OnPlay)
+                self.buttonSizer.Add(self.play, 0, wx.BOTTOM, 5)
+                
+            self.buttonPanel.Layout()
+            self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
+        else:
+            #Additionally called by database event, thus we need to check if sizer exists(torrent is downloaded).
+            wx.CallAfter(self.ShowDownloadProgress)
                 
     def OnDownload(self, event):
         self.guiutility.torrentsearch_manager.downloadTorrent(self.torrent)
@@ -406,7 +416,10 @@ class TorrentDetails(wx.Panel):
         wx.CallAfter(self.ShowStatus)
     
     def ShowStatus(self):
-        self.status.SetLabel("%s seeders, %s leechers"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+        if self.torrent['num_seeders'] < 0 and self.torrent['num_leechers'] < 0:
+            self.status.SetLabel("Unknown")
+        else:
+            self.status.SetLabel("%s seeders, %s leechers"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
            
     def OnRefresh(self, dslist):
         found = False
@@ -726,6 +739,10 @@ class MyChannelTabs(wx.Panel):
                 rowSizer.Add(rsstext, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL)
                 rowSizer.Add(deleteButton, 0, wx.LEFT|wx.ALIGN_RIGHT, 5)
                 rssSizer.Add(rowSizer, 0, wx.EXPAND)
+
+            refresh = wx.Button(parent, -1, "Refresh all rss-feeds")
+            refresh.Bind(wx.EVT_BUTTON, self.OnRefreshRss)
+            rssSizer.Add(refresh, 0, wx.ALIGN_RIGHT | wx.TOP, 3)
         else:
             rssSizer.Add(wx.StaticText(parent, -1, "No rss feeds are being monitored."))
             
@@ -796,6 +813,9 @@ class MyChannelTabs(wx.Panel):
         
         self.torrentfeed.deleteURL(item.url)
         self.RebuildRssPanel()
+    
+    def OnRefreshRss(self, event):
+        self.torrentfeed.refresh()
         
     def OnManualAdd(self, event):
         dlg = wx.FileDialog(self,"Choose .torrent file", wildcard = "BitTorrent file (*.torrent) |*.torrent", style = wx.DEFAULT_DIALOG_STYLE|wx.FD_MULTIPLE)

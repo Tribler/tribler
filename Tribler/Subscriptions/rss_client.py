@@ -246,6 +246,10 @@ class TorrentFeedThread(Thread):
             f.write(val+' '+url+'\r\n')
         f.close()
         
+    def refresh(self):
+        #setting feeds_changed will stop current loop and restart rss parsing
+        self.feeds_changed.set()
+    
     def run(self):
         time.sleep(10) # Let other Tribler components, in particular, Session startup
         
