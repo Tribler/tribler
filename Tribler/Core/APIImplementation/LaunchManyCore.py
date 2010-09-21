@@ -279,11 +279,11 @@ class TriblerLaunchMany(Thread):
             #self.torrent_checking_period = 5
             self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
 
-        # Gertjan's UDP code
+        # Gertjan's UDP code [disabled]
         # OFF in P2P-Next
-        if False and config['overlay'] and config['crawler']:
-            # Gertjan's UDP code
-            self.udppuncture_handler = UDPHandler(self.rawserver, config['overlay'] and config['crawler'])
+        #if False and config['overlay'] and config['crawler']:
+        #    # Gertjan's UDP code
+        #    self.udppuncture_handler = UDPHandler(self.rawserver, config['overlay'] and config['crawler'])
 
         if config["magnetlink"]:
             # initialise the first instance
