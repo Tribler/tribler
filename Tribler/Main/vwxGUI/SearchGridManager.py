@@ -289,7 +289,7 @@ class TorrentManager:
             callback = lambda infohash, metadata, filename: self.playTorrent(torrent)
             filename = self.getTorrent(torrent, callback)
             
-            if isinstance(filename, str):
+            if isinstance(filename, basestring):
                 #got actual filename, load torrentdef and create downloadconfig
                 
                 tdef = TorrentDef.load(filename)

@@ -60,13 +60,15 @@ class ListItem(wx.Panel):
          wx.Panel.__init__(self, parent)
          
          self.parent_list = parent_list
-         self.taskserver = parent_list.parent_list.guiutility.frame.guiserver
          self.columns = columns
          self.data = data
          self.original_data = original_data
          self.leftSpacer = leftSpacer
          self.rightSpacer = rightSpacer
+         
          self.showChange = showChange
+         if showChange:
+             self.taskserver = parent_list.parent_list.guiutility.frame.guiserver
          
          self.selectedColor = wx.Colour(216,233,240)
          self.deselectedColor = wx.WHITE

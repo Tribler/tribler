@@ -498,6 +498,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwin.Show(False)
             self.ctrlsizer.ShowItems(False)
             self.header.ShowMinimized(False)
+            self.statuslabel.Show(False)
             self.player_img.Show(True)
             
             self.utility.guiUtility.frame.Layout()
@@ -509,6 +510,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwin.Show(True)
             self.ctrlsizer.ShowItems(True)
             self.header.ShowMinimized(True)
+            self.statuslabel.Show(True)
             self.player_img.Show(False)
 
             self.utility.guiUtility.frame.Layout()

@@ -384,9 +384,12 @@ class TorrentDetails(wx.Panel):
     
     def OnPlaySelected(self, event):
             selected = self.listCtrl.GetFirstSelected()
+            playable_files = self.information[1]
+            
             if selected != -1:
                 selected_file = self.listCtrl.GetItemText(selected)
-                self.guiutility.torrentsearch_manager.playTorrent(self.torrent, selected_file)            
+                if selected_file in playable_files:
+                    self.guiutility.torrentsearch_manager.playTorrent(self.torrent, selected_file)            
     
     def OnClick(self, event):
         label = event.GetEventObject()
