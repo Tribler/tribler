@@ -213,8 +213,8 @@ class ListItem(wx.Panel):
             self.hSizer.Layout()
         
         if self.showChange and has_changed:
-            self.BackgroundColor("yellow")
             self.taskserver.add_task(lambda:wx.CallAfter(self.ShowSelected), 3.0, data[0])
+            self.BackgroundColor("yellow")
             
         elif new_controls:
             self.ShowSelected()
@@ -328,6 +328,7 @@ class AbstractListBody():
         self.rightSpacer = rightSpacer
         self.parent_list = parent
         self.singleExpanded = singleExpanded
+        self.showChange = showChange
         
         self.SetBackgroundColour(wx.WHITE)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -566,7 +567,7 @@ class AbstractListBody():
                 if key in self.items:
                     item = self.items[key]
                 elif nr_items_to_create > 0:
-                    item = ListItem(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer)
+                    item = ListItem(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange)
                     self.items[key] = item
                     
                     nr_items_to_create -= 1
