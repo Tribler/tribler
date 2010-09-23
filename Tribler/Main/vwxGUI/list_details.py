@@ -104,7 +104,11 @@ class TorrentDetails(wx.Panel):
                 name.SetFont(font)
                 sizer.Add(name, 0, wx.LEFT, 10)
             
-            value = wx.StaticText(parent, -1, unicode(value))
+            try:
+                value = wx.StaticText(parent, -1, unicode(value))
+            except:
+                value = wx.StaticText(parent, -1, value.decode('utf-8','ignore'))
+                
             value.SetMinSize((1,-1))
             sizer.Add(value, 0, wx.EXPAND|wx.LEFT, 10)
             
