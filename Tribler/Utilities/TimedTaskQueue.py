@@ -48,7 +48,7 @@ class TimedTaskQueue:
             self.callstack[self.count] = format_stack()
             
         if id != None:  # remove all redundant tasks
-            self.queue = filter(lambda item:item[2]!=id, self.queue)
+            self.queue = filter(lambda item:item[3]!=id, self.queue)
         self.queue.append((when,self.count,task,id))
         self.count += 1.0
         self.cond.notify()
