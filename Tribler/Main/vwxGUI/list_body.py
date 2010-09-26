@@ -1,6 +1,8 @@
 import wx
 import wx.lib.scrolledpanel as scrolled
 
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+
 import sys
 import time
 import re
@@ -221,7 +223,7 @@ class ListItem(wx.Panel):
         
     def Highlight(self):
         if self.taskserver == None:
-            self.taskserver = self.parent_list.parent_list.guiutility.frame.guiserver
+            self.taskserver = GUITaskQueue.getInstance()
             
         self.taskserver.add_task(lambda:wx.CallAfter(self.ShowSelected), 3.0, self)
         self.BackgroundColor("#ffff99")
