@@ -67,8 +67,7 @@ class ListItem(wx.Panel):
          self.rightSpacer = rightSpacer
          
          self.showChange = showChange
-         if showChange:
-             self.taskserver = parent_list.parent_list.guiutility.frame.guiserver
+         self.taskserver = None
          
          self.selectedColor = wx.Colour(216,233,240)
          self.deselectedColor = wx.WHITE
@@ -213,13 +212,19 @@ class ListItem(wx.Panel):
             self.hSizer.Layout()
         
         if self.showChange and has_changed:
-            self.taskserver.add_task(lambda:wx.CallAfter(self.ShowSelected), 3.0, data[0])
-            self.BackgroundColor("yellow")
+            self.Highlight()
             
         elif new_controls:
             self.ShowSelected()
             
         self.data = data[1]
+        
+    def Highlight(self):
+        if self.taskserver == None:
+            self.taskserver = self.parent_list.parent_list.guiutility.frame.guiserver
+            
+        self.taskserver.add_task(lambda:wx.CallAfter(self.ShowSelected), 3.0, self)
+        self.BackgroundColor("#ffff99")
          
     def ShowSelected(self):
         selected = getattr(self, 'selected', False) or getattr(self, 'expanded', False)
@@ -479,6 +484,7 @@ class AbstractListBody():
             self.items[key].Destroy()
             
         self.items = {}
+        self.data = None
         self.OnChange()
         self.Thaw()
     
@@ -520,14 +526,22 @@ class AbstractListBody():
             print >> sys.stderr, "ListBody: new data"
         
         self.vSizer.Clear()
-        if len(self.items) == 0 and len(data) > LIST_ITEM_BATCH_SIZE:
-            self.ShowMessage('Loading, please wait.')
-            
-            #Try to yield, allows us to show loading text
-            try:
-                wx.Yield()
-            except:
-                pass
+        if len(self.items) == 0:
+            #new data
+            if len(data) > LIST_ITEM_BATCH_SIZE:
+                self.ShowMessage('Loading, please wait.')
+                
+                #Try to yield, allows us to show loading text
+                try:
+                    wx.Yield()
+                except:
+                    pass
+            self.highlightList = []
+        else:
+            #updated data
+            cur_keys = [key for key,_,_ in self.data]
+            self.highlightList = [key for key,_,_ in data if key not in cur_keys]
+            pass
         
         self.data = data
         self.CreateItems()
@@ -579,9 +593,12 @@ class AbstractListBody():
                 if not sizer:
                     self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
                     item.Show()
-                    nr_items_to_add -= 1
-                else:
-                    nr_items_to_add -= 1
+                    
+                    if key in self.highlightList:
+                        item.Highlight()
+                        self.highlightList.remove(key)
+                    
+                nr_items_to_add -= 1
             else:
                 self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nUse the filter to reduce the number of items, or click the button below.'%(LIST_ITEM_MAX_SIZE, len(data)))
                 self.loadNext.Enable()
