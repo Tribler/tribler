@@ -107,7 +107,9 @@ class TimedTaskQueue:
                         t = when-time()+0.001
                         self.add_task('quit',t)
                 else:
-                    task()        
+                    task()
+            except PyDeadObjectError:
+                pass        
             except:
                 print_exc()
                 if __debug__:
