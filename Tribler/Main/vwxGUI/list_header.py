@@ -396,7 +396,7 @@ class SearchHeader(TitleHeader):
     
     def GetRightTitlePanel(self, parent):
         self.filter = wx.SearchCtrl(parent)
-        self.filter.SetDescriptiveText('Filter results')
+        self.filter.SetDescriptiveText('Search within results')
         self.filter.Bind(wx.EVT_TEXT, self.OnKey)
         self.filter.SetMinSize((150,-1))
         

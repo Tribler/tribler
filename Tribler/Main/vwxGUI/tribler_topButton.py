@@ -302,3 +302,15 @@ class settingsButton(tribler_topButton):
     
     def GetBitmap(self):
         return self.bitmaps[self.selected]
+
+class NoFocusButton(wx.Button):
+    def __init__(self, *args, **kw):
+        wx.Button.__init__(self, *args, **kw)
+        self.Bind(wx.EVT_SET_FOCUS , self.OnFocus)
+    
+    def OnFocus(self, event):
+        self.Navigate()
+    def AcceptsFocus(*args, **kwargs):
+        return False
+    def AcceptsFocusFromKeyboard(*args, **kwargs):
+        return False

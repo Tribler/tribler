@@ -2,6 +2,7 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Main.vwxGUI.tribler_topButton import NoFocusButton
 
 import sys
 import time
@@ -355,9 +356,11 @@ class AbstractListBody():
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.messageText = wx.StaticText(self.messagePanel)
-        self.loadNext = wx.Button(self.messagePanel, -1, "Show remaining items")
+        self.loadNext = NoFocusButton(self.messagePanel, -1, "Show remaining items")
         self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadAll)
         self.loadNext.Hide()
+        
+        self.loadNext.focus = self 
         messageVSizer.Add(self.messageText)
         messageVSizer.Add(self.loadNext, 0, wx.ALIGN_CENTER)
         
@@ -602,7 +605,7 @@ class AbstractListBody():
                     
                 nr_items_to_add -= 1
             else:
-                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nUse the filter to reduce the number of items, or click the button below.'%(LIST_ITEM_MAX_SIZE, len(data)))
+                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(LIST_ITEM_MAX_SIZE, len(data)))
                 self.loadNext.Enable()
                 self.loadNext.Show()
                 self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
