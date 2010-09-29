@@ -552,7 +552,7 @@ class AbstractListBody():
         self.CreateItems()
         
     def OnIdle(self, event):
-        if not self.done:
+        if not self.done and self.data:
             self.CreateItems()
             event.RequestMore(not self.done)
 
