@@ -12,29 +12,33 @@ DEBUG = False
 class SRstatusbar(wx.StatusBar):
     def __init__(self, parent):
         wx.StatusBar.__init__(self, parent)
-        self.SetFieldsCount(3)
+        self.SetFieldsCount(2)
+        self.SetStatusStyles([wx.SB_FLAT, wx.SB_FLAT, wx.SB_FLAT])
         
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         
         self.srPanel = wx.Panel(self)
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
         srlabel = wx.StaticText(self.srPanel, -1, "Sharing Reputation:")
         self.sr = wx.StaticText(self.srPanel)
         help = wx.StaticBitmap(self.srPanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images" , "help.png"),wx.BITMAP_TYPE_ANY))
         help.Bind(wx.EVT_LEFT_UP, self.helpClick)
+        self.updown = wx.StaticText(self.srPanel)
         
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(srlabel, 0, wx.RIGHT|wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
         hSizer.Add(self.sr, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
         hSizer.Add(help, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
+        hSizer.Add(self.updown, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
+        
         self.srPanel.SetSizer(hSizer)
         
         self.firewallStatus = settingsButton(self, size = (14,14), name = 'firewallStatus14')
         
-        self.widths = [250,-1, 18]
+        self.widths = [-1, 18]
         self.SetStatusWidths(self.widths)
         #On windows there is a resize handle which causes wx to return a width of 1 instead of 18
-        self.widths[2] += 18 - self.GetFieldRect(2).width
+        self.widths[1] += 18 - self.GetFieldRect(1).width
         self.SetStatusWidths(self.widths)
         
         self.Reposition()
@@ -68,28 +72,32 @@ class SRstatusbar(wx.StatusBar):
         dlg.Destroy()
         
     def set_reputation(self, reputation, down, up):
-        changed = True
-        if reputation < -0.33 and self.sr.GetLabel() != 'Poor':
-            self.sr.SetForegroundColour((255,51,0))
-            self.sr.SetLabel("Poor")
-        elif reputation < 0.33 and self.sr.GetLabel() != 'Average':
-            self.sr.SetForegroundColour(wx.BLACK)
-            self.sr.SetLabel("Average")
-        elif self.sr.GetLabel() != 'Good':
-            self.sr.SetForegroundColour((0,80,120))
-            self.sr.SetLabel("Good")
-        else:
-            changed = False
-        
-        if changed:
-            self.Reposition()
-        
         if DEBUG:
             print >> sys.stderr , "SRstatusbar: My Reputation",reputation
+            
+        changed = False
+        if reputation < -0.33:
+            newColor = (255,51,0)
+            newLabel = "Poor"
+        elif reputation < 0.33:
+            newColor = wx.BLACK
+            newLabel = "Average"
+        else:
+            newColor = (0,80,120)
+            newLabel = "Good"
         
-        d = self.format_bytes(down * 1024.0) + ' Down '
-        u = self.format_bytes(up * 1024.0) + ' Up'
-        self.SetStatusText(d + u, 1)
+        if self.sr.GetLabel() != newLabel:
+            self.sr.SetLabel(newLabel)
+            self.sr.SetForegroundColour(newColor)
+            changed = True
+        
+        newLabel = self.format_bytes(down * 1024.0) + ' Down ' + self.format_bytes(up * 1024.0) + ' Up'
+        if self.updown.GetLabel() != newLabel:
+            self.updown.SetLabel(newLabel)
+            changed = True
+            
+        if changed:
+            self.Reposition()
         
     def onReachable(self,event=None):
         if not self.guiUtility.firewall_restart:
@@ -127,14 +135,11 @@ class SRstatusbar(wx.StatusBar):
     def Reposition(self):
         rect = self.GetFieldRect(0)
         self.srPanel.Layout()
+        self.srPanel.SetPosition((rect.x, rect.y))
         bestWidth = self.srPanel.GetBestSize()[0]
         self.srPanel.SetSize((bestWidth, rect.height))
-        self.srPanel.SetPosition((rect.x, rect.y))
-        if bestWidth != self.widths[0]:
-            self.widths[0] = bestWidth
-            self.SetStatusWidths(self.widths)
         
-        rect = self.GetFieldRect(2)
+        rect = self.GetFieldRect(1)
         size = self.firewallStatus.GetSize()
         xAdd = (rect.width - size[0])/2
         yAdd = (rect.height - size[1])/2

@@ -478,7 +478,7 @@ class LibaryList(List):
         self.torrent_manager = self.guiutility.torrentsearch_manager
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'type':'method', 'name':'Completion', 'width': 180, 'method': self.CreateProgress}, \
+                   {'type':'method', 'name':'Completion', 'width': 250, 'method': self.CreateProgress}, \
                    {'type':'method', 'name':'Connections', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateConnections, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Down', 'width': 70, 'method': self.CreateDown, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
