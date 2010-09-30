@@ -11,6 +11,7 @@ import sys
 from threading import Thread,Condition
 from traceback import print_exc,print_stack,format_stack
 from time import time
+from wx import PyDeadObjectError
 
 DEBUG = False
 
