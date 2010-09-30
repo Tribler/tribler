@@ -48,6 +48,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon 
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
+from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.utils import videoextdefaults
@@ -155,10 +156,9 @@ class MainFrame(wx.Frame):
         tt = self.GetToolTip()
         if tt is not None:
             tt.SetTip('')
-        
-        #wx.Frame.__init__(self, None, -1, title, position, size, style = style)
-        
-        self.doneflag = Event()
+            
+        self.SRstatusbar = SRstatusbar(self)
+        self.SetStatusBar(self.SRstatusbar)
 
         dragdroplist = FileDropTarget(self)
         self.SetDropTarget(dragdroplist)
@@ -171,7 +171,6 @@ class MainFrame(wx.Frame):
             pass
 
         # Don't update GUI as often when iconized
-        self.GUIupdate = True
         self.oldframe = None
         self.window = self.GetChildren()[0]
         self.window.utility = self.utility
@@ -180,7 +179,6 @@ class MainFrame(wx.Frame):
         ############################
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-#        self.Bind(wx.EVT_MENU, self.OnMenuExit, id = wx.ID_CLOSE)
 
         # leaving here for the time being:
         # wxMSW apparently sends the event to the App object rather than
@@ -214,15 +212,12 @@ class MainFrame(wx.Frame):
         except:
             print_exc()
         self.Bind(wx.EVT_ICONIZE, self.onIconify)
-        #self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
         self.Bind(wx.EVT_SIZE, self.onSize)
         self.Bind(wx.EVT_MAXIMIZE, self.onSize)
-        #self.Bind(wx.EVT_IDLE, self.onIdle)
 
         # Init video player
         sys.stdout.write('GUI Complete.\n')
 
-        ##self.standardOverview.Show(True)
         self.Show(True)
         
         # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb
@@ -549,24 +544,8 @@ class MainFrame(wx.Frame):
         atexit.register(start_tribler)
         self.guiUtility.frame.OnCloseWindow()
     
-    def onFocus(self, event = None):
-        if event is not None:
-            event.Skip()
-        #self.window.getSelectedList(event).SetFocus()
-    
     def OnFind(self, event):
         self.guiUtility.frame.top_bg.SearchFocus()
-        
-    def setGUIupdate(self, update):
-        oldval = self.GUIupdate
-        self.GUIupdate = update
-        
-        if self.GUIupdate and not oldval:
-            # Force an update of all torrents
-            for torrent in self.utility.torrents["all"]:
-                torrent.updateColumns()
-                torrent.updateColor()
-
 
 
     #######################################
@@ -579,11 +558,6 @@ class MainFrame(wx.Frame):
         
         if self.tbicon is not None:
             self.tbicon.updateIcon(False)
-
-        #self.window.list.SetFocus()
-
-        # Resume updating GUI
-        self.setGUIupdate(True)
 
     def onIconify(self, event = None):
         # This event handler is called both when being minimalized
@@ -603,9 +577,6 @@ class MainFrame(wx.Frame):
                 and self.tbicon is not None):
                 self.tbicon.updateIcon(True)
                 self.Show(False)
-
-            # Don't update GUI while minimized
-            self.setGUIupdate(False)
         else:
             videoplayer = VideoPlayer.getInstance()
             embed = videoplayer.videoframe.get_videopanel()
@@ -613,7 +584,6 @@ class MainFrame(wx.Frame):
                 embed.ppbtn.setToggled(False)
                 embed.vlcwin.setloadingtext('')
                 embed.vlcwrap.resume()
-            self.setGUIupdate(True)
         if event is not None:
             event.Skip()
 
@@ -629,15 +599,10 @@ class MainFrame(wx.Frame):
                 print  >> sys.stderr,"main: onSize:",self.GetSize()
             else:
                 print  >> sys.stderr,"main: onSize: None"
-        self.setGUIupdate(True)
         if event is not None:
             if event.GetEventType() == wx.EVT_MAXIMIZE:
                 self.window.SetClientSize(self.GetClientSize())
             event.Skip()
-        
-
-        # Refresh subscreens
-        #self.guiUtility.refreshOnResize()
         
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")
@@ -722,7 +687,6 @@ class MainFrame(wx.Frame):
                 print_exc()
             
         self.utility.abcquitting = True
-        self.GUIupdate = False
         
         videoplayer = VideoPlayer.getInstance()
         videoplayer.stop_playback()

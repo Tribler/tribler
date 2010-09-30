@@ -1,47 +1,46 @@
 # Written by Richard Gwin
 import wx.html
-import wx.xrc as xrc
 import sys
+import os
 
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.tribler_topButton import settingsButton
 
 DEBUG = False
 
-class SRstatusbar(wx.Panel):
-    def __init__(self, *args, **kw):
+class SRstatusbar(wx.StatusBar):
+    def __init__(self, parent):
+        wx.StatusBar.__init__(self, parent)
+        self.SetFieldsCount(3)
+        
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         
-        self.elements = {}
-        self.elementsName = ['help', \
-                             'total_down', \
-                             'total_up', \
-                             'SRvalue', \
-                             'firewallStatus14']
-
-        if len(args) == 0: 
-            pre = wx.PrePanel() 
-            # the Create step is done by XRC. 
-            self.PostCreate(pre) 
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
-        else:
-            wx.Panel.__init__(self, *args, **kw) 
-            self._PostInit()     
+        self.srPanel = wx.Panel(self)
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        srlabel = wx.StaticText(self.srPanel, -1, "Sharing Reputation:")
+        self.sr = wx.StaticText(self.srPanel)
+        help = wx.StaticBitmap(self.srPanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images" , "help.png"),wx.BITMAP_TYPE_ANY))
+        help.Bind(wx.EVT_LEFT_UP, self.helpClick)
         
-    def OnCreate(self, event):
-        self.Unbind(wx.EVT_WINDOW_CREATE)
-        wx.CallAfter(self._PostInit)
-        event.Skip()
-        return True
-    
-    def _PostInit(self):
-        for element in self.elementsName:
-            xrcElement = xrc.XRCCTRL(self, element)
-            if not xrcElement:
-                print 'SRstatusbar: Error: Could not identify xrc element:',element
-            self.elements[element] = xrcElement
+        hSizer.Add(srlabel, 0, wx.RIGHT|wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
+        hSizer.Add(self.sr, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
+        hSizer.Add(help, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
+        self.srPanel.SetSizer(hSizer)
         
-        self.elements['help'].Bind(wx.EVT_LEFT_UP, self.helpClick)
+        self.firewallStatus = settingsButton(self, size = (14,14), name = 'firewallStatus14')
+        
+        self.widths = [250,-1, 18]
+        self.SetStatusWidths(self.widths)
+        #On windows there is a resize handle which causes wx to return a width of 1 instead of 18
+        self.widths[2] += 18 - self.GetFieldRect(2).width
+        self.SetStatusWidths(self.widths)
+        
+        self.Reposition()
+        
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_IDLE, self.OnIdle)
  
     def helpClick(self,event=None):
         dlg = wx.Dialog(None, -1, self.utility.lang.get('sharing_reputation_information_title'), style=wx.DEFAULT_DIALOG_STYLE, size=(400,200))
@@ -69,35 +68,37 @@ class SRstatusbar(wx.Panel):
         dlg.Destroy()
         
     def set_reputation(self, reputation, down, up):
-        if reputation < -0.33:
-            self.elements['SRvalue'].SetForegroundColour((255,51,0))
-            self.elements['SRvalue'].SetLabel("Poor")
-        elif reputation < 0.33:
-            self.elements['SRvalue'].SetForegroundColour(wx.BLACK)
-            self.elements['SRvalue'].SetLabel("Average")
+        changed = True
+        if reputation < -0.33 and self.sr.GetLabel() != 'Poor':
+            self.sr.SetForegroundColour((255,51,0))
+            self.sr.SetLabel("Poor")
+        elif reputation < 0.33 and self.sr.GetLabel() != 'Average':
+            self.sr.SetForegroundColour(wx.BLACK)
+            self.sr.SetLabel("Average")
+        elif self.sr.GetLabel() != 'Good':
+            self.sr.SetForegroundColour((0,80,120))
+            self.sr.SetLabel("Good")
         else:
-            self.elements['SRvalue'].SetForegroundColour((0,80,120))
-            self.elements['SRvalue'].SetLabel("Good")
- 
+            changed = False
+        
+        if changed:
+            self.Reposition()
+        
         if DEBUG:
             print >> sys.stderr , "SRstatusbar: My Reputation",reputation
         
-        d = self.format_bytes(down * 1024.0) + ' Down'
-        self.elements['total_down'].SetLabel(d)
-        
+        d = self.format_bytes(down * 1024.0) + ' Down '
         u = self.format_bytes(up * 1024.0) + ' Up'
-        self.elements['total_up'].SetLabel(u)
-        
-        self.Layout()
+        self.SetStatusText(d + u, 1)
         
     def onReachable(self,event=None):
         if not self.guiUtility.firewall_restart:
-            self.elements['firewallStatus14'].setSelected(2)
-            self.elements['firewallStatus14'].SetToolTipString('Port is working')
+            self.firewallStatus.setSelected(2)
+            self.firewallStatus.SetToolTipString('Port is working')
     
     def IsReachable(self):
         if not self.guiUtility.firewall_restart:
-            return self.elements['firewallStatus14'].getSelected() == 2
+            return self.firewallStatus.getSelected() == 2
         return False
     
     def format_bytes(self, bytes):
@@ -114,3 +115,28 @@ class SRstatusbar(wx.Panel):
         if bytes < 1073741824:
             return '%1.1f GB' % (bytes//1073741824.0)
         return '%d GB' % (bytes//1073741824)
+    
+    def OnSize(self, event):
+        self.Reposition()
+        self.sizeChanged = True
+    
+    def OnIdle(self, event):
+        if self.sizeChanged:
+            self.Reposition()
+    
+    def Reposition(self):
+        rect = self.GetFieldRect(0)
+        self.srPanel.Layout()
+        bestWidth = self.srPanel.GetBestSize()[0]
+        self.srPanel.SetSize((bestWidth, rect.height))
+        self.srPanel.SetPosition((rect.x, rect.y))
+        if bestWidth != self.widths[0]:
+            self.widths[0] = bestWidth
+            self.SetStatusWidths(self.widths)
+        
+        rect = self.GetFieldRect(2)
+        size = self.firewallStatus.GetSize()
+        xAdd = (rect.width - size[0])/2
+        yAdd = (rect.height - size[1])/2
+        self.firewallStatus.SetPosition((rect.x+xAdd, rect.y+yAdd))
+        self.sizeChanged = False

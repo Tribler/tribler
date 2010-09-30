@@ -336,7 +336,7 @@ class Utility:
         weekstr = '%d' % (week) + self.lang.get('l_week')
         daystr = '%d' % (day) + self.lang.get('l_day')
         hourstr = '%d' % (hour) + self.lang.get('l_hour')
-        minutestr = '%02d' % (minute) + self.lang.get('l_minute')
+        minutestr = '%d' % (minute) + self.lang.get('l_minute')
         secstr = '%02d' % (sec) + self.lang.get('l_second')
             
         if week > 0:

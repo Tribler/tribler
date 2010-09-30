@@ -231,8 +231,6 @@ class ABCApp(wx.App):
 
             self.frame.set_wxapp(self)
             self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_search")
-            self.frame.SRstatusbar = xrc.XRCCTRL(self.frame, "SRstatusbar")
-            
             self.frame.searchlist = xrc.XRCCTRL(self.frame, "searchlist")
             self.frame.channellist = xrc.XRCCTRL(self.frame, "channellist")
             self.frame.selectedchannellist = xrc.XRCCTRL(self.frame, "selchannellist")

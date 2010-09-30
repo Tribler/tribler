@@ -332,7 +332,7 @@ class TorrentDetails(wx.Panel):
                     self.original_data = original_data
             self.item = tmp_object(['',[0,0],[0,0],0,0],self.torrent)
             self.progressPanel = ProgressPanel(self.buttonPanel, self.item)
-            self.buttonSizer.Add(self.progressPanel, 0, wx.ALL, 3)
+            self.buttonSizer.Add(self.progressPanel, 0, wx.ALL|wx.EXPAND, 3)
             
             self.downText = wx.StaticText(self.buttonPanel)
             self.upText = wx.StaticText(self.buttonPanel)
@@ -501,22 +501,13 @@ class ProgressPanel(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         self.item = item
         self.utility = GUIUtility.getInstance().utility
-        
-        self.SetMinSize((150,-1))
-        self.pb = ProgressBar(self)
 
-        self.eta = wx.StaticText(self)
-        self.percentage = wx.StaticText(self, -1, "100.0%", style = wx.ST_NO_AUTORESIZE | wx.ALIGN_RIGHT)
-        self.percentage.SetLabel('')
-        
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.pb, 1, wx.ALIGN_CENTER_VERTICAL)
-        hSizer.Add(self.percentage, 0, wx.LEFT|wx.FIXED_MINSIZE|wx.ALIGN_CENTER_VERTICAL, 3)
-        
+        self.pb = ProgressBar(self)
+        self.status = wx.StaticText(self)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
-        vSizer.Add(hSizer, 0, wx.EXPAND)
-        vSizer.Add(self.eta)
+        vSizer.Add(self.pb, 0, wx.EXPAND)
+        vSizer.Add(self.status, 0, wx.EXPAND)
         vSizer.AddStretchSpacer()
         
         self.SetSizer(vSizer)
@@ -530,43 +521,6 @@ class ProgressPanel(wx.Panel):
             ds = self.item.original_data.get('ds', None)
         
         if ds != None:
-            #Update eta
-            finished = ds.get_progress() == 1.0
-            if finished:
-                eta = "Completed"
-                if ds.get_status() == DLSTATUS_SEEDING:
-                    eta += ", seeding"
-                    return_val = 2
-                else:
-                    eta += ", inactive"
-            else:   
-                if ds.get_status() in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING]:
-                    eta = 'Checking'
-                else:
-                    eta = self.utility.eta_value(ds.get_eta(), truncate=2)
-                    if eta == '' or eta.find('unknown') != -1:
-                        eta = ''
-                    return_val = 1
-            
-            #Update progress
-            progress = (ds.get_progress() or 0.0) * 100.0
-            if progress != self.item.data[1][0]:
-                self.percentage.SetLabel('%.1f%%' % progress)
-                self.percentage.Refresh()
-                self.item.data[1] = [progress,2]
-            
-            #Update eta
-            if self.eta.GetLabel() != eta:
-                self.eta.SetLabel(eta)
-                self.eta.Refresh()
-            
-            seeds, peers = ds.get_num_seeds_peers()
-            if seeds == None:
-                seeds = 0
-            if peers == None:
-                peers = 0
-            self.item.data[2] = [seeds, peers]
-                
             # Allow STOPPED_ON_ERROR, sometimes transient
             startable = not ds.get_status() in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
             if startable:
@@ -575,17 +529,55 @@ class ProgressPanel(wx.Panel):
                 havedigest = ds.get_pieces_complete()
             else:
                 havedigest = None
-                
-            #Update graph
+            
+            #Update eta
+            progress = ds.get_progress()
+            finished = progress == 1.0
             if finished:
-                self.pb.reset(colour=2) # Show as complete
-            elif havedigest:
-                self.pb.set_pieces(havedigest)
-            elif progress > 0:
-                self.pb.reset(colour=1) # Show as having some
+                eta = "Completed"
+                if ds.get_status() == DLSTATUS_SEEDING:
+                    eta += ", seeding"
+                    return_val = 2
+                else:
+                    eta += ", inactive"
             else:
-                self.pb.reset(colour=0) # Show as having none
-            self.pb.Refresh()
+                if ds.get_status() in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING]:
+                    eta = 'Checking'
+                else:
+                    sizestr = ''
+                    size = self.item.original_data.get('length', False)
+                    if size:
+                        sizestr = '%s/%s (%0.1f%%)'%(self.utility.size_format(size*ds.get_progress(), 0), self.utility.size_format(size, 0), ds.get_progress()*100) 
+                        
+                    eta = self.utility.eta_value(ds.get_eta(), truncate=2)
+                    if eta == '' or eta.find('unknown') != -1:
+                        eta = sizestr
+                    else:
+                        eta = sizestr + ' - ' + eta
+                    return_val = 1
+            
+            #Update eta
+            if self.status.GetLabel() != eta:
+                self.status.SetLabel(eta)
+                self.status.Refresh()
+                
+                #Update graph
+                if finished:
+                    self.pb.reset(colour=2) # Show as complete
+                elif havedigest:
+                    self.pb.set_pieces(havedigest)
+                elif progress > 0:
+                    self.pb.reset(colour=1) # Show as having some
+                else:
+                    self.pb.reset(colour=0) # Show as having none
+                self.pb.Refresh()
+            
+            seeds, peers = ds.get_num_seeds_peers()
+            if seeds == None:
+                seeds = 0
+            if peers == None:
+                peers = 0
+            self.item.data[2] = [seeds, peers]
     
             dls = ds.get_current_speed('down')*1024
             self.item.data[3] = dls
@@ -609,13 +601,10 @@ class ProgressPanel(wx.Panel):
                 str_progress = '?'
                 self.pb.reset()
                 self.item.data[1] = [-1,0]
-                
-            if self.percentage.GetLabel() != str_progress:
-                self.percentage.SetLabel(str_progress)
             
             eta += 'inactive'
-            if self.eta.GetLabel() != eta:
-                self.eta.SetLabel(eta)
+            if self.status.GetLabel() != eta:
+                self.status.SetLabel(eta)
             
             self.item.data[2] = [0,0]
             self.item.data[3] = 0

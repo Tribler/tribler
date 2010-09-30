@@ -478,7 +478,7 @@ class LibaryList(List):
         self.torrent_manager = self.guiutility.torrentsearch_manager
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'type':'method', 'name':'Completion', 'width': 150, 'method': self.CreateProgress}, \
+                   {'type':'method', 'name':'Completion', 'width': 180, 'method': self.CreateProgress}, \
                    {'type':'method', 'name':'Connections', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateConnections, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Down', 'width': 70, 'method': self.CreateDown, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
@@ -522,6 +522,9 @@ class LibaryList(List):
     
     def CreateProgress(self, parent, item):
         progressPanel = ProgressPanel(parent, item)
+        progressPanel.SetMinSize((self.columns[1]['width'],-1))
+        progressPanel.Layout()
+        
         item.progressPanel = progressPanel
         return progressPanel
     
@@ -600,22 +603,22 @@ class LibaryList(List):
         item = self.list.GetExpandedItem()
         
         dlg = wx.Dialog(None, -1, 'Are you sure you want to remove this torrent?', style=wx.DEFAULT_DIALOG_STYLE, size=(400,200))
-        vSizer = wx.BoxSizer(wx.VERTICAL)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        
         hSizer.Add(wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_QUESTION)), 0, wx.RIGHT, 5)
-        hSizer.Add(wx.StaticText(dlg, -1, "Do you want to remove '%s'\nfrom your library or also from your computer?"%item.data[0]))
-        vSizer.Add(hSizer)
         
-        hSizer = wx.StdDialogButtonSizer()
-        hSizer.AddStretchSpacer()
-        hSizer.Add(wx.Button(dlg, wx.ID_CANCEL))
-        hSizer.Add(wx.Button(dlg, wx.ID_DEFAULT, 'Only delete from library'))
-        hSizer.Add(wx.Button(dlg, wx.ID_DELETE, 'Also delete from computer'))
-        vSizer.Add(hSizer, 0, wx.TOP|wx.EXPAND, 5)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(wx.StaticText(dlg, -1, "Do you want to remove '%s'\nfrom your library or also from your computer?"%item.data[0]))
+        
+        bSizer = wx.StdDialogButtonSizer()
+        bSizer.AddStretchSpacer()
+        bSizer.Add(wx.Button(dlg, wx.ID_CANCEL))
+        bSizer.Add(wx.Button(dlg, wx.ID_DEFAULT, 'Only delete from library'))
+        bSizer.Add(wx.Button(dlg, wx.ID_DELETE, 'Also delete from computer'))
+        vSizer.Add(bSizer, 0, wx.TOP|wx.EXPAND, 5)
+        hSizer.Add(vSizer)
         
         border = wx.BoxSizer()
-        border.Add(vSizer, 1, wx.ALL|wx.EXPAND, 10)
+        border.Add(hSizer, 1, wx.ALL|wx.EXPAND, 10)
         dlg.Bind(wx.EVT_BUTTON, lambda event: dlg.EndModal(event.GetId()))
         dlg.SetSizerAndFit(border)
         dlg.Centre()
