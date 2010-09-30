@@ -128,7 +128,7 @@ class ProgressBar(wx.Control):
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-        self.SetSize((60,6))
+        #self.SetSize((60,6))
 
         self.progressinf = None
 
@@ -144,8 +144,6 @@ class ProgressBar(wx.Control):
         x,y,maxw,maxh = self.GetClientRect()
         #dc.DrawRectangle(x,y,)
         
-        arrowsize = 6
-        arrowspace = 1
         numrect = float(len(self.blocks))
 
         # create blocks
@@ -170,18 +168,27 @@ class ProgressBar(wx.Control):
         dc.EndDrawing()
 
     def set_pieces(self, blocks):
-        num = 50 # max number of blocks to show
-        if len(blocks) < num:
-            self.set_blocks([2*int(a) for a in blocks])
-        else:
-            sblocks = [0]*num
-            f = len(blocks)/num
-            for i in xrange(num):
-                part = blocks[int(f*i):int(f*(i+1))]
-                if True in part:
-                    sblocks[i] = 1
-                if not False in part:
+        maxBlocks = self.GetClientRect().width
+        haveBlocks = len(blocks)
+        if haveBlocks > maxBlocks: #we need to group the blocks
+            nrBlocksPerPixel = haveBlocks/maxBlocks
+            
+            sblocks = [0]*haveBlocks
+            for i in xrange(maxBlocks):
+                any = False
+                all = True
+                
+                for j in xrange(nrBlocksPerPixel * i, nrBlocksPerPixel * (i+1)):
+                    if blocks[j]:
+                        any = True
+                    else:
+                        all = False
+                        if any:
+                            break
+                if all:
                     sblocks[i] = 2
+                elif any:
+                    sblocks[i] = 1
             self.set_blocks(sblocks)
         
     def set_blocks(self,blocks):
