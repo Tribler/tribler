@@ -13,7 +13,7 @@ class SRstatusbar(wx.StatusBar):
     def __init__(self, parent):
         wx.StatusBar.__init__(self, parent)
         self.SetFieldsCount(2)
-        self.SetStatusStyles([wx.SB_FLAT, wx.SB_FLAT, wx.SB_FLAT])
+        self.SetStatusStyles([wx.SB_FLAT, wx.SB_FLAT])
         
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
