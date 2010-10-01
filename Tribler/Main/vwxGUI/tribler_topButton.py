@@ -310,7 +310,7 @@ class NoFocusButton(wx.Button):
     
     def OnFocus(self, event):
         self.Navigate()
-    def AcceptsFocus(*args, **kwargs):
+    def AcceptsFocus(self):
         return False
-    def AcceptsFocusFromKeyboard(*args, **kwargs):
+    def AcceptsFocusFromKeyboard(self):
         return False

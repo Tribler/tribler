@@ -60,100 +60,102 @@ class ListIcon:
 
 class ListItem(wx.Panel):
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False):
-         wx.Panel.__init__(self, parent)
+        wx.Panel.__init__(self, parent)
          
-         self.parent_list = parent_list
-         self.columns = columns
-         self.data = data
-         self.original_data = original_data
-         self.leftSpacer = leftSpacer
-         self.rightSpacer = rightSpacer
+        self.parent_list = parent_list
+        self.columns = columns
+        self.data = data
+        self.original_data = original_data
+        self.leftSpacer = leftSpacer
+        self.rightSpacer = rightSpacer
          
-         self.showChange = showChange
-         self.taskserver = None
+        self.showChange = showChange
+        self.taskserver = None
+        
+        self.selected = False
+        self.expanded = False
          
-         self.selectedColor = wx.Colour(216,233,240)
-         self.deselectedColor = wx.WHITE
-         self.SetBackgroundColour(self.deselectedColor)
+        self.selectedColor = wx.Colour(216,233,240)
+        self.deselectedColor = wx.WHITE
+        self.SetBackgroundColour(self.deselectedColor)
          
-         self.vSizer = wx.BoxSizer(wx.VERTICAL)
-         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
          
-         self.AddComponents()
+        self.AddComponents()
          
-         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-         self.vSizer.Add(self.hSizer, 0, wx.EXPAND)
-         self.SetSizer(self.vSizer)
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+        self.vSizer.Add(self.hSizer, 0, wx.EXPAND)
+        self.SetSizer(self.vSizer)
          
-         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
     
     def AddComponents(self):
-         self.controls = []
-         if self.leftSpacer > 0:
-             self.hSizer.AddSpacer((self.leftSpacer, -1))
+        self.controls = []
+        if self.leftSpacer > 0:
+            self.hSizer.AddSpacer((self.leftSpacer, -1))
          
-         for i in xrange(len(self.columns)):
-             if self.columns[i].get('icon', False):
-                 if self.columns[i]['icon'] == 'checkbox' or self.columns[i]['icon'] == 'tree':
-                     self.icontype = self.columns[i]['icon']
-                     self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(self.deselectedColor, 0))
-                     self.expandedState.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                     self.expandedState.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-                     self.hSizer.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
-                 else:
-                     icon = self.columns[i]['icon'](self)
-                     if icon:
-                         icon = wx.StaticBitmap(self, -1, icon)
-                         icon.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                         icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-                         self.hSizer.Add(icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
-                         
-             type = self.columns[i].get('type','label')
-             if type == 'label':
-                 str_data = self.columns[i].get('fmt', unicode)(self.data[i])
-             
-                 if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
-                     option = 1
-                     size = wx.DefaultSize
-                 else:
-                     option = 0
-                     size = (self.columns[i]['width'],-1)
-                 
-                 label = wx.StaticText(self, -1, str_data, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
-                 label.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                 label.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-                 self.controls.append(label)
-                 
-                 self.hSizer.Add(label, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
-                 if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
-                     label.SetMinSize((1,-1))
+        for i in xrange(len(self.columns)):
+            if self.columns[i].get('icon', False):
+                if self.columns[i]['icon'] == 'checkbox' or self.columns[i]['icon'] == 'tree':
+                    self.icontype = self.columns[i]['icon']
+                    self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(self.deselectedColor, 0))
+                    self.expandedState.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+                    self.expandedState.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+                    self.hSizer.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+                else:
+                    icon = self.columns[i]['icon'](self)
+                    if icon:
+                        icon = wx.StaticBitmap(self, -1, icon)
+                        icon.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+                        icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+                        self.hSizer.Add(icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+                        
+            type = self.columns[i].get('type','label')
+            if type == 'label':
+                str_data = self.columns[i].get('fmt', unicode)(self.data[i])
+            
+                if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
+                    option = 1
+                    size = wx.DefaultSize
+                else:
+                    option = 0
+                    size = (self.columns[i]['width'],-1)
+                
+                label = wx.StaticText(self, -1, str_data, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
+                label.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+                label.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+                self.controls.append(label)
+                
+                self.hSizer.Add(label, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+                if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
+                    label.SetMinSize((1,-1))
                      
-             elif type == 'method':
-                 control = self.columns[i]['method'](self, self)
-                 if control:
-                     control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                     control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-                     
-                     if getattr(control, 'GetChildren', False):
-                         children = control.GetChildren()
-                         for child in children:
+            elif type == 'method':
+                control = self.columns[i]['method'](self, self)
+                if control:
+                    control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+                    control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+                    
+                    if getattr(control, 'GetChildren', False):
+                        children = control.GetChildren()
+                        for child in children:
                             child.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
                             child.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-                     self.hSizer.Add(control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
-                     self.controls.append(control)
-                     
-                     if self.columns[i]['width'] == -1:
-                         self.columns[i]['width'] = control.GetSize()[0]
-                         self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
-                 else:
-                     if self.columns[i]['width'] != -1:
+                    self.hSizer.Add(control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+                    self.controls.append(control)
+                    
+                    if self.columns[i]['width'] == -1:
+                        self.columns[i]['width'] = control.GetSize()[0]
+                        self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
+                else:
+                    if self.columns[i]['width'] != -1:
                         self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
-         
-         if self.rightSpacer > 0:
-             self.hSizer.AddSpacer((self.rightSpacer, -1))
-
-         self.hSizer.Layout()
-         
+        
+        if self.rightSpacer > 0:
+            self.hSizer.AddSpacer((self.rightSpacer, -1))
+        self.hSizer.Layout()
+        
     def GetIcon(self, background, state):
         return ListIcon.getInstance().getBitmap(self, self.icontype, background, state)
         
@@ -195,7 +197,6 @@ class ListItem(wx.Panel):
                                 child.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
                         
                         cur_sizeritem_index = 0
-                        cur_sizeritem = self.hSizer.GetItem(self.controls[control_index])
                         for child in self.hSizer.GetChildren():
                             if child.GetWindow() == self.controls[control_index]:
                                 break
@@ -222,33 +223,18 @@ class ListItem(wx.Panel):
             
         self.data = data[1]
         
-    def Highlight(self):
+    def Highlight(self, timeout = 3.0):
         if self.taskserver == None:
             self.taskserver = GUITaskQueue.getInstance()
             
-        self.taskserver.add_task(lambda:wx.CallAfter(self.ShowSelected), 3.0, self)
+        self.taskserver.add_task(lambda:wx.CallAfter(self.ShowSelected), timeout, self)
         self.BackgroundColor("#ffff99")
          
     def ShowSelected(self):
-        selected = getattr(self, 'selected', False) or getattr(self, 'expanded', False)
-        for sizeritem in self.hSizer.GetChildren():
-            if sizeritem.IsWindow():
-                child = sizeritem.GetWindow()
-                if getattr(child, 'selected', False):
-                    selected = True
-                    break
-                
-                if getattr(child, 'GetChildren', False):
-                    sub_children = child.GetChildren()
-                    for sub_child in sub_children:
-                        if getattr(sub_child, 'selected', False):
-                            selected = True
-                            break
-        if selected:
-            color = self.selectedColor
+        if self.selected or self.expanded:
+            self.BackgroundColor(self.selectedColor)
         else:
-            color = self.deselectedColor
-        self.BackgroundColor(color)
+            self.BackgroundColor(self.deselectedColor)
     
     def BackgroundColor(self, color):
         self.SetBackgroundColour(color)
@@ -259,41 +245,30 @@ class ListItem(wx.Panel):
                     child.SetBackgroundColour(color)
         
         #If this item has a icon and it is not checked
-        if getattr(self, 'expandedState', False) and not getattr(self, 'expanded', False):
+        if getattr(self, 'expandedState', False) and not self.expanded:
             self.expandedState.SetBitmap(self.GetIcon(color, 0))
         
         self.Refresh()
     
     def Deselect(self):
-        self.selected = False
-        self.expanded = False
-        
-        for child in self.GetChildren():
-            child.selected = False
-                        
-            if getattr(child, 'GetChildren', False):
-                sub_children = child.GetChildren()
-                for sub_child in sub_children:
-                    sub_child.selected = False
-        self.ShowSelected()
+        if self.selected or self.expanded:
+            self.selected = False
+            self.expanded = False
+            self.ShowSelected()
     
     def GetColumn(self, column):
         return self.data[column]
 
     def OnMouse(self, event):
-        if event.Entering():
-            event.GetEventObject().selected = True
-            self.ShowSelected()
-        elif event.Leaving():
-            event.GetEventObject().selected = False
-            self.ShowSelected()
-        elif event.LeftUp():
+        if event.LeftUp():
             self.OnClick(event)
-            
+        else:
+            self.parent_list.OnMouseIn(self)
+        
         event.Skip() #Allow windows to paint button hover
         
     def OnClick(self, event):
-        if not getattr(self, 'expanded', False):
+        if not self.expanded:
             if self.parent_list.OnExpand(self):
                 self.expanded = True
             
@@ -373,6 +348,10 @@ class AbstractListBody():
         #vertical scrollrate
         self.rate = None
         
+        #states
+        self.cur_expanded = None
+        self.cur_mouseover = None
+        
         #quick filter
         self.filter = ''
         self.filtercolumn = 0
@@ -382,6 +361,7 @@ class AbstractListBody():
         self.data = []
         self.items = {}
         self.Bind(wx.EVT_IDLE, self.OnIdle)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseOut)
         
     def OnSort(self, column, reverse):
         self.Scroll(-1, 0)
@@ -441,10 +421,9 @@ class AbstractListBody():
             self.OnChange()
             
         if self.singleExpanded:
-            cur_expanded = getattr(self, 'cur_expanded', None)
-            if cur_expanded:
-                self.OnCollapse(cur_expanded)
-                cur_expanded.ShowSelected()
+            if self.cur_expanded:
+                self.OnCollapse(self.cur_expanded)
+                self.cur_expanded.ShowSelected()
                 
             self.cur_expanded = item
             
@@ -456,7 +435,6 @@ class AbstractListBody():
         
         panel = item.Collapse()
         self.parent_list.OnCollapse(item, panel)
-        self.cur_expanded = None
         
         self.OnChange()
         self.Thaw()
@@ -476,6 +454,21 @@ class AbstractListBody():
             self.SetupScrolling(scrollToTop = scrollToTop, scroll_x = False, rate_y = rate_y)
         else:
             self.SetupScrolling(scrollToTop = scrollToTop, scroll_x = False, rate_y = self.rate)
+    
+    def OnMouseOut(self, event):
+        if self.cur_mouseover:
+            self.cur_mouseover.selected = False
+            self.cur_mouseover.ShowSelected() 
+        
+    def OnMouseIn(self, item):
+        if self.cur_mouseover and self.cur_mouseover != item:
+            self.cur_mouseover.selected = False
+            self.cur_mouseover.ShowSelected()
+        
+        self.cur_mouseover = item    
+        if not item.selected:
+            item.selected = True
+            item.ShowSelected()
     
     def Reset(self):
         self.Freeze()
@@ -541,11 +534,11 @@ class AbstractListBody():
                     wx.Yield()
                 except:
                     pass
-            self.highlightList = []
+            self.highlightSet = set()
         else:
-            #updated data
+            #updated data, takes roughly 0.007s for 650+ results
             cur_keys = [key for key,_,_ in self.data]
-            self.highlightList = [key for key,_,_ in data if key not in cur_keys]
+            self.highlightSet = set([key for key,_,_ in data if key not in cur_keys])
             pass
         
         self.data = data
@@ -599,10 +592,10 @@ class AbstractListBody():
                     self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
                     item.Show()
                     
-                    if key in self.highlightList:
+                    if key in self.highlightSet:
                         item.Highlight()
-                        self.highlightList.remove(key)
-                    
+                        self.highlightSet.remove(key)
+                                            
                 nr_items_to_add -= 1
             else:
                 self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(LIST_ITEM_MAX_SIZE, len(data)))
@@ -635,14 +628,10 @@ class AbstractListBody():
                 break
             
     def GetExpandedItem(self):
-        return getattr(self, 'cur_expanded', None)
+        return self.cur_expanded
     
     def GetExpandedItems(self):
-        expanded = []
-        for key, item in self.items.iteritems():
-            if getattr(item, 'expanded', False):
-                expanded.append((key,item))
-        return expanded
+        return [(key, item) for key, item in self.items.iteritems() if item.expanded]
     
     def Select(self, key, raise_event = True):
         self.DeselectAll()
@@ -656,7 +645,7 @@ class AbstractListBody():
         self.items[key].ShowSelected()
     
     def DeselectAll(self):
-        for key, item in self.items.iteritems():
+        for _, item in self.items.iteritems():
             item.Deselect()
  
 class ListBody(scrolled.ScrolledPanel, AbstractListBody):

@@ -11,7 +11,7 @@ DEBUG = False
 
 class SRstatusbar(wx.StatusBar):
     def __init__(self, parent):
-        wx.StatusBar.__init__(self, parent)
+        wx.StatusBar.__init__(self, parent, style = wx.ST_SIZEGRIP)
         self.SetFieldsCount(2)
         self.SetStatusStyles([wx.SB_FLAT, wx.SB_FLAT])
         
@@ -35,10 +35,10 @@ class SRstatusbar(wx.StatusBar):
         
         self.firewallStatus = settingsButton(self, size = (14,14), name = 'firewallStatus14')
         
-        self.widths = [-1, 18]
+        self.widths = [-1, 19]
         self.SetStatusWidths(self.widths)
         #On windows there is a resize handle which causes wx to return a width of 1 instead of 18
-        self.widths[1] += 18 - self.GetFieldRect(1).width
+        self.widths[1] += 19 - self.GetFieldRect(1).width
         self.SetStatusWidths(self.widths)
         
         self.Reposition()
@@ -141,7 +141,6 @@ class SRstatusbar(wx.StatusBar):
         
         rect = self.GetFieldRect(1)
         size = self.firewallStatus.GetSize()
-        xAdd = (rect.width - size[0])/2
         yAdd = (rect.height - size[1])/2
-        self.firewallStatus.SetPosition((rect.x+xAdd, rect.y+yAdd))
+        self.firewallStatus.SetPosition((rect.x, rect.y+yAdd))
         self.sizeChanged = False

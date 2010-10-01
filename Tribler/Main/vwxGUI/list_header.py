@@ -398,7 +398,7 @@ class SearchHeader(TitleHeader):
         self.filter = wx.SearchCtrl(parent)
         self.filter.SetDescriptiveText('Search within results')
         self.filter.Bind(wx.EVT_TEXT, self.OnKey)
-        self.filter.SetMinSize((150,-1))
+        self.filter.SetMinSize((175,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.AddStretchSpacer()
