@@ -259,6 +259,11 @@ class ChannelCastCore:
                 # if so, ignore the incoming record
                 continue
             
+            #Nitin: Check if the record belongs to my channel 
+            if bin2str(v['publisher_id']) == bin2str(self.session.get_permid()):
+                # if so, ignore the incoming record
+                continue
+            
             # make everything into "string" format, if "binary"
             hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
 
