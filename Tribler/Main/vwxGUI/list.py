@@ -955,7 +955,10 @@ class MyChannelList(List):
         self.list.SetFocus()
     
     def OnExpand(self, item):
-        return MyChannelDetails(item, item.original_data, self.GetManager().my_permid)
+        subsupport = SubtitlesSupport.getInstance()
+        if subsupport._registered:
+            return MyChannelDetails(item, item.original_data, self.GetManager().my_permid)
+        return True
     
     def OnRemoveAll(self, event):
         dlg = wx.MessageDialog(self, 'Are you sure you want to remove all torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)

@@ -196,20 +196,21 @@ class TorrentDetails(wx.Panel):
         
         #Create subtitlelist
         subsupport = SubtitlesSupport.getInstance()
-        subs = subsupport.getSubtileInfosForInfohash(self.torrent['infohash'])
-        if len(subs) > 0:
-            supportedLang = subsupport.langUtility.getLangSupported()
-
-            curlang = set()
-            for channelid, dict in subs.iteritems():
-                for lang in dict.keys():
-                    curlang.add(lang)
-            curlang = [supportedLang[langkey] for langkey in curlang]
-            curlang.sort()
-            
-            subtitlePanel, vSizer = create_tab("Subtitles", "Discovered Subtitles")
-            for lang in curlang:
-                add_row(subtitlePanel, vSizer, None, lang)
+        if subsupport._registered:
+            subs = subsupport.getSubtileInfosForInfohash(self.torrent['infohash'])
+            if len(subs) > 0:
+                supportedLang = subsupport.langUtility.getLangSupported()
+    
+                curlang = set()
+                for channelid, dict in subs.iteritems():
+                    for lang in dict.keys():
+                        curlang.add(lang)
+                curlang = [supportedLang[langkey] for langkey in curlang]
+                curlang.sort()
+                
+                subtitlePanel, vSizer = create_tab("Subtitles", "Discovered Subtitles")
+                for lang in curlang:
+                    add_row(subtitlePanel, vSizer, None, lang)
         
         #Create trackerlist
         if torrent.get('trackers', 'None') != 'None':
