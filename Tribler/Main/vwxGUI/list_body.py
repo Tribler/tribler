@@ -83,8 +83,8 @@ class ListItem(wx.Panel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
          
         self.AddComponents()
-         
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+        
         self.vSizer.Add(self.hSizer, 0, wx.EXPAND)
         self.SetSizer(self.vSizer)
          
@@ -295,6 +295,7 @@ class ListItem(wx.Panel):
 
     def Collapse(self):
         self.expanded = False
+        self.ShowSelected()
         
         if len(self.vSizer.GetChildren()) > 1:
             item = self.vSizer.GetItem(1).GetWindow()
@@ -328,6 +329,7 @@ class AbstractListBody():
         #messagePanel text
         self.messagePanel = wx.Panel(self.listpanel)
         self.messagePanel.SetBackgroundColour(wx.WHITE)
+        self.messagePanel.Bind(wx.EVT_ENTER_WINDOW, self.OnMouseOut)
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.messageText = wx.StaticText(self.messagePanel)
@@ -335,7 +337,6 @@ class AbstractListBody():
         self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadAll)
         self.loadNext.Hide()
         
-        self.loadNext.focus = self 
         messageVSizer.Add(self.messageText)
         messageVSizer.Add(self.loadNext, 0, wx.ALIGN_CENTER)
         
@@ -362,6 +363,7 @@ class AbstractListBody():
         self.items = {}
         self.Bind(wx.EVT_IDLE, self.OnIdle)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseOut)
+        self.Bind(wx.EVT_ENTER_WINDOW, self.OnMouseOut)
         
     def OnSort(self, column, reverse):
         self.Scroll(-1, 0)
@@ -423,7 +425,6 @@ class AbstractListBody():
         if self.singleExpanded:
             if self.cur_expanded:
                 self.OnCollapse(self.cur_expanded)
-                self.cur_expanded.ShowSelected()
                 
             self.cur_expanded = item
             
@@ -435,6 +436,7 @@ class AbstractListBody():
         
         panel = item.Collapse()
         self.parent_list.OnCollapse(item, panel)
+        self.cur_expanded = None
         
         self.OnChange()
         self.Thaw()
@@ -458,7 +460,8 @@ class AbstractListBody():
     def OnMouseOut(self, event):
         if self.cur_mouseover:
             self.cur_mouseover.selected = False
-            self.cur_mouseover.ShowSelected() 
+            self.cur_mouseover.ShowSelected()
+            self.cur_mouseover = None 
         
     def OnMouseIn(self, item):
         if self.cur_mouseover and self.cur_mouseover != item:
@@ -593,7 +596,7 @@ class AbstractListBody():
                     item.Show()
                     
                     if key in self.highlightSet:
-                        item.Highlight()
+                        item.Highlight(1)
                         self.highlightSet.remove(key)
                                             
                 nr_items_to_add -= 1

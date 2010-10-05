@@ -277,6 +277,9 @@ class TorrentManager:
         else:
             return torrent_filename[1]
     
+    def getSwarmInfo(self, torrent_id):
+        return self.torrent_db.getSwarmInfo(torrent_id)
+    
     def playTorrent(self, torrent, selectedinfilename = None):
         ds = torrent.get('ds')
         
@@ -851,12 +854,6 @@ class ChannelSearchGridManager:
             return [0, None]
         else:        
             return [len(self.hits),self.hits]
-                
-    def getMyChannel(self):
-        if self.mychannel is None:
-            self.mychannel = self.channelcast_db.getMyChannel()
-        mychannel = self.mychannel
-        return [1, mychannel]
 
     def getNewChannels(self):
         #all channels with no votes + updated since
@@ -909,9 +906,6 @@ class ChannelSearchGridManager:
     
     def getChannel(self, publisher_id):
         return self.channelcast_db.getChannel(publisher_id)
-    
-    def getChannelsFromList(self, publisher_ids):
-        return self.channelcast_db.getChannelsFromList(publisher_ids)
     
     def spam(self, publisher_id):
         self.votecastdb.spam(publisher_id)

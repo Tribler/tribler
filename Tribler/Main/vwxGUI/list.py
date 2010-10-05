@@ -162,9 +162,10 @@ class MyChannelManager():
     def __init__(self, list):
         self.list = list
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
+        self.my_permid = self.channelsearch_manager.channelcast_db.my_permid
         
     def refresh(self):
-        nr_favorite = self.channelsearch_manager.channelcast_db.getSubscribersCount(bin2str(self.channelsearch_manager.channelcast_db.my_permid))
+        nr_favorite = self.channelsearch_manager.channelcast_db.getSubscribersCount(bin2str(self.my_permid))
         torrentList = self.channelsearch_manager.getTorrentsFromMyChannel()
         self.list.SetData(torrentList, nr_favorite)
         
@@ -954,8 +955,7 @@ class MyChannelList(List):
         self.list.SetFocus()
     
     def OnExpand(self, item):
-        #Show highlight
-        return True
+        return MyChannelDetails(item, item.original_data, self.GetManager().my_permid)
     
     def OnRemoveAll(self, event):
         dlg = wx.MessageDialog(self, 'Are you sure you want to remove all torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
@@ -969,7 +969,7 @@ class MyChannelList(List):
             infohashes = [key for key,item in self.list.GetExpandedItems()]
             self.manager.RemoveItems(infohashes)
         dlg.Destroy()
-    
+        
 class ChannelCategoriesList(List):
     def __init__(self):
         self.guiutility = GUIUtility.getInstance()

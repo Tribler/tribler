@@ -202,7 +202,8 @@ class Languages(object):
         return givenCodes & self._supportedCodes == givenCodes
     
     
-    
+    def getLangSupported(self):
+        return self.supportedLanguages
             
 
 class LanguagesProvider(object):

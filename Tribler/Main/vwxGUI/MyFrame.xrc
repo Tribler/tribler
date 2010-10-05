@@ -12,8 +12,7 @@
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
         <object class="wxPanel" name="top_search" subclass="Tribler.Main.vwxGUI.TopSearchPanel.TopSearchPanel"/>
-        <flag>wxLEFT|wxRIGHT|wxEXPAND</flag>
-        <border>5</border>
+        <flag>wxEXPAND</flag>
         <minsize>-1,80</minsize>
       </object>
       <object class="sizeritem">

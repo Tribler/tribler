@@ -18,6 +18,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
+from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
 
 from list_header import ListHeader
 from list_body import ListBody
@@ -61,8 +62,6 @@ class TorrentDetails(wx.Panel):
         self.guiserver = GUITaskQueue.getInstance()
         self.guiserver.add_task(self.loadTorrent)
         
-        self.torrentChecker = TorrentChecking(self.torrent['infohash'])
-        
     def loadTorrent(self):
         requesttype = self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
         if requesttype:
@@ -70,7 +69,6 @@ class TorrentDetails(wx.Panel):
 
             self.Layout()
             self.parent.parent_list.OnChange()
-
     
     def showTorrent(self, torrent, information):
         self.torrent = torrent
@@ -129,23 +127,25 @@ class TorrentDetails(wx.Panel):
         add_row(overview, torrentSizer, "Uploaded", date.fromtimestamp(torrent['creation_date']).strftime('%d-%m-%y'))
         add_row(overview, torrentSizer, "Filesize", self.guiutility.utility.size_format(torrent['length']) + " in " + str(len(information[2])) + " files")
         
-        seeders = torrent['num_seeders']
-        leechers = torrent['num_leechers']
+        _, seeders, leechers, last_check, _, _ = self.guiutility.torrentsearch_manager.getSwarmInfo(torrent['torrent_id'])[0]
+        diff = time() - last_check
         if seeders <= 0 and leechers <= 0:
             _, self.status = add_row(overview, torrentSizer, "Status", "Unknown")
         else:
-            _, self.status = add_row(overview, torrentSizer, "Status", "%s seeders, %s leechers"%(seeders,leechers))
+            _, self.status = add_row(overview, torrentSizer, "Status", "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2)))
         vSizer.Add(torrentSizer, 0, wx.EXPAND)
         overview.SetupScrolling(rate_y = 5)
         
-        #Refresh seeders/leechers
-        self.torrentChecker.start()
+        if diff > 1800: #force update if last update more than 30 minutes ago
+            #Refresh seeders/leechers
+            TorrentChecking(self.torrent['infohash']).start()
         
         #Create filelist
         if len(information[2]) > 0:
             self.listCtrl = SortedListCtrl(self.notebook, 2)
             self.listCtrl.InsertColumn(0, 'Name')
             self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
+            self.listCtrl.Bind(wx.EVT_LEFT_DCLICK, self.OnPlaySelected)
             
             self.il = wx.ImageList(16,16)
             play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'library_play.png'), wx.BITMAP_TYPE_ANY))
@@ -194,6 +194,23 @@ class TorrentDetails(wx.Panel):
             add_row(descriptionPanel, vSizer, None, torrent['comment'])
             descriptionPanel.SetupScrolling(rate_y = 5)
         
+        #Create subtitlelist
+        subsupport = SubtitlesSupport.getInstance()
+        subs = subsupport.getSubtileInfosForInfohash(self.torrent['infohash'])
+        if len(subs) > 0:
+            supportedLang = subsupport.langUtility.getLangSupported()
+
+            curlang = set()
+            for channelid, dict in subs.iteritems():
+                for lang in dict.keys():
+                    curlang.add(lang)
+            curlang = [supportedLang[langkey] for langkey in curlang]
+            curlang.sort()
+            
+            subtitlePanel, vSizer = create_tab("Subtitles", "Discovered Subtitles")
+            for lang in curlang:
+                add_row(subtitlePanel, vSizer, None, lang)
+        
         #Create trackerlist
         if torrent.get('trackers', 'None') != 'None':
             tracker_list = []
@@ -210,7 +227,7 @@ class TorrentDetails(wx.Panel):
         
         #Set height depending on number of files present
         self.notebook.SetMinSize((-1, 130))
-        self.details.Add(self.notebook, 6, wx.EXPAND|wx.ALL, 3)
+        self.details.Add(self.notebook, 6, wx.EXPAND)
         
         self.buttonPanel = wx.Panel(self)
         self.buttonPanel.SetBackgroundColour(wx.WHITE)
@@ -222,7 +239,7 @@ class TorrentDetails(wx.Panel):
             self.ShowTorrentDetails()
         
         self.buttonPanel.SetSizer(self.buttonSizer)
-        self.details.Add(self.buttonPanel, 4, wx.EXPAND)
+        self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
         self.details.Layout()
         
         self.parent.parent_list.OnChange()
@@ -263,8 +280,6 @@ class TorrentDetails(wx.Panel):
         
         if not self.information[0]:
             play.Disable()
-        else:
-            self.listCtrl.Bind(wx.EVT_LEFT_DCLICK, self.OnPlaySelected)
         
         download_play_sizer.Add(download)
         download_play_sizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
@@ -282,10 +297,10 @@ class TorrentDetails(wx.Panel):
             
             if channel is not None:
                 if channel[0] == bin2str(self.guiutility.utility.session.get_permid()):
-                    label = "This torrent is part of My Channel."
+                    label = "This torrent is part of your Channel."
                     tooltip = "Click to got to your Channel."
                 else:
-                    label = "This torrent is part of %s's Channel." % channel[1]
+                    label = "This torrent is included in %s's Channel.\nSee all Channel content here." % channel[1]
                     tooltip = "Click to go to %s's Channel."%channel[1]
                 
                 self.channeltext = wx.StaticText(self.buttonPanel, -1, label, size=(280,-1))
@@ -295,6 +310,7 @@ class TorrentDetails(wx.Panel):
                 
                 font = self.channeltext.GetFont()
                 font.SetUnderlined(True)
+                font.SetPointSize(font.GetPointSize()+1)
                 self.channeltext.SetFont(font)
                 self.channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
                 self.channeltext.target = 'channel'
@@ -387,13 +403,17 @@ class TorrentDetails(wx.Panel):
             self.guiutility.torrentsearch_manager.playTorrent(self.torrent)
     
     def OnPlaySelected(self, event):
-            selected = self.listCtrl.GetFirstSelected()
-            playable_files = self.information[1]
+        selected = self.listCtrl.GetFirstSelected()
+        playable_files = self.information[1]
             
-            if selected != -1:
-                selected_file = self.listCtrl.GetItemText(selected)
-                if selected_file in playable_files:
-                    self.guiutility.torrentsearch_manager.playTorrent(self.torrent, selected_file)            
+        if selected != -1:
+            selected_file = self.listCtrl.GetItemText(selected)
+            if selected_file in playable_files:
+                self.guiutility.torrentsearch_manager.playTorrent(self.torrent, selected_file)
+            elif self.torrent.get('progress',0) == 100: #not playable
+                file = os.path.join(self.torrent.get('destdir',''), self.torrent.get('name',''),selected_file)
+                if os.path.isfile(file):
+                    os.startfile(file)
     
     def OnClick(self, event):
         label = event.GetEventObject()
@@ -416,17 +436,19 @@ class TorrentDetails(wx.Panel):
     def UpdateStatus(self):
         if 'torrent_id' not in self.torrent:
             self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
-        swarmInfo = self.guiutility.torrentsearch_manager.torrent_db.getSwarmInfo(self.torrent['torrent_id'])[0]
+        
+        swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])[0]
         self.torrent['num_seeders'] = swarmInfo[1]
         self.torrent['num_leechers'] = swarmInfo[2]
-        
+        self.torrent['last_check'] = swarmInfo[3]
         wx.CallAfter(self.ShowStatus)
     
     def ShowStatus(self):
+        diff = time() - self.torrent['last_check']
         if self.torrent['num_seeders'] < 0 and self.torrent['num_leechers'] < 0:
             self.status.SetLabel("Unknown")
         else:
-            self.status.SetLabel("%s seeders, %s leechers"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
+            self.status.SetLabel("%s seeders, %s leechers (current)"%(self.torrent['num_seeders'], self.torrent['num_leechers']))
            
     def OnRefresh(self, dslist):
         found = False
@@ -481,19 +503,41 @@ class LibraryDetails(TorrentDetails):
         self.ShowDownloadProgress()
         
     def ShowDownloadProgress(self):
-        header = wx.StaticText(self.buttonPanel, -1, "Did you enjoy this torrent?\nThen let others know by adding it to your channel.")
-        header.SetMinSize((1,-1))
-        font = header.GetFont()
-        font.SetPointSize(font.GetPointSize()+1)
-        header.SetFont(font)
-        self.buttonSizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
+        channel = self.guiutility.channelsearch_manager.getChannelForTorrent(self.torrent['infohash'])
         
-        button = wx.Button(self.buttonPanel, -1, "Add to My Channel")
-        button.Bind(wx.EVT_BUTTON, self.mychannel_callback)
-        button.SetToolTipString('Add this torrent to your channel.')
-        self.buttonSizer.Add(button, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 5)
+        if channel is None or channel[0] != bin2str(self.guiutility.utility.session.get_permid()):
+            header = wx.StaticText(self.buttonPanel, -1, "Did you enjoy this torrent?\nThen let others know by adding it to your channel.")
+            header.SetMinSize((1,-1))
+            font = header.GetFont()
+            font.SetPointSize(font.GetPointSize()+1)
+            header.SetFont(font)
+            self.buttonSizer.Add(header, 0, wx.ALL|wx.EXPAND, 3)
+            
+            button = wx.Button(self.buttonPanel, -1, "Add to My Channel")
+            button.Bind(wx.EVT_BUTTON, self.mychannel_callback)
+            button.SetToolTipString('Add this torrent to your channel.')
+            self.buttonSizer.Add(button, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 5)
+            self.buttonSizer.AddStretchSpacer()
         
-        self.buttonSizer.AddStretchSpacer()
+        if channel and channel[0] != bin2str(self.guiutility.utility.session.get_permid()):
+            label = "This torrent is included in %s's Channel.\nSee all Channel content here." % channel[1]
+            tooltip = "Click to go to %s's Channel."%channel[1]
+        
+            channeltext = wx.StaticText(self.buttonPanel, -1, label, size=(280,-1))
+            channeltext.SetToolTipString(tooltip)
+            channeltext.SetMinSize((1,-1))
+            channeltext.channel = channel
+            
+            font = channeltext.GetFont()
+            font.SetUnderlined(True)
+            font.SetPointSize(font.GetPointSize()+1)
+            channeltext.SetFont(font)
+            channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
+            channeltext.target = 'channel'
+            if sys.platform != 'linux2':
+                channeltext.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+            
+            self.buttonSizer.Add(channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
     
 class ProgressPanel(wx.Panel):
     def __init__(self, parent, item):
@@ -631,8 +675,8 @@ class MyChannelTabs(wx.Panel):
         </p>
         <p>
             You can use this channel to share files with other Tribler users.<br />
-            Currently <em>three</em> options exist to share torrents, periodically importing .torrents from an rss feed and manually adding .torrent files are available in the 'Manage' tab. <br />
-            The third option allows you to add torrents from your library (by clicking on the '+ My Channel' button).
+            Currently <em>three</em> options exist to share torrents. Two of them, periodically importing .torrents from an rss feed and manually adding .torrent files, are available from the 'Manage' tab. <br />
+            The third option allows you to add torrents from your library (by clicking on the 'Add to My Channel' button).
         </p>
         <p>
             If your channel provides other Tribler users with original or popular content, then they might mark your channel as one of their favorites.<br />
@@ -743,10 +787,10 @@ class MyChannelTabs(wx.Panel):
             rssSizer.Add(wx.StaticText(parent, -1, "No rss feeds are being monitored."))
             
         #add-rss
-        rssSizer.Add(wx.StaticText(parent, -1, "Add a rss-feed:"), 0, wx.TOP, 3)
+        rssSizer.Add(wx.StaticText(parent, -1, "Add an rss-feed:"), 0, wx.TOP, 3)
         addSizer = wx.BoxSizer(wx.HORIZONTAL)
         url = wx.TextCtrl(parent)
-        addButton = wx.Button(parent, -1, "Add")
+        addButton = wx.Button(parent, -1, "Browse")
         addButton.url = url
         addButton.Bind(wx.EVT_BUTTON, self.OnAddRss)
         addSizer.Add(url, 1 , wx.ALIGN_CENTER_VERTICAL)
@@ -854,6 +898,79 @@ class MyChannelTabs(wx.Panel):
         self.parent.GetManager()
         wx.CallAfter(self.parent.manager.refresh)
 
+class MyChannelDetails(wx.Panel):
+    def __init__(self, parent, torrent, my_permid):
+        self.parent = parent
+        self.torrent = torrent
+        self.my_permid = my_permid
+        
+        self.subsupport = SubtitlesSupport.getInstance()
+        self.supportedLang = self.subsupport.langUtility.getLangSupported()
+        self.supportedLangFull = self.supportedLang.values()
+        self.supportedLangFull.sort()
+        
+        wx.Panel.__init__(self, parent)
+        self.SetBackgroundColour(wx.WHITE)
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        borderSizer = wx.BoxSizer()
+        borderSizer.Add(self.vSizer, 1, wx.ALL|wx.EXPAND, 5)
+        self.SetSizer(borderSizer)
+        self.AddSubs()
+    
+    def AddSubs(self):
+        self.vSizer.ShowItems(False)
+        self.vSizer.DeleteWindows()
+        self.vSizer.Clear()
+        
+        currentsubs = self.subsupport.getSubtitleInfos(self.my_permid, self.torrent['infohash'])
+        if len(currentsubs) > 0:
+            header = wx.StaticText(self, -1, "Current Subtitles")
+            font = header.GetFont()
+            font.SetWeight(wx.FONTWEIGHT_BOLD)
+            header.SetFont(font)
+            self.vSizer.Add(header, 0, wx.BOTTOM, 3)
+            
+            curlang = [self.supportedLang[langkey] for langkey in currentsubs.keys()]
+            curlang.sort()
+            for lang in curlang:
+                self.vSizer.Add(wx.StaticText(self, -1, lang), 0, wx.LEFT, 6)
+        else:
+            header = wx.StaticText(self, -1, "No subtitles added to this .torrent.")
+            font = header.GetFont()
+            font.SetWeight(wx.FONTWEIGHT_BOLD)
+            header.SetFont(font)
+            self.vSizer.Add(header)
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(wx.StaticText(self, -1, "Add a subtitle to this .torrent"), 0, wx.ALIGN_CENTER_VERTICAL)
+        hSizer.AddStretchSpacer()
+        button = wx.Button(self, -1, "Browse")
+        button.Bind(wx.EVT_BUTTON, self.OnClick)
+        hSizer.Add(button)
+        self.vSizer.Add(hSizer, 0, wx.EXPAND)
+        self.vSizer.Layout()
+        
+        self.parent.parent_list.OnChange()
+    
+    def OnClick(self, event):
+        dlg = wx.FileDialog(self,"Choose .srt file", wildcard = "SubRip file (*.srt) |*.srt", style = wx.DEFAULT_DIALOG_STYLE)
+        
+        path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
+        dlg.SetPath(path)
+        if dlg.ShowModal() == wx.ID_OK:
+            file = dlg.GetPath()
+            dlg.Destroy()
+            
+            dlg = wx.SingleChoiceDialog(self, 'Choose a language for this subtitle?', 'Language?',self.supportedLangFull)
+            if dlg.ShowModal() == wx.ID_OK:
+                lang = dlg.GetStringSelection()
+                for key, value in self.supportedLang.iteritems():
+                    if value == lang:
+                        self.subsupport.publishSubtitle(self.torrent['infohash'], key, file)
+                        self.AddSubs()
+                        break
+        dlg.Destroy()
+    
 class SwarmHealth(wx.Panel):
     def __init__(self, parent, bordersize = 0, size = wx.DefaultSize):
         wx.Panel.__init__(self, parent, size = size, style = wx.NO_BORDER)
