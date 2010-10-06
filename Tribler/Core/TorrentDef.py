@@ -960,6 +960,7 @@ class TorrentDef(Serializable,Copyable):
                     # it normally
                     try:
                         yield join(*[unicode(element, "UTF-8") for element in file_dict["path.utf-8"]]), file_dict["length"]
+                        continue
                     except UnicodeError:
                         pass
 
@@ -970,6 +971,7 @@ class TorrentDef(Serializable,Copyable):
                         encoding = self.metainfo["encoding"]
                         try:
                             yield join(*[unicode(element, encoding) for element in file_dict["path"]]), file_dict["length"]
+                            continue
                         except UnicodeError:
                             pass
                         except LookupError:
@@ -983,6 +985,7 @@ class TorrentDef(Serializable,Copyable):
                     # without specifying the encoding
                     try:
                         yield join(*[unicode(element) for element in file_dict["path"]]), file_dict["length"]
+                        continue
                     except UnicodeError:
                         pass
 
@@ -990,6 +993,7 @@ class TorrentDef(Serializable,Copyable):
                     # assuming that it was encoded as utf-8
                     try:
                         yield join(*[unicode(element, "UTF-8") for element in file_dict["path"]]), file_dict["length"]
+                        continue
                     except UnicodeError:
                         pass
 
@@ -1006,6 +1010,7 @@ class TorrentDef(Serializable,Copyable):
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
                         yield join(*[unicode(filter_characters(element)) for element in file_dict["path"]]), file_dict["length"]
+                        continue
                     except UnicodeError:
                         pass
 
