@@ -269,7 +269,7 @@ class TopSearchPanel(bgPanel):
         
         if icon != -1:
             self.notifyIcon.Show()
-            self.notifyIcon.SetBitmap(wx.ArtProvider.GetBitmap(icon))
+            self.notifyIcon.SetBitmap(wx.ArtProvider.GetBitmap(icon, wx.ART_FRAME_ICON))
         else:
             self.notifyIcon.Hide()
         

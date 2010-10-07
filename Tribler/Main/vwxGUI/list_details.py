@@ -146,7 +146,6 @@ class TorrentDetails(wx.Panel):
         else:
             _, self.status = add_row(overview, vSizer, "Status", "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2)))
         torrentSizer.Add(vSizer, 0, wx.EXPAND)
-        overview.SetupScrolling(rate_y = 5)
         
         if diff > 1800: #force update if last update more than 30 minutes ago
             TorrentChecking(self.torrent['infohash']).start()
@@ -393,6 +392,7 @@ class TorrentDetails(wx.Panel):
             if self.information[0]:
                 self.buttonSizer.AddStretchSpacer()
                 self.play = wx.Panel(self.buttonPanel)
+                self.play.SetBackgroundColour(wx.WHITE)
                 vSizer = wx.BoxSizer(wx.VERTICAL)
                 
                 header = wx.StaticText(self.play, -1, "Impatient?")

@@ -52,7 +52,7 @@ class SRstatusbar(wx.StatusBar):
 
         sizer = wx.FlexGridSizer(2,2)
         
-        icon = wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION))
+        icon = wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_MESSAGE_BOX))
         sizer.Add(icon, 0, wx.TOP, 10)
         
         hwin = wx.html.HtmlWindow(dlg, -1, size = (350, 130))

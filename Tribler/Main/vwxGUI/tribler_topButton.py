@@ -318,6 +318,7 @@ class NoFocusButton(wx.Button):
 class LinkStaticText(wx.Panel):
     def __init__(self, parent, text, icon = "bullet_go.png", font_increment = 0):
         wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
+        self.SetBackgroundColour(parent.GetBackgroundColour())
         
         self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
         self.text = wx.StaticText(self, -1, text)
