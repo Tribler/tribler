@@ -256,8 +256,8 @@ class TorrentManager:
             #got actual filename
             tdef = TorrentDef.load(torrent_filename)
             
-            files = tdef.get_files(exts=videoextdefaults)
-            allfiles = tdef.get_files_with_length()
+            files = tdef.get_files_as_unicode(exts=videoextdefaults)
+            allfiles = tdef.get_files_as_unicode_with_length()
             playable = len(files) > 0
             torrent['comment'] = tdef.get_comment_as_unicode()
             

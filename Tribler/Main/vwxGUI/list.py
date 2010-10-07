@@ -497,7 +497,7 @@ class LibaryList(List):
     def CreateHeader(self):
         header = ButtonHeader(self, self.images[0], self.images[1], self.background, self.columns)
         header.SetTitle('Library')
-        header.SetEvents(self.OnPlay, self.OnResume, self.OnStop, self.OnDelete)
+        header.SetEvents(self.OnResume, self.OnStop, self.OnDelete)
         return header
     
     def CreateFooter(self):
@@ -565,14 +565,11 @@ class LibaryList(List):
             resume = True
             stop = False
         
-        def callback(torrent, information):
-            self.header.SetStates(information[0], resume, stop, delete)
-        
-        self.torrent_manager.isTorrentPlayable(item.original_data, callback = callback)
-        return LibraryDetails(item, item.original_data, self.OnMyChannel)
+        self.header.SetStates(resume, stop, delete)
+        return LibraryDetails(item, item.original_data)
 
     def OnCollapse(self, item, panel):
-        self.header.SetStates(False, False, False, False)
+        self.header.SetStates(False, False, False)
         
         if panel:
             panel.Destroy()
@@ -587,7 +584,7 @@ class LibaryList(List):
             ds = item.original_data['ds']
             ds.get_download().restart()
             
-            self.header.SetStates(False, False, True, True)
+            self.header.SetStates(False, True, True)
         else:
             #TODO: start inactive item?
             pass
@@ -598,7 +595,7 @@ class LibaryList(List):
             ds = item.original_data['ds']
             ds.get_download().stop()
             
-            self.header.SetStates(False, True, False, True)
+            self.header.SetStates(True, False, True)
             
     def OnDelete(self, event):
         item = self.list.GetExpandedItem()
@@ -628,24 +625,15 @@ class LibaryList(List):
         
         if buttonId == wx.ID_DEFAULT:
             self.torrent_manager.deleteTorrent(item.original_data)
-            self.header.SetStates(False, False, False, False) #nothing selected
+            self.header.SetStates(False, False, False) #nothing selected
             self.list.RemoveItem(item)
         elif buttonId == wx.ID_DELETE:
             self.torrent_manager.deleteTorrent(item.original_data, True)
-            self.header.SetStates(False, False, False, False) #nothing selected
+            self.header.SetStates(False, False, False) #nothing selected
             self.list.RemoveItem(item)
         
         if self.list.IsEmpty():
             self.SetData([])
-        
-    def OnMyChannel(self, event):
-        item = self.list.GetExpandedItem()
-        torrent_dir = self.utility.session.get_torrent_collecting_dir()
-        torrent_filename = os.path.join(torrent_dir, item.original_data['torrent_file_name'])
-        
-        torrentfeed = TorrentFeedThread.getInstance()
-        torrentfeed.addFile(torrent_filename)
-        self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
     
     def RefreshItems(self, dslist):
         if self.ready:

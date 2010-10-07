@@ -113,7 +113,7 @@ class FileDropTarget(wx.FileDropTarget):
 # Custom class loaded by XRC
 class MainFrame(wx.Frame):
     def __init__(self, *args):
-        self.utility = None
+        self.ready = False
         
         if len(args) == 0:
             pre = wx.PreFrame()
@@ -219,6 +219,7 @@ class MainFrame(wx.Frame):
         sys.stdout.write('GUI Complete.\n')
 
         self.Show(True)
+        self.ready = True
         
         # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb
 #        bartercastdb = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
@@ -607,10 +608,10 @@ class MainFrame(wx.Frame):
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")
         height = self.utility.config.Read("window_height")
-        try:
-            size = wx.Size(int(width), int(height))
-        except:
-            size = wx.Size(1024, 670)
+        #try:
+            #size = wx.Size(int(width), int(height))
+        #except:
+        size = wx.Size(1024, 670)
         
         x = self.utility.config.Read("window_x")
         y = self.utility.config.Read("window_y")

@@ -313,36 +313,27 @@ class SubTitleHeader(TitleHeader):
         
 class ButtonHeader(TitleHeader):
     def GetRightTitlePanel(self, parent):
-        self.play = wx.Button(parent, -1, "Play")
         self.resume = wx.Button(parent, -1, "Resume")
         self.stop = wx.Button(parent, -1, "Stop")
         self.delete = wx.Button(parent, -1, "Delete")
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.AddStretchSpacer()
-        hSizer.Add(self.play)
         hSizer.Add(self.resume)
         hSizer.Add(self.stop)
         hSizer.Add(self.delete)
-        self.SetStates(False, False, False, False)
+        self.SetStates(False, False, False)
         return hSizer
 
-    def SetEvents(self, play, resume, stop, delete):
-        self.play.Bind(wx.EVT_BUTTON, play)
+    def SetEvents(self, resume, stop, delete):
         self.resume.Bind(wx.EVT_BUTTON, resume)
         self.stop.Bind(wx.EVT_BUTTON, stop)
         self.delete.Bind(wx.EVT_BUTTON, delete)
         
-    def SetStates(self, play, resume, stop, delete):
-        self.play.Enable(play)
+    def SetStates(self, resume, stop, delete):
         self.resume.Enable(resume)
         self.stop.Enable(stop)
         self.delete.Enable(delete)
-        
-        if play:
-            self.play.SetToolTipString('Click to start the playback of this torrent in the player.')
-        else:
-            self.play.SetToolTip(None)
 
         if resume:
             self.resume.SetToolTipString('Click to start downloading/seeding this torrent.')

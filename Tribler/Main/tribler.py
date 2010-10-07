@@ -699,15 +699,15 @@ class ABCApp(wx.App):
     def sesscb_ntfy_activities(self,subject,changeType,objectID,*args):
         # Called by SessionCallback thread
         #print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,"ct",changeType,"oid",objectID,"a",args
-        if self.ready: 
+        if self.ready and self.frame.ready:
             wx.CallAfter(self.frame.setActivity,objectID,*args)
     
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
-        if self.ready:
+        if self.ready and self.frame.ready:
             wx.CallAfter(self.frame.SRstatusbar.onReachable)
 
     def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
-        if self.ready:
+        if self.ready and self.frame.ready:
             wx.CallAfter(self.gui_ntfy_channelupdates,subject,changeType,objectID)
     
     def gui_ntfy_channelupdates(self,subject,changeType,objectID,*args):
@@ -718,7 +718,7 @@ class ABCApp(wx.App):
         manager.channelUpdated(objectID)
         
     def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
-        if self.ready:
+        if self.ready and self.frame.ready:
             wx.CallAfter(self.gui_ntfy_torrentupdates,subject,changeType,objectID)
     
     def gui_ntfy_torrentupdates(self, subject, changeType, objectID, *args):

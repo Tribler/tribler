@@ -276,19 +276,17 @@ class ChannelCastCore:
                 
     
     def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
-        
         publisher_ids = Set()
         
         #08/04/10: Andrea: processing rich metadata part.
         self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
         
-        
         tmp_hits = {} #"binary" key
-
         def usercallback(infohash,metadata,filename):
             if tmp_hits.has_key(infohash):
                 hit = tmp_hits[infohash]
                 self.channelcastdb.addTorrent(hit)
+                del tmp_hits[infohash]
             else:
                 print >> sys.stderr, "channelcast: updatechannel: could not find infohash", bin2str(infohash)
 
@@ -296,14 +294,14 @@ class ChannelCastCore:
         for hit in listOfAdditions:
             publisher_ids.add(hit[0])
             infohash = str2bin(hit[2])
-            tmp_hits[infohash] = hit 
-            # effectively v['infohash'] == str2bin(hit[2])
-
 
             if self.channelcastdb.existsTorrent(infohash):
-                self.channelcastdb.addTorrent(hit)
+                self.channelcastdb.addTorrent(hit, commit = False)
             else:
+                tmp_hits[infohash] = hit
                 self.rtorrent_handler.download_torrent(query_permid,infohash,usercallback)
+        
+        self.channelcastdb.commit()
         
         # Arno, 2010-02-24: Generate event
         for publisher_id in publisher_ids:
@@ -311,7 +309,6 @@ class ChannelCastCore:
                 self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, publisher_id)
             except:
                 print_exc()
-
                 
     def updateAChannel(self, permid, peers = None):        
         q = "CHANNEL p "+permid

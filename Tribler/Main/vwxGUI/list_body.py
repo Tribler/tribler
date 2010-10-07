@@ -83,12 +83,9 @@ class ListItem(wx.Panel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
          
         self.AddComponents()
-        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
         
         self.vSizer.Add(self.hSizer, 0, wx.EXPAND)
         self.SetSizer(self.vSizer)
-         
-        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
     
     def AddComponents(self):
         self.controls = []
@@ -100,15 +97,11 @@ class ListItem(wx.Panel):
                 if self.columns[i]['icon'] == 'checkbox' or self.columns[i]['icon'] == 'tree':
                     self.icontype = self.columns[i]['icon']
                     self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(self.deselectedColor, 0))
-                    self.expandedState.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                    self.expandedState.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
                     self.hSizer.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
                 else:
                     icon = self.columns[i]['icon'](self)
                     if icon:
                         icon = wx.StaticBitmap(self, -1, icon)
-                        icon.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                        icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
                         self.hSizer.Add(icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
                         
             type = self.columns[i].get('type','label')
@@ -123,8 +116,6 @@ class ListItem(wx.Panel):
                     size = (self.columns[i]['width'],-1)
                 
                 label = wx.StaticText(self, -1, str_data, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
-                label.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                label.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
                 self.controls.append(label)
                 
                 self.hSizer.Add(label, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
@@ -134,14 +125,6 @@ class ListItem(wx.Panel):
             elif type == 'method':
                 control = self.columns[i]['method'](self, self)
                 if control:
-                    control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                    control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-                    
-                    if getattr(control, 'GetChildren', False):
-                        children = control.GetChildren()
-                        for child in children:
-                            child.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                            child.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
                     self.hSizer.Add(control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
                     self.controls.append(control)
                     
@@ -156,6 +139,17 @@ class ListItem(wx.Panel):
             self.hSizer.AddSpacer((self.rightSpacer, -1))
         self.hSizer.Layout()
         
+        self.AddEvents(self)
+    
+    def AddEvents(self, control):
+        control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+        control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        
+        func = getattr(control, 'GetChildren', False)
+        if func:
+            for child in func():
+                self.AddEvents(child)
+      
     def GetIcon(self, background, state):
         return ListIcon.getInstance().getBitmap(self, self.icontype, background, state)
         
@@ -187,15 +181,6 @@ class ListItem(wx.Panel):
                 if self.data[i] != data[1][i]:
                     control = self.columns[i]['method'](self, self)
                     if control:
-                        control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                        control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-                         
-                        if getattr(control, 'GetChildren', False):
-                            children = control.GetChildren()
-                            for child in children:
-                                child.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                                child.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-                        
                         cur_sizeritem_index = 0
                         for child in self.hSizer.GetChildren():
                             if child.GetWindow() == self.controls[control_index]:
@@ -210,6 +195,8 @@ class ListItem(wx.Panel):
                         self.controls[control_index] = control
                         new_controls = True
                         has_changed = True
+                        
+                        self.AddEvents(control)
                 control_index += 1
             
         if new_controls:
@@ -237,6 +224,8 @@ class ListItem(wx.Panel):
             self.BackgroundColor(self.deselectedColor)
     
     def BackgroundColor(self, color):
+        self.Freeze()
+        
         self.SetBackgroundColour(color)
         for sizeritem in self.hSizer.GetChildren():
             if sizeritem.IsWindow():
@@ -249,6 +238,7 @@ class ListItem(wx.Panel):
             self.expandedState.SetBitmap(self.GetIcon(color, 0))
         
         self.Refresh()
+        self.Thaw()
     
     def Deselect(self):
         if self.selected or self.expanded:

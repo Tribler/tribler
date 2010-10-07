@@ -314,3 +314,33 @@ class NoFocusButton(wx.Button):
         return False
     def AcceptsFocusFromKeyboard(self):
         return False
+    
+class LinkStaticText(wx.Panel):
+    def __init__(self, parent, text, icon = "bullet_go.png", font_increment = 0):
+        wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
+        
+        self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
+        self.text = wx.StaticText(self, -1, text)
+        font = self.text.GetFont()
+        font.SetUnderlined(True)
+        font.SetPointSize(font.GetPointSize() + font_increment)
+        self.text.SetFont(font)
+        
+        if sys.platform != 'linux2':
+            self.text.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+        hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.SetSizer(hSizer)
+        
+    def SetToolTipString(self, tip):
+        wx.Panel.SetToolTipString(self, tip)
+        self.icon.SetToolTipString(tip)
+        self.text.SetToolTipString(tip)
+        
+    def Bind(self, event, handler, source=None, id=-1, id2=-1):
+        wx.Panel.Bind(self, event, handler, source, id, id2)
+        
+        self.icon.Bind(event, handler, source, id, id2)
+        self.text.Bind(event, handler, source, id, id2)
