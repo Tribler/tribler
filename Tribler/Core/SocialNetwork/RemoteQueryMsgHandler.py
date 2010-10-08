@@ -193,7 +193,6 @@ class RemoteQueryMsgHandler:
         """ Called by overlay thread """
         query_cache = {}
         def get_query(selversion):
-            print >> sys.stderr, selversion
             if query.startswith("CHANNEL p") and selversion < OLPROTO_VER_FOURTEENTH:
                 if OLPROTO_VER_FOURTEENTH in query_cache:
                     return query_cache[OLPROTO_VER_FOURTEENTH]
