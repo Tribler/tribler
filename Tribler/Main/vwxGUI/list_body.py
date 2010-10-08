@@ -1,7 +1,6 @@
 import wx
 import wx.lib.scrolledpanel as scrolled
 
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.tribler_topButton import NoFocusButton
 
 import sys
@@ -211,10 +210,7 @@ class ListItem(wx.Panel):
         self.data = data[1]
         
     def Highlight(self, timeout = 3.0):
-        if self.taskserver == None:
-            self.taskserver = GUITaskQueue.getInstance()
-            
-        self.taskserver.add_task(lambda:wx.CallAfter(self.ShowSelected), timeout, self)
+        wx.CallLater(timeout*1000, wx.CallAfter, self.ShowSelected)
         self.BackgroundColor("#ffff99")
          
     def ShowSelected(self):

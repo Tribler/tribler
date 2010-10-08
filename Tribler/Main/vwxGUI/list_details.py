@@ -498,7 +498,7 @@ class TorrentDetails(wx.Panel):
         
         button = event.GetEventObject()
         button.Enable(False)
-        self.guiserver.add_task(lambda: button.Enable(True), 5)
+        wx.CallLater(5000, button.Enable, True)
         
     def OnPlay(self, event):
         play = event.GetEventObject()
@@ -524,7 +524,7 @@ class TorrentDetails(wx.Panel):
             self.guiutility.torrentsearch_manager.playTorrent(self.torrent)
             
         play.Enable(False)
-        self.guiserver.add_task(lambda: play.Enable(True), 5)
+        wx.CallLater(5000, play.Enable, True)
     
     def OnDoubleClick(self, event):
         selected = self.listCtrl.GetFirstSelected()
@@ -901,7 +901,7 @@ class MyChannelTabs(wx.Panel):
         rssSizer.Add(wx.StaticText(parent, -1, "Add an rss-feed:"), 0, wx.TOP, 3)
         addSizer = wx.BoxSizer(wx.HORIZONTAL)
         url = wx.TextCtrl(parent)
-        addButton = wx.Button(parent, -1, "Browse")
+        addButton = wx.Button(parent, -1, "Add")
         addButton.url = url
         addButton.Bind(wx.EVT_BUTTON, self.OnAddRss)
         addSizer.Add(url, 1 , wx.ALIGN_CENTER_VERTICAL)
@@ -967,6 +967,10 @@ class MyChannelTabs(wx.Panel):
     
     def OnRefreshRss(self, event):
         self.torrentfeed.refresh()
+        
+        button = event.GetEventObject()
+        button.Enable(False)
+        wx.CallLater(5000, button.Enable, True)
         
     def OnManualAdd(self, event):
         dlg = wx.FileDialog(self,"Choose .torrent file", wildcard = "BitTorrent file (*.torrent) |*.torrent", style = wx.DEFAULT_DIALOG_STYLE|wx.FD_MULTIPLE)

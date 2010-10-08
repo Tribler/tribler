@@ -989,7 +989,8 @@ class ChannelCategoriesList(List):
         
     def OnExpand(self, item):
         if item.data[0] in ['Popular','New','Favorites','All']:
-            self.guiutility.showChannelCategory(item.data[0])
+            wx.CallAfter(self.guiutility.showChannelCategory, item.data[0])
+            
         elif item.data[0] == 'My Channel':
             self.guiutility.ShowPage('mychannel')
         
