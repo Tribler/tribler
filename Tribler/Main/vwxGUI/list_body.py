@@ -416,8 +416,7 @@ class AbstractListBody():
             item.Expand(panel)
             self.OnChange()
             
-            self.cur_expanded = item
-        
+        self.cur_expanded = item
         self.Thaw()
         return panel
     

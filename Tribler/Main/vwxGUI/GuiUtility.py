@@ -20,6 +20,7 @@ from Tribler.Category.Category import Category
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager
 from Tribler.Main.vwxGUI.bgPanel import *
 from Tribler.Main.Utility.constants import *
+from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 
 
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -325,7 +326,7 @@ class GUIUtility:
 
         wx.CallAfter(self.torrentsearch_manager.gotRemoteHits, permid, kws, hits)
         
-    def sesscb_got_channel_hits(self,permid,query,hits):
+    def sesscb_got_channel_hits(self, permid, query, hits):
         '''
         Called by SessionCallback thread from RemoteQueryMsgHandler.process_query_reply.
         
@@ -336,7 +337,11 @@ class GUIUtility:
         # Called by SessionCallback thread 
         if DEBUG:
             print >>sys.stderr,"GUIUtil: sesscb_got_channel_hits",len(hits)
-
+        
+        # Let channelcast handle inserting items etc.
+        channelcast = BuddyCastFactory.getInstance().channelcast_core
+        listOfAdditions = channelcast.updateChannel(permid, query, hits)
+        
         # 22/01/10 boudewijn: use the split_into_keywords function to
         # split.  This will ensure that kws is unicode and splits on
         # all 'splittable' characters
@@ -346,8 +351,7 @@ class GUIUtility:
         #Code that calls GUI
         # 1. Grid needs to be updated with incoming hits, from each remote peer
         # 2. Sorting should also be done by that function
-        
-        wx.CallAfter(self.channelsearch_manager.gotRemoteHits,permid,kws,hits)
+        wx.CallAfter(self.channelsearch_manager.gotRemoteHits,permid,kws,listOfAdditions)
 
     #TODO: should be somewhere else
     def set_port_number(self, port_number):

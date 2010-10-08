@@ -952,7 +952,10 @@ class ChannelSearchGridManager:
             if bin2str(hit[0]) not in self.hits:
                 torrents = {}                 
                 torrents[bin2str(hit[2])] = (hit[4], hit[5]) # {infohash:(torrentname, timestamp)}
-                self.hits[bin2str(hit[0])] = [hit[1], votecache.setdefault(hit[0], self.votecastdb.getEffectiveVote(bin2str(hit[0]))), torrents]
+                if hit[0] not in votecache:
+                    votecache[hit[0]] = self.votecastdb.getEffectiveVote(bin2str(hit[0]))
+
+                self.hits[bin2str(hit[0])] = [hit[1], votecache[hit[0]], torrents]
             else:
                 torrents = self.hits[bin2str(hit[0])][2]
                 if bin2str(hit[2]) not in torrents:
@@ -964,13 +967,7 @@ class ChannelSearchGridManager:
         #
         # @param permid: the peer who returned the answer to the query
         # @param kws: the keywords of the query that originated the answer
-        # @param answers: the complete answer returned by the peer
-        
-        #05-06-2010 Andrea:
-        # I moved the code to update the Channelcast DB in RemoteQueryMsgHandler.process_query_reply
-        # so that is no more the GUI thread that has to write in the db
-            
-        #09-04-2010 Andrea: answers now is exactly a ChannelCastMessage
+        # @param answers: the filtered answer returned by the peer (publisher_id, publisher_name, infohash, torrenthash, torrentname, timestamp, key
 
         t1 = time()
         try:
@@ -981,28 +978,16 @@ class ChannelSearchGridManager:
             # We got some replies. First check if they are for the current query
             if self.searchkeywords == kws:
                 numResults = 0
-                votecache = {}
                 
-                session = self.rtorrent_handler.session
-                my_permid = bin2str(session.get_permid())
-                
-                for _, d in answers.iteritems():
-                    #Is this channel marked as spam?
-                    d['publisher_id'] = bin2str(d['publisher_id'])
-                    
-                    if d['publisher_id'] not in votecache:
-                        votecache[d['publisher_id']] = (self.votecastdb.getVote(d['publisher_id'],my_permid), self.channelcast_db.getSubscribersCount(d['publisher_id']))
-                    if votecache[d['publisher_id']][0] == -1:
-                        continue
-                    
+                for hit in answers:
                     #Add to self.hits
-                    if d['publisher_id'] not in self.hits:
-                        self.hits[d['publisher_id']] = [d['publisher_name'], votecache[d['publisher_id']][1], {}]
+                    if hit[0] not in self.hits:
+                        self.hits[hit[0]] = [hit[1], self.votecastdb.getEffectiveVote(bin2str(hit[0])), {}]
                     
                     #Extend torrent dict for this channel
-                    torrents = self.hits[d['publisher_id']][2]
-                    if d['infohash'] not in torrents:
-                        torrents[d['infohash']] = (d['torrentname'], d['time_stamp'])
+                    torrents = self.hits[hit[0]][2]
+                    if hit[2] not in torrents:
+                        torrents[hit[2]] = (hit[4], hit[5])
                         numResults +=1
                 
                 if numResults > 0:

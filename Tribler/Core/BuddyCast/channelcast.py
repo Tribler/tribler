@@ -271,8 +271,7 @@ class ChannelCastCore:
 
         # Arno, 2010-06-11: We're on the OverlayThread
         self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)
-        
-        ##return listOfAdditions
+        return listOfAdditions
                 
     
     def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
