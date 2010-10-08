@@ -26,7 +26,7 @@ from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler,PeerDBHandl
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINETH, OLPROTO_VER_ELEVENTH, OLPROTO_VER_TWELFTH, OLPROTO_VER_THIRTEENTH
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINETH, OLPROTO_VER_ELEVENTH, OLPROTO_VER_TWELFTH, OLPROTO_VER_THIRTEENTH, OLPROTO_VER_FOURTEENTH
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -163,9 +163,7 @@ class RemoteQueryMsgHandler:
 
     def network_send_query_callback(self,query,usercallback,max_peers_to_query):
         """ Called by overlay thread """
-        p = self.create_query(query,usercallback)
-        m = QUERY+p
-        query_conn_callback_lambda = lambda exc,dns,permid,selversion:self.conn_callback(exc,dns,permid,selversion,m)
+        peers = set()
         
         if query.startswith("CHANNEL"):
             wantminoversion = OLPROTO_VER_THIRTEENTH  # channel queries and replies only for the latest version (13) 
@@ -173,34 +171,40 @@ class RemoteQueryMsgHandler:
             wantminoversion = OLPROTO_VER_TWELFTH
         else:
             wantminoversion =  OLPROTO_VER_SIXTH
-            
-        if DEBUG:
-            print >>sys.stderr,"rquery: send_query: Connected",len(self.connections),"peers; minoversion=", wantminoversion
-        
-        #print "******** send query net cb:", query, len(self.connections), self.connections
         
         # 1. See how many peers we already know about from direct connections
         peers_to_query = 0
         for permid,selversion in self.connections.iteritems():
             if selversion >= wantminoversion:
-                self.overlay_bridge.connect(permid,query_conn_callback_lambda)
+                peers.add(permid)
                 peers_to_query += 1
         
         # 2. If not enough, get some remote-search capable peers from BC
         if peers_to_query < max_peers_to_query and self.bc_fac and self.bc_fac.buddycast_core:
             query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(max_peers_to_query-peers_to_query,wantminoversion)
             for permid in query_cand:
-                if permid not in self.connections:    # don't call twice
-                    self.overlay_bridge.connect(permid,query_conn_callback_lambda)
+                if permid not in peers:    # don't call twice
+                    peers.add(permid)
                     peers_to_query += 1
-        
-        if DEBUG:
-            print >>sys.stderr,"rquery: send_query: Sent to",peers_to_query,"peers; query=", query
+                    
+        self.network_send_query_callback_to_peers(query, peers, usercallback)
     
-    def network_send_query_callback_to_peers(self,query,peers,usercallback):
+    def network_send_query_callback_to_peers(self, query, peers, usercallback):
         """ Called by overlay thread """
-        p = self.create_query(query,usercallback)
-        m = QUERY+p
+        query_cache = {}
+        def get_query(selversion):
+            print >> sys.stderr, selversion
+            if query.startswith("CHANNEL p") and selversion < OLPROTO_VER_FOURTEENTH:
+                if OLPROTO_VER_FOURTEENTH in query_cache:
+                    return query_cache[OLPROTO_VER_FOURTEENTH]
+                
+                simple_query = " ".join(query.split()[:3])
+                return query_cache.setdefault(OLPROTO_VER_FOURTEENTH, QUERY + self.create_query(simple_query,usercallback))
+            return query_cache.setdefault(-1, QUERY + self.create_query(query,usercallback))
+        
+        def query_conn_callback(exc,dns,permid,selversion):
+            if selversion >= wantminoversion:
+                self.conn_callback(exc,dns,permid,selversion, get_query(selversion))
         
         if query.startswith("CHANNEL"):
             wantminoversion = OLPROTO_VER_THIRTEENTH  # channel queries and replies only for the latest version (13) 
@@ -208,10 +212,6 @@ class RemoteQueryMsgHandler:
             wantminoversion = OLPROTO_VER_TWELFTH
         else:
             wantminoversion =  OLPROTO_VER_SIXTH
-            
-        def query_conn_callback(exc,dns,permid,selversion):
-            if selversion > wantminoversion:
-                self.conn_callback(exc,dns,permid,selversion,m)
             
         if DEBUG:
             print >>sys.stderr,"rquery: send_query: Connected",len(self.connections),"peers; minoversion=", wantminoversion
@@ -219,8 +219,7 @@ class RemoteQueryMsgHandler:
         #print "******** send query net cb:", query, len(self.connections), self.connections
         
         for permid in peers:
-            if permid in self.connections:
-                self.overlay_bridge.connect(permid,query_conn_callback)
+            self.overlay_bridge.connect(permid,query_conn_callback)
         
         if DEBUG:
             print >>sys.stderr,"rquery: send_query: Sent to",peers,"peers; query=", query
@@ -487,15 +486,7 @@ class RemoteQueryMsgHandler:
         
         if len(d['a']) > 0:
             self.unidecode_hits(query,d)
-            if query.startswith("CHANNEL"):
-                # Andrea 05-06-2010: updates the database through channelcast. Before this was
-                # done by the GUIThread in SearchGridManager    
-                self.bc_fac.channelcast_core.updateChannel(permid,query,d['a'])
-
-                # Inform user of remote channel hits
-                remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
-            else:
-                remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
+            remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
             
             self.session.uch.perform_usercallback(remote_query_usercallback_lambda)
         elif DEBUG:

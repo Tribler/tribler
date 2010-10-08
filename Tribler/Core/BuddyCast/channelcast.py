@@ -310,8 +310,13 @@ class ChannelCastCore:
             except:
                 print_exc()
                 
-    def updateAChannel(self, permid, peers = None):        
+    def updateAChannel(self, permid, peers = None):
         q = "CHANNEL p "+permid
+        
+        record = self.channelcastdb.getTimeframeForChannel(permid)
+        if record:
+            q+=" "+" ".join(map(str,record))
+         
         if peers:
             self.session.query_peers(q,peers,usercallback=self.updateChannel)
         else:
@@ -321,12 +326,9 @@ class ChannelCastCore:
     def updateMySubscribedChannels(self):
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()
         for permid, channel_name, _, num_subscriptions, _ in subscribed_channels:
-            # query the remote peers, based on permid, to update the channel content
-            q = "CHANNEL p "+permid
-            self.session.query_connected_peers(q,usercallback=self.updateChannel)
-        
+            self.updateAChannel(permid)
         self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    
-
+    
 
     def buildChannelcastMessageFromHits(self, hits, selversion, dest_permid=None, fromQuery=False):
         '''

@@ -407,28 +407,29 @@ class AbstractListBody():
     def OnExpand(self, item, raise_event = False):
         self.Freeze()
         
+        if self.singleExpanded:
+            if self.cur_expanded:
+                self.OnCollapse(self.cur_expanded, False)
+        
         panel = self.parent_list.OnExpand(item)
         if panel and not isinstance(panel, bool):
             item.Expand(panel)
             self.OnChange()
             
-        if self.singleExpanded:
-            if self.cur_expanded:
-                self.OnCollapse(self.cur_expanded)
-                
             self.cur_expanded = item
-            
+        
         self.Thaw()
         return panel
     
-    def OnCollapse(self, item):
+    def OnCollapse(self, item, onchange = True):
         self.Freeze()
         
         panel = item.Collapse()
         self.parent_list.OnCollapse(item, panel)
         self.cur_expanded = None
         
-        self.OnChange()
+        if onchange:
+            self.OnChange()
         self.Thaw()
         
     def OnChange(self, scrollToTop = False):

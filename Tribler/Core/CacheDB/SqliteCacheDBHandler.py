@@ -3245,9 +3245,41 @@ class ChannelCastDBHandler(BasicDBHandler):
             # search channel's torrents based on permid
             q = query[2:]
             #print>>sys.stderr, "ChannelCastDB: searchChannels: This is a permid-based search:", `q`
-            # Sep 7, 2010 Nitin:  In order to more aggressively collect a channel's torrents, all its torrents in the DB are replied instead of using limiting factor.            
-            s = "select * from ChannelCast where publisher_id==?"
-            allrecords = self._db.fetchall(s,(q,)) ## before records = {'torrents':self._db.fetchall(s)}
+            
+            arguments = q.split()
+            if len(arguments) == 1:            
+                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
+                allrecords = self._db.fetchall(s,(q,))
+            else:
+                publisher_id = arguments[0]
+                min_timestamp = arguments[1]
+                max_timestamp = arguments[2]
+                nr_items = arguments[3]
+                
+                s = "select min(time_stamp), max(time_stamp), count(infohash) from ChannelCast where publisher_id==? group by publisher_id"
+                record = self._db.fetchone(s,(publisher_id,))
+                #detect if we have older items, newer items or more items
+                change = record[0] < min_timestamp or record[1] > max_timestamp or record[2] > nr_items
+                if change:
+                    #does the peer have any missing items in its timeframe?
+                    s = "select count(infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
+                    items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
+                    
+                    if items > nr_items:
+                        #missing data, return complete timeframe
+                        s = "select * from ChannelCast where publisher_id==? and time_stamp between ? and ?"
+                        allrecords = self._db.fetchall(s,(publisher_id,min_timestamp,max_timestamp))
+                    else:
+                        #return max 50 new, append with old
+                        s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp desc limit 50"
+                        allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
+                        
+                        if len(allrecords) < 50:
+                            s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
+                            allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
+                else:
+                    allrecords = []
+                
             records = []
             for record in allrecords:
                 records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
@@ -3290,6 +3322,10 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getMySubscribedChannels(self):
         sql = 'Select publisher_id, max(ChannelCast.time_stamp), count(distinct voter_id) as subscribers, count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) WHERE ChannelCast.infohash = CollectedTorrent.infohash AND publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2) Group By publisher_id Order By subscribers DESC, max(ChannelCast.time_stamp) DESC'
         return self._getChannels(sql, (bin2str(self.my_permid),))
+    
+    def getTimeframeForChannel(self, publisher_id):
+        sql = 'Select min(time_stamp), max(time_stamp), count(infohash) From ChannelCast Where publisher_id = ? Group By publisher_id'
+        return  self._db.fetchone(sql, (publisher_id,))
     
     def _getChannels(self, sql, args = None):
         channels = []
