@@ -1799,7 +1799,7 @@ class TorrentDBHandler(BasicDBHandler):
             return -1*cmp(a['num_seeders'], b['num_seeders'])
         torrent_list = torrents_dict.values()
         torrent_list.sort(compare)
-        print >> sys.stderr, "# hits:%d; search time:%.3f,%.3f,%.3f" % (len(torrent_list),t2-t1, t3-t2, time()-t1 )
+        #print >> sys.stderr, "# hits:%d; search time:%.3f,%.3f,%.3f" % (len(torrent_list),t2-t1, t3-t2, time()-t1 )
         return torrent_list
 
 
@@ -3247,14 +3247,18 @@ class ChannelCastDBHandler(BasicDBHandler):
             #print>>sys.stderr, "ChannelCastDB: searchChannels: This is a permid-based search:", `q`
             
             arguments = q.split()
+            
+            print >> sys.stderr, arguments
             if len(arguments) == 1:            
                 s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
                 allrecords = self._db.fetchall(s,(q,))
             else:
                 publisher_id = arguments[0]
-                min_timestamp = arguments[1]
-                max_timestamp = arguments[2]
-                nr_items = arguments[3]
+                min_timestamp = float(arguments[1])
+                max_timestamp = float(arguments[2])
+                nr_items = int(arguments[3])
+                
+                print >> sys.stderr, "GOT RANGE REQUEST", publisher_id, min_timestamp, max_timestamp, nr_items
                 
                 s = "select min(time_stamp), max(time_stamp), count(infohash) from ChannelCast where publisher_id==? group by publisher_id"
                 record = self._db.fetchone(s,(publisher_id,))
@@ -3266,10 +3270,12 @@ class ChannelCastDBHandler(BasicDBHandler):
                     items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
                     
                     if items > nr_items:
+                        print >> sys.stderr, "He has missing data"
                         #missing data, return complete timeframe
                         s = "select * from ChannelCast where publisher_id==? and time_stamp between ? and ?"
                         allrecords = self._db.fetchall(s,(publisher_id,min_timestamp,max_timestamp))
                     else:
+                        print >> sys.stderr, "His timeframe complete, returning 50 new/old"
                         #return max 50 new, append with old
                         s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp desc limit 50"
                         allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
@@ -3278,6 +3284,7 @@ class ChannelCastDBHandler(BasicDBHandler):
                             s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
                             allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
                 else:
+                    print >> sys.stderr, "WE HAVE SAME DATA"
                     allrecords = []
                 
             records = []

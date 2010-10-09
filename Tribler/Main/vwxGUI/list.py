@@ -271,7 +271,7 @@ class List(wx.Panel):
 
     def format_size(self, val):
         size = (val/1048576.0)
-        return "%.1f MB"%size
+        return "%.0f MB"%size
     
     def CreateHeader(self):
         return ListHeader(self, self.images[0], self.images[1], self.background, self.columns)
@@ -339,7 +339,7 @@ class SearchList(List):
         self.utility = self.guiutility.utility
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Size', 'width': 80, 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
+                   {'name':'Size', 'width': 70, 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \

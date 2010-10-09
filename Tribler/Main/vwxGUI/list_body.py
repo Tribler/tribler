@@ -214,7 +214,22 @@ class ListItem(wx.Panel):
         self.BackgroundColor("#ffff99")
          
     def ShowSelected(self):
-        if self.selected or self.expanded:
+        def IsSelected(control):
+            if getattr(control, 'GetWindow', False): #convert sizeritems
+                control = control.GetWindow()
+                
+            if getattr(control, 'selected', False): 
+                return True
+        
+            if getattr(control, 'GetChildren', False): 
+                children = control.GetChildren()
+                for child in children:
+                    if IsSelected(child):
+                        return True
+            return False
+                    
+        selected = self.expanded or IsSelected(self)
+        if selected:
             self.BackgroundColor(self.selectedColor)
         else:
             self.BackgroundColor(self.deselectedColor)
@@ -246,11 +261,19 @@ class ListItem(wx.Panel):
         return self.data[column]
 
     def OnMouse(self, event):
-        if event.LeftUp():
+        if event.Entering():
+            event.GetEventObject().selected = True
+            self.selected = True
+            self.ShowSelected()
+            
+        elif event.Leaving():
+            event.GetEventObject().selected = False
+            self.selected = False
+            self.ShowSelected()
+            
+        elif event.LeftUp():
             self.OnClick(event)
-        else:
-            self.parent_list.OnMouseIn(self)
-        
+            
         event.Skip() #Allow windows to paint button hover
         
     def OnClick(self, event):
@@ -315,7 +338,6 @@ class AbstractListBody():
         #messagePanel text
         self.messagePanel = wx.Panel(self.listpanel)
         self.messagePanel.SetBackgroundColour(wx.WHITE)
-        self.messagePanel.Bind(wx.EVT_ENTER_WINDOW, self.OnMouseOut)
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.messageText = wx.StaticText(self.messagePanel)
@@ -337,7 +359,6 @@ class AbstractListBody():
         
         #states
         self.cur_expanded = None
-        self.cur_mouseover = None
         
         #quick filter
         self.filter = ''
@@ -348,8 +369,6 @@ class AbstractListBody():
         self.data = []
         self.items = {}
         self.Bind(wx.EVT_IDLE, self.OnIdle)
-        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseOut)
-        self.Bind(wx.EVT_ENTER_WINDOW, self.OnMouseOut)
         
     def OnSort(self, column, reverse):
         self.Scroll(-1, 0)
@@ -442,22 +461,6 @@ class AbstractListBody():
             self.SetupScrolling(scrollToTop = scrollToTop, scroll_x = False, rate_y = rate_y)
         else:
             self.SetupScrolling(scrollToTop = scrollToTop, scroll_x = False, rate_y = self.rate)
-    
-    def OnMouseOut(self, event):
-        if self.cur_mouseover:
-            self.cur_mouseover.selected = False
-            self.cur_mouseover.ShowSelected()
-            self.cur_mouseover = None 
-        
-    def OnMouseIn(self, item):
-        if self.cur_mouseover and self.cur_mouseover != item:
-            self.cur_mouseover.selected = False
-            self.cur_mouseover.ShowSelected()
-        
-        self.cur_mouseover = item    
-        if not item.selected:
-            item.selected = True
-            item.ShowSelected()
     
     def Reset(self):
         self.Freeze()

@@ -13,7 +13,7 @@
       <object class="sizeritem">
         <object class="wxPanel" name="top_search" subclass="Tribler.Main.vwxGUI.TopSearchPanel.TopSearchPanel"/>
         <flag>wxEXPAND</flag>
-        <minsize>-1,80</minsize>
+        <minsize>-1,70</minsize>
       </object>
       <object class="sizeritem">
         <flag>wxALL|wxEXPAND</flag>
