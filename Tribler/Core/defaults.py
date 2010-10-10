@@ -98,7 +98,7 @@ sessdefaults['channelcast_random_own_subscriptions'] = 12
 sessdefaults['max_channel_query_results'] = 25
 
 # 13-04-2010 Andrea, config for subtitle dissemination subsytem
-sessdefaults['subtitles_collecting'] = False
+sessdefaults['subtitles_collecting'] = True
 sessdefaults['subtitles_collecting_dir'] = None
 sessdefaults['subtitles_upload_rate'] = 1024 # KB/s 
 

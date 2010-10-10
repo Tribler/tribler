@@ -231,7 +231,9 @@ class TorrentDetails(wx.Panel):
                 
                 subtitlePanel, vSizer = create_tab("Subtitles", "Discovered Subtitles")
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
-                hSizer.Add(wx.StaticText(subtitlePanel, -1, "Which subtitle do you want to use?"), 1, wx.ALIGN_CENTER_VERTICAL)
+                title = wx.StaticText(subtitlePanel, -1, "Which subtitle do you want to use?")
+                title.SetMinSize((1,-1))
+                hSizer.Add(title, 1, wx.ALIGN_CENTER_VERTICAL)
                 subtitleChoice = wx.Choice(subtitlePanel, choices = strlang)
                 subtitleChoice.items = curlang
                 subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
@@ -470,7 +472,10 @@ class TorrentDetails(wx.Panel):
                     channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
                     self.buttonSizer.Add(channeltext, 0, wx.ALL|wx.EXPAND, 3)
                 
-                mychannel = LinkStaticText(self.buttonPanel, "Or share it using your channel")
+                    mychannel = LinkStaticText(self.buttonPanel, "Or share it using your channel")
+                else:
+                    mychannel = LinkStaticText(self.buttonPanel, "Share it using your channel")
+                    
                 mychannel.Bind(wx.EVT_LEFT_DOWN, self.OnMyChannel)
                 mychannel.SetToolTipString('Add this torrent to your channel.')
                 self.buttonSizer.Add(mychannel, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
@@ -591,7 +596,7 @@ class TorrentDetails(wx.Panel):
                 self.guiutility.showChannel(channel[1], channel[0])    
     
     def OnMyChannel(self, event):
-        torrent_dir = self.utility.session.get_torrent_collecting_dir()
+        torrent_dir = self.guiutility.utility.session.get_torrent_collecting_dir()
         torrent_filename = os.path.join(torrent_dir, self.torrent['torrent_file_name'])
         
         torrentfeed = TorrentFeedThread.getInstance()

@@ -34,12 +34,13 @@
                 <object class="sizeritem">
                   <object class="wxHtmlWindow" name="quicktip">
                     <htmlcode>
-                                            <![CDATA[
-											<font size='2'>
-											<b>Quick Tip:</b> All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as a favrotie.
-											</font>
-											]]>
-                                        </htmlcode>
+                        <![CDATA[
+							<font size='2'>
+							<b>Quick Tip:</b> All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as a favrotie.
+							</font>
+						]]>
+                    </htmlcode>
+					<borders>2</borders>
                     <size>-1,300</size>
                   </object>
                   <flag>wxEXPAND</flag>
@@ -50,7 +51,7 @@
                 </object>
               </object>
             </object>
-            <minsize>120,-1</minsize>
+            <minsize>110,-1</minsize>
             <flag>wxRIGHT|wxEXPAND</flag>
             <border>5</border>
           </object>

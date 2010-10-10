@@ -3284,7 +3284,7 @@ class ChannelCastDBHandler(BasicDBHandler):
                             s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
                             allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
                 else:
-                    print >> sys.stderr, "WE HAVE SAME DATA"
+                    print >> sys.stderr, "WE DONT HAVE NEWER DATA"
                     allrecords = []
                 
             records = []
