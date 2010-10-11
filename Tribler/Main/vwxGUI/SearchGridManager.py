@@ -130,23 +130,6 @@ class TorrentManager:
 
         Returns True or False
         """
-        def success_callback(*args):
-            # empty the permids list to indicate that we are done
-            if state[0]:
-                if DEBUG: print >>sys.stderr,"standardDetails: _download_torrentfile_from_peers: received .torrent from peer after", time() - begin_timer, "seconds"
-                state[0] = False
-                callback(*args)
-
-        def next_callback(timeout):
-            """
-            TIMEOUT: when TIMEOUT>=0 then will try another peer after TIMEOUT seconds.
-            """
-            if state[0] and state[1]:
-                if DEBUG: print >>sys.stderr,"standardDetails: _download_torrentfile_from_peers: trying to .torrent download from peer.",len(state[1])-1,"other peers to ask"
-                self.guiUtility.utility.session.download_torrentfile_from_peer(state[1].pop(0), torrent['infohash'], success_callback)
-                if timeout >= 0:
-                    next_callback_lambda = lambda:next_callback(timeout)
-                    guiserver.add_task(next_callback_lambda, timeout)
 
         # return False when duplicate
         if not duplicate and torrent.get('query_torrent_was_requested', False):
@@ -160,33 +143,9 @@ class TorrentManager:
             return False
 
         torrent['query_torrent_was_requested'] = True
+        for permid in torrent['query_permids']:
+            self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent['infohash'], callback)
         
-        guiserver = GUITaskQueue.getInstance()
-        state = [True, torrent['query_permids'][:]]
-
-        if DEBUG:
-            begin_timer = time()
-
-        # The rules and policies below can be tweaked to increase
-        # performace. More parallel requests can be made, or the
-        # timeout to ask more people can be decreased. All at the
-        # expence of bandwith.
-        if torrent['torrent_size'] > 50 * 1024:
-            # this is a big torrent. to preserve bandwidth we will
-            # request sequentially with a large timeout
-            next_callback(3)
-            
-        elif 0 <= torrent['torrent_size'] <= 10 * 1024:
-            # this is a small torrent. bandwidth is not an issue so
-            # download in parallel
-            next_callback(-1)
-            next_callback(1)
-            next_callback(1)
-
-        else:
-            # medium and unknown torrent size. 
-            next_callback(1)
-            next_callback(1)
         return True
     
     def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False):

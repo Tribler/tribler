@@ -3078,14 +3078,20 @@ class ChannelCastDBHandler(BasicDBHandler):
             assert isinstance(signature, str), "SIGNATURE has invalid type: %s" % type(signature)
         
         flag = False
-        sql = "select count(*) from ChannelCast where publisher_id='" + record[0] + "' and infohash='" + record[2] + "'"
-        num_records = self._db.fetchone(sql)
+        
+        #we need this lock to prevent multiple entries for each publisher_id, infohash
+        self.lock.acquire()
+        
+        sql = "select count(*) from ChannelCast where publisher_id = ? and infohash = ?"
+        num_records = self._db.fetchone(sql, (record[0], record[2]))
         if num_records==0:
             sql = "insert into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
-            self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=commit)
+            self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=True)
             flag = True
             
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, publisher_id)
+        
+        self.lock.release()
         return flag
         
     def existsTorrent(self, infohash):
@@ -3240,16 +3246,14 @@ class ChannelCastDBHandler(BasicDBHandler):
             records = []
             for record in allrecords:
                 records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
-            return records         
-        elif query[0] == 'p': 
+            return records
+            
+        elif query[0] == 'p':
             # search channel's torrents based on permid
             q = query[2:]
-            #print>>sys.stderr, "ChannelCastDB: searchChannels: This is a permid-based search:", `q`
-            
             arguments = q.split()
             
-            print >> sys.stderr, arguments
-            if len(arguments) == 1:            
+            if len(arguments) == 1:
                 s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
                 allrecords = self._db.fetchall(s,(q,))
             else:
@@ -3259,34 +3263,38 @@ class ChannelCastDBHandler(BasicDBHandler):
                 nr_items = int(arguments[3])
                 
                 print >> sys.stderr, "GOT RANGE REQUEST", publisher_id, min_timestamp, max_timestamp, nr_items
+                allrecords = []
                 
                 s = "select min(time_stamp), max(time_stamp), count(infohash) from ChannelCast where publisher_id==? group by publisher_id"
                 record = self._db.fetchone(s,(publisher_id,))
-                #detect if we have older items, newer items or more items
-                change = record[0] < min_timestamp or record[1] > max_timestamp or record[2] > nr_items
-                if change:
-                    #does the peer have any missing items in its timeframe?
-                    s = "select count(infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
-                    items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
-                    
-                    if items > nr_items:
-                        print >> sys.stderr, "He has missing data"
-                        #missing data, return complete timeframe
-                        s = "select * from ChannelCast where publisher_id==? and time_stamp between ? and ?"
-                        allrecords = self._db.fetchall(s,(publisher_id,min_timestamp,max_timestamp))
-                    else:
-                        print >> sys.stderr, "His timeframe complete, returning 50 new/old"
-                        #return max 50 new, append with old
-                        s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp desc limit 50"
-                        allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
+                if record:
+                    #detect if we have older items, newer items or more items
+                    change = record[0] < min_timestamp or record[1] > max_timestamp or record[2] > nr_items
+                    if change:
+                        #does the peer have any missing items in its timeframe?
+                        s = "select count(infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
+                        items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
                         
-                        if len(allrecords) < 50:
-                            s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
-                            allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
+                        if items > nr_items:
+                            print >> sys.stderr, "He has missing data"
+                            #missing data, return complete timeframe
+                            s = "select * from ChannelCast where publisher_id==? and time_stamp between ? and ?"
+                            allrecords = self._db.fetchall(s,(publisher_id,min_timestamp,max_timestamp))
+                        else:
+                            print >> sys.stderr, "His timeframe complete, returning 50 new/old"
+                            #return max 50 newer, append with old
+                            s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
+                            allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
+                            
+                            if len(allrecords) < 50:
+                                s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
+                                allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
+                    elif record[0] > min_timestamp or record[1] < max_timestamp or record[2] < nr_items:
+                        print >> sys.stderr, "HE HAS MORE DATA"
+                    else:
+                        print >> sys.stderr, "WE HAVE SAME DATA"
                 else:
-                    print >> sys.stderr, "WE DONT HAVE NEWER DATA"
-                    allrecords = []
-                
+                    print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"
             records = []
             for record in allrecords:
                 records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))

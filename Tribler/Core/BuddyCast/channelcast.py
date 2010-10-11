@@ -295,12 +295,10 @@ class ChannelCastCore:
             infohash = str2bin(hit[2])
 
             if self.channelcastdb.existsTorrent(infohash):
-                self.channelcastdb.addTorrent(hit, commit = False)
+                self.channelcastdb.addTorrent(hit)
             else:
                 tmp_hits[infohash] = hit
                 self.rtorrent_handler.download_torrent(query_permid,infohash,usercallback)
-        
-        self.channelcastdb.commit()
         
         # Arno, 2010-02-24: Generate event
         for publisher_id in publisher_ids:

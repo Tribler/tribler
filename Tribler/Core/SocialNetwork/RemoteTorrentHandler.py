@@ -6,13 +6,17 @@
 #
 
 import sys
+import Queue
+import threading
+from time import sleep
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
+SLEEP_BETWEEN_REQUESTS = 1
 DEBUG = False
 
-class RemoteTorrentHandler:
+class RemoteTorrentHandler(threading.Thread):
     
     __single = None
     
@@ -20,8 +24,15 @@ class RemoteTorrentHandler:
         if RemoteTorrentHandler.__single:
             raise RuntimeError, "RemoteTorrentHandler is singleton"
         RemoteTorrentHandler.__single = self
+        
+        threading.Thread.__init__(self)
+        
         self.torrent_db = TorrentDBHandler.getInstance()
-        self.requestedtorrents = {}
+        self.name = 'RemoteTorrentHandler'
+        self.daemon = True
+        
+        self.requestedTorrents = Queue.PriorityQueue()
+        self.callbacks = {}
 
     def getInstance(*args, **kw):
         if RemoteTorrentHandler.__single is None:
@@ -29,11 +40,12 @@ class RemoteTorrentHandler:
         return RemoteTorrentHandler.__single
     getInstance = staticmethod(getInstance)
 
-
     def register(self,overlay_bridge,metadatahandler,session):
         self.overlay_bridge = overlay_bridge
         self.metadatahandler = metadatahandler
         self.session = session
+        
+        self.start()
     
     def download_torrent(self,permid,infohash,usercallback):
         """ The user has selected a torrent referred to by a peer in a query 
@@ -42,39 +54,42 @@ class RemoteTorrentHandler:
         """
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        # Called by GUI thread 
-
-        olthread_remote_torrent_download_lambda = lambda:self.olthread_download_torrent_callback(permid,infohash,usercallback)
-        self.overlay_bridge.add_task(olthread_remote_torrent_download_lambda,0)
         
-    def olthread_download_torrent_callback(self,permid,infohash,usercallback):
-        """ Called by overlay thread """
-        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
-        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-    
-        #if infohash in self.requestedtorrents:
-        #    return    # TODO RS:the previous request could have failed
-              
-        self.requestedtorrents[infohash] = usercallback
-        
-        self.metadatahandler.send_metadata_request(permid,infohash,caller="rquery")
+        if infohash not in self.callbacks:
+            self.requestedTorrents.put((1, permid, infohash)) #new torrents are requested with prio 1
+        else:
+            self.requestedTorrents.put((2, permid, infohash)) #request has been made, request with prio 2
+        self.callbacks[infohash] = usercallback
         if DEBUG:
             print >>sys.stderr,'rtorrent: download: Requested torrent: %s' % `infohash`
-       
+    
+    def run(self):
+        while True:
+            _, permid, infohash = self.requestedTorrents.get()
+            
+            while not infohash in self.callbacks:
+                self.requestedTorrents.task_done()
+                _, permid, infohash = self.requestedTorrents.get()
+                
+            if DEBUG:
+                print >>sys.stderr,"rtorrent: requesting %s"%infohash 
+            self.metadatahandler.send_metadata_request(permid,infohash,caller="rquery")
+            sleep(SLEEP_BETWEEN_REQUESTS)
+    
     def metadatahandler_got_torrent(self,infohash,metadata,filename):
         """ Called by MetadataHandler when the requested torrent comes in """
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
 
         #Called by overlay thread
-
         if DEBUG:
-            print >>sys.stderr,"rtorrent: got requested torrent from peer, wanted", infohash in self.requestedtorrents, `self.requestedtorrents`
-        if infohash not in self.requestedtorrents:
+            print >>sys.stderr,"rtorrent: got requested torrent from peer, wanted", infohash in self.callbacks, `self.callbacks`
+            
+        if infohash not in self.callbacks:
            return
 
-        usercallback = self.requestedtorrents[infohash]
-        del self.requestedtorrents[infohash]
+        usercallback = self.callbacks[infohash]
+        del self.callbacks[infohash]
         
         remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
         self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
