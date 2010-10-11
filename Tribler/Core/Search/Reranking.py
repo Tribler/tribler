@@ -46,9 +46,9 @@ class SwapFirstTwoReranker(Reranker):
         if len(hits)<2:
             return hits
         
-        torrent_id_0 = hits[0].get('torrent_id',0)
-        torrent_id_1 = hits[1].get('torrent_id',0)
-        if torrent_id_0 == 0 or torrent_id_1 == 0:
+        torrent_id_0 = hits[0].get('torrent_id',None)
+        torrent_id_1 = hits[1].get('torrent_id',None)
+        if not torrent_id_0 or not torrent_id_1:
             if DEBUG:
                 print >> sys.stderr, "reranking: torrent_id=0 in hits, exiting"
             # we got some problems elsewhere, don't add to it

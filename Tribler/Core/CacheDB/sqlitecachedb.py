@@ -21,8 +21,8 @@ import apsw
 #assert apsw_version >= support_version, "Required APSW Version >= %d.%d.%d."%support_version + " But your version is %d.%d.%d.\n"%apsw_version + \
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
-##Changed from 4 to 5 by andrea for subtitles support
-CURRENT_MAIN_DB_VERSION = 5
+##Changed from 5 to 6 for Niels ChannelCast unique index
+CURRENT_MAIN_DB_VERSION = 6
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -559,6 +559,14 @@ class SQLiteCacheDBBase:
    
         
     # -------- Write Operations --------
+    def insert_or_replace(self, table_name, commit=True, **argv):
+        if len(argv) == 1:
+            sql = 'INSERT OR REPLACE INTO %s (%s) VALUES (?);'%(table_name, argv.keys()[0])
+        else:
+            questions = '?,'*len(argv)
+            sql = 'INSERT OR REPLACE INTO %s %s VALUES (%s);'%(table_name, tuple(argv.keys()), questions[:-1])
+        self.execute_write(sql, argv.values(), commit)
+    
     def insert(self, table_name, commit=True, **argv):
         if len(argv) == 1:
             sql = 'INSERT INTO %s (%s) VALUES (?);'%(table_name, argv.keys()[0])
@@ -1095,6 +1103,24 @@ CREATE INDEX subtitles_have_ts
 on SubtitlesHave(received_ts);
 
 """
+
+            self.execute_write(sql, commit=False)
+        
+        if fromver < 6:
+            sql = 'Select * from ChannelCast'
+            del_sql = 'Delete from ChannelCast where publisher_id = ? and infohash = ?'
+            ins_sql = 'Insert into ChannelCast values (?, ?, ?, ?, ?, ?, ?)'
+            
+            seen = {}
+            rows = self.fetchall(sql)
+            for row in rows:
+                if row[0] in seen and row[2] in seen[row[0]]: #duplicate entry
+                    self.execute_write(del_sql, (row[0], row[2]))
+                    self.execute_write(ins_sql, (row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
+                else:
+                    seen.setdefault(row[0], set()).add(row[2])
+            
+            sql = 'CREATE UNIQUE INDEX publisher_id_infohash_idx on ChannelCast (publisher_id,infohash);'
             self.execute_write(sql, commit=False)
             
         # updating version stepwise so if this works, we store it

@@ -1,5 +1,5 @@
 -- Tribler SQLite Database
--- Version: 5
+-- Version: 6
 --
 -- History:
 --   v1: Published as part of Tribler 4.5
@@ -7,6 +7,7 @@
 --   v3: Published as part of Next-Share M16
 --   v4: Published as part of Tribler 5.2
 --   v5: Published as part of Next-Share M30 for subtitles integration
+--   v6: Published as part of Tribler 5.3
 
 -- 
 -- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
@@ -328,6 +329,9 @@ time_stamp integer,
 signature text
 );
 
+-- WHY NO CONSTRAINT ON PUBLISHER_ID, INFOHASH? 
+-- WHY THESE INDEXES?
+
 CREATE INDEX pub_id_idx
 on ChannelCast
 (publisher_id);
@@ -422,6 +426,14 @@ on SubtitlesHave(received_ts);
 
 -------------------------------------
 
+-- v6: Patch for ChannelCast
+
+CREATE UNIQUE INDEX publisher_id_infohash_idx
+on ChannelCast
+(publisher_id,infohash);
+
+-------------------------------------
+
 COMMIT TRANSACTION create_table;
 
 ----------------------------------------
@@ -444,7 +456,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 5);
+INSERT INTO MyInfo VALUES ('version', 6);
 
 COMMIT TRANSACTION init_values;
 

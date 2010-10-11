@@ -1170,17 +1170,8 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_name = torrentdef.get_name_as_unicode()
         database_dict = self._get_database_dict(torrentdef, source, extra_info)
 
-        # see if there is already a torrent in the database with this
-        # infohash
+        self._db.insert_or_replace("Torrent", commit=True, **database_dict)
         torrent_id = self._db.getTorrentID(infohash)
-
-        if torrent_id is None:  # not in database
-            self._db.insert("Torrent", commit=True, **database_dict)
-            torrent_id = self._db.getTorrentID(infohash)
-
-        else:    # infohash in db
-            where = 'torrent_id = %d' % torrent_id
-            self._db.update('Torrent', where=where, commit=False, **database_dict)
 
         # boudewijn: we are using a Set to ensure that all keywords
         # are unique.  no use having the database layer figuring this
@@ -3048,7 +3039,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             utorrentname = torrentdef.get_name_as_unicode()
             record = [publisher_id,unickname,infohash,torrenthash,utorrentname,now()]
             self._sign(record)
-            sql = "insert into ChannelCast Values(?,?,?,?,?,?,?)"
+            sql = "insert or ignore into ChannelCast Values(?,?,?,?,?,?,?)"
             self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=True)
             flag = True
 
@@ -3078,20 +3069,16 @@ class ChannelCastDBHandler(BasicDBHandler):
             assert isinstance(signature, str), "SIGNATURE has invalid type: %s" % type(signature)
         
         flag = False
-        
-        #we need this lock to prevent multiple entries for each publisher_id, infohash
-        self.lock.acquire()
-        
+
         sql = "select count(*) from ChannelCast where publisher_id = ? and infohash = ?"
         num_records = self._db.fetchone(sql, (record[0], record[2]))
         if num_records==0:
-            sql = "insert into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
-            self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=True)
-            flag = True
+            sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
+            self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=commit)
             
+            flag = True
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, publisher_id)
-        
-        self.lock.release()
+
         return flag
         
     def existsTorrent(self, infohash):
