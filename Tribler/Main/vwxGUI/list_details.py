@@ -344,7 +344,7 @@ class TorrentDetails(wx.Panel):
                     label = "This torrent is part of your Channel."
                     tooltip = "Open your Channel."
                 else:
-                    label = "This torrent is included in %s's Channel.\nSee all Channel content here." % channel[1]
+                    label = "Included in %s's Channel.\nSee all Channel content here." % channel[1]
                     tooltip = "Open %s's Channel."%channel[1]
                 
                 self.channeltext = LinkStaticText(self.buttonPanel, label)

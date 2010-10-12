@@ -321,20 +321,21 @@ class LinkStaticText(wx.Panel):
         self.SetBackgroundColour(parent.GetBackgroundColour())
         
         self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
+        self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        
         self.text = wx.StaticText(self, -1, text)
         font = self.text.GetFont()
         font.SetUnderlined(True)
         font.SetPointSize(font.GetPointSize() + font_increment)
         self.text.SetFont(font)
         self.text.SetForegroundColour('#0473BB')
-        
-        if sys.platform != 'linux2':
-            self.text.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        self.text.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL)
         self.SetSizer(hSizer)
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
     def SetToolTipString(self, tip):
         wx.Panel.SetToolTipString(self, tip)
