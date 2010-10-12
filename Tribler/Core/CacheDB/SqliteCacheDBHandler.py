@@ -3080,6 +3080,15 @@ class ChannelCastDBHandler(BasicDBHandler):
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, publisher_id)
 
         return flag
+
+    def selectTorrentsToCollect(self, publisher_id = None):
+        if publisher_id:
+            sql = 'Select infohash From ChannelCast where publisher_id = ? and infohash not in (Select infohash From CollectedTorrent)'
+            records = self._db.fetchall(sql,(publisher_id,))
+        else:
+            sql = 'Select infohash From ChannelCast where infohash not in (Select infohash From CollectedTorrent)'
+            records = self._db.fetchall(sql)
+        return records
         
     def existsTorrent(self, infohash):
         sql = "select count(*) from Torrent where infohash==? and name<>''"

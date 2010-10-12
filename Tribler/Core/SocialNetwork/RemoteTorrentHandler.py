@@ -8,14 +8,14 @@
 import sys
 import Queue
 import threading
-from time import sleep
+from time import sleep, time
 from random import choice
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 SLEEP_BETWEEN_REQUESTS = 1
-SLEEP_BETWEEN_REQUESTS_TURBO = 0.2
+SLEEP_BETWEEN_REQUESTS_TURBO = 0.5
 DEBUG = False
 
 class RemoteTorrentHandler(threading.Thread):
@@ -35,7 +35,10 @@ class RemoteTorrentHandler(threading.Thread):
         
         self.callbacks = {}
         self.sources = {}
-        self.requestedTorrents = Queue.PriorityQueue()
+        try:
+            self.requestedTorrents = Queue.PriorityQueue()
+        except AttributeError: #not using python 2.6
+            self.requestedTorrents = Queue.Queue()
 
     def getInstance(*args, **kw):
         if RemoteTorrentHandler.__single is None:
@@ -61,18 +64,18 @@ class RemoteTorrentHandler(threading.Thread):
         
         self.callbacks[infohash] = usercallback
         self.sources.setdefault(infohash,[]).append(permid)
-        self.requestedTorrents.put((prio, infohash))
+        self.requestedTorrents.put((prio, time(), infohash))
         if DEBUG:
             print >>sys.stderr,'rtorrent: adding request:', infohash, permid
     
     def run(self):
         while True:
             try:
-                prio, infohash = self.requestedTorrents.get()
+                prio, _, infohash = self.requestedTorrents.get()
                 #do we still needs this infohash?
                 while not infohash in self.callbacks: 
                     self.requestedTorrents.task_done()
-                    prio, infohash = self.requestedTorrents.get()
+                    prio, _, infohash = self.requestedTorrents.get()
                 
                 #CAUTION self.sources not threadsafe
                 #Adding more than 1 thread would be unwise without adding locks
@@ -89,7 +92,7 @@ class RemoteTorrentHandler(threading.Thread):
                 if DEBUG:
                     print_exc()
             
-            if self.requestedTorrents.qsize() < 10 and prio > 1:
+            if self.requestedTorrents.qsize() < 50 and prio > 1:
                 sleep(SLEEP_BETWEEN_REQUESTS)
             else:
                 sleep(SLEEP_BETWEEN_REQUESTS_TURBO)

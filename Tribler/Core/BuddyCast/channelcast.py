@@ -280,35 +280,21 @@ class ChannelCastCore:
         #08/04/10: Andrea: processing rich metadata part.
         self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
         
-        tmp_hits = {} #"binary" key
-        def usercallback(infohash,metadata,filename):
-            if tmp_hits.has_key(infohash):
-                hit = tmp_hits[infohash]
-                self.channelcastdb.addTorrent(hit)
-                del tmp_hits[infohash]
-            else:
-                print >> sys.stderr, "channelcast: updatechannel: could not find infohash", bin2str(infohash)
-
-
         for hit in listOfAdditions:
             publisher_ids.add(hit[0])
-            infohash = str2bin(hit[2])
-
-            if self.channelcastdb.existsTorrent(infohash):
-                self.channelcastdb.addTorrent(hit, False)
-            else:
-                tmp_hits[infohash] = hit
-                self.rtorrent_handler.download_torrent(query_permid,infohash,usercallback,2)
-
+            self.channelcastdb.addTorrent(hit, False)
         self.channelcastdb.commit()
+        
+        def notify(publisher_id):
+            self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, publisher_id)
         
         # Arno, 2010-02-24: Generate event
         for publisher_id in publisher_ids:
-            try:
-                self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, publisher_id)
-            except:
-                print_exc()
-                
+            #schedule donwload of all missing torrents
+            for infohash in self.channelcastdb.selectTorrentsToCollect(publisher_id):
+                infohash = str2bin(infohash[0])
+                self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(publisher_id) ,2)
+        
     def updateAChannel(self, permid, peers = None):
         q = "CHANNEL p "+permid
         
