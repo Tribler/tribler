@@ -387,7 +387,7 @@ class TorrentDetails(wx.Panel):
                         self.data = data
                         self.original_data = original_data
                 self.item = tmp_object(['',[0,0],[0,0],0,0],self.torrent)
-                self.progressPanel = ProgressPanel(self.buttonPanel, self.item)
+                self.progressPanel = ProgressPanel(self.buttonPanel, self.item, ProgressPanel.ETA_EXTENDED)
                 self.buttonSizer.Add(self.progressPanel, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
             
             #Optional stream button
@@ -493,6 +493,8 @@ class TorrentDetails(wx.Panel):
                 channeltext.channel = channel
                 channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
                 self.buttonSizer.Add(channeltext, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 3)
+        
+        self.buttonPanel.Layout()
     
     def OnExplore(self, event):
         #TODO: Universal getpath implementation
@@ -630,8 +632,14 @@ class TorrentDetails(wx.Panel):
                 
                 if getattr(self, 'progressPanel', False):
                     self.item.original_data['ds'] = ds
-                    self.progressPanel.Update()
-                                
+                    if self.progressPanel.Update() == 2:
+                        
+                        self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
+                        self.buttonPanel.Freeze()
+                        self.ShowDone()
+                        self.buttonPanel.Thaw()
+                        break
+                
                 if ds.is_vod():
                     label = 'You are streaming this torrent'
                     if getattr(self, 'play', False):
@@ -660,11 +668,17 @@ class LibraryDetails(TorrentDetails):
         self.ShowDownloadProgress()
     
 class ProgressPanel(wx.Panel):
-    def __init__(self, parent, item):
+    #eta style
+    ETA_DEFAULT = 1
+    ETA_EXTENDED = 2
+    
+    def __init__(self, parent, item, style = ETA_DEFAULT):
         wx.Panel.__init__(self, parent)
         self.SetBackgroundColour(wx.WHITE)
         self.item = item
-        self.utility = GUIUtility.getInstance().utility
+        self.style = style
+        guiutility = GUIUtility.getInstance()
+        self.utility = guiutility.utility
 
         self.pb = ProgressBar(self)
         self.status = wx.StaticText(self)
@@ -672,6 +686,7 @@ class ProgressPanel(wx.Panel):
         vSizer.AddStretchSpacer()
         vSizer.Add(self.pb, 0, wx.EXPAND)
         vSizer.Add(self.status, 0, wx.EXPAND)
+        
         vSizer.AddStretchSpacer()
         
         self.SetSizer(vSizer)
@@ -687,6 +702,19 @@ class ProgressPanel(wx.Panel):
         if ds != None:
             #Update eta
             progress = ds.get_progress()
+            seeds, peers = ds.get_num_seeds_peers()
+            if seeds == None:
+                seeds = 0
+            if peers == None:
+                peers = 0
+            self.item.data[2] = [seeds, peers]
+    
+            dls = ds.get_current_speed('down')*1024
+            self.item.data[3] = dls
+            
+            uls = ds.get_current_speed('up')*1024
+            self.item.data[4] = uls
+            
             finished = progress == 1.0
             if finished:
                 eta = "Completed"
@@ -711,6 +739,14 @@ class ProgressPanel(wx.Panel):
                         eta = sizestr + ' - ' + eta
                     return_val = 1
             
+            if self.style == ProgressPanel.ETA_EXTENDED and (ds.get_status() == DLSTATUS_DOWNLOADING or finished):
+                if finished:
+                    upSpeed = " @ " +self.utility.speed_format_new(uls)
+                    eta += upSpeed
+                else:
+                    dlSpeed = " @ " +self.utility.speed_format_new(dls)
+                    eta += dlSpeed
+            
             #Update eta
             if self.status.GetLabel() != eta:
                 self.status.SetLabel(eta)
@@ -732,18 +768,7 @@ class ProgressPanel(wx.Panel):
                     self.pb.reset(colour=0) # Show as having none
                 self.pb.Refresh()
             
-            seeds, peers = ds.get_num_seeds_peers()
-            if seeds == None:
-                seeds = 0
-            if peers == None:
-                peers = 0
-            self.item.data[2] = [seeds, peers]
-    
-            dls = ds.get_current_speed('down')*1024
-            self.item.data[3] = dls
             
-            uls = ds.get_current_speed('up')*1024
-            self.item.data[4] = uls
         else:
             eta = ''
             progress = self.item.original_data.get('progress')

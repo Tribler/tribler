@@ -326,6 +326,7 @@ class LinkStaticText(wx.Panel):
         font.SetUnderlined(True)
         font.SetPointSize(font.GetPointSize() + font_increment)
         self.text.SetFont(font)
+        self.text.SetForegroundColour('#0473BB')
         
         if sys.platform != 'linux2':
             self.text.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
