@@ -156,6 +156,7 @@ class GUIUtility:
                 self.frame.channelcategories.DeselectAll()
             else:
                 self.frame.selectedchannellist.Hide()
+                self.frame.selectedchannellist.Reset()
                 
             if page == 'my_files':
                 #Show list
@@ -207,7 +208,7 @@ class GUIUtility:
         else:
             self.frame.top_bg.selectTab(self.oldpage)
         self.ShowPage(self.oldpage)
-    
+        
     def dosearch(self):
         sf = self.frame.top_bg.searchField
         if sf is None:

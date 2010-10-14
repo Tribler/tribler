@@ -210,7 +210,13 @@ class ListItem(wx.Panel):
         self.data = data[1]
         
     def Highlight(self, timeout = 3.0):
-        wx.CallLater(timeout*1000, wx.CallAfter, self.ShowSelected)
+        def removeHighlight():
+            try:
+                self.ShowSelected()
+            except: #PyDeadError
+                pass
+        
+        wx.CallLater(timeout*1000, wx.CallAfter, removeHighlight)
         self.BackgroundColor("#ffff99")
          
     def ShowSelected(self):

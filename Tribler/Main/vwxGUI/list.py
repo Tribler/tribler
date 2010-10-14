@@ -301,6 +301,11 @@ class List(wx.Panel):
         pass
     
     def OnCollapse(self, item, panel):
+        self.OnCollapseInternal(item)
+        if panel:
+            panel.Destroy()
+            
+    def OnCollapseInternal(self, item):
         pass
     
     def GetManager(self):
@@ -451,11 +456,8 @@ class SearchList(List):
         item.button.Refresh()
         return TorrentDetails(item, item.original_data)
     
-    def OnCollapse(self, item, panel):
+    def OnCollapseInternal(self, item):
         item.button.Show()
-        
-        if panel:
-            panel.Destroy()
         
     def OnFilter(self, keyword):
         self.header.FilterCorrect(self.list.FilterItems(keyword))
@@ -568,11 +570,8 @@ class LibaryList(List):
         self.header.SetStates(resume, stop, delete)
         return LibraryDetails(item, item.original_data)
 
-    def OnCollapse(self, item, panel):
+    def OnCollapseInternal(self, item):
         self.header.SetStates(False, False, False)
-        
-        if panel:
-            panel.Destroy()
 
     def OnPlay(self, event):
         item = self.list.GetExpandedItem()
