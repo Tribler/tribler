@@ -2,12 +2,13 @@
 # see LICENSE.txt for license information
 
 import sys
+import threading
 from time import time, ctime, sleep
 from zlib import compress, decompress
 from binascii import hexlify
 from traceback import print_exc, print_stack
 from types import StringType, ListType, DictType
-from random import randint, sample, seed, random
+from random import randint, sample, seed, random, shuffle
 from sha import sha
 from sets import Set
 
@@ -21,6 +22,7 @@ from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRTEENTH,\
     OLPROTO_VER_FOURTEENTH
@@ -245,8 +247,6 @@ class ChannelCastCore:
         """
         
         return self._updateChannelInternal(query_permid, query, hits)
-    
-        
         
     def _updateChannelInternal(self, query_permid, query, hits):
         listOfAdditions = list()
@@ -294,26 +294,45 @@ class ChannelCastCore:
             for infohash in self.channelcastdb.selectTorrentsToCollect(publisher_id):
                 infohash = str2bin(infohash[0])
                 self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(publisher_id) ,2)
-        
-    def updateAChannel(self, permid, peers = None):
-        q = "CHANNEL p "+permid
-        
-        record = self.channelcastdb.getTimeframeForChannel(permid)
-        if record:
-            q+=" "+" ".join(map(str,record))
-         
-        if peers:
-            self.session.query_peers(q,peers,usercallback=self.updateChannel)
-        else:
-            self.session.query_connected_peers(q,usercallback=self.updateChannel)
-
-
+    
     def updateMySubscribedChannels(self):
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()
         for permid, channel_name, _, num_subscriptions, _ in subscribed_channels:
             self.updateAChannel(permid)
+            
         self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    
     
+    def updateAChannel(self, permid, peers = None):
+        if peers == None:
+            peers = RemoteQueryMsgHandler.getInstance().get_connected_peers(OLPROTO_VER_THIRTEENTH)
+            
+        # ~load balancing
+        shuffle(peers)
+        
+        # Create separate thread which does all the requesting
+        thread = threading.Thread(target=self._sequentialQueryPeers, args=(permid, peers))
+        thread.name = 'Sequential_ChannelCast_'+permid
+        thread.start()
+    
+    def _sequentialQueryPeers(self, publisher_id, peers):
+        cur_permid = None
+        timeout = threading.Event()
+        def seqcallback(query_permid, query, hits):
+            self.updateChannel(query_permid, query, hits)
+            
+            if query_permid == cur_permid:
+                timeout.set()
+        
+        for permid, selversion in peers:
+            q = "CHANNEL p "+publisher_id
+            if selversion > OLPROTO_VER_THIRTEENTH:
+                record = self.channelcastdb.getTimeframeForChannel(publisher_id)
+                if record:
+                    q+=" "+" ".join(map(str,record))
+            
+            cur_permid = permid
+            self.session.query_peers(q,[permid],usercallback=seqcallback)
+            timeout.wait(30)
 
     def buildChannelcastMessageFromHits(self, hits, selversion, dest_permid=None, fromQuery=False):
         '''

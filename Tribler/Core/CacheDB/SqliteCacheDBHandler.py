@@ -3068,19 +3068,9 @@ class ChannelCastDBHandler(BasicDBHandler):
             assert isinstance(timestamp, int), "TIMESTAMP has invalid type: %s" % type(timestamp)
             assert isinstance(signature, str), "SIGNATURE has invalid type: %s" % type(signature)
         
-        flag = False
-
-        sql = "select count(*) from ChannelCast where publisher_id = ? and infohash = ?"
-        num_records = self._db.fetchone(sql, (record[0], record[2]))
-        if num_records==0:
-            sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
-            self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=commit)
-            
-            flag = True
-            self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, publisher_id)
-
-        return flag
-
+        sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
+        self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=commit)
+        
     def selectTorrentsToCollect(self, publisher_id = None):
         if publisher_id:
             sql = 'Select infohash From ChannelCast where publisher_id = ? and infohash not in (Select infohash From CollectedTorrent)'
@@ -3272,7 +3262,7 @@ class ChannelCastDBHandler(BasicDBHandler):
                         items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
                         
                         if items > nr_items:
-                            print >> sys.stderr, "He has missing data"
+                            print >> sys.stderr, "He has missing data, we have:", items, "he has", nr_items
                             #missing data, return complete timeframe
                             s = "select * from ChannelCast where publisher_id==? and time_stamp between ? and ?"
                             allrecords = self._db.fetchall(s,(publisher_id,min_timestamp,max_timestamp))

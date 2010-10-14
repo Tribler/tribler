@@ -519,7 +519,14 @@ class RemoteQueryMsgHandler:
             return 0
         else:
             return peer['num_queries']
-
+    
+    #Get all connected peers with an overlay version higher or equal than wantminoversion
+    def get_connected_peers(self, wantminoversion = 0):
+        peers = []
+        for permid,selversion in self.connections.iteritems():
+            if selversion >= wantminoversion:
+                peers.append((permid, selversion))
+        return peers
 
     def search_torrents(self,kws,maxhits=None,sendtorrents=False):
         
