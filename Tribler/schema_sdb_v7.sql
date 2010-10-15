@@ -432,6 +432,37 @@ CREATE UNIQUE INDEX publisher_id_infohash_idx
 on ChannelCast
 (publisher_id,infohash);
 
+
+-------------------------------------
+
+-- v7: TermFrequency and TorrentBiTermPhrase
+--     for "Network Buzz" feature;
+--     Also UserEventLog table for user studies.
+
+CREATE TABLE TermFrequency (
+  term           text PRIMARY KEY NOT NULL,
+  freq           integer
+);
+CREATE INDEX termfrequency_idx
+  ON TermFrequency
+  (freq);
+
+CREATE TABLE TorrentBiTermPhrase (
+  torrent_id     integer PRIMARY KEY NOT NULL,
+  term1          text,
+  term2          text
+);
+CREATE INDEX torrent_biterm_phrase_idx
+  ON TorrentBiTermPhrase
+  (term1, term2);
+
+CREATE TABLE UserEventLog (
+  timestamp      numeric,
+  type           integer,
+  message        text
+);
+
+
 -------------------------------------
 
 COMMIT TRANSACTION create_table;
@@ -456,7 +487,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 6);
+INSERT INTO MyInfo VALUES ('version', 7);
 
 COMMIT TRANSACTION init_values;
 

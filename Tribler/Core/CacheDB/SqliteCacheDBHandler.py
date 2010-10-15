@@ -1190,6 +1190,10 @@ class TorrentDBHandler(BasicDBHandler):
             if DEBUG:
                 print >> sys.stderr, "torrentdb: Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
         
+        # vliegendhart: extract terms and bi-term phrase from Torrent and store it
+        nb = NetworkBuzzDBHandler.getInstance()
+        nb.addTorrent(torrent_id, torrent_name, commit)
+        
         self._addTorrentTracker(torrent_id, torrentdef, extra_info, commit=False)
         if commit:
             self.commit()    
@@ -1335,6 +1339,9 @@ class TorrentDBHandler(BasicDBHandler):
                 self._db.update(self.table_name, where="torrent_id=%d"%torrent_id, commit=commit, torrent_file_name=None)
             else:
                 self._db.delete(self.table_name, commit=commit, torrent_id=torrent_id)
+                # vliegendhart: synch bi-term phrase table
+                nb = NetworkBuzzDBHandler.getInstance()
+                nb.deleteTorrent(torrent_id, commit)
             if infohash in self.existed_torrents:
                 self.existed_torrents.remove(infohash)
             self._db.delete('TorrentTracker', commit=commit, torrent_id=torrent_id)
@@ -4133,7 +4140,252 @@ class SearchDBHandler(BasicDBHandler):
         pass
     
     
+class NetworkBuzzDBHandler(BasicDBHandler):
+    """
+    The Network Buzz database handler singleton for sampling the TermFrequency table
+    and maintaining the TorrentBiTermPhrase table.
+    """
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
     
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if NetworkBuzzDBHandler.__single is None:
+            NetworkBuzzDBHandler.lock.acquire()   
+            try:
+                if NetworkBuzzDBHandler.__single is None:
+                    NetworkBuzzDBHandler(*args, **kw)
+            finally:
+                NetworkBuzzDBHandler.lock.release()
+        return NetworkBuzzDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if NetworkBuzzDBHandler.__single is not None:
+            raise RuntimeError, "NetworkBuzzDBHandler is singleton"
+        NetworkBuzzDBHandler.__single = self
+        db = SQLiteCacheDB.getInstance()      
+        BasicDBHandler.__init__(self,db, 'TermFrequency')
+        
+        from Tribler.Core.Tag.Extraction import TermExtraction
+        self.extractor = TermExtraction.getInstance()
+        
+    # Default sampling
+    DEFAULT_BUZZ_SIZE = [5,9,10]
+    
+    # Only consider terms that appear more than once
+    MIN_FREQ = 2
+    
+    # Partition parameters
+    PARTITION_AT = (0.33, 0.67)
+    
+    # Modes:
+    MODE_SINGLE_TERM = dict(
+        table = 'TermFrequency',
+        selected_fields = 'term'
+    )
+    MODE_BITERM_PHRASE = dict(
+        table = '''
+        (
+            SELECT term1 || " " || term2 AS phrase,
+                   COUNT(*) AS freq
+            FROM TorrentBiTermPhrase
+            GROUP BY term1, term2
+        )
+        ''',
+        selected_fields = 'phrase'
+    )
+    
+    # default to single-term mode
+    # (bi-term phrase sampling is experimental!)
+    BUZZ_MODE = MODE_SINGLE_TERM
+    
+    def addTorrent(self, torrent_id, torrent_name, commit=True):
+        """
+        Extracts terms and the bi-term phrase from the added Torrent and stores it in
+        the TermFrequency and TorrentBiTermPhrase tables, respectively.
+        
+        @param torrent_id Identifier of the added Torrent.
+        @param torrent_name Name of the added Torrent.
+        @param commit Flag to indicate whether database changes should be committed.
+        """
+        keywords = split_into_keywords(torrent_name)
+        terms = set(self.extractor.extractTerms(keywords))
+        phrase = self.extractor.extractBiTermPhrase(keywords)
+        
+        update_terms_sql = u"""
+            INSERT OR IGNORE INTO TermFrequency VALUES (?, 0);
+            UPDATE TermFrequency SET freq = freq+1 WHERE term = ?;
+            """
+        ins_phrase_sql = u"INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1, term2) VALUES(?, ?, ?);"
+        
+        self._db.executemany(update_terms_sql, [(term,term) for term in terms], commit=False)
+        if phrase is not None:
+            self._db.execute_write(ins_phrase_sql, (torrent_id,) + phrase, commit=False)
+        
+        if commit:
+            self.commit()
+    
+    def deleteTorrent(self, torrent_id, commit=True):
+        """
+        Updates the TorrentBiTermPhrase table to reflect the change that a Torrent
+        has been deleted.
+        
+        Currently, the TermFrequency table remains unaffected.
+        
+        @param torrent_id Identifier of the deleted Torrent.
+        @param commit Flag to indicate whether database changes should be committed.
+        """
+        self._db.delete('TorrentBiTermPhrase', commit=commit, torrent_id=torrent_id)
+    
+    def getBuzz(self, size = DEFAULT_BUZZ_SIZE, with_freq=True):
+        """
+        Retrieves a sample of high, medium and low frequent term-frequency pairs.
+        
+        If the buzz mode is set to the experimental mode MODE_BITERM_PHRASE, phrases
+        instead of terms are returned.
+        
+        @param size Triple of sample sizes, i.e.
+           (#high frequent terms, #medium frequent terms, #low frequent terms).
+        @param with_freq Flag indicating whether the frequency for each term needs 
+        to be returned as well. True by default.
+        @return Tuple of length 3 containing a sample of high, medium and low frequent 
+        terms (in that order). If with_freq=True, each sample is a list of (term,freq) 
+        tuples, otherwise it is a list of terms. 
+        """
+        # Partition using a ln-scale
+        M = self._max()
+        if M is None:
+            return []
+        lnM = math.log(M)
+        
+        a, b = [int(round(math.exp(boundary*lnM))) for boundary in self.PARTITION_AT]
+        
+        ranges = (
+            (b, None),
+            (a, b),
+            (self.MIN_FREQ, max(self.MIN_FREQ, a))
+        )
+        # ...and sample each range
+        return tuple(self._sample(range, n, with_freq=with_freq) for range, n in zip(ranges, size))
+    
+    def _max(self):
+        """
+        Internal method to select the highest occurring term or phrase frequency,
+        depending on the set buzz mode.
+        
+        @return Highest occurring frequency.
+        """
+        sql = 'SELECT MAX(freq) FROM %s WHERE freq >= %s' % (self.BUZZ_MODE['table'], self.MIN_FREQ)
+        return self._db.fetchone(sql)
+    
+    def _sample(self, range, samplesize, with_freq=True):
+        """
+        Internal method to randomly select terms within a certain frequency range.
+        
+        (Replace "term" with "phrase" in this docstring depending on the set buzz mode)
+        
+        @param range Pair (N,M) to select random terms that occur at least N times,
+        but less than M times. If M is None, no upperbound is used.
+        @param samplesize Number of terms to select.
+        @param with_freq Flag indicating whether the frequency for each term needs 
+        to be returned as well. True by default.
+        @return A list of (term,freq) pairs if with_freq=True, otherwise a list of terms.  
+        """
+        if not samplesize or samplesize < 0:
+            return []
+        
+        minfreq, maxfreq = range
+        if maxfreq is not None:
+            whereclause = 'freq BETWEEN %s AND %s' % (minfreq, maxfreq-1)
+        else:
+            whereclause = 'freq >= %s' % minfreq
+        
+        selected_fields = self.BUZZ_MODE['selected_fields']
+        if with_freq:
+            selected_fields += ', freq'
+        
+        sql = '''SELECT %s
+                 FROM %s
+                 WHERE %s
+                 ORDER BY random()
+                 LIMIT %s''' % (selected_fields, self.BUZZ_MODE['table'], whereclause, samplesize)
+        res = self._db.fetchall(sql)
+        if not with_freq:
+            res = map(lambda x: x[0], res)
+        return res
+    
+    def setBuzzMode(self, mode = MODE_SINGLE_TERM):
+        """
+        Sets the sampling mode for the Network Buzz feature to either sample terms 
+        or phrases. See also: getBuzz().
+        
+        @param mode Either NetworkBuzzDBHandler.MODE_SINGLE_TERM (default) or 
+        the experimental mode NetworkBuzzDBHandler.MODE_BITERM_PHRASE.
+        """
+        self.BUZZ_MODE = mode
+
+class UserEventLogDBHandler(BasicDBHandler):
+    """
+    The database handler for logging user events.
+    """
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    # maximum number of events to store
+    # when this maximum is reached, approx. 50% of teh entries are deleted.
+    MAX_EVENTS = 2*10000
+    
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if UserEventLogDBHandler.__single is None:
+            UserEventLogDBHandler.lock.acquire()   
+            try:
+                if UserEventLogDBHandler.__single is None:
+                    UserEventLogDBHandler(*args, **kw)
+            finally:
+                UserEventLogDBHandler.lock.release()
+        return UserEventLogDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if UserEventLogDBHandler.__single is not None:
+            raise RuntimeError, "UserEventLogDBHandler is singleton"
+        UserEventLogDBHandler.__single = self
+        db = SQLiteCacheDB.getInstance()      
+        BasicDBHandler.__init__(self,db, 'UserEventLog')
+        
+        self.count = self._db.size(self.table_name)
+    
+    def addEvent(self, message, type=1, timestamp=None):
+        """
+        Log a user event to the database. Commits automatically.
+        
+        @param message A message (string) describing the event.
+        @param type Optional type of event (default: 1). There is no
+        mechanism to register user event types.
+        @param timestamp Optional timestamp of the event. If omitted,
+        the current time is used.
+        """
+        if timestamp is None:
+            timestamp = time()
+        self._db.insert(self.table_name, commit=False,
+                        timestamp=timestamp, type=type, message=message)
+        
+        self.count += 1
+        if self.count > UserEventLogDBHandler.MAX_EVENTS:
+            sql=\
+            '''
+            DELETE FROM UserEventLog
+            WHERE timestamp < (SELECT MIN(timestamp)
+                               FROM (SELECT timestamp
+                                     FROM UserEventLog
+                                     ORDER BY timestamp DESC LIMIT %s))
+            ''' % (UserEventLogDBHandler.MAX_EVENTS / 2)
+            self._db.execute_write(sql, commit=True)
+            self.count = self._db.size(self.table_name)
+            
+        
     
 def doPeerSearchNames(self,dbname,kws):
     """ Get all peers that have the specified keywords in their name. 

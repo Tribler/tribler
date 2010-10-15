@@ -21,8 +21,8 @@ import apsw
 #assert apsw_version >= support_version, "Required APSW Version >= %d.%d.%d."%support_version + " But your version is %d.%d.%d.\n"%apsw_version + \
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
-##Changed from 5 to 6 for Niels ChannelCast unique index
-CURRENT_MAIN_DB_VERSION = 6
+##Changed from 6 to 7 for Raynor's TermFrequency table
+CURRENT_MAIN_DB_VERSION = 7
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -1122,7 +1122,41 @@ on SubtitlesHave(received_ts);
             
             sql = 'CREATE UNIQUE INDEX publisher_id_infohash_idx on ChannelCast (publisher_id,infohash);'
             self.execute_write(sql, commit=False)
+        
+        if fromver < 7:
+            sql=\
+            """
+            --------------------------------------
+            -- Creating TermFrequency DB
+            ----------------------------------
+            CREATE TABLE TermFrequency (
+              term           text PRIMARY KEY NOT NULL,
+              freq           integer
+            );
+            CREATE INDEX termfrequency_idx
+              ON TermFrequency
+             (freq);
+             
+            CREATE TABLE TorrentBiTermPhrase (
+              torrent_id     integer PRIMARY KEY NOT NULL,
+              term1          text,
+              term2          text
+            );
+            CREATE INDEX torrent_biterm_phrase_idx
+              ON TorrentBiTermPhrase
+              (term1, term2);
             
+            --------------------------------------
+            -- Creating UserEventLog DB
+            ----------------------------------
+            CREATE TABLE UserEventLog (
+              timestamp      numeric,
+              type           integer,
+              message        text
+            );
+            """
+            self.execute_write(sql, commit=False)
+        
         # updating version stepwise so if this works, we store it
         # regardless of later, potentially failing updates
         self.writeDBVersion(CURRENT_MAIN_DB_VERSION, commit=False)
@@ -1210,6 +1244,48 @@ on SubtitlesHave(received_ts);
             # start the upgradation after 10 seconds
             tqueue = TimedTaskQueue("UpgradeDB")
             tqueue.add_task(upgradeTorrents, 10)
+        
+        if fromver < 7:
+            # for now, fetch all existing torrents and extract terms
+            from Tribler.Core.Tag.Extraction import TermExtraction
+            extractor = TermExtraction.getInstance()
+            
+            sql = """
+                SELECT torrent_id, name
+                FROM Torrent
+                WHERE name IS NOT NULL
+                """
+            ins_terms_sql = u"INSERT INTO TermFrequency (term, freq) VALUES(?, ?)"
+            ins_phrase_sql = u"INSERT INTO TorrentBiTermPhrase (torrent_id, term1, term2) VALUES(?, ?, ?)"
+            
+            if DEBUG:
+                import time
+                dbg_ts1 = time.time()
+            
+            records = self.fetchall(sql)
+            termcount = {}
+            biterms = []
+            for torrent_id, name in records:
+                terms = set(extractor.extractTerms(name))
+                phrase = extractor.extractBiTermPhrase(name)
+                
+                # count terms
+                for term in terms:
+                    termcount[term] = termcount.get(term, 0) + 1
+                
+                # add bi-term phrase if not None
+                if phrase is not None:
+                    biterms.append((torrent_id,) + phrase)
+                    
+            # insert bi-term phrase
+            self.executemany(ins_terms_sql, termcount.items(), commit=False)
+            self.executemany(ins_phrase_sql, biterms, commit=False)
+            self.commit()
+            
+            if DEBUG:
+                dbg_ts2 = time.time()
+                print >>sys.stderr, 'DB Upgradation: extracting and inserting terms took %ss' % (dbg_ts2-dbg_ts1)
+            
 
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern
