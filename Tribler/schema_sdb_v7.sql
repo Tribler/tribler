@@ -440,21 +440,31 @@ on ChannelCast
 --     Also UserEventLog table for user studies.
 
 CREATE TABLE TermFrequency (
-  term           text PRIMARY KEY NOT NULL,
-  freq           integer
+  term_id        integer PRIMARY KEY AUTOINCREMENT DEFAULT 0,
+  term           text NOT NULL,
+  freq           integer,
+  UNIQUE (term)
 );
-CREATE INDEX termfrequency_idx
+
+CREATE INDEX termfrequency_freq_idx
   ON TermFrequency
   (freq);
 
 CREATE TABLE TorrentBiTermPhrase (
   torrent_id     integer PRIMARY KEY NOT NULL,
-  term1          text,
-  term2          text
+  term1_id       integer,
+  term2_id       integer,
+  UNIQUE (torrent_id),
+  FOREIGN KEY (torrent_id)
+    REFERENCES Torrent(torrent_id),
+  FOREIGN KEY (term1_id)
+    REFERENCES TermFrequency(term_id),
+  FOREIGN KEY (term2_id)
+    REFERENCES TermFrequency(term_id)
 );
 CREATE INDEX torrent_biterm_phrase_idx
   ON TorrentBiTermPhrase
-  (term1, term2);
+  (term1_id, term2_id);
 
 CREATE TABLE UserEventLog (
   timestamp      numeric,

@@ -4187,10 +4187,11 @@ class NetworkBuzzDBHandler(BasicDBHandler):
     MODE_BITERM_PHRASE = dict(
         table = '''
         (
-            SELECT term1 || " " || term2 AS phrase,
+            SELECT TF1.term || " " || TF2.term AS phrase,
                    COUNT(*) AS freq
-            FROM TorrentBiTermPhrase
-            GROUP BY term1, term2
+            FROM TorrentBiTermPhrase P, TermFrequency TF1, TermFrequency TF2
+            WHERE P.term1_id = TF1.term_id AND P.term2_id = TF2.term_id
+            GROUP BY term1_id, term2_id
         )
         ''',
         selected_fields = 'phrase'
@@ -4214,10 +4215,14 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         phrase = self.extractor.extractBiTermPhrase(keywords)
         
         update_terms_sql = u"""
-            INSERT OR IGNORE INTO TermFrequency VALUES (?, 0);
+            INSERT OR IGNORE INTO TermFrequency (term, freq) VALUES (?, 0);
             UPDATE TermFrequency SET freq = freq+1 WHERE term = ?;
             """
-        ins_phrase_sql = u"INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1, term2) VALUES(?, ?, ?);"
+        ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
+                                    SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
+                                    FROM TermFrequency TF1, TermFrequency TF2
+                                    WHERE TF1.term = ? AND TF2.term = ?"""
+            
         
         self._db.executemany(update_terms_sql, [(term,term) for term in terms], commit=False)
         if phrase is not None:

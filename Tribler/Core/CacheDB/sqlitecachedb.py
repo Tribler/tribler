@@ -1130,21 +1130,32 @@ on SubtitlesHave(received_ts);
             -- Creating TermFrequency DB
             ----------------------------------
             CREATE TABLE TermFrequency (
-              term           text PRIMARY KEY NOT NULL,
-              freq           integer
+              term_id        integer PRIMARY KEY AUTOINCREMENT DEFAULT 0,
+              term           text NOT NULL,
+              freq           integer,
+              UNIQUE (term)
             );
-            CREATE INDEX termfrequency_idx
+            
+            CREATE INDEX termfrequency_freq_idx
               ON TermFrequency
-             (freq);
-             
+              (freq);
+            
             CREATE TABLE TorrentBiTermPhrase (
               torrent_id     integer PRIMARY KEY NOT NULL,
-              term1          text,
-              term2          text
+              term1_id       integer,
+              term2_id       integer,
+              UNIQUE (torrent_id),
+              FOREIGN KEY (torrent_id)
+                REFERENCES Torrent(torrent_id),
+              FOREIGN KEY (term1_id)
+                REFERENCES TermFrequency(term_id),
+              FOREIGN KEY (term2_id)
+                REFERENCES TermFrequency(term_id)
             );
             CREATE INDEX torrent_biterm_phrase_idx
               ON TorrentBiTermPhrase
-              (term1, term2);
+              (term1_id, term2_id);
+
             
             --------------------------------------
             -- Creating UserEventLog DB
@@ -1256,7 +1267,10 @@ on SubtitlesHave(received_ts);
                 WHERE name IS NOT NULL
                 """
             ins_terms_sql = u"INSERT INTO TermFrequency (term, freq) VALUES(?, ?)"
-            ins_phrase_sql = u"INSERT INTO TorrentBiTermPhrase (torrent_id, term1, term2) VALUES(?, ?, ?)"
+            ins_phrase_sql = u"""INSERT INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
+                                    SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
+                                    FROM TermFrequency TF1, TermFrequency TF2
+                                    WHERE TF1.term = ? AND TF2.term = ?"""
             
             if DEBUG:
                 import time
@@ -1264,7 +1278,7 @@ on SubtitlesHave(received_ts);
             
             records = self.fetchall(sql)
             termcount = {}
-            biterms = []
+            phrases = [] # torrent_id, term1, term2
             for torrent_id, name in records:
                 terms = set(extractor.extractTerms(name))
                 phrase = extractor.extractBiTermPhrase(name)
@@ -1275,11 +1289,11 @@ on SubtitlesHave(received_ts);
                 
                 # add bi-term phrase if not None
                 if phrase is not None:
-                    biterms.append((torrent_id,) + phrase)
+                    phrases.append((torrent_id,) + phrase)
                     
-            # insert bi-term phrase
+            # insert terms and phrases
             self.executemany(ins_terms_sql, termcount.items(), commit=False)
-            self.executemany(ins_phrase_sql, biterms, commit=False)
+            self.executemany(ins_phrase_sql, phrases, commit=False)
             self.commit()
             
             if DEBUG:
