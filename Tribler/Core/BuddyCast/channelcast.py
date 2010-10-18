@@ -245,7 +245,7 @@ class ChannelCastCore:
         @param query: the query string (None if this is not the results of a query) 
         @param hits: details of all matching results related to the query
         """
-        
+        print >> sys.stderr, bin2str(query_permid), query, len(hits)
         return self._updateChannelInternal(query_permid, query, hits)
         
     def _updateChannelInternal(self, query_permid, query, hits):
@@ -272,28 +272,33 @@ class ChannelCastCore:
         # Arno, 2010-06-11: We're on the OverlayThread
         self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)
         return listOfAdditions
-                
     
     def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
-        publisher_ids = Set()
-        
         #08/04/10: Andrea: processing rich metadata part.
         self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
         
+        publisher_ids = Set()
+        infohashes = Set()
         for hit in listOfAdditions:
             publisher_ids.add(hit[0])
-            self.channelcastdb.addTorrent(hit, False)
-        self.channelcastdb.commit()
+            infohashes.add(str2bin(hit[2]))
         
+        self.channelcastdb.addTorrents(listOfAdditions)
+        missing_infohashes = {}
+        for publisher_id in publisher_ids:
+            for infohash in self.channelcastdb.selectTorrentsToCollect(publisher_id):
+                missing_infohashes[str2bin(infohash[0])] = publisher_id
+
+        for infohash in infohashes:
+            if infohash in missing_infohashes:
+                self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(missing_infohashes[infohash]) ,2)
+
         def notify(publisher_id):
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, publisher_id)
         
-        # Arno, 2010-02-24: Generate event
-        for publisher_id in publisher_ids:
-            #schedule donwload of all missing torrents
-            for infohash in self.channelcastdb.selectTorrentsToCollect(publisher_id):
-                infohash = str2bin(infohash[0])
-                self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(publisher_id) ,2)
+        for infohash, publisher_id in missing_infohashes.iteritems():
+            if infohash not in infohashes:
+                self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(publisher_id) ,3)
     
     def updateMySubscribedChannels(self):
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()

@@ -3077,7 +3077,11 @@ class ChannelCastDBHandler(BasicDBHandler):
         
         sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
         self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=commit)
-        
+    
+    def addTorrents(self, records):
+         sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
+         self._db.executemany(sql, records)
+    
     def selectTorrentsToCollect(self, publisher_id = None):
         if publisher_id:
             sql = 'Select infohash From ChannelCast where publisher_id = ? and infohash not in (Select infohash From CollectedTorrent)'

@@ -8,17 +8,23 @@
 import sys
 import Queue
 import threading
+import os
+from traceback import print_exc
 from time import sleep, time
 from random import choice
+from binascii import hexlify
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+from Tribler.Core.TorrentDef import TorrentDef
 
 SLEEP_BETWEEN_REQUESTS = 1
 SLEEP_BETWEEN_REQUESTS_TURBO = 0.5
 DEBUG = False
 
-class RemoteTorrentHandler(threading.Thread):
+class RemoteTorrentHandler:
     
     __single = None
     
@@ -27,18 +33,9 @@ class RemoteTorrentHandler(threading.Thread):
             raise RuntimeError, "RemoteTorrentHandler is singleton"
         RemoteTorrentHandler.__single = self
         
-        threading.Thread.__init__(self)
-        
-        self.torrent_db = TorrentDBHandler.getInstance()
-        self.name = 'RemoteTorrentHandler'
-        self.daemon = True
-        
         self.callbacks = {}
-        self.sources = {}
-        try:
-            self.requestedTorrents = Queue.PriorityQueue()
-        except AttributeError: #not using python 2.6
-            self.requestedTorrents = Queue.Queue()
+        self.requestedTorrents = {}
+        self.requestingThreads = {}
 
     def getInstance(*args, **kw):
         if RemoteTorrentHandler.__single is None:
@@ -50,8 +47,6 @@ class RemoteTorrentHandler(threading.Thread):
         self.overlay_bridge = overlay_bridge
         self.metadatahandler = metadatahandler
         self.session = session
-        
-        self.start()
     
     def download_torrent(self,permid,infohash,usercallback, prio = 1):
         """ The user has selected a torrent referred to by a peer in a query 
@@ -61,41 +56,44 @@ class RemoteTorrentHandler(threading.Thread):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         
-        
         self.callbacks[infohash] = usercallback
-        self.sources.setdefault(infohash,[]).append(permid)
-        self.requestedTorrents.put((prio, time(), infohash))
+        
+        if prio not in self.requestedTorrents:
+            self.requestedTorrents[prio] = Queue.Queue()
+            self.requestingThreads[prio] = TorrentRequester(self.metadatahandler, self.requestedTorrents[prio], 0.5 * prio)
+            self.requestingThreads[prio].name = 'RemoteTorrentRequester %d'%prio
+            self.requestingThreads[prio].start()
+        
+        self.requestingThreads[prio].add_source(infohash, permid)
+        self.requestedTorrents[prio].put(infohash)
+        
+        if prio == 1:
+            magnetTimer = threading.Timer(10, self.magnetTimeout, [infohash])
+            magnetTimer.start()
+            
         if DEBUG:
-            print >>sys.stderr,'rtorrent: adding request:', infohash, permid
+            print >>sys.stderr,'rtorrent: adding request:', bin2str(infohash), bin2str(permid), prio
     
-    def run(self):
-        while True:
-            try:
-                prio, _, infohash = self.requestedTorrents.get()
-                #do we still needs this infohash?
-                while not infohash in self.callbacks: 
-                    self.requestedTorrents.task_done()
-                    prio, _, infohash = self.requestedTorrents.get()
-                
-                #CAUTION self.sources not threadsafe
-                #Adding more than 1 thread would be unwise without adding locks
-                
-                #~load balance sources
-                permid = choice(self.sources[infohash])
-                self.sources[infohash].remove(permid)
-                
-                if DEBUG:
-                    print >>sys.stderr,"rtorrent: requesting", infohash, permid 
-                self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
+    def magnetTimeout(self, *args):
+        infohash = args[0]
+        
+        torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
+        if not os.path.isfile(torrent_filename):
+            #.torrent still not found, try magnet link
+            magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
             
-            except: #Make sure exceptions wont crash this requesting thread
+            if DEBUG:
+                print >> sys.stderr, 'rtorrent: trying magnet alternative', bin2str(infohash), magnetlink
+                 
+            def torrentdef_retrieved(tdef):
                 if DEBUG:
-                    print_exc()
-            
-            if self.requestedTorrents.qsize() < 50 and prio > 1:
-                sleep(SLEEP_BETWEEN_REQUESTS)
-            else:
-                sleep(SLEEP_BETWEEN_REQUESTS_TURBO)
+                    print >> sys.stderr, 'rtorrent: received torrent using magnet', bin2str(infohash)
+                filename = get_collected_torrent_filename(infohash)
+                tdef.save(filename)
+                
+                self.metadatahandler_got_torrent(infohash, tdef, filename)
+                
+            TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved)
     
     def metadatahandler_got_torrent(self,infohash,metadata,filename):
         """ Called by MetadataHandler when the requested torrent comes in """
@@ -109,7 +107,44 @@ class RemoteTorrentHandler(threading.Thread):
         if infohash in self.callbacks:
             usercallback = self.callbacks[infohash]
             del self.callbacks[infohash]
-            del self.sources[infohash]
         
             remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
             self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
+            
+            
+class TorrentRequester(threading.Thread):
+    
+    def __init__(self, metadatahandler, queue, timeout):
+        threading.Thread.__init__(self)
+        
+        self.metadatahandler = metadatahandler
+        self.queue = queue
+        self.timeout = timeout
+        self.sources = {}
+        
+        self.daemon = True
+    
+    def add_source(self, infohash, permid):
+        self.sources.setdefault(infohash, []).append(permid)
+    
+    def run(self):
+        while True:
+            infohash = self.queue.get()
+            try:
+                #~load balance sources
+                permid = choice(self.sources[infohash])
+                self.sources[infohash].remove(permid)
+                
+                if DEBUG:
+                    print >>sys.stderr,"rtorrent: requesting", bin2str(infohash), bin2str(permid)
+                
+                #metadatahandler will only do actual request if torrentfile is not on disk
+                self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
+            
+            #Make sure exceptions wont crash this requesting thread
+            except: 
+                if DEBUG:
+                    print_exc()
+            
+            self.queue.task_done()
+            sleep(self.timeout)
