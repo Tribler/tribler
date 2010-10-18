@@ -241,6 +241,7 @@ class BuzzPanel(wx.Panel):
         for column in self.GetChildren():
             if column != statictext and isinstance(column, wx.StaticText):
                 if column.ForegroundColour != BuzzPanel.INACTIVE_COLOR:
+                    column.enter = False
                     column.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
                     column.Refresh()
 
