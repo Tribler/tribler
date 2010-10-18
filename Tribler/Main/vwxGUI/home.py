@@ -125,7 +125,7 @@ class BuzzPanel(wx.Panel):
                 # (does not check for possible duplicates within display_size-window!)
                 if any(len(row) < 10 for row in self.buzz_cache):
                     buzz = self.nbdb.getBuzz(samplesize, with_freq=False, flat=True)
-                    for i in range(len(self.buzz_cache)):
+                    for i in range(len(buzz)):
                         random.shuffle(buzz[i])
                         self.buzz_cache[i].extend(buzz[i])
                 
@@ -136,6 +136,7 @@ class BuzzPanel(wx.Panel):
                 
                 # consume cache
                 filtered_buzz = [[],[],[]]
+                empty = True
                 for i in range(len(filtered_buzz)):
                     added_terms = set()
                     while len(added_terms) < BuzzPanel.DISPLAY_SIZES[i] and len(self.buzz_cache[i]):
@@ -143,7 +144,10 @@ class BuzzPanel(wx.Panel):
                         if term not in added_terms and not xxx_filter(term, isFilename=False):
                             filtered_buzz[i].append(term)
                             added_terms.add(term)
-        
+                            empty = False
+                
+                if empty:
+                    filtered_buzz = None
                 self.DisplayTerms(filtered_buzz)
                 self.last_shown_buzz = filtered_buzz
             self.refresh = self.REFRESH_EVERY

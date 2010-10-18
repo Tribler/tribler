@@ -4267,7 +4267,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         if not flat:
             return terms_triple, phrases_triple
         else:
-            return map(lambda t1,t2: t1+t2, terms_triple, phrases_triple)
+            return map(lambda t1,t2: (t1 or [])+(t2 or []), terms_triple, phrases_triple)
     
     def getBuzzForTable(self, table, size, with_freq=True):
         """
@@ -4287,7 +4287,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         # Partition using a ln-scale
         M = self._max(table)
         if M is None:
-            return []
+            return ()
         lnM = math.log(M)
         
         a, b = [int(round(math.exp(boundary*lnM))) for boundary in self.PARTITION_AT]
