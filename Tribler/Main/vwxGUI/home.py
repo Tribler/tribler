@@ -69,6 +69,12 @@ class HomePanel(wx.Panel):
         self.SetSizer(vSizer)
         self.Layout()
         return header, footer
+    
+    def DoLayout(self):
+        self.Freeze()
+        self.Layout()
+        self.GetParent().Layout()
+        self.Thaw()
         
 class BuzzPanel(wx.Panel):
     INACTIVE_COLOR = (255, 51, 0)
@@ -156,12 +162,14 @@ class BuzzPanel(wx.Panel):
             self.updatePanel.SetTitle('Update in %d...'%self.refresh)
                 
     def DisplayTerms(self, rows):
+        was_empty = len(self.vSizer.GetChildren()) <= 1
+        
         self.Freeze()
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
         
         if rows is None or rows == []:
-            self.vSizer.Add(wx.StaticText(self, -1, '...collecting buzz information...'))
+            self.vSizer.Add(wx.StaticText(self, -1, '...collecting buzz information...'), 0, wx.ALIGN_CENTER)
         else:
             for i in range(len(rows)):
                 row = rows[i]
@@ -181,8 +189,11 @@ class BuzzPanel(wx.Panel):
                     hSizer.AddStretchSpacer()
                 hSizer.AddStretchSpacer()                    
                 self.vSizer.Add(hSizer, 0, wx.EXPAND)
-                
+            
         self.vSizer.Layout()
+        if was_empty:
+            self.GetParent().DoLayout()
+        
         self.Thaw()
     
     def setUpdatePanel(self, panel):
