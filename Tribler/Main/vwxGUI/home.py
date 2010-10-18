@@ -233,16 +233,16 @@ class BuzzPanel(wx.Panel):
         self.ShowSelected()
 
     def ShowSelected(self, statictext = None):
-        for column in self.GetChildren():
-            if isinstance(column, wx.StaticText) and getattr(column, 'enter', False):
-                column.enter = False
-                column.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
-                column.Refresh()
-        
         if statictext:
             statictext.enter = True
             statictext.SetForegroundColour(BuzzPanel.ACTIVE_COLOR)
             statictext.Refresh()
+        
+        for column in self.GetChildren():
+            if column != statictext and isinstance(column, wx.StaticText):
+                if column.ForegroundColour != BuzzPanel.INACTIVE_COLOR:
+                    column.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
+                    column.Refresh()
 
     def OnClick(self, event):
         evtobj = event.GetEventObject()
