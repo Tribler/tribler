@@ -88,10 +88,9 @@ class RemoteTorrentHandler:
             def torrentdef_retrieved(tdef):
                 if DEBUG:
                     print >> sys.stderr, 'rtorrent: received torrent using magnet', bin2str(infohash)
-                filename = get_collected_torrent_filename(infohash)
-                tdef.save(filename)
-                
-                self.metadatahandler_got_torrent(infohash, tdef, filename)
+
+                tdef.save(torrent_filename)
+                self.metadatahandler_got_torrent(infohash, tdef, torrent_filename)
                 
             TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved)
     
