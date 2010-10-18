@@ -30,20 +30,21 @@ class Home(wx.Panel):
         event.Skip()
     
     def _PostInit(self):
+        self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
         
         panel = HomePanel(self)
         buzzpanel = BuzzPanel(panel)
         header, footer = panel.setControl("Network Buzz", buzzpanel)
+        header.Bind(wx.EVT_ENTER_WINDOW, lambda event: buzzpanel.OnLeaveWindow())
+        footer.Bind(wx.EVT_ENTER_WINDOW, lambda event: buzzpanel.OnLeaveWindow())
         buzzpanel.setUpdatePanel(footer)
         
         vSizer.Add(panel, 0, wx.EXPAND|wx.ALL, 20)
         
         self.SetSizer(vSizer)
         self.Layout()
-        
-        panel.SetMaxSize((800, -1))
         
 class HomePanel(wx.Panel):
     def setControl(self, title, child_control):
@@ -102,7 +103,6 @@ class BuzzPanel(wx.Panel):
         self.Bind(wx.EVT_ENTER_WINDOW, self.OnEnterWindow)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
 
-
         self.updatePanel = None
         self.REFRESH_EVERY = 5
         self.refresh = 1
@@ -155,7 +155,7 @@ class BuzzPanel(wx.Panel):
         self.vSizer.Clear()
         
         if rows is None or rows == []:
-            self.vSizer.Add(wx.Statictext(self, -1, '...collecting buzz information...'))
+            self.vSizer.Add(wx.StaticText(self, -1, '...collecting buzz information...'))
         else:
             for i in range(len(rows)):
                 row = rows[i]
@@ -170,10 +170,7 @@ class BuzzPanel(wx.Panel):
                     text.SetToolTipString("Click to search for '%s'"%term)
                     
                     hSizer.Add(text, 0, wx.BOTTOM, self.TERM_BORDERS[i])
-                    
-                    text.Bind(wx.EVT_ENTER_WINDOW, self.OnEnterWindow)
-                    text.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
-                    text.Bind(wx.EVT_LEFT_UP, self.OnClick)
+                    text.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
                     
                     hSizer.AddStretchSpacer()
                 hSizer.AddStretchSpacer()                    
@@ -211,30 +208,47 @@ class BuzzPanel(wx.Panel):
                 self.timer.Start(1000, False)
                 self.updatePanel.SetTitle('Resuming update')
     
+    def OnMouse(self, event):
+        if event.Entering() or event.Moving():
+            self.OnEnterWindow(event)
+        elif event.Leaving():
+            self.OnLeaveWindow(event)
+        elif event.LeftUp():
+            self.OnClick(event)
+    
     def OnEnterWindow(self, event):
         evtobj = event.GetEventObject()
         evtobj.enter = True
         self.DoPauseResume()
         
         if evtobj != self:
-            evtobj.SetForegroundColour(BuzzPanel.ACTIVE_COLOR)
-            evtobj.Refresh()
+            self.ShowSelected(evtobj)
         
-    def OnLeaveWindow(self, event):
-        evtobj = event.GetEventObject()
-        evtobj.enter = False
+    def OnLeaveWindow(self, event = None):
+        if event:
+            evtobj = event.GetEventObject()
+            evtobj.enter = False
+        
         self.DoPauseResume()
+        self.ShowSelected()
+
+    def ShowSelected(self, statictext = None):
+        for column in self.GetChildren():
+            if isinstance(column, wx.StaticText) and getattr(column, 'enter', False):
+                column.enter = False
+                column.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
+                column.Refresh()
         
-        if evtobj != self:
-            evtobj.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
-            evtobj.Refresh()
+        if statictext:
+            statictext.enter = True
+            statictext.SetForegroundColour(BuzzPanel.ACTIVE_COLOR)
+            statictext.Refresh()
 
     def OnClick(self, event):
         evtobj = event.GetEventObject()
         term = evtobj.GetLabel()
         
         self.guiutility.dosearch(term)
-        
         #TODO: Raynor, add log
     
     def OnMouseMove(self, event):

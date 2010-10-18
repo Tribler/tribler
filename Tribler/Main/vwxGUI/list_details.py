@@ -446,22 +446,25 @@ class TorrentDetails(wx.Panel):
         
         self.buttonSizer.AddStretchSpacer()
         
-        explore_play_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        explore = wx.Button(self.buttonPanel, -1, "Explore Files")
-        explore.SetToolTipString('Explore the files of this torrent.')
-        explore.Bind(wx.EVT_BUTTON, self.OnExplore)
-        
         play = wx.Button(self.buttonPanel, -1, "Play")
         play.SetToolTipString('Start playing this torrent.')
         play.Bind(wx.EVT_BUTTON, self.OnPlay)
         
         if not self.information[0]:
             play.Disable()
+        
+        if sys.platform == 'win32':
+            explore_play_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            explore = wx.Button(self.buttonPanel, -1, "Explore Files")
+            explore.SetToolTipString('Explore the files of this torrent.')
+            explore.Bind(wx.EVT_BUTTON, self.OnExplore)
             
-        explore_play_sizer.Add(explore)
-        explore_play_sizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
-        explore_play_sizer.Add(play)
-        self.buttonSizer.Add(explore_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
+            explore_play_sizer.Add(explore)
+            explore_play_sizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
+            explore_play_sizer.Add(play)
+            self.buttonSizer.Add(explore_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        else:
+            self.buttonSizer.Add(play, 0, wx.ALIGN_CENTER_HORIZONTAL)
         
         self.buttonSizer.AddStretchSpacer()
         
@@ -509,7 +512,9 @@ class TorrentDetails(wx.Panel):
     
     def OnExplore(self, event):
         #TODO: Universal getpath implementation
-        os.startfile(os.path.join(self.torrent['destdir'], self.torrent['name']))
+        url = os.path.join(self.torrent['destdir'], self.torrent['name'])
+        if hasattr(os, "startfile"):
+            os.startfile(url)
                 
     def OnDownload(self, event):
         self.guiutility.torrentsearch_manager.downloadTorrent(self.torrent)
@@ -526,12 +531,14 @@ class TorrentDetails(wx.Panel):
             playable_files.sort()
             dialog = wx.SingleChoiceDialog(self, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play?', 'Which file do you want to play?',playable_files)
             
+            (_, selected_file) = max([(size, filename) for filename, size in self.information[2] if filename in self.information[1]])
             if self.notebook.GetSelection() == 1: #If currentpage is files
                 selected = self.listCtrl.GetFirstSelected()
-                if selected != -1:
+                if selected != -1 and self.listCtrl.GetItemText(selected) in playable_files:
                     selected_file = self.listCtrl.GetItemText(selected)
-                    if selected_file in playable_files:
-                        dialog.SetSelection(playable_files.index(selected_file))
+             
+            if selected_file in playable_files:
+                dialog.SetSelection(playable_files.index(selected_file))
                 
             if dialog.ShowModal() == wx.ID_OK:
                 response = dialog.GetStringSelection()
@@ -555,7 +562,7 @@ class TorrentDetails(wx.Panel):
             elif self.torrent.get('progress',0) == 100: #not playable
                 #TODO: Universal getpath implementation
                 file = os.path.join(self.torrent.get('destdir',''), self.torrent.get('name',''),selected_file)
-                if os.path.isfile(file):
+                if os.path.isfile(file) and hasattr(os, "startfile"):
                     os.startfile(file)
                     
     def OnSubtitle(self, event):
@@ -588,7 +595,8 @@ class TorrentDetails(wx.Panel):
         if filename[0:filename.rfind(".")] + ".srt" not in self.information[2]: #only actually remove this subtitle if it not in the .torrent
             #TODO: Universal getpath implementation
             filename = os.path.join(self.torrent.get('destdir',''), self.torrent.get('name',''), filename[0:filename.rfind(".")] + ".srt")
-            os.remove(filename)
+            if os.path.isfile(filename):
+                os.remove(filename)
     
     def OnClick(self, event):
         label = event.GetEventObject().GetParent()

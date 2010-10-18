@@ -381,9 +381,6 @@ class MyChannelHeader(SubTitleHeader):
         SubTitleHeader.AddColumns(self, sizer, parent, [])
 
 class SearchHeader(TitleHeader):
-    def GetTitlePanel(self, parent):
-        self.filteredResults = wx.StaticText(parent)
-        return self.filteredResults
     
     def GetRightTitlePanel(self, parent):
         self.filter = wx.SearchCtrl(parent)
@@ -413,21 +410,17 @@ class SearchHeader(TitleHeader):
     
     def FilterCorrect(self, regex_correct):
         pass
+    
     def SetNrResults(self, nr = None):
         if nr:
-            self.filteredResults.SetLabel('( %d after applying the filter )'%nr)
-        else:
-            self.filteredResults.SetLabel('')
-        self.Layout()
+            self.SetSubTitle('Discovered %d after filter'%nr)
     
     def OnKey(self, event):
         self.parent.OnFilter(self.filter.GetValue().strip())
     
     def Reset(self):
         TitleHeader.Reset(self)
-        
         self.filter.Clear()
-        self.filteredResults.SetLabel('')
 
 class ChannelHeader(SearchHeader):
     def GetRightTitlePanel(self, parent):
@@ -440,7 +433,9 @@ class ChannelHeader(SearchHeader):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.subtitle = wx.StaticText(parent)
         hSizer.Add(self.subtitle)
-        hSizer.Add(SearchHeader.GetTitlePanel(self, parent))
+        panel = SearchHeader.GetTitlePanel(self, parent)
+        if panel:
+            hSizer.Add(panel)
         return hSizer
     
     def SetSubTitle(self, subtitle):
