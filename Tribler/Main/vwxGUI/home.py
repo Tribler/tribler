@@ -8,7 +8,7 @@ from Tribler.Main.vwxGUI.list_header import TitleHeader
 from Tribler.Main.vwxGUI.list_footer import TitleFooter
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler
 
 class Home(wx.Panel):
     def __init__(self):
@@ -82,6 +82,7 @@ class BuzzPanel(wx.Panel):
         self.guiutility = GUIUtility.getInstance()
         self.xxx_filter = Category.getInstance().xxx_filter 
         self.buzz_cache = [[],[],[]]
+        self.last_shown_buzz = None
         
         self.SetBackgroundColour(wx.WHITE)
         
@@ -144,6 +145,7 @@ class BuzzPanel(wx.Panel):
                             added_terms.add(term)
         
                 self.DisplayTerms(filtered_buzz)
+                self.last_shown_buzz = filtered_buzz
             self.refresh = self.REFRESH_EVERY
         
         if self.updatePanel:
@@ -250,7 +252,9 @@ class BuzzPanel(wx.Panel):
         term = evtobj.GetLabel()
         
         self.guiutility.dosearch(term)
-        #TODO: Raynor, add log
+        
+        uelog = UserEventLogDBHandler.getInstance()
+        uelog.addEvent(message=repr((term, self.last_shown_buzz)))
     
     def OnMouseMove(self, event):
         pass
