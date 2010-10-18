@@ -216,8 +216,9 @@ class ListItem(wx.Panel):
             except: #PyDeadError
                 pass
         
-        wx.CallLater(timeout*1000, wx.CallAfter, removeHighlight)
-        self.BackgroundColor("#ffff99")
+        if self.IsShownOnScreen():
+            wx.CallLater(timeout*1000, wx.CallAfter, removeHighlight)
+            self.BackgroundColor("#ffff99")
          
     def ShowSelected(self):
         def IsSelected(control):

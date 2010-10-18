@@ -61,8 +61,7 @@ class TorrentDetails(wx.Panel):
         self.isReady = False
         self.noChannel = False
         
-        self.guiserver = GUITaskQueue.getInstance()
-        self.guiserver.add_task(self.loadTorrent)
+        self.loadTorrent()
         
     def loadTorrent(self):
         requesttype = self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
@@ -73,6 +72,9 @@ class TorrentDetails(wx.Panel):
             self.parent.parent_list.OnChange()
     
     def showTorrent(self, torrent, information):
+        wx.CallAfter(self._showTorrent, torrent, information)
+        
+    def _showTorrent(self, torrent, information):
         self.torrent = torrent
         self.information = information
         ds = self.torrent.get('ds', False)
@@ -199,7 +201,7 @@ class TorrentDetails(wx.Panel):
             self.notebook.AddPage(self.listCtrl, "Files")
         
         #Create subtitlelist
-        if information[0] and finished:
+        if information[0]:
             curlang = []
             strlang = []
             
@@ -215,9 +217,12 @@ class TorrentDetails(wx.Panel):
                     curlang.sort()
                     strlang = [lang[0] for lang in curlang]
             
+            vlc_supported = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
+            
             internalSubs = []
             for filename, size in information[2]:
-                if filename.endswith(".srt"):
+                root, extension = os.path.splitext(filename)
+                if extension in vlc_supported:
                     internalSubs.append(filename)
             internalSubs.sort()
             
@@ -231,12 +236,18 @@ class TorrentDetails(wx.Panel):
                 
                 subtitlePanel, vSizer = create_tab("Subtitles", "Discovered Subtitles")
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
-                title = wx.StaticText(subtitlePanel, -1, "Which subtitle do you want to use?")
+                
+                if finished:
+                    title = wx.StaticText(subtitlePanel, -1, "Which subtitle do you want to use?")
+                else:
+                    title = wx.StaticText(subtitlePanel, -1, "Available subtitles")
                 title.SetMinSize((1,-1))
                 hSizer.Add(title, 1, wx.ALIGN_CENTER_VERTICAL)
                 subtitleChoice = wx.Choice(subtitlePanel, choices = strlang)
                 subtitleChoice.items = curlang
-                subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
+                
+                if finished:
+                    subtitleChoice.Bind(wx.EVT_CHOICE, self.OnSubtitle)
                 
                 hSizer.Add(subtitleChoice)
                 vSizer.Add(hSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 10)
