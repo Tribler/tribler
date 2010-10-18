@@ -4170,8 +4170,8 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         from Tribler.Core.Tag.Extraction import TermExtraction
         self.extractor = TermExtraction.getInstance()
         
-    # Default sampling
-    DEFAULT_BUZZ_SIZE = [5,9,10]
+    # Default sampling size
+    DEFAULT_SAMPLE_SIZE = 1000
     
     # Only consider terms that appear more than once
     MIN_FREQ = 2
@@ -4179,27 +4179,25 @@ class NetworkBuzzDBHandler(BasicDBHandler):
     # Partition parameters
     PARTITION_AT = (0.33, 0.67)
     
-    # Modes:
-    MODE_SINGLE_TERM = dict(
-        table = 'TermFrequency',
-        selected_fields = 'term'
-    )
-    MODE_BITERM_PHRASE = dict(
-        table = '''
-        (
-            SELECT TF1.term || " " || TF2.term AS phrase,
-                   COUNT(*) AS freq
-            FROM TorrentBiTermPhrase P, TermFrequency TF1, TermFrequency TF2
-            WHERE P.term1_id = TF1.term_id AND P.term2_id = TF2.term_id
-            GROUP BY term1_id, term2_id
+    # Tables from which can be sampled:
+    TABLES = dict(
+        TermFrequency = dict(
+            table = 'TermFrequency',
+            selected_fields = 'term'
+        ),
+        TorrentBiTermPhrase = dict(
+            table = '''
+            (
+                SELECT TF1.term || " " || TF2.term AS phrase,
+                       COUNT(*) AS freq
+                FROM TorrentBiTermPhrase P, TermFrequency TF1, TermFrequency TF2
+                WHERE P.term1_id = TF1.term_id AND P.term2_id = TF2.term_id
+                GROUP BY term1_id, term2_id
+            )
+            ''',
+            selected_fields = 'phrase'
         )
-        ''',
-        selected_fields = 'phrase'
     )
-    
-    # default to single-term mode
-    # (bi-term phrase sampling is experimental!)
-    BUZZ_MODE = MODE_SINGLE_TERM
     
     def addTorrent(self, torrent_id, torrent_name, commit=True):
         """
@@ -4243,23 +4241,47 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         """
         self._db.delete('TorrentBiTermPhrase', commit=commit, torrent_id=torrent_id)
     
-    def getBuzz(self, size = DEFAULT_BUZZ_SIZE, with_freq=True):
+    def getBuzz(self, size= DEFAULT_SAMPLE_SIZE, with_freq=True, flat=False):
         """
-        Retrieves a sample of high, medium and low frequent term-frequency pairs.
+        Samples both the TermFrequency and the TorrentBiTermPhrase table for high, 
+        medium, and low frequent terms and phrases.
         
-        If the buzz mode is set to the experimental mode MODE_BITERM_PHRASE, phrases
-        instead of terms are returned.
-        
-        @param size Triple of sample sizes, i.e.
-           (#high frequent terms, #medium frequent terms, #low frequent terms).
-        @param with_freq Flag indicating whether the frequency for each term needs 
+        @param size Number of terms/phrases to be sampled for each category (high frequent, 
+        mid frequent, low frequent).
+        @param with_freq Flag indicating whether the frequency for each term and phrase needs 
         to be returned as well. True by default.
-        @return Tuple of length 3 containing a sample of high, medium and low frequent 
-        terms (in that order). If with_freq=True, each sample is a list of (term,freq) 
+        @param flat If True, this method returns a single triple with the two samples merged,
+        instead of two separate triples for terms and phrases. Default: False.
+        @return When flat=False, two triples containing a sample of high, medium and low frequent 
+        terms (in that order) for the first triple, and a sample of high, medium and low frequent
+        prases for the second triple. When flat=True, these two triples are merged into a single 
+        triple. If with_freq=True, each sample is a list of (term,freq) tuples, 
+        otherwise it is a list of terms. 
+        """
+        terms_triple = self.getBuzzForTable('TermFrequency', size, with_freq)
+        phrases_triple = self.getBuzzForTable('TorrentBiTermPhrase', size, with_freq)
+        if not flat:
+            return terms_triple, phrases_triple
+        else:
+            return map(lambda t1,t2: t1+t2, terms_triple, phrases_triple)
+    
+    def getBuzzForTable(self, table, size, with_freq=True):
+        """
+        Retrieves a sample of high, medium and low frequent terms or phrases, paired
+        with their frequencies, depending on the table to be sampled from.
+        
+        @table Table to retrieve the highest frequency from. Must be a key in 
+        NetworkBuzzDBHandler.TABLES.
+        @param size Number of terms/phrases to be sampled for each category (high frequent, 
+        mid frequent, low frequent).
+        @param with_freq Flag indicating whether the frequency for each term/phrase needs 
+        to be returned as well. True by default.
+        @return Triple containing a sample of high, medium and low frequent 
+        terms/phrases (in that order). If with_freq=True, each sample is a list of (term,freq) 
         tuples, otherwise it is a list of terms. 
         """
         # Partition using a ln-scale
-        M = self._max()
+        M = self._max(table)
         if M is None:
             return []
         lnM = math.log(M)
@@ -4272,30 +4294,33 @@ class NetworkBuzzDBHandler(BasicDBHandler):
             (self.MIN_FREQ, max(self.MIN_FREQ, a))
         )
         # ...and sample each range
-        return tuple(self._sample(range, n, with_freq=with_freq) for range, n in zip(ranges, size))
+        return tuple(self._sample(table, range, size, with_freq=with_freq) for range in ranges)
     
-    def _max(self):
+    def _max(self, table):
         """
         Internal method to select the highest occurring term or phrase frequency,
-        depending on the set buzz mode.
+        depending on the table parameter.
         
+        @table Table to retrieve the highest frequency from. Must be a key in 
+        NetworkBuzzDBHandler.TABLES. 
         @return Highest occurring frequency.
         """
-        sql = 'SELECT MAX(freq) FROM %s WHERE freq >= %s' % (self.BUZZ_MODE['table'], self.MIN_FREQ)
+        sql = 'SELECT MAX(freq) FROM %s WHERE freq >= %s' % (self.TABLES[table]['table'], self.MIN_FREQ)
         return self._db.fetchone(sql)
     
-    def _sample(self, range, samplesize, with_freq=True):
+    def _sample(self, table, range, samplesize, with_freq=True):
         """
-        Internal method to randomly select terms within a certain frequency range.
+        Internal method to randomly select terms or phrases within a certain frequency 
+        range, depending on the table parameter
         
-        (Replace "term" with "phrase" in this docstring depending on the set buzz mode)
-        
-        @param range Pair (N,M) to select random terms that occur at least N times,
-        but less than M times. If M is None, no upperbound is used.
-        @param samplesize Number of terms to select.
+        @table Table to sample from. Must be a key in NetworkBuzzDBHandler.TABLES. 
+        @param range Pair (N,M) to select random terms or phrases that occur at least N 
+        times, but less than M times. If M is None, no upperbound is used.
+        @param samplesize Number of terms or phrases to select.
         @param with_freq Flag indicating whether the frequency for each term needs 
         to be returned as well. True by default.
-        @return A list of (term,freq) pairs if with_freq=True, otherwise a list of terms.  
+        @return A list of (term_or_phrase,freq) pairs if with_freq=True,
+        otherwise a list of terms or phrases.  
         """
         if not samplesize or samplesize < 0:
             return []
@@ -4306,7 +4331,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         else:
             whereclause = 'freq >= %s' % minfreq
         
-        selected_fields = self.BUZZ_MODE['selected_fields']
+        selected_fields = self.TABLES[table]['selected_fields']
         if with_freq:
             selected_fields += ', freq'
         
@@ -4314,21 +4339,12 @@ class NetworkBuzzDBHandler(BasicDBHandler):
                  FROM %s
                  WHERE %s
                  ORDER BY random()
-                 LIMIT %s''' % (selected_fields, self.BUZZ_MODE['table'], whereclause, samplesize)
+                 LIMIT %s''' % (selected_fields, self.TABLES[table]['table'], whereclause, samplesize)
         res = self._db.fetchall(sql)
         if not with_freq:
             res = map(lambda x: x[0], res)
         return res
-    
-    def setBuzzMode(self, mode = MODE_SINGLE_TERM):
-        """
-        Sets the sampling mode for the Network Buzz feature to either sample terms 
-        or phrases. See also: getBuzz().
-        
-        @param mode Either NetworkBuzzDBHandler.MODE_SINGLE_TERM (default) or 
-        the experimental mode NetworkBuzzDBHandler.MODE_BITERM_PHRASE.
-        """
-        self.BUZZ_MODE = mode
+
 
 class UserEventLogDBHandler(BasicDBHandler):
     """
