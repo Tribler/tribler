@@ -168,6 +168,11 @@ class GUIUtility:
                 #Hide list
                 self.frame.librarylist.Hide()
             
+            if page == 'home':
+                self.frame.home.Show()
+            else:
+                self.frame.home.Hide()
+            
             #show player on these pages
             if not self.useExternalVideo:
                 if page in ['my_files', 'mychannel', 'selectedchannel', 'channels', 'search_results']:
@@ -209,14 +214,18 @@ class GUIUtility:
             self.frame.top_bg.selectTab(self.oldpage)
         self.ShowPage(self.oldpage)
         
-    def dosearch(self):
-        sf = self.frame.top_bg.searchField
-        if sf is None:
-            return
-        
-        input = sf.GetValue().strip()
-        if input == '':
-            return
+    def dosearch(self, input = None):
+        if input == None:
+            sf = self.frame.top_bg.searchField
+            if sf is None:
+                return
+            
+            input = sf.GetValue().strip()
+            if input == '':
+                return
+        else:
+            self.frame.top_bg.searchField.SetValue(input)
+        self.frame.top_bg.StartSearch()
         
         wantkeywords = split_into_keywords(input)
         self.current_search_query = wantkeywords

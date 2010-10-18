@@ -54,50 +54,54 @@ class TopSearchPanel(bgPanel):
         if self.searchField.GetValue().strip() == '':
             self.Notify('Please enter a search term', wx.ART_INFORMATION)
         else:
-            self.ag.Show()
-            self.go.GetContainingSizer().Layout()
-            self.ag.Play()
-                
-            # Timer to stop animation after 10 seconds. No results will come 
-            # in after that
-            self.guiUtility.frame.guiserver.add_task(lambda:wx.CallAfter(self.HideAnimation), 10.0)
-            
-            if not self.results.IsEnabled():
-                self.results.Enable()
-                      
-            self.selectTab('results')
-            self.results.SetValue(True)
-
-            # Arno: delay actual search so the painting is faster.
             wx.CallAfter(self.guiUtility.dosearch)
-
+    
+    def StartSearch(self):
+        self.ag.Show()
+        self.go.GetContainingSizer().Layout()
+        self.ag.Play()
+            
+        # Timer to stop animation after 10 seconds. No results will come 
+        # in after that
+        self.guiUtility.frame.guiserver.add_task(lambda:wx.CallAfter(self.HideAnimation), 10.0)
+        
+        if not self.results.IsEnabled():
+            self.results.Enable()
+                  
+        self.selectTab('results')
+        self.results.SetValue(True)
+    
     def OnResults(self, event):
         if self.guiUtility.guiPage != 'search_results':
-            self.selectTab('results')
             #Need to use callafter, to allow list to get focus
             wx.CallAfter(self.guiUtility.ShowPage, 'search_results')
-        else: #Absorb event to prevent untoggle
-            event.Skip(False)
+            
+        self.selectTab('results')
 
     def OnChannels(self, event):
         if self.guiUtility.guiPage not in ['channels', 'selectedchannel', 'mychannel']:
-            self.selectTab('channels')
             wx.CallAfter(self.guiUtility.ShowPage, 'channels')
-        else: #Absorb event to prevent untoggle
-            event.Skip(False)
+        
+        self.selectTab('channels')
    
     def OnSettings(self, event):
         wx.CallAfter(self.guiUtility.ShowPage, 'settings')
-        event.Skip(False)
-
+    
+    def OnHome(self, event):
+        if self.guiUtility.guiPage != 'home':
+            #Need to use callafter, to allow list to get focus
+            wx.CallAfter(self.guiUtility.ShowPage, 'home')
+        
+        self.selectTab('home')
+        
     def OnLibrary(self, event):
         if self.guiUtility.guiPage != 'my_files':
-            self.selectTab('my_files')
             wx.CallAfter(self.guiUtility.ShowPage, 'my_files')
-        else: #Absorb event to prevent untoggle
-            event.Skip(False)
-
+            
+        self.selectTab('my_files')
+        
     def selectTab(self, tab):
+        self.home.SetValue(tab == 'home')
         self.results.SetValue(tab == 'results')
         self.channels.SetValue(tab == 'channels')
         self.settings.SetValue(tab == 'settings')
@@ -153,6 +157,9 @@ class TopSearchPanel(bgPanel):
         self.my_files = wx.ToggleButton(self, -1, label='Library', name="My Files")
         self.results = wx.ToggleButton(self, -1, label='Results', name="Results")
         self.results.Disable()
+        self.home = wx.ToggleButton(self, -1, label='Home', name="Home")
+        self.home.SetValue(True)
+        
 
         if sys.platform == 'win32':
             self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/search_files_channels.png", wx.BITMAP_TYPE_ANY))
@@ -223,6 +230,7 @@ class TopSearchPanel(bgPanel):
         
         #add buttons horizontally
         buttonBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonBoxSizer.Add(self.home, 0, wx.RIGHT, 5)
         buttonBoxSizer.Add(self.results, 0, wx.RIGHT, 5)
         buttonBoxSizer.Add(self.channels, 0, wx.RIGHT, 5)
         buttonBoxSizer.Add(self.settings, 0, wx.RIGHT, 5)
@@ -258,10 +266,11 @@ class TopSearchPanel(bgPanel):
         self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
         self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
         self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
-        self.results.Bind(wx.EVT_LEFT_UP, self.OnResults)
-        self.settings.Bind(wx.EVT_LEFT_UP, self.OnSettings)
-        self.my_files.Bind(wx.EVT_LEFT_UP, self.OnLibrary)
-        self.channels.Bind(wx.EVT_LEFT_UP, self.OnChannels)     
+        self.results.Bind(wx.EVT_TOGGLEBUTTON, self.OnResults)
+        self.settings.Bind(wx.EVT_TOGGLEBUTTON, self.OnSettings)
+        self.my_files.Bind(wx.EVT_TOGGLEBUTTON, self.OnLibrary)
+        self.channels.Bind(wx.EVT_TOGGLEBUTTON, self.OnChannels)
+        self.home.Bind(wx.EVT_TOGGLEBUTTON, self.OnHome)     
         
     def Notify(self, msg, icon= -1):
         self.notify.SetLabel(msg)

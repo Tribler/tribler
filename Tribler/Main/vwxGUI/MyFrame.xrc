@@ -21,6 +21,12 @@
         <option>1</option>
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
+		  <object class="sizeritem">
+            <flag>wxEXPAND</flag>
+            <option>1</option>
+            <object class="wxPanel" name="home" subclass="Tribler.Main.vwxGUI.home.Home">
+            </object>
+          </object>
           <object class="sizeritem">
             <object class="wxPanel" name="channelSelector">
               <bg>#FFFFFF</bg>

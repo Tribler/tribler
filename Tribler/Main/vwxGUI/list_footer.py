@@ -22,8 +22,43 @@ class ListFooter(wx.Panel):
         
     def SetSpacerRight(self, diff):
         pass
+    
+class TitleFooter(ListFooter):
+    
+    def GetMidPanel(self, hSizer):
+        hSizer.AddStretchSpacer()
         
-class TotalFooter(ListFooter):
+        self.title = wx.StaticText(self)
+        hSizer.Add(self.title)
+        
+        self.scrollBar = hSizer.AddSpacer((0,0))
+        self.scrollBar.Show(False)
+        self.scrollBar.sizer = hSizer
+        
+    def SetTitle(self, title):
+        self.Freeze()
+        self.title.SetLabel(title)
+        self.Layout()
+        self.Thaw()
+        
+    def SetSpacerRight(self, right):
+        if right > 0:
+            dirty = False
+            if self.scrollBar.GetSize()[0] != right:
+                self.scrollBar.SetSpacer((right, 0))
+                dirty = True
+            if not self.scrollBar.IsShown():
+                self.scrollBar.Show(True)
+                dirty = True
+            
+            if dirty:
+                self.scrollBar.sizer.Layout()
+        else:
+            if self.scrollBar.IsShown():
+                self.scrollBar.Show(False)
+                self.scrollBar.sizer.Layout()
+        
+class TotalFooter(TitleFooter):
     def __init__(self, parent, leftImg, rightImg, background, columns):
         self.columns = columns
         ListFooter.__init__(self, parent, leftImg, rightImg, background)
@@ -56,23 +91,6 @@ class TotalFooter(ListFooter):
         
         if str_data != self.totals[column].GetLabel():
             self.totals[column].SetLabel(str_data)
-        
-    def SetSpacerRight(self, right):
-        if right > 0:
-            dirty = False
-            if self.scrollBar.GetSize()[0] != right:
-                self.scrollBar.SetSpacer((right, 0))
-                dirty = True
-            if not self.scrollBar.IsShown():
-                self.scrollBar.Show(True)
-                dirty = True
-            
-            if dirty:
-                self.scrollBar.sizer.Layout()
-        else:
-            if self.scrollBar.IsShown():
-                self.scrollBar.Show(False)
-                self.scrollBar.sizer.Layout()
                 
 class ChannelResultFooter(ListFooter):
     def GetMidPanel(self, hSizer):
