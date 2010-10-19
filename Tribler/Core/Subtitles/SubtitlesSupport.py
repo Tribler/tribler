@@ -13,7 +13,7 @@ from Tribler.Core.Utilities.utilities import isValidPermid, bin2str
 import sys
 import threading
 
-DEBUG = False
+DEBUG = True
 
 
 class SubtitlesSupport(object):

@@ -35,7 +35,7 @@ MAX_SUBS_MESSAGE_SIZE = int(2 * MAX_SUBTITLE_SIZE / 1024) #in KBs
 
 MAX_SUBTITLE_DISK_USAGE = 200 * (2 ** 10) #200 MBs
 
-DEBUG = False
+DEBUG = True
 
 class SubtitlesHandler(object):
     

@@ -11,7 +11,7 @@ from copy import copy
 from Tribler.Core.simpledefs import NTFY_RICH_METADATA, NTFY_UPDATE, NTFY_INSERT
 
 
-DEBUG = False
+DEBUG = True
 
 
 class RichMetadataInterceptor(object):
