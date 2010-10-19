@@ -222,8 +222,7 @@ class ABCApp(wx.App):
             #
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
             self.startAPI()
-            self.guiUtility.torrentsearch_manager.connect()
-            self.guiUtility.channelsearch_manager.connect()
+            self.guiUtility.register()
            
             self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
             self.frame = self.res.LoadFrame(None, "MyFrame")

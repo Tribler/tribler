@@ -18,6 +18,7 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
@@ -42,6 +43,7 @@ class TorrentDetails(wx.Panel):
     def __init__(self, parent, torrent):
         wx.Panel.__init__(self, parent)
         self.guiutility = GUIUtility.getInstance()
+        self.uelog = UserEventLogDBHandler.getInstance()
         self.parent = parent
         self.torrent = torrent
         
@@ -519,6 +521,11 @@ class TorrentDetails(wx.Panel):
     def OnDownload(self, event):
         self.guiutility.torrentsearch_manager.downloadTorrent(self.torrent)
         
+        if self.noChannel:
+            self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
+        else:
+            self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)  
+        
         button = event.GetEventObject()
         button.Enable(False)
         wx.CallLater(5000, button.Enable, True)
@@ -543,10 +550,20 @@ class TorrentDetails(wx.Panel):
             if dialog.ShowModal() == wx.ID_OK:
                 response = dialog.GetStringSelection()
                 
-                self.guiutility.torrentsearch_manager.playTorrent(self.torrent, response)            
+                self.guiutility.torrentsearch_manager.playTorrent(self.torrent, response)
+                
+                if self.noChannel:
+                    self.uelog.addEvent(message="Torrent: torrent play from channel", type = 2)
+                else:
+                    self.uelog.addEvent(message="Torrent: torrent play from other", type = 2)       
             dialog.Destroy()
         elif len(playable_files) == 1:
             self.guiutility.torrentsearch_manager.playTorrent(self.torrent)
+            
+            if self.noChannel:
+                self.uelog.addEvent(message="Torrent: torrent play from channel", type = 2)
+            else:
+                self.uelog.addEvent(message="Torrent: torrent play from other", type = 2)   
             
         play.Enable(False)
         wx.CallLater(5000, play.Enable, True)
@@ -623,6 +640,7 @@ class TorrentDetails(wx.Panel):
         torrentfeed = TorrentFeedThread.getInstance()
         torrentfeed.addFile(torrent_filename)
         self.guiutility.frame.top_bg.Notify('New torrent added to My Channel', wx.ART_INFORMATION)
+        self.uelog.addEvent(message="MyChannel: manual add from library", type = 2)
     
     def UpdateStatus(self):
         if 'torrent_id' not in self.torrent:
@@ -822,6 +840,7 @@ class MyChannelTabs(wx.Panel):
         self.torrentfeed = TorrentFeedThread.getInstance()
         self.torrentfeed.addCallback(self.OnRssItem)
         self.guiutility = GUIUtility.getInstance()
+        self.uelog = UserEventLogDBHandler.getInstance()
         
         wx.Panel.__init__(self, parent)
         self.SetBackgroundColour(background)
@@ -1007,12 +1026,16 @@ class MyChannelTabs(wx.Panel):
         if len(url) > 0:
             self.torrentfeed.addURL(url)
             self.RebuildRssPanel()
+            
+            self.uelog.addEvent(message="MyChannel: rssfeed added", type = 2)
         
     def OnDeleteRss(self, event):
         item = event.GetEventObject()
         
         self.torrentfeed.deleteURL(item.url)
         self.RebuildRssPanel()
+        
+        self.uelog.addEvent(message="MyChannel: rssfeed removed", type = 2)
     
     def OnRefreshRss(self, event):
         self.torrentfeed.refresh()
@@ -1020,6 +1043,8 @@ class MyChannelTabs(wx.Panel):
         button = event.GetEventObject()
         button.Enable(False)
         wx.CallLater(5000, button.Enable, True)
+        
+        self.uelog.addEvent(message="MyChannel: rssfeed refreshed", type = 2)
         
     def OnManualAdd(self, event):
         dlg = wx.FileDialog(self,"Choose .torrent file", wildcard = "BitTorrent file (*.torrent) |*.torrent", style = wx.DEFAULT_DIALOG_STYLE|wx.FD_MULTIPLE)
@@ -1029,6 +1054,8 @@ class MyChannelTabs(wx.Panel):
         if dlg.ShowModal() == wx.ID_OK:
             files = dlg.GetPaths()
             self._import_torrents(files)
+            
+            self.uelog.addEvent(message="MyChannel: manual import files", type = 2)
             
     def OnManualDirAdd(self, event):
         dlg = wx.DirDialog(self,"Choose a directory containing the .torrent files", style = wx.wx.DD_DIR_MUST_EXIST)
@@ -1042,6 +1069,8 @@ class MyChannelTabs(wx.Panel):
             for file in files:
                 full_files.append(os.path.join(dlg.GetPath(), file))
             self._import_torrents(full_files)
+            
+            self.uelog.addEvent(message="MyChannel: manual import directory", type = 2)
     
     def _import_torrents(self, files):
         nr_imported = 0
@@ -1131,6 +1160,7 @@ class MyChannelDetails(wx.Panel):
                 for key, value in self.supportedLang.iteritems():
                     if value == lang:
                         self.subsupport.publishSubtitle(self.torrent['infohash'], key, file)
+                        self.uelog.addEvent(message="MyChannel: new subtitle added", type = 2)
                         self.AddSubs()
                         break
         dlg.Destroy()

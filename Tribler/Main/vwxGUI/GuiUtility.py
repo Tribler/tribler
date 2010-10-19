@@ -57,11 +57,6 @@ class GUIUtility:
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
 
-        # Arno: 2008-04-16: I want to keep this for searching, as an extension
-        # of the standardGrid.GridManager
-        self.torrentsearch_manager = TorrentManager.getInstance(self)
-        self.channelsearch_manager = ChannelSearchGridManager.getInstance(self)
-
         self.guiOpen = Event()
      
         self.mainColour = wx.Colour(216,233,240) # main color theme used throughout the interface      
@@ -82,6 +77,13 @@ class GUIUtility:
             GUIUtility(*args, **kw)
         return GUIUtility.__single
     getInstance = staticmethod(getInstance)
+    
+    def register(self):
+        self.torrentsearch_manager = TorrentManager.getInstance(self)
+        self.channelsearch_manager = ChannelSearchGridManager.getInstance(self)
+        
+        self.torrentsearch_manager.connect()
+        self.channelsearch_manager.connect()
     
     def ShowPlayer(self, show):
         if self.frame.videoparentpanel:
