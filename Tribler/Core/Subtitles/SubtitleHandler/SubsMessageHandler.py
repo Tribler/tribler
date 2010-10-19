@@ -550,11 +550,16 @@ class SubsMessageHandler(object):
                 try:
                     subtitle = unicode(subtitle)
                 except:
+                    if DEBUG:
+                        print >> sys.stderr, SUBS_LOG_PREFIX + "Could not convert subtitle to unicode"
+                        print_exc()
                     return None
             if len(subtitle) <= self._maxSubSize:
                 contentsDictionary[lang] = subtitle
             else:
                 #drop that subtitle
+                if DEBUG:
+                    print >> sys.stderr, SUBS_LOG_PREFIX + "Dropping subtitle, too large", len(subtitle), self._maxSubSize
                 continue
             
         bitmask = self._languagesUtility.langCodesToMask(contentsDictionary.keys())
