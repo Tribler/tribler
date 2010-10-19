@@ -4,7 +4,7 @@ import os
 import random
 
 from Tribler.__init__ import LIBRARYNAME
-from Tribler.Main.vwxGUI.list_header import TitleHeader
+from Tribler.Main.vwxGUI.list_header import FamilyFilterHeader
 from Tribler.Main.vwxGUI.list_footer import TitleFooter
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Category.Category import Category
@@ -48,7 +48,9 @@ class Home(wx.Panel):
         
 class HomePanel(wx.Panel):
     def setControl(self, title, child_control):
-        utility = GUIUtility.getInstance().utility
+        self.child_control = child_control
+        self.guiutility = GUIUtility.getInstance()
+        utility = self.guiutility.utility
         
         images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
         images = [os.path.join(utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
@@ -58,17 +60,19 @@ class HomePanel(wx.Panel):
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        header = TitleHeader(self, images[0], images[1], background, [])
-        header.SetTitle(title)
+        self.header = FamilyFilterHeader(self, images[0], images[1], background, [])
+        self.header.SetTitle(title)
+        self.header.SetFF(self.guiutility.getFamilyFilter())
+        
         footer = TitleFooter(self, images[2], images[3], background)
         
-        vSizer.Add(header, 0, wx.EXPAND)
+        vSizer.Add(self.header, 0, wx.EXPAND)
         vSizer.Add(child_control, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
         vSizer.Add(footer, 0, wx.EXPAND)
         
         self.SetSizer(vSizer)
         self.Layout()
-        return header, footer
+        return self.header, footer
     
     def DoLayout(self):
         self.Freeze()
@@ -76,9 +80,15 @@ class HomePanel(wx.Panel):
         self.GetParent().Layout()
         self.Thaw()
         
+    def toggleFamilyFilter(self):
+        self.guiutility.toggleFamilyFilter()
+        self.header.SetFF(self.guiutility.getFamilyFilter())
+        self.child_control.ForceUpdate()
+        
 class BuzzPanel(wx.Panel):
     INACTIVE_COLOR = (255, 51, 0)
     ACTIVE_COLOR = (0, 105, 156)
+    
     TERM_BORDERS = [15, 8, 8]
     DISPLAY_SIZES = [3,5,5]
     
@@ -119,6 +129,11 @@ class BuzzPanel(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
         self.timer.Start(1000, False)
         
+    def ForceUpdate(self):
+        self.buzz_cache = [[],[],[]]
+        self.refresh = 1
+        self.OnRefreshTimer()
+    
     def OnRefreshTimer(self, event = None):
         self.refresh -= 1
         if self.refresh <= 0:
@@ -195,7 +210,7 @@ class BuzzPanel(wx.Panel):
             
         self.vSizer.Layout()
         new_size = len(self.vSizer.GetChildren())
-        if new_size > old_size:
+        if new_size != old_size:
             self.GetParent().DoLayout()
         
         self.Thaw()
@@ -274,6 +289,3 @@ class BuzzPanel(wx.Panel):
         
         uelog = UserEventLogDBHandler.getInstance()
         uelog.addEvent(message=repr((term, self.last_shown_buzz)))
-    
-    def OnMouseMove(self, event):
-        pass
