@@ -546,14 +546,6 @@ class SubsMessageHandler(object):
         for i in range(numOfContents):
             lang = languages[i]
             subtitle = contents[i]
-            if not isinstance(subtitle,unicode):
-                try:
-                    subtitle = unicode(subtitle)
-                except:
-                    if DEBUG:
-                        print >> sys.stderr, SUBS_LOG_PREFIX + "Could not convert subtitle to unicode"
-                        print_exc()
-                    return None
             if len(subtitle) <= self._maxSubSize:
                 contentsDictionary[lang] = subtitle
             else:
@@ -563,8 +555,6 @@ class SubsMessageHandler(object):
                 continue
             
         bitmask = self._languagesUtility.langCodesToMask(contentsDictionary.keys())
-            
-        
         return channel_id, infohash, bitmask, contentsDictionary
     
 

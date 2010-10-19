@@ -57,16 +57,3 @@ class SubtitleMsgHandlerException(RichMetadataException):
         
     def __str__(self):
         return repr(self.value)
-    
-class DiskManagerException(RichMetadataException):
-    '''
-    Thrown by the Disk Manager when problems dealing with disk reading
-    and writings occur
-    '''
-    def __init__(self, value):
-        self.value = value
-        
-    def __str__(self):
-        return repr(self.value)
-
-    

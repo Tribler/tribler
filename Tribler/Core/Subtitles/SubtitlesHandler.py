@@ -5,10 +5,8 @@ from __future__ import with_statement
 from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import \
     LanguagesProvider
 from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataExceptions import \
-    MetadataDBException, RichMetadataException, DiskManagerException
+    MetadataDBException, RichMetadataException
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.Subtitles.SubtitleHandler.DiskManager import DiskManager, \
-    DISK_FULL_DELETE_SOME, DELETE_OLDEST_FIRST
 from Tribler.Core.Subtitles.SubtitleHandler.SimpleTokenBucket import \
     SimpleTokenBucket
 from Tribler.Core.Subtitles.SubtitleHandler.SubsMessageHandler import \
@@ -22,18 +20,11 @@ import os
 import sys
 
 
-
-
 SUBS_EXTENSION = ".srt"
 SUBS_LOG_PREFIX = "subtitles: "
 
-DEFAULT_MIN_FREE_SPACE = 0 #no treshold
-
 MAX_SUBTITLE_SIZE = 1 * 1024 * 1024    # 1MB subtitles. too big?
 MAX_SUBS_MESSAGE_SIZE = int(2 * MAX_SUBTITLE_SIZE / 1024) #in KBs
-
-
-MAX_SUBTITLE_DISK_USAGE = 200 * (2 ** 10) #200 MBs
 
 DEBUG = True
 
@@ -84,7 +75,6 @@ class SubtitlesHandler(object):
         subs_path = os.path.join(self.config_dir, session.get_subtitles_collecting_dir())
         self.subs_dir = os.path.abspath(subs_path)
         
-        self.min_free_space = DEFAULT_MIN_FREE_SPACE
         self._upload_rate = session.get_subtitles_upload_rate()
         self.max_subs_message_size = MAX_SUBS_MESSAGE_SIZE
         self._session = session
@@ -115,30 +105,10 @@ class SubtitlesHandler(object):
             print >> sys.stderr, "Error: %s" % msg
             raise IOError(msg)
         
-        
-        
-           
-        diskManager = DiskManager(self.min_free_space, self.config_dir)
-        self.diskManager = diskManager
-        
-        
-        dmConfig = {"maxDiskUsage" : MAX_SUBTITLE_DISK_USAGE,
-                    "diskPolicy" : DISK_FULL_DELETE_SOME | DELETE_OLDEST_FIRST,
-                     "encoding" : "utf-8"}
-        self.diskManager.registerDir(self.subs_dir, dmConfig)
-        
-        freeSpace = self.diskManager.getAvailableSpace()
-        if DEBUG:
-            print >> sys.stderr, SUBS_LOG_PREFIX + "Avaialble %d MB for subtitle collecting" % (freeSpace / (2 ** 20))
-        
         #event notifier
         self._notifier = Notifier.getInstance()
         
         self.registered = True
-    
-    
-    
-    
     
     def sendSubtitleRequest(self, permid, channel_id, infohash, languages,
                             callback=None, selversion= -1):
@@ -193,41 +163,12 @@ class SubtitlesHandler(object):
         if DEBUG:
             print >> sys.stderr, SUBS_LOG_PREFIX + "preparing to send GET_SUBS to " + \
                   utilities.show_permid_short(permid)
-        
-
-        
-# Better to leave up to the caller the responsibility to check
-# if the subtitle is already available and as correct checsum and so on..
-#        onDisk = []
-#        for langCode in languages:
-#            
-#            filename = self.diskManager.isFilenOnDisk(self.subs_dir,
-#                    getSubtitleFileRelativeName(channel_id, infohash, langCode))
-#            
-#            
-#            # should I skip this part and just send the request anyway?
-#            # (thus leaving to the caller the responsibility to avoid useless
-#            # requests)
-#            if filename:
-#                log.debug(SUBS_LOG_PREFIX + langCode + 
-#                          " subtitle already on disk. Skipping it"\
-#                          " in the request")
-#                onDisk.append(langCode)
-#                self._notify_sub_is_in(channel_id, infohash, langCode, filename)
-#        
-#        for deleteme in onDisk:
-#            languages.remove(deleteme)
             
         if len(languages) == 0:
             if DEBUG:
                 print >> sys.stderr, SUBS_LOG_PREFIX + " no subtitles to request."
             return
             
-        
-        if not self.diskManager.tryReserveSpace(self.subs_dir, len(languages) * self.avg_subtitle_size):
-            self._warn_disk_full()
-            return False
-        
         requestDetails = dict()
         requestDetails['channel_id'] = channel_id
         requestDetails['infohash'] = infohash
@@ -316,8 +257,10 @@ class SubtitlesHandler(object):
 
         try:
             relativeName = os.path.relpath(path, self.subs_dir)
-            fileContent = self.diskManager.readContent(self.subs_dir,
-                                                       relativeName)
+            fileName = os.path.join(self.subs_dir, relativeName)
+            file = open(fileName, 'rb')
+            fileContent = file.read()
+            file.close()
         except IOError,e:
             if DEBUG:
                 print >> sys.stderr, SUBS_LOG_PREFIX + "Error reading from subs file %s: %s" % \
@@ -330,13 +273,6 @@ class SubtitlesHandler(object):
             print >> sys.stderr, "Warning: Subtitle %s dropped. Bigger then %d" % \
                 (relativeName, MAX_SUBTITLE_SIZE)
             return None
-                
-
-            
-        
-
-    
-   
         
     def _subs_send_callback(self, exception, permid):
         """
@@ -414,9 +350,7 @@ class SubtitlesHandler(object):
                     print >> sys.stderr, "Received a subtitle having invalid checsum from %s" % \
                          show_permid_short(permid)
                 subToUpdate.path = None
-                
-                relativeName = os.path.relpath(filename, self.subs_dir)
-                self.diskManager.deleteContent(self.subs_dir, relativeName)
+                os.remove(filename)
                 continue
             self.subtitlesDb.updateSubtitlePath(channel_id, infohash, subToUpdate.lang, filename, False)
             somethingToWrite = True
@@ -427,46 +361,33 @@ class SubtitlesHandler(object):
         if DEBUG:    
             print >> sys.stderr, "Subtitle written on disk and informations on database."
         
-        self._scheduleUserCallbacks(callbacks)
+        if callbacks:
+            self._scheduleUserCallbacks(callbacks)
         
         return True
             
                 
     def _scheduleUserCallbacks(self, callbacks):
-        
+        def call_helper(callback, listOfLanguages):
+            self.overlay_bridge.add_task(lambda: callback(listOfLanguages))
+            
         # callbacks is a list of tuples such as
         # (callback_func, bitmask)
-        for entry in callbacks:
-            callback = entry[0]
-            if callback is None:
-                pass
-            else:
-                listOfLanguages = self.languagesUtility.maskToLangCodes(entry[1])
-                def callBack():
-                    to_call = callback
-                    return to_call(listOfLanguages)
-                # Commented because had a problem related to the
-                # scope of the closure
-                #toCall = lambda : callback(listOfLanguages)
-                self.overlay_bridge.add_task(callBack)
-
-        
-        
-        
-        
+        for callback, bitmask in callbacks:
+            listOfLanguages = self.languagesUtility.maskToLangCodes(bitmask)
+            call_helper(callback, listOfLanguages)
     
     def _saveSubOnDisk(self, channel_id, infohash, lang, subtitleContent):
         assert self.registered == True, SUBS_LOG_PREFIX + "Subtitles Handler"\
             " is not registered"
             
         filename = getSubtitleFileRelativeName(channel_id, infohash, lang)
+        filename = os.path.join(self.subs_dir, filename)
+        file = open(filename, 'wb')
+        file.write(subtitleContent)
+        file.close()
         
-        path = self.diskManager.writeContent(self.subs_dir,
-                                             filename, subtitleContent)
-            
-        return path
-
-    
+        return filename
     
     def _notify_sub_is_in(self, channel_id, infohash, langCode, filename):
         """
@@ -485,19 +406,6 @@ class SubtitlesHandler(object):
             self.notifier.notify(NTFY_SUBTITLE_CONTENTS, NTFY_UPDATE,
                                  (channel_id, infohash), langCode, filename)
     
-    
-    def _warn_disk_full(self):
-        """
-        Notifies the LaunchMany instance that the disk is full.
-        """
-        print >> sys.stderr, "Warning: " + SUBS_LOG_PREFIX + "GET_SUBS: Disk full!"
-        drive, rdir = os.path.splitdrive(os.path.abspath(self.subs_dir))
-        if not drive:
-            drive = rdir
-        self.launchmany.set_activity(NTFY_ACT_DISK_FULL, drive)
-        
-
-      
     def setUploadRate(self, uploadRate):
         """
         Sets the subtitles uploading rate, expressed in KB/s
@@ -545,48 +453,20 @@ class SubtitlesHandler(object):
             raise RichMetadataException("Only .srt subtitles are supported")
         
         filename = getSubtitleFileRelativeName(channel_id, infohash, langCode)
-
+        filename = os.join.path(self.subs_dir, filename)
         
-        if self.diskManager.isFilenOnDisk(self.subs_dir, filename):
-            if DEBUG:
-                print >> sys.stderr, "Overwriting previous subtitle %s" % filename
-            try:
-                deleted = self.diskManager.deleteContent(self.subs_dir, filename)
-            except DiskManagerException,e:
-                if DEBUG:
-                    print >> sys.stderr, "Unable to remove subtitle %s" % filename
-                raise RichMetadataException("Unable to remove subtile %s to overwrite: %s"\
-                                            % (filename, str(e)))
-            
-            if not deleted:
-                if DEBUG: 
-                    print >> sys.stderr, "Unable to remove subtitle %s" % filename
-                raise RichMetadataException("Old subtitle %s is write protected"% filename)
+        source = open(pathToMove, "rb")
+        contents = source.read()
+        source.close()
         
+        dest = open(filename, "wb")
+        dest.write(contents)
+        dest.close()
         
-        with open(pathToMove,"rb") as toCopy:
-            encoding = toCopy.encoding
-            content = toCopy.read()
-            
-        if encoding is not None:
-            #convert the contents from their original encoding 
-            # to unicode, and replace possible unknown characters
-            #with U+FFFD
-            content = unicode(content, encoding, 'relplace')
-        else:
-            #convert using the system default encoding
-            content = unicode(content, errors="replace")
-        
-        return self.diskManager.writeContent(self.subs_dir, filename, content)
-
+        return filename
 
     def getMessageHandler(self):
         return self._subsMsgHndlr.handleMessage                
-        
-
-        
-    
-    
         
 def getSubtitleFileRelativeName(channel_id, infohash, langCode):
     #subtitles filenames are build from the sha1 hash
@@ -607,5 +487,3 @@ def getSubtitleFileRelativeName(channel_id, infohash, langCode):
     subtitleName = hasher.hexdigest() + SUBS_EXTENSION
         
     return subtitleName
-
-
