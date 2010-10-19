@@ -4277,7 +4277,6 @@ class NetworkBuzzDBHandler(BasicDBHandler):
             max_freq = None
         else:
             max_freq = int(round(num_torrents * self.STOPWORD_THRESHOLD))
-            print >>sys.stderr, ">>>>", max_freq, num_torrents
         
         terms_triple = self.getBuzzForTable('TermFrequency', size, with_freq, max_freq = max_freq)
         phrases_triple = self.getBuzzForTable('TorrentBiTermPhrase', size, with_freq)
@@ -4305,7 +4304,6 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         """
         # Partition using a ln-scale
         M = self._max(table, max_freq=max_freq)
-        print >>sys.stderr, ">>>>>>> M =", M
         if M is None:
             return ()
         lnM = math.log(M)
@@ -4317,7 +4315,6 @@ class NetworkBuzzDBHandler(BasicDBHandler):
             (a, b),
             (self.MIN_FREQ, max(self.MIN_FREQ, a))
         )
-        print >>sys.stderr, ">>", ranges
         # ...and sample each range
         return tuple(self._sample(table, range, size, with_freq=with_freq) for range in ranges)
     
