@@ -1169,10 +1169,19 @@ class TorrentDBHandler(BasicDBHandler):
         infohash = torrentdef.get_infohash()
         torrent_name = torrentdef.get_name_as_unicode()
         database_dict = self._get_database_dict(torrentdef, source, extra_info)
-
-        self._db.insert_or_replace("Torrent", commit=True, **database_dict)
+        
+        # see if there is already a torrent in the database with this
+        # infohash
         torrent_id = self._db.getTorrentID(infohash)
 
+        if torrent_id is None:  # not in database
+            self._db.insert("Torrent", commit=True, **database_dict)
+            torrent_id = self._db.getTorrentID(infohash)
+
+        else:    # infohash in db
+            where = 'torrent_id = %d' % torrent_id
+            self._db.update('Torrent', where=where, commit=False, **database_dict)
+        
         # boudewijn: we are using a Set to ensure that all keywords
         # are unique.  no use having the database layer figuring this
         # out when we can do it now, in memory
