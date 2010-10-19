@@ -245,7 +245,7 @@ class RichMetadataInterceptor(object):
                     
                         id = "SQ" if fromQuery else "S"
                         # format (S (for sent) | SQ (for sent as response to a query), channel, infohash, destination, timestampe, size)
-                        print >> sys.stderr, "%c, %s, %s, %s, %d, %d" % \
+                        print >> sys.stderr, "%s, %s, %s, %s, %d, %d" % \
                             (id, bin2str(metadataDTO.channel), \
                             bin2str(metadataDTO.infohash), \
                              dest, metadataDTO.timestamp, size)
