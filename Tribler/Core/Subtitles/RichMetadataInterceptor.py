@@ -70,7 +70,6 @@ class RichMetadataInterceptor(object):
         
         rmdData = list()
         
-        sizeList = list()
         for signature in iter(enrichedChannelcastMessage):
             msg = enrichedChannelcastMessage[signature]
             
@@ -99,7 +98,7 @@ class RichMetadataInterceptor(object):
                     
                     rmdData.append((curMetadataDTO,havemask))
         
-        return rmdData, sizeList
+        return rmdData
     
     def handleRMetadata(self, sender_permid, channelCastMessage, fromQuery = False):
         '''
@@ -110,8 +109,7 @@ class RichMetadataInterceptor(object):
         @param channelCastMessage: the received message
         @return: None
         '''
-        metadataDTOs, sizeList = \
-          self._splitChannelcastAndRichMetadataContents(channelCastMessage)
+        metadataDTOs = self._splitChannelcastAndRichMetadataContents(channelCastMessage)
           
         if DEBUG:
             print >> sys.stderr, "Handling rich metadata from %s..." % show_permid_short(sender_permid)
@@ -130,10 +128,9 @@ class RichMetadataInterceptor(object):
             #if announceStatsLog.isEnabledFor(logging.INFO):
             if DEBUG:
                 id = "RQ" if fromQuery else "R"
-                print >> sys.stderr, "%c, %s, %s, %s, %d, %d" % \
+                print >> sys.stderr, "%s, %s, %s, %s, %d" % \
                                        (id, md.channel, md.infohash, \
-                                        show_permid_short(sender_permid), md.timestamp,
-                                        sizeList[i])
+                                        show_permid_short(sender_permid), md.timestamp)
                 #format "R|S (R: received - S: sent), channel, infohash, sender|destination,metadataCreationTimestamp"
                 # 30-06-2010: "RQ" as received from query
                 i += 1

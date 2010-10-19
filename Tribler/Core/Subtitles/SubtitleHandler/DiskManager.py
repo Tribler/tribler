@@ -25,7 +25,7 @@ DEFAULT_CONFIG = { "maxDiskUsage" :-1 , #infinity
                    "diskPolicy" : DISK_FULL_REJECT_WRITES,
                    "encoding" : "utf-8"}
 
-DEBUG = False
+DEBUG = True
 
 class DiskManager(object):
     """
