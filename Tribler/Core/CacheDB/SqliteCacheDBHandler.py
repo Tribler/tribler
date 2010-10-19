@@ -4188,7 +4188,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
     # "Stopword"-threshold for single terms. Multiplied by #torrents to get max_freq upperbound.
     STOPWORD_THRESHOLD = 0.20
     # ...but only apply this threshold when we have at least this many torrents:
-    NUM_TORRENTS_THRESHOLD = 100
+    NUM_TORRENTS_THRESHOLD = 150
     
     # Partition parameters
     PARTITION_AT = (0.33, 0.67)
