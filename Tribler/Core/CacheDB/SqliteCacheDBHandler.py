@@ -4174,11 +4174,21 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         from Tribler.Core.Tag.Extraction import TermExtraction
         self.extractor = TermExtraction.getInstance()
         
-    # Default sampling size
-    DEFAULT_SAMPLE_SIZE = 1000
+    # Default sampling size (per freq category)
+    # With an update period of 5s, there will be at most 12 updates per minute.
+    # Each update consumes, say, 5 terms or phrases for a freq category, so about
+    # 60 terms or phrases per minute. If we set the sample size to 50, each getBuzz()
+    # call will give about 50 terms and 50 phrases, so 100 displayable items in total.
+    # This means getBuzz() will get called about every 1.6 minute.
+    DEFAULT_SAMPLE_SIZE = 50
     
     # Only consider terms that appear more than once
     MIN_FREQ = 2
+    
+    # "Stopword"-threshold for single terms. Multiplied by #torrents to get max_freq upperbound.
+    STOPWORD_THRESHOLD = 0.20
+    # ...but only apply this threshold when we have at least this many torrents:
+    NUM_TORRENTS_THRESHOLD = 100
     
     # Partition parameters
     PARTITION_AT = (0.33, 0.67)
@@ -4262,14 +4272,21 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         triple. If with_freq=True, each sample is a list of (term,freq) tuples, 
         otherwise it is a list of terms. 
         """
-        terms_triple = self.getBuzzForTable('TermFrequency', size, with_freq)
+        num_torrents = self._db.getOne('CollectedTorrent', 'COUNT(torrent_id)')
+        if num_torrents is None or num_torrents < self.NUM_TORRENTS_THRESHOLD:
+            max_freq = None
+        else:
+            max_freq = int(round(num_torrents * self.STOPWORD_THRESHOLD))
+            print >>sys.stderr, ">>>>", max_freq, num_torrents
+        
+        terms_triple = self.getBuzzForTable('TermFrequency', size, with_freq, max_freq = max_freq)
         phrases_triple = self.getBuzzForTable('TorrentBiTermPhrase', size, with_freq)
         if not flat:
             return terms_triple, phrases_triple
         else:
             return map(lambda t1,t2: (t1 or [])+(t2 or []), terms_triple, phrases_triple)
     
-    def getBuzzForTable(self, table, size, with_freq=True):
+    def getBuzzForTable(self, table, size, with_freq=True, max_freq=None):
         """
         Retrieves a sample of high, medium and low frequent terms or phrases, paired
         with their frequencies, depending on the table to be sampled from.
@@ -4280,12 +4297,15 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         mid frequent, low frequent).
         @param with_freq Flag indicating whether the frequency for each term/phrase needs 
         to be returned as well. True by default.
+        @param max_freq Optional. When set, high frequent terms or phrases occurring more than
+        max_freq times are not included. Default: None (i.e., include all).
         @return Triple containing a sample of high, medium and low frequent 
         terms/phrases (in that order). If with_freq=True, each sample is a list of (term,freq) 
         tuples, otherwise it is a list of terms. 
         """
         # Partition using a ln-scale
-        M = self._max(table)
+        M = self._max(table, max_freq=max_freq)
+        print >>sys.stderr, ">>>>>>> M =", M
         if M is None:
             return ()
         lnM = math.log(M)
@@ -4293,23 +4313,29 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         a, b = [int(round(math.exp(boundary*lnM))) for boundary in self.PARTITION_AT]
         
         ranges = (
-            (b, None),
+            (b, max_freq),
             (a, b),
             (self.MIN_FREQ, max(self.MIN_FREQ, a))
         )
+        print >>sys.stderr, ">>", ranges
         # ...and sample each range
         return tuple(self._sample(table, range, size, with_freq=with_freq) for range in ranges)
     
-    def _max(self, table):
+    def _max(self, table, max_freq=None):
         """
         Internal method to select the highest occurring term or phrase frequency,
         depending on the table parameter.
         
-        @table Table to retrieve the highest frequency from. Must be a key in 
-        NetworkBuzzDBHandler.TABLES. 
+        @param table Table to retrieve the highest frequency from. Must be a key in 
+        NetworkBuzzDBHandler.TABLES.
+        @param max_freq Optional. When set, high frequent terms or phrases occurring more than
+        max_freq times are not considered in determining the highest frequency. 
+        Default: None (i.e., consider all). 
         @return Highest occurring frequency.
         """
         sql = 'SELECT MAX(freq) FROM %s WHERE freq >= %s' % (self.TABLES[table]['table'], self.MIN_FREQ)
+        if max_freq is not None:
+            sql += ' AND freq < %s' % max_freq
         return self._db.fetchone(sql)
     
     def _sample(self, table, range, samplesize, with_freq=True):

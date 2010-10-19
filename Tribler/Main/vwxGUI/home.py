@@ -162,7 +162,7 @@ class BuzzPanel(wx.Panel):
             self.updatePanel.SetTitle('Update in %d...'%self.refresh)
                 
     def DisplayTerms(self, rows):
-        was_empty = len(self.vSizer.GetChildren()) <= 1
+        old_size = len(self.vSizer.GetChildren())
         
         self.Freeze()
         self.vSizer.ShowItems(False)
@@ -173,6 +173,9 @@ class BuzzPanel(wx.Panel):
         else:
             for i in range(len(rows)):
                 row = rows[i]
+                if len(row) == 0:
+                    # don't bother adding an empty hsizer
+                    continue
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
                 
                 hSizer.AddStretchSpacer(2)
@@ -191,7 +194,8 @@ class BuzzPanel(wx.Panel):
                 self.vSizer.Add(hSizer, 0, wx.EXPAND)
             
         self.vSizer.Layout()
-        if was_empty:
+        new_size = len(self.vSizer.GetChildren())
+        if new_size > old_size:
             self.GetParent().DoLayout()
         
         self.Thaw()
