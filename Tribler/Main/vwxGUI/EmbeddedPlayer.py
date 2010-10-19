@@ -79,11 +79,11 @@ class EmbeddedPlayerPanel(wx.Panel):
             vSizer.Add(footer, 0, wx.EXPAND)
         else:
             mainbox = vSizer
-            
+        
+        self.vlcwrap = vlcwrap
         if vlcwrap is not None:
             self.vlcwin = VLCLogoWindow(self, utility, vlcwrap, bg, animate = True)
             self.vlcwin.SetMinSize((320,240))
-            self.vlcwrap = vlcwrap
             
             if border:
                 player_img = os.path.join(self.utility.getPath(), LIBRARYNAME,"Main","vwxGUI",'images','player.png')
