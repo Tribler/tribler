@@ -307,16 +307,31 @@ class ChannelCastCore:
             
         self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    
     
-    def updateAChannel(self, permid, peers = None):
+    def updateAChannel(self, publisher_id, peers = None):
         if peers == None:
             peers = RemoteQueryMsgHandler.getInstance().get_connected_peers(OLPROTO_VER_THIRTEENTH)
-            
+        
+        # we prefer starting update with peers with oversion>13
+        fully_capable_peers = []
+        ol13_peers = []
+        for permid, selversion in peers:
+            if selversion > OLPROTO_VER_THIRTEENTH:
+                fully_capable_peers.append((permid, selversion))
+            else:
+                ol13_peers.append((permid, selversion))
+        
         # ~load balancing
-        shuffle(peers)
+        shuffle(fully_capable_peers)
+        shuffle(ol13_peers)
+        
+        # combined the two lists
+        peers = fully_capable_peers
+        peers.extend(ol13_peers)
         
         # Create separate thread which does all the requesting
-        thread = threading.Thread(target=self._sequentialQueryPeers, args=(permid, peers))
-        thread.name = 'Sequential_ChannelCast_'+permid
+        thread = threading.Thread(target=self._sequentialQueryPeers, args=(publisher_id, peers))
+        thread.daemon = True
+        thread.name = 'Sequential_ChannelCast_'+thread.name
         thread.start()
     
     def _sequentialQueryPeers(self, publisher_id, peers):
