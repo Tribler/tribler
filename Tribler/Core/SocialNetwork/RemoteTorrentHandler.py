@@ -68,15 +68,12 @@ class RemoteTorrentHandler:
         self.requestedTorrents[prio].put(infohash)
         
         if prio == 1:
-            magnetTimer = threading.Timer(10, self.magnetTimeout, [infohash])
-            magnetTimer.start()
+            self.overlay_bridge.add_task(lambda: self.magnetTimeout(infohash), 10)
             
         if DEBUG:
             print >>sys.stderr,'rtorrent: adding request:', bin2str(infohash), bin2str(permid), prio
     
-    def magnetTimeout(self, *args):
-        infohash = args[0]
-        
+    def magnetTimeout(self, infohash):
         torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
         if not os.path.isfile(torrent_filename):
             #.torrent still not found, try magnet link
@@ -88,8 +85,11 @@ class RemoteTorrentHandler:
             def torrentdef_retrieved(tdef):
                 if DEBUG:
                     print >> sys.stderr, 'rtorrent: received torrent using magnet', bin2str(infohash)
-
                 tdef.save(torrent_filename)
+                
+                #add this new torrent to db
+                torrent_db = self.session.open_dbhandler('torrents')
+                torrent_db.addExternalTorrent(tdef)
                 self.metadatahandler_got_torrent(infohash, tdef, torrent_filename)
                 
             TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved)
