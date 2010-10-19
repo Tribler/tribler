@@ -287,5 +287,9 @@ class BuzzPanel(wx.Panel):
         
         self.guiutility.dosearch(term)
         
+        #Deselect all terms + doresume
+        self.ShowSelected()
+        self.DoPauseResume()
+        
         uelog = UserEventLogDBHandler.getInstance()
         uelog.addEvent(message=repr((term, self.last_shown_buzz)))
