@@ -4432,6 +4432,8 @@ class UserEventLogDBHandler(BasicDBHandler):
             ''' % (UserEventLogDBHandler.MAX_EVENTS / 2)
             self._db.execute_write(sql, commit=True)
             self.count = self._db.size(self.table_name)
+        else:
+            self._db.commit()
             
         
     
