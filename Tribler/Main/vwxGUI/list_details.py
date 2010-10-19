@@ -767,7 +767,13 @@ class ProgressPanel(wx.Panel):
                     sizestr = ''
                     size = self.item.original_data.get('length', False)
                     if size:
-                        sizestr = '%s/%s (%0.1f%%)'%(self.utility.size_format(size*ds.get_progress(), 0), self.utility.size_format(size, 0), ds.get_progress()*100) 
+                        progress = size*ds.get_progress()
+                        
+                        def format_size(bytes):
+                            if bytes > 1073741824:
+                                return self.utility.size_format(bytes, 1)
+                            return self.utility.size_format(bytes, 0)
+                        sizestr = '%s/%s (%0.1f%%)'%(format_size(progress), format_size(size), ds.get_progress()*100) 
                         
                     eta = self.utility.eta_value(ds.get_eta(), truncate=2)
                     if eta == '' or eta.find('unknown') != -1:
@@ -1097,6 +1103,7 @@ class MyChannelDetails(wx.Panel):
         self.torrent = torrent
         self.my_permid = my_permid
         
+        self.uelog = UserEventLogDBHandler.getInstance()
         self.subsupport = SubtitlesSupport.getInstance()
         self.supportedLang = self.subsupport.langUtility.getLangSupported()
         self.supportedLangFull = self.supportedLang.values()

@@ -453,7 +453,7 @@ class SubtitlesHandler(object):
             raise RichMetadataException("Only .srt subtitles are supported")
         
         filename = getSubtitleFileRelativeName(channel_id, infohash, langCode)
-        filename = os.join.path(self.subs_dir, filename)
+        filename = os.path.join(self.subs_dir, filename)
         
         source = open(pathToMove, "rb")
         contents = source.read()

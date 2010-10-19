@@ -132,7 +132,7 @@ class BuzzPanel(wx.Panel):
     def ForceUpdate(self):
         self.buzz_cache = [[],[],[]]
         self.refresh = 1
-        self.OnRefreshTimer()
+        wx.CallAfter(self.OnRefreshTimer)
     
     def OnRefreshTimer(self, event = None):
         self.refresh -= 1
