@@ -23,7 +23,7 @@ SUBS_LOG_PREFIX = "subtitles: "
 REQUEST_VALIDITY_TIME = 10 * 60 #10 minutes
 CLEANUP_PERIOD = 5 * 60#5 minutes
 
-DEBUG = False
+DEBUG = True
     
 class SubsMessageHandler(object):
     
