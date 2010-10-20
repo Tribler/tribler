@@ -4212,7 +4212,8 @@ class NetworkBuzzDBHandler(BasicDBHandler):
     TABLES = dict(
         TermFrequency = dict(
             table = 'TermFrequency',
-            selected_fields = 'term'
+            selected_fields = 'term',
+            min_freq = 2
         ),
         TorrentBiTermPhrase = dict(
             table = '''
@@ -4224,7 +4225,8 @@ class NetworkBuzzDBHandler(BasicDBHandler):
                 GROUP BY term1_id, term2_id
             )
             ''',
-            selected_fields = 'phrase'
+            selected_fields = 'phrase',
+            min_freq = 1
         )
     )
     
@@ -4323,12 +4325,14 @@ class NetworkBuzzDBHandler(BasicDBHandler):
             return ()
         lnM = math.log(M)
         
+        min_freq = self.TABLES[table]['min_freq']
         a, b = [int(round(math.exp(boundary*lnM))) for boundary in self.PARTITION_AT]
+        a = max(min_freq, a)
         
         ranges = (
             (b, max_freq),
             (a, b),
-            (self.MIN_FREQ, max(self.MIN_FREQ, a))
+            (min_freq, a)
         )
         # ...and sample each range
         return tuple(self._sample(table, range, size, with_freq=with_freq) for range in ranges)
