@@ -410,7 +410,11 @@ class AbstractListBody():
             
             try:
                 re.compile(self.filter)
-                
+            except: #regex incorrect
+                self.filter = ''
+                return False
+            
+            finally:
                 self.Scroll(-1, 0)
                 self.Freeze()
                     
@@ -419,8 +423,6 @@ class AbstractListBody():
                 self.CreateItems()
                 
                 self.Thaw()
-            except: #regex incorrect
-                return False
         return True
         
     def MatchFilter(self, item):

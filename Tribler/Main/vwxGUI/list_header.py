@@ -410,6 +410,18 @@ class SearchHeader(FamilyFilterHeader):
         hSizer.Add(self.filter, 0, wx.ALIGN_CENTER_VERTICAL)
         return hSizer
     
+    def GetTitlePanel(self, parent):
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.subtitle = wx.StaticText(parent)
+        hSizer.Add(self.subtitle)
+        panel = FamilyFilterHeader.GetTitlePanel(self, parent)
+        if panel:
+            hSizer.Add(panel)
+        return hSizer
+    
+    def SetSubTitle(self, subtitle):
+        self.subtitle.SetLabel('( %s )'%subtitle)
+    
     def FilterCorrect(self, regex_correct):
         pass
     
@@ -421,7 +433,8 @@ class SearchHeader(FamilyFilterHeader):
         self.parent.OnFilter(self.filter.GetValue().strip())
     
     def Reset(self):
-        TitleHeader.Reset(self)
+        FamilyFilterHeader.Reset(self)
+        self.subtitle.SetLabel('')
         self.filter.Clear()
 
 class ChannelHeader(SearchHeader):
@@ -430,18 +443,6 @@ class ChannelHeader(SearchHeader):
         self.back = wx.Button(parent, wx.ID_BACKWARD, "Go back")
         hSizer.Add(self.back, 0, wx.LEFT, 5)
         return hSizer
-
-    def GetTitlePanel(self, parent):
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.subtitle = wx.StaticText(parent)
-        hSizer.Add(self.subtitle)
-        panel = SearchHeader.GetTitlePanel(self, parent)
-        if panel:
-            hSizer.Add(panel)
-        return hSizer
-    
-    def SetSubTitle(self, subtitle):
-        self.subtitle.SetLabel('( %s )'%subtitle)
         
     def SetEvents(self, back):
         self.back.Bind(wx.EVT_BUTTON, back)
