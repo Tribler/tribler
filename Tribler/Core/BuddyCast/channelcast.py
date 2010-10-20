@@ -288,13 +288,13 @@ class ChannelCastCore:
         for publisher_id in publisher_ids:
             for infohash in self.channelcastdb.selectTorrentsToCollect(publisher_id):
                 missing_infohashes[str2bin(infohash[0])] = publisher_id
+                
+        def notify(publisher_id):
+            self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, publisher_id)
 
         for infohash in infohashes:
             if infohash in missing_infohashes:
                 self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(missing_infohashes[infohash]) ,2)
-
-        def notify(publisher_id):
-            self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, publisher_id)
         
         for infohash, publisher_id in missing_infohashes.iteritems():
             if infohash not in infohashes:
@@ -304,7 +304,7 @@ class ChannelCastCore:
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()
         for permid, channel_name, _, num_subscriptions, _ in subscribed_channels:
             self.updateAChannel(permid)
-            
+        
         self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    
     
     def updateAChannel(self, publisher_id, peers = None):

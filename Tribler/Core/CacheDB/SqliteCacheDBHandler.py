@@ -2930,8 +2930,10 @@ class VoteCastDBHandler(BasicDBHandler):
             self._db.execute_write(sql,(permid,bin2str(self.my_permid),now(),))
         elif vote!=2:
             sql = "update VoteCast set vote=2 where mod_id==? and voter_id==?"
-            self._db.execute_write(sql,(permid,bin2str(self.my_permid),))    
-
+            self._db.execute_write(sql,(permid,bin2str(self.my_permid),))
+        
+        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, permid)   
+    
     def unsubscribe(self, permid): ###
         """ change the vote status to 0, if unsubscribed"""
         sql = "select vote from VoteCast where mod_id==? and voter_id==?"
@@ -2939,6 +2941,8 @@ class VoteCastDBHandler(BasicDBHandler):
         if vote is not None and vote==2:
             sql = "delete from VoteCast where mod_id==? and voter_id==?"
             self._db.execute_write(sql,(permid,bin2str(self.my_permid),))
+        
+        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, permid)
     
     def spam(self, permid):
         """ insert/change the vote status to -1"""
@@ -2949,7 +2953,9 @@ class VoteCastDBHandler(BasicDBHandler):
             self._db.execute_write(sql,(permid,bin2str(self.my_permid),now(),))
         elif vote>=0 and vote<=2:
             sql = "update VoteCast set vote=-1 where mod_id==? and voter_id==?"
-            self._db.execute_write(sql,(permid,bin2str(self.my_permid),))    
+            self._db.execute_write(sql,(permid,bin2str(self.my_permid),))
+        
+        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, permid)
 
     def getVote(self,publisher_id,subscriber_id):
         """ return the vote status if such record exists, otherwise None  """
@@ -3031,7 +3037,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         self.session = session
         self.my_permid = session.get_permid()
         if DEBUG:
-            print >> sys.stderr, "ChannelCast: My permid is",`self.my_permid`
+            print >> sys.stderr, "ChannelCast: My permid is",bin2str(self.my_permid)
         
     def _sign(self, record):
         assert record is not None
