@@ -115,11 +115,11 @@ class TorrentFeedThread(Thread):
             if DEBUG:
                 print >>sys.stderr,"subscrip:Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
             
-            self.save_torrent(infohash, torrent_data)
-
-            torrentdef = TorrentDef.load(filename)
+            self.save_torrent(torrent_data)
+            
+            torrentdef = TorrentDef.load_from_dict(torrent_data)
             self.channelcast_db.addOwnTorrent(torrentdef)
-            return torrentdef.get_infohash()
+            return infohash
         except:
             print >> sys.stderr, "Could not add torrent:", filename
             traceback.print_exc()
@@ -341,31 +341,31 @@ class TorrentFeedThread(Thread):
                 torrentdef = TorrentDef.load_from_dict(torrent_data)
                 self.torrent_db.addExternalTorrent(torrentdef,source=source,extra_info=extra_info)
                         
-            # perform all url-specific callbacks
-            for feed, on_torrent_callback, callback in self.feeds:
-                if feed.feed_url == source:
-                    if on_torrent_callback:
-                        if DEBUG: 
-                            print >> sys.stderr , "ON TORRENT CALLBACK"
-                        on_torrent_callback(source, infohash, torrent_data)
-                    if callback:
-                        if DEBUG: 
-                            print >> sys.stderr , "USER CALLBACK"
-                        callback(source, infohash, torrent_data)
-                    break
-
-            # perform all non-url-specific callbacks
-            self.lock.acquire()
-            callbacks = self.callbacks[:]
-            self.lock.release()
-            
-            for callback in callbacks:
-                try:
-                    if DEBUG:
-                        print >> sys.stderr , "RSS CALLBACK"
+        # perform all url-specific callbacks
+        for feed, on_torrent_callback, callback in self.feeds:
+            if feed.feed_url == source:
+                if on_torrent_callback:
+                    if DEBUG: 
+                        print >> sys.stderr , "ON TORRENT CALLBACK"
+                    on_torrent_callback(source, infohash, torrent_data)
+                if callback:
+                    if DEBUG: 
+                        print >> sys.stderr , "USER CALLBACK"
                     callback(source, infohash, torrent_data)
-                except:
-                    traceback.print_exc()
+                break
+
+        # perform all non-url-specific callbacks
+        self.lock.acquire()
+        callbacks = self.callbacks[:]
+        self.lock.release()
+        
+        for callback in callbacks:
+            try:
+                if DEBUG:
+                    print >> sys.stderr , "RSS CALLBACK"
+                callback(source, infohash, torrent_data)
+            except:
+                traceback.print_exc()
 
     def shutdown(self):
         if DEBUG:
