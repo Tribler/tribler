@@ -109,7 +109,8 @@ class TorrentFeedThread(Thread):
         """ This function enables to add individual torrents, instead of a collection of torrents through RSS """
         try:
             bdata = open(filename, 'rb').read()
-            torrent_data = bdecode(bdata)
+            #sloppy data import
+            torrent_data = bdecode(bdata, 1)
             infohash = sha.sha(bencode(torrent_data['info'])).digest()
             if DEBUG:
                 print >>sys.stderr,"subscrip:Adding a torrent in my channel: %s" % torrent_data["info"]["name"]
