@@ -162,7 +162,7 @@ class BuzzPanel(wx.Panel):
                 empty = True
                 added_terms = set()
                 for i in range(len(filtered_buzz)):
-                    while len(added_terms) < BuzzPanel.DISPLAY_SIZES[i] and len(self.buzz_cache[i]):
+                    while len(filtered_buzz[i]) < BuzzPanel.DISPLAY_SIZES[i] and len(self.buzz_cache[i]):
                         term = self.buzz_cache[i].pop(0)
                         if term not in added_terms and not xxx_filter(term, isFilename=False):
                             filtered_buzz[i].append(term)
