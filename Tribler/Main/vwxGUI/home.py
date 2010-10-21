@@ -156,10 +156,12 @@ class BuzzPanel(wx.Panel):
                     xxx_filter = lambda *args, **kwargs: False
                 
                 # consume cache
+                # Note: if a term is fetched from two different row caches, it is shown in the
+                # higher-frequency row, regardless of which information is fresher.
                 filtered_buzz = [[],[],[]]
                 empty = True
+                added_terms = set()
                 for i in range(len(filtered_buzz)):
-                    added_terms = set()
                     while len(added_terms) < BuzzPanel.DISPLAY_SIZES[i] and len(self.buzz_cache[i]):
                         term = self.buzz_cache[i].pop(0)
                         if term not in added_terms and not xxx_filter(term, isFilename=False):
