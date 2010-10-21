@@ -830,7 +830,7 @@ class ChannelSearchGridManager:
         return [len(subscriptions), subscriptions]
 
     def getPopularChannels(self):
-        pchannels = self.channelcast_db.getMostPopularUnsubscribedChannels()
+        pchannels = self.channelcast_db.getMostPopularChannels()
         return [len(pchannels), pchannels]
     
     def getMyVote(self, publisher_id):
@@ -878,6 +878,9 @@ class ChannelSearchGridManager:
         
     def getChannelForTorrent(self, infohash):
         return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)
+    
+    def getNrTorrentsDownloaded(self, publisher_id):
+        return self.channelcast_db.getNrTorrentsDownloaded(publisher_id)
     
     def setSearchKeywords(self, wantkeywords):
         self.searchkeywords = wantkeywords

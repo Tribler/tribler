@@ -2,6 +2,7 @@ import os
 import sys
 import wx
 from wx import html
+from time import time
 from datetime import date, datetime
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -233,6 +234,7 @@ class List(wx.Panel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
         self.guiutility = GUIUtility.getInstance()
+        self.uelog = UserEventLogDBHandler.getInstance()
         
         self.header = self.CreateHeader()
         vSizer.Add(self.header, 0, wx.EXPAND)
@@ -393,6 +395,8 @@ class SearchList(List):
     def toggleFamilyFilter(self):
         self.guiutility.toggleFamilyFilter()
         self.guiutility.dosearch()
+        
+        self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)  
     
     def SetData(self, data):
         if len(data) > 0:
@@ -444,12 +448,22 @@ class SearchList(List):
     def OnDownload(self, event):
         if event.LeftUp():
             item = event.GetEventObject().item
-            self.guiutility.torrentsearch_manager.downloadTorrent(item.original_data)
+            self.StartDownload(item.original_data)
         event.Skip()
-    
+        
+    def StartDownload(self, torrent):
+        if isinstance(self, SelectedChannelList):
+            self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
+        else:
+            self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)
+        
+        self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
+        
     def OnChannelResults(self, event):
         manager = self.GetManager()
         self.guiutility.showChannelResults(manager.data_channels)
+        
+        self.uelog.addEvent(message="SearchList: user clicked to view channel results", type = 2)  
     
     def OnExpand(self, item):
         item.button.Hide()
@@ -792,14 +806,6 @@ class ChannelList(List):
             else:
                 self.header.SetSubTitle("Discovered %d channels" % nr)
         
-    def Show(self):
-        List.Show(self)
-        
-        #First time shown?
-        if self.select_popular:
-            self.select_popular = False
-            self.guiutility.frame.channelcategories.Select(1)
-        
 class SelectedChannelList(SearchList):
     def __init__(self):
         self.guiutility = GUIUtility.getInstance()
@@ -877,7 +883,7 @@ class SelectedChannelList(SearchList):
         self.channelsearch_manager.remove_vote(self.publisher_id)
         self.footer.SetStates(False, False)
     
-    def OnFavorite(self, event):
+    def OnFavorite(self, event = None):
         self.channelsearch_manager.favorite(self.publisher_id)
         self.footer.SetStates(False, True)
         
@@ -894,6 +900,20 @@ class SelectedChannelList(SearchList):
     
     def OnBack(self, event):
         self.guiutility.GoBack()
+        
+    def StartDownload(self, torrent):
+        states = self.footer.GetStates()
+        if not states[1]:
+            nrdownloaded = self.channelsearch_manager.getNrTorrentsDownloaded(self.publisher_id) + 1
+            if  nrdownloaded > 1:
+                dial = wx.MessageDialog(self, "You have now downloaded %d torrents from this Channel.\nMarking it as a favorite will make sure that you will always have to newest content.\nDo you want to mark this channel as one of your favorites now?"%nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                if dial.ShowModal() == wx.ID_YES:
+                    self.OnFavorite()
+                    self.uelog.addEvent(message="ChannelList: user clicked yes to mark as favorite", type = 2)
+                else:
+                    self.uelog.addEvent(message="ChannelList: user clicked no to mark as favorite", type = 2)  
+                dial.Destroy()
+        SearchList.StartDownload(self, torrent)
         
 class MyChannelList(List):
     def __init__(self):
@@ -985,6 +1005,7 @@ class ChannelCategoriesList(List):
         self.SetMinSize((-1, self.GetBestSize()[1]))
         
         self.Select(1, False)
+        wx.CallAfter(self.guiutility.showChannelCategory, 'Popular', False)
         
     def OnExpand(self, item):
         if item.data[0] in ['Popular','New','Favorites','All']:
