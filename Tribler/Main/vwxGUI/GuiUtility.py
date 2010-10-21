@@ -263,14 +263,16 @@ class GUIUtility:
             q += kw+' '
         self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
     
-    def showChannelCategory(self, category):
-        self.frame.channellist.Freeze()
-        
+    def showChannelCategory(self, category, show = True):
+        if show:
+            self.frame.channellist.Freeze()
+                    
         manager = self.frame.channellist.GetManager()
         manager.SetCategory(category)
         
-        self.ShowPage('channels')
-        self.frame.channellist.Thaw()
+        if show:
+            self.ShowPage('channels')
+            self.frame.channellist.Thaw()
     
     def showChannel(self, channelname, channel_permid):
         self.frame.selectedchannellist.Freeze()

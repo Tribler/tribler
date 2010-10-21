@@ -242,7 +242,7 @@ class TorrentDetails(wx.Panel):
                 if finished:
                     title = wx.StaticText(subtitlePanel, -1, "Which subtitle do you want to use?")
                 else:
-                    title = wx.StaticText(subtitlePanel, -1, "Available subtitles")
+                    title = wx.StaticText(subtitlePanel, -1, "Available subtitles:")
                 title.SetMinSize((1,-1))
                 hSizer.Add(title, 1, wx.ALIGN_CENTER_VERTICAL)
                 subtitleChoice = wx.Choice(subtitlePanel, choices = strlang)
@@ -253,7 +253,12 @@ class TorrentDetails(wx.Panel):
                 
                 hSizer.Add(subtitleChoice)
                 vSizer.Add(hSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 10)
-            
+                
+                vSizer.AddStretchSpacer()
+                if finished:
+                    vSizer.Add(wx.StaticText(subtitlePanel, -1, "Please select a subtitle and click play."), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 10)
+                else:
+                    vSizer.Add(wx.StaticText(subtitlePanel, -1, "After you finished downloading this torrent you can select one to used with our player."), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 10)
         
         #Create description
         if torrent.get('comment', 'None') != 'None' and torrent['comment'] != '':
@@ -519,12 +524,7 @@ class TorrentDetails(wx.Panel):
             os.startfile(url)
                 
     def OnDownload(self, event):
-        self.guiutility.torrentsearch_manager.downloadTorrent(self.torrent)
-        
-        if self.noChannel:
-            self.uelog.addEvent(message="Torrent: torrent download from channel", type = 2)
-        else:
-            self.uelog.addEvent(message="Torrent: torrent download from other", type = 2)  
+        self.parent.StartDownload(self.torrent)
         
         button = event.GetEventObject()
         button.Enable(False)

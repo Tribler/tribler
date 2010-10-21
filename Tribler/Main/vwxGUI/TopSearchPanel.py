@@ -152,15 +152,21 @@ class TopSearchPanel(bgPanel):
             self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
         
         self.go = tribler_topButton(self,-1,name = 'Search_new')
-        self.channels = wx.ToggleButton(self, -1, label='Channels', name="Channels")
-        self.settings = wx.ToggleButton(self, -1, label='Settings', name="Settings")
-        self.my_files = wx.ToggleButton(self, -1, label='Library', name="My Files")
-        self.results = wx.ToggleButton(self, -1, label='Results', name="Results")
+        
+        def createToggle(label, event):
+            button = wx.ToggleButton(self, -1, label)
+            button.Bind(wx.EVT_TOGGLEBUTTON, event)
+            return button
+        
+        self.channels = createToggle('Channels', self.OnChannels)
+        self.settings = createToggle('Settings', self.OnSettings)
+        self.my_files = createToggle('Library', self.OnLibrary)
+        self.results = createToggle('Results', self.OnResults)
         self.results.Disable()
-        self.home = wx.ToggleButton(self, -1, label='Home', name="Home")
+        
+        self.home = createToggle('Home', self.OnHome)
         self.home.SetValue(True)
         
-
         if sys.platform == 'win32':
             self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/search_files_channels.png", wx.BITMAP_TYPE_ANY))
             self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2_win.png", wx.BITMAP_TYPE_ANY))
@@ -266,11 +272,6 @@ class TopSearchPanel(bgPanel):
         self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
         self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
         self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
-        self.results.Bind(wx.EVT_TOGGLEBUTTON, self.OnResults)
-        self.settings.Bind(wx.EVT_TOGGLEBUTTON, self.OnSettings)
-        self.my_files.Bind(wx.EVT_TOGGLEBUTTON, self.OnLibrary)
-        self.channels.Bind(wx.EVT_TOGGLEBUTTON, self.OnChannels)
-        self.home.Bind(wx.EVT_TOGGLEBUTTON, self.OnHome)     
         
     def Notify(self, msg, icon= -1):
         self.notify.SetLabel(msg)

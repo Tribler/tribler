@@ -4,8 +4,8 @@ import os
 import random
 
 from Tribler.__init__ import LIBRARYNAME
-from Tribler.Main.vwxGUI.list_header import FamilyFilterHeader
-from Tribler.Main.vwxGUI.list_footer import TitleFooter
+from Tribler.Main.vwxGUI.list_header import *
+from Tribler.Main.vwxGUI.list_footer import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler
@@ -32,47 +32,51 @@ class Home(wx.Panel):
     def _PostInit(self):
         self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
+        
         vSizer.AddStretchSpacer()
         
-        panel = HomePanel(self)
-        buzzpanel = BuzzPanel(panel)
-        header, footer = panel.setControl("Network Buzz", buzzpanel)
-        header.Bind(wx.EVT_ENTER_WINDOW, lambda event: buzzpanel.OnLeaveWindow())
-        footer.Bind(wx.EVT_ENTER_WINDOW, lambda event: buzzpanel.OnLeaveWindow())
-        buzzpanel.setUpdatePanel(footer)
+        infopanel = InfoPanel(self)
+        vSizer.Add(infopanel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 20)
         
-        vSizer.Add(panel, 0, wx.EXPAND|wx.ALL, 20)
+        vSizer.AddStretchSpacer()
+        
+        buzzpanel = BuzzPanel(self)
+        vSizer.Add(buzzpanel, 0, wx.EXPAND|wx.ALL, 20)
         
         self.SetSizer(vSizer)
         self.Layout()
         
 class HomePanel(wx.Panel):
-    def setControl(self, title, child_control):
-        self.child_control = child_control
+    def __init__(self, parent, title, images, background):
+        wx.Panel.__init__(self, parent)
+        
         self.guiutility = GUIUtility.getInstance()
-        utility = self.guiutility.utility
-        
-        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
-        images = [os.path.join(utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
-        background = '#E6E6E6'
-        
         self.SetBackgroundColour(background)
+        
+        images = [os.path.join(self.guiutility.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.header = FamilyFilterHeader(self, images[0], images[1], background, [])
+        self.header = self.CreateHeader(images, background)
         self.header.SetTitle(title)
-        self.header.SetFF(self.guiutility.getFamilyFilter())
-        
-        footer = TitleFooter(self, images[2], images[3], background)
-        
         vSizer.Add(self.header, 0, wx.EXPAND)
-        vSizer.Add(child_control, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
-        vSizer.Add(footer, 0, wx.EXPAND)
+        
+        self.panel = self.CreatePanel()
+        if self.panel:
+            vSizer.Add(self.panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
+            
+        self.footer = self.CreateFooter(images, background)
+        vSizer.Add(self.footer, 0, wx.EXPAND)
         
         self.SetSizer(vSizer)
         self.Layout()
-        return self.header, footer
+        
+    def CreateHeader(self, images, background):
+        return TitleHeader(self, images[0], images[1], background, [])
+    def CreatePanel(self):
+        pass
+    def CreateFooter(self, images, background):
+        return ListFooter(self, images[2], images[3], background)
     
     def DoLayout(self):
         self.Freeze()
@@ -80,27 +84,43 @@ class HomePanel(wx.Panel):
         self.GetParent().Layout()
         self.Thaw()
         
-    def toggleFamilyFilter(self):
-        self.guiutility.toggleFamilyFilter()
-        self.header.SetFF(self.guiutility.getFamilyFilter())
-        self.child_control.ForceUpdate()
+class InfoPanel(HomePanel):
+    def __init__(self, parent):
+        images = ("tl.png", "tr.png", "bl.png", "br.png")
+        background = '#D8E9F0'
         
-class BuzzPanel(wx.Panel):
+        HomePanel.__init__(self, parent, 'Welcome to Tribler' , images, background)
+    
+    def CreatePanel(self):
+        panel = wx.Panel(self)
+        panel.SetBackgroundColour(wx.WHITE)
+        
+        text = wx.StaticText(panel, -1, "Welcome to Tribler\nblablabla")
+        sizer = wx.BoxSizer()
+        sizer.Add(text, 1, wx.EXPAND|wx.ALL, 5)
+        panel.SetSizer(sizer)
+        return panel
+        
+class BuzzPanel(HomePanel):
     INACTIVE_COLOR = (255, 51, 0)
     ACTIVE_COLOR = (0, 105, 156)
     
     TERM_BORDERS = [15, 8, 8]
     DISPLAY_SIZES = [3,5,5]
+    REFRESH_EVERY = 5
     
     def __init__(self, parent):
-        wx.Panel.__init__(self,parent)
         self.nbdb = NetworkBuzzDBHandler.getInstance()
-        self.guiutility = GUIUtility.getInstance()
-        self.xxx_filter = Category.getInstance().xxx_filter 
+        self.xxx_filter = Category.getInstance().xxx_filter
+        
+        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
+        background = '#E6E6E6'
+        
+        HomePanel.__init__(self, parent, 'Network Buzz', images, background)
+         
+        self.tags = []
         self.buzz_cache = [[],[],[]]
         self.last_shown_buzz = None
-        
-        self.SetBackgroundColour(wx.WHITE)
         
         row1_font = self.GetFont()
         row1_font.SetPointSize(row1_font.GetPointSize() + 10)
@@ -113,22 +133,41 @@ class BuzzPanel(wx.Panel):
         row3_font = self.GetFont()
         row3_font.SetWeight(wx.FONTWEIGHT_BOLD)
         self.TERM_FONTS = [row1_font, row2_font, row3_font]
-        
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.SetSizer(self.vSizer)
 
-        self.Bind(wx.EVT_ENTER_WINDOW, self.OnEnterWindow)
-        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
+        self.header.Bind(wx.EVT_ENTER_WINDOW, lambda event: self.OnLeaveWindow())
+        self.footer.Bind(wx.EVT_ENTER_WINDOW, lambda event: self.OnLeaveWindow())
+        self.panel.Bind(wx.EVT_ENTER_WINDOW, self.OnEnterWindow)
+        self.panel.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
 
-        self.updatePanel = None
-        self.REFRESH_EVERY = 5
         self.refresh = 1
         self.OnRefreshTimer()
         
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
         self.timer.Start(1000, False)
+    
+    def CreateHeader(self, images, background):
+        header = FamilyFilterHeader(self, images[0], images[1], background, [])
+        header.SetFF(self.guiutility.getFamilyFilter())
+        return header
+
+    def CreateFooter(self, images, background):
+        return TitleFooter(self, images[2], images[3], background)
+
+    def CreatePanel(self):
+        panel = wx.Panel(self)
+        panel.SetBackgroundColour(wx.WHITE)
         
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        panel.SetSizer(self.vSizer)
+        
+        return panel
+    
+    def toggleFamilyFilter(self):
+        self.guiutility.toggleFamilyFilter()
+        self.header.SetFF(self.guiutility.getFamilyFilter())
+        self.ForceUpdate()
+    
     def ForceUpdate(self):
         self.buzz_cache = [[],[],[]]
         self.refresh = 1
@@ -173,10 +212,9 @@ class BuzzPanel(wx.Panel):
                     filtered_buzz = None
                 self.DisplayTerms(filtered_buzz)
                 self.last_shown_buzz = filtered_buzz
-            self.refresh = self.REFRESH_EVERY
-        
-        if self.updatePanel:
-            self.updatePanel.SetTitle('Update in %d...'%self.refresh)
+            self.refresh = BuzzPanel.REFRESH_EVERY
+            
+        self.footer.SetTitle('Update in %d...'%self.refresh)
                 
     def DisplayTerms(self, rows):
         old_size = len(self.vSizer.GetChildren())
@@ -185,8 +223,18 @@ class BuzzPanel(wx.Panel):
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
         
+        cur_tags = []
+        def getStaticText(term):
+            if len(self.tags) > 0:
+                text = self.tags.pop()
+                text.SetLabel(term)
+            else:
+                text = wx.StaticText(self.panel, wx.ID_ANY, term)
+            cur_tags.append(text)
+            return text
+        
         if rows is None or rows == []:
-            self.vSizer.Add(wx.StaticText(self, -1, '...collecting buzz information...'), 0, wx.ALIGN_CENTER)
+            self.vSizer.Add(getStaticText('...collecting buzz information...'), 0, wx.ALIGN_CENTER)
         else:
             for i in range(len(rows)):
                 row = rows[i]
@@ -198,7 +246,7 @@ class BuzzPanel(wx.Panel):
                 hSizer.AddStretchSpacer(2)
                 
                 for term in row:
-                    text = wx.StaticText(self, wx.ID_ANY, term)
+                    text = getStaticText(term)
                     text.SetFont(self.TERM_FONTS[i])
                     text.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
                     text.SetToolTipString("Click to search for '%s'"%term)
@@ -209,16 +257,20 @@ class BuzzPanel(wx.Panel):
                     hSizer.AddStretchSpacer()
                 hSizer.AddStretchSpacer()                    
                 self.vSizer.Add(hSizer, 0, wx.EXPAND)
-            
+        
+        self.vSizer.ShowItems(True)
         self.vSizer.Layout()
+        
+        # destroy all unnecessary statictexts
+        for text in self.tags:
+            text.Destroy()
+        self.tags = cur_tags
+        
+        # call DoLayout if the # of rows changed 
         new_size = len(self.vSizer.GetChildren())
         if new_size != old_size:
-            self.GetParent().DoLayout()
-        
+            self.DoLayout()
         self.Thaw()
-    
-    def setUpdatePanel(self, panel):
-        self.updatePanel = panel
     
     def DoPauseResume(self):
         def IsEnter(control):
@@ -235,16 +287,16 @@ class BuzzPanel(wx.Panel):
                         return True
             return False
         
-        enter = getattr(self, 'enter', False) or IsEnter(self)
+        enter = getattr(self.panel, 'enter', False) or IsEnter(self)
         timerstop = not enter #stop timer if one control has enter==true
         
         if timerstop != self.timer.IsRunning():
             if enter:
                 self.timer.Stop()
-                self.updatePanel.SetTitle('Update has paused')
+                self.footer.SetTitle('Update has paused')
             else:
                 self.timer.Start(1000, False)
-                self.updatePanel.SetTitle('Resuming update')
+                self.footer.SetTitle('Resuming update')
     
     def OnMouse(self, event):
         if event.Entering() or event.Moving():
@@ -276,7 +328,7 @@ class BuzzPanel(wx.Panel):
             statictext.SetForegroundColour(BuzzPanel.ACTIVE_COLOR)
             statictext.Refresh()
         
-        for column in self.GetChildren():
+        for column in self.panel.GetChildren():
             if column != statictext and isinstance(column, wx.StaticText):
                 if column.ForegroundColour != BuzzPanel.INACTIVE_COLOR:
                     column.enter = False

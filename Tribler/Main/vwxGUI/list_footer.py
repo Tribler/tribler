@@ -158,3 +158,6 @@ class ChannelFooter(ListFooter):
             self.message.SetLabel("Thank you for marking this Channel as your Favorite.")
         else:
             self.message.SetLabel("What do you think of this Channel? Mark it as Spam or as a Favorite.")
+    
+    def GetStates(self):
+        return (self.spam.GetLabel() == 'This is not Spam', self.favorite.GetLabel() == 'Remove Favorite')
