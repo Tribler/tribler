@@ -6,8 +6,6 @@ import time
 from Tribler.Core.Subtitles.MetadataDomainObjects import Languages
 import threading
 
-
-
 PEERS_RESULT_LIMIT = 5
 HAVE_VALIDITY_TIME = 7*86400 # one week (too big? to small?)
 
@@ -72,7 +70,6 @@ class PeersHaveManager(object):
     def isRegistered(self):
         return self._registered
     
-    
     def getPeersHaving(self, channel, infohash, bitmask, limit=PEERS_RESULT_LIMIT):
         '''
         Returns a list of permids of peers having all the subtitles for
@@ -123,9 +120,7 @@ class PeersHaveManager(object):
             #if no results, and if the channel owner was not in the initial
             #list, consider him always as a valid source
             results.append(channel)
-                
         return results
-        
     
     def newHaveReceived(self, channel, infohash, peer_id, havemask):
         '''
@@ -191,14 +186,8 @@ class PeersHaveManager(object):
             self._schedulePeriodicCleanup()
         
     def _schedulePeriodicCleanup(self):
-        
         minimumAllowedTS = int(time.time()) - self._haveValidityTime
         self._haveDb.cleanupOldHave(minimumAllowedTS)
         
         if self._cleanupPeriod > 0:
-            self._olBridge.add_task(self._schedulePeriodicCleanup, self._cleanupPeriod)
-            
-        
-
-
-        
+            self._olBridge.add_task(self._schedulePeriodicCleanup, self._cleanupPeriod)        

@@ -23,7 +23,7 @@ SUBS_LOG_PREFIX = "subtitles: "
 REQUEST_VALIDITY_TIME = 10 * 60 #10 minutes
 CLEANUP_PERIOD = 5 * 60#5 minutes
 
-DEBUG = True
+DEBUG = False
     
 class SubsMessageHandler(object):
     
@@ -43,50 +43,42 @@ class SubsMessageHandler(object):
         
         
         #dictionary of type { "".join(channel_id,infohash) : _RequestedSubtitlesEntry}
-        #bits get cleaned when subtitles are recevied
-        #when the bitmask is 000 the netry is removed from the dictionary
+        #bits get cleaned when subtitles are received
+        #when the bitmask is 000 the entry is removed from the dictionary
         #also entries older then REQUEST_VALIDITY_TIME get dropped
-        
-
         
         self.requestedSubtitles = {}
         self._requestsLock = threading.RLock()
         
         self._nextCleanUpTime = int(time()) + CLEANUP_PERIOD
 
-        #subtitles to send get queueued in this queue
+        #subtitles to send get queued in this queue
         #each subtitle message to send is a dictionary whose keys are:
-        #permid: destionation of the message
-        #channel_id: identifier of the channel from wich the subtitles to
-        #            upload are
-        #infohash: identifier of the torrent for which the subtitles to 
-        #          upload are
-        #subtitles: a dictionary of the form {langCode : path} for the
-        #           subtitles to send
+        #permid: destination of the message
+        #channel_id: identifier of the channel from which the subtitles to upload are
+        #infohash: identifier of the torrent for which the subtitles to upload are
+        #subtitles: a dictionary of the form {langCode : path} for the subtitles to send
         #selversion: 
     
         self._uploadQueue = []
-        
         self._requestValidityTime = REQUEST_VALIDITY_TIME
-        
         self._maxSubSize = maxSubsSize
         
         
     def setTokenBucket(self, tokenBucket):
         assert tokenBucket is not None
         self._tokenBucket = tokenBucket
+        
     def getTokenBucket(self):
         return self._tokenBucket
     
     tokenBucket = property(getTokenBucket,setTokenBucket)
-            
     
     def _getRequestedSubtitlesKey(self, channel_id, infohash):
         #requested subtitle is a dictionary whose keys are the
         #concatenation of (channel_id,infohash)
 
         return "".join((channel_id, infohash))
-    
     
     def sendSubtitleRequest(self, dest_permid, requestDetails, 
                             msgSentCallback = None, usrCallback = None, selversion=-1):

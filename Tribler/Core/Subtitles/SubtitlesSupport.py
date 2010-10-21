@@ -13,7 +13,7 @@ from Tribler.Core.Utilities.utilities import isValidPermid, bin2str
 import sys
 import threading
 
-DEBUG = True
+DEBUG = False
 
 
 class SubtitlesSupport(object):
@@ -74,10 +74,10 @@ class SubtitlesSupport(object):
         self.my_permid = my_permid
         self.my_keypair = my_keypair
         self._peersHaveManager = peersHaveManger
+        
         #used to decouple calls to SubtitleHandler
         self._ol_bridge = ol_bridge
         self._registered = True
-        
     
     def getSubtileInfosForInfohash(self, infohash):
         '''
@@ -103,7 +103,7 @@ class SubtitlesSupport(object):
         
         returnDictionary = dict()
         
-        #a metadataDTO corrisponds to all metadata for a pair channel, infohash
+        #a metadataDTO corresponds to all metadata for a pair channel, infohash
         metadataDTOs = self.richMetadata_db.getAllMetadataForInfohash(infohash)
         
         for metadataDTO in metadataDTOs:
@@ -113,15 +113,13 @@ class SubtitlesSupport(object):
                 returnDictionary[channel] = subtitles
         
         return returnDictionary
-        
-    
     
     def getSubtitleInfos(self, channel, infohash):
         '''
         Retrieve subtitles information for the given channel-infohash pair.
         
         Searches in the local database for information about subtitles that
-        are currently availabe.
+        are currently available.
         
         @param channel: the channel_id (perm_id) of a channel (binary)
         @param infohash: a .torrent infohash (binary)
@@ -129,13 +127,11 @@ class SubtitlesSupport(object):
                 language codes of the subtitles
         '''
         assert self._registered, "Instance is not registered"
-        metadataDTO = self.richMetadata_db.getMetadata(channel,infohash)
-        if metadataDTO is None:
-            #no results
-            return {}
-        else:
-            return metadataDTO.getAllSubtitles()
         
+        metadataDTO = self.richMetadata_db.getMetadata(channel,infohash)
+        if metadataDTO:
+            return metadataDTO.getAllSubtitles()
+        return {}
     
     def publishSubtitle(self, infohash, lang, pathToSrtSubtitle):
         '''
@@ -175,53 +171,43 @@ class SubtitlesSupport(object):
         consinstent = self.channelcast_db.isItemInChannel(channelid,base64infohash)
         
         if not consinstent:
-            msg = "Infohash %s not found in my channel. Rejecting subtitle" \
-                    % base64infohash
+            msg = "Infohash %s not found in my channel. Rejecting subtitle"% base64infohash
             if DEBUG:
                 print >> sys.stderr, msg
             raise RichMetadataException(msg)
-        
         try:
-        
-            filepath = \
-                self.subtitlesHandler.copyToSubtitlesFolder(pathToSrtSubtitle,
+            filepath = self.subtitlesHandler.copyToSubtitlesFolder(pathToSrtSubtitle,
                                                             self.my_permid,infohash,
-                                                            lang)   
+                                                            lang)
         except Exception,e:
             if DEBUG:
                 print >> sys.stderr, "Failed to read and copy subtitle to appropriate folder: %s" % str(e)
-
-
         
-        # retrieve existing metadata from my channel, infoahash
+        # retrieve existing metadata from my channel, infohash
         metadataDTO = self.richMetadata_db.getMetadata(self.my_permid, infohash)
+        
         # can be none if no metadata was available
         if metadataDTO is None:
             metadataDTO = MetadataDTO(self.my_permid, infohash)
         else:
             #update the timestamp
             metadataDTO.resetTimestamp()
-        
         newSubtitle = SubtitleInfo(lang, filepath)
         
         # this check should be redundant, since i should be sure that subtitle
         # exists at this point
+        
         if newSubtitle.subtitleExists():
             newSubtitle.computeChecksum()
         else:
-            msg = "Inconsistency found. The subtitle was"\
-                                        "not published"
+            msg = "Inconsistency found. The subtitle was not published"
             if DEBUG:
                 print >> sys.stderr, msg
             raise RichMetadataException(msg)
         
         metadataDTO.addSubtitle(newSubtitle)
         metadataDTO.sign(self.my_keypair)
-        
-        #channelid is my permid. I received the metadata from myself
         self.richMetadata_db.insertMetadata(metadataDTO)
-        
-
 
     def retrieveSubtitleContent(self, channel, infohash, subtitleInfo, callback = None):
         '''
@@ -269,18 +255,14 @@ class SubtitlesSupport(object):
         
         if subtitleInfo.subtitleExists():
             if subtitleInfo.verifyChecksum():
-                #subtitle is available call the callback
                 callback(subtitleInfo)
                 return
             else:
-                #delete the existing subtitle and ask for a new
-                #one
+                #delete the existing subtitle and ask for a new one
                 if DEBUG:
-                    print >> sys.stderr, "Subtitle is locally available but has invalid" \
-                          "checksum. Issuing another download"
+                    print >> sys.stderr, "Subtitle is locally available but has invalid checksum. Issuing another download"
                 subtitleInfo.path = None
         
-
         languages = [subtitleInfo.lang]
         
         def call_me_when_subtitle_arrives(listOfLanguages):
@@ -289,18 +271,10 @@ class SubtitlesSupport(object):
                 assert len(listOfLanguages) == 1
                 
                 #retrieve the updated info from the db
-                sub = self.richMetadata_db.getSubtitle(channel,infohash,
-                                                       listOfLanguages[0])
-                
-                #call the user callback
-                
+                sub = self.richMetadata_db.getSubtitle(channel,infohash,listOfLanguages[0])
                 callback(sub)
             
-            
-        self._queryPeersForSubtitles(channel, infohash, languages,
-                                             call_me_when_subtitle_arrives)
-
-        
+        self._queryPeersForSubtitles(channel, infohash, languages, call_me_when_subtitle_arrives)
     
     def retrieveMultipleSubtitleContents(self, channel, infohash, listOfSubInfos, callback=None):
         '''
@@ -333,8 +307,7 @@ class SubtitlesSupport(object):
         for subtitleInfo in listOfSubInfos:
             if subtitleInfo.checksum is None:
                 if DEBUG:
-                    print >> sys.stderr, "No checksum for subtitle %s. Skipping it in the request"\
-                        % subtitleInfo
+                    print >> sys.stderr, "No checksum for subtitle %s. Skipping it in the request"% subtitleInfo
                 continue
             
             if subtitleInfo.subtitleExists():
@@ -343,15 +316,12 @@ class SubtitlesSupport(object):
                     locallyAvailableSubs.append(subtitleInfo)
                     continue
                 else:
-                    #delete the existing subtitle and ask for a new
-                    #one
+                    #delete the existing subtitle and ask for a new one
                     if DEBUG:
-                        print >> sys.stderr, "Subtitle is locally available but has invalid" \
-                              "checksum. Issuing another download"
+                        print >> sys.stderr, "Subtitle is locally available but has invalid checksum. Issuing another download"
                     subtitleInfo.path = None
                     
             languages.append(subtitleInfo.lang)
-        
             
         if len(locallyAvailableSubs) > 0 and callback is not None:
             callback(locallyAvailableSubs)
@@ -370,10 +340,7 @@ class SubtitlesSupport(object):
                 callback(subInfos)
         
         if len(languages) > 0:
-            self._queryPeersForSubtitles(channel, infohash, languages,
-                                                  call_me_when_subtitles_arrive)
-            
-        
+            self._queryPeersForSubtitles(channel, infohash, languages, call_me_when_subtitles_arrive)
        
     def _queryPeersForSubtitles(self, channel, infohash, languages, callback):
         '''
@@ -421,12 +388,6 @@ class SubtitlesSupport(object):
         self._ol_bridge.add_task(task)
         
             
-            
-    
-        
-        
-        
-            
     def runDBConsinstencyRoutine(self):
         '''
         Clean the database from incorrect data.
@@ -450,9 +411,3 @@ class SubtitlesSupport(object):
                         #otherwise just set the path to none
                         else:
                             self.richMetadata_db.updateSubtitlePath(channel, infohash, subInfo.lang,None)
-            
-        
-        
-                
-        
-        

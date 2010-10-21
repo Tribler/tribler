@@ -2,22 +2,19 @@
 # see LICENSE.txt for license information
 
 from __future__ import with_statement
-from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import \
-    LanguagesProvider
-from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataExceptions import \
-    MetadataDBException, RichMetadataException
+from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import LanguagesProvider
+from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataExceptions import MetadataDBException, RichMetadataException
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.Subtitles.SubtitleHandler.SimpleTokenBucket import \
-    SimpleTokenBucket
-from Tribler.Core.Subtitles.SubtitleHandler.SubsMessageHandler import \
-    SubsMessageHandler
+from Tribler.Core.Subtitles.SubtitleHandler.SimpleTokenBucket import SimpleTokenBucket
+from Tribler.Core.Subtitles.SubtitleHandler.SubsMessageHandler import SubsMessageHandler
 from Tribler.Core.Utilities import utilities
 from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.Utilities.utilities import bin2str, show_permid_short
-from Tribler.Core.simpledefs import NTFY_ACT_DISK_FULL, NTFY_SUBTITLE_CONTENTS, \
-    NTFY_UPDATE
+from Tribler.Core.simpledefs import NTFY_ACT_DISK_FULL, NTFY_SUBTITLE_CONTENTS, NTFY_UPDATE
+
 import os
 import sys
+from shutil import copyfile
 
 
 SUBS_EXTENSION = ".srt"
@@ -26,7 +23,7 @@ SUBS_LOG_PREFIX = "subtitles: "
 MAX_SUBTITLE_SIZE = 1 * 1024 * 1024    # 1MB subtitles. too big?
 MAX_SUBS_MESSAGE_SIZE = int(2 * MAX_SUBTITLE_SIZE / 1024) #in KBs
 
-DEBUG = True
+DEBUG = False
 
 class SubtitlesHandler(object):
     
@@ -39,19 +36,14 @@ class SubtitlesHandler(object):
         # to test.
         
         SubtitlesHandler.__single = self
-        self.avg_subtitle_size = 100 # 100 KB, experimental avg
         self.languagesUtility = LanguagesProvider.getLanguagesInstance()
-        
 
         #instance of MetadataDBHandler
         self.subtitlesDb = None
         self.registered = False
         self.subs_dir = None
         
-        
-        
         #other useful attributes are injected by the register method
-        
 
     @staticmethod
     def getInstance(*args, **kw):
@@ -82,16 +74,12 @@ class SubtitlesHandler(object):
         #the upload rate is controlled by a token bucket.
         #a token corresponds to 1 KB.
         #The max burst size corresponds to 2 subtitles of the maximum size (2 MBs)
-        tokenBucket = SimpleTokenBucket(self._upload_rate,
-                                              self.max_subs_message_size)
-       
-        self._subsMsgHndlr = SubsMessageHandler(self.overlay_bridge, tokenBucket, 
-                                                MAX_SUBTITLE_SIZE)
+        tokenBucket = SimpleTokenBucket(self._upload_rate, self.max_subs_message_size)
+        
+        self._subsMsgHndlr = SubsMessageHandler(self.overlay_bridge, tokenBucket, MAX_SUBTITLE_SIZE)
         self._subsMsgHndlr.registerListener(self)
-        
-    
+
         #assure that the directory exists
-        
         if os.path.isdir(self.config_dir) :
             if not os.path.isdir(self.subs_dir):
                 try:
@@ -107,7 +95,6 @@ class SubtitlesHandler(object):
         
         #event notifier
         self._notifier = Notifier.getInstance()
-        
         self.registered = True
     
     def sendSubtitleRequest(self, permid, channel_id, infohash, languages,
@@ -115,7 +102,7 @@ class SubtitlesHandler(object):
         """
         Send a request for subtitle files. Only called by the OLThread
         
-        Send a GET_SUBS request to the peer indentified by permid.
+        Send a GET_SUBS request to the peer identified by permid.
         The request asks for several subtitles file, for a given channel_id
         and torrent infohash. The subtitles file to request are specified
         by the languages parameter that is a list of 3 characters language
@@ -128,8 +115,6 @@ class SubtitlesHandler(object):
               Binary.
             - bitmask:  a 32 bit bitmask (an integer) which specifies the 
               languages requested
-                      
-        
         
         @param permid: the destination of the request (binary)
         @param channel_id: the identifier of the channel for which the subtitle
@@ -150,19 +135,12 @@ class SubtitlesHandler(object):
                                       that the message has been sent.
         """
         
-        assert utilities.isValidInfohash(infohash), \
-            SUBS_LOG_PREFIX + "Invalid infohash %s" % infohash
-        assert utilities.isValidPermid(permid), \
-            SUBS_LOG_PREFIX + "Invlaid destination permid %s" % permid
-        
-        assert self.languagesUtility.isLangListSupported(languages), \
-             SUBS_LOG_PREFIX + "Some of the languages where not supported"
-            
+        assert utilities.isValidInfohash(infohash), SUBS_LOG_PREFIX + "Invalid infohash %s" % infohash
+        assert utilities.isValidPermid(permid), SUBS_LOG_PREFIX + "Invlaid destination permid %s" % permid
+        assert self.languagesUtility.isLangListSupported(languages), SUBS_LOG_PREFIX + "Some of the languages where not supported"
 
-        
         if DEBUG:
-            print >> sys.stderr, SUBS_LOG_PREFIX + "preparing to send GET_SUBS to " + \
-                  utilities.show_permid_short(permid)
+            print >> sys.stderr, SUBS_LOG_PREFIX + "preparing to send GET_SUBS to " + utilities.show_permid_short(permid)
             
         if len(languages) == 0:
             if DEBUG:
@@ -174,18 +152,15 @@ class SubtitlesHandler(object):
         requestDetails['infohash'] = infohash
         requestDetails['languages'] = languages
         
-        
         self._subsMsgHndlr.sendSubtitleRequest(permid, requestDetails,
                                                 lambda e,d,c,i,b : \
                                                     self._subsRequestSent(e,d,c,i,b),
                                                     callback,
                                                     selversion)
-            
-        
     
     def _subsRequestSent(self,exception,dest, channel_id, infohash, bitmask ):
         '''
-        Gets called when a subtitle request has been succesfully sent.
+        Gets called when a subtitle request has been successfully sent.
         '''
         pass
 
@@ -203,15 +178,11 @@ class SubtitlesHandler(object):
         """
         
         assert self.registered, SUBS_LOG_PREFIX + "Handler not yet registered"
-
         
         channel_id, infohash, languages = request #happily unpacking
         
-        
         #diction {lang : Subtitle}
-        allSubtitles = self.subtitlesDb.getAllSubtitles(channel_id,
-                                                        infohash)
-        
+        allSubtitles = self.subtitlesDb.getAllSubtitles(channel_id, infohash)
         
         contentsList = {} #{langCode : path}
         #for each requested language check if the corresponding subtitle
@@ -222,39 +193,25 @@ class SubtitlesHandler(object):
                     content = self._readSubContent(allSubtitles[lang].path)
                     if content is not None:
                         contentsList[lang] = content 
-                    
                 else:
                     if DEBUG:
-                        print >> sys.stderr, SUBS_LOG_PREFIX + "File not available for " + \
-                              "channel %s, infohash %s, lang %s" % \
-                              (show_permid_short(channel_id), bin2str(infohash),
-                              lang)
+                        print >> sys.stderr, SUBS_LOG_PREFIX + "File not available for channel %s, infohash %s, lang %s" % \
+                              (show_permid_short(channel_id), bin2str(infohash),lang)
+                              
                     self.subtitlesDb.updateSubtitlePath(channel_id,infohash,lang,None)
             else:
                 if DEBUG:
-                    print >> sys.stderr, SUBS_LOG_PREFIX + "Subtitle not available for " + \
-                          "channel %s, infohash %s, lang %s" % \
-                          (show_permid_short(channel_id), bin2str(infohash),
-                          lang)
+                    print >> sys.stderr, SUBS_LOG_PREFIX + "Subtitle not available for channel %s, infohash %s, lang %s" % \
+                          (show_permid_short(channel_id), bin2str(infohash),lang)
         
         if len(contentsList) == 0: #pathlist is empty
             if DEBUG:
-                print >> sys.stderr, SUBS_LOG_PREFIX + "None of the requested subtitles " + \
-                      " was available. No answer will be sent to %s" % \
+                print >> sys.stderr, SUBS_LOG_PREFIX + "None of the requested subtitles were available. No answer will be sent to %s" % \
                       show_permid_short(permid)
             return True
-        
-        
-        
-        return self._subsMsgHndlr.sendSubtitleResponse(permid, 
-                                                (channel_id,infohash,contentsList), 
-                                                selversion)
-
-        
-        
+        return self._subsMsgHndlr.sendSubtitleResponse(permid, (channel_id,infohash,contentsList), selversion)
     
     def _readSubContent(self,path):
-
         try:
             relativeName = os.path.relpath(path, self.subs_dir)
             fileName = os.path.join(self.subs_dir, relativeName)
@@ -263,16 +220,14 @@ class SubtitlesHandler(object):
             file.close()
         except IOError,e:
             if DEBUG:
-                print >> sys.stderr, SUBS_LOG_PREFIX + "Error reading from subs file %s: %s" % \
-                 (relativeName, e)
+                print >> sys.stderr, SUBS_LOG_PREFIX + "Error reading from subs file %s: %s" % (relativeName, e)
             fileContent = None
             
-        if fileContent is not None and len(fileContent) <= MAX_SUBTITLE_SIZE:
+        if fileContent and len(fileContent) <= MAX_SUBTITLE_SIZE:
             return fileContent
-        else:
-            print >> sys.stderr, "Warning: Subtitle %s dropped. Bigger then %d" % \
-                (relativeName, MAX_SUBTITLE_SIZE)
-            return None
+        
+        print >> sys.stderr, "Warning: Subtitle %s dropped. Bigger than %d" % (relativeName, MAX_SUBTITLE_SIZE)
+        return None
         
     def _subs_send_callback(self, exception, permid):
         """
@@ -280,16 +235,14 @@ class SubtitlesHandler(object):
         """
         if exception is not None:
             if DEBUG:
-                print >> sys.stderr, SUBS_LOG_PREFIX + "Failed to send metadata to %s: %s" % \
-                      (show_permid_short(permid), str(exception))
-        
+                print >> sys.stderr, SUBS_LOG_PREFIX + "Failed to send metadata to %s: %s" % (show_permid_short(permid), str(exception))
     
     def receivedSubsResponse(self, permid, msg, callbacks, selversion):
         """
         Handles the reception of a SUBS message.
         
         Checks against integrity of the contents received in a SUBS message.
-        If the message containes one or more subtitles that were not requested
+        If the message contained one or more subtitles that were not requested
         they are dropped.
         If the message is bigger in size then MAX_SUBS_MSG_SIZE it is dropped.
         If one subtitle is bigger in size then MAX_SUBTITLE_SIZE it is dropped.
@@ -304,35 +257,29 @@ class SubtitlesHandler(object):
         @param selversion: the protocol version number of the other peer
         
         
-        @return: False if the message is dropped becuase malformed. 
+        @return: False if the message is dropped due to being malformed. 
         """
-        assert self.registered == True, SUBS_LOG_PREFIX + "Subtitles Handler"\
-            " is not registered"
-        
+        assert self.registered == True, SUBS_LOG_PREFIX + "Subtitles Handler is not registered"
     
-        channel_id, infohash, contentsDictionary = \
-            msg
-        
-        
+        channel_id, infohash, contentsDictionary = msg
         metadataDTO = self.subtitlesDb.getMetadata(channel_id, infohash)
         
-        assert metadataDTO is not None, SUBS_LOG_PREFIX + "Inconsistent " \
-            "subtitles DB: a requested subtitle was not available in the db"
+        assert metadataDTO is not None, SUBS_LOG_PREFIX + "Inconsistent subtitles DB: a requested subtitle was not available in the db"
         
         filepaths = dict()
         somethingToWrite = False
         
         for lang, subtitleContent in contentsDictionary.iteritems():
             try:
-                filename = self._saveSubOnDisk(channel_id, infohash, lang,
-                                               subtitleContent)
+                filename = self._saveSubOnDisk(channel_id, infohash, lang, subtitleContent)
                 filepaths[lang] = filename
+                
             except IOError,e:
                 if DEBUG:
-                    print >> sys.stderr, SUBS_LOG_PREFIX + "Unable to save subtitle for "\
-                          "channel %s and infohash %s to file: %s" % \
+                    print >> sys.stderr, SUBS_LOG_PREFIX + "Unable to save subtitle for channel %s and infohash %s to file: %s" % \
                           (show_permid_short(channel_id), str(infohash), e)
                 continue
+            
             except Exception,e:
                 if DEBUG:
                     print >> sys.stderr, "Unexpected error copying subtitle On Disk: " + str(e)
@@ -341,17 +288,18 @@ class SubtitlesHandler(object):
             subToUpdate = metadataDTO.getSubtitle(lang)
             if subToUpdate is None:
                 print >> sys.stderr, "Warning:" + SUBS_LOG_PREFIX + "Subtitles database inconsistency."
+                
                 #is it ok to throw a runtime error or should I gracefully fail?
                 raise MetadataDBException("Subtitles database inconsistency!")
             
             subToUpdate.path = filename
             if not subToUpdate.verifyChecksum():
                 if DEBUG:
-                    print >> sys.stderr, "Received a subtitle having invalid checsum from %s" % \
-                         show_permid_short(permid)
+                    print >> sys.stderr, "Received a subtitle having invalid checsum from %s" % show_permid_short(permid)
                 subToUpdate.path = None
                 os.remove(filename)
                 continue
+            
             self.subtitlesDb.updateSubtitlePath(channel_id, infohash, subToUpdate.lang, filename, False)
             somethingToWrite = True
         
@@ -360,12 +308,9 @@ class SubtitlesHandler(object):
         
         if DEBUG:    
             print >> sys.stderr, "Subtitle written on disk and informations on database."
-        
         if callbacks:
             self._scheduleUserCallbacks(callbacks)
-        
         return True
-            
                 
     def _scheduleUserCallbacks(self, callbacks):
         def call_helper(callback, listOfLanguages):
@@ -378,8 +323,7 @@ class SubtitlesHandler(object):
             call_helper(callback, listOfLanguages)
     
     def _saveSubOnDisk(self, channel_id, infohash, lang, subtitleContent):
-        assert self.registered == True, SUBS_LOG_PREFIX + "Subtitles Handler"\
-            " is not registered"
+        assert self.registered == True, SUBS_LOG_PREFIX + "Subtitles Handler is not registered"
             
         filename = getSubtitleFileRelativeName(channel_id, infohash, lang)
         filename = os.path.join(self.subs_dir, filename)
@@ -403,8 +347,7 @@ class SubtitlesHandler(object):
             print >> sys.stderr, SUBS_LOG_PREFIX + "Subtitle is in at" + filename
         
         if self._notifier is not None:
-            self.notifier.notify(NTFY_SUBTITLE_CONTENTS, NTFY_UPDATE,
-                                 (channel_id, infohash), langCode, filename)
+            self.notifier.notify(NTFY_SUBTITLE_CONTENTS, NTFY_UPDATE, (channel_id, infohash), langCode, filename)
     
     def setUploadRate(self, uploadRate):
         """
@@ -427,19 +370,16 @@ class SubtitlesHandler(object):
         """
         raise RuntimeError("Operation not supported")
     
-    upload_rate = property(getUploadRate, setUploadRate, delUploadRate,
-                           "Controls the subtitles uploading rate. Expressed in KB/s")
-    
+    upload_rate = property(getUploadRate, setUploadRate, delUploadRate, "Controls the subtitles uploading rate. Expressed in KB/s")
     
     def copyToSubtitlesFolder(self,pathToMove, channel_id, infohash, langCode):
         """
         Given the path to an srt, moves it to the subtitle folder, also
         changing the name to the correct one
         
-        @return: the complete path of the file if the file was succesfully copied,
+        @return: the complete path of the file if the file was successfully copied,
         
         @raise RichMetadataException: if the subtitle cannot be copied.
-        
         """
         
         if not os.path.isfile(pathToMove):
@@ -455,35 +395,24 @@ class SubtitlesHandler(object):
         filename = getSubtitleFileRelativeName(channel_id, infohash, langCode)
         filename = os.path.join(self.subs_dir, filename)
         
-        source = open(pathToMove, "rb")
-        contents = source.read()
-        source.close()
-        
-        dest = open(filename, "wb")
-        dest.write(contents)
-        dest.close()
-        
+        copyfile(pathToMove, filename)
         return filename
 
     def getMessageHandler(self):
         return self._subsMsgHndlr.handleMessage                
         
 def getSubtitleFileRelativeName(channel_id, infohash, langCode):
-    #subtitles filenames are build from the sha1 hash
-    #of the triple (channel_id, infohash, langCode)
+    # subtitles filenames are build from the sha1 hash
+    # of the triple (channel_id, infohash, langCode)
     
     # channel_id and infohash are binary versions
     
-    assert utilities.validPermid(channel_id), \
-        "Invalid channel_id %s" % utilities.show_permid_short(channel_id)
-    assert utilities.validInfohash(infohash), \
-        "Invalid infohash %s" % bin2str(infohash)
-    assert LanguagesProvider.getLanguagesInstance().isLangCodeSupported(langCode), \
-        "Unsupported language code %s" % langCode
+    assert utilities.validPermid(channel_id), "Invalid channel_id %s" % utilities.show_permid_short(channel_id)
+    assert utilities.validInfohash(infohash), "Invalid infohash %s" % bin2str(infohash)
+    assert LanguagesProvider.getLanguagesInstance().isLangCodeSupported(langCode), "Unsupported language code %s" % langCode
         
     hasher = sha()
     for data in (channel_id, infohash, langCode):
         hasher.update(data)
     subtitleName = hasher.hexdigest() + SUBS_EXTENSION
-        
     return subtitleName
