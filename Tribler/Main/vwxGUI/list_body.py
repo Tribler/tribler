@@ -221,7 +221,7 @@ class ListItem(wx.Panel):
             if self.taskserver == None:
                 self.taskserver = GUITaskQueue.getInstance()
             
-            self.taskserver.add_task(removeHighlight, timeout, self)
+            self.taskserver.add_task(lambda:wx.CallAfter(removeHighlight), timeout, self)
             self.BackgroundColor("#ffff99")
          
     def ShowSelected(self):
