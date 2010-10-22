@@ -436,17 +436,15 @@
 								<object class="sizeritem">
 	                                <object class="wxBoxSizer">
 	                                    <orient>wxVERTICAL</orient>
-	                                    <object class="sizeritem">
-	                                        <object class="wxStaticText">
-	                                            <label>Use popup player</label>
-	                                            <font>
-	                                                <weight>bold</weight>
-	                                            </font>
-	                                        </object>
-	                                    </object>
 										<object class="sizeritem">
-											<object class="wxCheckBox" name="externalplayer">
-												<label>Popup player</label>
+											<object class="wxRadioBox" name="externalplayer">
+												<style>wxRA_SPECIFY_ROWS</style>
+												<label>Player</label>
+												<dimension>1</dimension>
+												<content>
+													<item>Use internal player</item>
+													<item>Use popup player</item>
+												</content>
 											</object>
 											<border>3</border>
 											<flag>wxTOP</flag>

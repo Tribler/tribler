@@ -1,6 +1,8 @@
 import wx
 import sys
 
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+
 class ListHeaderIcon:
     __single = None
     def __init__(self):
@@ -383,19 +385,44 @@ class MyChannelHeader(SubTitleHeader):
 class FamilyFilterHeader(TitleHeader):
     
     def GetSubTitlePanel(self, parent):
+        self.family_filter = None
+        self.nrfiltered = 0
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        
         self.ff = wx.StaticText(parent)
-        self.ff.SetToolTipString('Click to toggle Family Filter.')
-        self.ff.Bind(wx.EVT_LEFT_UP,self.toggleFamilyFilter)
-        return self.ff
+        self.ffbutton = LinkStaticText(parent, '', None)
+        self.ffbutton.Bind(wx.EVT_LEFT_UP, self.toggleFamilyFilter)
+        
+        hSizer.Add(self.ff)
+        hSizer.Add(self.ffbutton)
+        wx.CallAfter(self.SetFF, True)
+        return hSizer
     
     def SetFF(self, family_filter):
-        if family_filter:
-            self.ff.SetLabel('Family Filter is ON')
-        else:
-            self.ff.SetLabel('Family Filter is OFF')
+        self.family_filter = family_filter
+        self._SetLabels()
+        
+    def SetFiltered(self, nr):
+        self.nrfiltered = nr
+        self._SetLabels()
         
     def toggleFamilyFilter(self, event):
         self.parent.toggleFamilyFilter()
+    
+    def _SetLabels(self):
+        self.Freeze()
+        if self.family_filter:
+            if self.nrfiltered > 0:
+                self.ff.SetLabel('%d results blocked by Family Filter, '%self.nrfiltered)
+            else:
+                self.ff.SetLabel('Family Filter is On, ')
+            self.ffbutton.SetLabel('turn off')
+        else:
+            self.ff.SetLabel('Family Filter is Off, ')
+            self.ffbutton.SetLabel('turn on')
+        self.Layout()
+        self.Thaw()
 
 class SearchHeader(FamilyFilterHeader):
     

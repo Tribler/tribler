@@ -364,11 +364,10 @@ class TorrentManager:
         self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
         self.search_db = session.open_dbhandler(NTFY_SEARCH)
-        self.channelcastdb = session.open_dbhandler(NTFY_CHANNELCAST)
         self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
         self.searchmgr = SearchManager(self.torrent_db)
     
-    def getHitsInCategory(self, mode = 'filesMode', categorykey = 'all', range = [0,250], sort = 'rameezmetric', reverse = False):
+    def getHitsInCategory(self, mode = 'filesMode', categorykey = 'all', sort = 'rameezmetric'):
         if DEBUG: begintime = time()
         # mode is 'filesMode', 'libraryMode'
         # categorykey can be 'all', 'Video', 'Document', ...
@@ -399,6 +398,9 @@ class TorrentManager:
             elif categorykey in [cat.lower() for cat in categories]:
                 okCategory = True
             
+            if not okCategory:
+                self.filteredResults += 1
+            
             okGood = torrent['status'] != 'dead'
                         
             #print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
@@ -424,9 +426,6 @@ class TorrentManager:
 
             if DEBUG:
                 print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
-        
-        if range[0] > len(self.hits):
-            return [0,None]
 
         if DEBUG:
             beginsort = time()
@@ -451,7 +450,7 @@ class TorrentManager:
             print >> sys.stderr, 'getHitsInCat took: %s of which search %s' % ((time() - begintime), (time() - beginsort))
         self.hits = self.addDownloadStates(self.hits)
 
-        return [len(self.hits), self.hits]
+        return [len(self.hits), self.filteredResults , self.hits]
 
     def prefetch_hits(self):
         """
@@ -501,11 +500,11 @@ class TorrentManager:
                 break
 
     def setSearchKeywords(self, wantkeywords, mode):
-        self.stopped = False
         self.searchkeywords[mode] = wantkeywords
         if mode == 'filesMode':
             if DEBUG:
                 print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords[mode],";time:%", time()
+            self.filteredResults = 0
             self.remoteHits = {}
             self.oldsearchkeywords[mode] = ''
 
@@ -660,6 +659,7 @@ class TorrentManager:
                             if DEBUG:
                                 print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHits: Got",`newval['name']`,"from banned category",cat,", discarded it."
                             flag = True
+                            self.filteredResults += 1
                             break
                     if flag:
                         continue
@@ -844,6 +844,7 @@ class ChannelSearchGridManager:
     
     def getTorrentsFromPublisherId(self, publisher_id):
         hits = self.channelcast_db.getTorrentsFromPublisherId(publisher_id)
+        self.nrFiltered = 0
         
         enabledcattuples = self.category.getCategoryNames()
         enabledcatslow = ["other"]
@@ -858,10 +859,14 @@ class ChannelSearchGridManager:
                     okCategory = True
                     break
                 
+            if not okCategory:
+                self.nrFiltered += 1
+            
             okGood = torrent['status'] != 'dead'
             return okGood and okCategory
         
-        return filter(torrentFilter, hits) 
+        hits = filter(torrentFilter, hits)
+        return  [len(hits), self.nrFiltered, hits]
     
     def getChannel(self, publisher_id):
         return self.channelcast_db.getChannel(publisher_id)

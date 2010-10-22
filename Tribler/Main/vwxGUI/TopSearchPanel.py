@@ -25,11 +25,6 @@ import time
 import wx
 import wx.xrc as xrc
 
-# begin wx.Glade: extracode
-# end wx.Glade
-
-
-wx.SystemOptions_SetOption("msw.remap", "1")
 
 DEBUG = False
 
@@ -63,7 +58,7 @@ class TopSearchPanel(bgPanel):
             
         # Timer to stop animation after 10 seconds. No results will come 
         # in after that
-        self.guiUtility.frame.guiserver.add_task(lambda:wx.CallAfter(self.HideAnimation), 10.0)
+        wx.CallLater(10000, self.HideAnimation)
         
         if not self.results.IsEnabled():
             self.results.Enable()
@@ -86,6 +81,8 @@ class TopSearchPanel(bgPanel):
    
     def OnSettings(self, event):
         wx.CallAfter(self.guiUtility.ShowPage, 'settings')
+        
+        self.selectTab('settings')
     
     def OnHome(self, event):
         if self.guiUtility.guiPage != 'home':
@@ -287,8 +284,9 @@ class TopSearchPanel(bgPanel):
         self.notifyPanel.Show()
         #NotifyLabel size changed, thus call Layout
         self.buttonSizer.Layout()
-        self.guiUtility.frame.guiserver.add_task(lambda:wx.CallAfter(self.HideNotify), 5.0)
         self.Thaw()
+        
+        wx.CallLater(5000, self.HideNotify)
 
     def HideNotify(self):
         self.notifyPanel.Hide()

@@ -117,7 +117,10 @@ class SettingsDialog(wx.Dialog):
             self.elements['familyFilter'].SetSelection(1)
 
         self.currentPopup = self.guiUtility.utility.config.Read('popup_player', "boolean")
-        self.elements['externalplayer'].SetValue(self.currentPopup)
+        if self.currentPopup:
+            self.elements['externalplayer'].SetSelection(1)
+        else:
+            self.elements['externalplayer'].SetSelection(0)
         
         self.currentPortValue = str(self.guiUtility.get_port_number())
         self.elements['firewallValue'].SetValue(self.currentPortValue)
@@ -255,8 +258,9 @@ class SettingsDialog(wx.Dialog):
             channelcast_db.updateMyChannelName(self.myname)
             self.guiUtility.toggleFamilyFilter(self.elements['familyFilter'].GetSelection() == 0)
             
-            if self.currentPopup != self.elements['externalplayer'].GetValue():
-                self.guiUtility.utility.config.Write('popup_player', self.elements['externalplayer'].GetValue(), "boolean")
+            selectedPopup = self.elements['externalplayer'].GetSelection() == 1
+            if self.currentPopup != selectedPopup:
+                self.guiUtility.utility.config.Write('popup_player', selectedPopup, "boolean")
                 restart = True
             
             if restart:

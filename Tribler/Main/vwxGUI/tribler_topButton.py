@@ -320,8 +320,7 @@ class LinkStaticText(wx.Panel):
         wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
         self.SetBackgroundColour(parent.GetBackgroundColour())
         
-        self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
-        self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.text = wx.StaticText(self, -1, text)
         font = self.text.GetFont()
@@ -330,20 +329,29 @@ class LinkStaticText(wx.Panel):
         self.text.SetFont(font)
         self.text.SetForegroundColour('#0473BB')
         self.text.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
-        hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL)
+        
+        if icon:
+            self.icon = wx.StaticBitmap(self, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
+            self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+            hSizer.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL)
+            
         self.SetSizer(hSizer)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
+        
     def SetToolTipString(self, tip):
         wx.Panel.SetToolTipString(self, tip)
-        self.icon.SetToolTipString(tip)
         self.text.SetToolTipString(tip)
+        if getattr(self, 'icon', False):
+            self.icon.SetToolTipString(tip)
+        
+    def SetLabel(self, text):
+        self.text.SetLabel(text)
         
     def Bind(self, event, handler, source=None, id=-1, id2=-1):
         wx.Panel.Bind(self, event, handler, source, id, id2)
         
-        self.icon.Bind(event, handler, source, id, id2)
         self.text.Bind(event, handler, source, id, id2)
+        if getattr(self, 'icon', False):
+            self.icon.Bind(event, handler, source, id, id2)

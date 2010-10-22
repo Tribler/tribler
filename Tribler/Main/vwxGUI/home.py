@@ -187,12 +187,15 @@ class BuzzPanel(HomePanel):
                     buzz = self.nbdb.getBuzz(samplesize, with_freq=False, flat=True)
                     for i in range(len(buzz)):
                         random.shuffle(buzz[i])
-                        self.buzz_cache[i].extend(buzz[i])
+                        self.buzz_cache[i] = buzz[i]
                 
                 if self.guiutility.getFamilyFilter():
                     xxx_filter = self.xxx_filter.isXXX
+                    self.header.SetFF(True)
                 else:
                     xxx_filter = lambda *args, **kwargs: False
+                    self.header.SetFF(False)
+
                 
                 # consume cache
                 # Note: if a term is fetched from two different row caches, it is shown in the
@@ -230,6 +233,11 @@ class BuzzPanel(HomePanel):
                 text.SetLabel(term)
             else:
                 text = wx.StaticText(self.panel, wx.ID_ANY, term)
+                text.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+            
+            text.SetFont(self.TERM_FONTS[i])
+            text.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
+            text.SetToolTipString("Click to search for '%s'"%term)
             cur_tags.append(text)
             return text
         
@@ -242,18 +250,11 @@ class BuzzPanel(HomePanel):
                     # don't bother adding an empty hsizer
                     continue
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
-                
                 hSizer.AddStretchSpacer(2)
                 
                 for term in row:
                     text = getStaticText(term)
-                    text.SetFont(self.TERM_FONTS[i])
-                    text.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
-                    text.SetToolTipString("Click to search for '%s'"%term)
-                    
                     hSizer.Add(text, 0, wx.BOTTOM, self.TERM_BORDERS[i])
-                    text.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                    
                     hSizer.AddStretchSpacer()
                 hSizer.AddStretchSpacer()                    
                 self.vSizer.Add(hSizer, 0, wx.EXPAND)

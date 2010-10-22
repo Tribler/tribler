@@ -30,11 +30,11 @@ class RemoteSearchManager:
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         
     def refresh(self):
-        [total_items, data_files] = self.torrentsearch_manager.getHitsInCategory()
+        [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory()
         [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
         
         keywords = ' '.join(self.torrentsearch_manager.searchkeywords['filesMode']) 
-        self.list.SetNrResults(total_items, total_channels, keywords)
+        self.list.SetNrResults(total_items, nrfiltered, total_channels, keywords)
         self.list.SetFF(self.guiutility.getFamilyFilter())
         
         if self.oldkeywords != keywords:
@@ -46,7 +46,7 @@ class RemoteSearchManager:
     def refresh_channel(self):
         [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
         keywords = ' '.join(self.torrentsearch_manager.searchkeywords['filesMode'])
-        self.list.SetNrResults(None, total_channels, keywords)
+        self.list.SetNrResults(None, None, total_channels, keywords)
     
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -65,7 +65,7 @@ class LocalSearchManager:
         self.torrentsearch_manager = GUIUtility.getInstance().torrentsearch_manager 
         
     def refresh(self):
-        [total_items, data_files] = self.torrentsearch_manager.getHitsInCategory('libraryMode', sort="name")
+        [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory('libraryMode', sort="name")
         self.list.SetData(data_files)
         
 class ChannelSearchManager:
@@ -136,12 +136,12 @@ class ChannelManager():
         self.list.footer.SetStates(vote == -1, vote == 2)
         self.list.publisher_id = permid
         self.list.SetFF(self.guiutility.getFamilyFilter())
-        
         self._refresh_list()
         
     def _refresh_list(self):
-        torrentList = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id)
+        [total_items, nrfiltered, torrentList]  = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id)
         torrentList = self.torrentsearch_manager.addDownloadStates(torrentList)
+        self.list.SetNrResults(total_items, nrfiltered, None, None)
         self.list.SetData(torrentList)
     
     def downloadStarted(self, infohash):
@@ -167,7 +167,7 @@ class MyChannelManager():
         
     def refresh(self):
         nr_favorite = self.channelsearch_manager.channelcast_db.getSubscribersCount(bin2str(self.my_permid))
-        torrentList = self.channelsearch_manager.getTorrentsFromMyChannel()
+        [total_items, nr_filtered, torrentList] = self.channelsearch_manager.getTorrentsFromMyChannel()
         self.list.SetData(torrentList, nr_favorite)
         
     def RemoveItems(self, infohashes):
@@ -370,7 +370,7 @@ class SearchList(List):
         footer.SetEvents(self.OnChannelResults)
         return footer 
     
-    def SetNrResults(self, nr, nr_channels, keywords):
+    def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
         if isinstance(nr, int):
             if nr == 0:
                 self.header.SetTitle('No results for "%s"'%keywords)
@@ -379,6 +379,9 @@ class SearchList(List):
             else:
                 self.header.SetTitle('Got %d results for "%s"'%(nr, keywords))
             self.total_results = nr
+        
+        if isinstance(nr_filtered, int):
+            self.header.SetFiltered(nr_filtered)
             
         if isinstance(nr_channels, int):
             if nr_channels == 0:
@@ -853,17 +856,17 @@ class SelectedChannelList(SearchList):
         return self.manager
     
     def SetData(self, data):
-        #data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], file['num_seeders'], file['num_leechers']], file) for file in data]
-        #data = [(file['infohash'],[file['name'], file['creation_date'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
         data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
         self.list.SetData(data)
-        
-        self.total_results = len(data)
-        
+    
+    def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
+        self.total_results = nr
         if self.total_results == 1:
-            self.header.SetSubTitle('Discovered %d torrent'%1)
+            self.header.SetSubTitle('Discovered %d torrent'%self.total_results)
         else:
             self.header.SetSubTitle('Discovered %d torrents'%self.total_results)
+        
+        SearchList.SetNrResults(self, None, nr_filtered, nr_channels, keywords)
     
     def RefreshData(self, key, data):
         data = (data['infohash'],[data['name'], data['time_stamp'], data['length'], 0, 0], data)
