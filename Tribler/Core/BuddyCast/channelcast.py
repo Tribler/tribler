@@ -245,7 +245,8 @@ class ChannelCastCore:
         @param query: the query string (None if this is not the results of a query) 
         @param hits: details of all matching results related to the query
         """
-        print >> sys.stderr, bin2str(query_permid), query, len(hits)
+        if DEBUG:
+            print >> sys.stderr, "channelcast: sending message to", bin2str(query_permid), query, len(hits)
         return self._updateChannelInternal(query_permid, query, hits)
         
     def _updateChannelInternal(self, query_permid, query, hits):
@@ -310,7 +311,11 @@ class ChannelCastCore:
     def updateAChannel(self, publisher_id, peers = None):
         if peers == None:
             peers = RemoteQueryMsgHandler.getInstance().get_connected_peers(OLPROTO_VER_THIRTEENTH)
-        
+        else:
+            #use the specified peers list, small problem we dont have the selversion
+            #use oversion 14, eventually RemoteQueryMsgHandler will convert the query for oversion13 peers
+            peers = [(permid, OLPROTO_VER_FOURTEENTH) for permid in peers]
+            
         # we prefer starting update with peers with oversion>13
         fully_capable_peers = []
         ol13_peers = []
