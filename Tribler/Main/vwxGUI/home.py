@@ -227,7 +227,7 @@ class BuzzPanel(HomePanel):
         self.vSizer.Clear()
         
         cur_tags = []
-        def getStaticText(term):
+        def getStaticText(term, font = None):
             if len(self.tags) > 0:
                 text = self.tags.pop()
                 text.SetLabel(term)
@@ -235,7 +235,8 @@ class BuzzPanel(HomePanel):
                 text = wx.StaticText(self.panel, wx.ID_ANY, term)
                 text.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
             
-            text.SetFont(self.TERM_FONTS[i])
+            if font:
+                text.SetFont(font)
             text.SetForegroundColour(BuzzPanel.INACTIVE_COLOR)
             text.SetToolTipString("Click to search for '%s'"%term)
             cur_tags.append(text)
@@ -253,7 +254,7 @@ class BuzzPanel(HomePanel):
                 hSizer.AddStretchSpacer(2)
                 
                 for term in row:
-                    text = getStaticText(term)
+                    text = getStaticText(term, self.TERM_FONTS[i])
                     hSizer.Add(text, 0, wx.BOTTOM, self.TERM_BORDERS[i])
                     hSizer.AddStretchSpacer()
                 hSizer.AddStretchSpacer()                    
