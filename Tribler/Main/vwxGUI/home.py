@@ -184,7 +184,7 @@ class BuzzPanel(HomePanel):
                 # simple caching
                 # (does not check for possible duplicates within display_size-window!)
                 if any(len(row) < 10 for row in self.buzz_cache):
-                    buzz = self.nbdb.getBuzz(samplesize, with_freq=False, flat=True)
+                    buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
                     for i in range(len(buzz)):
                         random.shuffle(buzz[i])
                         self.buzz_cache[i] = buzz[i]
@@ -205,9 +205,9 @@ class BuzzPanel(HomePanel):
                 added_terms = set()
                 for i in range(len(filtered_buzz)):
                     while len(filtered_buzz[i]) < BuzzPanel.DISPLAY_SIZES[i] and len(self.buzz_cache[i]):
-                        term = self.buzz_cache[i].pop(0)
+                        term, freq = self.buzz_cache[i].pop(0)
                         if term not in added_terms and not xxx_filter(term, isFilename=False):
-                            filtered_buzz[i].append(term)
+                            filtered_buzz[i].append((term, freq))
                             added_terms.add(term)
                             empty = False
                 
@@ -253,7 +253,7 @@ class BuzzPanel(HomePanel):
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
                 hSizer.AddStretchSpacer(2)
                 
-                for term in row:
+                for term, freq in row:
                     text = getStaticText(term, self.TERM_FONTS[i])
                     hSizer.Add(text, 0, wx.BOTTOM, self.TERM_BORDERS[i])
                     hSizer.AddStretchSpacer()
@@ -349,3 +349,4 @@ class BuzzPanel(HomePanel):
         
         uelog = UserEventLogDBHandler.getInstance()
         uelog.addEvent(message=repr((term, self.last_shown_buzz)))
+        
