@@ -257,6 +257,10 @@ class TorrentDetails(wx.Panel):
                 vSizer.AddStretchSpacer()
                 if finished:
                     vSizer.Add(wx.StaticText(subtitlePanel, -1, "Please select a subtitle and click play."), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 10)
+                    
+                    self.requestingSub = wx.StaticText(subtitlePanel)
+                    self.requestingSub.Show(False)
+                    vSizer.Add(self.requestingSub, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 10)
                 else:
                     vSizer.Add(wx.StaticText(subtitlePanel, -1, "After you finished downloading this torrent you can select one to used with our player."), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 10)
         
@@ -595,8 +599,18 @@ class TorrentDetails(wx.Panel):
         if selected > 0 and selected != wx.NOT_FOUND:
             if len(choice.items[selected]) > 1:
                 (lang, channelid, subtitleinfo) = choice.items[selected]
+                
+                self.requestingSub.SetLabel('Requesting subtitle from peers, please wait.')
+                self.requestingSub.Show()
+                                
                 subsupport = SubtitlesSupport.getInstance()
                 subsupport.retrieveSubtitleContent(channelid, self.torrent['infohash'], subtitleinfo, self.OnRetrieveSubtitle)
+                
+                def subTimeout():
+                    if self.requestingSub.IsShown():
+                        self.requestingSub.SetLabel('Did not receive subtitle yet, it probably failed. Mark channel as favorite for improved support.')
+                        wx.CallLater(3000, self.requestingSub.Show, False)
+                wx.CallLater(10000, subTimeout)
             else:
                 file = self._GetPath(choice.items[selected][0])
                 self.SetSubtitle(file)
@@ -605,6 +619,10 @@ class TorrentDetails(wx.Panel):
     
     def OnRetrieveSubtitle(self, subtitleinfo):
         self.SetSubtitle(subtitleinfo.getPath())
+        
+        if self.requestingSub.IsShown():
+            self.requestingSub.SetLabel('Got subtitle from peers.')
+            wx.CallLater(3000, self.requestingSub.Show, False)
         
     def SetSubtitle(self, file):
         #get largest playable file
