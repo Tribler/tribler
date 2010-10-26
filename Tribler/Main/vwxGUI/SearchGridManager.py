@@ -61,7 +61,8 @@ class TorrentManager:
         self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
         self.rerankingStrategy = {'filesMode':DefaultTorrentReranker(), 'libraryMode':DefaultTorrentReranker()}
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
-
+        
+        self.filteredResults = 0
         self.category = Category.getInstance()
         
         # 09/10/09 boudewijn: CallLater does not accept zero as a
@@ -311,16 +312,22 @@ class TorrentManager:
         self.guiserver.add_task(lambda:self.updateProgressInDB(dslist),0)
      
     def updateProgressInDB(self, dslist):
+        updates = False
         for ds in dslist:
             infohash = ds.get_download().get_def().get_infohash()
             
             progress = (ds.get_progress() or 0.0) * 100.0
-            if progress - self.cache_progress.get(infohash, 0) > 1:
+            #update progress if difference is larger than 5%
+            if progress - self.cache_progress.get(infohash, 0) > 5:
                 self.cache_progress[infohash] = progress
                 try:
-                    self.mypref_db.updateProgress(infohash, progress, commit=True)
+                    self.mypref_db.updateProgress(infohash, progress, commit = False)
+                    updates = True
                 except:
-                    print_exc() 
+                    print_exc()
+        
+        if updates:
+            self.mypref_db.commit()
         
     def add_download_state_callback(self, callback):
         if callback not in self.gui_callback:

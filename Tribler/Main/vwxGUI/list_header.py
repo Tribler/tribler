@@ -367,9 +367,9 @@ class MyChannelHeader(SubTitleHeader):
     def SetNrTorrents(self, nr, nr_favorites):
         subtitle = ''
         if nr == 1:
-            subtitle = 'Sharing '+str(nr)+' .torrent'
+            subtitle = 'Sharing %d torrent'%nr
         else:
-            subtitle = 'Sharing '+str(nr)+' .torrents'
+            subtitle = 'Sharing %d torrents'%nr
             
         if nr_favorites == 0:
             subtitle += ', but not marked as a favorite yet.'
@@ -453,7 +453,7 @@ class SearchHeader(FamilyFilterHeader):
         pass
     
     def SetNrResults(self, nr = None):
-        if nr:
+        if nr is not None:
             self.SetSubTitle('Discovered %d after filter'%nr)
     
     def OnKey(self, event):

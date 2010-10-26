@@ -133,6 +133,8 @@ class SRstatusbar(wx.StatusBar):
             self.Reposition()
     
     def Reposition(self):
+        self.Freeze()
+        
         rect = self.GetFieldRect(0)
         self.srPanel.Layout()
         self.srPanel.SetPosition((rect.x, rect.y))
@@ -144,3 +146,5 @@ class SRstatusbar(wx.StatusBar):
         yAdd = (rect.height - size[1])/2
         self.firewallStatus.SetPosition((rect.x, rect.y+yAdd))
         self.sizeChanged = False
+        
+        self.Thaw()

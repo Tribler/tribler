@@ -188,17 +188,17 @@ class GUIUtility:
             self.frame.Layout()
             self.frame.Thaw()
         
-        #Set focus to page
-        if page == 'search_results':
-            self.frame.searchlist.Focus()
-        elif page == 'channels':
-            self.frame.channellist.Focus()
-        elif page == 'selectedchannel':
-            self.frame.selectedchannellist.Focus()
-        elif page == 'mychannel':
-            self.frame.mychannel.Focus()
-        elif page =='my_files':
-            self.frame.librarylist.Focus()
+            #Set focus to page
+            if page == 'search_results':
+                self.frame.searchlist.Focus()
+            elif page == 'channels':
+                self.frame.channellist.Focus()
+            elif page == 'selectedchannel':
+                self.frame.selectedchannellist.Focus()
+            elif page == 'mychannel':
+                self.frame.mychannel.Focus()
+            elif page =='my_files':
+                self.frame.librarylist.Focus()
                 
     def GoBack(self):
         if self.oldpage == 'channels':
@@ -227,6 +227,7 @@ class GUIUtility:
                 return
         else:
             self.frame.top_bg.searchField.SetValue(input)
+            
         self.frame.top_bg.StartSearch()
         
         wantkeywords = split_into_keywords(input)

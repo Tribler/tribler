@@ -488,11 +488,12 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwin.tell_vclwrap_window_for_playback()
 
     def ShowLoading(self):
-        self.vlcwin.show_loading()
-        self.OnMaximize()
+        if self.vlcwrap:
+            self.vlcwin.show_loading()
+            self.OnMaximize()
 
     def OnMinimize(self):
-        if self.border:
+        if self.vlcwrap and self.border:
             self.SetMinSize((34,-1))
             
             self.vlcwin.Show(False)
@@ -504,7 +505,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.utility.guiUtility.frame.Layout()
         
     def OnMaximize(self):
-        if self.border:
+        if self.vlcwrap and self.border:
             self.SetMinSize((320,-1))
             
             self.vlcwin.Show(True)

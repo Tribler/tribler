@@ -52,7 +52,7 @@ class RemoteSearchManager:
         if self.list.InList(infohash):
             item = self.list.GetItem(infohash)
             torrent_details = item.GetExpandedPanel()
-            torrent_details.ShowDownloadProgress()
+            torrent_details.ShowPanel(1)
             
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
@@ -100,7 +100,7 @@ class ChannelSearchManager:
             self.list.SetTitle('Search results for "%s"'%keywords, total_items)
         
         self.list.SetData(data, favorites)
-        self.list.SetFocus()
+        #self.list.SetFocus()
         
     def SetCategory(self, category):
         if category != self.category:
@@ -141,14 +141,18 @@ class ChannelManager():
     def _refresh_list(self):
         [total_items, nrfiltered, torrentList]  = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id)
         torrentList = self.torrentsearch_manager.addDownloadStates(torrentList)
-        self.list.SetNrResults(total_items, nrfiltered, None, None)
-        self.list.SetData(torrentList)
+        
+        if self.list.SetData(torrentList) < total_items: #some items are filtered by quickfilter (do not update total_items)
+            self.list.SetNrResults(None, nrfiltered, None, None)
+        else:
+            self.list.SetNrResults(total_items, nrfiltered, None, None)
     
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
             item = self.list.GetItem(infohash)
+            
             torrent_details = item.GetExpandedPanel()
-            torrent_details.ShowDownloadProgress()
+            torrent_details.ShowPanel(1)
 
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
@@ -391,6 +395,12 @@ class SearchList(List):
             else:
                 self.footer.SetMessage('Additionally, got %d channels for "%s"'%(nr_channels, keywords))
             self.footer.EnableResults(nr_channels > 0)
+        
+    def SetFilteredResults(self, nr):
+        if nr != self.total_results: 
+            self.header.SetNrResults(nr)
+        else:
+            self.header.SetNrResults()
     
     def SetFF(self, family_filter):
         self.header.SetFF(family_filter)
@@ -405,13 +415,13 @@ class SearchList(List):
         if len(data) > 0:
             #data = [(file['infohash'],[file['name'], file['length'], file['num_seeders'], file['num_leechers']], file) for file in data]
             data = [(file['infohash'],[file['name'], file['length'], 0, 0], file) for file in data]
-            self.list.SetData(data)
-        else:
-            message =  'No torrents matching your query are found. \n'
-            message += 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
-            if self.guiutility.getFamilyFilter():
-                message += '\n\nAdditionally, you could disable the "Family Filter" by clicking on it.'
-            self.list.ShowMessage(message)
+            return self.list.SetData(data)
+        message =  'No torrents matching your query are found. \n'
+        message += 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
+        if self.guiutility.getFamilyFilter():
+            message += '\n\nAdditionally, you could disable the "Family Filter" by clicking on it.'
+        self.list.ShowMessage(message)
+        return 0
     
     def RefreshData(self, key, data):
         data = (data['infohash'],[data['name'], data['length'], 0, 0], data)
@@ -479,12 +489,6 @@ class SearchList(List):
     def OnFilter(self, keyword):
         self.header.FilterCorrect(self.list.FilterItems(keyword))
         
-    def SetFilteredResults(self, nr):
-        if nr != self.total_results: 
-            self.header.SetNrResults(nr)
-        else:
-            self.header.SetNrResults()
-                    
     def format(self, val):
         val = int(val)
         if val < 0:
@@ -664,6 +668,7 @@ class LibaryList(List):
                     item.original_data['ds'] = ds
                 else:
                     self.GetManager().refresh()
+                    break
                     
             for infohash, item in self.list.items.iteritems():
                 status = item.progressPanel.Update()
@@ -702,11 +707,11 @@ class LibaryList(List):
     def SetData(self, data):
         if len(data) > 0:
             data = [(file['infohash'], [file['name'], [0,0], None, None, None], file) for file in data]
-            self.list.SetData(data)
-        else:
-            message = "Currently not downloading any torrents.\n"
-            message += "You can find torrents by using our integrated search, discover them using a channel or drag and drop an .torrent file from an external source."
-            self.list.ShowMessage(message) 
+            return self.list.SetData(data)
+        message = "Currently not downloading any torrents.\n"
+        message += "You can find torrents by using our integrated search, discover them using a channel or drag and drop a torrent file downloaded from an external source."
+        self.list.ShowMessage(message)
+        return 0
 
     def Show(self):
         List.Show(self)
@@ -786,9 +791,10 @@ class ChannelList(List):
             self.favorites = [file[0] for file in favorites]
             
             data = [(file[0],[file[1], file[2], file[3], file[4]], file) for file in data]
-            self.list.SetData(data)
-        else:
-            self.list.ShowMessage('No channels are discovered for this category.')
+            return self.list.SetData(data)
+        
+        self.list.ShowMessage('No channels are discovered for this category.')
+        return 0
         
     def RefreshData(self, key, data):
         data = (data[0],[data[1], data[2], data[3], data[4]], data)
@@ -857,14 +863,15 @@ class SelectedChannelList(SearchList):
     
     def SetData(self, data):
         data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
-        self.list.SetData(data)
+        return self.list.SetData(data)
     
     def SetNrResults(self, nr, nr_filtered, nr_channels, keywords):
-        self.total_results = nr
-        if self.total_results == 1:
-            self.header.SetSubTitle('Discovered %d torrent'%self.total_results)
-        else:
-            self.header.SetSubTitle('Discovered %d torrents'%self.total_results)
+        if isinstance(nr, int):
+            self.total_results = nr
+            if self.total_results == 1:
+                self.header.SetSubTitle('Discovered %d torrent'%self.total_results)
+            else:
+                self.header.SetSubTitle('Discovered %d torrents'%self.total_results)
         
         SearchList.SetNrResults(self, None, nr_filtered, nr_channels, keywords)
     
@@ -957,9 +964,9 @@ class MyChannelList(List):
         self.myheader.SetNrTorrents(len(data), nr_favorites)
         
         if len(data) > 0:
-            self.list.SetData(data)
-        else:
-            self.list.ShowMessage('You are currently not sharing any torrents in your channel.')
+            return self.list.SetData(data)
+        self.list.ShowMessage('You are currently not sharing any torrents in your channel.')
+        return 0
     
     def ShowList(self):
         self.list.SetFocus()

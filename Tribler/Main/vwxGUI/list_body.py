@@ -377,7 +377,8 @@ class AbstractListBody():
         
         #queue lists
         self.done = True
-        self.data = []
+        self.data = None
+        self.raw_data = None
         self.items = {}
         self.Bind(wx.EVT_IDLE, self.OnIdle)
         
@@ -424,7 +425,7 @@ class AbstractListBody():
                     
                 self.vSizer.ShowItems(False)
                 self.vSizer.Clear()
-                self.CreateItems()
+                self.SetData()
                 
                 self.Thaw()
         return True
@@ -488,6 +489,7 @@ class AbstractListBody():
             
         self.items = {}
         self.data = None
+        self.raw_data = None
         self.OnChange()
         self.Thaw()
     
@@ -524,30 +526,43 @@ class AbstractListBody():
                 print >> sys.stderr, "ListBody: refresh item"
             self.items[key].RefreshData(data)
     
-    def SetData(self, data):
+    def SetData(self, data = None):
         if DEBUG:
             print >> sys.stderr, "ListBody: new data"
         
-        self.vSizer.Clear()
-        if len(self.items) == 0:
-            #new data
-            if len(data) > LIST_ITEM_BATCH_SIZE:
-                self.ShowMessage('Loading, please wait.')
-                
-                #Try to yield, allows us to show loading text
-                try:
-                    wx.Yield()
-                except:
-                    pass
-            self.highlightSet = set()
-        else:
-            #updated data, takes roughly 0.007s for 650+ results
-            cur_keys = [key for key,_,_ in self.data]
-            self.highlightSet = set([key for key,_,_ in data if key not in cur_keys])
-            pass
+        #store raw data
+        if not data:
+            data = self.raw_data
+        self.raw_data = data
         
-        self.data = data
-        self.CreateItems()
+        #apply quickfilter
+        if self.filter != '':
+            data = filter(self.MatchFilter, data)
+            self.parent_list.SetFilteredResults(len(data))
+        
+        self.vSizer.Clear()
+        if data:
+            if len(self.items) == 0:
+                #new data
+                if len(data) > LIST_ITEM_BATCH_SIZE:
+                    self.ShowMessage('Loading, please wait.')
+                    
+                    #Try to yield, allows us to show loading text
+                    try:
+                        wx.Yield()
+                    except:
+                        pass
+                self.highlightSet = set()
+            else:
+                #updated data, takes roughly 0.007s for 650+ results
+                cur_keys = [key for key,_,_ in self.raw_data]
+                self.highlightSet = set([key for key,_,_ in data if key not in cur_keys])
+
+            self.data = data
+            self.CreateItems()
+        
+            return len(data)
+        return 0
         
     def OnIdle(self, event):
         if not self.done and self.data:
@@ -570,16 +585,9 @@ class AbstractListBody():
         #Check if we need to clear vSizer
         self.messagePanel.Show(False)
         self.vSizer.Remove(self.messagePanel)
-
-        #Apply quickfilter
-        if self.filter != '':
-            data = filter(self.MatchFilter, self.data)
-            self.parent_list.SetFilteredResults(len(data))
-        else:
-            data = self.data
             
         #Add created/cached items
-        for key, item_data, original_data in data:
+        for key, item_data, original_data in self.data:
             if nr_items_to_add > 0:
                 if key in self.items:
                     item = self.items[key]
@@ -603,7 +611,7 @@ class AbstractListBody():
                                             
                 nr_items_to_add -= 1
             else:
-                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(LIST_ITEM_MAX_SIZE, len(data)))
+                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(LIST_ITEM_MAX_SIZE, len(self.data)))
                 self.loadNext.Enable()
                 self.loadNext.Show()
                 self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
@@ -616,7 +624,7 @@ class AbstractListBody():
         self.Thaw()
         self.done = done
         if DEBUG:
-            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(data),"took", time.time() - t1
+            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time.time() - t1
         
     def GetItem(self, key):
         return self.items[key]

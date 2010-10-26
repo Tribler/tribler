@@ -111,7 +111,10 @@ class ChannelResultFooter(ListFooter):
         self.Layout()
     
     def SetEvents(self, channel):
+        #removing old, binding new eventhandler
+        self.channelResutls.Bind(wx.EVT_BUTTON, None)
         self.channelResutls.Bind(wx.EVT_BUTTON, channel)
+        
     def EnableResults(self, state):
         self.channelResutls.Enable(state)
         
@@ -136,6 +139,7 @@ class ChannelFooter(ListFooter):
         self.remove_eventhandler = remove
     
     def SetStates(self, spam, favorite):
+        self.Freeze()
         self.spam.Bind(wx.EVT_BUTTON, None)
         if spam:
             self.spam.SetLabel('This is not Spam')
@@ -158,6 +162,9 @@ class ChannelFooter(ListFooter):
             self.message.SetLabel("Thank you for marking this Channel as your Favorite.")
         else:
             self.message.SetLabel("What do you think of this Channel? Mark it as Spam or as a Favorite.")
+        
+        self.Layout()
+        self.Thaw()
     
     def GetStates(self):
         return (self.spam.GetLabel() == 'This is not Spam', self.favorite.GetLabel() == 'Remove Favorite')
