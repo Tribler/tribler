@@ -115,7 +115,7 @@ class TorrentManager:
             
         return (TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved), "from dht")
              
-    def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True):
+    def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio = 0):
         """
         TORRENT is a dictionary containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
@@ -128,6 +128,9 @@ class TorrentManager:
         True). Or DUPLICATE can be False: the file will only be
         downloaded when it was not yet attempted to download (when
         False is returned no callback will be made)
+        
+        PRIO is the priority, default is 0 which means we need this torrent now.
+        If PRIO != 0, then a rate limiter could be used by the remotetorrentrequester
 
         Returns True or False
         """
@@ -145,7 +148,7 @@ class TorrentManager:
 
         torrent['query_torrent_was_requested'] = True
         for permid in torrent['query_permids']:
-            self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent['infohash'], callback)
+            self.guiUtility.utility.session.download_torrentfile_from_peer(permid, torrent['infohash'], callback, prio)
         
         return True
     
@@ -495,7 +498,7 @@ class TorrentManager:
             torrent_filename = os.path.join(torrent_dir, hit['torrent_file_name'])
 
             if not os.path.isfile(torrent_filename):
-                if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate=False):
+                if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate=False, prio = 1):
                     prefetch_counter += 1
                     if DEBUG: print >> sys.stderr, "Prefetch: attempting to download", `hit["name"]`
 

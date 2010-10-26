@@ -3356,6 +3356,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         return  self._db.fetchone(sql, (publisher_id,))
     
     def _getChannels(self, sql, args = None, maxvotes = sys.maxint):
+        """Returns the channels based on the input sql, if the number of positive votes is less than maxvotes and the number of torrent > 0"""
         channels = []
         results = self._db.fetchall(sql, args)
         
@@ -3367,8 +3368,8 @@ class ChannelCastDBHandler(BasicDBHandler):
             if nr_votes <= maxvotes:
                 name = self._db.fetchone(sqlb, (result[0], result[1]))
                 nr_torrents = self._db.fetchone(sqlc, (result[0],))
-                 
-                channels.append((result[0], name, result[1], nr_votes, nr_torrents))
+                if nr_torrents > 0:
+                    channels.append((result[0], name, result[1], nr_votes, nr_torrents))
                 
         def channel_sort(a, b):
             #first compare nr_votes

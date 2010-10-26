@@ -334,30 +334,36 @@ class ChannelCastCore:
         peers.extend(ol13_peers)
         
         # Create separate thread which does all the requesting
-        thread = threading.Thread(target=self._sequentialQueryPeers, args=(publisher_id, peers))
-        thread.daemon = True
-        thread.name = 'Sequential_ChannelCast_'+thread.name
-        thread.start()
+        self.overlay_bridge.add_task(lambda: self._sequentialQueryPeers(publisher_id, peers))
     
     def _sequentialQueryPeers(self, publisher_id, peers):
-        cur_permid = None
-        timeout = threading.Event()
+        def seqtimeout(permid):
+            if peers and permid == peers[0][0]:
+                peers.pop(0)
+                dorequest()
+                
         def seqcallback(query_permid, query, hits):
             self.updateChannel(query_permid, query, hits)
             
-            if query_permid == cur_permid:
-                timeout.set()
-        
-        for permid, selversion in peers:
-            q = "CHANNEL p "+publisher_id
-            if selversion > OLPROTO_VER_THIRTEENTH:
-                record = self.channelcastdb.getTimeframeForChannel(publisher_id)
-                if record:
-                    q+=" "+" ".join(map(str,record))
+            if peers and query_permid == peers[0][0]:
+                peers.pop(0)
+                dorequest()
             
-            cur_permid = permid
-            self.session.query_peers(q,[permid],usercallback=seqcallback)
-            timeout.wait(30)
+        def dorequest():
+            if peers:
+                permid, selversion = peers[0]
+    
+                q = "CHANNEL p "+publisher_id
+                if selversion > OLPROTO_VER_THIRTEENTH:
+                    record = self.channelcastdb.getTimeframeForChannel(publisher_id)
+                    if record:
+                        q+=" "+" ".join(map(str,record))
+                
+                self.session.query_peers(q,[permid],usercallback = seqcallback)
+                self.overlay_bridge.add_task(lambda: seqtimeout(permid), 30)
+        
+        peers = peers[:]
+        dorequest()
 
     def buildChannelcastMessageFromHits(self, hits, selversion, dest_permid=None, fromQuery=False):
         '''

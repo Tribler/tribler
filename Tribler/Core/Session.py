@@ -743,7 +743,7 @@ class Session(SessionRuntimeConfig):
         finally:
             self.sesslock.release() 
     
-    def download_torrentfile_from_peer(self,permid,infohash,usercallback):
+    def download_torrentfile_from_peer(self,permid,infohash,usercallback, prio = 0):
         """ Ask the designated peer to send us the torrentfile for the torrent
         identified by the passed infohash. If the torrent is succesfully 
         received, the usercallback method is called with the infohash as first
@@ -763,7 +763,7 @@ class Session(SessionRuntimeConfig):
                 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
                 
                 rtorrent_handler = RemoteTorrentHandler.getInstance()
-                rtorrent_handler.download_torrent(permid,infohash,usercallback)
+                rtorrent_handler.download_torrent(permid,infohash,usercallback,prio)
             else:
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:
