@@ -1519,55 +1519,52 @@ class TorrentDBHandler(BasicDBHandler):
             torrent_id, infohash, name, category, status, creation_date, num_files, num_leechers, num_seeders,
             length, secret, insert_time, source, torrent_filename, relevance, simRank, tracker, last_check
             (if in library: myDownloadHistory, download_started, progress, dest_dir)
-            
+        
+        niels 25-10-2010: changed behaviour to left join TorrentTracker, due to magnet links
         """
         
         #print >> sys.stderr, 'TorrentDBHandler: getTorrents(%s, %s, %s, %s, %s)' % (category_name, range, library, sort, reverse)
         s = time()
         
         value_name = deepcopy(self.value_name)
-            
-        where = 'T.torrent_id = C.torrent_id and announce_tier=1 '
         
+        
+        sql = 'Select '+','.join(value_name)
+        sql += ' From CollectedTorrent C Left Join TorrentTracker T ON C.torrent_id = T.torrent_id'
+        
+        where = ''
         if category_name != 'all':
-            where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
+            where += 'category_id = %d AND' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
+            
         if library:
-            if sort in value_name:
-                where += ' and C.torrent_id in (select torrent_id from MyPreference where destination_path != "")'
-            else:
-                value_name[0] = 'C.torrent_id'
-                where += ' and C.torrent_id = M.torrent_id and announce_tier=1'
+            where += 'C.torrent_id in (select torrent_id from MyPreference where destination_path != "")'
         else:
-            where += ' and status_id=%d ' % self.status_table['good'] # if not library, show only good files
+            where += 'status_id=%d ' % self.status_table['good'] # if not library, show only good files
             # add familyfilter
             where += self.category.get_family_filter_sql(self._getCategoryID)
+        
+        sql += ' Where '+where
+        
         if range:
             offset= range[0]
             limit = range[1] - range[0]
-        else:
-            limit = offset = None
+            sql += ' Limit %d Offset %d'%(limit, offset)
+            
         if sort:
             # Arno, 2008-10-6: buggy: not reverse???
             desc = (reverse) and 'desc' or ''
             if sort in ('name'):
-                order_by = ' lower(%s) %s' % (sort, desc)
+                sql += ' Order By lower(%s) %s' % (sort, desc)
             else:
-                order_by = ' %s %s' % (sort, desc)
-        else:
-            order_by = None
+                sql += ' Order By %s %s' % (sort, desc)
             
         #print >>sys.stderr,"TorrentDBHandler: GET TORRENTS val",value_name,"where",where,"limit",limit,"offset",offset,"order",order_by
         #print_stack
         
         # Must come before query
         ranks = self.getRanks()
-
-        #self._db.show_execute = True
-        if library and sort not in value_name:
-            res_list = self._db.getAll('CollectedTorrent C, MyPreference M, TorrentTracker T', value_name, where, limit=limit, offset=offset, order_by=order_by)
-        else:
-            res_list = self._db.getAll('CollectedTorrent C, TorrentTracker T', value_name, where, limit=limit, offset=offset, order_by=order_by)
-        #self._db.show_execute = False
+        
+        res_list = self._db.fetchall(sql)
         
         mypref_stats = self.mypref_db.getMyPrefStats()
         
@@ -3278,7 +3275,6 @@ class ChannelCastDBHandler(BasicDBHandler):
                 max_timestamp = float(arguments[2])
                 nr_items = int(arguments[3])
                 
-                print >> sys.stderr, "GOT RANGE REQUEST", publisher_id, min_timestamp, max_timestamp, nr_items
                 allrecords = []
                 
                 s = "select min(time_stamp), max(time_stamp), count(infohash) from ChannelCast where publisher_id==? group by publisher_id"
@@ -3292,12 +3288,10 @@ class ChannelCastDBHandler(BasicDBHandler):
                         items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
                         
                         if items > nr_items:
-                            print >> sys.stderr, "He has missing data, we have:", items, "he has", nr_items
                             #missing data, return complete timeframe
                             s = "select * from ChannelCast where publisher_id==? and time_stamp between ? and ?"
                             allrecords = self._db.fetchall(s,(publisher_id,min_timestamp,max_timestamp))
                         else:
-                            print >> sys.stderr, "His timeframe complete, returning 50 new/old"
                             #return max 50 newer, append with old
                             s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
                             allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
@@ -3306,11 +3300,14 @@ class ChannelCastDBHandler(BasicDBHandler):
                                 s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
                                 allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
                     elif record[0] > min_timestamp or record[1] < max_timestamp or record[2] < nr_items:
-                        print >> sys.stderr, "HE HAS MORE DATA"
+                        #print >> sys.stderr, "HE HAS MORE DATA"
+                        pass
                     else:
-                        print >> sys.stderr, "WE HAVE SAME DATA"
+                        #print >> sys.stderr, "WE HAVE SAME DATA"
+                        pass
                 else:
-                    print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"
+                    #print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"
+                    pass
             records = []
             for record in allrecords:
                 records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
