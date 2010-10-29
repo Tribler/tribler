@@ -60,6 +60,10 @@ class Connection:
         self._socket = raw_server.start_connection(address, self)
         self.write_handshake()
 
+    @property
+    def address(self):
+        return self._address
+
     def write_handshake(self):
         # if DEBUG: print >> sys.stderr, "MiniBitTorrent.write_handshake()"
         self._socket.write("".join((chr(len(protocol_name)), protocol_name,
@@ -488,7 +492,12 @@ class MiniSwarm:
             if len(self._connections) >= MAX_CONNECTIONS:
                 break
 
-            if address in self._connections:
+            already_on_this_address = False
+            for connection in self._connections:
+                if connection.address == address:
+                    already_on_this_address = True
+                    break
+            if already_on_this_address:
                 continue
 
             try:
