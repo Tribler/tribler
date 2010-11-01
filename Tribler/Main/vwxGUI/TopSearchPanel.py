@@ -63,43 +63,38 @@ class TopSearchPanel(bgPanel):
         if not self.results.IsEnabled():
             self.results.Enable()
                   
-        self.selectTab('results')
+        self.selectTab('search_results')
         self.results.SetValue(True)
     
     def OnResults(self, event):
-        if self.guiUtility.guiPage != 'search_results':
-            #Need to use callafter, to allow list to get focus
-            wx.CallAfter(self.guiUtility.ShowPage, 'search_results')
-            
-        self.selectTab('results')
+        self._selectPage('search_results')
 
     def OnChannels(self, event):
-        if self.guiUtility.guiPage not in ['channels', 'selectedchannel', 'mychannel']:
+        if self.guiUtility.guiPage not in ['channels', 'mychannel']:
             wx.CallAfter(self.guiUtility.ShowPage, 'channels')
-        
         self.selectTab('channels')
    
     def OnSettings(self, event):
-        wx.CallAfter(self.guiUtility.ShowPage, 'settings')
-        
-        self.selectTab('settings')
+        self._selectPage('settings')
     
     def OnHome(self, event):
-        if self.guiUtility.guiPage != 'home':
-            #Need to use callafter, to allow list to get focus
-            wx.CallAfter(self.guiUtility.ShowPage, 'home')
-        
-        self.selectTab('home')
+        self._selectPage('home')
         
     def OnLibrary(self, event):
-        if self.guiUtility.guiPage != 'my_files':
-            wx.CallAfter(self.guiUtility.ShowPage, 'my_files')
+        self._selectPage('my_files')
+    
+    def OnStats(self, event):
+        self._selectPage('stats')
+    
+    def _selectPage(self, page):
+        if self.guiUtility.guiPage != page:
+            wx.CallAfter(self.guiUtility.ShowPage, page)
             
-        self.selectTab('my_files')
+        self.selectTab(page)
         
     def selectTab(self, tab):
         self.home.SetValue(tab == 'home')
-        self.results.SetValue(tab == 'results')
+        self.results.SetValue(tab == 'search_results')
         self.channels.SetValue(tab == 'channels')
         self.settings.SetValue(tab == 'settings')
         self.my_files.SetValue(tab == 'my_files')
@@ -141,14 +136,23 @@ class TopSearchPanel(bgPanel):
     def _PostInit(self):
         if DEBUG:
             print >> sys.stderr, "TopSearchPanel: OnCreate"
-            
+        
         bgPanel._PostInit(self)
-        if sys.platform == 'linux2': #bug in linux for searchctrl, focus does not hide search text + text stays grey
+        self.SetBackgroundColour(wx.Colour(255, 255, 255))
+        
+        if sys.platform == 'linux2':
+            #bug in linux for searchctrl, focus does not hide search text + text stays grey
             self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
         else:
             self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
+        self.searchField.SetMinSize((400, -1))
+        self.searchField.SetFocus()
+        self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
+        self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
         
         self.go = tribler_topButton(self,-1,name = 'Search_new')
+        self.go.SetMinSize((50, 24))
+        self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
         
         def createToggle(label, event):
             button = wx.ToggleButton(self, -1, label)
@@ -162,7 +166,7 @@ class TopSearchPanel(bgPanel):
         self.results.Disable()
         
         self.home = createToggle('Home', self.OnHome)
-        self.home.SetValue(True)
+        self.selectTab('home')
         
         if sys.platform == 'win32':
             self.files_friends = wx.StaticBitmap(self, -1, self.Bitmap("images/search_files_channels.png", wx.BITMAP_TYPE_ANY))
@@ -170,31 +174,19 @@ class TopSearchPanel(bgPanel):
         else:    
             self.files_friends = wx.StaticText(self, -1, "Search Files or Channels") 
             self.tribler_logo2 = wx.StaticBitmap(self, -1, self.Bitmap("images/logo4video2.png", wx.BITMAP_TYPE_ANY))
+            
+            if sys.platform == 'linux2':
+                self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
+            elif sys.platform == 'darwin': # mac
+                self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
+        self.tribler_logo2.Bind(wx.EVT_LEFT_UP, self.OnStats)
         
-        self.__set_properties()
         self.__do_layout()
-
-        # OUR CODE
-        self.custom_init()
-        self.init_ready = True
-        
         self.Layout()
         
-    def __set_properties(self):
-        self.SetBackgroundColour(wx.Colour(255, 255, 255))
+        self.init_ready = True
+        self.Bind(wx.EVT_SIZE, self.OnResize)
         
-        self.searchField.SetMinSize((400, -1))
-        self.searchField.SetFocus()
-        
-        self.go.SetMinSize((50, 24))
-        
-        if sys.platform == 'linux2':
-            self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, "Nimbus Sans L"))
-                
-        elif sys.platform == 'darwin': # mac
-            self.files_friends.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, 0, ""))
-
-
     def __do_layout(self):
         mainSizer = wx.BoxSizer(wx.HORIZONTAL)
         
@@ -217,6 +209,8 @@ class TopSearchPanel(bgPanel):
         else:
             ag_fname = os.path.join(self.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
         self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
+        self.ag.Hide()
+        
         searchBoxSizer.Add(self.ag, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
         searchSizer.Add(searchBoxSizer, 0, wx.EXPAND)
         
@@ -250,6 +244,7 @@ class TopSearchPanel(bgPanel):
         notifyS.Add(self.notifyIcon, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
         notifyS.Add(self.notify, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
         self.notifyPanel.SetSizer(notifyS)
+        self.notifyPanel.Hide()
         
         self.buttonSizer.Add(self.notifyPanel, 0, wx.ALIGN_RIGHT | wx.TOP, 5)
         mainSizer.Add(self.buttonSizer)
@@ -259,17 +254,11 @@ class TopSearchPanel(bgPanel):
         mainSizer.Add(self.tribler_logo2, 0, wx.TOP, 3)
         mainSizer.AddSpacer((10, 0))
         self.SetSizer(mainSizer)
-        
-    def custom_init(self):
-        hide_names = [self.ag, self.notifyPanel]
-        for name in hide_names:
-            name.Hide()
-        
-        # binding events  
-        self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
-        self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
-        self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
-        
+    
+    def OnResize(self, event):
+        self.Refresh()
+        event.Skip()
+    
     def Notify(self, msg, icon= -1):
         self.notify.SetLabel(msg)
         self.notify.SetSize(self.notify.GetBestSize())

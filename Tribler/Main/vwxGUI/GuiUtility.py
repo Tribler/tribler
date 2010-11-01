@@ -175,6 +175,11 @@ class GUIUtility:
             else:
                 self.frame.home.Hide()
             
+            if page == 'stats':
+                self.frame.stats.Show()
+            else:
+                self.frame.stats.Hide()
+            
             #show player on these pages
             if not self.useExternalVideo:
                 if page in ['my_files', 'mychannel', 'selectedchannel', 'channels', 'search_results']:
@@ -236,7 +241,6 @@ class GUIUtility:
             print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
         
         self.frame.searchlist.Freeze()
-        
         self.frame.searchlist.Reset()
         self.ShowPage('search_results')
         
@@ -267,7 +271,7 @@ class GUIUtility:
     def showChannelCategory(self, category, show = True):
         if show:
             self.frame.channellist.Freeze()
-                    
+        
         manager = self.frame.channellist.GetManager()
         manager.SetCategory(category)
         
@@ -276,22 +280,18 @@ class GUIUtility:
             self.frame.channellist.Thaw()
     
     def showChannel(self, channelname, channel_permid):
-        self.frame.selectedchannellist.Freeze()
-        
         self.frame.selectedchannellist.Reset()
         self.frame.selectedchannellist.SetTitle(channelname)
-        self.ShowPage('selectedchannel')
         
         description_list = ["Marking a channel as your favorite will help to distribute it.", "If many Tribler users mark a channel as their favorite, it is considered popular."]
         self.frame.channelcategories.Quicktip(random.choice(description_list))
-        self.frame.selectedchannellist.Thaw()
+        
+        self.ShowPage('selectedchannel')
         
         manager = self.frame.selectedchannellist.GetManager()
         manager.refresh(channel_permid)
     
     def showChannelResults(self, data_channel):
-        self.frame.channellist.Freeze()
-        
         self.frame.top_bg.selectTab('channels')
         self.frame.channelcategories.DeselectAll()
         
@@ -319,13 +319,11 @@ class GUIUtility:
         manager.refresh(data)
         
         self.ShowPage('channels')
-        self.frame.channellist.Thaw()
         
     def OnList(self, goto_end):
         lists = {'channels': self.frame.channellist,'selectedchannel': self.frame.selectedchannellist ,'mychannel': self.frame.mychannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToEnd(goto_end)
-            
         
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 

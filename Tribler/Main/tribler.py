@@ -231,6 +231,7 @@ class ABCApp(wx.App):
             self.frame.set_wxapp(self)
             self.frame.top_bg = xrc.XRCCTRL(self.frame,"top_search")
             self.frame.home = xrc.XRCCTRL(self.frame,"home")
+            self.frame.stats = xrc.XRCCTRL(self.frame,"stats")
             self.frame.searchlist = xrc.XRCCTRL(self.frame, "searchlist")
             self.frame.channellist = xrc.XRCCTRL(self.frame, "channellist")
             self.frame.selectedchannellist = xrc.XRCCTRL(self.frame, "selchannellist")
@@ -469,7 +470,7 @@ class ABCApp(wx.App):
         
         # RePEX: Start scheduler and logger
         from Tribler.Core.DecentralizedTracking.repex import RePEXScheduler, RePEXLogger
-        RePEXLogger.getInstance().start()
+        #RePEXLogger.getInstance().start() #no more need for logging
         RePEXScheduler.getInstance().start()
 
     def sesscb_states_callback(self,dslist):
@@ -1016,4 +1017,3 @@ def run(params = None):
 
 if __name__ == '__main__':
     run()
-

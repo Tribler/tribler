@@ -1,27 +1,47 @@
 import wx
 
+RADIUS = 7
+
 class ListFooter(wx.Panel):
-    def __init__(self, parent, leftImg, rightImg, background):
+    def __init__(self, parent, background):
         wx.Panel.__init__(self, parent)
+        self.background = wx.Brush(background)
         self.SetBackgroundColour(background)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        cornerBL_image = wx.Image(leftImg, wx.BITMAP_TYPE_ANY)
-        cornerBL = wx.StaticBitmap(self, -1, wx.BitmapFromImage(cornerBL_image))
-        hSizer.Add(cornerBL, 0, wx.ALIGN_BOTTOM)
         
+        hSizer.AddSpacer((RADIUS, 10))
         self.GetMidPanel(hSizer)
+        hSizer.AddSpacer((RADIUS, 10))
         
-        cornerBR_image = wx.Image(rightImg, wx.BITMAP_TYPE_ANY)            
-        cornerBR = wx.StaticBitmap(self, -1, wx.BitmapFromImage(cornerBR_image))
-        hSizer.Add(cornerBR, 0, wx.ALIGN_BOTTOM)
         self.SetSizer(hSizer)
+        
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_SIZE, self.OnResize)
         
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()
         
     def SetSpacerRight(self, diff):
         pass
+
+    def OnPaint(self, event):
+        obj = event.GetEventObject()
+        dc = wx.BufferedPaintDC(obj)
+        dc.Clear()
+        
+        w, h = self.GetClientSize()
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.SetBrush(self.background)
+        if h < 2*RADIUS:
+            dc.DrawRoundedRectangle(0, h-2*RADIUS, w, 2*RADIUS, RADIUS)
+        else:
+            dc.DrawRoundedRectangle(0, 0, w, h, RADIUS)
+        dc.DrawRectangle(0, 0, w, h-RADIUS)
+    
+    def OnResize(self, event):
+        self.Refresh()
+        event.Skip()
     
 class TitleFooter(ListFooter):
     
@@ -59,9 +79,9 @@ class TitleFooter(ListFooter):
                 self.scrollBar.sizer.Layout()
         
 class TotalFooter(TitleFooter):
-    def __init__(self, parent, leftImg, rightImg, background, columns):
+    def __init__(self, parent,  background, columns):
         self.columns = columns
-        ListFooter.__init__(self, parent, leftImg, rightImg, background)
+        ListFooter.__init__(self, parent, background)
         
     def GetMidPanel(self, hSizer):
         self.totals = []

@@ -22,9 +22,18 @@
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
 		  <object class="sizeritem">
-            <flag>wxEXPAND</flag>
+            <flag>wxEXPAND|wxALL</flag>
+			<border>20</border>
             <option>1</option>
             <object class="wxPanel" name="home" subclass="Tribler.Main.vwxGUI.home.Home">
+            </object>
+          </object>
+		  <object class="sizeritem">
+            <flag>wxEXPAND|wxALL</flag>
+			<border>20</border>
+            <option>1</option>
+            <object class="wxPanel" name="stats" subclass="Tribler.Main.vwxGUI.home.Stats">
+            	<hidden>1</hidden>
             </object>
           </object>
           <object class="sizeritem">

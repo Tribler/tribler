@@ -186,7 +186,7 @@ class MyChannelManager():
         self.refresh()
 
 class List(wx.Panel):
-    def __init__(self, columns, images, background, spacers = [0,0], singleSelect = False, showChange = False):
+    def __init__(self, columns, background, spacers = [0,0], singleSelect = False, showChange = False):
         """
         Column alignment:
         
@@ -210,7 +210,6 @@ class List(wx.Panel):
         """
         
         self.columns = columns
-        self.images = images
         self.background = background
         self.spacers = spacers
         self.singleSelect = singleSelect
@@ -280,13 +279,13 @@ class List(wx.Panel):
         return "%.0f MB"%size
     
     def CreateHeader(self):
-        return ListHeader(self, self.images[0], self.images[1], self.background, self.columns)
+        return ListHeader(self, self.background, self.columns)
     
     def CreateList(self):
         return ListBody(self, self.background, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
     
     def CreateFooter(self):
-        return ListFooter(self, self.images[2], self.images[3], self.background)
+        return ListFooter(self, self.background)
     
     def OnSize(self, event):
         diff = self.header.GetClientSize()[0] - self.list.GetClientSize()[0]
@@ -355,11 +354,8 @@ class SearchList(List):
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
-        
-        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
-        
-        List.__init__(self, columns, images, LISTCOLOR, [7,7], True)
+       
+        List.__init__(self, columns, LISTCOLOR, [7,7], True)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -367,10 +363,10 @@ class SearchList(List):
         return self.manager
     
     def CreateHeader(self):
-        return SearchHeader(self, self.images[0], self.images[1], self.background, self.columns)
+        return SearchHeader(self, self.background, self.columns)
 
     def CreateFooter(self):
-        footer = ChannelResultFooter(self, self.images[2], self.images[3], self.background)
+        footer = ChannelResultFooter(self, self.background)
         footer.SetEvents(self.OnChannelResults)
         return footer 
     
@@ -507,10 +503,8 @@ class LibaryList(List):
                    {'type':'method', 'name':'Down', 'width': 70, 'method': self.CreateDown, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
         
-        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
-        
-        List.__init__(self, columns, images, LISTCOLOR, [7,7], True)
+     
+        List.__init__(self, columns, LISTCOLOR, [7,7], True)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -518,13 +512,13 @@ class LibaryList(List):
         return self.manager
     
     def CreateHeader(self):
-        header = ButtonHeader(self, self.images[0], self.images[1], self.background, self.columns)
+        header = ButtonHeader(self, self.background, self.columns)
         header.SetTitle('Library')
         header.SetEvents(self.OnResume, self.OnStop, self.OnDelete)
         return header
     
     def CreateFooter(self):
-        footer = TotalFooter(self, self.images[2], self.images[3], self.background, self.columns)
+        footer = TotalFooter(self, self.background, self.columns)
         footer.SetTotal(0, 'Totals:')
         return footer
     
@@ -732,16 +726,13 @@ class ChannelList(List):
                    {'type':'method', 'width': 75, 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}, \
                    {'name':'Torrents', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT}]
         
-        images = ("tl.png", "tr.png", "bl.png", "br.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
-        
         self.favorite = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         self.normal = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
         self.mychannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","mychannel.png"), wx.BITMAP_TYPE_ANY)
         
         self.select_popular = True
         self.my_permid = bin2str(self.guiutility.channelsearch_manager.channelcast_db.my_permid)
-        List.__init__(self, columns, images, '#D8E9F0', [7,7], showChange = True)
+        List.__init__(self, columns, '#D8E9F0', [7,7], showChange = True)
     
     def __favorite_icon(self, item):
         if item.original_data[0] == self.my_permid:
@@ -757,7 +748,7 @@ class ChannelList(List):
         return str(val)
     
     def CreateHeader(self):
-        return SubTitleHeader(self, self.images[0], self.images[1], self.background, self.columns)
+        return SubTitleHeader(self, self.background, self.columns)
     
     def CreatePopularity(self, parent, item):
         pop = int(item.data[2])
@@ -830,18 +821,15 @@ class SelectedChannelList(SearchList):
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
-        
-        List.__init__(self, columns, images, LISTCOLOR, [7,7], True)
+        List.__init__(self, columns, LISTCOLOR, [7,7], True)
         
     def CreateHeader(self):
-        header = ChannelHeader(self, self.images[0], self.images[1], self.background, self.columns)
+        header = ChannelHeader(self, self.background, self.columns)
         header.SetEvents(self.OnBack) 
         return header
    
     def CreateFooter(self):
-        footer = ChannelFooter(self, self.images[2], self.images[3], self.background)
+        footer = ChannelFooter(self, self.background)
         footer.SetEvents(self.OnSpam, self.OnFavorite, self.OnRemoveVote)
         return footer
         
@@ -932,14 +920,11 @@ class MyChannelList(List):
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}, \
                    {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}]
-        
-        images = ("tl.png", "tr.png", "bl.png", "br.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
-        
-        List.__init__(self, columns, images, '#D8E9F0', [7,7])
+   
+        List.__init__(self, columns, '#D8E9F0', [7,7])
       
     def CreateHeader(self):
-        self.myheader = MyChannelHeader(self, self.images[0], self.images[1], self.background, self.columns)
+        self.myheader = MyChannelHeader(self, self.background, self.columns)
         self.myheader.SetName(self.utility.session.get_nickname())
         return self.myheader
     
@@ -995,14 +980,11 @@ class ChannelCategoriesList(List):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         columns = [{'width': wx.LIST_AUTOSIZE}]
-        
-        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
-        images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
-        
-        List.__init__(self, columns, images, LISTCOLOR, [7,7], True)
+    
+        List.__init__(self, columns, LISTCOLOR, [7,7], True)
     
     def CreateHeader(self):
-        title = TitleHeader(self, self.images[0], self.images[1], self.background, self.columns, 1, wx.FONTWEIGHT_NORMAL)
+        title = TitleHeader(self, self.background, self.columns, 1, wx.FONTWEIGHT_NORMAL)
         title.SetTitle('Categories')
         return title
     

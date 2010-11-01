@@ -7,8 +7,12 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
 from Tribler.Main.vwxGUI.list_footer import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl
 from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler
+
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler
+from Tribler.Core.Session import Session
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 
 class Home(wx.Panel):
     def __init__(self):
@@ -33,50 +37,75 @@ class Home(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        vSizer.AddStretchSpacer()
-        
         infopanel = InfoPanel(self)
-        vSizer.Add(infopanel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 20)
+        vSizer.Add(infopanel, 0, wx.EXPAND)
         
         vSizer.AddStretchSpacer()
         
         buzzpanel = BuzzPanel(self)
-        vSizer.Add(buzzpanel, 0, wx.EXPAND|wx.ALL, 20)
+        vSizer.Add(buzzpanel, 0, wx.EXPAND)
+        
+        self.SetSizer(vSizer)
+        self.Layout()
+        
+class Stats(wx.Panel):
+    def __init__(self):
+        pre = wx.PrePanel()
+        # the Create step is done by XRC. 
+        self.PostCreate(pre)
+        self.Bind(wx.EVT_SHOW, self.OnCreate)
+
+    def OnCreate(self, event):
+        self.Unbind(wx.EVT_SHOW)
+        
+        wx.CallAfter(self._PostInit)
+        event.Skip()
+    
+    def _PostInit(self):
+        self.SetBackgroundColour(wx.WHITE)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.AddStretchSpacer()
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(NewTorrentPanel(self))
+        hSizer.AddStretchSpacer()
+        hSizer.Add(PopularTorrentPanel(self))
+        hSizer.AddStretchSpacer()
+        hSizer.Add(TopContributorsPanel(self))
+        vSizer.Add(hSizer, 0, wx.EXPAND)
         
         self.SetSizer(vSizer)
         self.Layout()
         
 class HomePanel(wx.Panel):
-    def __init__(self, parent, title, images, background):
+    def __init__(self, parent, title, background):
         wx.Panel.__init__(self, parent)
         
         self.guiutility = GUIUtility.getInstance()
         self.SetBackgroundColour(background)
-        
-        images = [os.path.join(self.guiutility.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
-        
+     
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.header = self.CreateHeader(images, background)
+        self.header = self.CreateHeader(background)
         self.header.SetTitle(title)
         vSizer.Add(self.header, 0, wx.EXPAND)
         
         self.panel = self.CreatePanel()
         if self.panel:
             vSizer.Add(self.panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
-            
-        self.footer = self.CreateFooter(images, background)
+        
+        self.footer = self.CreateFooter(background)
         vSizer.Add(self.footer, 0, wx.EXPAND)
         
         self.SetSizer(vSizer)
         self.Layout()
         
-    def CreateHeader(self, images, background):
-        return TitleHeader(self, images[0], images[1], background, [])
+    def CreateHeader(self, background):
+        return TitleHeader(self, background, [])
     def CreatePanel(self):
         pass
-    def CreateFooter(self, images, background):
-        return ListFooter(self, images[2], images[3], background)
+    def CreateFooter(self, background):
+        return ListFooter(self, background)
     
     def DoLayout(self):
         self.Freeze()
@@ -86,10 +115,8 @@ class HomePanel(wx.Panel):
         
 class InfoPanel(HomePanel):
     def __init__(self, parent):
-        images = ("tl.png", "tr.png", "bl.png", "br.png")
         background = '#D8E9F0'
-        
-        HomePanel.__init__(self, parent, 'Welcome to Tribler' , images, background)
+        HomePanel.__init__(self, parent, 'Welcome to Tribler' , background)
     
     def CreatePanel(self):
         panel = wx.Panel(self)
@@ -100,7 +127,108 @@ class InfoPanel(HomePanel):
         sizer.Add(text, 1, wx.EXPAND|wx.ALL, 5)
         panel.SetSizer(sizer)
         return panel
+
+class NewTorrentPanel(HomePanel):
+    def __init__(self, parent):
+        background = '#E6E6E6'
         
+        HomePanel.__init__(self, parent, 'Newest Torrents' , background)
+        self.SetMinSize((300,-1))
+        self.Layout()
+        
+        self.torrentdb = TorrentDBHandler.getInstance()
+        session = Session.get_instance()
+        session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
+    
+    def CreatePanel(self):
+        self.list = SortedListCtrl(self, 1, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.list.InsertColumn(0, 'Torrent')
+        self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+        self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
+        return self.list
+    
+    def OnNotify(self, subject, type, infohash):
+        torrent = self.torrentdb.getTorrent(infohash, include_mypref=False)
+        
+        self.list.InsertStringItem(0, torrent['name'])
+        size = self.list.GetItemCount()
+        if size > 10:
+            self.list.DeleteItem(size-1)
+    
+    def OnDoubleClick(self, event):
+        selected = self.list.GetFirstSelected()
+        if selected != -1:
+            selected_file = self.list.GetItemText(selected)
+            self.guiutility.dosearch(selected_file)
+
+class PopularTorrentPanel(NewTorrentPanel):
+    def __init__(self, parent):
+        background = '#E6E6E6'
+        
+        HomePanel.__init__(self, parent, 'Popular Torrents' , background)
+        self.SetMinSize((300,-1))
+        self.Layout()
+        
+        self.torrentdb = TorrentDBHandler.getInstance()
+        
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
+        self.timer.Start(10000, False)
+    
+    def OnRefreshTimer(self, event = None):
+        if self.IsShownOnScreen():
+            familyfilter_sql = Category.getInstance().get_family_filter_sql(self.torrentdb._getCategoryID)
+            if familyfilter_sql:
+                familyfilter_sql = familyfilter_sql[4:]
+            
+            topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
+    
+            self.list.Freeze()
+            self.list.DeleteAllItems()
+            for item in topTen:
+                if item[2] > 0:
+                    self.list.InsertStringItem(sys.maxint, item[1])
+            self.list.Thaw()
+
+class TopContributorsPanel(HomePanel):             
+    def __init__(self, parent):
+        background = '#E6E6E6'
+        
+        HomePanel.__init__(self, parent, 'Top Contributors' , background)
+        self.SetMinSize((300,-1))
+        self.Layout()
+        
+        self.peerdb = PeerDBHandler.getInstance()
+        self.barterdb = BarterCastDBHandler.getInstance()
+        
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
+        self.timer.Start(10000, False)
+    
+    def CreatePanel(self):
+        self.list = SortedListCtrl(self, 2, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.list.InsertColumn(0, 'Name')
+        self.list.InsertColumn(1, 'Up', wx.LIST_FORMAT_RIGHT)
+        self.list.setResizeColumn(1)
+        self.list.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+        return self.list
+    
+    def OnRefreshTimer(self, event = None):
+        if self.IsShownOnScreen():
+            self.topTen = self.barterdb.getTopNPeers(10)
+            
+            self.list.Freeze()
+            self.list.DeleteAllItems()
+            for item in self.topTen['top']:
+                name = self.peerdb.getPeer(item[0], 'name')
+                if name:
+                    pos = self.list.InsertStringItem(sys.maxint, name)
+                    self.list.SetStringItem(pos, 1, self.guiutility.utility.size_format(item[1], 1))
+            self.list.Thaw()
+        
+    def OnDoubleClick(self, event):
+        pass
+                
 class BuzzPanel(HomePanel):
     INACTIVE_COLOR = (255, 51, 0)
     ACTIVE_COLOR = (0, 105, 156)
@@ -113,10 +241,9 @@ class BuzzPanel(HomePanel):
         self.nbdb = NetworkBuzzDBHandler.getInstance()
         self.xxx_filter = Category.getInstance().xxx_filter
         
-        images = ("tl2.png", "tr2.png", "bl2.png", "br2.png")
         background = '#E6E6E6'
         
-        HomePanel.__init__(self, parent, 'Network Buzz', images, background)
+        HomePanel.__init__(self, parent, 'Network Buzz', background)
          
         self.tags = []
         self.buzz_cache = [[],[],[]]
@@ -146,13 +273,13 @@ class BuzzPanel(HomePanel):
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
         self.timer.Start(1000, False)
     
-    def CreateHeader(self, images, background):
-        header = FamilyFilterHeader(self, images[0], images[1], background, [])
+    def CreateHeader(self, background):
+        header = FamilyFilterHeader(self, background, [])
         header.SetFF(self.guiutility.getFamilyFilter())
         return header
 
-    def CreateFooter(self, images, background):
-        return TitleFooter(self, images[2], images[3], background)
+    def CreateFooter(self, background):
+        return TitleFooter(self, background)
 
     def CreatePanel(self):
         panel = wx.Panel(self)

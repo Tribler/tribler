@@ -54,9 +54,10 @@ class EmbeddedPlayerPanel(wx.Panel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         if border:
             self.SetMinSize((34,-1))
-            images = ("tl2.png", "tr2.png", "bl2.png", "br2.png", "minimize.png", "maximize.png")
+            
+            images = ("minimize.png", "maximize.png")
             images = [os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images",image) for image in images]
-            self.header  = PlayerHeader(self, images[0], images[1], bg, [], images[4], images[5])
+            self.header  = PlayerHeader(self, bg, [], images[0], images[1])
             
             vSizer.Add(self.header, 0, wx.EXPAND)
             
@@ -75,7 +76,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         
             vSizer.Add(hSizer, 1, wx.EXPAND)
             
-            footer = ListFooter(self, images[2], images[3], bg)
+            footer = ListFooter(self, bg)
             vSizer.Add(footer, 0, wx.EXPAND)
         else:
             mainbox = vSizer

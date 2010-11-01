@@ -1,4 +1,6 @@
 import wx, os, sys
+from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
+
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -355,3 +357,15 @@ class LinkStaticText(wx.Panel):
         self.text.Bind(event, handler, source, id, id2)
         if getattr(self, 'icon', False):
             self.icon.Bind(event, handler, source, id, id2)
+        
+class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
+    def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER):
+        wx.ListCtrl.__init__(self, parent, -1, style=style)
+        
+        ColumnSorterMixin.__init__(self, numColumns)
+        ListCtrlAutoWidthMixin.__init__(self)
+
+        self.itemDataMap = {}
+    
+    def GetListCtrl(self):
+        return self

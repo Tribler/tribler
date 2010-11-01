@@ -1,5 +1,4 @@
 import wx
-from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
 
 import sys
 import os
@@ -21,23 +20,10 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl
 
 from list_header import ListHeader
 from list_body import ListBody
-
-class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
-    def __init__(self, parent, numColumns):
-        wx.ListCtrl.__init__(self, parent, -1, style=wx.LC_REPORT|wx.LC_NO_HEADER)
-        
-        ColumnSorterMixin.__init__(self, numColumns)
-        ListCtrlAutoWidthMixin.__init__(self)
-
-        self.itemDataMap = {}
-
-    
-    def GetListCtrl(self):
-        return self
 
 class TorrentDetails(wx.Panel):
     def __init__(self, parent, torrent):
@@ -897,7 +883,7 @@ class MyChannelTabs(wx.Panel):
         #shared files page
         filespage = wx.Panel(notebook)
         filespage.SetBackgroundColour(wx.WHITE)
-        self.header = ListHeader(filespage, 7, 7, background, columns)
+        self.header = ListHeader(filespage, background, columns)
         self.list = ListBody(filespage, background, columns, spacers[0], spacers[1], singleSelect)
         
         #small onexpand hack

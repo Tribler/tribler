@@ -3,6 +3,8 @@ import sys
 
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
 
+RADIUS = 7
+
 class ListHeaderIcon:
     __single = None
     def __init__(self):
@@ -48,37 +50,28 @@ class ListHeaderIcon:
         return [down, up, empty]
 
 class ListHeader(wx.Panel):
-    def __init__(self, parent, leftImg, rightImg, background, columns):
+    def __init__(self, parent, background, columns):
         wx.Panel.__init__(self, parent)
         self.parent = parent
         self.background = background
         self.SetBackgroundColour(background)
+        
         self.columns = columns
 
         self.sortedColumn = -1
         self.defaultSort = -1
         self.sortedDirection = False
 
-        self.AddComponents(leftImg, rightImg, columns)
+        self.AddComponents(columns)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_SIZE, self.OnResize)
 
-    def AddComponents(self, leftImg, rightImg, columns):
+    def AddComponents(self, columns):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        if isinstance(leftImg, int):
-            hSizer.AddSpacer((leftImg, -1))
-        else:
-            cornerTL_image = wx.Image(leftImg, wx.BITMAP_TYPE_ANY)
-            cornerTL = wx.StaticBitmap(self, -1, wx.BitmapFromImage(cornerTL_image))
-            hSizer.Add(cornerTL)
-        
+        hSizer.AddSpacer((RADIUS,10))
         self.AddColumns(hSizer, self, columns)
-        
-        if isinstance(rightImg, int):
-            hSizer.AddSpacer((rightImg, -1))
-        else:
-            cornerTR_image = wx.Image(rightImg, wx.BITMAP_TYPE_ANY)            
-            cornerTR = wx.StaticBitmap(self, -1, wx.BitmapFromImage(cornerTR_image))
-            hSizer.Add(cornerTR)
+        hSizer.AddSpacer((RADIUS,10))
         
         self.SetSizer(hSizer)
         
@@ -240,12 +233,27 @@ class ListHeader(wx.Panel):
         else:
             defaultDirection = False
         self._SetSortedIcon(self.defaultSort, defaultDirection)
+    
+    def OnPaint(self, event):
+        obj = event.GetEventObject()
+        dc = wx.BufferedPaintDC(obj)
+        dc.Clear()
+        
+        w, h = self.GetClientSize()
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.SetBrush(wx.Brush(self.background))
+        dc.DrawRoundedRectangle(0, 0, w, 2*RADIUS, RADIUS)
+        dc.DrawRectangle(0, RADIUS, w, h-RADIUS)
+    
+    def OnResize(self, event):
+        self.Refresh()
+        event.Skip()
         
 class TitleHeader(ListHeader):
-    def __init__(self, parent, leftImg, rightImg, background, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD):
+    def __init__(self, parent, background, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD):
         self.font_increment = font_increment
         self.fontweight = fontweight
-        ListHeader.__init__(self, parent, leftImg, rightImg, background, columns)
+        ListHeader.__init__(self, parent, background, columns)
     
     def AddColumns(self, sizer, parent, columns):
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -300,10 +308,13 @@ class TitleHeader(ListHeader):
         pass
     
     def SetTitle(self, title):
-        self.Freeze()
-        self.title.SetLabel(title)
-        self.Layout()
-        self.Thaw()
+        if title != self.title.GetLabel():
+            self.Freeze()
+            
+            self.title.SetLabel(title)
+            self.title.Refresh()
+            self.Layout()
+            self.Thaw()
 
 class SubTitleHeader(TitleHeader):
     def GetSubTitlePanel(self, parent):
@@ -311,7 +322,13 @@ class SubTitleHeader(TitleHeader):
         return self.subtitle
 
     def SetSubTitle(self, subtitle):
-        self.subtitle.SetLabel(subtitle)
+        if subtitle != self.subtitle.GetLabel():
+            self.Freeze()
+            
+            self.subtitle.SetLabel(subtitle)
+            self.subtitle.Refresh()
+            
+            self.Thaw()
         
 class ButtonHeader(TitleHeader):
     def GetRightTitlePanel(self, parent):
@@ -353,8 +370,8 @@ class ButtonHeader(TitleHeader):
             self.delete.SetToolTip(None)
         
 class MyChannelHeader(SubTitleHeader):
-    def __init__(self, parent, leftImg, rightImg, background, columns):
-        TitleHeader.__init__(self, parent, leftImg, rightImg, background, columns)
+    def __init__(self, parent, background, columns):
+        TitleHeader.__init__(self, parent, background, columns)
         self.SetTitle('My Channel')
     
     def GetTitlePanel(self, parent):
@@ -362,7 +379,11 @@ class MyChannelHeader(SubTitleHeader):
         return self.name
         
     def SetName(self, name):
-        self.name.SetLabel('( %s\'s Channel )'%name)
+        if name != self.name.GetLabel():
+            self.Freeze()
+            self.name.SetLabel('( %s\'s Channel )'%name)
+            self.name.Refresh()
+            self.Thaw()
         
     def SetNrTorrents(self, nr, nr_favorites):
         subtitle = ''
@@ -475,10 +496,10 @@ class ChannelHeader(SearchHeader):
         self.back.Bind(wx.EVT_BUTTON, back)
 
 class PlayerHeader(TitleHeader):
-    def __init__(self, parent, leftImg, rightImg, background, columns, minimize, maximize):
+    def __init__(self, parent, background, columns, minimize, maximize):
         self.minimize = minimize
         self.maximize = maximize
-        TitleHeader.__init__(self, parent, leftImg, rightImg, background, columns)
+        TitleHeader.__init__(self, parent, background, columns)
         self.SetTitle('Player')
         
         self.ShowMinimized(False)
@@ -503,8 +524,10 @@ class PlayerHeader(TitleHeader):
             self.parent.OnMaximize()
         
     def ShowMinimized(self, minimized):
+        self.Freeze()
         self.minimize.Show(minimized)
         self.maximize.Show(not minimized)
         
         self.title.Show(minimized)
         self.Layout()
+        self.Thaw()

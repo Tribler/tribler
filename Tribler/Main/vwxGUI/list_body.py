@@ -10,6 +10,11 @@ import re
 
 LIST_ITEM_BATCH_SIZE = 35
 LIST_ITEM_MAX_SIZE = 250
+
+LIST_SELECTED = wx.Colour(216,233,240)
+LIST_DESELECTED = wx.WHITE
+LIST_HIGHTLIGHT = wx.Colour(255,255,153)
+
 DEBUG = False
 
 class ListIcon:
@@ -66,37 +71,32 @@ class ListItem(wx.Panel):
         self.columns = columns
         self.data = data
         self.original_data = original_data
-        self.leftSpacer = leftSpacer
-        self.rightSpacer = rightSpacer
          
         self.showChange = showChange
-        self.taskserver = None
         
+        self.taskserver = None
         self.selected = False
         self.expanded = False
-         
-        self.selectedColor = wx.Colour(216,233,240)
-        self.deselectedColor = wx.WHITE
-        self.SetBackgroundColour(self.deselectedColor)
+        self.SetBackgroundColour(LIST_DESELECTED)
          
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
          
-        self.AddComponents()
+        self.AddComponents(leftSpacer, rightSpacer)
         
         self.vSizer.Add(self.hSizer, 0, wx.EXPAND)
         self.SetSizer(self.vSizer)
     
-    def AddComponents(self):
+    def AddComponents(self, leftSpacer, rightSpacer):
         self.controls = []
-        if self.leftSpacer > 0:
-            self.hSizer.AddSpacer((self.leftSpacer, -1))
+        if leftSpacer > 0:
+            self.hSizer.AddSpacer((leftSpacer, -1))
          
         for i in xrange(len(self.columns)):
             if self.columns[i].get('icon', False):
                 if self.columns[i]['icon'] == 'checkbox' or self.columns[i]['icon'] == 'tree':
                     self.icontype = self.columns[i]['icon']
-                    self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(self.deselectedColor, 0))
+                    self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(LIST_DESELECTED, 0))
                     self.hSizer.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
                 else:
                     icon = self.columns[i]['icon'](self)
@@ -135,8 +135,8 @@ class ListItem(wx.Panel):
                     if self.columns[i]['width'] != -1:
                         self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
         
-        if self.rightSpacer > 0:
-            self.hSizer.AddSpacer((self.rightSpacer, -1))
+        if rightSpacer > 0:
+            self.hSizer.AddSpacer((rightSpacer, -1))
         self.hSizer.Layout()
         
         self.AddEvents(self)
@@ -181,6 +181,9 @@ class ListItem(wx.Panel):
                 if self.data[i] != data[1][i]:
                     control = self.columns[i]['method'](self, self)
                     if control:
+                        if isinstance(control, wx.Panel):
+                            control.SetBackgroundColour(self.GetBackgroundColour())
+                        
                         cur_sizeritem_index = 0
                         for child in self.hSizer.GetChildren():
                             if child.GetWindow() == self.controls[control_index]:
@@ -222,7 +225,7 @@ class ListItem(wx.Panel):
                 self.taskserver = GUITaskQueue.getInstance()
             
             self.taskserver.add_task(lambda:wx.CallAfter(removeHighlight), timeout, self)
-            self.BackgroundColor("#ffff99")
+            self.BackgroundColor(LIST_HIGHTLIGHT)
          
     def ShowSelected(self):
         def IsSelected(control):
@@ -241,26 +244,27 @@ class ListItem(wx.Panel):
                     
         selected = self.expanded or IsSelected(self)
         if selected:
-            self.BackgroundColor(self.selectedColor)
+            self.BackgroundColor(LIST_SELECTED)
         else:
-            self.BackgroundColor(self.deselectedColor)
+            self.BackgroundColor(LIST_DESELECTED)
     
     def BackgroundColor(self, color):
-        self.Freeze()
-        
-        self.SetBackgroundColour(color)
-        for sizeritem in self.hSizer.GetChildren():
-            if sizeritem.IsWindow():
-                child = sizeritem.GetWindow()
-                if isinstance(child, wx.Panel):
-                    child.SetBackgroundColour(color)
-        
-        #If this item has a icon and it is not checked
-        if getattr(self, 'expandedState', False) and not self.expanded:
-            self.expandedState.SetBitmap(self.GetIcon(color, 0))
-        
-        self.Refresh()
-        self.Thaw()
+        if self.GetBackgroundColour() != color:
+            self.Freeze()
+            
+            self.SetBackgroundColour(color)
+            for sizeritem in self.hSizer.GetChildren():
+                if sizeritem.IsWindow():
+                    child = sizeritem.GetWindow()
+                    if isinstance(child, wx.Panel):
+                        child.SetBackgroundColour(color)
+            
+            #If this item has a icon and it is not checked
+            if getattr(self, 'expandedState', False) and not self.expanded:
+                self.expandedState.SetBitmap(self.GetIcon(color, 0))
+            
+            self.Refresh()
+            self.Thaw()
     
     def Deselect(self):
         if self.selected or self.expanded:
@@ -293,13 +297,13 @@ class ListItem(wx.Panel):
                 self.expanded = True
             
                 if getattr(self, 'expandedState', False):
-                    self.expandedState.SetBitmap(self.GetIcon(self.selectedColor, 1))
+                    self.expandedState.SetBitmap(self.GetIcon(LIST_SELECTED, 1))
         else:
             self.parent_list.OnCollapse(self)
             self.expanded = False
             
             if getattr(self, 'expandedState', False):
-                self.expandedState.SetBitmap(self.GetIcon(self.selectedColor, 0))
+                self.expandedState.SetBitmap(self.GetIcon(LIST_SELECTED, 0))
         
     def Expand(self, panel):
         if getattr(panel, 'SetCursor', False):
@@ -555,7 +559,7 @@ class AbstractListBody():
                 self.highlightSet = set()
             else:
                 #updated data, takes roughly 0.007s for 650+ results
-                cur_keys = [key for key,_,_ in self.raw_data]
+                cur_keys = [key for key,_,_ in self.data]
                 self.highlightSet = set([key for key,_,_ in data if key not in cur_keys])
 
             self.data = data
