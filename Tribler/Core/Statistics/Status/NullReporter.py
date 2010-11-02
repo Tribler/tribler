@@ -1,3 +1,5 @@
+import Status
+
 class NullReporter(Status.PeriodicStatusReporter):
     """
     This reporter flushes all events down the drain periodically,
