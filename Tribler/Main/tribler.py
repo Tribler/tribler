@@ -72,6 +72,7 @@ from Tribler.Utilities.LinuxSingleInstanceChecker import *
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.Statistics.Status.Status import get_status_holder
+from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
@@ -993,7 +994,8 @@ def run(params = None):
             # Arno, 2010-06-18: Logging to ULANC disabled for Tribler Main
             
             # Setup the statistic reporter while waiting for proper integration
-            #status = get_status_holder("LivingLab")
+            status = get_status_holder("LivingLab")
+            status.add_reporter(NullReporter("Periodically remove all events", 60))
             #id = "Tribler client"
             #reporter = LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
             # reporter = LivingLabPeriodicReporter("Living lab CS reporter", 30, id) # Report every 30 seconds - ONLY FOR TESTING
