@@ -1,5 +1,5 @@
 all:
 	rm .coverage; \
-	python2.5 /usr/bin/nosetests --with-doctest \
-	--with-coverage --cover-package=trunk #\
+	python /usr/bin/nosetests --with-doctest \
+	--with-coverage --cover-package=kadtracker #\
 #	--pdb --pdb-failures
