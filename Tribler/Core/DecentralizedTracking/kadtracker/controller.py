@@ -65,6 +65,7 @@ class Controller:
         self.reactor.stop()
 
     def get_peers(self, info_hash, callback_f, bt_port=None):
+        logger.critical('new lookup %r' % (info_hash))
         return self.lookup_m.get_peers(info_hash, callback_f, bt_port)
 
     def print_routing_table_stats(self):
