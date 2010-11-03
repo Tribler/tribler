@@ -28,7 +28,7 @@ class KadTracker:
 
     """
     def __init__(self, dht_addr, logs_path):
-        logging_conf.setup(logs_path, logging.DEBUG)
+        logging_conf.setup(logs_path, logging.CRITICAL)
         self.controller = controller.Controller(dht_addr)
         self.controller.start()
 
