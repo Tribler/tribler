@@ -4087,7 +4087,16 @@ class SearchDBHandler(BasicDBHandler):
         # with these exact values
         # otherwise, some strange attacks might become possible
         # and again we cannot assume that user/torrent/term only occurs once
-
+        
+        # vliegendhart: only store 1 query per (peer_id,torrent_id)
+        # Step 1: fetch current stored term_ids, if any, and decrease count
+        old_term_ids = self.getTorrentSearchTerms(torrent_id, peer_id) # list of 1-tuples
+        sql_update_term_popularity= u"UPDATE ClicklogTerm SET times_seen = times_seen-1 WHERE term_id=?"        
+        self._db.executemany(sql_update_term_popularity, old_term_ids, commit=commit)
+        # Step 2: delete (peer_id,torrent_id) records, if any
+        self._db.execute_write("DELETE FROM ClicklogSearch WHERE peer_id=? AND torrent_id=?", [peer_id,torrent_id])
+        # TODO: Consider putting a UNIQUE constraint on (peer_id,torrent_id,term_order) in the schema?
+        
         # create insert data
         values = [(peer_id, torrent_id, term_id, term_order) 
                   for (term_id, term_order) 
