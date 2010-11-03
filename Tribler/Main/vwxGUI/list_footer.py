@@ -1,18 +1,17 @@
 import wx
-
-RADIUS = 7
+from __init__ import LIST_RADIUS, LIST_HIGHTLIGHT
 
 class ListFooter(wx.Panel):
     def __init__(self, parent, background):
         wx.Panel.__init__(self, parent)
-        self.background = wx.Brush(background)
+        self.originalColor = background
         self.SetBackgroundColour(background)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        hSizer.AddSpacer((RADIUS, 10))
+        hSizer.AddSpacer((LIST_RADIUS, 10))
         self.GetMidPanel(hSizer)
-        hSizer.AddSpacer((RADIUS, 10))
+        hSizer.AddSpacer((LIST_RADIUS, 10))
         
         self.SetSizer(hSizer)
         
@@ -25,6 +24,14 @@ class ListFooter(wx.Panel):
     def SetSpacerRight(self, diff):
         pass
 
+    def SetBackgroundColour(self, colour):
+        self.background = wx.Brush(colour)
+        return wx.Panel.SetBackgroundColour(self, colour)
+
+    def HighLight(self):
+        self.SetBackgroundColour(LIST_HIGHTLIGHT)
+        wx.CallLater(2000, self.SetBackgroundColour, self.originalColor)
+
     def OnPaint(self, event):
         obj = event.GetEventObject()
         dc = wx.BufferedPaintDC(obj)
@@ -33,11 +40,11 @@ class ListFooter(wx.Panel):
         w, h = self.GetClientSize()
         dc.SetPen(wx.TRANSPARENT_PEN)
         dc.SetBrush(self.background)
-        if h < 2*RADIUS:
-            dc.DrawRoundedRectangle(0, h-2*RADIUS, w, 2*RADIUS, RADIUS)
+        if h < 2*LIST_RADIUS:
+            dc.DrawRoundedRectangle(0, h-2*LIST_RADIUS, w, 2*LIST_RADIUS, LIST_RADIUS)
         else:
-            dc.DrawRoundedRectangle(0, 0, w, h, RADIUS)
-        dc.DrawRectangle(0, 0, w, h-RADIUS)
+            dc.DrawRoundedRectangle(0, 0, w, h, LIST_RADIUS)
+        dc.DrawRectangle(0, 0, w, h-LIST_RADIUS)
     
     def OnResize(self, event):
         self.Refresh()
@@ -126,9 +133,22 @@ class ChannelResultFooter(ListFooter):
         self.channelResutls = wx.Button(self, -1, "Channel Results")
         hSizer.Add(self.channelResutls, 0, wx.TOP|wx.BOTTOM, 3)
         
-    def SetMessage(self, message):
-        self.message.SetLabel(message)
-        self.Layout()
+    def SetNrResults(self, nr_channels, keywords):
+        if nr_channels == 0:
+            label = 'No matching channels for "%s"'%keywords
+        elif nr_channels == 1:
+            label = 'Additionally, got 1 channel for "%s"'%keywords
+        else:
+            label = 'Additionally, got %d channels for "%s"'%(nr_channels, keywords)
+        
+        if label != self.message.GetLabel():
+            self.message.SetLabel(label)
+            if nr_channels >= 1:
+                self.HighLight()
+                
+            self.Layout()
+            
+        self.EnableResults(nr_channels > 0)
     
     def SetEvents(self, channel):
         #removing old, binding new eventhandler

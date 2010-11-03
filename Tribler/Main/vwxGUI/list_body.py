@@ -8,12 +8,7 @@ import sys
 import time
 import re
 
-LIST_ITEM_BATCH_SIZE = 35
-LIST_ITEM_MAX_SIZE = 250
-
-LIST_SELECTED = wx.Colour(216,233,240)
-LIST_DESELECTED = wx.WHITE
-LIST_HIGHTLIGHT = wx.Colour(255,255,153)
+from __init__ import *
 
 DEBUG = False
 

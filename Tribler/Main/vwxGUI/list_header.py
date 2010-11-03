@@ -2,8 +2,7 @@ import wx
 import sys
 
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
-
-RADIUS = 7
+from __init__ import LIST_RADIUS
 
 class ListHeaderIcon:
     __single = None
@@ -69,9 +68,9 @@ class ListHeader(wx.Panel):
     def AddComponents(self, columns):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        hSizer.AddSpacer((RADIUS,10))
+        hSizer.AddSpacer((LIST_RADIUS,10))
         self.AddColumns(hSizer, self, columns)
-        hSizer.AddSpacer((RADIUS,10))
+        hSizer.AddSpacer((LIST_RADIUS,10))
         
         self.SetSizer(hSizer)
         
@@ -242,8 +241,8 @@ class ListHeader(wx.Panel):
         w, h = self.GetClientSize()
         dc.SetPen(wx.TRANSPARENT_PEN)
         dc.SetBrush(wx.Brush(self.background))
-        dc.DrawRoundedRectangle(0, 0, w, 2*RADIUS, RADIUS)
-        dc.DrawRectangle(0, RADIUS, w, h-RADIUS)
+        dc.DrawRoundedRectangle(0, 0, w, 2*LIST_RADIUS, LIST_RADIUS)
+        dc.DrawRectangle(0, LIST_RADIUS, w, h-LIST_RADIUS)
     
     def OnResize(self, event):
         self.Refresh()
@@ -391,13 +390,14 @@ class MyChannelHeader(SubTitleHeader):
             subtitle = 'Sharing %d torrent'%nr
         else:
             subtitle = 'Sharing %d torrents'%nr
-            
-        if nr_favorites == 0:
-            subtitle += ', but not marked as a favorite yet.'
-        elif nr_favorites == 1:
-            subtitle += ' and 1 Tribler user marked it as one of its favorites.'
-        else:
-            subtitle += ' and '+str(nr_favorites)+' Tribler users marked it as one of their favorites.'
+        
+        if nr > 0:    
+            if nr_favorites == 0:
+                subtitle += ', but not marked as a favorite yet.'
+            elif nr_favorites == 1:
+                subtitle += ' and 1 Tribler user marked it as one of its favorites.'
+            else:
+                subtitle += ' and '+str(nr_favorites)+' Tribler users marked it as one of their favorites.'
         self.SetSubTitle(subtitle)
     
     def AddColumns(self, sizer, parent, columns):

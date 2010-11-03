@@ -24,6 +24,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl
 
 from list_header import ListHeader
 from list_body import ListBody
+from __init__ import *
 
 class TorrentDetails(wx.Panel):
     def __init__(self, parent, torrent):
@@ -33,7 +34,7 @@ class TorrentDetails(wx.Panel):
         self.parent = parent
         self.torrent = torrent
         
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(LIST_DESELECTED)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         #Add messagePanel text
@@ -277,7 +278,7 @@ class TorrentDetails(wx.Panel):
         self.notebook.SetMinSize((-1, self.notebook.GetBestSize()[1]))
         
         self.buttonPanel = wx.Panel(self)
-        self.buttonPanel.SetBackgroundColour(wx.WHITE)
+        self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
         self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.ShowPanel()
@@ -415,7 +416,7 @@ class TorrentDetails(wx.Panel):
         if self.information[0]:
             self.buttonSizer.AddStretchSpacer()
             self.play = wx.Panel(self.buttonPanel)
-            self.play.SetBackgroundColour(wx.WHITE)
+            self.play.SetBackgroundColour(LIST_DESELECTED)
             vSizer = wx.BoxSizer(wx.VERTICAL)
             
             header = wx.StaticText(self.play, -1, "Impatient?")
@@ -522,7 +523,7 @@ class TorrentDetails(wx.Panel):
             os.startfile(path)
                 
     def OnDownload(self, event):
-        self.parent.parent_list.StartDownload(self.torrent)
+        self.parent.parent_list.parent_list.StartDownload(self.torrent)
         
         button = event.GetEventObject()
         button.Enable(False)
@@ -714,7 +715,7 @@ class ProgressPanel(wx.Panel):
     
     def __init__(self, parent, item, style = ETA_DEFAULT):
         wx.Panel.__init__(self, parent)
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(LIST_DESELECTED)
         self.item = item
         self.style = style
         guiutility = GUIUtility.getInstance()
@@ -873,7 +874,7 @@ class MyChannelTabs(wx.Panel):
         </p>
                 """
         overviewpage = wx.Panel(notebook)
-        overviewpage.SetBackgroundColour(wx.WHITE)
+        overviewpage.SetBackgroundColour(LIST_DESELECTED)
         overviewtext = self.createHtml(overviewpage, text)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(overviewtext, 1, wx.EXPAND)
@@ -882,7 +883,7 @@ class MyChannelTabs(wx.Panel):
         
         #shared files page
         filespage = wx.Panel(notebook)
-        filespage.SetBackgroundColour(wx.WHITE)
+        filespage.SetBackgroundColour(LIST_DESELECTED)
         self.header = ListHeader(filespage, background, columns)
         self.list = ListBody(filespage, background, columns, spacers[0], spacers[1], singleSelect)
         
@@ -892,7 +893,7 @@ class MyChannelTabs(wx.Panel):
         filespage.OnSort = self.parent.OnSort
         
         listbuttons = wx.Panel(filespage)
-        listbuttons.SetBackgroundColour(wx.WHITE)
+        listbuttons.SetBackgroundColour(LIST_DESELECTED)
         removesel = wx.Button(listbuttons, -1, "Remove Selected")
         removesel.Bind(wx.EVT_BUTTON, self.parent.OnRemoveSelected)
         removeall = wx.Button(listbuttons, -1, "Remove All")
@@ -912,7 +913,7 @@ class MyChannelTabs(wx.Panel):
         
         #manage page
         self.managepage = wx.Panel(notebook)
-        self.managepage.SetBackgroundColour(wx.WHITE)
+        self.managepage.SetBackgroundColour(LIST_DESELECTED)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         #intro
@@ -1113,7 +1114,7 @@ class MyChannelDetails(wx.Panel):
         self.supportedLangFull.sort()
         
         wx.Panel.__init__(self, parent)
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(LIST_DESELECTED)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         borderSizer = wx.BoxSizer()
         borderSizer.Add(self.vSizer, 1, wx.ALL|wx.EXPAND, 5)

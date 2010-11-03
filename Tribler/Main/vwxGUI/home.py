@@ -149,11 +149,11 @@ class NewTorrentPanel(HomePanel):
     
     def OnNotify(self, subject, type, infohash):
         torrent = self.torrentdb.getTorrent(infohash, include_mypref=False)
-        
-        self.list.InsertStringItem(0, torrent['name'])
-        size = self.list.GetItemCount()
-        if size > 10:
-            self.list.DeleteItem(size-1)
+        if torrent:
+            self.list.InsertStringItem(0, torrent['name'])
+            size = self.list.GetItemCount()
+            if size > 10:
+                self.list.DeleteItem(size-1)
     
     def OnDoubleClick(self, event):
         selected = self.list.GetFirstSelected()

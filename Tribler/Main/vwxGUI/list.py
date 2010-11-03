@@ -16,8 +16,8 @@ from list_footer import *
 from list_header import *
 from list_body import *
 from list_details import *
+from __init__ import *
 
-LISTCOLOR = '#E6E6E6'
 
 class RemoteSearchManager:
     def __init__(self, list):
@@ -100,7 +100,6 @@ class ChannelSearchManager:
             self.list.SetTitle('Search results for "%s"'%keywords, total_items)
         
         self.list.SetData(data, favorites)
-        #self.list.SetFocus()
         
     def SetCategory(self, category):
         if category != self.category:
@@ -113,13 +112,15 @@ class ChannelSearchManager:
             self.list.DeselectAll()
         
     def channelUpdated(self, permid):
-        if self.list.ready:
-            if self.list.InList(permid):
-                data = self.channelsearch_manager.getChannel(permid)
-                self.list.RefreshData(permid, data)
-            elif self.category != 'searchresults':
-                #Show new channel, but only if we are not showing search results
-                self.refresh()
+        if self.list.ready: 
+            #only update when shown
+            if self.list.IsShownOnScreen():
+                if self.list.InList(permid):
+                    data = self.channelsearch_manager.getChannel(permid)
+                    self.list.RefreshData(permid, data)
+                elif self.category != 'searchresults':
+                    #Show new channel, but only if we are not showing search results
+                    self.refresh()
 
 class ChannelManager():
     def __init__(self, list):
@@ -355,7 +356,7 @@ class SearchList(List):
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
        
-        List.__init__(self, columns, LISTCOLOR, [7,7], True)
+        List.__init__(self, columns, LIST_GREY, [7,7], True)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -384,13 +385,7 @@ class SearchList(List):
             self.header.SetFiltered(nr_filtered)
             
         if isinstance(nr_channels, int):
-            if nr_channels == 0:
-                self.footer.SetMessage('No matching channels for "%s"'%keywords)
-            elif nr_channels == 1:
-                self.footer.SetMessage('Additionally, got 1 channel for "%s"'%keywords)
-            else:
-                self.footer.SetMessage('Additionally, got %d channels for "%s"'%(nr_channels, keywords))
-            self.footer.EnableResults(nr_channels > 0)
+            self.footer.SetNrResults(nr_channels, keywords)
         
     def SetFilteredResults(self, nr):
         if nr != self.total_results: 
@@ -409,9 +404,9 @@ class SearchList(List):
     
     def SetData(self, data):
         if len(data) > 0:
-            #data = [(file['infohash'],[file['name'], file['length'], file['num_seeders'], file['num_leechers']], file) for file in data]
             data = [(file['infohash'],[file['name'], file['length'], 0, 0], file) for file in data]
             return self.list.SetData(data)
+        
         message =  'No torrents matching your query are found. \n'
         message += 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
         if self.guiutility.getFamilyFilter():
@@ -504,7 +499,7 @@ class LibaryList(List):
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
         
      
-        List.__init__(self, columns, LISTCOLOR, [7,7], True)
+        List.__init__(self, columns, LIST_GREY, [7,7], True)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -732,7 +727,7 @@ class ChannelList(List):
         
         self.select_popular = True
         self.my_permid = bin2str(self.guiutility.channelsearch_manager.channelcast_db.my_permid)
-        List.__init__(self, columns, '#D8E9F0', [7,7], showChange = True)
+        List.__init__(self, columns, LIST_SELECTED, [7,7], showChange = True)
     
     def __favorite_icon(self, item):
         if item.original_data[0] == self.my_permid:
@@ -821,7 +816,7 @@ class SelectedChannelList(SearchList):
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': -1, 'method': self.CreateDownloadButton}]
         
-        List.__init__(self, columns, LISTCOLOR, [7,7], True)
+        List.__init__(self, columns, LIST_GREY, [7,7], True)
         
     def CreateHeader(self):
         header = ChannelHeader(self, self.background, self.columns)
@@ -921,7 +916,7 @@ class MyChannelList(List):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}, \
                    {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}]
    
-        List.__init__(self, columns, '#D8E9F0', [7,7])
+        List.__init__(self, columns, LIST_SELECTED, [7,7])
       
     def CreateHeader(self):
         self.myheader = MyChannelHeader(self, self.background, self.columns)
@@ -981,7 +976,7 @@ class ChannelCategoriesList(List):
         self.utility = self.guiutility.utility
         columns = [{'width': wx.LIST_AUTOSIZE}]
     
-        List.__init__(self, columns, LISTCOLOR, [7,7], True)
+        List.__init__(self, columns, LIST_GREY, [7,7], True)
     
     def CreateHeader(self):
         title = TitleHeader(self, self.background, self.columns, 1, wx.FONTWEIGHT_NORMAL)
