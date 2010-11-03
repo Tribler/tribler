@@ -727,7 +727,7 @@ class ChannelList(List):
         
         self.select_popular = True
         self.my_permid = bin2str(self.guiutility.channelsearch_manager.channelcast_db.my_permid)
-        List.__init__(self, columns, LIST_SELECTED, [7,7], showChange = True)
+        List.__init__(self, columns, LIST_BLUE, [7,7], showChange = True)
     
     def __favorite_icon(self, item):
         if item.original_data[0] == self.my_permid:
@@ -916,7 +916,7 @@ class MyChannelList(List):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}, \
                    {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}]
    
-        List.__init__(self, columns, LIST_SELECTED, [7,7])
+        List.__init__(self, columns, LIST_BLUE, [7,7])
       
     def CreateHeader(self):
         self.myheader = MyChannelHeader(self, self.background, self.columns)

@@ -304,18 +304,6 @@ class settingsButton(tribler_topButton):
     
     def GetBitmap(self):
         return self.bitmaps[self.selected]
-
-class NoFocusButton(wx.Button):
-    def __init__(self, *args, **kw):
-        wx.Button.__init__(self, *args, **kw)
-        self.Bind(wx.EVT_SET_FOCUS , self.OnFocus)
-    
-    def OnFocus(self, event):
-        self.Navigate()
-    def AcceptsFocus(self):
-        return False
-    def AcceptsFocusFromKeyboard(self):
-        return False
     
 class LinkStaticText(wx.Panel):
     def __init__(self, parent, text, icon = "bullet_go.png", font_increment = 0):

@@ -9,6 +9,7 @@ from Tribler.Main.vwxGUI.list_footer import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl
 from Tribler.Category.Category import Category
+from __init__ import LIST_GREY, LIST_BLUE
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler
 from Tribler.Core.Session import Session
@@ -50,16 +51,15 @@ class Home(wx.Panel):
         
 class Stats(wx.Panel):
     def __init__(self):
+        self.ready = False
         pre = wx.PrePanel()
         # the Create step is done by XRC. 
         self.PostCreate(pre)
-        self.Bind(wx.EVT_SHOW, self.OnCreate)
-
-    def OnCreate(self, event):
-        self.Unbind(wx.EVT_SHOW)
-        
-        wx.CallAfter(self._PostInit)
-        event.Skip()
+    
+    def Show(self):
+        if not self.ready:
+            self._PostInit()
+        wx.Panel.Show(self)
     
     def _PostInit(self):
         self.SetBackgroundColour(wx.WHITE)
@@ -76,6 +76,7 @@ class Stats(wx.Panel):
         
         self.SetSizer(vSizer)
         self.Layout()
+        self.ready = True
         
 class HomePanel(wx.Panel):
     def __init__(self, parent, title, background):
@@ -115,8 +116,7 @@ class HomePanel(wx.Panel):
         
 class InfoPanel(HomePanel):
     def __init__(self, parent):
-        background = '#D8E9F0'
-        HomePanel.__init__(self, parent, 'Welcome to Tribler' , background)
+        HomePanel.__init__(self, parent, 'Welcome to Tribler' , LIST_BLUE)
     
     def CreatePanel(self):
         panel = wx.Panel(self)
@@ -130,9 +130,7 @@ class InfoPanel(HomePanel):
 
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):
-        background = '#E6E6E6'
-        
-        HomePanel.__init__(self, parent, 'Newest Torrents' , background)
+        HomePanel.__init__(self, parent, 'Newest Torrents' , LIST_BLUE)
         self.SetMinSize((300,-1))
         self.Layout()
         
@@ -163,38 +161,37 @@ class NewTorrentPanel(HomePanel):
 
 class PopularTorrentPanel(NewTorrentPanel):
     def __init__(self, parent):
-        background = '#E6E6E6'
-        
-        HomePanel.__init__(self, parent, 'Popular Torrents' , background)
+        HomePanel.__init__(self, parent, 'Popular Torrents' , LIST_BLUE)
         self.SetMinSize((300,-1))
         self.Layout()
         
         self.torrentdb = TorrentDBHandler.getInstance()
         
         self.timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
+        self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
         self.timer.Start(10000, False)
+        self.RefreshList()
     
-    def OnRefreshTimer(self, event = None):
+    def _onTimer(self, event):
         if self.IsShownOnScreen():
-            familyfilter_sql = Category.getInstance().get_family_filter_sql(self.torrentdb._getCategoryID)
-            if familyfilter_sql:
-                familyfilter_sql = familyfilter_sql[4:]
-            
-            topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
-    
-            self.list.Freeze()
-            self.list.DeleteAllItems()
-            for item in topTen:
-                if item[2] > 0:
-                    self.list.InsertStringItem(sys.maxint, item[1])
-            self.list.Thaw()
+            self.RefreshList()
+    def RefreshList(self):
+        familyfilter_sql = Category.getInstance().get_family_filter_sql(self.torrentdb._getCategoryID)
+        if familyfilter_sql:
+            familyfilter_sql = familyfilter_sql[4:]
+        
+        topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
+
+        self.list.Freeze()
+        self.list.DeleteAllItems()
+        for item in topTen:
+            if item[2] > 0:
+                self.list.InsertStringItem(sys.maxint, item[1])
+        self.list.Thaw()
 
 class TopContributorsPanel(HomePanel):             
     def __init__(self, parent):
-        background = '#E6E6E6'
-        
-        HomePanel.__init__(self, parent, 'Top Contributors' , background)
+        HomePanel.__init__(self, parent, 'Top Contributors' , LIST_BLUE)
         self.SetMinSize((300,-1))
         self.Layout()
         
@@ -202,8 +199,9 @@ class TopContributorsPanel(HomePanel):
         self.barterdb = BarterCastDBHandler.getInstance()
         
         self.timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
+        self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
         self.timer.Start(10000, False)
+        self.RefreshList()
     
     def CreatePanel(self):
         self.list = SortedListCtrl(self, 2, style = wx.LC_REPORT|wx.LC_NO_HEADER)
@@ -212,19 +210,22 @@ class TopContributorsPanel(HomePanel):
         self.list.setResizeColumn(1)
         self.list.SetColumnWidth(2, wx.LIST_AUTOSIZE)
         return self.list
-    
-    def OnRefreshTimer(self, event = None):
+
+    def _onTimer(self, event):
         if self.IsShownOnScreen():
-            self.topTen = self.barterdb.getTopNPeers(10)
-            
-            self.list.Freeze()
-            self.list.DeleteAllItems()
-            for item in self.topTen['top']:
-                name = self.peerdb.getPeer(item[0], 'name')
-                if name:
-                    pos = self.list.InsertStringItem(sys.maxint, name)
-                    self.list.SetStringItem(pos, 1, self.guiutility.utility.size_format(item[1], 1))
-            self.list.Thaw()
+            self.RefreshList()
+    
+    def RefreshList(self):
+        self.topTen = self.barterdb.getTopNPeers(10)
+        
+        self.list.Freeze()
+        self.list.DeleteAllItems()
+        for item in self.topTen['top']:
+            name = self.peerdb.getPeer(item[0], 'name')
+            if name:
+                pos = self.list.InsertStringItem(sys.maxint, name)
+                self.list.SetStringItem(pos, 1, self.guiutility.utility.size_format(item[1], 1))
+        self.list.Thaw()
         
     def OnDoubleClick(self, event):
         pass
@@ -241,9 +242,7 @@ class BuzzPanel(HomePanel):
         self.nbdb = NetworkBuzzDBHandler.getInstance()
         self.xxx_filter = Category.getInstance().xxx_filter
         
-        background = '#E6E6E6'
-        
-        HomePanel.__init__(self, parent, 'Network Buzz', background)
+        HomePanel.__init__(self, parent, 'Network Buzz', LIST_GREY)
          
         self.tags = []
         self.buzz_cache = [[],[],[]]

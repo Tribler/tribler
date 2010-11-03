@@ -2,7 +2,6 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI.tribler_topButton import NoFocusButton
 
 import sys
 import time
@@ -351,8 +350,8 @@ class AbstractListBody():
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.messageText = wx.StaticText(self.messagePanel)
-        self.loadNext = NoFocusButton(self.messagePanel, -1, "Show remaining items")
-        self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadAll)
+        self.loadNext = wx.Button(self.messagePanel, -1, "Show next %d items"%LIST_ITEM_MAX_SIZE)
+        self.loadNext.Bind(wx.EVT_BUTTON, self.OnLoadMore)
         self.loadNext.Hide()
         
         messageVSizer.Add(self.messageText)
@@ -568,9 +567,9 @@ class AbstractListBody():
             self.CreateItems()
             event.RequestMore(not self.done)
 
-    def OnLoadAll(self, event):
+    def OnLoadMore(self, event):
         self.loadNext.Disable()
-        self.CreateItems(sys.maxint, sys.maxint)
+        self.CreateItems(nr_items_to_create=LIST_ITEM_MAX_SIZE, nr_items_to_add=sys.maxint)
 
     def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = LIST_ITEM_MAX_SIZE):
         if DEBUG:
@@ -610,7 +609,7 @@ class AbstractListBody():
                                             
                 nr_items_to_add -= 1
             else:
-                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(LIST_ITEM_MAX_SIZE, len(self.data)))
+                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data)))
                 self.loadNext.Enable()
                 self.loadNext.Show()
                 self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
