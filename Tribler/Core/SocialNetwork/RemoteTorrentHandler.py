@@ -58,7 +58,7 @@ class RemoteTorrentHandler:
         self.callbacks[infohash] = usercallback
         
         if prio not in self.requestingThreads:
-            self.requestingThreads[prio] = TorrentRequester(self.metadatahandler, self.overlay_bridge, self.session, prio)
+            self.requestingThreads[prio] = TorrentRequester(self, self.metadatahandler, self.overlay_bridge, self.session, prio)
         
         self.requestingThreads[prio].add_source(infohash, permid)
         
@@ -86,7 +86,8 @@ class TorrentRequester():
     MAGNET_TIMEOUT = 10
     REQUEST_INTERVAL = 0.5
     
-    def __init__(self, metadatahandler, overlay_bridge, session, prio):
+    def __init__(self, remoteTorrentHandler, metadatahandler, overlay_bridge, session, prio):
+        self.remoteTorrentHandler = remoteTorrentHandler
         self.metadatahandler = metadatahandler
         self.overlay_bridge = overlay_bridge
         self.session = session
@@ -151,6 +152,6 @@ class TorrentRequester():
                 torrent_db.addExternalTorrent(tdef)
                 self.session.close_dbhandler(torrent_db)
                 
-                self.metadatahandler_got_torrent(infohash, tdef, torrent_filename)
+                self.remoteTorrentHandler.metadatahandler_got_torrent(infohash, tdef, torrent_filename)
                 
             TorrentDef.retrieve_from_magnet(magnetlink, torrentdef_retrieved)
