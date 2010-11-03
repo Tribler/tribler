@@ -105,7 +105,7 @@ class RoutingNode(Node):
         self._msgs_since_timeout += 1
         self._num_queries += 1
         self._last_events.append((time.time(), QUERY))
-        self._last_events[:self._max_last_events]
+        self._last_events = self._last_events[:self._max_last_events]
 
     def on_response_received(self, rtt=0):
         """Register a reply from rnode.
@@ -128,7 +128,7 @@ class RoutingNode(Node):
             self._rtt_avg = rtt
         self._num_responses += 1
         self._last_events.append((time.time(), REPLY))
-        self._last_events[:self._max_last_events]
+        self._last_events = self._last_events[:self._max_last_events]
 
     def on_timeout(self):
         """Register a timeout for this rnode.
@@ -140,7 +140,7 @@ class RoutingNode(Node):
         self._msgs_since_timeout = 0
         self._num_timeouts += 1
         self._last_events.append((time.time(), TIMEOUT))
-        self._last_events[:self._max_last_events]
+        self._last_events = self._last_events[:self._max_last_events]
 
     def timeouts_in_a_row(self, consider_queries=True):
         """Return number of timeouts in a row for this rnode."""
