@@ -119,7 +119,7 @@ class TorrentDetails(wx.Panel):
         vSizer.AddGrowableCol(1)
         add_row(overview, vSizer, "Name", torrent['name'])
         add_row(overview, vSizer, "Type", category.capitalize())
-        add_row(overview, vSizer, "Uploaded", date.fromtimestamp(torrent['creation_date']).strftime('%d-%m-%y'))
+        add_row(overview, vSizer, "Uploaded", date.fromtimestamp(torrent['creation_date']).strftime('%Y-%m-%d'))
         add_row(overview, vSizer, "Filesize", self.guiutility.utility.size_format(torrent['length']) + " in " + str(len(information[2])) + " files")
         
         if 'torrent_id' not in self.torrent:
@@ -305,7 +305,7 @@ class TorrentDetails(wx.Panel):
                 #Decide which panel should be shown
                 ds = self.torrent.get('ds', False)
                 in_progress = ds
-                finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
+                finished = ds and ds.get_progress() == 1.0
             elif type == 1:
                 in_progress = True
             elif type == 2:
@@ -484,9 +484,9 @@ class TorrentDetails(wx.Panel):
                     channeltext.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
                     self.buttonSizer.Add(channeltext, 0, wx.ALL|wx.EXPAND, 3)
                 
-                    mychannel = LinkStaticText(self.buttonPanel, "Or share it using your channel")
+                    mychannel = LinkStaticText(self.buttonPanel, "Or spread it using your channel")
                 else:
-                    mychannel = LinkStaticText(self.buttonPanel, "Share it using your channel")
+                    mychannel = LinkStaticText(self.buttonPanel, "Spread it using your channel")
                     
                 mychannel.Bind(wx.EVT_LEFT_DOWN, self.OnMyChannel)
                 mychannel.SetToolTipString('Add this torrent to your channel.')
@@ -515,7 +515,7 @@ class TorrentDetails(wx.Panel):
                     if filenameintorrent == file:
                         return path
                     
-            return os.path.commonprefix([path for _,path in destdirs])
+            return os.path.commonprefix([os.path.split(path)[0] for _,path in destdirs])
     
     def OnExplore(self, event):
         path = self._GetPath()
@@ -863,13 +863,13 @@ class MyChannelTabs(wx.Panel):
             This is your channel.
         </p>
         <p>
-            You can use your channel to share torrents with other Tribler users.<br />
+            You can use your channel to spread torrents to other Tribler users.<br />
             If your channel provides other Tribler users with original or popular content, then they might mark your channel as one of their favorites.<br />
             This will help to promote your channel, because the number of users which have marked a channel as one of their favorites is used to calculate popularity.
             Additionally, when another Tribler user marks your channel as a favorite they help you distribute all the .torrent files.
         </p>
         <p>
-            Currently <em>three</em> options exist to share torrents. Two of them, periodically importing .torrents from an rss feed and manually adding .torrent files, are available from the 'Manage' tab. <br />
+            Currently <em>three</em> options exist to spread torrents. Two of them, periodically importing .torrents from an rss feed and manually adding .torrent files, are available from the 'Manage' tab. <br />
             The third option is available from the torrentview after completely downloading a torrent and allows you to add a torrent to your channel with a single click.
         </p>
                 """
@@ -884,7 +884,7 @@ class MyChannelTabs(wx.Panel):
         #shared files page
         filespage = wx.Panel(notebook)
         filespage.SetBackgroundColour(LIST_DESELECTED)
-        self.header = ListHeader(filespage, background, columns)
+        self.header = ListHeader(filespage, background, columns, 0)
         self.list = ListBody(filespage, background, columns, spacers[0], spacers[1], singleSelect)
         
         #small onexpand hack
@@ -905,7 +905,7 @@ class MyChannelTabs(wx.Panel):
         listbuttons.SetSizer(hSizer)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(self.header, 0, wx.EXPAND|wx.TOP, 3)
+        vSizer.Add(self.header, 0, wx.EXPAND)
         vSizer.Add(self.list, 1, wx.EXPAND)
         vSizer.Add(listbuttons, 0, wx.EXPAND)
         filespage.SetSizer(vSizer)
@@ -1108,18 +1108,69 @@ class MyChannelDetails(wx.Panel):
         self.my_permid = my_permid
         
         self.uelog = UserEventLogDBHandler.getInstance()
+        self.guiutility = GUIUtility.getInstance()
+
         self.subsupport = SubtitlesSupport.getInstance()
         self.supportedLang = self.subsupport.langUtility.getLangSupported()
         self.supportedLangFull = self.supportedLang.values()
         self.supportedLangFull.sort()
         
         wx.Panel.__init__(self, parent)
+        
+        self.borderSizer = wx.BoxSizer()
+        self.SetSizer(self.borderSizer)
+        
         self.SetBackgroundColour(LIST_DESELECTED)
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        borderSizer = wx.BoxSizer()
-        borderSizer.Add(self.vSizer, 1, wx.ALL|wx.EXPAND, 5)
-        self.SetSizer(borderSizer)
-        self.AddSubs()
+        self.guiutility.torrentsearch_manager.isTorrentPlayable(self.torrent, callback = self.showTorrent)
+    
+    def showTorrent(self, torrent, information):
+        wx.CallAfter(self._showTorrent, torrent, information)
+        
+    def _showTorrent(self, torrent, information):
+        notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
+        listCtrl = SortedListCtrl(notebook, 2)
+        listCtrl.InsertColumn(0, 'Name')
+        listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
+            
+        self.il = wx.ImageList(16,16)
+        play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'library_play.png'), wx.BITMAP_TYPE_ANY))
+        file_img = self.il.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, size = (16,16)))
+        listCtrl.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
+            
+        for filename, size in information[2]:
+            try:
+                pos = listCtrl.InsertStringItem(sys.maxint, filename)
+            except:
+                try:
+                    pos = listCtrl.InsertStringItem(sys.maxint, filename.decode('utf-8','ignore'))
+                except:
+                    print >> sys.stderr, "Could not format filename", torrent['name']
+            listCtrl.SetItemData(pos, pos)
+            listCtrl.itemDataMap.setdefault(pos, [filename, size])
+            
+            size = self.guiutility.utility.size_format(size)
+            listCtrl.SetStringItem(pos, 1, size)
+            
+            if filename in information[1]:
+                listCtrl.SetItemColumnImage(pos, 0, play_img)
+            else:
+                listCtrl.SetItemColumnImage(pos, 0, file_img)
+            
+        listCtrl.setResizeColumn(1) #resize column starts at 1 instead of 0
+        listCtrl.SetMinSize((1,-1))
+        listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
+        notebook.AddPage(listCtrl, "Files")
+        
+        if self.subsupport._registered and information[0]:
+            self.subtitles = wx.Panel(notebook)
+            self.vSizer = wx.BoxSizer(wx.VERTICAL)
+            self.subtitles.SetSizer(self.vSizer)
+            notebook.AddPage(self.subtitles, "Subtitles")
+            self.AddSubs()
+        
+        self.borderSizer.Add(notebook, 1, wx.EXPAND)
+        self.Layout()
+        self.parent.parent_list.OnChange()
     
     def AddSubs(self):
         self.vSizer.ShowItems(False)
@@ -1128,7 +1179,7 @@ class MyChannelDetails(wx.Panel):
         
         currentsubs = self.subsupport.getSubtitleInfos(self.my_permid, self.torrent['infohash'])
         if len(currentsubs) > 0:
-            header = wx.StaticText(self, -1, "Current Subtitles")
+            header = wx.StaticText(self.subtitles, -1, "Current Subtitles")
             font = header.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             header.SetFont(font)
@@ -1137,24 +1188,22 @@ class MyChannelDetails(wx.Panel):
             curlang = [self.supportedLang[langkey] for langkey in currentsubs.keys()]
             curlang.sort()
             for lang in curlang:
-                self.vSizer.Add(wx.StaticText(self, -1, lang), 0, wx.LEFT, 6)
+                self.vSizer.Add(wx.StaticText(self.subtitles, -1, lang), 0, wx.LEFT, 6)
         else:
-            header = wx.StaticText(self, -1, "No subtitles added to this .torrent.")
+            header = wx.StaticText(self.subtitles, -1, "No subtitles added to this .torrent.")
             font = header.GetFont()
             font.SetWeight(wx.FONTWEIGHT_BOLD)
             header.SetFont(font)
             self.vSizer.Add(header)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(wx.StaticText(self, -1, "Add a subtitle to this .torrent"), 0, wx.ALIGN_CENTER_VERTICAL)
+        hSizer.Add(wx.StaticText(self.subtitles, -1, "Add a subtitle to this .torrent"), 0, wx.ALIGN_CENTER_VERTICAL)
         hSizer.AddStretchSpacer()
-        button = wx.Button(self, -1, "Browse")
+        button = wx.Button(self.subtitles, -1, "Browse")
         button.Bind(wx.EVT_BUTTON, self.OnClick)
         hSizer.Add(button)
         self.vSizer.Add(hSizer, 0, wx.EXPAND)
         self.vSizer.Layout()
-        
-        self.parent.parent_list.OnChange()
     
     def OnClick(self, event):
         dlg = wx.FileDialog(self,"Choose .srt file", wildcard = "SubRip file (*.srt) |*.srt", style = wx.DEFAULT_DIALOG_STYLE)
@@ -1173,6 +1222,8 @@ class MyChannelDetails(wx.Panel):
                         self.subsupport.publishSubtitle(self.torrent['infohash'], key, file)
                         self.uelog.addEvent(message="MyChannel: new subtitle added", type = 2)
                         self.AddSubs()
+                        
+                        self.parent.parent_list.OnChange()
                         break
         dlg.Destroy()
     
@@ -1186,17 +1237,17 @@ class SwarmHealth(wx.Panel):
     
     def SetRatio(self, seeders, leechers):
         self.blue = 0
-        if leechers < 0 and seeders < 0:
+        if leechers <= 0 and seeders <= 0:
             self.barwidth = 0
             
             self.green = 0
             self.red = 0
         else:
-            if leechers <= 0:
+            if leechers == 0:
                 ratio = sys.maxint
-            elif seeders <= 0:
+            elif seeders == 0:
                 ratio = 0
-            else:  
+            else:
                 ratio = seeders/(leechers*1.0)
             
             if ratio == 0:
@@ -1206,7 +1257,7 @@ class SwarmHealth(wx.Panel):
             else:
                 pop = seeders + leechers
                 if pop > 0:
-                    self.barwidth = max(math.log(pop,10) * 2, 1) / 10.0
+                    self.barwidth = max(math.log(pop*4,10) * 2, 1) / 10.0 #let it max at 25k population
                 else:
                     self.barwidth = 1
                 

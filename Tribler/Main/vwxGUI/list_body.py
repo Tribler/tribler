@@ -664,6 +664,15 @@ class ListBody(scrolled.ScrolledPanel, AbstractListBody):
         scrolled.ScrolledPanel.__init__(self, parent)
         AbstractListBody.__init__(self, parent, background, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
         
+        homeId = wx.NewId()
+        endId = wx.NewId()
+        self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(False), id = homeId)
+        self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(True), id = endId)
+        
+        accelerators = [(wx.ACCEL_NORMAL, wx.WXK_HOME, homeId)]
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_END, endId))
+        self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
+        
         self.SetupScrolling(scroll_x = False)
         
     def OnChildFocus(self, event):

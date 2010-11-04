@@ -49,13 +49,14 @@ class ListHeaderIcon:
         return [down, up, empty]
 
 class ListHeader(wx.Panel):
-    def __init__(self, parent, background, columns):
+    def __init__(self, parent, background, columns, radius = LIST_RADIUS):
         wx.Panel.__init__(self, parent)
         self.parent = parent
         self.background = background
         self.SetBackgroundColour(background)
         
         self.columns = columns
+        self.radius = radius
 
         self.sortedColumn = -1
         self.defaultSort = -1
@@ -68,9 +69,13 @@ class ListHeader(wx.Panel):
     def AddComponents(self, columns):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        hSizer.AddSpacer((LIST_RADIUS,10))
+        if self.radius > 0:
+            hSizer.AddSpacer((self.radius,10))
+            
         self.AddColumns(hSizer, self, columns)
-        hSizer.AddSpacer((LIST_RADIUS,10))
+        
+        if self.radius > 0:
+            hSizer.AddSpacer((self.radius,10))
         
         self.SetSizer(hSizer)
         
@@ -241,8 +246,10 @@ class ListHeader(wx.Panel):
         w, h = self.GetClientSize()
         dc.SetPen(wx.TRANSPARENT_PEN)
         dc.SetBrush(wx.Brush(self.background))
-        dc.DrawRoundedRectangle(0, 0, w, 2*LIST_RADIUS, LIST_RADIUS)
-        dc.DrawRectangle(0, LIST_RADIUS, w, h-LIST_RADIUS)
+        
+        if self.radius > 0:
+            dc.DrawRoundedRectangle(0, 0, w, 2*self.radius, self.radius)
+        dc.DrawRectangle(0, self.radius, w, h-self.radius)
     
     def OnResize(self, event):
         self.Refresh()

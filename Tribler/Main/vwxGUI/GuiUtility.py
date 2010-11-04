@@ -297,16 +297,8 @@ class GUIUtility:
         
         data = []
         for permid in data_channel.keys():
-            channel_name = data_channel[permid][0]
-            subscribers = data_channel[permid][1]
-            torrents = len(data_channel[permid][2])
+            data.append(self.channelsearch_manager.getChannel(permid))
             
-            if torrents > 0:
-                timestamps = [value[1] for torrent, value in data_channel[permid][2].iteritems()]
-                max_timestamp = max(timestamps)
-            else:
-                max_timestamp = -1
-            data.append([permid, channel_name, max_timestamp, subscribers, torrents])
         def subscribe_latestupdate_sort(b, a):
             val = cmp(a[4], b[4])
             if val == 0:
@@ -320,10 +312,12 @@ class GUIUtility:
         
         self.ShowPage('channels')
         
-    def OnList(self, goto_end):
+    def OnList(self, goto_end, event = None):
         lists = {'channels': self.frame.channellist,'selectedchannel': self.frame.selectedchannellist ,'mychannel': self.frame.mychannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
-        if self.guiPage in lists:
+        if self.guiPage in lists and lists[self.guiPage].HasFocus():
             lists[self.guiPage].ScrollToEnd(goto_end)
+        elif event:
+            event.Skip()
         
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 

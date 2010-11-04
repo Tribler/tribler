@@ -333,6 +333,11 @@ class List(wx.Panel):
     def Focus(self):
         if self.ready:
             self.list.SetFocus()
+    
+    def HasFocus(self):
+        if self.ready:
+            focussed = wx.Window.FindFocus()
+            return focussed == self.list
         
     def ScrollToEnd(self, scroll_to_end):
         if self.ready:
@@ -443,10 +448,7 @@ class SearchList(List):
         control.SetMinSize((self.columns[-2]['width'],7))
         control.SetBackgroundColour(wx.WHITE)
         control.SetRatio(seeders, leechers)
-        if leechers < 0 and seeders < 0:
-            control.SetToolTipString('popularity unknown')
-        else:
-            control.SetToolTipString('%s seeders, %s leechers'%(seeders,leechers))
+        control.SetToolTipString('The length of the bar shows the number of people uploading or downloading this torrent.\nA green bar indicates a that enough people are uploading this torrent.\nIf the bar is red then more people are needed to upload this file.')
         return control
         
     def OnDownload(self, event):
@@ -952,10 +954,7 @@ class MyChannelList(List):
         self.list.SetFocus()
     
     def OnExpand(self, item):
-        subsupport = SubtitlesSupport.getInstance()
-        if subsupport._registered:
-            return MyChannelDetails(item, item.original_data, self.GetManager().my_permid)
-        return True
+        return MyChannelDetails(item, item.original_data, self.GetManager().my_permid)
     
     def OnRemoveAll(self, event):
         dlg = wx.MessageDialog(self, 'Are you sure you want to remove all torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
