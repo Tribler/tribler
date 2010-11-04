@@ -53,7 +53,8 @@ def urlOpenTimeout(url,timeout=30,*data):
             if resp.headers.get("content-encoding") == "gzip":
                 gzip = GzipFile(fileobj=StringIO(resp.read()), mode="r")
                 prev_resp = resp
-                resp = urllib2.addinfourl(gzip, prev_resp.headers, prev_resp.url, prev_resp.code)
+                resp = urllib2.addinfourl(gzip, prev_resp.headers, prev_resp.url)
+                resp.code = prev_resp.code
                 resp.msg = prev_resp.msg
             return resp
         https_response = http_response
