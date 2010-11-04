@@ -146,7 +146,20 @@ class VLCWrapper:
                 # 5 = XP, 6 = Vista
                 # pylint: disable-msg=E1101
                 if sys.getwindowsversion()[0] == 6:
-                    params += ["--vout","vout_directx"]
+                    # detect if aero is on 
+                    from ctypes import windll, c_int, byref
+                    def isAeroEnabled():
+                        S_OK = 0
+                        if hasattr(windll,'dwmapi'):
+                            dwmapi = windll.dwmapi
+                            if hasattr(dwmapi,'DwmIsCompositionEnabled'):
+                                flag = c_int()
+                                res = dwmapi.DwmIsCompositionEnabled(byref(flag))
+                                return res == S_OK and bool(flag)
+                        return False
+                    
+                    if not isAeroEnabled():
+                        params += ["--vout","vout_directx"]
                 # pylint: enable-msg=E1101
             except:
                 print_exc()
