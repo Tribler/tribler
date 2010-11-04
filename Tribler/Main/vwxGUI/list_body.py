@@ -470,9 +470,9 @@ class AbstractListBody():
                 height = self.vSizer.GetSize()[1]
                 rate_y = height / nritems
                 self.rate = rate_y
-            self.SetupScrolling(scrollToTop = scrollToTop, scroll_x = False, rate_y = rate_y)
+            self.SetupScrolling(scrollToTop = scrollToTop, rate_y = rate_y)
         else:
-            self.SetupScrolling(scrollToTop = scrollToTop, scroll_x = False, rate_y = self.rate)
+            self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
     
     def Reset(self):
         self.Freeze()
@@ -673,7 +673,7 @@ class ListBody(scrolled.ScrolledPanel, AbstractListBody):
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_END, endId))
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
         
-        self.SetupScrolling(scroll_x = False)
+        self.SetupScrolling()
         
     def OnChildFocus(self, event):
         event.Skip()
