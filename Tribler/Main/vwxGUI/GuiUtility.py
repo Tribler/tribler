@@ -297,7 +297,21 @@ class GUIUtility:
         
         data = []
         for permid in data_channel.keys():
-            data.append(self.channelsearch_manager.getChannel(permid))
+            channel = self.channelsearch_manager.getChannel(permid)
+            if channel:
+                data.append(channel)
+                
+            else: #channel not found in local database (no torrents downloaded yet)
+                channel_name = data_channel[permid][0]
+                subscribers = data_channel[permid][1]
+                torrents = len(data_channel[permid][2])
+                
+                if torrents > 0:
+                    timestamps = [value[1] for torrent, value in data_channel[permid][2].iteritems()]
+                    max_timestamp = max(timestamps)
+                else:
+                    max_timestamp = -1
+                data.append([permid, channel_name, max_timestamp, subscribers, torrents])
             
         def subscribe_latestupdate_sort(b, a):
             val = cmp(a[4], b[4])

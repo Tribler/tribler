@@ -85,11 +85,6 @@ class ListHeader(wx.Panel):
         down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.background)
         for i in xrange(len(columns)):
             if columns[i].get('name', '') != '':
-                if columns[i]['width'] == wx.LIST_AUTOSIZE:
-                    option = 1
-                else:
-                    option = 0
-                     
                 label = wx.StaticText(parent, i, columns[i]['name'], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
                 label.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
                 label.SetToolTipString('Click to sort table by %s.'%columns[i]['name'])
@@ -109,8 +104,12 @@ class ListHeader(wx.Panel):
                     
                 elif columns[i]['width'] == wx.LIST_AUTOSIZE:
                     sizer.AddStretchSpacer()
-                    
+
                 else:
+                    if isinstance(columns[i]['width'], basestring) and columns[i]['width'].endswith('em'):
+                        test_string = 'T' * int(columns[i]['width'][:-2])
+                        columns[i]['width'] = self.GetTextExtent(test_string)[0] + 6
+                    
                     remainingWidth = columns[i]['width'] - (label.GetBestSize()[0] + down.GetWidth())
                     if remainingWidth > 0:
                         sizer.AddSpacer((remainingWidth, 1))

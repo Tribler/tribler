@@ -3327,7 +3327,9 @@ class ChannelCastDBHandler(BasicDBHandler):
    
     def getChannel(self, permid):
         sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id == ?"
-        return self._getChannels(sql, (permid,))[0]
+        channels = self._getChannels(sql, (permid,))
+        if len(channels) > 0:
+            return channels[0] 
    
     def getAllChannels(self):
         """ Returns all the channels """
