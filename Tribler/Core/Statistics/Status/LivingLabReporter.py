@@ -145,11 +145,11 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         self.num_reports += 1
         
         boundary = "------------------ThE_bOuNdArY_iS_hErE_$"
-        headers = {"Host":self.host,
-                   "User-Agent":"NextShare status reporter 2009.4",
-                   "Content-Type":"multipart/form-data; boundary=" + boundary}
+        # headers = {"Host":self.host,
+        #            "User-Agent":"NextShare status reporter 2009.4",
+        #            "Content-Type":"multipart/form-data; boundary=" + boundary}
 
-        base = ["--" + boundary]
+        base = ["--" + boundary + "--"]
         base.append('Content-Disposition: form-data; name="NextShareData"; filename="NextShareData"')
         base.append("Content-Type: text/xml")
         base.append("")
@@ -171,7 +171,13 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
 
         h = httplib.HTTPConnection(desthost)
         h.putrequest("POST", desturl)
-        h.putheader("Host",self.host)
+
+        # 08/11/10 Boudewijn: do not send Host, it is automatically
+        # generated from h.putrequest.  Sending it twice causes
+        # invalid HTTP and Virtual Hosts to
+        # fail.
+        #h.putheader("Host",self.host)
+
         h.putheader("User-Agent","NextShare status reporter 2010.3")
         h.putheader("Content-Type", "multipart/form-data; boundary=" + boundary)
         h.putheader("Content-Length",str(len(body)))
@@ -190,8 +196,8 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
                 except Exception, e:
                     pass
             else:
-                print >> sys.stderr, "Error posting but no error handler:", \
-                      errcode, h.file.read()
+                print >> sys.stderr, "Error posting but no error handler:", resp.status
+                print >> sys.stderr, resp.read()
         
 
 if __name__ == "__main__":
