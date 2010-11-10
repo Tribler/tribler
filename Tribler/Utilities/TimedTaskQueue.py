@@ -11,7 +11,6 @@ import sys
 from threading import Thread,Condition
 from traceback import print_exc,print_stack,format_stack
 from time import time
-from wx import PyDeadObjectError
 
 DEBUG = False
 
@@ -109,8 +108,6 @@ class TimedTaskQueue:
                         self.add_task('quit',t)
                 else:
                     task()
-            except PyDeadObjectError:
-                pass        
             except:
                 print_exc()
                 if __debug__:
