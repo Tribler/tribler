@@ -1,4 +1,5 @@
 # Written by Jie Yang
+# Modified by George Milescu
 # see LICENSE.txt for license information
 # Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py 
 # for any function you add to database. 
@@ -201,7 +202,7 @@ class PeerDBHandler(BasicDBHandler):
     gui_value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'num_peers', 'num_torrents', 'num_prefs', 
                       'connected_times', 'buddycast_times', 'last_connected',
-                      'is_local')
+                      'is_local', 'services')
     
     def getInstance(*args, **kw):
         # Singleton pattern with double-checking
@@ -241,7 +242,7 @@ class PeerDBHandler(BasicDBHandler):
             # make it compatible for calls to old bsddb interface
             value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'num_peers', 'num_torrents', 'num_prefs', 'num_queries', 
-                      'connected_times', 'buddycast_times', 'last_connected', 'last_seen', 'last_buddycast')
+                      'connected_times', 'buddycast_times', 'last_connected', 'last_seen', 'last_buddycast', 'services')
 
             item = self.getOne(value_name, permid=bin2str(permid))
             if not item:
@@ -256,6 +257,17 @@ class PeerDBHandler(BasicDBHandler):
         if sim is None:
             sim = 0
         return sim
+        
+    # ProxyService_
+    #
+    def getPeerServices(self, permid):
+        permid_str = bin2str(permid)
+        services = self.getOne('services', permid=permid_str)
+        if services is None:
+            services = 0
+        return services
+    #
+    # _ProxyService
         
     def getPeerList(self, peerids=None):    # get the list of all peers' permid
         if peerids is None:
@@ -450,7 +462,7 @@ class PeerDBHandler(BasicDBHandler):
         db keys: peer_id, permid, name, ip, port, thumbnail, oversion, 
                  similarity, friend, superpeer, last_seen, last_connected, 
                  last_buddycast, connected_times, buddycast_times, num_peers, 
-                 num_torrents, num_prefs, num_queries, is_local,
+                 num_torrents, num_prefs, num_queries, is_local, services
                  
         @in: get_online: boolean: if true, give peers a key 'online' if there is a connection now
         """

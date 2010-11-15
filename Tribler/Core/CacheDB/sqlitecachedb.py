@@ -1,4 +1,5 @@
 # Written by Jie Yang
+# Modified by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -21,6 +22,8 @@ import apsw
 #assert apsw_version >= support_version, "Required APSW Version >= %d.%d.%d."%support_version + " But your version is %d.%d.%d.\n"%apsw_version + \
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
+##Changed from 4 to 5 by andrea for subtitles support
+##Changed from 5 to 6 by George Milescu for ProxyService  
 ##Changed from 6 to 7 for Raynor's TermFrequency table
 CURRENT_MAIN_DB_VERSION = 7
 
@@ -1106,6 +1109,16 @@ on SubtitlesHave(received_ts);
 
             self.execute_write(sql, commit=False)
         
+        # P2P Services (ProxyService)
+        if fromver < 6:
+            sql = """
+-- Patch for P2P Servivces (ProxyService)
+            
+ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
+"""       
+            self.execute_write(sql, commit=False)
+
+        # Channelcast
         if fromver < 6:
             sql = 'Select * from ChannelCast'
             del_sql = 'Delete from ChannelCast where publisher_id = ? and infohash = ?'
@@ -1122,7 +1135,7 @@ on SubtitlesHave(received_ts);
             
             sql = 'CREATE UNIQUE INDEX publisher_id_infohash_idx on ChannelCast (publisher_id,infohash);'
             self.execute_write(sql, commit=False)
-        
+
         if fromver < 7:
             sql=\
             """
@@ -1167,7 +1180,7 @@ on SubtitlesHave(received_ts);
             );
             """
             self.execute_write(sql, commit=False)
-        
+
         # updating version stepwise so if this works, we store it
         # regardless of later, potentially failing updates
         self.writeDBVersion(CURRENT_MAIN_DB_VERSION, commit=False)

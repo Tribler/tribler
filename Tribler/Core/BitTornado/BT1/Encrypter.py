@@ -412,10 +412,10 @@ class Connection:
 # 2fastbt_
     def is_coordinator_con(self):
         #if DEBUG:
-        #    print >>sys.stderr,"encoder: is_coordinator_con: coordinator is ",self.Encoder.coordinator_ip
+        #    print >>sys.stderr,"encoder: is_coordinator_con: coordinator is ", TODO
         if self.coord_con:
             return True
-        elif self.get_ip() == self.Encoder.coordinator_ip and self.get_ip() != '127.0.0.1': # Arno: for testing
+        elif self.Encoder.helper is not None and self.Encoder.helper.is_coordinator_ip(self.get_ip()) and self.get_ip() != '127.0.0.1': # Arno: for testing
             return True
         else:
             return False
@@ -513,7 +513,7 @@ class Encoder:
         self.rerequest = None
 # 2fastbt_
         self.toofast_banned = {}
-        self.coordinator_ip = None
+        self.helper = None
 # _2fastbt        
 
         # hack: we should not import this since it is not part of the
@@ -752,8 +752,14 @@ class Encoder:
         self.paused = flag
 
 # 2fastbt_
-    def set_coordinator_ip(self,ip):
-        self.coordinator_ip = ip
+    def set_helper(self, helper):
+        """ Sets the current helper.
+        
+        Called from download_bt1.py
+        
+        @param helper: the helper object associated with the current download
+        """
+        self.helper = helper
 # _2fastbt    
 
     def set_rerequester(self,rerequest):

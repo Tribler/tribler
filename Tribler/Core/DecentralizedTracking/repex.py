@@ -520,6 +520,14 @@ class RePEXer(RePEXerInterface):
             print >>sys.stderr, "RePEXer: connect_queue: active_sockets: %s" % self.active_sockets
             
     def bootstrap(self):
+        # ProxyService_
+        #
+        proxy_mode = self.connecter.config.get('proxy_mode',0)
+        if proxy_mode == PROXY_MODE_PRIVATE:
+            self.rerequester_peers(None)
+            return
+        #
+        # _ProxyService
         if DEBUG:
             print >>sys.stderr, "RePEXer: bootstrap"
         self.bootstrap_counter += 1

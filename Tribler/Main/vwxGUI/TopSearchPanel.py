@@ -186,6 +186,64 @@ class TopSearchPanel(bgPanel):
         
         self.init_ready = True
         self.Bind(wx.EVT_SIZE, self.OnResize)
+
+        # ProxyService 90s Test_
+        from Tribler.Core.TorrentDef import TorrentDef
+        import M2Crypto
+        from Tribler.Core.simpledefs import NTFY_PEERS
+        import urllib
+        # Test if the 90s file exists in the Session.get_state_dir() folder
+        if os.path.isfile(os.path.join(self.utility.session.get_state_dir(),"90s")):
+            print "yey"
+        else:
+            # Create the 90s empty file
+            open(os.path.join(self.utility.session.get_state_dir(),"90s"), "w").close()
+            
+            # http://swarm.cs.pub.ro/~george/90s-test/Data.90s-test.8M.swarm.torrent is a temporary location
+            torrent_def = TorrentDef.load_from_url('http://swarm.cs.pub.ro/~george/90s-test/Data.90s-test.8M.swarm.torrent')
+            
+            # add the 4 proxy servers to batabase
+            peerlist = []
+            # add the proxy01 as a friend
+            # get proxy01 permid
+            proxy01_keypair = urllib.urlopen('http://swarm.cs.pub.ro/~george/90s-test/ec01.pem').read()
+            if proxy01_keypair != '':
+                tmpfile = open(os.path.join(self.utility.session.get_state_dir(),"tmpkey"), "w")
+                tmpfile.write(proxy01_keypair)
+                tmpfile.close()
+                proxy01_ec_keypair = M2Crypto.EC.load_key(os.path.join(self.utility.session.get_state_dir(),"tmpkey"))
+                proxy01_permid = str(proxy01_ec_keypair.pub().get_der())
+                # set proxy01 ip address
+                proxy01_ip = "141.85.224.207"
+                # set proxy01 port
+                proxy01_port = 25123
+                # add proxy01 as a peer
+                peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
+                peer = {}
+                peer['permid'] = proxy01_permid
+                peer['ip'] = proxy01_ip
+                peer['port'] = proxy01_port
+                peer['last_seen'] = 0
+                peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+                
+                # Delete the temporary key file 
+                os.remove(os.path.join(self.utility.session.get_state_dir(),"tmpkey"))
+
+                peerlist.append(proxy01_permid)
+
+            # Start the 90s test download
+            guiUtility = GUIUtility.getInstance()
+            d = guiUtility.frame.startDownload(tdef = torrent_def, proxymode=PROXY_MODE_PRIVATE)
+            d.ask_coopdl_helpers(peerlist)
+     
+            import threading
+            # 300s = 5 minutes
+            t = threading.Timer(300, self.del_dl)
+            t.start()
+        # _ProxyService 90s Test
+
+    # ProxyService 90s Test_
+
         
     def __do_layout(self):
         mainSizer = wx.BoxSizer(wx.HORIZONTAL)

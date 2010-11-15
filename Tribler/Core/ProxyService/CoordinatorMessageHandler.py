@@ -10,6 +10,7 @@ from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
 
+
 DEBUG = False
 
 class CoordinatorMessageHandler:

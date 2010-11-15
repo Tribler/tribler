@@ -173,9 +173,9 @@ def main():
     session_startup_config.set_dialback(True)
     session_startup_config.set_internal_tracker(False)
     # ProxyDevel - turn DHT off
-    session_startup_config.set_mainline_dht(False)
+    #session_startup_config.set_mainline_dht(False)
     # ProxyDevel - turn buddycast off
-    session_startup_config.set_buddycast(False)
+    #session_startup_config.set_buddycast(False)
     # ProxyDevel - set new core API values
     session_startup_config.set_proxyservice_status(proxy_service)
     
@@ -194,7 +194,8 @@ def main():
         helper1_keypair = EC.load_key(helper1_keypair_filename)
         helper1_permid = str(helper1_keypair.pub().get_der())
         # set helper1 ip address
-        helper1_ip="10.10.3.1"
+        helper1_ip="141.85.224.207"
+#        helper1_ip="10.10.3.1"
 #        helper1_ip="141.85.224.203"
         # set helper1 port
         helper1_port = 25123
@@ -230,9 +231,9 @@ def main():
     if (no_download == False):
         # setup and start download
         download_startup_config = DownloadStartupConfig()
-        download_startup_config.set_dest_dir(output_dir);
+        download_startup_config.set_dest_dir(output_dir)
         # ProxyDevel - turn PEX off
-        download_startup_config.set_ut_pex_max_addrs_from_peer(0)
+        #download_startup_config.set_ut_pex_max_addrs_from_peer(0)
         download_startup_config.set_proxy_mode(proxy_mode)
         download_startup_config.set_no_helpers(helpers)
 
@@ -251,7 +252,7 @@ def main():
                 print "*** COORDINATOR Sending help request"
                 peerlist = []
                 peerlist.append(helper1_permid)
-                peerlist.append(helper2_permid)
+                #peerlist.append(helper2_permid)
                 download.ask_coopdl_helpers(peerlist)
 
     #
@@ -264,6 +265,7 @@ def main():
     # time.sleep(sys.maxint) has "issues" on 64bit architectures; divide it
     # by some value (2048) to solve problem
     #
+    
     try:
         while True:
             time.sleep(sys.maxint/2048)

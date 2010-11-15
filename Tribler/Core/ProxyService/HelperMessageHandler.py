@@ -93,6 +93,7 @@ class HelperMessageHandler:
         
         if DEBUG:
             print >> sys.stderr, "helper: got_ask_for_help: received a help request from",show_permid_short(permid)
+        print >> sys.stderr, "helper: got_ask_for_help: received a help request from",show_permid_short(permid)
 
         
         # Save the challenge
@@ -142,7 +143,7 @@ class HelperMessageHandler:
         if not helper_obj.is_coordinator(permid):
             if DEBUG:
                 print >> sys.stderr, "helper: network_got_ask_for_help: The node asking for help is not the current coordinator"
-            return
+            #return
 
         challenge = self.received_challenges[permid]
         helper_obj.got_ask_for_help(permid, infohash, challenge)
@@ -274,11 +275,12 @@ class HelperMessageHandler:
             
             infohash_queue = self.metadata_queue[infohash]
             del self.metadata_queue[infohash]
+
+            for permid in infohash_queue:
+                # only ask for metadata once
+                self.new_download(infohash, torrent_data, permid)
         finally:
             self.metadata_queue_lock.release()
-        for permid in infohash_queue:
-            # only ask for metadata once
-            self.new_download(infohash, torrent_data, permid)
 
 
     def find_torrent(self, infohash):

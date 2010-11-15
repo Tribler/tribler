@@ -784,6 +784,13 @@ class Downloader:
         # check periodicaly
         self.scheduler(self.dlr_periodic_check, 1)
 
+        # ProxyService_
+        # Add a reference to self for the helper object
+        if self.picker is not None:
+            if self.picker.helper is not None:
+                self.picker.helper.set_downloader(self)
+        # _ProxyService
+
     def dlr_periodic_check(self):
         self.picker.check_outstanding_requests(self.downloads)
 

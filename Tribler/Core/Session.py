@@ -1,4 +1,5 @@
 # Written by Arno Bakker 
+# Modified by George Milescu 
 # see LICENSE.txt for license information
 """ A Session is a running instance of the Tribler Core and the Core's central class. """
 
@@ -210,6 +211,18 @@ class Session(SessionRuntimeConfig):
         self.lm = TriblerLaunchMany()
         self.lm.register(self,self.sesslock)
         self.lm.start()
+
+        # ProxyService 90s Test_
+        from Tribler.Core.Statistics.Status.Status import get_status_holder
+        from Tribler.Core.Statistics.Status.ProxyTestReporter import *
+        from Tribler.Core.Statistics.Status import *
+
+        status = get_status_holder("ProxyTest01")
+        status.add_reporter(ProxyTestPeriodicReporter("DataTransfer", 1, "id01"))
+        status = get_status_holder("ProxyTest02")
+        status.add_reporter(ProxyTestPeriodicReporter("BuddyCast", 1, "id02"))
+        # _ProxyService 90s Test
+
 
 
     #
@@ -931,3 +944,30 @@ class Session(SessionRuntimeConfig):
             return self.lm.overlay_apps.subtitle_support
         except:
             return None
+        
+    # ProxyService_
+    #
+    def get_active_services(self):
+        """ Returns an integer that contains information about the current active services
+        
+        @return: an integer that encodes the active services.
+        """
+        #Current bit reservation:
+        # bit 0 - reserved
+        # bit 1 - regular proxy
+        
+        # Set all 32-bits to 0
+        my_services = 0
+        
+        # Get ProxySevice status
+        proxy_status = self.sessconfig['proxyservice_status']
+        if proxy_status == PROXYSERVICE_ON:
+            proxy = 2
+        else:
+            proxy = 0
+        # Store ProxyService status in my_services
+        my_services = my_services | proxy
+        
+        return my_services
+    #
+    # _ProxyService

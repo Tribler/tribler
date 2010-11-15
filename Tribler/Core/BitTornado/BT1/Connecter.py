@@ -10,7 +10,7 @@ from math import ceil
 import socket
 import urlparse
 
-from threading import Event # Wait for CS to complete
+from Tribler.Core.simpledefs import *
 
 from Tribler.Core.BitTornado.bitfield import Bitfield
 from Tribler.Core.BitTornado.clock import clock
@@ -1183,6 +1183,14 @@ class Connecter:
         self.ut_pex_previous_conns = conns
 
     def ut_pex_callback(self):
+        # ProxyService_
+        #
+        proxy_mode = self.config.get('proxy_mode',0)
+        if proxy_mode == PROXY_MODE_PRIVATE:
+            return
+        #
+        # _ProxyService
+
         """ Periocially send info about the peers you know to the other peers """
         if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Periodic ut_pex update"

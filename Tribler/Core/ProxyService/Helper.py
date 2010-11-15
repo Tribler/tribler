@@ -48,20 +48,27 @@ class Helper:
         self.torrent_hash = torrent_hash
         self.coordinator = coordinator
 
+        # The coordinator_permid is a dictionary that stores as keys two-item lists: [ip, port]
+        self.coordinator_permid = {}
+        
         if coordinator_permid is not None and coordinator_permid == '':
-            self.coordinator_permid = None
+            self.coordinator_permid[None] = [None, -1]
+            #coordinator_permid = None
+            #coordinator_ip = None  # see is_coordinator()
+            #coordinator_poer = -1
         else:
-            self.coordinator_permid = coordinator_permid
-
         # Get coordinator ip and address
-        self.coordinator_ip = None  # see is_coordinator()
-        self.coordinator_port = -1
-        if self.coordinator_permid is not None:
             peerdb = PeerDBHandler.getInstance()
             peer = peerdb.getPeer(coordinator_permid)
             if peer is not None:
-                self.coordinator_ip = peer['ip']
-                self.coordinator_port = peer['port']
+                ip = peer['ip']
+                port = peer['port']
+                self.coordinator_permid[coordinator_permid] = [ip, port]
+            else:
+                self.coordinator_permid[None] = [None, -1]
+        
+            self.coordinator_ip = None
+            self.coordinator_port = None
         
         self.overlay_bridge = OverlayThreadingBridge.getInstance()
         
@@ -81,9 +88,12 @@ class Helper:
         self.outstanding = None
         self.last_req_time = 0
         
-        # The challenge sent by the coordinator
-        self.challenge = None
+        # The challenges sent by the coordinators
+        self.challenge = {}
         
+        # A referece to the Downloader object
+        self.downloader = None
+
 
     def test(self):
         result = self.reserve_piece(10,None)
@@ -144,22 +154,22 @@ class Helper:
         if DEBUG:
             print "helper: send_join_helpers: sending a join_helpers message to", show_permid_short(permid)
 
-        olthread_send_join_helpers_lambda = lambda:self.olthread_send_join_helpers()
+        olthread_send_join_helpers_lambda = lambda:self.olthread_send_join_helpers(permid)
         self.overlay_bridge.add_task(olthread_send_join_helpers_lambda,0)
 
         
-    def olthread_send_join_helpers(self):
+    def olthread_send_join_helpers(self, permid):
         """ Creates a bridge connection for the join helpers message to be sent
         
         Called by the overlay thread.
         """
         # TODO: ??? We need to create the message according to protocol version, so need to pass all info.
         olthread_join_helpers_connect_callback_lambda = lambda e,d,p,s:self.olthread_join_helpers_connect_callback(e,d,p,s)
-        self.overlay_bridge.connect(self.coordinator_permid,olthread_join_helpers_connect_callback_lambda)
+        self.overlay_bridge.connect(permid,olthread_join_helpers_connect_callback_lambda)
 
 
     def olthread_join_helpers_connect_callback(self,exc,dns,permid,selversion):
-        """ Sends the join helpers message on the connection with the coordinator
+        """ Sends the join helpers message on the copermidnnection with the coordinator
         
         Called by the overlay thread.
         
@@ -209,23 +219,28 @@ class Helper:
         """
 
         if DEBUG:
-            print "helper: send_proxy_have: sending a proxy_have message to", show_permid_short(self.coordinator_permid)
+            print >> sys.stderr, "helper: send_proxy_have: sending a proxy_have message to all", len(self.coordinator_permid), "coordinator(s)" 
 
         aggregated_string = aggregated_haves.tostring()
-        olthread_send_proxy_have_lambda = lambda:self.olthread_send_proxy_have(aggregated_string)
+        olthread_send_proxy_have_lambda = lambda:self.olthread_send_proxy_have(self.coordinator_permid.keys(), aggregated_string)
         self.overlay_bridge.add_task(olthread_send_proxy_have_lambda,0)
 
         
-    def olthread_send_proxy_have(self, aggregated_string):
+    def olthread_send_proxy_have(self, permid, aggregated_string):
         """ Creates a bridge connection for the proxy_have message to be sent
         
         Called by the overlay thread.
         
         @param aggregated_string: a bitstring of available piesces
         """
+
+        for permid in self.coordinator_permid.keys():
+            if DEBUG:
+                print >> sys.stderr,"helper: olthread_send_proxy_have: Sending PROXY_HAVE to", show_permid_short(permid)
+    
         # TODO: ??? We need to create the message according to protocol version, so need to pass all info.
         olthread_proxy_have_connect_callback_lambda = lambda e,d,p,s:self.olthread_proxy_have_connect_callback(e,d,p,s,aggregated_string)
-        self.overlay_bridge.connect(self.coordinator_permid,olthread_proxy_have_connect_callback_lambda)
+        self.overlay_bridge.connect(permid,olthread_proxy_have_connect_callback_lambda)
 
 
     def olthread_proxy_have_connect_callback(self,exc,dns,permid,selversion, aggregated_string):
@@ -282,17 +297,17 @@ class Helper:
         if DEBUG:
             print "helper: send_resign_as_helper: sending a resign_as_helper message to", permid
 
-        olthread_send_resign_as_helper_lambda = lambda:self.olthread_send_resign_as_helper()
+        olthread_send_resign_as_helper_lambda = lambda:self.olthread_send_resign_as_helper(permid)
         self.overlay_bridge.add_task(olthread_send_resign_as_helper_lambda,0)
 
         
-    def olthread_send_resign_as_helper(self):
+    def olthread_send_resign_as_helper(self, permid):
         """ Creates a bridge connection for the resign_as_helper message to be sent
         
         Called by the overlay thread.
         """
         olthread_resign_as_helper_connect_callback_lambda = lambda e,d,p,s:self.olthread_resign_as_helper_connect_callback(e,d,p,s)
-        self.overlay_bridge.connect(self.coordinator_permid,olthread_resign_as_helper_connect_callback_lambda)
+        self.overlay_bridge.connect(permid,olthread_resign_as_helper_connect_callback_lambda)
 
 
     def olthread_resign_as_helper_connect_callback(self,exc,dns,permid,selversion):
@@ -349,12 +364,30 @@ class Helper:
         """
         if DEBUG:
             print >>sys.stderr,"helper: got_ask_for_help: will answer to the help request from", show_permid_short(permid)
+        
         if self.can_help(infohash):
             # Send JOIN_HELPERS
             if DEBUG:
                 print >>sys.stderr,"helper: got_ask_for_help: received a help request, going to send join_helpers"
             self.send_join_helpers(permid)
-            self.challenge = challenge
+            
+            # save the association between the permid and the challenge it sent
+            self.challenge[permid] = challenge
+            
+            # add the permid to the list of current helping permids
+            peerdb = PeerDBHandler.getInstance()
+            peer = peerdb.getPeer(permid)
+            if peer is not None:
+                ip = peer['ip']
+                port = peer['port']
+                if permid not in self.coordinator_permid.keys():
+                    self.coordinator_permid[permid] = [ip, port]
+            
+            if DEBUG:
+                print >>sys.stderr,"helper: got_ask_for_help: sending haves to all coordinators"
+
+            if self.downloader is not None:
+                self.downloader.aggregate_and_send_haves()
         else:
             # Send RESIGN_AS_HELPER
             if DEBUG:
@@ -419,16 +452,17 @@ class Helper:
         self.start_data_connection()
 
     def start_data_connection(self):
-        """ Start a data connection with the coordinator
-        
-        @param permid: The permid of the coordinator
+        """ Start a data connection with the coordinators
         """
         # Do this always, will return quickly when connection already exists
         dns = (self.coordinator_ip, self.coordinator_port)
+        for coord_permid in self.coordinator_permid.keys():
+            [coord_ip, coord_port] = self.coordinator_permid[coord_permid]
+            dns = (coord_ip, coord_port)
         if DEBUG:
             print >> sys.stderr,"helper: start_data_connection: Starting data connection to coordinator at", dns
         
-        self.encoder.start_connection(dns, id = None, coord_con = True, challenge = self.challenge)
+            self.encoder.start_connection(dns, id = None, coord_con = True, challenge = self.challenge[coord_permid])
 
 
 
@@ -436,19 +470,32 @@ class Helper:
     # Util functions
     #
     def is_coordinator(self, permid):
-        """ Check if the permid is the current coordinator
+        """ Check if the permid is among the current coordinators
         
         @param permid: The permid to be checked if it is the coordinator
-        @return: True, if the permid is the current coordinator; False, if the permid is not the current coordinator
+        @return: True, if the permid is among the current coordinators; False, if the permid is not among the current coordinators
         """
+        
         # If we could get coordinator_ip, don't help
-        if self.coordinator_ip is None:
-            return False
+#        if self.coordinator_ip is None:
+#            return False
 
-        if self.coordinator_permid == permid:
+        if permid in self.coordinator_permid.keys():
             return True
         else:
             return False
+
+
+    def is_coordinator_ip(self, ip):
+        """ Check if the give IP is among the current coordinator ip addresses
+        
+        @param ip: The ip to be checked if it is the coordinator
+        @return: True, if the ip is among the current coordinators; False, if the ip is not among the current coordinators
+        """
+        for [coord_ip, coord_port] in self.coordinator_permid.values():
+            if ip == coord_ip:
+                return True
+        return False
 
 
     def next_request(self):
@@ -480,10 +527,20 @@ class Helper:
         @param encoder: the new encoder that will be set
         """
         self.encoder = encoder
-        self.encoder.set_coordinator_ip(self.coordinator_ip)
+        #self.encoder.set_coordinator_ip(self.coordinator_ip)
         # To support a helping user stopping and restarting a torrent
         if self.coordinator_permid is not None:
             self.start_data_connection()   
+
+
+    def set_downloader(self, downloader):
+        """ Sets the current downloader.
+        
+        Called from Downloader.py
+        
+        @param downloader: the new downloader that will be set
+        """
+        self.downloader = downloader
 
 
     def get_coordinator_permid(self):
@@ -493,7 +550,7 @@ class Helper:
         
         @return: Coordinator permid
         """
-        return self.coordinator_permid
+        return self.coordinator_permid.keys()
 
 
     def is_reserved(self, piece):

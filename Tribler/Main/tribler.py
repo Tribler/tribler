@@ -85,7 +85,6 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 # one of those modules imports time as a module.
 from time import time, sleep
 
-
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6875
 SESSION_CHECKPOINT_INTERVAL = 1800.0 # seconds
@@ -474,6 +473,7 @@ class ABCApp(wx.App):
         #RePEXLogger.getInstance().start() #no more need for logging
         RePEXScheduler.getInstance().start()
 
+
     def sesscb_states_callback(self,dslist):
         """ Called by SessionThread """
         wx.CallAfter(self.gui_states_callback,dslist)
@@ -525,7 +525,6 @@ class ABCApp(wx.App):
         """ Called by MainThread  """
         if DEBUG: 
             print >>sys.stderr,"main: Stats:"
-            
         torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
         if DEBUG:
@@ -549,6 +548,17 @@ class ABCApp(wx.App):
             playds = None
             d = self.videoplayer.get_vod_download()
             for ds in dslist:
+                # ProxyService 90s Test_
+                from Tribler.Core.Statistics.Status.Status import get_status_holder
+                from Tribler.Core.Statistics.Status.ProxyTestReporter import *
+                from Tribler.Core.Statistics.Status import *
+                
+                safename = `ds.get_download().get_def().get_name()`
+                if safename == "'Data.90s-test.8M.bin'":
+                    status = get_status_holder("ProxyTest01")
+                    status.create_and_add_event("transfer-rate", [safename, dlstatus_strings[ds.get_status()], 100.0*ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()])
+                # _ProxyService 90s Test
+
                 if ds.get_download() == d:
                     playds = ds
                     break

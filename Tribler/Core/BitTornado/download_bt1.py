@@ -173,6 +173,7 @@ class BT1Download:
             else:
                 self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'], 
                              config['rarest_first_priority_cutoff'], helper = self.helper, coordinator = self.coordinator)
+            
         except:
             print_exc()
             print >> sys.stderr,"BT1Download: EXCEPTION in __init__ :'" + str(sys.exc_info()) + "' '"
@@ -479,6 +480,7 @@ class BT1Download:
             from Tribler.Core.ProxyService.RatePredictor import ExpSmoothRatePredictor
 
             self.helper.set_encoder(self.encoder)
+            self.encoder.set_helper(self.helper)
             self.rate_predictor = ExpSmoothRatePredictor(self.rawserver, 
                 self.downmeasure, self.config['max_download_rate'])
             self.picker.set_rate_predictor(self.rate_predictor)

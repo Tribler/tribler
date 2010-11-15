@@ -171,12 +171,13 @@ from Tribler.Core.Utilities.utilities import show_permid_short, show_permid,vali
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND, NTFY_MYPREFERENCES, NTFY_INSERT, NTFY_DELETE
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_ELEVENTH , OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
+from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FIRST, OLPROTO_VER_SECOND, OLPROTO_VER_THIRD, OLPROTO_VER_FOURTH, OLPROTO_VER_FIFTH, OLPROTO_VER_SIXTH, OLPROTO_VER_SEVENTH, OLPROTO_VER_EIGHTH, OLPROTO_VER_ELEVENTH, OLPROTO_VER_FIFTEENTH, OLPROTO_VER_CURRENT, OLPROTO_VER_LOWEST
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from similarity import P2PSim_Single, P2PSim_Full, P2PSimColdStart
 from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollecting
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Statistics.Crawler import Crawler
+from Tribler.Core.Session import Session
 
 from threading import currentThread
 
@@ -1074,6 +1075,15 @@ class BuddyCastCore:
             buddycast_data['nfiles'] = ntorrents
             buddycast_data['ndls'] = nmyprefs
             
+        # ProxyService_
+        #
+        if selversion >= OLPROTO_VER_FIFTEENTH:
+            session = Session.get_instance()
+            myservices = session.get_active_services()
+            buddycast_data['services'] = myservices
+            print "Sending BC for OL version", selversion
+        #
+        # _ProxyService
             
         return buddycast_data
 
@@ -1121,8 +1131,6 @@ class BuddyCastCore:
             for i in range(len(peers)):
                 peers[i]['similarity'] = int(peers[i]['similarity']+0.5)    # bencode doesn't accept float type
         
-
-
         # Every peer >= 6 in message attachs nfiles and oversion for remote search from version 6
         for i in range(len(peers)):
             oversion = peers[i].pop('oversion')
@@ -1132,6 +1140,14 @@ class BuddyCastCore:
                 # ascribe it to the inconsistent name of the same concept in msg and db
                 peers[i]['nfiles'] = nfiles
         
+        # ProxyService_
+        #
+        if selversion >= OLPROTO_VER_FIFTEENTH:
+            for i in range(len(peers)):
+                peers[i]['services'] = self.data_handler.getPeerServices(peers[i]['permid'])
+        #
+        # _ProxyService
+
         return peers
     
     def getRandomPeers(self, nrps, target_permid, target_ip, target_port, selversion):
@@ -1202,6 +1218,14 @@ class BuddyCastCore:
                 # ascribe it to the inconsistent name of the same concept in msg and db
                 peers[i]['nfiles'] = nfiles
   
+        # ProxyService_
+        #
+        if selversion >= OLPROTO_VER_FIFTEENTH:
+            for i in range(len(peers)):
+                peers[i]['services'] = self.data_handler.getPeerServices(peers[i]['permid'])
+        #
+        # _ProxyService
+
         return peers       
     
     def isConnectable(self):
@@ -1298,6 +1322,7 @@ class BuddyCastCore:
                     print >> sys.stderr, "bc: warning, got invalid BuddyCastMsg:", errmsg, \
                     "Round", self.round   # ipv6
                 return False            
+
             buddycast_data.update({'permid':sender_permid})
 
             try:    # check buddycast message
@@ -1480,7 +1505,6 @@ class BuddyCastCore:
         #     print >> sys.stderr, "bc: randompeer", peer
         
         max_tb_sim = 1
-
         # include sender itself
         bc_data = [buddycast_data] + tbs + rps 
         for peer in bc_data:
@@ -1518,8 +1542,37 @@ class BuddyCastCore:
             new_peer_data['last_seen'] = last_seen
             if peer.has_key('name'):
                 new_peer_data['name'] = dunno2unicode(peer['name']) # store in db as unicode
+
+            # ProxyService_
+            #
+            if selversion >= OLPROTO_VER_FIFTEENTH:
+                new_peer_data['services'] = peer['services']
+
+                # ProxyService 90s Test_
+                from Tribler.Core.Statistics.Status.Status import get_status_holder
+                from Tribler.Core.Statistics.Status.ProxyTestReporter import *
+                from Tribler.Core.Statistics.Status import *
+                # _ProxyService 90s Test
+
+                if new_peer_data['services'] == 2: #and buddycast_data['ip'] == "130.161.211.200"
+                    if DEBUG:
+                        print "* learned about", show_permid_short(peer_permid), new_peer_data['ip'], "from", buddycast_data['ip'], "Complete data:", new_peer_data
+
+                    # ProxyService 90s Test_
+                    status = get_status_holder("ProxyTest02")
+                    status.create_and_add_event("discovered-active-proxy", [peer_permid, new_peer_data, buddycast_data])
+                    # _ProxyService 90s Test
+                else:
+                    # ProxyService 90s Test_
+                    status = get_status_holder("ProxyTest02")
+                    status.create_and_add_event("discovered-inactive-proxy", [peer_permid, new_peer_data, buddycast_data])
+                    # _ProxyService 90s Test
+            #
+            # _ProxyService
+
             cache_db_data['peer'][peer_permid] = new_peer_data
             #self.data_handler.addPeer(peer_permid, last_seen, new_peer_data, commit=True)    # new peer
+
 
         self.limitConnCandidate()
         if len(self.connection_candidates) > self.bootstrap_num:
@@ -1554,12 +1607,10 @@ class BuddyCastCore:
         if prefs:
             cache_db_data['pref'] = prefs 
         
-
         if selversion >= OLPROTO_VER_ELEVENTH:
             if collecteds:
                 cache_db_data['coll'] = collecteds
 
-        
         self.data_handler.handleBCData(cache_db_data, cache_peer_data, sender_permid, max_tb_sim, selversion, _now)
     
     def getCollectedHashes(self, buddycast_data, selversion):
@@ -2380,6 +2431,14 @@ class DataHandler:
         else:
             return sim
         
+    # ProxyService_
+    #
+    def getPeerServices(self, peer_permid):
+        services = self.peer_db.getPeerServices(peer_permid)
+        return services
+    #
+    # _ProxyService
+        
     def getPeerLastSeen(self, peer_permid):
         peer_id = self.getPeerID(peer_permid)
         return self.getPeerIDLastSeen(peer_id)
@@ -2625,6 +2684,7 @@ class DataHandler:
                         new_peer['buddycast_times'] = 1
                     else:
                         new_peer['buddycast_times'] =  + 1
+
                 if not old_last_seen or new_last_seen > old_last_seen + 4*60*60:
                     # don't update if it was updated in 4 hours
                     for k in new_peer.keys():

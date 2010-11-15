@@ -180,24 +180,7 @@ class SingleDownload:
             # RePEX: don't start the Rerequester in RePEX mode
             repexer = self.repexer
             if repexer is None:
-                # ProxyService_
-                #
-                # ProxyDevel
-                # If proxymode is PROXY_MODE_PRIVATE, deactivate the tracker support
-                download_config = self.get_bt1download().getConfig()
-                proxy_mode = download_config.get('proxy_mode',0)
-                
-                # Only activate the tracker if the proxy_mode is PROXY_MODE_OFF or PROXY_MODE_SPEED
-                if proxy_mode == PROXY_MODE_OFF or proxy_mode == PROXY_MODE_SPEED:
-                    self.dow.startRerequester()
-                    if DEBUG:
-                        print "Tracker class has been activated." + str(proxy_mode) 
-                else:
-                    #self.dow.startRerequester()
-                    if DEBUG:
-                        print "Tracker class has not been activated." + str(proxy_mode)
-                #
-                #_ProxyService
+                self.dow.startRerequester()
             else:
                 self.hook_repexer()
                 

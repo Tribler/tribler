@@ -40,9 +40,10 @@ OLPROTO_VER_ELEVENTH = 11  # Tenth public release, trial M23, swarm size info pa
 OLPROTO_VER_TWELFTH = 12  # 11th public release M24, SIMPLE+METADATA query + ChannelCast BASE64.
 OLPROTO_VER_THIRTEENTH = 13 # 12th public release >= 5.2, ChannelCast binary.
 OLPROTO_VER_FOURTEENTH = 14 # 13th public release >= M30, ProxyService + Subtitle dissemination through ChannelCast + SUBS and GET_SUBS messages 
+OLPROTO_VER_FIFTEENTH = 15 # 14th public release >= 5.3, ProxyService Buddycast integration
 
 # Overlay-swarm protocol version numbers
-OLPROTO_VER_CURRENT = OLPROTO_VER_FOURTEENTH
+OLPROTO_VER_CURRENT = OLPROTO_VER_FIFTEENTH
 
 OLPROTO_VER_LOWEST = OLPROTO_VER_SECOND
 SupportedVersions = range(OLPROTO_VER_LOWEST, OLPROTO_VER_CURRENT+1)

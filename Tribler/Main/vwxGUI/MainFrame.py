@@ -236,6 +236,7 @@ class MainFrame(wx.Frame):
         # If the user passed a torrentfile on the cmdline, load it.
         wx.CallAfter(self.startCMDLineTorrent)
         
+        
     def startCMDLineTorrent(self):
         if self.params[0] != "":
             if self.params[0].startswith("magnet:"):
@@ -254,7 +255,7 @@ class MainFrame(wx.Frame):
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
 
-    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False):
+    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,proxymode=None):
         
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
@@ -265,6 +266,11 @@ class MainFrame(wx.Frame):
             dscfg = defaultDLConfig.copy()
             if destdir is not None:
                 dscfg.set_dest_dir(destdir)
+        
+            # ProxyService_
+            if proxymode is not None:
+                dscfg.set_proxy_mode(proxymode)
+            # _ProxyService
         
             videofiles = tdef.get_files(exts=videoextdefaults)
             if vodmode and len(videofiles) == 0:
