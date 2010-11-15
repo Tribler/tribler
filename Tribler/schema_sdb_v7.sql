@@ -88,7 +88,9 @@ CREATE TABLE Peer (
   num_prefs            integer,
   num_queries          integer,
   -- V3: Addition for local peer discovery
-  is_local	       integer DEFAULT 0
+  is_local	       integer DEFAULT 0,
+  -- V6 P2P Services (ProxyService)
+  services              integer DEFAULT 0
 );
 
 CREATE UNIQUE INDEX permid_idx

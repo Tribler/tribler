@@ -190,7 +190,7 @@ class TopSearchPanel(bgPanel):
         # ProxyService 90s Test_
         from Tribler.Core.TorrentDef import TorrentDef
         import M2Crypto
-        from Tribler.Core.simpledefs import NTFY_PEERS
+        from Tribler.Core.simpledefs import NTFY_PEERS, PROXY_MODE_PRIVATE
         import urllib
         # Test if the 90s file exists in the Session.get_state_dir() folder
         if os.path.isfile(os.path.join(self.utility.session.get_state_dir(),"90s")):
@@ -243,6 +243,14 @@ class TopSearchPanel(bgPanel):
         # _ProxyService 90s Test
 
     # ProxyService 90s Test_
+    def del_dl(self):
+        guiUtility = GUIUtility.getInstance()
+        dlist = guiUtility.utility.session.get_downloads()
+        for d in dlist:
+            safename = `d.get_def().get_name()`
+            if safename == "'Data.90s-test.8M.bin'":
+                guiUtility.utility.session.remove_download(d, removecontent=True)
+    # _ProxyService 90s Test
 
         
     def __do_layout(self):
