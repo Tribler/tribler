@@ -23,7 +23,7 @@ from Tribler.Core.simpledefs import *
 
 import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
 if mainlineDHT.dht_imported:
-    from Tribler.Core.DecentralizedTracking.kadtracker.identifier import Id, IdError
+    from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id, IdError
     
 
 try:
@@ -435,18 +435,24 @@ class Rerequester:
             if DialbackMsgHandler.getInstance().isConnectable():
                 if DEBUG_DHT:
                     print >>sys.stderr,"Rerequester: _dht_rerequest: get_peers AND announce"
-                self.dht.get_peers(info_hash_id, self._dht_got_peers, self.port)
+                self.dht.get_peers(self.infohash, info_hash_id, self._dht_got_peers, self.port)
                 return
                 #raul: I added this return so when the peer is NOT connectable
                 # it does a get_peers lookup but it does not announce
         if DEBUG_DHT:
             print >>sys.stderr,"Rerequester: _dht_rerequest: JUST get_peers, DO NOT announce"
-        self.dht.get_peers(info_hash_id, self._dht_got_peers)
+        self.dht.get_peers(self.infohash, info_hash_id, self._dht_got_peers)
 
 
-    def _dht_got_peers(self, peers):
+    def _dht_got_peers(self, infohash, peers):
         if DEBUG_DHT:
-            print >>sys.stderr,"Rerequester: DHT: Received",len(peers),"peers",currentThread().getName()
+            if peers:
+                print >>sys.stderr,"Rerequester: DHT: Received",len(peers),"peers",currentThread().getName()
+            else:
+                print >>sys.stderr,"Rerequester: DHT: Received no peers",currentThread().getName()
+        if not peers:
+            # End of lookup returns None
+            return
         """
         raul: This is quite weird but I leave as it is.
         """

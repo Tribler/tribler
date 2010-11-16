@@ -5,26 +5,27 @@
 import sys
 from traceback import print_exc
 
+DEBUG = False
 dht_imported = False
 
 if sys.version.split()[0] >= '2.5':
     try:
-        from Tribler.Core.DecentralizedTracking.kadtracker.kadtracker import KadTracker
+        import Tribler.Core.DecentralizedTracking.pymdht.core.pymdht as pymdht
+        import Tribler.Core.DecentralizedTracking.pymdht.plugins.routing_nice_rtt as routing_mod
+        import Tribler.Core.DecentralizedTracking.pymdht.plugins.lookup_a16 as lookup_mod
         dht_imported = True
     except (ImportError), e:
         print_exc()
 
-DEBUG = False
-
 dht = None
 
-def init(*args, **kws):
+def init(addr, conf_path):
     global dht
     global dht_imported
     if DEBUG:
         print >>sys.stderr,'dht: DHT initialization', dht_imported
     if dht_imported and dht is None:
-        dht = KadTracker(*args, **kws)
+        dht = pymdht.Pymdht(addr, conf_path, routing_mod, lookup_mod)
         if DEBUG:
             print >>sys.stderr,'dht: DHT running'
 

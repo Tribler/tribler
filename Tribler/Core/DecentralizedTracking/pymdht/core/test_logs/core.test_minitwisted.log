@@ -1,0 +1,899 @@
+2010-11-04 16:06:37,696 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Empty bencoded string
+Bencoded: ''
+
+2010-11-04 16:06:37,699 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Extra characters after valid bencode.
+Bencoded: 'leEXTRA'
+
+2010-11-04 16:06:37,702 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Caracter in position 0 raised KeyError('x',)
+Bencoded: 'xWHATEVER'
+
+2010-11-04 16:06:37,704 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Caracter in position 1 raised KeyError('x',)
+Bencoded: 'dxe'
+
+2010-11-04 16:06:37,707 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Not an integer: ValueError("invalid literal for int() with base 10: 'x'",)
+Bencoded: 'ixe'
+
+2010-11-04 16:06:37,709 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: End of string and ending character not found
+Bencoded: 'li2e'
+
+2010-11-04 16:06:37,714 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Extra characters after valid bencode.
+Bencoded: 'li2eee'
+
+2010-11-04 16:06:37,716 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Caracter in position 6 raised KeyError('e',)
+Bencoded: 'd3:KEYe'
+
+2010-11-04 16:06:37,719 INFO bencode.py:13 - __init__()
+<class 'core.bencode.RecursionDepthError'>: maximum recursion depth exceeded
+Bencoded: 'lllll'
+
+2010-11-04 16:06:37,722 INFO bencode.py:13 - __init__()
+<class 'core.bencode.RecursionDepthError'>: maximum recursion depth exceeded
+Bencoded: 'd1:ad1:ad1:ad1:ad1:a'
+
+2010-11-04 16:06:37,724 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Keys must be string. Found: <d>
+Bencoded: 'ddddd'
+
+2010-11-04 16:06:37,727 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Character %s not found.
+Bencoded: '123'
+
+2010-11-04 16:06:37,729 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Extra characters after valid bencode.
+Bencoded: '123:'
+
+2010-11-04 16:06:37,732 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Extra characters after valid bencode.
+Bencoded: '123:a'
+
+2010-11-04 16:06:37,734 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Extra characters after valid bencode.
+Bencoded: '4:abcde'
+
+2010-11-04 16:06:37,737 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Extra characters after valid bencode.
+Bencoded: '5:abcdef'
+
+2010-11-04 16:06:37,739 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: End of string and ending character not found
+Bencoded: 'l99:abc'
+
+2010-11-04 16:06:37,742 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: End of string and ending character not found
+Bencoded: 'd99:abc'
+
+2010-11-04 16:06:37,744 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: End of string and ending character not found
+Bencoded: 'd2:ab99:ab'
+
+2010-11-04 16:06:37,750 DEBUG test_bencode.py:110 - test_encode_error()
+>>>>>>>>>>>EXPECTED ERROR LOG: <class 'core.bencode.EncodeError'>
+
+2010-11-04 16:06:37,753 INFO bencode.py:13 - __init__()
+<class 'core.bencode.EncodeError'>: Invalid type: <KeyError(<type 'bool'>,)>
+
+2010-11-04 16:06:37,756 DEBUG test_bencode.py:110 - test_encode_error()
+>>>>>>>>>>>EXPECTED ERROR LOG: <class 'core.bencode.EncodeError'>
+
+2010-11-04 16:06:37,758 INFO bencode.py:13 - __init__()
+<class 'core.bencode.EncodeError'>: Found a non-string key. Data: {1: 1}
+
+2010-11-04 16:06:37,762 DEBUG test_bencode.py:110 - test_encode_error()
+>>>>>>>>>>>EXPECTED ERROR LOG: <class 'core.bencode.EncodeError'>
+
+2010-11-04 16:06:37,765 INFO bencode.py:13 - __init__()
+<class 'core.bencode.EncodeError'>: Found a non-string key. Data: {None: 1}
+
+2010-11-04 16:06:37,767 DEBUG test_bencode.py:110 - test_encode_error()
+>>>>>>>>>>>EXPECTED ERROR LOG: <class 'core.bencode.EncodeError'>
+
+2010-11-04 16:06:37,769 INFO bencode.py:13 - __init__()
+<class 'core.bencode.EncodeError'>: Found a non-string key. Data: {(1, 2): 1}
+
+2010-11-04 16:06:37,787 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:37,994 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:38,006 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 5 packets: blocking '1.2.3.0'...
+
+2010-11-04 16:06:38,014 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 5 packets: blocking '1.2.3.1'...
+
+2010-11-04 16:06:38,017 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 6 packets: blocking '1.2.3.0'...
+
+2010-11-04 16:06:38,019 DEBUG floodbarrier.py:79 - ip_blocked()
+Ip '1.2.3.0' (1) currently blocked
+
+2010-11-04 16:06:38,022 DEBUG floodbarrier.py:79 - ip_blocked()
+Ip '1.2.3.1' (1) currently blocked
+
+2010-11-04 16:06:38,025 DEBUG floodbarrier.py:79 - ip_blocked()
+Ip '1.2.3.0' (1) currently blocked
+
+2010-11-04 16:06:38,027 DEBUG floodbarrier.py:79 - ip_blocked()
+Ip '1.2.3.1' (1) currently blocked
+
+2010-11-04 16:06:38,031 DEBUG floodbarrier.py:83 - ip_blocked()
+Block for '1.2.3.1' (1) has expired: unblocking...
+
+2010-11-04 16:06:38,033 DEBUG floodbarrier.py:79 - ip_blocked()
+Ip '1.2.3.0' (1) currently blocked
+
+2010-11-04 16:06:38,036 DEBUG floodbarrier.py:83 - ip_blocked()
+Block for '1.2.3.0' (1) has expired: unblocking...
+
+2010-11-04 16:06:38,049 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 0, _first_different_byte: 0
+
+2010-11-04 16:06:38,052 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 1, _first_different_byte: 1
+
+2010-11-04 16:06:38,054 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 2, _first_different_byte: 2
+
+2010-11-04 16:06:38,057 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 3, _first_different_byte: 3
+
+2010-11-04 16:06:38,059 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 4, _first_different_byte: 4
+
+2010-11-04 16:06:38,062 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 5, _first_different_byte: 5
+
+2010-11-04 16:06:38,064 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 6, _first_different_byte: 6
+
+2010-11-04 16:06:38,066 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 7, _first_different_byte: 7
+
+2010-11-04 16:06:38,069 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 8, _first_different_byte: 8
+
+2010-11-04 16:06:38,071 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 9, _first_different_byte: 9
+
+2010-11-04 16:06:38,074 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 10, _first_different_byte: 10
+
+2010-11-04 16:06:38,076 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 11, _first_different_byte: 11
+
+2010-11-04 16:06:38,079 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 12, _first_different_byte: 12
+
+2010-11-04 16:06:38,081 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 13, _first_different_byte: 13
+
+2010-11-04 16:06:38,083 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 14, _first_different_byte: 14
+
+2010-11-04 16:06:38,086 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 15, _first_different_byte: 15
+
+2010-11-04 16:06:38,088 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 16, _first_different_byte: 16
+
+2010-11-04 16:06:38,090 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 17, _first_different_byte: 17
+
+2010-11-04 16:06:38,093 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 18, _first_different_byte: 18
+
+2010-11-04 16:06:38,095 DEBUG test_identifier.py:56 - test_first_different_byte()
+test_num: 19, _first_different_byte: 19
+
+2010-11-04 16:06:38,194 DEBUG test_identifier.py:140 - test_log_distance()
+log_distance: 151
+
+2010-11-04 16:06:38,196 DEBUG test_identifier.py:141 - test_log_distance()
+expected: 151
+
+2010-11-04 16:06:38,199 DEBUG test_identifier.py:140 - test_log_distance()
+log_distance: 158
+
+2010-11-04 16:06:38,201 DEBUG test_identifier.py:141 - test_log_distance()
+expected: 158
+
+2010-11-04 16:06:38,203 DEBUG test_identifier.py:140 - test_log_distance()
+log_distance: 103
+
+2010-11-04 16:06:38,206 DEBUG test_identifier.py:141 - test_log_distance()
+expected: 103
+
+2010-11-04 16:06:38,208 DEBUG test_identifier.py:140 - test_log_distance()
+log_distance: 80
+
+2010-11-04 16:06:38,211 DEBUG test_identifier.py:141 - test_log_distance()
+expected: 80
+
+2010-11-04 16:06:38,214 DEBUG test_identifier.py:140 - test_log_distance()
+log_distance: 2
+
+2010-11-04 16:06:38,216 DEBUG test_identifier.py:141 - test_log_distance()
+expected: 2
+
+2010-11-04 16:06:38,221 DEBUG test_identifier.py:171 - test_order_closest()
+ordered list
+
+2010-11-04 16:06:38,224 DEBUG test_identifier.py:172 - test_order_closest()
+                    
+
+2010-11-04 16:06:38,226 DEBUG test_identifier.py:172 - test_order_closest()
+                   
+
+2010-11-04 16:06:38,228 DEBUG test_identifier.py:172 - test_order_closest()
+         
+
+2010-11-04 16:06:38,231 DEBUG test_identifier.py:172 - test_order_closest()
+       ÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,233 DEBUG test_identifier.py:172 - test_order_closest()
+       ÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,235 DEBUG test_identifier.py:172 - test_order_closest()
+ ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,238 DEBUG test_identifier.py:172 - test_order_closest()
+SSSSSSSSSSSSSSSSSSSS
+
+2010-11-04 16:06:38,240 DEBUG test_identifier.py:172 - test_order_closest()
+ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,243 DEBUG test_identifier.py:173 - test_order_closest()
+random order
+
+2010-11-04 16:06:38,245 DEBUG test_identifier.py:174 - test_order_closest()
+                    
+
+2010-11-04 16:06:38,248 DEBUG test_identifier.py:174 - test_order_closest()
+       ÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,250 DEBUG test_identifier.py:174 - test_order_closest()
+                   
+
+2010-11-04 16:06:38,252 DEBUG test_identifier.py:174 - test_order_closest()
+         
+
+2010-11-04 16:06:38,256 DEBUG test_identifier.py:174 - test_order_closest()
+ ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,258 DEBUG test_identifier.py:174 - test_order_closest()
+       ÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,261 DEBUG test_identifier.py:174 - test_order_closest()
+ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,263 DEBUG test_identifier.py:174 - test_order_closest()
+SSSSSSSSSSSSSSSSSSSS
+
+2010-11-04 16:06:38,266 DEBUG test_identifier.py:177 - test_order_closest()
+order_closest result
+
+2010-11-04 16:06:38,268 DEBUG test_identifier.py:178 - test_order_closest()
+                    
+
+2010-11-04 16:06:38,271 DEBUG test_identifier.py:178 - test_order_closest()
+                   
+
+2010-11-04 16:06:38,274 DEBUG test_identifier.py:178 - test_order_closest()
+         
+
+2010-11-04 16:06:38,277 DEBUG test_identifier.py:178 - test_order_closest()
+       ÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,279 DEBUG test_identifier.py:178 - test_order_closest()
+       ÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,282 DEBUG test_identifier.py:178 - test_order_closest()
+ ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,284 DEBUG test_identifier.py:178 - test_order_closest()
+SSSSSSSSSSSSSSSSSSSS
+
+2010-11-04 16:06:38,287 DEBUG test_identifier.py:178 - test_order_closest()
+ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,289 DEBUG test_identifier.py:179 - test_order_closest()
+random order (it should not change)
+
+2010-11-04 16:06:38,292 DEBUG test_identifier.py:180 - test_order_closest()
+                    
+
+2010-11-04 16:06:38,295 DEBUG test_identifier.py:180 - test_order_closest()
+       ÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,297 DEBUG test_identifier.py:180 - test_order_closest()
+                   
+
+2010-11-04 16:06:38,300 DEBUG test_identifier.py:180 - test_order_closest()
+         
+
+2010-11-04 16:06:38,302 DEBUG test_identifier.py:180 - test_order_closest()
+ ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,305 DEBUG test_identifier.py:180 - test_order_closest()
+       ÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,307 DEBUG test_identifier.py:180 - test_order_closest()
+ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,309 DEBUG test_identifier.py:180 - test_order_closest()
+SSSSSSSSSSSSSSSSSSSS
+
+2010-11-04 16:06:38,312 DEBUG test_identifier.py:186 - test_order_closest()
+0,                     ,                     
+
+2010-11-04 16:06:38,314 DEBUG test_identifier.py:186 - test_order_closest()
+1,                    ,                    
+
+2010-11-04 16:06:38,317 DEBUG test_identifier.py:186 - test_order_closest()
+2,          ,          
+
+2010-11-04 16:06:38,319 DEBUG test_identifier.py:186 - test_order_closest()
+3,        ÿÿÿÿÿÿÿÿÿÿÿÿÿ,        ÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,322 DEBUG test_identifier.py:186 - test_order_closest()
+4,        ÿÿÿÿÿÿÿÿÿÿÿÿÿ,        ÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,324 DEBUG test_identifier.py:186 - test_order_closest()
+5,  ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ,  ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,327 DEBUG test_identifier.py:186 - test_order_closest()
+6, SSSSSSSSSSSSSSSSSSSS, SSSSSSSSSSSSSSSSSSSS
+
+2010-11-04 16:06:38,329 DEBUG test_identifier.py:186 - test_order_closest()
+7, ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ, ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
+
+2010-11-04 16:06:38,345 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Character %s not found.
+Bencoded: '11'
+
+2010-11-04 16:06:38,347 CRITICAL message.py:232 - __init__()
+This bencoded message crashed:
+'11'
+
+2010-11-04 16:06:38,350 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Extra characters after valid bencode.
+Bencoded: '11:'
+
+2010-11-04 16:06:38,352 CRITICAL message.py:232 - __init__()
+This bencoded message crashed:
+'11:'
+
+2010-11-04 16:06:38,355 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Extra characters after valid bencode.
+Bencoded: '2:zzz'
+
+2010-11-04 16:06:38,357 CRITICAL message.py:232 - __init__()
+This bencoded message crashed:
+'2:zzz'
+
+2010-11-04 16:06:38,359 INFO bencode.py:13 - __init__()
+<class 'core.bencode.DecodeError'>: Caracter in position 0 raised KeyError('a',)
+Bencoded: 'a'
+
+2010-11-04 16:06:38,362 CRITICAL message.py:232 - __init__()
+This bencoded message crashed:
+'a'
+
+2010-11-04 16:06:38,364 INFO bencode.py:13 - __init__()
+<class 'core.bencode.RecursionDepthError'>: maximum recursion depth exceeded
+Bencoded: 'lllllllllllllllllllleeeeeeeeeeeeeeeeeeee'
+
+2010-11-04 16:06:38,367 CRITICAL message.py:232 - __init__()
+This bencoded message crashed:
+'lllllllllllllllllllleeeeeeeeeeeeeeeeeeee'
+
+2010-11-04 16:06:38,522 DEBUG test_message_tools.py:32 - test_tools()
+bs: 23, bin_to_int(bs): 12851, bs2: 23
+
+2010-11-04 16:06:38,525 DEBUG test_message_tools.py:32 - test_tools()
+bs: , bin_to_int(bs): 261, bs2: 
+
+2010-11-04 16:06:38,527 DEBUG test_message_tools.py:32 - test_tools()
+bs: a, bin_to_int(bs): 24835, bs2: a
+
+2010-11-04 16:06:38,533 DEBUG test_message_tools.py:65 - test_tools()
+[<node: ('1.2.3.4', 7777) 4141414141414141414141414141414141414141>]
+
+2010-11-04 16:06:38,536 WARNING test_message_tools.py:68 - test_tools()
+**IGNORE WARNING LOG** This exception was raised by a test
+
+2010-11-04 16:06:38,539 INFO message_tools.py:77 - uncompact_nodes()
+invalid size (207)                        X  Y  Z  [  \  ]  ^  
+
+2010-11-04 16:06:38,543 WARNING message_tools.py:54 - uncompact_addr()
+c_addr: '\x7f\x00\x00\x00\x00\x00' > port is ZERO
+
+2010-11-04 16:06:38,546 WARNING message_tools.py:54 - uncompact_addr()
+c_addr: '\x7f\x00\x00\x00\x00\x00' > port is ZERO
+
+2010-11-04 16:06:38,548 WARNING message_tools.py:103 - uncompact_nodes2()
+IPv6 addr in nodes2:                          
+
+2010-11-04 16:06:38,551 WARNING message_tools.py:54 - uncompact_addr()
+c_addr: '\x7f\x00\x00\x00\x00\x00' > port is ZERO
+
+2010-11-04 16:06:38,558 WARNING test_minitwisted.py:203 - test_block_flood()
+TESTING LOGS ** IGNORE EXPECTED WARNING **
+
+2010-11-04 16:06:38,559 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 11 packets: blocking '127.0.0.1'...
+
+2010-11-04 16:06:38,563 WARNING minitwisted.py:180 - run()
+('127.0.0.1', 6000) blocked
+
+2010-11-04 16:06:38,573 WARNING test_minitwisted.py:203 - test_block_flood()
+TESTING LOGS ** IGNORE EXPECTED WARNING **
+
+2010-11-04 16:06:38,577 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 12 packets: blocking '127.0.0.1'...
+
+2010-11-04 16:06:38,582 WARNING minitwisted.py:180 - run()
+('127.0.0.1', 6000) blocked
+
+2010-11-04 16:06:38,591 WARNING test_minitwisted.py:203 - test_block_flood()
+TESTING LOGS ** IGNORE EXPECTED WARNING **
+
+2010-11-04 16:06:38,591 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 13 packets: blocking '127.0.0.1'...
+
+2010-11-04 16:06:38,600 WARNING minitwisted.py:180 - run()
+('127.0.0.1', 6000) blocked
+
+2010-11-04 16:06:38,609 WARNING test_minitwisted.py:203 - test_block_flood()
+TESTING LOGS ** IGNORE EXPECTED WARNING **
+
+2010-11-04 16:06:38,610 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 14 packets: blocking '127.0.0.1'...
+
+2010-11-04 16:06:38,615 WARNING minitwisted.py:180 - run()
+('127.0.0.1', 6000) blocked
+
+2010-11-04 16:06:38,624 WARNING test_minitwisted.py:203 - test_block_flood()
+TESTING LOGS ** IGNORE EXPECTED WARNING **
+
+2010-11-04 16:06:38,625 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 15 packets: blocking '127.0.0.1'...
+
+2010-11-04 16:06:38,633 WARNING minitwisted.py:180 - run()
+('127.0.0.1', 6000) blocked
+
+2010-11-04 16:06:38,642 WARNING test_minitwisted.py:203 - test_block_flood()
+TESTING LOGS ** IGNORE EXPECTED WARNING **
+
+2010-11-04 16:06:38,643 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 16 packets: blocking '127.0.0.1'...
+
+2010-11-04 16:06:38,656 WARNING minitwisted.py:180 - run()
+('127.0.0.1', 6000) blocked
+
+2010-11-04 16:06:38,664 WARNING test_minitwisted.py:203 - test_block_flood()
+TESTING LOGS ** IGNORE EXPECTED WARNING **
+
+2010-11-04 16:06:38,665 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 17 packets: blocking '127.0.0.1'...
+
+2010-11-04 16:06:38,669 WARNING minitwisted.py:180 - run()
+('127.0.0.1', 6000) blocked
+
+2010-11-04 16:06:38,679 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 18 packets: blocking '127.0.0.1'...
+
+2010-11-04 16:06:38,679 WARNING test_minitwisted.py:203 - test_block_flood()
+TESTING LOGS ** IGNORE EXPECTED WARNING **
+
+2010-11-04 16:06:38,683 WARNING minitwisted.py:180 - run()
+('127.0.0.1', 6000) blocked
+
+2010-11-04 16:06:38,695 WARNING test_minitwisted.py:203 - test_block_flood()
+TESTING LOGS ** IGNORE EXPECTED WARNING **
+
+2010-11-04 16:06:38,695 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 19 packets: blocking '127.0.0.1'...
+
+2010-11-04 16:06:38,700 WARNING minitwisted.py:180 - run()
+('127.0.0.1', 6000) blocked
+
+2010-11-04 16:06:38,710 WARNING test_minitwisted.py:203 - test_block_flood()
+TESTING LOGS ** IGNORE EXPECTED WARNING **
+
+2010-11-04 16:06:38,710 DEBUG floodbarrier.py:72 - ip_blocked()
+Got 20 packets: blocking '127.0.0.1'...
+
+2010-11-04 16:06:38,717 WARNING minitwisted.py:180 - run()
+('127.0.0.1', 6000) blocked
+
+2010-11-04 16:06:38,733 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:38,742 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:38,781 DEBUG test_minitwisted.py:222 - test_call_later()
+callback_order: [3]
+
+2010-11-04 16:06:38,818 DEBUG test_minitwisted.py:228 - test_call_later()
+callback_order: [5]
+
+2010-11-04 16:06:38,927 DEBUG test_minitwisted.py:235 - test_call_later()
+callback_order: [2, 1]
+
+2010-11-04 16:06:38,937 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:38,951 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:38,962 WARNING minitwisted.py:166 - run()
+udp_listen has not been called
+
+2010-11-04 16:06:38,962 WARNING test_minitwisted.py:170 - test_listen_upd()
+TESTING LOGS ** IGNORE EXPECTED WARNING ** (udp_listen has not been called)
+
+2010-11-04 16:06:38,977 DEBUG test_minitwisted.py:181 - test_listen_upd()
+first_datagram: ('testing...', ('127.0.0.1', 6000)), ('testing...', ('127.0.0.1', 6000))
+
+2010-11-04 16:06:39,067 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,082 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,094 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,207 DEBUG test_minitwisted.py:247 - test_network_and_delayed()
+callback_order: [1]
+
+2010-11-04 16:06:39,235 DEBUG test_minitwisted.py:254 - test_network_and_delayed()
+callback_order: []
+
+2010-11-04 16:06:39,243 DEBUG test_minitwisted.py:256 - test_network_and_delayed()
+callback_order: []
+
+2010-11-04 16:06:39,360 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,366 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,385 DEBUG test_minitwisted.py:192 - test_network_callback()
+first_datagram: ('testing...', ('127.0.0.1', 6000)), ('testing...', ('127.0.0.1', 6000))
+
+2010-11-04 16:06:39,395 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,408 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,412 CRITICAL test_minitwisted.py:265 - test_sendto_socket_error()
+TESTING: IGNORE CRITICAL MESSAGE
+
+2010-11-04 16:06:39,414 CRITICAL minitwisted.py:268 - sendto()
+Got socket.error when sending (more info follows)
+
+2010-11-04 16:06:39,417 CRITICAL minitwisted.py:270 - sendto()
+Sending data to ('127.0.0.1', 0)
+'z'
+
+2010-11-04 16:06:39,419 ERROR minitwisted.py:271 - sendto()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 259, in sendto
+    bytes_sent = self.s.sendto(data, addr)
+error: [Errno 22] Invalid argument
+2010-11-04 16:06:39,433 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,443 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,554 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,562 CRITICAL test_minitwisted.py:299 - test_recvfrom()
+TESTING: IGNORE CRITICAL MESSAGE
+
+2010-11-04 16:06:39,563 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,572 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,575 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,578 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,581 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,585 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,588 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,591 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,594 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,596 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,600 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,602 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,605 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,607 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,610 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,612 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,615 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,617 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,621 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,624 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,627 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,629 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,633 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,635 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,638 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,640 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,643 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,645 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,648 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,650 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,653 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,655 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,658 CRITICAL minitwisted.py:174 - run()
+Got socket.error when receiving (more info follows)
+
+2010-11-04 16:06:39,660 ERROR minitwisted.py:175 - run()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 164, in run
+    data, addr = self.s.recvfrom(BUFFER_SIZE)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 314, in recvfrom
+    raise socket.error
+error
+2010-11-04 16:06:39,663 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,679 CRITICAL test_minitwisted.py:292 - test_sendto()
+TESTING: IGNORE CRITICAL MESSAGE
+
+2010-11-04 16:06:39,685 CRITICAL minitwisted.py:268 - sendto()
+Got socket.error when sending (more info follows)
+
+2010-11-04 16:06:39,693 CRITICAL minitwisted.py:270 - sendto()
+Sending data to ('127.0.0.1', 1)
+'z'
+
+2010-11-04 16:06:39,697 ERROR minitwisted.py:271 - sendto()
+See critical log above
+Traceback (most recent call last):
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 259, in sendto
+    bytes_sent = self.s.sendto(data, addr)
+  File "/home/raul/svn/tribler_org/raul/mainbranch-r18075-new_DHT_version/Tribler/Core/DecentralizedTracking/pymdht/core/minitwisted.py", line 311, in sendto
+    raise socket.error
+error
+2010-11-04 16:06:39,701 CRITICAL test_minitwisted.py:307 - test_sendto_too_large_data_string()
+TESTING: IGNORE CRITICAL MESSAGE
+
+2010-11-04 16:06:39,705 CRITICAL minitwisted.py:264 - sendto()
+Just 1024 bytes sent out of 12345 (Data follows)
+
+2010-11-04 16:06:39,707 CRITICAL minitwisted.py:265 - sendto()
+Data: zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+
+2010-11-04 16:06:39,716 DEBUG test_minitwisted.py:72 - test_cancel()
+[]
+
+2010-11-04 16:06:39,719 DEBUG test_minitwisted.py:84 - test_cancel()
+[0, 1, 2, 3, 4, 6, 7, 8, 9]
+
+2010-11-04 16:06:39,722 DEBUG test_minitwisted.py:113 - test_different_delay()
+#: 0, result: [], expected: []
+
+2010-11-04 16:06:39,725 DEBUG test_minitwisted.py:113 - test_different_delay()
+#: 1, result: ['a', 16, 3, 'b'], expected: ['a', 16, 3, 'b']
+
+2010-11-04 16:06:39,729 DEBUG test_minitwisted.py:113 - test_different_delay()
+#: 2, result: ['a', 0, 1, 2, 4, 5, 7, 8, 10, 12, 13, 15, 'c', 'b'], expected: ['a', 0, 1, 2, 4, 5, 7, 8, 10, 12, 13, 15, 'c', 'b']
+
+2010-11-04 16:06:39,732 DEBUG test_minitwisted.py:113 - test_different_delay()
+#: 3, result: ['a', 11, 'c', 'b'], expected: ['a', 11, 'c', 'b']
+
+2010-11-04 16:06:39,735 DEBUG test_minitwisted.py:113 - test_different_delay()
+#: 4, result: ['a', 6, 'c', 'b'], expected: ['a', 6, 'c', 'b']
+
+2010-11-04 16:06:39,738 DEBUG test_minitwisted.py:50 - test_simple()
+[]
+
+2010-11-04 16:06:39,855 DEBUG minitwisted.py:198 - run()
+Reactor stopped
+
+2010-11-04 16:06:39,964 DEBUG querier.py:59 - register_query()
+sending to node: <node: ('127.0.0.1', 6001) 0101010101010101010101010101010101010101>
+<class 'core.message.OutgoingPingQuery'>{'y': 'q', 'a': {'id': 'AAAAAAAAAAAAAAAAAAAA'}, 'q': 'ping', 'v': 'NS\x01\x18'}
+
+2010-11-04 16:06:39,974 WARNING querier.py:97 - on_error_received()
+Error message received:
+{'y': 'e', 'e': [201, 'Generic Error'], 't': 'a', 'v': 'NS\x01\x18'}
+Source: ('127.0.0.1', 6001)
+
+2010-11-04 16:06:40,000 DEBUG querier.py:59 - register_query()
+sending to node: <node: ('127.0.0.1', 6001) 0101010101010101010101010101010101010101>
+<class 'core.message.OutgoingPingQuery'>{'y': 'q', 'a': {'id': 'AAAAAAAAAAAAAAAAAAAA'}, 'q': 'ping', 'v': 'NS\x01\x18'}
+
+2010-11-04 16:06:40,005 DEBUG querier.py:69 - on_response_received()
+response received: {'y': 'r', 'r': {'id': '\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01'}, 't': '\x00\x00', 'v': 'NS\x01\x18'}
+
+2010-11-04 16:06:40,008 DEBUG querier.py:81 - on_response_received()
+response node: ('127.0.0.1', 6001), query:
+('\x00\x00', 'ping')
+
+2010-11-04 16:06:40,011 DEBUG querier.py:59 - register_query()
+sending to node: <node: ('127.0.0.1', 6001) 0101010101010101010101010101010101010101>
+<class 'core.message.OutgoingPingQuery'>{'y': 'q', 'a': {'id': 'AAAAAAAAAAAAAAAAAAAA'}, 'q': 'ping', 'v': 'NS\x01\x18'}
+
+2010-11-04 16:06:40,016 DEBUG querier.py:59 - register_query()
+sending to node: <node: ('127.0.0.1', 6001) 0101010101010101010101010101010101010101>
+<class 'core.message.OutgoingPingQuery'>{'y': 'q', 'a': {'id': 'AAAAAAAAAAAAAAAAAAAA'}, 'q': 'ping', 'v': 'NS\x01\x18'}
+
+2010-11-04 16:06:40,019 DEBUG querier.py:69 - on_response_received()
+response received: {'y': 'r', 'r': {'id': '\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01'}, 't': 'zz', 'v': 'NS\x01\x18'}
+
+2010-11-04 16:06:40,023 DEBUG querier.py:81 - on_response_received()
+response node: ('127.0.0.1', 6001), query:
+('\x00\x00', 'ping')
+
+2010-11-04 16:06:40,027 WARNING querier.py:87 - on_response_received()
+No query for this response
+{'y': 'r', 'r': {'id': '\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01'}, 't': 'zz', 'v': 'NS\x01\x18'}
+source: ('127.0.0.1', 6001)
+
+2010-11-04 16:06:40,032 DEBUG querier.py:69 - on_response_received()
+response received: {'y': 'r', 'r': {'id': '\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01'}, 't': 'zz', 'v': 'NS\x01\x18'}
+
+2010-11-04 16:06:40,035 WARNING querier.py:73 - on_response_received()
+No pending queries for ('127.0.0.1', 6001)
+

@@ -32,7 +32,7 @@ except ImportError:
             if "=" in part:
                 yield part.split("=", 1)
 
-from Tribler.Core.DecentralizedTracking.kadtracker.identifier import Id, IdError
+from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id, IdError
 from Tribler.Core.DecentralizedTracking.MagnetLink.MiniBitTorrent import MiniSwarm, MiniTracker
 import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
 

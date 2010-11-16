@@ -36,11 +36,10 @@ class mainlineDHTChecker:
             print >>sys.stderr,"mainlineDHTChecker: Lookup",`infohash`
 
         if self.dht is not None:
-            from Tribler.Core.DecentralizedTracking.kadtracker.identifier import Id, IdError
+            from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id, IdError
             try:
                 infohash_id = Id(infohash)
-                func = lambda p:self.got_peers_callback(infohash,p)
-                self.dht.get_peers(infohash_id,func)
+                self.dht.get_peers(infohash, infohash_id, self.got_peers_callback)
             except (IdError):
                 print >>sys.stderr,"Rerequester: _dht_rerequest: self.info_hash is not a valid identifier"
                 return
@@ -51,10 +50,12 @@ class mainlineDHTChecker:
     def got_peers_callback(self,infohash,peers):
         """ Called by network thread """
         if DEBUG:
-            print >>sys.stderr,"mainlineDHTChecker: Got",len(peers),"peers for torrent",`infohash`,currentThread().getName()
-            
-        alive = len(peers) > 0
-        if alive:
+            if peers:
+                print >>sys.stderr,"mainlineDHTChecker: Got",len(peers),"peers for torrent",`infohash`,currentThread().getName()
+            else:
+                print >>sys.stderr,"mainlineDHTChecker: Got no peers for torrent",`infohash`,currentThread().getName()
+
+        if peers:
             # Arno, 2010-02-19: this can be called frequently with the new DHT,
             # so first check before doing commit.
             #
