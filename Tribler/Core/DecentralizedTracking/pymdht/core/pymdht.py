@@ -56,7 +56,8 @@ class Pymdht:
         """
         if not self.controller.get_peers(lookup_id, info_hash,
                                          callback_f, bt_port):
-            print  >>sys.stderr, 'ERROR: the lookup could not start'
+            import sys
+            print >>sys.stderr, 'ERROR: the lookup could not start'
 
     def remove_torrent(self, info_hash):
         pass
