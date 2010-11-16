@@ -243,13 +243,13 @@ class TorrentDetails(wx.Panel):
                 
                 vSizer.AddStretchSpacer()
                 if finished:
-                    vSizer.Add(wx.StaticText(subtitlePanel, -1, "Please select a subtitle and click play."), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 10)
+                    add_row(subtitlePanel, vSizer, None, "Please select a subtitle and click play.")
                     
                     self.requestingSub = wx.StaticText(subtitlePanel)
                     self.requestingSub.Show(False)
                     vSizer.Add(self.requestingSub, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 10)
                 else:
-                    vSizer.Add(wx.StaticText(subtitlePanel, -1, "After you finished downloading this torrent you can select one to used with our player."), 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 10)
+                    add_row(subtitlePanel, vSizer, None, "After you finished downloading this torrent you can select one to used with our player.")
         
         #Create description
         if torrent.get('comment', 'None') != 'None' and torrent['comment'] != '':

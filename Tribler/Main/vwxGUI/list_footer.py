@@ -30,10 +30,11 @@ class ListFooter(wx.Panel):
 
     def HighLight(self):
         self.SetBackgroundColour(LIST_HIGHTLIGHT)
+        self.ClearBackground()
         
         def revert():
             self.SetBackgroundColour(self.originalColor)
-            self.Refresh()
+            self.ClearBackground()
         wx.CallLater(2000, revert)
 
     def OnPaint(self, event):
