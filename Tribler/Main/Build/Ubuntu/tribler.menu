@@ -1,4 +1,6 @@
-?package(tribler):needs="x11" section="Apps/Net" \
+?package(tribler): \
+     needs="x11" \
+     section="Applications/Network/File Transfer" \
 	 title="Tribler" \
 	 icon="/usr/share/pixmaps/tribler.xpm" \
 	 command="tribler"

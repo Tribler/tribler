@@ -1,13 +1,14 @@
 Source: tribler
 Section: net
 Priority: optional
-Maintainer: Arno Bakker <arno@cs.vu.nl>
-Standards-Version: 3.7.2
-Build-Depends: python, debhelper (>= 5.0.37.2), devscripts
+Maintainer: Tribler Team <tribler@tribler.org>
+Standards-Version: 3.8.4
+Build-Depends: debhelper (>= 7.0.50~), devscripts, python
+Homepage: http://www.tribler.org/
 
 Package: tribler
 Architecture: all
-Depends: python, python-wxgtk2.8, python-m2crypto, python-apsw, python-vlc, vlc, ffmpeg
+Depends: ${misc:Depends}, python, python-wxgtk2.8, python-m2crypto, python-apsw, python-vlc, vlc, ffmpeg
 Description: Python based Bittorrent/Internet TV application
  It allows you to watch videos and download
  content. Tribler aims to combine the ease of
@@ -27,4 +28,3 @@ Description: Python based Bittorrent/Internet TV application
  by a factor of two on asymmetric Internet links.
  The fastest way of social file sharing
  .
- Homepage: http://www.tribler.org/
