@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "5.2.1"
+!define VERSION "5.3.0"
 
 !include "MUI.nsh"
 
@@ -107,6 +107,9 @@ Section "!Main EXE" SecMain
  SetOutPath "$INSTDIR\Tribler\Core\Statistics"
  File Tribler\Core\Statistics\*.txt
  File Tribler\Core\Statistics\*.sql
+ CreateDirectory "$INSTDIR\Tribler\Core\Tag"
+ SetOutPath "$INSTDIR\Tribler\Core\Tag"
+ File Tribler\Core\Tag\*.filter
  CreateDirectory "$INSTDIR\Tribler\Images"
  SetOutPath "$INSTDIR\Tribler\Images"
  File Tribler\Images\*.*
@@ -124,13 +127,10 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images"
- CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images\5.0"
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI"
  File Tribler\Main\vwxGUI\*.*
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images"
  File Tribler\Main\vwxGUI\images\*.*
- SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images\5.0"
- File Tribler\Main\vwxGUI\images\5.0\*.*
  ; Categories
  CreateDirectory "$INSTDIR\Tribler\Category"
  SetOutPath "$INSTDIR\Tribler\Category"

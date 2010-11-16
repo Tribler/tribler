@@ -43,7 +43,6 @@
     The Netherlands
 
 
- 
 ------------------------------------------------------------------------------
 
     Next-Share content-delivery library.
@@ -75,8 +74,11 @@
       Tribler/Tools/createlivestream-njaal.py
       Tribler/Tools/createpoa.py
       Tribler/Tools/trial_poa_server.py
+      Tribler/UPnP/*
+      Tribler/Test/test_upnp.py
 
     The following library modules are Copyright (c) 2008-2012, DACC Systems AB; All rights reserved:
+      DACC/transfer.php
  
     The following library modules are Copyright (c) 2008-2012, Lancaster University; All rights reserved:
 
@@ -122,24 +124,60 @@
       Tribler/Core/Video/PiecePickerSVC.py
       Tribler/Core/Video/SVCTransporter.py
       Tribler/Core/Video/SVCVideoStatus.py
-      Tribler/schema_sdb_v4.sql
-      vlc4plugin-1.0.1-r13995-renum.patch (except bindings/python)
+      Tribler/schema_sdb_v5.sql
       Tribler/Core/APIImplementation/makeurl.py
       Tribler/Core/BuddyCast/channelcast.py
       Tribler/Core/DecentralizedTracking/repex.py
       Tribler/Core/NATFirewall/TimeoutFinder.py
       Tribler/Core/NATFirewall/UDPPuncture.py
       Tribler/Core/Statistics/RepexCrawler.py
-      Tribler/Debug
+      Tribler/Debug/*
       Tribler/Tools/createtorrent.py
       Tribler/Tools/pingbackserver.py
       Tribler/Tools/seeking.py
       Tribler/Tools/stunserver.py
+      lucid-xpicreate.sh
+      patentfreevlc.bat
+      Tribler/Core/BitTornado/BT1/GetRightHTTPDownloader.py
+      Tribler/Core/BitTornado/BT1/HoffmanHTTPDownloader.py
+      Tribler/Core/CacheDB/MetadataDBHandler.py
+      Tribler/Core/DecentralizedTracking/MagnetLink/*
+      Tribler/Core/Subtitles/*
+      Tribler/Images/SwarmServerIcon.ico
+      Tribler/Main/Build/Ubuntu/tribler.gconf-defaults
+      Tribler/Main/Utility/logging_util.py
+      Tribler/Main/vwxGUI/ChannelsPanel.py
+      Tribler/Main/vwxGUI/images/iconSaved_state4.png
+      Tribler/schema_sdb_v5.sql
+      Tribler/Test/Core/*
+      Tribler/Test/extend_hs_dir/proxyservice.test.torrent
+      Tribler/Test/subtitles_test_res
+      Tribler/Test/test_channelcast_plus_subtitles.py
+      Tribler/Test/test_magnetlink.py
+      Tribler/Test/test_miscutils.py
+      Tribler/Test/test_subtitles.bat
+      Tribler/Test/test_subtitles_isolation.py
+      Tribler/Test/test_subtitles_msgs.py
+      Tribler/Test/test_subtitles.sh
+      Tribler/Test/test_threadpool.py
+      Tribler/Tools/dirtracker.py
+      Tribler/Tools/duration2torrent.py
+      Tribler/Tools/httpseeder.py
+      Tribler/Transport/*
+      Tribler/Video/Ogg.py
+      Tribler/WebUI/*
+      xpitransmakedeb.sh
+      xpitransmakedist.bat
+      xpitransmakedist.sh
+      xpitransmakedistmac.sh
+      xie8transmakedist.bat
+      TUD/swift-spbackend-r1598/*
+      vlc-1.0.5-swarmplugin-switch-kcc-src-aug2010-r16968.patch (except bindings/python)
 
     The following library modules are Copyright (c) 2008-2012, STMicroelectronics S.r.l.; All rights reserved:
 
     The following library modules are Copyright (c) 2008-2012, Kungliga Tekniska Högskolan (The Royal Institute of Technology); All rights reserved:
-       Tribler/Core/Core/DecentralizedTracking/kadtracker/*
+      Tribler/Core/DecentralizedTracking/kadtracker/*
 
     The following library modules are Copyright (c) 2008-2012, Markenfilm GmbH & Co. KG; All rights reserved:
 
@@ -150,6 +188,7 @@
     The following library modules are Copyright (c) 2008-2012, Universitaet Klagenfurt; All rights reserved:
 
     The following library modules are Copyright (c) 2008-2012, AG Projects; All rights reserved:
+      AGP/sipsimple-20100621.tgz
       
     The following library modules are Copyright (c) 2008-2012, The British Broadcasting Corporation; All rights reserved:
 
@@ -160,6 +199,16 @@
     The following library modules are Copyright (c) 2008-2012, Fabchannel BV; All rights reserved:
 
     The following library modules are Copyright (c) 2008-2012, University Politehnica Bucharest; All rights reserved:
+      Tribler/Core/ProxyService/*
+      Tribler/Tools/proxy-cmdline.py
+      Tribler/Test/test_proxyservice_as_coord.bat
+      Tribler/Test/test_proxyservice_as_coord.py
+      Tribler/Test/test_proxyservice_as_coord.sh
+      Tribler/Test/test_proxyservice.bat
+      Tribler/Test/test_proxyservice.py
+      Tribler/Test/test_proxyservice.sh
+      Tribler/Test/extend_hs_dir/proxyservice.test.torrent
+      
 
     The following library modules are Copyright (c) 2008-2012, EBU-UER; All rights reserved:
 
@@ -329,7 +378,47 @@
     Germany
 
 
+------------------------------------------------------------------------------
 
+    SwarmTransport/SwarmPlayer Firefox library.
+
+    The research leading to this library has received funding from the European
+    Community's Seventh Framework Programme in the P2P-Next project under grant
+    agreement no 216217.
+
+    All library modules are free software, unless stated otherwise; you can 
+    redistribute them and/or modify them under the terms of the GNU Lesser 
+    General Public License as published by the Free Software Foundation; in 
+    particular, version 2.1 of the License.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+
+    The following library modules are Copyright (c) 2008-2012, TECHNISCHE UNIVERSITEIT DELFT; 
+    and Jan Gerber; All rights reserved:
+      Tribler/Transport/tribeIChannel.idl
+      Tribler/Transport/tribeISwarmTransport.idl
+      Tribler/Transport/components/TribeChannel.js
+      Tribler/Transport/components/TribeProtocolHandler.js
+      Tribler/Transport/components/SwarmTransport.js
+      Tribler/Transport/install.rdf
+      Tribler/Transport/chrome.manifest
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+    TECHNISCHE UNIVERSITEIT DELFT, 
+    Faculty of Electrical Engineering, Mathematics and Computer Science, 
+    Mekelweg 4, 
+    2628 CD Delft, 
+    The Netherlands
+    
+    Jan Gerber
+    j@thing.net
 
 -------------------------------------------------------------------------------
 

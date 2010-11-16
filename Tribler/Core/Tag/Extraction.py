@@ -1,5 +1,10 @@
 # Written by Raynor Vliegendhart
 # see LICENSE.txt for license information
+
+import sys
+import os
+
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.Tag.StopwordsFilter import StopwordsFilter
 
@@ -27,7 +32,11 @@ class TermExtraction:
             raise RuntimeError, "TermExtraction is singleton"
         TermExtraction.__single = self
         
-        self.stopwords_filter = StopwordsFilter()
+        from Tribler.Core.Session import Session
+        session = Session.get_instance()
+        
+        filterfn = os.path.join(session.get_install_dir(),LIBRARYNAME,'Core','Tag','stop_snowball.filter')
+        self.stopwords_filter = StopwordsFilter(stopwordsfilename=filterfn)
         
         self.containsdigits_filter = re.compile(r'\d',re.UNICODE)
         self.alldigits_filter = re.compile(r'^\d*$',re.UNICODE)

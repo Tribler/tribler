@@ -26,7 +26,7 @@ import py2exe
 #
 # *** Important note: ***
 # Setting Python's optimize flag when building disables
-# "assert" statments, which are used throughout the
+# "assert" statements, which are used throughout the
 # BitTornado core for error-handling.
 #
 ################################################################
@@ -41,8 +41,8 @@ target = {
 
 # gui panels to include (=those not found by py2exe from imports)
 includePanels=[
-     "standardOverview","standardDetails","standardGrid","standardPager","TopSearchPanel", "settingsOverviewPanel",
-     "channelsDetails","channelsOverviewPanel"]# ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
+      "TopSearchPanel", "home", "list"
+] 
 
 #packages = ["Tribler.Core","encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]

@@ -94,6 +94,7 @@ class urlopen:
                 raise IOError, ('http error', status, self.response.reason)
         except:
             print_exc()
+            print >>sys.stderr,"zurllib: URL was",url
 
 
     def read(self):
@@ -115,29 +116,3 @@ class urlopen:
     def close(self):
         self.connection.close()
 
-try:
-    import pycurl
-    
-    class curlopen:
-            def __init__(self,url):
-                
-                    print >>sys.stderr,"CURL",url
-                
-                    self.contents = ''
-                    self.c = pycurl.Curl()
-                    self.c.setopt(c.URL, url)
-                    self.c.setopt(c.WRITEFUNCTION, t.body_callback)
-                    self.c.perform()
-                    self.c.close()
-    
-            def body_callback(self, buf):
-                    self.contents = self.contents + buf
-    
-            def read(self):
-                return self.contents
-            
-            def close(self):
-                pass
-except:
-    pass
-    

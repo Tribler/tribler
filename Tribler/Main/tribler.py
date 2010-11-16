@@ -550,8 +550,8 @@ class ABCApp(wx.App):
             for ds in dslist:
                 # ProxyService 90s Test_
                 from Tribler.Core.Statistics.Status.Status import get_status_holder
-                from Tribler.Core.Statistics.Status.ProxyTestReporter import *
-                from Tribler.Core.Statistics.Status import *
+                #from Tribler.Core.Statistics.Status.ProxyTestReporter import *
+                #from Tribler.Core.Statistics.Status import *
                 
                 safename = `ds.get_download().get_def().get_name()`
                 if safename == "'Data.90s-test.8M.bin'":
