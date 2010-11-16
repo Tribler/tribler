@@ -1,4 +1,4 @@
-from sys
+import sys
 import time
 
 
