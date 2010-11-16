@@ -15,9 +15,10 @@ includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml
 
 # gui panels to include
 includePanels=[
-     "list","list_header","list_body","list_footer","list_details",
-     "settingsDialog","TopSearchPanel","SearchGridManager","SRstatusbar"]# ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
+               "TopSearchPanel", "home", "list"
+] 
 
+     
 includeModules += ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 
 # ----- some basic checks
@@ -119,6 +120,7 @@ setup(
             [(LIBRARYNAME+"/Lang", [LIBRARYNAME+"/Lang/english.lang"]),
              (LIBRARYNAME+"/Core", [LIBRARYNAME+"/Core/superpeer.txt"]),
              (LIBRARYNAME+"/Category", [LIBRARYNAME+"/Category/category.conf"]),
+             (LIBRARYNAME+"/Core/Tag", [LIBRARYNAME+"/Core/Tag/stop_snowball.filter"]),
              LIBRARYNAME+"/readme.txt",
              LIBRARYNAME+"/Main/Build/Mac/TriblerDoc.icns",
            ]

@@ -232,9 +232,11 @@ Section "Uninstall"
  RMDir /r "$INSTDIR"
 
  Delete "$DESKTOP\${PRODUCT}.lnk"
- Delete "$SMPROGRAMS\${PRODUCT}\*.*"
- RmDir  "$SMPROGRAMS\${PRODUCT}"
-
+ 
+ SetShellVarContext all
+ RMDir "$SMPROGRAMS\${PRODUCT}"
+ RMDir /r "$SMPROGRAMS\${PRODUCT}"
+ 
  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
 
