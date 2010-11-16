@@ -1,13 +1,12 @@
-from sys import platform
+from sys
 import time
 
 
 sleep = time.sleep
 
-if platform == 'win32':
+if sys.platform == 'win32':
     time = time.clock
-elif platform == 'linux2':
-    time = time.time
 else:
-    raise 
+    time = time.time
+
 
