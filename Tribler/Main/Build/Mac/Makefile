@@ -8,7 +8,7 @@
 # Use lower versions at your own risk.
 
 APPNAME=Tribler
-PYTHON_VER=
+PYTHON_VER=2.5
 PWD:=${shell pwd}
 ARCH:=${shell arch}
 
@@ -30,7 +30,7 @@ build/imagecontents/:
 	rm -rf $@
 	mkdir -p $@
 
-	cd ${SRCDIR} && DYLD_LIBRARY_PATH=macbinaries PYTHONPATH=macbinaries ${PYTHON} -OO - < ${PWD}/setuptriblermac.py py2app
+	cd ${SRCDIR} && DYLD_LIBRARY_PATH=macbinaries PYTHONPATH=macbinaries:macbinaries/lib/python2.5/site-packages/ ${PYTHON} -OO - < ${PWD}/setuptriblermac.py py2app
 	mv ${SRCDIR}/dist/* $@
 
 	# Thin everything for this architecture. Some things ship Universal (Python, wxPython, ...) and

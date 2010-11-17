@@ -15,7 +15,7 @@ includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml
 
 # gui panels to include
 includePanels=[
-               "TopSearchPanel", "home", "list"
+               "TopSearchPanel", "home", "list", "settingsDialog"
 ] 
 
      
