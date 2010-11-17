@@ -16,6 +16,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Category.Category import Category
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelSearchGridManager
 from Tribler.Main.vwxGUI.bgPanel import *
@@ -267,6 +268,8 @@ class GUIUtility:
         for kw in wantkeywords:
             q += kw+' '
         self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
+        
+        wx.CallLater(10000, self.CheckSearch, wantkeywords)
     
     def showChannelCategory(self, category, show = True):
         if show:
@@ -332,7 +335,13 @@ class GUIUtility:
             lists[self.guiPage].ScrollToEnd(goto_end)
         elif event:
             event.Skip()
-        
+    
+    def CheckSearch(self, wantkeywords):
+        curkeywords, hits, filtered = self.torrentsearch_manager.getSearchKeywords('filesMode')
+        if curkeywords == wantkeywords and (hits + filtered) == 0:
+            uelog = UserEventLogDBHandler.getInstance()
+            uelog.addEvent(message="Search: nothing found for query: "+" ".join(wantkeywords), type = 2)
+     
     def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
 

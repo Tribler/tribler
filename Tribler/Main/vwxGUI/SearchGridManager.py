@@ -510,7 +510,10 @@ class TorrentManager:
                 # (2) prefetch only from the first M hits
                 # (.) wichever is lowest or (1) or (2)
                 break
-
+    
+    def getSearchKeywords(self, mode):
+        return self.searchkeywords[mode], len(self.hits), self.filteredResults
+    
     def setSearchKeywords(self, wantkeywords, mode):
         self.searchkeywords[mode] = wantkeywords
         if mode == 'filesMode':
