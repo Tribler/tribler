@@ -266,7 +266,9 @@ class TorrentManager:
             videoplayer.play(ds, selectedinfilename)
     
     def deleteTorrent(self, torrent, removecontent = False):
-        ds = torrent.get('ds')
+        self.deleteTorrentDS(torrent.get('ds'), torrent['infohash'], removecontent)
+    
+    def deleteTorrentDS(self, ds, infohash, removecontent = False):
         if not ds is None:
             videoplayer = VideoPlayer.getInstance()
             playd = videoplayer.get_vod_download()
@@ -280,7 +282,7 @@ class TorrentManager:
         # semantic clustering.
         # Arno, 2009-03-10: Not removing it from MyPref means it keeps showing
         # up in the Library, even after removal :-( H4x0r this.
-        self.mypref_db.updateDestDir(torrent['infohash'],"")
+        self.mypref_db.updateDestDir(infohash,"")
     
     def _get_videoplayer(self, exclude=None):
         """
