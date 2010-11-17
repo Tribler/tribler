@@ -228,15 +228,7 @@ class EmbeddedPlayer4FramePanel(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"embedplay: GetState"
             
-        status = self.vlcwrap.get_stream_information_status()
-        
-        import vlc
-        if status == vlc.PlayingStatus:
-            return MEDIASTATE_PLAYING
-        elif status == vlc.PauseStatus:
-            return MEDIASTATE_PAUSED
-        else:
-            return MEDIASTATE_STOPPED
+        return self.vlcwrap.get_our_state()
 
 
     def EnableSaveButton(self, b, callback):

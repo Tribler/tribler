@@ -7,6 +7,8 @@ import random
 from traceback import print_exc,print_stack
 from threading import currentThread
 
+from Tribler.Video.defs import *
+
 # vlcstatusmap = {vlc.PlayingStatus:'vlc.PlayingStatus',
 #                 vlc.PauseStatus:'vlc.PauseStatus',
 #                 vlc.InitStatus:'vlc.InitStatus',
@@ -14,7 +16,7 @@ from threading import currentThread
 #                 vlc.UndefinedStatus:'vlc.UndefinedStatus'}
 
 DEBUG = False
-VLC_MAXVOLUME = 200
+VLC_MAXVOLUME = 200 # Also for 0.3
 
 def check_threading():
     if currentThread().getName() != "MainThread":
@@ -33,6 +35,7 @@ class VLCWrapper:
         check_threading()
         self.installdir = installdir
         self.window = None
+        self.windowpassedtovlc = False
         self.initialized = False
 
     def _init_vlc(self):
@@ -52,16 +55,25 @@ class VLCWrapper:
         #
         # With VLC 0.9.x came changes to the MediaControl API. In particular,
         # there is no longer a concept of a playlist. The VLCWrapper can now
-        # deal with both versions of the API.
+        # deal with both versions of the API. 
+        #
+        # VLC 1.1.x has new python bindings that expose the full libVLC API:
+        # http://wiki.videolan.org/LibVLC
+        # http://wiki.videolan.org/Python_bindings 
         #
         try:
-            vlc.Instance
-            self.VLC_MEDIACONTROL_API_VERSION = "0.2"
+            vlc.libvlc_media_player_play
+            self.VLC_MEDIACONTROL_API_VERSION = "0.3"
         except:
-            # print_exc()
-            self.VLC_MEDIACONTROL_API_VERSION = "0.1"
+            try:
+                vlc.Instance
+                self.VLC_MEDIACONTROL_API_VERSION = "0.2"
+            except:
+                # print_exc()
+                self.VLC_MEDIACONTROL_API_VERSION = "0.1"
 
         self.media = self.get_vlc_mediactrl()
+            
         self.videorawserv = VideoRawVLCServer.getInstance()
 
         if not self.window is None:
@@ -86,12 +98,24 @@ class VLCWrapper:
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: set_window, XID=",xid
             
-        if sys.platform == 'darwin':
-            # pylint: disable-msg=E1101
-            self.media.set_visual_macosx_type(self.vlc.DrawableControlRef)
-            # pylint: enable-msg=E1101
-        self.media.set_visual(xid)
-        
+        if self.windowpassedtovlc:
+            return
+            
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            if sys.platform == 'win32':
+                self.vlc.libvlc_media_player_set_hwnd(self.player,xid);
+            elif sys.platform == 'darwin':
+                self.vlc.libvlc_media_player_set_nsobject(self.player,xid);
+            else: # Linux
+                self.vlc.libvlc_media_player_set_xdrawable(self.player,xid);
+        else:
+            if sys.platform == 'darwin':
+                # pylint: disable-msg=E1101
+                self.media.set_visual_macosx_type(self.vlc.DrawableControlRef)
+                # pylint: enable-msg=E1101
+            self.media.set_visual(xid)
+            
+        self.windowpassedtovlc = True
     
     def get_vlc_mediactrl(self):
         if not self.initialized:
@@ -172,8 +196,12 @@ class VLCWrapper:
         #params += ["--codec=mp4"]
         #
         params += ["--no-plugins-cache"]
+        
         # must come last somehow on Win32
-        if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            params += ["--global-key-toggle-fullscreen", "Esc"]
+        
+        if self.VLC_MEDIACONTROL_API_VERSION >= "0.2":
             params += ["--key-toggle-fullscreen", "Esc"] 
         else:
             params += ["--key-fullscreen", "Esc"]
@@ -189,13 +217,17 @@ class VLCWrapper:
             if sys.platform == 'win32':
                 params += ["--plugin-path", os.path.abspath(os.path.join(self.installdir,'vlc','plugins'))]
 
-        if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
+        if self.VLC_MEDIACONTROL_API_VERSION >= "0.2":
             params += ["--no-video-title-show"]
             params += ["--no-osd"]
 
         #print >>sys.stderr,"VLCWrapper: get_vlc_mediactrl: params",params
-            
-        media = self.vlc.MediaControl(params)
+
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            media = self.vlc.Instance(params)
+            self.player=self.vlc.libvlc_media_player_new(media)
+        else:
+            media = self.vlc.MediaControl(params)
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.1":            
             if sys.platform == 'win32':
@@ -234,7 +266,11 @@ class VLCWrapper:
         else:
             if DEBUG:
                 print >>sys.stderr,"VLCWrapper: load: calling playlist_add_item"
-            if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
+                
+            if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+                meditem = self.vlc.libvlc_media_new_location(self.media,url)
+                self.vlc.libvlc_media_player_set_media(self.player,meditem)
+            elif self.VLC_MEDIACONTROL_API_VERSION == "0.2":
                 self.media.set_mrl(url)
             else:
                 self.media.playlist_add_item(url)
@@ -245,121 +281,186 @@ class VLCWrapper:
     def start(self,abspos=0):
         if not self.initialized:
             self._init_vlc()
-
         check_threading()
         if DEBUG:
             if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
                 print >>sys.stderr,"VLCWrapper: start: item is",self.media.get_mrl()
             else:
-                print >>sys.stderr,"VLCWrapper: start: list is",self.media.playlist_get_list()    
-        pos = self.vlc.Position()
-        pos.origin = self.vlc.AbsolutePosition
-        pos.key = self.vlc.MediaTime
-        pos.value = abspos
-        self.media.start(pos)
+                print >>sys.stderr,"VLCWrapper: start: list is",self.media.playlist_get_list()
+
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            if abspos != 0:
+                raise ValueError("VLC 0.3 API cannot handle abs. positioning")
+            
+            self.vlc.libvlc_media_player_play(self.player)
+        else:  
+            pos = self.vlc.Position()
+            pos.origin = self.vlc.AbsolutePosition
+            pos.key = self.vlc.MediaTime
+            pos.value = abspos
+            self.media.start(pos)
 
 
     def stop(self):
         if not self.initialized:
             self._init_vlc()
-
         check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: stop"
-        self.media.stop()
+            
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3": 
+            self.vlc.libvlc_media_player_stop(self.player);
+        else:
+            self.media.stop()
 
     def pause(self):
         if not self.initialized:
             self._init_vlc()
-
         check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: pause"
-        self.media.pause()
+            
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3": 
+            self.vlc.libvlc_media_player_pause(self.player);
+        else:
+            self.media.pause()
 
     def resume(self):
         if not self.initialized:
             self._init_vlc()
-
         check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: resume"
-        self.media.resume()
+            
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3": 
+            self.vlc.libvlc_media_player_pause(self.player);
+        else:
+            self.media.resume()
+
+
+    def get_our_state(self):
+        """ Returns the state of VLC as summarized by Fabian: 
+        MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED, 
+        Hiding VLC differences.
+        """
+        status = self.get_stream_information_status()
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            if status == self.vlc.State.Playing:
+                return MEDIASTATE_PLAYING
+            elif status == self.vlc.State.Paused:
+                return MEDIASTATE_PAUSED
+            else:
+                return MEDIASTATE_STOPPED
+        else:
+            if status == self.vlc.PlayingStatus:
+                return MEDIASTATE_PLAYING
+            elif status == self.vlc.PauseStatus:
+                return MEDIASTATE_PAUSED
+            else:
+                return MEDIASTATE_STOPPED
 
 
     def get_stream_information_status(self):
         """ Returns the state of VLC. """
         if not self.initialized:
             self._init_vlc()
-
-        check_threading() 
-        return self.media.get_stream_information()["status"]
+        check_threading()
+        
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            return self.vlc.libvlc_media_player_get_state(self.player)
+        else:
+            return self.media.get_stream_information()["status"]
 
     def get_stream_information_length(self):
-        """ Returns the length in bytes of current item playing """
+        """ Returns the length in bytes of current item playing.
+        For 0.3 API the length in time (in ms), libVLC API provides no byte length """
         if not self.initialized:
             self._init_vlc()
-
-        check_threading() 
-        return self.media.get_stream_information()["length"]
+        check_threading()
+        
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            return self.vlc.libvlc_media_player_get_length(self.player)
+        else:
+            return self.media.get_stream_information()["length"]
+        
 
     def get_media_position(self):
-        """ Returns absolute position in bytes of current item playing """
+        """ Returns absolute position in bytes of current item playing.
+        For 0.3 API the position in time (in ms), libVLC API provides no byte length """
         if not self.initialized:
             self._init_vlc()
-
         check_threading() 
-        return self.media.get_media_position(self.vlc.AbsolutePosition, self.vlc.MediaTime).value
+
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            return self.vlc.libvlc_media_player_get_time(self.player)
+        else:
+            return self.media.get_media_position(self.vlc.AbsolutePosition, self.vlc.MediaTime).value
 
     def set_media_position(self, where):
         """ Arno: For some files set_media_position() doesn't work. Subsequent 
         get_media_position()s then do not always return the right value.
         TODO: seek mode
+        
+        For 0.3 API the position must be in time (in ms)
         """
         if not self.initialized:
             self._init_vlc()
-
         check_threading()
-        pos = self.vlc.Position() 
-        pos.origin = self.vlc.AbsolutePosition
-        pos.key = self.vlc.MediaTime
-        pos.value = where
-        
-        self.media.set_media_position(pos)
+
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            return self.vlc.libvlc_media_player_set_time(self.player,where)
+        else:
+            pos = self.vlc.Position() 
+            pos.origin = self.vlc.AbsolutePosition
+            pos.key = self.vlc.MediaTime
+            pos.value = where
+            
+            self.media.set_media_position(pos)
         
 
     def sound_set_volume(self, frac):
         """ frac is float 0..1 """
         if not self.initialized:
             self._init_vlc()
-
         check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: sound_set_volume"
+
         vol = int(frac * VLC_MAXVOLUME)
-        self.media.sound_set_volume(vol)
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            self.vlc.libvlc_audio_set_volume(self.player,vol)
+        else:
+            self.media.sound_set_volume(vol)
+
 
     def sound_get_volume(self):
         """ returns a float 0..1 """
         if not self.initialized:
             self._init_vlc()
-
         check_threading()
-        vol = self.media.sound_get_volume()
+        
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            vol = self.vlc.libvlc_audio_get_volume(self.player)
+        else:
+            vol = self.media.sound_get_volume()
+            
         return float(vol) / VLC_MAXVOLUME
 
     def set_fullscreen(self,b):
         """ b is Boolean """
         if not self.initialized:
             self._init_vlc()
-
         check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper set_fullscreen"
-        if b:
-            self.media.set_fullscreen(1)
+            
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            self.vlc.libvlc_set_fullscreen(self.player,b)
         else:
-            self.media.set_fullscreen(0)
+            if b:
+                self.media.set_fullscreen(1)
+            else:
+                self.media.set_fullscreen(0)
 
     def playlist_get_list(self):
         if not self.initialized:
@@ -381,7 +482,11 @@ class VLCWrapper:
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: playlist_clear"
 
-        if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            # Arno, 2010-11-17: playlist is a specific object in libVLC 1.1, we
+            # just use a single item player object.
+            pass
+        elif self.VLC_MEDIACONTROL_API_VERSION == "0.2":
             #raise RuntimeError("VLC MediaControlAPI 0.2 doesn't support playlist ops")
             pass
         else:
