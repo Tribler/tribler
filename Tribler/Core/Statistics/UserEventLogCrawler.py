@@ -30,7 +30,7 @@ class UserEventLogCrawler:
         crawler = Crawler.get_instance()
         if crawler.am_crawler():
             msg = "# ", "*" * 80 + "\n#Crawler started\n" + "# ", "*" * 80 
-            self._log(msg)
+            self.__log(msg)
 
     def query_initiator(self, permid, selversion, request_callback):
         """
