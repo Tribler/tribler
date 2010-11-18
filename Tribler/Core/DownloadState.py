@@ -202,6 +202,18 @@ class DownloadState(Serializable):
         statsobj = self.stats['stats']
         return statsobj.numSeeds+statsobj.numPeers
         
+    def get_num_nonseeds(self):
+        """ 
+        Returns the download's number of non-seeders. 
+        @return An integer.
+        """
+        if self.stats is None:
+            return 0
+
+        # Determine if we need statsobj to be requested, same as for spew
+        statsobj = self.stats['stats']
+        return statsobj.numPeers
+        
     def get_num_seeds_peers(self):
         """
         Returns the sum of the number of seeds and peers. This function

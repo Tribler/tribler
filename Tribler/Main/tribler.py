@@ -64,7 +64,7 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import *
 
 from Tribler.Category.Category import Category
-from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
+from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
@@ -417,7 +417,7 @@ class ABCApp(wx.App):
         # see loadSessionCheckpoint
 
         # Create global rate limiter
-        self.ratelimiter = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
+        self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
         self.rateadjustcount = 0 
 
         # Counter to suppress console output containing download
