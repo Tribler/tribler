@@ -103,6 +103,6 @@ class UserEventLogCrawler:
             request_callback(CRAWLER_USEREVENTLOG_QUERY, sql) 
             
     def __log(self, message):
-        file = open("usereventlogcrawler"+strftime("%Y-%m-%d")+".txt", "wa")
+        file = open("usereventlogcrawler"+strftime("%Y-%m-%d")+".txt", "a")
         print >> file, strftime("%Y/%m/%d %H:%M:%S"), message 
         file.close()
