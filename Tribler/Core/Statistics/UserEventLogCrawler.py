@@ -53,7 +53,7 @@ class UserEventLogCrawler:
         if not exc:
             if DEBUG: print >>sys.stderr, "usereventlogcrawler: request send to", show_permid_short(permid)
             
-            msg = "; ".join('REQUEST', show_permid(permid))
+            msg = "; ".join(['REQUEST', show_permid(permid)])
             self.__log(msg)
 
     def handle_crawler_request(self, permid, selversion, channel_id, message, reply_callback):
@@ -90,7 +90,7 @@ class UserEventLogCrawler:
         @param message The message payload
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        msg = "; ".join('REPLY', show_permid(permid), str(error), message)
+        msg = "; ".join(['REPLY', show_permid(permid), str(error), message])
         self.__log(msg)
         
         if error:
