@@ -283,7 +283,9 @@ class VLCWrapper:
             self._init_vlc()
         check_threading()
         if DEBUG:
-            if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
+            if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+                print >>sys.stderr,"VLCWrapper: start: item is TODO"
+            elif self.VLC_MEDIACONTROL_API_VERSION == "0.2":
                 print >>sys.stderr,"VLCWrapper: start: item is",self.media.get_mrl()
             else:
                 print >>sys.stderr,"VLCWrapper: start: list is",self.media.playlist_get_list()

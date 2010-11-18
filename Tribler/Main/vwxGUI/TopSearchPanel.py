@@ -13,10 +13,13 @@
 from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
+from Tribler.Core.APIImplementation.miscutils import NamedTimer
+
 from bgPanel import bgPanel
 from tribler_topButton import *
 from traceback import print_exc
 from wx.lib.buttons import GenBitmapButton as BitmapButton
+
 
 import math
 import os
@@ -238,7 +241,7 @@ class TopSearchPanel(bgPanel):
      
             import threading
             # 300s = 5 minutes
-            t = threading.Timer(300, self.del_dl)
+            t = NamedTimer(300, self.del_dl)
             t.start()
         # _ProxyService 90s Test
 
