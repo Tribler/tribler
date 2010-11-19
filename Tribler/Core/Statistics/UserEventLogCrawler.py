@@ -70,7 +70,8 @@ class UserEventLogCrawler:
 
         # execute the sql
         try:
-            cursor = self._sqlite_cache_db.execute_write(message)
+            #has to be execute_read, delete statements are also allowed in this function
+            cursor = self._sqlite_cache_db.execute_read(message)
 
         except Exception, e:
             reply_callback(str(e), error=1)
