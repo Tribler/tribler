@@ -105,7 +105,7 @@ class UserEventLogCrawler:
             self.__log(msg)
             
             sql = 'DELETE FROM UserEventLog;'
-            request_callback(CRAWLER_USEREVENTLOG_QUERY, sql) 
+            request_callback(CRAWLER_USEREVENTLOG_QUERY, sqlcallback=self._after_request_callback) 
             
     def __log(self, message):
         file = open("usereventlogcrawler"+strftime("%Y-%m-%d")+".txt", "a")
