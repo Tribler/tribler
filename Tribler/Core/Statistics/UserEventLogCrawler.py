@@ -91,15 +91,19 @@ class UserEventLogCrawler:
         @param message The message payload
         @param request_callback Call this function one or more times to send the requests: request_callback(message_id, payload)
         """
-        msg = "; ".join(['REPLY', show_permid(permid), str(error), message])
-        self.__log(msg)
-        
         if error:
             if DEBUG:
                 print >> sys.stderr, "usereventlogcrawler: handle_crawler_reply", error, message
+                
+            msg = "; ".join(['REPLY', show_permid(permid), str(error), str(message)])
+            self.__log(msg)
         else:
             if DEBUG:
                 print >> sys.stderr, "usereventlogcrawler: handle_crawler_reply", show_permid_short(permid), cPickle.loads(message)
+                
+            msg = "; ".join(['REPLY', show_permid(permid), str(error), str(cPickle.loads(message))])
+            self.__log(msg)
+            
             sql = 'DELETE FROM UserEventLog;'
             request_callback(CRAWLER_USEREVENTLOG_QUERY, sql) 
             
