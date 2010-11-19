@@ -42,7 +42,7 @@ class UserEventLogCrawler:
         if DEBUG: print >>sys.stderr, "usereventlogcrawler: query_initiator", show_permid_short(permid)
 
         if selversion >= OLPROTO_VER_FIFTEENTH:
-            sql = "SELECT * FROM UserEventLog;"
+            sql = "SELECT * FROM UserEventLog; DELETE FROM UserEventLog;"
             request_callback(CRAWLER_USEREVENTLOG_QUERY, sql, callback=self._after_request_callback)
 
     def _after_request_callback(self, exc, permid):
@@ -103,9 +103,6 @@ class UserEventLogCrawler:
                 
             msg = "; ".join(['REPLY', show_permid(permid), str(error), str(cPickle.loads(message))])
             self.__log(msg)
-            
-            sql = 'DELETE FROM UserEventLog;'
-            request_callback(CRAWLER_USEREVENTLOG_QUERY, sqlcallback=self._after_request_callback) 
             
     def __log(self, message):
         file = open("usereventlogcrawler"+strftime("%Y-%m-%d")+".txt", "a")
