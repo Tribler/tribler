@@ -222,8 +222,8 @@ class TorrentManager:
             files = tdef.get_files_as_unicode(exts=videoextdefaults)
             allfiles = tdef.get_files_as_unicode_with_length()
             playable = len(files) > 0
-            torrent['comment'] = tdef.get_comment_as_unicode()
             
+            torrent['comment'] = tdef.get_comment_as_unicode()
             if tdef.get_tracker_hierarchy():
                 torrent['trackers'] = tdef.get_tracker_hierarchy()
             else:
@@ -857,8 +857,8 @@ class ChannelSearchGridManager:
     def getTorrentFromPublisherId(self, publisher_id, infohash):
         return self.channelcast_db.getTorrentFromPublisherId(publisher_id, infohash)
     
-    def getTorrentsFromPublisherId(self, publisher_id):
-        hits = self.channelcast_db.getTorrentsFromPublisherId(publisher_id)
+    def getTorrentsFromPublisherId(self, publisher_id, keys = None):
+        hits = self.channelcast_db.getTorrentsFromPublisherId(publisher_id, keys)
         self.nrFiltered = 0
         
         enabledcattuples = self.category.getCategoryNames()

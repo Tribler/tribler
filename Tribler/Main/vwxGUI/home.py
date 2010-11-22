@@ -38,8 +38,8 @@ class Home(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        infopanel = InfoPanel(self)
-        vSizer.Add(infopanel, 0, wx.EXPAND)
+        #infopanel = InfoPanel(self)
+        #vSizer.Add(infopanel, 0, wx.EXPAND)
         
         vSizer.AddStretchSpacer()
         

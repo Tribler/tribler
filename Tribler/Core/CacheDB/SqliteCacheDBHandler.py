@@ -3204,35 +3204,42 @@ class ChannelCastDBHandler(BasicDBHandler):
         del result
         return torrent
 
-    def getTorrentsFromPublisherId(self, publisher_id): ##
-        value_name = ['torrent_id',
-                      'T.infohash',
-                      'name',
-                       'torrent_file_name',                        
-                       'length', 
-                       'creation_date', 
-                       'num_files',
-                       'thumbnail',                       
-                      'insert_time', 
-                      'secret', 
-                      'relevance',  
-                      'source_id', 
-                      'category_id', 
-                       'status_id',
-                       'num_seeders',
-                      'num_leechers', 
-                      'comment',
-                      'time_stamp'] 
+    def getTorrentsFromPublisherId(self, publisher_id, keys = None): ##
+        if keys == None:
+            keys = ['torrent_id',
+                    'infohash',
+                    'name',
+                    'torrent_file_name',                        
+                    'length', 
+                    'creation_date', 
+                    'num_files',
+                    'thumbnail',                       
+                    'insert_time', 
+                    'secret', 
+                    'relevance',  
+                    'source_id', 
+                    'category_id', 
+                    'status_id',
+                    'num_seeders',
+                    'num_leechers', 
+                    'comment',
+                    'time_stamp']
+        
+        if 'infohash' in keys:
+            keys[keys.index('infohash')] = 'T.infohash'
         
         where = "T.infohash == C.infohash AND publisher_id=='%s' AND name<>''"% publisher_id
+        results = self._db.getAll('CollectedTorrent T, ChannelCast C', keys, where, group_by = 'T.infohash', order_by = "time_stamp DESC")
         
-        results = self._db.getAll('CollectedTorrent T, ChannelCast C', value_name, where, group_by = 'T.infohash', order_by = "time_stamp DESC")
-        value_name[1] = 'infohash'
-        torrent_list = [dict(zip(value_name,result)) for result in results]
+        if 'T.infohash' in keys:
+            keys[keys.index('T.infohash')] = 'infohash'
+        
+        torrent_list = [dict(zip(keys,result)) for result in results]
         for torrent in torrent_list:
             torrent['infohash'] = str2bin(torrent['infohash'])
             torrent['category'] = [self.torrent_db.id2category[torrent['category_id']]]
             torrent['status'] = self.torrent_db.id2status[torrent['status_id']]
+        
         del results
         return torrent_list
         

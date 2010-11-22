@@ -242,16 +242,17 @@ class ABCApp(wx.App):
             self.frame.librarylist = xrc.XRCCTRL(self.frame, "librarylist")
 
             # videopanel
-            self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean") or sys.platform == 'darwin' 
+            self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean") or sys.platform == 'darwin'
+            vlcwrap = self.videoplayer.get_vlcwrap()
             if self.guiUtility.useExternalVideo:
                 self.frame.videoparentpanel = None
                 
-                self.frame.videoframe = VideoMacFrame(self.frame,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'),self.videoplayer.get_vlcwrap())
+                self.frame.videoframe = VideoMacFrame(self.frame,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'), vlcwrap)
                 self.videoplayer.set_videoframe(self.frame.videoframe)
             else:
                 self.frame.videoparentpanel = xrc.XRCCTRL(self.frame,"videopanel")
                 
-                self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,self.videoplayer.get_vlcwrap())
+                self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
                 self.videoplayer.set_videoframe(self.frame.videoframe)
         
             if sys.platform == 'win32':

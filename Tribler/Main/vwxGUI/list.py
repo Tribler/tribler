@@ -123,6 +123,8 @@ class ChannelSearchManager:
                     self.refresh()
 
 class ChannelManager():
+    _req_columns = ['infohash', 'name', 'time_stamp', 'length', 'num_seeders', 'num_leechers', 'category_id', 'status_id', 'creation_date']
+    
     def __init__(self, list):
         self.list = list
         self.list.publisher_id = 0
@@ -140,7 +142,7 @@ class ChannelManager():
         self._refresh_list()
         
     def _refresh_list(self):
-        [total_items, nrfiltered, torrentList]  = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id)
+        [total_items, nrfiltered, torrentList]  = self.channelsearch_manager.getTorrentsFromPublisherId(self.list.publisher_id, ChannelManager._req_columns)
         torrentList = self.torrentsearch_manager.addDownloadStates(torrentList)
         
         if self.list.SetData(torrentList) < total_items: #some items are filtered by quickfilter (do not update total_items)
