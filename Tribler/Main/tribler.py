@@ -419,7 +419,7 @@ class ABCApp(wx.App):
 
         # Create global rate limiter
         self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
-        self.rateadjustcount = 0 
+        self.rateadjustcount = 0
 
         # Counter to suppress console output containing download
         # current statistics
@@ -556,7 +556,7 @@ class ABCApp(wx.App):
                 
                 safename = `ds.get_download().get_def().get_name()`
                 if safename == "'Data.90s-test.8M.bin'":
-                    status = get_status_holder("ProxyTest01")
+                    status = get_status_holder("Proxy90secondsTest")
                     status.create_and_add_event("transfer-rate", [safename, dlstatus_strings[ds.get_status()], 100.0*ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()])
                 # _ProxyService 90s Test
 

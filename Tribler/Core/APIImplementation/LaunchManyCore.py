@@ -26,6 +26,7 @@ from Tribler.Core.NATFirewall.UDPPuncture import UDPHandler
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
+import traceback
 
 SPECIAL_VALUE=481
 

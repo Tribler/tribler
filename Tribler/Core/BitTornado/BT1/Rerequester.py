@@ -213,14 +213,13 @@ class Rerequester:
         # ProxyService_
         #
         proxy_mode = self.config.get('proxy_mode',0)
-        if DEBUG:
-            if proxy_mode == PROXY_MODE_PRIVATE:
-                if True:
-                    print "_rerequest exited."# + str(proxy_mode)
-                return
-            else:
-                if True:
-                    print "_rerequest did not exit"# + str(proxy_mode) 
+        if proxy_mode == PROXY_MODE_PRIVATE:
+            if DEBUG:
+                print "_rerequest exited."# + str(proxy_mode)
+            return
+        else:
+            if DEBUG:
+                print "_rerequest did not exit"# + str(proxy_mode) 
         #
         # _ProxyService
 

@@ -297,6 +297,12 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
                 if not len(infohash) == 20:
                     raise RuntimeError, "bc: invalid infohash length " + str(len(infohash))
         
+    if selversion >= OLPROTO_VER_FIFTEENTH:
+        try:
+            if not isinstance(prefxchg['services'], int):
+                raise RuntimeError, "bc: invalid 'services' type " + str(type(prefxchg['services']))
+        except:
+            raise RuntimeError, "bc: invalid message: no services information"
     return True
 
 
@@ -1559,12 +1565,12 @@ class BuddyCastCore:
                         print "* learned about", show_permid_short(peer_permid), new_peer_data['ip'], "from", buddycast_data['ip'], "Complete data:", new_peer_data
 
                     # ProxyService 90s Test_
-                    status = get_status_holder("ProxyTest02")
+                    status = get_status_holder("Proxy90secondsTest")
                     status.create_and_add_event("discovered-active-proxy", [peer_permid, new_peer_data, buddycast_data])
                     # _ProxyService 90s Test
                 else:
                     # ProxyService 90s Test_
-                    status = get_status_holder("ProxyTest02")
+                    status = get_status_holder("Proxy90secondsTest")
                     status.create_and_add_event("discovered-inactive-proxy", [peer_permid, new_peer_data, buddycast_data])
                     # _ProxyService 90s Test
             #

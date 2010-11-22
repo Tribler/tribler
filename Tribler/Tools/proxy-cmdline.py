@@ -194,8 +194,8 @@ def main():
         helper1_keypair = EC.load_key(helper1_keypair_filename)
         helper1_permid = str(helper1_keypair.pub().get_der())
         # set helper1 ip address
-        helper1_ip="141.85.224.207"
-#        helper1_ip="10.10.3.1"
+#        helper1_ip="141.85.224.207"
+        helper1_ip="10.10.3.1"
 #        helper1_ip="141.85.224.203"
         # set helper1 port
         helper1_port = 25123
@@ -252,7 +252,7 @@ def main():
                 print "*** COORDINATOR Sending help request"
                 peerlist = []
                 peerlist.append(helper1_permid)
-                #peerlist.append(helper2_permid)
+                peerlist.append(helper2_permid)
                 download.ask_coopdl_helpers(peerlist)
 
     #

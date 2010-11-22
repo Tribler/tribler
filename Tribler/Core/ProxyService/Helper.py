@@ -386,6 +386,9 @@ class Helper:
             if DEBUG:
                 print >>sys.stderr,"helper: got_ask_for_help: sending haves to all coordinators"
 
+            # Start data connection
+            self.start_data_connection()
+        
             if self.downloader is not None:
                 self.downloader.aggregate_and_send_haves()
         else:
@@ -454,13 +457,18 @@ class Helper:
     def start_data_connection(self):
         """ Start a data connection with the coordinators
         """
+        
+        # if start_data_connection is called too early, and the encoder is not set yet, return
+        if self.encoder is None:
+            return
+        
         # Do this always, will return quickly when connection already exists
         dns = (self.coordinator_ip, self.coordinator_port)
         for coord_permid in self.coordinator_permid.keys():
             [coord_ip, coord_port] = self.coordinator_permid[coord_permid]
             dns = (coord_ip, coord_port)
-        if DEBUG:
-            print >> sys.stderr,"helper: start_data_connection: Starting data connection to coordinator at", dns
+            if DEBUG:
+                print >> sys.stderr,"helper: start_data_connection: Starting data connection to coordinator at", dns
         
             self.encoder.start_connection(dns, id = None, coord_con = True, challenge = self.challenge[coord_permid])
 

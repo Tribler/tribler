@@ -65,7 +65,10 @@ class SubtitlesHandler(object):
         self.subtitlesDb = metadataDBHandler
         self.config_dir = os.path.abspath(session.get_state_dir())
         subs_path = os.path.join(self.config_dir, session.get_subtitles_collecting_dir())
-        self.subs_dir = os.path.abspath(subs_path)
+        # George Milescu, 19.11.2010
+        # I replaced self.subs_dir because os.path.abspath(subs_path) returns an inexistent path for non-standard tribler paths 
+#        self.subs_dir = os.path.abspath(subs_path)
+        self.subs_dir = os.path.abspath(session.get_subtitles_collecting_dir())
         
         self._upload_rate = session.get_subtitles_upload_rate()
         self.max_subs_message_size = MAX_SUBS_MESSAGE_SIZE

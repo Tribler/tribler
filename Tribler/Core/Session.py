@@ -217,10 +217,8 @@ class Session(SessionRuntimeConfig):
         from Tribler.Core.Statistics.Status.ProxyTestReporter import *
         from Tribler.Core.Statistics.Status import *
 
-        status = get_status_holder("ProxyTest01")
-        status.add_reporter(ProxyTestPeriodicReporter("DataTransfer", 1, "id01"))
-        status = get_status_holder("ProxyTest02")
-        status.add_reporter(ProxyTestPeriodicReporter("BuddyCast", 1, "id02"))
+        status = get_status_holder("Proxy90secondsTest")
+        status.add_reporter(ProxyTestPeriodicReporter("DataTransferAndBuddyCast", 1, "id01"))
         # _ProxyService 90s Test
 
 
