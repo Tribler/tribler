@@ -1,4 +1,4 @@
-pymdht 1.0-M36
+pymdht 1.0.1-M36
 
 INSTALLATION
 
@@ -7,6 +7,14 @@ installed.
 
 A Makefile is provided to run the tests. The tests require the nose test
 framework to work.
+
+Additional libraries should be installed for GEOIP to work (optional):
+1. python-geoip
+2. geoip-database
+3. libgeoip1
+
+GeoIPCity.dat is missing and should be retrieved from MaxMind... (will update this later today)
+
 
 API
 

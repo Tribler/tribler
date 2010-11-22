@@ -3,6 +3,7 @@
 # see LICENSE.txt for license information
 
 import sys
+import logging
 from traceback import print_exc
 
 DEBUG = False
@@ -22,10 +23,16 @@ dht = None
 def init(addr, conf_path):
     global dht
     global dht_imported
+    
     if DEBUG:
         print >>sys.stderr,'dht: DHT initialization', dht_imported
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.ERROR
     if dht_imported and dht is None:
-        dht = pymdht.Pymdht(addr, conf_path, routing_mod, lookup_mod)
+        private_dht_name = None
+        dht = pymdht.Pymdht(addr, conf_path, routing_mod, lookup_mod,
+                            private_dht_name, log_level)
         if DEBUG:
             print >>sys.stderr,'dht: DHT running'
 

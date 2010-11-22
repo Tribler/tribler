@@ -19,20 +19,20 @@ import core.identifier as identifier
 import core.pymdht as pymdht
 
 
-def _on_peers_found(lookup_id, peers):
+def _on_peers_found(start_ts, peers):
     if peers:
         print '[%.4f] %d peer(s)' % (time.time() - start_ts, len(peers))
+        print peers
     else:
         print '[%.4f] END OF LOOKUP' % (time.time() - start_ts)
-        print 'Type an info_hash (in hex digits): ',
 
 def main(options, args):
     my_addr = (options.ip, int(options.port))
     logs_path = options.path
-    logging_conf.setup(logs_path, logs_level)
     print 'Using the following plug-ins:'
     print '*', options.routing_m_file
     print '*', options.lookup_m_file
+    print 'Private DHT name:', options.private_dht_name
     routing_m_name = '.'.join(os.path.split(options.routing_m_file))[:-3]
     routing_m_mod = __import__(routing_m_name, fromlist=[''])
     lookup_m_name = '.'.join(os.path.split(options.lookup_m_file))[:-3]
@@ -40,29 +40,53 @@ def main(options, args):
 
     dht = pymdht.Pymdht(my_addr, logs_path,
                         routing_m_mod,
-                        lookup_m_mod)
+                        lookup_m_mod,
+                        options.private_dht_name,
+                        logs_level)
     
     print '\nType "exit" to stop the DHT and exit'
-    print 'Type an info_hash (in hex digits): ',
+    print 'Type "help" if you need'
     while (1):
-        input = sys.stdin.readline().strip()
-        if input == 'exit':
+        input = sys.stdin.readline().strip().split()
+        if not input:
+            continue
+        command = input[0]
+        if command == 'help':
+            print '''
+Available commands are:
+- help
+- fast info_hash bt_port
+- exit
+- m                  Memory information
+'''
+        elif command == 'exit':
             dht.stop()
             break
-        elif input == 'm':
+        elif command == 'm':
             import guppy
             h = guppy.hpy()
             print h.heap()
-            continue
-        try:
-            info_hash = identifier.Id(input)
-        except (identifier.IdError):
-            print 'Invalid input (%s)' % input
-            continue
-        print 'Getting peers for info_hash %r' % info_hash
-        global start_ts
-        start_ts = time.time()
-        dht.get_peers(None, info_hash, _on_peers_found)
+        elif command == 'fast':
+            if len(input) != 3:
+                print 'usage: fast info_hash bt_port'
+                continue
+            try:
+                info_hash = identifier.Id(input[1])
+            except (identifier.IdError):
+                print 'Invalid info_hash (%s)' % input[1]
+            try:
+                bt_port = int(input[2])
+            except:
+                print 'Invalid bt_port (%r)' % input[2]
+                continue
+            success, peers = dht.get_peers(time.time(), info_hash,
+                                           _on_peers_found, bt_port)
+            if not success:
+                print 'Lookup failed'
+            if peers:
+                print '[local] %d peer(s)' % (len(peers))
+                print peers
+                
         
 if __name__ == '__main__':
     parser = OptionParser()
@@ -73,7 +97,7 @@ if __name__ == '__main__':
                       metavar='INT', default=7000,
                       help="port to be used")
     parser.add_option("-x", "--path", dest="path",
-                      metavar='PATH', default='interactive_logs/',
+                      metavar='PATH', default='.',
                       help="state.dat and logs location")
     parser.add_option("-r", "--routing-plug-in", dest="routing_m_file",
                       metavar='FILE', default='plugins/routing_nice_rtt.py',
@@ -84,6 +108,9 @@ if __name__ == '__main__':
     parser.add_option("-z", "--logs-level", dest="logs_level",
                       metavar='INT',
                       help="logging level")
+    parser.add_option("-d", "--private-dht", dest="private_dht_name",
+                      metavar='STRING', default=None,
+                      help="private DHT name")
 
     (options, args) = parser.parse_args()
     

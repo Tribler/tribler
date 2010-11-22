@@ -317,11 +317,11 @@ def value_is_string(msg_d, k, valid_values=None):
     
         
 
-class _TestIncomingMsg:
+class TestIncomingMsg:
 
     def setup(self):
         b_ping = m.OutgoingPingQuery(tc.CLIENT_ID).encode(tc.TID)
-        self.msg_d = m.IncomingMsg(b_ping, tc.CLIENT_ADDR, False)._msg_dict
+        self.msg_d = m.IncomingMsg(b_ping, tc.CLIENT_ADDR)._msg_dict
 
 
     def test_tid_error(self):
@@ -372,6 +372,12 @@ class _TestIncomingMsg:
             "TEST LOGGING ** IGNORE EXPECTED INFO ** Unknown error: %r",
             error_code)
         _ = m.IncomingMsg(b_err, tc.CLIENT_ADDR)
+
+    def test_nodes2(self):
+        response = m.OutgoingGetPeersResponse(tc.CLIENT_ID, peers=tc.PEERS)
+        response._dict[m.RESPONSE][m.NODES2] = mt.compact_nodes2(tc.NODES)
+        bencoded = response.encode(tc.TID)
+        m.IncomingMsg(bencoded, tc.CLIENT_ADDR)
 
 
         
@@ -507,5 +513,37 @@ class TestPrinting:
         str(out_msg)
         repr(out_msg)
         repr(in_msg)
-    
+
                   
+class TestPrivateDHT:
+
+    def test(self):
+        # Sender doesn't use private flag
+        ping_public = m.OutgoingPingQuery(tc.CLIENT_ID)
+        bencoded_public = ping_public.encode(tc.TID)
+        # Sender uses private flag PRIVATE1
+        m.private_dht_name = 'PRIVATE1'
+        ping_private1 = m.OutgoingPingQuery(tc.CLIENT_ID)
+        bencoded_private1 = ping_private1.encode(tc.TID)
+        # Sender uses private flag PRIVATE1
+        m.private_dht_name = 'PRIVATE2'
+        ping_private2 = m.OutgoingPingQuery(tc.CLIENT_ID)
+        bencoded_private2 = ping_private2.encode(tc.TID)
+
+        # Receiver in the public DHT accepts messages (ignores private flag)
+        m.private_dht_name = None
+        m.IncomingMsg(bencoded_public, tc.CLIENT_ADDR)
+        m.IncomingMsg(bencoded_private1, tc.CLIENT_ADDR)
+        m.IncomingMsg(bencoded_private2, tc.CLIENT_ADDR)
+
+        # Receiver in the private DHT accepts ONLY messages from the
+        # private DHT it belongs to
+        m.private_dht_name = 'PRIVATE1'
+        assert_raises(m.MsgError,
+                      m.IncomingMsg, bencoded_public, tc.CLIENT_ADDR)
+        m.IncomingMsg(bencoded_private1, tc.CLIENT_ADDR)
+        assert_raises(m.MsgError,
+                      m.IncomingMsg, bencoded_private2, tc.CLIENT_ADDR)
+
+    def teardown(self):
+        m.private_dht_name = None

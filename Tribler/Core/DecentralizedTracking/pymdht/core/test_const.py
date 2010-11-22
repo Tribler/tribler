@@ -29,13 +29,13 @@ SERVER_ADDR = ('127.0.0.1', 6001)
 SERVER_NODE = node.Node(SERVER_ADDR, SERVER_ID)
 
 SERVER2_ID = identifier.Id('\x43' * identifier.ID_SIZE_BYTES)
-SERVER2_ADDR = ('127.0.0.2', 6002)
+SERVER2_ADDR = ('128.0.0.2', 6002)
 SERVER2_NODE = node.Node(SERVER2_ADDR, SERVER2_ID)
 
-EXTERNAL_NODE_ADDR = ('127.0.0.1', 6881)
+EXTERNAL_NODE_ADDR = ('128.0.0.1', 6881)
 EXTERNAL_NODE = node.Node(EXTERNAL_NODE_ADDR)
 
-NO_ADDR = ('127.0.0.1', 1)
+NO_ADDR = ('128.0.0.1', 1)
 DEAD_NODE = node.Node(NO_ADDR)
 
 NODE_ID = identifier.Id('\x02' * identifier.ID_SIZE_BYTES)
@@ -49,7 +49,7 @@ TOKEN = 'aa'
 NUM_NODES = 8
 NODE_IDS = [identifier.Id(chr(i) * identifier.ID_SIZE_BYTES) \
             for i in xrange(NUM_NODES)]
-ADDRS = [('127.0.0.'+str(i), 7000 + i) for i in xrange(NUM_NODES)]
+ADDRS = [('128.0.0.'+str(i), 7000 + i) for i in xrange(NUM_NODES)]
 NODES = [node.Node(addr, node_id) \
              for addr, node_id in zip(ADDRS, NODE_IDS)]
 
@@ -60,7 +60,7 @@ PEERS = ADDRS
 
 NODE2_IDS = [identifier.Id('\x01'+chr(i) * (identifier.ID_SIZE_BYTES-1)) \
             for i in xrange(100, 100+NUM_NODES)]
-ADDRS2 = [('127.0.0.'+str(i), 7000 + i) \
+ADDRS2 = [('128.0.0.'+str(i), 7000 + i) \
               for i in xrange(100, 100+NUM_NODES)]
 NODES2 = [node.Node(addr, node_id) \
               for addr, node_id in zip(ADDRS2, NODE2_IDS)]
@@ -79,7 +79,7 @@ for ld in xrange(BITS_PER_BYTE, ID_SIZE_BITS):
         this_id = Id(common_id.bin_id[:-1] + chr(i))
         #eq_(this_id.log_distance(INFO_HASH_ZERO), ld)
         NODES_LD_IH[ld].append(
-            node.Node(('127.0.0.' + str(i), ld), this_id))
+            node.Node(('128.0.0.' + str(i), ld), this_id))
 num_nodes_per_ld = 50
 NODES_LD_CL = [[]] * BITS_PER_BYTE
 for ld in xrange(BITS_PER_BYTE, ID_SIZE_BITS):
@@ -90,5 +90,5 @@ for ld in xrange(BITS_PER_BYTE, ID_SIZE_BITS):
         this_id = Id(common_id.bin_id[:-1] + chr(i))
         #eq_(this_id.log_distance(INFO_HASH_ZERO), ld)
         NODES_LD_CL[ld].append(
-            node.Node(('127.0.0.' + str(i), ld), this_id))
+            node.Node(('128.0.0.' + str(i), ld), this_id))
 

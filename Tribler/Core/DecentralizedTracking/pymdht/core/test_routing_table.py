@@ -320,6 +320,19 @@ class TestRoutingTable:
 
         # complete coverage
         self.rt.print_stats()
+
+    def test_get_sbucket_error(self):
+        assert_raises(IndexError, self.rt.get_sbucket, -2)
+        assert_raises(IndexError, self.rt.get_sbucket, -1)
+        assert_raises(IndexError, self.rt.get_sbucket, 160)
+        assert_raises(IndexError, self.rt.get_sbucket, 161)
+
+    def test_update_lowest_index_when_empty_table(self):
+        sbucket = self.rt.get_sbucket(20)
+        sbucket.main.add(tc.CLIENT_NODE.get_rnode(20))
+        self.rt.update_lowest_index(20) 
+        sbucket.main.remove(tc.CLIENT_NODE)
+        self.rt.update_lowest_index(20) 
         
     def test_complete_coverage(self):
 

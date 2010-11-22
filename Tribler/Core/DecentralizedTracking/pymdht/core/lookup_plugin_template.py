@@ -12,9 +12,9 @@ logger = logging.getLogger('dht')
    
 class GetPeersLookup(object):
 
-    def __init__(self, my_id,
+    def __init__(self, lookup_id,
                  info_hash, callback_f,
-                 bt_port=None):
+                 bt_port=0):
         pass
 
     
@@ -42,6 +42,10 @@ class GetPeersLookup(object):
         lookup_done = True        
         return (queries_to_send, num_parallel_queries, lookup_done)
 
+    def announce(self):
+        announcements_to_send = []
+        announce_to_myself = False
+        return announcements_to_send, announce_to_myself
             
 class MaintenanceLookup(GetPeersLookup):
 
@@ -61,8 +65,8 @@ class LookupManager(object):
     def __init__(self, my_id):
         self.my_id = my_id
 
-    def get_peers(self, info_hash, callback_f, bt_port=None):
-        lookup_q = GetPeersLookup(self.my_id, info_hash,
+    def get_peers(self, lookup_id, info_hash, callback_f, bt_port=0):
+        lookup_q = GetPeersLookup(lookup_id, info_hash,
                                   callback_f, bt_port)
         return lookup_q
 

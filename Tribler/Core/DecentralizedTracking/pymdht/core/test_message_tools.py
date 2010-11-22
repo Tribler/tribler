@@ -23,6 +23,12 @@ class TestMsgTools:
     def setup(self):
         pass
 
+    def test_invalid_addresses(self):
+        ips = ['127.0.0.1', '127.24.43.6', '192.168.0.1', '192.168.47.3']
+        for ip in ips:
+            c_addr = mt.compact_addr((ip, 22))
+            assert_raises(mt.AddrError, mt.uncompact_addr, c_addr)
+
     def test_tools(self):
         bin_strs = ['23', '\1\5', 'a\3']
         for bs in bin_strs:
@@ -32,7 +38,7 @@ class TestMsgTools:
                                                                    i, bs2))
             assert bs == bs2
 
-        ips = ['127.0.0.1', '222.222.222.222', '1.2.3.4']
+        ips = ['128.0.0.1', '222.222.222.222', '1.2.3.4']
         ports = [12345, 99, 54321] 
         for addr in zip(ips, ports):
             c_addr = mt.compact_addr(addr)
@@ -87,4 +93,9 @@ class TestMsgTools:
         c_peers = mt.compact_peers(peers)
         eq_(mt.uncompact_peers(c_peers), peers[1:])
 
+        addr = ('1.2.3.4', 1234)
+        c_addr = mt.compact_addr(addr)
+        assert_raises(mt.AddrError, mt.uncompact_addr, c_addr[:-1])
+        assert_raises(mt.AddrError, mt.uncompact_addr, c_addr[1:])
+        assert_raises(mt.AddrError, mt.uncompact_addr, c_addr+'X')
         

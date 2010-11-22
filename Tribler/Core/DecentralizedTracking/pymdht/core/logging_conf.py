@@ -18,8 +18,11 @@ logging.basicConfig(level=logging.CRITICAL,
 
 def testing_setup(module_name):
     logger = logging.getLogger('dht')
-    # Arno, 2010-06-11: Alt way of disabling logging from DHT instead of global
-    logger.setLevel(logging.CRITICAL+100)
+    # Arno, 2010-06-11: Alt way of disabling logging from DHT instead of
+    # global
+    # Raul 2010-11-21: this configuration only affects to tests. It does
+    # not affect Tribler/NextShare
+    logger.setLevel(logging.DEBUG)
     filename = ''.join((str(module_name), '.log'))
     logger_file = os.path.join('test_logs', filename)
     

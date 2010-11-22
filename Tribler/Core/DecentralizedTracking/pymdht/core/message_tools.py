@@ -45,9 +45,13 @@ def compact_addr(addr):
 
 def uncompact_addr(c_addr):
     if len(c_addr) != ADDR4_SIZE:
-        raise AddrError
+        raise AddrError, 'invalid address size'
     # inet_ntoa only raises socket.error when the parameter is not 4
     # bytes, no need to try/except
+    if c_addr[0] == '\x7f' or c_addr[:2] == '\xc0\xa8':
+        #Exclude addresses 127.* and 192.168.*
+        logger.warning('Got private address: %r' % (c_addr))
+        raise AddrError, 'private address'
     ip = inet_ntoa(c_addr[:-2])
     port = bin_to_int(c_addr[-2:])
     if port == 0:

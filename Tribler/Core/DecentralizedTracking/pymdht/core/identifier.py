@@ -28,7 +28,7 @@ def _bin_to_hex(bin_str):
 def _hex_to_bin_byte(hex_byte):
     #TODO2: Absolutely sure there is a library function for this
     hex_down = '0123456789abcdef'
-    hex_up = '0123456789ABDCEF'
+    hex_up =   '0123456789ABCDEF'
     value = 0
     for i in xrange(2):
         value *= 16

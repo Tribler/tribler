@@ -40,12 +40,13 @@ class TestNode:
         node1port = Node(addr2, id1)
         node1id = Node(addr1, id2)
 
-        assert str(node1) == '<node: %r %r>' % (addr1, id1)
+        eq_(str(node1), '<node: %r %r>' % (addr1, id1))
         #<node: ('127.0.0.1', 1111) 0x1313131313131313131313131313131313131313>
 
-        assert node1.id == id1
+        eq_(node1.id, id1)
         assert node1.id != id2
         assert node1.addr == addr1
+        eq_(node1.ip, addr1[0])
         assert node1.addr != addr2
         assert node1 == node1
 
@@ -78,7 +79,14 @@ class TestNode:
     def test_node_exceptions(self):
         Node(addr1, id1).id = id2
 
-        
+    def test_node_without_id(self):
+        n1 = Node(tc.CLIENT_ADDR)
+        n2 = Node(tc.CLIENT_ADDR)
+        eq_(n1, n2)
+        n1.id = tc.CLIENT_ID
+        ok_(n1 != n2)
+        n2.id = tc.CLIENT_ID
+        eq_(n1, n2)
 
 class TestRoutingNode:
 
@@ -92,27 +100,27 @@ class TestRoutingNode:
         eq_(rnode.timeouts_in_a_row(True), 0)
         eq_(rnode.timeouts_in_a_row(False), 0)
         # got query
-        rnode.last_events.append((time.time(), node.QUERY))
+        rnode.add_event(time.time(), node.QUERY)
         eq_(rnode.timeouts_in_a_row(), 0)
         eq_(rnode.timeouts_in_a_row(True), 0)
         eq_(rnode.timeouts_in_a_row(False), 0)
         # got timeout
-        rnode.last_events.append((time.time(), node.TIMEOUT))
+        rnode.add_event(time.time(), node.TIMEOUT)
         eq_(rnode.timeouts_in_a_row(), 1)
         eq_(rnode.timeouts_in_a_row(True), 1)
         eq_(rnode.timeouts_in_a_row(False), 1)
         # got query
-        rnode.last_events.append((time.time(), node.QUERY))
+        rnode.add_event(time.time(), node.QUERY)
         eq_(rnode.timeouts_in_a_row(), 0)
         eq_(rnode.timeouts_in_a_row(True), 0)
         eq_(rnode.timeouts_in_a_row(False), 1)
         # got timeout
-        rnode.last_events.append((time.time(), node.TIMEOUT))
+        rnode.add_event(time.time(), node.TIMEOUT)
         eq_(rnode.timeouts_in_a_row(), 1)
         eq_(rnode.timeouts_in_a_row(True), 1)
         eq_(rnode.timeouts_in_a_row(False), 2)
         # got response
-        rnode.last_events.append((time.time(), node.RESPONSE))
+        rnode.add_event(time.time(), node.RESPONSE)
         eq_(rnode.timeouts_in_a_row(), 0)
         eq_(rnode.timeouts_in_a_row(True), 0)
         eq_(rnode.timeouts_in_a_row(False), 0)
@@ -127,4 +135,3 @@ class TestRoutingNode:
         eq_(n1, rn1)
         rn1_duplicate = n1.get_rnode(1)
         eq_(rn1_duplicate, rn1)
-

@@ -49,7 +49,6 @@ def decode(bencoded, max_depth=4):
     except (DecodeError):
         raise
     except:
-        raise
         raise DecodeError('UNEXPECTED>>>>>>>>>>>>', bencoded)
     else:
         if next_pos != len(bencoded):
