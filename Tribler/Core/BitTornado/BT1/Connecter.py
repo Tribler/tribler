@@ -1623,7 +1623,7 @@ class Connecter:
                     return
             return
         except Exception,e:
-            if not DEBUG:
+            if DEBUG:
                 print >>sys.stderr,"Close on bad EXTEND: exception:",str(e),`message[2:]`
                 print_exc()
             connection.close()
