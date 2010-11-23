@@ -771,13 +771,13 @@ class ProgressPanel(wx.Panel):
                     sizestr = ''
                     size = self.item.original_data.get('length', False)
                     if size:
-                        progress = size*ds.get_progress()
+                        size_progress = size*ds.get_progress()
                         
                         def format_size(bytes):
                             if bytes > 1073741824:
                                 return self.utility.size_format(bytes, 1)
                             return self.utility.size_format(bytes, 0)
-                        sizestr = '%s/%s (%0.1f%%)'%(format_size(progress), format_size(size), ds.get_progress()*100) 
+                        sizestr = '%s/%s (%0.1f%%)'%(format_size(size_progress), format_size(size), ds.get_progress()*100) 
                         
                     eta = self.utility.eta_value(ds.get_eta(), truncate=2)
                     if eta == '' or eta.find('unknown') != -1:
@@ -810,7 +810,7 @@ class ProgressPanel(wx.Panel):
                 elif havedigest:
                     self.pb.set_pieces(havedigest)
                 elif progress > 0:
-                    self.pb.reset(colour=1) # Show as having some
+                    self.pb.setNormalPercentage(progress) # Show as having some
                 else:
                     self.pb.reset(colour=0) # Show as having none
                 self.pb.Refresh()
@@ -825,16 +825,15 @@ class ProgressPanel(wx.Panel):
                 self.pb.setNormalPercentage(progress)
                 
                 if progress == 100:
-                    eta = 'Completed, '
+                    eta = 'Completed, inactive'
                 else:
-                    eta = 'Incomplete, '
+                    eta = 'Stopped'
                 self.item.data[1] = [progress,1]
             else:
                 str_progress = '?'
                 self.pb.reset()
                 self.item.data[1] = [-1,0]
-            
-            eta += 'inactive'
+
             if self.status.GetLabel() != eta:
                 self.status.SetLabel(eta)
             
