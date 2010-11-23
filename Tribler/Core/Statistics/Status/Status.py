@@ -502,7 +502,7 @@ class PeriodicStatusReporter(StatusReporter):
         
     def create_timer(self):
         self.timer = threading.Timer(self.frequency, self.on_time_event)
-        self.timer.setName("PeriodicStatusReporter")
+        self.timer.setName("PeriodicStatusReporter_"+self.name)
         self.timer.setDaemon(True)
         self.timer.start()
 
