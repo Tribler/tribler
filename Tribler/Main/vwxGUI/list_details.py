@@ -25,6 +25,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, SortedListCtrl
 from list_header import ListHeader
 from list_body import ListBody
 from __init__ import *
+from Tribler.Core.simpledefs import DLSTATUS_STOPPED
 
 class TorrentDetails(wx.Panel):
     def __init__(self, parent, torrent):
@@ -741,105 +742,94 @@ class ProgressPanel(wx.Panel):
             ds = self.item.original_data.get('ds', None)
         
         if ds != None:
-            #Update eta
             progress = ds.get_progress()
             seeds, peers = ds.get_num_seeds_peers()
-            if seeds == None:
-                seeds = 0
-            if peers == None:
-                peers = 0
-            self.item.data[2] = [seeds, peers]
-    
+            
             dls = ds.get_current_speed('down')*1024
-            self.item.data[3] = dls
-            
             uls = ds.get_current_speed('up')*1024
-            self.item.data[4] = uls
             
-            finished = progress == 1.0
-            if finished:
-                eta = "Completed"
-                if ds.get_status() == DLSTATUS_SEEDING:
-                    eta += ", seeding"
-                    return_val = 2
-                else:
-                    eta += ", inactive"
+            eta = ds.get_eta()
+            status = ds.get_status()
+        else:
+            progress = self.item.original_data.get('progress')
+            if progress == None:
+                progress = 0
+            
+            seeds = peers = None
+            dls = uls = 0
+            
+            eta = ''
+            status = DLSTATUS_STOPPED
+        
+        if seeds == None:
+            seeds = 0
+        if peers == None:
+            peers = 0
+        self.item.data[2] = [seeds, peers]
+        self.item.data[3] = dls
+        self.item.data[4] = uls
+            
+        finished = progress == 1.0
+        if finished:
+            eta = "Completed"
+            if  status == DLSTATUS_SEEDING:
+                eta += ", seeding"
+                return_val = 2
             else:
-                if ds.get_status() in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING]:
-                    eta = 'Checking'
+                eta += ", inactive"
+        else:
+            if status in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING]:
+                eta = 'Checking'
+            
+            else:
+                sizestr = ''
+                size = self.item.original_data.get('length', False)
+                if size:
+                    size_progress = size*progress
+                    
+                    def format_size(bytes):
+                        if bytes > 1073741824:
+                            return self.utility.size_format(bytes, 1)
+                        return self.utility.size_format(bytes, 0)
+                    sizestr = '%s/%s (%0.1f%%)'%(format_size(size_progress), format_size(size), progress*100) 
+                    
+                eta = self.utility.eta_value(eta, truncate=2)
+                if eta == '' or eta.find('unknown') != -1:
+                    eta = sizestr
                 else:
-                    sizestr = ''
-                    size = self.item.original_data.get('length', False)
-                    if size:
-                        size_progress = size*ds.get_progress()
-                        
-                        def format_size(bytes):
-                            if bytes > 1073741824:
-                                return self.utility.size_format(bytes, 1)
-                            return self.utility.size_format(bytes, 0)
-                        sizestr = '%s/%s (%0.1f%%)'%(format_size(size_progress), format_size(size), ds.get_progress()*100) 
-                        
-                    eta = self.utility.eta_value(ds.get_eta(), truncate=2)
-                    if eta == '' or eta.find('unknown') != -1:
-                        eta = sizestr
-                    else:
-                        eta = sizestr + ' - ' + eta
+                    eta = sizestr + ' - ' + eta
+                
+                if status != DLSTATUS_STOPPED:
                     return_val = 1
             
-            if self.style == ProgressPanel.ETA_EXTENDED and (ds.get_status() == DLSTATUS_DOWNLOADING or finished):
-                if finished:
-                    upSpeed = " @ " +self.utility.speed_format_new(uls)
-                    eta += upSpeed
-                else:
-                    dlSpeed = " @ " +self.utility.speed_format_new(dls)
-                    eta += dlSpeed
+        if self.style == ProgressPanel.ETA_EXTENDED:
+            if status == DLSTATUS_SEEDING:
+                upSpeed = " @ " +self.utility.speed_format_new(uls)
+                eta += upSpeed
+            elif status == DLSTATUS_DOWNLOADING:
+                dlSpeed = " @ " +self.utility.speed_format_new(dls)
+                eta += dlSpeed
+        
+        #Update eta
+        if self.status.GetLabel() != eta:
+            self.status.SetLabel(eta)
+            self.status.Refresh()
             
-            #Update eta
-            if self.status.GetLabel() != eta:
-                self.status.SetLabel(eta)
-                self.status.Refresh()
-                
-                if not ds.get_status() in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]:
-                    havedigest = ds.get_pieces_complete()
-                else:
-                    havedigest = None
-                
-                #Update graph
-                if finished:
-                    self.pb.reset(colour=2) # Show as complete
-                elif havedigest:
-                    self.pb.set_pieces(havedigest)
-                elif progress > 0:
-                    self.pb.setNormalPercentage(progress) # Show as having some
-                else:
-                    self.pb.reset(colour=0) # Show as having none
-                self.pb.Refresh()
-            
-            
-        else:
-            eta = ''
-            progress = self.item.original_data.get('progress')
-            
-            if progress != None:
-                str_progress = '%0.1f%%' % progress
-                self.pb.setNormalPercentage(progress)
-                
-                if progress == 100:
-                    eta = 'Completed, inactive'
-                else:
-                    eta = 'Stopped'
-                self.item.data[1] = [progress,1]
+            if not status in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]:
+                havedigest = ds.get_pieces_complete()
             else:
-                str_progress = '?'
-                self.pb.reset()
-                self.item.data[1] = [-1,0]
-
-            if self.status.GetLabel() != eta:
-                self.status.SetLabel(eta)
+                havedigest = None
             
-            self.item.data[2] = [0,0]
-            self.item.data[3] = 0
-            self.item.data[4] = 0
+            #Update graph
+            if finished:
+                self.pb.reset(colour=2) # Show as complete
+            elif havedigest:
+                self.pb.set_pieces(havedigest)
+            elif progress > 0:
+                self.pb.setNormalPercentage(progress) # Show as having some
+            else:
+                self.pb.reset(colour=0) # Show as having none
+            self.pb.Refresh()
             
         return return_val
     
