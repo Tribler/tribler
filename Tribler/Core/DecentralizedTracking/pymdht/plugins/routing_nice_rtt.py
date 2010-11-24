@@ -301,7 +301,7 @@ class RoutingManager(object):
             self._update_rnode_on_response_received(rnode, rtt)
         return
         
-    def on_error_received(self, node_):
+    def on_error_received(self, node_addr):
         pass
     
     def on_timeout(self, node_):

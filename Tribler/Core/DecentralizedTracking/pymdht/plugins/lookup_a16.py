@@ -70,7 +70,7 @@ class _LookupQueue(object):
         self._add_queued_qnodes(qnodes)
         return self._pop_nodes_to_query(max_nodes)
 
-    def on_timeout(self, src_node, max_nodes):
+    def on_timeout(self, max_nodes):
         return self._pop_nodes_to_query(max_nodes)
 
     on_error = on_timeout
@@ -206,19 +206,19 @@ class GetPeersLookup(object):
         self._slow_down = True
 
         max_nodes = self._get_max_nodes_to_query()
-        nodes_to_query = self._lookup_queue.on_timeout(node_, max_nodes)
+        nodes_to_query = self._lookup_queue.on_timeout(max_nodes)
         queries_to_send = self._get_lookup_queries(nodes_to_query)
         lookup_done = not self._num_parallel_queries
         return (queries_to_send, self._num_parallel_queries,
                 lookup_done)
     
-    def on_error_received(self, error_msg, node_):
-        logger.debug('ERROR node: %r' % node_)
+    def on_error_received(self, error_msg, node_addr):
+        logger.debug('Got error from node addr: %r' % node_addr)
         self._num_parallel_queries -= 1
         self.num_errors += 1
 
         max_nodes = self._get_max_nodes_to_query()
-        nodes_to_query = self._lookup_queue.on_error(node_, max_nodes)
+        nodes_to_query = self._lookup_queue.on_error(max_nodes)
         queries_to_send = self._get_lookup_queries(nodes_to_query)
         lookup_done = not self._num_parallel_queries
         return (queries_to_send, self._num_parallel_queries,
