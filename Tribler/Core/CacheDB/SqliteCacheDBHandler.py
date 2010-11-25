@@ -2979,6 +2979,15 @@ class VoteCastDBHandler(BasicDBHandler):
         for entry in res:
             result_list.add(entry[0])
         return result_list
+
+    def getPublishersWithPosVote(self, subscriber_id):
+        ''' return the publisher_ids having a negative vote from subscriber_id '''
+        sql = "select mod_id from VoteCast where voter_id==? and vote=2"
+        res = self._db.fetchall(sql,(subscriber_id,))
+        result_list = Set()
+        for entry in res:
+            result_list.add(entry[0])
+        return result_list
     
     def getNegVotes(self,publisher_id):
         """returns the number of negative votes in integer format"""
@@ -3259,15 +3268,13 @@ class ChannelCastDBHandler(BasicDBHandler):
                 sql += " publisher_name like '%" + kw + "%' "
                 if count<len(kwlist):
                     sql += " and "
-
+            
+            sql += " group by publisher_id"
             
             channellist = self._db.fetchall(sql)
             channels = {}
             allrecords = []
             for channel in channellist:
-                if channel[0] in channels:
-                    continue
-                channels[channel[0]] = channel[1]
                 #print >>sys.stderr, "channel:", repr(channel)
                 # now, retrieve the last 20 of each of these channels' torrents                             
                 s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
@@ -3286,7 +3293,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             arguments = q.split()
             
             if len(arguments) == 1:
-                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
+                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 50"
                 allrecords = self._db.fetchall(s,(q,))
             else:
                 publisher_id = arguments[0]

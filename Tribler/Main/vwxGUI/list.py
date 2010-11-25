@@ -799,6 +799,8 @@ class ChannelList(List):
         elif title == 'New Channels':
             self.header.ShowSortedBy(1)
             self.header.SetSubTitle("Discovered %d new channels (no votes yet and updated within the last 2 months)"% nr)
+        elif title.startswith('Search results'):
+            self.header.ShowSortedBy(3)
         else:
             if nr == 1:
                 self.header.SetSubTitle("Discovered %d channel" % nr)

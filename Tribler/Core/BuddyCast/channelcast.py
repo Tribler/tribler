@@ -267,9 +267,9 @@ class ChannelCastCore:
             
             # make everything into "string" format, if "binary"
             hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
-
+            
             listOfAdditions.append(hit)
-
+        
         # Arno, 2010-06-11: We're on the OverlayThread
         self._updateChannelcastDB(query_permid, query, hits, listOfAdditions)
         return listOfAdditions
@@ -278,6 +278,10 @@ class ChannelCastCore:
         #08/04/10: Andrea: processing rich metadata part.
         self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
         
+        if query == None or query.startswith('CHANNEL k'): #this will cause problems with timeframe
+            my_favorites = self.votecastdb.getPublishersWithPosVote(bin2str(self.session.get_permid()))
+            listOfAdditions = [hit for hit in listOfAdditions if hit[0] not in my_favorites]
+            
         publisher_ids = Set()
         infohashes = Set()
         for hit in listOfAdditions:
@@ -356,7 +360,7 @@ class ChannelCastCore:
                 q = "CHANNEL p "+publisher_id
                 if selversion > OLPROTO_VER_THIRTEENTH:
                     record = self.channelcastdb.getTimeframeForChannel(publisher_id)
-                    if record:
+                    if record and record[2] >= 50:
                         q+=" "+" ".join(map(str,record))
                 
                 self.session.query_peers(q,[permid],usercallback = seqcallback)

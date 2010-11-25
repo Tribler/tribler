@@ -881,6 +881,8 @@ class MyChannelTabs(wx.Panel):
         filespage.OnCollapse = self.parent.OnCollapse
         filespage.OnSort = self.parent.OnSort
         
+        """
+        Disabled delete, does not actually work (purely local)
         listbuttons = wx.Panel(filespage)
         listbuttons.SetBackgroundColour(LIST_DESELECTED)
         removesel = wx.Button(listbuttons, -1, "Remove Selected")
@@ -892,11 +894,12 @@ class MyChannelTabs(wx.Panel):
         hSizer.Add(removesel, 0, wx.ALL, 3)
         hSizer.Add(removeall, 0, wx.ALL, 3)
         listbuttons.SetSizer(hSizer)
+        """
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(self.header, 0, wx.EXPAND)
         vSizer.Add(self.list, 1, wx.EXPAND)
-        vSizer.Add(listbuttons, 0, wx.EXPAND)
+        #vSizer.Add(listbuttons, 0, wx.EXPAND)
         filespage.SetSizer(vSizer)
         notebook.AddPage(filespage, "Shared torrents")
         
