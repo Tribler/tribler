@@ -135,7 +135,7 @@ QUERIES = {
             + " WHERE " + MD_ID_KEY + " = ?;",
            
            "INSERT METADATA" :
-           "INSERT INTO " + METADATA_TABLE + " VALUES " \
+           "INSERT or IGNORE INTO " + METADATA_TABLE + " VALUES " \
              + "(NULL,?,?,?,?,?)",
              
            "INSERT SUBTITLES" : 

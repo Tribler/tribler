@@ -6,9 +6,11 @@ import random
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
 from Tribler.Main.vwxGUI.list_footer import *
+
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import SortedListCtrl
 from Tribler.Category.Category import Category
+from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from __init__ import LIST_GREY, LIST_BLUE
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler
@@ -65,6 +67,8 @@ class Stats(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
+        
+        vSizer.Add(NetworkPanel(self), 0, wx.EXPAND|wx.BOTTOM, 10)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NewTorrentPanel(self))
@@ -128,6 +132,64 @@ class InfoPanel(HomePanel):
         panel.SetSizer(sizer)
         return panel
 
+class NetworkPanel(HomePanel):
+    def __init__(self, parent):
+        HomePanel.__init__(self, parent, 'Network info' , LIST_BLUE)
+        
+        self.torrentdb = TorrentDBHandler.getInstance()
+        self.remotetorrenthandler = RemoteTorrentHandler.getInstance()
+        session = Session.get_instance()
+        session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
+        self.__OnNotify()
+    
+    def CreatePanel(self):
+        def getBoldText(parent, text):
+            statictext = wx.StaticText(parent, -1, text)
+            font = statictext.GetFont()
+            font.SetWeight(wx.FONTWEIGHT_BOLD)
+            statictext.SetFont(font)
+            return statictext
+        
+        panel = wx.Panel(self)
+        panel.SetBackgroundColour(wx.WHITE)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.nrTorrents = wx.StaticText(panel)
+        self.nrFiles = wx.StaticText(panel)
+        self.totalSize = wx.StaticText(panel)
+        self.queueSize = wx.StaticText(panel)
+        
+        #header = getBoldText(panel, 'Current megacache statistics')
+        #vSizer.Add(header, 0, wx.BOTTOM|wx.LEFT, 3)
+        
+        gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
+        gridSizer.AddGrowableCol(1)
+        
+        gridSizer.Add(wx.StaticText(panel, -1, 'Number files'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.nrFiles, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Total size'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.totalSize, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Torrents collected'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.nrTorrents, 0, wx.EXPAND|wx.LEFT, 10)
+        gridSizer.Add(wx.StaticText(panel, -1, 'Torrents in queue'), 0, wx.LEFT, 10)
+        gridSizer.Add(self.queueSize, 0, wx.EXPAND|wx.LEFT, 10)
+        
+        vSizer.Add(gridSizer, 0, wx.EXPAND)
+        panel.SetSizer(vSizer)
+        return panel
+    
+    def OnNotify(self, subject, type, infohash):
+        if self.IsShownOnScreen():
+            wx.CallAfter(self.__OnNotify)
+             
+    def __OnNotify(self):
+        stats = self.torrentdb.getTorrentsStats()
+        
+        self.nrTorrents.SetLabel(str(stats[0]))
+        self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
+        self.nrFiles.SetLabel(str(stats[2]))
+        self.queueSize.SetLabel(str(self.remotetorrenthandler.getQueueSize()))
+
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Newest Torrents' , LIST_BLUE)
@@ -146,6 +208,10 @@ class NewTorrentPanel(HomePanel):
         return self.list
     
     def OnNotify(self, subject, type, infohash):
+        if self.IsShownOnScreen():
+            wx.CallAfter(self.__OnNotify, infohash)
+            
+    def __OnNotify(self, infohash):
         torrent = self.torrentdb.getTorrent(infohash, include_mypref=False)
         if torrent:
             self.list.InsertStringItem(0, torrent['name'])

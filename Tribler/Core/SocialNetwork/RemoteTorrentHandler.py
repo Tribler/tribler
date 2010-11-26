@@ -73,13 +73,23 @@ class RemoteTorrentHandler:
         #Called by overlay thread
         if DEBUG:
             print >>sys.stderr,"rtorrent: got requested torrent from peer, wanted", infohash in self.callbacks
-            
+        
         if infohash in self.callbacks:
             usercallback = self.callbacks[infohash]
             del self.callbacks[infohash]
         
             remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
             self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
+            
+        for requester in self.requestingThreads.values():
+            if infohash in requester.sources:
+                del requester.sources[infohash]
+    
+    def getQueueSize(self):
+        size = 0
+        for requester in self.requestingThreads.values():
+            size += len(requester.sources)
+        return size
             
 class TorrentRequester():
     
@@ -107,11 +117,19 @@ class TorrentRequester():
     
     def doRequest(self):
         try:
-            infohash = self.queue.get_nowait()
+            #request new infohash from queue
+            while True:
+                infohash = self.queue.get_nowait()
+                
+                if infohash in self.sources: #check if still needed
+                    break
+            
             try:
                 #~load balance sources
                 permid = choice(self.sources[infohash])
                 self.sources[infohash].remove(permid)
+                if len(self.sources[infohash]) < 1:
+                    del self.sources[infohash]
                 
                 if DEBUG:
                     print >>sys.stderr,"rtorrent: requesting", bin2str(infohash), bin2str(permid)

@@ -1636,6 +1636,9 @@ class TorrentDBHandler(BasicDBHandler):
     def getNumberCollectedTorrents(self): 
         #return self._db.size('CollectedTorrent')
         return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
+    
+    def getTorrentsStats(self):
+        return self._db.getOne('CollectedTorrent', ['count(torrent_id)','sum(length)','sum(num_files)'])
 
     def freeSpace(self, torrents2del):
 #        if torrents2del > 100:  # only delete so many torrents each time

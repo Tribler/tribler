@@ -122,7 +122,7 @@ class ChannelSearchManager:
                 elif self.category != 'searchresults':
                     #Show new channel, but only if we are not showing search results
                     self.refresh()
-            else:
+            elif self.category != 'searchresults':
                 self.list.dirty = True
 
 class ChannelManager():
@@ -813,9 +813,9 @@ class ChannelList(List):
         elif title == 'New Channels':
             self.header.ShowSortedBy(1)
             self.header.SetSubTitle("Discovered %d new channels (no votes yet and updated within the last 2 months)"% nr)
-        elif title.startswith('Search results'):
-            self.header.ShowSortedBy(3)
         else:
+            if title.startswith('Search results'):
+                self.header.ShowSortedBy(3)
             if nr == 1:
                 self.header.SetSubTitle("Discovered %d channel" % nr)
             else:
