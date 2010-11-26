@@ -264,11 +264,11 @@ class GUIUtility:
         q = q.strip()
         self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
         
-        q = 'CHANNEL k '
-        for kw in wantkeywords:
-            q += kw+' '
-        self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
-        
+        if len(input) > 1: #do not perform remote channel search for single character inputs
+            q = 'CHANNEL k '
+            for kw in wantkeywords:
+                q += kw+' '
+            self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
         wx.CallLater(10000, self.CheckSearch, wantkeywords)
     
     def showChannelCategory(self, category, show = True):
