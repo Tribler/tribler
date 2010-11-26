@@ -117,10 +117,13 @@ class ChannelSearchManager:
             if self.list.IsShownOnScreen():
                 if self.list.InList(permid):
                     data = self.channelsearch_manager.getChannel(permid)
-                    self.list.RefreshData(permid, data)
+                    if data:
+                        self.list.RefreshData(permid, data)
                 elif self.category != 'searchresults':
                     #Show new channel, but only if we are not showing search results
                     self.refresh()
+            else:
+                self.list.dirty = True
 
 class ChannelManager():
     _req_columns = ['infohash', 'name', 'time_stamp', 'length', 'num_seeders', 'num_leechers', 'category_id', 'status_id', 'creation_date']
@@ -132,13 +135,14 @@ class ChannelManager():
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         
-    def refresh(self, permid):
-        self.list.Reset()
-        vote = self.channelsearch_manager.getMyVote(permid)
-        
-        self.list.footer.SetStates(vote == -1, vote == 2)
-        self.list.publisher_id = permid
-        self.list.SetFF(self.guiutility.getFamilyFilter())
+    def refresh(self, permid = None):
+        if permid:
+            self.list.Reset()
+            vote = self.channelsearch_manager.getMyVote(permid)
+            
+            self.list.footer.SetStates(vote == -1, vote == 2)
+            self.list.publisher_id = permid
+            self.list.SetFF(self.guiutility.getFamilyFilter())
         self._refresh_list()
         
     def _refresh_list(self):
@@ -218,6 +222,7 @@ class List(wx.Panel):
         self.singleSelect = singleSelect
         self.showChange = showChange
         self.ready = False
+        self.dirty = False
         
         pre = wx.PrePanel()
         # the Create step is done by XRC. 
@@ -350,6 +355,15 @@ class List(wx.Panel):
         
     def Select(self, key, raise_event = True):
         self.list.Select(key, raise_event)
+        
+    def Show(self):
+        wx.Panel.Show(self)
+        if self.dirty:
+            self.dirty = False
+            
+            manager = self.GetManager()
+            if manager:
+                manager.refresh()
     
 class SearchList(List):
     def __init__(self):

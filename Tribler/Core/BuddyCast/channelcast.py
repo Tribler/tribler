@@ -278,16 +278,24 @@ class ChannelCastCore:
         #08/04/10: Andrea: processing rich metadata part.
         self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
         
-        if query == None or query.startswith('CHANNEL k'): #this will cause problems with timeframe
-            my_favorites = self.votecastdb.getPublishersWithPosVote(bin2str(self.session.get_permid()))
-            listOfAdditions = [hit for hit in listOfAdditions if hit[0] not in my_favorites]
-            
         publisher_ids = Set()
         infohashes = Set()
         for hit in listOfAdditions:
             publisher_ids.add(hit[0])
             infohashes.add(str2bin(hit[2]))
-        
+            
+        if query and query.startswith('CHANNEL p') and len(publisher_ids) == 1:
+            publisher_id = publisher_ids.pop()
+            publisher_ids.add(publisher_id)
+            
+            nr_torrents = self.channelcastdb.getNrTorrentsInChannel(publisher_id)
+            if len(infohashes) > nr_torrents:
+                self.channelcastdb.deleteTorrentsFromPublisherId(str2bin(publisher_id))
+        else:
+            #ignore all my favorites, randomness will cause problems with timeframe
+            my_favorites = self.votecastdb.getPublishersWithPosVote(bin2str(self.session.get_permid()))
+            listOfAdditions = [hit for hit in listOfAdditions if hit[0] not in my_favorites]
+            
         self.channelcastdb.addTorrents(listOfAdditions)
         missing_infohashes = {}
         for publisher_id in publisher_ids:
@@ -360,7 +368,7 @@ class ChannelCastCore:
                 q = "CHANNEL p "+publisher_id
                 if selversion > OLPROTO_VER_THIRTEENTH:
                     record = self.channelcastdb.getTimeframeForChannel(publisher_id)
-                    if record and record[2] >= 50:
+                    if record:
                         q+=" "+" ".join(map(str,record))
                 
                 self.session.query_peers(q,[permid],usercallback = seqcallback)

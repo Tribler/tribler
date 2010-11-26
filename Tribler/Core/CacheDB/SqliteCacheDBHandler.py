@@ -3142,6 +3142,10 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getNrTorrentsDownloaded(self, publisher_id):
         sql = "select count(*) from MyPreference as mp , Torrent as t , ChannelCast as cc where t.infohash = cc.infohash and mp.torrent_id = t.torrent_id and cc.publisher_id = ? Limit 1"
         return self._db.fetchone(sql, (publisher_id,))
+
+    def getNrTorrentsInChannel(self, publisher_id):
+        sql = "select count(infohash) from ChannelCast where publisher_id==?"
+        return self._db.fetchone(sql, (publisher_id,))
     
     def getRecentAndRandomTorrents(self,NUM_OWN_RECENT_TORRENTS=15,NUM_OWN_RANDOM_TORRENTS=10,NUM_OTHERS_RECENT_TORRENTS=15,NUM_OTHERS_RANDOM_TORRENTS=10):
         allrecords = []
@@ -3314,9 +3318,9 @@ class ChannelCastDBHandler(BasicDBHandler):
                         items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
                         
                         if items > nr_items:
-                            #missing data, return complete timeframe
-                            s = "select * from ChannelCast where publisher_id==? and time_stamp between ? and ?"
-                            allrecords = self._db.fetchall(s,(publisher_id,min_timestamp,max_timestamp))
+                            #correct his timeframe, by returning nr_items + 1
+                            s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
+                            allrecords = self._db.fetchall(s,(publisher_id,nr_items + 1))
                         else:
                             #return max 50 newer, append with old
                             s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
