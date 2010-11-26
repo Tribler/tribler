@@ -3322,8 +3322,12 @@ class ChannelCastDBHandler(BasicDBHandler):
                         
                         if items > nr_items:
                             #correct his timeframe, by returning nr_items + 1
+                            nr_items_return = nr_items + 1
+                            if nr_items_return < 50:
+                                nr_items_return = 50
+                            
                             s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
-                            allrecords = self._db.fetchall(s,(publisher_id,nr_items + 1))
+                            allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
                         else:
                             #return max 50 newer, append with old
                             s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
