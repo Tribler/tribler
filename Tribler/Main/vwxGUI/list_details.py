@@ -285,7 +285,7 @@ class TorrentDetails(wx.Panel):
         self.ShowPanel()
         
         self.buttonPanel.SetSizer(self.buttonSizer)
-        self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+        self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
         self.details.Layout()
         
         self.parent.parent_list.OnChange()
@@ -299,6 +299,7 @@ class TorrentDetails(wx.Panel):
             self.buttonSizer.ShowItems(False)
             self.buttonSizer.DeleteWindows()
             self.buttonSizer.Clear()
+            self.buttonPanel.Show()
             
             in_progress = finished = False
             
@@ -388,6 +389,8 @@ class TorrentDetails(wx.Panel):
                 self.buttonSizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
     
     def _ShowDownloadProgress(self):
+        self.buttonPanel.Hide()
+        
         #Header
         self.downloadText = wx.StaticText(self.buttonPanel, -1, "You are downloading this torrent")
         font = self.downloadText.GetFont()
@@ -687,16 +690,18 @@ class TorrentDetails(wx.Panel):
                         self.ShowPanel()
                         break
                 
-                if ds.is_vod():
+                if ds.get_status() == DLSTATUS_STOPPED:
+                    label = 'Download is stopped'
+                elif ds.is_vod():
                     label = 'You are streaming this torrent'
                     if getattr(self, 'play', False):
                         self.play.Hide()
                 else:
                     label = 'You are downloading this torrent'
-                    
                 if self.downloadText.GetLabel() != label:
                     self.downloadText.SetLabel(label)
                     self.downloadText.Refresh()
+                self.buttonPanel.Show()
                 break
         
         if not found:
