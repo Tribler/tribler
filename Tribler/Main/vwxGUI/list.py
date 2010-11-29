@@ -360,9 +360,10 @@ class List(wx.Panel):
         wx.Panel.Show(self)
         if self.dirty:
             self.dirty = False
-            
+
             manager = self.GetManager()
             if manager:
+                self.Reset()
                 manager.refresh()
     
 class SearchList(List):
