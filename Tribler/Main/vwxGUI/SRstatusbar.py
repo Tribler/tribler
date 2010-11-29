@@ -42,9 +42,7 @@ class SRstatusbar(wx.StatusBar):
         self.SetStatusWidths(self.widths)
         
         self.Reposition()
-        
         self.Bind(wx.EVT_SIZE, self.OnSize)
-        self.Bind(wx.EVT_IDLE, self.OnIdle)
  
     def helpClick(self,event=None):
         dlg = wx.Dialog(None, -1, self.utility.lang.get('sharing_reputation_information_title'), style=wx.DEFAULT_DIALOG_STYLE, size=(400,200))
@@ -126,11 +124,6 @@ class SRstatusbar(wx.StatusBar):
     
     def OnSize(self, event):
         self.Reposition()
-        self.sizeChanged = True
-    
-    def OnIdle(self, event):
-        if self.sizeChanged:
-            self.Reposition()
     
     def Reposition(self):
         self.Freeze()

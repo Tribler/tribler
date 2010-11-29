@@ -4,7 +4,7 @@ import wx.lib.scrolledpanel as scrolled
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 import sys
-import time
+from time import time
 import re
 
 from __init__ import *
@@ -375,10 +375,10 @@ class AbstractListBody():
         
         #queue lists
         self.done = True
+        self.lastData = 0
         self.data = None
         self.raw_data = None
         self.items = {}
-        self.Bind(wx.EVT_IDLE, self.OnIdle)
         
     def OnSort(self, column, reverse):
         self.Scroll(-1, 0)
@@ -423,7 +423,7 @@ class AbstractListBody():
                     
                 self.vSizer.ShowItems(False)
                 self.vSizer.Clear()
-                self.SetData()
+                self.__SetData()
                 
                 self.Thaw()
         return True
@@ -475,6 +475,9 @@ class AbstractListBody():
             self.SetupScrolling(scrollToTop = scrollToTop, rate_y = self.rate)
     
     def Reset(self):
+        if DEBUG:
+            print >> sys.stderr, "ListBody: reset"
+            
         self.Freeze()
         
         self.filter = ''
@@ -487,6 +490,7 @@ class AbstractListBody():
             
         self.items = {}
         self.data = None
+        self.lastData = 0
         self.raw_data = None
         self.OnChange()
         self.Thaw()
@@ -524,14 +528,30 @@ class AbstractListBody():
                 print >> sys.stderr, "ListBody: refresh item"
             self.items[key].RefreshData(data)
     
-    def SetData(self, data = None):
+    def SetData(self, data):
         if DEBUG:
-            print >> sys.stderr, "ListBody: new data"
+            print >> sys.stderr, "ListBody: new data", time()
         
-        #store raw data
-        if not data:
-            data = self.raw_data
         self.raw_data = data
+        diff = time() - self.lastData
+        if diff > LIST_RATE_LIMIT:
+            self.__SetData()
+            self.lastData = time()
+        else:
+            wx.CallLater(int(diff * 1000), self.__SetData)
+            self.lastData = self.lastData + LIST_RATE_LIMIT
+        
+        #apply quickfilter
+        if self.filter != '':
+            data = filter(self.MatchFilter, data)
+            self.parent_list.SetFilteredResults(len(data))
+        
+        return len(data)
+        
+    def __SetData(self):
+        if DEBUG:
+            print >> sys.stderr, "ListBody: set data", time()
+        data = self.raw_data
         
         #apply quickfilter
         if self.filter != '':
@@ -553,19 +573,26 @@ class AbstractListBody():
                 self.highlightSet = set()
             else:
                 #updated data, takes roughly 0.007s for 650+ results
-                cur_keys = [key for key,_,_ in self.data]
+                cur_keys = set([key for key,_,_ in self.data])
                 self.highlightSet = set([key for key,_,_ in data if key not in cur_keys])
 
             self.data = data
-            self.CreateItems()
-        
+            self.done = False
+            if len(self.data) < LIST_ITEM_BATCH_SIZE:
+                self.Bind(wx.EVT_IDLE, None) #unbinding unnecessary event handler seems to improve visual performance
+                self.CreateItems()
+            else:
+                self.Bind(wx.EVT_IDLE, self.OnIdle)
+                wx.WakeUpIdle()
             return len(data)
         return 0
         
     def OnIdle(self, event):
         if not self.done and self.data:
             self.CreateItems()
-            event.RequestMore(not self.done)
+            
+            #idle event also paints search animation use requestmore to show this update
+            event.RequestMore(not self.done) 
 
     def OnLoadMore(self, event):
         self.loadNext.Disable()
@@ -576,7 +603,7 @@ class AbstractListBody():
             print >> sys.stderr, "ListBody: Creating items"
         
         done = True
-        t1 = time.time()
+        t1 = time()
 
         self.Freeze()
         
@@ -622,7 +649,7 @@ class AbstractListBody():
         self.Thaw()
         self.done = done
         if DEBUG:
-            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time.time() - t1
+            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1
         
     def GetItem(self, key):
         return self.items[key]
