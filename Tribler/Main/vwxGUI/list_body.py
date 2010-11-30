@@ -1,8 +1,6 @@
 import wx
 import wx.lib.scrolledpanel as scrolled
 
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-
 import sys
 from time import time
 import re
@@ -68,7 +66,7 @@ class ListItem(wx.Panel):
          
         self.showChange = showChange
         
-        self.taskserver = None
+        self.highlightTimer = None
         self.selected = False
         self.expanded = False
         self.SetBackgroundColour(LIST_DESELECTED)
@@ -211,14 +209,15 @@ class ListItem(wx.Panel):
         def removeHighlight():
             try:
                 self.ShowSelected()
+                self.highlightTimer = None
             except: #PyDeadError
                 pass
         
         if self.IsShownOnScreen():
-            if self.taskserver == None:
-                self.taskserver = GUITaskQueue.getInstance()
-            
-            self.taskserver.add_task(lambda:wx.CallAfter(removeHighlight), timeout, self)
+            if self.highlightTimer == None:
+                self.highlightTimer = wx.CallLater(timeout * 1000, removeHighlight)
+            else:
+                self.highlightTimer.Restart(timeout * 1000)
             self.BackgroundColor(LIST_HIGHTLIGHT)
          
     def ShowSelected(self):
@@ -376,6 +375,7 @@ class AbstractListBody():
         #queue lists
         self.done = True
         self.lastData = 0
+        self.dataTimer = None
         self.data = None
         self.raw_data = None
         self.items = {}
@@ -419,13 +419,7 @@ class AbstractListBody():
             
             finally:
                 self.Scroll(-1, 0)
-                self.Freeze()
-                    
-                self.vSizer.ShowItems(False)
-                self.vSizer.Clear()
-                self.__SetData()
-                
-                self.Thaw()
+                self.SetData()
         return True
         
     def MatchFilter(self, item):
@@ -528,19 +522,31 @@ class AbstractListBody():
                 print >> sys.stderr, "ListBody: refresh item"
             self.items[key].RefreshData(data)
     
-    def SetData(self, data):
+    def SetData(self, data = None):
         if DEBUG:
             print >> sys.stderr, "ListBody: new data", time()
         
-        self.raw_data = data
-        diff = time() - self.lastData
-        if diff > LIST_RATE_LIMIT:
-            self.__SetData()
-            self.lastData = time()
+        if data == None:
+            data = self.raw_data
         else:
-            wx.CallLater(int(diff * 1000), self.__SetData)
-            self.lastData = self.lastData + LIST_RATE_LIMIT
+            self.raw_data = data
         
+        def doSetData():
+            self.lastData = time()
+            self.dataTimer = None
+            
+            self.__SetData()
+        
+        diff = time() - (LIST_RATE_LIMIT + self.lastData)
+        if diff > 0:
+            doSetData()
+        else:
+            call_in = -diff * 1000
+            if self.dataTimer == None:
+                self.dataTimer = wx.CallLater(call_in, doSetData) 
+            else:
+                self.dataTimer.Restart(call_in)
+                
         #apply quickfilter
         if self.filter != '':
             data = filter(self.MatchFilter, data)
@@ -551,13 +557,14 @@ class AbstractListBody():
     def __SetData(self):
         if DEBUG:
             print >> sys.stderr, "ListBody: set data", time()
-        data = self.raw_data
         
         #apply quickfilter
         if self.filter != '':
-            data = filter(self.MatchFilter, data)
-            self.parent_list.SetFilteredResults(len(data))
+            data = filter(self.MatchFilter, self.raw_data)
+        else:
+            data = self.raw_data
         
+        self.vSizer.ShowItems(False)
         self.vSizer.Clear()
         if data:
             if len(self.items) == 0:
@@ -578,14 +585,13 @@ class AbstractListBody():
 
             self.data = data
             self.done = False
+            
+            self.CreateItems()
             if len(self.data) < LIST_ITEM_BATCH_SIZE:
                 self.Bind(wx.EVT_IDLE, None) #unbinding unnecessary event handler seems to improve visual performance
-                self.CreateItems()
             else:
                 self.Bind(wx.EVT_IDLE, self.OnIdle)
                 wx.WakeUpIdle()
-            return len(data)
-        return 0
         
     def OnIdle(self, event):
         if not self.done and self.data:
