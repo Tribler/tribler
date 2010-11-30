@@ -229,10 +229,7 @@ class SettingsDialog(wx.Dialog):
                 self.utility.config.Write('minport', valport)
                 self.guiUtility.set_port_number(valport) 
                 self.guiUtility.set_firewall_restart(True)
-                
-                dialog = wx.MessageDialog(self, 'A restart is required to change your port.', 'Restart required', wx.OK | wx.ICON_INFORMATION)
-                dialog.ShowModal()
-                dialog.Destroy()
+                restart = True
             
             if valdir != self.currentDestDir:
                 self.defaultDLConfig.set_dest_dir(valdir)
@@ -323,15 +320,15 @@ class SettingsDialog(wx.Dialog):
         #physical move
         old_dir = os.path.join(old_dir, 'collected_torrent_files')
         new_dir = os.path.join(new_dir, 'collected_torrent_files')
-        os.renames(old_dir, new_dir)
+        atexit.register(os.renames, old_dir, new_dir)
         
         old_dir = os.path.join(old_dir, 'collected_subtitles_files')
         new_dir = os.path.join(new_dir, 'collected_subtitles_files')
-        os.renames(old_dir, new_dir)
+        atexit.register(os.renames, old_dir, new_dir)
         
         old_dir = os.path.join(old_dir, 'downloadhelp')
         new_dir = os.path.join(new_dir, 'downloadhelp')
-        os.renames(old_dir, new_dir)
+        atexit.register(os.renames, old_dir, new_dir)
         
         #update db
         self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(new_dir)
