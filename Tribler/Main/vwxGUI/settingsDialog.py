@@ -318,17 +318,17 @@ class SettingsDialog(wx.Dialog):
     
     def moveCollectedTorrents(self, old_dir, new_dir):
         #physical move
-        old_dir = os.path.join(old_dir, 'collected_torrent_files')
-        new_dir = os.path.join(new_dir, 'collected_torrent_files')
-        atexit.register(os.renames, old_dir, new_dir)
+        old_dirtf = os.path.join(old_dir, 'collected_torrent_files')
+        new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
+        atexit.register(os.renames, old_dirtf, new_dirtf)
         
-        old_dir = os.path.join(old_dir, 'collected_subtitles_files')
-        new_dir = os.path.join(new_dir, 'collected_subtitles_files')
-        atexit.register(os.renames, old_dir, new_dir)
+        old_dirsf = os.path.join(old_dir, 'collected_subtitles_files')
+        new_dirsf = os.path.join(new_dir, 'collected_subtitles_files')
+        atexit.register(os.renames, old_dirsf, new_dirsf)
         
-        old_dir = os.path.join(old_dir, 'downloadhelp')
-        new_dir = os.path.join(new_dir, 'downloadhelp')
-        atexit.register(os.renames, old_dir, new_dir)
+        old_dirdh = os.path.join(old_dir, 'downloadhelp')
+        new_dirdh = os.path.join(new_dir, 'downloadhelp')
+        atexit.register(os.renames, old_dirdh, new_dirdh)
         
         #update db
         self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(new_dir)
