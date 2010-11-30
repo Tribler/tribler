@@ -5,16 +5,14 @@
 
 from Tribler.Core.BitTornado.BT1.MessageID import SUBS, GET_SUBS
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
-from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import \
-    LanguagesProvider
-from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataExceptions import \
-    SubtitleMsgHandlerException
+from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import LanguagesProvider
+from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataExceptions import SubtitleMsgHandlerException
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTEENTH
 from Tribler.Core.Utilities import utilities
-from Tribler.Core.Utilities.utilities import show_permid_short, validInfohash, \
-    validPermid, bin2str, uintToBinaryString, binaryStringToUint
+from Tribler.Core.Utilities.utilities import show_permid_short, validInfohash, validPermid, bin2str
 from time import time
 from traceback import print_exc
+from struct import pack, unpack
 import sys
 import threading
     
@@ -399,7 +397,7 @@ class SubsMessageHandler(object):
         Bencodes a GET_SUBS message and adds the appropriate header.
         """
         
-        binaryBitmask = uintToBinaryString(bitmask)
+        binaryBitmask = pack("!L", bitmask)
         body = bencode((channel_id, infohash, binaryBitmask))
         head = GET_SUBS
         return head + body
@@ -452,7 +450,7 @@ class SubsMessageHandler(object):
             return None
         
         try:
-            bitmask = binaryStringToUint(bitmask)
+            bitmask, = unpack("!L", bitmask)
             languages = self._languagesUtility.maskToLangCodes(bitmask)
         except:
             if DEBUG:
@@ -510,7 +508,7 @@ class SubsMessageHandler(object):
             return None
         
         try:
-            bitmask = binaryStringToUint(bitmask)
+            bitmask, = unpack("!L", bitmask)
             languages = self._languagesUtility.maskToLangCodes(bitmask)
         except:
             if DEBUG:
@@ -655,7 +653,7 @@ class SubsMessageHandler(object):
         bitmask = \
             self._languagesUtility.langCodesToMask(orderedKeys)
         
-        binaryBitmask = uintToBinaryString(bitmask, length=4)
+        binaryBitmask = pack("!L", bitmask)
         header = (responseData['channel_id'], responseData['infohash'], binaryBitmask)
         
         message = bencode((

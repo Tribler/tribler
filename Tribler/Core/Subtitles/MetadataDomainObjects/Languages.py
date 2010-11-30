@@ -4,7 +4,6 @@
 from __future__ import with_statement
 import csv
 import codecs
-from Tribler.Core.Utilities.utilities import binaryStringToUint, uintToBinaryString
 
 MAX_SUPPORTED_LANGS = 32
 
@@ -71,6 +70,7 @@ _languages = {
     'vie':'Vietnamese',
     'zho':'Chinese'
 }
+assert len(_languages) <= 32, "May not contain more than 32 entries, since we use 32 bits as a language mask"
 
 
 class Languages(object):

@@ -2,15 +2,13 @@
 # see LICENSE.txt for license information
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
-from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import \
-    LanguagesProvider
-from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataExceptions import \
-    SerializationException
+from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import LanguagesProvider
+from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataExceptions import SerializationException
 from Tribler.Core.Subtitles.MetadataDomainObjects.SubtitleInfo import SubtitleInfo
 from Tribler.Core.Overlay.permid import sign_data, verify_data
-from Tribler.Core.Utilities.utilities import isValidInfohash, isValidPermid, \
-    uintToBinaryString, binaryStringToUint
+from Tribler.Core.Utilities.utilities import isValidInfohash, isValidPermid
 from math import floor
+from struct import pack
 import sys
 import time
 
@@ -177,7 +175,6 @@ class MetadataDTO(object):
         
         bitmask, checksums = self._getSubtitlesMaskAndChecksums()
         
-        binaryMask = uintToBinaryString(bitmask)
         # The signature is taken over the bencoding of
         # binary representations of (channel,infohash,description,timestamp,bitmask)
         # that is the same message that is sent with channelcast
@@ -185,7 +182,7 @@ class MetadataDTO(object):
                   self.infohash, 
                   self.description.encode("utf-8"),
                   self.timestamp,
-                  binaryMask,
+                  pack("!L", bitmask),
                   checksums )
     
         bencoding = bencode(tosign)

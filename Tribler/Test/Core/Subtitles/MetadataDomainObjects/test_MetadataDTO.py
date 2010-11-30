@@ -10,9 +10,9 @@ import time
 from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.Core.Subtitles.MetadataDomainObjects.SubtitleInfo import SubtitleInfo
 from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import LanguagesProvider
-from Tribler.Core.Utilities.utilities import uintToBinaryString,\
-    binaryStringToUint, str2bin
+from Tribler.Core.Utilities.utilities import str2bin
 import os.path
+from struct import pack
 
 RES_DIR = os.path.join('..','..','..','subtitles_test_res')
 
@@ -50,7 +50,7 @@ class TestMetadataDTO(unittest.TestCase):
         decodedDescription = decoded[2].decode("utf-8")
         decodedTimestamp = decoded[3]
         bin_decodedBitmask = decoded[4]
-        decodedBitmask = binaryStringToUint(bin_decodedBitmask)
+        decodedBitmask, = unpack("!L", bin_decodedBitmask)
         self.assertEquals(dto.channel, decodedChannelId)
         self.assertEquals(dto.infohash, decodedInfohash)
         self.assertEquals(dto.description,decodedDescription)
@@ -82,7 +82,7 @@ class TestMetadataDTO(unittest.TestCase):
         expectedMask = \
           LanguagesProvider.getLanguagesInstance().langCodesToMask(self._srtSubs.keys())
           
-        binaryExpexted = uintToBinaryString(expectedMask)
+        binaryExpexted = pack("!L", expectedMask)
         
         self.assertEquals(dto.channel, decodedChannelId)
         self.assertEquals(dto.infohash, decodedInfohash)

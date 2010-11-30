@@ -569,51 +569,7 @@ def get_collected_torrent_filename(infohash):
     filename = sha(infohash).hexdigest()+'.torrent'    # notice: it's sha1-hash of infohash
     return filename
     # exceptions will be handled by got_metadata()
-    
-
-def uintToBinaryString(uint, length=4):
-    '''
-    Converts an unsigned integer into its binary representation.
-    
-    @type uint: int
-    @param uint: un unsigned intenger to convert into binary data.
-    
-    @type length: int
-    @param length: the number of bytes the the resulting binary
-                   string should have
-                   
-    @rtype: a binary string
-    @return: a binary string. Each element in the string is one byte 
-            of data.
-                   
-    @precondition: uint >= 0 and uint < 2**(length*8)
-    '''
-    assert 0 <= uint < 2**(length*8), "Cannot represent string"
-    hexlen = length*2
-    hexString =  "{0:0>{1}}".format(hex(uint)[2:], hexlen)
-    if hexString.endswith('L'):
-        hexString = hexString[:-1]
-    
-    binaryString = binascii.unhexlify(hexString)
-    return binaryString
-
-def binaryStringToUint(bstring):
-    '''
-    Converts a binary string into an unsigned integer
-    
-    @param bstring: a string of binary data
-    
-    @return a non-negative integer representing the 
-            value of the binary data interpreted as an
-            unsigned integer 
-    '''
-    hexstr = binascii.hexlify(bstring)
-    intval = int(hexstr,16)
-    return intval
-
-
-    
-
+   
 
 if __name__=='__main__':
 

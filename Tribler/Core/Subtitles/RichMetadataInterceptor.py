@@ -3,11 +3,10 @@
 
 import sys
 from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataDTO import deserialize
-from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataExceptions import SerializationException,\
-    RichMetadataException
-from Tribler.Core.Utilities.utilities import isValidPermid, bin2str,\
-    show_permid_short, uintToBinaryString, binaryStringToUint
+from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataExceptions import SerializationException, RichMetadataException
+from Tribler.Core.Utilities.utilities import isValidPermid, bin2str, show_permid_short
 from copy import copy
+from struct import pack, unpack
 from Tribler.Core.simpledefs import NTFY_RICH_METADATA, NTFY_UPDATE, NTFY_INSERT
 
 DEBUG = False
@@ -82,7 +81,7 @@ class RichMetadataInterceptor(object):
                     # rebuilding the serialized MetadataDTO structure
                     # that was broken in self.addRichMetadataContent
                     binary_havemask = metadataEntry.pop(-1)
-                    havemask = binaryStringToUint(binary_havemask)
+                    havemask, = unpack("!L", binary_havemask)
                     
                     metadataEntry.insert(0,infohash)
                     metadataEntry.insert(0,channel_id)
@@ -208,7 +207,7 @@ class RichMetadataInterceptor(object):
                     
                     #adding the haveMask at the end of the metadata pack
                     havemask = self.peerHaveManager.retrieveMyHaveMask(channel_id, infohash)
-                    binary_havemask = uintToBinaryString(havemask)
+                    binary_havemask = pack("!L", havemask)
                     metadataPack.append(binary_havemask)
                     
                     content['rich_metadata'] = metadataPack

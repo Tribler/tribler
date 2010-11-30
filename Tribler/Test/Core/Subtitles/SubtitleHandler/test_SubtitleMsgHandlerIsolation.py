@@ -4,15 +4,14 @@
 import unittest
 import logging
 import time
+from struct import pack
 from Tribler.Core.Subtitles.SubtitleHandler.SubsMessageHandler import SubsMessageHandler
-from Tribler.Test.Core.Subtitles.simple_mocks import MockOverlayBridge,\
-    MockTokenBucket, MockMsgListener
+from Tribler.Test.Core.Subtitles.simple_mocks import MockOverlayBridge, MockTokenBucket, MockMsgListener
 from Tribler.Core.Overlay.permid import generate_keypair
 from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import LanguagesProvider
 from Tribler.Core.BitTornado.BT1.MessageID import GET_SUBS, SUBS
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
-from Tribler.Core.Utilities.utilities import uintToBinaryString
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTEENTH
 
 
@@ -75,7 +74,7 @@ class TestSubtitlesMsgHandlerIsolation(unittest.TestCase):
         self.assertEquals(0, self.ol_bridge.connect_count) #selversion was 1
         self.assertEquals(1, self.ol_bridge.send_count) #send called one time 
         
-        binaryBitmask = uintToBinaryString(langUtil.langCodesToMask(["kor"]))
+        binaryBitmask = pack("!L", langUtil.langCodesToMask(["kor"]))
         expectedMsg = GET_SUBS + \
                       bencode((
                               testChannelId,
@@ -100,7 +99,7 @@ class TestSubtitlesMsgHandlerIsolation(unittest.TestCase):
 
         self.assertEquals(1, self.ol_bridge.send_count) #send called one time 
         
-        binaryBitmask = uintToBinaryString(langUtil.langCodesToMask(["kor"]))
+        binaryBitmask = pack("!L", langUtil.langCodesToMask(["kor"]))
         expectedMsg = GET_SUBS + \
                       bencode((
                               testChannelId,
@@ -114,7 +113,7 @@ class TestSubtitlesMsgHandlerIsolation(unittest.TestCase):
         
     def test_decodeGETSUBSMessage(self):
         langUtil = LanguagesProvider.getLanguagesInstance()
-        binaryBitmask = uintToBinaryString(langUtil.langCodesToMask(["kor", "spa"]))
+        binaryBitmask = pack("!L", langUtil.langCodesToMask(["kor", "spa"]))
         
         bencodedMessage = GET_SUBS + \
                       bencode((
@@ -132,7 +131,7 @@ class TestSubtitlesMsgHandlerIsolation(unittest.TestCase):
     def test_decodeGETSUBSMessageInvalid(self):
         langUtil = LanguagesProvider.getLanguagesInstance()
         
-        binaryBitmask = uintToBinaryString(langUtil.langCodesToMask(["kor", "spa"]))
+        binaryBitmask = pack("!L", langUtil.langCodesToMask(["kor", "spa"]))
         invalidTypeMsg = chr(25) + \
                       bencode((
                               testChannelId,
@@ -156,7 +155,7 @@ class TestSubtitlesMsgHandlerIsolation(unittest.TestCase):
         #when something in the body is wrong returns None
         self.assertTrue(decoded is None)
         
-        invalidBitamsk = uintToBinaryString(0xFFFFFFFF11, 5)
+        invalidBitamsk = "\xff\xff\xff\xff\xbb"
         invalidMsgField = GET_SUBS + \
                          bencode((
                               testChannelId,
@@ -184,7 +183,7 @@ class TestSubtitlesMsgHandlerIsolation(unittest.TestCase):
         langs = data['subtitles'].keys()
         
         bitmask = langUtil.langCodesToMask(langs)
-        binaryBitmask = uintToBinaryString(bitmask, length=4)
+        binaryBitmask = pack("!L", bitmask)
         expextedMessage = SUBS + \
                             bencode((
                                     data['channel_id'],
@@ -203,7 +202,7 @@ class TestSubtitlesMsgHandlerIsolation(unittest.TestCase):
     def test_receivedGETSUBSSimple(self):
         langUtil = LanguagesProvider.getLanguagesInstance()
         bitmask = langUtil.langCodesToMask(["eng", "rus"])
-        binaryBitmask = uintToBinaryString(bitmask, length=4)
+        binaryBitmask = pack("!L", bitmask)
         request = GET_SUBS + \
                       bencode((
                               testChannelId,
@@ -274,7 +273,7 @@ class TestSubtitlesMsgHandlerIsolation(unittest.TestCase):
         langs = data['subtitles'].keys()
         
         bitmask = langUtil.langCodesToMask(langs)
-        binaryBitmask = uintToBinaryString(bitmask, length=4)
+        binaryBitmask = pack("!L", bitmask)
         expextedMessage = SUBS + \
                             bencode((
                                     data['channel_id'],
@@ -304,7 +303,7 @@ class TestSubtitlesMsgHandlerIsolation(unittest.TestCase):
         langs = data['subtitles'].keys()
         
         bitmask = langUtil.langCodesToMask(langs)
-        binaryBitmask = uintToBinaryString(bitmask, length=4)
+        binaryBitmask = pack("!L", bitmask)
         expextedMessage = SUBS + \
                             bencode((
                                     data['channel_id'],
@@ -338,7 +337,7 @@ class TestSubtitlesMsgHandlerIsolation(unittest.TestCase):
         langs = data['subtitles'].keys()
         
         bitmask = langUtil.langCodesToMask(langs)
-        binaryBitmask = uintToBinaryString(bitmask, length=4)
+        binaryBitmask = pack("!L", bitmask)
         
         expextedMessage = SUBS + \
                             bencode((
