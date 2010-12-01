@@ -717,7 +717,7 @@ class LibaryList(List):
             data = [(file['infohash'], [file['name'], [0,0], None, None, None], file) for file in data]
             return self.list.SetData(data)
         message = "Currently not downloading any torrents.\n"
-        message += "Torrents can be found using our integrated search, inside a channel."
+        message += "Torrents can be found using our integrated search, inside a channel.\n"
         message += "Additionally you could drag and drop any torrent file downloaded from an external source."
         self.list.ShowMessage(message)
         return 0
