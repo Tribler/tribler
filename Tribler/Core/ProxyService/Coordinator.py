@@ -40,6 +40,9 @@ class Coordinator:
         self.sent_challenges_by_challenge = {}
         self.sent_challenges_by_permid = {}
 
+        # The challenges sent by the proxies
+        self.received_challenges = {}
+
         # List of asked helpers 
         self.asked_helpers_lock = Lock()
         self.asked_helpers = [] # protected by asked_helpers_lock
@@ -62,6 +65,9 @@ class Coordinator:
         
         # BT1Download object
         self.downloader = None
+        
+        # Encoder object
+        self.encoder = None
 
 
     #
@@ -587,15 +593,19 @@ class Coordinator:
     #
     # Got (received) messages
     # 
-    def got_join_helpers(self,permid,selversion):
+    def got_join_helpers(self, permid, selversion, challenge):
         """ Mark the peer as an active helper
         
         @param permid: The permid of the node sending the message
         @param selversion:
+        @param challenge: The challenge sent by the proxy
         """
         if DEBUG:
             print >> sys.stderr, "coordinator: received a JOIN_HELPERS message from", show_permid_short(permid)
 
+        # save the association between the permid and the challenge it sent
+        self.received_challenges[permid] = challenge
+        
         #Search the peer in the asked_helpers list, remove it from there, and put it in the confirmed_helpers list.
         self.asked_helpers_lock.acquire()
         try:
@@ -618,6 +628,8 @@ class Coordinator:
         self.confirmed_helpers.append(confirmed_helper)
         self.confirmed_helpers_lock.release()
         
+        # Start a data connection to the helper
+        self.start_data_connection(permid)
 
 
 
@@ -692,15 +704,22 @@ class Coordinator:
         peer_challenge = self.sent_challenges_by_permid[permid]
         
         # Search for the connection that has this challenge
+        if DEBUG:
+            debug_found_connection = False
         for d in self.downloader.downloads:
             peer_id = d.connection.get_id()
             if peer_challenge == decode_challenge_from_peerid(peer_id):
                 # If the connection is found, add the piece_list information to the d.have information
                 #new_have_list = map(sum, zip(d.have, piece_list))
                 d.proxy_have = Bitfield(length=self.downloader.numpieces, bitstring=aggregated_string)
+                if DEBUG:
+                    debug_found_connection = True
                 break
-
-
+        if DEBUG:
+            if debug_found_connection:
+                print >> sys.stderr, "coordinator: got_proxy_have: found a data connection for the received PROXY_HAVE"
+            else:
+                print >> sys.stderr, "coordinator: got_proxy_have: no data connection for the received PROXY_HAVE has been found"
 
 
 
@@ -735,7 +754,43 @@ class Coordinator:
             return False
 
 
+    # Open data connections
+    def start_data_connection(self, helper_permid):
+        """ Start a data connection with the helper agreeing to proxy for us
+        
+        @param helper_permid: The permid of the helper that sent a JOIN_HELPERS message
+        """
 
+        if DEBUG:
+            print >> sys.stderr,"coordinator: start_data_connection: Going to start data connection to helper at", show_permid_short(helper_permid)
+        
+        # if start_data_connection is called too early, and the encoder is not set yet, return
+        if self.encoder is None:
+            if DEBUG:
+                print >> sys.stderr,"coordinator: start_data_connection: No encoder found. Exiting."
+            return
+        
+        # Do this always, will return quickly when connection already exists
+        for peer in self.confirmed_helpers:
+            if peer['permid'] == helper_permid:
+                ip = peer['ip']
+                port = peer['port']
+                dns = (ip, port)
+                
+                if DEBUG:
+                    print >> sys.stderr,"coordinator: start_data_connection: Starting data connection to helper at", dns, "with challenge", self.received_challenges[helper_permid]
+                
+                self.encoder.start_connection(dns, id = None, proxy_con = True, challenge = self.received_challenges[helper_permid])
+                break
+
+    def set_encoder(self, encoder):
+        """ Sets the current encoder.
+        
+        Called from download_bt1.py
+        
+        @param encoder: the new encoder that will be set
+        """
+        self.encoder = encoder
 
 
     #

@@ -129,8 +129,6 @@ class FriendsCoopDLOtherRQueryQuotumCrawlerAllowAllRequestPolicy(CommonRequestPo
         @return Boolean. """
         if messageID == CRAWLER_REQUEST:
             return self.isCrawler(permid)
-        elif (messageID in HelpCoordinatorMessages or messageID in HelpHelperMessages) and not self.isFriend(permid):
-            return False
         elif messageID == QUERY and not (self.isFriend(permid) or self.benign_random_peer(permid)):
             return False
         else:

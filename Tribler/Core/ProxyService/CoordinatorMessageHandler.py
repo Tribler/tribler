@@ -17,6 +17,7 @@ class CoordinatorMessageHandler:
     def __init__(self, launchmany):
         # Launchmany ???
         self.launchmany = launchmany
+        self.received_challenges = {}
 
     def handleMessage(self, permid, selversion, message):
         """ Handle the received message and call the appropriate function to solve it.
@@ -59,9 +60,13 @@ class CoordinatorMessageHandler:
 
         try:
             infohash = message[1:21]
+            challenge = bdecode(message[21:])
         except:
             print >> sys.stderr, "coordinator: network_got_join_helpers: warning - bad data in JOIN_HELPERS"
             return False
+
+        # Save the challenge
+        self.received_challenges[permid] = challenge
 
         # Add a task to find the appropriate Coordinator object method 
         network_got_join_helpers_lambda = lambda:self.network_got_join_helpers(permid, infohash, selversion)
@@ -91,8 +96,10 @@ class CoordinatorMessageHandler:
                 print >> sys.stderr, "coordinator: network_got_join_helpers: There is no coordinator object associated with this infohash"
             return
 
+        # Retrieve challenge
+        challenge = self.received_challenges[permid]
         # Call the coordinator method
-        coord_obj.got_join_helpers(permid, selversion)
+        coord_obj.got_join_helpers(permid, selversion, challenge)
 
 
 

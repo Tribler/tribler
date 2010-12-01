@@ -40,7 +40,7 @@ def encode_challenge_in_peerid(peerid, challenge):
     @return: a new peerid, with the challenge encoded in it
     """
 
-    # proxy_peer_id = | regular_peer_id[1:12] | challenge[1:8] |
-    proxy_peer_id = peerid[:12] + challenge # len(self.challenge) = 8
+    # encoded_peer_id = | regular_peer_id[1:12] | challenge[1:8] |
+    encoded_peer_id = peerid[:12] + challenge # len(self.challenge) = 8
     
-    return proxy_peer_id 
+    return encoded_peer_id 

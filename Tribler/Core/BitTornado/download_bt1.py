@@ -485,6 +485,8 @@ class BT1Download:
                 self.downmeasure, self.config['max_download_rate'])
             self.picker.set_rate_predictor(self.rate_predictor)
             self.rate_predictor.update()
+        if self.coordinator is not None:
+            self.coordinator.set_encoder(self.encoder)
 # _2fastbt
 
         self.ghttpdownloader = GetRightHTTPDownloader(self.storagewrapper, self.picker, 

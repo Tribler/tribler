@@ -297,6 +297,7 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
                 if not len(infohash) == 20:
                     raise RuntimeError, "bc: invalid infohash length " + str(len(infohash))
         
+    # ProxyService_
     if selversion >= OLPROTO_VER_FIFTEENTH:
         try:
             if not isinstance(prefxchg['services'], int):
@@ -304,6 +305,7 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
         except:
             raise RuntimeError, "bc: invalid message: no services information"
     return True
+    # _ProxyService
 
 
 class BuddyCastFactory:

@@ -144,6 +144,7 @@ class HelperMessageHandler:
                 print >> sys.stderr, "helper: network_got_ask_for_help: The node asking for help is not the current coordinator"
             #return
 
+        # Retrieve challenge
         challenge = self.received_challenges[permid]
         helper_obj.got_ask_for_help(permid, infohash, challenge)
         # Wake up download thread

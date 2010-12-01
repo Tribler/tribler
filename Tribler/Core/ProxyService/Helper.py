@@ -13,6 +13,7 @@ from Tribler.Core.BitTornado.BT1.MessageID import ASK_FOR_HELP, STOP_HELPING, RE
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, TorrentDBHandler 
 from Tribler.Core.Utilities.utilities import show_permid_short
+from Tribler.Core.ProxyService.ProxyServiceUtil import *
 
 # ???
 MAX_ROUNDS = 200
@@ -50,6 +51,10 @@ class Helper:
 
         # The coordinator_permid is a dictionary that stores as keys two-item lists: [ip, port]
         self.coordinator_permid = {}
+        
+        # List of sent challenges 
+        self.sent_challenges_by_challenge = {}
+        self.sent_challenges_by_permid = {}
         
         if coordinator_permid is not None and coordinator_permid == '':
             self.coordinator_permid[None] = [None, -1]
@@ -89,7 +94,7 @@ class Helper:
         self.last_req_time = 0
         
         # The challenges sent by the coordinators
-        self.challenge = {}
+        self.received_challenges = {}
         
         # A referece to the Downloader object
         self.downloader = None
@@ -152,7 +157,15 @@ class Helper:
         """
 
         if DEBUG:
-            print "helper: send_join_helpers: sending a join_helpers message to", show_permid_short(permid)
+            print >> sys.stderr,"helper: send_join_helpers: sending a join_helpers message to", show_permid_short(permid)
+
+        # Generate a random challenge - random number on 8 bytes (62**8 possible combinations)
+        challenge = generate_proxy_challenge()
+        
+        # Save permid - challenge pair
+        self.sent_challenges_by_challenge[challenge] = permid
+        self.sent_challenges_by_permid[permid] = challenge
+
 
         olthread_send_join_helpers_lambda = lambda:self.olthread_send_join_helpers(permid)
         self.overlay_bridge.add_task(olthread_send_join_helpers_lambda,0)
@@ -179,8 +192,11 @@ class Helper:
         @param selversion:
         """
         if exc is None:
+            # get the peer challenge
+            challenge = self.sent_challenges_by_permid[permid]
+
             # Create message according to protocol version
-            message = JOIN_HELPERS + self.torrent_hash
+            message = JOIN_HELPERS + self.torrent_hash + bencode(challenge)
 
             if DEBUG:
                 print >> sys.stderr,"helper: olthread_join_helpers_connect_callback: Sending JOIN_HELPERS to",show_permid_short(permid)
@@ -369,10 +385,11 @@ class Helper:
             # Send JOIN_HELPERS
             if DEBUG:
                 print >>sys.stderr,"helper: got_ask_for_help: received a help request, going to send join_helpers"
+            
             self.send_join_helpers(permid)
             
             # save the association between the permid and the challenge it sent
-            self.challenge[permid] = challenge
+            self.received_challenges[permid] = challenge
             
             # add the permid to the list of current helping permids
             peerdb = PeerDBHandler.getInstance()
@@ -470,8 +487,7 @@ class Helper:
             if DEBUG:
                 print >> sys.stderr,"helper: start_data_connection: Starting data connection to coordinator at", dns
         
-            self.encoder.start_connection(dns, id = None, coord_con = True, challenge = self.challenge[coord_permid])
-
+            self.encoder.start_connection(dns, id = None, coord_con = True, challenge = self.received_challenges[coord_permid])
 
 
     #
@@ -537,8 +553,8 @@ class Helper:
         self.encoder = encoder
         #self.encoder.set_coordinator_ip(self.coordinator_ip)
         # To support a helping user stopping and restarting a torrent
-        if self.coordinator_permid is not None:
-            self.start_data_connection()   
+#        if self.coordinator_permid is not None:
+#            self.start_data_connection()
 
 
     def set_downloader(self, downloader):

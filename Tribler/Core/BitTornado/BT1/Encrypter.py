@@ -115,7 +115,7 @@ incompletecounter = IncompleteCounter()
 class Connection:
 # 2fastbt_
     def __init__(self, Encoder, connection, id, ext_handshake = False, 
-                  locally_initiated = None, dns = None, coord_con = False, challenge = None):
+                  locally_initiated = None, dns = None, coord_con = False, proxy_con = False, challenge = None):
 # _2fastbt
         self.Encoder = Encoder
         self.connection = connection    # SocketHandler.SingleSocket
@@ -123,11 +123,14 @@ class Connection:
         self.id = id
         self.readable_id = make_readable(id)
         self.coord_con = coord_con
+        self.proxy_con = proxy_con
         # Challenge sent by the coordinator to identify the Helper
         self.challenge = challenge
         if locally_initiated is not None:
             self.locally_initiated = locally_initiated
         elif coord_con:
+            self.locally_initiated = True
+        elif proxy_con:
             self.locally_initiated = True
         else:
             self.locally_initiated = (id != None)
@@ -161,6 +164,8 @@ class Connection:
                 print >>sys.stderr,"Encoder.Connection: writing my peer-ID"
             if coord_con:
                 # on the helper-coordinator BT communication a special peer id is used
+                if DEBUG:
+                    print >>sys.stderr,"Encoder.Connection: read_peer_id: i am a doe, using challenge", self.challenge
                 proxy_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
                 self.connection.write(proxy_peer_id)
             else:
@@ -236,9 +241,19 @@ class Connection:
         if not self.locally_initiated:
             self.Encoder.connecter.external_connection_made += 1
             if self.coord_con:
+                # I am a proxy
                 # on the helper-coordinator BT communication a special peer id is used
+                if DEBUG:
+                    print >>sys.stderr,"Encoder.Connection: read_peer_id: i am a proxy, using challenge", self.challenge
                 proxy_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
                 self.connection.write(chr(len(protocol_name)) + protocol_name + option_pattern + self.Encoder.download_id + proxy_peer_id)
+            elif self.proxy_con:
+                # I am a doe
+                # on the helper-coordinator BT communication a special peer id is used
+                if DEBUG:
+                    print >>sys.stderr,"Encoder.Connection: read_peer_id: i am a doe, using challenge", self.challenge
+                doe_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
+                self.connection.write(chr(len(protocol_name)) + protocol_name + option_pattern + self.Encoder.download_id + doe_peer_id)
             else:
                 self.connection.write(chr(len(protocol_name)) + protocol_name + option_pattern + self.Encoder.download_id + self.Encoder.my_id)
 
@@ -278,6 +293,32 @@ class Connection:
         if not self.id:    # remote init or local init without remote peer's id or remote init
             self.id = s
             self.readable_id = make_readable(s)
+
+            # ProxyService_
+            # After the remote peerid is read, and the current node is a proxy, the peerid is compared with
+            # the challenge previously sent during the JOIN_HELPERS message
+            if self.Encoder.helper is not None:
+                if DEBUG:
+                    print >> sys.stderr, "Encoder.Connection: Searching if this connection is not a doe connection"
+
+                # the challenge encoded by the doe node
+                peer_challenge = decode_challenge_from_peerid(self.id)
+                
+                if DEBUG:
+                    print >> sys.stderr, "sent_challenges_by_challenge.keys:", self.Encoder.helper.sent_challenges_by_challenge.keys()
+                    print >> sys.stderr, "peer_challenge:", peer_challenge
+
+                # check if this challenge was previously sent
+                if peer_challenge in self.Encoder.helper.sent_challenges_by_challenge.keys():
+                    if DEBUG:
+                        print >> sys.stderr, "Encoder.Connection: Found a proxy data connection opened by the doe"
+                    # The this connection is a connection opened by one of the doe nodes
+                    doe_permid = self.Encoder.helper.sent_challenges_by_challenge[peer_challenge]
+#                    self.challenge = self.encoder.helper.challenge[doe_permid] 
+                    self.challenge = peer_challenge
+                    self.coord_con = True
+            # _ProxyService
+        
         else:    # local init with remote id
             if s != self.id:
                 if DEBUG:
@@ -295,9 +336,19 @@ class Connection:
             return None
         if self.locally_initiated:
             if self.coord_con:
+                # I am a proxy
                 # on the helper-coordinator BT communication a special peer id is used
+                if DEBUG:
+                    print >>sys.stderr,"Encoder.Connection: read_peer_id: i am a proxy, using challenge", self.challenge
                 proxy_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
                 self.connection.write(proxy_peer_id)
+            elif self.proxy_con:
+                # I am a doe
+                # on the helper-coordinator BT communication a special peer id is used
+                if DEBUG:
+                    print >>sys.stderr,"Encoder.Connection: read_peer_id: i am a doe, using challenge", self.challenge
+                doe_peer_id = encode_challenge_in_peerid(self.Encoder.my_id, self.challenge)
+                self.connection.write(doe_peer_id)
             else:
                 self.connection.write(self.Encoder.my_id)
             incompletecounter.decrement()
@@ -610,7 +661,7 @@ class Encoder:
             print_exc()
             raise
 
-    def start_connection(self, dns, id, coord_con = False, forcenew = False, challenge = None):
+    def start_connection(self, dns, id, coord_con = False, proxy_con = False, forcenew = False, challenge = None):
         """ Locally initiated connection """
         if DEBUG:
             print >>sys.stderr,"encoder: start_connection:",dns
@@ -642,9 +693,9 @@ class Encoder:
                 return True
         try:
             if DEBUG:
-                print >>sys.stderr,"encoder: start_connection: Setting up new to peer", dns,"id",`id`
+                print >>sys.stderr,"encoder: start_connection: Setting up new to peer", dns,"id",`id`, "proxy_con", proxy_con, "challenge", challenge
             c = self.raw_server.start_connection(dns)
-            con = Connection(self, c, id, dns = dns, coord_con = coord_con, challenge = challenge)
+            con = Connection(self, c, id, dns = dns, coord_con = coord_con, proxy_con = proxy_con, challenge = challenge)
             self.connections[c] = con
             c.set_handler(con)
         except socketerror:
@@ -724,7 +775,8 @@ class Encoder:
         if self.paused or len(self.connections) >= self.max_connections:
             connection.close()
             return False
-
+        # _2fastbt
+        
         con = Connection(self, connection, None, True)
         con.set_options(options)
         # before: connection.handler = Encoder
