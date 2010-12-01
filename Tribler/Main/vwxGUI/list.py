@@ -465,7 +465,6 @@ class SearchList(List):
         control.SetMinSize((self.columns[-2]['width'],7))
         control.SetBackgroundColour(wx.WHITE)
         control.SetRatio(seeders, leechers)
-        control.SetToolTipString('The length of the bar shows the number of people uploading or downloading this torrent.\nA green bar indicates a that enough people are uploading this torrent.\nIf the bar is red then more people are needed to upload this file.')
         return control
         
     def OnDownload(self, event):
@@ -717,7 +716,8 @@ class LibaryList(List):
             data = [(file['infohash'], [file['name'], [0,0], None, None, None], file) for file in data]
             return self.list.SetData(data)
         message = "Currently not downloading any torrents.\n"
-        message += "You can find torrents by using our integrated search, discover them using a channel or drag and drop a torrent file downloaded from an external source."
+        message += "Torrents can be found using our integrated search, inside a channel."
+        message += "Additionally you could drag and drop any torrent file downloaded from an external source."
         self.list.ShowMessage(message)
         return 0
 

@@ -1233,6 +1233,9 @@ class SwarmHealth(wx.Panel):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
     
     def SetRatio(self, seeders, leechers):
+        ratio = 0
+        pop = 0
+        
         self.blue = 0
         if leechers <= 0 and seeders <= 0:
             self.barwidth = 0
@@ -1261,6 +1264,28 @@ class SwarmHealth(wx.Panel):
                 self.green = max(0, min(255, 125 + (ratio * 130)))
                 self.red = max(0, min(255, 125 + ((1 - ratio) * 130)))
         self.Refresh()
+        
+        if self.barwidth == 0:
+            tooltip = 'Unknown swarmsize and seeder to leecher ratio.'
+        else:
+            if pop < 10:
+                tooltip = 'A small swarm'
+            elif pop < 500:
+                tooltip = 'A medium-sized swarm'
+            else:
+                tooltip = 'A large swarm'
+            
+            if ratio == 0:
+                tooltip += ', with no seeders.'
+            elif ratio < 0.3:
+                tooltip += ', with much more leechers than seeders.'
+            elif ratio < 1:
+                tooltip += ', with more leechers than seeders.'
+            elif ratio == sys.maxint:
+                tooltip += ', with only seeders.'
+            else:
+                tooltip += ', with more seeders than leechers.'
+        self.SetToolTipString(tooltip)
         
     def OnPaint(self, event):
         dc = wx.BufferedPaintDC(self)
