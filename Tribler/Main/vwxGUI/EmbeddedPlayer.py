@@ -435,9 +435,10 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.vlcwin.set_content_image(wximg)
 
     def SetLoadingText(self,text):
-        if text:
-            if text != self.statuslabel.GetLabel():
-                self.statuslabel.SetLabel(text)
+        if text == None:
+            text = ''
+        if text != self.statuslabel.GetLabel():
+            self.statuslabel.SetLabel(text)
 
     #
     # Internal methods
