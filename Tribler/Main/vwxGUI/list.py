@@ -307,6 +307,7 @@ class List(wx.Panel):
         self.header.Reset()
         self.list.Reset()
         self.footer.Reset()
+        self.dirty = False
         
         self.Layout()
     
