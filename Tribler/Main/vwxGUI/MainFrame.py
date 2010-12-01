@@ -606,10 +606,10 @@ class MainFrame(wx.Frame):
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")
         height = self.utility.config.Read("window_height")
-        #try:
-            #size = wx.Size(int(width), int(height))
-        #except:
-        size = wx.Size(1024, 670)
+        try:
+            size = wx.Size(int(width), int(height))
+        except:
+            size = wx.Size(1024, 670)
         
         x = self.utility.config.Read("window_x")
         y = self.utility.config.Read("window_y")
