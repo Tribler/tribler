@@ -28,14 +28,17 @@ class ListFooter(wx.Panel):
         self.background = wx.Brush(colour)
         return wx.Panel.SetBackgroundColour(self, colour)
 
-    def HighLight(self):
+    def Blink(self):
+        self.HighLight(0.2)
+        
+    def HighLight(self, timeout = 2.0):
         self.SetBackgroundColour(LIST_HIGHTLIGHT)
         self.Refresh()
-        
-        def revert():
-            self.SetBackgroundColour(self.originalColor)
-            self.Refresh()
-        wx.CallLater(2000, revert)
+        wx.CallLater(timeout * 1000, self.Revert)
+    
+    def Revert(self):
+        self.SetBackgroundColour(self.originalColor)
+        self.Refresh()
 
     def OnPaint(self, event):
         obj = event.GetEventObject()
@@ -141,6 +144,8 @@ class ChannelResultFooter(ListFooter):
         self.channelResutls = wx.Button(self, -1, "Channel Results")
         hSizer.Add(self.channelResutls, 0, wx.TOP|wx.BOTTOM, 3)
         
+        self.blinkTimer = None
+        
     def SetNrResults(self, nr_channels, keywords):
         if nr_channels == 0:
             label = 'No matching channels for "%s"'%keywords
@@ -154,9 +159,15 @@ class ChannelResultFooter(ListFooter):
             if nr_channels >= 1:
                 self.HighLight()
                 
+            if self.blinkTimer:
+                self.blinkTimer.Stop()
             self.Layout()
             
         self.EnableResults(nr_channels > 0)
+    
+    def Revert(self):
+        ListFooter.Revert(self)
+        self.blinkTimer = wx.CallLater(10000, self.Blink)
     
     def SetEvents(self, channel):
         #removing old, binding new eventhandler
