@@ -12,8 +12,8 @@ DEBUG = False
 class SRstatusbar(wx.StatusBar):
     def __init__(self, parent):
         wx.StatusBar.__init__(self, parent, style = wx.ST_SIZEGRIP)
-        self.SetFieldsCount(2)
-        self.SetStatusStyles([wx.SB_FLAT, wx.SB_FLAT])
+        self.SetFieldsCount(3)
+        self.SetStatusStyles([wx.SB_FLAT, wx.SB_FLAT, wx.SB_FLAT])
         
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
@@ -33,12 +33,17 @@ class SRstatusbar(wx.StatusBar):
         
         self.srPanel.SetSizer(hSizer)
         
+        self.activityImages = ['activity.png', 'no_activity.png']
+        self.activityImages = [os.path.join(self.guiUtility.vwxGUI_path, 'images', image) for image in self.activityImages]
+        self.activityImages = [wx.Bitmap(image, wx.BITMAP_TYPE_ANY) for image in self.activityImages]
+        
+        self.activity = wx.StaticBitmap(self, -1, self.activityImages[1]) 
         self.firewallStatus = settingsButton(self, size = (14,14), name = 'firewallStatus14')
         
-        self.widths = [-1, 19]
+        self.widths = [-1, 19, 19]
         self.SetStatusWidths(self.widths)
         #On windows there is a resize handle which causes wx to return a width of 1 instead of 18
-        self.widths[1] += 19 - self.GetFieldRect(1).width
+        self.widths[-1] += 19 - self.GetFieldRect(2).width
         self.SetStatusWidths(self.widths)
         
         self.Reposition()
@@ -107,6 +112,16 @@ class SRstatusbar(wx.StatusBar):
             return self.firewallStatus.getSelected() == 2
         return False
     
+    def onActivity(self, msg):
+        def revert():
+            self.activity.SetBitmap(self.activityImages[1])
+            self.activity.Refresh()
+        
+        self.activity.SetBitmap(self.activityImages[0])
+        self.activity.Refresh()
+        self.activity.SetToolTipString(msg)
+        wx.CallLater(200, revert)
+    
     def format_bytes(self, bytes):
         if bytes < 1000:
             return '%d B' % bytes
@@ -138,6 +153,11 @@ class SRstatusbar(wx.StatusBar):
         size = self.firewallStatus.GetSize()
         yAdd = (rect.height - size[1])/2
         self.firewallStatus.SetPosition((rect.x, rect.y+yAdd))
-        self.sizeChanged = False
         
+        rect = self.GetFieldRect(2)
+        size = self.activity.GetSize()
+        yAdd = (rect.height - size[1])/2
+        self.activity.SetPosition((rect.x, rect.y+yAdd))
+        
+        self.sizeChanged = False
         self.Thaw()

@@ -760,9 +760,7 @@ class MainFrame(wx.Frame):
 
 
     def setActivity(self,type,msg=u'',arg2=None):
-        
         #print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
-        
         if self.utility is None:
             if DEBUG:
                 print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
@@ -818,7 +816,7 @@ class MainFrame(wx.Frame):
             
         if DEBUG:
             print  >> sys.stderr,"main: Activity",`text`
-        #self.messageField.SetLabel(text)
+        self.SRstatusbar.onActivity(text)
 
     def set_player_status(self,s):
         """ Called by VideoServer when using an external player """
