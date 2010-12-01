@@ -55,6 +55,9 @@ class ListFooter(wx.Panel):
         self.Refresh()
         event.Skip()
     
+    def Reset(self):
+        pass
+    
 class TitleFooter(ListFooter):
     
     def GetMidPanel(self, hSizer):
@@ -162,6 +165,10 @@ class ChannelResultFooter(ListFooter):
         
     def EnableResults(self, state):
         self.channelResutls.Enable(state)
+    
+    def Reset(self):
+        self.EnableResults(False)
+        self.message.SetLabel('')
         
 class ChannelFooter(ListFooter):
     def GetMidPanel(self, hSizer):

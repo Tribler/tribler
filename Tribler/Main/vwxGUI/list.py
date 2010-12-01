@@ -33,14 +33,13 @@ class RemoteSearchManager:
         [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory()
         [total_channels, self.data_channels] = self.channelsearch_manager.getChannelHits()
         
-        keywords = ' '.join(self.torrentsearch_manager.searchkeywords['filesMode']) 
-        self.list.SetNrResults(total_items, nrfiltered, total_channels, keywords)
-        self.list.SetFF(self.guiutility.getFamilyFilter())
-        
+        keywords = ' '.join(self.torrentsearch_manager.searchkeywords['filesMode'])
         if self.oldkeywords != keywords:
             self.list.Reset()
             self.oldkeywords = keywords
-            
+         
+        self.list.SetNrResults(total_items, nrfiltered, total_channels, keywords)
+        self.list.SetFF(self.guiutility.getFamilyFilter())
         self.list.SetData(data_files)
         
     def refresh_channel(self):
@@ -307,6 +306,7 @@ class List(wx.Panel):
     def Reset(self):
         self.header.Reset()
         self.list.Reset()
+        self.footer.Reset()
         
         self.Layout()
     
