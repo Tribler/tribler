@@ -187,7 +187,7 @@ class TorrentManager:
             #torrent not found
             str = self.guiUtility.utility.lang.get('delete_torrent') % torrent['name']
             dlg = wx.MessageDialog(self.guiUtility.frame, str, self.guiUtility.utility.lang.get('delete_dead_torrent'), 
-                                wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
+                                wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
             result = dlg.ShowModal()
             dlg.Destroy()
             

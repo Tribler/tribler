@@ -676,7 +676,7 @@ class MainFrame(wx.Frame):
                         confirmmsg = self.utility.lang.get('confirmmsg')
                         confirmtitle = self.utility.lang.get('confirm')
 
-                    dialog = wx.MessageDialog(None, confirmmsg, confirmtitle, wx.OK|wx.CANCEL)
+                    dialog = wx.MessageDialog(None, confirmmsg, confirmtitle, wx.OK|wx.CANCEL|wx.ICON_QUESTION)
                     result = dialog.ShowModal()
                     dialog.Destroy()
                     if result != wx.ID_OK:
