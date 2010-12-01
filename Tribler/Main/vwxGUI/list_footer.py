@@ -30,6 +30,7 @@ class ListFooter(wx.Panel):
 
     def Blink(self):
         self.HighLight(0.2)
+        wx.CallLater(400, self.HighLight, 0.2)
         
     def HighLight(self, timeout = 2.0):
         self.SetBackgroundColour(LIST_HIGHTLIGHT)
