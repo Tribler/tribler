@@ -29,8 +29,8 @@ class ListFooter(wx.Panel):
         return wx.Panel.SetBackgroundColour(self, colour)
 
     def Blink(self):
-        self.HighLight(0.2)
-        wx.CallLater(400, self.HighLight, 0.2)
+        self.HighLight(0.15)
+        wx.CallLater(300, self.HighLight, 0.15)
         
     def HighLight(self, timeout = 2.0):
         self.SetBackgroundColour(LIST_HIGHTLIGHT)
@@ -168,7 +168,10 @@ class ChannelResultFooter(ListFooter):
     
     def Revert(self):
         ListFooter.Revert(self)
-        self.blinkTimer = wx.CallLater(10000, self.Blink)
+        if self.blinkTimer:
+            self.blinkTimer.Restart(10000)
+        else:
+            self.blinkTimer = wx.CallLater(10000, self.Blink)
     
     def SetEvents(self, channel):
         #removing old, binding new eventhandler
