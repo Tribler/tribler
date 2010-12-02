@@ -397,7 +397,14 @@ class TorrentDetails(wx.Panel):
         font.SetPointSize(font.GetPointSize()+1)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         self.downloadText.SetFont(font)
-        self.buttonSizer.Add(self.downloadText, 0, wx.ALL|wx.EXPAND, 3)
+        self.buttonSizer.Add(self.downloadText, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)
+        
+        if not isinstance(self, LibraryDetails):
+            library = LinkStaticText(self.buttonPanel, "Open library")
+            library.SetToolTipString("Open library")
+            library.target = 'my_files'
+            library.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
+            self.buttonSizer.Add(library, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
         
         self.buttonSizer.AddStretchSpacer()
         
@@ -435,6 +442,7 @@ class TorrentDetails(wx.Panel):
             vSizer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
             self.play.SetSizer(vSizer)
             self.buttonSizer.Add(self.play, 0,wx.EXPAND, 3)
+        
         self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
     
     def _ShowDone(self):
