@@ -72,7 +72,6 @@ class urlopen:
                                       'Accept-Encoding': 'gzip' } )
                 self.response = self.connection.getresponse()
             except HTTPException, e:
-                print_exc()
                 raise IOError, ('http error', str(e))
             status = self.response.status
             if status in (301, 302):
@@ -92,9 +91,9 @@ class urlopen:
                 except:
                     pass
                 raise IOError, ('http error', status, self.response.reason)
-        except:
+        except Exception, e:
             print_exc()
-            print >>sys.stderr,"zurllib: URL was",url
+            print >>sys.stderr,"zurllib: URL was", url, e
 
 
     def read(self):
