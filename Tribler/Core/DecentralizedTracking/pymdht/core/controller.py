@@ -92,18 +92,23 @@ class Controller:
             f = open(self.state_filename)
         except(IOError):
             return
-        # the first line contains this node's identifier
-        hex_id = f.readline().strip()
-        self._my_id = Id(hex_id)
-        # the rest of the lines contain routing table nodes
-        # FORMAT
-        # log_distance hex_id ip port rtt
-        for line in f:
-            _, hex_id, ip, port, _ = line.split()
-            addr = (ip, int(port))
-            node_ = Node(addr, Id(hex_id))
-            self.loaded_nodes.append(node_)
-        f.close
+        try:
+            # the first line contains this node's identifier
+            hex_id = f.readline().strip()
+            self._my_id = Id(hex_id)
+            # the rest of the lines contain routing table nodes
+            # FORMAT
+            # log_distance hex_id ip port rtt
+            for line in f:
+                _, hex_id, ip, port, _ = line.split()
+                addr = (ip, int(port))
+                node_ = Node(addr, Id(hex_id))
+                self.loaded_nodes.append(node_)
+            f.close()
+        except: 
+            self._my_id = None
+            self.loaded_nodes = []
+            logger.error('state.dat is corrupted')
         
     def get_peers(self, lookup_id, info_hash, callback_f, bt_port=0):
         logger.critical('get_peers %d %r' % (bt_port, info_hash))
