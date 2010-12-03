@@ -1019,7 +1019,6 @@ def run(params = None):
             status.add_reporter(ProxyTestPeriodicReporter("DataTransferAndBuddyCast", 300, "id01"))
             # _ProxyService 90s Test
 
-
             app.MainLoop()
     
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"

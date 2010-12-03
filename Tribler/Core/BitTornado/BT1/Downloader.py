@@ -325,16 +325,10 @@ class SingleDownload(SingleDownloadHelperInterface):
             return False
 
         # ProxyService_
-
         # ProxyService 90s Test_
-#        try:
-#            if self.downloader.picker.helper is not None:
-#                from Tribler.Core.Statistics.Status.Status import get_status_holder
-#        
-#                status = get_status_holder("Proxy90secondsTest")
-#                status.create_and_add_event("downloaded-piece", [index, begin, length, self.ip])
-#        except Exception,e:
-#            print >> sys.stderr, "AAAAAAAAAAAAAAAAARRRRRRRRRRRRRRGGGGGGGGGGGGGHHHHHHHHHHHHHHHH"
+        if self.downloader.picker.helper is not None or self.downloader.picker.coordinator is not None:
+            status = get_status_holder("Proxy90secondsTest")
+            status.create_and_add_event("downloaded-piece", [index, begin, length, self.ip])
         # _ProxyService 90s Test
 
 #        print >> sys.stderr, "Got piece=", index, "begin=", begin, "len=", length, "from", self.ip
