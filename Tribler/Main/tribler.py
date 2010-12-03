@@ -1016,7 +1016,7 @@ def run(params = None):
             from Tribler.Core.Statistics.Status.ProxyTestReporter import *
     
             status = get_status_holder("Proxy90secondsTest")
-            status.add_reporter(ProxyTestPeriodicReporter("DataTransferAndBuddyCast", 60, "id01"))
+            status.add_reporter(ProxyTestPeriodicReporter("DataTransferAndBuddyCast", 300, "id01"))
             # _ProxyService 90s Test
 
 
