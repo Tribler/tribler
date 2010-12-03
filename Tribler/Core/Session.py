@@ -212,17 +212,6 @@ class Session(SessionRuntimeConfig):
         self.lm.register(self,self.sesslock)
         self.lm.start()
 
-        # ProxyService 90s Test_
-        from Tribler.Core.Statistics.Status.Status import get_status_holder
-        from Tribler.Core.Statistics.Status.ProxyTestReporter import *
-        from Tribler.Core.Statistics.Status import *
-
-        status = get_status_holder("Proxy90secondsTest")
-        status.add_reporter(ProxyTestPeriodicReporter("DataTransferAndBuddyCast", 60, "id01"))
-        # _ProxyService 90s Test
-
-
-
     #
     # Class methods
     #

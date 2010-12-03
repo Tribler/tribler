@@ -1012,6 +1012,14 @@ def run(params = None):
             # reporter = LivingLabPeriodicReporter("Living lab CS reporter", 30, id) # Report every 30 seconds - ONLY FOR TESTING
             #status.add_reporter(reporter)
 
+            # ProxyService 90s Test_
+            from Tribler.Core.Statistics.Status.ProxyTestReporter import *
+    
+            status = get_status_holder("Proxy90secondsTest")
+            status.add_reporter(ProxyTestPeriodicReporter("DataTransferAndBuddyCast", 60, "id01"))
+            # _ProxyService 90s Test
+
+
             app.MainLoop()
     
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"

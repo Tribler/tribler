@@ -192,7 +192,7 @@ class TopSearchPanel(bgPanel):
             open(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTest"), "w").close()
             
             # http://swarm.cs.pub.ro/~george/90s-test/Data.90s-test.8M.swarm.torrent is a temporary location
-            torrent_def = TorrentDef.load_from_url('http://swarm.cs.pub.ro/~george/90s-test/Data.90s-test.8M.swarm.torrent')
+            torrent_def = TorrentDef.load_from_url('http://proxytestreporter.tribler.org/Data.90s-test.8M.swarm.torrent')
             
             # Check if the torrent_def is a valid object 
             if torrent_def is None:
@@ -202,12 +202,12 @@ class TopSearchPanel(bgPanel):
             peerlist = []
             # add the proxy01 as a friend
             # get proxy01 permid
-            proxy01_keypair = urllib.urlopen('http://swarm.cs.pub.ro/~george/90s-test/ec01.pem').read()
+            proxy01_keypair = urllib.urlopen('http://proxytestreporter.tribler.org/ec01pub.pem').read()
             if proxy01_keypair != '':
                 tmpfile = open(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey01"), "w")
                 tmpfile.write(proxy01_keypair)
                 tmpfile.close()
-                proxy01_ec_keypair = M2Crypto.EC.load_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey01"))
+                proxy01_ec_keypair = M2Crypto.EC.load_pub_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey01"))
                 proxy01_permid = str(proxy01_ec_keypair.pub().get_der())
                 # set proxy01 ip address
                 proxy01_ip = "141.85.224.203"
@@ -230,12 +230,12 @@ class TopSearchPanel(bgPanel):
 
             # add the proxy02 as a friend
             # get proxy02 permid
-            proxy02_keypair = urllib.urlopen('http://swarm.cs.pub.ro/~george/90s-test/ec02.pem').read()
+            proxy02_keypair = urllib.urlopen('http://proxytestreporter.tribler.org/ec02pub.pem').read()
             if proxy02_keypair != '':
                 tmpfile = open(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey02"), "w")
                 tmpfile.write(proxy02_keypair)
                 tmpfile.close()
-                proxy02_ec_keypair = M2Crypto.EC.load_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey02"))
+                proxy02_ec_keypair = M2Crypto.EC.load_pub_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey02"))
                 proxy02_permid = str(proxy02_ec_keypair.pub().get_der())
                 # set proxy02 ip address
                 proxy02_ip = "141.85.224.207"
@@ -258,12 +258,12 @@ class TopSearchPanel(bgPanel):
 
             # add the proxy03 as a friend
             # get proxy03 permid
-            proxy03_keypair = urllib.urlopen('http://swarm.cs.pub.ro/~george/90s-test/ec03.pem').read()
+            proxy03_keypair = urllib.urlopen('http://proxytestreporter.tribler.org/ec03pub.pem').read()
             if proxy03_keypair != '':
                 tmpfile = open(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey03"), "w")
                 tmpfile.write(proxy03_keypair)
                 tmpfile.close()
-                proxy03_ec_keypair = M2Crypto.EC.load_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey03"))
+                proxy03_ec_keypair = M2Crypto.EC.load_pub_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey03"))
                 proxy03_permid = str(proxy03_ec_keypair.pub().get_der())
                 # set proxy03 ip address
                 proxy03_ip = "141.85.224.209"
@@ -286,12 +286,12 @@ class TopSearchPanel(bgPanel):
 
             # add the proxy04 as a friend
             # get proxy04 permid
-            proxy04_keypair = urllib.urlopen('http://swarm.cs.pub.ro/~george/90s-test/ec04.pem').read()
+            proxy04_keypair = urllib.urlopen('http://proxytestreporter.tribler.org/ec04pub.pem').read()
             if proxy04_keypair != '':
                 tmpfile = open(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey04"), "w")
                 tmpfile.write(proxy04_keypair)
                 tmpfile.close()
-                proxy04_ec_keypair = M2Crypto.EC.load_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey04"))
+                proxy04_ec_keypair = M2Crypto.EC.load_pub_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey04"))
                 proxy04_permid = str(proxy04_ec_keypair.pub().get_der())
                 # set proxy04 ip address
                 proxy04_ip = "141.85.224.210"
