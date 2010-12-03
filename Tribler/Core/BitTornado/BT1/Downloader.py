@@ -324,6 +324,9 @@ class SingleDownload(SingleDownloadHelperInterface):
             self.downloader.piece_flunked(index)
             return False
 
+        # ProxyService_
+#        print >> sys.stderr, "Got piece=", index, "begin=", begin, "len=", length, "from", self.ip
+        # _ProxyService
         # boudewijn: we need more accurate (if possibly invalid)
         # measurements on current download speed
         self.downloader.picker.got_piece(index, begin, length)

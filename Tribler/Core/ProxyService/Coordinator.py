@@ -40,9 +40,6 @@ class Coordinator:
         self.sent_challenges_by_challenge = {}
         self.sent_challenges_by_permid = {}
 
-        # The challenges sent by the proxies
-        self.received_challenges = {}
-
         # List of asked helpers 
         self.asked_helpers_lock = Lock()
         self.asked_helpers = [] # protected by asked_helpers_lock
@@ -484,8 +481,18 @@ class Coordinator:
         @return: the permid of that peer
         """
 
+        chosen_helper = None
         helper_challenge = decode_challenge_from_peerid(peerid)
-        chosen_helper = self.sent_challenges_by_challenge[helper_challenge]
+        if helper_challenge in self.sent_challenges_by_challenge.keys():
+            # I found the proxy permid in a connection opened by the proxy 
+            chosen_helper = self.sent_challenges_by_challenge[helper_challenge]
+        else:
+            # I search the proxy permid in a connection opened by the doe
+            for single_dl in self.downloader.downloads:
+                remote_peer_id = single_dl.connection.get_id()
+                if remote_peer_id == peerid:
+                    # I found the connection with the proxy
+                    chosen_helper = single_dl.connection.connection.get_proxy_permid()
         
         # Current proxy selection policy: choose a random helper from the confirmed helper list
 #        chosen_helper = random.choice(self.confirmed_helpers)
@@ -593,7 +600,7 @@ class Coordinator:
     #
     # Got (received) messages
     # 
-    def got_join_helpers(self, permid, selversion, challenge):
+    def got_join_helpers(self, permid, selversion):
         """ Mark the peer as an active helper
         
         @param permid: The permid of the node sending the message
@@ -603,9 +610,6 @@ class Coordinator:
         if DEBUG:
             print >> sys.stderr, "coordinator: received a JOIN_HELPERS message from", show_permid_short(permid)
 
-        # save the association between the permid and the challenge it sent
-        self.received_challenges[permid] = challenge
-        
         #Search the peer in the asked_helpers list, remove it from there, and put it in the confirmed_helpers list.
         self.asked_helpers_lock.acquire()
         try:
@@ -706,15 +710,27 @@ class Coordinator:
         # Search for the connection that has this challenge
         if DEBUG:
             debug_found_connection = False
-        for d in self.downloader.downloads:
-            peer_id = d.connection.get_id()
+        for single_dl in self.downloader.downloads:
+            # Search in the connections opened by the proxy
+            peer_id = single_dl.connection.get_id()
+            if DEBUG:
+                print >> sys.stderr, "peer_challenge=",peer_challenge,"decode_challenge_from_peerid(peer_id)=",decode_challenge_from_peerid(peer_id)
             if peer_challenge == decode_challenge_from_peerid(peer_id):
                 # If the connection is found, add the piece_list information to the d.have information
-                #new_have_list = map(sum, zip(d.have, piece_list))
-                d.proxy_have = Bitfield(length=self.downloader.numpieces, bitstring=aggregated_string)
+                single_dl.proxy_have = Bitfield(length=self.downloader.numpieces, bitstring=aggregated_string)
                 if DEBUG:
                     debug_found_connection = True
                 break
+
+            # Search in the connections opened by the doe
+            proxy_permid = single_dl.connection.connection.get_proxy_permid()
+            if permid == proxy_permid:
+                # If the connection is found, add the piece_list information to the d.have information
+                single_dl.proxy_have = Bitfield(length=self.downloader.numpieces, bitstring=aggregated_string)
+                if DEBUG:
+                    debug_found_connection = True
+                break
+
         if DEBUG:
             if debug_found_connection:
                 print >> sys.stderr, "coordinator: got_proxy_have: found a data connection for the received PROXY_HAVE"
@@ -778,9 +794,9 @@ class Coordinator:
                 dns = (ip, port)
                 
                 if DEBUG:
-                    print >> sys.stderr,"coordinator: start_data_connection: Starting data connection to helper at", dns, "with challenge", self.received_challenges[helper_permid]
+                    print >> sys.stderr,"coordinator: start_data_connection: Starting data connection to helper at", dns
                 
-                self.encoder.start_connection(dns, id = None, proxy_con = True, challenge = self.received_challenges[helper_permid])
+                self.encoder.start_connection(dns, id = None, proxy_con = True, proxy_permid = helper_permid)
                 break
 
     def set_encoder(self, encoder):

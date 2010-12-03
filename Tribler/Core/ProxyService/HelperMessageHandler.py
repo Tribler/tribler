@@ -92,7 +92,7 @@ class HelperMessageHandler:
             return False
         
         if DEBUG:
-            print >> sys.stderr, "helper: got_ask_for_help: received a help request from",show_permid_short(permid)
+            print >> sys.stderr, "helper: got_ask_for_help: received a help request from", show_permid_short(permid), "with challenge", challenge
 
         
         # Save the challenge

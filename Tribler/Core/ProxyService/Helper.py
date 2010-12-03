@@ -52,10 +52,6 @@ class Helper:
         # The coordinator_permid is a dictionary that stores as keys two-item lists: [ip, port]
         self.coordinator_permid = {}
         
-        # List of sent challenges 
-        self.sent_challenges_by_challenge = {}
-        self.sent_challenges_by_permid = {}
-        
         if coordinator_permid is not None and coordinator_permid == '':
             self.coordinator_permid[None] = [None, -1]
             #coordinator_permid = None
@@ -159,14 +155,6 @@ class Helper:
         if DEBUG:
             print >> sys.stderr,"helper: send_join_helpers: sending a join_helpers message to", show_permid_short(permid)
 
-        # Generate a random challenge - random number on 8 bytes (62**8 possible combinations)
-        challenge = generate_proxy_challenge()
-        
-        # Save permid - challenge pair
-        self.sent_challenges_by_challenge[challenge] = permid
-        self.sent_challenges_by_permid[permid] = challenge
-
-
         olthread_send_join_helpers_lambda = lambda:self.olthread_send_join_helpers(permid)
         self.overlay_bridge.add_task(olthread_send_join_helpers_lambda,0)
 
@@ -192,11 +180,8 @@ class Helper:
         @param selversion:
         """
         if exc is None:
-            # get the peer challenge
-            challenge = self.sent_challenges_by_permid[permid]
-
             # Create message according to protocol version
-            message = JOIN_HELPERS + self.torrent_hash + bencode(challenge)
+            message = JOIN_HELPERS + self.torrent_hash
 
             if DEBUG:
                 print >> sys.stderr,"helper: olthread_join_helpers_connect_callback: Sending JOIN_HELPERS to",show_permid_short(permid)
