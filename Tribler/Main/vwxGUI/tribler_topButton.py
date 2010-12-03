@@ -345,7 +345,12 @@ class LinkStaticText(wx.Panel):
         self.text.Bind(event, handler, source, id, id2)
         if getattr(self, 'icon', False):
             self.icon.Bind(event, handler, source, id, id2)
-        
+
+class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
+    def __init__(self, parent, style):
+        wx.ListCtrl.__init__(self, parent, style=style)
+        ListCtrlAutoWidthMixin.__init__(self)
+
 class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
     def __init__(self, parent, numColumns, style = wx.LC_REPORT|wx.LC_NO_HEADER):
         wx.ListCtrl.__init__(self, parent, -1, style=style)
@@ -357,3 +362,181 @@ class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin, ListCtrlAutoWidthMixin):
     
     def GetListCtrl(self):
         return self
+    
+class TextCtrlAutoComplete(wx.TextCtrl):
+    def __init__ (self, parent, choices = [], entrycallback = None, selectcallback = None, **therest):
+        '''
+            Constructor works just like wx.TextCtrl except you can pass in a list of choices. 
+            You can also change the choice list at any time by calling SetChoices. 
+        ''' 
+        if therest.has_key('style'): 
+            therest['style']=wx.TE_PROCESS_ENTER|therest['style'] 
+        else:
+            therest['style']= wx.TE_PROCESS_ENTER 
+    
+        wx.TextCtrl.__init__(self , parent , **therest)
+        
+        self.screenheight = wx.SystemSettings.GetMetric(wx.SYS_SCREEN_Y)
+         
+        self.dropdown = wx.PopupWindow(self)
+        self.dropdown.SetBackgroundColour(wx.WHITE)
+        sizer = wx.BoxSizer()
+        
+        self.dropdownlistbox = AutoWidthListCtrl(self.dropdown, style=wx.LC_REPORT | wx.BORDER_NONE | wx.LC_SINGLE_SEL | wx.LC_NO_HEADER) 
+        self.dropdownlistbox.Bind(wx.EVT_LEFT_DOWN, self.ListClick)
+        self.dropdownlistbox.Bind(wx.EVT_LEFT_DCLICK, self.ListDClick)
+        sizer.Add(self.dropdownlistbox, 1, wx.EXPAND|wx.ALL, 3)
+        self.dropdown.SetSizer(sizer)
+        
+        self.SetChoices(choices)
+        self.entrycallback = entrycallback
+        self.selectcallback = selectcallback
+        
+        gp = self 
+        while (gp <> None) : 
+            gp.Bind (wx.EVT_MOVE , self.ControlChanged, gp) 
+            gp.Bind (wx.EVT_SIZE , self.ControlChanged, gp) 
+            gp = gp.GetParent()
+            
+        self.Bind (wx.EVT_KILL_FOCUS, self.ControlChanged, self) 
+        self.Bind (wx.EVT_TEXT , self.EnteredText, self) 
+        self.Bind (wx.EVT_KEY_DOWN , self.KeyDown, self) 
+        self.Bind (wx.EVT_LEFT_DOWN , self.ClickToggleDown, self) 
+        self.Bind (wx.EVT_LEFT_UP , self.ClickToggleUp, self) 
+        self.dropdown.Bind (wx.EVT_LISTBOX , self.ListItemSelected, self.dropdownlistbox)
+        
+    def ListClick(self, evt):
+        toSel, _ = self.dropdownlistbox.HitTest(evt.GetPosition()) 
+        if toSel == -1:
+            return 
+        self.dropdownlistbox.Select(toSel)
+
+    def ListDClick(self, evt):
+        self.SetValueFromSelected()
+        toSel, _ = self. dropdownlistbox. HitTest (evt.GetPosition()) 
+        if toSel == -1: 
+            return 
+        self.dropdownlistbox.Select(toSel)
+
+    def SetChoices (self, choices = [""]) :
+        ''' Sets the choices available in the popup wx.ListBox. ''' 
+        self.choices = choices 
+        #delete, if need, all the previous data
+        if self.dropdownlistbox.GetColumnCount() != 0:
+            self.dropdownlistbox.DeleteAllColumns()
+            self.dropdownlistbox.DeleteAllItems()
+            
+        self.dropdownlistbox.InsertColumn(0, "Select")
+
+        for num, it in enumerate(choices): 
+            self.dropdownlistbox.InsertStringItem(num, it)
+            
+        itemcount = min(len(choices), 7) + 2
+        charheight = self.dropdownlistbox.GetCharHeight()
+        
+        self.popupsize = wx.Size(self.GetClientSize()[0], charheight*itemcount)
+        self.dropdown.SetClientSize(self.popupsize)
+        self.dropdown.Layout()
+
+    def ControlChanged (self, event) : 
+        self.ShowDropDown(False) 
+        event.Skip()
+
+    def EnteredText (self, event) : 
+        text = event.GetString()
+        
+        if self.entrycallback:
+            choices = self.entrycallback(text)
+            self.SetChoices(choices)
+        
+        if len(self.choices) == 0:
+            self.ShowDropDown(False)
+        else:
+            notfound = True 
+            for choice in self.choices : 
+                if choice.lower().startswith(text.lower()) : 
+                    notfound = False 
+                    self.ShowDropDown (True) 
+                    toSel = self.dropdownlistbox.FindItem(-1, choice) 
+                    if toSel == -1: 
+                        continue 
+                    self.dropdownlistbox.Select(toSel) 
+                    break
+            if notfound :
+                self.dropdownlistbox.Select(self.dropdownlistbox.GetFirstSelected(), False)
+        event.Skip()
+
+    def KeyDown (self, event) : 
+        skip = True 
+        sel = self.dropdownlistbox.GetFirstSelected() 
+        visible = self.dropdown.IsShown() 
+        if event.GetKeyCode() == wx.WXK_DOWN : 
+            if sel < (self.dropdownlistbox.GetItemCount () - 1) : 
+                self.dropdownlistbox.Select (sel+1) 
+                self.ListItemVisible() 
+            self.ShowDropDown () 
+            skip = False 
+        if event.GetKeyCode() == wx.WXK_UP : 
+            if sel > 0 : 
+                self.dropdownlistbox.Select (sel - 1) 
+                self.ListItemVisible() 
+            self.ShowDropDown () 
+            skip = False 
+        if visible : 
+            if event.GetKeyCode() == wx.WXK_RETURN : 
+                self.SetValueFromSelected() 
+                skip = False 
+            if event.GetKeyCode() == wx.WXK_ESCAPE : 
+                self.ShowDropDown(False) 
+                skip = False 
+        if skip : 
+            event.Skip()
+
+    def ClickToggleDown (self, event) : 
+        self.lastinsertionpoint = self.GetInsertionPoint() 
+        event.Skip ()
+
+    def ClickToggleUp (self, event) : 
+        if (self.GetInsertionPoint() == self.lastinsertionpoint) : 
+            self.ShowDropDown (not self.dropdown.IsShown()) 
+        event.Skip ()
+
+    def SetValueFromSelected(self) : 
+        ''' 
+            Sets the wx.TextCtrl value from the selected wx.ListBox item.
+            Will do nothing if no item is selected in the wx.ListBox. 
+        ''' 
+        sel = self.dropdownlistbox.GetFirstSelected() 
+        if sel > -1 : 
+            self.SetValue (self.dropdownlistbox.GetItemText(sel)) 
+            self.ShowDropDown (False)
+            
+            if self.selectcallback:
+                self.selectcallback()
+
+    def ShowDropDown(self, show = True) : 
+        ''' Either display the drop down list (show = True) or hide it (show = False). '''
+        if show:
+            show = len(self.choices) > 0
+             
+        if show and not self.dropdown.IsShown():
+            size = self.dropdown.GetSize() 
+            width, height = self.GetSizeTuple() 
+            x, y = self.ClientToScreenXY (0, height) 
+            if size.GetWidth() <> width : 
+                size.SetWidth(width) 
+                self.dropdown.SetSize(size)
+
+            if (y + size.GetHeight()) < self.screenheight : 
+                self.dropdown.SetPosition (wx.Point(x, y)) 
+            else: 
+                self.dropdown.SetPosition (wx.Point(x, y - height - size.GetHeight())) 
+        self.dropdown.Show(show)
+
+    def ListItemVisible(self) : 
+        ''' Moves the selected item to the top of the list ensuring it is always visible. ''' 
+        self.dropdownlistbox.EnsureVisible(self.dropdownlistbox.GetFirstSelected())
+
+    def ListItemSelected (self, event) :
+        self.SetValueFromSelected() 
+        event.Skip()

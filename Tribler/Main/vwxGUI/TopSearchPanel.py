@@ -13,21 +13,13 @@
 from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+from Tribler.Core.simpledefs import NTFY_TERM
 from Tribler.Core.APIImplementation.miscutils import NamedTimer
 
 from bgPanel import bgPanel
 from tribler_topButton import *
 from traceback import print_exc
-from wx.lib.buttons import GenBitmapButton as BitmapButton
-
-
-import math
-import os
-import sys
-import time
-import wx
-import wx.xrc as xrc
-
 
 DEBUG = False
 
@@ -40,12 +32,19 @@ class TopSearchPanel(bgPanel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility 
         self.installdir = self.utility.getPath()
+        self.animationTimer = None
         
         self.buttonsBackgroundColourSelected = wx.Colour(235, 233, 228)
         self.buttonsBackgroundColour = wx.Colour(193, 188, 177)
         self.buttonsForegroundColour = wx.BLACK
-     
-    def OnSearchKeyDown(self, event):
+        
+        self.uelog = UserEventLogDBHandler.getInstance()
+    
+    def OnAutoComplete(self):
+        self.OnSearchKeyDown()
+        self.uelog.addEvent(message="TopSearchPanel: user used autocomplete", type = 2)  
+    
+    def OnSearchKeyDown(self, event = None):
         if DEBUG:
             print >> sys.stderr, "TopSearchPanel: OnSearchKeyDown"
             
@@ -61,8 +60,11 @@ class TopSearchPanel(bgPanel):
             
         # Timer to stop animation after 10 seconds. No results will come 
         # in after that
-        wx.CallLater(10000, self.HideAnimation)
-        
+        if self.animationTimer:
+            self.animationTimer.Restart(10000)
+        else:
+            self.animationTimer = wx.CallLater(10000, self.HideAnimation)
+            
         if not self.results.IsEnabled():
             self.results.Enable()
                   
@@ -101,31 +103,12 @@ class TopSearchPanel(bgPanel):
         self.channels.SetValue(tab == 'channels')
         self.settings.SetValue(tab == 'settings')
         self.my_files.SetValue(tab == 'my_files')
-        
-    def autocomplete(self):
-        """appends the most frequent completion according to
-           buddycast clicklog to the current input.
-           sets the appended characters to "selected" such that they are
-           automatically deleted as the user continues typing"""
-        input = self.searchField.GetValue()
-        terms = input.split(" ")
-        # only autocomplete if the last term in the input contains more than one character
-        if len(terms[-1]) > 1:
-            completion = self.complete(terms[-1])
-            if completion:
-                l = len(input)
-                self.searchField.SetValue(input + completion)
-                self.searchField.SetSelection(l, l + len(completion))
                 
     def complete(self, term):
         """autocompletes term."""
-        completion = self.utility.session.open_dbhandler(NTFY_TERM).getTermsStartingWith(term, num=1)
-        if completion:
-            return completion[0][len(term):]
-        # boudewijn: may only return unicode compatible strings. While
-        # "" is unicode compatible it is better to return u"" to
-        # indicate that it must be unicode compatible.
-        return u""
+        if len(term) > 1:
+            return self.utility.session.open_dbhandler(NTFY_TERM).getTermsStartingWith(term, num=7)
+        return []
 
     def SearchFocus(self):
         self.searchField.SetFocus()
@@ -143,6 +126,8 @@ class TopSearchPanel(bgPanel):
         bgPanel._PostInit(self)
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
         
+        
+        """
         if sys.platform == 'linux2':
             #bug in linux for searchctrl, focus does not hide search text + text stays grey
             self.searchField = wx.TextCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
@@ -152,6 +137,10 @@ class TopSearchPanel(bgPanel):
         self.searchField.SetFocus()
         self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
         self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
+        """
+        self.searchField = TextCtrlAutoComplete(self, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
+        self.searchField.SetMinSize((400, -1))
+        self.searchField.SetFocus()
         
         self.go = tribler_topButton(self,-1,name = 'Search_new')
         self.go.SetMinSize((50, 24))

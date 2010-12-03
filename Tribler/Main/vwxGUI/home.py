@@ -138,10 +138,12 @@ class NetworkPanel(HomePanel):
         
         self.torrentdb = TorrentDBHandler.getInstance()
         self.remotetorrenthandler = RemoteTorrentHandler.getInstance()
+        self.timer = None
+        
         session = Session.get_instance()
         session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
         self.__OnNotify()
-    
+        
     def CreatePanel(self):
         def getBoldText(parent, text):
             statictext = wx.StaticText(parent, -1, text)
@@ -158,9 +160,6 @@ class NetworkPanel(HomePanel):
         self.nrFiles = wx.StaticText(panel)
         self.totalSize = wx.StaticText(panel)
         self.queueSize = wx.StaticText(panel)
-        
-        #header = getBoldText(panel, 'Current megacache statistics')
-        #vSizer.Add(header, 0, wx.BOTTOM|wx.LEFT, 3)
         
         gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
         gridSizer.AddGrowableCol(1)
@@ -189,6 +188,11 @@ class NetworkPanel(HomePanel):
         self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel(str(self.remotetorrenthandler.getQueueSize()))
+        
+        if self.timer:
+            self.timer.Restart(10000)
+        else:
+            self.timer = wx.CallLater(10000, self.__OnNotify)
 
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):
