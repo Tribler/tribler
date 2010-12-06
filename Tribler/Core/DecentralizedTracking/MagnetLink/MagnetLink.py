@@ -122,7 +122,7 @@ class MagnetLink:
             # method.  note that this object does not yet contain a
             # stop method...
             dht = mainlineDHT.dht
-            dht.get_peers(Id(self._info_hash), self._info_hash, self._swarm.add_potential_peers)
+            dht.get_peers(self._info_hash, Id(self._info_hash), self._swarm.add_potential_peers, 0)
 
             try:
                 if self._tracker:
