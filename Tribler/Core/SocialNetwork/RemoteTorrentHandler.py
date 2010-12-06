@@ -128,6 +128,7 @@ class TorrentRequester():
                 #~load balance sources
                 permid = choice(self.sources[infohash])
                 self.sources[infohash].remove(permid)
+                
                 if len(self.sources[infohash]) < 1:
                     del self.sources[infohash]
                 
@@ -138,7 +139,7 @@ class TorrentRequester():
                 self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
                 
                 #schedule a magnet lookup after 10 seconds
-                if self.prio <= 1:
+                if self.prio <= 1 or infohash not in self.sources:
                     self.overlay_bridge.add_task(lambda: self.magnetTimeout(infohash), self.MAGNET_TIMEOUT, infohash)
 
             #Make sure exceptions wont crash this requesting thread

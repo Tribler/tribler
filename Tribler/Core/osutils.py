@@ -15,6 +15,7 @@ import sys
 import os
 import time
 import binascii
+import subprocess
 
 if sys.platform == "win32":
     try:
@@ -350,3 +351,12 @@ else:
     # Mac
     def getupload():
         raise ValueError("Not yet implemented")
+    
+
+def startfile(filepath):
+    if sys.platform == 'darwin':
+        subprocess.call(('open', filepath))
+    elif sys.platform == 'linux2':
+        subprocess.call(('xdg-open', filepath))
+    elif hasattr(os, "startfile"):
+        os.startfile(file)

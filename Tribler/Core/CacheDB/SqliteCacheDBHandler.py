@@ -3325,6 +3325,7 @@ class ChannelCastDBHandler(BasicDBHandler):
                             nr_items_return = nr_items + 1
                             if nr_items_return < 50:
                                 nr_items_return = 50
+                            #print >> sys.stderr, "He has incorrect timeframe, returning %d items"%nr_items_return
                             
                             s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
                             allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
@@ -3435,20 +3436,22 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getMostPopularChannelFromTorrent(self, infohash): ##
         """Returns name of most popular channel if any"""
         vcdb = VoteCastDBHandler.getInstance()
-        sql = "select * from ChannelCast where infohash==?" 
+        sql = "select publisher_id from ChannelCast where infohash==? Group By publisher_id" 
         publishers = self._db.fetchall(sql,(bin2str(infohash),))
         if len(publishers) == 0:
             return None
         else:
             maxvote = -1
-            for publisher_item in publishers:
-                num_subscribers = vcdb.getEffectiveVote(publisher_item[0])
+            max_id = -1
+            for publisher_id, in publishers:
+                num_subscribers = vcdb.getEffectiveVote(publisher_id)
                 if num_subscribers > maxvote:
-                    publisher_id = publisher_item[0]
-                    publisher_name = publisher_item[1]
+                    max_id = publisher_id
                     maxvote = num_subscribers
-            channel = (publisher_id, publisher_name, maxvote, {})
-            return channel
+            
+            sql = "Select publisher_name From ChannelCast Where publisher_id = ? Order By time_stamp DESC LIMIT 1"
+            publisher_name = self._db.fetchone(sql, (max_id,)) 
+            return (max_id, publisher_name, maxvote, {})
             
 class GUIDBHandler:
     """ All the functions of this class are only (or mostly) used by GUI.
@@ -4462,6 +4465,24 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         if not with_freq:
             res = map(lambda x: x[0], res)
         return res
+    
+    def getTermsStartingWith(self, beginning, num = 10):
+        terms = self.getAll('term', 
+                            term=("like", u"%s%%" % beginning),
+                            order_by="freq DESC",
+                            limit=num * 2)
+        if terms:
+            # terms is a list containing lists. We only want the first
+            # item of the inner lists.
+            terms = [term for (term,) in terms]
+
+            catobj = Category.getInstance()
+            if catobj.family_filter_enabled():
+                return filter(lambda term: not catobj.xxx_filter.foundXXXTerm(term), terms)[:num]
+            else:
+                return terms[:num]
+        else:
+            return []
 
 
 class UserEventLogDBHandler(BasicDBHandler):

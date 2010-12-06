@@ -184,12 +184,14 @@ class ChannelCastCore:
             print >> sys.stderr,'channelcast: Received a msg from ', show_permid_short(sender_permid)
             print >> sys.stderr,"channelcast: my_permid=", show_permid_short(self.my_permid)
 
+        """
+        We want to receive our own channelcast messages, to fix our illegal timeframes
         if not sender_permid or sender_permid == self.my_permid:
             if DEBUG:
                 print >> sys.stderr, "channelcast: warning - got channelcastMsg from a None/Self peer", \
                         show_permid_short(sender_permid), recv_msg
             return False
-
+        """
         #if len(recv_msg) > self.max_length:
         #    if DEBUG:
         #        print >> sys.stderr, "channelcast: warning - got large channelCastHaveMsg", len(recv_msg)
@@ -291,6 +293,8 @@ class ChannelCastCore:
             nr_torrents = self.channelcastdb.getNrTorrentsInChannel(publisher_id)
             if len(infohashes) > nr_torrents:
                 self.channelcastdb.deleteTorrentsFromPublisherId(str2bin(publisher_id))
+            
+            #print >> sys.stderr, 'Received channelcast message with %d hashes'%len(infohashes), show_permid_short(query_permid)
         else:
             #ignore all my favorites, randomness will cause problems with timeframe
             my_favorites = self.votecastdb.getPublishersWithPosVote(bin2str(self.session.get_permid()))

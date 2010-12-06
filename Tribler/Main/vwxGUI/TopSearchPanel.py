@@ -13,7 +13,7 @@
 from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, NetworkBuzzDBHandler
 from Tribler.Core.simpledefs import NTFY_TERM
 from Tribler.Core.APIImplementation.miscutils import NamedTimer
 
@@ -39,6 +39,7 @@ class TopSearchPanel(bgPanel):
         self.buttonsForegroundColour = wx.BLACK
         
         self.uelog = UserEventLogDBHandler.getInstance()
+        self.nbdb = NetworkBuzzDBHandler.getInstance()
     
     def OnAutoComplete(self):
         self.OnSearchKeyDown()
@@ -107,7 +108,7 @@ class TopSearchPanel(bgPanel):
     def complete(self, term):
         """autocompletes term."""
         if len(term) > 1:
-            return self.utility.session.open_dbhandler(NTFY_TERM).getTermsStartingWith(term, num=7)
+            return self.nbdb.getTermsStartingWith(term, num=7)
         return []
 
     def SearchFocus(self):
@@ -135,12 +136,13 @@ class TopSearchPanel(bgPanel):
             self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
         self.searchField.SetMinSize((400, -1))
         self.searchField.SetFocus()
-        self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
+        
         self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
         """
         self.searchField = TextCtrlAutoComplete(self, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
         self.searchField.SetMinSize((400, -1))
         self.searchField.SetFocus()
+        self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
         
         self.go = tribler_topButton(self,-1,name = 'Search_new')
         self.go.SetMinSize((50, 24))

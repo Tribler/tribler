@@ -384,7 +384,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         
         self.dropdownlistbox = AutoWidthListCtrl(self.dropdown, style=wx.LC_REPORT | wx.BORDER_NONE | wx.LC_SINGLE_SEL | wx.LC_NO_HEADER) 
         self.dropdownlistbox.Bind(wx.EVT_LEFT_DOWN, self.ListClick)
-        self.dropdownlistbox.Bind(wx.EVT_LEFT_DCLICK, self.ListDClick)
+        self.dropdownlistbox.Bind(wx.EVT_LEFT_DCLICK, self.ListClick)
         sizer.Add(self.dropdownlistbox, 1, wx.EXPAND|wx.ALL, 3)
         self.dropdown.SetSizer(sizer)
         
@@ -394,8 +394,8 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         
         gp = self 
         while (gp <> None) : 
-            gp.Bind (wx.EVT_MOVE , self.ControlChanged, gp) 
-            gp.Bind (wx.EVT_SIZE , self.ControlChanged, gp) 
+            gp.Bind (wx.EVT_MOVE , self.ControlChanged, gp)
+            gp.Bind (wx.EVT_SIZE , self.ControlChanged, gp)
             gp = gp.GetParent()
             
         self.Bind (wx.EVT_KILL_FOCUS, self.ControlChanged, self) 
@@ -408,15 +408,9 @@ class TextCtrlAutoComplete(wx.TextCtrl):
     def ListClick(self, evt):
         toSel, _ = self.dropdownlistbox.HitTest(evt.GetPosition()) 
         if toSel == -1:
-            return 
+            return
         self.dropdownlistbox.Select(toSel)
-
-    def ListDClick(self, evt):
         self.SetValueFromSelected()
-        toSel, _ = self. dropdownlistbox. HitTest (evt.GetPosition()) 
-        if toSel == -1: 
-            return 
-        self.dropdownlistbox.Select(toSel)
 
     def SetChoices (self, choices = [""]) :
         ''' Sets the choices available in the popup wx.ListBox. ''' 
@@ -430,11 +424,11 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
         for num, it in enumerate(choices): 
             self.dropdownlistbox.InsertStringItem(num, it)
-            
+        
         itemcount = min(len(choices), 7) + 2
         charheight = self.dropdownlistbox.GetCharHeight()
         
-        self.popupsize = wx.Size(self.GetClientSize()[0], charheight*itemcount)
+        self.popupsize = wx.Size(self.GetClientSize()[0], (charheight*itemcount) + 6)
         self.dropdown.SetClientSize(self.popupsize)
         self.dropdown.Layout()
 
@@ -452,18 +446,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         if len(self.choices) == 0:
             self.ShowDropDown(False)
         else:
-            notfound = True 
-            for choice in self.choices : 
-                if choice.lower().startswith(text.lower()) : 
-                    notfound = False 
-                    self.ShowDropDown (True) 
-                    toSel = self.dropdownlistbox.FindItem(-1, choice) 
-                    if toSel == -1: 
-                        continue 
-                    self.dropdownlistbox.Select(toSel) 
-                    break
-            if notfound :
-                self.dropdownlistbox.Select(self.dropdownlistbox.GetFirstSelected(), False)
+            self.ShowDropDown(True)
         event.Skip()
 
     def KeyDown (self, event) : 
@@ -483,9 +466,10 @@ class TextCtrlAutoComplete(wx.TextCtrl):
             self.ShowDropDown () 
             skip = False 
         if visible : 
-            if event.GetKeyCode() == wx.WXK_RETURN : 
-                self.SetValueFromSelected() 
-                skip = False 
+            if event.GetKeyCode() == wx.WXK_RETURN :
+                if sel > -1:
+                    self.SetValueFromSelected()
+                    skip = False
             if event.GetKeyCode() == wx.WXK_ESCAPE : 
                 self.ShowDropDown(False) 
                 skip = False 

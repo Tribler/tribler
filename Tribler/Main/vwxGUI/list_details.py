@@ -8,6 +8,7 @@ import shutil
 from datetime import date, datetime
 
 from Tribler.Core.API import *
+from Tribler.Core.osutils import startfile
 from Tribler.TrackerChecking.TorrentChecking import *
 from Tribler.Video.Progress import ProgressBar
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
@@ -306,14 +307,19 @@ class TorrentDetails(wx.Panel):
             if type is None:
                 #Decide which panel should be shown
                 ds = self.torrent.get('ds', False)
-                in_progress = ds
-                finished = ds and ds.get_progress() == 1.0
+                if ds:
+                    in_progress = True
+                    finished = ds.get_progress() == 1.0
+                else:
+                    finished = self.torrent.get('progress', 0) == 100
+                    
             elif type == 1:
                 in_progress = True
             elif type == 2:
                 finished = True
             
             if finished:
+                self.torrent['progress'] = 100
                 self._ShowDone()
             elif in_progress:
                 self._ShowDownloadProgress()
@@ -463,19 +469,15 @@ class TorrentDetails(wx.Panel):
         if not self.information[0]:
             play.Disable()
         
-        if sys.platform == 'win32':
-            explore_play_sizer = wx.BoxSizer(wx.HORIZONTAL)
-            explore = wx.Button(self.buttonPanel, -1, "Explore Files")
-            explore.SetToolTipString('Explore the files of this torrent.')
-            explore.Bind(wx.EVT_BUTTON, self.OnExplore)
-            
-            explore_play_sizer.Add(explore)
-            explore_play_sizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
-            explore_play_sizer.Add(play)
-            self.buttonSizer.Add(explore_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
-        else:
-            self.buttonSizer.Add(play, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        explore_play_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        explore = wx.Button(self.buttonPanel, -1, "Explore Files")
+        explore.SetToolTipString('Explore the files of this torrent.')
+        explore.Bind(wx.EVT_BUTTON, self.OnExplore)
         
+        explore_play_sizer.Add(explore)
+        explore_play_sizer.Add(wx.StaticText(self.buttonPanel, -1, "or"), 0, wx.ALIGN_CENTRE_VERTICAL|wx.LEFT|wx.RIGHT, 3)
+        explore_play_sizer.Add(play)
+        self.buttonSizer.Add(explore_play_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
         self.buttonSizer.AddStretchSpacer()
         
         if not self.noChannel:
@@ -531,8 +533,8 @@ class TorrentDetails(wx.Panel):
     
     def OnExplore(self, event):
         path = self._GetPath()
-        if path and hasattr(os, "startfile"):
-            os.startfile(path)
+        if path:
+            startfile(path)
                 
     def OnDownload(self, event):
         self.parent.parent_list.parent_list.StartDownload(self.torrent)
@@ -589,8 +591,8 @@ class TorrentDetails(wx.Panel):
                 self.guiutility.torrentsearch_manager.playTorrent(self.torrent, selected_file)
             elif self.torrent.get('progress',0) == 100: #not playable
                 file = self._GetPath(selected_file)
-                if os.path.isfile(file) and hasattr(os, "startfile"):
-                    os.startfile(file)
+                if os.path.isfile(file):
+                    startfile(file)
                     
     def OnSubtitle(self, event):
         choice = event.GetEventObject()
@@ -687,29 +689,28 @@ class TorrentDetails(wx.Panel):
         for ds in dslist:
             infohash = ds.get_download().get_def().get_infohash()
             if infohash == self.torrent['infohash']:
-                found = True
                 self.torrent['ds'] = ds
+                self.torrent['progress'] = int(ds.get_progress() * 100)
                 
-                if getattr(self, 'progressPanel', False):
-                    self.item.original_data['ds'] = ds
-                    if self.progressPanel.Update() == 2:
-                        
-                        self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
-                        self.ShowPanel()
-                        break
+                if self.torrent['progress'] < 100:
+                    found = True
                 
-                if ds.get_status() == DLSTATUS_STOPPED:
-                    label = 'Download is stopped'
-                elif ds.is_vod():
-                    label = 'You are streaming this torrent'
-                    if getattr(self, 'play', False):
-                        self.play.Hide()
-                else:
-                    label = 'You are downloading this torrent'
-                if self.downloadText.GetLabel() != label:
-                    self.downloadText.SetLabel(label)
-                    self.downloadText.Refresh()
-                self.buttonPanel.Show()
+                    if getattr(self, 'progressPanel', False):
+                        self.item.original_data['ds'] = ds
+                        self.progressPanel.Update()
+                    
+                    if ds.get_status() == DLSTATUS_STOPPED:
+                        label = 'Download is stopped'
+                    elif ds.is_vod():
+                        label = 'You are streaming this torrent'
+                        if getattr(self, 'play', False):
+                            self.play.Hide()
+                    else:
+                        label = 'You are downloading this torrent'
+                    if self.downloadText.GetLabel() != label:
+                        self.downloadText.SetLabel(label)
+                        self.downloadText.Refresh()
+                    self.buttonPanel.Show()
                 break
         
         if not found:
