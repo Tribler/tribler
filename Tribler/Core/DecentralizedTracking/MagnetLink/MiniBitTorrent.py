@@ -581,5 +581,3 @@ class MiniTracker(Thread):
 
                     if DEBUG: print >> sys.stderr, "MiniTracker.run() received", len(peers), "peer addresses from tracker"
                     self._swarm.add_potential_peers(peers)
-                                                                                                            
-                                                    

@@ -122,7 +122,7 @@ class MagnetLink:
             # method.  note that this object does not yet contain a
             # stop method...
             dht = mainlineDHT.dht
-            dht.get_peers(self._info_hash, Id(self._info_hash), self._swarm.add_potential_peers, 0)
+            dht.get_peers(self._info_hash, Id(self._info_hash), self.potential_peers_from_dht, 0)
 
             try:
                 if self._tracker:
@@ -134,6 +134,9 @@ class MagnetLink:
         else:
             print >> sys.stderr, "No Infohash"
             return False
+
+    def potential_peers_from_dht(self, lookup_id, peers):
+        self._swarm.add_potential_peers(peers)
 
     def metainfo_retrieved(self, metainfo, peers=[]):
         """
