@@ -329,8 +329,9 @@ class MainFrame(wx.Frame):
 
 
     def show_saved(self):
-        self.guiUtility.frame.top_bg.Notify("Download started", wx.ART_INFORMATION)
-        self.librarylist.GetManager().refresh()
+        if self.ready and self.librarylist.ready:
+            self.top_bg.Notify("Download started", wx.ART_INFORMATION)
+            self.librarylist.GetManager().refresh()
        
     def checkVersion(self):
         guiserver = GUITaskQueue.getInstance()
