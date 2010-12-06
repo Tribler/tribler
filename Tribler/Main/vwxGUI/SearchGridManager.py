@@ -68,7 +68,11 @@ class TorrentManager:
         # 09/10/09 boudewijn: CallLater does not accept zero as a
         # delay. the value needs to be a positive integer.
         self.prefetch_callback = wx.CallLater(10, self.prefetch_hits)
-        
+
+        # 06/12/10 boudewijn: Depending on threading conditions the
+        # self.dslist may be needed before it is normally set.
+        self.dslist = []
+
     def getInstance(*args, **kw):
         if TorrentManager.__single is None:
             TorrentManager(*args, **kw)       
