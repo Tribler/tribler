@@ -152,8 +152,9 @@ class TorrentDef(Serializable,Copyable):
         try:
             magnet_link = MagnetLink(url, metainfo_retrieved)
             return magnet_link.retrieve()
-        except:
-            # malformed url
+        except Exception, e:
+            print >> sys.stderr, "Exception within magnet link"
+            print >> sys.stderr, e
             return False
 
     def load_from_url(url):
