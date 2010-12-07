@@ -212,7 +212,8 @@ class TopSearchPanel(bgPanel):
                 proxy01_ec_keypair = M2Crypto.EC.load_pub_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey01"))
                 proxy01_permid = str(proxy01_ec_keypair.pub().get_der())
                 # set proxy01 ip address
-                proxy01_ip = "141.85.224.203"
+                proxy01_ip = "95.211.105.67"
+#                proxy01_ip = "141.85.224.203"
 #                proxy01_ip = "10.38.129.243"
                 # set proxy01 port
                 proxy01_port = 25123
@@ -240,7 +241,8 @@ class TopSearchPanel(bgPanel):
                 proxy02_ec_keypair = M2Crypto.EC.load_pub_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey02"))
                 proxy02_permid = str(proxy02_ec_keypair.pub().get_der())
                 # set proxy02 ip address
-                proxy02_ip = "141.85.224.207"
+                proxy02_ip = "95.211.105.69"
+#                proxy02_ip = "141.85.224.207"
 #                proxy02_ip = "10.38.229.46"
                 # set proxy02 port
                 proxy02_port = 25123
@@ -268,7 +270,8 @@ class TopSearchPanel(bgPanel):
                 proxy03_ec_keypair = M2Crypto.EC.load_pub_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey03"))
                 proxy03_permid = str(proxy03_ec_keypair.pub().get_der())
                 # set proxy03 ip address
-                proxy03_ip = "141.85.224.209"
+                proxy03_ip = "95.211.105.71"
+#                proxy03_ip = "141.85.224.209"
 #                proxy03_ip = "10.38.165.170"
                 # set proxy03 port
                 proxy03_port = 25123
@@ -296,7 +299,8 @@ class TopSearchPanel(bgPanel):
                 proxy04_ec_keypair = M2Crypto.EC.load_pub_key(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestTemporaryPermidKey04"))
                 proxy04_permid = str(proxy04_ec_keypair.pub().get_der())
                 # set proxy04 ip address
-                proxy04_ip = "141.85.224.210"
+                proxy04_ip = "95.211.105.73"
+#                proxy04_ip = "141.85.224.210"
 #                proxy04_ip = "10.38.242.17"
                 # set proxy04 port
                 proxy04_port = 25123
