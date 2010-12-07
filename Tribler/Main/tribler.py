@@ -117,6 +117,10 @@ class ABCApp(wx.App):
 
         self.old_reputation = 0
         self.lastchannelrefresh = -1.0
+        
+        # ProxyService 90s Test_
+        self.proxytest_reported = False
+        # _ProxyService 90s Test_
 
         try:
             import sys
@@ -551,13 +555,17 @@ class ABCApp(wx.App):
             for ds in dslist:
                 # ProxyService 90s Test_
                 from Tribler.Core.Statistics.Status.Status import get_status_holder
-                #from Tribler.Core.Statistics.Status.ProxyTestReporter import *
-                #from Tribler.Core.Statistics.Status import *
                 
                 safename = `ds.get_download().get_def().get_name()`
                 if safename == "'Data.90s-test.8M.bin'":
                     status = get_status_holder("Proxy90secondsTest")
                     status.create_and_add_event("transfer-rate", [safename, dlstatus_strings[ds.get_status()], 100.0*ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()])
+                    
+                    # Report the logs when the download completes
+                    if not self.proxytest_reported:
+                        if ds.get_progress() == 1.0:
+                            status.report_now()
+                            self.proxytest_reported = True
                 # _ProxyService 90s Test
 
                 if ds.get_download() == d:

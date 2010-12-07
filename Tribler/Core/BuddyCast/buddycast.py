@@ -1556,25 +1556,27 @@ class BuddyCastCore:
             if selversion >= OLPROTO_VER_FIFTEENTH:
                 new_peer_data['services'] = peer['services']
 
-                # ProxyService 90s Test_
-                from Tribler.Core.Statistics.Status.Status import get_status_holder
-                from Tribler.Core.Statistics.Status.ProxyTestReporter import *
-                from Tribler.Core.Statistics.Status import *
-                # _ProxyService 90s Test
-
-                if new_peer_data['services'] == 2: #and buddycast_data['ip'] == "130.161.211.200"
+                if new_peer_data['services'] == 2:
                     if DEBUG:
                         print "* learned about", show_permid_short(peer_permid), new_peer_data['ip'], "from", buddycast_data['ip'], "Complete data:", new_peer_data
-
-                    # ProxyService 90s Test_
-                    status = get_status_holder("Proxy90secondsTest")
-                    status.create_and_add_event("discovered-active-proxy", [peer_permid, new_peer_data, buddycast_data])
-                    # _ProxyService 90s Test
-                else:
-                    # ProxyService 90s Test_
-                    status = get_status_holder("Proxy90secondsTest")
-                    status.create_and_add_event("discovered-inactive-proxy", [peer_permid, new_peer_data, buddycast_data])
-                    # _ProxyService 90s Test
+                
+                # ProxyService 90s Test_
+                session = Session.get_instance()
+                if session.get_90stest_state():
+                    # 90s test is active. Going to log BuddyCast messages
+                    from Tribler.Core.Statistics.Status.Status import get_status_holder
+                    from Tribler.Core.Statistics.Status.ProxyTestReporter import *
+                    from Tribler.Core.Statistics.Status import *
+                    if new_peer_data['services'] == 2:
+                        # ProxyService 90s Test_
+                        status = get_status_holder("Proxy90secondsTest")
+                        status.create_and_add_event("discovered-active-proxy", [peer_permid, new_peer_data, buddycast_data])
+                        # _ProxyService 90s Test
+                    else:
+                        # ProxyService 90s Test_
+                        status = get_status_holder("Proxy90secondsTest")
+                        status.create_and_add_event("discovered-inactive-proxy", [peer_permid, new_peer_data, buddycast_data])
+                        # _ProxyService 90s Test
             #
             # _ProxyService
 

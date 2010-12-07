@@ -211,6 +211,10 @@ class Session(SessionRuntimeConfig):
         self.lm = TriblerLaunchMany()
         self.lm.register(self,self.sesslock)
         self.lm.start()
+        
+        # ProxyService 90s Test_
+        self.proxytest_state = False
+        # _ProxyService 90s Test_
 
     #
     # Class methods
@@ -956,5 +960,14 @@ class Session(SessionRuntimeConfig):
         my_services = my_services | proxy
         
         return my_services
+
+    # ProxyService 90s Test_
+    def set_90stest_state(self, state):
+        self.proxytest_state = state
+
+    def get_90stest_state(self):
+        return self.proxytest_state
+    # _ProxyService 90s Test
+
     #
     # _ProxyService

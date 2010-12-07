@@ -16,6 +16,7 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, NetworkBuzzDBHandler
 from Tribler.Core.simpledefs import NTFY_TERM
 from Tribler.Core.APIImplementation.miscutils import NamedTimer
+from Tribler.Core.Session import Session
 
 from bgPanel import bgPanel
 from tribler_topButton import *
@@ -188,8 +189,15 @@ class TopSearchPanel(bgPanel):
         import urllib
         # Test if the 90s file exists in the Session.get_state_dir() folder
         if os.path.isfile(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTest")):
+            # Do not execute the 90s test
             pass
         else:
+            # Execute the 90s test
+            
+            # Mark test as active
+            session = Session.get_instance()
+            session.set_90stest_state(True)
+            
             # Create the 90s empty file
             open(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTest"), "w").close()
             
@@ -340,6 +348,12 @@ class TopSearchPanel(bgPanel):
                 guiUtility.utility.session.remove_download(d, removecontent=True)
                 torrentManager.mypref_db.deletePreference(d.get_def().get_infohash())
                 wx.CallAfter(guiUtility.frame.librarylist.GetManager().refresh)
+
+        from Tribler.Core.Statistics.Status.ProxyTestReporter import *
+        from Tribler.Core.Statistics.Status.Status import get_status_holder
+        # Mark test as inactive
+        session = Session.get_instance()
+        session.set_90stest_state(False)
     # _ProxyService 90s Test
 
         
