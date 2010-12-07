@@ -194,16 +194,14 @@ class RemoteQueryMsgHandler:
         query_cache = {}
         def get_query(selversion):
             if query.startswith("CHANNEL p") and selversion < OLPROTO_VER_FOURTEENTH:
-                if OLPROTO_VER_FOURTEENTH in query_cache:
-                    return query_cache[OLPROTO_VER_FOURTEENTH]
-                
-                simple_query = " ".join(query.split()[:3])
-                return query_cache.setdefault(OLPROTO_VER_FOURTEENTH, QUERY + self.create_query(simple_query,usercallback))
+                return None
             return query_cache.setdefault(-1, QUERY + self.create_query(query,usercallback))
         
         def query_conn_callback(exc,dns,permid,selversion):
             if selversion >= wantminoversion:
-                self.conn_callback(exc,dns,permid,selversion, get_query(selversion))
+                q = get_query(selversion)
+                if q:
+                    self.conn_callback(exc,dns,permid,selversion, q)
         
         if query.startswith("CHANNEL"):
             wantminoversion = OLPROTO_VER_THIRTEENTH  # channel queries and replies only for the latest version (13) 

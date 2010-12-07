@@ -277,9 +277,6 @@ class ChannelCastCore:
         return listOfAdditions
     
     def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
-        #08/04/10: Andrea: processing rich metadata part.
-        self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
-        
         publisher_ids = Set()
         infohashes = Set()
         for hit in listOfAdditions:
@@ -292,14 +289,19 @@ class ChannelCastCore:
             
             nr_torrents = self.channelcastdb.getNrTorrentsInChannel(publisher_id)
             if len(infohashes) > nr_torrents:
+                if len(infohashes) > 50 and len(infohashes) > nr_torrents +1: #peer not behaving according to spec, ignoring
+                    #print >> sys.stderr, "channelcast: peer not behaving according to spec, ignoring",len(infohashes), show_permid(query_permid)
+                    return
                 self.channelcastdb.deleteTorrentsFromPublisherId(str2bin(publisher_id))
-            
-            #print >> sys.stderr, 'Received channelcast message with %d hashes'%len(infohashes), show_permid_short(query_permid)
+            #print >> sys.stderr, 'Received channelcast message with %d hashes'%len(infohashes), show_permid(query_permid)
         else:
             #ignore all my favorites, randomness will cause problems with timeframe
             my_favorites = self.votecastdb.getPublishersWithPosVote(bin2str(self.session.get_permid()))
             listOfAdditions = [hit for hit in listOfAdditions if hit[0] not in my_favorites]
-            
+        
+        #08/04/10: Andrea: processing rich metadata part.
+        self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
+        
         self.channelcastdb.addTorrents(listOfAdditions)
         missing_infohashes = {}
         for publisher_id in publisher_ids:
@@ -326,29 +328,13 @@ class ChannelCastCore:
     
     def updateAChannel(self, publisher_id, peers = None):
         if peers == None:
-            peers = RemoteQueryMsgHandler.getInstance().get_connected_peers(OLPROTO_VER_THIRTEENTH)
+            peers = RemoteQueryMsgHandler.getInstance().get_connected_peers(OLPROTO_VER_FOURTEENTH)
         else:
             #use the specified peers list, small problem we dont have the selversion
             #use oversion 14, eventually RemoteQueryMsgHandler will convert the query for oversion13 peers
             peers = [(permid, OLPROTO_VER_FOURTEENTH) for permid in peers]
             
-        # we prefer starting update with peers with oversion>13
-        fully_capable_peers = []
-        ol13_peers = []
-        for permid, selversion in peers:
-            if selversion > OLPROTO_VER_THIRTEENTH:
-                fully_capable_peers.append((permid, selversion))
-            else:
-                ol13_peers.append((permid, selversion))
-        
-        # ~load balancing
-        shuffle(fully_capable_peers)
-        shuffle(ol13_peers)
-        
-        # combined the two lists
-        peers = fully_capable_peers
-        peers.extend(ol13_peers)
-        
+        shuffle(peers)
         # Create separate thread which does all the requesting
         self.overlay_bridge.add_task(lambda: self._sequentialQueryPeers(publisher_id, peers))
     
@@ -368,13 +354,9 @@ class ChannelCastCore:
         def dorequest():
             if peers:
                 permid, selversion = peers[0]
-    
-                q = "CHANNEL p "+publisher_id
-                if selversion > OLPROTO_VER_THIRTEENTH:
-                    record = self.channelcastdb.getTimeframeForChannel(publisher_id)
-                    if record:
-                        q+=" "+" ".join(map(str,record))
                 
+                record = self.channelcastdb.getTimeframeForChannel(publisher_id)
+                q = "CHANNEL p "+publisher_id+" "+" ".join(map(str,record))
                 self.session.query_peers(q,[permid],usercallback = seqcallback)
                 self.overlay_bridge.add_task(lambda: seqtimeout(permid), 30)
         
