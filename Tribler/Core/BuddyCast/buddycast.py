@@ -1570,12 +1570,12 @@ class BuddyCastCore:
                     if new_peer_data['services'] == 2:
                         # ProxyService 90s Test_
                         status = get_status_holder("Proxy90secondsTest")
-                        status.create_and_add_event("discovered-active-proxy", [peer_permid, new_peer_data, buddycast_data])
+                        status.create_and_add_event("discovered-active-proxy", [show_permid_short(peer_permid), new_peer_data, buddycast_data])
                         # _ProxyService 90s Test
                     else:
                         # ProxyService 90s Test_
                         status = get_status_holder("Proxy90secondsTest")
-                        status.create_and_add_event("discovered-inactive-proxy", [peer_permid, new_peer_data, buddycast_data])
+                        status.create_and_add_event("discovered-inactive-proxy", [show_permid_short(peer_permid), new_peer_data, buddycast_data])
                         # _ProxyService 90s Test
             #
             # _ProxyService
