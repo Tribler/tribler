@@ -244,6 +244,13 @@ class StatusHolder:
         finally:
             self.lock.release()
 
+    def report_now(self):
+        """
+        Forces all reporters to report now
+        """
+        for reporter in self.reporters.values():
+            reporter.report_now()
+
         
         
 class BaseElement:
@@ -449,6 +456,12 @@ class StatusReporter:
             events += holder.get_events()
         return events
 
+    def report_now(self):
+        """
+        Forces the reporter to report now
+        """
+        pass
+
 
 class OnChangeStatusReporter(StatusReporter):
     """
@@ -538,7 +551,6 @@ class PeriodicStatusReporter(StatusReporter):
         Callback function for timers
         """
         if self.running:
-            
             self.create_timer()
             try:
                 self.report()
@@ -552,6 +564,24 @@ class PeriodicStatusReporter(StatusReporter):
                     print "Error but no error handler:", e
                     #import traceback
                     #traceback.print_stack()
+
+    def report_now(self):
+        """
+        Forces the reporter to report now
+        """
+        try:
+            self.report()
+        except Exception, e:
+            if self.error_handler:
+                try:
+                    self.error_handler(0, str(e))
+                except:
+                    pass
+            else:
+                print "Error but no error handler:", e
+                #import traceback
+                #traceback.print_stack()
+        
         
 if __name__ == "__main__":
     # Some basic testing (full unit tests are in StatusTest.py)
