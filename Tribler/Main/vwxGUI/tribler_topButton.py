@@ -502,6 +502,10 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         ''' Either display the drop down list (show = True) or hide it (show = False). '''
         if show:
             show = len(self.choices) > 0
+            
+        if show:
+            focusWin = wx.Window.FindFocus()
+            show = focusWin == self
              
         if show and not self.dropdown.IsShown():
             size = self.dropdown.GetSize() 
