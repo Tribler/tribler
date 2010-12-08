@@ -554,8 +554,6 @@ class ABCApp(wx.App):
             d = self.videoplayer.get_vod_download()
             for ds in dslist:
                 # ProxyService 90s Test_
-                from Tribler.Core.Statistics.Status.Status import get_status_holder
-                
                 safename = `ds.get_download().get_def().get_name()`
                 if safename == "'Data.90s-test.8M.bin'":
                     status = get_status_holder("Proxy90secondsTest")
