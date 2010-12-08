@@ -3410,7 +3410,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         
         sqla = "Select count(distinct voter_id) as subscribers FROM VoteCast Where mod_id = ? LIMIT 1"
         sqlb = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
-        sqlc = "Select count(distinct ChannelCast.infohash) FROM ChannelCast, Torrent WHERE publisher_id = ? AND ChannelCast.infohash = Torrent.infohash AND Torrent.name <> '' LIMIT 1"
+        sqlc = "Select count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash LIMIT 1"
         for result in results:
             nr_votes = self._db.fetchone(sqla, (result[0],))
             if nr_votes <= maxvotes:
