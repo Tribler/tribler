@@ -359,4 +359,4 @@ def startfile(filepath):
     elif sys.platform == 'linux2':
         subprocess.call(('xdg-open', filepath))
     elif hasattr(os, "startfile"):
-        os.startfile(file)
+        os.startfile(filepath)
