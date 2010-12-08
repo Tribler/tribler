@@ -483,10 +483,11 @@ class MiniSwarm:
         now = time()
 
         # order by last connection attempt
-        addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems() if timestamp + 60 > now]
+        addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems() if timestamp + 60 < now]
         addresses.sort()
 
-        # print >> sys.stderr, len(self._connections), "/", len(self._potential_peers)
+        if DEBUG:
+            print >> sys.stderr, len(self._connections), "/", len(self._potential_peers), "->", len(addresses)
 
         for timestamp, address in addresses:
             if len(self._connections) >= MAX_CONNECTIONS:
