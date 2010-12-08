@@ -213,8 +213,14 @@ class Session(SessionRuntimeConfig):
         self.lm.start()
         
         # ProxyService 90s Test_
-        self.proxytest_state = False
-        # _ProxyService 90s Test_
+        sscfg = self.get_current_startup_config_copy()
+        if os.path.isfile(os.path.join(sscfg.get_state_dir(),"Proxy90secondsTest")):
+            # The 90s test was already executed
+            self.proxytest_state = False
+        else:
+            # The 90s test was not executed yet
+            self.proxytest_state = True
+        # _ProxyService 90s Test
 
     #
     # Class methods

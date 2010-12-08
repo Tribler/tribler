@@ -558,11 +558,9 @@ class TriblerLaunchMany(Thread):
             tdef = TorrentDef.load_from_dict(pstate['metainfo'])
             
             # ProxyService 90s Test_
-            infohash = tdef.get_infohash()
-            if infohash in self.downloads:
-                safename = `self.downloads[infohash].get_def().get_name()`
-                if safename == "'Data.90s-test.8M.bin'":
-                    return None
+            safename = `tdef.get_name()`
+            if safename == "'Data.90s-test.8M.bin'":
+                return None
             # _ProxyService 90s Test
             
             # Activate
