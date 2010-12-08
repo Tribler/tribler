@@ -8,7 +8,7 @@ from Tribler.Core.Subtitles.MetadataDomainObjects.SubtitleInfo import SubtitleIn
 from Tribler.Core.Overlay.permid import sign_data, verify_data
 from Tribler.Core.Utilities.utilities import isValidInfohash, isValidPermid
 from math import floor
-from struct import pack
+from struct import pack, unpack
 import sys
 import time
 
@@ -266,7 +266,7 @@ def deserialize(packed):
     description = message[2].decode("utf-8")
     timestamp = message[3]
     binarybitmask = message[4]
-    bitmask = binaryStringToUint(binarybitmask)
+    bitmask, = unpack("!L", binarybitmask)
     listOfChecksums = message[5]
     signature = message[6]
     subtitles = _createSubtitlesDict(bitmask,listOfChecksums)
