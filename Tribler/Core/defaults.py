@@ -16,7 +16,7 @@
 #    disk that does not have your new fields.
 #
 import sys
-
+import os
 from simpledefs import *
 
 DEFAULTPORT=7760
@@ -31,7 +31,7 @@ SESSDEFAULTS_VERSION = 2
 sessdefaults = {}
 sessdefaults['version'] = SESSDEFAULTS_VERSION
 sessdefaults['state_dir'] = None
-sessdefaults['install_dir'] = u'.'
+sessdefaults['install_dir'] = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sessdefaults['ip'] = ''
 sessdefaults['minport'] = DEFAULTPORT
 sessdefaults['maxport'] = DEFAULTPORT
