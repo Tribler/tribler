@@ -480,11 +480,11 @@ class MiniSwarm:
                 self._create_connections()
 
     def _create_connections(self):
-        # order by last connection attempt
-        addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems()]
-        addresses.sort()
-
         now = time()
+
+        # order by last connection attempt
+        addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems() if timestamp + 60 > now]
+        addresses.sort()
 
         # print >> sys.stderr, len(self._connections), "/", len(self._potential_peers)
 
