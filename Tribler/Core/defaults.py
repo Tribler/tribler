@@ -31,6 +31,9 @@ SESSDEFAULTS_VERSION = 2
 sessdefaults = {}
 sessdefaults['version'] = SESSDEFAULTS_VERSION
 sessdefaults['state_dir'] = None
+
+print >> sys.stderr, os.path.dirname(__file__)
+
 sessdefaults['install_dir'] = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sessdefaults['ip'] = ''
 sessdefaults['minport'] = DEFAULTPORT
