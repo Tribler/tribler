@@ -32,9 +32,13 @@ sessdefaults = {}
 sessdefaults['version'] = SESSDEFAULTS_VERSION
 sessdefaults['state_dir'] = None
 
-print >> sys.stderr, sys.path
+working_dir = __file__
+if working_dir.find('library.zip') >= 0:
+    working_dir = working_dir[:working_dir.find('library.zip') - 1]
+else:
+    working_dir = u'.'
 
-sessdefaults['install_dir'] = sys.path[0]
+sessdefaults['install_dir'] = working_dir 
 sessdefaults['ip'] = ''
 sessdefaults['minport'] = DEFAULTPORT
 sessdefaults['maxport'] = DEFAULTPORT
