@@ -327,7 +327,6 @@ class TopSearchPanel(bgPanel):
             d = guiUtility.frame.startDownload(tdef = torrent_def, proxymode=PROXY_MODE_PRIVATE)
             d.ask_coopdl_helpers(peerlist)
      
-            import threading
             # 300s = 5 minutes
             t = NamedTimer(300, self.del_dl)
             t.start()
