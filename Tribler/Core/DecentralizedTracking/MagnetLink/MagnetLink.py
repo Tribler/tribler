@@ -136,7 +136,8 @@ class MagnetLink:
             return False
 
     def potential_peers_from_dht(self, lookup_id, peers):
-        self._swarm.add_potential_peers(peers)
+        if peers:
+            self._swarm.add_potential_peers(peers)
 
     def metainfo_retrieved(self, metainfo, peers=[]):
         """
