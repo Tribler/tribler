@@ -355,8 +355,10 @@ class ChannelCastCore:
             if peers:
                 permid, selversion = peers[0]
                 
+                q = "CHANNEL p "+publisher_id
                 record = self.channelcastdb.getTimeframeForChannel(publisher_id)
-                q = "CHANNEL p "+publisher_id+" "+" ".join(map(str,record))
+                if record:
+                    q+= " "+" ".join(map(str,record))
                 self.session.query_peers(q,[permid],usercallback = seqcallback)
                 self.overlay_bridge.add_task(lambda: seqtimeout(permid), 30)
         

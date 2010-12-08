@@ -378,9 +378,12 @@ class RemoteQueryMsgHandler:
             # leaving it now because of time constraints
             r['category'] = torrent['category']
             if selversion >= OLPROTO_VER_NINETH:
-                file = join(self.torrent_dir, torrent['torrent_file_name'])
-                if isfile(file):
-                    r['torrent_size'] = getsize(file)
+                if torrent['torrent_file_name']:
+                    file = join(self.torrent_dir, torrent['torrent_file_name'])
+                    if isfile(file):
+                        r['torrent_size'] = getsize(file)
+                    else:
+                        continue
                 else:
                     continue
             if selversion >= OLPROTO_VER_ELEVENTH:
