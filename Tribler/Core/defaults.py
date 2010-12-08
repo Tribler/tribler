@@ -32,9 +32,9 @@ sessdefaults = {}
 sessdefaults['version'] = SESSDEFAULTS_VERSION
 sessdefaults['state_dir'] = None
 
-print >> sys.stderr, os.path.dirname(__file__)
+print >> sys.stderr, sys.path
 
-sessdefaults['install_dir'] = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sessdefaults['install_dir'] = sys.path[0]
 sessdefaults['ip'] = ''
 sessdefaults['minport'] = DEFAULTPORT
 sessdefaults['maxport'] = DEFAULTPORT
