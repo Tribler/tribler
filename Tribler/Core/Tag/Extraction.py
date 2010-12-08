@@ -71,7 +71,7 @@ class TermExtraction:
         i.e. less than two terms were extracted, None is returned.
         """
         terms = [term for term in self.extractTerms(name_or_keywords)
-                 if self.containsdigits_filter.match(term) is None]
+                 if self.containsdigits_filter.search(term) is None]
         if len(terms) > 1:
             return tuple(terms[:2])
         else:
