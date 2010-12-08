@@ -233,43 +233,47 @@ class GUIUtility:
                 return
         else:
             self.frame.top_bg.searchField.SetValue(input)
-            
-        self.frame.top_bg.StartSearch()
         
         wantkeywords = split_into_keywords(input)
-        self.current_search_query = wantkeywords
-        if DEBUG:
-            print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
-        
-        self.frame.searchlist.Freeze()
-        self.frame.searchlist.Reset()
-        self.ShowPage('search_results')
-        
-        #We now have to call thaw, otherwise loading message will not be shown.
-        self.frame.searchlist.Thaw()
-        
-        #Peform local search
-        self.torrentsearch_manager.setSearchKeywords(wantkeywords, 'filesMode')
-        self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
-        
-        self.channelsearch_manager.setSearchKeywords(wantkeywords)
-        self.channelsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
-        self.torrentsearch_manager.refreshGrid()
-        
-        #Start remote search
-        #Arno, 2010-02-03: Query starts as Unicode
-        q = u'SIMPLE '
-        for kw in wantkeywords:
-            q += kw+u' '
-        q = q.strip()
-        self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
-        
-        if len(input) > 1: #do not perform remote channel search for single character inputs
-            q = 'CHANNEL k '
+        if len(' '.join(wantkeywords))  == 0:
+            self.frame.top_bg.Notify('Please enter a search term', wx.ART_INFORMATION)
+        else:
+            self.frame.top_bg.StartSearch()
+            
+            self.current_search_query = wantkeywords
+            if DEBUG:
+                print >>sys.stderr,"GUIUtil: searchFiles:", wantkeywords
+            
+            self.frame.searchlist.Freeze()
+            self.frame.searchlist.Reset()
+            self.ShowPage('search_results')
+            
+            #We now have to call thaw, otherwise loading message will not be shown.
+            self.frame.searchlist.Thaw()
+            
+            #Peform local search
+            self.torrentsearch_manager.setSearchKeywords(wantkeywords, 'filesMode')
+            self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
+            
+            self.channelsearch_manager.setSearchKeywords(wantkeywords)
+            self.channelsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
+            self.torrentsearch_manager.refreshGrid()
+            
+            #Start remote search
+            #Arno, 2010-02-03: Query starts as Unicode
+            q = u'SIMPLE '
             for kw in wantkeywords:
-                q += kw+' '
-            self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
-        wx.CallLater(10000, self.CheckSearch, wantkeywords)
+                q += kw+u' '
+            q = q.strip()
+            
+            self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
+            
+            if len(input) > 1: #do not perform remote channel search for single character inputs
+                q = 'CHANNEL k '
+                for kw in wantkeywords:
+                    q += kw+' '
+                self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
+            wx.CallLater(10000, self.CheckSearch, wantkeywords)
     
     def showChannelCategory(self, category, show = True):
         if show:

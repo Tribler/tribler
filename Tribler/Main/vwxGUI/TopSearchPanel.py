@@ -49,11 +49,7 @@ class TopSearchPanel(bgPanel):
     def OnSearchKeyDown(self, event = None):
         if DEBUG:
             print >> sys.stderr, "TopSearchPanel: OnSearchKeyDown"
-            
-        if self.searchField.GetValue().strip() == '':
-            self.Notify('Please enter a search term', wx.ART_INFORMATION)
-        else:
-            wx.CallAfter(self.guiUtility.dosearch)
+        wx.CallAfter(self.guiUtility.dosearch)
     
     def StartSearch(self):
         self.ag.Show()
