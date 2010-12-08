@@ -921,7 +921,7 @@ class SelectedChannelList(SearchList):
         if not states[1]:
             nrdownloaded = self.channelsearch_manager.getNrTorrentsDownloaded(self.publisher_id) + 1
             if  nrdownloaded > 1:
-                dial = wx.MessageDialog(self, "You have now downloaded %d torrents from this Channel.\nMarking it as a favorite will make sure that you will always have to newest content.\nDo you want to mark this channel as one of your favorites now?"%nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                dial = wx.MessageDialog(self, "You downloaded %d torrents from this Channel. 'Mark as favorite' will ensure that you will always have access to newest channel content.\n\nDo you want to mark this channel as one of your favorites now?"%nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                 if dial.ShowModal() == wx.ID_YES:
                     self.OnFavorite()
                     self.uelog.addEvent(message="ChannelList: user clicked yes to mark as favorite", type = 2)
