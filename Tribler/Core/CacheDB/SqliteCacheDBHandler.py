@@ -3396,8 +3396,17 @@ class ChannelCastDBHandler(BasicDBHandler):
         return self._getChannels(sql, (max_nr,))
 
     def getMySubscribedChannels(self):
+        #Sometimes we have no actual channelcast entries, but do know this channel
+        sql = "Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2"
+        my_sub_channels = [mod_id for mod_id, in self._db.fetchall(sql, (bin2str(self.my_permid),))]
         sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2) Group By publisher_id Order By max(ChannelCast.time_stamp) DESC"
-        return self._getChannels(sql, (bin2str(self.my_permid),))
+        channels_with_content = self._getChannels(sql, (bin2str(self.my_permid),))
+        
+        for channel in channels_with_content:
+            my_sub_channels.remove(channel[0])
+        for channel in my_sub_channels:
+            channels_with_content.append((channel, '', -1, -1, -1))
+        return channels_with_content
     
     def getTimeframeForChannel(self, publisher_id):
         sql = 'Select min(time_stamp), max(time_stamp), count(infohash) From ChannelCast Where publisher_id = ? Group By publisher_id'
@@ -3407,7 +3416,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         """Returns the channels based on the input sql, if the number of positive votes is less than maxvotes and the number of torrent > 0"""
         channels = []
         results = self._db.fetchall(sql, args)
-        
+
         sqla = "Select count(distinct voter_id) as subscribers FROM VoteCast Where mod_id = ? LIMIT 1"
         sqlb = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
         sqlc = "Select count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash LIMIT 1"
@@ -3416,8 +3425,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             if nr_votes <= maxvotes:
                 name = self._db.fetchone(sqlb, (result[0], result[1]))
                 nr_torrents = self._db.fetchone(sqlc, (result[0],))
-                if nr_torrents > 0:
-                    channels.append((result[0], name, result[1], nr_votes, nr_torrents))
+                channels.append((result[0], name, result[1], nr_votes, nr_torrents))
                 
         def channel_sort(a, b):
             #first compare nr_votes
