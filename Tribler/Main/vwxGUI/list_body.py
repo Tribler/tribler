@@ -255,6 +255,7 @@ class ListItem(wx.Panel):
             #If this item has a icon and it is not checked
             if getattr(self, 'expandedState', False) and not self.expanded:
                 self.expandedState.SetBitmap(self.GetIcon(color, 0))
+                self.expandedState.Refresh()
             
             self.Refresh()
             self.Thaw()
@@ -564,6 +565,7 @@ class AbstractListBody():
         else:
             data = self.raw_data
         
+        self.Freeze()
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
         if data:
@@ -591,7 +593,8 @@ class AbstractListBody():
                 self.Bind(wx.EVT_IDLE, None) #unbinding unnecessary event handler seems to improve visual performance
             else:
                 self.Bind(wx.EVT_IDLE, self.OnIdle)
-                wx.WakeUpIdle()
+        
+        self.Thaw()
         
     def OnIdle(self, event):
         if not self.done and self.data:

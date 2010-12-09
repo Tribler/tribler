@@ -20,8 +20,6 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.TorrentDef import TorrentDef
 
-SLEEP_BETWEEN_REQUESTS = 1
-SLEEP_BETWEEN_REQUESTS_TURBO = 0.5
 DEBUG = False
 
 class RemoteTorrentHandler:
@@ -93,7 +91,7 @@ class RemoteTorrentHandler:
             
 class TorrentRequester():
     
-    MAGNET_TIMEOUT = 10
+    MAGNET_TIMEOUT = 5
     REQUEST_INTERVAL = 0.5
     
     def __init__(self, remoteTorrentHandler, metadatahandler, overlay_bridge, session, prio):
@@ -138,7 +136,7 @@ class TorrentRequester():
                 #metadatahandler will only do actual request if torrentfile is not on disk
                 self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
                 
-                #schedule a magnet lookup after 10 seconds
+                #schedule a magnet lookup after X seconds
                 if self.prio <= 1 or infohash not in self.sources:
                     self.overlay_bridge.add_task(lambda: self.magnetTimeout(infohash), self.MAGNET_TIMEOUT, infohash)
 

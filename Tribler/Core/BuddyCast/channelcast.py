@@ -311,12 +311,10 @@ class ChannelCastCore:
         def notify(publisher_id):
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, publisher_id)
 
-        for infohash in infohashes:
-            if infohash in missing_infohashes:
-                self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(missing_infohashes[infohash]) ,2)
-        
         for infohash, publisher_id in missing_infohashes.iteritems():
-            if infohash not in infohashes:
+            if infohash in infohashes:
+                self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(publisher_id) ,2)
+            else:
                 self.rtorrent_handler.download_torrent(query_permid, infohash, lambda infohash, metadata, filename: notify(publisher_id) ,3)
     
     def updateMySubscribedChannels(self):
