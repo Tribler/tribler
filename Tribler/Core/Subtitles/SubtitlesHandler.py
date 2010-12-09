@@ -216,15 +216,21 @@ class SubtitlesHandler(object):
     
     def _readSubContent(self,path):
         try:
-            # fileName = os.path.normpath(os.path.join(self.subs_dir, path))
-            relativeName = os.path.relpath(path, self.subs_dir)
-            fileName = os.path.join(self.subs_dir, relativeName)
+            # 09/12/10 boudewijn: just before calling this method, the
+            # subtitleExists method is called.  This checks that
+            # path.isfile(path) is True.  Hence no relpath and or join
+            # is required.  Also, we support Python version 2.5, and
+            # this does NOT contain path.relpath.
+            fileName = path
+            # relativeName = os.path.relpath(path, self.subs_dir)
+            # fileName = os.path.join(self.subs_dir, relativeName)
 
-            print >> sys.stderr, "SUBTITLES PATH:", path
-            print >> sys.stderr, "SUBTITLES SUBS_DIR:", self.subs_dir
-            print >> sys.stderr, "SUBTITLES RELNAME:", relativeName
-            print >> sys.stderr, "SUBTITLES FILENAME:", fileName
-            print >> sys.stderr, "SUBTITLES TEST:", os.path.normpath(os.path.join(self.subs_dir, path))
+            # print >> sys.stderr, "SUBTITLES PATH:", path
+            # print >> sys.stderr, "SUBTITLES ISFILE:", os.path.isfile(path)
+            # print >> sys.stderr, "SUBTITLES SUBS_DIR:", self.subs_dir
+            # print >> sys.stderr, "SUBTITLES RELNAME:", relativeName
+            # print >> sys.stderr, "SUBTITLES FILENAME:", fileName
+            # print >> sys.stderr, "SUBTITLES TEST:", os.path.normpath(os.path.join(self.subs_dir, path))
 
             file = open(fileName, 'rb')
             fileContent = file.read()
