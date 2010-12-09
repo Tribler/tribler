@@ -520,6 +520,13 @@ class RePEXer(RePEXerInterface):
             print >>sys.stderr, "RePEXer: connect_queue: active_sockets: %s" % self.active_sockets
             
     def bootstrap(self):
+        # 09/12/10 boudewijn: the bootstrap_counter needs to be
+        # incremented before a call to rerequester_peers can be made,
+        # otherwise and infinite loop will result.
+        if DEBUG:
+            print >>sys.stderr, "RePEXer: bootstrap"
+        self.bootstrap_counter += 1
+
         # ProxyService_
         #
         proxy_mode = self.connecter.config.get('proxy_mode',0)
@@ -528,9 +535,7 @@ class RePEXer(RePEXerInterface):
             return
         #
         # _ProxyService
-        if DEBUG:
-            print >>sys.stderr, "RePEXer: bootstrap"
-        self.bootstrap_counter += 1
+
         if REPEX_DISABLE_BOOTSTRAP or self.rerequest is None:
             self.rerequester_peers(None)
             return
