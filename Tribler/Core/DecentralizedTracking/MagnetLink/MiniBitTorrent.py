@@ -472,9 +472,13 @@ class MiniSwarm:
  
     def add_potential_peers(self, addresses):
         if not self._closed:
-            for address in addresses:
-                if not address in self._potential_peers:
-                    self._potential_peers[address] = 0
+            self._lock.acquire()
+            try:
+                for address in addresses:
+                    if not address in self._potential_peers:
+                        self._potential_peers[address] = 0
+            finally:
+                self._lock.release()
 
             if len(self._connections) < MAX_CONNECTIONS:
                 self._create_connections()
@@ -483,11 +487,14 @@ class MiniSwarm:
         now = time()
 
         # order by last connection attempt
-        addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems() if timestamp + 60 < now]
+        self._lock.acquire()
+        try:
+            addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems() if timestamp + 60 < now]
+            if DEBUG:
+                print >> sys.stderr, len(self._connections), "/", len(self._potential_peers), "->", len(addresses)
+        finally:
+            self._lock.release()
         addresses.sort()
-
-        if DEBUG:
-            print >> sys.stderr, len(self._connections), "/", len(self._potential_peers), "->", len(addresses)
 
         for timestamp, address in addresses:
             if len(self._connections) >= MAX_CONNECTIONS:
@@ -502,19 +509,20 @@ class MiniSwarm:
                 continue
 
             try:
-                self._potential_peers[address] = now
                 connection = Connection(self, self._raw_server, address)
 
             except:
+                connection = None
                 if DEBUG: print >> sys.stderr, "MiniBitTorrent.add_potential_peers() ERROR"
                 print_exc()
 
-            else:
-                self._lock.acquire()
-                try:
+            self._lock.acquire()
+            try:
+                self._potential_peers[address] = now
+                if connection:
                     self._connections.append(connection)
-                finally:
-                    self._lock.release()
+            finally:
+                self._lock.release()
 
     def _timeout_connections(self):
         deadline = time() - MAX_TIME_INACTIVE
