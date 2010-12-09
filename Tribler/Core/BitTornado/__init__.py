@@ -9,7 +9,7 @@
 from Tribler.__init__ import LIBRARYNAME
 
 if LIBRARYNAME == "Tribler":
-    version_id = '5.3.0'
+    version_id = '5.3.1'
     product_name = 'Tribler'
     version_short = 'Tribler-' + version_id
     report_email = 'tribler@tribler.org'
