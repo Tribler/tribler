@@ -1200,14 +1200,27 @@ class TorrentDBHandler(BasicDBHandler):
         keywords = Set(split_into_keywords(torrent_name))
 
         # search through the .torrent file for potential keywords in
-        # the filenames
+        # the filenames, but only add the 50 most used
+        filedict = {}
         for filename in torrentdef.get_files_as_unicode():
-            keywords.update(split_into_keywords(filename))
-
+            for keyword in split_into_keywords(filename):
+                filedict[keyword] = filedict.get(keyword, 0) + 1
+        
+        file_keywords = filedict.keys()
+        if len(file_keywords) > 50:
+            def popSort(a, b):
+                return filedict[a] - filedict[b]
+            file_keywords.sort(cmp = popSort, reverse = True)
+            file_keywords = file_keywords[:50]
+        
+        keywords.update(file_keywords)
+        #only insert keywords with length 3 or higher (results in a reduction of +/- 18%)
+        keywords = [keyword for keyword in keywords if len(keyword) > 2]
+        
         # store the keywords in the InvertedIndex table in the database
         if len(keywords) > 0:
             values = [(keyword, torrent_id) for keyword in keywords]
-            self._db.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
+            self._db.executemany(u"INSERT OR IGNORE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
             if DEBUG:
                 print >> sys.stderr, "torrentdb: Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
         
@@ -3264,34 +3277,34 @@ class ChannelCastDBHandler(BasicDBHandler):
         value_name = deepcopy(self.value_name) ##
         if query[0] == 'k': 
             # search torrents based on keywords
+            records = []
 
             kwlist = split_into_keywords(query[2:])
-            sql = "select publisher_id, publisher_name from ChannelCast where "
-            count = 0
-            for kw in kwlist:
-                count += 1
-                if kw is None or len(kw)==0:
-                    continue
-                sql += " publisher_name like '%" + kw + "%' "
-                if count<len(kwlist):
-                    sql += " and "
-            
-            sql += " group by publisher_id"
-            
-            channellist = self._db.fetchall(sql)
-            channels = {}
-            allrecords = []
-            for channel in channellist:
-                #print >>sys.stderr, "channel:", repr(channel)
-                # now, retrieve the last 20 of each of these channels' torrents                             
-                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
-                record = self._db.fetchall(s,(channel[0],))
-                if record is not None and len(record)>0:
-                    allrecords.extend(record)
+            kwlist = [keyword for keyword in kwlist if keyword and len(keyword) > 0]
+            if len(kwlist) > 0:
+                sql = "select publisher_id, publisher_name from ChannelCast where "
+                count = 0
+                for kw in kwlist:
+                    count += 1
+                    sql += " publisher_name like '%" + kw + "%' "
+                    if count<len(kwlist):
+                        sql += " and "
+                
+                sql += " group by publisher_id"
+                
+                channellist = self._db.fetchall(sql)
+                channels = {}
+                allrecords = []
+                for channel in channellist:
+                    #print >>sys.stderr, "channel:", repr(channel)
+                    # now, retrieve the last 20 of each of these channels' torrents                             
+                    s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 20"
+                    record = self._db.fetchall(s,(channel[0],))
+                    if record is not None and len(record)>0:
+                        allrecords.extend(record)
 
-            records = []
-            for record in allrecords:
-                records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
+                for record in allrecords:
+                    records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
             return records
             
         elif query[0] == 'p':
@@ -3379,26 +3392,39 @@ class ChannelCastDBHandler(BasicDBHandler):
    
     def getAllChannels(self):
         """ Returns all the channels """
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast Group By publisher_id Order By max(ChannelCast.time_stamp) DESC"
+        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast Group By publisher_id"
         return self._getChannels(sql)
     
     def getNewChannels(self, updated_since = None):
         """ Returns all newest unsubscribed channels, ie the ones with no votes (positive or negative)"""
         if updated_since:
-            sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id <> ? Group By publisher_id Having max(ChannelCast.time_stamp) > ? Order By max(ChannelCast.time_stamp) DESC"
+            sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id <> ? Group By publisher_id Having max(ChannelCast.time_stamp) > ?"
             return self._getChannels(sql,(bin2str(self.my_permid),updated_since), 0)
         else:
-            sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id <> ? Group By publisher_id Order By max(ChannelCast.time_stamp) DESC"
+            sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id <> ? Group By publisher_id"
             return self._getChannels(sql,(bin2str(self.my_permid),), 0)
     
-    def getMostPopularChannels(self, max_nr = 20): ##
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast LEFT JOIN VoteCast On (publisher_id == mod_id AND vote == 2) Group By publisher_id Order By max(ChannelCast.time_stamp) DESC Limit ?"
+    def getLatestUpdated(self, max_nr = 20):
+        def channel_sort(a,b):
+            #then compare latest update
+            if a[2] < b[2]:
+                return 1
+            if a[2] > b[2]:
+                return -1
+            #finally compare nr_torrents
+            return cmp(a[4], b[4])
+        
+        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast Group By publisher_id Order By max(ChannelCast.time_stamp) DESC Limit ?"
+        return self._getChannels(sql, (max_nr,), cmpF = channel_sort)
+    
+    def getMostPopularChannels(self, max_nr = 20):
+        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast, VoteCast WHERE publisher_id == mod_id AND vote == 2 Group By publisher_id Order By count(distinct voter_id) DESC Limit ?"
         return self._getChannels(sql, (max_nr,))
 
     def getMySubscribedChannels(self):
         #Sometimes we have no actual channelcast entries, but do know this channel
         sql = "Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2"
-        my_sub_channels = [mod_id for mod_id, in self._db.fetchall(sql, (bin2str(self.my_permid),))]
+        my_sub_channels = [mod_id for mod_id, in self._db.fetchall(sql, (bin2str(self.my_permid),))]        
         sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2) Group By publisher_id Order By max(ChannelCast.time_stamp) DESC"
         channels_with_content = self._getChannels(sql, (bin2str(self.my_permid),))
         
@@ -3412,11 +3438,11 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = 'Select min(time_stamp), max(time_stamp), count(infohash) From ChannelCast Where publisher_id = ? Group By publisher_id'
         return  self._db.fetchone(sql, (publisher_id,))
     
-    def _getChannels(self, sql, args = None, maxvotes = sys.maxint):
+    def _getChannels(self, sql, args = None, maxvotes = sys.maxint, cmpF = None):
         """Returns the channels based on the input sql, if the number of positive votes is less than maxvotes and the number of torrent > 0"""
         channels = []
         results = self._db.fetchall(sql, args)
-
+        
         sqla = "Select count(distinct voter_id) as subscribers FROM VoteCast Where mod_id = ? LIMIT 1"
         sqlb = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
         sqlc = "Select count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash LIMIT 1"
@@ -3425,7 +3451,8 @@ class ChannelCastDBHandler(BasicDBHandler):
             if nr_votes <= maxvotes:
                 name = self._db.fetchone(sqlb, (result[0], result[1]))
                 nr_torrents = self._db.fetchone(sqlc, (result[0],))
-                channels.append((result[0], name, result[1], nr_votes, nr_torrents))
+                if nr_torrents > 0:
+                    channels.append((result[0], name, result[1], nr_votes, nr_torrents))
                 
         def channel_sort(a, b):
             #first compare nr_votes
@@ -3440,7 +3467,10 @@ class ChannelCastDBHandler(BasicDBHandler):
                 return -1
             #finally compare nr_torrents
             return cmp(a[4], b[4])
-        channels.sort(channel_sort)
+        
+        if cmpF == None:
+            cmpF = channel_sort
+        channels.sort(cmpF)
         return channels
 
     def getSubscribersCount(self,permid):

@@ -133,7 +133,7 @@ class GUIUtility:
             
             if page == 'channels':
                 selectedcat = self.frame.channelcategories.GetSelectedCategory()
-                if selectedcat in ['Popular','New','Favorites','All'] or self.oldpage == 'mychannel':
+                if selectedcat in ['Popular','New','Favorites','All', 'Updated'] or self.oldpage == 'mychannel':
                     self.frame.channellist.Show()
                     self.frame.channelcategories.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as favorite.')
                 elif selectedcat == 'My Channel' and self.oldpage != 'mychannel':
@@ -209,7 +209,7 @@ class GUIUtility:
     def GoBack(self):
         if self.oldpage == 'channels':
             category = self.frame.channellist.GetManager().category
-            categories = ['Popular','New','Favorites','All','My Channel']
+            categories = ['Popular','New','Favorites','All','My Channel', 'Updated']
             if category in categories:
                 category = categories.index(category) + 1
                 self.frame.channelcategories.Select(category, False)

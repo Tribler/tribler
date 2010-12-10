@@ -536,13 +536,13 @@ class BuzzPanel(HomePanel):
     def OnClick(self, event):
         evtobj = event.GetEventObject()
         term = evtobj.GetLabel()
-        
-        self.guiutility.dosearch(term)
-        
-        #Deselect all terms + doresume
-        self.ShowSelected()
-        self.DoPauseResume()
-        
-        uelog = UserEventLogDBHandler.getInstance()
-        uelog.addEvent(message=repr((term, self.last_shown_buzz)))
+        if term <> '...collecting buzz information...':
+            self.guiutility.dosearch(term)
+            
+            #Deselect all terms + doresume
+            self.ShowSelected()
+            self.DoPauseResume()
+            
+            uelog = UserEventLogDBHandler.getInstance()
+            uelog.addEvent(message=repr((term, self.last_shown_buzz)))
         
