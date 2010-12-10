@@ -544,9 +544,10 @@ class MiniSwarm:
             self._create_connections()
 
     def close(self):
-        self._closed = True
-        for connection in self._connections:
-            connection.close()
+        if not self._closed:
+            self._closed = True
+            for connection in self._connections:
+                connection.close()
 
 class MiniTracker(Thread):
     """
