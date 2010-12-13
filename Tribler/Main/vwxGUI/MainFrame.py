@@ -254,6 +254,10 @@ class MainFrame(wx.Frame):
 
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
+    
+    def startDownloadFromUrl(self, url):
+        tdef = TorrentDef.load_from_url(url)
+        self.startDownload(tdef=tdef)
 
     def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,proxymode=None):
         
