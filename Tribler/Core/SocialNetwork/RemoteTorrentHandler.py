@@ -90,7 +90,6 @@ class RemoteTorrentHandler:
         return size
             
 class TorrentRequester():
-    
     MAGNET_TIMEOUT = 5
     REQUEST_INTERVAL = 0.5
     
@@ -156,7 +155,7 @@ class TorrentRequester():
             pass
 
 class MagnetRequester():
-    MAX_CONCURRENT = 2
+    MAX_CONCURRENT = 1
     REQUEST_INTERVAL = 1.0
     MAGNET_RETRIEVE_TIMEOUT = 30.0 
     
