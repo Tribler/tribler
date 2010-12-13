@@ -30,7 +30,7 @@ UT_PEX_ID = chr(1)
 UT_METADATA_ID = chr(2)
 METADATA_PIECE_SIZE = 16 * 1024
 MAX_CONNECTIONS = 30
-MAX_TIME_INACTIVE = 30
+MAX_TIME_INACTIVE = 10 #Current default timeout is 30s, setting inactive time to 10
 
 DEBUG = False
 
