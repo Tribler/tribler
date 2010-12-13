@@ -276,7 +276,7 @@ class Connection:
             self._swarm.connection_lost(self)
         
     def __str__(self):
-        return 'MiniBitTorrentCON'+str(self._closed)+str(self._swarm._info_hash)
+        return 'MiniBitTorrentCON'+str(self._closed)+str(self._socket.connected)+str(self._swarm._info_hash)
     
 class MiniSwarm:
     """

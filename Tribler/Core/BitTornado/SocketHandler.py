@@ -165,10 +165,6 @@ class SingleSocket:
         self.buffer = []
         del self.socket_handler.single_sockets[self.fileno]
         self.socket_handler.poll.unregister(sock)
-        try:
-            sock.shutdown(socket.SHUT_RDWR)
-        except:
-            pass
         sock.close()
 
     def shutdown(self, val):
