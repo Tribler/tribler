@@ -128,7 +128,6 @@ class ProgressBar(wx.Control):
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-        #self.SetSize((60,6))
 
         self.progressinf = None
 
@@ -139,22 +138,15 @@ class ProgressBar(wx.Control):
         pass # Or None
     
     def OnPaint(self, evt):
-        
-        # define condition
         x,y,maxw,maxh = self.GetClientRect()
-        #dc.DrawRectangle(x,y,)
+        buffer = wx.EmptyBitmap(maxw, maxh)
         
         numrect = float(len(self.blocks))
-
-        # create blocks
         w = max(1,maxw/numrect)
         h = maxh
         
-        width, height = self.GetClientSizeTuple()
-        buffer = wx.EmptyBitmap(width, height)
-        #dc = wx.PaintDC(self)
         dc = wx.BufferedPaintDC(self, buffer)
-        dc.BeginDrawing()
+        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
         dc.Clear()
         
         rectangles = [(x+int(i*w),y,int(w)+1,h) for i in xrange(0,int(numrect))]
@@ -162,10 +154,7 @@ class ProgressBar(wx.Control):
         # draw the blocks
         pens = [self.pens[c] for c in self.blocks]
         brushes = [self.brushes[c] for c in self.blocks]
-                
         dc.DrawRectangleList(rectangles,pens,brushes)
-
-        dc.EndDrawing()
 
     def set_pieces(self, blocks):
         maxBlocks = self.GetClientRect().width
