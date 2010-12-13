@@ -234,16 +234,16 @@ class GUIUtility:
         else:
             self.frame.top_bg.searchField.SetValue(input)
             
-        if input.startswith("http://") and input.endswith(".torrent"):
-            self.frame.startDownloadFromUrl(str(input))
-            self.frame.top_bg.searchField.Clear()
-            self.ShowPage('my_files')
+        if input.startswith("http://"):
+            if self.frame.startDownloadFromUrl(str(input)):
+                self.frame.top_bg.searchField.Clear()
+                self.ShowPage('my_files')
             
         elif input.startswith("magnet:"):
-            self.frame.startDownloadFromMagnet(str(input))
-            self.frame.top_bg.searchField.Clear()
-            self.ShowPage('my_files')
-            
+            if self.frame.startDownloadFromMagnet(str(input)):
+                self.frame.top_bg.searchField.Clear()
+                self.ShowPage('my_files')
+                
         else:
             wantkeywords = split_into_keywords(input)
             if len(' '.join(wantkeywords))  == 0:
