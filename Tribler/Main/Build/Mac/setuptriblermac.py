@@ -15,10 +15,10 @@ includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml
 
 # gui panels to include
 includePanels=[
-               "TopSearchPanel", "home", "list", "settingsDialog"
-] 
+     "list","list_header","list_body","list_footer","list_details",
+     "home","settingsDialog","TopSearchPanel","SearchGridManager","SRstatusbar"]# ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
 
-     
+
 includeModules += ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 
 # ----- some basic checks
