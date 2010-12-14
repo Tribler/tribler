@@ -21,6 +21,8 @@ all:	clean ${APPNAME}-${ARCH}.dmg
 
 clean:
 	rm -rf build/imagecontents/ ${APPNAME}-${ARCH}.dmg
+	rm -rf ${SRCDIR}/dist/
+	rm -rf ${SRCDIR}/build/
 
 .PHONY: 		all clean dirs
 
