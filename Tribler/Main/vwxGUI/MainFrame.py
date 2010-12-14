@@ -388,7 +388,7 @@ class MainFrame(wx.Frame):
 
                 # Boudewijn: start some background downloads to
                 # upgrade on this seperate thread
-                ##self._upgradeVersion(my_version, self.curr_version, info)
+                self._upgradeVersion(my_version, self.curr_version, info)
             
             # Also check new version of web2definitions for youtube etc. search
             ##Web2Updater(self.utility).checkUpdate()
