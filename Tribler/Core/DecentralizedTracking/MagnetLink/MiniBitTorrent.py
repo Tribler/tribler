@@ -269,11 +269,9 @@ class Connection:
 
     def close(self):
         if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.close()"
-        self._closed = True
-        if self._socket.connected:
+        if not self._closed:
+            self.connection_lost(self._socket)
             self._socket.close()
-        else:
-            self._swarm.connection_lost(self)
         
     def __str__(self):
         return 'MiniBitTorrentCON'+str(self._closed)+str(self._socket.connected)+str(self._swarm._info_hash)
