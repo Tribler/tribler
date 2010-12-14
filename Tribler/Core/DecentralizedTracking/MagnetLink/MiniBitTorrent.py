@@ -253,8 +253,9 @@ class Connection:
 
     def connection_lost(self, socket):
         if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.connection_lost()"
-        self._closed = True
-        self._swarm.connection_lost(self)
+        if not self._closed:
+            self._closed = True
+            self._swarm.connection_lost(self)
 
     def connection_flushed(self, socket):
         pass
