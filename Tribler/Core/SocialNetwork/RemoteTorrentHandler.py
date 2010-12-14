@@ -175,6 +175,9 @@ class MagnetRequester():
         self.list = []
         self.requestedInfohashes = set()
         
+        if sys.platform == 'darwin':
+            #mac has severe problems with closing connections, add additional time to allow it to close connections
+            self.REQUEST_INTERVAL = 15
 
     def getInstance(*args, **kw):
         if MagnetRequester.__single is None:
@@ -195,41 +198,43 @@ class MagnetRequester():
             self.overlay_bridge.add_task(self.__requestMagnet, 0, self) #do new request now
             
     def __requestMagnet(self):
-        #request new infohash from queue
-        try:
-            self.listLock.acquire()
-            while True:
-                if len(self.list) == 0:
-                    return
-                
-                prio, infohash = self.list.pop(0)
-                torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
-                
-                if infohash in self.requestedInfohashes:
-                    if DEBUG:
-                        print >> sys.stderr, 'magnetrequester: magnet already requested', bin2str(infohash)
-                elif os.path.isfile(torrent_filename):
-                    if DEBUG:
-                        print >> sys.stderr, 'magnetrequester: magnet already on disk', bin2str(infohash)
-                else:
-                    break
-        except:
-            print_exc()
-            return
-        finally:
-            self.listLock.release()
-        
-        #.torrent still not found, try magnet link
-        magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
-        if DEBUG:
-            print >> sys.stderr, 'magnetrequester: requesting magnet', bin2str(infohash), prio, magnetlink
-        
-        TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT)
-        self.requestedInfohashes.add(infohash)
-        self.overlay_bridge.add_task(lambda: self.__torrentdef_failed(infohash), self.MAGNET_RETRIEVE_TIMEOUT, infohash)
-        
         if len(self.requestedInfohashes) < self.MAX_CONCURRENT:
-            self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL, self)
+            #request new infohash from queue
+            try:
+                self.listLock.acquire()
+                while True:
+                    if len(self.list) == 0:
+                        return
+                    
+                    prio, infohash = self.list.pop(0)
+                    torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
+                    
+                    if infohash in self.requestedInfohashes:
+                        if DEBUG:
+                            print >> sys.stderr, 'magnetrequester: magnet already requested', bin2str(infohash)
+                    elif os.path.isfile(torrent_filename):
+                        if DEBUG:
+                            print >> sys.stderr, 'magnetrequester: magnet already on disk', bin2str(infohash)
+                    else:
+                        break
+            except:
+                print_exc()
+                return
+            finally:
+                self.listLock.release()
+            
+            #.torrent still not found, try magnet link
+            magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
+            if DEBUG:
+                print >> sys.stderr, 'magnetrequester: requesting magnet', bin2str(infohash), prio, magnetlink
+            
+            TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT)
+            self.requestedInfohashes.add(infohash)
+            
+            self.overlay_bridge.add_task(lambda: self.__torrentdef_failed(infohash), self.MAGNET_RETRIEVE_TIMEOUT, infohash)
+            
+            if len(self.requestedInfohashes) < self.MAX_CONCURRENT:
+                self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL, self)
     
     def __torrentdef_retrieved(self, tdef):
         infohash = tdef.get_infohash()
@@ -245,8 +250,9 @@ class MagnetRequester():
         
         self.requestedInfohashes.remove(infohash)
         self.remoteTorrentHandler.metadatahandler_got_torrent(infohash, tdef, torrent_filename)
+        self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL, self)
     
     def __torrentdef_failed(self, infohash):
         if infohash in self.requestedInfohashes:
             self.requestedInfohashes.remove(infohash)
-            self.overlay_bridge.add_task(self.__requestMagnet, 0, self) #do new request now
+            self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL, self)
