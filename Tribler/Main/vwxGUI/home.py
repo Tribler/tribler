@@ -207,7 +207,7 @@ class NewTorrentPanel(HomePanel):
     def CreatePanel(self):
         self.list = SortedListCtrl(self, 1, style = wx.LC_REPORT|wx.LC_NO_HEADER)
         self.list.InsertColumn(0, 'Torrent')
-        self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+        self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
         self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
         return self.list
     
@@ -277,7 +277,7 @@ class TopContributorsPanel(HomePanel):
         self.list = SortedListCtrl(self, 2, style = wx.LC_REPORT|wx.LC_NO_HEADER)
         self.list.InsertColumn(0, 'Name')
         self.list.InsertColumn(1, 'Up', wx.LIST_FORMAT_RIGHT)
-        self.list.setResizeColumn(1)
+        self.list.setResizeColumn(0)
         self.list.SetColumnWidth(2, wx.LIST_AUTOSIZE)
         return self.list
 
