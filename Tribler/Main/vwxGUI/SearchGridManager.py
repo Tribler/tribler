@@ -848,6 +848,10 @@ class ChannelSearchGridManager:
         pchannels = self.channelcast_db.getMostPopularChannels()
         return [len(pchannels), pchannels]
     
+    def getUpdatedChannels(self):
+        lchannels = self.channelcast_db.getLatestUpdated()
+        return [len(lchannels), lchannels]
+    
     def getMyVote(self, publisher_id):
         return self.votecastdb.getVote(publisher_id, bin2str(self.votecastdb.my_permid))
     

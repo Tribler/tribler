@@ -102,9 +102,10 @@ def P2PSim_Single(db_row, nmyprefs):
         peer_id, nr_items, overlap = db_row
 
         # Arno, 2010-01-14: Safety catch for weird by reported by Johan
+        # Boudewijn, 2010-12-10: Fixed safety catch
         if (nr_items is None) or (nmyprefs is None):
             return sim
-        if (nr_items is 0) or (nmyprefs is 0):
+        if (nr_items == 0) or (nmyprefs == 0):
             return sim
         
         #Cosine Similarity With Emphasis on users with profilelength >= 40

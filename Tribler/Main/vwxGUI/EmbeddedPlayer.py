@@ -245,8 +245,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             if self.timer is None:
                 self.timer = wx.Timer(self)
                 self.Bind(wx.EVT_TIMER, self.UpdateSlider)
-            
-        self.timer.Start(200)
+            self.timer.Start(200)
         self.enableFullScreen()
         self.enablePlay()
         self.enableScroll()

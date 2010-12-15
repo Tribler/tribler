@@ -1266,7 +1266,7 @@ class SwarmHealth(wx.Panel):
             else:
                 pop = seeders + leechers
                 if pop > 0:
-                    self.barwidth = max(math.log(pop*4,10) * 2, 1) / 10.0 #let it max at 25k population
+                    self.barwidth = min(max(math.log(pop*4,10) * 2, 1) / 10.0, 1) #let it max at 25k population
                 else:
                     self.barwidth = 1
                 
@@ -1326,6 +1326,10 @@ class SwarmHealth(wx.Panel):
             for i in range(1,10):
                 x = xpos + (width/10) * i
                 dc.DrawLine(x, 1, x, height - 1)
+        
+        dc.SetPen(wx.BLACK_PEN)
+        dc.SetBrush(wx.TRANSPARENT_BRUSH)
+        dc.DrawRectangle(xpos, 0, width, height)
 
     def OnEraseBackground(self, event):
         pass

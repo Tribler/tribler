@@ -131,7 +131,7 @@ class TorrentDef(Serializable,Copyable):
     _create = staticmethod(_create)
 
     @staticmethod
-    def retrieve_from_magnet(url, callback):
+    def retrieve_from_magnet(url, callback, timeout=30.0):
         """
         If the URL conforms to a magnet link, the .torrent info is
         downloaded and converted into a TorrentDef.  The resulting
@@ -150,7 +150,7 @@ class TorrentDef(Serializable,Copyable):
             callback(tdef)
 
         try:
-            magnet_link = MagnetLink(url, metainfo_retrieved)
+            magnet_link = MagnetLink(url, metainfo_retrieved, timeout)
             return magnet_link.retrieve()
         except Exception, e:
             print >> sys.stderr, "Exception within magnet link"

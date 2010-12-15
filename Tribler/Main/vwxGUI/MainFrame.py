@@ -254,6 +254,20 @@ class MainFrame(wx.Frame):
 
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
+            self.top_bg.Notify("Download from magnet failed", wx.ART_WARNING)
+            return False
+        return True
+    
+    def startDownloadFromUrl(self, url):
+        try:
+            tdef = TorrentDef.load_from_url(url)
+            if tdef:
+                self.startDownload(tdef=tdef)
+                return True
+        except:
+            print_exc()
+        self.top_bg.Notify("Download from url failed", wx.ART_WARNING)
+        return False
 
     def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,proxymode=None):
         
@@ -374,7 +388,7 @@ class MainFrame(wx.Frame):
 
                 # Boudewijn: start some background downloads to
                 # upgrade on this seperate thread
-                ##self._upgradeVersion(my_version, self.curr_version, info)
+                self._upgradeVersion(my_version, self.curr_version, info)
             
             # Also check new version of web2definitions for youtube etc. search
             ##Web2Updater(self.utility).checkUpdate()

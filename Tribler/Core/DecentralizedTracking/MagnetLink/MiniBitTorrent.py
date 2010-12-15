@@ -30,7 +30,7 @@ UT_PEX_ID = chr(1)
 UT_METADATA_ID = chr(2)
 METADATA_PIECE_SIZE = 16 * 1024
 MAX_CONNECTIONS = 30
-MAX_TIME_INACTIVE = 30
+MAX_TIME_INACTIVE = 10 #Current default timeout is 30s, setting inactive time to 10
 
 DEBUG = False
 
@@ -253,8 +253,9 @@ class Connection:
 
     def connection_lost(self, socket):
         if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.connection_lost()"
-        self._closed = True
-        self._swarm.connection_lost(self)
+        if not self._closed:
+            self._closed = True
+            self._swarm.connection_lost(self)
 
     def connection_flushed(self, socket):
         pass
@@ -269,11 +270,12 @@ class Connection:
 
     def close(self):
         if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.close()"
-        self._closed = True
-        if self._socket.connected:
+        if not self._closed:
+            self.connection_lost(self._socket)
             self._socket.close()
-        else:
-            self._swarm.connection_lost(self)
+        
+    def __str__(self):
+        return 'MiniBitTorrentCON'+str(self._closed)+str(self._socket.connected)+str(self._swarm._info_hash)
     
 class MiniSwarm:
     """
@@ -472,9 +474,13 @@ class MiniSwarm:
  
     def add_potential_peers(self, addresses):
         if not self._closed:
-            for address in addresses:
-                if not address in self._potential_peers:
-                    self._potential_peers[address] = 0
+            self._lock.acquire()
+            try:
+                for address in addresses:
+                    if not address in self._potential_peers:
+                        self._potential_peers[address] = 0
+            finally:
+                self._lock.release()
 
             if len(self._connections) < MAX_CONNECTIONS:
                 self._create_connections()
@@ -483,11 +489,14 @@ class MiniSwarm:
         now = time()
 
         # order by last connection attempt
-        addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems() if timestamp + 60 < now]
+        self._lock.acquire()
+        try:
+            addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems() if timestamp + 60 < now]
+            if DEBUG:
+                print >> sys.stderr, len(self._connections), "/", len(self._potential_peers), "->", len(addresses)
+        finally:
+            self._lock.release()
         addresses.sort()
-
-        if DEBUG:
-            print >> sys.stderr, len(self._connections), "/", len(self._potential_peers), "->", len(addresses)
 
         for timestamp, address in addresses:
             if len(self._connections) >= MAX_CONNECTIONS:
@@ -502,19 +511,20 @@ class MiniSwarm:
                 continue
 
             try:
-                self._potential_peers[address] = now
                 connection = Connection(self, self._raw_server, address)
 
             except:
+                connection = None
                 if DEBUG: print >> sys.stderr, "MiniBitTorrent.add_potential_peers() ERROR"
                 print_exc()
 
-            else:
-                self._lock.acquire()
-                try:
+            self._lock.acquire()
+            try:
+                self._potential_peers[address] = now
+                if connection:
                     self._connections.append(connection)
-                finally:
-                    self._lock.release()
+            finally:
+                self._lock.release()
 
     def _timeout_connections(self):
         deadline = time() - MAX_TIME_INACTIVE
@@ -536,9 +546,10 @@ class MiniSwarm:
             self._create_connections()
 
     def close(self):
-        self._closed = True
-        for connection in self._connections:
-            connection.close()
+        if not self._closed:
+            self._closed = True
+            for connection in self._connections:
+                connection.close()
 
 class MiniTracker(Thread):
     """

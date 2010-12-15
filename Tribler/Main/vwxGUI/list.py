@@ -85,6 +85,9 @@ class ChannelSearchManager:
             elif self.category == 'Popular':
                 [total_items,data] = self.channelsearch_manager.getPopularChannels()
                 self.list.SetTitle('Popular Channels', total_items)
+            elif self.category == 'Updated':
+                [total_items,data] = self.channelsearch_manager.getUpdatedChannels()
+                self.list.SetTitle('Updated Channels', total_items)
             elif self.category == 'All':
                 [total_items,data] = self.channelsearch_manager.getAllChannels()
                 self.list.SetTitle('All Channels', total_items)
@@ -704,9 +707,9 @@ class LibaryList(List):
                     item.up.Refresh()
             
             if len(self.list.items) > 0:
-                self.footer.SetTotal(0, str(len(self.list.items)) + " items (" +str(nr_finished) + " seeding, "+str(nr_downloading) + " downloading)")
+                self.footer.SetTotal(0, "Totals: " + str(len(self.list.items)) + " items (" +str(nr_finished) + " seeding, "+str(nr_downloading) + " downloading)")
             else:
-                self.footer.SetTotal(0, "0 items")
+                self.footer.SetTotal(0, "Totals: 0 items")
             
             for key in totals.keys():
                 self.footer.SetTotal(key, totals[key])
@@ -811,6 +814,9 @@ class ChannelList(List):
             self.header.SetSubTitle("Showing the %d most popular channels" % nr)
         elif title == 'Your Favorites':
             self.header.SetSubTitle("You marked %d channels as a favorite" % nr)
+        elif title == 'Updated Channels':
+            self.header.ShowSortedBy(1)
+            self.header.SetSubTitle("Showing the %d latest updated channels" % nr)
         elif title == 'New Channels':
             self.header.ShowSortedBy(1)
             self.header.SetSubTitle("Discovered %d new channels (no votes yet and updated within the last 2 months)"% nr)
@@ -1006,14 +1012,14 @@ class ChannelCategoriesList(List):
     
     def _PostInit(self):
         List._PostInit(self)
-        self.list.SetData([(1,['Popular'],None), (2,['New'],None), (3,['Favorites'],None), (4,['All'],None), (5,['My Channel'],None)])
+        self.list.SetData([(1,['Popular'],None), (2,['New'],None), (6, ['Updated'], None), (3,['Favorites'],None), (4,['All'],None), (5,['My Channel'],None)])
         self.SetMinSize((-1, self.GetBestSize()[1]))
         
         self.Select(1, False)
         wx.CallAfter(self.guiutility.showChannelCategory, 'Popular', False)
         
     def OnExpand(self, item):
-        if item.data[0] in ['Popular','New','Favorites','All']:
+        if item.data[0] in ['Popular','New','Favorites','All','Updated']:
             wx.CallAfter(self.guiutility.showChannelCategory, item.data[0])
             
         elif item.data[0] == 'My Channel':

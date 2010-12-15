@@ -207,7 +207,6 @@ class NewTorrentPanel(HomePanel):
     def CreatePanel(self):
         self.list = SortedListCtrl(self, 1, style = wx.LC_REPORT|wx.LC_NO_HEADER)
         self.list.InsertColumn(0, 'Torrent')
-        self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
         return self.list
     
@@ -222,6 +221,8 @@ class NewTorrentPanel(HomePanel):
             size = self.list.GetItemCount()
             if size > 10:
                 self.list.DeleteItem(size-1)
+            
+            self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
     
     def OnDoubleClick(self, event):
         selected = self.list.GetFirstSelected()
@@ -257,6 +258,8 @@ class PopularTorrentPanel(NewTorrentPanel):
         for item in topTen:
             if item[2] > 0:
                 self.list.InsertStringItem(sys.maxint, item[1])
+        
+        self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
         self.list.Thaw()
 
 class TopContributorsPanel(HomePanel):             
@@ -277,8 +280,7 @@ class TopContributorsPanel(HomePanel):
         self.list = SortedListCtrl(self, 2, style = wx.LC_REPORT|wx.LC_NO_HEADER)
         self.list.InsertColumn(0, 'Name')
         self.list.InsertColumn(1, 'Up', wx.LIST_FORMAT_RIGHT)
-        self.list.setResizeColumn(1)
-        self.list.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+        self.list.setResizeColumn(0)
         return self.list
 
     def _onTimer(self, event):
@@ -295,6 +297,8 @@ class TopContributorsPanel(HomePanel):
             if name:
                 pos = self.list.InsertStringItem(sys.maxint, name)
                 self.list.SetStringItem(pos, 1, self.guiutility.utility.size_format(item[1], 1))
+        
+        self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         self.list.Thaw()
         
     def OnDoubleClick(self, event):
@@ -536,13 +540,13 @@ class BuzzPanel(HomePanel):
     def OnClick(self, event):
         evtobj = event.GetEventObject()
         term = evtobj.GetLabel()
-        
-        self.guiutility.dosearch(term)
-        
-        #Deselect all terms + doresume
-        self.ShowSelected()
-        self.DoPauseResume()
-        
-        uelog = UserEventLogDBHandler.getInstance()
-        uelog.addEvent(message=repr((term, self.last_shown_buzz)))
+        if term <> '...collecting buzz information...':
+            self.guiutility.dosearch(term)
+            
+            #Deselect all terms + doresume
+            self.ShowSelected()
+            self.DoPauseResume()
+            
+            uelog = UserEventLogDBHandler.getInstance()
+            uelog.addEvent(message=repr((term, self.last_shown_buzz)))
         

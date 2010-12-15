@@ -64,17 +64,19 @@ class MagnetHandler(Singleton):
     def get_raw_server(self):
         return self._raw_server
 
-    def add_magnet(self, magnet_link):
+    def add_magnet(self, magnet_link, timeout):
         self._magnets.append(magnet_link)
+        self._raw_server.add_task(magnet_link.close, timeout)
 
     def remove_magnet(self, magnet_link):
-        self._magnets.remove(magnet_link)
+        if magnet_link in self._magnets:
+            self._magnets.remove(magnet_link)
 
     def get_magnets(self):
         return self._magnets
 
 class MagnetLink:
-    def __init__(self, url, callback):
+    def __init__(self, url, callback, timeout):
         """
         If the URL conforms to a magnet link, the .torrent info is
         downloaded and returned to CALLBACK.
@@ -100,7 +102,7 @@ class MagnetLink:
         # _swarm is a MiniBitTorrent.MiniSwarm instance that connects
         # to peers to retrieve the metadata.
         magnet_handler = MagnetHandler.get_instance()
-        magnet_handler.add_magnet(self)
+        magnet_handler.add_magnet(self, timeout)
         self._swarm = MiniSwarm(self._info_hash, magnet_handler.get_raw_server(), self.metainfo_retrieved)
 
     def get_infohash(self):
@@ -172,7 +174,10 @@ class MagnetLink:
     def close(self):
         magnet_handler = MagnetHandler.get_instance()
         magnet_handler.remove_magnet(self)
-        
+
+        if DEBUG:
+            print >> sys.stderr, "Magnet.close()"
+
         # close all MiniBitTorrent activities
         self._swarm.close()
 

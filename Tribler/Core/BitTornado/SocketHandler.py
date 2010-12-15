@@ -574,7 +574,7 @@ class SocketHandler:
             connects = len(self.single_sockets)
             to_close = int(connects*0.05)+1 # close 5% of sockets
             self.max_connects = connects-to_close
-            closelist = self.single_sockets.values()
+            closelist = [sock for sock in self.single_sockets.values() if not isinstance(sock, InterruptSocket)]
             shuffle(closelist)
             closelist = closelist[:to_close]
             for sock in closelist:

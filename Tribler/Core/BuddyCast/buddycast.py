@@ -1786,7 +1786,7 @@ class BuddyCastCore:
 
         self.connected_taste_buddies = tbs
         self.connected_random_peers = rps
-        #print >> sys.stderr, "#tbs:",len(tbs), ";#rps:", len(rps)
+        # print >> sys.stderr, "#tbs:",len(tbs), ";#rps:", len(rps)
         #for p in self.connected_taste_buddies:
         #    assert p in self.connected_connectable_peers
         #for p in self.connected_random_peers:

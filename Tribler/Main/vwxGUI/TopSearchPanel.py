@@ -136,7 +136,12 @@ class TopSearchPanel(bgPanel):
         
         self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
         """
-        self.searchField = TextCtrlAutoComplete(self, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
+        
+        if sys.platform == 'darwin':
+            self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER)
+            self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
+        else:
+            self.searchField = TextCtrlAutoComplete(self, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
         self.searchField.SetMinSize((400, -1))
         self.searchField.SetFocus()
         self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
