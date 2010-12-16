@@ -33,6 +33,7 @@ class RemoteTorrentHandler:
         
         self.callbacks = {}
         self.requestingThreads = {}
+        self.registered = False
 
     def getInstance(*args, **kw):
         if RemoteTorrentHandler.__single is None:
@@ -41,27 +42,29 @@ class RemoteTorrentHandler:
     getInstance = staticmethod(getInstance)
 
     def register(self,overlay_bridge,metadatahandler,session):
+        self.registered = True
         self.overlay_bridge = overlay_bridge
         self.metadatahandler = metadatahandler
         self.session = session
     
     def download_torrent(self,permid,infohash,usercallback, prio = 1):
-        """ The user has selected a torrent referred to by a peer in a query 
-        reply. Try to obtain the actual .torrent file from the peer and then 
-        start the actual download. 
-        """
-        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
-        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        
-        self.callbacks[infohash] = usercallback
-        
-        if prio not in self.requestingThreads:
-            self.requestingThreads[prio] = TorrentRequester(self, self.metadatahandler, self.overlay_bridge, self.session, prio)
-        
-        self.requestingThreads[prio].add_source(infohash, permid)
-        
-        if DEBUG:
-            print >>sys.stderr,'rtorrent: adding request:', bin2str(infohash), bin2str(permid), prio
+        if self.registered:
+            """ The user has selected a torrent referred to by a peer in a query 
+            reply. Try to obtain the actual .torrent file from the peer and then 
+            start the actual download. 
+            """
+            assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+            assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
+            
+            self.callbacks[infohash] = usercallback
+            
+            if prio not in self.requestingThreads:
+                self.requestingThreads[prio] = TorrentRequester(self, self.metadatahandler, self.overlay_bridge, self.session, prio)
+            
+            self.requestingThreads[prio].add_source(infohash, permid)
+            
+            if DEBUG:
+                print >>sys.stderr,'rtorrent: adding request:', bin2str(infohash), bin2str(permid), prio
     
     def metadatahandler_got_torrent(self,infohash,metadata,filename):
         """ Called by MetadataHandler when the requested torrent comes in """
@@ -84,10 +87,13 @@ class RemoteTorrentHandler:
                 del requester.sources[infohash]
     
     def getQueueSize(self):
-        size = 0
+        nr_requests = 0
+        nr_sources = 0
         for requester in self.requestingThreads.values():
-            size += len(requester.sources)
-        return size
+            nr_sources += len(requester.sources)
+            for sources in requester.sources:
+                nr_requests += len(sources)
+        return nr_sources, nr_requests
             
 class TorrentRequester():
     MAGNET_TIMEOUT = 5

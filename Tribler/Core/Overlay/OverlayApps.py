@@ -247,9 +247,10 @@ class OverlayApps:
             hndl = self.subtitles_handler.getMessageHandler()
             self.register_msg_handler(SubtitleMessages, hndl)
         
-        self.rtorrent_handler = RemoteTorrentHandler.getInstance()
-        self.rtorrent_handler.register(overlay_bridge,self.metadata_handler,session)
-        self.metadata_handler.register2(self.rtorrent_handler)
+        if not config['torrent_collecting']:
+            self.rtorrent_handler = RemoteTorrentHandler.getInstance()
+            self.rtorrent_handler.register(overlay_bridge,self.metadata_handler,session)
+            self.metadata_handler.register2(self.rtorrent_handler)
 
         # Add notifier as connection handler
         self.register_connection_handler(self.notifier_handles_connection)

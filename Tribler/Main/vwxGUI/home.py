@@ -187,7 +187,7 @@ class NetworkPanel(HomePanel):
         self.nrTorrents.SetLabel(str(stats[0]))
         self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
-        self.queueSize.SetLabel(str(self.remotetorrenthandler.getQueueSize()))
+        self.queueSize.SetLabel('%d (%d sources)'%self.remotetorrenthandler.getQueueSize())
         
         if self.timer:
             self.timer.Restart(10000)
@@ -222,7 +222,7 @@ class NewTorrentPanel(HomePanel):
             if size > 10:
                 self.list.DeleteItem(size-1)
             
-            self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+            self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
     
     def OnDoubleClick(self, event):
         selected = self.list.GetFirstSelected()
@@ -259,7 +259,7 @@ class PopularTorrentPanel(NewTorrentPanel):
             if item[2] > 0:
                 self.list.InsertStringItem(sys.maxint, item[1])
         
-        self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+        self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         self.list.Thaw()
 
 class TopContributorsPanel(HomePanel):             
