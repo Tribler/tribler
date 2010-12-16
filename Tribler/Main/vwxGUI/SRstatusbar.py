@@ -39,6 +39,7 @@ class SRstatusbar(wx.StatusBar):
         
         self.activity = wx.StaticBitmap(self, -1, self.activityImages[1]) 
         self.firewallStatus = settingsButton(self, size = (14,14), name = 'firewallStatus14')
+        self.firewallStatus.SetToolTipString('Port status unknown')
         
         self.widths = [-1, 19, 19]
         self.SetStatusWidths(self.widths)
