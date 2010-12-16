@@ -126,12 +126,14 @@ class TorrentDetails(wx.Panel):
         
         if 'torrent_id' not in self.torrent:
             self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
-        torrentInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])[0]
-        
-        if len(torrentInfo) > 0:
-            _, seeders, leechers, last_check, _, _ = torrentInfo 
+            
+        swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])
+        if swarmInfo:
+            _, seeders, leechers, last_check, _, _ = swarmInfo
         else:
-            seeders = leechers = last_check = -1
+            seeders = self.torrent.get('num_seeders', -1)
+            leechers = self.torrent.get('num_leechers', -1)
+            last_check = -1
         
         diff = time() - last_check
         if seeders <= 0 and leechers <= 0:
@@ -186,7 +188,7 @@ class TorrentDetails(wx.Panel):
                 else:
                     self.listCtrl.SetItemColumnImage(pos, 0, file_img)
             
-            self.listCtrl.setResizeColumn(1) #resize column starts at 1 instead of 0
+            self.listCtrl.setResizeColumn(0)
             self.listCtrl.SetMinSize((1,-1))
             self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
             self.notebook.AddPage(self.listCtrl, "Files")
@@ -670,11 +672,12 @@ class TorrentDetails(wx.Panel):
         if 'torrent_id' not in self.torrent:
             self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
         
-        swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])[0]
-        self.torrent['num_seeders'] = swarmInfo[1]
-        self.torrent['num_leechers'] = swarmInfo[2]
-        self.torrent['last_check'] = swarmInfo[3]
-        wx.CallAfter(self.ShowStatus)
+        swarmInfo = self.guiutility.torrentsearch_manager.getSwarmInfo(self.torrent['torrent_id'])
+        if swarmInfo:
+            self.torrent['num_seeders'] = swarmInfo[1]
+            self.torrent['num_leechers'] = swarmInfo[2]
+            self.torrent['last_check'] = swarmInfo[3]
+            wx.CallAfter(self.ShowStatus)
     
     def ShowStatus(self):
         diff = time() - self.torrent['last_check']
@@ -1162,7 +1165,7 @@ class MyChannelDetails(wx.Panel):
             else:
                 listCtrl.SetItemColumnImage(pos, 0, file_img)
             
-        listCtrl.setResizeColumn(1) #resize column starts at 1 instead of 0
+        listCtrl.setResizeColumn(0)
         listCtrl.SetMinSize((1,-1))
         listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
         notebook.AddPage(listCtrl, "Files")

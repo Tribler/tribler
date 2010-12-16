@@ -92,6 +92,10 @@ QUERIES = {
            "SELECT * FROM " \
              + METADATA_TABLE + " WHERE " + MD_INFOHASH_KEY + " = ?" \
              + " AND " + MD_PUBLISHER_KEY + " = ?;",
+             
+           "SELECT NRMETADATA" :
+           "SELECT COUNT(*) FROM " \
+             + METADATA_TABLE + " WHERE " + MD_PUBLISHER_KEY + " = ?;",
            
            "SELECT PUBLISHERS FROM INFOHASH":
            "SELECT " + MD_PUBLISHER_KEY + " FROM " + METADATA_TABLE \
@@ -447,6 +451,14 @@ class MetadataDBHandler (object, BasicDBHandler):
             toReturn.addSubtitle(sub)
         
         return toReturn
+    
+    def getNrMetadata(self, channel):
+        """
+        Returns the number of metadata objects inside a channel
+        """
+        query = QUERIES['SELECT NRMETADATA']
+        channel = bin2str(channel)
+        return self._db.fetchone(query, (channel, ))
 
     
     def getAllMetadataForInfohash(self, infohash):

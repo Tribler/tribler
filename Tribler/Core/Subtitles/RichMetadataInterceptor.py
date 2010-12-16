@@ -186,46 +186,50 @@ class RichMetadataInterceptor(object):
             else:
                 print >> sys.stderr, "Intercepted a channelcast message as normal channelcast"
         
+        doesChannelHaveSubtitles = {}
         # a channelcast message is made up of a dictionary of entries
         # keyed the signature. Every value in the dictionary is itself
         # a dictionary with the item information
         for key, content in channelCastMessage.iteritems():
             channel_id = content['publisher_id']
             infohash = content['infohash']
-
-            metadataDTO = self.rmdDb.getMetadata(channel_id, infohash)
-            if metadataDTO is not None:
-                try:
-                    if DEBUG:
-                        print >> sys.stderr, "Enriching a channelcast message with subtitle contents"
-                    metadataPack = metadataDTO.serialize()
-                    
-                    # I can remove from the metadata pack the infohash, and channelId
-                    # since they are already in channelcast and they would be redundant
-                    metadataPack.pop(0)
-                    metadataPack.pop(0)
-                    
-                    #adding the haveMask at the end of the metadata pack
-                    havemask = self.peerHaveManager.retrieveMyHaveMask(channel_id, infohash)
-                    binary_havemask = pack("!L", havemask)
-                    metadataPack.append(binary_havemask)
-                    
-                    content['rich_metadata'] = metadataPack
-                    
-                    if DEBUG:
-                        size = self._computeSize(metadataPack)
-                        # if available records also the destination of the message
-                        dest = "NA" if destPermid is None else show_permid_short(destPermid)
-                    
-                        id = "SQ" if fromQuery else "S"
-                        # format (S (for sent) | SQ (for sent as response to a query), channel, infohash, destination, timestampe, size)
-                        print >> sys.stderr, "%s, %s, %s, %s, %d, %d" % \
-                            (id, bin2str(metadataDTO.channel), \
-                            bin2str(metadataDTO.infohash), \
-                             dest, metadataDTO.timestamp, size)
-                except Exception,e:
-                    print >> sys.stderr, "Warning: Error serializing metadata: %s", str(e)
-        
+            
+            if channel_id not in doesChannelHaveSubtitles:
+                doesChannelHaveSubtitles[channel_id] = self.rmdDb.getNrMetadata(channel_id) > 0
+            
+            if doesChannelHaveSubtitles[channel_id]:
+                metadataDTO = self.rmdDb.getMetadata(channel_id, infohash)
+                if metadataDTO is not None:
+                    try:
+                        if DEBUG:
+                            print >> sys.stderr, "Enriching a channelcast message with subtitle contents"
+                        metadataPack = metadataDTO.serialize()
+                        
+                        # I can remove from the metadata pack the infohash, and channelId
+                        # since they are already in channelcast and they would be redundant
+                        metadataPack.pop(0)
+                        metadataPack.pop(0)
+                        
+                        #adding the haveMask at the end of the metadata pack
+                        havemask = self.peerHaveManager.retrieveMyHaveMask(channel_id, infohash)
+                        binary_havemask = pack("!L", havemask)
+                        metadataPack.append(binary_havemask)
+                        
+                        content['rich_metadata'] = metadataPack
+                        
+                        if DEBUG:
+                            size = self._computeSize(metadataPack)
+                            # if available records also the destination of the message
+                            dest = "NA" if destPermid is None else show_permid_short(destPermid)
+                        
+                            id = "SQ" if fromQuery else "S"
+                            # format (S (for sent) | SQ (for sent as response to a query), channel, infohash, destination, timestampe, size)
+                            print >> sys.stderr, "%s, %s, %s, %s, %d, %d" % \
+                                (id, bin2str(metadataDTO.channel), \
+                                bin2str(metadataDTO.infohash), \
+                                 dest, metadataDTO.timestamp, size)
+                    except Exception,e:
+                        print >> sys.stderr, "Warning: Error serializing metadata: %s", str(e)
         return channelCastMessage
     
 def validMetadataEntry(entry):

@@ -1411,26 +1411,44 @@ class TorrentDBHandler(BasicDBHandler):
         returns info about swarm size from Torrent and TorrentTracker tables.
         @author: Rahim
         @param torrentId: The index of the torrent.
-        @return: A tuple of the form:(torrent_id, num_seeders, num_leechers, last_check, num_sources_seen, sizeInfo)
+        @return: A list of the form: [torrent_id, num_seeders, num_leechers, last_check, num_sources_seen, sizeInfo]
         """
         if torrent_id is not None:
-            sql = """SELECT  tr.torrent_id, tr.num_seeders, tr.num_leechers, tt.last_check 
-            FROM TorrentTracker tt, Torrent tr  WHERE tr.torrent_id=tt.torrent_id AND tr.torrent_id==%d"""%torrent_id
-            sql +=" order by tt.last_check DESC limit 1"
-            sizeInfo = self._db.fetchall(sql)
-
-            if len(sizeInfo) == 1:
-                num_seeders  = sizeInfo[0][1]
-                num_leechers = sizeInfo[0][2]
-                last_check = sizeInfo[0][3]
+            dict = self.getSwarmInfos([torrent_id])
+            if torrent_id in dict:
+                return dict[torrent_id]
+    
+    def getSwarmInfos(self, torrent_id_list):
+        """
+        returns infos about swarm size from Torrent and TorrentTracker tables.
+        @author: Niels
+        @param torrent_id_list: a list containing torrent_ids
+        @return: A dictionary of lists of the form: torrent_id => [torrent_id, num_seeders, num_leechers, last_check, num_sources_seen, sizeInfo]
+        """
+        torrent_id_list = [torrent_id for torrent_id in torrent_id_list if torrent_id]
+        
+        results = {}
+        sql = "SELECT t.torrent_id, t.num_seeders, t.num_leechers, max(last_check) FROM Torrent t, TorrentTracker tr WHERE t.torrent_id in ("
+        sql += ','.join(map(str,torrent_id_list))
+        sql +=") AND t.torrent_id = tr.torrent_id GROUP BY t.torrent_id"
+        
+        rows = self._db.fetchall(sql)
+        for row in rows:
+            torrent_id = row[0]
+            num_seeders  = row[1]
+            num_leechers = row[2]
+            last_check = row[3]
+            results[torrent_id] = [torrent_id, num_seeders, num_leechers, last_check, -1, row]
+        
+        if len(results.keys()) > 0:
+            sql= "SELECT torrent_id, COUNT(*) FROM Preference WHERE torrent_id in ("
+            sql += ','.join(map(str,results.keys()))
+            sql +=") GROUP BY torrent_id"
             
-                sql1= """SELECT COUNT(*) FROM Preference WHERE torrent_id=%d"""%torrent_id
-                mySeenSources = self._db.fetchone(sql1)
-            
-                return [(torrent_id, num_seeders, num_leechers, last_check, mySeenSources, sizeInfo)]
-
-        return [()]  
-            
+            rows = self._db.fetchall(sql)
+            for row in rows:
+                results[row[0]][4] = row[1]
+        return results
     
     def getLargestSourcesSeen(self, torrent_id, timeNow, freshness=-1):
         """
@@ -3276,7 +3294,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         # query would be of the form: "k barack obama" or "p 4fw342d23re2we2w3e23d2334d" permid
         value_name = deepcopy(self.value_name) ##
         if query[0] == 'k': 
-            # search torrents based on keywords
+            # search channels based on keywords
             records = []
 
             kwlist = split_into_keywords(query[2:])
@@ -3451,8 +3469,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             if nr_votes <= maxvotes:
                 name = self._db.fetchone(sqlb, (result[0], result[1]))
                 nr_torrents = self._db.fetchone(sqlc, (result[0],))
-                if nr_torrents > 0:
-                    channels.append((result[0], name, result[1], nr_votes, nr_torrents))
+                channels.append((result[0], name, result[1], nr_votes, nr_torrents))
                 
         def channel_sort(a, b):
             #first compare nr_votes
@@ -3666,56 +3683,35 @@ class PopularityDBHandler(BasicDBHandler):
         The main difference in the flow of the process is that, if toBC be set to False, this fucntion will look for the most recenct report inside 
         both Popularity and Torrent table, otherwise it will just use torrent table.
         @return: returns a list with the same size az input and each items is composed of below items:
-                  (torrent_id, num_seeders, num_leechers, num_of_sources)
+                  [torrent_id, num_seeders, num_leechers, age, num_of_sources]
         """
         if content=='Infohash':
-            torrentList = [self.torrent_db.getTorrentID(infohash) for infohash in torrentList ]
+            torrentList = [self.torrent_db.getTorrentID(infohash) for infohash in torrentList]
         elif content=='TorrentIds':
             pass
         else:
             return []
-        
-        trackerSizeList =[]
-        popularityList=[]
+        trackerSizeDict = self.torrent_db.getSwarmInfos(torrentList)
+        """
         for torrentId in torrentList:
             trackerSizeList.append(self.torrent_db.getSwarmInfo(torrentId))
             if not toBC:
-                popularityList.append(self.getPopularityList(torrent_id=torrentId))
+                popularityList.append(self.getPopularityList(torrent_id = torrentId))
+        """
         result =[]
         timeNow=int(time())
         
         averagePeerUpTime = 2 * 60 * 60  # we suppose that the average uptime is roughly two hours.
-        listIndex = 0
-        for id in torrentList:
-            result.append([id, -1, -1, -1, -1])  # (torrent_id, calc_age, num_seeders, num_leechers, num_sources_seen)
-            if not toBC and len(popularityList[listIndex]) > 0 :
-                #if popularityList[listIndex][0] is not None:
-                latest = self.getLatestPopularityReport(popularityList[listIndex], timeNow)
-                result[listIndex][1] = latest[4]  # num_seeders
-                result[listIndex][2] = latest[5]  # num_leechers
-                result[listIndex][3] = timeNow - latest[2]+latest[3]  # age of the report
-                result[listIndex][4] = latest[6]   # num_sources
-                    # print latest
-                if len(trackerSizeList[listIndex]) > 0 and len(trackerSizeList[listIndex][0]) > 0:
-                    #if trackerSizeList[listIndex][0] is not None:
-                    temp=trackerSizeList[listIndex][0]
-                    tempAge = timeNow - temp[3]
-                    if tempAge < result[listIndex][3]:
-                        result[listIndex][1] = temp[1] #num_seeders
-                        result[listIndex][2] = temp[2] #num_leechers
-                        result[listIndex][3] = tempAge # Age of the tracker asking 
-                        othersSeenSources = self.torrent_db.getLargestSourcesSeen(id, timeNow, averagePeerUpTime)
-                        result[listIndex][4] = max(temp[4], othersSeenSources) # num_sources
-
-            elif len(trackerSizeList[listIndex]) > 0 and len(trackerSizeList[listIndex][0]) > 0:
-                #if trackerSizeList[listIndex][0] is not None:
-               temp=trackerSizeList[listIndex][0]
-               result[listIndex][1] = temp[1] #num seeders
-               result[listIndex][2] = temp[2] #num leechers
-               result[listIndex][3] = timeNow - temp[3] # age of check
-               result[listIndex][4] = temp[4] # num_sources
-            listIndex +=1
-                    
+        for torrent_id in torrentList:
+            if torrent_id not in trackerSizeDict:
+                result.append([torrent_id, -1, -1, -1, -1])  # (torrent_id, num_seeders, num_leechers, calc_age, num_sources_seen)
+            elif toBC:
+                torrentList = trackerSizeDict[torrent_id]
+                result.append([torrent_id, torrentList[1], torrentList[2], timeNow - torrentList[3], torrentList[4]])
+            else:
+                popList = self.getPopularityList(torrent_id = torrent_id)
+                latest = self.getLatestPopularityReport(popList, timeNow)
+                result.append([torrent_id, latest[4], latest[5], timeNow - latest[2]+latest[3], latest[6]])
         return result
     
     def getLatestPopularityReport(self, reportList, timeNow):
