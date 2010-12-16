@@ -581,9 +581,8 @@ class AbstractListBody():
                         pass
                 self.highlightSet = set()
             else:
-                #updated data, takes roughly 0.007s for 650+ results
-                cur_keys = set([key for key,_,_ in self.data])
-                self.highlightSet = set([key for key,_,_ in data if key not in cur_keys])
+                cur_keys = set([key for key,_,_ in self.data[:LIST_ITEM_MAX_SIZE]])
+                self.highlightSet = set([key for key,_,_ in data[:LIST_ITEM_MAX_SIZE] if key not in cur_keys])
 
             self.data = data
             self.done = False
