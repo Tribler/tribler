@@ -3784,12 +3784,8 @@ class PopularityDBHandler(BasicDBHandler):
         if validateTorrentId: #checks whether the torrent is valid or not
             if not self.checkTorrentValidity(torrent_id):
                 return None
-               
-        sql_delete_already_existing_record = u"""DELETE FROM Popularity WHERE torrent_id=? AND peer_id=? AND msg_receive_time=?"""
-        self._db.execute_write(sql_delete_already_existing_record, (torrent_id, peer_id, recv_time), commit=commit)
 
-        
-        sql_insert_new_populairty = u"""INSERT INTO Popularity (torrent_id, peer_id, msg_receive_time, size_calc_age, num_seeders,
+        sql_insert_new_populairty = u"""INSERT OR REPLACE INTO Popularity (torrent_id, peer_id, msg_receive_time, size_calc_age, num_seeders,
                                         num_leechers, num_of_sources) VALUES (?,?,?,?,?,?,?)"""
         try:
             self._db.execute_write(sql_insert_new_populairty, (torrent_id, peer_id, recv_time, calc_age, num_seeders, num_leechers, num_sources), commit=commit)

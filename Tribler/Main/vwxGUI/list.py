@@ -121,7 +121,7 @@ class ChannelSearchManager:
                     data = self.channelsearch_manager.getChannel(permid)
                     if data:
                         self.list.RefreshData(permid, data)
-                elif self.category != 'searchresults':
+                elif self.category in ['All', 'New']:
                     #Show new channel, but only if we are not showing search results
                     self.refresh()
             elif self.category != 'searchresults':
