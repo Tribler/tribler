@@ -118,8 +118,11 @@ class ProgressBar(wx.Control):
     def __init__(self, parent, colours = ["#ffffff","#92cddf","#006dc0"], *args, **kwargs ): ## "#ffffff","#CBCBCB","#ff3300"
         self.colours = colours
         self.pens    = [wx.Pen(c,0) for c in self.colours]
-        self.brushes = [wx.Brush(c) for c in self.colours]
+        for i in xrange(len(self.pens)):
+            if self.pens[i].GetColour() == wx.WHITE:
+                self.pens[i] = None
         self.reset()
+        
         style = wx.SIMPLE_BORDER
         wx.Control.__init__(self, parent, -1, style=style)
         self.SetMaxSize((-1,6))
@@ -143,18 +146,15 @@ class ProgressBar(wx.Control):
         
         numrect = float(len(self.blocks))
         w = max(1,maxw/numrect)
-        h = maxh
         
         dc = wx.BufferedPaintDC(self, buffer)
         dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
         dc.Clear()
         
-        rectangles = [(x+int(i*w),y,int(w)+1,h) for i in xrange(0,int(numrect))]
-
-        # draw the blocks
-        pens = [self.pens[c] for c in self.blocks]
-        brushes = [self.brushes[c] for c in self.blocks]
-        dc.DrawRectangleList(rectangles,pens,brushes)
+        lines = [(x+i, y, x+i, maxh) for i in xrange(maxw) if self.blocks[int(i/w)]]
+        pens = [self.pens[self.blocks[int(i/w)]] for i in xrange(maxw) if self.blocks[int(i/w)]]
+        
+        dc.DrawLineList(lines,pens)
 
     def set_pieces(self, blocks):
         maxBlocks = self.GetClientRect().width
