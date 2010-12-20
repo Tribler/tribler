@@ -108,7 +108,7 @@
                                         </object>
                                         <object class="sizeritem">
                                             <object class="wxStaticText">
-                                                <label>File Information</label>
+                                                <label>Download Location</label>
                                                 <font>
                                                     <weight>bold</weight>
                                                 </font>

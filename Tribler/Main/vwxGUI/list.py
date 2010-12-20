@@ -298,15 +298,18 @@ class List(wx.Panel):
         return ListFooter(self, self.background)
     
     def OnSize(self, event):
+        assert self.ready, "List not ready"
         diff = self.header.GetClientSize()[0] - self.list.GetClientSize()[0]
         self.header.SetSpacerRight(diff)
         self.footer.SetSpacerRight(diff)
         event.Skip()
         
     def OnSort(self, column, reverse):
+        assert self.ready, "List not ready"
         self.list.OnSort(column, reverse)
     
     def Reset(self):
+        assert self.ready, "List not ready"
         self.header.Reset()
         self.list.Reset()
         self.footer.Reset()
@@ -315,7 +318,7 @@ class List(wx.Panel):
         self.Layout()
     
     def OnExpand(self, item):
-        pass
+        assert self.ready, "List not ready"
     
     def OnCollapse(self, item, panel):
         self.OnCollapseInternal(item)
@@ -329,35 +332,38 @@ class List(wx.Panel):
         pass
     
     def SetData(self, data):
-        pass
+        assert self.ready, "List not ready"
+    
     def RefreshData(self, key, data):
-        pass
+        assert self.ready, "List not ready"
         
     def InList(self, key):
-        if self.ready:
-            return self.list.InList(key)
+        assert self.ready, "List not ready"
+        return self.list.InList(key)
     
     def GetItem(self, key):
-        if self.ready:
-            return self.list.GetItem(key)
+        assert self.ready, "List not ready"
+        return self.list.GetItem(key)
     
     def Focus(self):
-        if self.ready:
-            self.list.SetFocus()
+        assert self.ready, "List not ready"
+        self.list.SetFocus()
     
     def HasFocus(self):
-        if self.ready:
-            focussed = wx.Window.FindFocus()
-            return focussed == self.list
+        assert self.ready, "List not ready"
+        focussed = wx.Window.FindFocus()
+        return focussed == self.list
         
     def ScrollToEnd(self, scroll_to_end):
-        if self.ready:
-            self.list.ScrollToEnd(scroll_to_end)
+        assert self.ready, "List not ready"
+        self.list.ScrollToEnd(scroll_to_end)
     
     def DeselectAll(self):
+        assert self.ready, "List not ready"
         self.list.DeselectAll()
         
     def Select(self, key, raise_event = True):
+        assert self.ready, "List not ready"
         self.list.Select(key, raise_event)
         
     def Show(self):
@@ -428,6 +434,8 @@ class SearchList(List):
         self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)  
     
     def SetData(self, data):
+        List.SetData(self, data)
+        
         if len(data) > 0:
             data = [(file['infohash'],[file['name'], file['length'], 0, 0], file) for file in data]
             return self.list.SetData(data)
@@ -440,6 +448,8 @@ class SearchList(List):
         return 0
     
     def RefreshData(self, key, data):
+        List.RefreshData(self, key, data)
+        
         data = (data['infohash'],[data['name'], data['length'], 0, 0], data)
         self.list.RefreshData(key, data)
         
@@ -700,11 +710,13 @@ class LibaryList(List):
                 if item.down.GetLabel() != down:
                     item.down.SetLabel(down)
                     item.down.Refresh()
+                    item.down.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(DOWNLOAD)))
                 
                 up = self.utility.speed_format_new(item.data[4])
                 if item.up.GetLabel() != up:
                     item.up.SetLabel(up)
                     item.up.Refresh()
+                    item.up.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(UPLOAD)))
             
             if len(self.list.items) > 0:
                 self.footer.SetTotal(0, "Totals: " + str(len(self.list.items)) + " items (" +str(nr_finished) + " seeding, "+str(nr_downloading) + " downloading)")
@@ -715,6 +727,8 @@ class LibaryList(List):
                 self.footer.SetTotal(key, totals[key])
         
     def SetData(self, data):
+        List.SetData(self, data)
+        
         if len(data) > 0:
             data = [(file['infohash'], [file['name'], [0,0], None, None, None], file) for file in data]
             return self.list.SetData(data)
@@ -795,6 +809,8 @@ class ChannelList(List):
         return self.manager
 
     def SetData(self, data, favorites):
+        List.SetData(self, data)
+        
         if len(data) > 0:
             self.favorites = [file[0] for file in favorites]
             
@@ -805,6 +821,8 @@ class ChannelList(List):
         return 0
         
     def RefreshData(self, key, data):
+        List.RefreshData(self, key, data)
+        
         data = (data[0],[data[1], data[2], data[3], data[4]], data)
         self.list.RefreshData(key, data)
         
@@ -872,6 +890,8 @@ class SelectedChannelList(SearchList):
         return self.manager
     
     def SetData(self, data):
+        List.SetData(self, data)
+        
         data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
         return self.list.SetData(data)
     
@@ -886,6 +906,8 @@ class SelectedChannelList(SearchList):
         SearchList.SetNrResults(self, None, nr_filtered, nr_channels, keywords)
     
     def RefreshData(self, key, data):
+        List.RefreshData(self, key, data)
+        
         data = (data['infohash'],[data['name'], data['time_stamp'], data['length'], 0, 0], data)
         self.list.RefreshData(key, data)
         
@@ -967,6 +989,8 @@ class MyChannelList(List):
         return self.manager
     
     def SetData(self, data, nr_favorites):
+        List.SetData(self, data)
+        
         data = [(file['infohash'],[file['name'],file['time_stamp']], file) for file in data]
         self.myheader.SetNrTorrents(len(data), nr_favorites)
         
