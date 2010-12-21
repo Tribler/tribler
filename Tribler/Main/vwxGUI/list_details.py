@@ -789,9 +789,11 @@ class ProgressPanel(wx.Panel):
         finished = progress == 1.0
         if finished:
             eta = "Completed"
-            if  status == DLSTATUS_SEEDING:
+            if status == DLSTATUS_SEEDING:
                 eta += ", seeding"
                 return_val = 2
+            elif status == DLSTATUS_REPEXING:
+                eta += ", repexing"
             else:
                 eta += ", inactive"
         else:
