@@ -3141,13 +3141,13 @@ class ChannelCastDBHandler(BasicDBHandler):
             assert isinstance(torrentname, unicode), "TORRENTNAME has invalid type: %s" % type(torrentname)
             assert isinstance(timestamp, int), "TIMESTAMP has invalid type: %s" % type(timestamp)
             assert isinstance(signature, str), "SIGNATURE has invalid type: %s" % type(signature)
-        
+            
         sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
         self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=commit)
     
     def addTorrents(self, records):
-         sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
-         self._db.executemany(sql, records)
+        sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
+        self._db.executemany(sql, records)
     
     def selectTorrentsToCollect(self, publisher_id = None):
         if publisher_id:
@@ -3467,7 +3467,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         for result in results:
             nr_votes = self._db.fetchone(sqla, (result[0],))
             if nr_votes <= maxvotes:
-                name = self._db.fetchone(sqlb, (result[0], result[1]))
+                name = self._db.fetchone(sqlb, (result[0], result[1]))[:40] #max 40 characters long
                 nr_torrents = self._db.fetchone(sqlc, (result[0],))
                 channels.append((result[0], name, result[1], nr_votes, nr_torrents))
                 

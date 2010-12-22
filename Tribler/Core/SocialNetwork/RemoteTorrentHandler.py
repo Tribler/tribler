@@ -147,7 +147,7 @@ class TorrentRequester():
                 
                 #schedule a magnet lookup after X seconds
                 if self.prio <= 1 or infohash not in self.sources:
-                    self.overlay_bridge.add_task(lambda: self.magnet_requester.add_request(self.prio, infohash), self.MAGNET_TIMEOUT, infohash)
+                    self.overlay_bridge.add_task(lambda: self.magnet_requester.add_request(self.prio, infohash), self.MAGNET_TIMEOUT*self.prio, infohash)
 
             #Make sure exceptions wont crash this requesting thread
             except: 

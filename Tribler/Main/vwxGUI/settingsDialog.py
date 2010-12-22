@@ -180,23 +180,27 @@ class SettingsDialog(wx.Dialog):
         event.Skip()
 
     def saveAll(self, event):
-        errors = []
+        errors = {}
         
         valdown = self.elements['downloadCtrl'].GetValue().strip()
         if valdown != 'unlimited' and (not valdown.isdigit() or int(valdown) <= 0):
-            errors.append('downloadCtrl')
+            errors['downloadCtrl'] = 'Value must be a digit'
         
         valup = self.elements['uploadCtrl'].GetValue().strip()
         if valup != 'unlimited' and (not valup.isdigit() or int(valup) < 0):
-            errors.append('uploadCtrl')
+            errors['uploadCtrl'] = 'Value must be a digit'
         
         valport = self.elements['firewallValue'].GetValue().strip()
         if not valport.isdigit():
-            errors.append('firewallValue')
+            errors['firewallValue'] = 'Value must be a digit'
         
         valdir = self.elements['diskLocationCtrl'].GetValue().strip()
         if not os.path.exists(valdir):
-            errors.append('diskLocationCtrl')
+            errors['diskLocationCtrl'] = 'Location does not exist'
+            
+        valname = self.elements['myNameField'].GetValue()
+        if len(valname) > 40:
+            errors['myNameField'] = 'Max 40 characters'
         
         if len(errors) == 0: #No errors found, continue saving
             restart = False
@@ -266,12 +270,12 @@ class SettingsDialog(wx.Dialog):
                     self.guiUtility.frame.Restart()
                 dlg.Destroy()
             self.EndModal(1)
+            event.Skip()
         else:
-            for error in errors:
+            for error in errors.keys():
                 if sys.platform != 'darwin':
                     self.elements[error].SetForegroundColour(wx.RED)
-                self.elements[error].SetValue('Error')
-        event.Skip()
+                self.elements[error].SetValue(errors[error])
                     
     def cancelAll(self, event):
         self.EndModal(1)
