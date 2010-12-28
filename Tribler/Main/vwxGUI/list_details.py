@@ -945,11 +945,12 @@ class MyChannelTabs(wx.Panel):
         vSizer.Add(self.manageText, 0, wx.EXPAND)
         
         #rss
-        self.gridSizer = wx.FlexGridSizer(0,2,3)
+        self.gridSizer = wx.FlexGridSizer(0, 2, 3)
         self.gridSizer.AddGrowableCol(1)
-        self.BuildRssPanel(self.managepage, self.gridSizer)
-        vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.ALL, 10)
+        self.gridSizer.AddGrowableRow(0)
         
+        self.BuildRssPanel(self.managepage, self.gridSizer)
+        vSizer.Add(self.gridSizer, 1, wx.EXPAND|wx.ALL, 10)
         self.managepage.SetSizer(vSizer)
         
         notebook.AddPage(self.managepage, "Manage")
@@ -965,21 +966,28 @@ class MyChannelTabs(wx.Panel):
         rssSizer = wx.BoxSizer(wx.VERTICAL)
         urls = self.torrentfeed.getUrls("active")
         if len(urls) > 0:
+            rssPanel = wx.lib.scrolledpanel.ScrolledPanel(parent)
+            rssPanel.SetBackgroundColour(LIST_DESELECTED)
+            
+            urlSizer = wx.FlexGridSizer(0, 2, 0, 5)
+            urlSizer.AddGrowableCol(0)
             for url in urls:
-                rowSizer = wx.BoxSizer(wx.HORIZONTAL)
-                
-                rsstext = wx.StaticText(parent, -1, url.replace('&', '&&'))
+                rsstext = wx.StaticText(rssPanel, -1, url.replace('&', '&&'))
                 rsstext.SetMinSize((1,-1))
                 
-                deleteButton = wx.Button(parent, -1, "Delete")
+                deleteButton = wx.Button(rssPanel, -1, "Delete")
                 deleteButton.url = url
                 deleteButton.text = rsstext
                 deleteButton.Bind(wx.EVT_BUTTON, self.OnDeleteRss)
                 
-                rowSizer.Add(rsstext, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL)
-                rowSizer.Add(deleteButton, 0, wx.LEFT|wx.ALIGN_RIGHT, 5)
-                rssSizer.Add(rowSizer, 0, wx.EXPAND)
-
+                urlSizer.Add(rsstext, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL)
+                urlSizer.Add(deleteButton, 0, wx.ALIGN_RIGHT)
+            
+            rssPanel.SetMinSize((-1, 50))
+            rssPanel.SetSizer(urlSizer)
+            rssPanel.SetupScrolling(rate_y = 5)
+            rssSizer.Add(rssPanel, 1, wx.EXPAND)
+            
             refresh = wx.Button(parent, -1, "Refresh all rss-feeds")
             refresh.Bind(wx.EVT_BUTTON, self.OnRefreshRss)
             rssSizer.Add(refresh, 0, wx.ALIGN_RIGHT | wx.TOP, 3)
