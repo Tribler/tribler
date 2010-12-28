@@ -371,7 +371,13 @@ class AbstractListBody():
         
         #quick filter
         self.filter = ''
+        self.sizefiler = None
         self.filtercolumn = 0
+        self.filtersizecolumn = -1
+        for i in xrange(len(self.columns)):
+            if self.columns[i].get('sizeCol', False):
+                self.filtersizecolumn = i
+                break
         
         #queue lists
         self.done = True
@@ -409,9 +415,34 @@ class AbstractListBody():
     def FilterItems(self, keyword, column = 0):
         new_filter = keyword.lower()
         if new_filter != self.filter or column != self.filtercolumn:
+            self.sizefiler = None
+            if self.filtersizecolumn > -1 and new_filter.find("size=") > -1:
+                try:
+                    minSize = 0
+                    maxSize = sys.maxint
+                    
+                    start = new_filter.find("size=") + 5
+                    end = new_filter.find(" ", start)
+                    if end == -1:
+                        end = len(new_filter)
+                        
+                    sizeStr = new_filter[start:end]
+                    if sizeStr.find(":") > -1:
+                        sizes = sizeStr.split(":")
+                        if sizes[0] != '':
+                            minSize = int(sizes[0])
+                        if sizes[1] != '':
+                            maxSize = int(sizes[1])
+                    else:
+                        minSize = maxSize = int(sizeStr)
+                        
+                    self.sizefiler = [minSize, maxSize]
+                    new_filter = new_filter[:start - 5] + new_filter[end:]
+                except:
+                    pass
+                
             self.filter = new_filter
             self.filtercolumn = column
-            
             try:
                 re.compile(self.filter)
             except: #regex incorrect
@@ -424,6 +455,10 @@ class AbstractListBody():
         return True
         
     def MatchFilter(self, item):
+        if self.sizefiler:
+            size = int(item[1][self.filtersizecolumn]/1048576.0)
+            if size < self.sizefiler[0] or size > self.sizefiler[1]:
+                return False
         return re.search(self.filter, item[1][self.filtercolumn].lower())
     
     def OnExpand(self, item, raise_event = False):
@@ -476,6 +511,7 @@ class AbstractListBody():
         self.Freeze()
         
         self.filter = ''
+        self.sizefiler = None
         self.filtercolumn = 0
         
         self.vSizer.ShowItems(False)
@@ -549,7 +585,7 @@ class AbstractListBody():
                 self.dataTimer.Restart(call_in)
                 
         #apply quickfilter
-        if self.filter != '':
+        if self.filter != '' or self.sizefiler:
             data = filter(self.MatchFilter, data)
             self.parent_list.SetFilteredResults(len(data))
         
@@ -560,7 +596,7 @@ class AbstractListBody():
             print >> sys.stderr, "ListBody: set data", time()
         
         #apply quickfilter
-        if self.filter != '':
+        if self.filter != '' or self.sizefiler:
             data = filter(self.MatchFilter, self.raw_data)
         else:
             data = self.raw_data
