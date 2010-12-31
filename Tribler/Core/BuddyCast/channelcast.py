@@ -290,15 +290,25 @@ class ChannelCastCore:
             nr_torrents = self.channelcastdb.getNrTorrentsInChannel(publisher_id)
             if len(infohashes) > nr_torrents:
                 if len(infohashes) > 50 and len(infohashes) > nr_torrents +1: #peer not behaving according to spec, ignoring
-                    #print >> sys.stderr, "channelcast: peer not behaving according to spec, ignoring",len(infohashes), show_permid(query_permid)
+                    if DEBUG:
+                        print >> sys.stderr, "channelcast: peer not behaving according to spec, ignoring",len(infohashes), show_permid(query_permid)
                     return
                 self.channelcastdb.deleteTorrentsFromPublisherId(str2bin(publisher_id))
-            #print >> sys.stderr, 'Received channelcast message with %d hashes'%len(infohashes), show_permid(query_permid)
+            if DEBUG:
+                print >> sys.stderr, 'Received channelcast message with %d hashes'%len(infohashes), show_permid(query_permid)
         else:
             #ignore all my favorites, randomness will cause problems with timeframe
             my_favorites = self.votecastdb.getPublishersWithPosVote(bin2str(self.session.get_permid()))
+            
+            #filter listOfAdditions
             listOfAdditions = [hit for hit in listOfAdditions if hit[0] not in my_favorites]
-        
+            
+            #request channeltimeframes for subscribed channels
+            for publisher_id in my_favorites:
+                if publisher_id in publisher_ids:
+                    self.updateAChannel(publisher_id, [query_permid])
+                    publisher_ids.remove(publisher_id) #filter publisher_ids
+            
         #08/04/10: Andrea: processing rich metadata part.
         self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
         
