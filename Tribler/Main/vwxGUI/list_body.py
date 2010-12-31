@@ -461,6 +461,25 @@ class AbstractListBody():
                 return False
         return re.search(self.filter, item[1][self.filtercolumn].lower())
     
+    def __GetFilterMessage(self):
+        if self.filter != '':
+            message = 'Only showing items matching "%s"'%self.filter
+        elif self.sizefiler:
+            message = 'Only showing items'
+        else:
+            message = ''
+            
+        if self.sizefiler:
+            if self.sizefiler[0] == self.sizefiler[1]:
+                message += " equal to %d MB in size."%self.sizefiler[0]
+            elif self.sizefiler[0] == 0:
+                message += " smaller than %d MB in size."%self.sizefiler[1]
+            elif self.sizefiler[1] == sys.maxint:
+                message += " larger than %d MB in size"%self.sizefiler[0]
+            else:
+                message += " between %d and %d MB in size."%(self.sizefiler[0], self.sizefiler[1])
+        return message
+    
     def OnExpand(self, item, raise_event = False):
         self.Freeze()
         
@@ -594,17 +613,20 @@ class AbstractListBody():
     def __SetData(self):
         if DEBUG:
             print >> sys.stderr, "ListBody: set data", time()
+        self.Freeze()
         
         #apply quickfilter
         if self.filter != '' or self.sizefiler:
             data = filter(self.MatchFilter, self.raw_data)
+            if len(data) == 0:
+                message = "0" + self.__GetFilterMessage()[12:]
+                self.ShowMessage(message)
         else:
             data = self.raw_data
         
-        self.Freeze()
-        self.vSizer.ShowItems(False)
-        self.vSizer.Clear()
         if data:
+            self.vSizer.ShowItems(False)
+            self.vSizer.Clear()
             if len(self.items) == 0:
                 #new data
                 if len(data) > LIST_ITEM_BATCH_SIZE:
@@ -655,8 +677,10 @@ class AbstractListBody():
         
         #Check if we need to clear vSizer
         self.messagePanel.Show(False)
+        self.loadNext.Show(False)
         self.vSizer.Remove(self.messagePanel)
-            
+        
+        message = self.__GetFilterMessage()
         #Add created/cached items
         for key, item_data, original_data in self.data:
             if nr_items_to_add > 0:
@@ -682,15 +706,23 @@ class AbstractListBody():
                                             
                 nr_items_to_add -= 1
             else:
-                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data)))
+                if message != '':
+                    message = 'Only showing the first %d of %d'%(len(self.vSizer.GetChildren()), len(self.data)) + message[12:] + '\nFurther specify keywords to reduce the number of items, or click the button below.'
+                else:
+                    message = 'Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data))
                 self.loadNext.Enable()
                 self.loadNext.Show()
-                self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
-                self.messagePanel.Layout()
-                self.messagePanel.Show()
+                
                 done = True
                 break
-        
+       
+        if message != '':
+            self.messageText.SetLabel(message)
+            
+            self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
+            self.messagePanel.Layout()
+            self.messagePanel.Show()
+            
         self.OnChange()
         self.Thaw()
         self.done = done
