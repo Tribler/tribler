@@ -91,26 +91,28 @@ class HomePanel(wx.Panel):
      
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.header = self.CreateHeader(background)
+        self.header = self.CreateHeader()
         self.header.SetTitle(title)
+        self.header.SetBackgroundColour(background)
         vSizer.Add(self.header, 0, wx.EXPAND)
         
         self.panel = self.CreatePanel()
         if self.panel:
             vSizer.Add(self.panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
         
-        self.footer = self.CreateFooter(background)
+        self.footer = self.CreateFooter()
+        self.footer.SetBackgroundColour(background)
         vSizer.Add(self.footer, 0, wx.EXPAND)
         
         self.SetSizer(vSizer)
         self.Layout()
         
-    def CreateHeader(self, background):
-        return TitleHeader(self, background, [])
+    def CreateHeader(self):
+        return TitleHeader(self, [])
     def CreatePanel(self):
         pass
-    def CreateFooter(self, background):
-        return ListFooter(self, background)
+    def CreateFooter(self):
+        return ListFooter(self)
     
     def DoLayout(self):
         self.Freeze()
@@ -346,13 +348,13 @@ class BuzzPanel(HomePanel):
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
         self.timer.Start(1000, False)
     
-    def CreateHeader(self, background):
-        header = FamilyFilterHeader(self, background, [])
+    def CreateHeader(self):
+        header = FamilyFilterHeader(self, [])
         header.SetFF(self.guiutility.getFamilyFilter())
         return header
 
-    def CreateFooter(self, background):
-        return TitleFooter(self, background)
+    def CreateFooter(self):
+        return TitleFooter(self)
 
     def CreatePanel(self):
         panel = wx.Panel(self)

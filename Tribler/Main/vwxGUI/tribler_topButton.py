@@ -1,5 +1,7 @@
 import wx, os, sys
+
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
+from wx.lib.scrolledpanel import ScrolledPanel
 
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -528,3 +530,27 @@ class TextCtrlAutoComplete(wx.TextCtrl):
     def ListItemSelected (self, event) :
         self.SetValueFromSelected() 
         event.Skip()
+        return self
+    
+class ImageScrollablePanel(ScrolledPanel):
+    def __init__(self, parent, id=-1, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.HSCROLL|wx.VSCROLL):
+        ScrolledPanel.__init__(self, parent, id, pos, size, style)
+        
+        self.bitmap = None
+        wx.EVT_PAINT(self, self.OnPaint)
+        
+    def OnPaint(self, evt):
+        if self.bitmap:
+            obj = evt.GetEventObject()
+            dc = wx.BufferedPaintDC(obj)
+            
+            dc.SetPen(wx.TRANSPARENT_PEN)
+            dc.SetBrush(wx.BrushFromBitmap(self.bitmap))
+            w, h = self.GetClientSize()
+            dc.DrawRectangle(0, 0, w, h)
+        else:
+            evt.Skip()
+    
+    def SetBitmap(self, bitmap):
+        self.bitmap = bitmap
+        self.Refresh()

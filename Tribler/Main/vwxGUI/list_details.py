@@ -892,7 +892,7 @@ class MyChannelTabs(wx.Panel):
         #shared files page
         filespage = wx.Panel(notebook)
         filespage.SetBackgroundColour(LIST_DESELECTED)
-        self.header = ListHeader(filespage, background, columns, 0)
+        self.header = ListHeader(filespage, columns, 0)
         self.list = ListBody(filespage, background, columns, spacers[0], spacers[1], singleSelect)
         
         #small onexpand hack
@@ -1323,7 +1323,7 @@ class SwarmHealth(wx.Panel):
         
         xpos = (self.GetClientSize()[0] - width) / 2
             
-        dc.SetPen(wx.BLACK_PEN)
+        dc.SetPen(wx.Pen(self.GetParent().GetForegroundColour()))
         dc.SetBrush(wx.WHITE_BRUSH)
         dc.DrawRectangle(xpos, 0, width, height)
                 

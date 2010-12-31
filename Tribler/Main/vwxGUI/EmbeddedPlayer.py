@@ -76,7 +76,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         
             vSizer.Add(hSizer, 1, wx.EXPAND)
             
-            footer = ListFooter(self, bg)
+            footer = ListFooter(self)
+            footer.SetBackgroundColour(bg)
             vSizer.Add(footer, 0, wx.EXPAND)
         else:
             mainbox = vSizer

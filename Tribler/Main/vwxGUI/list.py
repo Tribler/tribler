@@ -256,19 +256,18 @@ class List(wx.Panel):
         listSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         #left and right borders
-        leftLine = wx.Panel(self, size=(1,-1))
-        leftLine.SetBackgroundColour(self.background)
-        rightLine = wx.Panel(self, size=(1,-1))
-        rightLine.SetBackgroundColour(self.background)
+        self.leftLine = wx.Panel(self, size=(1,-1))
+        self.rightLine = wx.Panel(self, size=(1,-1))
         
-        listSizer.Add(leftLine, 0, wx.EXPAND)
+        listSizer.Add(self.leftLine, 0, wx.EXPAND)
         listSizer.Add(self.list, 1, wx.EXPAND)
-        listSizer.Add(rightLine, 0, wx.EXPAND)
+        listSizer.Add(self.rightLine, 0, wx.EXPAND)
         vSizer.Add(listSizer, 1, wx.EXPAND)
         
         self.footer = self.CreateFooter()
         vSizer.Add(self.footer, 0, wx.EXPAND)
         
+        self.SetBackgroundColour(self.background)
         self.SetSizer(vSizer)
         self.Layout()
         
@@ -289,13 +288,13 @@ class List(wx.Panel):
         return "%.0f MB"%size
     
     def CreateHeader(self):
-        return ListHeader(self, self.background, self.columns)
+        return ListHeader(self, self.columns)
     
     def CreateList(self):
-        return ListBody(self, self.background, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
+        return ListBody(self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
     
     def CreateFooter(self):
-        return ListFooter(self, self.background)
+        return ListFooter(self)
     
     def OnSize(self, event):
         assert self.ready, "List not ready"
@@ -348,11 +347,23 @@ class List(wx.Panel):
     def Focus(self):
         assert self.ready, "List not ready"
         self.list.SetFocus()
-    
     def HasFocus(self):
         assert self.ready, "List not ready"
         focussed = wx.Window.FindFocus()
         return focussed == self.list
+        
+    def SetBackgroundColour(self, colour):
+        wx.Panel.SetBackgroundColour(self, colour)
+        
+        if self.header:
+            self.header.SetBackgroundColour(colour)
+            
+        self.leftLine.SetBackgroundColour(colour)
+        self.list.SetBackgroundColour(colour)
+        self.rightLine.SetBackgroundColour(colour)
+        
+        if self.footer:
+            self.footer.SetBackgroundColour(colour)
         
     def ScrollToEnd(self, scroll_to_end):
         assert self.ready, "List not ready"
@@ -395,10 +406,10 @@ class SearchList(List):
         return self.manager
     
     def CreateHeader(self):
-        return SearchHeader(self, self.background, self.columns)
+        return SearchHeader(self, self.columns)
 
     def CreateFooter(self):
-        footer = ChannelResultFooter(self, self.background)
+        footer = ChannelResultFooter(self)
         footer.SetEvents(self.OnChannelResults)
         return footer 
     
@@ -538,13 +549,13 @@ class LibaryList(List):
         return self.manager
     
     def CreateHeader(self):
-        header = ButtonHeader(self, self.background, self.columns)
+        header = ButtonHeader(self, self.columns)
         header.SetTitle('Library')
         header.SetEvents(self.OnResume, self.OnStop, self.OnDelete)
         return header
     
     def CreateFooter(self):
-        footer = TotalFooter(self, self.background, self.columns)
+        footer = TotalFooter(self, self.columns)
         footer.SetTotal(0, 'Totals:')
         return footer
     
@@ -779,7 +790,7 @@ class ChannelList(List):
         return str(val)
     
     def CreateHeader(self):
-        return SubTitleHeader(self, self.background, self.columns)
+        return SubTitleHeader(self, self.columns)
     
     def CreatePopularity(self, parent, item):
         pop = int(item.data[2])
@@ -864,12 +875,16 @@ class SelectedChannelList(SearchList):
         List.__init__(self, columns, LIST_GREY, [7,7], True)
         
     def CreateHeader(self):
-        header = ChannelHeader(self, self.background, self.columns)
-        header.SetEvents(self.OnBack) 
+        header = ChannelHeader(self, self.columns)
+        header.SetEvents(self.OnBack)
         return header
+    
+    def CreateList(self):
+        list = SearchList.CreateList(self)
+        return list
    
     def CreateFooter(self):
-        footer = ChannelFooter(self, self.background)
+        footer = ChannelFooter(self)
         footer.SetEvents(self.OnSpam, self.OnFavorite, self.OnRemoveVote)
         return footer
         
@@ -968,7 +983,7 @@ class MyChannelList(List):
         List.__init__(self, columns, LIST_BLUE, [7,7])
       
     def CreateHeader(self):
-        self.myheader = MyChannelHeader(self, self.background, self.columns)
+        self.myheader = MyChannelHeader(self, self.columns)
         self.myheader.SetName(self.utility.session.get_nickname())
         return self.myheader
     
@@ -1027,12 +1042,12 @@ class ChannelCategoriesList(List):
         List.__init__(self, columns, LIST_GREY, [7,7], True)
     
     def CreateHeader(self):
-        title = TitleHeader(self, self.background, self.columns, 1, wx.FONTWEIGHT_NORMAL)
+        title = TitleHeader(self, self.columns, 1, wx.FONTWEIGHT_NORMAL)
         title.SetTitle('Categories')
         return title
     
     def CreateList(self):
-        return FixedListBody(self, self.background, self.columns, self.spacers[0], self.spacers[1], self.singleSelect)    
+        return FixedListBody(self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect)    
     
     def _PostInit(self):
         List._PostInit(self)
