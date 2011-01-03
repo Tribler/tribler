@@ -325,7 +325,7 @@ class ChannelCastCore:
     
     def updateMySubscribedChannels(self):
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()
-        for permid, channel_name, _, num_subscriptions, _ in subscribed_channels:
+        for permid, channel_name, _, num_subscriptions, _, _, _ in subscribed_channels:
             self.updateAChannel(permid)
         
         self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    

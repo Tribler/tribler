@@ -75,9 +75,6 @@ class ChannelSearchManager:
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
 
     def refresh(self, search_results = None):
-        [total_items, data] = self.channelsearch_manager.getSubscriptions()
-        favorites = data
-        
         if search_results == None:
             if self.category == 'New':
                 [total_items,data] = self.channelsearch_manager.getNewChannels()
@@ -92,6 +89,7 @@ class ChannelSearchManager:
                 [total_items,data] = self.channelsearch_manager.getAllChannels()
                 self.list.SetTitle('All Channels', total_items)
             elif self.category == 'Favorites':
+                [total_items,data] = self.channelsearch_manager.getSubscriptions()
                 self.list.SetTitle('Your Favorites', total_items)
         else:
             self.list.select_popular = False
@@ -101,7 +99,7 @@ class ChannelSearchManager:
             keywords = ' '.join(self.channelsearch_manager.searchkeywords) 
             self.list.SetTitle('Search results for "%s"'%keywords, total_items)
         
-        self.list.SetData(data, favorites)
+        self.list.SetData(data)
         
     def SetCategory(self, category):
         if category != self.category:
@@ -716,6 +714,7 @@ class LibaryList(List):
                 if item.connections.GetLabel() != nr_connections:
                     item.connections.SetLabel(nr_connections)
                     item.connections.Refresh()
+                    item.connections.SetToolTipString("Connected to %d Seeders and %d Leechers"%(item.data[2][0], item.data[2][1]))
                 
                 down = self.utility.speed_format_new(item.data[3])
                 if item.down.GetLabel() != down:
@@ -771,6 +770,7 @@ class ChannelList(List):
         self.favorite = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         self.normal = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
         self.mychannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","mychannel.png"), wx.BITMAP_TYPE_ANY)
+        self.spam = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bug.png"), wx.BITMAP_TYPE_ANY)
         
         self.select_popular = True
         self.my_permid = bin2str(self.guiutility.channelsearch_manager.channelcast_db.my_permid)
@@ -781,6 +781,8 @@ class ChannelList(List):
             return self.mychannel
         if item.original_data[0] in self.favorites:
             return self.favorite
+        if item.original_data[0] in self.spam_channels:
+            return self.spam
         return self.normal
     
     def __format(self, val):
@@ -819,11 +821,12 @@ class ChannelList(List):
             self.manager = ChannelSearchManager(self) 
         return self.manager
 
-    def SetData(self, data, favorites):
+    def SetData(self, data):
         List.SetData(self, data)
         
         if len(data) > 0:
-            self.favorites = [file[0] for file in favorites]
+            self.favorites = [file[0] for file in data if file[6] == 2]
+            self.spam_channels = [file[0] for file in data if file[6] == -1]
             
             data = [(file[0],[file[1], file[2], file[3], file[4]], file) for file in data if file[4] > 0]
             return self.list.SetData(data)
