@@ -134,27 +134,33 @@ class BT1Download:
         # 2fastbt_
         try:
             
-            if self.config['download_help']:
-                if DEBUG:
-                    print >>sys.stderr,"BT1Download: coopdl_role is",self.config['coopdl_role'],`self.config['coopdl_coordinator_permid']`
+            # 03/01/11 boudewijn: when self.coordinator or self.helper
+            # is set, a lot of data is logged.  Unfortunately either
+            # is set for -any- download, not only the 2010 test
+            # torrent.  This resulted in huge amounts of log, memory
+            # usage, and even crashes.
+            #
+            # if self.config['download_help']:
+            #     if DEBUG:
+            #         print >>sys.stderr,"BT1Download: coopdl_role is",self.config['coopdl_role'],`self.config['coopdl_coordinator_permid']`
                 
-                if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR:
-                    from Tribler.Core.ProxyService.Coordinator import Coordinator
+            #     if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR:
+            #         from Tribler.Core.ProxyService.Coordinator import Coordinator
                     
-                    self.coordinator = Coordinator(self.infohash, self.len_pieces)
-                #if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR or self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
-                # Arno, 2008-05-20: removed Helper when coordinator, shouldn't need it.
-                # Reason to remove it is because it messes up PiecePicking: when a 
-                # helper, it calls _next() again after it returned None, probably
-                # to provoke a RESERVE_PIECE request to the coordinator.
-                # This change passes test_dlhelp.py
-                #
-                if self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
-                    from Tribler.Core.ProxyService.Helper import Helper
+            #         self.coordinator = Coordinator(self.infohash, self.len_pieces)
+            #     #if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR or self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
+            #     # Arno, 2008-05-20: removed Helper when coordinator, shouldn't need it.
+            #     # Reason to remove it is because it messes up PiecePicking: when a 
+            #     # helper, it calls _next() again after it returned None, probably
+            #     # to provoke a RESERVE_PIECE request to the coordinator.
+            #     # This change passes test_dlhelp.py
+            #     #
+            #     if self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
+            #         from Tribler.Core.ProxyService.Helper import Helper
                     
-                    self.helper = Helper(self.infohash, self.len_pieces, self.config['coopdl_coordinator_permid'], coordinator = self.coordinator)
-                    self.config['coopdl_role'] = ''
-                    self.config['coopdl_coordinator_permid'] = ''
+            #         self.helper = Helper(self.infohash, self.len_pieces, self.config['coopdl_coordinator_permid'], coordinator = self.coordinator)
+            #         self.config['coopdl_role'] = ''
+            #         self.config['coopdl_coordinator_permid'] = ''
 
 
             if self.am_video_source:

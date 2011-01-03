@@ -343,7 +343,7 @@ class Connection:
         return None
 
     def _auto_close(self):
-        if not self.complete and not self.is_coordinator_con():
+        if not self.complete:# and not self.is_coordinator_con():
             if DEBUG:
                 print >>sys.stderr,"encoder: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
 
