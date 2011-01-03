@@ -224,7 +224,10 @@ class NewTorrentPanel(HomePanel):
             if size > 10:
                 self.list.DeleteItem(size-1)
             
-            self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+            if sys.platform == 'darwin':
+                self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+            else:
+                self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
     
     def OnDoubleClick(self, event):
         selected = self.list.GetFirstSelected()
@@ -261,7 +264,10 @@ class PopularTorrentPanel(NewTorrentPanel):
             if item[2] > 0:
                 self.list.InsertStringItem(sys.maxint, item[1])
         
-        self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+        if sys.platform == 'darwin':
+            self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+        else:
+            self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         self.list.Thaw()
 
 class TopContributorsPanel(HomePanel):             
