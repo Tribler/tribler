@@ -305,7 +305,7 @@ class ListItem(wx.Panel):
     def Expand(self, panel):
         if getattr(panel, 'SetCursor', False):
             panel.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
-            panel.SetFont(panel.GetDefaultAttributes().font)
+            #panel.SetFont(panel.GetDefaultAttributes().font)
         
         panel.Show()
         self.vSizer.Add(panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)

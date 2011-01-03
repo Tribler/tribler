@@ -984,6 +984,7 @@ class MyChannelList(List):
       
     def CreateHeader(self):
         self.myheader = MyChannelHeader(self, self.columns)
+        self.myheader.SetBackgroundColour(self.background)
         self.myheader.SetName(self.utility.session.get_nickname())
         return self.myheader
     

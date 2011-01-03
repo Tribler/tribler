@@ -87,7 +87,7 @@ class TorrentDetails(wx.Panel):
                 font = header.GetFont()
                 font.SetWeight(wx.FONTWEIGHT_BOLD)
                 header.SetFont(font)
-                vSizer.Add(header, 0, wx.BOTTOM, 3)
+                vSizer.Add(header, 0, wx.LEFT|wx.BOTTOM, 3)
             
             return panel, vSizer
         
@@ -893,7 +893,8 @@ class MyChannelTabs(wx.Panel):
         filespage = wx.Panel(notebook)
         filespage.SetBackgroundColour(LIST_DESELECTED)
         self.header = ListHeader(filespage, columns, 0)
-        self.list = ListBody(filespage, background, columns, spacers[0], spacers[1], singleSelect)
+        self.list = ListBody(filespage, columns, spacers[0], spacers[1], singleSelect)
+        self.list.SetBackgroundColour(background)
         
         #small onexpand hack
         filespage.OnExpand = self.parent.OnExpand
