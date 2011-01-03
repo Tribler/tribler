@@ -3336,10 +3336,10 @@ class ChannelCastDBHandler(BasicDBHandler):
                 publisher_id = q
             else:
                 publisher_id = arguments[0]
+            
             #are we subscribed to this channel?
-                        
             s = "Select 1 FROM VoteCast Where voter_id = ? AND mod_id = ? AND vote == 2"
-            if(self._db.fetchone(s, (bin2str(self.my_permid), publisher_id))):
+            if publisher_id == bin2str(self.my_permid) or self._db.fetchone(s, (bin2str(self.my_permid), publisher_id)):
                 if len(arguments) == 1:
                     s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 50"
                     allrecords = self._db.fetchall(s,(q,))

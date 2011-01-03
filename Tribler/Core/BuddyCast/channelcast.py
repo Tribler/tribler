@@ -184,14 +184,13 @@ class ChannelCastCore:
             print >> sys.stderr,'channelcast: Received a msg from ', show_permid_short(sender_permid)
             print >> sys.stderr,"channelcast: my_permid=", show_permid_short(self.my_permid)
 
-        """
-        We want to receive our own channelcast messages, to fix our illegal timeframes
+        
         if not sender_permid or sender_permid == self.my_permid:
             if DEBUG:
                 print >> sys.stderr, "channelcast: warning - got channelcastMsg from a None/Self peer", \
                         show_permid_short(sender_permid), recv_msg
             return False
-        """
+        
         #if len(recv_msg) > self.max_length:
         #    if DEBUG:
         #        print >> sys.stderr, "channelcast: warning - got large channelCastHaveMsg", len(recv_msg)
@@ -262,14 +261,8 @@ class ChannelCastCore:
                 # if so, ignore the incoming record
                 continue
             
-            #Nitin: Check if the record belongs to my channel 
-            if bin2str(v['publisher_id']) == bin2str(self.session.get_permid()):
-                # if so, ignore the incoming record
-                continue
-            
             # make everything into "string" format, if "binary"
             hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
-            
             listOfAdditions.append(hit)
         
         # Arno, 2010-06-11: We're on the OverlayThread
@@ -277,6 +270,9 @@ class ChannelCastCore:
         return listOfAdditions
     
     def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
+        if DEBUG:
+            print >> sys.stderr, "channelcast: updating channelcastdb", query, len(hits)
+
         publisher_ids = Set()
         infohashes = Set()
         for hit in listOfAdditions:

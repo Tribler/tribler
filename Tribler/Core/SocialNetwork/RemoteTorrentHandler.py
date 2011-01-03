@@ -201,17 +201,16 @@ class MagnetRequester():
         self.listLock.release()
           
         if len(self.requestedInfohashes) < self.MAX_CONCURRENT:
-            self.overlay_bridge.add_task(self.__requestMagnet, 0, self) #do new request now
+            self.overlay_bridge.add_task(self.__requestMagnet, 0) #do new request now
             
     def __requestMagnet(self):
-        if len(self.requestedInfohashes) < self.MAX_CONCURRENT:
-            #request new infohash from queue
-            try:
-                self.listLock.acquire()
+        self.listLock.acquire()
+        try:
+            if len(self.requestedInfohashes) < self.MAX_CONCURRENT:
+                #request new infohash from queue
                 while True:
                     if len(self.list) == 0:
-                        return
-                    
+                            return
                     prio, infohash = self.list.pop(0)
                     torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
                     
@@ -223,30 +222,34 @@ class MagnetRequester():
                             print >> sys.stderr, 'magnetrequester: magnet already on disk', bin2str(infohash)
                     else:
                         break
-            except:
-                print_exc()
+            else: #requesting max_concurrent
                 return
-            finally:
-                self.listLock.release()
-            
-            #.torrent still not found, try magnet link
-            magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
-            if DEBUG:
-                print >> sys.stderr, 'magnetrequester: requesting magnet', bin2str(infohash), prio, magnetlink
-            
-            TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT)
-            self.requestedInfohashes.add(infohash)
-            
-            self.overlay_bridge.add_task(lambda: self.__torrentdef_failed(infohash), self.MAGNET_RETRIEVE_TIMEOUT, infohash)
-            
-            if len(self.requestedInfohashes) < self.MAX_CONCURRENT:
-                self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL, self)
+        except:
+            print_exc()
+        finally:
+            self.listLock.release()
+        
+        #try magnet link
+        magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
+        if DEBUG:
+            print >> sys.stderr, 'magnetrequester: requesting magnet', bin2str(infohash), prio, magnetlink
+        
+        self.requestedInfohashes.add(infohash)
+        TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT)
+        self.overlay_bridge.add_task(lambda: self.__torrentdef_failed(infohash), self.MAGNET_RETRIEVE_TIMEOUT, infohash)
+        
+        if len(self.requestedInfohashes) < self.MAX_CONCURRENT:
+            self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL)
     
     def __torrentdef_retrieved(self, tdef):
         infohash = tdef.get_infohash()
         if DEBUG:
             print >> sys.stderr, 'magnetrequester: received torrent', bin2str(infohash)
         
+        #remove from requested list
+        self.requestedInfohashes.remove(infohash)
+        
+        #save torrent
         torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
         tdef.save(torrent_filename)
         
@@ -254,11 +257,11 @@ class MagnetRequester():
         torrent_db = self.session.open_dbhandler('torrents')
         torrent_db.addExternalTorrent(tdef)
         
-        self.requestedInfohashes.remove(infohash)
+        #notify all
         self.remoteTorrentHandler.metadatahandler_got_torrent(infohash, tdef, torrent_filename)
-        self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL, self)
+        self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL)
     
     def __torrentdef_failed(self, infohash):
-        if infohash in self.requestedInfohashes:
+        if infohash in self.requestedInfohashes: #did we retrieve it allready?
             self.requestedInfohashes.remove(infohash)
-            self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL, self)
+            self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL)
