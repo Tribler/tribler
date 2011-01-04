@@ -564,17 +564,20 @@ class Connection:
     # ut_pex support
     #
     def got_ut_pex(self,d):
-        # ProxyService_
-        #
-        proxy_mode = self.config.get('proxy_mode',0)
-        if proxy_mode == PROXY_MODE_PRIVATE:
-            if DEBUG_UT_PEX:
-                print >>sys.stderr, "connecter: Private Mode - Returned from got_ut_pex"
-            return
-        #
-        # _ProxyService
+        # 04/01/11 boudewijn: self.config does not exist.  should
+        # probably be self.connecter.config.  This causes -every-
+        # connection to close when a ut pex message is received
+        # (usually after 15 seconds of being connected).
+        # # ProxyService_
+        # #
+        # proxy_mode = self.config.get('proxy_mode',0)
+        # if proxy_mode == PROXY_MODE_PRIVATE:
+        #     if DEBUG_UT_PEX:
+        #         print >>sys.stderr, "connecter: Private Mode - Returned from got_ut_pex"
+        #     return
+        # #
+        # # _ProxyService
         
-        DEBUG_UT_PEX = True
         if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Got uTorrent PEX:",d
         (same_added_peers,added_peers,dropped_peers) = check_ut_pex(d)
