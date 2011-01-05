@@ -45,6 +45,23 @@ mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 keys = {}
 basekeydata = str(getpid()) + repr(time()) + 'tracker'
 
+def merge_announce(tracker, params):
+    """
+    Merge the announce url with its announce parameters.
+
+    TRACKER is the announce value from the .torrent file.
+    PARAMS is a string starting with ? following key=value pairs
+    separated with &.
+
+    Sometimes TRACKER ends with parameters aswell, private trackets
+    that provide personalized .torrent files usually do this, for
+    instance tracker.org/announce?passlkey=foobar.
+    """
+    if "?" in tracker:
+        return tracker + "&" + params[1:]
+    else:
+        return tracker + params
+
 def add_key(tracker):
     key = ''
     for i in sha(basekeydata+tracker).digest()[-6:]:
@@ -346,8 +363,8 @@ class Rerequester:
             try:
                 if DEBUG:
                     print >>sys.stderr,"Rerequest tracker:"
-                    print >>sys.stderr,t+s
-                h = urlopen(t+s)
+                    print >>sys.stderr,merge_announce(t, s)
+                h = urlopen(merge_announce(t, s))
                 closer[0] = h.close
                 data = h.read()
             except (IOError, error), e:
@@ -408,7 +425,7 @@ class Rerequester:
 
             # even if the attempt timed out, go ahead and process data
             def add(self = self, r = r, callback = callback):
-                #print >>sys.stderr,"Rerequester: add: postprocessing",r
+                # print >>sys.stderr,"Rerequester: add: postprocessing",r
                 self.postrequest(r, callback, self.notifiers)
                 
             #print >>sys.stderr,"Rerequester: _request_single: scheduling processing of returned",r
