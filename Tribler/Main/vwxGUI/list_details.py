@@ -645,7 +645,7 @@ class TorrentDetails(wx.Panel):
         label = event.GetEventObject().GetParent()
         if label.target == 'my_files':
             self.guiutility.frame.top_bg.selectTab('my_files')
-            self.guiutility.ShowPage('my_files')
+            self.guiutility.ShowPage('my_files', self.torrent['infohash'])
         else:
             self.guiutility.frame.top_bg.selectTab('channels')
             

@@ -62,7 +62,10 @@ class LocalSearchManager:
     def __init__(self, list):
         self.list = list
         self.torrentsearch_manager = GUIUtility.getInstance().torrentsearch_manager 
-        
+    
+    def expand(self, infohash):
+        self.list.Select(infohash)
+    
     def refresh(self):
         [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory('libraryMode', sort="name")
         self.list.SetData(data_files)
@@ -688,7 +691,7 @@ class LibaryList(List):
         if self.ready:
             totals = {2:0, 3:0, 4:0}
             
-            nr_finished = 0
+            nr_seeding = 0
             nr_downloading = 0
             for ds in dslist:
                 infohash = ds.get_download().get_def().get_infohash()
@@ -704,7 +707,7 @@ class LibaryList(List):
                 if status == 1:
                     nr_downloading += 1
                 elif status == 2:
-                    nr_finished += 1
+                    nr_seeding += 1
                 
                 totals[2] = totals[2] + item.data[2][0] + item.data[2][1]
                 totals[3] = totals[3] + item.data[3]
@@ -729,7 +732,18 @@ class LibaryList(List):
                     item.up.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(UPLOAD)))
             
             if len(self.list.items) > 0:
-                self.footer.SetTotal(0, "Totals: " + str(len(self.list.items)) + " items (" +str(nr_finished) + " seeding, "+str(nr_downloading) + " downloading)")
+                totalStr = "Totals: %d items ("%len(self.list.items)
+                
+                if nr_downloading > 0:
+                    totalStr += "%d downloading, "%nr_downloading
+                if nr_seeding > 0:
+                    totalStr += "%d seeding, "%nr_seeding
+                nr_inactive = len(self.list.items) - nr_seeding - nr_downloading
+                if nr_inactive > 0:
+                    totalStr += "%d inactive, "%nr_inactive
+                
+                totalStr = totalStr[:-2] + ")"
+                self.footer.SetTotal(0, totalStr)
             else:
                 self.footer.SetTotal(0, "Totals: 0 items")
             
