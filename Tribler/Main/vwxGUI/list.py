@@ -964,12 +964,14 @@ class SelectedChannelList(SearchList):
         #Request all items from connected peers
         channelcast = BuddyCastFactory.getInstance().channelcast_core
         channelcast.updateAChannel(self.publisher_id)
+        self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
         
     def OnSpam(self, event):
         dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dialog.ShowModal() == wx.ID_YES:
             self.channelsearch_manager.spam(self.publisher_id)
             self.footer.SetStates(True, False)
+            self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
         dialog.Destroy()
     
     def OnBack(self, event):
