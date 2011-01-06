@@ -4520,10 +4520,29 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         return res
     
     def getTermsStartingWith(self, beginning, num = 10):
-        terms = self.getAll('term', 
-                            term=("like", u"%s%%" % beginning),
-                            order_by="freq DESC",
-                            limit=num * 2)
+        words = beginning.split()
+        if len(words) < 3:
+            if beginning[-1] == ' ' or len(words) > 1:
+                termid = self.getOne('term_id', term=("=", words[0]))
+                if termid:
+                    sql = '''SELECT "%s " || TF.term AS phrase
+                             FROM TorrentBiTermPhrase P, TermFrequency TF
+                             WHERE P.term1_id = ? 
+                             AND P.term2_id = TF.term_id '''%words[0]
+                    if len(words) > 1:
+                        sql += 'AND TF.term like "%s%%" '%words[1]
+                    sql +='''GROUP BY term1_id, term2_id
+                             ORDER BY freq DESC
+                             LIMIT ?'''
+                    terms = self._db.fetchall(sql, (termid, num))
+            else:
+                terms = self.getAll('term', 
+                                    term=("like", u"%s%%" % beginning),
+                                    order_by="freq DESC",
+                                    limit=num * 2)
+        else:
+            terms = None
+            
         if terms:
             # terms is a list containing lists. We only want the first
             # item of the inner lists.
