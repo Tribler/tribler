@@ -428,7 +428,7 @@ class AbstractListBody():
         self.Thaw()
     
     def FilterItems(self, keyword, column = 0):
-        new_filter = keyword.lower()
+        new_filter = keyword.lower().strip()
         if new_filter != self.filter or column != self.filtercolumn:
             self.sizefiler = None
             if self.filtersizecolumn > -1 and new_filter.find("size=") > -1:
@@ -456,7 +456,7 @@ class AbstractListBody():
                 except:
                     pass
                 
-            self.filter = new_filter
+            self.filter = new_filter.strip()
             self.filtercolumn = column
             try:
                 re.compile(self.filter)
