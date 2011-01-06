@@ -4520,6 +4520,8 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         return res
     
     def getTermsStartingWith(self, beginning, num = 10):
+        terms = None
+
         words = beginning.split()
         if len(words) < 3:
             if beginning[-1] == ' ' or len(words) > 1:
@@ -4540,9 +4542,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
                                     term=("like", u"%s%%" % beginning),
                                     order_by="freq DESC",
                                     limit=num * 2)
-        else:
-            terms = None
-            
+        
         if terms:
             # terms is a list containing lists. We only want the first
             # item of the inner lists.
