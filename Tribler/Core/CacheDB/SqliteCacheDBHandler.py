@@ -3468,14 +3468,14 @@ class ChannelCastDBHandler(BasicDBHandler):
         results = self._db.fetchall(sql, args)
         
         sqla = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
-        sqlb = "Select count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash LIMIT 1"
+        sqlb = "Select count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND status_id <> ? AND ChannelCast.infohash = CollectedTorrent.infohash LIMIT 1"
         
         for result in results:
             nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(result[0])
             nr_votes = nr_favorites + nr_spam
             if nr_votes >= minvotes and nr_votes <= maxvotes:
                 name = self._db.fetchone(sqla, (result[0], result[1]))[:40] #max 40 characters long
-                nr_torrents = self._db.fetchone(sqlb, (result[0],))
+                nr_torrents = self._db.fetchone(sqlb, (result[0], self.torrent_db.status_table['dead']))
                 my_vote = self.votecast_db.getVote(result[0], bin2str(self.my_permid))
                 
                 channels.append((result[0], name, result[1], nr_favorites, nr_torrents, nr_spam, my_vote))
