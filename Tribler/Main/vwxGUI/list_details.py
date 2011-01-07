@@ -68,61 +68,81 @@ class TorrentDetails(wx.Panel):
     def _showTorrent(self, torrent, information):
         self.torrent = torrent
         self.information = information
-        ds = self.torrent.get('ds', False)
-        finished = torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
+        ds = self.torrent.get('ds', None)
         
         self.Freeze()
         self.messagePanel.Show(False)
         
-        def create_tab(tabname, header = None):
-            panel = wx.lib.scrolledpanel.ScrolledPanel(self.notebook)
-            panel.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
-            self.notebook.AddPage(panel, tabname)
-            
-            vSizer = wx.BoxSizer(wx.VERTICAL)
-            panel.SetSizer(vSizer)
-            
-            if header:
-                header = wx.StaticText(panel, -1, header)
-                font = header.GetFont()
-                font.SetWeight(wx.FONTWEIGHT_BOLD)
-                header.SetFont(font)
-                vSizer.Add(header, 0, wx.LEFT|wx.BOTTOM, 3)
-            
-            return panel, vSizer
-        
-        def add_row(parent, sizer, name, value):
-            if name:
-                name = wx.StaticText(parent, -1, name)
-                font = name.GetFont()
-                font.SetWeight(wx.FONTWEIGHT_BOLD)
-                name.SetFont(font)
-                sizer.Add(name, 0, wx.LEFT, 10)
-            
-            try:
-                value = wx.StaticText(parent, -1, unicode(value))
-            except:
-                value = wx.StaticText(parent, -1, value.decode('utf-8','ignore'))
-                
-            value.SetMinSize((1,-1))
-            sizer.Add(value, 0, wx.EXPAND|wx.LEFT, 10)
-            
-            return name, value
-    
         self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME)
+        self._addTabs(ds)
         
+        self.buttonPanel = wx.Panel(self)
+        self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
+        self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.ShowPanel()
+        
+        self.buttonPanel.SetSizer(self.buttonSizer)
+        self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
+        self.details.Layout()
+        
+        self.parent.parent_list.OnChange()
+        self.Thaw()
+        
+        self.isReady = True
+        self._Refresh(ds)
+        self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
+    
+    def _create_tab(self, tabname, header = None):
+        panel = wx.lib.scrolledpanel.ScrolledPanel(self.notebook)
+        panel.SetBackgroundColour(self.notebook.GetThemeBackgroundColour())
+        self.notebook.AddPage(panel, tabname)
+        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        panel.SetSizer(vSizer)
+        
+        if header:
+            header = wx.StaticText(panel, -1, header)
+            font = header.GetFont()
+            font.SetWeight(wx.FONTWEIGHT_BOLD)
+            header.SetFont(font)
+            vSizer.Add(header, 0, wx.LEFT|wx.BOTTOM, 3)
+        
+        return panel, vSizer
+        
+    def _add_row(self, parent, sizer, name, value):
+        if name:
+            name = wx.StaticText(parent, -1, name)
+            font = name.GetFont()
+            font.SetWeight(wx.FONTWEIGHT_BOLD)
+            name.SetFont(font)
+            sizer.Add(name, 0, wx.LEFT, 10)
+        
+        try:
+            value = wx.StaticText(parent, -1, unicode(value))
+        except:
+            value = wx.StaticText(parent, -1, value.decode('utf-8','ignore'))
+            
+        value.SetMinSize((1,-1))
+        sizer.Add(value, 0, wx.EXPAND|wx.LEFT, 10)
+        
+        return name, value    
+
+    def _addTabs(self, ds):
+        finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
+    
         #Create torrent overview
-        overview, torrentSizer = create_tab('Overview', 'Torrent Details')
-        category = torrent['category']
+        overview, torrentSizer = self._create_tab('Overview', 'Torrent Details')
+        category = self.torrent['category']
         if isinstance(category,list):
             category = ', '.join(category)
         
         vSizer = wx.FlexGridSizer(0, 2, 3, 3)
         vSizer.AddGrowableCol(1)
-        add_row(overview, vSizer, "Name", torrent['name'])
-        add_row(overview, vSizer, "Type", category.capitalize())
-        add_row(overview, vSizer, "Uploaded", date.fromtimestamp(torrent['creation_date']).strftime('%Y-%m-%d'))
-        add_row(overview, vSizer, "Filesize", self.guiutility.utility.size_format(torrent['length']) + " in " + str(len(information[2])) + " files")
+        self._add_row(overview, vSizer, "Name", self.torrent['name'])
+        self._add_row(overview, vSizer, "Type", category.capitalize())
+        self._add_row(overview, vSizer, "Uploaded", date.fromtimestamp(self.torrent['creation_date']).strftime('%Y-%m-%d'))
+        self._add_row(overview, vSizer, "Filesize", self.guiutility.utility.size_format(self.torrent['length']) + " in " + str(len(self.information[2])) + " files")
         
         if 'torrent_id' not in self.torrent:
             self.torrent['torrent_id'] = self.guiutility.torrentsearch_manager.torrent_db.getTorrentID(self.torrent['infohash'])
@@ -137,16 +157,16 @@ class TorrentDetails(wx.Panel):
         
         diff = time() - last_check
         if seeders <= 0 and leechers <= 0:
-            _, self.status = add_row(overview, vSizer, "Status", "Unknown")
+            _, self.status = self._add_row(overview, vSizer, "Status", "Unknown")
         else:
-            _, self.status = add_row(overview, vSizer, "Status", "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2)))
+            _, self.status = self._add_row(overview, vSizer, "Status", "%s seeders, %s leechers (updated %s ago)"%(seeders,leechers,self.guiutility.utility.eta_value(diff, 2)))
         torrentSizer.Add(vSizer, 0, wx.EXPAND)
         
         if diff > 1800: #force update if last update more than 30 minutes ago
             TorrentChecking(self.torrent['infohash']).start()
         
         #Create filelist
-        if len(information[2]) > 0:
+        if len(self.information[2]) > 0:
             self.listCtrl = SortedListCtrl(self.notebook, 2)
             self.listCtrl.InsertColumn(0, 'Name')
             self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
@@ -168,22 +188,22 @@ class TorrentDetails(wx.Panel):
                     return 1
                 return cmp(a[0],b[0])
             
-            information[2].sort(sort_by_keywords)
-            for filename, size in information[2]:
+            self.information[2].sort(sort_by_keywords)
+            for filename, size in self.information[2]:
                 try:
                     pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
                 except:
                     try:
                         pos = self.listCtrl.InsertStringItem(sys.maxint, filename.decode('utf-8','ignore'))
                     except:
-                        print >> sys.stderr, "Could not format filename", torrent['name']
+                        print >> sys.stderr, "Could not format filename", self.torrent['name']
                 self.listCtrl.SetItemData(pos, pos)
                 self.listCtrl.itemDataMap.setdefault(pos, [filename, size])
                 
                 size = self.guiutility.utility.size_format(size)
                 self.listCtrl.SetStringItem(pos, 1, size)
                 
-                if filename in information[1]:
+                if filename in self.information[1]:
                     self.listCtrl.SetItemColumnImage(pos, 0, play_img)
                 else:
                     self.listCtrl.SetItemColumnImage(pos, 0, file_img)
@@ -194,7 +214,7 @@ class TorrentDetails(wx.Panel):
             self.notebook.AddPage(self.listCtrl, "Files")
         
         #Create subtitlelist
-        if information[0]:
+        if self.information[0]:
             curlang = []
             strlang = []
             
@@ -213,7 +233,7 @@ class TorrentDetails(wx.Panel):
             vlc_supported = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
             
             internalSubs = []
-            for filename, size in information[2]:
+            for filename, size in self.information[2]:
                 root, extension = os.path.splitext(filename)
                 if extension in vlc_supported:
                     internalSubs.append(filename)
@@ -227,7 +247,7 @@ class TorrentDetails(wx.Panel):
                 curlang.insert(0, ('','',''))
                 strlang.insert(0, '')
                 
-                subtitlePanel, vSizer = create_tab("Subtitles", "Discovered Subtitles")
+                subtitlePanel, vSizer = self._create_tab("Subtitles", "Discovered Subtitles")
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
                 
                 if finished:
@@ -247,32 +267,32 @@ class TorrentDetails(wx.Panel):
                 
                 vSizer.AddStretchSpacer()
                 if finished:
-                    add_row(subtitlePanel, vSizer, None, "Please select a subtitle and click play.")
+                    self._add_row(subtitlePanel, vSizer, None, "Please select a subtitle and click play.")
                     
                     self.requestingSub = wx.StaticText(subtitlePanel)
                     self.requestingSub.Show(False)
                     vSizer.Add(self.requestingSub, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 10)
                 else:
-                    add_row(subtitlePanel, vSizer, None, "After you finished downloading this torrent you can select one to used with our player.")
+                    self._add_row(subtitlePanel, vSizer, None, "After you finished downloading this torrent you can select one to used with our player.")
         
         #Create description
-        if torrent.get('comment', 'None') != 'None' and torrent['comment'] != '':
-            descriptionPanel, vSizer = create_tab("Description", "Comment")
-            add_row(descriptionPanel, vSizer, None, torrent['comment'])
+        if self.torrent.get('comment', 'None') != 'None' and self.torrent['comment'] != '':
+            descriptionPanel, vSizer = self._create_tab("Description", "Comment")
+            self._add_row(descriptionPanel, vSizer, None, self.torrent['comment'])
             descriptionPanel.SetupScrolling(rate_y = 5)
         
         #Create trackerlist
-        if torrent.get('trackers', 'None') != 'None':
+        if self.torrent.get('trackers', 'None') != 'None':
             tracker_list = []
-            for trackers in torrent['trackers']:
+            for trackers in self.torrent['trackers']:
                 for tracker in trackers:
                     if tracker:
                         tracker_list.append(tracker)
                 
             if len(tracker_list) > 0:
-                trackerPanel, vSizer = create_tab("Trackers", "Trackers")
+                trackerPanel, vSizer = self._create_tab("Trackers", "Trackers")
                 for tracker in tracker_list:
-                    add_row(trackerPanel, vSizer, None, tracker)
+                    self._add_row(trackerPanel, vSizer, None, tracker)
                 trackerPanel.SetupScrolling(rate_y = 5)
         
         self.details.Add(self.notebook, 6, wx.EXPAND)
@@ -280,21 +300,6 @@ class TorrentDetails(wx.Panel):
         bestSize = torrentSizer.GetSize()[1]
         overview.SetMinSize((-1, bestSize))
         self.notebook.SetMinSize((-1, self.notebook.GetBestSize()[1]))
-        
-        self.buttonPanel = wx.Panel(self)
-        self.buttonPanel.SetBackgroundColour(LIST_DESELECTED)
-        self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        self.ShowPanel()
-        
-        self.buttonPanel.SetSizer(self.buttonSizer)
-        self.details.Add(self.buttonPanel, 4, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
-        self.details.Layout()
-        
-        self.parent.parent_list.OnChange()
-        self.Thaw()
-        
-        self.isReady = True
     
     def ShowPanel(self, type = None):
         if getattr(self, 'buttonSizer', False):
@@ -302,7 +307,6 @@ class TorrentDetails(wx.Panel):
             self.buttonSizer.ShowItems(False)
             self.buttonSizer.DeleteWindows()
             self.buttonSizer.Clear()
-            self.buttonPanel.Show()
             
             in_progress = finished = False
             
@@ -331,6 +335,7 @@ class TorrentDetails(wx.Panel):
             if getattr(self.parent, 'button', False):
                 self.parent.button.Enable(not finished and not in_progress)
             
+            self.buttonPanel.Show()
             self.buttonPanel.Layout()
             self.buttonPanel.Thaw()
         else:
@@ -397,8 +402,6 @@ class TorrentDetails(wx.Panel):
                 self.buttonSizer.Add(self.channeltext, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL|wx.EXPAND, 3)
     
     def _ShowDownloadProgress(self):
-        self.buttonPanel.Hide()
-        
         #Header
         self.downloadText = wx.StaticText(self.buttonPanel, -1, "You are downloading this torrent")
         font = self.downloadText.GetFont()
@@ -450,8 +453,6 @@ class TorrentDetails(wx.Panel):
             vSizer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
             self.play.SetSizer(vSizer)
             self.buttonSizer.Add(self.play, 0,wx.EXPAND, 3)
-        
-        self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
     
     def _ShowDone(self):
         header = wx.StaticText(self.buttonPanel, -1, "This torrent has finished downloading.")
@@ -692,39 +693,108 @@ class TorrentDetails(wx.Panel):
         for ds in dslist:
             infohash = ds.get_download().get_def().get_infohash()
             if infohash == self.torrent['infohash']:
-                self.torrent['ds'] = ds
-                self.torrent['progress'] = int(ds.get_progress() * 100)
-                
-                if self.torrent['progress'] < 100:
-                    found = True
-                
-                    if getattr(self, 'progressPanel', False):
-                        self.item.original_data['ds'] = ds
-                        self.progressPanel.Update()
-                    
-                    if ds.get_status() == DLSTATUS_STOPPED:
-                        label = 'Download is stopped'
-                    elif ds.is_vod():
-                        label = 'You are streaming this torrent'
-                        if getattr(self, 'play', False):
-                            self.play.Hide()
-                    else:
-                        label = 'You are downloading this torrent'
-                    if self.downloadText.GetLabel() != label:
-                        self.downloadText.SetLabel(label)
-                        self.downloadText.Refresh()
-                    self.buttonPanel.Show()
+                self._Refresh(ds)
+                found = True
                 break
         
         if not found:
             self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
             self.ShowPanel()
             
+    def _Refresh(self, ds):
+        self.torrent['ds'] = ds
+        if ds:
+            self.torrent['progress'] = int(ds.get_progress() * 100)
+        elif 'progress' not in self.torrent:
+            self.torrent['progress'] = 0
+                    
+        if self.torrent['progress'] < 100:
+            if getattr(self, 'progressPanel', False) and ds:
+                self.item.original_data['ds'] = ds
+                self.progressPanel.Update()
+            
+            if not ds or ds.get_status() == DLSTATUS_STOPPED:
+                label = 'Download is stopped'
+            elif ds.is_vod():
+                label = 'You are streaming this torrent'
+                if getattr(self, 'play', False):
+                    self.play.Hide()
+            else:
+                label = 'You are downloading this torrent'
+            
+            if getattr(self,'downloadText', False) and self.downloadText.GetLabel() != label:
+                self.downloadText.SetLabel(label)
+                self.downloadText.Refresh()
+            self.buttonPanel.Show()
+            
     def __del__(self):
         self.guiutility.torrentsearch_manager.remove_download_state_callback(self.OnRefresh)
 
 class LibraryDetails(TorrentDetails):
-    pass
+    
+    def _addTabs(self, ds):
+        TorrentDetails._addTabs(self, ds)
+        
+        self.peerList = SortedListCtrl(self.notebook, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.peerList.InsertColumn(0, 'IP-address')
+        self.peerList.InsertColumn(1, 'Completion', wx.LIST_FORMAT_RIGHT)
+        self.peerList.InsertColumn(2, 'Traffic', wx.LIST_FORMAT_RIGHT)
+        self.peerList.InsertColumn(3, 'State', wx.LIST_FORMAT_RIGHT)
+        self.peerList.setResizeColumn(0)
+        
+        self.notebook.AddPage(self.peerList, "Peers")
+    
+    def _Refresh(self, ds):
+        TorrentDetails._Refresh(self, ds)
+        
+        self.peerList.Freeze()
+        def downsort(a, b):
+            if a['downrate'] != b['downrate']:
+                return a['downrate'] - b['downrate']
+            return a['uprate'] - b['uprate']
+        
+        index = 0
+        if ds:
+            peers = ds.get_peerlist()
+            peers.sort(downsort, reverse = True)
+            
+            for peer_dict in peers:
+                peer_name = peer_dict['ip'] + ':%d @ %d%%'%(peer_dict['port'], peer_dict['completed']*100.0)
+                if index < self.peerList.GetItemCount():
+                    self.peerList.SetStringItem(index, 0, peer_name)
+                else:
+                    self.peerList.InsertStringItem(index, peer_name)
+                self.peerList.SetStringItem(index, 1, self.guiutility.utility.speed_format_new(peer_dict['downrate']))
+                self.peerList.SetStringItem(index, 2, self.guiutility.utility.speed_format_new(peer_dict['uprate']))
+                
+                state = ""
+                if peer_dict['optimistic']:
+                    state += "O,"
+                if peer_dict['uinterested']:
+                    state += "UI,"
+                if peer_dict['uchoked']:
+                    state += "UC,"
+                if peer_dict['dinterested']:
+                    state += "DI,"
+                if peer_dict['dchoked']:
+                    state += "DC,"
+                if peer_dict['snubbed']:
+                    state += "S,"
+                state += peer_dict['direction']
+                self.peerList.SetStringItem(index, 3, state)
+                
+                index += 1
+        for i in xrange(index, self.peerList.GetItemCount() + 1):
+            self.peerList.DeleteItem(i)
+        
+        if index == 0:
+            self.peerList.InsertStringItem(index, "Not connected to any peers")
+        
+        self.peerList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+        self.peerList.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+        self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+        self.peerList._doResize()
+        self.peerList.Thaw()
 
 class ProgressPanel(wx.Panel):
     #eta style
@@ -800,7 +870,7 @@ class ProgressPanel(wx.Panel):
             if status in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING]:
                 eta = 'Checking'
             
-            else:
+            elif status == DLSTATUS_DOWNLOADING:
                 sizestr = ''
                 size = self.item.original_data.get('length', False)
                 if size:
@@ -818,8 +888,9 @@ class ProgressPanel(wx.Panel):
                 else:
                     eta = sizestr + ' - ' + eta
                 
-                if status != DLSTATUS_STOPPED:
-                    return_val = 1
+                return_val = 1
+            else:
+                eta = 'Incomplete, inactive (%0.1f%%)'%(progress*100)
             
         if self.style == ProgressPanel.ETA_EXTENDED:
             if status == DLSTATUS_SEEDING:

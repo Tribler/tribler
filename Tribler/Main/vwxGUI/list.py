@@ -693,15 +693,18 @@ class LibaryList(List):
             
             nr_seeding = 0
             nr_downloading = 0
+            for item in self.list.items.values():
+                item.original_data['ds'] = None #remote all downloadstates
+            
             for ds in dslist:
                 infohash = ds.get_download().get_def().get_infohash()
                 if infohash in self.list.items:
                     item = self.list.items[infohash]
                     item.original_data['ds'] = ds
                 else:
-                    self.GetManager().refresh()
+                    self.GetManager().refresh() #new torrent
                     break
-                    
+            
             for infohash, item in self.list.items.iteritems():
                 status = item.progressPanel.Update()
                 if status == 1:
