@@ -737,9 +737,9 @@ class LibraryDetails(TorrentDetails):
         
         self.peerList = SortedListCtrl(self.notebook, 4, style = wx.LC_REPORT|wx.LC_NO_HEADER)
         self.peerList.InsertColumn(0, 'IP-address')
-        self.peerList.InsertColumn(1, 'Completion', wx.LIST_FORMAT_RIGHT)
-        self.peerList.InsertColumn(2, 'Traffic', wx.LIST_FORMAT_RIGHT)
-        self.peerList.InsertColumn(3, 'State', wx.LIST_FORMAT_RIGHT)
+        self.peerList.InsertColumn(1, 'Traffic', wx.LIST_FORMAT_RIGHT)
+        self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
+        self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
         
         self.notebook.AddPage(self.peerList, "Peers")
@@ -764,8 +764,11 @@ class LibraryDetails(TorrentDetails):
                     self.peerList.SetStringItem(index, 0, peer_name)
                 else:
                     self.peerList.InsertStringItem(index, peer_name)
-                self.peerList.SetStringItem(index, 1, self.guiutility.utility.speed_format_new(peer_dict['downrate']))
-                self.peerList.SetStringItem(index, 2, self.guiutility.utility.speed_format_new(peer_dict['uprate']))
+                
+                traffic = ""
+                traffic += self.guiutility.utility.speed_format_new(peer_dict['downrate']) + u"\u2193 "
+                traffic += self.guiutility.utility.speed_format_new(peer_dict['uprate']) + u"\u2191"
+                self.peerList.SetStringItem(index, 1, traffic.strip())
                 
                 state = ""
                 if peer_dict['optimistic']:
@@ -774,6 +777,8 @@ class LibraryDetails(TorrentDetails):
                     state += "UI,"
                 if peer_dict['uchoked']:
                     state += "UC,"
+                if peer_dict['uhasqueries']:
+                    state += "UQ,"
                 if peer_dict['dinterested']:
                     state += "DI,"
                 if peer_dict['dchoked']:
@@ -781,7 +786,8 @@ class LibraryDetails(TorrentDetails):
                 if peer_dict['snubbed']:
                     state += "S,"
                 state += peer_dict['direction']
-                self.peerList.SetStringItem(index, 3, state)
+                self.peerList.SetStringItem(index, 2, state)
+                self.peerList.SetStringItem(index, 3, peer_dict['extended_version'])
                 
                 index += 1
         for i in xrange(index, self.peerList.GetItemCount() + 1):
@@ -793,6 +799,7 @@ class LibraryDetails(TorrentDetails):
         self.peerList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         self.peerList.SetColumnWidth(2, wx.LIST_AUTOSIZE)
         self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+        self.peerList.SetColumnWidth(4, wx.LIST_AUTOSIZE)
         self.peerList._doResize()
         self.peerList.Thaw()
 

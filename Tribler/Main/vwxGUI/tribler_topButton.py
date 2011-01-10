@@ -468,10 +468,11 @@ class TextCtrlAutoComplete(wx.TextCtrl):
             self.ShowDropDown () 
             skip = False 
         if visible : 
-            if event.GetKeyCode() == wx.WXK_RETURN :
+            if event.GetKeyCode() == wx.WXK_RETURN or event.GetKeyCode() == wx.WXK_SPACE:
                 if sel > -1:
-                    self.SetValueFromSelected()
-                    skip = False
+                    doCallback = event.GetKeyCode() == wx.WXK_RETURN
+                    self.SetValueFromSelected(doCallback)
+                    skip = not doCallback
             if event.GetKeyCode() == wx.WXK_ESCAPE : 
                 self.ShowDropDown(False) 
                 skip = False 
@@ -487,17 +488,19 @@ class TextCtrlAutoComplete(wx.TextCtrl):
             self.ShowDropDown (not self.dropdown.IsShown()) 
         event.Skip ()
 
-    def SetValueFromSelected(self) : 
+    def SetValueFromSelected(self, doCallback = True) : 
         ''' 
             Sets the wx.TextCtrl value from the selected wx.ListBox item.
             Will do nothing if no item is selected in the wx.ListBox. 
         ''' 
         sel = self.dropdownlistbox.GetFirstSelected() 
         if sel > -1 : 
-            self.SetValue (self.dropdownlistbox.GetItemText(sel)) 
-            self.ShowDropDown (False)
+            newval = self.dropdownlistbox.GetItemText(sel)
+            self.SetValue(newval)
+            self.SetInsertionPoint(len(newval))
             
-            if self.selectcallback:
+            if doCallback and self.selectcallback:
+                self.ShowDropDown(False)
                 self.selectcallback()
 
     def ShowDropDown(self, show = True) : 

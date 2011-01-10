@@ -119,6 +119,7 @@ class Connection:
         self.closed = False
         self.extend_hs_dict = {}        # what extended messages does this peer support
         self.initiated_overlay = False
+        self.extended_version = None #verbose version of client from extended message
 
         # G2G
         self.use_g2g = False # set to true if both sides use G2G, indicated by self.connector.use_g2g
@@ -501,12 +502,12 @@ class Connection:
             except:
                 print_exc()
         
+        self.extended_version = d.get('v',None)
         # RePEX: Tell repexer we have received an extended handshake
         repexer = self.connecter.repexer
         if repexer:
             try:
-                version = d.get('v',None)
-                repexer.got_extend_handshake(self, version)
+                repexer.got_extend_handshake(self, self.extended_version)
             except:
                 print_exc()
 

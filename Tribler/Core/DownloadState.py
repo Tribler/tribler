@@ -319,6 +319,7 @@ class DownloadState(Serializable):
         dictionary contains the keys:
         <pre>
         'id' = PeerID or 'http seed'
+        'extended_version' = Peer client version
         'ip' = IP address as string or URL of httpseed
         'port' = Port
         'pex_received' = True/False
@@ -329,6 +330,7 @@ class DownloadState(Serializable):
         'uprate' = Upload rate in KB/s
         'uinterested' = Upload Interested: True/False
         'uchoked' = Upload Choked: True/False
+        'uhasqueries' = Upload has requests in buffer and not choked
         'downrate' = Download rate in KB/s
         'dinterested' = Download interested: True/Flase
         'dchoked' = Download choked: True/False

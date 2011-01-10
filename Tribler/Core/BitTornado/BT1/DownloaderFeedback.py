@@ -50,6 +50,7 @@ class DownloaderFeedback:
         for c in cs:    # c: Connecter.Connection
             a = {}
             a['id'] = c.get_readable_id()
+            a['extended_version'] = c.extended_version or ''
             a['ip'] = c.get_ip()
             if c.is_locally_initiated():
                 a['port'] = c.get_port()
@@ -68,6 +69,8 @@ class DownloaderFeedback:
             a['uprate'] = int(u.measure.get_rate())
             a['uinterested'] = u.is_interested()
             a['uchoked'] = u.is_choked()
+            a['uhasqueries'] = u.has_queries()
+            
             d = c.get_download()
             a['downrate'] = int(d.measure.get_rate())
             a['dinterested'] = d.is_interested()
