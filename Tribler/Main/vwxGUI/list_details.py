@@ -794,6 +794,7 @@ class LibraryDetails(TorrentDetails):
             self.peerList.DeleteItem(i)
         
         if index == 0:
+            self.peerList.DeleteAllItems()
             self.peerList.InsertStringItem(index, "Not connected to any peers")
         
         self.peerList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
