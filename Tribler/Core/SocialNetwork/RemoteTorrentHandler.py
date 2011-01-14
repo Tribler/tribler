@@ -247,19 +247,20 @@ class MagnetRequester():
             print >> sys.stderr, 'magnetrequester: received torrent', bin2str(infohash)
         
         #remove from requested list
-        self.requestedInfohashes.remove(infohash)
+        if infohash in self.requestedInfohashes:
+            self.requestedInfohashes.remove(infohash)
         
-        #save torrent
-        torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
-        tdef.save(torrent_filename)
-        
-        #add this new torrent to db
-        torrent_db = self.session.open_dbhandler('torrents')
-        torrent_db.addExternalTorrent(tdef)
-        
-        #notify all
-        self.remoteTorrentHandler.metadatahandler_got_torrent(infohash, tdef, torrent_filename)
-        self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL)
+            #save torrent
+            torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
+            tdef.save(torrent_filename)
+            
+            #add this new torrent to db
+            torrent_db = self.session.open_dbhandler('torrents')
+            torrent_db.addExternalTorrent(tdef)
+            
+            #notify all
+            self.remoteTorrentHandler.metadatahandler_got_torrent(infohash, tdef, torrent_filename)
+            self.overlay_bridge.add_task(self.__requestMagnet, self.REQUEST_INTERVAL)
     
     def __torrentdef_failed(self, infohash):
         if infohash in self.requestedInfohashes: #did we retrieve it allready?
