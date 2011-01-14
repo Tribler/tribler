@@ -849,6 +849,8 @@ class ProgressPanel(wx.Panel):
             progress = self.item.original_data.get('progress')
             if progress == None:
                 progress = 0
+            else:
+                progress /= 100.0
             
             seeds = peers = None
             dls = uls = 0
@@ -860,6 +862,8 @@ class ProgressPanel(wx.Panel):
             seeds = 0
         if peers == None:
             peers = 0
+        progress = max(0, min(1, progress)) #progress has to be between 0 and 1
+         
         self.item.data[2] = [seeds, peers]
         self.item.data[3] = dls
         self.item.data[4] = uls
