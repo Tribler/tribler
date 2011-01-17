@@ -144,7 +144,16 @@ class Rerequester:
         if not self.started:
             self.started = True
             self.sched(self.c, self.interval/2)
-            self.d(0)
+
+            # 17/01/11 boudewijn: would always send event=started.
+            # However, from the BitTorrent bep: "No completed is sent
+            # if the file was complete when started."
+            if self.amount_left():
+                event = 0 # started
+            else:
+                event = 3 # completed when started
+
+            self.d(event)
 
     def c(self):
         if self.stopped:
