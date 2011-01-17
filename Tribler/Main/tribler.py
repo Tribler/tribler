@@ -24,6 +24,7 @@
 
 # modify the sys.stderr and sys.stdout for safe output
 import Tribler.Debug.console
+from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 
 import os,sys
 import urllib
@@ -760,7 +761,11 @@ class ABCApp(wx.App):
         result = dlg.ShowModal()
         print_exc()
         dlg.Destroy()
-
+        
+    def MacOpenFile(self, filename): 
+        print >> sys.stderr, filename
+        target = FileDropTarget(self.frame)
+        target.OnDropFiles(None, None, [filename])
 
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"

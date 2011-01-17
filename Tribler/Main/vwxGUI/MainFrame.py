@@ -78,6 +78,7 @@ class FileDropTarget(wx.FileDropTarget):
         self.frame = frame
       
     def OnDropFiles(self, x, y, filenames):
+        print >> sys.stderr, filenames
         for filename in filenames:
             try:
                 self.FixTorrent(filename)
