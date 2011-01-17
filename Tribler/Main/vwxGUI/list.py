@@ -105,14 +105,15 @@ class ChannelSearchManager:
         self.list.SetData(data)
         
     def SetCategory(self, category):
-        if category != self.category:
-            self.category = category
-            self.list.Reset()
-            
-            if category != 'searchresults':
-                self.refresh()
-        else:
-            self.list.DeselectAll()
+        if self.list.ready: 
+            if category != self.category:
+                self.category = category
+                self.list.Reset()
+                
+                if category != 'searchresults':
+                    self.refresh()
+            else:
+                self.list.DeselectAll()
         
     def channelUpdated(self, permid):
         if self.list.ready: 

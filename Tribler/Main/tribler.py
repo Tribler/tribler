@@ -486,7 +486,8 @@ class ABCApp(wx.App):
         return(1.0, True)
     
     def sesscb_ntfy_myprefupdates(self, subject,changeType,objectID,*args):
-        wx.CallAfter(self.gui_ntfy_myprefupdates, objectID)
+        if self.ready and self.frame.ready:
+            wx.CallAfter(self.gui_ntfy_myprefupdates, objectID)
     
     def gui_ntfy_myprefupdates(self, infohash):
         manager = self.frame.searchlist.GetManager()
