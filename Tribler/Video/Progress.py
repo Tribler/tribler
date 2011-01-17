@@ -142,9 +142,10 @@ class ProgressBar(wx.Control):
     
     def OnPaint(self, evt):
         x,y,maxw,maxh = self.GetClientRect()
-        buffer = wx.EmptyBitmap(maxw, maxh)
+        print >> sys.stderr, 'rect', x,y, maxw, maxh
+        #buffer = wx.EmptyBitmap(maxw, maxh)
         
-        dc = wx.BufferedPaintDC(self, buffer)
+        dc = wx.BufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
         dc.Clear()
         
@@ -160,9 +161,9 @@ class ProgressBar(wx.Control):
             else:
                 for i in xrange(maxw):
                     pen = self.pens[self.blocks[int(i/w)]]
-                    if pen:
-                        dc.SetPen(wx.BLACK_PEN)
-                        dc.DrawLine(x+i, y, x+1, maxh)
+                    dc.SetPen(wx.BLACK_PEN)
+                    print >> sys.stderr, x+i, y, x+1, maxh
+                    dc.DrawLine(x+i, y, x+1, maxh)
 
     def set_pieces(self, blocks):
         maxBlocks = self.GetClientRect().width
