@@ -158,7 +158,7 @@ class ProgressBar(wx.Panel):
         dc.DrawRectangle(x, y, maxw, maxh)
 
     def set_pieces(self, blocks):
-        maxBlocks = min(self.GetClientRect().width, 100)
+        maxBlocks = max(self.GetClientRect().width, 100)
         haveBlocks = len(blocks)
         if haveBlocks > maxBlocks: #we need to group the blocks
             nrBlocksPerPixel = haveBlocks/maxBlocks
