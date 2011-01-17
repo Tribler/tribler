@@ -111,57 +111,51 @@ class ProgressInf:
         
 
 
-class ProgressBar(wx.Control):
-    #def __init__(self, parent, colours = ["#cfcfcf","#d7ffd7","#00ff00"], *args, **kwargs ):
-    #def __init__(self, parent, colours = ["#cfcfcf","#fde72d","#00ff00"], *args, **kwargs ):
-    #def __init__(self, parent, colours = ["#ffffff","#fde72d","#00ff00"], *args, **kwargs ):
-    def __init__(self, parent, colours = ["#ffffff","#92cddf","#006dc0"], *args, **kwargs ): ## "#ffffff","#CBCBCB","#ff3300"
-        self.colours = colours
-        self.pens    = [wx.Pen(c,1) for c in self.colours]
+class ProgressBar(wx.Panel):
+    
+    def __init__(self, parent, colours = ["#ffffff", "#92cddf", "#006dc0"], size = wx.DefaultSize):
+        wx.Panel.__init__(self, parent, size = size, style = wx.NO_BORDER)
+        self.pens = [wx.Pen(c) for c in colours]
+        self.brushes = [wx.Brush(c) for c in colours]
+        
         for i in xrange(len(self.pens)):
             if self.pens[i].GetColour() == wx.WHITE:
                 self.pens[i] = None
         self.reset()
         
-        style = wx.SIMPLE_BORDER
-        wx.Control.__init__(self, parent, -1, style=style)
         self.SetMaxSize((-1,6))
         self.SetMinSize((1,6))
         self.SetBackgroundColour(wx.WHITE)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
-        self.progressinf = None
-
-    def AcceptsFocus(self):
-        return False
+        
+        self.completed = False
 
     def OnEraseBackground(self, event):
         pass # Or None
     
     def OnPaint(self, evt):
-        x,y,maxw,maxh = self.GetClientRect()
-        
         dc = wx.BufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
         dc.Clear()
         
-        if len(self.blocks) > 0:
-            numrect = float(len(self.blocks))
-            w = max(1,maxw/numrect)
+        x, y, maxw, maxh = self.GetClientRect()
         
-            if sys.platform != 'darwin':
-                lines = [(x+i, y, x+i, maxh+y) for i in xrange(maxw) if self.blocks[int(i/w)]]
-                pens = [self.pens[self.blocks[int(i/w)]] for i in xrange(maxw) if self.blocks[int(i/w)]]
-                
-                dc.DrawLineList(lines,pens)
-            else:
-                for i in xrange(maxw):
-                    pen = self.pens[self.blocks[int(i/w)]]
-                    dc.SetPen(wx.BLACK_PEN)
-                    print >> sys.stderr, x+i, y, x+i, maxh+y
-                    dc.DrawLine(x+i, y, x+i, maxh+y)
+        if len(self.blocks) > 0 and not self.completed:
+            numrect = float(len(self.blocks))
+            w = max(1, maxw / numrect)
+        
+            lines = [(x+i, y, x+i, maxh) for i in xrange(maxw) if self.blocks[int(i/w)]]
+            pens = [self.pens[self.blocks[int(i/w)]] for i in xrange(maxw) if self.blocks[int(i/w)]]
+            dc.DrawLineList(lines,pens)
+        
+        if self.completed:
+            dc.SetBrush(self.brushes[2])
+        else:
+            dc.SetBrush(wx.TRANSPARENT_BRUSH)
+        dc.SetPen(wx.BLACK_PEN)
+        dc.DrawRectangle(x, y, maxw, maxh)
 
     def set_pieces(self, blocks):
         maxBlocks = self.GetClientRect().width
@@ -188,17 +182,19 @@ class ProgressBar(wx.Control):
             self.set_blocks(sblocks)
         
     def set_blocks(self,blocks):
-        """ Called by MainThread """
+        self.completed = all([x == 2 for x in blocks])
         self.blocks = blocks
         
     def setNormalPercentage(self, perc):
         maxBlocks = self.GetClientRect().width
         
-        self.blocks = [2] * int(perc * maxBlocks)
-        self.blocks += [0] * (maxBlocks-len(self.blocks))
+        sblocks = [2] * int(perc * maxBlocks)
+        sblocks += [0] * (maxBlocks-len(self.blocks))
+        self.set_blocks(sblocks)
 
     def reset(self,colour=0):
-        self.blocks = [colour] * 100
+        sblocks = [colour] * 100
+        self.set_blocks(sblocks)
         
 class ProgressSlider(wx.Panel):
     
