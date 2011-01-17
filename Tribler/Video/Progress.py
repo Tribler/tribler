@@ -144,8 +144,6 @@ class ProgressBar(wx.Control):
         x,y,maxw,maxh = self.GetClientRect()
         buffer = wx.EmptyBitmap(maxw, maxh)
         
-        
-        
         dc = wx.BufferedPaintDC(self, buffer)
         dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
         dc.Clear()
