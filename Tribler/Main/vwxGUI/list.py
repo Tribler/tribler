@@ -476,7 +476,7 @@ class SearchList(List):
         item.button = button
         
         if not item.original_data.get('ds',False):
-            button.Bind(wx.EVT_MOUSE_EVENTS, self.OnDownload)
+            button.Bind(wx.EVT_BUTTON, self.OnDownload)
         else:
             button.Enable(False)
         return button
@@ -493,9 +493,10 @@ class SearchList(List):
         return control
         
     def OnDownload(self, event):
-        if event.LeftUp():
-            item = event.GetEventObject().item
-            self.StartDownload(item.original_data)
+        item = event.GetEventObject().item
+        self.StartDownload(item.original_data)
+        
+        #allow expand
         event.Skip()
         
     def StartDownload(self, torrent):
