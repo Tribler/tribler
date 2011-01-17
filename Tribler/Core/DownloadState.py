@@ -188,6 +188,34 @@ class DownloadState(Serializable):
         else:
             return self.stats['time']
         
+    def get_num_con_candidates(self):
+        """ 
+        Returns the download's number of possible connections. This is used
+        to see if there is any progress when non-fatal errors have occured
+        (e.g. tracker timeout).
+        @return An integer.
+        """
+        if self.stats is None:
+            return 0
+
+        # Determine if we need statsobj to be requested, same as for spew
+        statsobj = self.stats['stats']
+        return statsobj.numConCandidates
+
+    def get_num_con_initiated(self):
+        """ 
+        Returns the download's number of initiated connections. This is used
+        to see if there is any progress when non-fatal errors have occured
+        (e.g. tracker timeout).
+        @return An integer.
+        """
+        if self.stats is None:
+            return 0
+
+        # Determine if we need statsobj to be requested, same as for spew
+        statsobj = self.stats['stats']
+        return statsobj.numConInitiated
+        
     def get_num_peers(self):
         """ 
         Returns the download's number of active connections. This is used

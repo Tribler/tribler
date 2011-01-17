@@ -622,7 +622,7 @@ class BT1Download:
     def _init_stats(self):
         self.statistics = Statistics(self.upmeasure, self.downmeasure, 
                     self.connecter, self.ghttpdownloader, self.hhttpdownloader, self.ratelimiter, 
-                    self.rerequest_lastfailed, self.filedatflag)
+                    self.rerequest_lastfailed, self.filedatflag, self.encoder)
         if self.info.has_key('files'):
             self.statistics.set_dirstats(self.files, self.info['piece length'])
 

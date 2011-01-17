@@ -707,6 +707,7 @@ class LibaryList(List):
                     break
             
             for infohash, item in self.list.items.iteritems():
+                ds = item.original_data['ds']
                 status = item.progressPanel.Update()
                 if status == 1:
                     nr_downloading += 1
@@ -721,20 +722,29 @@ class LibaryList(List):
                 if item.connections.GetLabel() != nr_connections:
                     item.connections.SetLabel(nr_connections)
                     item.connections.Refresh()
-                    item.connections.SetToolTipString("Connected to %d Seeders and %d Leechers"%(item.data[2][0], item.data[2][1]))
+                    if ds:
+                        item.connections.SetToolTipString("Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(item.data[2][0], item.data[2][1], ds.get_num_con_initiated(), ds.get_num_con_candidates()))
+                    else:
+                        item.connections.SetToolTipString('')
                 
                 down = self.utility.speed_format_new(item.data[3])
                 if item.down.GetLabel() != down:
                     item.down.SetLabel(down)
                     item.down.Refresh()
-                    item.down.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(DOWNLOAD)))
+                    if ds:
+                        item.down.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(DOWNLOAD)))
+                    else:
+                        item.down.SetToolTipString('')
                 
                 up = self.utility.speed_format_new(item.data[4])
                 if item.up.GetLabel() != up:
                     item.up.SetLabel(up)
                     item.up.Refresh()
-                    item.up.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(UPLOAD)))
-            
+                    if ds:
+                        item.up.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(UPLOAD)))
+                    else:
+                        item.down.SetToolTipString('')
+                        
             if len(self.list.items) > 0:
                 totalStr = "Totals: %d items ("%len(self.list.items)
                 

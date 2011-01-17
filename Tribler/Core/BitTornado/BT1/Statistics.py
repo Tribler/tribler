@@ -14,7 +14,7 @@ class Statistics_Response:
 
 class Statistics:
     def __init__(self, upmeasure, downmeasure, connecter, ghttpdl, hhttpdl,
-                 ratelimiter, rerequest_lastfailed, fdatflag):
+                 ratelimiter, rerequest_lastfailed, fdatflag, encoder):
         self.upmeasure = upmeasure
         self.downmeasure = downmeasure
         self.connecter = connecter
@@ -27,6 +27,7 @@ class Statistics:
         self.torrentmeasure = connecter.downloader.totalmeasure
         self.rerequest_lastfailed = rerequest_lastfailed
         self.fdatflag = fdatflag
+        self.encoder = encoder
         self.fdatactive = False
         self.piecescomplete = None
         self.placesopen = None
@@ -75,6 +76,8 @@ class Statistics:
             s.shareRating = -1.0
         s.torrentRate = self.torrentmeasure.get_rate()
         s.torrentTotal = self.torrentmeasure.get_total()
+        s.numConCandidates = len(self.encoder.to_connect)
+        s.numConInitiated = len(self.encoder.connections)
         s.numSeeds = self.picker.seeds_connected
         s.numOldSeeds = self.downloader.num_disconnected_seeds()
         s.numPeers = len(self.downloader.downloads)-s.numSeeds

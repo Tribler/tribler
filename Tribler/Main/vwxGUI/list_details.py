@@ -787,7 +787,14 @@ class LibraryDetails(TorrentDetails):
                     state += "S,"
                 state += peer_dict['direction']
                 self.peerList.SetStringItem(index, 2, state)
-                self.peerList.SetStringItem(index, 3, peer_dict['extended_version'])
+                
+                try:
+                    self.peerList.SetStringItem(index, 3, peer_dict['extended_version'])
+                except:
+                    try:
+                        self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8','ignore'))
+                    except:
+                        print >> sys.stderr, "Could not format peer client version"
                 
                 index += 1
         for i in xrange(index, self.peerList.GetItemCount() + 1):
