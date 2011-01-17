@@ -117,7 +117,7 @@ class ProgressBar(wx.Control):
     #def __init__(self, parent, colours = ["#ffffff","#fde72d","#00ff00"], *args, **kwargs ):
     def __init__(self, parent, colours = ["#ffffff","#92cddf","#006dc0"], *args, **kwargs ): ## "#ffffff","#CBCBCB","#ff3300"
         self.colours = colours
-        self.pens    = [wx.Pen(c,0) for c in self.colours]
+        self.pens    = [wx.Pen(c,1) for c in self.colours]
         for i in xrange(len(self.pens)):
             if self.pens[i].GetColour() == wx.WHITE:
                 self.pens[i] = None
@@ -158,7 +158,6 @@ class ProgressBar(wx.Control):
             dc.DrawLineList(lines,pens)
 
     def set_pieces(self, blocks):
-        print >> sys.stderr, 'pieces', blocks
         maxBlocks = self.GetClientRect().width
         haveBlocks = len(blocks)
         if haveBlocks > maxBlocks: #we need to group the blocks
