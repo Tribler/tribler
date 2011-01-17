@@ -161,8 +161,9 @@ class MainFrame(wx.Frame):
         self.SRstatusbar = SRstatusbar(self)
         self.SetStatusBar(self.SRstatusbar)
 
-        dragdroplist = FileDropTarget(self)
-        self.SetDropTarget(dragdroplist)
+        if sys.platform != 'darwin':
+            dragdroplist = FileDropTarget(self)
+            self.SetDropTarget(dragdroplist)
 
         self.tbicon = None
 
