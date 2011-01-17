@@ -191,6 +191,7 @@ class Rerequester:
             if self.howmany() >= self.maxpeers:
                 s += '&numwant=0'
             else:
+                s += '&numwant=200'
                 s += '&no_peer_id=1'
                 if compact:
                     s+= '&compact=1'
@@ -210,9 +211,10 @@ class Rerequester:
         if self.howmany() >= self.maxpeers:
             s += '&numwant=0'
         else:
-                s += '&no_peer_id=1'
-                if compact:
-                    s+= '&compact=1'
+            s += '&numwant=200'
+            s += '&no_peer_id=1'
+            if compact:
+                s+= '&compact=1'
         if event != 3:
             s += '&event=' + ['started', 'completed', 'stopped'][event]
         if event == 2:

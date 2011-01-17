@@ -152,10 +152,15 @@ class ProgressBar(wx.Control):
             numrect = float(len(self.blocks))
             w = max(1,maxw/numrect)
         
-            lines = [(x+i, y, x+i, maxh) for i in xrange(maxw) if self.blocks[int(i/w)]]
-            pens = [self.pens[self.blocks[int(i/w)]] for i in xrange(maxw) if self.blocks[int(i/w)]]
-            
-            dc.DrawLineList(lines,pens)
+            if sys.platform != 'darwin':
+                lines = [(x+i, y, x+i, maxh) for i in xrange(maxw) if self.blocks[int(i/w)]]
+                pens = [self.pens[self.blocks[int(i/w)]] for i in xrange(maxw) if self.blocks[int(i/w)]]
+                
+                dc.DrawLineList(lines,pens)
+            else:
+                for i in xrange(maxw):
+                    dc.SetPen(self.pens[self.blocks[int(i/w)]])
+                    dc.DrawLine(x+i, y, x+1, maxh)
 
     def set_pieces(self, blocks):
         maxBlocks = self.GetClientRect().width

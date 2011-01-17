@@ -567,9 +567,8 @@ class Encoder:
         
         if DEBUG:
             print >>sys.stderr,"encoder: adding",len(dnsidlist),"peers to queue, current len",len(self.to_connect)
-        if not self.to_connect:
-            self.raw_server.add_task(self._start_connection_from_queue)
-
+        wasempty = not self.to_connect
+        
         # all reported addresses are stored in self._known_addresses
         # to prevent duplicated addresses being send
         new_addresses = []
@@ -586,8 +585,11 @@ class Encoder:
         # prevent 'to much' memory usage
         if len(known_addresses) > 2500:
             known_addresses.clear()
-
+        
         self.to_connect.update(dnsidlist)
+        if wasempty:
+            self.raw_server.add_task(self._start_connection_from_queue)
+        
         # make sure addrs from various sources, like tracker, ut_pex and DHT are mixed
         # TODO: or not? For Tribler Supported we may want the tracker to
         # be more authoritative, such that official seeders found fast. Nah.
