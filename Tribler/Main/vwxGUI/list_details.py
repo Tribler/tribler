@@ -797,7 +797,7 @@ class LibraryDetails(TorrentDetails):
                         print >> sys.stderr, "Could not format peer client version"
                 
                 index += 1
-        for i in xrange(index, self.peerList.GetItemCount() + 1):
+        for i in xrange(index, self.peerList.GetItemCount()):
             self.peerList.DeleteItem(i)
         
         if index == 0:

@@ -158,6 +158,7 @@ class ProgressBar(wx.Control):
             dc.DrawLineList(lines,pens)
 
     def set_pieces(self, blocks):
+        print >> sys.stderr, 'pieces', blocks
         maxBlocks = self.GetClientRect().width
         haveBlocks = len(blocks)
         if haveBlocks > maxBlocks: #we need to group the blocks
