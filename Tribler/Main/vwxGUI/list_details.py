@@ -745,6 +745,7 @@ class LibraryDetails(TorrentDetails):
         self.notebook.AddPage(self.peerList, "Peers")
     
     def _Refresh(self, ds):
+        print >> sys.stderr, 'refresh'
         TorrentDetails._Refresh(self, ds)
         
         self.peerList.Freeze()
@@ -756,6 +757,7 @@ class LibraryDetails(TorrentDetails):
         index = 0
         if ds:
             peers = ds.get_peerlist()
+            print >> sys.stderr, peers
             peers.sort(downsort, reverse = True)
             
             for peer_dict in peers:
