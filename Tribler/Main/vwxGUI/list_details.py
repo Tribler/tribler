@@ -797,12 +797,13 @@ class LibraryDetails(TorrentDetails):
                         print >> sys.stderr, "Could not format peer client version"
                 
                 index += 1
-        for i in xrange(index, self.peerList.GetItemCount()):
-            self.peerList.DeleteItem(i)
-        
         if index == 0:
             self.peerList.DeleteAllItems()
             self.peerList.InsertStringItem(index, "Not connected to any peers")
+            
+        else:
+            for i in xrange(index, self.peerList.GetItemCount()):
+                self.peerList.DeleteItem(i)
         
         self.peerList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         self.peerList.SetColumnWidth(2, wx.LIST_AUTOSIZE)
