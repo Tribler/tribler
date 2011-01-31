@@ -741,7 +741,9 @@ class LibraryDetails(TorrentDetails):
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
-        
+        self.peerList.SetToolTipString("States:\nO\toptimistic unchoked\nUI\tgot interested\nUC\tupload chocked\nUQ\tgot request\nDI\tsend interested\nDC\tdownload chocked\nS\tis snubbed\nL\tOutgoing connection\nR\tIncoming connection")
+        self.peerList.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
+               
         self.notebook.AddPage(self.peerList, "Peers")
     
     def _Refresh(self, ds):
@@ -810,6 +812,28 @@ class LibraryDetails(TorrentDetails):
         self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
         self.peerList._doResize()
         self.peerList.Thaw()
+    
+    def _CopyToClipboard(self, event):
+        if event.ControlDown():
+            if event.GetKeyCode() == 67: #ctrl + c
+                data = ""
+                
+                selected = self.peerList.GetFirstSelected()
+                while selected != -1:
+                    for col in xrange(self.peerList.GetColumnCount()):
+                        data += self.peerList.GetItem(selected, col).GetText() + "\t"
+                    data += "\n"
+                    selected = self.peerList.GetNextSelected(selected)
+                    
+                do = wx.TextDataObject()
+                do.SetText(data)
+                wx.TheClipboard.Open()
+                wx.TheClipboard.SetData(do)
+                wx.TheClipboard.Close()
+                
+            elif event.GetKeyCode() == 65: #ctrl + a
+                for index in xrange(self.peerList.GetItemCount()):
+                    self.peerList.Select(index)
 
 class ProgressPanel(wx.Panel):
     #eta style
