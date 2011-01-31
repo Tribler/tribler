@@ -35,7 +35,7 @@ class VLCWrapper:
         check_threading()
         self.installdir = installdir
         self.window = None
-        self.windowpassedtovlc = False
+        self.windowpassedtovlc = -1
         self.initialized = False
 
     def _init_vlc(self):
@@ -98,7 +98,7 @@ class VLCWrapper:
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: set_window, XID=",xid
             
-        if self.windowpassedtovlc:
+        if self.windowpassedtovlc == xid:
             return
             
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
@@ -115,7 +115,7 @@ class VLCWrapper:
                 # pylint: enable-msg=E1101
             self.media.set_visual(xid)
             
-        self.windowpassedtovlc = True
+        self.windowpassedtovlc = xid
     
     def get_vlc_mediactrl(self):
         if not self.initialized:
@@ -284,17 +284,15 @@ class VLCWrapper:
         check_threading()
         if DEBUG:
             if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
-                print >>sys.stderr,"VLCWrapper: start: item is TODO"
+                print >>sys.stderr,"VLCWrapper: start"
             elif self.VLC_MEDIACONTROL_API_VERSION == "0.2":
                 print >>sys.stderr,"VLCWrapper: start: item is",self.media.get_mrl()
             else:
                 print >>sys.stderr,"VLCWrapper: start: list is",self.media.playlist_get_list()
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
-            if abspos != 0:
-                raise ValueError("VLC 0.3 API cannot handle abs. positioning")
-            
             self.vlc.libvlc_media_player_play(self.player)
+            self.vlc.libvlc_media_player_set_time(self.player, abspos)
         else:  
             pos = self.vlc.Position()
             pos.origin = self.vlc.AbsolutePosition
@@ -302,10 +300,10 @@ class VLCWrapper:
             pos.value = abspos
             self.media.start(pos)
 
-
     def stop(self):
         if not self.initialized:
             self._init_vlc()
+            
         check_threading()
         if DEBUG:
             print >>sys.stderr,"VLCWrapper: stop"

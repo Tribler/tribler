@@ -352,10 +352,58 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.fullscreen_enabled = False
         self.fsbtn.setSelected(2)
 
-    def FullScreen(self,evt=None):
+    def FullScreen(self, evt=None):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap and self.fullscreen_enabled:
-            self.vlcwrap.set_fullscreen(True)
+            self._ToggleFullScreen()
+            
+    def OnFullScreenKey(self, event, fullscreenwindow):
+        if event.GetUnicodeKey() == wx.WXK_ESCAPE:
+            self._ToggleFullScreen(fullscreenwindow)
+            
+        elif event.GetUnicodeKey() == wx.WXK_SPACE:
+            if self.GetState() == MEDIASTATE_PLAYING:
+                self.vlcwrap.pause()
+            else:
+                self.vlcwrap.resume()
+    
+    def _ToggleFullScreen(self, fullscreenwindow = None):
+        #saving media player state
+        cur_time = self.vlcwrap.get_media_position()
+        cur_state = self.vlcwrap.get_our_state()
+        
+        self.vlcwrap.stop()
+        
+        if not fullscreenwindow:
+            # create a new top level frame where to attach the vlc widget and
+            # render the fullscreen video
+            fullscreenwindow = wx.Frame(None, title="FullscreenVLC")
+            fullscreenwindow.SetBackgroundColour("BLACK")
+            
+            eventPanel = wx.Panel(fullscreenwindow)
+            eventPanel.SetBackgroundColour(wx.BLACK)
+            eventPanel.ClearBackground()
+            eventPanel.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event, fullscreenwindow))
+            fullscreenwindow.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen(fullscreenwindow))
+            
+            fullscreenwindow.ShowFullScreen(True)
+            fullscreenwindow.Maximize(True)
+            self.vlcwrap.set_window(fullscreenwindow)
+        else:
+            self.TellLVCWrapWindow4Playback()
+            fullscreenwindow.Destroy()
+        
+        #restoring state
+        if cur_state == MEDIASTATE_PLAYING:
+            self.vlcwrap.start(cur_time)
+            
+        elif cur_state == MEDIASTATE_PAUSED:
+            self.vlcwrap.start(cur_time)
+            
+            def doPause(cur_time):
+                self.vlcwrap.pause()
+                self.vlcwrap.set_media_position(cur_time)
+            wx.CallLater(500, doPause, cur_time)
 
     def Save(self, evt = None):
         # save media content in different directory
