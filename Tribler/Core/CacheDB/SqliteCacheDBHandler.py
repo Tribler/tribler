@@ -3403,23 +3403,23 @@ class ChannelCastDBHandler(BasicDBHandler):
         return False
    
     def getChannel(self, permid):
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id == ?"
+        sql = "Select publisher_id FROM ChannelCast WHERE publisher_id == ?"
         channels = self._getChannels(sql, (permid,))
         if len(channels) > 0:
-            return channels[0] 
+            return channels[0]
    
     def getAllChannels(self):
         """ Returns all the channels """
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast Group By publisher_id"
+        sql = "Select distinct publisher_id FROM ChannelCast"
         return self._getChannels(sql)
     
     def getNewChannels(self, updated_since = None):
         """ Returns all newest unsubscribed channels, ie the ones with no votes (positive or negative)"""
         if updated_since:
-            sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id <> ? Group By publisher_id Having max(ChannelCast.time_stamp) > ?"
+            sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id <> ? Group By publisher_id Having max(ChannelCast.time_stamp) > ?"
             return self._getChannels(sql,(bin2str(self.my_permid),updated_since), 0)
         else:
-            sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id <> ? Group By publisher_id"
+            sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id <> ?"
             return self._getChannels(sql,(bin2str(self.my_permid),), 0)
     
     def getLatestUpdated(self, max_nr = 20):
@@ -3438,18 +3438,17 @@ class ChannelCastDBHandler(BasicDBHandler):
             #finally compare nr_torrents
             return cmp(a[4], b[4])
         
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast Group By publisher_id Order By max(ChannelCast.time_stamp) DESC Limit ?"
+        sql = "Select publisher_id FROM ChannelCast Group By publisher_id Order By max(ChannelCast.time_stamp) DESC Limit ?"
         return self._getChannels(sql, (max_nr,), cmpF = channel_sort)
     
     def getMostPopularChannels(self, max_nr = 20):
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast Group By publisher_id"
-        return self._getChannels(sql)[:20]
+        return self.getAllChannels()[:20]
 
     def getMySubscribedChannels(self):
         #Sometimes we have no actual channelcast entries, but do know this channel
         sql = "Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2"
         my_sub_channels = [mod_id for mod_id, in self._db.fetchall(sql, (bin2str(self.my_permid),))]        
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2) Group By publisher_id Order By max(ChannelCast.time_stamp) DESC"
+        sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2)"
         channels_with_content = self._getChannels(sql, (bin2str(self.my_permid),))
         
         for channel in channels_with_content:
@@ -3467,18 +3466,19 @@ class ChannelCastDBHandler(BasicDBHandler):
         channels = []
         results = self._db.fetchall(sql, args)
         
-        sqla = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
-        sqlb = "Select count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND status_id <> ? AND ChannelCast.infohash = CollectedTorrent.infohash LIMIT 1"
+        sqla = "Select count(distinct ChannelCast.infohash), max(ChannelCast.time_stamp) FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND status_id <> ? AND ChannelCast.infohash = CollectedTorrent.infohash LIMIT 1"
+        sqlb = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
         
         for result in results:
             nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(result[0])
             nr_votes = nr_favorites + nr_spam
             if nr_votes >= minvotes and nr_votes <= maxvotes:
-                name = self._db.fetchone(sqla, (result[0], result[1]))[:40] #max 40 characters long
-                nr_torrents = self._db.fetchone(sqlb, (result[0], self.torrent_db.status_table['dead']))
+                nr_torrents, max_timestamp = self._db.fetchone(sqla, (result[0], self.torrent_db.status_table['dead']))
+                name = self._db.fetchone(sqlb, (result[0], max_timestamp)) or ''
+                name = name[:40] #max 40 characters long
                 my_vote = self.votecast_db.getVote(result[0], bin2str(self.my_permid))
                 
-                channels.append((result[0], name, result[1], nr_favorites, nr_torrents, nr_spam, my_vote))
+                channels.append((result[0], name, max_timestamp, nr_favorites, nr_torrents, nr_spam, my_vote))
                 
         def channel_sort(a, b):
             #first compare local vote, spam -> return -1
