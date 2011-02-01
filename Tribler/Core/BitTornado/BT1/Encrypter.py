@@ -598,7 +598,8 @@ class Encoder:
         #Jelle: Since objects are already placed in the Set in pseudo random order, they don't have to 
         # be shuffled (and a Set cannot be shuffled).
         
-        self.trackertime = int(time()) 
+        if self.trackertime == 0:
+            self.trackertime = time() #set trackertime to first response of either dht or tracker
 
     def _start_connection_from_queue(self,sched=True):
         try:
@@ -788,11 +789,18 @@ class Encoder:
 
     def admin_close(self,conn):
         del self.connections[conn]
-        now = int(time())
+        
+        now = time()
+        remaining_connections = len(self.connections) + len(self.to_connect)
+        
         if DEBUG:
-            print >>sys.stderr,"encoder: admin_close: now-tt is",now-self.trackertime
-        if len(self.connections) == 0 and (now-self.trackertime) < 20:
-            #if DEBUG:
-            #    print >>sys.stderr,"encoder: admin_close: Recontacting tracker, last request got just dead peers: TEMP DISABLED, ARNO WORKING ON IT"
-            ###self.rerequest.encoder_wants_new_peers()
-            pass
+            print >>sys.stderr,"encoder: admin_close: now-tt is", int(now-self.trackertime), "remaining connections", remaining_connections
+        
+        if remaining_connections == 0:
+            if now - self.trackertime < 20:
+                if True or DEBUG:
+                    print >>sys.stderr,"encoder: admin_close: Recontacting tracker, last request got just dead peers", self.my_id
+                    self.rerequest.encoder_wants_new_peers()
+            
+            #reset trackertime
+            self.trackertime = 0
