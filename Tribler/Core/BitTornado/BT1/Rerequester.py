@@ -457,15 +457,16 @@ class Rerequester:
             return
                 
         if 'dialback' in self.config and self.config['dialback']:
-            from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+            # Niels: at startup we are always not connectable, changed behaviour into always announce,
+            # sorry raul...
             
-            if DialbackMsgHandler.getInstance().isConnectable():
-                if DEBUG_DHT:
-                    print >>sys.stderr,"Rerequester: _dht_rerequest: get_peers AND announce"
-                self.dht.get_peers(self.infohash, info_hash_id, self._dht_got_peers, self.port)
-                return
-                #raul: I added this return so when the peer is NOT connectable
-                # it does a get_peers lookup but it does not announce
+            #raul: I added this return so when the peer is NOT connectable
+            # it does a get_peers lookup but it does not announce
+            if DEBUG_DHT:
+                print >>sys.stderr,"Rerequester: _dht_rerequest: get_peers AND announce"
+            self.dht.get_peers(self.infohash, info_hash_id, self._dht_got_peers, self.port)
+            return
+            
         if DEBUG_DHT:
             print >>sys.stderr,"Rerequester: _dht_rerequest: JUST get_peers, DO NOT announce"
         self.dht.get_peers(self.infohash, info_hash_id, self._dht_got_peers)
