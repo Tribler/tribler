@@ -798,7 +798,7 @@ class Encoder:
         
         if remaining_connections == 0:
             if now - self.trackertime < 20:
-                if True or DEBUG:
+                if DEBUG:
                     print >>sys.stderr,"encoder: admin_close: Recontacting tracker, last request got just dead peers", self.my_id
                     self.rerequest.encoder_wants_new_peers()
             
