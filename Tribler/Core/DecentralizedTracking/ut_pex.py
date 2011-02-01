@@ -42,6 +42,13 @@ DEBUG = False
 
 def create_ut_pex(addedconns,droppedconns,thisconn):
     #print >>sys.stderr,"ut_pex: create_ut_pex:",addedconns,droppedconns,thisconn
+    
+    #Niels: Force max 50 added/dropped connections
+    #"Some clients may choose to enforce these limits and drop connections which don't obey these limits." 
+    #http://wiki.theory.org/BitTorrentPeerExchangeConventions
+    addedconns = addedconns[:50]
+    droppedconns = droppedconns[:50]
+    
     d = {}
     compactedpeerstr = compact_connections(addedconns,thisconn)
     d['added'] = compactedpeerstr

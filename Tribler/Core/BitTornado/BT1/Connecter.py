@@ -604,7 +604,7 @@ class Connection:
         # an untrusted source, so be a bit careful
         mx = self.connecter.ut_pex_max_addrs_from_peer
         if DEBUG_UT_PEX:
-            print >>sys.stderr,"connecter: Got",len(added_peers),"peers via uTorrent PEX, using max",mx
+            print >>sys.stderr,"connecter: Got",len(added_peers) + len(same_added_peers),"peers via uTorrent PEX, using max",mx
             
         # for now we have a strong bias towards Tribler peers
         if self.is_tribler_peer():
@@ -628,6 +628,23 @@ class Connection:
             if DEBUG_UT_PEX:
                 print >>sys.stderr,"connecter: Starting ut_pex conns to",len(sample_added_peers_with_id)
             self.connection.Encoder.start_connections(sample_added_peers_with_id)
+
+    def try_send_pex(self, currconns = [], addedconns = [], droppedconns = []):
+        if self.supports_extend_msg(EXTEND_MSG_UTORRENT_PEX):
+            try:
+                if DEBUG_UT_PEX:
+                    print >>sys.stderr,"connecter: ut_pex: Creating msg for",self.get_ip(),self.get_extend_listenport()
+                    
+                if self.first_ut_pex():
+                    aconns = currconns
+                    dconns = []
+                else:
+                    aconns = addedconns
+                    dconns = droppedconns
+                payload = create_ut_pex(aconns,dconns,self)    
+                self.send_extend_ut_pex(payload)
+            except:
+                print_exc()
 
     def send_extend_ut_pex(self,payload):
         msg = EXTEND+self.his_extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX)+payload
@@ -1222,20 +1239,7 @@ class Connecter:
                 print >>sys.stderr,"connecter: ut_pex: Dropped",conn.get_ip(),conn.get_extend_listenport()
             
         for c in currconns:
-            if c.supports_extend_msg(EXTEND_MSG_UTORRENT_PEX):
-                try:
-                    if DEBUG_UT_PEX:
-                        print >>sys.stderr,"connecter: ut_pex: Creating msg for",c.get_ip(),c.get_extend_listenport()
-                    if c.first_ut_pex():
-                        aconns = currconns
-                        dconns = []
-                    else:
-                        aconns = addedconns
-                        dconns = droppedconns
-                    payload = create_ut_pex(aconns,dconns,c)    
-                    c.send_extend_ut_pex(payload)
-                except:
-                    print_exc()
+            c.try_send_pex(currconns, addedconns, droppedconns)
         self.sched(self.ut_pex_callback,60)
 
     def g2g_callback(self):
