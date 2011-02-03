@@ -604,8 +604,9 @@ class ABCApp(wx.App):
                     text = msg
                     
                 #print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
-                    
+                playds.vod_status_msg = text
                 self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
+                
             
             # Pass DownloadStates to libaryView
             try:
@@ -951,19 +952,20 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             else:
                 videofile = None
             if tdef.get_bitrate(videofile) is None:
-                msg += ' This video may not play properly because its bitrate is unknown'
+                msg += ' This video may not play properly because its bitrate is unknown.'
         except:
             print_exc()
     else:
         # msg = "Waiting for sufficient download speed... "+intime
         msg = 'Waiting for sufficient download speed... ' + intime
         
+    """
     npeers = ds.get_num_peers()
     if npeers == 1:
         msg = "One person found, receiving %.1f KB/s" % totalspeed[DOWNLOAD]
     else:
         msg = "%d people found, receiving %.1f KB/s" % (npeers, totalspeed[DOWNLOAD])
-
+    """
     if playable:
         if videoplayer_mediastate == MEDIASTATE_PAUSED and not ds.get_status() == DLSTATUS_SEEDING:
             msg = "Buffering... " + msg

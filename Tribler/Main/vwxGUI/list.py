@@ -11,6 +11,7 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from list_footer import *
 from list_header import *
@@ -531,7 +532,9 @@ class SearchList(List):
     
 class LibaryList(List):
     def __init__(self):
-        self.guiutility = GUIUtility.getInstance() 
+        self.guiutility = GUIUtility.getInstance()
+        self.user_download_choice = UserDownloadChoice.get_singleton()
+         
         self.utility = self.guiutility.utility
         self.torrent_manager = self.guiutility.torrentsearch_manager
 
@@ -640,6 +643,7 @@ class LibaryList(List):
         else:
             #TODO: start inactive item?
             pass
+        self.user_download_choice.set_download_state(item.original_data["infohash"], "restart")
     
     def OnStop(self, event):
         item = self.list.GetExpandedItem()
@@ -648,6 +652,7 @@ class LibaryList(List):
             ds.get_download().stop()
             
             self.header.SetStates(True, False, True)
+        self.user_download_choice.set_download_state(item.original_data["infohash"], "stop")
             
     def OnDelete(self, event):
         item = self.list.GetExpandedItem()

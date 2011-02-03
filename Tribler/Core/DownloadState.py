@@ -42,6 +42,7 @@ class DownloadState(Serializable):
         self.download = download
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
+        self.vod_status_msg = None
         self.coopdl_helpers = coopdl_helpers
         self.coopdl_coordinator = coopdl_coordinator
         

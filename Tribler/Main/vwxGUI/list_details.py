@@ -91,7 +91,6 @@ class TorrentDetails(wx.Panel):
         
         self.isReady = True
         self._Refresh(ds)
-        self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
     
     def _create_tab(self, tabname, header = None):
         panel = wx.lib.scrolledpanel.ScrolledPanel(self.notebook)
@@ -436,7 +435,7 @@ class TorrentDetails(wx.Panel):
         
         #Optional stream button
         if self.information[0]:
-            self.buttonSizer.AddStretchSpacer()
+            self.playSpacer = self.buttonSizer.AddStretchSpacer()
             self.play = wx.Panel(self.buttonPanel)
             self.play.SetBackgroundColour(LIST_DESELECTED)
             vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -453,6 +452,17 @@ class TorrentDetails(wx.Panel):
             vSizer.Add(play, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
             self.play.SetSizer(vSizer)
             self.buttonSizer.Add(self.play, 0,wx.EXPAND, 3)
+            
+        if isinstance(self, LibraryDetails):
+            self.vod_log = wx.StaticText(self.buttonPanel)
+            self.vod_log.SetMinSize((1,-1))
+            self.vod_log.Hide()
+            
+            self.buttonSizer.Add(self.vod_log, 0, wx.EXPAND, 3)
+        else:
+            self.vod_log = None
+        
+        self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
     
     def _ShowDone(self):
         header = wx.StaticText(self.buttonPanel, -1, "This torrent has finished downloading.")
@@ -719,6 +729,17 @@ class TorrentDetails(wx.Panel):
                 label = 'You are streaming this torrent'
                 if getattr(self, 'play', False):
                     self.play.Hide()
+                    self.playSpacer.Show(False)
+                    self.buttonPanel.Layout()
+                
+                vod_log = ds.vod_status_msg.replace(". ", ".\n")
+                if self.vod_log and self.vod_log.GetLabel() != vod_log:
+                    self.vod_log.SetLabel(vod_log)
+                    self.vod_log.Refresh()
+                    
+                    if not self.vod_log.IsShown():
+                        self.vod_log.Show()
+                    self.buttonPanel.Layout()
             else:
                 label = 'You are downloading this torrent'
             

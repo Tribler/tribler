@@ -17,6 +17,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.Session import Session
@@ -68,6 +69,7 @@ class TorrentManager:
         # 09/10/09 boudewijn: CallLater does not accept zero as a
         # delay. the value needs to be a positive integer.
         self.prefetch_callback = wx.CallLater(10, self.prefetch_hits)
+        self.user_download_choice = UserDownloadChoice.get_singleton()
 
     def getInstance(*args, **kw):
         if TorrentManager.__single is None:
@@ -283,6 +285,7 @@ class TorrentManager:
         # Arno, 2009-03-10: Not removing it from MyPref means it keeps showing
         # up in the Library, even after removal :-( H4x0r this.
         self.mypref_db.updateDestDir(infohash,"")
+        self.user_download_choice.remove_download_state(infohash)
     
     def _get_videoplayer(self, exclude=None):
         """
