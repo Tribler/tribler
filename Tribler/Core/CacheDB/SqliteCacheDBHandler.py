@@ -3337,57 +3337,59 @@ class ChannelCastDBHandler(BasicDBHandler):
             else:
                 publisher_id = arguments[0]
             
-            #are we subscribed to this channel?
+            
             s = "Select 1 FROM VoteCast Where voter_id = ? AND mod_id = ? AND vote == 2"
-            if publisher_id == bin2str(self.my_permid) or self._db.fetchone(s, (bin2str(self.my_permid), publisher_id)):
-                if len(arguments) == 1:
-                    s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 50"
-                    allrecords = self._db.fetchall(s,(q,))
-                else:
-                    publisher_id = arguments[0]
-                    min_timestamp = float(arguments[1])
-                    max_timestamp = float(arguments[2])
-                    nr_items = int(arguments[3])
-                    
-                    allrecords = []
-                    s = "select min(time_stamp), max(time_stamp), count(infohash) from ChannelCast where publisher_id==? group by publisher_id"
-                    record = self._db.fetchone(s,(publisher_id,))
-                    if record:
-                        #detect if we have older items, newer items or more items
-                        change = record[0] < min_timestamp or record[1] > max_timestamp or record[2] > nr_items
-                        if change:
-                            #does the peer have any missing items in its timeframe?
-                            s = "select count(infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
-                            items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
+            
+            allrecords = []
+            if len(arguments) == 1:
+                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 50"
+                allrecords = self._db.fetchall(s,(q,))
+            
+            elif publisher_id == bin2str(self.my_permid) or self._db.fetchone(s, (bin2str(self.my_permid), publisher_id)): #are we subscribed to this channel?
+                publisher_id = arguments[0]
+                min_timestamp = float(arguments[1])
+                max_timestamp = float(arguments[2])
+                nr_items = int(arguments[3])
+                
+                allrecords = []
+                s = "select min(time_stamp), max(time_stamp), count(infohash) from ChannelCast where publisher_id==? group by publisher_id"
+                record = self._db.fetchone(s,(publisher_id,))
+                if record:
+                    #detect if we have older items, newer items or more items
+                    change = record[0] < min_timestamp or record[1] > max_timestamp or record[2] > nr_items
+                    if change:
+                        #does the peer have any missing items in its timeframe?
+                        s = "select count(infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
+                        items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
+                        
+                        if items > nr_items:
+                            #correct his timeframe, by returning nr_items + 1
+                            nr_items_return = nr_items + 1
+                            if nr_items_return < 50:
+                                nr_items_return = 50
+                            #print >> sys.stderr, "He has incorrect timeframe, returning %d items"%nr_items_return
                             
-                            if items > nr_items:
-                                #correct his timeframe, by returning nr_items + 1
-                                nr_items_return = nr_items + 1
-                                if nr_items_return < 50:
-                                    nr_items_return = 50
-                                #print >> sys.stderr, "He has incorrect timeframe, returning %d items"%nr_items_return
-                                
-                                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
-                                allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
-                            else:
-                                #return max 50 newer, append with old
-                                s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
-                                allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
-                                
-                                if len(allrecords) < 50:
-                                    s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
-                                    allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
-                        elif record[0] > min_timestamp or record[1] < max_timestamp or record[2] < nr_items:
-                            #print >> sys.stderr, "HE HAS MORE DATA"
-                            pass
+                            s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
+                            allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
                         else:
-                            #print >> sys.stderr, "WE HAVE SAME DATA"
-                            pass
-                    else:
-                        #print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"
+                            #return max 50 newer, append with old
+                            s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
+                            allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
+                            
+                            if len(allrecords) < 50:
+                                s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
+                                allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
+                    elif record[0] > min_timestamp or record[1] < max_timestamp or record[2] < nr_items:
+                        #print >> sys.stderr, "HE HAS MORE DATA"
                         pass
-                for record in allrecords:
-                    records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
+                    else:
+                        #print >> sys.stderr, "WE HAVE SAME DATA"
+                        pass
+                else:
+                    #print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"
+                    pass
+            for record in allrecords:
+                records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
                 
             return records #channelList#
          
