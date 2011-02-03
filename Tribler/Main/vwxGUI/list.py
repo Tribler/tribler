@@ -79,6 +79,7 @@ class ChannelSearchManager:
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
 
     def refresh(self, search_results = None):
+        data = []
         if search_results == None:
             if self.category == 'New':
                 [total_items,data] = self.channelsearch_manager.getNewChannels()
@@ -308,7 +309,8 @@ class List(wx.Panel):
         
     def OnSort(self, column, reverse):
         assert self.ready, "List not ready"
-        self.list.OnSort(column, reverse)
+        if self.ready:
+            self.list.OnSort(column, reverse)
     
     def Reset(self):
         assert self.ready, "List not ready"
@@ -341,15 +343,19 @@ class List(wx.Panel):
         
     def InList(self, key):
         assert self.ready, "List not ready"
-        return self.list.InList(key)
+        if self.ready:
+            return self.list.InList(key)
     
     def GetItem(self, key):
         assert self.ready, "List not ready"
-        return self.list.GetItem(key)
+        if self.ready:
+            return self.list.GetItem(key)
     
     def Focus(self):
         assert self.ready, "List not ready"
-        self.list.SetFocus()
+        if self.ready:
+            self.list.SetFocus()
+        
     def HasFocus(self):
         assert self.ready, "List not ready"
         focussed = wx.Window.FindFocus()
@@ -370,15 +376,18 @@ class List(wx.Panel):
         
     def ScrollToEnd(self, scroll_to_end):
         assert self.ready, "List not ready"
-        self.list.ScrollToEnd(scroll_to_end)
+        if self.ready:
+            self.list.ScrollToEnd(scroll_to_end)
     
     def DeselectAll(self):
         assert self.ready, "List not ready"
-        self.list.DeselectAll()
+        if self.ready:
+            self.list.DeselectAll()
         
     def Select(self, key, raise_event = True):
         assert self.ready, "List not ready"
-        self.list.Select(key, raise_event)
+        if self.ready:
+            self.list.Select(key, raise_event)
         
     def Show(self):
         wx.Panel.Show(self)
