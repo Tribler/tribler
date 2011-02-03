@@ -485,7 +485,7 @@ class Encoder:
         self.connections = {}
         self.banned = {}
         self.to_connect = Set()
-        self.trackertime = 0
+        self.trackertime = None
         self.paused = False
         if self.config['max_connections'] == 0:
             self.max_connections = 2 ** 30
@@ -598,8 +598,7 @@ class Encoder:
         #Jelle: Since objects are already placed in the Set in pseudo random order, they don't have to 
         # be shuffled (and a Set cannot be shuffled).
         
-        if self.trackertime == 0:
-            self.trackertime = time() #set trackertime to first response of either dht or tracker
+        self.trackertime = time() #update trackertime
 
     def _start_connection_from_queue(self,sched=True):
         try:
@@ -796,11 +795,17 @@ class Encoder:
         if DEBUG:
             print >>sys.stderr,"encoder: admin_close: now-tt is", int(now-self.trackertime), "remaining connections", remaining_connections
         
-        if remaining_connections == 0:
-            if now - self.trackertime < 20:
-                if DEBUG:
-                    print >>sys.stderr,"encoder: admin_close: Recontacting tracker, last request got just dead peers", self.my_id
-                    self.rerequest.encoder_wants_new_peers()
+        if remaining_connections == 0 and self.trackertime:
+            #no more peers to connect to :(, schedule a refresh
+            schedule_refresh_in = int(60 - (now - self.trackertime))
             
+            if DEBUG:
+                print >>sys.stderr,"encoder: admin_close: want new peers in", schedule_refresh_in, "s"
+            
+            if schedule_refresh_in <= 0:
+                self.rerequest.encoder_wants_new_peers()
+            else:
+                self.raw_server.add_task(self.rerequest.encoder_wants_new_peers, schedule_refresh_in)
+
             #reset trackertime
-            self.trackertime = 0
+            self.trackertime = None

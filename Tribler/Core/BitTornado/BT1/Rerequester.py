@@ -182,11 +182,11 @@ class Rerequester:
 
     def encoder_wants_new_peers(self):
         """ The list of peers we gave to the encoder via self.connect()
-        did not give any live connections, reconnect to get some more.
-        Officially we should cancel the outstanding
-            self.sched(self.d,self.announce_interval)
-        """
-        self.d(0)
+        is exhausted, reconnect to get some more."""
+        
+        #schedule an announce, without callback to prevent inference to normal interval updating
+        task = lambda: self.announce()
+        self.sched(task)
 
     def announce(self, event = 3, callback = lambda: None, specialurl = None):
         # IPVSIX: Azureus 3.1.1.0 used as Ubuntu IPv6 tracker doesn't support BEP 7
