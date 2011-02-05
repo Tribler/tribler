@@ -390,7 +390,8 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
 
             for ds in todoset:
                 d = ds.get_download()
-                print >>sys.stderr,"RateManager: set_lim:",d.get_def().get_name(),"WorkQ",localmaxspeed
+                if DEBUG:
+                    print >>sys.stderr,"RateManager: set_lim:",d.get_def().get_name(),"WorkQ",localmaxspeed
                 d.set_max_speed(dir,localmaxspeed)
 
         # For inactives set limit to user desired, with max of globalmaxspeed
@@ -405,6 +406,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
                 setspeed = globalmaxspeed
             else:
                 setspeed = min(desspeed,globalmaxspeed)
-            print >>sys.stderr,"RateManager: set_lim:",d.get_def().get_name(),"InactQ",setspeed
+            if DEBUG:
+                print >>sys.stderr,"RateManager: set_lim:",d.get_def().get_name(),"InactQ",setspeed
             d.set_max_speed(dir,setspeed) 
                 
