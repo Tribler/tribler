@@ -68,19 +68,25 @@ class Stats(wx.Panel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
         
-        vSizer.Add(NetworkPanel(self), 0, wx.EXPAND|wx.BOTTOM, 10)
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)
+        self.activity = ActivityPanel(self)
+        hSizer.Add(self.activity, 1, wx.EXPAND|wx.BOTTOM, 10)
+        vSizer.Add(hSizer, 0, wx.EXPAND)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(NewTorrentPanel(self))
-        hSizer.AddStretchSpacer()
-        hSizer.Add(PopularTorrentPanel(self))
-        hSizer.AddStretchSpacer()
-        hSizer.Add(TopContributorsPanel(self))
+        hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 10)
+        hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 10)
+        hSizer.Add(TopContributorsPanel(self), 1, wx.EXPAND)
         vSizer.Add(hSizer, 0, wx.EXPAND)
         
         self.SetSizer(vSizer)
         self.Layout()
         self.ready = True
+    
+    def onActivity(self, msg):
+        if self.ready:
+            self.activity.onActivity(msg)
         
 class HomePanel(wx.Panel):
     def __init__(self, parent, title, background):
@@ -98,7 +104,7 @@ class HomePanel(wx.Panel):
         
         self.panel = self.CreatePanel()
         if self.panel:
-            vSizer.Add(self.panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
+            vSizer.Add(self.panel, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
         
         self.footer = self.CreateFooter()
         self.footer.SetBackgroundColour(background)
@@ -199,7 +205,6 @@ class NetworkPanel(HomePanel):
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Newest Torrents' , LIST_BLUE)
-        self.SetMinSize((300,-1))
         self.Layout()
         
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -238,7 +243,6 @@ class NewTorrentPanel(HomePanel):
 class PopularTorrentPanel(NewTorrentPanel):
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Popular Torrents' , LIST_BLUE)
-        self.SetMinSize((300,-1))
         self.Layout()
         
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -273,7 +277,6 @@ class PopularTorrentPanel(NewTorrentPanel):
 class TopContributorsPanel(HomePanel):             
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Top Contributors' , LIST_BLUE)
-        self.SetMinSize((300,-1))
         self.Layout()
         
         self.peerdb = PeerDBHandler.getInstance()
@@ -311,6 +314,23 @@ class TopContributorsPanel(HomePanel):
         
     def OnDoubleClick(self, event):
         pass
+    
+
+class ActivityPanel(NewTorrentPanel):
+    def __init__(self, parent):
+        HomePanel.__init__(self, parent, 'Recent Activity' , LIST_BLUE)
+        self.Layout()
+
+    def onActivity(self, msg):
+        self.list.InsertStringItem(0, msg)
+        size = self.list.GetItemCount()
+        if size > 10:
+            self.list.DeleteItem(size-1)
+        
+        if sys.platform == 'darwin':
+            self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+        else:
+            self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
                 
 class BuzzPanel(HomePanel):
     INACTIVE_COLOR = (255, 51, 0)

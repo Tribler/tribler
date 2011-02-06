@@ -839,6 +839,7 @@ class MainFrame(wx.Frame):
         if DEBUG:
             print  >> sys.stderr,"main: Activity",`text`
         self.SRstatusbar.onActivity(text)
+        self.stats.onActivity(text)
 
     def set_player_status(self,s):
         """ Called by VideoServer when using an external player """
