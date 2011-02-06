@@ -767,6 +767,12 @@ class LibraryDetails(TorrentDetails):
                
         self.notebook.AddPage(self.peerList, "Peers")
     
+    def _ShowDone(self):
+        TorrentDetails._ShowDone(self)
+        
+        #register callback for peerlist update
+        self.guiutility.torrentsearch_manager.add_download_state_callback(self.OnRefresh)
+    
     def _Refresh(self, ds):
         TorrentDetails._Refresh(self, ds)
         
