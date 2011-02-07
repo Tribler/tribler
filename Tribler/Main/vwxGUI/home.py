@@ -216,6 +216,7 @@ class NewTorrentPanel(HomePanel):
         self.list.InsertColumn(0, 'Torrent')
         self.list.setResizeColumn(0)
         self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
+        self.list.SetMinSize((1, 80))
         return self.list
     
     def OnNotify(self, subject, type, infohash):
@@ -310,12 +311,11 @@ class TopContributorsPanel(HomePanel):
 class ActivityPanel(NewTorrentPanel):
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Recent Activity' , LIST_BLUE)
-        self.Layout()
 
     def onActivity(self, msg):
         self.list.InsertStringItem(0, msg)
         size = self.list.GetItemCount()
-        if size > 10:
+        if size > 20:
             self.list.DeleteItem(size-1)
                 
 class BuzzPanel(HomePanel):

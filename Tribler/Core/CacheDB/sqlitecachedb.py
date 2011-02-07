@@ -589,19 +589,21 @@ class SQLiteCacheDBBase:
         self.executemany(sql, values, commit=commit)
     
     def update(self, table_name, where=None, commit=True, **argv):
-        sql = u'UPDATE %s SET '%table_name
-        arg = []
-        for k,v in argv.iteritems():
-            if type(v) is tuple:
-                sql += u'%s %s ?,' % (k, v[0])
-                arg.append(v[1])
-            else:
-                sql += u'%s=?,' % k
-                arg.append(v)
-        sql = sql[:-1]
-        if where != None:
-            sql += u' where %s'%where
-        self.execute_write(sql, arg, commit)
+        assert len(argv) > 0, 'NO VALUES TO UPDATE SPECIFIED'
+        if len(argv) > 0:
+            sql = u'UPDATE %s SET '%table_name
+            arg = []
+            for k,v in argv.iteritems():
+                if type(v) is tuple:
+                    sql += u'%s %s ?,' % (k, v[0])
+                    arg.append(v[1])
+                else:
+                    sql += u'%s=?,' % k
+                    arg.append(v)
+            sql = sql[:-1]
+            if where != None:
+                sql += u' where %s'%where
+            self.execute_write(sql, arg, commit)
         
     def delete(self, table_name, commit=True, **argv):
         sql = u'DELETE FROM %s WHERE '%table_name

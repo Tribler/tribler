@@ -32,7 +32,7 @@ class RemoteTorrentHandler:
         RemoteTorrentHandler.__single = self
         
         self.callbacks = {}
-        self.requestingThreads = {}
+        self.requesters = {}
         self.registered = False
 
     def getInstance(*args, **kw):
@@ -58,10 +58,10 @@ class RemoteTorrentHandler:
             
             self.callbacks[infohash] = usercallback
             
-            if prio not in self.requestingThreads:
-                self.requestingThreads[prio] = TorrentRequester(self, self.metadatahandler, self.overlay_bridge, self.session, prio)
+            if prio not in self.requesters:
+                self.requesters[prio] = TorrentRequester(self, self.metadatahandler, self.overlay_bridge, self.session, prio)
             
-            self.requestingThreads[prio].add_source(infohash, permid)
+            self.requesters[prio].add_source(infohash, permid)
             
             if DEBUG:
                 print >>sys.stderr,'rtorrent: adding request:', bin2str(infohash), bin2str(permid), prio
@@ -82,14 +82,16 @@ class RemoteTorrentHandler:
             remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata,filename)
             self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)
             
-        for requester in self.requestingThreads.values():
+        for requester in self.requesters.values():
             if infohash in requester.sources:
                 del requester.sources[infohash]
+            if infohash in requester.nr_times_requested:
+                del requester.nr_times_requested[infohash]
     
     def getQueueSize(self):
         nr_requests = 0
         nr_sources = 0
-        for requester in self.requestingThreads.values():
+        for requester in self.requesters.values():
             nr_sources += len(requester.sources)
             for sources in requester.sources:
                 nr_requests += len(sources)
@@ -97,6 +99,8 @@ class RemoteTorrentHandler:
             
 class TorrentRequester():
     MAGNET_TIMEOUT = 5
+    MAGNET_THRESHOLD = 5
+    
     REQUEST_INTERVAL = 0.5
     
     def __init__(self, remoteTorrentHandler, metadatahandler, overlay_bridge, session, prio):
@@ -110,7 +114,7 @@ class TorrentRequester():
         
         self.queue = Queue.Queue()
         self.sources = {}
-        self.doRequest()
+        self.nr_times_requested = {}
     
     def add_source(self, infohash, permid):
         was_empty = self.queue.empty()
@@ -138,6 +142,8 @@ class TorrentRequester():
                 
                 if len(self.sources[infohash]) < 1:
                     del self.sources[infohash]
+                    
+                self.nr_times_requested[infohash] = self.nr_times_requested.get(infohash, 0) + 1
                 
                 if DEBUG:
                     print >>sys.stderr,"rtorrent: requesting", bin2str(infohash), bin2str(permid)
@@ -146,7 +152,7 @@ class TorrentRequester():
                 self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
                 
                 #schedule a magnet lookup after X seconds
-                if self.prio <= 1 or infohash not in self.sources:
+                if self.prio <= 1 or (self.nr_times_requested[infohash] > self.MAGNET_THRESHOLD and infohash not in self.sources):
                     self.overlay_bridge.add_task(lambda: self.magnet_requester.add_request(self.prio, infohash), self.MAGNET_TIMEOUT*(self.prio+1), infohash)
 
             #Make sure exceptions wont crash this requesting thread
