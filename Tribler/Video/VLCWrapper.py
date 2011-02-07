@@ -84,8 +84,8 @@ class VLCWrapper:
         GetHandle() returns a valid xid. See
         http://mailman.videolan.org/pipermail/vlc-devel/2006-September/025895.html
         """
+        self.window = wxwindow
         if not self.initialized:
-            self.window = wxwindow
             return
 
         check_threading()
@@ -95,7 +95,7 @@ class VLCWrapper:
                 print >>sys.stderr,"VLCWrapper: set_window: WARNING: window not yet materialized, XID=0"
             return
         
-        if DEBUG:
+        if True or DEBUG:
             print >>sys.stderr,"VLCWrapper: set_window, XID=",xid
             
         if self.windowpassedtovlc == xid:
