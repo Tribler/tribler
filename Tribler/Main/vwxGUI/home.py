@@ -214,6 +214,7 @@ class NewTorrentPanel(HomePanel):
     def CreatePanel(self):
         self.list = SortedListCtrl(self, 1, style = wx.LC_REPORT|wx.LC_NO_HEADER)
         self.list.InsertColumn(0, 'Torrent')
+        self.list.setResizeColumn(0)
         self.list.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
         return self.list
     
@@ -228,11 +229,6 @@ class NewTorrentPanel(HomePanel):
             size = self.list.GetItemCount()
             if size > 10:
                 self.list.DeleteItem(size-1)
-            
-            if sys.platform == 'darwin':
-                self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-            else:
-                self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
     
     def OnDoubleClick(self, event):
         selected = self.list.GetFirstSelected()
@@ -267,11 +263,6 @@ class PopularTorrentPanel(NewTorrentPanel):
         for item in topTen:
             if item[2] > 0:
                 self.list.InsertStringItem(sys.maxint, item[1])
-        
-        if sys.platform == 'darwin':
-            self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-        else:
-            self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         self.list.Thaw()
 
 class TopContributorsPanel(HomePanel):             
@@ -326,11 +317,6 @@ class ActivityPanel(NewTorrentPanel):
         size = self.list.GetItemCount()
         if size > 10:
             self.list.DeleteItem(size-1)
-        
-        if sys.platform == 'darwin':
-            self.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-        else:
-            self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
                 
 class BuzzPanel(HomePanel):
     INACTIVE_COLOR = (255, 51, 0)
