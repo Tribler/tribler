@@ -133,9 +133,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.updateVol(self.volume)
     
             self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'fullScreen')
-            if sys.platform != 'darwin':
-                self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
-                self.fsbtn.setSelected(2)
+            self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
+            self.fsbtn.setSelected(2)
 
             self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'saveDisabled', 'save')   
             self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
