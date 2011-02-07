@@ -403,8 +403,6 @@ class EmbeddedPlayerPanel(wx.Panel):
             if not self.fullscreenwindow:
                 # create a new top level frame where to attach the vlc widget and
                 # render the fullscreen video
-                print >> sys.stderr, "creating fullscreenwindow"
-                
                 self.fullscreenwindow = wx.Frame(None, title="FullscreenVLC")
                 self.fullscreenwindow.SetBackgroundColour("BLACK")
                 
