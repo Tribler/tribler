@@ -371,14 +371,16 @@ class EmbeddedPlayerPanel(wx.Panel):
             if self.ctrlsizer.IsShown(0):
                 self.parent.ShowFullScreen(True)
                 self.ctrlsizer.ShowItems(False)
+                self.statuslabel.Show(False)
             
-                self.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
+                self.vlcwin.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
                 self.Layout()
             else:
                 self.parent.ShowFullScreen(False)
                 self.ctrlsizer.ShowItems(True)
+                self.statuslabel.Show(True)
                 
-                self.Bind(wx.EVT_KEY_DOWN, None)
+                self.vlcwin.Bind(wx.EVT_KEY_DOWN, None)
                 self.Layout()
         else:
             #saving media player state
