@@ -369,21 +369,17 @@ class EmbeddedPlayerPanel(wx.Panel):
     def _ToggleFullScreen(self):
         if isinstance(self.parent, wx.Frame): #are we shown in popup frame
             if self.ctrlsizer.IsShown(0):
-                print >> sys.stderr, "maximizing"
                 self.parent.ShowFullScreen(True)
-                #self.parent.Maximize(True)
                 self.ctrlsizer.ShowItems(False)
             
-                self.parent.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
-                self.parent.Layout()
+                self.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
+                self.Layout()
             else:
-                print >> sys.stderr, "restoring"
                 self.parent.ShowFullScreen(False)
-                #self.parent.Maximize(False)
                 self.ctrlsizer.ShowItems(True)
                 
-                self.parent.Bind(wx.EVT_KEY_DOWN, None)
-                self.parent.Layout()
+                self.Bind(wx.EVT_KEY_DOWN, None)
+                self.Layout()
         else:
             #saving media player state
             cur_time = self.vlcwrap.get_media_position()
@@ -404,7 +400,6 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.fullscreenwindow.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
                 
                 self.fullscreenwindow.ShowFullScreen(True)
-                self.fullscreenwindow.Maximize(True)
                 self.vlcwrap.set_window(self.fullscreenwindow)
             else:
                 self.TellLVCWrapWindow4Playback()
