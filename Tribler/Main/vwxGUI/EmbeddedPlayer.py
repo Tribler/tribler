@@ -369,6 +369,7 @@ class EmbeddedPlayerPanel(wx.Panel):
     def _ToggleFullScreen(self):
         if isinstance(self.parent, wx.Frame): #are we shown in popup frame
             if self.ctrlsizer.IsShown():
+                print >> sys.stderr, "maximizing"
                 self.parent.ShowFullScreen(True)
                 self.parent.Maximize(True)
                 self.ctrlsizer.ShowItems(False)
@@ -376,6 +377,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
                 self.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
             else:
+                print >> sys.stderr, "restoring"
                 self.parent.ShowFullScreen(False)
                 self.parent.Maximize(False)
                 self.ctrlsizer.ShowItems(True)
