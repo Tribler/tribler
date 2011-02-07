@@ -372,15 +372,27 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.parent.ShowFullScreen(True)
                 self.ctrlsizer.ShowItems(False)
                 self.statuslabel.Show(False)
-            
-                self.vlcwin.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
+                
+                def bindEvents(control):
+                    control.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
+                    func = getattr(control, 'GetChildren', False)
+                    if func:
+                        for child in func():
+                            bindEvents(child)
+                bindEvents(self.parent)
                 self.Layout()
             else:
                 self.parent.ShowFullScreen(False)
                 self.ctrlsizer.ShowItems(True)
                 self.statuslabel.Show(True)
                 
-                self.vlcwin.Bind(wx.EVT_KEY_DOWN, None)
+                def bindEvents(control):
+                    control.Bind(wx.EVT_KEY_DOWN, None)
+                    func = getattr(control, 'GetChildren', False)
+                    if func:
+                        for child in func():
+                            bindEvents(child)
+                bindEvents(self.parent)
                 self.Layout()
         else:
             #saving media player state
