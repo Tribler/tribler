@@ -356,9 +356,9 @@ class EmbeddedPlayerPanel(wx.Panel):
         if self.vlcwrap and self.fullscreen_enabled:
             self._ToggleFullScreen()
             
-    def OnFullScreenKey(self, event, fullscreenwindow):
+    def OnFullScreenKey(self, event):
         if event.GetUnicodeKey() == wx.WXK_ESCAPE:
-            self._ToggleFullScreen(fullscreenwindow)
+            self._ToggleFullScreen()
             
         elif event.GetUnicodeKey() == wx.WXK_SPACE:
             if self.GetState() == MEDIASTATE_PLAYING:
