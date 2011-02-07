@@ -1093,6 +1093,12 @@ class TorrentDBHandler(BasicDBHandler):
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         return self._db.getTorrentID(infohash)
     
+    def getTorrentIDS(self, infohashes):
+        for infohash in infohashes:
+            assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+            assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
+        return self._db.getTorrentIDS(infohashes)
+    
     def getInfohash(self, torrent_id):
         return self._db.getInfohash(torrent_id)
 
@@ -2221,9 +2227,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
         searchdb = SearchDBHandler.getInstance()
         for pref in recent_preflist_with_clicklog:
             torrent_id = pref[1]
-            search_terms = searchdb.getMyTorrentSearchTerms(torrent_id)
+            search_terms = [term.encode("UTF-8") for term, in searchdb.getMyTorrentSearchTermsStr(torrent_id)]
+
             # Arno, 2010-02-02: Explicit encoding
-            pref[1] = self.searchterms2utf8pref(termdb,search_terms)
+            pref[1] = search_terms
 
         return recent_preflist_with_clicklog
 
@@ -2273,9 +2280,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
         for pref in recent_preflist_with_swarmsize:
             torrent_id = pref[1]
             tempTorrentList.append(torrent_id)
-            search_terms = searchdb.getMyTorrentSearchTerms(torrent_id)
+            
             # Arno, 2010-02-02: Explicit encoding
-            pref[1] = self.searchterms2utf8pref(termdb,search_terms)
+            search_terms = [term.encode("UTF-8") for term, in searchdb.getMyTorrentSearchTermsStr(torrent_id)]
+            pref[1] = search_terms
         
         #Step 3: appending swarm size info to the end of the inner lists
         swarmSizeInfoList= self.popularity_db.calculateSwarmSize(tempTorrentList, 'TorrentIds', toBC=True) # returns a list of items [torrent_id, num_seeders, num_leechers, num_sources_seen]
@@ -3703,7 +3711,7 @@ class PopularityDBHandler(BasicDBHandler):
                   [torrent_id, num_seeders, num_leechers, age, num_of_sources]
         """
         if content=='Infohash':
-            torrentList = [self.torrent_db.getTorrentID(infohash) for infohash in torrentList]
+            torrentList = self.torrent_db.getTorrentIDS(torrentList)
         elif content=='TorrentIds':
             pass
         else:
@@ -4267,7 +4275,10 @@ class SearchDBHandler(BasicDBHandler):
     
     def getMyTorrentSearchTerms(self, torrent_id):
         return [x[0] for x in self.getTorrentSearchTerms(torrent_id, peer_id=0)]
-        
+    
+    def getMyTorrentSearchTermsStr(self, torrent_id):
+        sql = "SELECT distinct term FROM ClicklogSearch, ClicklogTerm WHERE ClicklogSearch.term_id = ClicklogTerm.term_id AND torrent_id = ? AND peer_id = ? ORDER BY term_order"
+        return self._db.fetchall(sql, (torrent_id, 0))
                 
     ### currently unused
                   

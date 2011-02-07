@@ -847,6 +847,31 @@ class SQLiteCacheDBBase:
         if tid != None:
             self.infohash_id[infohash] = tid
         return tid
+    
+    def getTorrentIDS(self, infohashes):
+        to_select = []
+        
+        for infohash in infohashes:
+            assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+            assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
+            
+            if not infohash in self.infohash_id:
+                to_select.append(bin2str(infohash))
+        
+        if len(to_select) > 0:
+            parameters = '?,'*len(to_select)
+            sql_get_torrent_ids = "SELECT torrent_id, infohash FROM Torrent WHERE infohash IN ("+parameters[:-1]+")"
+            torrents = self.fetchall(sql_get_torrent_ids, to_select)
+            for torrent_id, infohash in torrents:
+                self.infohash_id[str2bin(infohash)] = torrent_id
+        
+        to_return = []
+        for infohash in infohashes:
+            if infohash in self.infohash_id:
+                to_return.append(self.infohash_id[infohash])
+            else:
+                to_return.append(None)
+        return to_return
         
     def getInfohash(self, torrent_id):
         sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id==?"
