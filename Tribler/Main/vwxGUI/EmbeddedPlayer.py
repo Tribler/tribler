@@ -371,19 +371,19 @@ class EmbeddedPlayerPanel(wx.Panel):
             if self.ctrlsizer.IsShown(0):
                 print >> sys.stderr, "maximizing"
                 self.parent.ShowFullScreen(True)
-                self.parent.Maximize(True)
+                #self.parent.Maximize(True)
                 self.ctrlsizer.ShowItems(False)
             
-                self.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
-                self.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
+                self.parent.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
+                self.parent.Layout()
             else:
                 print >> sys.stderr, "restoring"
                 self.parent.ShowFullScreen(False)
-                self.parent.Maximize(False)
+                #self.parent.Maximize(False)
                 self.ctrlsizer.ShowItems(True)
                 
-                self.Bind(wx.EVT_KEY_DOWN, None)
-                self.Bind(wx.EVT_CLOSE, None)
+                self.parent.Bind(wx.EVT_KEY_DOWN, None)
+                self.parent.Layout()
         else:
             #saving media player state
             cur_time = self.vlcwrap.get_media_position()
