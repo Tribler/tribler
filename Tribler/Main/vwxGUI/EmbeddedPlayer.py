@@ -48,6 +48,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.estduration = None
 
         self.fullscreen_enabled = False
+        self.fullscreenwindow = None
         self.play_enabled = False
         self.scroll_enabled = False
 
@@ -366,33 +367,33 @@ class EmbeddedPlayerPanel(wx.Panel):
             else:
                 self.vlcwrap.resume()
     
-    def _ToggleFullScreen(self, fullscreenwindow = None):
+    def _ToggleFullScreen(self):
         #saving media player state
         cur_time = self.vlcwrap.get_media_position()
         cur_state = self.vlcwrap.get_our_state()
         
         self.vlcwrap.stop()
         
-        if not fullscreenwindow:
+        if not self.fullscreenwindow:
             # create a new top level frame where to attach the vlc widget and
             # render the fullscreen video
             print >> sys.stderr, "creating fullscreenwindow"
             
-            fullscreenwindow = wx.Frame(None, title="FullscreenVLC")
-            fullscreenwindow.SetBackgroundColour("BLACK")
+            self.fullscreenwindow = wx.Frame(None, title="FullscreenVLC")
+            self.fullscreenwindow.SetBackgroundColour("BLACK")
             
-            eventPanel = wx.Panel(fullscreenwindow)
+            eventPanel = wx.Panel(self.fullscreenwindow)
             eventPanel.SetBackgroundColour(wx.BLACK)
             eventPanel.ClearBackground()
-            eventPanel.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event, fullscreenwindow))
-            fullscreenwindow.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen(fullscreenwindow))
+            eventPanel.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
+            self.fullscreenwindow.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
             
-            fullscreenwindow.ShowFullScreen(True)
-            fullscreenwindow.Maximize(True)
-            self.vlcwrap.set_window(fullscreenwindow)
+            self.fullscreenwindow.ShowFullScreen(True)
+            self.fullscreenwindow.Maximize(True)
+            self.vlcwrap.set_window(self.fullscreenwindow)
         else:
             self.TellLVCWrapWindow4Playback()
-            fullscreenwindow.Destroy()
+            self.fullscreenwindow.Destroy()
         
         #restoring state
         if cur_state == MEDIASTATE_PLAYING:
