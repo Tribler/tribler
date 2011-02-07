@@ -168,7 +168,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         if event.LeftDown():
             if self.mute.isToggled(): # unmute
                 self.mute.setToggled(False)
-            if event.GetEventObject().GetImageName() == 'vol1':
+            if event.GetEventObject().GetImageNameitem() == 'vol1':
                 self.volume = 0.16
             if event.GetEventObject().GetImageName() == 'vol2':
                 self.volume = 0.32
@@ -368,7 +368,7 @@ class EmbeddedPlayerPanel(wx.Panel):
     
     def _ToggleFullScreen(self):
         if isinstance(self.parent, wx.Frame): #are we shown in popup frame
-            if self.ctrlsizer.IsShown():
+            if self.ctrlsizer.IsShown(0):
                 print >> sys.stderr, "maximizing"
                 self.parent.ShowFullScreen(True)
                 self.parent.Maximize(True)
