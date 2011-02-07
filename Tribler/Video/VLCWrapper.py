@@ -95,7 +95,7 @@ class VLCWrapper:
                 print >>sys.stderr,"VLCWrapper: set_window: WARNING: window not yet materialized, XID=0"
             return
         
-        if True or DEBUG:
+        if DEBUG:
             print >>sys.stderr,"VLCWrapper: set_window, XID=",xid
             
         if self.windowpassedtovlc == xid:
