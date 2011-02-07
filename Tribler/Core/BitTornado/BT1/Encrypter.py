@@ -798,7 +798,7 @@ class Encoder:
         
         if remaining_connections == 0 and self.trackertime:
             #no more peers to connect to :(, schedule a refresh
-            schedule_refresh_in = int(60 - (now - self.trackertime))
+            schedule_refresh_in = max(60, int(300 - (now - self.trackertime)))
             
             if DEBUG:
                 print >>sys.stderr,"encoder: admin_close: want new peers in", schedule_refresh_in, "s"
