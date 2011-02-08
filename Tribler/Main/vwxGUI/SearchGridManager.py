@@ -416,7 +416,8 @@ class TorrentManager:
             if not okCategory:
                 self.filteredResults += 1
             
-            okGood = torrent['status'] != 'dead'
+            #show dead torrents in library
+            okGood = library or torrent['status'] != 'dead'
                         
             #print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
             return okLibrary and okCategory and okGood

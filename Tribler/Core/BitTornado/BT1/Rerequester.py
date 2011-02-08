@@ -375,7 +375,7 @@ class Rerequester:
                 if DEBUG:
                     print >>sys.stderr,"Rerequest tracker:"
                     print >>sys.stderr,merge_announce(t, s)
-                h = urlopen(merge_announce(t, s))
+                h = urlopen(merge_announce(t, s), silent = True)
                 closer[0] = h.close
                 data = h.read()
             except (IOError, error), e:
