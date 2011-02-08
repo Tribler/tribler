@@ -904,12 +904,7 @@ class ProgressPanel(wx.Panel):
             eta = ds.get_eta()
             status = ds.get_status()
         else:
-            progress = self.item.original_data.get('progress')
-            if progress == None:
-                progress = 0
-            else:
-                progress /= 100.0
-            
+            progress = self.item.original_data.get('progress', 0) / 100.0
             seeds = peers = None
             dls = uls = 0
             
@@ -920,6 +915,7 @@ class ProgressPanel(wx.Panel):
             seeds = 0
         if peers == None:
             peers = 0
+            
         progress = max(0, min(1, progress)) #progress has to be between 0 and 1
          
         self.item.data[2] = [seeds, peers]
@@ -986,7 +982,7 @@ class ProgressPanel(wx.Panel):
             elif havedigest:
                 self.pb.set_pieces(havedigest)
             elif progress > 0:
-                self.pb.setNormalPercentage(progress) # Show as having some
+                self.pb.setNormalPercentage(progress*100.0) # Show as having some
             else:
                 self.pb.reset(colour=0) # Show as having none
             self.pb.Refresh()

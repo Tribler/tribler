@@ -726,7 +726,7 @@ class LibaryList(List):
             
             for infohash, item in self.list.items.iteritems():
                 ds = item.original_data['ds']
-                status = item.progressPanel.Update()
+                status = item.progressPanel.Update(ds)
                 if status == 1:
                     nr_downloading += 1
                 elif status == 2:

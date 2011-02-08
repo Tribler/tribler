@@ -15,7 +15,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
 
 class SettingsDialog(wx.Dialog):
@@ -315,30 +315,45 @@ class SettingsDialog(wx.Dialog):
         
         items = self.guiUtility.frame.librarylist.GetItems()
         for item in items.values():
-            choices.append(item.original_data['name'])
-            dstates.append(item.original_data.get('ds', None))
-            infohashes.append(item.original_data["infohash"])
+            started = False
+            ds = item.original_data.get('ds', None)
+            if ds and ds.get_status() in [DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING]:
+                started = True
+                
+            if start != started:
+                choices.append(item.original_data['name'])
+                dstates.append(ds)
+                infohashes.append(item.original_data["infohash"])
         
-        message = 'Please select all torrents which should be '
-        if start:
-            message += 'started.'
+        if len(choices) > 0:
+            message = 'Please select all torrents which should be '
+            if start:
+                message += 'started.'
+            else:
+                message += 'stopped.'
+            
+            dlg = wx.MultiChoiceDialog(self, message, 'Select torrents', choices)
+            if dlg.ShowModal() == wx.ID_OK:
+                selections = dlg.GetSelections()
+                for selection in selections:
+                    if start:
+                        if dstates[selection]:
+                            dstates[selection].get_download().restart()
+                        user_download_choice.set_download_state(infohashes[selection], "restart")
+                        
+                    else:
+                        if dstates[selection]:
+                            dstates[selection].get_download().stop()
+                        
+                        user_download_choice.set_download_state(infohashes[selection], "stop")
         else:
-            message += 'stopped.'
-        
-        dlg = wx.MultiChoiceDialog(self, message, 'Select torrents', choices)
-        if dlg.ShowModal() == wx.ID_OK:
-            selections = dlg.GetSelections()
-            for selection in selections:
-                if start:
-                    if dstates[selection]:
-                        dstates[selection].get_download().restart()
-                    user_download_choice.set_download_state(infohashes[selection], "restart")
-                    
-                else:
-                    if dstates[selection]:
-                        dstates[selection].get_download().stop()
-                    
-                    user_download_choice.set_download_state(infohashes[selection], "stop")
+            message = "No torrents in library which could be "
+            if start:
+                message += "started."
+            else:
+                message += "stopped."
+            dlg = wx.MessageDialog(self, message, 'No torrents found.', wx.OK | wx.ICON_INFORMATION)
+            dlg.ShowModal()
         dlg.Destroy()
 
     def saveDefaultDownloadConfig(self):
