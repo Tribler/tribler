@@ -350,6 +350,11 @@ class List(wx.Panel):
         assert self.ready, "List not ready"
         if self.ready:
             return self.list.GetItem(key)
+        
+    def GetItems(self):
+        assert self.ready, "List not ready"
+        if self.ready:
+            return self.list.items
     
     def Focus(self):
         assert self.ready, "List not ready"

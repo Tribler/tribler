@@ -14,6 +14,8 @@ from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wx
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+
 from Tribler.Core.API import *
 
 class SettingsDialog(wx.Dialog):
@@ -38,7 +40,9 @@ class SettingsDialog(wx.Dialog):
                              'unlimitedDown', \
                              'diskLocationCtrl', \
                              'portChange', \
-                             'externalplayer']
+                             'externalplayer',\
+                             'batchstart',\
+                             'batchstop']
 
         self.myname = None
         self.elements = {}
@@ -91,6 +95,9 @@ class SettingsDialog(wx.Dialog):
         
         self.elements['edit'].Bind(wx.EVT_BUTTON, self.EditClicked)
         self.elements['browse'].Bind(wx.EVT_BUTTON, self.BrowseClicked)
+        
+        self.elements['batchstart'].Bind(wx.EVT_BUTTON, lambda event: self.OnMultiple(True))
+        self.elements['batchstop'].Bind(wx.EVT_BUTTON, lambda event: self.OnMultiple(False))
         
         self.Bind(wx.EVT_BUTTON, self.saveAll, id = xrc.XRCID("wxID_OK"))
         self.Bind(wx.EVT_BUTTON, self.cancelAll, id = xrc.XRCID("wxID_CANCEL"))
@@ -298,6 +305,41 @@ class SettingsDialog(wx.Dialog):
             self.elements['diskLocationCtrl'].SetValue(dlg.GetPath())
         else:
             pass
+    
+    def OnMultiple(self, start):
+        user_download_choice = UserDownloadChoice.get_singleton()
+        
+        choices = []
+        dstates = []
+        infohashes = []
+        
+        items = self.guiUtility.frame.librarylist.GetItems()
+        for item in items.values():
+            choices.append(item.original_data['name'])
+            dstates.append(item.original_data.get('ds', None))
+            infohashes.append(item.original_data["infohash"])
+        
+        message = 'Please select all torrents which should be '
+        if start:
+            message += 'started.'
+        else:
+            message += 'stopped.'
+        
+        dlg = wx.MultiChoiceDialog(self, message, 'Select torrents', choices)
+        if dlg.ShowModal() == wx.ID_OK:
+            selections = dlg.GetSelections()
+            for selection in selections:
+                if start:
+                    if dstates[selection]:
+                        dstates[selection].get_download().restart()
+                    user_download_choice.set_download_state(infohashes[selection], "restart")
+                    
+                else:
+                    if dstates[selection]:
+                        dstates[selection].get_download().stop()
+                    
+                    user_download_choice.set_download_state(infohashes[selection], "stop")
+        dlg.Destroy()
 
     def saveDefaultDownloadConfig(self):
         # Save DownloadStartupConfig
