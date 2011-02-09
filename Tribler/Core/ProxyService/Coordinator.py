@@ -410,9 +410,9 @@ class Coordinator:
             self.overlay_bridge.add_task(olthread_send_request_help_lambda,0)
             
             # ProxyService 90s Test_
-            from Tribler.Core.Statistics.Status.Status import get_status_holder
-            status = get_status_holder("Proxy90secondsTest")
-            status.create_and_add_event("requested-piece-to-proxy", [show_permid_short(chosen_permid), piece])
+            #from Tribler.Core.Statistics.Status.Status import get_status_holder
+            #status = get_status_holder("Proxy90secondsTest")
+            #status.create_and_add_event("requested-piece-to-proxy", [show_permid_short(chosen_permid), piece])
             # ProxyService 90s Test_
             
         except Exception,e:

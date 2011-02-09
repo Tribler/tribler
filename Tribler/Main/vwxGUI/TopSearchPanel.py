@@ -349,9 +349,9 @@ class TopSearchPanel(bgPanel):
                 torrentManager.mypref_db.deletePreference(d.get_def().get_infohash())
                 wx.CallAfter(guiUtility.frame.librarylist.GetManager().refresh)
 
-        from Tribler.Core.Statistics.Status.Status import get_status_holder
-        status = get_status_holder("Proxy90secondsTest")
-        status.create_and_add_event("deleted-90s-test", [True])
+        #from Tribler.Core.Statistics.Status.Status import get_status_holder
+        #status = get_status_holder("Proxy90secondsTest")
+        #status.create_and_add_event("deleted-90s-test", [True])
 
         # Mark test as inactive
         session = Session.get_instance()

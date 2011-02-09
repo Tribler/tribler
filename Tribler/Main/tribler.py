@@ -554,16 +554,16 @@ class ABCApp(wx.App):
             d = self.videoplayer.get_vod_download()
             for ds in dslist:
                 # ProxyService 90s Test_
-                safename = `ds.get_download().get_def().get_name()`
-                if safename == "'Data.90s-test.8M.bin'":
-                    status = get_status_holder("Proxy90secondsTest")
-                    status.create_and_add_event("transfer-rate", [safename, dlstatus_strings[ds.get_status()], 100.0*ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()])
+                #safename = `ds.get_download().get_def().get_name()`
+                #if safename == "'Data.90s-test.8M.bin'":
+                    #status = get_status_holder("Proxy90secondsTest")
+                    #status.create_and_add_event("transfer-rate", [safename, dlstatus_strings[ds.get_status()], 100.0*ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()])
                     
                     # Report the logs when the download completes
-                    if not self.proxytest_reported:
-                        if ds.get_progress() == 1.0:
-                            status.report_now()
-                            self.proxytest_reported = True
+                    #if not self.proxytest_reported:
+                        #if ds.get_progress() == 1.0:
+                            #status.report_now()
+                            #self.proxytest_reported = True
                 # _ProxyService 90s Test
 
                 if ds.get_download() == d:
@@ -1019,10 +1019,10 @@ def run(params = None):
             #status.add_reporter(reporter)
 
             # ProxyService 90s Test_
-            from Tribler.Core.Statistics.Status.ProxyTestReporter import *
+            #from Tribler.Core.Statistics.Status.ProxyTestReporter import *
     
-            status = get_status_holder("Proxy90secondsTest")
-            status.add_reporter(ProxyTestPeriodicReporter("DataTransferAndBuddyCast", 300, "id01"))
+            #status = get_status_holder("Proxy90secondsTest")
+            #status.add_reporter(ProxyTestPeriodicReporter("DataTransferAndBuddyCast", 300, "id01"))
             # _ProxyService 90s Test
 
             app.MainLoop()
