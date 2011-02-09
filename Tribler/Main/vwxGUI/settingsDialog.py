@@ -313,6 +313,7 @@ class SettingsDialog(wx.Dialog):
         dstates = []
         infohashes = []
         
+        self.guiUtility.frame.librarylist.GetManager().refresh()
         items = self.guiUtility.frame.librarylist.GetItems()
         for item in items.values():
             started = False
@@ -324,15 +325,26 @@ class SettingsDialog(wx.Dialog):
                 choices.append(item.original_data['name'])
                 dstates.append(ds)
                 infohashes.append(item.original_data["infohash"])
-        
+         
         if len(choices) > 0:
             message = 'Please select all torrents which should be '
             if start:
                 message += 'started.'
             else:
                 message += 'stopped.'
+            message += "\nUse ctrl+a to select all/deselect all."
+            
+            def bindAll(control):
+                control.Bind(wx.EVT_KEY_DOWN, lambda event: self._SelectAll(dlg, event, len(choices)))
+                func = getattr(control, 'GetChildren', False)
+                if func:
+                    for child in func():
+                        bindAll(child)
             
             dlg = wx.MultiChoiceDialog(self, message, 'Select torrents', choices)
+            dlg.allselected = False
+            bindAll(dlg)
+            
             if dlg.ShowModal() == wx.ID_OK:
                 selections = dlg.GetSelections()
                 for selection in selections:
@@ -355,6 +367,17 @@ class SettingsDialog(wx.Dialog):
             dlg = wx.MessageDialog(self, message, 'No torrents found.', wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
         dlg.Destroy()
+        
+    def _SelectAll(self, dlg, event, nrchoices):
+        if event.ControlDown():
+            if event.GetKeyCode() == 65: #ctrl + a
+                if dlg.allselected:
+                    dlg.SetSelections([])
+                else:
+                    select = list(range(nrchoices))
+                    dlg.SetSelections(select)
+                dlg.allselected = not dlg.allselected
+                
 
     def saveDefaultDownloadConfig(self):
         # Save DownloadStartupConfig
