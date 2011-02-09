@@ -42,6 +42,8 @@ DEBUG = False
 
 REPLY_WAIT = 60 # seconds
 REPLY_VALIDITY = 2*24*3600.0    # seconds
+REPLY_HARD_LIMIT = 500 # we will store no more than this number of
+                       # replies (dropping oldest as new come in)
 
 # Normally, one would allow just one majority to possibly exists. However,
 # as current Buddycast has a lot of stale peer addresses, let's make
@@ -433,6 +435,12 @@ def tally_opinion(myip,oplist,requiredquorum):
 
     # 5. Ordinary peer, just add his opinion
     oplist.append([myip,time()])
+    # 09/02/11 boudewijn: the oplist can become -very- large (measured
+    # 50.000+ items).  We do not need this amount, nor should we use
+    # the memory is such a way.  Therefore we have a hard limit on the
+    # number of items in the list, dropping the older ones as needed.
+    if len(oplist) > REPLY_HARD_LIMIT:
+        oplist.remove(0)
     if DEBUG:
         print >> sys.stderr,"dialback: DIALBACK_REPLY: peer said I have IP address",myip
 
