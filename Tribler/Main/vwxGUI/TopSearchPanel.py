@@ -10,6 +10,7 @@
 # display the panel twice.
 #
 
+import wx.animate
 from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME

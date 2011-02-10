@@ -354,8 +354,7 @@ class MainFrame(wx.Frame):
 
        
     def checkVersion(self):
-        guiserver = GUITaskQueue.getInstance()
-        guiserver.add_task(self._checkVersion, 5.0)
+        self.guiserver.add_task(self._checkVersion, 5.0)
 
     def _checkVersion(self):
         # Called by GUITaskQueue thread
@@ -544,8 +543,7 @@ class MainFrame(wx.Frame):
     
     def OnUpgrade(self, event=None):
         self.setActivity(NTFY_ACT_NEW_VERSION)
-        guiserver = GUITaskQueue.getInstance()
-        guiserver.add_task(self.upgradeCallback,10.0)
+        self.guiserver.add_task(self.upgradeCallback,10.0)
 
     #Force restart of Tribler
     def Restart(self):
