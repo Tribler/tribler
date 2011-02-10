@@ -46,7 +46,6 @@ except:
     pass
 
 import wx
-import wx.animate
 from wx import xrc
 #import hotshot
 
@@ -176,11 +175,9 @@ class ABCApp(wx.App):
             sys.stderr.write('Build: ' + self.utility.lang.get('build') + '\n')
 
             bm = wx.Bitmap(os.path.join(self.utility.getPath(),'Tribler','Images','splash.jpg'),wx.BITMAP_TYPE_JPEG)
-            #s = wx.MINIMIZE_BOX | wx.MAXIMIZE_BOX | wx.RESIZE_BORDER | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.CLIP_CHILDREN
-            #s = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT
-            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1)
-            self.splash.Show()
-
+            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_NO_TIMEOUT, 1000, None, style = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR)
+            wx.Yield()
+            
             # Arno, 2009-08-18: Don't delay postinit anymore, gives problems on Ubuntu 9.04
             self.PostInit()    
             return True
@@ -193,9 +190,6 @@ class ABCApp(wx.App):
 
     def PostInit(self):
         try:
-            # On Linux: allow painting of splash screen first.
-            wx.Yield()
-            
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
             
             cat = Category.getInstance(self.utility.getPath())
@@ -273,7 +267,6 @@ class ABCApp(wx.App):
             
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
-            
 
             # Arno, 2007-05-03: wxWidgets 2.8.3.0 and earlier have the MIME-type for .bmp 
             # files set to 'image/x-bmp' whereas 'image/bmp' is the official one.
@@ -292,13 +285,10 @@ class ABCApp(wx.App):
                 # wx < 2.7 don't like wx.Image.GetHandlers()
                 print_exc()
             
-            # Must be after ABCLaunchMany is created
-        
             self.frame.Show(True)
-
-            wx.CallAfter(self.startWithRightView)
+            self.splash.Destroy()
             
-            # Delay this so GUI has time to paint
+            wx.CallAfter(self.startWithRightView)
             wx.CallAfter(self.loadSessionCheckpoint)
             
             # start the torrent feed thread
@@ -317,7 +307,6 @@ class ABCApp(wx.App):
             reporter.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
             reporter.create_and_add_event("client-startup-build", [self.utility.lang.get("build")])
             reporter.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
-            
             
             self.ready = True
         except Exception,e:
@@ -672,13 +661,7 @@ class ABCApp(wx.App):
             print_exc()
 
     def loadSessionCheckpoint(self):
-        # Load all other downloads
-        # TODO: reset all saved DownloadConfig to new default?
-        if self.params[0] != "":
-            # There is something on the cmdline, start all stopped
-            self.utility.session.load_checkpoint(initialdlstatus=DLSTATUS_STOPPED)
-        else:
-            self.utility.session.load_checkpoint()
+        self.utility.session.load_checkpoint()
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
