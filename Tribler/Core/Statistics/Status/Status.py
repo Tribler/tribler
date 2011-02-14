@@ -133,10 +133,10 @@ class StatusHolder:
             if name in self.elements:
                 raise Exception("Already have a status element with the given name")
             self.elements[name] = new_element
-            self._add_element(new_element)
         finally:
             self.lock.release()
-
+            
+        self._add_element(new_element)
         return new_element
             
     def get_status_element(self, name):
@@ -193,9 +193,9 @@ class StatusHolder:
         self.lock.acquire()
         try:
             self.events.append(event)
-            self._add_element(event)
         finally:
             self.lock.release()
+        self._add_element(event)
 
     def remove_range(self, range):
         self.remove_event(range)

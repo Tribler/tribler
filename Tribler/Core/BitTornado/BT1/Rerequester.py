@@ -45,6 +45,23 @@ mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 keys = {}
 basekeydata = str(getpid()) + repr(time()) + 'tracker'
 
+def merge_announce(tracker, params):
+    """
+    Merge the announce url with its announce parameters.
+
+    TRACKER is the announce value from the .torrent file.
+    PARAMS is a string starting with ? following key=value pairs
+    separated with &.
+
+    Sometimes TRACKER ends with parameters aswell, private trackets
+    that provide personalized .torrent files usually do this, for
+    instance tracker.org/announce?passlkey=foobar.
+    """
+    if "?" in tracker:
+        return tracker + "&" + params[1:]
+    else:
+        return tracker + params
+
 def add_key(tracker):
     key = ''
     for i in sha(basekeydata+tracker).digest()[-6:]:
@@ -127,7 +144,16 @@ class Rerequester:
         if not self.started:
             self.started = True
             self.sched(self.c, self.interval/2)
-            self.d(0)
+
+            # 17/01/11 boudewijn: would always send event=started.
+            # However, from the BitTorrent bep: "No completed is sent
+            # if the file was complete when started."
+            if self.amount_left():
+                event = 0 # started
+            else:
+                event = 3 # completed when started
+
+            self.d(event)
 
     def c(self):
         if self.stopped:
@@ -156,11 +182,11 @@ class Rerequester:
 
     def encoder_wants_new_peers(self):
         """ The list of peers we gave to the encoder via self.connect()
-        did not give any live connections, reconnect to get some more.
-        Officially we should cancel the outstanding
-            self.sched(self.d,self.announce_interval)
-        """
-        self.d(0)
+        is exhausted, reconnect to get some more."""
+        
+        #schedule an announce, without callback to prevent inference to normal interval updating
+        task = lambda: self.announce()
+        self.sched(task)
 
     def announce(self, event = 3, callback = lambda: None, specialurl = None):
         # IPVSIX: Azureus 3.1.1.0 used as Ubuntu IPv6 tracker doesn't support BEP 7
@@ -174,6 +200,7 @@ class Rerequester:
             if self.howmany() >= self.maxpeers:
                 s += '&numwant=0'
             else:
+                s += '&numwant=200'
                 s += '&no_peer_id=1'
                 if compact:
                     s+= '&compact=1'
@@ -193,9 +220,10 @@ class Rerequester:
         if self.howmany() >= self.maxpeers:
             s += '&numwant=0'
         else:
-                s += '&no_peer_id=1'
-                if compact:
-                    s+= '&compact=1'
+            s += '&numwant=200'
+            s += '&no_peer_id=1'
+            if compact:
+                s+= '&compact=1'
         if event != 3:
             s += '&event=' + ['started', 'completed', 'stopped'][event]
         if event == 2:
@@ -346,8 +374,8 @@ class Rerequester:
             try:
                 if DEBUG:
                     print >>sys.stderr,"Rerequest tracker:"
-                    print >>sys.stderr,t+s
-                h = urlopen(t+s)
+                    print >>sys.stderr,merge_announce(t, s)
+                h = urlopen(merge_announce(t, s), silent = True)
                 closer[0] = h.close
                 data = h.read()
             except (IOError, error), e:
@@ -408,7 +436,7 @@ class Rerequester:
 
             # even if the attempt timed out, go ahead and process data
             def add(self = self, r = r, callback = callback):
-                #print >>sys.stderr,"Rerequester: add: postprocessing",r
+                # print >>sys.stderr,"Rerequester: add: postprocessing",r
                 self.postrequest(r, callback, self.notifiers)
                 
             #print >>sys.stderr,"Rerequester: _request_single: scheduling processing of returned",r
@@ -429,15 +457,16 @@ class Rerequester:
             return
                 
         if 'dialback' in self.config and self.config['dialback']:
-            from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+            # Niels: at startup we are always not connectable, changed behaviour into always announce,
+            # sorry raul...
             
-            if DialbackMsgHandler.getInstance().isConnectable():
-                if DEBUG_DHT:
-                    print >>sys.stderr,"Rerequester: _dht_rerequest: get_peers AND announce"
-                self.dht.get_peers(self.infohash, info_hash_id, self._dht_got_peers, self.port)
-                return
-                #raul: I added this return so when the peer is NOT connectable
-                # it does a get_peers lookup but it does not announce
+            #raul: I added this return so when the peer is NOT connectable
+            # it does a get_peers lookup but it does not announce
+            if DEBUG_DHT:
+                print >>sys.stderr,"Rerequester: _dht_rerequest: get_peers AND announce"
+            self.dht.get_peers(self.infohash, info_hash_id, self._dht_got_peers, self.port)
+            return
+            
         if DEBUG_DHT:
             print >>sys.stderr,"Rerequester: _dht_rerequest: JUST get_peers, DO NOT announce"
         self.dht.get_peers(self.infohash, info_hash_id, self._dht_got_peers)

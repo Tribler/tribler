@@ -84,9 +84,9 @@ class Lang:
         if (label == 'version'):
             return version_id
         if (label == 'build'):
-            return "Build 18927"
+            return "Build 19721"
         if (label == 'build_date'):
-            return "Dec 14, 2010"
+            return "Feb 3, 2011"
         # see if it exists in 'user.lang'
         if tryuser:
             text, found = self.getFromLanguage(label, self.user_lang)

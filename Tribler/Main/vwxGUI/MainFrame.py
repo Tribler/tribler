@@ -78,6 +78,7 @@ class FileDropTarget(wx.FileDropTarget):
         self.frame = frame
       
     def OnDropFiles(self, x, y, filenames):
+        print >> sys.stderr, filenames
         for filename in filenames:
             try:
                 self.FixTorrent(filename)
@@ -160,8 +161,9 @@ class MainFrame(wx.Frame):
         self.SRstatusbar = SRstatusbar(self)
         self.SetStatusBar(self.SRstatusbar)
 
-        dragdroplist = FileDropTarget(self)
-        self.SetDropTarget(dragdroplist)
+        if sys.platform != 'darwin':
+            dragdroplist = FileDropTarget(self)
+            self.SetDropTarget(dragdroplist)
 
         self.tbicon = None
 
@@ -243,14 +245,14 @@ class MainFrame(wx.Frame):
                 self.startDownloadFromMagnet(self.params[0])
             else:
                 torrentfilename = self.params[0]
-                self.startDownload(torrentfilename,cmdline=True,vodmode=True)
-                self.guiUtility.standardLibraryOverview(refresh=True)
+                self.startDownload(torrentfilename,cmdline=True)
+            self.guiUtility.standardLibraryOverview(refresh=True)
 
     def startDownloadFromMagnet(self, url):
         def torrentdef_retrieved(tdef):
             print >> sys.stderr, "_" * 80
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
-            self.startDownload(tdef=tdef, cmdline=True, vodmode=True)
+            self.startDownload(tdef=tdef, cmdline=True)
 
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
@@ -352,8 +354,7 @@ class MainFrame(wx.Frame):
 
        
     def checkVersion(self):
-        guiserver = GUITaskQueue.getInstance()
-        guiserver.add_task(self._checkVersion, 5.0)
+        self.guiserver.add_task(self._checkVersion, 5.0)
 
     def _checkVersion(self):
         # Called by GUITaskQueue thread
@@ -542,8 +543,7 @@ class MainFrame(wx.Frame):
     
     def OnUpgrade(self, event=None):
         self.setActivity(NTFY_ACT_NEW_VERSION)
-        guiserver = GUITaskQueue.getInstance()
-        guiserver.add_task(self.upgradeCallback,10.0)
+        self.guiserver.add_task(self.upgradeCallback,10.0)
 
     #Force restart of Tribler
     def Restart(self):
@@ -837,6 +837,7 @@ class MainFrame(wx.Frame):
         if DEBUG:
             print  >> sys.stderr,"main: Activity",`text`
         self.SRstatusbar.onActivity(text)
+        self.stats.onActivity(text)
 
     def set_player_status(self,s):
         """ Called by VideoServer when using an external player """

@@ -108,7 +108,7 @@
                                         </object>
                                         <object class="sizeritem">
                                             <object class="wxStaticText">
-                                                <label>File Information</label>
+                                                <label>Download Location</label>
                                                 <font>
                                                     <weight>bold</weight>
                                                 </font>
@@ -449,7 +449,43 @@
 											<border>3</border>
 											<flag>wxTOP</flag>
 										</object>
+									</object>
+								</object>
+								<object class="sizeritem">
+	                                <object class="wxStaticLine">
+	                                    <size>-1, 1</size>
+	                                    <style>wxLI_HORIZONTAL</style>
 	                                </object>
+	                                <flag>wxEXPAND|wxTOP|wxBOTTOM</flag>
+	                                <border>7</border>
+	                            </object>
+	                            <object class="sizeritem">
+                                    <object class="wxStaticText">
+                                        <label>Advanced Library</label>
+                                        <font>
+                                            <weight>bold</weight>
+                                        </font>
+                                    </object>
+                                </object>
+								<object class="sizeritem">
+									<object class="wxBoxSizer">
+										<orient>wxHORIZONTAL</orient>
+										<object class="sizeritem">
+	                                        <object class="wxButton" name="batchstop">
+	                                            <label>Stop Multiple Downloads</label>
+	                                        </object>
+										</object>
+										<object class="spacer">
+											<option>1</option>
+										</object>
+										<object class="sizeritem">
+	                                        <object class="wxButton" name="batchstart">
+	                                            <label>Start Multiple Downloads</label>
+	                                        </object>
+										</object>
+	                                </object>
+	                                <border>3</border>
+	                                <flag>wxEXPAND|wxTOP</flag>
 	                            </object>
 	                        </object>
 	                    </object>

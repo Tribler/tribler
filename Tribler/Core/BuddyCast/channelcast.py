@@ -184,14 +184,13 @@ class ChannelCastCore:
             print >> sys.stderr,'channelcast: Received a msg from ', show_permid_short(sender_permid)
             print >> sys.stderr,"channelcast: my_permid=", show_permid_short(self.my_permid)
 
-        """
-        We want to receive our own channelcast messages, to fix our illegal timeframes
+        
         if not sender_permid or sender_permid == self.my_permid:
             if DEBUG:
                 print >> sys.stderr, "channelcast: warning - got channelcastMsg from a None/Self peer", \
                         show_permid_short(sender_permid), recv_msg
             return False
-        """
+        
         #if len(recv_msg) > self.max_length:
         #    if DEBUG:
         #        print >> sys.stderr, "channelcast: warning - got large channelCastHaveMsg", len(recv_msg)
@@ -262,14 +261,8 @@ class ChannelCastCore:
                 # if so, ignore the incoming record
                 continue
             
-            #Nitin: Check if the record belongs to my channel 
-            if bin2str(v['publisher_id']) == bin2str(self.session.get_permid()):
-                # if so, ignore the incoming record
-                continue
-            
             # make everything into "string" format, if "binary"
             hit = (bin2str(v['publisher_id']),v['publisher_name'],bin2str(v['infohash']),bin2str(v['torrenthash']),v['torrentname'],v['time_stamp'],bin2str(k))
-            
             listOfAdditions.append(hit)
         
         # Arno, 2010-06-11: We're on the OverlayThread
@@ -277,6 +270,9 @@ class ChannelCastCore:
         return listOfAdditions
     
     def _updateChannelcastDB(self, query_permid, query, hits, listOfAdditions):
+        if DEBUG:
+            print >> sys.stderr, "channelcast: updating channelcastdb", query, len(hits)
+
         publisher_ids = Set()
         infohashes = Set()
         for hit in listOfAdditions:
@@ -290,15 +286,25 @@ class ChannelCastCore:
             nr_torrents = self.channelcastdb.getNrTorrentsInChannel(publisher_id)
             if len(infohashes) > nr_torrents:
                 if len(infohashes) > 50 and len(infohashes) > nr_torrents +1: #peer not behaving according to spec, ignoring
-                    #print >> sys.stderr, "channelcast: peer not behaving according to spec, ignoring",len(infohashes), show_permid(query_permid)
+                    if DEBUG:
+                        print >> sys.stderr, "channelcast: peer not behaving according to spec, ignoring",len(infohashes), show_permid(query_permid)
                     return
                 self.channelcastdb.deleteTorrentsFromPublisherId(str2bin(publisher_id))
-            #print >> sys.stderr, 'Received channelcast message with %d hashes'%len(infohashes), show_permid(query_permid)
+            if DEBUG:
+                print >> sys.stderr, 'Received channelcast message with %d hashes'%len(infohashes), show_permid(query_permid)
         else:
             #ignore all my favorites, randomness will cause problems with timeframe
             my_favorites = self.votecastdb.getPublishersWithPosVote(bin2str(self.session.get_permid()))
+            
+            #filter listOfAdditions
             listOfAdditions = [hit for hit in listOfAdditions if hit[0] not in my_favorites]
-        
+            
+            #request channeltimeframes for subscribed channels
+            for publisher_id in my_favorites:
+                if publisher_id in publisher_ids:
+                    self.updateAChannel(publisher_id, [query_permid])
+                    publisher_ids.remove(publisher_id) #filter publisher_ids
+            
         #08/04/10: Andrea: processing rich metadata part.
         self.richMetadataInterceptor.handleRMetadata(query_permid, hits, fromQuery = query is not None)
         
@@ -319,7 +325,7 @@ class ChannelCastCore:
     
     def updateMySubscribedChannels(self):
         subscribed_channels = self.channelcastdb.getMySubscribedChannels()
-        for permid, channel_name, _, num_subscriptions, _ in subscribed_channels:
+        for permid, channel_name, _, num_subscriptions, _, _, _ in subscribed_channels:
             self.updateAChannel(permid)
         
         self.overlay_bridge.add_task(self.updateMySubscribedChannels, RELOAD_FREQUENCY)    

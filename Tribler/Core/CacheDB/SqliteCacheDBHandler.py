@@ -1093,6 +1093,12 @@ class TorrentDBHandler(BasicDBHandler):
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         return self._db.getTorrentID(infohash)
     
+    def getTorrentIDS(self, infohashes):
+        for infohash in infohashes:
+            assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+            assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
+        return self._db.getTorrentIDS(infohashes)
+    
     def getInfohash(self, torrent_id):
         return self._db.getInfohash(torrent_id)
 
@@ -1411,26 +1417,44 @@ class TorrentDBHandler(BasicDBHandler):
         returns info about swarm size from Torrent and TorrentTracker tables.
         @author: Rahim
         @param torrentId: The index of the torrent.
-        @return: A tuple of the form:(torrent_id, num_seeders, num_leechers, last_check, num_sources_seen, sizeInfo)
+        @return: A list of the form: [torrent_id, num_seeders, num_leechers, last_check, num_sources_seen, sizeInfo]
         """
         if torrent_id is not None:
-            sql = """SELECT  tr.torrent_id, tr.num_seeders, tr.num_leechers, tt.last_check 
-            FROM TorrentTracker tt, Torrent tr  WHERE tr.torrent_id=tt.torrent_id AND tr.torrent_id==%d"""%torrent_id
-            sql +=" order by tt.last_check DESC limit 1"
-            sizeInfo = self._db.fetchall(sql)
-
-            if len(sizeInfo) == 1:
-                num_seeders  = sizeInfo[0][1]
-                num_leechers = sizeInfo[0][2]
-                last_check = sizeInfo[0][3]
+            dict = self.getSwarmInfos([torrent_id])
+            if torrent_id in dict:
+                return dict[torrent_id]
+    
+    def getSwarmInfos(self, torrent_id_list):
+        """
+        returns infos about swarm size from Torrent and TorrentTracker tables.
+        @author: Niels
+        @param torrent_id_list: a list containing torrent_ids
+        @return: A dictionary of lists of the form: torrent_id => [torrent_id, num_seeders, num_leechers, last_check, num_sources_seen, sizeInfo]
+        """
+        torrent_id_list = [torrent_id for torrent_id in torrent_id_list if torrent_id]
+        
+        results = {}
+        sql = "SELECT t.torrent_id, t.num_seeders, t.num_leechers, max(last_check) FROM Torrent t, TorrentTracker tr WHERE t.torrent_id in ("
+        sql += ','.join(map(str,torrent_id_list))
+        sql +=") AND t.torrent_id = tr.torrent_id GROUP BY t.torrent_id"
+        
+        rows = self._db.fetchall(sql)
+        for row in rows:
+            torrent_id = row[0]
+            num_seeders  = row[1]
+            num_leechers = row[2]
+            last_check = row[3]
+            results[torrent_id] = [torrent_id, num_seeders, num_leechers, last_check, -1, row]
+        
+        if len(results.keys()) > 0:
+            sql= "SELECT torrent_id, COUNT(*) FROM Preference WHERE torrent_id in ("
+            sql += ','.join(map(str,results.keys()))
+            sql +=") GROUP BY torrent_id"
             
-                sql1= """SELECT COUNT(*) FROM Preference WHERE torrent_id=%d"""%torrent_id
-                mySeenSources = self._db.fetchone(sql1)
-            
-                return [(torrent_id, num_seeders, num_leechers, last_check, mySeenSources, sizeInfo)]
-
-        return [()]  
-            
+            rows = self._db.fetchall(sql)
+            for row in rows:
+                results[row[0]][4] = row[1]
+        return results
     
     def getLargestSourcesSeen(self, torrent_id, timeNow, freshness=-1):
         """
@@ -2203,9 +2227,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
         searchdb = SearchDBHandler.getInstance()
         for pref in recent_preflist_with_clicklog:
             torrent_id = pref[1]
-            search_terms = searchdb.getMyTorrentSearchTerms(torrent_id)
+            search_terms = [term.encode("UTF-8") for term, in searchdb.getMyTorrentSearchTermsStr(torrent_id)]
+
             # Arno, 2010-02-02: Explicit encoding
-            pref[1] = self.searchterms2utf8pref(termdb,search_terms)
+            pref[1] = search_terms
 
         return recent_preflist_with_clicklog
 
@@ -2255,9 +2280,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
         for pref in recent_preflist_with_swarmsize:
             torrent_id = pref[1]
             tempTorrentList.append(torrent_id)
-            search_terms = searchdb.getMyTorrentSearchTerms(torrent_id)
+            
             # Arno, 2010-02-02: Explicit encoding
-            pref[1] = self.searchterms2utf8pref(termdb,search_terms)
+            search_terms = [term.encode("UTF-8") for term, in searchdb.getMyTorrentSearchTermsStr(torrent_id)]
+            pref[1] = search_terms
         
         #Step 3: appending swarm size info to the end of the inner lists
         swarmSizeInfoList= self.popularity_db.calculateSwarmSize(tempTorrentList, 'TorrentIds', toBC=True) # returns a list of items [torrent_id, num_seeders, num_leechers, num_sources_seen]
@@ -2847,18 +2873,17 @@ class VoteCastDBHandler(BasicDBHandler):
         return records
         
     def getPosNegVotes(self, permid):
-        sql = 'select * from VoteCast where mod_id==?'
+        sql = 'select vote from VoteCast where mod_id==?'
         
-        records = self._db.fetchall(sql, (permid[0],))
+        records = self._db.fetchall(sql, (permid,))
         pos_votes = 0
         neg_votes = 0
         
         if records is None:
             return(pos_votes,neg_votes)
         
-        for vote in records:
-            
-            if vote[2] == "1":
+        for vote, in records:
+            if vote == 2:
                 pos_votes +=1
             else:
                 neg_votes +=1
@@ -3061,6 +3086,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         self.peer_db = PeerDBHandler.getInstance()
         self.torrent_db = TorrentDBHandler.getInstance()
         self.notifier = Notifier.getInstance()
+        self.votecast_db = VoteCastDBHandler.getInstance()
         
         if DEBUG:
             print >> sys.stderr, "ChannelCast: "
@@ -3123,13 +3149,13 @@ class ChannelCastDBHandler(BasicDBHandler):
             assert isinstance(torrentname, unicode), "TORRENTNAME has invalid type: %s" % type(torrentname)
             assert isinstance(timestamp, int), "TIMESTAMP has invalid type: %s" % type(timestamp)
             assert isinstance(signature, str), "SIGNATURE has invalid type: %s" % type(signature)
-        
+            
         sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
         self._db.execute_write(sql,(record[0], record[1], record[2], record[3], record[4], record[5], record[6]), commit=commit)
     
     def addTorrents(self, records):
-         sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
-         self._db.executemany(sql, records)
+        sql = "insert or ignore into ChannelCast (publisher_id, publisher_name, infohash, torrenthash, torrentname, time_stamp, signature) Values(?,?,?,?,?,?,?)"
+        self._db.executemany(sql, records)
     
     def selectTorrentsToCollect(self, publisher_id = None):
         if publisher_id:
@@ -3276,7 +3302,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         # query would be of the form: "k barack obama" or "p 4fw342d23re2we2w3e23d2334d" permid
         value_name = deepcopy(self.value_name) ##
         if query[0] == 'k': 
-            # search torrents based on keywords
+            # search channels based on keywords
             records = []
 
             kwlist = split_into_keywords(query[2:])
@@ -3318,58 +3344,60 @@ class ChannelCastDBHandler(BasicDBHandler):
                 publisher_id = q
             else:
                 publisher_id = arguments[0]
-            #are we subscribed to this channel?
-                        
+            
+            
             s = "Select 1 FROM VoteCast Where voter_id = ? AND mod_id = ? AND vote == 2"
-            if(self._db.fetchone(s, (bin2str(self.my_permid), publisher_id))):
-                if len(arguments) == 1:
-                    s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 50"
-                    allrecords = self._db.fetchall(s,(q,))
-                else:
-                    publisher_id = arguments[0]
-                    min_timestamp = float(arguments[1])
-                    max_timestamp = float(arguments[2])
-                    nr_items = int(arguments[3])
-                    
-                    allrecords = []
-                    s = "select min(time_stamp), max(time_stamp), count(infohash) from ChannelCast where publisher_id==? group by publisher_id"
-                    record = self._db.fetchone(s,(publisher_id,))
-                    if record:
-                        #detect if we have older items, newer items or more items
-                        change = record[0] < min_timestamp or record[1] > max_timestamp or record[2] > nr_items
-                        if change:
-                            #does the peer have any missing items in its timeframe?
-                            s = "select count(infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
-                            items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
+            
+            allrecords = []
+            if len(arguments) == 1:
+                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit 50"
+                allrecords = self._db.fetchall(s,(q,))
+            
+            elif publisher_id == bin2str(self.my_permid) or self._db.fetchone(s, (bin2str(self.my_permid), publisher_id)): #are we subscribed to this channel?
+                publisher_id = arguments[0]
+                min_timestamp = float(arguments[1])
+                max_timestamp = float(arguments[2])
+                nr_items = int(arguments[3])
+                
+                allrecords = []
+                s = "select min(time_stamp), max(time_stamp), count(infohash) from ChannelCast where publisher_id==? group by publisher_id"
+                record = self._db.fetchone(s,(publisher_id,))
+                if record:
+                    #detect if we have older items, newer items or more items
+                    change = record[0] < min_timestamp or record[1] > max_timestamp or record[2] > nr_items
+                    if change:
+                        #does the peer have any missing items in its timeframe?
+                        s = "select count(infohash) from ChannelCast where publisher_id==? and time_stamp between ? and ? group by publisher_id"
+                        items = self._db.fetchone(s,(publisher_id,min_timestamp,max_timestamp))
+                        
+                        if items > nr_items:
+                            #correct his timeframe, by returning nr_items + 1
+                            nr_items_return = nr_items + 1
+                            if nr_items_return < 50:
+                                nr_items_return = 50
+                            #print >> sys.stderr, "He has incorrect timeframe, returning %d items"%nr_items_return
                             
-                            if items > nr_items:
-                                #correct his timeframe, by returning nr_items + 1
-                                nr_items_return = nr_items + 1
-                                if nr_items_return < 50:
-                                    nr_items_return = 50
-                                #print >> sys.stderr, "He has incorrect timeframe, returning %d items"%nr_items_return
-                                
-                                s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
-                                allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
-                            else:
-                                #return max 50 newer, append with old
-                                s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
-                                allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
-                                
-                                if len(allrecords) < 50:
-                                    s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
-                                    allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
-                        elif record[0] > min_timestamp or record[1] < max_timestamp or record[2] < nr_items:
-                            #print >> sys.stderr, "HE HAS MORE DATA"
-                            pass
+                            s = "select * from ChannelCast where publisher_id==? order by time_stamp desc limit ?"
+                            allrecords = self._db.fetchall(s,(publisher_id,nr_items_return))
                         else:
-                            #print >> sys.stderr, "WE HAVE SAME DATA"
-                            pass
-                    else:
-                        #print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"
+                            #return max 50 newer, append with old
+                            s = "select * from ChannelCast where publisher_id==? and time_stamp > ? order by time_stamp asc limit 50"
+                            allrecords = self._db.fetchall(s,(publisher_id,max_timestamp))
+                            
+                            if len(allrecords) < 50:
+                                s = "select * from ChannelCast where publisher_id==? and time_stamp < ? order by time_stamp desc limit ?"
+                                allrecords.extend(self._db.fetchall(s,(publisher_id,min_timestamp,50 - len(allrecords))))
+                    elif record[0] > min_timestamp or record[1] < max_timestamp or record[2] < nr_items:
+                        #print >> sys.stderr, "HE HAS MORE DATA"
                         pass
-                for record in allrecords:
-                    records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
+                    else:
+                        #print >> sys.stderr, "WE HAVE SAME DATA"
+                        pass
+                else:
+                    #print >> sys.stderr, "WE DONT KNOW THIS CHANNEL"
+                    pass
+            for record in allrecords:
+                records.append((str2bin(record[0]), record[1], str2bin(record[2]), str2bin(record[3]), record[4], record[5], str2bin(record[6])))
                 
             return records #channelList#
          
@@ -3385,27 +3413,33 @@ class ChannelCastDBHandler(BasicDBHandler):
         return False
    
     def getChannel(self, permid):
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id == ?"
+        sql = "Select publisher_id FROM ChannelCast WHERE publisher_id == ?"
         channels = self._getChannels(sql, (permid,))
         if len(channels) > 0:
-            return channels[0] 
+            return channels[0]
    
     def getAllChannels(self):
         """ Returns all the channels """
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast Group By publisher_id"
+        sql = "Select distinct publisher_id FROM ChannelCast"
         return self._getChannels(sql)
     
     def getNewChannels(self, updated_since = None):
         """ Returns all newest unsubscribed channels, ie the ones with no votes (positive or negative)"""
         if updated_since:
-            sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id <> ? Group By publisher_id Having max(ChannelCast.time_stamp) > ?"
+            sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id <> ? Group By publisher_id Having max(ChannelCast.time_stamp) > ?"
             return self._getChannels(sql,(bin2str(self.my_permid),updated_since), 0)
         else:
-            sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id <> ? Group By publisher_id"
+            sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id <> ?"
             return self._getChannels(sql,(bin2str(self.my_permid),), 0)
     
     def getLatestUpdated(self, max_nr = 20):
         def channel_sort(a,b):
+            #first compare local vote, spam -> return -1
+            if a[6] == -1:
+                return 1
+            if b[6] == -1:
+                return -1
+            
             #then compare latest update
             if a[2] < b[2]:
                 return 1
@@ -3414,18 +3448,17 @@ class ChannelCastDBHandler(BasicDBHandler):
             #finally compare nr_torrents
             return cmp(a[4], b[4])
         
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast Group By publisher_id Order By max(ChannelCast.time_stamp) DESC Limit ?"
+        sql = "Select publisher_id FROM ChannelCast Group By publisher_id Order By max(ChannelCast.time_stamp) DESC Limit ?"
         return self._getChannels(sql, (max_nr,), cmpF = channel_sort)
     
     def getMostPopularChannels(self, max_nr = 20):
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast, VoteCast WHERE publisher_id == mod_id AND vote == 2 Group By publisher_id Order By count(distinct voter_id) DESC Limit ?"
-        return self._getChannels(sql, (max_nr,))
+        return self.getAllChannels()[:20]
 
     def getMySubscribedChannels(self):
         #Sometimes we have no actual channelcast entries, but do know this channel
         sql = "Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2"
         my_sub_channels = [mod_id for mod_id, in self._db.fetchall(sql, (bin2str(self.my_permid),))]
-        sql = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2) Group By publisher_id Order By max(ChannelCast.time_stamp) DESC"
+        sql = "Select distinct publisher_id FROM ChannelCast WHERE publisher_id in (Select mod_id FROM VoteCast Where voter_id = ? AND vote == 2)"
         channels_with_content = self._getChannels(sql, (bin2str(self.my_permid),))
         
         for channel in channels_with_content:
@@ -3438,22 +3471,40 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = 'Select min(time_stamp), max(time_stamp), count(infohash) From ChannelCast Where publisher_id = ? Group By publisher_id'
         return  self._db.fetchone(sql, (publisher_id,))
     
-    def _getChannels(self, sql, args = None, maxvotes = sys.maxint, cmpF = None):
+    def _getChannels(self, sql, args = None, maxvotes = sys.maxint, minvotes = 0, cmpF = None):
         """Returns the channels based on the input sql, if the number of positive votes is less than maxvotes and the number of torrent > 0"""
         channels = []
         results = self._db.fetchall(sql, args)
 
-        sqla = "Select count(distinct voter_id) as subscribers FROM VoteCast Where mod_id = ? LIMIT 1"
+        sqla = "Select count(distinct ChannelCast.infohash), max(ChannelCast.time_stamp) FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND status_id <> ? AND ChannelCast.infohash = CollectedTorrent.infohash LIMIT 1"
         sqlb = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
-        sqlc = "Select count(distinct ChannelCast.infohash) FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash LIMIT 1"
+        
         for result in results:
-            nr_votes = self._db.fetchone(sqla, (result[0],))
-            if nr_votes <= maxvotes:
-                name = self._db.fetchone(sqlb, (result[0], result[1]))
-                nr_torrents = self._db.fetchone(sqlc, (result[0],))
-                channels.append((result[0], name, result[1], nr_votes, nr_torrents))
+# <<<<<<< .working
+#             nr_votes = self._db.fetchone(sqla, (result[0],))
+#             if nr_votes <= maxvotes:
+#                 name = self._db.fetchone(sqlb, (result[0], result[1]))
+#                 nr_torrents = self._db.fetchone(sqlc, (result[0],))
+#                 channels.append((result[0], name, result[1], nr_votes, nr_torrents))
+# =======
+            nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(result[0])
+            nr_votes = nr_favorites + nr_spam
+            if nr_votes >= minvotes and nr_votes <= maxvotes:
+                nr_torrents, max_timestamp = self._db.fetchone(sqla, (result[0], self.torrent_db.status_table['dead']))
+                name = self._db.fetchone(sqlb, (result[0], max_timestamp)) or ''
+                name = name[:40] #max 40 characters long
+                my_vote = self.votecast_db.getVote(result[0], bin2str(self.my_permid))
+# >>>>>>> .merge-right.r19791
+                
+                channels.append((result[0], name, max_timestamp, nr_favorites, nr_torrents, nr_spam, my_vote))
                 
         def channel_sort(a, b):
+            #first compare local vote, spam -> return -1
+            if a[6] == -1:
+                return 1
+            if b[6] == -1:
+                return -1
+            
             #first compare nr_votes
             if a[3] < b[3]:
                 return 1
@@ -3665,56 +3716,35 @@ class PopularityDBHandler(BasicDBHandler):
         The main difference in the flow of the process is that, if toBC be set to False, this fucntion will look for the most recenct report inside 
         both Popularity and Torrent table, otherwise it will just use torrent table.
         @return: returns a list with the same size az input and each items is composed of below items:
-                  (torrent_id, num_seeders, num_leechers, num_of_sources)
+                  [torrent_id, num_seeders, num_leechers, age, num_of_sources]
         """
         if content=='Infohash':
-            torrentList = [self.torrent_db.getTorrentID(infohash) for infohash in torrentList ]
+            torrentList = self.torrent_db.getTorrentIDS(torrentList)
         elif content=='TorrentIds':
             pass
         else:
             return []
-        
-        trackerSizeList =[]
-        popularityList=[]
+        trackerSizeDict = self.torrent_db.getSwarmInfos(torrentList)
+        """
         for torrentId in torrentList:
             trackerSizeList.append(self.torrent_db.getSwarmInfo(torrentId))
             if not toBC:
-                popularityList.append(self.getPopularityList(torrent_id=torrentId))
+                popularityList.append(self.getPopularityList(torrent_id = torrentId))
+        """
         result =[]
         timeNow=int(time())
         
         averagePeerUpTime = 2 * 60 * 60  # we suppose that the average uptime is roughly two hours.
-        listIndex = 0
-        for id in torrentList:
-            result.append([id, -1, -1, -1, -1])  # (torrent_id, calc_age, num_seeders, num_leechers, num_sources_seen)
-            if not toBC and len(popularityList[listIndex]) > 0 :
-                #if popularityList[listIndex][0] is not None:
-                latest = self.getLatestPopularityReport(popularityList[listIndex], timeNow)
-                result[listIndex][1] = latest[4]  # num_seeders
-                result[listIndex][2] = latest[5]  # num_leechers
-                result[listIndex][3] = timeNow - latest[2]+latest[3]  # age of the report
-                result[listIndex][4] = latest[6]   # num_sources
-                    # print latest
-                if len(trackerSizeList[listIndex]) > 0 and len(trackerSizeList[listIndex][0]) > 0:
-                    #if trackerSizeList[listIndex][0] is not None:
-                    temp=trackerSizeList[listIndex][0]
-                    tempAge = timeNow - temp[3]
-                    if tempAge < result[listIndex][3]:
-                        result[listIndex][1] = temp[1] #num_seeders
-                        result[listIndex][2] = temp[2] #num_leechers
-                        result[listIndex][3] = tempAge # Age of the tracker asking 
-                        othersSeenSources = self.torrent_db.getLargestSourcesSeen(id, timeNow, averagePeerUpTime)
-                        result[listIndex][4] = max(temp[4], othersSeenSources) # num_sources
-
-            elif len(trackerSizeList[listIndex]) > 0 and len(trackerSizeList[listIndex][0]) > 0:
-                #if trackerSizeList[listIndex][0] is not None:
-               temp=trackerSizeList[listIndex][0]
-               result[listIndex][1] = temp[1] #num seeders
-               result[listIndex][2] = temp[2] #num leechers
-               result[listIndex][3] = timeNow - temp[3] # age of check
-               result[listIndex][4] = temp[4] # num_sources
-            listIndex +=1
-                    
+        for torrent_id in torrentList:
+            if torrent_id not in trackerSizeDict:
+                result.append([torrent_id, -1, -1, -1, -1])  # (torrent_id, num_seeders, num_leechers, calc_age, num_sources_seen)
+            elif toBC:
+                torrentList = trackerSizeDict[torrent_id]
+                result.append([torrent_id, torrentList[1], torrentList[2], timeNow - torrentList[3], torrentList[4]])
+            else:
+                popList = self.getPopularityList(torrent_id = torrent_id)
+                latest = self.getLatestPopularityReport(popList, timeNow)
+                result.append([torrent_id, latest[4], latest[5], timeNow - latest[2]+latest[3], latest[6]])
         return result
     
     def getLatestPopularityReport(self, reportList, timeNow):
@@ -3783,12 +3813,8 @@ class PopularityDBHandler(BasicDBHandler):
         if validateTorrentId: #checks whether the torrent is valid or not
             if not self.checkTorrentValidity(torrent_id):
                 return None
-               
-        sql_delete_already_existing_record = u"""DELETE FROM Popularity WHERE torrent_id=? AND peer_id=? AND msg_receive_time=?"""
-        self._db.execute_write(sql_delete_already_existing_record, (torrent_id, peer_id, recv_time), commit=commit)
 
-        
-        sql_insert_new_populairty = u"""INSERT INTO Popularity (torrent_id, peer_id, msg_receive_time, size_calc_age, num_seeders,
+        sql_insert_new_populairty = u"""INSERT OR REPLACE INTO Popularity (torrent_id, peer_id, msg_receive_time, size_calc_age, num_seeders,
                                         num_leechers, num_of_sources) VALUES (?,?,?,?,?,?,?)"""
         try:
             self._db.execute_write(sql_insert_new_populairty, (torrent_id, peer_id, recv_time, calc_age, num_seeders, num_leechers, num_sources), commit=commit)
@@ -4257,7 +4283,10 @@ class SearchDBHandler(BasicDBHandler):
     
     def getMyTorrentSearchTerms(self, torrent_id):
         return [x[0] for x in self.getTorrentSearchTerms(torrent_id, peer_id=0)]
-        
+    
+    def getMyTorrentSearchTermsStr(self, torrent_id):
+        sql = "SELECT distinct term FROM ClicklogSearch, ClicklogTerm WHERE ClicklogSearch.term_id = ClicklogTerm.term_id AND torrent_id = ? AND peer_id = ? ORDER BY term_order"
+        return self._db.fetchall(sql, (torrent_id, 0))
                 
     ### currently unused
                   
@@ -4512,10 +4541,29 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         return res
     
     def getTermsStartingWith(self, beginning, num = 10):
-        terms = self.getAll('term', 
-                            term=("like", u"%s%%" % beginning),
-                            order_by="freq DESC",
-                            limit=num * 2)
+        terms = None
+
+        words = beginning.split()
+        if len(words) < 3:
+            if beginning[-1] == ' ' or len(words) > 1:
+                termid = self.getOne('term_id', term=("=", words[0]))
+                if termid:
+                    sql = '''SELECT "%s " || TF.term AS phrase
+                             FROM TorrentBiTermPhrase P, TermFrequency TF
+                             WHERE P.term1_id = ? 
+                             AND P.term2_id = TF.term_id '''%words[0]
+                    if len(words) > 1:
+                        sql += 'AND TF.term like "%s%%" '%words[1]
+                    sql +='''GROUP BY term1_id, term2_id
+                             ORDER BY freq DESC
+                             LIMIT ?'''
+                    terms = self._db.fetchall(sql, (termid, num))
+            else:
+                terms = self.getAll('term', 
+                                    term=("like", u"%s%%" % beginning),
+                                    order_by="freq DESC",
+                                    limit=num * 2)
+        
         if terms:
             # terms is a list containing lists. We only want the first
             # item of the inner lists.

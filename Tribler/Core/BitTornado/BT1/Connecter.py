@@ -119,6 +119,7 @@ class Connection:
         self.closed = False
         self.extend_hs_dict = {}        # what extended messages does this peer support
         self.initiated_overlay = False
+        self.extended_version = None #verbose version of client from extended message
 
         # G2G
         self.use_g2g = False # set to true if both sides use G2G, indicated by self.connector.use_g2g
@@ -501,12 +502,12 @@ class Connection:
             except:
                 print_exc()
         
+        self.extended_version = d.get('v',None)
         # RePEX: Tell repexer we have received an extended handshake
         repexer = self.connecter.repexer
         if repexer:
             try:
-                version = d.get('v',None)
-                repexer.got_extend_handshake(self, version)
+                repexer.got_extend_handshake(self, self.extended_version)
             except:
                 print_exc()
 
@@ -564,17 +565,20 @@ class Connection:
     # ut_pex support
     #
     def got_ut_pex(self,d):
-        # ProxyService_
-        #
-        proxy_mode = self.config.get('proxy_mode',0)
-        if proxy_mode == PROXY_MODE_PRIVATE:
-            if DEBUG_UT_PEX:
-                print >>sys.stderr, "connecter: Private Mode - Returned from got_ut_pex"
-            return
-        #
-        # _ProxyService
+        # 04/01/11 boudewijn: self.config does not exist.  should
+        # probably be self.connecter.config.  This causes -every-
+        # connection to close when a ut pex message is received
+        # (usually after 15 seconds of being connected).
+        # # ProxyService_
+        # #
+        # proxy_mode = self.config.get('proxy_mode',0)
+        # if proxy_mode == PROXY_MODE_PRIVATE:
+        #     if DEBUG_UT_PEX:
+        #         print >>sys.stderr, "connecter: Private Mode - Returned from got_ut_pex"
+        #     return
+        # #
+        # # _ProxyService
         
-        DEBUG_UT_PEX = True
         if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Got uTorrent PEX:",d
         (same_added_peers,added_peers,dropped_peers) = check_ut_pex(d)
@@ -600,7 +604,7 @@ class Connection:
         # an untrusted source, so be a bit careful
         mx = self.connecter.ut_pex_max_addrs_from_peer
         if DEBUG_UT_PEX:
-            print >>sys.stderr,"connecter: Got",len(added_peers),"peers via uTorrent PEX, using max",mx
+            print >>sys.stderr,"connecter: Got",len(added_peers) + len(same_added_peers),"peers via uTorrent PEX, using max",mx
             
         # for now we have a strong bias towards Tribler peers
         if self.is_tribler_peer():
@@ -624,6 +628,23 @@ class Connection:
             if DEBUG_UT_PEX:
                 print >>sys.stderr,"connecter: Starting ut_pex conns to",len(sample_added_peers_with_id)
             self.connection.Encoder.start_connections(sample_added_peers_with_id)
+
+    def try_send_pex(self, currconns = [], addedconns = [], droppedconns = []):
+        if self.supports_extend_msg(EXTEND_MSG_UTORRENT_PEX):
+            try:
+                if DEBUG_UT_PEX:
+                    print >>sys.stderr,"connecter: ut_pex: Creating msg for",self.get_ip(),self.get_extend_listenport()
+                    
+                if self.first_ut_pex():
+                    aconns = currconns
+                    dconns = []
+                else:
+                    aconns = addedconns
+                    dconns = droppedconns
+                payload = create_ut_pex(aconns,dconns,self)    
+                self.send_extend_ut_pex(payload)
+            except:
+                print_exc()
 
     def send_extend_ut_pex(self,payload):
         msg = EXTEND+self.his_extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX)+payload
@@ -1218,20 +1239,7 @@ class Connecter:
                 print >>sys.stderr,"connecter: ut_pex: Dropped",conn.get_ip(),conn.get_extend_listenport()
             
         for c in currconns:
-            if c.supports_extend_msg(EXTEND_MSG_UTORRENT_PEX):
-                try:
-                    if DEBUG_UT_PEX:
-                        print >>sys.stderr,"connecter: ut_pex: Creating msg for",c.get_ip(),c.get_extend_listenport()
-                    if c.first_ut_pex():
-                        aconns = currconns
-                        dconns = []
-                    else:
-                        aconns = addedconns
-                        dconns = droppedconns
-                    payload = create_ut_pex(aconns,dconns,c)    
-                    c.send_extend_ut_pex(payload)
-                except:
-                    print_exc()
+            c.try_send_pex(currconns, addedconns, droppedconns)
         self.sched(self.ut_pex_callback,60)
 
     def g2g_callback(self):

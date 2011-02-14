@@ -223,7 +223,10 @@ dldefaults['video_source'] = None
 dldefaults['video_ratelimit'] = 0
 dldefaults['video_source_authconfig'] = None
 dldefaults['selected_files'] = []
-dldefaults['ut_pex_max_addrs_from_peer'] = 16
+
+#Niels: in total uTorrent and Azureus clients agree not to accept more than 50 added peers
+#http://wiki.theory.org/BitTorrentPeerExchangeConventions
+dldefaults['ut_pex_max_addrs_from_peer'] = 50
 # Version 3:
 dldefaults['same_nat_try_internal'] = 0
 dldefaults['unchoke_bias_for_internal'] = 0

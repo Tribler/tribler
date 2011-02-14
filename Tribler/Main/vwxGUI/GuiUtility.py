@@ -93,7 +93,7 @@ class GUIUtility:
             else:
                 self.frame.videoparentpanel.Hide()
     
-    def ShowPage(self, page):
+    def ShowPage(self, page, *args):
         if page == 'settings':
             xrcResource = os.path.join(self.vwxGUI_path, 'settingsDialog.xrc')
             res = xrc.XmlResource(xrcResource)
@@ -162,11 +162,15 @@ class GUIUtility:
                 self.frame.selectedchannellist.Reset()
                 
             if page == 'my_files':
-                #Show list
-                self.frame.librarylist.Show()
-                
                 #Reload content
                 self.frame.librarylist.GetManager().refresh()
+                
+                #Open infohash
+                if args:
+                    self.frame.librarylist.GetManager().expand(args[0])
+                
+                #Show list
+                self.frame.librarylist.Show()
             else:
                 #Hide list
                 self.frame.librarylist.Hide()

@@ -1,5 +1,7 @@
 import wx, os, sys
+
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
+from wx.lib.scrolledpanel import ScrolledPanel
 
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -466,10 +468,11 @@ class TextCtrlAutoComplete(wx.TextCtrl):
             self.ShowDropDown () 
             skip = False 
         if visible : 
-            if event.GetKeyCode() == wx.WXK_RETURN :
+            if event.GetKeyCode() == wx.WXK_RETURN or event.GetKeyCode() == wx.WXK_SPACE:
                 if sel > -1:
-                    self.SetValueFromSelected()
-                    skip = False
+                    doCallback = event.GetKeyCode() == wx.WXK_RETURN
+                    self.SetValueFromSelected(doCallback)
+                    skip = not doCallback
             if event.GetKeyCode() == wx.WXK_ESCAPE : 
                 self.ShowDropDown(False) 
                 skip = False 
@@ -485,17 +488,19 @@ class TextCtrlAutoComplete(wx.TextCtrl):
             self.ShowDropDown (not self.dropdown.IsShown()) 
         event.Skip ()
 
-    def SetValueFromSelected(self) : 
+    def SetValueFromSelected(self, doCallback = True) : 
         ''' 
             Sets the wx.TextCtrl value from the selected wx.ListBox item.
             Will do nothing if no item is selected in the wx.ListBox. 
         ''' 
         sel = self.dropdownlistbox.GetFirstSelected() 
         if sel > -1 : 
-            self.SetValue (self.dropdownlistbox.GetItemText(sel)) 
-            self.ShowDropDown (False)
+            newval = self.dropdownlistbox.GetItemText(sel)
+            self.SetValue(newval)
+            self.SetInsertionPoint(len(newval))
             
-            if self.selectcallback:
+            if doCallback and self.selectcallback:
+                self.ShowDropDown(False)
                 self.selectcallback()
 
     def ShowDropDown(self, show = True) : 
@@ -528,3 +533,27 @@ class TextCtrlAutoComplete(wx.TextCtrl):
     def ListItemSelected (self, event) :
         self.SetValueFromSelected() 
         event.Skip()
+        return self
+    
+class ImageScrollablePanel(ScrolledPanel):
+    def __init__(self, parent, id=-1, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.HSCROLL|wx.VSCROLL):
+        ScrolledPanel.__init__(self, parent, id, pos, size, style)
+        
+        self.bitmap = None
+        wx.EVT_PAINT(self, self.OnPaint)
+        
+    def OnPaint(self, evt):
+        if self.bitmap:
+            obj = evt.GetEventObject()
+            dc = wx.BufferedPaintDC(obj)
+            
+            dc.SetPen(wx.TRANSPARENT_PEN)
+            dc.SetBrush(wx.BrushFromBitmap(self.bitmap))
+            w, h = self.GetClientSize()
+            dc.DrawRectangle(0, 0, w, h)
+        else:
+            evt.Skip()
+    
+    def SetBitmap(self, bitmap):
+        self.bitmap = bitmap
+        self.Refresh()

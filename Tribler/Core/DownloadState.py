@@ -42,6 +42,7 @@ class DownloadState(Serializable):
         self.download = download
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
+        self.vod_status_msg = None
         self.coopdl_helpers = coopdl_helpers
         self.coopdl_coordinator = coopdl_coordinator
         
@@ -188,6 +189,34 @@ class DownloadState(Serializable):
         else:
             return self.stats['time']
         
+    def get_num_con_candidates(self):
+        """ 
+        Returns the download's number of possible connections. This is used
+        to see if there is any progress when non-fatal errors have occured
+        (e.g. tracker timeout).
+        @return An integer.
+        """
+        if self.stats is None:
+            return 0
+
+        # Determine if we need statsobj to be requested, same as for spew
+        statsobj = self.stats['stats']
+        return statsobj.numConCandidates
+
+    def get_num_con_initiated(self):
+        """ 
+        Returns the download's number of initiated connections. This is used
+        to see if there is any progress when non-fatal errors have occured
+        (e.g. tracker timeout).
+        @return An integer.
+        """
+        if self.stats is None:
+            return 0
+
+        # Determine if we need statsobj to be requested, same as for spew
+        statsobj = self.stats['stats']
+        return statsobj.numConInitiated
+        
     def get_num_peers(self):
         """ 
         Returns the download's number of active connections. This is used
@@ -319,12 +348,18 @@ class DownloadState(Serializable):
         dictionary contains the keys:
         <pre>
         'id' = PeerID or 'http seed'
+        'extended_version' = Peer client version
         'ip' = IP address as string or URL of httpseed
+        'port' = Port
+        'pex_received' = True/False
+        'g2g' = True/False (Tribler peer yes/no)
+        'g2g_score' = List
         'optimistic' = True/False
         'direction' = 'L'/'R' (outgoing/incoming)
         'uprate' = Upload rate in KB/s
         'uinterested' = Upload Interested: True/False
         'uchoked' = Upload Choked: True/False
+        'uhasqueries' = Upload has requests in buffer and not choked
         'downrate' = Download rate in KB/s
         'dinterested' = Download interested: True/Flase
         'dchoked' = Download choked: True/False

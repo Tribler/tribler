@@ -75,7 +75,8 @@ if sys.platform == 'win32':
     winvertuple = sys.getwindowsversion()
     # pylint: enable-msg=E1101
     spstr = winvertuple[4]
-    if winvertuple[0] == 5 or winvertuple[0] == 6 and spstr < "Service Pack 2":
+    #Niels: Windows 7 is 6.1, should also not impose socket limit
+    if winvertuple[0] == 5 or (winvertuple[0] == 6 and winvertuple[1] == 0 and spstr < "Service Pack 2"):
         MAX_INCOMPLETE = 8 # safety margin. Even 9 gives video socket timeout, 10 is official limit
     else:
         MAX_INCOMPLETE = 1024 # inf
@@ -343,7 +344,7 @@ class Connection:
         return None
 
     def _auto_close(self):
-        if not self.complete and not self.is_coordinator_con():
+        if not self.complete:# and not self.is_coordinator_con():
             if DEBUG:
                 print >>sys.stderr,"encoder: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
 
@@ -485,7 +486,7 @@ class Encoder:
         self.connections = {}
         self.banned = {}
         self.to_connect = Set()
-        self.trackertime = 0
+        self.trackertime = None
         self.paused = False
         if self.config['max_connections'] == 0:
             self.max_connections = 2 ** 30
@@ -567,9 +568,8 @@ class Encoder:
         
         if DEBUG:
             print >>sys.stderr,"encoder: adding",len(dnsidlist),"peers to queue, current len",len(self.to_connect)
-        if not self.to_connect:
-            self.raw_server.add_task(self._start_connection_from_queue)
-
+        wasempty = not self.to_connect
+        
         # all reported addresses are stored in self._known_addresses
         # to prevent duplicated addresses being send
         new_addresses = []
@@ -586,8 +586,11 @@ class Encoder:
         # prevent 'to much' memory usage
         if len(known_addresses) > 2500:
             known_addresses.clear()
-
+        
         self.to_connect.update(dnsidlist)
+        if wasempty:
+            self.raw_server.add_task(self._start_connection_from_queue)
+        
         # make sure addrs from various sources, like tracker, ut_pex and DHT are mixed
         # TODO: or not? For Tribler Supported we may want the tracker to
         # be more authoritative, such that official seeders found fast. Nah.
@@ -596,7 +599,7 @@ class Encoder:
         #Jelle: Since objects are already placed in the Set in pseudo random order, they don't have to 
         # be shuffled (and a Set cannot be shuffled).
         
-        self.trackertime = int(time()) 
+        self.trackertime = time() #update trackertime
 
     def _start_connection_from_queue(self,sched=True):
         try:
@@ -786,11 +789,24 @@ class Encoder:
 
     def admin_close(self,conn):
         del self.connections[conn]
-        now = int(time())
+        
+        now = time()
+        remaining_connections = len(self.connections) + len(self.to_connect)
+        
         if DEBUG:
-            print >>sys.stderr,"encoder: admin_close: now-tt is",now-self.trackertime
-        if len(self.connections) == 0 and (now-self.trackertime) < 20:
-            #if DEBUG:
-            #    print >>sys.stderr,"encoder: admin_close: Recontacting tracker, last request got just dead peers: TEMP DISABLED, ARNO WORKING ON IT"
-            ###self.rerequest.encoder_wants_new_peers()
-            pass
+            print >>sys.stderr,"encoder: admin_close: now-tt is", int(now-self.trackertime), "remaining connections", remaining_connections
+        
+        if remaining_connections == 0 and self.trackertime:
+            #no more peers to connect to :(, schedule a refresh
+            schedule_refresh_in = max(60, int(300 - (now - self.trackertime)))
+            
+            if DEBUG:
+                print >>sys.stderr,"encoder: admin_close: want new peers in", schedule_refresh_in, "s"
+            
+            if schedule_refresh_in <= 0:
+                self.rerequest.encoder_wants_new_peers()
+            else:
+                self.raw_server.add_task(self.rerequest.encoder_wants_new_peers, schedule_refresh_in)
+
+            #reset trackertime
+            self.trackertime = None

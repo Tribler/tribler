@@ -11,9 +11,10 @@ import atexit
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap, ICON_MAX_DIM
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
 
 class SettingsDialog(wx.Dialog):
@@ -38,7 +39,9 @@ class SettingsDialog(wx.Dialog):
                              'unlimitedDown', \
                              'diskLocationCtrl', \
                              'portChange', \
-                             'externalplayer']
+                             'externalplayer',\
+                             'batchstart',\
+                             'batchstop']
 
         self.myname = None
         self.elements = {}
@@ -91,6 +94,9 @@ class SettingsDialog(wx.Dialog):
         
         self.elements['edit'].Bind(wx.EVT_BUTTON, self.EditClicked)
         self.elements['browse'].Bind(wx.EVT_BUTTON, self.BrowseClicked)
+        
+        self.elements['batchstart'].Bind(wx.EVT_BUTTON, lambda event: self.OnMultiple(True))
+        self.elements['batchstop'].Bind(wx.EVT_BUTTON, lambda event: self.OnMultiple(False))
         
         self.Bind(wx.EVT_BUTTON, self.saveAll, id = xrc.XRCID("wxID_OK"))
         self.Bind(wx.EVT_BUTTON, self.cancelAll, id = xrc.XRCID("wxID_CANCEL"))
@@ -180,23 +186,27 @@ class SettingsDialog(wx.Dialog):
         event.Skip()
 
     def saveAll(self, event):
-        errors = []
+        errors = {}
         
         valdown = self.elements['downloadCtrl'].GetValue().strip()
         if valdown != 'unlimited' and (not valdown.isdigit() or int(valdown) <= 0):
-            errors.append('downloadCtrl')
+            errors['downloadCtrl'] = 'Value must be a digit'
         
         valup = self.elements['uploadCtrl'].GetValue().strip()
         if valup != 'unlimited' and (not valup.isdigit() or int(valup) < 0):
-            errors.append('uploadCtrl')
+            errors['uploadCtrl'] = 'Value must be a digit'
         
         valport = self.elements['firewallValue'].GetValue().strip()
         if not valport.isdigit():
-            errors.append('firewallValue')
+            errors['firewallValue'] = 'Value must be a digit'
         
         valdir = self.elements['diskLocationCtrl'].GetValue().strip()
         if not os.path.exists(valdir):
-            errors.append('diskLocationCtrl')
+            errors['diskLocationCtrl'] = 'Location does not exist'
+            
+        valname = self.elements['myNameField'].GetValue()
+        if len(valname) > 40:
+            errors['myNameField'] = 'Max 40 characters'
         
         if len(errors) == 0: #No errors found, continue saving
             restart = False
@@ -266,12 +276,12 @@ class SettingsDialog(wx.Dialog):
                     self.guiUtility.frame.Restart()
                 dlg.Destroy()
             self.EndModal(1)
+            event.Skip()
         else:
-            for error in errors:
+            for error in errors.keys():
                 if sys.platform != 'darwin':
                     self.elements[error].SetForegroundColour(wx.RED)
-                self.elements[error].SetValue('Error')
-        event.Skip()
+                self.elements[error].SetValue(errors[error])
                     
     def cancelAll(self, event):
         self.EndModal(1)
@@ -294,6 +304,79 @@ class SettingsDialog(wx.Dialog):
             self.elements['diskLocationCtrl'].SetValue(dlg.GetPath())
         else:
             pass
+    
+    def OnMultiple(self, start):
+        user_download_choice = UserDownloadChoice.get_singleton()
+        
+        choices = []
+        dstates = []
+        infohashes = []
+        
+        self.guiUtility.frame.librarylist.GetManager().refresh()
+        items = self.guiUtility.frame.librarylist.GetItems()
+        for item in items.values():
+            started = False
+            ds = item.original_data.get('ds', None)
+            if ds and ds.get_status() in [DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING]:
+                started = True
+                
+            if start != started:
+                choices.append(item.original_data['name'])
+                dstates.append(ds)
+                infohashes.append(item.original_data["infohash"])
+         
+        if len(choices) > 0:
+            message = 'Please select all torrents which should be '
+            if start:
+                message += 'started.'
+            else:
+                message += 'stopped.'
+            message += "\nUse ctrl+a to select all/deselect all."
+            
+            def bindAll(control):
+                control.Bind(wx.EVT_KEY_DOWN, lambda event: self._SelectAll(dlg, event, len(choices)))
+                func = getattr(control, 'GetChildren', False)
+                if func:
+                    for child in func():
+                        bindAll(child)
+            
+            dlg = wx.MultiChoiceDialog(self, message, 'Select torrents', choices)
+            dlg.allselected = False
+            bindAll(dlg)
+            
+            if dlg.ShowModal() == wx.ID_OK:
+                selections = dlg.GetSelections()
+                for selection in selections:
+                    if start:
+                        if dstates[selection]:
+                            dstates[selection].get_download().restart()
+                        user_download_choice.set_download_state(infohashes[selection], "restart")
+                        
+                    else:
+                        if dstates[selection]:
+                            dstates[selection].get_download().stop()
+                        
+                        user_download_choice.set_download_state(infohashes[selection], "stop")
+        else:
+            message = "No torrents in library which could be "
+            if start:
+                message += "started."
+            else:
+                message += "stopped."
+            dlg = wx.MessageDialog(self, message, 'No torrents found.', wx.OK | wx.ICON_INFORMATION)
+            dlg.ShowModal()
+        dlg.Destroy()
+        
+    def _SelectAll(self, dlg, event, nrchoices):
+        if event.ControlDown():
+            if event.GetKeyCode() == 65: #ctrl + a
+                if dlg.allselected:
+                    dlg.SetSelections([])
+                else:
+                    select = list(range(nrchoices))
+                    dlg.SetSelections(select)
+                dlg.allselected = not dlg.allselected
+                
 
     def saveDefaultDownloadConfig(self):
         # Save DownloadStartupConfig

@@ -9,6 +9,7 @@ from random import shuffle
 from base64 import b64encode
 from Tribler.Core.BitTornado.clock import clock
 from Tribler.Core.Statistics.Status.Status import get_status_holder
+from Tribler.Core.DecentralizedTracking.repex import REPEX_LISTEN_TIME
 
 #ProxyService_
 #
@@ -626,8 +627,13 @@ class SingleDownload(SingleDownloadHelperInterface):
             # Arno: If we're both seeds
             if self.downloader.super_seeding:
                 self.connection.send_bitfield(have.tostring()) # be nice, show you're a seed too
-            self.connection.close()
-            self.downloader.add_disconnected_seed(self.connection.get_readable_id())
+            
+            # Niels: We're both seeds, but try to get some additional peers from this seed
+            self.connection.try_send_pex()
+            def auto_close():
+                self.connection.close()
+                self.downloader.add_disconnected_seed(self.connection.get_readable_id())
+            self.downloader.scheduler(auto_close, REPEX_LISTEN_TIME)
             return
 
         if DEBUGBF:

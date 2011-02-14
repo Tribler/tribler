@@ -48,6 +48,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.estduration = None
 
         self.fullscreen_enabled = False
+        self.fullscreenwindow = None
         self.play_enabled = False
         self.scroll_enabled = False
 
@@ -76,7 +77,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         
             vSizer.Add(hSizer, 1, wx.EXPAND)
             
-            footer = ListFooter(self, bg)
+            footer = ListFooter(self)
+            footer.SetBackgroundColour(bg)
             vSizer.Add(footer, 0, wx.EXPAND)
         else:
             mainbox = vSizer
@@ -132,9 +134,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.updateVol(self.volume)
     
             self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'fullScreen')
-            if sys.platform != 'darwin':
-                self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
-                self.fsbtn.setSelected(2)
+            self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
+            self.fsbtn.setSelected(2)
 
             self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'saveDisabled', 'save')   
             self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
@@ -150,7 +151,6 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ctrlsizer.Add(self.mute, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
 
             mainbox.Add(self.ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
-            mainbox.AddSpacer((-1, 0))
             if border:
                 self.vlcwin.Show(False)
                 self.ctrlsizer.ShowItems(False)
@@ -168,7 +168,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         if event.LeftDown():
             if self.mute.isToggled(): # unmute
                 self.mute.setToggled(False)
-            if event.GetEventObject().GetImageName() == 'vol1':
+            if event.GetEventObject().GetImageNameitem() == 'vol1':
                 self.volume = 0.16
             if event.GetEventObject().GetImageName() == 'vol2':
                 self.volume = 0.32
@@ -351,10 +351,84 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.fullscreen_enabled = False
         self.fsbtn.setSelected(2)
 
-    def FullScreen(self,evt=None):
+    def FullScreen(self, evt=None):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap and self.fullscreen_enabled:
-            self.vlcwrap.set_fullscreen(True)
+            self._ToggleFullScreen()
+            
+    def OnFullScreenKey(self, event):
+        if event.GetUnicodeKey() == wx.WXK_ESCAPE:
+            self._ToggleFullScreen()
+            
+        elif event.GetUnicodeKey() == wx.WXK_SPACE:
+            if self.GetState() == MEDIASTATE_PLAYING:
+                self.vlcwrap.pause()
+            else:
+                self.vlcwrap.resume()
+    
+    def _ToggleFullScreen(self):
+        if isinstance(self.parent, wx.Frame): #are we shown in popup frame
+            if self.ctrlsizer.IsShown(0):
+                self.parent.ShowFullScreen(True)
+                self.ctrlsizer.ShowItems(False)
+                self.statuslabel.Show(False)
+                
+                def bindEvents(control):
+                    control.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
+                    func = getattr(control, 'GetChildren', False)
+                    if func:
+                        for child in func():
+                            bindEvents(child)
+                bindEvents(self.parent)
+                self.Layout()
+            else:
+                self.parent.ShowFullScreen(False)
+                self.ctrlsizer.ShowItems(True)
+                self.statuslabel.Show(True)
+                
+                def bindEvents(control):
+                    control.Bind(wx.EVT_KEY_DOWN, None)
+                    func = getattr(control, 'GetChildren', False)
+                    if func:
+                        for child in func():
+                            bindEvents(child)
+                bindEvents(self.parent)
+                self.Layout()
+        else:
+            #saving media player state
+            cur_time = self.vlcwrap.get_media_position()
+            cur_state = self.vlcwrap.get_our_state()
+            
+            self.vlcwrap.stop()
+            if not self.fullscreenwindow:
+                # create a new top level frame where to attach the vlc widget and
+                # render the fullscreen video
+                self.fullscreenwindow = wx.Frame(None, title="FullscreenVLC")
+                self.fullscreenwindow.SetBackgroundColour("BLACK")
+                
+                eventPanel = wx.Panel(self.fullscreenwindow)
+                eventPanel.SetBackgroundColour(wx.BLACK)
+                eventPanel.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
+                self.fullscreenwindow.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
+                
+                self.fullscreenwindow.ShowFullScreen(True)
+                self.vlcwrap.set_window(self.fullscreenwindow)
+            else:
+                self.TellLVCWrapWindow4Playback()
+                self.fullscreenwindow.Destroy()
+                self.fullscreenwindow = None
+            
+            #restoring state
+            if cur_state == MEDIASTATE_PLAYING:
+                self.vlcwrap.start(cur_time)
+                
+            elif cur_state == MEDIASTATE_PAUSED:
+                self.vlcwrap.start(cur_time)
+                
+                def doPause(cur_time):
+                    self.vlcwrap.pause()
+                    self.vlcwrap.set_media_position(cur_time)
+                wx.CallLater(500, doPause, cur_time)
 
     def Save(self, evt = None):
         # save media content in different directory

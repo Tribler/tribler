@@ -11,6 +11,7 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from list_footer import *
 from list_header import *
@@ -62,7 +63,10 @@ class LocalSearchManager:
     def __init__(self, list):
         self.list = list
         self.torrentsearch_manager = GUIUtility.getInstance().torrentsearch_manager 
-        
+    
+    def expand(self, infohash):
+        self.list.Select(infohash)
+    
     def refresh(self):
         [total_items, nrfiltered, data_files] = self.torrentsearch_manager.getHitsInCategory('libraryMode', sort="name")
         self.list.SetData(data_files)
@@ -75,9 +79,7 @@ class ChannelSearchManager:
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
 
     def refresh(self, search_results = None):
-        [total_items, data] = self.channelsearch_manager.getSubscriptions()
-        favorites = data
-        
+        data = []
         if search_results == None:
             if self.category == 'New':
                 [total_items,data] = self.channelsearch_manager.getNewChannels()
@@ -92,6 +94,7 @@ class ChannelSearchManager:
                 [total_items,data] = self.channelsearch_manager.getAllChannels()
                 self.list.SetTitle('All Channels', total_items)
             elif self.category == 'Favorites':
+                [total_items,data] = self.channelsearch_manager.getSubscriptions()
                 self.list.SetTitle('Your Favorites', total_items)
         else:
             self.list.select_popular = False
@@ -101,17 +104,18 @@ class ChannelSearchManager:
             keywords = ' '.join(self.channelsearch_manager.searchkeywords) 
             self.list.SetTitle('Search results for "%s"'%keywords, total_items)
         
-        self.list.SetData(data, favorites)
+        self.list.SetData(data)
         
     def SetCategory(self, category):
-        if category != self.category:
-            self.category = category
-            self.list.Reset()
-            
-            if category != 'searchresults':
-                self.refresh()
-        else:
-            self.list.DeselectAll()
+        if self.list.ready: 
+            if category != self.category:
+                self.category = category
+                self.list.Reset()
+                
+                if category != 'searchresults':
+                    self.refresh()
+            else:
+                self.list.DeselectAll()
         
     def channelUpdated(self, permid):
         if self.list.ready: 
@@ -121,7 +125,7 @@ class ChannelSearchManager:
                     data = self.channelsearch_manager.getChannel(permid)
                     if data:
                         self.list.RefreshData(permid, data)
-                elif self.category != 'searchresults':
+                elif self.category in ['All', 'New']:
                     #Show new channel, but only if we are not showing search results
                     self.refresh()
             elif self.category != 'searchresults':
@@ -256,19 +260,18 @@ class List(wx.Panel):
         listSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         #left and right borders
-        leftLine = wx.Panel(self, size=(1,-1))
-        leftLine.SetBackgroundColour(self.background)
-        rightLine = wx.Panel(self, size=(1,-1))
-        rightLine.SetBackgroundColour(self.background)
+        self.leftLine = wx.Panel(self, size=(1,-1))
+        self.rightLine = wx.Panel(self, size=(1,-1))
         
-        listSizer.Add(leftLine, 0, wx.EXPAND)
+        listSizer.Add(self.leftLine, 0, wx.EXPAND)
         listSizer.Add(self.list, 1, wx.EXPAND)
-        listSizer.Add(rightLine, 0, wx.EXPAND)
+        listSizer.Add(self.rightLine, 0, wx.EXPAND)
         vSizer.Add(listSizer, 1, wx.EXPAND)
         
         self.footer = self.CreateFooter()
         vSizer.Add(self.footer, 0, wx.EXPAND)
         
+        self.SetBackgroundColour(self.background)
         self.SetSizer(vSizer)
         self.Layout()
         
@@ -289,24 +292,28 @@ class List(wx.Panel):
         return "%.0f MB"%size
     
     def CreateHeader(self):
-        return ListHeader(self, self.background, self.columns)
+        return ListHeader(self, self.columns)
     
     def CreateList(self):
-        return ListBody(self, self.background, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
+        return ListBody(self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange)
     
     def CreateFooter(self):
-        return ListFooter(self, self.background)
+        return ListFooter(self)
     
     def OnSize(self, event):
+        assert self.ready, "List not ready"
         diff = self.header.GetClientSize()[0] - self.list.GetClientSize()[0]
         self.header.SetSpacerRight(diff)
         self.footer.SetSpacerRight(diff)
         event.Skip()
         
     def OnSort(self, column, reverse):
-        self.list.OnSort(column, reverse)
+        assert self.ready, "List not ready"
+        if self.ready:
+            self.list.OnSort(column, reverse)
     
     def Reset(self):
+        assert self.ready, "List not ready"
         self.header.Reset()
         self.list.Reset()
         self.footer.Reset()
@@ -315,7 +322,7 @@ class List(wx.Panel):
         self.Layout()
     
     def OnExpand(self, item):
-        pass
+        assert self.ready, "List not ready"
     
     def OnCollapse(self, item, panel):
         self.OnCollapseInternal(item)
@@ -329,36 +336,63 @@ class List(wx.Panel):
         pass
     
     def SetData(self, data):
-        pass
+        assert self.ready, "List not ready"
+    
     def RefreshData(self, key, data):
-        pass
+        assert self.ready, "List not ready"
         
     def InList(self, key):
+        assert self.ready, "List not ready"
         if self.ready:
             return self.list.InList(key)
     
     def GetItem(self, key):
+        assert self.ready, "List not ready"
         if self.ready:
             return self.list.GetItem(key)
+        
+    def GetItems(self):
+        assert self.ready, "List not ready"
+        if self.ready:
+            return self.list.items
     
     def Focus(self):
+        assert self.ready, "List not ready"
         if self.ready:
             self.list.SetFocus()
-    
+        
     def HasFocus(self):
-        if self.ready:
-            focussed = wx.Window.FindFocus()
-            return focussed == self.list
+        assert self.ready, "List not ready"
+        focussed = wx.Window.FindFocus()
+        return focussed == self.list
+        
+    def SetBackgroundColour(self, colour):
+        wx.Panel.SetBackgroundColour(self, colour)
+        
+        if self.header:
+            self.header.SetBackgroundColour(colour)
+            
+        self.leftLine.SetBackgroundColour(colour)
+        self.list.SetBackgroundColour(colour)
+        self.rightLine.SetBackgroundColour(colour)
+        
+        if self.footer:
+            self.footer.SetBackgroundColour(colour)
         
     def ScrollToEnd(self, scroll_to_end):
+        assert self.ready, "List not ready"
         if self.ready:
             self.list.ScrollToEnd(scroll_to_end)
     
     def DeselectAll(self):
-        self.list.DeselectAll()
+        assert self.ready, "List not ready"
+        if self.ready:
+            self.list.DeselectAll()
         
     def Select(self, key, raise_event = True):
-        self.list.Select(key, raise_event)
+        assert self.ready, "List not ready"
+        if self.ready:
+            self.list.Select(key, raise_event)
         
     def Show(self):
         wx.Panel.Show(self)
@@ -375,7 +409,7 @@ class SearchList(List):
         self.utility = self.guiutility.utility
         
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
-                   {'name':'Size', 'width': '8em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
+                   {'name':'Size', 'width': '8em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
@@ -389,10 +423,10 @@ class SearchList(List):
         return self.manager
     
     def CreateHeader(self):
-        return SearchHeader(self, self.background, self.columns)
+        return SearchHeader(self, self.columns)
 
     def CreateFooter(self):
-        footer = ChannelResultFooter(self, self.background)
+        footer = ChannelResultFooter(self)
         footer.SetEvents(self.OnChannelResults)
         return footer 
     
@@ -428,6 +462,8 @@ class SearchList(List):
         self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)  
     
     def SetData(self, data):
+        List.SetData(self, data)
+        
         if len(data) > 0:
             data = [(file['infohash'],[file['name'], file['length'], 0, 0], file) for file in data]
             return self.list.SetData(data)
@@ -440,6 +476,8 @@ class SearchList(List):
         return 0
     
     def RefreshData(self, key, data):
+        List.RefreshData(self, key, data)
+        
         data = (data['infohash'],[data['name'], data['length'], 0, 0], data)
         self.list.RefreshData(key, data)
         
@@ -454,7 +492,7 @@ class SearchList(List):
         item.button = button
         
         if not item.original_data.get('ds',False):
-            button.Bind(wx.EVT_MOUSE_EVENTS, self.OnDownload)
+            button.Bind(wx.EVT_BUTTON, self.OnDownload)
         else:
             button.Enable(False)
         return button
@@ -471,10 +509,9 @@ class SearchList(List):
         return control
         
     def OnDownload(self, event):
-        if event.LeftUp():
-            item = event.GetEventObject().item
-            self.StartDownload(item.original_data)
-        event.Skip()
+        item = event.GetEventObject().item
+        self.Select(item.original_data['infohash'])
+        self.StartDownload(item.original_data)
         
     def StartDownload(self, torrent):
         if isinstance(self, SelectedChannelList):
@@ -509,7 +546,9 @@ class SearchList(List):
     
 class LibaryList(List):
     def __init__(self):
-        self.guiutility = GUIUtility.getInstance() 
+        self.guiutility = GUIUtility.getInstance()
+        self.user_download_choice = UserDownloadChoice.get_singleton()
+         
         self.utility = self.guiutility.utility
         self.torrent_manager = self.guiutility.torrentsearch_manager
 
@@ -528,13 +567,13 @@ class LibaryList(List):
         return self.manager
     
     def CreateHeader(self):
-        header = ButtonHeader(self, self.background, self.columns)
+        header = ButtonHeader(self, self.columns)
         header.SetTitle('Library')
         header.SetEvents(self.OnResume, self.OnStop, self.OnDelete)
         return header
     
     def CreateFooter(self):
-        footer = TotalFooter(self, self.background, self.columns)
+        footer = TotalFooter(self, self.columns)
         footer.SetTotal(0, 'Totals:')
         return footer
     
@@ -618,6 +657,7 @@ class LibaryList(List):
         else:
             #TODO: start inactive item?
             pass
+        self.user_download_choice.set_download_state(item.original_data["infohash"], "restart")
     
     def OnStop(self, event):
         item = self.list.GetExpandedItem()
@@ -626,6 +666,7 @@ class LibaryList(List):
             ds.get_download().stop()
             
             self.header.SetStates(True, False, True)
+        self.user_download_choice.set_download_state(item.original_data["infohash"], "stop")
             
     def OnDelete(self, event):
         item = self.list.GetExpandedItem()
@@ -669,23 +710,27 @@ class LibaryList(List):
         if self.ready:
             totals = {2:0, 3:0, 4:0}
             
-            nr_finished = 0
+            nr_seeding = 0
             nr_downloading = 0
+            for item in self.list.items.values():
+                item.original_data['ds'] = None #remote all downloadstates
+            
             for ds in dslist:
                 infohash = ds.get_download().get_def().get_infohash()
                 if infohash in self.list.items:
                     item = self.list.items[infohash]
                     item.original_data['ds'] = ds
                 else:
-                    self.GetManager().refresh()
+                    self.GetManager().refresh() #new torrent
                     break
-                    
+            
             for infohash, item in self.list.items.iteritems():
-                status = item.progressPanel.Update()
+                ds = item.original_data['ds']
+                status = item.progressPanel.Update(ds)
                 if status == 1:
                     nr_downloading += 1
                 elif status == 2:
-                    nr_finished += 1
+                    nr_seeding += 1
                 
                 totals[2] = totals[2] + item.data[2][0] + item.data[2][1]
                 totals[3] = totals[3] + item.data[3]
@@ -705,9 +750,29 @@ class LibaryList(List):
                 if item.up.GetLabel() != up:
                     item.up.SetLabel(up)
                     item.up.Refresh()
-            
+                
+                if ds:
+                    item.connections.SetToolTipString("Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(item.data[2][0], item.data[2][1], ds.get_num_con_initiated(), ds.get_num_con_candidates()))
+                    item.down.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(DOWNLOAD)))
+                    item.up.SetToolTipString("Total transferred: %s"%self.utility.size_format(ds.get_total_transferred(UPLOAD)))
+                else:
+                    item.connections.SetToolTipString('')
+                    item.down.SetToolTipString('')
+                    item.down.SetToolTipString('')
+                        
             if len(self.list.items) > 0:
-                self.footer.SetTotal(0, "Totals: " + str(len(self.list.items)) + " items (" +str(nr_finished) + " seeding, "+str(nr_downloading) + " downloading)")
+                totalStr = "Totals: %d items ("%len(self.list.items)
+                
+                if nr_downloading > 0:
+                    totalStr += "%d downloading, "%nr_downloading
+                if nr_seeding > 0:
+                    totalStr += "%d seeding, "%nr_seeding
+                nr_inactive = len(self.list.items) - nr_seeding - nr_downloading
+                if nr_inactive > 0:
+                    totalStr += "%d inactive, "%nr_inactive
+                
+                totalStr = totalStr[:-2] + ")"
+                self.footer.SetTotal(0, totalStr)
             else:
                 self.footer.SetTotal(0, "Totals: 0 items")
             
@@ -715,6 +780,8 @@ class LibaryList(List):
                 self.footer.SetTotal(key, totals[key])
         
     def SetData(self, data):
+        List.SetData(self, data)
+        
         if len(data) > 0:
             data = [(file['infohash'], [file['name'], [0,0], None, None, None], file) for file in data]
             return self.list.SetData(data)
@@ -746,6 +813,7 @@ class ChannelList(List):
         self.favorite = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         self.normal = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
         self.mychannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","mychannel.png"), wx.BITMAP_TYPE_ANY)
+        self.spam = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bug.png"), wx.BITMAP_TYPE_ANY)
         
         self.select_popular = True
         self.my_permid = bin2str(self.guiutility.channelsearch_manager.channelcast_db.my_permid)
@@ -756,6 +824,8 @@ class ChannelList(List):
             return self.mychannel
         if item.original_data[0] in self.favorites:
             return self.favorite
+        if item.original_data[0] in self.spam_channels:
+            return self.spam
         return self.normal
     
     def __format(self, val):
@@ -765,7 +835,7 @@ class ChannelList(List):
         return str(val)
     
     def CreateHeader(self):
-        return SubTitleHeader(self, self.background, self.columns)
+        return SubTitleHeader(self, self.columns)
     
     def CreatePopularity(self, parent, item):
         pop = int(item.data[2])
@@ -794,9 +864,12 @@ class ChannelList(List):
             self.manager = ChannelSearchManager(self) 
         return self.manager
 
-    def SetData(self, data, favorites):
+    def SetData(self, data):
+        List.SetData(self, data)
+        
         if len(data) > 0:
-            self.favorites = [file[0] for file in favorites]
+            self.favorites = [file[0] for file in data if file[6] == 2]
+            self.spam_channels = [file[0] for file in data if file[6] == -1]
             
             data = [(file[0],[file[1], file[2], file[3], file[4]], file) for file in data if file[4] > 0]
             return self.list.SetData(data)
@@ -805,6 +878,8 @@ class ChannelList(List):
         return 0
         
     def RefreshData(self, key, data):
+        List.RefreshData(self, key, data)
+        
         data = (data[0],[data[1], data[2], data[3], data[4]], data)
         self.list.RefreshData(key, data)
         
@@ -837,7 +912,7 @@ class SelectedChannelList(SearchList):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
                    #{'name':'Created', 'width': -1, 'style': wx.ALIGN_RIGHT, 'fmt': self.__format_time},\
                    {'name':'Date Added', 'width': 85, 'fmt': self.format_time, 'defaultSorted': True}, \
-                   {'name':'Size', 'width':  '8em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size}, \
+                   {'name':'Size', 'width':  '8em', 'style': wx.ALIGN_RIGHT, 'fmt': self.format_size, 'sizeCol': True}, \
                    {'type':'method', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateRatio, 'name':'Popularity'}, \
                    #{'name':'Seeders', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
                    #{'name':'Leechers', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'style': wx.ALIGN_RIGHT, 'fmt': self.format}, \
@@ -846,12 +921,16 @@ class SelectedChannelList(SearchList):
         List.__init__(self, columns, LIST_GREY, [7,7], True)
         
     def CreateHeader(self):
-        header = ChannelHeader(self, self.background, self.columns)
-        header.SetEvents(self.OnBack) 
+        header = ChannelHeader(self, self.columns)
+        header.SetEvents(self.OnBack)
         return header
+    
+    def CreateList(self):
+        list = SearchList.CreateList(self)
+        return list
    
     def CreateFooter(self):
-        footer = ChannelFooter(self, self.background)
+        footer = ChannelFooter(self)
         footer.SetEvents(self.OnSpam, self.OnFavorite, self.OnRemoveVote)
         return footer
         
@@ -872,6 +951,8 @@ class SelectedChannelList(SearchList):
         return self.manager
     
     def SetData(self, data):
+        List.SetData(self, data)
+        
         data = [(file['infohash'],[file['name'], file['time_stamp'], file['length'], 0, 0], file) for file in data]
         return self.list.SetData(data)
     
@@ -886,6 +967,8 @@ class SelectedChannelList(SearchList):
         SearchList.SetNrResults(self, None, nr_filtered, nr_channels, keywords)
     
     def RefreshData(self, key, data):
+        List.RefreshData(self, key, data)
+        
         data = (data['infohash'],[data['name'], data['time_stamp'], data['length'], 0, 0], data)
         self.list.RefreshData(key, data)
         
@@ -910,12 +993,14 @@ class SelectedChannelList(SearchList):
         #Request all items from connected peers
         channelcast = BuddyCastFactory.getInstance().channelcast_core
         channelcast.updateAChannel(self.publisher_id)
+        self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
         
     def OnSpam(self, event):
         dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dialog.ShowModal() == wx.ID_YES:
             self.channelsearch_manager.spam(self.publisher_id)
             self.footer.SetStates(True, False)
+            self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
         dialog.Destroy()
     
     def OnBack(self, event):
@@ -946,7 +1031,8 @@ class MyChannelList(List):
         List.__init__(self, columns, LIST_BLUE, [7,7])
       
     def CreateHeader(self):
-        self.myheader = MyChannelHeader(self, self.background, self.columns)
+        self.myheader = MyChannelHeader(self, self.columns)
+        self.myheader.SetBackgroundColour(self.background)
         self.myheader.SetName(self.utility.session.get_nickname())
         return self.myheader
     
@@ -967,6 +1053,8 @@ class MyChannelList(List):
         return self.manager
     
     def SetData(self, data, nr_favorites):
+        List.SetData(self, data)
+        
         data = [(file['infohash'],[file['name'],file['time_stamp']], file) for file in data]
         self.myheader.SetNrTorrents(len(data), nr_favorites)
         
@@ -1003,12 +1091,12 @@ class ChannelCategoriesList(List):
         List.__init__(self, columns, LIST_GREY, [7,7], True)
     
     def CreateHeader(self):
-        title = TitleHeader(self, self.background, self.columns, 1, wx.FONTWEIGHT_NORMAL)
+        title = TitleHeader(self, self.columns, 1, wx.FONTWEIGHT_NORMAL)
         title.SetTitle('Categories')
         return title
     
     def CreateList(self):
-        return FixedListBody(self, self.background, self.columns, self.spacers[0], self.spacers[1], self.singleSelect)    
+        return FixedListBody(self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect)    
     
     def _PostInit(self):
         List._PostInit(self)

@@ -56,7 +56,7 @@ class ListIcon:
         return bmp.GetSubBitmap(bb)
 
 class ListItem(wx.Panel):
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False):
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
         wx.Panel.__init__(self, parent)
          
         self.parent_list = parent_list
@@ -65,11 +65,14 @@ class ListItem(wx.Panel):
         self.original_data = original_data
          
         self.showChange = showChange
+        self.list_selected = list_selected
         
         self.highlightTimer = None
         self.selected = False
         self.expanded = False
         self.SetBackgroundColour(LIST_DESELECTED)
+        self.SetForegroundColour(parent_list.GetForegroundColour())
+        self.SetFont(parent_list.GetFont())
          
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -237,7 +240,7 @@ class ListItem(wx.Panel):
                     
         selected = self.expanded or IsSelected(self)
         if selected:
-            self.BackgroundColor(LIST_SELECTED)
+            self.BackgroundColor(self.list_selected)
         else:
             self.BackgroundColor(LIST_DESELECTED)
     
@@ -291,17 +294,18 @@ class ListItem(wx.Panel):
                 self.expanded = True
             
                 if getattr(self, 'expandedState', False):
-                    self.expandedState.SetBitmap(self.GetIcon(LIST_SELECTED, 1))
+                    self.expandedState.SetBitmap(self.GetIcon(self.list_selected, 1))
         else:
             self.parent_list.OnCollapse(self)
             self.expanded = False
             
             if getattr(self, 'expandedState', False):
-                self.expandedState.SetBitmap(self.GetIcon(LIST_SELECTED, 0))
+                self.expandedState.SetBitmap(self.GetIcon(self.list_selected, 0))
         
     def Expand(self, panel):
         if getattr(panel, 'SetCursor', False):
             panel.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
+            #panel.SetFont(panel.GetDefaultAttributes().font)
         
         panel.Show()
         self.vSizer.Add(panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
@@ -324,20 +328,19 @@ class ListItem(wx.Panel):
             return item
         
 class AbstractListBody():
-    def __init__(self, parent, background, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         self.columns = columns
         self.leftSpacer = leftSpacer
         self.rightSpacer = rightSpacer
         self.parent_list = parent
         self.singleExpanded = singleExpanded
         self.showChange = showChange
+        self.list_selected = LIST_SELECTED
         
-        self.SetBackgroundColour(wx.WHITE)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(hSizer)
         
         self.listpanel = wx.Panel(self)
-        self.listpanel.SetBackgroundColour(background)
         
         #vertical sizer containing all items
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -371,7 +374,13 @@ class AbstractListBody():
         
         #quick filter
         self.filter = ''
+        self.sizefiler = None
         self.filtercolumn = 0
+        self.filtersizecolumn = -1
+        for i in xrange(len(self.columns)):
+            if self.columns[i].get('sizeCol', False):
+                self.filtersizecolumn = i
+                break
         
         #queue lists
         self.done = True
@@ -380,6 +389,18 @@ class AbstractListBody():
         self.data = None
         self.raw_data = None
         self.items = {}
+    
+    def SetBackgroundColour(self, colour):
+        wx.Panel.SetBackgroundColour(self, wx.WHITE)
+        self.listpanel.SetBackgroundColour(colour)
+    
+    def SetStyle(self, font = None, foregroundcolour = None, list_selected = LIST_SELECTED):
+        if font:
+            self.SetFont(font)
+        if foregroundcolour:
+            self.SetForegroundColour(foregroundcolour)
+
+        self.list_selected = list_selected
         
     def OnSort(self, column, reverse):
         self.Scroll(-1, 0)
@@ -407,11 +428,36 @@ class AbstractListBody():
         self.Thaw()
     
     def FilterItems(self, keyword, column = 0):
-        new_filter = keyword.lower()
+        new_filter = keyword.lower().strip()
         if new_filter != self.filter or column != self.filtercolumn:
-            self.filter = new_filter
+            self.sizefiler = None
+            if self.filtersizecolumn > -1 and new_filter.find("size=") > -1:
+                try:
+                    minSize = 0
+                    maxSize = sys.maxint
+                    
+                    start = new_filter.find("size=") + 5
+                    end = new_filter.find(" ", start)
+                    if end == -1:
+                        end = len(new_filter)
+                        
+                    sizeStr = new_filter[start:end]
+                    if sizeStr.find(":") > -1:
+                        sizes = sizeStr.split(":")
+                        if sizes[0] != '':
+                            minSize = int(sizes[0])
+                        if sizes[1] != '':
+                            maxSize = int(sizes[1])
+                    else:
+                        minSize = maxSize = int(sizeStr)
+                        
+                    self.sizefiler = [minSize, maxSize]
+                    new_filter = new_filter[:start - 5] + new_filter[end:]
+                except:
+                    pass
+                
+            self.filter = new_filter.strip()
             self.filtercolumn = column
-            
             try:
                 re.compile(self.filter)
             except: #regex incorrect
@@ -424,7 +470,30 @@ class AbstractListBody():
         return True
         
     def MatchFilter(self, item):
+        if self.sizefiler:
+            size = int(item[1][self.filtersizecolumn]/1048576.0)
+            if size < self.sizefiler[0] or size > self.sizefiler[1]:
+                return False
         return re.search(self.filter, item[1][self.filtercolumn].lower())
+    
+    def __GetFilterMessage(self):
+        if self.filter != '':
+            message = 'Only showing items matching "%s"'%self.filter
+        elif self.sizefiler:
+            message = 'Only showing items'
+        else:
+            message = ''
+            
+        if self.sizefiler:
+            if self.sizefiler[0] == self.sizefiler[1]:
+                message += " equal to %d MB in size."%self.sizefiler[0]
+            elif self.sizefiler[0] == 0:
+                message += " smaller than %d MB in size."%self.sizefiler[1]
+            elif self.sizefiler[1] == sys.maxint:
+                message += " larger than %d MB in size"%self.sizefiler[0]
+            else:
+                message += " between %d and %d MB in size."%(self.sizefiler[0], self.sizefiler[1])
+        return message
     
     def OnExpand(self, item, raise_event = False):
         self.Freeze()
@@ -476,6 +545,7 @@ class AbstractListBody():
         self.Freeze()
         
         self.filter = ''
+        self.sizefiler = None
         self.filtercolumn = 0
         
         self.vSizer.ShowItems(False)
@@ -549,7 +619,7 @@ class AbstractListBody():
                 self.dataTimer.Restart(call_in)
                 
         #apply quickfilter
-        if self.filter != '':
+        if self.filter != '' or self.sizefiler:
             data = filter(self.MatchFilter, data)
             self.parent_list.SetFilteredResults(len(data))
         
@@ -558,17 +628,20 @@ class AbstractListBody():
     def __SetData(self):
         if DEBUG:
             print >> sys.stderr, "ListBody: set data", time()
+        self.Freeze()
         
         #apply quickfilter
-        if self.filter != '':
+        if self.filter != '' or self.sizefiler:
             data = filter(self.MatchFilter, self.raw_data)
+            if len(data) == 0:
+                message = "0" + self.__GetFilterMessage()[12:]
+                self.ShowMessage(message)
         else:
             data = self.raw_data
         
-        self.Freeze()
-        self.vSizer.ShowItems(False)
-        self.vSizer.Clear()
         if data:
+            self.vSizer.ShowItems(False)
+            self.vSizer.Clear()
             if len(self.items) == 0:
                 #new data
                 if len(data) > LIST_ITEM_BATCH_SIZE:
@@ -581,9 +654,8 @@ class AbstractListBody():
                         pass
                 self.highlightSet = set()
             else:
-                #updated data, takes roughly 0.007s for 650+ results
-                cur_keys = set([key for key,_,_ in self.data])
-                self.highlightSet = set([key for key,_,_ in data if key not in cur_keys])
+                cur_keys = set([key for key,_,_ in self.data[:LIST_ITEM_MAX_SIZE]])
+                self.highlightSet = set([key for key,_,_ in data[:LIST_ITEM_MAX_SIZE] if key not in cur_keys])
 
             self.data = data
             self.done = False
@@ -620,15 +692,17 @@ class AbstractListBody():
         
         #Check if we need to clear vSizer
         self.messagePanel.Show(False)
+        self.loadNext.Show(False)
         self.vSizer.Remove(self.messagePanel)
-            
+        
+        message = self.__GetFilterMessage()
         #Add created/cached items
         for key, item_data, original_data in self.data:
             if nr_items_to_add > 0:
                 if key in self.items:
                     item = self.items[key]
                 elif nr_items_to_create > 0:
-                    item = ListItem(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange)
+                    item = ListItem(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
                     self.items[key] = item
                     
                     nr_items_to_create -= 1
@@ -647,15 +721,23 @@ class AbstractListBody():
                                             
                 nr_items_to_add -= 1
             else:
-                self.messageText.SetLabel('Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data)))
+                if message != '':
+                    message = 'Only showing the first %d of %d'%(len(self.vSizer.GetChildren()), len(self.data)) + message[12:] + '\nFurther specify keywords to reduce the number of items, or click the button below.'
+                else:
+                    message = 'Only showing the first %d of %d items in this list.\nSearch within results to reduce the number of items, or click the button below.'%(len(self.vSizer.GetChildren()), len(self.data))
                 self.loadNext.Enable()
                 self.loadNext.Show()
-                self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
-                self.messagePanel.Layout()
-                self.messagePanel.Show()
+                
                 done = True
                 break
-        
+       
+        if message != '':
+            self.messageText.SetLabel(message)
+            
+            self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
+            self.messagePanel.Layout()
+            self.messagePanel.Show()
+            
         self.OnChange()
         self.Thaw()
         self.done = done
@@ -697,10 +779,10 @@ class AbstractListBody():
         for _, item in self.items.iteritems():
             item.Deselect()
  
-class ListBody(scrolled.ScrolledPanel, AbstractListBody):
-    def __init__(self, parent, background, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+class ListBody(AbstractListBody, scrolled.ScrolledPanel):
+    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         scrolled.ScrolledPanel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent, background, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
+        AbstractListBody.__init__(self, parent, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
         
         homeId = wx.NewId()
         endId = wx.NewId()
@@ -712,14 +794,14 @@ class ListBody(scrolled.ScrolledPanel, AbstractListBody):
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
         
         self.SetupScrolling()
-        
+                
     def OnChildFocus(self, event):
         event.Skip()
     
 class FixedListBody(wx.Panel, AbstractListBody):
-    def __init__(self, parent, background, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
+    def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
         wx.Panel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent, background, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
+        AbstractListBody.__init__(self, parent, columns, leftSpacer, rightSpacer, singleExpanded, showChange)
     
     def Scroll(self, x, y):
         pass

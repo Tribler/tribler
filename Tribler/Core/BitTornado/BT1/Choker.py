@@ -192,8 +192,8 @@ class Choker:
             else:
                 if count < maxuploads or not hit:
                     if self.seeding_manager is None or self.seeding_manager.is_conn_eligible(c):
-                        to_unchoke.append(u)
                         if u.is_interested():
+                            to_unchoke.append(u)
                             count += 1
                             if DEBUG and not hit: print  >>sys.stderr,"choker: OPTIMISTIC UNCHOKE",c
                             hit = True

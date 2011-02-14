@@ -240,7 +240,13 @@ class TitForTatRatioBasedSeeding(SeedingPolicy):
     def apply(self, _, download_state, storage):
         # No Bittorrent leeching (minimal ratio of 1.0)
         ul = storage["total_up"] + download_state.get_total_transferred(UPLOAD)
-        dl = storage["total_down"] + download_state.get_total_transferred(DOWNLOAD)
+
+        # 03/01/2011 boudewijn: if the ratio used the number of bytes
+        # that were downloaded up till now, it would result is chokes
+        # when still downloading.  This can severely reduce download
+        # speed aswell.
+        # dl = storage["total_down"] + download_state.get_total_transferred(DOWNLOAD)
+        dl = download_state.get_download().get_def().get_length()
 
         if dl == 0L:
             # no download will result in no-upload to anyone

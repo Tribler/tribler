@@ -1,7 +1,7 @@
 import wx
 import sys
 
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText
+from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel
 from __init__ import LIST_RADIUS
 
 class ListHeaderIcon:
@@ -10,6 +10,7 @@ class ListHeaderIcon:
         if ListHeaderIcon.__single:
             raise RuntimeError, "ListHeaderIcon is singleton"
         ListHeaderIcon.__single = self
+        self.icons = {}
         
     def getInstance(*args, **kw):
         if ListHeaderIcon.__single is None:
@@ -18,9 +19,9 @@ class ListHeaderIcon:
     getInstance = staticmethod(getInstance)
     
     def getBitmaps(self, parent, background):
-        if not getattr(self, 'icons', False):
-            self.icons = self.__createBitmap(parent, background, 'arrow')
-        return self.icons
+        if background not in self.icons:
+            self.icons[background] = self.__createBitmap(parent, background, 'arrow')
+        return self.icons[background]
     
     def __createBitmap(self, parent, background, type, flag=0):
         #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
@@ -49,11 +50,10 @@ class ListHeaderIcon:
         return [down, up, empty]
 
 class ListHeader(wx.Panel):
-    def __init__(self, parent, background, columns, radius = LIST_RADIUS):
+    def __init__(self, parent, columns, radius = LIST_RADIUS):
         wx.Panel.__init__(self, parent)
         self.parent = parent
-        self.background = background
-        self.SetBackgroundColour(background)
+        self.columnHeaders = []
         
         self.columns = columns
         self.radius = radius
@@ -82,7 +82,7 @@ class ListHeader(wx.Panel):
     def AddColumns(self, sizer, parent, columns):
         self.columnHeaders = []
         
-        down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.background)
+        down, _, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
         for i in xrange(len(columns)):
             if columns[i].get('name', '') != '':
                 label = wx.StaticText(parent, i, columns[i]['name'], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
@@ -212,7 +212,7 @@ class ListHeader(wx.Panel):
         self._SetSortedIcon(column, direction)
     
     def _SetSortedIcon(self, newColumn, newDirection):
-        down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.background)
+        down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
         
         if self.sortedColumn != -1 and newColumn != self.sortedColumn:
             prevSort = self.columnHeaders[self.sortedColumn].sortIcon
@@ -237,6 +237,24 @@ class ListHeader(wx.Panel):
             defaultDirection = False
         self._SetSortedIcon(self.defaultSort, defaultDirection)
     
+    def SetBackgroundColour(self, colour):
+        self.backgroundBrush = wx.Brush(colour)
+
+        down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, colour)
+        for i in range(len(self.columnHeaders)):
+            if getattr(self.columnHeaders[i], 'sortIcon', False):
+                bitmap = self.columnHeaders[i].sortIcon
+                
+                if i == self.sortedColumn:
+                    if self.sortedDirection:
+                        bitmap.SetBitmap(up)
+                    else:
+                        bitmap.SetBitmap(down)
+                else:
+                    bitmap.SetBitmap(empty)
+                bitmap.Refresh()
+        return wx.Panel.SetBackgroundColour(self, colour)
+    
     def OnPaint(self, event):
         obj = event.GetEventObject()
         dc = wx.BufferedPaintDC(obj)
@@ -244,7 +262,7 @@ class ListHeader(wx.Panel):
         
         w, h = self.GetClientSize()
         dc.SetPen(wx.TRANSPARENT_PEN)
-        dc.SetBrush(wx.Brush(self.background))
+        dc.SetBrush(self.backgroundBrush)
         
         if self.radius > 0:
             dc.DrawRoundedRectangle(0, 0, w, 2*self.radius, self.radius)
@@ -255,10 +273,10 @@ class ListHeader(wx.Panel):
         event.Skip()
         
 class TitleHeader(ListHeader):
-    def __init__(self, parent, background, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD):
+    def __init__(self, parent, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD):
         self.font_increment = font_increment
         self.fontweight = fontweight
-        ListHeader.__init__(self, parent, background, columns)
+        ListHeader.__init__(self, parent, columns)
     
     def AddColumns(self, sizer, parent, columns):
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -272,6 +290,7 @@ class TitleHeader(ListHeader):
         titlePanel = self.GetTitlePanel(self)
         subtitlePanel = self.GetSubTitlePanel(self)
         righttitlePanel = self.GetRightTitlePanel(self)
+        belowPanel = self.GetBelowPanel(self)
         
         if titlePanel:
             subSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -297,7 +316,15 @@ class TitleHeader(ListHeader):
         else:
             righttitlePanel = subtitlePanel
         
-        vSizer.Add(righttitlePanel, 0, wx.EXPAND|wx.ALL, 3)
+        if belowPanel:
+            subSizer = wx.BoxSizer(wx.VERTICAL)
+            subSizer.Add(righttitlePanel, 0, wx.BOTTOM|wx.EXPAND, 3)
+            subSizer.Add(belowPanel, 0, wx.EXPAND)
+            belowPanel = subSizer
+        else:
+            belowPanel = righttitlePanel
+        
+        vSizer.Add(belowPanel, 0, wx.EXPAND|wx.ALL, 3)
         if len(columns) > 0:
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             ListHeader.AddColumns(self, hSizer, self, columns)
@@ -310,6 +337,8 @@ class TitleHeader(ListHeader):
     def GetSubTitlePanel(self, parent):
         pass
     def GetRightTitlePanel(self, parent):
+        pass
+    def GetBelowPanel(self, parent):
         pass
     
     def SetTitle(self, title):
@@ -375,8 +404,8 @@ class ButtonHeader(TitleHeader):
             self.delete.SetToolTip(None)
         
 class MyChannelHeader(SubTitleHeader):
-    def __init__(self, parent, background, columns):
-        TitleHeader.__init__(self, parent, background, columns)
+    def __init__(self, parent, columns):
+        TitleHeader.__init__(self, parent, columns)
         self.SetTitle('My Channel')
     
     def GetTitlePanel(self, parent):
@@ -433,6 +462,11 @@ class FamilyFilterHeader(TitleHeader):
     def SetFiltered(self, nr):
         self.nrfiltered = nr
         self._SetLabels()
+    
+    def SetBackgroundColour(self, colour):
+        TitleHeader.SetBackgroundColour(self, colour)
+        if getattr(self, 'ffbutton', False):
+            self.ffbutton.SetBackgroundColour(colour)
         
     def toggleFamilyFilter(self, event):
         self.parent.toggleFamilyFilter()
@@ -492,20 +526,50 @@ class SearchHeader(FamilyFilterHeader):
         self.filter.Clear()
 
 class ChannelHeader(SearchHeader):
+    
     def GetRightTitlePanel(self, parent):
         hSizer = SearchHeader.GetRightTitlePanel(self, parent)
         self.back = wx.Button(parent, wx.ID_BACKWARD, "Go back")
         hSizer.Add(self.back, 0, wx.LEFT, 5)
         return hSizer
+
+    def GetBelowPanel(self, parent):
+        self.descriptionPanel = ImageScrollablePanel(parent)
+        self.descriptionPanel.SetBackgroundColour(wx.WHITE)
+        self.description = wx.StaticText(self.descriptionPanel)
+        
+        sizer = wx.BoxSizer()
+        sizer.Add(self.description)
+        self.descriptionPanel.SetSizer(sizer)
+        self.descriptionPanel.Hide()
+        
+        return self.descriptionPanel
         
     def SetEvents(self, back):
         self.back.Bind(wx.EVT_BUTTON, back)
-
+    
+    def SetComment(self, description, font = None, foreground = None, bgImage = None):
+        if description:
+            self.description.SetLabel(description)
+            if font:
+                self.description.SetFont(font)
+            if foreground:
+                self.description.SetForegroundColour(foreground)
+            self.descriptionPanel.Show()
+        else:
+            self.descriptionPanel.Hide()
+        
+        bestSize = self.description.GetSize()[1]
+        self.descriptionPanel.SetMinSize((-1, bestSize))
+        self.descriptionPanel.SetBitmap(bgImage)
+        self.Layout()
+            
 class PlayerHeader(TitleHeader):
     def __init__(self, parent, background, columns, minimize, maximize):
         self.minimize = minimize
         self.maximize = maximize
-        TitleHeader.__init__(self, parent, background, columns)
+        TitleHeader.__init__(self, parent, columns)
+        self.SetBackgroundColour(background)
         self.SetTitle('Player')
         
         self.ShowMinimized(False)

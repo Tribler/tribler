@@ -33,12 +33,12 @@ class btHTTPScon(HTTPSConnection): # attempt to add automatic connection timeout
             pass 
 
 class urlopen:
-    def __init__(self, url):
+    def __init__(self, url, silent = False):
         self.tries = 0
-        self._open(url.strip())
+        self._open(url.strip(), silent)
         self.error_return = None
 
-    def _open(self, url):
+    def _open(self, url, silent = False):
         try:
             self.tries += 1
             if self.tries > MAX_REDIRECTS:
@@ -92,8 +92,9 @@ class urlopen:
                     pass
                 raise IOError, ('http error', status, self.response.reason)
         except Exception, e:
-            print_exc()
-            print >>sys.stderr,"zurllib: URL was", url, e
+            if not silent:
+                print_exc()
+                print >>sys.stderr,"zurllib: URL was", url, e
 
 
     def read(self):

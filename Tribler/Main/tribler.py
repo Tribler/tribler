@@ -24,6 +24,7 @@
 
 # modify the sys.stderr and sys.stdout for safe output
 import Tribler.Debug.console
+from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 
 import os,sys
 import urllib
@@ -45,7 +46,6 @@ except:
     pass
 
 import wx
-import wx.animate
 from wx import xrc
 #import hotshot
 
@@ -175,11 +175,9 @@ class ABCApp(wx.App):
             sys.stderr.write('Build: ' + self.utility.lang.get('build') + '\n')
 
             bm = wx.Bitmap(os.path.join(self.utility.getPath(),'Tribler','Images','splash.jpg'),wx.BITMAP_TYPE_JPEG)
-            #s = wx.MINIMIZE_BOX | wx.MAXIMIZE_BOX | wx.RESIZE_BORDER | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.CLIP_CHILDREN
-            #s = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT
-            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1)
-            self.splash.Show()
-
+            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_NO_TIMEOUT, 1000, None, style = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR)
+            wx.Yield()
+            
             # Arno, 2009-08-18: Don't delay postinit anymore, gives problems on Ubuntu 9.04
             self.PostInit()    
             return True
@@ -192,9 +190,6 @@ class ABCApp(wx.App):
 
     def PostInit(self):
         try:
-            # On Linux: allow painting of splash screen first.
-            wx.Yield()
-            
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
             
             cat = Category.getInstance(self.utility.getPath())
@@ -272,7 +267,6 @@ class ABCApp(wx.App):
             
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
-            
 
             # Arno, 2007-05-03: wxWidgets 2.8.3.0 and earlier have the MIME-type for .bmp 
             # files set to 'image/x-bmp' whereas 'image/bmp' is the official one.
@@ -291,13 +285,10 @@ class ABCApp(wx.App):
                 # wx < 2.7 don't like wx.Image.GetHandlers()
                 print_exc()
             
-            # Must be after ABCLaunchMany is created
-        
             self.frame.Show(True)
-
-            wx.CallAfter(self.startWithRightView)
+            self.splash.Destroy()
             
-            # Delay this so GUI has time to paint
+            wx.CallAfter(self.startWithRightView)
             wx.CallAfter(self.loadSessionCheckpoint)
             
             # start the torrent feed thread
@@ -316,7 +307,6 @@ class ABCApp(wx.App):
             reporter.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
             reporter.create_and_add_event("client-startup-build", [self.utility.lang.get("build")])
             reporter.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
-            
             
             self.ready = True
         except Exception,e:
@@ -485,7 +475,8 @@ class ABCApp(wx.App):
         return(1.0, True)
     
     def sesscb_ntfy_myprefupdates(self, subject,changeType,objectID,*args):
-        wx.CallAfter(self.gui_ntfy_myprefupdates, objectID)
+        if self.ready and self.frame.ready:
+            wx.CallAfter(self.gui_ntfy_myprefupdates, objectID)
     
     def gui_ntfy_myprefupdates(self, infohash):
         manager = self.frame.searchlist.GetManager()
@@ -602,8 +593,9 @@ class ABCApp(wx.App):
                     text = msg
                     
                 #print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
-                    
+                playds.vod_status_msg = text
                 self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
+                
             
             # Pass DownloadStates to libaryView
             try:
@@ -669,13 +661,7 @@ class ABCApp(wx.App):
             print_exc()
 
     def loadSessionCheckpoint(self):
-        # Load all other downloads
-        # TODO: reset all saved DownloadConfig to new default?
-        if self.params[0] != "":
-            # There is something on the cmdline, start all stopped
-            self.utility.session.load_checkpoint(initialdlstatus=DLSTATUS_STOPPED)
-        else:
-            self.utility.session.load_checkpoint()
+        self.utility.session.load_checkpoint()
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
@@ -760,7 +746,11 @@ class ABCApp(wx.App):
         result = dlg.ShowModal()
         print_exc()
         dlg.Destroy()
-
+        
+    def MacOpenFile(self, filename): 
+        print >> sys.stderr, filename
+        target = FileDropTarget(self.frame)
+        target.OnDropFiles(None, None, [filename])
 
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
@@ -945,19 +935,20 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             else:
                 videofile = None
             if tdef.get_bitrate(videofile) is None:
-                msg += ' This video may not play properly because its bitrate is unknown'
+                msg += ' This video may not play properly because its bitrate is unknown.'
         except:
             print_exc()
     else:
         # msg = "Waiting for sufficient download speed... "+intime
         msg = 'Waiting for sufficient download speed... ' + intime
         
+    """
     npeers = ds.get_num_peers()
     if npeers == 1:
         msg = "One person found, receiving %.1f KB/s" % totalspeed[DOWNLOAD]
     else:
         msg = "%d people found, receiving %.1f KB/s" % (npeers, totalspeed[DOWNLOAD])
-
+    """
     if playable:
         if videoplayer_mediastate == MEDIASTATE_PAUSED and not ds.get_status() == DLSTATUS_SEEDING:
             msg = "Buffering... " + msg

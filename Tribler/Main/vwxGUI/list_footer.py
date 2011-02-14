@@ -2,10 +2,9 @@ import wx
 from __init__ import LIST_RADIUS, LIST_HIGHTLIGHT
 
 class ListFooter(wx.Panel):
-    def __init__(self, parent, background):
+    def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        self.originalColor = background
-        self.SetBackgroundColour(background)
+        self.originalColor = None
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
@@ -25,6 +24,9 @@ class ListFooter(wx.Panel):
         pass
 
     def SetBackgroundColour(self, colour):
+        if self.originalColor == None:
+            self.originalColor = colour
+        
         self.background = wx.Brush(colour)
         return wx.Panel.SetBackgroundColour(self, colour)
 
@@ -98,9 +100,9 @@ class TitleFooter(ListFooter):
                 self.scrollBar.sizer.Layout()
         
 class TotalFooter(TitleFooter):
-    def __init__(self, parent,  background, columns):
+    def __init__(self, parent, columns):
         self.columns = columns
-        ListFooter.__init__(self, parent, background)
+        ListFooter.__init__(self, parent)
         
     def GetMidPanel(self, hSizer):
         self.totals = []
