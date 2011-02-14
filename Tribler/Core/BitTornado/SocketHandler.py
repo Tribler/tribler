@@ -607,6 +607,7 @@ class SocketHandler:
     #
     def create_udpsocket(self,port,host):
         server = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 870400)
         server.bind((host,port))
         server.setblocking(0)
         return server
@@ -619,6 +620,9 @@ class SocketHandler:
         self.poll.unregister(serversocket)
         del self.udp_sockets[serversocket.fileno()]
 
+    #
+    # Interface for the InterruptSocket
+    #
     def get_interrupt_socket(self):
         """
         Create a socket to interrupt the poll when the thread needs to

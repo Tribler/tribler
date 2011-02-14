@@ -178,16 +178,22 @@ class RawServer:
 #                            self.exception(e)
                             return
                         except error:
-                            if DEBUG:
+                            if True or DEBUG:
                                 print >> sys.stderr,"rawserver: func: ERROR exception"
                                 print_exc()
                             pass
                         except Exception,e:
-                            if DEBUG:
-                                print >> sys.stderr,"rawserver: func: any exception"
-                                print_exc()
-                            if self.noisy:
-                                self.exception(e)
+                            # boudewijn: someone made a big mistake,
+                            # the code will not function as expected.
+                            # notify someone for *uck sake!  instead
+                            # of silently hiding the problem and
+                            # continuing...
+                            raise
+                            # if DEBUG:
+                            #     print >> sys.stderr,"rawserver: func: any exception"
+                            #     print_exc()
+                            # if self.noisy:
+                            #     self.exception(e)
                     self.sockethandler.close_dead()
                     self.sockethandler.handle_events(events)
                     if self.doneflag.isSet():
@@ -210,10 +216,15 @@ class RawServer:
                     self.failfunc(e)
                     return
                 except Exception,e:
-                    if DEBUG:
-                        print >> sys.stderr,"rawserver: other exception"
-                    print_exc()
-                    self.exception(e)
+                    # boudewijn: someone made a big mistake, the code
+                    # will not function as expected.  notify someone
+                    # for *uck sake!  instead of silently hiding the
+                    # problem and continuing...
+                    raise
+                    # if DEBUG:
+                    #     print >> sys.stderr,"rawserver: other exception"
+                    # print_exc()
+                    # self.exception(e)
                 ## Arno: Don't stop till we drop
                 ##if self.exccount > 10:
                 ##    print >> sys.stderr,"rawserver: stopping because exccount > 10"

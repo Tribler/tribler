@@ -1,0 +1,28 @@
+#!/bin/bash
+
+rm -f dispersy.db
+rm -f dispersy.db-journal
+rm -f dispersy.log
+
+rm -f discovery.db
+rm -f discovery.db-journal
+
+rm -f barter.db
+rm -f barter.db-journal
+
+python Tribler/Main/dispersy.py --script all || exit 1
+
+rm -f dispersy.db
+rm -f dispersy.db-journal
+rm -f dispersy.log
+
+rm -f discovery.db
+rm -f discovery.db-journal
+
+rm -f barter.db
+rm -f barter.db-journal
+
+python -O Tribler/Main/dispersy.py --script all || exit 1
+
+
+

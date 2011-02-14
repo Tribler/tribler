@@ -9,7 +9,6 @@
 import sys
 from struct import pack,unpack
 from time import time
-from sets import Set
 from cStringIO import StringIO
 from threading import currentThread
 from socket import gethostbyname

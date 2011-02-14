@@ -1,5 +1,3 @@
-import sets
-
 # Computes maximal flow in a graph
 # Adam Langley <agl@imperialviolet.org> http://www.imperialviolet.org
 # Creative Commons http://creativecommons.org/licenses/by-sa/2.0/
@@ -67,7 +65,7 @@ class Network(object):
                         labels[source] = ((0, 0), -1)
                 
                         unscanned = {source: 0} # sets.Set ([source])
-                        scanned = sets.Set()
+                        scanned = set()
 
                         while 1:
                                 # Select any node, x, that is labeled and unscanned

@@ -17,7 +17,6 @@ import socket
 import threading
 import base64
 from random import randint, sample
-from sets import Set
 import math
 import re
 
@@ -912,7 +911,7 @@ class PreferenceDBHandler(BasicDBHandler):
                                     (peer_id, MAX_KEYWORDS_STORED)
             return  
         
-        all_terms_unclean = Set([])
+        all_terms_unclean = set()
         for pref in prefs:
             newterms = Set(pref.get('search_terms',[]))
             all_terms_unclean = all_terms_unclean.union(newterms)        
@@ -1073,7 +1072,7 @@ class TorrentDBHandler(BasicDBHandler):
                 'insert_time', 'secret', 'relevance',
                 'source_id', 'category_id', 'status_id',
                 'num_seeders', 'num_leechers', 'comment']
-        self.existed_torrents = Set()
+        self.existed_torrents = set()
 
 
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
@@ -1203,7 +1202,7 @@ class TorrentDBHandler(BasicDBHandler):
         # boudewijn: we are using a Set to ensure that all keywords
         # are unique.  no use having the database layer figuring this
         # out when we can do it now, in memory
-        keywords = Set(split_into_keywords(torrent_name))
+        keywords = set(split_into_keywords(torrent_name))
 
         # search through the .torrent file for potential keywords in
         # the filenames, but only add the 50 most used
@@ -2702,7 +2701,7 @@ class BarterCastDBHandler(BasicDBHandler):
         # Arno, 2008-10-30: I speculate this is to count transfers only once,
         # i.e. the DB stored (a,b) and (b,a) and we want to count just one.
         
-        processed =  Set()
+        processed =  set()
         
 
         value_name = '*'

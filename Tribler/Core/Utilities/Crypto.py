@@ -50,7 +50,7 @@ if USE_M2CRYPTO_SHA:
             d = self.digest()
             return binascii.hexlify(d)
 else:
-    from sha import sha
+    from hashlib import sha1 as sha
 
 
 #

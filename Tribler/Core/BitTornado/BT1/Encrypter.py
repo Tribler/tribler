@@ -9,7 +9,6 @@ from socket import error as socketerror
 from urllib import quote
 from struct import unpack
 from time import time
-from sets import Set
 from traceback import print_exc
 
 from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern
@@ -485,7 +484,7 @@ class Encoder:
         self.config = config
         self.connections = {}
         self.banned = {}
-        self.to_connect = Set()
+        self.to_connect = set()
         self.trackertime = None
         self.paused = False
         if self.config['max_connections'] == 0:

@@ -5,7 +5,7 @@
 
 import sys
 import os
-import md5
+from hashlib import md5
 import zlib
 
 from Tribler.Core.Utilities.Crypto import sha

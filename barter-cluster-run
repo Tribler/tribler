@@ -1,0 +1,35 @@
+#!/bin/bash
+
+if test $# -ne 1; then
+	echo "Usage: $0 <peer-directory>"
+	exit 1
+fi
+
+PEER_DIRECTORY=$1
+
+BRANCH=`pwd`
+
+export PYTHONPATH=${BRANCH}
+
+# remove locks and dispersy related files from previous run
+for i in `ls -d ${PEER_DIRECTORY}/*/`; do
+    rm -f $i/.lock
+    rm $i/*
+done
+
+let STARTING_TIMESTAMP=`date +%s`+25
+
+rm $PEER_DIRECTORY/start_commands
+
+# Clean output of previous runs
+rm -rf $PEER_DIRECTORY/output
+mkdir $PEER_DIRECTORY/output
+
+for i in `seq 10`; do
+	echo "cd ${BRANCH}; ./barter-peer-run $PEER_DIRECTORY starting_timestamp=$STARTING_TIMESTAMP,timestep=1.0" >> $PEER_DIRECTORY/start_commands
+done
+
+/home/mbardac/memory_usage/prun.py $PEER_DIRECTORY/start_commands $PEER_DIRECTORY/output
+
+# pkill -f barter-tracker
+#pkill -f barter-scenario

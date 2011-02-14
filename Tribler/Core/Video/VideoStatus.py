@@ -4,7 +4,6 @@
 import sys
 import time
 from math import ceil
-from sets import Set
 
 from Tribler.Core.simpledefs import *
 
@@ -143,7 +142,7 @@ class VideoStatus:
                 print >>sys.stderr,"vodstatus: set_live_pos: new",newrange
             return self.get_range_diff(oldrange,newrange)
         else:
-            return (Set(),[])
+            return (set(),[])
 
 
     def get_live_startpos(self):
@@ -365,7 +364,7 @@ class VideoStatus:
 
 def range2set(range,maxrange):    
     if range[0] <= range[1]:
-        set = Set(xrange(range[0],range[1]+1))
+        set = set(xrange(range[0],range[1]+1))
     else:
-        set = Set(xrange(range[0],maxrange)) | Set(xrange(0,range[1]+1))
+        set = set(xrange(range[0],maxrange)) | set(xrange(0,range[1]+1))
     return set

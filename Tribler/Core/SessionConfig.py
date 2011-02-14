@@ -1238,7 +1238,6 @@ class SessionConfigInterface:
         @return int 
         """
         return self.sessconfig['channelcast_random_own_subscriptions']
-    
     #
     # Subtitle collection via Andrea Reale's extension
     #
@@ -1277,6 +1276,35 @@ class SessionConfigInterface:
         return self.sessconfig['subtitles_upload_rate']
 
 
+    #
+    # Dispersy
+    #
+    def set_dispersy(self, value):
+        """ Enable or disable Dispersy (default = True).
+        @param value Boolean. 
+        """
+        self.sessconfig['dispersy'] = value
+
+    def get_dispersy(self):
+        """ Returns whether Dispersy is enabled. 
+        @return Boolean.
+        """
+        return self.sessconfig['dispersy']
+
+    def set_dispersy_port(self, value):
+        """ Sets the port that Dispersy uses to receive and send UDP
+        datagrams.
+        @param value int
+        """
+        assert isinstance(value, int)
+        self.sessconfig['dispersy_port'] = value
+
+    def get_dispersy_port(self):
+        """ Returns the port that Dispersy uses to receive and send
+        USP datagrams.
+        @return int
+        """
+        return self.sessconfig['dispersy_port']
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  
     """ Class to configure a Session """

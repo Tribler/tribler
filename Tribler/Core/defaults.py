@@ -98,6 +98,8 @@ sessdefaults['votecast_recent_votes']=25
 sessdefaults['votecast_random_votes']=25
 sessdefaults['channelcast_recent_own_subscriptions'] = 13
 sessdefaults['channelcast_random_own_subscriptions'] = 12 
+sessdefaults['dispersy'] = True
+sessdefaults['dispersy_port'] = 6711
 
 # 14-04-2010, Andrea: settings to limit the results for a remote query in channels
 # if there are too many results the gui got freezed for a considerable amount of

@@ -3,7 +3,6 @@
 
 import sys
 from math import ceil
-from sets import Set
 
 from Tribler.Core.simpledefs import *
 
@@ -419,9 +418,9 @@ class SVCVideoStatus:
 
 def range2set(range,maxrange):    
     if range[0] <= range[1]:
-        set = Set(xrange(range[0],range[1]))
+        set = set(xrange(range[0],range[1]))
     else:
-        set = Set(xrange(range[0],maxrange)) | Set(xrange(0,range[1]))
+        set = set(xrange(range[0],maxrange)) | set(xrange(0,range[1]))
     return set
     
     

@@ -27,6 +27,7 @@ from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 import traceback
+from Tribler.Core.dispersy.dispersy import Dispersy
 
 SPECIAL_VALUE=481
 
@@ -290,6 +291,52 @@ class TriblerLaunchMany(Thread):
             # initialise the first instance
             MagnetHandler.get_instance(self.rawserver)
 
+        self._dispersy = None
+        if config['dispersy']:
+            # Dispersy needs to run on a thread.  We use a RawServer instance.
+            self._dispersy_rawserver = RawServer(self.rawserver.doneflag, 60.0, 300.0, False)
+            self._dispersy_rawserver.add_task(self._start_dispersy)
+            Thread(target=self._dispersy_rawserver.listen_forever, args=(None,)).start()
+
+    def _start_dispersy(self):
+        class DispersySocket(object):
+            def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
+                while True:
+                    if __debug__: print >>sys.stderr, "Dispersy listening at ", port
+                    try:
+                        self.socket = rawserver.create_udpsocket(port, ip)
+                    except socket.error as error:
+                        port += 1
+                        continue
+                    break
+                self.rawserver = rawserver
+                self.rawserver.start_listening_udp(self.socket, self)
+                self.dispersy = dispersy
+
+            def get_address(self):
+                return self.socket.getsockname()
+
+            def data_came_in(self, address, data):
+                self.dispersy.on_incoming_packets([(address, data)])
+
+            def send(self, address, data):
+                try:
+                    self.socket.sendto(data, address)
+                except socket.error, error:
+                    if error[0] == SOCKET_BLOCK_ERRORCODE:
+                        self.sendqueue.append((data, address))
+                        self.rawserver.add_task(self.process_sendqueue, 0.1)
+
+        config = self.session.sessconfig
+        self._dispersy = Dispersy.get_instance(self._dispersy_rawserver, os.path.join(config['state_dir'], u"sqlite"))
+        self._dispersy.socket = DispersySocket(self._dispersy_rawserver, self._dispersy, config['dispersy_port'])
+
+        # # test script for the AllChannel community
+        # from Tribler.Core.dispersy.script import Script
+        # from Tribler.Community.allchannel.script import AllChannelScript
+        # script = Script.get_instance(self._dispersy_rawserver)
+        # script.add("allchannel", AllChannelScript)
+        # script.load("allchannel")
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """
