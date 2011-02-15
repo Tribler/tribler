@@ -1,8 +1,9 @@
-import wx
-import sys
-
+# Written by Niels Zeilemaker
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel
 from __init__ import LIST_RADIUS
+import sys
+import wx
+
 
 class ListHeaderIcon:
     __single = None
@@ -121,7 +122,7 @@ class ListHeader(wx.Panel):
             else:
                 spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT|wx.RIGHT, 3)
                 self.columnHeaders.append(spacer)
-                
+        
                 
         self.scrollBar = sizer.AddSpacer((0,0))
         self.scrollBar.Show(False)
@@ -278,7 +279,7 @@ class TitleHeader(ListHeader):
         self.fontweight = fontweight
         ListHeader.__init__(self, parent, columns)
     
-    def AddColumns(self, sizer, parent, columns):
+    def AddComponents(self, columns):
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
         self.title = wx.StaticText(self)
@@ -316,21 +317,16 @@ class TitleHeader(ListHeader):
         else:
             righttitlePanel = subtitlePanel
         
+        vSizer.Add(righttitlePanel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius + 3)
         if belowPanel:
-            subSizer = wx.BoxSizer(wx.VERTICAL)
-            subSizer.Add(righttitlePanel, 0, wx.BOTTOM|wx.EXPAND, 3)
-            subSizer.Add(belowPanel, 0, wx.EXPAND)
-            belowPanel = subSizer
-        else:
-            belowPanel = righttitlePanel
+            vSizer.Add(belowPanel, 1, wx.EXPAND|wx.TOP, 3)
         
-        vSizer.Add(belowPanel, 0, wx.EXPAND|wx.ALL, 3)
         if len(columns) > 0:
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            ListHeader.AddColumns(self, hSizer, self, columns)
-            vSizer.Add(hSizer, 0, wx.EXPAND)
-        
-        sizer.Add(vSizer, 1, wx.EXPAND)
+            self.AddColumns(hSizer, self, columns)
+            vSizer.AddSpacer((-1, 3))
+            vSizer.Add(hSizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius + 3)
+        self.SetSizer(vSizer)
     
     def GetTitlePanel(self, parent):
         pass
@@ -403,21 +399,13 @@ class ButtonHeader(TitleHeader):
         else:
             self.delete.SetToolTip(None)
         
-class MyChannelHeader(SubTitleHeader):
-    def __init__(self, parent, columns):
-        TitleHeader.__init__(self, parent, columns)
-        self.SetTitle('My Channel')
-    
-    def GetTitlePanel(self, parent):
-        self.name = wx.StaticText(parent)
-        return self.name
+class ManageChannelHeader(SubTitleHeader):
+    def __init__(self, parent):
+        TitleHeader.__init__(self, parent, [])
         
     def SetName(self, name):
-        if name != self.name.GetLabel():
-            self.Freeze()
-            self.name.SetLabel('( %s\'s Channel )'%name)
-            self.name.Refresh()
-            self.Thaw()
+        name = 'Management interface for %s\'s Channel'%name
+        self.SetTitle(name)
         
     def SetNrTorrents(self, nr, nr_favorites):
         subtitle = ''
@@ -526,6 +514,7 @@ class SearchHeader(FamilyFilterHeader):
         self.filter.Clear()
 
 class ChannelHeader(SearchHeader):
+    DESCRIPTION_MAX_HEIGTH = 100
     
     def GetRightTitlePanel(self, parent):
         hSizer = SearchHeader.GetRightTitlePanel(self, parent)
@@ -536,33 +525,72 @@ class ChannelHeader(SearchHeader):
     def GetBelowPanel(self, parent):
         self.descriptionPanel = ImageScrollablePanel(parent)
         self.descriptionPanel.SetBackgroundColour(wx.WHITE)
-        self.description = wx.StaticText(self.descriptionPanel)
         
-        sizer = wx.BoxSizer()
-        sizer.Add(self.description)
+        self.description = wx.StaticText(self.descriptionPanel)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.description, 1, wx.EXPAND|wx.ALL, 3)
+        
         self.descriptionPanel.SetSizer(sizer)
         self.descriptionPanel.Hide()
         
-        return self.descriptionPanel
+        self.descriptionPanel.Bind(wx.EVT_SIZE, lambda event: self.SetDescriptionSpacer())
+        self.descriptionPanel.Bind(wx.EVT_SHOW, lambda event: self.SetDescriptionSpacer())
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(self.descriptionPanel, 1, wx.EXPAND|wx.LEFT, self.radius + 3)
+        self.descriptionSpacer = hSizer.AddSpacer((self.radius + 3, 0))
+        self.descriptionSpacer.Show(False)
+        #self.descriptionSpacer.sizer = hSizer
+        return hSizer
+
+    def Reset(self):
+        SearchHeader.Reset(self)
+        self.SetStyle(None)
+    
+    def SetDescriptionSpacer(self):
+        if self.descriptionPanel.IsShown():
+            dirty = False
+            self.descriptionPanel.SetVirtualSizeHints(-1, -1, maxW = self.descriptionPanel.GetClientSize()[0]) #change to allow for scrollbarwidth
+            self.descriptionPanel.SetupScrolling()
+            
+            bestHeight = self.description.GetVirtualSize()[1] + 6
+            minHeight = min(self.DESCRIPTION_MAX_HEIGTH, bestHeight)
+            if self.descriptionPanel.GetMinSize()[1] != minHeight:
+                self.descriptionPanel.SetMinSize((-1, minHeight))
+                dirty = True
+            
+            if bestHeight < self.DESCRIPTION_MAX_HEIGTH:
+                descriptionSpacer = self.radius + 3
+                if self.descriptionSpacer.GetSize()[0] != descriptionSpacer:
+                    self.descriptionSpacer.SetSpacer((descriptionSpacer, 0))
+                    dirty = True
+                    
+                if not self.descriptionSpacer.IsShown():
+                    self.descriptionSpacer.Show(True)
+                    dirty = True
+                    
+            elif self.descriptionSpacer.IsShown():
+                self.descriptionSpacer.Show(False)
+                dirty = True
+            
+            if dirty:
+                self.Layout()
         
     def SetEvents(self, back):
         self.back.Bind(wx.EVT_BUTTON, back)
     
-    def SetComment(self, description, font = None, foreground = None, bgImage = None):
+    def SetStyle(self, description, font = None, foreground = None, bgImage = None):
         if description:
             self.description.SetLabel(description)
             if font:
                 self.description.SetFont(font)
             if foreground:
                 self.description.SetForegroundColour(foreground)
+            
+            self.descriptionPanel.SetBitmap(bgImage)
             self.descriptionPanel.Show()
         else:
             self.descriptionPanel.Hide()
-        
-        bestSize = self.description.GetSize()[1]
-        self.descriptionPanel.SetMinSize((-1, bestSize))
-        self.descriptionPanel.SetBitmap(bgImage)
-        self.Layout()
             
 class PlayerHeader(TitleHeader):
     def __init__(self, parent, background, columns, minimize, maximize):

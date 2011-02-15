@@ -418,8 +418,6 @@ class TorrentManager:
             
             #show dead torrents in library
             okGood = library or torrent['status'] != 'dead'
-                        
-            #print >>sys.stderr,"FILTER: lib",okLibrary,"cat",okCategory,"good",okGood
             return okLibrary and okCategory and okGood
         
         # 1. Local search puts hits in self.hits
@@ -657,8 +655,7 @@ class TorrentManager:
                         newval['channel_name']=""
                         
                     if 'channel_permid' in value:
-                        newval['neg_votes'] = self.votecastdb.getNegVotes(value['channel_permid'])
-                        newval['subscriptions'] = self.votecastdb.getNumSubscriptions(value['channel_permid'])
+                        newval['neg_votes'], newval['subscriptions'] = self.votecastdb.getPosNegVotes(value['channel_permid'])
                         if newval['subscriptions']-newval['neg_votes']<VOTE_LIMIT:
                             # now, this is SPAM
                             continue
@@ -816,7 +813,6 @@ class ChannelSearchGridManager:
         self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
         self.searchmgr = SearchManager(self.channelcast_db)
         self.rtorrent_handler = RemoteTorrentHandler.getInstance()
-
         
         
     def set_gridmgr(self,gridmgr):
@@ -844,9 +840,12 @@ class ChannelSearchGridManager:
         allchannels = self.channelcast_db.getAllChannels()
         return [len(allchannels), allchannels]
  
-    def getSubscriptions(self):
+    def getMySubscriptions(self):
         subscriptions = self.channelcast_db.getMySubscribedChannels()
         return [len(subscriptions), subscriptions]
+
+    def getSubscribersCount(self, channel_id):
+        return self.channelcast_db.getSubscribersCount(channel_id)
 
     def getPopularChannels(self):
         pchannels = self.channelcast_db.getMostPopularChannels()
@@ -856,43 +855,94 @@ class ChannelSearchGridManager:
         lchannels = self.channelcast_db.getLatestUpdated()
         return [len(lchannels), lchannels]
     
-    def getMyVote(self, publisher_id):
-        return self.votecastdb.getVote(publisher_id, bin2str(self.votecastdb.my_permid))
+    def getMyVote(self, channel_id):
+        return self.votecastdb.getVote(channel_id, bin2str(self.votecastdb.my_permid))
     
-    def getTorrentsFromMyChannel(self):
-        return self.getTorrentsFromPublisherId(bin2str(self.votecastdb.my_permid))
-    
-    def getTorrentFromPublisherId(self, publisher_id, infohash):
-        return self.channelcast_db.getTorrentFromPublisherId(publisher_id, infohash)
-    
-    def getTorrentsFromPublisherId(self, publisher_id, keys = None):
-        hits = self.channelcast_db.getTorrentsFromPublisherId(publisher_id, keys)
-        self.nrFiltered = 0
+    def getTorrentFromChannelId(self, channel_id, infohash, keys):
+        data = self.channelcast_db.getTorrentFromChannelId(channel_id, infohash, keys)
         
+        #Prefer channeltorrents name, but use collectedtorrent as backup
+        data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']
+        return data
+    
+    def getTorrentsFromChannelId(self, channel_id, keys, filterTorrents = True):
+        hits = self.channelcast_db.getTorrentsFromChannelId(channel_id, keys)
+        
+        if filterTorrents:
+            nrFiltered, hits = self._applyFF(hits)
+        else:
+            nrFiltered = 0
+        
+        #Prefer channeltorrents name, but use collectedtorrent as backup
+        for data in hits:
+            data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']   
+        return  len(hits), nrFiltered, hits
+
+    def getTorrentsNotInPlaylist(self, channel_id, keys, filterTorrents = True):
+        hits = self.channelcast_db.getTorrentsNotInPlaylist(channel_id, keys)
+        
+        if filterTorrents:
+            nrFiltered, hits = self._applyFF(hits)
+        else:
+            nrFiltered = 0
+        
+        #Prefer channeltorrents name, but use collectedtorrent as backup
+        for data in hits:
+            data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']   
+        return  len(hits), nrFiltered, hits
+    
+    def getTorrentsFromPlaylist(self, playlist_id, keys, filterTorrents = True):
+        hits = self.channelcast_db.getTorrentsFromPlaylist(playlist_id, keys)
+        
+        if filterTorrents:
+            nrFiltered, hits = self._applyFF(hits)
+        else:
+            nrFiltered = 0
+        
+        #Prefer channeltorrents name, but use collectedtorrent as backup
+        for data in hits:
+            data['name'] = data['ChannelTorrents.name'] or data['CollectedTorrent.name']  
+        return len(hits), nrFiltered, hits
+        
+    def _applyFF(self, hits):
         enabledcattuples = self.category.getCategoryNames()
         enabledcatslow = ["other"]
-        for catname,displayname in enabledcattuples:
+        for catname, displayname in enabledcattuples:
             enabledcatslow.append(catname.lower())
         
-        def torrentFilter(torrent):
+        def catFilter(torrent):
             okCategory = False
             categories = torrent.get("category", ["other"])
             for torcat in categories:
                 if torcat.lower() in enabledcatslow:
                     okCategory = True
                     break
-                
-            if not okCategory:
-                self.nrFiltered += 1
             
+            return okCategory
+            
+        def deadFilter(torrent):
             okGood = torrent['status'] != 'dead'
-            return okGood and okCategory
+            return okGood
         
-        hits = filter(torrentFilter, hits)
-        return  [len(hits), self.nrFiltered, hits]
+        nrFiltered = len(hits)
+        hits = filter(catFilter, hits)
+        nrFiltered -= len(hits)
+        
+        hits = filter(deadFilter, hits)
+        return nrFiltered, hits
     
-    def getChannel(self, publisher_id):
-        return self.channelcast_db.getChannel(publisher_id)
+    def updateTorrent(self, channeltorrent_id, dict_changes):
+        self.channelcast_db.updateTorrent(channeltorrent_id, dict_changes)
+    
+    def getPlaylistsFromChannelId(self, channel_id, keys):
+        hits = self.channelcast_db.getPlaylistsFromChannelId(channel_id, keys)
+        return len(hits), hits
+    
+    def getChannel(self, channel_id):
+        return self.channelcast_db.getChannel(channel_id)
+
+    def updateChannel(self, channel_id, name, description):
+        return self.channelcast_db.updateChannel(channel_id, name, description)
     
     def spam(self, publisher_id):
         self.votecastdb.spam(publisher_id)
@@ -910,6 +960,18 @@ class ChannelSearchGridManager:
     def getNrTorrentsDownloaded(self, publisher_id):
         return self.channelcast_db.getNrTorrentsDownloaded(publisher_id)
     
+    def getPlaylist(self, playlist_id, keys):
+        return self.channelcast_db.getPlaylist(playlist_id, keys)
+    
+    def createPlaylist(self, channel_id, name, description, torrent_ids):
+        return self.channelcast_db.savePlaylist(channel_id, name, description, torrent_ids)
+    
+    def updatePlaylist(self, playlist_id, name, description):
+        return self.channelcast_db.updatePlaylist(playlist_id, name, description)
+    
+    def savePlaylistTorrents(self, playlist_id, torrent_ids):
+        return self.channelcast_db.savePlaylistTorrents(playlist_id, torrent_ids)
+        
     def setSearchKeywords(self, wantkeywords):
         self.searchkeywords = wantkeywords
     
@@ -931,25 +993,17 @@ class ChannelSearchGridManager:
         for i in self.searchkeywords:
             query = query + i + ' '
         
-        #self.hits = self.searchmgr.searchChannels(query)
         hits = self.searchmgr.searchChannels(query)
         
-        # Nitin on Feb 5, 2010: temp fix: converting into string format coz most things in GUI use string forms.
-        # Fields like permid, infohash, torrenthash are in binary format in each record in 'hits' list.
-        votecache = {}
         self.hits = {}
         for hit in hits:
-            if bin2str(hit[0]) not in self.hits:
-                torrents = {}                 
-                torrents[bin2str(hit[2])] = (hit[4], hit[5]) # {infohash:(torrentname, timestamp)}
-                if hit[0] not in votecache:
-                    votecache[hit[0]] = self.votecastdb.getEffectiveVote(bin2str(hit[0]))
-
-                self.hits[bin2str(hit[0])] = [hit[1], votecache[hit[0]], torrents]
-            else:
-                torrents = self.hits[bin2str(hit[0])][2]
-                if bin2str(hit[2]) not in torrents:
-                    torrents[bin2str(hit[2])] = (hit[4], hit[5])
+            if hit[0] not in self.hits:
+                self.hits[hit[0]] = [hit[1], self.votecastdb.getEffectiveVote(hit[0]), {}]
+            
+            #Extend torrent dict for this channel
+            torrents = self.hits[hit[0]][2]
+            if hit[2] not in torrents:
+                torrents[hit[2]] = (hit[3], hit[4])
         return True
         
     def gotRemoteHits(self, permid, kws, answers):
@@ -957,7 +1011,7 @@ class ChannelSearchGridManager:
         #
         # @param permid: the peer who returned the answer to the query
         # @param kws: the keywords of the query that originated the answer
-        # @param answers: the filtered answer returned by the peer (publisher_id, publisher_name, infohash, torrenthash, torrentname, timestamp, key
+        # @param answers: the filtered answers returned by the peer (channel_id, publisher_name, infohash, name, time_stamp)
 
         t1 = time()
         try:
@@ -972,12 +1026,12 @@ class ChannelSearchGridManager:
                 for hit in answers:
                     #Add to self.hits
                     if hit[0] not in self.hits:
-                        self.hits[hit[0]] = [hit[1], self.votecastdb.getEffectiveVote(bin2str(hit[0])), {}]
+                        self.hits[hit[0]] = [hit[1], self.votecastdb.getEffectiveVoteFromPermid(hit[0]), {}]
                     
                     #Extend torrent dict for this channel
                     torrents = self.hits[hit[0]][2]
                     if hit[2] not in torrents:
-                        torrents[hit[2]] = (hit[4], hit[5])
+                        torrents[hit[2]] = (hit[3], hit[4])
                         numResults +=1
                 
                 if numResults > 0:

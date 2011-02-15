@@ -234,7 +234,8 @@ class ABCApp(wx.App):
             self.frame.searchlist = xrc.XRCCTRL(self.frame, "searchlist")
             self.frame.channellist = xrc.XRCCTRL(self.frame, "channellist")
             self.frame.selectedchannellist = xrc.XRCCTRL(self.frame, "selchannellist")
-            self.frame.mychannel = xrc.XRCCTRL(self.frame, "mychannel")
+            self.frame.playlist = xrc.XRCCTRL(self.frame, "playlist")
+            self.frame.managechannel = xrc.XRCCTRL(self.frame, "managechannel")
             self.frame.channelselector = xrc.XRCCTRL(self.frame, "channelSelector")
             self.frame.channelcategories = xrc.XRCCTRL(self.frame, "channelcategories")
             self.frame.channelcategories.SetQuicktip(xrc.XRCCTRL(self.frame, "quicktip"))
@@ -385,6 +386,7 @@ class ABCApp(wx.App):
         s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT,NTFY_UPDATE])
 
         # set port number in GuiUtility
         if DEBUG:
@@ -732,6 +734,16 @@ class ABCApp(wx.App):
         
         manager = self.frame.selectedchannellist.GetManager()
         manager.torrentUpdated(objectID)
+        
+    def sesscb_ntfy_playlistupdates(self, subject, changeType, objectID, *args):
+        if self.ready and self.frame.ready:
+            wx.CallAfter(self.gui_ntfy_playlistupdates,subject,changeType,objectID, *args)
+            
+    def gui_ntfy_playlistupdates(self, subject, changeType, objectID, *args):
+        if changeType == NTFY_INSERT:
+            self.frame.managechannel.playlistCreated(objectID)
+        else:
+            self.frame.managechannel.playlistUpdated(objectID)
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

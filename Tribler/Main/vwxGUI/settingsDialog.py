@@ -1,4 +1,5 @@
 # Written by Richard Gwin
+# Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 import wx
 import wx.xrc as xrc

@@ -1,4 +1,4 @@
-# Written by Richard Gwin
+# Written by Niels Zeilemaker
 import wx.html
 import sys
 import os

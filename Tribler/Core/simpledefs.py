@@ -54,6 +54,7 @@ DESTDIR_COOPDOWNLOAD = 'downloadhelp'
 # subjects
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
+NTFY_PLAYLISTS = 'playlists'
 NTFY_PREFERENCES = 'preferences'
 NTFY_SUPERPEERS = 'superpeers' # use NTFY_PEERS !!
 NTFY_FRIENDS = 'friends'       # use NTFY_PEERS !!

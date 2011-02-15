@@ -1,3 +1,4 @@
+# Written by Niels Zeilemaker
 import wx, os, sys
 
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
@@ -310,10 +311,9 @@ class settingsButton(tribler_topButton):
 class LinkStaticText(wx.Panel):
     def __init__(self, parent, text, icon = "bullet_go.png", font_increment = 0):
         wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
-        self.SetBackgroundColour(parent.GetBackgroundColour())
-        
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+        if parent.GetBackgroundStyle() != wx.BG_STYLE_SYSTEM:
+            self.SetBackgroundColour(parent.GetBackgroundColour())
         self.text = wx.StaticText(self, -1, text)
         font = self.text.GetFont()
         font.SetUnderlined(True)
@@ -347,6 +347,41 @@ class LinkStaticText(wx.Panel):
         self.text.Bind(event, handler, source, id, id2)
         if getattr(self, 'icon', False):
             self.icon.Bind(event, handler, source, id, id2)
+            
+class EditStaticText(wx.Panel):
+    def __init__(self, parent, text, multiLine = False):
+        wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
+        self.original_text = text
+        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.text = wx.StaticText(self, -1, text)
+        vSizer.Add(self.text, 0, wx.EXPAND)
+        
+        if multiLine:
+            self.edit = wx.TextCtrl(self, -1, text, style = wx.TE_MULTILINE)
+        else:    
+            self.edit = wx.TextCtrl(self, -1, text)
+        self.edit.Show(False)
+        vSizer.Add(self.edit, 0, wx.EXPAND)
+        self.SetSizer(vSizer)
+    
+    def ShowEdit(self, show = True):
+        if not show:
+            self.text.SetLabel(self.edit.GetValue())
+        
+        self.text.Show(not show)
+        self.edit.Show(show)
+        self.GetParent().Layout()
+    
+    def IsEditShown(self):
+        return self.edit.IsShown()
+        
+    def IsChanged(self):
+        return self.original_text != self.edit.GetValue()
+
+    def GetChanged(self):
+        if self.IsChanged():
+            return self.edit.GetValue()
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent, style):

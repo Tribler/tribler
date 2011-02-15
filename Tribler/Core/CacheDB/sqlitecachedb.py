@@ -25,7 +25,7 @@ import apsw
 ##Changed from 4 to 5 by andrea for subtitles support
 ##Changed from 5 to 6 by George Milescu for ProxyService  
 ##Changed from 6 to 7 for Raynor's TermFrequency table
-CURRENT_MAIN_DB_VERSION = 7
+CURRENT_MAIN_DB_VERSION = 8
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -1207,6 +1207,124 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             );
             """
             self.execute_write(sql, commit=False)
+            
+        
+        if fromver < 8:
+            sql=\
+            """
+            CREATE TABLE IF NOT EXISTS Channels (
+              id                    integer         PRIMARY KEY ASC,
+              dispersy_id           integer,
+              peer_id               integer,
+              name                  text            NOT NULL,
+              description           text
+            );
+            CREATE TABLE IF NOT EXISTS ChannelTorrents (
+              id                    integer         PRIMARY KEY ASC,
+              dispersy_id           integer,
+              torrent_id            integer         NOT NULL,
+              channel_id            integer         NOT NULL,
+              name                  text,
+              description           text,
+              created               integer,
+              inserted              integer         DEFAULT (strftime('%s','now')),
+              UNIQUE (torrent_id, channel_id),
+              FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS TorChannelIndex ON ChannelTorrents(channel_id);
+            CREATE TABLE IF NOT EXISTS Playlists (
+              id                    integer         PRIMARY KEY ASC,
+              channel_id            integer         NOT NULL,
+              dispersy_id           integer         NOT NULL,
+              playlist_id           integer,
+              name                  text            NOT NULL,
+              description           text,
+              FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS PlayChannelIndex ON Playlists(channel_id);
+            CREATE TABLE IF NOT EXISTS PlaylistTorrents (
+              playlist_id           integer,
+              channeltorrent_id     integer,
+              PRIMARY KEY (playlist_id, channeltorrent_id),
+              FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE,
+              FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS Comments (
+              id                    integer         PRIMARY KEY ASC,
+              dispersy_id           integer         NOT NULL,
+              peer_id               integer         NOT NULL,
+              channel_id            integer         NOT NULL,
+              comment               text            NOT NULL,
+              reply_to_id           integer,
+              FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS ComChannelIndex ON Comments(channel_id);
+            CREATE TABLE IF NOT EXISTS Media(
+              id                    integer         PRIMARY KEY ASC,
+              dispersy_id           integer         NOT NULL,
+              channel_id            integer         NOT NULL,
+              type                  integer         NOT NULL,
+              data                  blob            NOT NULL,
+              FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS MeChannelIndex ON Media(channel_id);
+            CREATE TABLE IF NOT EXISTS Warnings (
+              id                    integer         PRIMARY KEY ASC,
+              dispersy_id           integer         NOT NULL,
+              channel_id            integer         NOT NULL,
+              peer_id               integer         NOT NULL,
+              by_peer_id            integer         NOT NULL,
+              severity              integer         NOT NULL DEFAULT (1),
+              message               text            NOT NULL,
+              cause                 integer         NOT NULL,
+              time_stamp            integer         NOT NULL,
+              FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS WaChannelIndex ON Warnings(channel_id);
+            CREATE TABLE IF NOT EXISTS CommentPlaylist (
+              comment_id            integer,
+              playlist_id           integer,
+              PRIMARY KEY (comment_id,playlist_id),
+              FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE
+              FOREIGN KEY (comment_id) REFERENCES Comments(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS CoPlaylistIndex ON CommentPlaylist(playlist_id);
+            CREATE TABLE IF NOT EXISTS CommentTorrent (
+              comment_id            integer,
+              channeltorrent_id     integer,
+              PRIMARY KEY (comment_id, channeltorrent_id),
+              FOREIGN KEY (comment_id) REFERENCES Comments(id) ON DELETE CASCADE
+              FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS CoTorrentIndex ON CommentTorrent(channeltorrent_id);
+            CREATE TABLE IF NOT EXISTS MediaTorrent (
+              media_id              integer,
+              channeltorrent_id     integer,
+              PRIMARY KEY (media_id, channeltorrent_id),
+              FOREIGN KEY (media_id) REFERENCES Media(id) ON DELETE CASCADE
+              FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS MeTorrentIndex ON MediaTorrent(channeltorrent_id);
+            CREATE TABLE IF NOT EXISTS MediaPlaylist (
+              media_id              integer,
+              playlist_id           integer,
+              PRIMARY KEY (media_id,playlist_id),
+              FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE
+              FOREIGN KEY (media_id) REFERENCES Media(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS MePlaylistIndex ON MediaPlaylist(playlist_id);
+            CREATE TABLE ChannelVotes (
+              channel_id            integer,
+              voter_id              integer,
+              dispersy_id           integer,              
+              vote                  integer,
+              time_stamp            integer,
+              PRIMARY KEY (channel_id, voter_id)
+            );
+            CREATE INDEX IF NOT EXISTS ChaVotIndex ON ChannelVotes(channel_id);
+            CREATE INDEX IF NOT EXISTS VotChaIndex ON ChannelVotes(voter_id);
+            """
+            self.execute_write(sql, commit=False)
 
         # updating version stepwise so if this works, we store it
         # regardless of later, potentially failing updates
@@ -1339,7 +1457,60 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             if DEBUG:
                 dbg_ts2 = time.time()
                 print >>sys.stderr, 'DB Upgradation: extracting and inserting terms took %ss' % (dbg_ts2-dbg_ts1)
+        
+        if fromver < 8:
+            #start converting channelcastdb to new format
+            select_channels = "SELECT peer_id, publisher_id, max(time_stamp) FROM ChannelCast, Peer WHERE publisher_id = permid GROUP BY publisher_id"
+            select_channel_name = "SELECT publisher_name FROM ChannelCast WHERE publisher_id = ? AND time_stamp = ?"
+            select_channel_contents = "SELECT torrent_id, time_stamp FROM ChannelCast, CollectedTorrent WHERE publisher_id = ? AND ChannelCast.infohash = CollectedTorrent.infohash"
             
+            insert_channel = "INSERT INTO Channels (dispersy_id, peer_id, name, description) VALUES (?,?,?,?)"
+            select_new_channel_id = "SELECT id FROM Channels WHERE peer_id = ?"
+            insert_channel_contents = "INSERT INTO ChannelTorrents (dispersy_id, torrent_id, channel_id, created, inserted) VALUES (?,?,?,?,?)"
+            
+            channels = self.fetchall(select_channels)
+            for peer_id, publisher_id, latest_update in channels:
+                channel_name = self.fetchone(select_channel_name, (publisher_id, latest_update))
+                
+                #create channel
+                self.execute_write(insert_channel, (-1, peer_id, channel_name, ''))
+                channel_id = self.fetchone(select_new_channel_id, (peer_id, ))
+                
+                #insert torrents
+                torrents = self.fetchall(select_channel_contents, (publisher_id, ))
+                to_be_inserted = []
+                for torrent_id, time_stamp in torrents:
+                    to_be_inserted.append((-1, torrent_id, channel_id, time_stamp, time_stamp))
+                self.executemany(insert_channel_contents, to_be_inserted)
+            
+            drop_channelcast = "DROP TABLE ChannelCast"
+            #self.execute_write(drop_channelcast)
+            
+            #start converting votecastdb to new format
+            select_votes = "SELECT mod_id, voter_id, vote, time_stamp FROM VoteCast"
+            select_channel_id = "SELECT id FROM Channels, Peer Where Channels.peer_id = Peer.peer_id AND permid = ?"
+            select_peerid = "SELECT peer_id FROM Peer WHERE permid = ?"
+            
+            insert_vote = "INSERT INTO ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
+            to_be_inserted = []
+            
+            channeldict = {}
+            peerdict = {}
+            votes = self.fetchall(select_votes)
+            for mod_id, voter_id, vote, time_stamp in votes:
+                if not mod_id in channeldict:
+                    channeldict[mod_id] = self.fetchone(select_channel_id, (mod_id,))
+                    
+                if not voter_id in peerdict:
+                    peerdict[voter_id] = self.fetchone(select_peerid, (voter_id,))
+                
+                #do we know peer and channel?
+                if channeldict[mod_id] and peerdict[voter_id]:
+                    to_be_inserted.append((channeldict[mod_id], peerdict[voter_id], -1, vote, time_stamp))
+            
+            self.executemany(insert_vote, to_be_inserted)
+            drop_votecast = "DROP TABLE VoteCast"
+            #self.execute_write(drop_votecast)
 
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern

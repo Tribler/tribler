@@ -50,7 +50,9 @@ class GUIUtility:
         self.videoplayer = VideoPlayer.getInstance()
 
         # current GUI page
-        self.guiPage = None
+        self.guiPage = 'home'
+        # previous pages
+        self.oldpage = []
 
         # port number
         self.port_number = None
@@ -103,15 +105,18 @@ class GUIUtility:
             dialog.Destroy()
         
         elif page != self.guiPage:
-            self.oldpage = self.guiPage
+            self.oldpage.append(self.guiPage)
+            if len(self.oldpage) > 3:
+                self.oldpage.pop(0)
+                
             self.frame.Freeze()
             
             #show channel selector on these pages
-            if page in ['channels','selectedchannel','mychannel']:
-                if self.oldpage not in ['channels','selectedchannel','mychannel']:
+            if page in ['channels','selectedchannel','mychannel', 'playlist', 'managechannel']:
+                if self.guiPage not in ['channels','selectedchannel','mychannel', 'playlist', 'managechannel']:
                     self.frame.channelselector.Show()
             else:
-                self.frame.channelselector.Hide()
+                self.frame.channelselector.Show(False)
             
             if page == 'search_results':
                 #Show animation
@@ -123,43 +128,54 @@ class GUIUtility:
             else:
                 #Stop animation
                 self.frame.top_bg.ag.Stop() # only calling Hide() on mac isnt sufficient 
-                self.frame.top_bg.ag.Hide()
+                self.frame.top_bg.ag.Show(False)
                 
                 if sys.platform == 'win32':
                     self.frame.top_bg.Layout()
                 
-                #Hide list
-                self.frame.searchlist.Hide()
+                if self.guiPage == 'search_results':
+                    #Hide list
+                    self.frame.searchlist.Show(False)
             
             if page == 'channels':
                 selectedcat = self.frame.channelcategories.GetSelectedCategory()
-                if selectedcat in ['Popular','New','Favorites','All', 'Updated'] or self.oldpage == 'mychannel':
+                if selectedcat in ['Popular','New','Favorites','All', 'Updated'] or self.oldpage[:-1] == 'mychannel':
                     self.frame.channellist.Show()
                     self.frame.channelcategories.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as favorite.')
-                elif selectedcat == 'My Channel' and self.oldpage != 'mychannel':
+                elif selectedcat == 'My Channel' and self.guiPage != 'mychannel':
                     page = 'mychannel'
                 else:
                     page = 'selectedchannel'
-            else:
-                self.frame.channellist.Hide()
+            elif self.guiPage == 'channels':
+                self.frame.channellist.Show(False)
             
             if page == 'mychannel':
-                #Reload content
-                self.frame.mychannel.Reset()
-                self.frame.mychannel.GetManager().refresh()
                 self.frame.channelcategories.Quicktip('This is your channel, other Tribler users can find this channel by searching for your username')
                 
                 #Show list
-                self.frame.mychannel.Show()
-            else:
-                self.frame.mychannel.Hide()
+                self.frame.managechannel.SetChannelId(self.channelsearch_manager.channelcast_db.channel_id)
+                self.frame.managechannel.Show()
+            elif self.guiPage == 'mychannel':
+                self.frame.managechannel.Show(False)
+                
+            if page == 'managechannel':
+                self.frame.managechannel.Show()
+            elif self.guiPage == 'managechannel':
+                self.frame.managechannel.Show(False)
             
             if page == 'selectedchannel':
                 self.frame.selectedchannellist.Show()
                 self.frame.channelcategories.DeselectAll()
-            else:
-                self.frame.selectedchannellist.Hide()
-                self.frame.selectedchannellist.Reset()
+            elif self.guiPage == 'selectedchannel':
+                self.frame.selectedchannellist.Show(False)
+                
+                if page != 'playlist':
+                    self.frame.selectedchannellist.Reset()
+            
+            if page == 'playlist':
+                self.frame.playlist.Show()
+            elif self.guiPage == 'playlist':
+                self.frame.playlist.Show(False)
                 
             if page == 'my_files':
                 #Reload content
@@ -171,24 +187,24 @@ class GUIUtility:
                 
                 #Show list
                 self.frame.librarylist.Show()
-            else:
+            elif self.guiPage == 'my_files':
                 #Hide list
-                self.frame.librarylist.Hide()
+                self.frame.librarylist.Show(False)
             
             if page == 'home':
                 self.frame.home.Show()
-            else:
-                self.frame.home.Hide()
+            elif self.guiPage == 'home':
+                self.frame.home.Show(False)
             
             if page == 'stats':
                 self.frame.stats.Show()
-            else:
-                self.frame.stats.Hide()
+            elif self.guiPage == 'stats':
+                self.frame.stats.Show(False)
             
             #show player on these pages
             if not self.useExternalVideo:
-                if page in ['my_files', 'mychannel', 'selectedchannel', 'channels', 'search_results']:
-                    if self.oldpage not in ['my_files', 'mychannel', 'selectedchannel', 'channels', 'search_results']:
+                if page in ['my_files', 'mychannel', 'selectedchannel', 'channels', 'search_results', 'playlist', 'managechannel']:
+                    if self.guiPage not in ['my_files', 'mychannel', 'selectedchannel', 'channels', 'search_results', 'playlist', 'managechannel']:
                         self.ShowPlayer(True)
                 else:
                     self.ShowPlayer(False)
@@ -205,26 +221,31 @@ class GUIUtility:
                 self.frame.channellist.Focus()
             elif page == 'selectedchannel':
                 self.frame.selectedchannellist.Focus()
-            elif page == 'mychannel':
-                self.frame.mychannel.Focus()
             elif page =='my_files':
                 self.frame.librarylist.Focus()
                 
-    def GoBack(self):
-        if self.oldpage == 'channels':
+    def GoBack(self, scrollTo = None):
+        topage = self.oldpage.pop()
+        
+        if topage == 'channels':
             category = self.frame.channellist.GetManager().category
             categories = ['Popular','New','Favorites','All','My Channel', 'Updated']
             if category in categories:
                 category = categories.index(category) + 1
                 self.frame.channelcategories.Select(category, False)
         
-        if self.oldpage == 'search_results':
+        if topage == 'search_results':
             self.frame.top_bg.selectTab('results')
-        elif self.oldpage in ['channels', 'selectedchannel', 'mychannel']:
+        elif topage in ['channels', 'selectedchannel', 'mychannel']:
             self.frame.top_bg.selectTab('channels')
         else:
-            self.frame.top_bg.selectTab(self.oldpage)
-        self.ShowPage(self.oldpage)
+            self.frame.top_bg.selectTab(topage)
+        
+        self.ShowPage(topage)
+        self.oldpage.pop() #remove curpage from history
+        
+        if scrollTo:
+            self.ScrollTo(scrollTo)
         
     def dosearch(self, input = None):
         if input == None:
@@ -301,39 +322,35 @@ class GUIUtility:
             self.ShowPage('channels')
             self.frame.channellist.Thaw()
     
-    def showChannel(self, channelname, channel_permid):
-        self.frame.selectedchannellist.Reset()
-        self.frame.selectedchannellist.SetTitle(channelname)
-        
+    def showChannel(self, channelname, channel_id):
         description_list = ["Marking a channel as your favorite will help to distribute it.", "If many Tribler users mark a channel as their favorite, it is considered popular."]
         self.frame.channelcategories.Quicktip(random.choice(description_list))
         
         self.ShowPage('selectedchannel')
         
         manager = self.frame.selectedchannellist.GetManager()
-        manager.refresh(channel_permid)
+        manager.refresh(channel_id)
     
     def showChannelResults(self, data_channel):
         self.frame.top_bg.selectTab('channels')
         self.frame.channelcategories.DeselectAll()
         
         data = []
-        for permid in data_channel.keys():
-            channel = self.channelsearch_manager.getChannel(permid)
+        for channel_id, channel_data in data_channel.iteritems():
+            channel = self.channelsearch_manager.getChannel(channel_id)
             if channel:
                 data.append(channel)
                 
             else: #channel not found in local database (no torrents downloaded yet)
-                channel_name = data_channel[permid][0]
-                subscribers = data_channel[permid][1]
-                torrents = len(data_channel[permid][2])
+                channel_name = channel_data[0]
+                subscribers = channel_data[1]
+                nrtorrents = len(channel_data[2])
                 
-                if torrents > 0:
-                    timestamps = [value[1] for torrent, value in data_channel[permid][2].iteritems()]
-                    max_timestamp = max(timestamps)
+                if nrtorrents > 0:
+                    max_timestamp = max([value[1] for _, value in channel_data[2].iteritems()])
                 else:
                     max_timestamp = -1
-                data.append([permid, channel_name, max_timestamp, subscribers, torrents])
+                data.append([channel_id, channel_name, max_timestamp, subscribers, nrtorrents, 0, 0])
             
         def subscribe_latestupdate_sort(b, a):
             val = cmp(a[4], b[4])
@@ -347,13 +364,26 @@ class GUIUtility:
         manager.refresh(data)
         
         self.ShowPage('channels')
+    
+    def showManageChannel(self, channel_id):
+        self.frame.managechannel.SetChannelId(channel_id)
+        self.ShowPage('managechannel')
+    
+    def showPlaylist(self, data):
+        self.frame.playlist.Set(data)
+        self.ShowPage('playlist')
         
     def OnList(self, goto_end, event = None):
-        lists = {'channels': self.frame.channellist,'selectedchannel': self.frame.selectedchannellist ,'mychannel': self.frame.mychannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
+        lists = {'channels': self.frame.channellist,'selectedchannel': self.frame.selectedchannellist ,'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
         if self.guiPage in lists and lists[self.guiPage].HasFocus():
             lists[self.guiPage].ScrollToEnd(goto_end)
         elif event:
             event.Skip()
+    
+    def ScrollTo(self, id):
+        lists = {'channels': self.frame.channellist,'selectedchannel': self.frame.selectedchannellist ,'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
+        if self.guiPage in lists:
+            lists[self.guiPage].ScrollToId(id)
     
     def CheckSearch(self, wantkeywords):
         curkeywords, hits, filtered = self.torrentsearch_manager.getSearchKeywords('filesMode')
@@ -400,7 +430,7 @@ class GUIUtility:
         #Code that calls GUI
         # 1. Grid needs to be updated with incoming hits, from each remote peer
         # 2. Sorting should also be done by that function
-        wx.CallAfter(self.channelsearch_manager.gotRemoteHits,permid,kws,listOfAdditions)
+        wx.CallAfter(self.channelsearch_manager.gotRemoteHits, permid, kws, listOfAdditions)
 
     #TODO: should be somewhere else
     def set_port_number(self, port_number):

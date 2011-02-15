@@ -1,16 +1,21 @@
+# Written by Niels Zeilemaker
 import wx
 from __init__ import LIST_RADIUS, LIST_HIGHTLIGHT
 
 class ListFooter(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent, radius = LIST_RADIUS):
         wx.Panel.__init__(self, parent)
         self.originalColor = None
+        self.radius = radius
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        
-        hSizer.AddSpacer((LIST_RADIUS, 10))
+        if radius > 0:
+            hSizer.AddSpacer((radius, 10))
+            
         self.GetMidPanel(hSizer)
-        hSizer.AddSpacer((LIST_RADIUS, 10))
+        
+        if radius > 0:
+            hSizer.AddSpacer((radius, 10))
         
         self.SetSizer(hSizer)
         
@@ -52,10 +57,10 @@ class ListFooter(wx.Panel):
         dc.SetPen(wx.TRANSPARENT_PEN)
         dc.SetBrush(self.background)
         if h < 2*LIST_RADIUS:
-            dc.DrawRoundedRectangle(0, h-2*LIST_RADIUS, w, 2*LIST_RADIUS, LIST_RADIUS)
+            dc.DrawRoundedRectangle(0, h-2*self.radius, w, 2*self.radius, self.radius)
         else:
-            dc.DrawRoundedRectangle(0, 0, w, h, LIST_RADIUS)
-        dc.DrawRectangle(0, 0, w, h-LIST_RADIUS)
+            dc.DrawRoundedRectangle(0, 0, w, h, self.radius)
+        dc.DrawRectangle(0, 0, w, h-self.radius)
     
     def OnResize(self, event):
         self.Refresh()
@@ -189,6 +194,10 @@ class ChannelResultFooter(ListFooter):
         
 class ChannelFooter(ListFooter):
     def GetMidPanel(self, hSizer):
+        self.manage = wx.Button(self, -1, 'Edit this Channel')
+        self.manage.Show(False)
+        hSizer.Add(self.manage, 0, wx.TOP|wx.BOTTOM|wx.RIGHT, 3)
+        
         self.message = wx.StaticText(self)
         self.message.SetMinSize((1,-1))
         font = self.message.GetFont()
@@ -202,14 +211,17 @@ class ChannelFooter(ListFooter):
         hSizer.Add(self.spam, 0, wx.TOP|wx.BOTTOM, 3)
         hSizer.Add(self.favorite, 0, wx.TOP|wx.BOTTOM, 3)
         
-    def SetEvents(self, spam, favorite, remove):
+    def SetEvents(self, spam, favorite, remove, manage):
         self.spam_eventhandler = spam
         self.favorite_eventhandler = favorite
         self.remove_eventhandler = remove
+        self.manage.Bind(wx.EVT_BUTTON, manage)
     
-    def SetStates(self, spam, favorite):
+    def SetStates(self, spam, favorite, manage = None):
         self.Freeze()
-        self.spam.Bind(wx.EVT_BUTTON, None)
+        if manage != None:
+            self.manage.Show(manage)
+
         if spam:
             self.spam.SetLabel('This is not Spam')
             self.spam.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
@@ -217,7 +229,6 @@ class ChannelFooter(ListFooter):
             self.spam.SetLabel('Mark as Spam')
             self.spam.Bind(wx.EVT_BUTTON, self.spam_eventhandler)
             
-        self.favorite.Bind(wx.EVT_BUTTON, None)
         if favorite:
             self.favorite.SetLabel('Remove Favorite')
             self.favorite.Bind(wx.EVT_BUTTON, self.remove_eventhandler)
@@ -237,3 +248,34 @@ class ChannelFooter(ListFooter):
     
     def GetStates(self):
         return (self.spam.GetLabel() == 'This is not Spam', self.favorite.GetLabel() == 'Remove Favorite')
+
+class ManageChannelFilesFooter(ListFooter):
+    def __init__(self, parent, removeall, removesel):
+        ListFooter.__init__(self, parent, 0)
+        self.removeall.Bind(wx.EVT_BUTTON, removeall)
+        self.removesel.Bind(wx.EVT_BUTTON, removesel)
+        
+    def GetMidPanel(self, hSizer):
+        hSizer.AddStretchSpacer()
+        
+        self.removesel = wx.Button(self, -1, "Remove Selected")
+        self.removeall = wx.Button(self, -1, "Remove All")
+        
+        hSizer.Add(self.removesel, 0, wx.TOP|wx.BOTTOM, 3)
+        hSizer.Add(self.removeall, 0, wx.TOP|wx.BOTTOM, 3)
+        
+class ManageChannelPlaylistFooter(ListFooter):
+    def __init__(self, parent, createnew):
+        ListFooter.__init__(self, parent, 0)
+        self.addnew.Bind(wx.EVT_BUTTON, createnew)
+    
+    def GetMidPanel(self, hSizer):
+        hSizer.AddStretchSpacer()
+        
+        self.addnew = wx.Button(self, -1, "Create New")
+        self.removesel = wx.Button(self, -1, "Remove Selected")
+        self.removeall = wx.Button(self, -1, "Remove All")
+        
+        hSizer.Add(self.addnew, 0, wx.TOP|wx.BOTTOM, 3)
+        hSizer.Add(self.removesel, 0, wx.TOP|wx.BOTTOM, 3)
+        hSizer.Add(self.removeall, 0, wx.TOP|wx.BOTTOM, 3)

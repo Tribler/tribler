@@ -1,3 +1,4 @@
+# Written by Niels Zeilemaker
 import wx
 import sys
 import os
@@ -58,10 +59,10 @@ class Stats(wx.Panel):
         # the Create step is done by XRC. 
         self.PostCreate(pre)
     
-    def Show(self):
+    def Show(self, show = True):
         if not self.ready:
             self._PostInit()
-        wx.Panel.Show(self)
+        wx.Panel.Show(self, show)
     
     def _PostInit(self):
         self.SetBackgroundColour(wx.WHITE)

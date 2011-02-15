@@ -17,6 +17,7 @@ from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRTEENTH
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_VOTECAST, NTFY_UPDATE
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler
 
 DEBUG_UI = False
 DEBUG = False    #Default debug
@@ -39,13 +40,14 @@ class VoteCastCore:
         self.data_handler = data_handler
         self.dnsindb = dnsindb
         self.log = log
-        self.secure_overlay = secure_overlay
+        
+        self.peerdb = PeerDBHandler.getInstance()
         self.votecastdb = VoteCastDBHandler.getInstance()
+        
         self.my_permid = self.votecastdb.my_permid
         self.session = session
         self.max_length = SINGLE_VOTECAST_LENGTH * (session.get_votecast_random_votes() + session.get_votecast_recent_votes())       
 
-        self.network_delay = 30
         #Reference to buddycast-core, set by the buddycast-core (as it is created by the
         #buddycast-factory after calling this constructor).
         self.buddycast_core = None
@@ -60,41 +62,12 @@ class VoteCastCore:
     def initialized(self):
         return self.buddycast_core is not None
 
-    ################################
-    def createAndSendVoteCastMessage(self, target_permid, selversion):
-        """ Creates and sends a VOTECAST message """
-        # Arno, 2010-02-05: v12 uses a different on-the-wire format, ignore those.
-        if selversion < OLPROTO_VER_THIRTEENTH:
-            if DEBUG:
-                print >> sys.stderr, "votecast: Do not send to lower version peer:", selversion
-            return
-                
-        votecast_data = self.createVoteCastMessage()
-        if len(votecast_data) == 0:
-            if DEBUG:
-                print >>sys.stderr, "votecast: No votes there.. hence we do not send"            
-            return
-        
-        votecast_msg = bencode(votecast_data)
-         
-        if self.log:
-            dns = self.dnsindb(target_permid)
-            if dns:
-                ip,port = dns
-                MSG_ID = "VOTECAST"
-                # msg = voteCastReplyMsgToString(votecast_data)
-                self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID)
-        
-        if DEBUG: print >> sys.stderr, "votecast: Sending votecastmsg",voteCastMsgToString(votecast_data)
-#        data = VOTECAST + votecast_msg
-#        self.secure_overlay.send(target_permid, data, self.voteCastSendCallback)
-        self.secure_overlay.send(target_permid, VOTECAST + votecast_msg, self.voteCastSendCallback)           
-        
 
     ################################
     def createVoteCastMessage(self):
         """ Create a VOTECAST message """
-
+        #TODO: REPLACE WITH DISPERSY
+        """
         if DEBUG: print >> sys.stderr, "votecast: Creating votecastmsg..."        
         
         NO_RANDOM_VOTES = self.session.get_votecast_random_votes()
@@ -110,17 +83,8 @@ class VoteCastCore:
             data[publisher_id] = {'vote':record[1], 'time_stamp':record[2]}
         if DEBUG: print >>sys.stderr, "votecast to be sent:", repr(data)
         return data
-
+        """
     
-    ################################
-    def voteCastSendCallback(self, exc, target_permid, other=0):
-        if DEBUG:
-            if exc is None:
-                print >> sys.stderr,"votecast: *** msg was sent successfully to peer", show_permid_short(target_permid)
-            else:
-                print >> sys.stderr, "votecast: *** warning - error in sending msg to", show_permid_short(target_permid), exc
-
-    ################################
     def gotVoteCastMessage(self, recv_msg, sender_permid, selversion):
         """ Receives VoteCast message and handles it. """
         # VoteCast feature is renewed in eleventh version; hence, do not receive from lower version peers
@@ -135,7 +99,6 @@ class VoteCastCore:
 
         if not sender_permid or sender_permid == self.my_permid:
             if DEBUG:
-
                 print >> sys.stderr, "votecast: error - got votecastMsg from a None peer", \
                         show_permid_short(sender_permid), recv_msg
             return False
@@ -146,7 +109,6 @@ class VoteCastCore:
             return False
 
         votecast_data = {}
-
         try:
             votecast_data = bdecode(recv_msg)
         except:
@@ -168,49 +130,31 @@ class VoteCastCore:
                 MSG_ID = "VOTECAST"
                 msg = voteCastMsgToString(votecast_data)
                 self.overlay_log('RECV_MSG', ip, port, show_permid(sender_permid), selversion, MSG_ID, msg)
- 
-        if self.TESTASSERVER:
-            self.createAndSendVoteCastMessage(sender_permid, selversion)
         return True
 
-    ################################
-        ################################
     def handleVoteCastMsg(self, sender_permid, data):
         """ Handles VoteCast message """
         if DEBUG: 
             print >> sys.stderr, "votecast: Processing VOTECAST msg from: ", show_permid_short(sender_permid), "; data: ", repr(data)
-
-        mod_ids = Set()
+        
+        modified_channels = set()
+        
+        votes = []
+        voter_id = self.peerdb.getPeerID(sender_permid)
         for key, value in data.items():
-            vote = {}
-            vote['mod_id'] = bin2str(key)
-            vote['voter_id'] = permid_for_user(sender_permid)
-            vote['vote'] = value['vote']
-            vote['time_stamp'] = value['time_stamp'] 
-            self.votecastdb.addVote(vote)
+            #TODO: seems incorrect
+            channel_id = self.peerdb.getPeerID(key)
+            vote = value['vote']
+            time_stamp = value['time_stamp']
             
-            mod_ids.add(vote['mod_id'])
-
-        # Arno, 2010-02-24: Generate event
-        for mod_id in mod_ids:
+            votes.append((channel_id, voter_id, vote, time_stamp))
+            modified_channels.add(channel_id)
+        
+        self.votecastdb.addVotes(votes)
+        for channel_id in modified_channels:
             try:
-                self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, mod_id)
+                self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id)
             except:
                 print_exc()
-            
         if DEBUG:
             print >> sys.stderr,"votecast: Processing VOTECAST msg from: ", show_permid_short(sender_permid), "DONE; data:"
-            
-    def showAllVotes(self):
-        """ Currently this function is only for testing, to show all votes """
-        if DEBUG:
-            records = self.votecastdb.getAll()
-            print >>sys.stderr, "Existing votes..."
-            for record in records:
-                print >>sys.stderr, "    mod_id:",record[0],"; voter_id:", record[1], "; votes:",record[2],"; timestamp:", record[3]
-            print >>sys.stderr, "End of votes..."        
-
-    
-
-
-    ################################

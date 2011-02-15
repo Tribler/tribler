@@ -133,7 +133,7 @@ class TorrentFeedThread(Thread):
             torrentdef = TorrentDef.load_from_dict(torrent_data)
             if DEBUG: 
                 print >>sys.stderr,"subscrip:Adding a torrent in my channel: %s" % torrentdef.get_name_as_unicode()
-            self.channelcast_db.addOwnTorrent(torrentdef)
+            self.channelcast_db.addNewTorrent(torrentdef)
 
         self.lock.acquire()
         if url not in self.urls:

@@ -1,3 +1,4 @@
+# Written by Niels Zeilemaker
 import wx
 import wx.lib.scrolledpanel as scrolled
 
@@ -65,15 +66,16 @@ class ListItem(wx.Panel):
         self.original_data = original_data
          
         self.showChange = showChange
+        self.list_deselected = LIST_DESELECTED
         self.list_selected = list_selected
         
         self.highlightTimer = None
         self.selected = False
         self.expanded = False
-        self.SetBackgroundColour(LIST_DESELECTED)
+        self.SetBackgroundColour(self.list_deselected)
         self.SetForegroundColour(parent_list.GetForegroundColour())
         self.SetFont(parent_list.GetFont())
-         
+        
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
          
@@ -92,12 +94,12 @@ class ListItem(wx.Panel):
                 if self.columns[i]['icon'] == 'checkbox' or self.columns[i]['icon'] == 'tree':
                     self.icontype = self.columns[i]['icon']
                     self.expandedState = wx.StaticBitmap(self, -1, self.GetIcon(LIST_DESELECTED, 0))
-                    self.hSizer.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+                    self.hSizer.Add(self.expandedState, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
                 else:
                     icon = self.columns[i]['icon'](self)
                     if icon:
                         icon = wx.StaticBitmap(self, -1, icon)
-                        self.hSizer.Add(icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+                        self.hSizer.Add(icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
                         
             type = self.columns[i].get('type','label')
             if type == 'label':
@@ -242,7 +244,7 @@ class ListItem(wx.Panel):
         if selected:
             self.BackgroundColor(self.list_selected)
         else:
-            self.BackgroundColor(LIST_DESELECTED)
+            self.BackgroundColor(self.list_deselected)
     
     def BackgroundColor(self, color):
         if self.GetBackgroundColour() != color:
@@ -264,9 +266,16 @@ class ListItem(wx.Panel):
             self.Thaw()
     
     def Deselect(self):
-        if self.selected or self.expanded:
+        dirty = False
+        if self.selected:
             self.selected = False
-            self.expanded = False
+            dirty = True
+        
+        if self.expanded:
+            self.Collapse()
+            dirty = False
+        
+        if dirty:
             self.ShowSelected()
     
     def GetColumn(self, column):
@@ -316,16 +325,17 @@ class ListItem(wx.Panel):
             return self.vSizer.GetChildren()[1].GetWindow()
 
     def Collapse(self):
-        self.expanded = False
-        self.ShowSelected()
-        
-        if len(self.vSizer.GetChildren()) > 1:
-            item = self.vSizer.GetItem(1).GetWindow()
-            item.Hide()
+        if self.expanded:
+            self.expanded = False
+            self.ShowSelected()
             
-            self.vSizer.Detach(1)
-            self.vSizer.Layout()
-            return item
+            if len(self.vSizer.GetChildren()) > 1:
+                item = self.vSizer.GetItem(1).GetWindow()
+                item.Hide()
+                
+                self.vSizer.Detach(1)
+                self.vSizer.Layout()
+                return item
         
 class AbstractListBody():
     def __init__(self, parent, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False):
@@ -571,7 +581,12 @@ class AbstractListBody():
             self.Scroll(-1, self.vSizer.GetSize()[1])
         else:
             self.Scroll(-1, 0)
-    
+            
+    def ScrollToId(self, id):
+        if id in self.items:
+            sy = self.items[id].GetPosition()[1] / self.GetScrollPixelsPerUnit()[1]
+            self.Scroll(-1, sy)
+
     def ShowMessage(self, message):
         self.Freeze()
         
@@ -654,8 +669,8 @@ class AbstractListBody():
                         pass
                 self.highlightSet = set()
             else:
-                cur_keys = set([key for key,_,_ in self.data[:LIST_ITEM_MAX_SIZE]])
-                self.highlightSet = set([key for key,_,_ in data[:LIST_ITEM_MAX_SIZE] if key not in cur_keys])
+                cur_keys = set([curdata[0] for curdata in self.data[:LIST_ITEM_MAX_SIZE]])
+                self.highlightSet = set([curdata[0] for curdata in data[:LIST_ITEM_MAX_SIZE] if curdata[0] not in cur_keys])
 
             self.data = data
             self.done = False
@@ -696,13 +711,21 @@ class AbstractListBody():
         self.vSizer.Remove(self.messagePanel)
         
         message = self.__GetFilterMessage()
+        
         #Add created/cached items
-        for key, item_data, original_data in self.data:
+        for curdata in self.data:
+            if len(curdata) > 3:
+                key, item_data, original_data, create_method = curdata
+            else:
+                key, item_data, original_data = curdata
+                create_method = ListItem
+            
             if nr_items_to_add > 0:
                 if key in self.items:
                     item = self.items[key]
+                    
                 elif nr_items_to_create > 0:
-                    item = ListItem(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
+                    item = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
                     self.items[key] = item
                     
                     nr_items_to_create -= 1

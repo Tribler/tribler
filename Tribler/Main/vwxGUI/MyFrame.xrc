@@ -80,14 +80,21 @@
           <object class="sizeritem">
             <flag>wxEXPAND</flag>
             <option>1</option>
-            <object class="wxPanel" name="selchannellist" subclass="Tribler.Main.vwxGUI.list.SelectedChannelList">
+            <object class="wxPanel" name="selchannellist" subclass="Tribler.Main.vwxGUI.channel.SelectedChannelList">
               <hidden>1</hidden>
             </object>
           </object>
           <object class="sizeritem">
             <flag>wxEXPAND</flag>
             <option>1</option>
-            <object class="wxPanel" name="mychannel" subclass="Tribler.Main.vwxGUI.list.MyChannelList">
+            <object class="wxPanel" name="playlist" subclass="Tribler.Main.vwxGUI.channel.Playlist">
+              <hidden>1</hidden>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND</flag>
+            <option>1</option>
+            <object class="wxPanel" name="managechannel" subclass="Tribler.Main.vwxGUI.channel.ManageChannel">
               <hidden>1</hidden>
             </object>
           </object>

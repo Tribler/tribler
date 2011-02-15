@@ -1007,23 +1007,6 @@ class BuddyCastCore:
             except:
                 print_exc()
             
-        # As of March 5, 2009, VoteCast Messages are sent in lock-step with BuddyCast.
-        # (only if there are any votes to send.)
-        # Update (July 24, 2009): ChannelCast is used in place of ModerationCast
-       
-        if self.votecast_core != None:
-            try:
-                self.votecast_core.createAndSendVoteCastMessage(target_permid, selversion)
-            except:
-                print_exc()
-                
-
-        if self.channelcast_core != None:
-            try:
-                self.channelcast_core.createAndSendChannelCastMessage(target_permid, selversion)
-            except:
-                print_exc()
-            
         if self.log:
             dns = self.dnsindb(target_permid)
             if dns:

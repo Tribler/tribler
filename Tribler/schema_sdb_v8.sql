@@ -1,5 +1,5 @@
 -- Tribler SQLite Database
--- Version: 6
+-- Version: 8
 --
 -- History:
 --   v1: Published as part of Tribler 4.5
@@ -7,7 +7,8 @@
 --   v3: Published as part of Next-Share M16
 --   v4: Published as part of Tribler 5.2
 --   v5: Published as part of Next-Share M30 for subtitles integration
---   v6: Published as part of Tribler 5.3
+--   v7: Published as part of Tribler 5.3
+--   v8: Published as part of Tribler 5.4
 
 -- 
 -- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
@@ -241,28 +242,6 @@ CREATE VIEW Friend AS SELECT * FROM Peer WHERE friend=1;
 CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
 
 
--- V2: Patch for VoteCast
-            
-CREATE TABLE VoteCast (
-mod_id text,
-voter_id text,
-vote integer,
-time_stamp integer
-);
-
-CREATE INDEX mod_id_idx
-on VoteCast 
-(mod_id);
-
-CREATE INDEX voter_id_idx
-on VoteCast 
-(voter_id);
-
-CREATE UNIQUE INDEX votecast_idx
-ON VoteCast
-(mod_id, voter_id);
-
-
 -- V2: Patch for BuddyCast 4
 
 CREATE TABLE ClicklogSearch (
@@ -316,35 +295,6 @@ CREATE INDEX Number_of_leechers_idx
 CREATE UNIQUE INDEX Popularity_idx
   ON Popularity
    (torrent_id, peer_id, msg_receive_time);
-
-
-
--- v4: Patch for ChannelCast, Search
-
-CREATE TABLE ChannelCast (
-publisher_id text,
-publisher_name text,
-infohash text,
-torrenthash text,
-torrentname text,
-time_stamp integer,
-signature text
-);
-
--- WHY NO CONSTRAINT ON PUBLISHER_ID, INFOHASH? 
--- WHY THESE INDEXES?
-
-CREATE INDEX pub_id_idx
-on ChannelCast
-(publisher_id);
-
-CREATE INDEX pub_name_idx
-on ChannelCast
-(publisher_name);
-
-CREATE INDEX infohash_ch_idx
-on ChannelCast
-(infohash);
 
 ----------------------------------------
 
@@ -428,15 +378,6 @@ on SubtitlesHave(received_ts);
 
 -------------------------------------
 
--- v6: Patch for ChannelCast
-
-CREATE UNIQUE INDEX publisher_id_infohash_idx
-on ChannelCast
-(publisher_id,infohash);
-
-
--------------------------------------
-
 -- v7: TermFrequency and TorrentBiTermPhrase
 --     for "Network Buzz" feature;
 --     Also UserEventLog table for user studies.
@@ -474,6 +415,126 @@ CREATE TABLE UserEventLog (
   message        text
 );
 
+----------------------------------------
+-- v8: Open2Edit replacing ChannelCast tables
+
+CREATE TABLE IF NOT EXISTS Channels (
+  id                    integer         PRIMARY KEY ASC,
+  dispersy_id           integer,
+  peer_id               integer,
+  name                  text            NOT NULL,
+  description           text
+);
+CREATE TABLE IF NOT EXISTS ChannelTorrents (
+  id                    integer         PRIMARY KEY ASC,
+  dispersy_id           integer,
+  torrent_id            integer         NOT NULL,
+  channel_id            integer         NOT NULL,
+  name                  text,
+  description           text,
+  created               integer,
+  inserted              integer         DEFAULT (strftime('%s','now')),
+  UNIQUE (torrent_id, channel_id),
+  FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS TorChannelIndex ON ChannelTorrents(channel_id);
+CREATE TABLE IF NOT EXISTS Playlists (
+  id                    integer         PRIMARY KEY ASC,
+  channel_id            integer         NOT NULL,
+  dispersy_id           integer         NOT NULL,
+  playlist_id           integer,
+  name                  text            NOT NULL,
+  description           text,
+  FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS PlayChannelIndex ON Playlists(channel_id);
+CREATE TABLE IF NOT EXISTS PlaylistTorrents (
+  playlist_id           integer,
+  channeltorrent_id     integer,
+  PRIMARY KEY (playlist_id, channeltorrent_id),
+  FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE,
+  FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS Comments (
+  id                    integer         PRIMARY KEY ASC,
+  dispersy_id           integer         NOT NULL,
+  peer_id               integer         NOT NULL,
+  channel_id            integer         NOT NULL,
+  comment               text            NOT NULL,
+  reply_to_id           integer,
+  FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ComChannelIndex ON Comments(channel_id);
+CREATE TABLE IF NOT EXISTS Media(
+  id                    integer         PRIMARY KEY ASC,
+  dispersy_id           integer         NOT NULL,
+  channel_id            integer         NOT NULL,
+  type                  integer         NOT NULL,
+  data                  blob            NOT NULL,
+  FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS MeChannelIndex ON Media(channel_id);
+
+CREATE TABLE IF NOT EXISTS Warnings (
+  id                    integer         PRIMARY KEY ASC,
+  dispersy_id           integer         NOT NULL,
+  channel_id            integer         NOT NULL,
+  peer_id               integer         NOT NULL,
+  by_peer_id            integer         NOT NULL,
+  severity              integer         NOT NULL DEFAULT (1),
+  message               text            NOT NULL,
+  cause                 integer         NOT NULL,
+  time_stamp            integer         NOT NULL,
+  FOREIGN KEY (channel_id) REFERENCES Channels(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS WaChannelIndex ON Warnings(channel_id);
+
+CREATE TABLE IF NOT EXISTS CommentPlaylist (
+  comment_id            integer,
+  playlist_id           integer,
+  PRIMARY KEY (comment_id,playlist_id),
+  FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE
+  FOREIGN KEY (comment_id) REFERENCES Comments(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS CoPlaylistIndex ON CommentPlaylist(playlist_id);
+
+CREATE TABLE IF NOT EXISTS CommentTorrent (
+  comment_id            integer,
+  channeltorrent_id     integer,
+  PRIMARY KEY (comment_id, channeltorrent_id),
+  FOREIGN KEY (comment_id) REFERENCES Comments(id) ON DELETE CASCADE
+  FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS CoTorrentIndex ON CommentTorrent(channeltorrent_id);
+
+CREATE TABLE IF NOT EXISTS MediaTorrent (
+  media_id              integer,
+  channeltorrent_id     integer,
+  PRIMARY KEY (media_id, channeltorrent_id),
+  FOREIGN KEY (media_id) REFERENCES Media(id) ON DELETE CASCADE
+  FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS MeTorrentIndex ON MediaTorrent(channeltorrent_id);
+
+CREATE TABLE IF NOT EXISTS MediaPlaylist (
+  media_id              integer,
+  playlist_id           integer,
+  PRIMARY KEY (media_id,playlist_id),
+  FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE
+  FOREIGN KEY (media_id) REFERENCES Media(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS MePlaylistIndex ON MediaPlaylist(playlist_id);
+
+CREATE TABLE ChannelVotes (
+  channel_id            integer,
+  voter_id              integer,
+  dispersy_id           integer,
+  vote                  integer,
+  time_stamp            integer,
+  PRIMARY KEY (channel_id, voter_id)
+);
+CREATE INDEX IF NOT EXISTS ChaVotIndex ON ChannelVotes(channel_id);
+CREATE INDEX IF NOT EXISTS VotChaIndex ON ChannelVotes(voter_id);
 
 -------------------------------------
 
@@ -499,7 +560,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 7);
+INSERT INTO MyInfo VALUES ('version', 8);
 
 COMMIT TRANSACTION init_values;
 

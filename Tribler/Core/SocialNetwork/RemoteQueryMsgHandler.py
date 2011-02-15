@@ -321,31 +321,25 @@ class RemoteQueryMsgHandler:
             kws = split_into_keywords(uq)
             hits = self.search_torrents(kws, maxhits=MAX_RESULTS,sendtorrents=sendtorrents)
             p = self.create_remote_query_reply(d['id'],hits,selversion)
-            
-        elif netwq.startswith("CHANNEL"): # channel query
-            if DEBUG:
-                print>>sys.stderr, "Incoming channel query", d['q']
-            q = d['q'][len('CHANNEL '):]
-            uq = self.clean_netwq(q,channelquery=True)
-            hits = self.channelcast_db.searchChannels(uq)
-            p = self.create_channel_query_reply(d['id'],hits,selversion)
 
         # log incoming query, if logfile is set
         if self.logfile:
             self.log(permid, q)        
-     
-        m = QUERY_REPLY+p
-
-        if self.overlay_log:
-            nqueries = self.get_peer_nqueries(permid)
-            # RECV_MSG PERMID OVERSION NUM_QUERIES MSG
-            self.overlay_log('RECV_QRY', show_permid(permid), selversion, nqueries, repr(d))
-
-            # RPLY_QRY PERMID NUM_HITS MSG
-            self.overlay_log('RPLY_QRY', show_permid(permid), len(hits), repr(p))
-
-        self.overlay_bridge.send(permid, m, self.send_callback)
         
+        if p:
+            #TODO: ask arno if this is ok
+            m = QUERY_REPLY+p
+    
+            if self.overlay_log:
+                nqueries = self.get_peer_nqueries(permid)
+                # RECV_MSG PERMID OVERSION NUM_QUERIES MSG
+                self.overlay_log('RECV_QRY', show_permid(permid), selversion, nqueries, repr(d))
+    
+                # RPLY_QRY PERMID NUM_HITS MSG
+                self.overlay_log('RPLY_QRY', show_permid(permid), len(hits), repr(p))
+    
+            self.overlay_bridge.send(permid, m, self.send_callback)
+            
         self.inc_peer_nqueries(permid)
 
  # This function need not be used, since it is handled quite well by split_into_keywords 
@@ -398,17 +392,6 @@ class RemoteQueryMsgHandler:
                 
             d2[torrent['infohash']] = r
         d['a'] = d2
-        return bencode(d)
-
-    def create_channel_query_reply(self,id,hits,selversion):
-        d = {}
-        d['id'] = id
-        
-        if self.bc_fac.channelcast_core is not None:
-            d2 = self.bc_fac.channelcast_core.buildChannelcastMessageFromHits(hits,selversion,fromQuery=True)
-            d['a'] = d2
-        else:
-            d['a'] = {}
         return bencode(d)
     
     #
