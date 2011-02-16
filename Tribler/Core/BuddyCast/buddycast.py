@@ -157,7 +157,6 @@ import sys
 from random import sample, randint, shuffle
 from time import time, gmtime, strftime
 from traceback import print_exc,print_stack
-from sets import Set
 from array import array
 from bisect import insort
 from copy import deepcopy
@@ -714,7 +713,7 @@ class BuddyCastCore:
             peer_id = self.data_handler.getPeerID(permid)
             send_block_list_ids.append(peer_id)
         
-        target_cands_ids = Set(self.data_handler.peers) - Set(send_block_list_ids)
+        target_cands_ids = set(self.data_handler.peers) - set(send_block_list_ids)
         recent_peers_ids = self.selectRecentPeers(target_cands_ids, number, 
                                               startfrom=self.bootstrap_time*number)
         
@@ -1481,7 +1480,7 @@ class BuddyCastCore:
         
         _now = now()
         
-        cache_db_data = {'peer':{},'infohash':Set(),'pref':[], 'coll':[]}  # peer, updates / pref, pairs, Rahim: coll for colleected torrents
+        cache_db_data = {'peer':{},'infohash':set(),'pref':[], 'coll':[]}  # peer, updates / pref, pairs, Rahim: coll for colleected torrents
         cache_peer_data = {}
         
         tbs = buddycast_data.pop('taste buddies')
@@ -1582,13 +1581,13 @@ class BuddyCastCore:
         if selversion >= OLPROTO_VER_ELEVENTH: 
             collecteds = self.createCollectedDictionaryList(buddycast_data, selversion)
             buddycast_data['collected torrents'] = collecteds
-            infohashes = Set(self.getCollectedHashes(buddycast_data, selversion))
+            infohashes = set(self.getCollectedHashes(buddycast_data, selversion))
         else: 
-            infohashes = Set(buddycast_data.get('collected torrents', []))           
+            infohashes = set(buddycast_data.get('collected torrents', []))           
         
         # Nicolas: store this back into buddycast_data because it's used later on gotBuddyCastMessage again
         buddycast_data['preferences'] = prefs  
-        prefhashes = Set(self.getPreferenceHashes(buddycast_data))  # only accept sender's preference, to avoid pollution
+        prefhashes = set(self.getPreferenceHashes(buddycast_data))  # only accept sender's preference, to avoid pollution
         infohashes = infohashes.union(prefhashes)
                 
         cache_db_data['infohash'] = infohashes
@@ -2130,7 +2129,7 @@ class DataHandler:
         # self.term_db = launchmany.term_db
         self.friend_db = launchmany.friend_db
         self.pops_db = launchmany.pops_db
-        self.myfriends = Set() # FIXME: implement friends
+        self.myfriends = set() # FIXME: implement friends
         self.myprefs = []    # torrent ids
         self.peers = {}    # peer_id: [similarity, last_seen, prefs(array('l',[torrent_id])] 
         self.default_peer = [0, 0, None]

@@ -913,7 +913,7 @@ class PreferenceDBHandler(BasicDBHandler):
         
         all_terms_unclean = set()
         for pref in prefs:
-            newterms = Set(pref.get('search_terms',[]))
+            newterms = set(pref.get('search_terms',[]))
             all_terms_unclean = all_terms_unclean.union(newterms)        
             
         all_terms = [] 
