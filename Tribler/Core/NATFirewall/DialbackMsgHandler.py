@@ -440,7 +440,7 @@ def tally_opinion(myip,oplist,requiredquorum):
     # the memory is such a way.  Therefore we have a hard limit on the
     # number of items in the list, dropping the older ones as needed.
     if len(oplist) > REPLY_HARD_LIMIT:
-        oplist.remove(0)
+        del oplist[0]
     if DEBUG:
         print >> sys.stderr,"dialback: DIALBACK_REPLY: peer said I have IP address",myip
 
